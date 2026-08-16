@@ -1,0 +1,101 @@
+@import "tailwindcss";
+
+/**
+ * 254 Engineering Services design tokens.
+ *
+ * Three colours and two typefaces, and that is the whole system. The brief was a
+ * firm with gravitas, and gravitas in print is mostly restraint: one dark, one
+ * light, one metal, used in the same proportions on every page so the eye stops
+ * noticing the palette and starts reading the words.
+ *
+ * CONTRAST IS PART OF THE TOKEN, NOT A CHECK AFTERWARDS
+ * ----------------------------------------------------
+ * Brass at its display value is 3.3:1 on limestone. That clears AA for large
+ * text and for non-text graphics, and fails it for body copy. Rather than leave
+ * that to be discovered per component, the metal is split in three:
+ *
+ *   --color-brass        rules, dividers, marks, large display type
+ *   --color-brass-ink    the same hue darkened to 5.6:1, for text on limestone
+ *   --color-brass-light  lifted to 5.4:1, for text on slate
+ *
+ * A component picks by surface, and scripts/contrast-audit.mjs proves it.
+ */
+@theme {
+  /* Deep slate blue. The primary, and the only dark surface on the site. */
+  --color-slate-ink: #0e2234;
+  --color-slate: #16324b;
+  --color-slate-soft: #2a536f;
+  --color-slate-muted: #4a5b6b;
+
+  /* Texas limestone. Warm, pale, and never pure white. */
+  --color-limestone: #f7f3ea;
+  --color-limestone-raised: #fffdf9;
+  --color-limestone-sunk: #efe9dc;
+  --color-limestone-line: #ded5c4;
+
+  /* Brass. One accent, three values, chosen by surface. See the note above. */
+  --color-brass: #a97c2a;
+  --color-brass-ink: #7c5a15;
+  --color-brass-light: #c9a44f;
+
+  /* On-slate text tones. */
+  --color-slate-fg: #f7f3ea;
+  --color-slate-fg-muted: #b9c6d2;
+
+  --font-display: var(--font-source-serif), ui-serif, Georgia, serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  /* A single generous rhythm. Sections breathe or the firm looks small. */
+  --spacing-section: 5.5rem;
+  --spacing-section-lg: 8rem;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    /* Tabular figures everywhere. This is a firm named after a number. */
+    font-variant-numeric: tabular-nums;
+  }
+
+  body {
+    background-color: var(--color-limestone);
+    color: var(--color-slate-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    color: var(--color-slate);
+    letter-spacing: -0.011em;
+    text-wrap: balance;
+  }
+
+  /*
+   * A visible focus ring, on brass, everywhere.
+   *
+   * The default ring is a browser blue that fights the palette, so it tends to
+   * get removed and not replaced. This replaces it once, at the base layer, so
+   * keyboard operation survives every component written after today.
+   */
+  :focus-visible {
+    outline: 2px solid var(--color-brass-ink);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  ::selection {
+    background-color: var(--color-slate);
+    color: var(--color-limestone);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
