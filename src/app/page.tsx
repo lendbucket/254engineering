@@ -1,7 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Container } from "@/components/ui/Container";
-import { ButtonLink, Eyebrow, Rule, SectionHeading } from "@/components/ui/primitives";
+import {
+  ButtonLink,
+  CardGrid,
+  cardCell,
+  Eyebrow,
+  Rule,
+  SectionHeading,
+} from "@/components/ui/primitives";
 import { OfferCta } from "@/components/launch/OfferCta";
 import { CredentialsStrip } from "@/components/site/CredentialsStrip";
 import { buildMetadata } from "@/lib/seo";
@@ -13,7 +20,7 @@ import { business } from "@/config/business";
 export const metadata: Metadata = buildMetadata({
   title: "Texas Engineering Services in All 254 Counties",
   description:
-    "254 Engineering Services is a veteran owned Texas engineering firm named for the 254 counties of Texas. Inspections, sealed letters, certifications, and design.",
+    "254 Engineering Services is a veteran owned Texas engineering firm named for the 254 counties of Texas. Sealed inspections, certifications, and design.",
   path: "/",
 });
 
@@ -113,9 +120,9 @@ export default function HomePage() {
               title="What this firm is built to deliver"
               lede="Nine service lines, each ending in a document somebody relies on: a lender, an insurer, a building official, or a court."
             />
-            <ul className="mt-12 grid gap-px overflow-hidden rounded-[3px] border border-limestone-line bg-limestone-line sm:grid-cols-2 lg:grid-cols-3">
+            <CardGrid cols={3} className="mt-12">
               {services.map((s) => (
-                <li key={s.slug} className="bg-limestone-raised">
+                <li key={s.slug} className={cardCell}>
                   <Link
                     href={`/services/${s.slug}`}
                     className="group flex h-full flex-col p-7 transition-colors hover:bg-limestone"
@@ -132,7 +139,7 @@ export default function HomePage() {
                   </Link>
                 </li>
               ))}
-            </ul>
+            </CardGrid>
           </div>
         </Container>
       </section>
@@ -146,9 +153,9 @@ export default function HomePage() {
               title="Every county in Texas, grouped into eight regions"
               lede="Coverage is stated by region because that is the honest unit. Wind zones, soil behavior, and permitting authority change across the state, and a firm that serves all of it has to account for that rather than average it."
             />
-            <ul className="mt-11 grid gap-px overflow-hidden rounded-[3px] border border-limestone-line bg-limestone-line sm:grid-cols-2">
+            <CardGrid className="mt-11">
               {regions.map((r) => (
-                <li key={r.slug} className="bg-limestone-raised">
+                <li key={r.slug} className={cardCell}>
                   <Link
                     href={`/coverage/${r.slug}`}
                     className="flex h-full items-baseline justify-between gap-5 px-6 py-5 transition-colors hover:bg-limestone"
@@ -162,7 +169,7 @@ export default function HomePage() {
                   </Link>
                 </li>
               ))}
-            </ul>
+            </CardGrid>
             <p className="mt-8">
               <Link
                 href="/coverage"

@@ -133,6 +133,71 @@ export function SectionHeading({
   );
 }
 
+/**
+ * Long form document typography, for the privacy policy and the terms.
+ *
+ * Set at the container rather than per element so the two legal documents cannot
+ * drift apart typographically, and so adding a paragraph to one of them requires
+ * no styling decision. The measure is narrow on purpose: these are documents
+ * somebody may actually have to read closely.
+ */
+export function Prose({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return (
+    <div
+      className={`
+        text-[1rem] leading-[1.78] text-slate-muted
+        [&_a]:text-slate [&_a]:underline [&_a]:decoration-brass/60 [&_a]:underline-offset-4
+        [&_h2]:mt-14 [&_h2]:text-[1.45rem] [&_h2]:leading-[1.3] [&_h2]:font-semibold [&_h2]:text-slate
+        [&_h3]:mt-9 [&_h3]:text-[1.12rem] [&_h3]:leading-[1.35] [&_h3]:font-semibold [&_h3]:text-slate
+        [&_li]:mt-2.5
+        [&_p]:mt-5
+        [&_strong]:font-semibold [&_strong]:text-slate
+        [&_ul]:mt-5 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-6
+        ${className}
+      `}
+    >
+      {children}
+    </div>
+  );
+}
+
+/**
+ * The card grid used for services, regions, and every other set of linked cards.
+ *
+ * WHY IT DRAWS ITS LINES WITH BORDERS RATHER THAN WITH GAPS
+ * ---------------------------------------------------------
+ * The tidier looking technique is a one pixel gap over a coloured container, so
+ * the container shows through as hairlines between the cells. It has one defect
+ * and it is visible on any grid whose item count does not fill the last row: the
+ * unoccupied cell is not empty, it is a solid block of the line colour. Nine
+ * services in a two column grid produced exactly that, a tan rectangle that
+ * reads as a card somebody forgot to write.
+ *
+ * Borders on the cells put the lines where they belong and leave a short last
+ * row genuinely empty, which is what a table does and what a reader expects.
+ */
+export function CardGrid({
+  children,
+  cols = 2,
+  className = "",
+}: {
+  children: ReactNode;
+  cols?: 2 | 3;
+  className?: string;
+}) {
+  const colClass = cols === 3 ? "sm:grid-cols-2 lg:grid-cols-3" : "sm:grid-cols-2";
+  return (
+    <ul
+      className={`grid overflow-hidden rounded-[3px] border-t border-l border-limestone-line ${colClass} ${className}`}
+    >
+      {children}
+    </ul>
+  );
+}
+
+/** The classes every direct child of a CardGrid carries. */
+export const cardCell = "border-r border-b border-limestone-line bg-limestone-raised";
+
 /** A bordered panel on limestone. The only card treatment on the site. */
 export function Panel({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (

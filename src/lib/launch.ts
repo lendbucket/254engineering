@@ -14,11 +14,25 @@
  * the safe answer, because prelaunch is the default for any value that is not
  * exactly "live".
  *
- * LAUNCH_MODE is a plain server variable, not NEXT_PUBLIC_. Next inlines
- * NEXT_PUBLIC_ names at build time, so a NEXT_PUBLIC_ gate could not be flipped
- * without a rebuild, and worse, could be flipped in the bundle while the server
- * still believed otherwise. Every consumer of this is a Server Component or a
- * server module, so a runtime read is both correct and safer.
+ * LAUNCH_MODE is a plain server variable, not NEXT_PUBLIC_. A NEXT_PUBLIC_ gate
+ * would be inlined into the client bundle, where it could be read by anyone and,
+ * worse, could disagree with what the server believed. Every consumer of this is
+ * a Server Component or a server module, so the value never reaches a browser.
+ *
+ * FLIPPING THE MODE REQUIRES A REBUILD, AND THAT IS FINE
+ * ------------------------------------------------------
+ * Almost every page on this site is statically prerendered, which means this
+ * function runs during `next build` and its answer is baked into the HTML.
+ * Changing LAUNCH_MODE on a running server therefore changes nothing until the
+ * site is rebuilt. That is worth being explicit about rather than discovering on
+ * the day it matters: on Vercel, editing an environment variable already
+ * requires a redeploy to take effect, so the deployment story is unchanged. What
+ * it rules out is flipping the firm from pending to open by restarting a
+ * process, and a compliance state that could change without a deploy leaving an
+ * audit trail is not one this firm should want.
+ *
+ * scripts/launch-audit.mjs exercises both modes against `next dev` for the same
+ * reason: dev renders per request, so one build can be audited in both states.
  */
 export type LaunchMode = "prelaunch" | "live";
 

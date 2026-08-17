@@ -1,0 +1,99 @@
+// The whole suite, in one command.
+//
+//   npm run build && npx next start -p 3225      (in one terminal)
+//   AUDIT_KILL_STALE=1 npm run audit             (in another)
+//
+// WHY IT RUNS THROUGH npm RATHER THAN CALLING THE SCRIPTS DIRECTLY
+// ----------------------------------------------------------------
+// Every audit has a `pre` hook wired in package.json, and those hooks are the
+// guards: the BUILD_ID handshake for the ones that read the shared server, and
+// the build guard for the ones that spawn their own. Spawning
+// `node scripts/foo-audit.mjs` from here would bypass all of it and hand back a
+// green suite measured against a stale artifact. Going through `npm run` means
+// the runner cannot weaken a check the individual command enforces.
+//
+// WHY THE SUITE IS IN TWO PHASES
+// ------------------------------
+// The two halves want opposite states of the world:
+//
+//   Phase one reads a `next start` on 3225. It needs that server up, and the
+//   BUILD_ID handshake refuses if it is serving anything other than the build
+//   currently on disk.
+//
+//   Phase two spawns `next dev`, which WRITES .next. Running it while the phase
+//   one server is serving out of .next is the tearing incident the build guard
+//   exists to prevent, so the guard refuses unless AUDIT_KILL_STALE=1 lets it
+//   clear the way first.
+//
+// So phase two stops the server phase one needed. That is stated out loud below
+// rather than left as a surprise, because the server not being there afterward
+// looks like a crash if you were not expecting it.
+//
+// Every audit runs even when an earlier one fails. A suite that stops at the
+// first failure hides how much else is broken, which turns one fix into five
+// round trips.
+import { spawnSync } from "node:child_process";
+
+const BASE = process.env.BASE_URL || "http://localhost:3225";
+
+const PHASE_ONE = [
+  { name: "coverage-audit", why: "all 254 counties, exactly once, rendered" },
+  { name: "placeholder-audit", why: "no scaffolding, no long dashes, no emoji, no stray contact details" },
+  { name: "seo-audit", why: "title and description budgets, uniqueness, schema, Lighthouse SEO 100" },
+  { name: "forms-audit", why: "all four forms end to end, plus the server side guards" },
+];
+
+const PHASE_TWO = [
+  { name: "launch-audit", why: "the compliance gate, in both modes" },
+  { name: "mobile-audit", why: "zero horizontal scroll and 44px tap targets at four widths" },
+  { name: "contrast-audit", why: "WCAG 2.1 A and AA including the form error states" },
+];
+
+const results = [];
+
+function run(audit, env) {
+  console.log(`\n${"=".repeat(72)}`);
+  console.log(`RUNNING: ${audit.name}  (${audit.why})`);
+  console.log("=".repeat(72));
+  const r = spawnSync("npm", ["run", audit.name], {
+    stdio: "inherit",
+    env,
+    shell: process.platform === "win32",
+  });
+  results.push({ name: audit.name, code: r.status ?? 1 });
+}
+
+for (const audit of PHASE_ONE) {
+  run(audit, { ...process.env, BASE_URL: BASE });
+}
+
+console.log(`\n${"=".repeat(72)}`);
+console.log("PHASE TWO: these audits start their own server.");
+console.log(`The server on ${BASE} will be stopped, because next dev writes .next`);
+console.log("and tearing it underneath a running server is the failure the build");
+console.log("guard exists to prevent. Restart it afterward with:");
+console.log("  npm run build && npx next start -p 3225");
+console.log("=".repeat(72));
+
+for (const audit of PHASE_TWO) {
+  // BASE_URL is deliberately removed. With it set these harnesses point at the
+  // shared server instead of spawning their own, and the launch audit in
+  // particular would then measure one mode twice while reporting on two.
+  const env = { ...process.env, AUDIT_KILL_STALE: "1" };
+  delete env.BASE_URL;
+  run(audit, env);
+}
+
+console.log(`\n${"=".repeat(72)}`);
+console.log("SUITE SUMMARY");
+console.log("=".repeat(72));
+for (const r of results) {
+  console.log(`  ${r.code === 0 ? "PASS" : "FAIL"}  ${r.name}`);
+}
+const failed = results.filter((r) => r.code !== 0);
+console.log(
+  failed.length === 0
+    ? `\nAll ${results.length} audits pass.`
+    : `\n${failed.length} of ${results.length} audits failed: ${failed.map((r) => r.name).join(", ")}`,
+);
+process.exitCode = failed.length ? 1 : 0;

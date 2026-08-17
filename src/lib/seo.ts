@@ -28,9 +28,18 @@ import { business } from "@/config/business";
 const MAX_TITLE = 58;
 const HARD_MAX_TITLE = 60;
 
-/** The description window. Under 155 is the requirement; 140 is where prose reads full. */
+/**
+ * The description ceiling.
+ *
+ * There is no floor enforced here, on purpose. A short description is a copy
+ * problem and cutting one is not a fix a function can perform, so the floor
+ * lives in scripts/seo-audit.mjs where it fails a build instead of being
+ * silently papered over. That distinction caught a real defect on the first run:
+ * the homepage description ran to 158 characters, this function dropped its
+ * second sentence to fit, and the result was a valid 103 character description
+ * that nobody had written.
+ */
 const MAX_DESC = 155;
-export const MIN_DESC = 140;
 
 function normalize(text: string): string {
   return text.trim().replace(/\s+/g, " ");
