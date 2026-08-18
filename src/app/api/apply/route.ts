@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { engineerApplicationSchema, fieldErrors, technicianApplicationSchema } from "@/lib/forms";
 import { insertApplication } from "@/lib/intake";
 import { notify } from "@/lib/notify";
+import {
+  engineerApplicationNotification,
+  technicianApplicationNotification,
+} from "@/lib/email-templates";
 
 /**
  * Careers intake for both tracks.
@@ -56,24 +60,21 @@ export async function POST(request: Request) {
       userAgent,
     });
 
-    const mail = await notify({
-      subject: `PE application: ${data.name} (${data.city})`,
-      replyTo: data.email,
-      lines: [
-        ["Track", "Professional Engineer"],
-        ["Name", data.name],
-        ["Email", data.email],
-        ["Phone", data.phone],
-        ["City", data.city],
-        ["Texas PE license", data.licenseNumber],
-        ["Disciplines", data.disciplines],
-        ["TDI windstorm appointment", data.tdiAppointed === "yes" ? "Yes" : "No"],
-        ["Availability", data.availability],
-        ["Message", data.message],
-        ["Page", data.landingPath],
-        ["Referrer", data.referrer],
-      ],
-    });
+    const mail = await notify(
+      engineerApplicationNotification({
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        city: data.city,
+        licenseNumber: data.licenseNumber,
+        disciplines: data.disciplines,
+        tdiAppointed: data.tdiAppointed === "yes",
+        availability: data.availability,
+        message: data.message,
+        landingPath: data.landingPath,
+        referrer: data.referrer,
+      }),
+    );
 
     if (!write.ok) console.error(`[apply] write failed (engineer): ${write.error}`);
     if (!mail.sent) console.error(`[apply] notification not sent (engineer): ${mail.reason}`);
@@ -103,24 +104,21 @@ export async function POST(request: Request) {
     userAgent,
   });
 
-  const mail = await notify({
-    subject: `Technician application: ${data.name} (${data.city})`,
-    replyTo: data.email,
-    lines: [
-      ["Track", "Field Inspection Technician"],
-      ["Name", data.name],
-      ["Email", data.email],
-      ["Phone", data.phone],
-      ["City", data.city],
-      ["Counties willing to serve", data.counties],
-      ["Background", data.experience],
-      ["Part 107 drone license", data.droneLicense === "yes" ? "Yes" : "No"],
-      ["Reliable vehicle", data.reliableVehicle === "yes" ? "Yes" : "No"],
-      ["Message", data.message],
-      ["Page", data.landingPath],
-      ["Referrer", data.referrer],
-    ],
-  });
+  const mail = await notify(
+    technicianApplicationNotification({
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+      city: data.city,
+      counties: data.counties,
+      experience: data.experience,
+      droneLicense: data.droneLicense === "yes",
+      reliableVehicle: data.reliableVehicle === "yes",
+      message: data.message,
+      landingPath: data.landingPath,
+      referrer: data.referrer,
+    }),
+  );
 
   if (!write.ok) console.error(`[apply] write failed (technician): ${write.error}`);
   if (!mail.sent) console.error(`[apply] notification not sent (technician): ${mail.reason}`);

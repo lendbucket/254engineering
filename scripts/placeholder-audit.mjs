@@ -25,6 +25,12 @@
 //      555 one.
 //   4. No email off the firm's own domain.
 //   5. No TODO, TBD, FIXME, PLACEHOLDER, XXX, or lorem ipsum.
+//   6. No PE name, licence number, or firm registration number that is not in
+//      src/config/credentials.ts. Engineering is a regulated profession in
+//      Texas, and a plausible looking licence number written in as a placeholder
+//      is indistinguishable from a real one to every reader except the board.
+import { credentialAllowlist, permittedCredentialStrings } from "../src/config/credentials.ts";
+
 const BASE = process.env.BASE_URL || "http://localhost:3225";
 
 /** The one domain company email may live on. */
@@ -42,7 +48,30 @@ const ALLOWLIST = [
     literal: "notifications@254engineering.com",
     why: "The From address on notification email. On domain, never rendered to a visitor, and present only if it ever leaks into markup.",
   },
+  // The credential allowlist lives in the config beside the register it guards,
+  // so that adding a permitted credential and explaining why it is permitted are
+  // the same edit.
+  ...credentialAllowlist,
 ];
+
+/**
+ * Credential shaped strings.
+ *
+ * Anything matching these has to be in src/config/credentials.ts, which is
+ * currently empty on purpose: no PE has been hired and the firm registration is
+ * pending, so no credential may render anywhere on this site.
+ *
+ * The patterns are deliberately broad. A false positive costs a line in the
+ * allowlist and a sentence explaining it. A false negative is a fabricated
+ * licence number on a page that a procurement officer checks against the board.
+ */
+const PE_NAME = /\b[A-Z][a-z]+(?:\s+[A-Z]\.)?\s+[A-Z][a-z]+,\s*P\.?\s?E\.?(?![a-z])/g;
+const LICENSE_NUMBER = /\b(?:P\.?E\.?|licen[sc]e|lic\.)\s*(?:no\.?|number|#)?\s*[:#]?\s*\d{4,7}\b/gi;
+const FIRM_REGISTRATION =
+  /\bF-\d{3,6}\b|\bfirm\s+(?:registration|reg\.?)\s*(?:no\.?|number|#)\s*[:#]?\s*[A-Za-z0-9-]{2,}/gi;
+const TBPELS_NUMBER = /\bTBPELS\s+Firm\s+No\.?\s*[A-Za-z0-9-]+/gi;
+
+const permitted = permittedCredentialStrings();
 
 const allowed = (match) => ALLOWLIST.some((a) => match.includes(a.literal) || a.literal.includes(match));
 
@@ -145,6 +174,20 @@ function scanText(route, where, text) {
   for (const m of text.matchAll(EMAIL)) {
     const domain = m[0].split("@")[1]?.toLowerCase();
     if (domain !== REAL_EMAIL_DOMAIN) record(route, "off-domain email", m[0], where);
+  }
+
+  // Credentials. A match is a finding unless the exact string is in the
+  // verified register, so an empty register forbids all of them.
+  for (const [pattern, rule] of [
+    [PE_NAME, "unverified PE name"],
+    [LICENSE_NUMBER, "unverified licence number"],
+    [FIRM_REGISTRATION, "unverified firm registration"],
+    [TBPELS_NUMBER, "unverified TBPELS firm number"],
+  ]) {
+    for (const m of text.matchAll(pattern)) {
+      if (permitted.some((value) => m[0].includes(value))) continue;
+      record(route, rule, m[0], where);
+    }
   }
 
   for (const pattern of [PHONE, PHONE_RUN]) {

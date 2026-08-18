@@ -1,0 +1,110 @@
+{
+  "/careers": {
+    "contextual": 1,
+    "template": 0
+  },
+  "/government": {
+    "contextual": 1,
+    "template": 2
+  },
+  "/": {
+    "contextual": 0,
+    "template": 25
+  },
+  "/about": {
+    "contextual": 0,
+    "template": 22
+  },
+  "/contact": {
+    "contextual": 0,
+    "template": 1
+  },
+  "/coverage": {
+    "contextual": 0,
+    "template": 11
+  },
+  "/coverage/austin-central-texas": {
+    "contextual": 0,
+    "template": 43
+  },
+  "/coverage/coastal-bend": {
+    "contextual": 0,
+    "template": 31
+  },
+  "/coverage/dallas-fort-worth": {
+    "contextual": 0,
+    "template": 78
+  },
+  "/coverage/greater-houston": {
+    "contextual": 0,
+    "template": 29
+  },
+  "/coverage/panhandle": {
+    "contextual": 0,
+    "template": 54
+  },
+  "/coverage/rio-grande-valley": {
+    "contextual": 0,
+    "template": 29
+  },
+  "/coverage/san-antonio": {
+    "contextual": 0,
+    "template": 26
+  },
+  "/coverage/west-texas": {
+    "contextual": 0,
+    "template": 68
+  },
+  "/privacy": {
+    "contextual": 0,
+    "template": 1
+  },
+  "/services": {
+    "contextual": 0,
+    "template": 10
+  },
+  "/services/forensic-engineering": {
+    "contextual": 0,
+    "template": 4
+  },
+  "/services/foundation-inspections": {
+    "contextual": 0,
+    "template": 17
+  },
+  "/services/manufactured-home-foundation-certifications": {
+    "contextual": 0,
+    "template": 9
+  },
+  "/services/repair-specifications": {
+    "contextual": 0,
+    "template": 3
+  },
+  "/services/residential-light-commercial-design": {
+    "contextual": 0,
+    "template": 7
+  },
+  "/services/roof-inspections": {
+    "contextual": 0,
+    "template": 14
+  },
+  "/services/solar-structural-letters": {
+    "contextual": 0,
+    "template": 13
+  },
+  "/services/structural-letters": {
+    "contextual": 0,
+    "template": 6
+  },
+  "/services/windstorm-wpi-8": {
+    "contextual": 0,
+    "template": 13
+  },
+  "/terms": {
+    "contextual": 0,
+    "template": 1
+  },
+  "/waitlist": {
+    "contextual": 0,
+    "template": 23
+  }
+}

@@ -1,6 +1,7 @@
 import "server-only";
 import { Resend } from "resend";
 import { business } from "@/config/business";
+import type { RenderedEmail } from "./email-templates";
 
 /**
  * Notification email for form submissions.
@@ -40,28 +41,25 @@ function client(): Resend | null {
  */
 const FROM = `254 Engineering Services <notifications@${business.domain}>`;
 
-export async function notify(params: {
-  subject: string;
-  lines: [string, string | null | undefined][];
-  replyTo?: string;
-}): Promise<NotifyResult> {
+/**
+ * Send an already rendered message.
+ *
+ * The rendering lives in src/lib/email-templates.ts and this function does not
+ * compose copy. That separation is what lets scripts/email-audit.mjs check every
+ * outbound template without a network, a key, or a send: it renders the same
+ * functions this route does and reads the result.
+ */
+export async function notify(email: RenderedEmail): Promise<NotifyResult> {
   const mailer = client();
   if (!mailer) return { sent: false, reason: "RESEND_API_KEY is not set" };
-
-  // Empty values are dropped rather than rendered as a blank line, so the
-  // notification reads as what was submitted rather than as a form with holes.
-  const body = params.lines
-    .filter(([, value]) => value != null && String(value).trim() !== "")
-    .map(([label, value]) => `${label}: ${String(value).trim()}`)
-    .join("\n");
 
   try {
     const { error } = await mailer.emails.send({
       from: FROM,
       to: business.notificationEmail,
-      subject: params.subject,
-      replyTo: params.replyTo,
-      text: `${body}\n\nSubmitted through ${business.domain}.`,
+      subject: email.subject,
+      replyTo: email.replyTo,
+      text: email.text,
     });
     if (error) return { sent: false, reason: error.message };
     return { sent: true };

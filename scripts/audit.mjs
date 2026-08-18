@@ -36,9 +36,21 @@ import { spawnSync } from "node:child_process";
 
 const BASE = process.env.BASE_URL || "http://localhost:3225";
 
+/**
+ * Phase zero needs neither a server nor a build. Cheap, fast, and run first so
+ * that a broken registry or a bad email template is known before anything
+ * expensive starts.
+ */
+const PHASE_ZERO = [
+  { name: "registry-audit", why: "keyword ownership is self consistent and every live claim resolves" },
+  { name: "email-audit", why: "every outbound template: voice, absolute links, plaintext part" },
+];
+
 const PHASE_ONE = [
   { name: "coverage-audit", why: "all 254 counties, exactly once, rendered" },
-  { name: "placeholder-audit", why: "no scaffolding, no long dashes, no emoji, no stray contact details" },
+  { name: "placeholder-audit", why: "scaffolding, dashes, emoji, contact details, unverified credentials" },
+  { name: "voice-audit", why: "banned phrases, structural tells, present tense service claims" },
+  { name: "cta-audit", why: "a conversion path on every route, honest under the gate" },
   { name: "seo-audit", why: "title and description budgets, uniqueness, schema, Lighthouse SEO 100" },
   { name: "forms-audit", why: "all four forms end to end, plus the server side guards" },
 ];
@@ -61,6 +73,10 @@ function run(audit, env) {
     shell: process.platform === "win32",
   });
   results.push({ name: audit.name, code: r.status ?? 1 });
+}
+
+for (const audit of PHASE_ZERO) {
+  run(audit, { ...process.env });
 }
 
 for (const audit of PHASE_ONE) {
@@ -96,4 +112,14 @@ console.log(
     ? `\nAll ${results.length} audits pass.`
     : `\n${failed.length} of ${results.length} audits failed: ${failed.map((r) => r.name).join(", ")}`,
 );
+
+// link-map is a measurement, not a gate. It has no failure condition, because
+// "too few contextual links" is a judgment about a content plan rather than a
+// defect, so running it inside the suite would either be noise or an arbitrary
+// threshold. Named here so it is not forgotten rather than left out silently.
+console.log(
+  "\nNot in the suite: `npm run link-map` measures contextual versus template inbound",
+);
+console.log("links and has no pass or fail. Run it before and after any linking pass.");
+
 process.exitCode = failed.length ? 1 : 0;
