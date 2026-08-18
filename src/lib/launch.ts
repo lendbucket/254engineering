@@ -64,6 +64,31 @@ export function tbpelsFirmNumber(): string | null {
 }
 
 /**
+ * Is a licensed Professional Engineer in responsible charge yet?
+ *
+ * THE SECOND GATE, WHICH THIS SITE WAS MISSING
+ * --------------------------------------------
+ * Firm registration and an engineer of record are two separate facts and the
+ * site treated them as one. Every page said work is "reviewed and sealed by a
+ * licensed Texas Professional Engineer in responsible charge", and nine service
+ * pages promised it "within a few business days". Both are claims about a person
+ * who has not been hired.
+ *
+ * That is its own regulatory problem, not a softer version of the firm
+ * registration one. Sealing requires a PE. A firm with a registration and no
+ * engineer still cannot seal anything, so the registration lifting must not lift
+ * the sealing language with it.
+ *
+ * Gated on the licence being supplied rather than on a boolean, because the
+ * thing that makes this true is a specific person with a specific number, and
+ * requiring the number means the gate cannot be opened by optimism.
+ */
+export function peInResponsibleCharge(): boolean {
+  if (isPrelaunch()) return false;
+  return Boolean(process.env.TBPELS_PE_LICENSE?.trim());
+}
+
+/**
  * The registration line that appears in the footer on every page.
  *
  * Two different sentences, both true at the time they render. The prelaunch one
@@ -73,10 +98,22 @@ export function tbpelsFirmNumber(): string | null {
  */
 export function registrationLine(): string {
   const firmNumber = tbpelsFirmNumber();
-  if (firmNumber) {
+  const pe = peInResponsibleCharge();
+
+  if (firmNumber && pe) {
     return `${businessLegalName} TBPELS Firm No. ${firmNumber}`;
   }
-  return "Firm registration pending with the Texas Board of Professional Engineers and Land Surveyors.";
+
+  // Both pendings are stated, and separately, because they are separate facts
+  // and a reader who is checking one will want to know about the other. A
+  // registration alone does not let a firm seal anything.
+  if (firmNumber && !pe) {
+    return `${businessLegalName} TBPELS Firm No. ${firmNumber}. No engineer of record is yet in responsible charge, and no work is being sealed.`;
+  }
+  if (!firmNumber && pe) {
+    return "Firm registration pending with the Texas Board of Professional Engineers and Land Surveyors.";
+  }
+  return "Firm registration pending with the Texas Board of Professional Engineers and Land Surveyors. No engineer of record is yet in responsible charge.";
 }
 
 const businessLegalName = "254 Engineering Services LLC";

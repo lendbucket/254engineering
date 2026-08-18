@@ -1,6 +1,6 @@
 import { Container } from "@/components/ui/Container";
 import { business, samRegistration } from "@/config/business";
-import { tbpelsFirmNumber } from "@/lib/launch";
+import { peInResponsibleCharge, tbpelsFirmNumber } from "@/lib/launch";
 
 /**
  * The credentials strip.
@@ -16,6 +16,7 @@ import { tbpelsFirmNumber } from "@/lib/launch";
  */
 export function CredentialsStrip() {
   const firmNumber = tbpelsFirmNumber();
+  const pe = peInResponsibleCharge();
 
   const items: { label: string; value: string }[] = [
     {
@@ -23,6 +24,15 @@ export function CredentialsStrip() {
       value: firmNumber
         ? `TBPELS Firm No. ${firmNumber}`
         : "Pending with the Texas Board of Professional Engineers and Land Surveyors",
+    },
+    {
+      // The second gate, stated on its own line rather than folded into the
+      // registration one. A firm can hold a registration and still have nobody
+      // able to seal, and a reader checking credentials needs both facts.
+      label: "Engineer of record",
+      value: pe
+        ? "A licensed Texas Professional Engineer is in responsible charge"
+        : "No engineer of record is yet in responsible charge. No work is being sealed",
     },
     {
       label: "Ownership",
@@ -44,7 +54,7 @@ export function CredentialsStrip() {
     <section aria-label={`${business.name} credentials`} className="border-b border-limestone-line">
       <Container>
         <div className="py-12 sm:py-14">
-          <ul className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-10">
+          <ul className="grid gap-8 sm:grid-cols-2 lg:grid-cols-5 lg:gap-8">
             {items.map((item) => (
               <li key={item.label}>
                 <span aria-hidden="true" className="block h-px w-8 bg-brass" />

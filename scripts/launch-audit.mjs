@@ -37,6 +37,8 @@ const LIVE_PORT = Number(process.env.LAUNCH_AUDIT_LIVE_PORT || 3228);
 
 /** A stand-in firm number for the live run. Never rendered anywhere else. */
 const TEST_FIRM_NUMBER = "AUDIT-FIXTURE-NOT-A-REAL-REGISTRATION";
+/** Stand-in PE licence for the live run. Same reasoning as the firm number. */
+const TEST_PE_LICENSE = "AUDIT-FIXTURE-NOT-A-REAL-LICENCE";
 
 const ROUTES = [
   "/",
@@ -142,6 +144,36 @@ const PRESENT_TENSE_OFFER = [
 ];
 
 /**
+ * Claims that a licensed engineer is already doing the work.
+ *
+ * SEPARATE FROM THE LIST ABOVE, BECAUSE IT IS A SEPARATE GATE
+ * -----------------------------------------------------------
+ * The offer list catches a firm saying it sells something. This catches a firm
+ * saying a licensed person is already sealing it. They are different claims with
+ * different licences behind them, and this site failed the second one everywhere
+ * while passing the first one everywhere: eleven pages said work "is reviewed and
+ * sealed by a licensed Texas Professional Engineer in responsible charge", and
+ * nine service pages promised that sealing "within a few business days".
+ *
+ * None of it tripped the offer list, because none of those sentences say "we".
+ * That is the lesson worth keeping: a phrase list catches the phrasing somebody
+ * thought of, and the claim that got through was made in the passive voice.
+ */
+const PRESENT_TENSE_SEALING = [
+  { pattern: /\bis reviewed and sealed by\b/i, why: "states work is being sealed now" },
+  { pattern: /\bare reviewed and sealed by\b/i, why: "states work is being sealed now" },
+  { pattern: /\bthe same engineers\b/i, why: "implies engineers already on staff" },
+  { pattern: /\blets the firm hold specialists\b/i, why: "implies specialists already retained" },
+  { pattern: /\bengineer reviews the record\b/i, why: "present tense review by a PE" },
+  { pattern: /\bsealed within\b/i, why: "turnaround promise for sealed work" },
+  { pattern: /\breviewed and sealed within\b/i, why: "turnaround promise for sealed work" },
+  {
+    pattern: /\bby licensed Texas Professional Engineers\b/i,
+    why: "plural engineer fiction",
+  },
+];
+
+/**
  * Boot a server in one mode, crawl it, and shut it down before the next.
  *
  * Sequential rather than side by side, and not by preference. Next 16 refuses to
@@ -171,10 +203,16 @@ async function run() {
     const pre = await crawlMode("prelaunch", PRELAUNCH_PORT, {
       LAUNCH_MODE: "prelaunch",
       TBPELS_FIRM_NUMBER: "",
+      TBPELS_PE_LICENSE: "",
     });
+    // Live means both gates open: a registration AND an engineer of record. The
+    // in-between state, registered but nobody able to seal, is real and is
+    // handled by registrationLine(), but the live assertions below describe the
+    // fully open site.
     const live = await crawlMode("live", LIVE_PORT, {
       LAUNCH_MODE: "live",
       TBPELS_FIRM_NUMBER: TEST_FIRM_NUMBER,
+      TBPELS_PE_LICENSE: TEST_PE_LICENSE,
     });
 
     const unreachablePre = [...pre.entries()].filter(([, p]) => p.status !== 200).map(([r]) => r);
@@ -233,6 +271,37 @@ async function run() {
       /not yet accepting engineering work/i.test(pre.get("/waitlist").text),
     );
 
+    // ---------- the engineer of record gate ----------
+
+    const sealingClaims = [];
+    for (const { pattern, why } of PRESENT_TENSE_SEALING) {
+      for (const route of routesMatching(pre, pattern)) {
+        sealingClaims.push(`${route}: ${why}`);
+      }
+    }
+    rec(
+      "prelaunch: no page claims a licensed engineer is already reviewing or sealing",
+      sealingClaims.length === 0,
+      sealingClaims.join("; "),
+    );
+
+    const turnaroundPromise = routesMatching(pre, /\b(?:reviewed and )?sealed within\b/i);
+    rec(
+      "prelaunch: no service page promises a turnaround for sealed work",
+      turnaroundPromise.length === 0,
+      turnaroundPromise.join(", "),
+    );
+
+    const PE_DISCLOSURE = /no engineer of record is yet in responsible charge/i;
+    const missingPeDisclosure = [...pre.entries()]
+      .filter(([route, p]) => !route.endsWith(".txt") && !PE_DISCLOSURE.test(p.text))
+      .map(([route]) => route);
+    rec(
+      "prelaunch: every page states plainly that no engineer of record is in place",
+      missingPeDisclosure.length === 0,
+      missingPeDisclosure.join(", "),
+    );
+
     rec(
       "prelaunch: llms.txt carries the registration status so a model summarizing the firm states it correctly",
       pre.get("/llms.txt").text.includes(DISCLOSURE),
@@ -268,6 +337,20 @@ async function run() {
       "live: the pending disclosure is gone from every page",
       liveDisclosureLeak.length === 0,
       liveDisclosureLeak.join(", "),
+    );
+
+    const livePeDisclosureLeak = routesMatching(live, /no engineer of record is yet in responsible charge/i);
+    rec(
+      "live: the engineer of record disclosure is gone from every page",
+      livePeDisclosureLeak.length === 0,
+      livePeDisclosureLeak.join(", "),
+    );
+
+    const liveSealing = routesMatching(live, /\bis reviewed and sealed by\b/i);
+    rec(
+      "live: the present tense sealing language returns",
+      liveSealing.length > 0,
+      liveSealing.length === 0 ? "no page states that work is reviewed and sealed" : "",
     );
 
     const liveNoticeLeak = routesMatching(live, /Opening soon/i);

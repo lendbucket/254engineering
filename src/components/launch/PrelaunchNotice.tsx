@@ -25,8 +25,9 @@ export function PrelaunchNotice({ service }: { service?: string }) {
       </p>
       <p className="mt-2.5 text-[0.96rem] leading-[1.65] text-slate-muted">
         254 Engineering Services is not yet accepting engineering work. Firm registration with the
-        Texas Board of Professional Engineers and Land Surveyors is pending, and this page describes
-        a service the firm is being built to deliver.{" "}
+        Texas Board of Professional Engineers and Land Surveyors is pending, no engineer of record is
+        yet in responsible charge, and this page describes a service the firm is being built to
+        deliver.{" "}
         <Link
           href={waitlistHref}
           className="font-medium text-slate underline decoration-brass/60 underline-offset-4 transition-colors hover:decoration-brass"
