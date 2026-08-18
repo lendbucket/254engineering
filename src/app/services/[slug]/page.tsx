@@ -11,6 +11,7 @@ import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema, faqSchema, serviceSchema } from "@/lib/schema";
 import { serviceBySlug, services } from "@/content/services";
 import { regions } from "@/content/regions";
+import { turnaroundCopy } from "@/content/model-copy";
 
 /**
  * Every service page is generated at build time and there is no dynamic
@@ -131,7 +132,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
                   Turnaround
                 </p>
                 <p className="mt-3 text-[0.96rem] leading-[1.7] text-slate-muted">
-                  {service.turnaround}
+                  {turnaroundCopy(service.turnaround)}
                 </p>
               </div>
             </div>

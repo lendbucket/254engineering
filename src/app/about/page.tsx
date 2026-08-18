@@ -8,6 +8,11 @@ import { Eyebrow, Rule, SectionHeading } from "@/components/ui/primitives";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { business } from "@/config/business";
+import {
+  centralReviewCopy,
+  responsibleChargeCopy,
+  specialistsCopy,
+} from "@/content/model-copy";
 
 export const metadata: Metadata = buildMetadata({
   title: "About 254 Engineering Services | Texas Firm",
@@ -95,7 +100,7 @@ export default function AboutPage() {
                 index="02"
                 title="Licensed engineers in responsible charge"
                 paragraphs={[
-                  "Every opinion, letter, certification, and drawing is reviewed and sealed by a Texas licensed Professional Engineer who takes responsible charge of it. That is a legal obligation attached to a person, and it is not delegable to a process or to a company.",
+                  responsibleChargeCopy(),
                   "The division of labor is deliberate and it runs one way. Field work gathers evidence and does not reach conclusions. The engineer reads the evidence, forms the opinion, and answers for it. A technician who is asked to decide is being asked to practice engineering.",
                 ]}
               />
@@ -103,8 +108,8 @@ export default function AboutPage() {
                 index="03"
                 title="Statewide remote review"
                 paragraphs={[
-                  "Reviewing centrally rather than regionally is what keeps the standard identical in Dalhart and in Harlingen. The same engineers see the same protocols applied across the whole state, which means a drift in one region is visible rather than invisible.",
-                  "It also lets the firm hold specialists that no single metro could support on its own, including engineers appointed by the Texas Department of Insurance for windstorm inspections, whose appointment matters on the coast and nowhere else.",
+                  centralReviewCopy(),
+                  specialistsCopy(),
                 ]}
               />
             </div>

@@ -8,6 +8,7 @@ import { CardGrid, cardCell, SectionHeading } from "@/components/ui/primitives";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { services } from "@/content/services";
+import { reviewStepCopy, sealedDeliverableSentence } from "@/content/model-copy";
 
 export const metadata: Metadata = buildMetadata({
   title: "Engineering Services in Texas | 254 Engineering",
@@ -29,7 +30,7 @@ export default function ServicesPage() {
       <PageHeader
         eyebrow="Service lines"
         title="Engineering services for Texas property and construction"
-        lede="Nine service lines, each ending in a document somebody relies on: a lender, an insurer, a building official, or a court. Every one of them is reviewed and sealed by a licensed Texas Professional Engineer in responsible charge."
+        lede={`Nine service lines, each ending in a document somebody relies on: a lender, an insurer, a building official, or a court. ${sealedDeliverableSentence()}`}
         crumbs={crumbs}
       >
         <PrelaunchNotice />
@@ -85,7 +86,7 @@ export default function ServicesPage() {
                 {
                   step: "03",
                   title: "Engineering review",
-                  body: "A licensed Texas Professional Engineer reviews the record, forms the opinion, and takes responsible charge of it. Field work gathers evidence. It does not reach conclusions.",
+                  body: reviewStepCopy(),
                 },
                 {
                   step: "04",

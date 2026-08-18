@@ -16,6 +16,11 @@ import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { services } from "@/content/services";
 import { regions } from "@/content/regions";
 import { business } from "@/config/business";
+import {
+  modelSentence,
+  responsibleChargeCopy,
+  specialistsCopy,
+} from "@/content/model-copy";
 
 export const metadata: Metadata = buildMetadata({
   title: "Texas Engineering Services in All 254 Counties",
@@ -39,9 +44,8 @@ export default function HomePage() {
                 Texas engineering services in all 254 counties
               </h1>
               <p className="mt-7 max-w-xl text-[1.1rem] leading-[1.65] text-slate-muted">
-                Inspections, sealed letters, certifications, and design, delivered on one standard
-                from the Panhandle to the Rio Grande Valley. Field work to a written protocol,
-                reviewed and sealed by licensed Texas Professional Engineers in responsible charge.
+                Inspections, sealed letters, certifications, and design, built to one standard from
+                the Panhandle to the Rio Grande Valley. {modelSentence()}
               </p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
                 <ButtonLink href="/services">See the service lines</ButtonLink>
@@ -200,12 +204,12 @@ export default function HomePage() {
               <ModelPoint
                 index="02"
                 title="A licensed engineer in responsible charge"
-                body="Every opinion, letter, and drawing is reviewed and sealed by a Texas licensed Professional Engineer who takes responsible charge of it. Field work gathers evidence. The engineer forms the opinion and answers for it."
+                body={responsibleChargeCopy()}
               />
               <ModelPoint
                 index="03"
                 title="One review process, statewide"
-                body="Reviewing centrally is what keeps the standard identical in Dalhart and in Harlingen. It is also what lets the firm hold specialists, including engineers appointed by the Texas Department of Insurance for windstorm work, without needing one in every metro."
+                body={specialistsCopy()}
               />
             </div>
           </div>

@@ -2,6 +2,7 @@ import { business } from "@/config/business";
 import { services } from "@/content/services";
 import { regions } from "@/content/regions";
 import { registrationLine } from "@/lib/launch";
+import { modelSentence } from "@/content/model-copy";
 
 /**
  * /llms.txt
@@ -20,7 +21,7 @@ export const dynamic = "force-static";
 export function GET() {
   const body = `# ${business.name}
 
-> ${business.legalName}. A veteran owned Texas engineering firm named for the 254 counties of Texas, serving every one of them. Inspections, sealed letters, certifications, and design, delivered through standardized field protocols and central review by licensed Texas Professional Engineers in responsible charge.
+> ${business.legalName}. A veteran owned Texas engineering firm named for the 254 counties of Texas, serving every one of them. Inspections, sealed letters, certifications, and design, delivered through standardized field protocols and central engineering review. ${modelSentence()}
 
 ## Current status
 

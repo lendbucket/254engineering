@@ -2,6 +2,7 @@ import { business, samRegistration } from "@/config/business";
 import { services } from "@/content/services";
 import { regions } from "@/content/regions";
 import { registrationLine } from "@/lib/launch";
+import { responsibleChargeCopy, specialistsCopy, turnaroundCopy } from "@/content/model-copy";
 
 /**
  * /llms-full.txt
@@ -42,9 +43,9 @@ Texas has 254 counties, more than any other state, and they are not one place. A
 
 1. Standardized field protocols. Each service line has a written inspection protocol covering what is measured, what is photographed, in what order, and what must be recorded when a condition cannot be observed. Technicians are certified on the protocol before a first assignment on that service.
 
-2. Licensed engineers in responsible charge. Every opinion, letter, certification, and drawing is reviewed and sealed by a Texas licensed Professional Engineer who takes responsible charge of it. Field work gathers evidence and does not reach conclusions.
+2. Licensed engineers in responsible charge. ${responsibleChargeCopy()} Field work gathers evidence and does not reach conclusions.
 
-3. Statewide remote review. Reviewing centrally rather than regionally keeps the standard identical across the state and allows the firm to hold specialists, including engineers appointed by the Texas Department of Insurance for windstorm inspections.
+3. Statewide remote review. ${specialistsCopy()}
 `);
 
   sections.push(`## Registrations and status
@@ -81,7 +82,7 @@ ${service.deliverable.map((d) => `- ${d}`).join("\n")}
 
 ### Turnaround
 
-${service.turnaround}
+${turnaroundCopy(service.turnaround)}
 
 ### Questions
 

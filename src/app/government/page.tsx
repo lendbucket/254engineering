@@ -10,6 +10,7 @@ import { business, samRegistration } from "@/config/business";
 import { tbpelsFirmNumber } from "@/lib/launch";
 import { services } from "@/content/services";
 import { regions } from "@/content/regions";
+import { sealedDeliverableSentence } from "@/content/model-copy";
 
 export const metadata: Metadata = buildMetadata({
   title: "Government Engineering Services in Texas",
@@ -51,8 +52,7 @@ export default function GovernmentPage() {
               <p className="text-[1.02rem] leading-[1.75] text-slate-muted">
                 {business.name} delivers inspections, sealed engineering letters, certifications, and
                 design for property and construction across the State of Texas. Field work is
-                performed to written protocols by certified technicians. Every deliverable is
-                reviewed and sealed by a Texas licensed Professional Engineer in responsible charge.
+                performed to written protocols by certified technicians. {sealedDeliverableSentence()}
               </p>
               <ul className="mt-8 grid gap-x-8 gap-y-0 sm:grid-cols-2">
                 {services.map((s) => (

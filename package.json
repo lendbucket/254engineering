@@ -23,7 +23,7 @@
     "placeholder-audit": "node scripts/placeholder-audit.mjs",
     "precoverage-audit": "node scripts/preflight-audit.mjs",
     "coverage-audit": "node scripts/coverage-audit.mjs",
-    "prelaunch-audit": "node scripts/preflight-audit.mjs",
+    "prelaunch-audit": "node scripts/preflight-harness.mjs",
     "launch-audit": "node scripts/launch-audit.mjs",
     "audit": "node scripts/audit.mjs"
   },
