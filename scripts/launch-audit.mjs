@@ -36,7 +36,7 @@ const PRELAUNCH_PORT = Number(process.env.LAUNCH_AUDIT_PORT || 3227);
 const LIVE_PORT = Number(process.env.LAUNCH_AUDIT_LIVE_PORT || 3228);
 
 /** A stand-in firm number for the live run. Never rendered anywhere else. */
-const TEST_FIRM_NUMBER = "F-000000";
+const TEST_FIRM_NUMBER = "AUDIT-FIXTURE-NOT-A-REAL-REGISTRATION";
 
 const ROUTES = [
   "/",
