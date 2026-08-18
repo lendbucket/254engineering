@@ -19,6 +19,32 @@
  * up here. If it is absent, add it here first with an owner. If it belongs to
  * another brand, this brand does not target it.
  *
+ * THE TERRITORY RULING. FINAL. DO NOT REOPEN.
+ * -------------------------------------------
+ * The assignment below was contested three times during the session that built
+ * this file, each time proposing that StampMyPlans take the homeowner and
+ * consumer territory and Sealed Engineering take contractor plan review. The
+ * operator ruled, and the ruling is:
+ *
+ *   Sealed Engineering owns homeowner education AND all transactional
+ *   commercial service terms.
+ *
+ *   StampMyPlans owns contractor direct response and contractor process content
+ *   ONLY.
+ *
+ *   254 Engineering Services owns the institutional flag: firm level terms,
+ *   county geo, government and municipal content, and careers.
+ *
+ * Any earlier or later message implying the reverse is superseded by this
+ * ruling. It is recorded here rather than in a chat log because the live sites
+ * already match it and re-deciding it would mean telling two shipped brands to
+ * trade their entire corpora: sealedengineering.com runs the homeowner explainer
+ * corpus, 25 city pages, and the lender, realtor, and solar installer pages,
+ * while stampmyplans.com runs upload, pricing, volume, and the plan stamping FAQ.
+ *
+ * If you are reading this because you were about to swap them, the answer is no.
+ * Take it to the operator with this paragraph quoted.
+ *
  * HOW TO READ AN ENTRY
  * --------------------
  * `owner` is the brand entitled to rank for the term. `status` says what exists
@@ -136,7 +162,7 @@ export const registry: RegistryEntry[] = [
     status: "live",
     path: "/careers",
     note:
-      "COLLISION, UNRESOLVED. sealedengineering.com/careers is titled 'Field Technician Jobs in Texas | Sealed Engineering' and targets this term. The operator's split assigns careers to 254. stampmyplans.com/careers already routes hiring to 254 and is correct. The Sealed careers page needs to become a routing stub pointing at 254engineering.com/careers, or the split needs revisiting. Logged in BACKLOG.md.",
+      "COLLISION, RESOLVED 2026-08-17 on the sealed side. sealedengineering.com/careers was titled 'Field Technician Jobs in Texas' and targeted this term. It is now a routing stub titled 'Hiring Runs Through 254 Engineering Services', carrying no application form and no job term in its title, linking to 254engineering.com/careers. stampmyplans.com/careers already routed correctly. 254 owns this term outright.",
   },
 
   // ------------------------------------------------------- county geo (254)
@@ -202,6 +228,20 @@ export const registry: RegistryEntry[] = [
     path: "/services/roof-certification-letters",
     note: "254 previously targeted this as 'Roof Inspections and Certifications in Texas'. Rewritten as a capability page.",
   },
+  // PRIMARY TARGET as of 2026-08-18, by operator ruling on measured data.
+  // The unqualified national form carries the volume; the Texas-qualified form
+  // below measured zero. Texans type the unqualified form and Google localises,
+  // so this is accurate targeting rather than a reach. The page is Texas
+  // specific throughout and does not change.
+  {
+    keyword: "wpi-8 windstorm certification",
+    owner: "sealed",
+    kind: "transactional",
+    cluster: "service",
+    status: "live",
+    path: "/services/wpi-8-windstorm-certification",
+    note: "Primary target. Evidence: sealedengineering/docs/keyword-batch-phase-1.md. Related lookup-intent terms ('wpi-8 windstorm certificate search', 30/mo at KD 2, and 'texas windstorm wpi-8 certificate search', 80/mo at KD 9) are navigational toward the TDI lookup and are served by a dedicated page rather than by this one. County level windstorm geo remains 254's.",
+  },
   {
     keyword: "wpi-8 windstorm certification texas",
     owner: "sealed",
@@ -209,7 +249,7 @@ export const registry: RegistryEntry[] = [
     cluster: "service",
     status: "conceded",
     path: "/services/wpi-8-windstorm-certification",
-    note: "254 previously targeted this as 'Windstorm WPI-8 Certifications in Texas'. Rewritten as a capability page. Note the county level windstorm geo stays with 254.",
+    note: "SECONDARY variant of the entry above as of 2026-08-18; measured zero volume. Retained rather than deleted because it records the concession: 254 previously targeted this as 'Windstorm WPI-8 Certifications in Texas' and rewrote it as a capability page. County level windstorm geo stays with 254.",
   },
   {
     keyword: "foundation inspection report texas",
@@ -229,6 +269,18 @@ export const registry: RegistryEntry[] = [
     path: "/services/solar-structural-letters",
     note: "Same slug on both brands. 254 previously targeted 'Solar Structural Letters for Texas Installations'.",
   },
+  // PRIMARY TARGET as of 2026-08-18, by operator ruling on measured data.
+  // Same reasoning as the WPI-8 pair above: 50/mo unqualified against zero for
+  // the Texas-qualified form.
+  {
+    keyword: "manufactured home foundation certification",
+    owner: "sealed",
+    kind: "transactional",
+    cluster: "service",
+    status: "live",
+    path: "/services/manufactured-home-foundation-certification",
+    note: "Primary target. Evidence: sealedengineering/docs/keyword-batch-phase-1.md, 50/mo at KD 8. The 'hud manufactured home foundation certification' variant (20/mo) is served by the same page, which cites HUD-7584 and HUD-4930.3G directly.",
+  },
   {
     keyword: "manufactured home foundation certification texas",
     owner: "sealed",
@@ -236,7 +288,7 @@ export const registry: RegistryEntry[] = [
     cluster: "service",
     status: "conceded",
     path: "/services/manufactured-home-foundation-certification",
-    note: "254 previously targeted this near-identically.",
+    note: "SECONDARY variant of the entry above as of 2026-08-18; measured zero volume. Retained because it records that 254 previously targeted this near-identically.",
   },
   {
     keyword: "engineer letter for permit texas",

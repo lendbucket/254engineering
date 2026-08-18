@@ -31,6 +31,11 @@
 // exercise two modes from one build. The practical consequence for deployment is
 // stated in src/lib/launch.ts: flipping LAUNCH_MODE requires a rebuild.
 import { startNextServer } from "./lib/dev-server.mjs";
+import {
+  NEVER_CLAIMS,
+  PRESENT_TENSE_OFFER,
+  PRESENT_TENSE_SEALING,
+} from "./lib/regulatory.mjs";
 
 const PRELAUNCH_PORT = Number(process.env.LAUNCH_AUDIT_PORT || 3227);
 const LIVE_PORT = Number(process.env.LAUNCH_AUDIT_LIVE_PORT || 3228);
@@ -92,86 +97,14 @@ function routesMatching(pages, pattern) {
   return hits;
 }
 
-/**
- * Claims this firm may never make, in either mode.
+/*
+ * The regulated claim patterns come from scripts/lib/regulatory.mjs.
  *
- * These are not stylistic. Guaranteeing an approval or an engineering opinion in
- * advance is a professional conduct problem, and claim maximization language is
- * how an engineering firm ends up looking like a public adjuster to the Texas
- * Department of Insurance.
+ * They used to be defined here, and scripts/voice-audit.mjs carried its own
+ * copy of the same idea. The two disagreed within a day: this file learned the
+ * passive voice sealing patterns and the voice audit did not. One definition,
+ * consumed by both, and copied verbatim into the sibling repos.
  */
-/**
- * A negation guard for the claim patterns below.
- *
- * The first run of this audit failed on /llms.txt for the sentence "This firm
- * does not guarantee approvals, permits, or engineering conclusions in advance",
- * which is the disclaimer, not the claim. Matching a promise and its denial
- * identically would have taught whoever ran this next to delete the honest
- * sentence to get a green board, which is the exact opposite of what the check
- * is for. Variable length lookbehind is supported in V8, so the guard can sit
- * inline rather than requiring the text to be pre-processed.
- */
-const NOT = String.raw`(?<!\b(?:not|never|cannot|no|nor)\s)`;
-
-const NEVER = [
-  {
-    pattern: new RegExp(`${NOT}guarantee[ds]?\\s+(?:approval|permit|pass|certification|results?)`, "i"),
-    why: "guaranteed approval",
-  },
-  { pattern: /\bwe guarantee\b/i, why: "unqualified guarantee" },
-  { pattern: /maximi[sz]e\s+(?:your\s+)?(?:claim|settlement|payout|recovery)/i, why: "claim maximization" },
-  { pattern: /\bget\s+(?:your\s+)?claim\s+(?:paid|approved)\b/i, why: "claim outcome promise" },
-  { pattern: /\bfight\s+(?:your\s+)?insurance\b/i, why: "claim advocacy" },
-  { pattern: /\bdenied claim\b/i, why: "claim solicitation" },
-  {
-    pattern: new RegExp(`${NOT}guaranteed\\s+(?:pass|approval|turnaround)`, "i"),
-    why: "guaranteed outcome",
-  },
-  { pattern: /\b100%\s+(?:approval|pass)\b/i, why: "approval rate claim" },
-  { pattern: /\bno\s+(?:pass|approval)\s*,?\s*no\s+fee\b/i, why: "contingency on an engineering opinion" },
-];
-
-/**
- * Present-tense claims to performing engineering work. Forbidden in prelaunch,
- * expected to be permissible in live mode.
- */
-const PRESENT_TENSE_OFFER = [
-  /\bwe (?:offer|provide|perform|deliver|issue|seal|inspect|certify)\b/i,
-  /\bour engineers (?:will|can|seal|inspect|review)\b/i,
-  /\border (?:a|an|your)\b/i,
-  /\bschedule (?:an|your) inspection\b/i,
-  /\bnow accepting\b/i,
-];
-
-/**
- * Claims that a licensed engineer is already doing the work.
- *
- * SEPARATE FROM THE LIST ABOVE, BECAUSE IT IS A SEPARATE GATE
- * -----------------------------------------------------------
- * The offer list catches a firm saying it sells something. This catches a firm
- * saying a licensed person is already sealing it. They are different claims with
- * different licences behind them, and this site failed the second one everywhere
- * while passing the first one everywhere: eleven pages said work "is reviewed and
- * sealed by a licensed Texas Professional Engineer in responsible charge", and
- * nine service pages promised that sealing "within a few business days".
- *
- * None of it tripped the offer list, because none of those sentences say "we".
- * That is the lesson worth keeping: a phrase list catches the phrasing somebody
- * thought of, and the claim that got through was made in the passive voice.
- */
-const PRESENT_TENSE_SEALING = [
-  { pattern: /\bis reviewed and sealed by\b/i, why: "states work is being sealed now" },
-  { pattern: /\bare reviewed and sealed by\b/i, why: "states work is being sealed now" },
-  { pattern: /\bthe same engineers\b/i, why: "implies engineers already on staff" },
-  { pattern: /\blets the firm hold specialists\b/i, why: "implies specialists already retained" },
-  { pattern: /\bengineer reviews the record\b/i, why: "present tense review by a PE" },
-  { pattern: /\bsealed within\b/i, why: "turnaround promise for sealed work" },
-  { pattern: /\breviewed and sealed within\b/i, why: "turnaround promise for sealed work" },
-  {
-    pattern: /\bby licensed Texas Professional Engineers\b/i,
-    why: "plural engineer fiction",
-  },
-];
 
 /**
  * Boot a server in one mode, crawl it, and shut it down before the next.
@@ -255,9 +188,9 @@ async function run() {
     );
 
     const presentTense = [];
-    for (const claim of PRESENT_TENSE_OFFER) {
-      for (const route of routesMatching(pre, claim)) {
-        presentTense.push(`${route}: ${claim}`);
+    for (const { pattern, why } of PRESENT_TENSE_OFFER) {
+      for (const route of routesMatching(pre, pattern)) {
+        presentTense.push(`${route}: ${why}`);
       }
     }
     rec(
@@ -391,7 +324,7 @@ async function run() {
 
     // ---------- claims neither mode may make ----------
 
-    for (const { pattern, why } of NEVER) {
+    for (const { pattern, why } of NEVER_CLAIMS) {
       const hits = [
         ...routesMatching(pre, pattern).map((r) => `prelaunch ${r}`),
         ...routesMatching(live, pattern).map((r) => `live ${r}`),

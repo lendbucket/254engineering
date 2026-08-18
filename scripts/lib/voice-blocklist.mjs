@@ -59,27 +59,27 @@ export const BANNED_PHRASES = [
 /**
  * Present tense claims to performing engineering work.
  *
- * These are a regulatory matter, not a stylistic one. A firm without an active
- * TBPELS registration may not state or imply that it offers or performs
- * engineering services in Texas, and the phrases below are how that claim slips
- * into copy without anybody deciding to make it.
+ * Re-exported from scripts/lib/regulatory.mjs rather than defined here. This
+ * file used to carry its own copy, listing only the active voice forms, and a
+ * site claiming in twenty places that work "is reviewed and sealed by a licensed
+ * Texas Professional Engineer" passed it cleanly. The passive voice makes the
+ * same claim with none of the same words.
  *
- * Exported rather than duplicated because scripts/launch-audit.mjs asserts the
- * same property from the other direction, on a server it boots in prelaunch
- * mode. Two copies of this list would eventually disagree, and the half that
- * mattered would be the stale one.
+ * regulatory.mjs is the one definition, it carries both voices, and it is the
+ * file the sibling repos consume. See the note at the top of it.
  */
-export const REGULATORY_PRESENT_TENSE = [
-  { pattern: /\bwe (?:offer|provide|perform|deliver|issue|seal|stamp|inspect|certify)\b/i, why: "first person service claim" },
-  { pattern: /\bour engineers\b/i, why: "plural engineer fiction" },
-  { pattern: /\bour licensed (?:pe|professional engineer)/i, why: "claims a PE on staff" },
-  { pattern: /\border (?:a|an|your)\b/i, why: "invites an order" },
-  { pattern: /\bschedule (?:an|your) inspection\b/i, why: "invites a booking" },
-  { pattern: /\bnow accepting\b/i, why: "states the firm is trading" },
-  { pattern: /\bget started today\b/i, why: "invites an order" },
-  { pattern: /\bsame[\s-]day (?:seal|stamp|turnaround)\b/i, why: "turnaround promise for sealed work" },
-  { pattern: /\bwe will seal\b/i, why: "promises a seal" },
-];
+import { ALL_REGULATED } from "./regulatory.mjs";
+
+export {
+  ALL_REGULATED,
+  NEGATION_GUARD,
+  NEVER_CLAIMS,
+  PRESENT_TENSE_OFFER,
+  PRESENT_TENSE_SEALING,
+  findClaims,
+} from "./regulatory.mjs";
+
+export const REGULATORY_PRESENT_TENSE = ALL_REGULATED;
 
 /**
  * Structural tells.
