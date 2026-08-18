@@ -20,13 +20,20 @@
     "preseo-audit": "node scripts/preflight-audit.mjs",
     "seo-audit": "node scripts/seo-audit.mjs",
     "preplaceholder-audit": "node scripts/preflight-audit.mjs",
-    "placeholder-audit": "node scripts/placeholder-audit.mjs",
+    "placeholder-audit": "tsx scripts/placeholder-audit.mjs",
     "precoverage-audit": "node scripts/preflight-audit.mjs",
     "coverage-audit": "node scripts/coverage-audit.mjs",
     "prelaunch-audit": "node scripts/preflight-audit.mjs",
     "launch-audit": "node scripts/launch-audit.mjs",
     "audit": "node scripts/audit.mjs",
-    "registry-audit": "tsx scripts/registry-audit.mjs"
+    "registry-audit": "tsx scripts/registry-audit.mjs",
+    "prevoice-audit": "node scripts/preflight-audit.mjs",
+    "voice-audit": "node scripts/voice-audit.mjs",
+    "email-audit": "tsx scripts/email-audit.mjs",
+    "precta-audit": "node scripts/preflight-audit.mjs",
+    "cta-audit": "node scripts/cta-audit.mjs",
+    "prelink-map": "node scripts/preflight-audit.mjs",
+    "link-map": "node scripts/link-map.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",

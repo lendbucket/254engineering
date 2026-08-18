@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { contactSchema, fieldErrors, waitlistSchema } from "@/lib/forms";
 import { insertLead } from "@/lib/intake";
 import { notify } from "@/lib/notify";
+import { leadNotification } from "@/lib/email-templates";
 
 /**
  * Contact and waitlist intake.
@@ -55,23 +56,19 @@ export async function POST(request: Request) {
     userAgent,
   });
 
-  const mail = await notify({
-    subject: isWaitlist
-      ? `Waitlist: ${data.name}${data.service ? ` (${data.service})` : ""}`
-      : `Contact: ${data.name}${data.service ? ` (${data.service})` : ""}`,
-    replyTo: data.email,
-    lines: [
-      ["Form", isWaitlist ? "Waitlist" : "Contact"],
-      ["Name", data.name],
-      ["Email", data.email],
-      ["Phone", data.phone],
-      ["City", data.city],
-      ["Service of interest", data.service],
-      ["Message", data.message],
-      ["Page", data.landingPath],
-      ["Referrer", data.referrer],
-    ],
-  });
+  const mail = await notify(
+    leadNotification({
+      form,
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+      city: data.city,
+      service: data.service,
+      message: data.message,
+      landingPath: data.landingPath,
+      referrer: data.referrer,
+    }),
+  );
 
   // Logged, never surfaced. See the note in src/lib/intake.ts for why a failed
   // write still answers 200.
