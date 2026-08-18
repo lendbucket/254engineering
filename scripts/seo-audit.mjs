@@ -100,7 +100,8 @@ for (const route of routes) {
     problems.push(`${route}: HTTP ${res.status}`);
     continue;
   }
-  const meta = extract(await res.text());
+  const html = await res.text();
+  const meta = extract(html);
   const title = decode(meta.title);
   const description = decode(meta.description);
 
@@ -122,6 +123,36 @@ for (const route of routes) {
 
   if (meta.h1s.length !== 1)
     problems.push(`${route}: ${meta.h1s.length} h1 elements, expected exactly 1`);
+
+  /*
+   * The hasReviews false pattern, enforced permanently.
+   *
+   * No review or rating markup anywhere until real third party reviews exist.
+   * Until now this rule lived only as a comment in src/lib/schema.tsx, which
+   * means it was a convention rather than a guarantee: a future session adding
+   * an aggregateRating to make a rich result appear would have shipped it
+   * through a green suite.
+   *
+   * Rating markup is the single highest risk fabrication on a site like this.
+   * It is invisible to a reader, it is read by Google as a factual claim about
+   * third party sentiment, and inventing one is a manual action rather than an
+   * embarrassment. So it is checked in the raw HTML across every serialization:
+   * JSON-LD, microdata, and RDFa alike.
+   */
+  const ratingMarkup = [
+    [/"@type"\s*:\s*"(?:AggregateRating|Review|Rating)"/i, "JSON-LD review or rating node"],
+    [/"(?:aggregateRating|ratingValue|reviewCount|ratingCount|reviewBody|bestRating)"\s*:/i, "JSON-LD rating property"],
+    [/itemprop=["'](?:aggregateRating|ratingValue|reviewCount|ratingCount|reviewBody)["']/i, "microdata rating property"],
+    [/itemtype=["']https?:\/\/schema\.org\/(?:AggregateRating|Review|Rating)["']/i, "microdata review or rating type"],
+    [/property=["']v:(?:rating|average|count)["']/i, "RDFa rating property"],
+  ];
+  for (const [pattern, label] of ratingMarkup) {
+    if (pattern.test(html)) {
+      problems.push(
+        `${route}: ${label} present. No review or rating markup may exist until real third party reviews do.`,
+      );
+    }
+  }
 
   // BreadcrumbList on every page. It is the one schema type that is easy to add
   // to a template and easy to lose on the page that does not use the template.
