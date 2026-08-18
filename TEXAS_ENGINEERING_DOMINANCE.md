@@ -44,7 +44,7 @@ Three sites owned by one operator targeting the same Texas engineering keywords 
 Next.js App Router, TypeScript strict, Tailwind, static generation. All pages generated from data files: services, counties, cities, combos are configuration, not hand-built pages. Repo conventions: feature branches, no force pushes to main, commit coherent work immediately, merges only on the operator's word, CLAUDE.md at repo root as standing law (write one for each repo from this document's rules), BACKLOG.md with incident-and-reason entries, one session per repo directory at a time.
 
 ## 3.2 The geo system, and the doorway-page line at 254-county scale
-Wattsmith ran services x cities honestly because every page served a real local search. At 254 counties plus hundreds of cities, the doorway-page risk is the single biggest strategic danger in this whole mission. The rule that keeps programmatic geo pages legitimate: **every geo page must contain substantial information that is true of that place specifically and useful to a person there, which could not be produced by find-and-replacing the place name.** For Texas engineering, that unique substance genuinely exists per county, and the build must actually use it:
+Wattsmith ran services × cities honestly because every page served a real local search. At 254 counties plus hundreds of cities, the doorway-page risk is the single biggest strategic danger in this whole mission. The rule that keeps programmatic geo pages legitimate: **every geo page must contain substantial information that is true of that place specifically and useful to a person there, which could not be produced by find-and-replacing the place name.** For Texas engineering, that unique substance genuinely exists per county, and the build must actually use it:
 
 - The permitting authority and its real name (county development services, city building department), and whether unincorporated areas require permits at all, which varies and is exactly what searchers want to know.
 - Windstorm requirements: the 14 TWIA-designated coastal counties have WPI-8 windstorm certification requirements that inland counties do not. This single fact creates two legitimately different page templates.
@@ -55,7 +55,7 @@ Build order for geo: metro and major-county pages first with the deepest content
 
 ## 3.3 The page taxonomy per brand
 - Service pages: one per real service (residential plan review, structural letters, foundation certification, windstorm certification, sealed engineering letters, commercial plan stamping, whatever the brand's assigned menu is). Deep, definitive, the money pages.
-- Geo pages: /counties/[county] and /cities/[city] per the doorway rules above, plus service-plus-geo combos ONLY where search demand and unique substance both exist. Do not mint 254 x services combos mechanically; that is the doorway trap.
+- Geo pages: /counties/[county] and /cities/[city] per the doorway rules above, plus service-plus-geo combos ONLY where search demand and unique substance both exist. Do not mint 254 × services combos mechanically; that is the doorway trap.
 - A statewide hub page (the /san-antonio metro-hub pattern generalized): the flagship "engineering services across Texas" page, built to own the head term.
 - Educational corpus: the blog/insights engine per Part 5.
 - Trust pages: about, process, licensing (the honest pending status lives here too), contact, FAQ.
