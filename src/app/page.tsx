@@ -23,9 +23,9 @@ import {
 } from "@/content/model-copy";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Texas Engineering Services in All 254 Counties",
+  title: "Texas Engineering Services Statewide | 254 Engineering",
   description:
-    "254 Engineering Services is a veteran owned Texas engineering firm named for the 254 counties of Texas. Sealed inspections, certifications, and design.",
+    "A veteran owned Texas engineering firm named for the 254 counties of Texas, built to serve every one of them. See the service lines and the coverage map.",
   path: "/",
 });
 

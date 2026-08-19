@@ -22,7 +22,15 @@ import type { RenderedEmail } from "./email-templates";
  * reply, and immune to the image blocking that would hide half an HTML one.
  */
 
-type NotifyResult = { sent: boolean; reason?: string };
+/**
+ * The result of a send attempt.
+ *
+ * `outcome` is the four way answer the log line reports. `sent` stays as the
+ * boolean the routes already branch on, so adding the detail did not change any
+ * caller.
+ */
+export type NotifyOutcome = "ok" | "skipped" | "error" | "no content";
+type NotifyResult = { sent: boolean; outcome: NotifyOutcome; reason?: string };
 
 let resend: Resend | null = null;
 
@@ -51,7 +59,16 @@ const FROM = `254 Engineering Services <notifications@${business.domain}>`;
  */
 export async function notify(email: RenderedEmail): Promise<NotifyResult> {
   const mailer = client();
-  if (!mailer) return { sent: false, reason: "RESEND_API_KEY is not set" };
+  if (!mailer) {
+    return log(email, { sent: false, outcome: "skipped", reason: "RESEND_API_KEY is not set" });
+  }
+
+  // A rendered message with no body is a template bug, and sending it would put
+  // an empty email in front of the one person who reads these. Caught here
+  // rather than at the template, because this is the last point before it leaves.
+  if (!email.text || email.text.trim() === "") {
+    return log(email, { sent: false, outcome: "no content", reason: "rendered body was empty" });
+  }
 
   try {
     const { error } = await mailer.emails.send({
@@ -61,9 +78,44 @@ export async function notify(email: RenderedEmail): Promise<NotifyResult> {
       replyTo: email.replyTo,
       text: email.text,
     });
-    if (error) return { sent: false, reason: error.message };
-    return { sent: true };
+    if (error) return log(email, { sent: false, outcome: "error", reason: error.message });
+    return log(email, { sent: true, outcome: "ok" });
   } catch (err) {
-    return { sent: false, reason: err instanceof Error ? err.message : "unknown send failure" };
+    return log(email, {
+      sent: false,
+      outcome: "error",
+      reason: err instanceof Error ? err.message : "unknown send failure",
+    });
   }
+}
+
+/**
+ * One line per send attempt, whatever happened.
+ *
+ * WHY EVERY OUTCOME LOGS, INCLUDING THE GOOD ONE
+ * -----------------------------------------------
+ * The routes already logged their failures, which meant a working send produced
+ * no evidence at all. That is the wrong way round for a path this quiet: the
+ * question somebody actually asks at three in the afternoon is "did the
+ * notification for that enquiry go out", and silence answers it ambiguously. It
+ * could mean sent, or it could mean the code never reached the send.
+ *
+ * Four outcomes, deliberately distinct, because they need different responses:
+ *
+ *   ok         It went. Nothing to do.
+ *   skipped    No API key. A configuration gap, not a fault. This is what the
+ *              whole of production logged before the key was set.
+ *   error      Resend rejected it or the call threw. Investigate.
+ *   no content The template rendered empty. A code defect, and the only one of
+ *              the four that means the email would have been useless anyway.
+ *
+ * The subject is included and the body is not. The subject carries the name and
+ * the service, which is enough to tie a log line to a row, and the body carries
+ * whatever the person typed, which does not belong in a log.
+ */
+function log(email: RenderedEmail, result: NotifyResult): NotifyResult {
+  const line = `[notify] ${result.outcome} template=${email.id} subject=${JSON.stringify(email.subject)}${result.reason ? ` reason=${JSON.stringify(result.reason)}` : ""}`;
+  if (result.outcome === "ok") console.log(line);
+  else console.error(line);
+  return result;
 }

@@ -13,9 +13,9 @@ import { regions } from "@/content/regions";
 import { sealedDeliverableSentence } from "@/content/model-copy";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Government Engineering Services in Texas",
+  title: "Government Engineering Services, Texas | 254 Engineering",
   description:
-    "Capability statement for public sector buyers: qualifications based selection, on-call engineering across Texas, NAICS codes, and registration status.",
+    "Capability statement for public sector buyers: qualifications based selection, on-call availability, NAICS codes, and registration status. Read it here.",
   path: "/government",
 });
 

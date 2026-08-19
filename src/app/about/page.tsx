@@ -15,9 +15,9 @@ import {
 } from "@/content/model-copy";
 
 export const metadata: Metadata = buildMetadata({
-  title: "About 254 Engineering Services | Texas Firm",
+  title: "About Our Texas Engineering Firm | 254 Engineering",
   description:
-    "A veteran owned Texas engineering firm named for the 254 counties of Texas. How the firm is organized, and why it is organized that way.",
+    "A veteran owned Texas engineering firm named for the 254 counties of Texas. How the firm is organized, and why it is organized that way. Read the model.",
   path: "/about",
 });
 

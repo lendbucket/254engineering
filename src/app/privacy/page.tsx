@@ -8,9 +8,9 @@ import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { business } from "@/config/business";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Privacy Policy | 254 Engineering Services",
+  title: "Privacy Policy and Texas Data Rights | 254 Engineering",
   description:
-    "How 254 Engineering Services collects, uses, and retains personal information submitted through this website, and the rights Texas residents have over it.",
+    "How this firm collects, uses, and retains personal information submitted through this website, and the rights Texas residents hold over it. Read the policy.",
   path: "/privacy",
 });
 

@@ -12,9 +12,9 @@ import { isPrelaunch } from "@/lib/launch";
 import { services } from "@/content/services";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Contact 254 Engineering Services in Texas",
+  title: "Contact a Texas Engineering Firm | 254 Engineering",
   description:
-    "Contact a veteran owned Texas engineering firm serving all 254 counties. Send the project, the property, or the solicitation and get a direct answer.",
+    "Contact a veteran owned Texas engineering firm serving all 254 counties. Send the project, the property, or the solicitation for a direct answer.",
   path: "/contact",
 });
 
