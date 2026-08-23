@@ -17,12 +17,25 @@ import lighthouse from "lighthouse";
 
 const BASE = process.env.BASE_URL || "http://localhost:3225";
 
-/** The rendered title budget. Google renders about 60 characters. */
+/*
+ * The playbook 3.4 bands, both ends enforced.
+ *
+ * The floor is the half this audit was missing. It checked a ceiling only, on
+ * the reasoning that a short title cannot be truncated, which is true and beside
+ * the point: a 39 character title leaves a third of the SERP line unused and the
+ * brand never appears in it. A crawl of the live site found 25 of 26 titles
+ * under 50 and exactly one in band, which no single page review would surface.
+ *
+ * The description floor moves from 110 to the playbook's 140, and a call to
+ * action becomes mandatory. 24 of 26 descriptions had none.
+ */
+const MIN_TITLE = 50;
 const MAX_TITLE = 60;
-/** The rendered description budget. */
-const MAX_DESC = 155;
-/** Below this a description reads thin in the SERP and wastes the slot. */
-const MIN_DESC = 110;
+const MIN_DESC = 140;
+const MAX_DESC = 160;
+
+/** A description has to end somewhere a reader can act. */
+const CTA_VERB = /\b(?:join|see|read|apply|send|call|contact|start|ask|request|explore|compare)\b/i;
 
 /** One of every template type, plus enough breadth to be a real sample. */
 const LIGHTHOUSE_TARGETS = [
@@ -110,12 +123,18 @@ for (const route of routes) {
   if (!title) problems.push(`${route}: no <title>`);
   else if (title.length > MAX_TITLE)
     problems.push(`${route}: title is ${title.length} chars, over ${MAX_TITLE} ("${title}")`);
+  else if (title.length < MIN_TITLE)
+    problems.push(`${route}: title is only ${title.length} chars, under ${MIN_TITLE} ("${title}")`);
+  else if (!title.includes("254 Engineering"))
+    problems.push(`${route}: title carries no brand suffix ("${title}")`);
 
   if (!description) problems.push(`${route}: no meta description`);
   else if (description.length > MAX_DESC)
     problems.push(`${route}: description is ${description.length} chars, over ${MAX_DESC}`);
   else if (description.length < MIN_DESC)
     problems.push(`${route}: description is only ${description.length} chars, under ${MIN_DESC}`);
+  else if (!CTA_VERB.test(description))
+    problems.push(`${route}: description has no call to action ("${description.slice(-48)}")`);
 
   if (!meta.canonical) problems.push(`${route}: no canonical link`);
   if (meta.ogSiteName !== "254 Engineering Services")

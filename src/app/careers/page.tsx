@@ -4,13 +4,14 @@ import { PageHeader } from "@/components/site/PageHeader";
 import { ApplicationForm } from "@/components/forms/ApplicationForm";
 import { Eyebrow, Rule, SectionHeading } from "@/components/ui/primitives";
 import { buildMetadata } from "@/lib/seo";
-import { JsonLd, breadcrumbSchema } from "@/lib/schema";
+import { JsonLd, breadcrumbSchema, jobPostingSchema } from "@/lib/schema";
 import { isPrelaunch } from "@/lib/launch";
+import { openings } from "@/content/openings";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Engineering Careers in Texas | 254 Engineering",
+  title: "Engineering Careers Across Texas | 254 Engineering",
   description:
-    "Two tracks: Texas licensed Professional Engineers for review and engineer of record work, and field inspection technicians across all 254 counties.",
+    "Two tracks: Texas licensed Professional Engineers for review and engineer of record work, and field inspection technicians statewide. Apply from here.",
   path: "/careers",
 });
 
@@ -25,6 +26,9 @@ export default function CareersPage() {
   return (
     <>
       <JsonLd data={breadcrumbSchema(crumbs)} />
+      {openings.map((opening) => (
+        <JsonLd key={opening.anchor} data={jobPostingSchema(opening)} />
+      ))}
 
       <PageHeader
         eyebrow="Careers"

@@ -29,17 +29,23 @@ const MAX_TITLE = 58;
 const HARD_MAX_TITLE = 60;
 
 /**
- * The description ceiling.
+ * The description ceiling, from playbook 3.4.
  *
  * There is no floor enforced here, on purpose. A short description is a copy
  * problem and cutting one is not a fix a function can perform, so the floor
  * lives in scripts/seo-audit.mjs where it fails a build instead of being
- * silently papered over. That distinction caught a real defect on the first run:
- * the homepage description ran to 158 characters, this function dropped its
- * second sentence to fit, and the result was a valid 103 character description
- * that nobody had written.
+ * silently papered over. That distinction has now caught the same defect twice:
+ * first when the homepage description ran to 158 and this function dropped its
+ * second sentence, and again during the alignment pass, when this constant was
+ * still 155 while the playbook allows 160 and four descriptions silently lost
+ * the call to action that had just been written into them.
+ *
+ * That second time is the more instructive one. The trim is doing exactly what
+ * it was built to do, and it removes a whole sentence to stay in budget, which
+ * means a ceiling set even five characters too low quietly deletes work. The
+ * number here and the number in the audit have to be the same number.
  */
-const MAX_DESC = 155;
+const MAX_DESC = 160;
 
 function normalize(text: string): string {
   return text.trim().replace(/\s+/g, " ");

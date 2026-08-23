@@ -130,6 +130,66 @@ export function serviceSchema(params: { name: string; description: string; path:
   };
 }
 
+/**
+ * JobPosting, for genuinely open roles only.
+ *
+ * The playbook is explicit that this markup is permitted only where the opening
+ * is real and `validThrough` is a real date, because a jobs surface is a place
+ * people act on rather than read. Both roles in src/content/openings.ts are open;
+ * the dates there are the operator's and are not computed.
+ *
+ * TWO THINGS DELIBERATELY OMITTED
+ * -------------------------------
+ * `baseSalary`, because no compensation has been set for the engineer seat and
+ * the technician seat is a flat rate per completed inspection agreed per service
+ * line, which that field would misrepresent. And `hiringOrganization` carries no
+ * credential claim: it points at the Organization node, which itself states the
+ * registration as pending.
+ *
+ * The remote seat uses `jobLocationType` TELECOMMUTE with
+ * `applicantLocationRequirements` set to Texas, which is the correct pairing for
+ * work performed remotely but restricted to a state. The field seat is not
+ * remote and carries a real `jobLocation`, because it is somebody standing on a
+ * property.
+ */
+export function jobPostingSchema(opening: {
+  title: string;
+  description: string;
+  employmentType: string;
+  datePosted: string;
+  validThrough: string;
+  remote: boolean;
+  anchor: string;
+}) {
+  const texas = {
+    "@type": "Place",
+    address: {
+      "@type": "PostalAddress",
+      addressRegion: "TX",
+      addressCountry: "US",
+    },
+  };
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "JobPosting",
+    title: opening.title,
+    description: opening.description,
+    employmentType: opening.employmentType,
+    datePosted: opening.datePosted,
+    validThrough: opening.validThrough,
+    hiringOrganization: { "@id": ORG_ID },
+    url: `${business.url}/careers#${opening.anchor}`,
+    directApply: true,
+    ...(opening.remote
+      ? {
+          jobLocationType: "TELECOMMUTE",
+          applicantLocationRequirements: { "@type": "State", name: "Texas" },
+        }
+      : { jobLocation: texas }),
+  };
+}
+
 export function faqSchema(faqs: { q: string; a: string }[]) {
   return {
     "@context": "https://schema.org",

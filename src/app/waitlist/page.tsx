@@ -9,9 +9,9 @@ import { services } from "@/content/services";
 import { isPrelaunch } from "@/lib/launch";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Join the 254 Engineering Services Waitlist",
+  title: "Texas Engineering Services Waitlist | 254 Engineering",
   description:
-    "Firm registration with the Texas Board of Professional Engineers and Land Surveyors is pending. Join the waitlist to hear directly when it is active.",
+    "Firm registration with the Texas Board of Professional Engineers and Land Surveyors is pending. Join the waitlist and hear directly when it is active.",
   path: "/waitlist",
   // Not indexed. This page exists to serve the prelaunch CTA, and it becomes a
   // redirect the day the firm opens. A page with a planned death should not be

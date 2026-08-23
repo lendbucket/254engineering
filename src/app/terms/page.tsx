@@ -8,9 +8,9 @@ import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { business } from "@/config/business";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Terms of Use | 254 Engineering Services",
+  title: "Terms of Use and Site Conditions | 254 Engineering",
   description:
-    "The terms governing use of the 254 Engineering Services website, including what this site is and is not, and how engagements are formed.",
+    "The terms governing use of this website, what it is and is not, how an engagement is formed, and the limits on everything published here. Read the terms.",
   path: "/terms",
 });
 

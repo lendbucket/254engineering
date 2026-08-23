@@ -81,14 +81,41 @@ if (CHECK_LIVE) {
     urls.get(url).push(e.keyword);
   }
 
-  for (const [url, keywords] of urls) {
-    try {
-      const res = await fetch(url, { redirect: "follow", signal: AbortSignal.timeout(15000) });
-      if (res.status !== 200) {
-        problems.push(`${url} answers HTTP ${res.status}, claimed live for: ${keywords.join(", ")}`);
+  /**
+   * Fetch with retries, because this audit reads three independently deployed
+   * sites.
+   *
+   * A single shot fetch failed this repo's suite on a URL that was live before
+   * the run and live after it: the sibling brand happened to be mid deploy, the
+   * page 404ed for a few seconds, and a green build was reported red for a
+   * defect that never existed. An audit that fails on somebody else's rollout
+   * teaches people to ignore it, which costs more than the check is worth.
+   *
+   * Three attempts with a short backoff. A page that is genuinely gone stays
+   * gone across all three, and the reported status is the last one seen so the
+   * failure still names what happened.
+   */
+  async function statusOf(url) {
+    let last = "no response";
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const res = await fetch(url, { redirect: "follow", signal: AbortSignal.timeout(15000) });
+        if (res.status === 200) return { ok: true };
+        last = `HTTP ${res.status}`;
+      } catch (err) {
+        last = err.message;
       }
-    } catch (err) {
-      problems.push(`${url} unreachable (${err.message}), claimed live for: ${keywords.join(", ")}`);
+      if (attempt < 3) await new Promise((r) => setTimeout(r, 1500 * attempt));
+    }
+    return { ok: false, last };
+  }
+
+  for (const [url, keywords] of urls) {
+    const result = await statusOf(url);
+    if (!result.ok) {
+      problems.push(
+        `${url} answers ${result.last} on three attempts, claimed live for: ${keywords.join(", ")}`,
+      );
     }
   }
   notes.push(`${urls.size} distinct live URLs verified across three brands`);

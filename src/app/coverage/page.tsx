@@ -10,9 +10,9 @@ import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { allCounties, regionOfCounty, regions } from "@/content/regions";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Engineering Coverage in All 254 Texas Counties",
+  title: "Engineering Coverage in 254 Counties | 254 Engineering",
   description:
-    "Coverage across every county in Texas, grouped into eight regions with their own wind zones, soil conditions, and permitting context.",
+    "Coverage across every county in Texas, grouped into eight regions with their own wind zones, soils, and permitting authorities. See the county list.",
   path: "/coverage",
 });
 

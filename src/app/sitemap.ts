@@ -17,21 +17,25 @@ import { regions } from "@/content/regions";
  * including it here would be the sitemap contradicting the other two signals, and
  * Search Console reports that contradiction as an error rather than resolving it.
  *
- * `lastModified` is a single build timestamp rather than a per page date. A
- * per page date that is really "when the deploy happened" is worse than no date,
- * because it teaches a crawler that every page changes on every deploy and then
- * to stop believing the field.
+ * `lastModified` IS OMITTED ENTIRELY, and that is the correction rather than the
+ * shortcut. It used to carry `new Date()`, which is the build timestamp, stamped
+ * identically onto all twenty six URLs. That is not a modification date, it is
+ * the deploy clock wearing one, and it tells a crawler that every page on the
+ * site changed at the same instant every time anything ships. The field then
+ * stops being believed, which costs more than never having sent it.
+ *
+ * No page on this site has a true per page modification date yet. There is no
+ * blog, and the content pages are generated from data files with no timestamps.
+ * When the editorial corpus lands, posts will carry real publish and modified
+ * dates and those pages, and only those, will emit the field.
  *
  * scripts/seo-audit.mjs and scripts/placeholder-audit.mjs both crawl this list,
  * which gives it a second job: a page missing from here is a page no audit
  * checks. That is the more expensive failure of the two.
  */
 export default function sitemap(): MetadataRoute.Sitemap {
-  const lastModified = new Date();
-
   const entry = (path: string, priority: number, changeFrequency: "monthly" | "yearly") => ({
     url: `${business.url}${path === "/" ? "" : path}`,
-    lastModified,
     changeFrequency,
     priority,
   });

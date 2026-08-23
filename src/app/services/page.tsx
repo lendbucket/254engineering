@@ -11,9 +11,9 @@ import { services } from "@/content/services";
 import { reviewStepCopy, sealedDeliverableSentence } from "@/content/model-copy";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Engineering Services in Texas | 254 Engineering",
+  title: "Engineering Service Lines in Texas | 254 Engineering",
   description:
-    "Nine engineering service lines for Texas property and construction: inspections, sealed letters, certifications, repair specifications, and design.",
+    "Nine engineering service lines for Texas property and construction: inspections, sealed letters, certifications, and design. See what each one involves.",
   path: "/services",
 });
 

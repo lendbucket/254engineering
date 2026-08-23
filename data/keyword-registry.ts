@@ -340,6 +340,31 @@ export const registry: RegistryEntry[] = [
     note: "CAUTION for 254 content planning. The consumer explainer belongs to Sealed. 254 may write the windstorm PROGRAM AUTHORITY angle (how the TDI appointment works, what the program requires of a firm) because that is institutional, but must not write a second 'what is a WPI-8' explainer.",
   },
   { keyword: "when a permit office requires an engineer letter", owner: "sealed", kind: "education", cluster: "homeowner education", status: "live", path: "/insights/when-a-permit-office-requires-an-engineer-letter" },
+  // Lookup intent, registered 2026-08-18 before the page was written, per the
+  // registry law. These are the highest volume terms found in the whole
+  // Sealed keyword space, and their intent is NAVIGATIONAL: somebody trying to
+  // find whether a certificate already exists, not somebody hiring. Served by a
+  // page that answers the lookup honestly and picks up the commercial intent
+  // only at the point the lookup comes back empty. A sales page against this
+  // query would deserve to lose to TDI.
+  {
+    keyword: "texas windstorm wpi-8 certificate search",
+    owner: "sealed",
+    kind: "education",
+    cluster: "windstorm",
+    status: "live",
+    path: "/insights/how-to-look-up-a-texas-windstorm-certificate",
+    note: "80/mo at KD 9. Evidence: sealedengineering/docs/keyword-batch-phase-1.md. 254 may still write the windstorm PROGRAM AUTHORITY angle; it must not write a second lookup guide.",
+  },
+  {
+    keyword: "wpi-8 windstorm certificate search",
+    owner: "sealed",
+    kind: "education",
+    cluster: "windstorm",
+    status: "live",
+    path: "/insights/how-to-look-up-a-texas-windstorm-certificate",
+    note: "30/mo at KD 2. Same page as the entry above.",
+  },
   { keyword: "structural letters for solar installers", owner: "sealed", kind: "transactional", cluster: "industries", status: "live", path: "/industries/solar-installers" },
   { keyword: "foundation certifications for lenders", owner: "sealed", kind: "transactional", cluster: "industries", status: "live", path: "/industries/lenders-and-loan-officers" },
   { keyword: "transaction letters for realtors texas", owner: "sealed", kind: "transactional", cluster: "industries", status: "live", path: "/industries/realtors-and-title-companies" },

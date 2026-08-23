@@ -34,9 +34,9 @@ export type Region = {
   /** The fuller name used as the region page's own description of itself. */
   longName: string;
   h1: string;
-  /** Under 58 characters, keyword leading. */
+  /** 50 to 60 characters including the brand suffix, keyword front loaded. */
   title: string;
-  /** 140 to 155 characters. */
+  /** 140 to 160 characters, ending in a call to action. */
   description: string;
   /** One paragraph for the hub card. */
   summary: string;
@@ -56,9 +56,9 @@ export const regions: Region[] = [
     name: "Coastal Bend",
     longName: "the Coastal Bend and the Golden Crescent",
     h1: "Engineering Services Across the Texas Coastal Bend",
-    title: "Coastal Bend Engineering Services Coverage",
+    title: "Coastal Bend Engineering Coverage | 254 Engineering",
     description:
-      "Engineering coverage across the Texas Coastal Bend and Golden Crescent, where windstorm certification, coastal clays, and storm damage set the work.",
+      "Engineering coverage across the Texas Coastal Bend and Golden Crescent, where windstorm certification and coastal clays set the work. See the county list.",
     summary:
       "Eighteen counties from the Guadalupe delta to the King Ranch. Seven of them sit inside the windstorm catastrophe area, which makes WPI-8 certification the defining requirement of building here.",
     anchors: ["Corpus Christi", "Victoria", "Rockport", "Port Lavaca", "Kingsville", "Beeville"],
@@ -95,9 +95,9 @@ export const regions: Region[] = [
     name: "Greater Houston",
     longName: "Greater Houston and Southeast Texas",
     h1: "Engineering Services Across Greater Houston",
-    title: "Greater Houston Engineering Services Coverage",
+    title: "Greater Houston Engineering Coverage | 254 Engineering",
     description:
-      "Engineering coverage across Greater Houston and Southeast Texas, where high plasticity clay, subsidence, and coastal windstorm rules govern the work.",
+      "Engineering coverage across Greater Houston and Southeast Texas, where high plasticity clay and ground subsidence govern the work. See the county list.",
     summary:
       "Sixteen counties from the Brazos bottoms to the Sabine. The highest plasticity clays in Texas, measurable ground subsidence, and a windstorm line that runs through Harris County itself.",
     anchors: ["Houston", "Galveston", "Beaumont", "The Woodlands", "Sugar Land", "Katy"],
@@ -133,9 +133,9 @@ export const regions: Region[] = [
     name: "Dallas Fort Worth",
     longName: "Dallas Fort Worth, North Texas, and East Texas",
     h1: "Engineering Services Across Dallas Fort Worth and North Texas",
-    title: "Dallas Fort Worth Engineering Services Coverage",
+    title: "Dallas Fort Worth Engineering Coverage | 254 Engineering",
     description:
-      "Engineering coverage across Dallas Fort Worth, North Texas, and East Texas, where Blackland Prairie clay and severe hail define most of the work.",
+      "Engineering coverage across Dallas Fort Worth, North Texas, and East Texas, where Blackland Prairie clay and severe hail define the work. See the county list.",
     summary:
       "Sixty five counties, from the Metroplex east to the Louisiana line and north to the Red River. Blackland Prairie clay under the western half, piney woods sands under the eastern, and the most damaging hail in the country over all of it.",
     anchors: ["Dallas", "Fort Worth", "Tyler", "Denton", "Wichita Falls", "Texarkana", "Longview"],
@@ -177,9 +177,9 @@ export const regions: Region[] = [
     name: "San Antonio",
     longName: "San Antonio and South Central Texas",
     h1: "Engineering Services Across San Antonio and South Central Texas",
-    title: "San Antonio Engineering Services Coverage",
+    title: "San Antonio Engineering Coverage | 254 Engineering",
     description:
-      "Engineering coverage across San Antonio and South Central Texas, where the Balcones Escarpment splits limestone from clay and changes the foundation.",
+      "Engineering coverage across San Antonio and South Central Texas, where the Balcones Escarpment splits limestone from clay. See the county list.",
     summary:
       "Thirteen counties along the Balcones Escarpment. The single most useful fact about engineering here is that the escarpment runs through Bexar County, and the soil on either side of it is not the same soil.",
     anchors: ["San Antonio", "New Braunfels", "Kerrville", "Boerne", "Seguin", "Fredericksburg"],
@@ -215,9 +215,9 @@ export const regions: Region[] = [
     name: "Austin and Central Texas",
     longName: "Austin, Central Texas, and the Brazos Valley",
     h1: "Engineering Services Across Austin and Central Texas",
-    title: "Austin and Central Texas Engineering Services",
+    title: "Austin and Central Texas Coverage | 254 Engineering",
     description:
-      "Engineering coverage across Austin, Central Texas, and the Brazos Valley, where Blackland clay, Hill Country rock, and demanding review meet.",
+      "Engineering coverage across Austin, Central Texas, and the Brazos Valley, where Blackland clay and Hill Country rock meet. See the county list.",
     summary:
       "Thirty counties from the Hill Country through the Blackland Prairie to the Brazos Valley, containing both the most demanding development review process in Texas and counties that require no building permit at all.",
     anchors: ["Austin", "Round Rock", "Waco", "Killeen", "College Station", "San Marcos"],
@@ -255,9 +255,9 @@ export const regions: Region[] = [
     name: "Rio Grande Valley",
     longName: "the Rio Grande Valley and South Texas",
     h1: "Engineering Services Across the Rio Grande Valley",
-    title: "Rio Grande Valley Engineering Services Coverage",
+    title: "Rio Grande Valley Engineering Coverage | 254 Engineering",
     description:
-      "Engineering coverage across the Rio Grande Valley and South Texas, where delta clays, a high water table, and a windstorm line all shape the work.",
+      "Engineering coverage across the Rio Grande Valley and South Texas, where delta clays and a windstorm county line shape the work. See the county list.",
     summary:
       "Sixteen counties along the river from Brownsville to Del Rio. Two of them are inside the windstorm catastrophe area and the rest are not, which is the distinction that decides what a project here actually needs.",
     anchors: ["McAllen", "Brownsville", "Harlingen", "Laredo", "Edinburg", "Del Rio"],
@@ -293,9 +293,9 @@ export const regions: Region[] = [
     name: "West Texas",
     longName: "West Texas, the Permian Basin, and the Trans-Pecos",
     h1: "Engineering Services Across West Texas",
-    title: "West Texas Engineering Services Coverage",
+    title: "West Texas Engineering Firm Coverage | 254 Engineering",
     description:
-      "Engineering coverage across West Texas, the Permian Basin, and the Trans-Pecos, where collapsible soils and long distances shape how the work is done.",
+      "Engineering coverage across West Texas, the Permian Basin, and the Trans-Pecos, where collapsible soils and distance shape the work. See the county list.",
     summary:
       "Fifty five counties spanning nearly six hundred miles. Low plasticity soils that make foundations simpler, collapsible and gypsum bearing soils that make them harder, and distances that make how a firm is organized matter as much as what it knows.",
     anchors: ["El Paso", "Midland", "Odessa", "San Angelo", "Abilene", "Big Spring"],
@@ -336,9 +336,9 @@ export const regions: Region[] = [
     name: "Panhandle",
     longName: "the Texas Panhandle and the South Plains",
     h1: "Engineering Services Across the Texas Panhandle",
-    title: "Texas Panhandle Engineering Services Coverage",
+    title: "Texas Panhandle Engineering Coverage | 254 Engineering",
     description:
-      "Engineering coverage across the Texas Panhandle and South Plains, where wind exposure, frost depth, and playa drainage change the design assumptions.",
+      "Engineering coverage across the Texas Panhandle and South Plains, where wind exposure and frost depth change the design assumptions. See the county list.",
     summary:
       "Forty one counties on the Llano Estacado and the caprock. The most consistently wind exposed terrain in Texas, the deepest frost penetration in the state, and forty one counties where a lender is more often the reason for an engineer's seal than a building department is.",
     anchors: ["Amarillo", "Lubbock", "Plainview", "Pampa", "Borger", "Levelland"],
