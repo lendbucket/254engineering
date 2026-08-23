@@ -171,3 +171,32 @@ but not for the regulatory claims made about them.
 
 Deliberate. No `aggregateRating`, no `Review` nodes, and nothing on any page that
 implies a rating exists. Revisit only when real reviews exist.
+
+## Careers system
+
+### The engineer application cannot be completed without storage
+
+`scripts/lib/careers-audit.mjs` drives the technician flow through submit and
+stops the engineer flow at the documents step. The engineer seat requires a
+resume, uploading one needs Supabase storage, and a checkout without keys cannot
+get past it.
+
+**What is covered instead.** That the requirement blocks, which is the property
+that matters, plus every upload API guard called directly.
+
+**What to run once production keys exist.** `npm run forms-audit` with
+`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` set. Three checks turn from SKIP
+to real: the engineer submit, and both round trips.
+
+### Section 1 is blocked on the logo files
+
+No `/brand-assets/` directory exists. Colour extraction, the header and footer
+mark, the favicon set, the OG card, and the Organization `logo` property all wait
+on it. Vector source is worth more than a raster: the header needs the lockup
+crisp at 390 and the favicon needs the 254 mark cropped clean.
+
+### JobPosting validThrough needs refreshing
+
+Both positions carry `validThrough: 2026-11-30` in `data/positions.ts`. Nothing
+renews it automatically, deliberately: an auto extending posting is one that
+outlives the job. Refresh it or set `open: false` before it lapses.

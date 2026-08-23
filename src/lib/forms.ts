@@ -77,42 +77,16 @@ export const waitlistSchema = z.object({
   referrer: trimmed(500).optional(),
 });
 
-export const engineerApplicationSchema = z.object({
-  role: z.literal("professional_engineer"),
-  name: requiredText("your name"),
-  email,
-  phone,
-  city: requiredText("the city you are based in", 120),
-  licenseNumber: requiredText("your Texas PE license number", 40),
-  disciplines: requiredText("your disciplines", 300),
-  tdiAppointed: z.enum(["yes", "no"], { message: "Answer whether you hold a TDI windstorm appointment." }),
-  availability: requiredText("your availability", 300),
-  message: trimmed(4000).optional(),
-  company: honeypot,
-  landingPath: trimmed(300).optional(),
-  referrer: trimmed(500).optional(),
-});
-
-export const technicianApplicationSchema = z.object({
-  role: z.literal("field_technician"),
-  name: requiredText("your name"),
-  email,
-  phone,
-  city: requiredText("the city you are based in", 120),
-  counties: requiredText("the counties you are willing to serve", 600),
-  experience: requiredText("your background", 2000),
-  droneLicense: z.enum(["yes", "no"], { message: "Answer whether you hold a Part 107 drone license." }),
-  reliableVehicle: z.enum(["yes", "no"], { message: "Answer whether you have a reliable vehicle." }),
-  message: trimmed(4000).optional(),
-  company: honeypot,
-  landingPath: trimmed(300).optional(),
-  referrer: trimmed(500).optional(),
-});
+/*
+ * The careers application schemas used to live here, one flat object per role.
+ * They were replaced by the multi step flows in src/lib/application-schemas.ts
+ * and deleted rather than left in place, because a dead schema is one an audit
+ * can still drive: scripts/forms-audit.mjs was exercising a form no page
+ * rendered, and reporting it green.
+ */
 
 export type ContactInput = z.infer<typeof contactSchema>;
 export type WaitlistInput = z.infer<typeof waitlistSchema>;
-export type EngineerApplicationInput = z.infer<typeof engineerApplicationSchema>;
-export type TechnicianApplicationInput = z.infer<typeof technicianApplicationSchema>;
 
 /** Flatten a Zod error into { field: message } for a form to render inline. */
 export function fieldErrors(error: z.ZodError): Record<string, string> {

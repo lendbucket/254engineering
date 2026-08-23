@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { PageHeader } from "@/components/site/PageHeader";
-import { ApplicationForm } from "@/components/forms/ApplicationForm";
-import { Eyebrow, Rule, SectionHeading } from "@/components/ui/primitives";
+import { CardGrid, cardCell, Eyebrow, Rule, SectionHeading } from "@/components/ui/primitives";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema, jobPostingSchema } from "@/lib/schema";
 import { isPrelaunch } from "@/lib/launch";
-import { openings } from "@/content/openings";
+import { hiringProcess, openPositions } from "@data/positions";
 
 export const metadata: Metadata = buildMetadata({
   title: "Engineering Careers Across Texas | 254 Engineering",
   description:
-    "Two tracks: Texas licensed Professional Engineers for review and engineer of record work, and field inspection technicians statewide. Apply from here.",
+    "Two open positions at a veteran owned Texas engineering firm serving all 254 counties: a licensed PE seat and field inspection work. Read the roles and apply.",
   path: "/careers",
 });
 
@@ -21,208 +21,191 @@ const crumbs = [
 ];
 
 export default function CareersPage() {
-  const prelaunch = isPrelaunch();
+  const open = openPositions();
 
   return (
     <>
       <JsonLd data={breadcrumbSchema(crumbs)} />
-      {openings.map((opening) => (
-        <JsonLd key={opening.anchor} data={jobPostingSchema(opening)} />
+      {open.map((position) => (
+        <JsonLd
+          key={position.slug}
+          data={jobPostingSchema({
+            title: position.title,
+            description: position.about.join(" "),
+            employmentType: position.employmentType,
+            datePosted: position.datePosted,
+            validThrough: position.validThrough,
+            remote: position.remote,
+            anchor: position.slug,
+          })}
+        />
       ))}
 
       <PageHeader
         eyebrow="Careers"
-        title="Engineering careers across Texas"
-        lede="Two tracks, and they are genuinely different jobs. Licensed Professional Engineers review and seal the work. Field inspection technicians collect the evidence the engineers review. Both are described here as they actually are, including the parts people usually find out about later."
+        title="Build a Texas engineering firm from the ground up"
+        lede="254 Engineering Services is a veteran owned firm named for the 254 counties of Texas and built to serve every one of them, on licensed professional judgment and statewide field operations. These are the seats that make that possible."
         crumbs={crumbs}
       >
-        {prelaunch ? (
+        {isPrelaunch() ? (
           <aside className="rounded-[3px] border border-brass/45 bg-limestone-raised px-5 py-4 sm:px-6 sm:py-5">
             <p className="font-sans text-[0.7rem] font-semibold tracking-[0.18em] text-brass-ink uppercase">
-              Building the bench
+              Where the firm is today
             </p>
             <p className="mt-2.5 text-[0.96rem] leading-[1.65] text-slate-muted">
               Firm registration with the Texas Board of Professional Engineers and Land Surveyors is
-              pending, so no assignments are being dispatched yet. Applications are open and are
-              being read now, which is the point: the bench has to exist before the first job does.
+              pending and no engineer of record is yet in responsible charge, so no assignments are
+              being dispatched. Applications are open and are being read now. Anyone who joins is
+              joining at the point where the firm becomes able to practise, not after it.
             </p>
           </aside>
         ) : null}
       </PageHeader>
 
-      {/* Track one: PE */}
-      <section id="professional-engineers" className="border-b border-limestone-line scroll-mt-8">
+      {/* Open positions */}
+      <section className="border-b border-limestone-line">
         <Container>
           <div className="py-14 sm:py-18">
-            <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
-              <div className="lg:col-span-5">
-                <Eyebrow>Track one</Eyebrow>
-                <h2 className="mt-3 text-[1.85rem] leading-[1.2] font-semibold text-slate sm:text-[2.2rem]">
-                  Texas licensed Professional Engineers
-                </h2>
-                <Rule className="mt-7" />
-
-                <div className="mt-8 space-y-6 text-[1rem] leading-[1.75] text-slate-muted">
-                  <p>
-                    Two roles. A review engineer reads field records produced to a written protocol,
-                    forms the opinion, and seals the deliverable. An engineer of record takes
-                    responsible charge of design work: foundations, framing, and the drawing sets
-                    that get a project permitted.
-                  </p>
-                  <p>
-                    The honest description of the review model is that it is remote and it is
-                    volume oriented. You are not driving to properties. You are reading a
-                    standardized record, applying judgment, and sealing a document that a lender, a
-                    carrier, or a building official will rely on. Engineers who find that unappealing
-                    should say so early, and engineers who have been looking for exactly that
-                    arrangement usually recognize it immediately.
-                  </p>
-                  <p>
-                    What does not change is responsible charge. If the record in front of you does
-                    not support an opinion, the answer is that it does not, and the job goes back to
-                    the field. Nobody in this firm is authorized to ask you to seal past that, and
-                    a firm that would ask is one that eventually costs an engineer their licence
-                    rather than its own.
-                  </p>
-                  <p>
-                    A windstorm inspection appointment from the Texas Department of Insurance is not
-                    required and is a considerable plus. It is the credential that makes coastal
-                    WPI-8 work possible at all, it takes real effort to obtain, and it is valued
-                    here accordingly.
-                  </p>
-                </div>
-
-                <div className="mt-9 rounded-[3px] border border-limestone-line bg-limestone-sunk p-6">
-                  <p className="font-sans text-[0.7rem] font-semibold tracking-[0.18em] text-brass-ink uppercase">
-                    What is expected
-                  </p>
-                  <ul className="mt-4 space-y-3">
-                    {[
-                      "An active Texas PE license in good standing.",
-                      "Structural competence in residential and light commercial work, or a discipline you can demonstrate.",
-                      "Willingness to work to a written review standard rather than to personal preference.",
-                      "A clear line about what you will and will not seal.",
-                    ].map((item) => (
-                      <li key={item} className="flex gap-4">
-                        <span aria-hidden="true" className="mt-[0.6rem] h-px w-4 shrink-0 bg-brass" />
-                        <span className="text-[0.95rem] leading-[1.65] text-slate-muted">
-                          {item}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              <div className="lg:col-span-7">
-                <div className="rounded-[3px] border border-limestone-line bg-limestone-raised p-7 sm:p-8">
-                  <h3 className="text-[1.25rem] font-semibold text-slate">
-                    Apply as a Professional Engineer
-                  </h3>
-                  <p className="mt-3 text-[0.95rem] leading-[1.65] text-slate-muted">
-                    A person reads every one of these. Expect a direct answer, including when it is
-                    that the firm is not in a position to bring you on yet.
-                  </p>
-                  <div className="mt-8">
-                    <ApplicationForm track="engineer" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </Container>
-      </section>
-
-      {/* Track two: technicians */}
-      <section id="field-technicians" className="border-b border-limestone-line bg-limestone-sunk scroll-mt-8">
-        <Container>
-          <div className="py-14 sm:py-18">
-            <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
-              <div className="lg:col-span-5">
-                <Eyebrow>Track two</Eyebrow>
-                <h2 className="mt-3 text-[1.85rem] leading-[1.2] font-semibold text-slate sm:text-[2.2rem]">
-                  Field inspection technicians
-                </h2>
-                <Rule className="mt-7" />
-
-                <div className="mt-8 space-y-6 text-[1rem] leading-[1.75] text-slate-muted">
-                  <p>
-                    Technicians go to properties across Texas and collect the evidence a reviewing
-                    engineer needs: measurements, photographs keyed to locations, and the specific
-                    observations the protocol for that service calls for. It is precise work and it
-                    is not decision making. What a technician records is what the engineer reads.
-                  </p>
-                  <p>
-                    The arrangement, stated plainly rather than discovered later. This is
-                    independent contractor work. Jobs are dispatched and you accept or decline each
-                    one, with no obligation either way and no penalty for declining. Pay is a flat
-                    rate per completed inspection, agreed per service line before you take an
-                    assignment, so what you earn on a job is known when you accept it rather than
-                    after.
-                  </p>
-                  <p>
-                    Protocol certification comes before the first assignment. Every service line has
-                    its own written protocol and you are certified on it before you are dispatched on
-                    it. That is not a hurdle put in front of you for its own sake: central review
-                    only works if the record is consistent, and an uncertified inspection is a
-                    wasted trip for you and an unreviewable file for the engineer.
-                  </p>
-                  <p>
-                    What makes someone good at this is reliability and thoroughness rather than
-                    engineering knowledge. Backgrounds that transfer well include roofing,
-                    construction, home inspection, insurance adjusting, the trades, and the military.
-                  </p>
-                </div>
-
-                <div className="mt-9 rounded-[3px] border border-limestone-line bg-limestone-raised p-6">
-                  <p className="font-sans text-[0.7rem] font-semibold tracking-[0.18em] text-brass-ink uppercase">
-                    What is expected
-                  </p>
-                  <ul className="mt-4 space-y-3">
-                    {[
-                      "A reliable vehicle and a willingness to drive to the far edge of the counties you claim.",
-                      "Comfort on a ladder and around a roof, worked safely and never past what conditions allow.",
-                      "Thorough documentation, including recording what could not be observed rather than leaving a gap.",
-                      "Protocol certification before a first assignment on any service line.",
-                    ].map((item) => (
-                      <li key={item} className="flex gap-4">
-                        <span aria-hidden="true" className="mt-[0.6rem] h-px w-4 shrink-0 bg-brass" />
-                        <span className="text-[0.95rem] leading-[1.65] text-slate-muted">
-                          {item}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              <div className="lg:col-span-7">
-                <div className="rounded-[3px] border border-limestone-line bg-limestone-raised p-7 sm:p-8">
-                  <h3 className="text-[1.25rem] font-semibold text-slate">
-                    Apply as a field inspection technician
-                  </h3>
-                  <p className="mt-3 text-[0.95rem] leading-[1.65] text-slate-muted">
-                    Be honest about the counties you will actually drive to. An overstated radius
-                    produces declined dispatches, which helps nobody.
-                  </p>
-                  <div className="mt-8">
-                    <ApplicationForm track="technician" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </Container>
-      </section>
-
-      <section>
-        <Container>
-          <div className="py-14 sm:py-16">
             <SectionHeading
-              eyebrow="Equal opportunity"
-              title="How applications are considered"
-              lede="Applications are read by a person and considered on the qualifications the role actually requires. This firm does not discriminate on race, color, religion, sex, sexual orientation, gender identity, national origin, age, disability, genetic information, veteran status, or any other basis protected by federal or Texas law."
+              eyebrow="Open positions"
+              title={open.length === 1 ? "One open position" : `${open.length} open positions`}
+              lede="Both are described as they actually are, including the engagement model and the parts people usually find out about late."
             />
+            <CardGrid className="mt-11">
+              {open.map((position) => (
+                <li key={position.slug} className={cardCell}>
+                  <Link
+                    href={`/careers/${position.slug}`}
+                    className="flex h-full flex-col p-7 transition-colors hover:bg-limestone sm:p-8"
+                  >
+                    <h3 className="text-[1.2rem] leading-[1.3] font-semibold text-slate">
+                      {position.title}
+                    </h3>
+                    <p className="mt-3 flex-1 text-[0.96rem] leading-[1.68] text-slate-muted">
+                      {position.teaser}
+                    </p>
+                    <dl className="mt-5 space-y-1.5 text-[0.88rem] text-slate-muted">
+                      <div className="flex gap-2">
+                        <dt className="sr-only">Engagement</dt>
+                        <dd>{position.engagement}</dd>
+                      </div>
+                      <div className="flex gap-2">
+                        <dt className="sr-only">Location</dt>
+                        <dd>{position.location}</dd>
+                      </div>
+                    </dl>
+                    <span className="mt-6 font-sans text-[0.82rem] font-semibold tracking-[0.06em] text-brass-ink uppercase">
+                      Read the role
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </CardGrid>
+          </div>
+        </Container>
+      </section>
+
+      {/* Why 254 */}
+      <section className="border-b border-limestone-line bg-limestone-sunk">
+        <Container>
+          <div className="py-14 sm:py-18">
+            <SectionHeading
+              eyebrow="Why here"
+              title="What this firm actually offers"
+              lede="Stated without the things a careers page usually claims. There is no office, no team photograph, and no headcount, because the firm is being built and pretending otherwise would be the first thing you found out was untrue."
+            />
+            <div className="mt-12 grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+              {[
+                {
+                  index: "01",
+                  title: "Engagement that fits the work",
+                  body: "A part time retainer for the engineer seat and per completed inspection for technicians. Nobody is asked to pretend a full time seat exists before the volume does, and nobody is asked to take a rate they have not seen.",
+                },
+                {
+                  index: "02",
+                  title: "The whole state, genuinely",
+                  body: "Work across all 254 counties rather than one metro. For a technician that means claiming the counties you can actually reach. For an engineer it means volume from places most firms never send anybody.",
+                },
+                {
+                  index: "03",
+                  title: "Technology in the boring places",
+                  body: "Dispatch, protocol capture, review queues, and delivery run on the firm's own systems. It means a field record arrives complete and a review is reading evidence rather than chasing it.",
+                },
+                {
+                  index: "04",
+                  title: "Professional standards that hold",
+                  body: "Written protocols rather than individual habit, and responsible charge that is never asked to bend. If a record does not support an opinion, the answer is that it does not, and the job goes back to the field.",
+                },
+              ].map((item) => (
+                <div key={item.index}>
+                  <span className="font-sans text-[0.8rem] font-semibold tracking-[0.14em] text-brass-ink">
+                    {item.index}
+                  </span>
+                  <span aria-hidden="true" className="mt-3 mb-4 block h-px w-10 bg-brass" />
+                  <h3 className="text-[1.05rem] leading-[1.35] font-semibold text-slate">
+                    {item.title}
+                  </h3>
+                  <p className="mt-3 text-[0.93rem] leading-[1.7] text-slate-muted">{item.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Container>
+      </section>
+
+      {/* Hiring process */}
+      <section className="border-b border-limestone-line">
+        <Container>
+          <div className="py-14 sm:py-18">
+            <SectionHeading
+              eyebrow="The process"
+              title="What happens after you apply"
+              lede="Five steps. You should be able to predict your next two weeks from this list."
+            />
+            <ol className="mt-11 divide-y divide-limestone-line border-t border-limestone-line">
+              {hiringProcess.map((stage) => (
+                <li key={stage.step} className="grid gap-3 py-7 sm:grid-cols-12 sm:gap-8">
+                  <div className="sm:col-span-3">
+                    <span className="font-sans text-[0.8rem] font-semibold tracking-[0.14em] text-brass-ink">
+                      {stage.step}
+                    </span>
+                    <h3 className="mt-2 text-[1.08rem] leading-[1.3] font-semibold text-slate">
+                      {stage.title}
+                    </h3>
+                  </div>
+                  <p className="text-[0.97rem] leading-[1.72] text-slate-muted sm:col-span-9">
+                    {stage.body}
+                  </p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </Container>
+      </section>
+
+      {/* Equal opportunity */}
+      <section className="bg-limestone-sunk">
+        <Container>
+          <div className="grid gap-8 py-12 sm:py-14 lg:grid-cols-12 lg:gap-16">
+            <div className="lg:col-span-4">
+              <Eyebrow>Equal opportunity</Eyebrow>
+              <Rule className="mt-5" />
+            </div>
+            <div className="lg:col-span-8">
+              <p className="text-[0.98rem] leading-[1.75] text-slate-muted">
+                Applications are read by a person and considered on the qualifications the role
+                actually requires. {""}
+                254 Engineering Services LLC does not discriminate on race, color, religion, sex,
+                sexual orientation, gender identity, national origin, age, disability, genetic
+                information, veteran status, or any other basis protected by federal or Texas law.
+              </p>
+              <p className="mt-5 text-[0.98rem] leading-[1.75] text-slate-muted">
+                The application asks for nothing sensitive. No social security number, no date of
+                birth, no identity documents, and no bank details are collected by this website. A
+                background check may be requested later in the process, and if it is, it is handled
+                directly with you rather than through a form.
+              </p>
+            </div>
           </div>
         </Container>
       </section>

@@ -73,7 +73,7 @@ export async function notify(email: RenderedEmail): Promise<NotifyResult> {
   try {
     const { error } = await mailer.emails.send({
       from: FROM,
-      to: business.notificationEmail,
+      to: email.to ?? business.notificationEmail,
       subject: email.subject,
       replyTo: email.replyTo,
       text: email.text,

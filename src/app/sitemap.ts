@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { business } from "@/config/business";
 import { services } from "@/content/services";
 import { regions } from "@/content/regions";
+import { openPositions } from "@data/positions";
 
 /**
  * The sitemap.
@@ -49,6 +50,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...regions.map((r) => entry(`/coverage/${r.slug}`, 0.8, "monthly")),
     entry("/government", 0.9, "monthly"),
     entry("/careers", 0.8, "monthly"),
+    ...openPositions().map((p) => entry(`/careers/${p.slug}`, 0.7, "monthly")),
     entry("/contact", 0.7, "yearly"),
     entry("/privacy", 0.3, "yearly"),
     entry("/terms", 0.3, "yearly"),
