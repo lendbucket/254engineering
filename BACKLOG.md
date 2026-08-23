@@ -200,3 +200,74 @@ crisp at 390 and the favicon needs the 254 mark cropped clean.
 Both positions carry `validThrough: 2026-11-30` in `data/positions.ts`. Nothing
 renews it automatically, deliberately: an auto extending posting is one that
 outlives the job. Refresh it or set `open: false` before it lapses.
+
+## Insights corpus
+
+### The four registry entries say `planned` and have to be flipped on deploy
+
+`data/keyword-registry.ts` carries all four insights posts as `status: "planned"`
+with their real paths. They are written and they are on this branch. They are not
+on the production domain, and `scripts/registry-audit.mjs` probes
+`https://254engineering.com` for every `live` entry.
+
+**Why it is not just set to live now.** Marking them live made the audit fail on
+four correct 404s. The audit was right: the registry claims a page exists on the
+live brand, and it does not yet. A `planned` entry may carry a path without being
+probed, which is exactly the state these are in.
+
+**What to do at deploy.** In the commit that merges this workstream to production,
+change `status: "planned"` to `status: "live"` on all four and delete the three
+line comment above each one. Then run `npm run registry-audit` against the
+deployed site and watch it verify four new URLs rather than assume it will.
+
+**Also.** The same four entries were copied verbatim into both sibling repos with
+a note in each `BACKLOG.md`. Those copies are uncommitted in the sibling working
+trees on purpose: sealedengineering is on `main`, and one session per repo
+directory is the standing rule. Whoever works those repos next commits them.
+
+### A contextual link inside a SectionHeading lede does not count
+
+`scripts/link-map.mjs` treats only `<p>`, `<li>`, and `<dd>` as prose containers.
+`SectionHeading` renders its `lede` into a `<div>`, so a link placed there is
+counted as template no matter how much prose surrounds it.
+
+This was found the honest way: the linking pass added three links, link-map moved
+by two, and the missing one was in a lede on `/government`. The link was moved
+into the `PostureBlock` paragraph below it, where the sentence was already
+reaching for it, and the count moved to 21.
+
+**Not fixed, deliberately.** Wrapping a string lede in a `<p>` would make ledes
+across the whole site countable and would inflate the contextual number without
+anybody having written a new link. If that change is ever made, take a fresh
+baseline first and say so, because the before and after numbers in this
+workstream's report would stop being comparable.
+
+### /insights/engineer-of-record-texas needs a cannibalization check after indexing
+
+`/about` is live on `engineer in responsible charge texas` and the new post owns
+`engineer of record texas`. Those are the closest two entries in the registry.
+The intents differ, the post explains the concept and `/about` states the firm's
+position, and the post links to `/about` rather than competing with it.
+
+**Wanted.** Once both are indexed, check Search Console for the two pages trading
+impressions on the same queries. If they are, the post keeps the term and
+`/about` loses it, because `/about` has other work to do.
+
+### /insights/texas-pe-license-lookup will not rank this year
+
+KD 55 against a domain with effectively no authority, competing with PDH Pro and
+EngineeringID. It was accepted as a tier 2 target with that stated in advance
+rather than discovered in six months, and the reasoning is in
+`docs/keyword-batch-phase-1.md`.
+
+**Why it shipped anyway.** It is the highest volume term this brand can honestly
+own, the page is genuinely more useful than what ranks, and it earns its place as
+a link target for the other three posts regardless of where it ranks.
+
+### Three candidate topics were researched and dropped
+
+The windstorm program authority angle, on call contracting, and veteran owned
+positioning all measured no search demand at all. Recorded in
+`docs/keyword-batch-phase-1.md` with the evidence, so they are not re-proposed.
+The windstorm material is still true and belongs inside the TWIA county pages
+when the county tier is built.

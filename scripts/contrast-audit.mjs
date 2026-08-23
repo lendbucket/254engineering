@@ -41,6 +41,8 @@ const TEMPLATES = [
   { name: "coverage hub", path: "/coverage" },
   { name: "region", path: "/coverage/coastal-bend" },
   { name: "government", path: "/government" },
+  { name: "insights hub", path: "/insights" },
+  { name: "insight post", path: "/insights/engineer-of-record-texas" },
   { name: "careers hub", path: "/careers" },
   { name: "position: engineer", path: "/careers/professional-engineer" },
   { name: "position: technician", path: "/careers/field-inspection-technician" },

@@ -3,6 +3,7 @@ import { business } from "@/config/business";
 import { services } from "@/content/services";
 import { regions } from "@/content/regions";
 import { openPositions } from "@data/positions";
+import { insights } from "@/content/insights";
 
 /**
  * The sitemap.
@@ -25,20 +26,29 @@ import { openPositions } from "@data/positions";
  * site changed at the same instant every time anything ships. The field then
  * stops being believed, which costs more than never having sent it.
  *
- * No page on this site has a true per page modification date yet. There is no
- * blog, and the content pages are generated from data files with no timestamps.
- * When the editorial corpus lands, posts will carry real publish and modified
- * dates and those pages, and only those, will emit the field.
+ * The editorial corpus has now landed, and it is the exception. Every post in
+ * src/content/insights.ts carries a hand set `dateModified`, so those URLs, and
+ * only those URLs, emit the field. The service and region pages are still
+ * generated from data files with no timestamps and still send nothing, which is
+ * the correct answer for them rather than a gap waiting to be filled.
  *
  * scripts/seo-audit.mjs and scripts/placeholder-audit.mjs both crawl this list,
  * which gives it a second job: a page missing from here is a page no audit
  * checks. That is the more expensive failure of the two.
  */
 export default function sitemap(): MetadataRoute.Sitemap {
-  const entry = (path: string, priority: number, changeFrequency: "monthly" | "yearly") => ({
+  const entry = (
+    path: string,
+    priority: number,
+    changeFrequency: "monthly" | "yearly",
+    lastModified?: string,
+  ) => ({
     url: `${business.url}${path === "/" ? "" : path}`,
     changeFrequency,
     priority,
+    // Omitted entirely rather than sent as undefined, so the field is absent
+    // from the XML for every page that has no true date. See the note above.
+    ...(lastModified ? { lastModified: new Date(`${lastModified}T00:00:00Z`) } : {}),
   });
 
   return [
@@ -51,6 +61,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     entry("/government", 0.9, "monthly"),
     entry("/careers", 0.8, "monthly"),
     ...openPositions().map((p) => entry(`/careers/${p.slug}`, 0.7, "monthly")),
+    entry("/insights", 0.8, "monthly"),
+    ...insights.map((i) => entry(`/insights/${i.slug}`, 0.7, "monthly", i.dateModified)),
     entry("/contact", 0.7, "yearly"),
     entry("/privacy", 0.3, "yearly"),
     entry("/terms", 0.3, "yearly"),

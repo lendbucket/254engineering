@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { PageHeader } from "@/components/site/PageHeader";
@@ -101,7 +102,19 @@ export default function AboutPage() {
                 title="Licensed engineers in responsible charge"
                 paragraphs={[
                   responsibleChargeCopy(),
-                  "The division of labor is deliberate and it runs one way. Field work gathers evidence and does not reach conclusions. The engineer reads the evidence, forms the opinion, and answers for it. A technician who is asked to decide is being asked to practice engineering.",
+                  <>
+                    The division of labor is deliberate and it runs one way. Field work gathers
+                    evidence and does not reach conclusions. The engineer reads the evidence, forms
+                    the opinion, and answers for it. A technician who is asked to decide is being
+                    asked to practice engineering. The standard behind that division is{" "}
+                    <Link
+                      href="/insights/engineer-of-record-texas"
+                      className="text-slate underline decoration-brass/60 underline-offset-4 hover:decoration-brass"
+                    >
+                      responsible charge, as Texas defines it
+                    </Link>
+                    .
+                  </>,
                 ]}
               />
               <ModelBlock
@@ -208,7 +221,7 @@ function ModelBlock({
 }: {
   index: string;
   title: string;
-  paragraphs: string[];
+  paragraphs: ReactNode[];
 }) {
   return (
     <div>

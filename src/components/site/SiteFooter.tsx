@@ -59,6 +59,7 @@ export function SiteFooter() {
           <FooterColumn title="Firm">
             <FooterLink href="/about">About the firm</FooterLink>
             <FooterLink href="/government">Government and public sector</FooterLink>
+            <FooterLink href="/insights">Insights</FooterLink>
             <FooterLink href="/careers">Careers</FooterLink>
             <FooterLink href="/coverage">All 254 counties</FooterLink>
             <FooterLink href="/contact">Contact</FooterLink>

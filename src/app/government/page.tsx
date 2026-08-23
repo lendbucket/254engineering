@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
+import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { PageHeader } from "@/components/site/PageHeader";
 import { PrelaunchNotice } from "@/components/launch/PrelaunchNotice";
@@ -82,7 +84,21 @@ export default function GovernmentPage() {
             <div className="mt-11 grid gap-10 lg:grid-cols-3 lg:gap-8">
               <PostureBlock
                 title="Qualifications based selection"
-                body="Statements of qualifications, standard federal form SF 330 where a solicitation calls for it, and a response describing the engineer who would be in responsible charge rather than a corporate capability in the abstract. Fees are negotiated after selection, in the sequence the statute sets out."
+                body={
+                  <>
+                    Statements of qualifications, standard federal form SF 330 where a solicitation
+                    calls for it, and a response describing the engineer who would be in
+                    responsible charge rather than a corporate capability in the abstract. Fees are
+                    negotiated after selection, in{" "}
+                    <Link
+                      href="/insights/texas-professional-services-procurement-act"
+                      className="text-slate underline decoration-brass/60 underline-offset-4 hover:decoration-brass"
+                    >
+                      the sequence Chapter 2254 sets out
+                    </Link>
+                    .
+                  </>
+                }
               />
               <PostureBlock
                 title="On-call and indefinite delivery"
@@ -117,7 +133,23 @@ export default function GovernmentPage() {
                 detail={
                   firmNumber
                     ? `Registered with the Texas Board of Professional Engineers and Land Surveyors. TBPELS Firm No. ${firmNumber}.`
-                    : "Application pending with the Texas Board of Professional Engineers and Land Surveyors. The firm is not offering or performing engineering services until the registration is active, and this page will carry the firm number when it issues."
+                    : (
+                        <>
+                          Application pending with the Texas Board of Professional Engineers and
+                          Land Surveyors. The firm is not offering or performing engineering
+                          services until the registration is active, and this page will carry the
+                          firm number when it issues. What that registration is, and why an
+                          unregistered entity may not describe itself as an engineering firm, is
+                          set out in{" "}
+                          <Link
+                            href="/insights/texas-engineering-firm-registration"
+                            className="text-slate underline decoration-brass/60 underline-offset-4 hover:decoration-brass"
+                          >
+                            what a Texas engineering firm registration means
+                          </Link>
+                          .
+                        </>
+                      )
                 }
               />
               <RegistrationRow
@@ -233,7 +265,7 @@ export default function GovernmentPage() {
   );
 }
 
-function PostureBlock({ title, body }: { title: string; body: string }) {
+function PostureBlock({ title, body }: { title: string; body: ReactNode }) {
   return (
     <div>
       <span aria-hidden="true" className="mb-4 block h-px w-10 bg-brass" />
@@ -243,7 +275,7 @@ function PostureBlock({ title, body }: { title: string; body: string }) {
   );
 }
 
-function RegistrationRow({ term, detail }: { term: string; detail: string }) {
+function RegistrationRow({ term, detail }: { term: string; detail: ReactNode }) {
   return (
     <div className="grid gap-2 py-5 sm:grid-cols-12 sm:gap-6">
       <dt className="font-sans text-[0.88rem] font-semibold text-slate sm:col-span-4">{term}</dt>

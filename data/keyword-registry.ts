@@ -138,8 +138,46 @@ export const registry: RegistryEntry[] = [
   { keyword: "statewide engineering services texas", owner: "254", kind: "institutional", cluster: "firm identity", status: "live", path: "/" },
   { keyword: "veteran owned engineering firm texas", owner: "254", kind: "institutional", cluster: "firm identity", status: "live", path: "/about" },
   { keyword: "engineering firm serving all texas counties", owner: "254", kind: "institutional", cluster: "firm identity", status: "live", path: "/coverage" },
-  { keyword: "texas engineering firm registration", owner: "254", kind: "institutional", cluster: "licensing", status: "planned", note: "Editorial. What a TBPELS firm registration is and why it matters to a buyer." },
+  {
+    keyword: "texas engineering firm registration",
+    owner: "254",
+    kind: "institutional",
+    cluster: "licensing",
+    // NOT YET DEPLOYED. Written on feat/brand-and-careers and held there.
+    // registry-audit probes the live domain for every "live" entry, so this stays
+    // "planned" until the merge reaches production. Flip it in the deploy commit.
+    status: "planned",
+    path: "/insights/texas-engineering-firm-registration",
+    note:
+      "10/mo at KD 20, traffic potential 60. Evidence: docs/keyword-batch-phase-1.md. Editorial. What a TBPELS firm registration is and how a buyer verifies one.",
+  },
   { keyword: "engineer in responsible charge texas", owner: "254", kind: "institutional", cluster: "licensing", status: "live", path: "/about" },
+  {
+    keyword: "engineer of record texas",
+    owner: "254",
+    kind: "education",
+    cluster: "licensing",
+    // NOT YET DEPLOYED. Written on feat/brand-and-careers and held there.
+    // registry-audit probes the live domain for every "live" entry, so this stays
+    // "planned" until the merge reaches production. Flip it in the deploy commit.
+    status: "planned",
+    path: "/insights/engineer-of-record-texas",
+    note:
+      "Head term 'engineer of record' is 300/mo at KD 0, but traffic potential is only 30: the query is definitional and is largely answered by a snippet. Evidence: docs/keyword-batch-phase-1.md. WATCH: /about is live on 'engineer in responsible charge texas' and this is the closest pairing on the registry. Different intent, but check for cannibalization once both are indexed.",
+  },
+  {
+    keyword: "texas pe license lookup",
+    owner: "254",
+    kind: "education",
+    cluster: "licensing",
+    // NOT YET DEPLOYED. Written on feat/brand-and-careers and held there.
+    // registry-audit probes the live domain for every "live" entry, so this stays
+    // "planned" until the merge reaches production. Flip it in the deploy commit.
+    status: "planned",
+    path: "/insights/texas-pe-license-lookup",
+    note:
+      "600/mo at KD 55, traffic potential 1400, parent topic 'tbpe roster'. Evidence: docs/keyword-batch-phase-1.md. TIER 2 and the hardest term 254 targets: KD 55 against a domain with no authority does not rank in 2026. Operator ruled 2026-08-23 that the no-second-lookup-guide note on the windstorm entries is scoped to windstorm only, so PE licensure lookup belongs to 254.",
+  },
 
   // ------------------------------------------------------- government terms
   { keyword: "government engineering services texas", owner: "254", kind: "institutional", cluster: "government", status: "live", path: "/government" },
@@ -147,7 +185,19 @@ export const registry: RegistryEntry[] = [
   { keyword: "on call engineering services texas", owner: "254", kind: "institutional", cluster: "government", status: "live", path: "/government" },
   { keyword: "qualifications based selection texas engineering", owner: "254", kind: "institutional", cluster: "government", status: "live", path: "/government" },
   { keyword: "sdvosb engineering firm texas", owner: "254", kind: "institutional", cluster: "government", status: "planned", note: "Blocked. Certification is pending and the term may not be targeted until it is issued." },
-  { keyword: "how texas cities procure engineering services", owner: "254", kind: "education", cluster: "government", status: "planned" },
+  {
+    keyword: "texas professional services procurement act",
+    owner: "254",
+    kind: "education",
+    cluster: "government",
+    // NOT YET DEPLOYED. Written on feat/brand-and-careers and held there.
+    // registry-audit probes the live domain for every "live" entry, so this stays
+    // "planned" until the merge reaches production. Flip it in the deploy commit.
+    status: "planned",
+    path: "/insights/texas-professional-services-procurement-act",
+    note:
+      "30/mo at KD 0, parent topic 'texas government code 2254'. Evidence: docs/keyword-batch-phase-1.md. REPOINTED 2026-08-23: this entry previously read 'how texas cities procure engineering services', which Ahrefs has no record of. The post is subordinate to /government, which is live on 'qualifications based selection texas engineering' and keeps that term.",
+  },
 
   // --------------------------------------------------------------- careers
   // Careers belongs to 254 for the whole family. See the collision note below.

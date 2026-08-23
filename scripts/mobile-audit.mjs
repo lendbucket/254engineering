@@ -47,6 +47,8 @@ const TEMPLATES = [
   { name: "coverage hub", path: "/coverage" },
   { name: "region", path: "/coverage/dallas-fort-worth" },
   { name: "government", path: "/government" },
+  { name: "insights hub", path: "/insights" },
+  { name: "insight post", path: "/insights/texas-professional-services-procurement-act" },
   { name: "careers", path: "/careers" },
   { name: "contact", path: "/contact" },
   { name: "waitlist", path: "/waitlist" },
