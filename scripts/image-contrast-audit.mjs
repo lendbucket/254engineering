@@ -59,6 +59,34 @@ const TARGETS = [
       { label: "figure labels", css: "section:first-of-type dd span:last-child" },
     ],
   },
+  // The interior mastheads. PageHeader renders a photograph panel on the
+  // surfaces mapped in src/content/photos.ts, with the type on solid navy
+  // beside it rather than over it. These entries exist so that construction
+  // cannot silently regress into type-over-picture on a later edit.
+  {
+    page: "/services",
+    name: "services masthead",
+    selectors: [
+      { label: "h1", css: "h1" },
+      { label: "lede", css: "section:first-of-type h1 ~ div" },
+    ],
+  },
+  {
+    page: "/coverage/panhandle",
+    name: "region masthead",
+    selectors: [
+      { label: "h1", css: "h1" },
+      { label: "lede", css: "section:first-of-type h1 ~ div" },
+    ],
+  },
+  {
+    page: "/services/windstorm-wpi-8",
+    name: "service masthead",
+    selectors: [
+      { label: "h1", css: "h1" },
+      { label: "lede", css: "section:first-of-type h1 ~ div" },
+    ],
+  },
 ];
 
 const srgb = (v) => {
@@ -119,7 +147,20 @@ async function run() {
 
       // Make text transparent so the screenshot shows only what is behind it.
       await page.addStyleTag({
-        content: `h1, h2, h3, p, span, a, dd, dt, li { color: transparent !important; text-shadow: none !important; }`,
+        /*
+         * Every element, not a list of tag names.
+         *
+         * This rule used to name h1, h2, h3, p, span, a, dd, dt, li. PageHeader
+         * renders its lede into a div, so the lede text stayed opaque and the
+         * check sampled the glyphs themselves: it reported 1.00:1 against a
+         * background that was the text colour. That is a false FAIL here and it
+         * would be a false PASS anywhere the text happened to be lighter than
+         * what is behind it, which is the more dangerous direction.
+         *
+         * Only `color` is touched, so button fills, borders, and photographs
+         * are untouched and the sampled background is the real one.
+         */
+        content: `* { color: transparent !important; text-shadow: none !important; }`,
       });
       await page.waitForTimeout(200);
 

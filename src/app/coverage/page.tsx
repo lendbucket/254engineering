@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { PageHeader } from "@/components/site/PageHeader";
+import { sectionPhotos } from "@/content/photos";
 import { PrelaunchNotice } from "@/components/launch/PrelaunchNotice";
 import { OfferCta } from "@/components/launch/OfferCta";
 import { CardGrid, cardCell, SectionHeading } from "@/components/ui/primitives";
@@ -29,6 +30,7 @@ export default function CoveragePage() {
       <JsonLd data={breadcrumbSchema(crumbs)} />
 
       <PageHeader
+        image={sectionPhotos.coverage}
         eyebrow="Coverage"
         title="Engineering coverage in all 254 Texas counties"
         lede="Texas has more counties than any other state and they are not one place. Coverage is stated by region because that is the honest unit: wind zones, soil behavior, and permitting authority change as you cross the state, and a firm serving all of it has to account for that rather than average it."

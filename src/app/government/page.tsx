@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { PageHeader } from "@/components/site/PageHeader";
+import { sectionPhotos } from "@/content/photos";
 import { PrelaunchNotice } from "@/components/launch/PrelaunchNotice";
 import { OfferCta } from "@/components/launch/OfferCta";
 import { Eyebrow, Rule, SectionHeading } from "@/components/ui/primitives";
@@ -34,6 +35,7 @@ export default function GovernmentPage() {
       <JsonLd data={breadcrumbSchema(crumbs)} />
 
       <PageHeader
+        image={sectionPhotos.government}
         eyebrow="Capability statement"
         title="Government engineering services across Texas"
         lede="A capability statement for municipal, county, state, and federal buyers. Everything on this page is stated as it currently stands, including the parts that are not yet in place."

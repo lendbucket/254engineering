@@ -76,7 +76,7 @@ export default async function InsightPage({ params }: { params: Promise<{ slug: 
       <JsonLd data={faqSchema(post.faqs)} />
 
       <PageHeader eyebrow={post.eyebrow} title={post.h1} lede={post.summary} crumbs={crumbs}>
-        <p className="font-sans text-[0.85rem] text-slate-muted">
+        <p className="font-sans text-[0.85rem] text-slate-fg-muted">
           Published <time dateTime={post.datePublished}>{longDate(post.datePublished)}</time>
           {post.dateModified !== post.datePublished ? (
             <>

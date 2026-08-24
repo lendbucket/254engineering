@@ -7,6 +7,7 @@ import { PrelaunchNotice } from "@/components/launch/PrelaunchNotice";
 import { OfferCta } from "@/components/launch/OfferCta";
 import { CardGrid, cardCell, Eyebrow, Rule, SectionHeading } from "@/components/ui/primitives";
 import { TexasCountyMap } from "@/components/map/TexasCountyMap";
+import { regionPhotos } from "@/content/photos";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { regionBySlug, regions } from "@/content/regions";
@@ -50,7 +51,13 @@ export default async function RegionPage({ params }: { params: Promise<{ slug: s
     <>
       <JsonLd data={breadcrumbSchema(crumbs)} />
 
-      <PageHeader eyebrow="Coverage region" title={region.h1} lede={region.summary} crumbs={crumbs}>
+      <PageHeader
+        eyebrow="Coverage region"
+        title={region.h1}
+        lede={region.summary}
+        crumbs={crumbs}
+        image={regionPhotos[region.slug]}
+      >
         <PrelaunchNotice />
       </PageHeader>
 

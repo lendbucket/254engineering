@@ -101,6 +101,14 @@ const PHOTOS = [
     use: "West Texas region page, and the coverage story band.",
   },
   {
+    file: "gulf-coast-pier.jpg",
+    id: "photo-1689717585843-43692b91e77f",
+    photographer: "Nathanael McDaniel",
+    page: "https://unsplash.com/photos/a-couple-of-wooden-piers-sitting-next-to-a-body-of-water-2HNZrPeTr_g",
+    alt: "A timber fishing pier on standing piles reaching out over coastal water.",
+    use: "Coastal Bend region page. Checked before it was accepted: metal roofed shelters, turbid Gulf water, a heron. Unmistakably the US Gulf coast rather than a generic seaside.",
+  },
+  {
     file: "grain-silos-plain.jpg",
     id: "photo-1632327491579-e833602c99e5",
     photographer: "Raychel Sanner",

@@ -18,6 +18,7 @@ never whose it is.
 | `framing-against-sky.jpg` | Troy Mortier | [Unsplash](https://unsplash.com/photos/a-wooden-structure-with-a-sky-background-w6g9DqZUNkI) | Structural design and repair specification pages. |
 | `plains-storm-sky.jpg` | Raychel Sanner | [Unsplash](https://unsplash.com/photos/green-grass-field-under-gray-clouds-drQtGkdBz8E) | Panhandle region page, and the wind sections. Sanner photographs storms rather than staging them, which is why several of these come from the same photographer. |
 | `plains-open-road.jpg` | Raychel Sanner | [Unsplash](https://unsplash.com/photos/brown-dirt-road-under-gray-clouds-0pSWKddFXiI) | West Texas region page, and the coverage story band. |
+| `gulf-coast-pier.jpg` | Nathanael McDaniel | [Unsplash](https://unsplash.com/photos/a-couple-of-wooden-piers-sitting-next-to-a-body-of-water-2HNZrPeTr_g) | Coastal Bend region page. Checked before it was accepted: metal roofed shelters, turbid Gulf water, a heron. Unmistakably the US Gulf coast rather than a generic seaside. |
 | `grain-silos-plain.jpg` | Raychel Sanner | [Unsplash](https://unsplash.com/photos/a-couple-of-silos-sitting-on-top-of-a-lush-green-field-sNnqveyaIiE) | Government and municipal page. Rural infrastructure rather than a city skyline, because the county level buyer is the audience. |
 
 ## Alt text
@@ -29,4 +30,5 @@ reviewer can check the honesty rule without reading the components.
 - `framing-against-sky.jpg`: Timber framing of a house standing against an open sky.
 - `plains-storm-sky.jpg`: An open plain under a heavy grey storm sky.
 - `plains-open-road.jpg`: A dirt road running straight across open country under grey cloud.
+- `gulf-coast-pier.jpg`: A timber fishing pier on standing piles reaching out over coastal water.
 - `grain-silos-plain.jpg`: Grain silos standing on open farmland.

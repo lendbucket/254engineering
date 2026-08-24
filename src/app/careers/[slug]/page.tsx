@@ -78,18 +78,18 @@ export default async function PositionPage({ params }: { params: Promise<{ slug:
         crumbs={crumbs}
       >
         {!position.open ? (
-          <aside className="rounded-[3px] border border-limestone-line bg-limestone-sunk px-5 py-4">
-            <p className="text-[0.96rem] leading-[1.65] text-slate-muted">
+          <aside className="rounded-[3px] border border-slate-fg/20 bg-slate/40 px-5 py-4">
+            <p className="text-[0.96rem] leading-[1.65] text-slate-fg-muted">
               This position is closed. The description is kept here so that links to it still lead
               somewhere honest.
             </p>
           </aside>
         ) : isPrelaunch() ? (
-          <aside className="rounded-[3px] border border-brass/45 bg-limestone-raised px-5 py-4 sm:px-6 sm:py-5">
-            <p className="font-sans text-[0.7rem] font-semibold tracking-[0.18em] text-brass-ink uppercase">
+          <aside className="rounded-[3px] border border-brass/50 bg-slate/40 px-5 py-4 sm:px-6 sm:py-5">
+            <p className="font-sans text-[0.7rem] font-semibold tracking-[0.18em] text-brass-light uppercase">
               Building the bench
             </p>
-            <p className="mt-2.5 text-[0.96rem] leading-[1.65] text-slate-muted">
+            <p className="mt-2.5 text-[0.96rem] leading-[1.65] text-slate-fg-muted">
               Firm registration with the Texas Board of Professional Engineers and Land Surveyors is
               pending and no engineer of record is yet in responsible charge, so no assignments are
               being dispatched. Applications are open and are being read now, which is the point:

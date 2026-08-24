@@ -19,18 +19,18 @@ export function PrelaunchNotice({ service }: { service?: string }) {
   const waitlistHref = service ? `/waitlist?service=${encodeURIComponent(service)}` : "/waitlist";
 
   return (
-    <aside className="rounded-[3px] border border-brass/45 bg-limestone-raised px-5 py-4 sm:px-6 sm:py-5">
-      <p className="font-sans text-[0.7rem] font-semibold tracking-[0.18em] text-brass-ink uppercase">
+    <aside className="rounded-[3px] border border-brass/50 bg-slate/40 px-5 py-4 sm:px-6 sm:py-5">
+      <p className="font-sans text-[0.7rem] font-semibold tracking-[0.18em] text-brass-light uppercase">
         Opening soon
       </p>
-      <p className="mt-2.5 text-[0.96rem] leading-[1.65] text-slate-muted">
+      <p className="mt-2.5 text-[0.96rem] leading-[1.65] text-slate-fg-muted">
         254 Engineering Services is not yet accepting engineering work. Firm registration with the
         Texas Board of Professional Engineers and Land Surveyors is pending, no engineer of record is
         yet in responsible charge, and this page describes a service the firm is being built to
         deliver.{" "}
         <Link
           href={waitlistHref}
-          className="font-medium text-slate underline decoration-brass/60 underline-offset-4 transition-colors hover:decoration-brass"
+          className="font-medium text-slate-fg underline decoration-brass underline-offset-4 transition-colors hover:text-brass-light"
         >
           Join the waitlist
         </Link>{" "}

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { PageHeader } from "@/components/site/PageHeader";
+import { sectionPhotos } from "@/content/photos";
 import { CardGrid, cardCell, Eyebrow, Rule, SectionHeading } from "@/components/ui/primitives";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema, jobPostingSchema } from "@/lib/schema";
@@ -42,17 +43,18 @@ export default function CareersPage() {
       ))}
 
       <PageHeader
+        image={sectionPhotos.careers}
         eyebrow="Careers"
         title="Build a Texas engineering firm from the ground up"
         lede="254 Engineering Services is a veteran owned firm named for the 254 counties of Texas and built to serve every one of them, on licensed professional judgment and statewide field operations. These are the seats that make that possible."
         crumbs={crumbs}
       >
         {isPrelaunch() ? (
-          <aside className="rounded-[3px] border border-brass/45 bg-limestone-raised px-5 py-4 sm:px-6 sm:py-5">
-            <p className="font-sans text-[0.7rem] font-semibold tracking-[0.18em] text-brass-ink uppercase">
+          <aside className="rounded-[3px] border border-brass/50 bg-slate/40 px-5 py-4 sm:px-6 sm:py-5">
+            <p className="font-sans text-[0.7rem] font-semibold tracking-[0.18em] text-brass-light uppercase">
               Where the firm is today
             </p>
-            <p className="mt-2.5 text-[0.96rem] leading-[1.65] text-slate-muted">
+            <p className="mt-2.5 text-[0.96rem] leading-[1.65] text-slate-fg-muted">
               Firm registration with the Texas Board of Professional Engineers and Land Surveyors is
               pending and no engineer of record is yet in responsible charge, so no assignments are
               being dispatched. Applications are open and are being read now. Anyone who joins is
