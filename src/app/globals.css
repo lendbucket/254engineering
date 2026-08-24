@@ -50,12 +50,15 @@
    * --color-brass at #d19a1e measures 2.27:1 on the off white and is unusable
    * as text there. It is the rule and mark colour on light surfaces, and it is
    * legitimate TEXT only on navy, where it measures 5.14:1.
-   * --color-brass-ink is the on-light text gold at 4.85:1.
+   * --color-brass-ink is the on-light text gold. It is measured against
+   * limestone-sunk, the DARKEST light surface, not against the lightest one:
+   * the first value chosen here cleared 4.85:1 on limestone and shipped at
+   * 4.39:1 on limestone-sunk, where most eyebrows actually sit. 4.99:1 now.
    * --color-brass-light is the on-navy display gold at 6.99:1.
    * Measured, not guessed. Changing any of them means re-measuring.
    */
   --color-brass: #d19a1e;
-  --color-brass-ink: #8a6410;
+  --color-brass-ink: #7f5c0e;
   --color-brass-light: #e3b95a;
 
   /* On-navy text tones. 11.67:1 and 7.34:1 respectively. */

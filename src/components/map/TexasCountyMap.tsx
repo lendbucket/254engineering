@@ -33,8 +33,11 @@ import { regionAssignmentFingerprint } from "@/content/region-fingerprint";
  * regions, so the boundary is derived from the same assignment the county lists
  * are and cannot disagree with them.
  *
- * Brass is spent on one thing, the region a page is about, and is absent from
- * the hub entirely.
+ * Gold is spent deliberately and differently by surface. On light it marks only
+ * the region a page is about. On navy it draws the region borders themselves,
+ * which is the one place on the site where gold carries structure rather than
+ * accent, and it is legitimate there because on that band the borders ARE the
+ * subject.
  *
  * WHAT THIS MAP IS NOT
  * --------------------
@@ -70,19 +73,53 @@ for (const region of regions) {
   for (const county of region.counties) regionOfCounty.set(county, region.slug);
 }
 
-const COUNTY_FILL = "#16324b12";
-const ACTIVE_FILL = "#a97c2a";
-const HAIRLINE = "#c9bda6";
-const BOUNDARY = "#16324b";
+/*
+ * Two tones, because the map now has to work on both surfaces.
+ *
+ * On light it is a document: navy lines on off white. On navy it inverts and
+ * the region borders become gold, which is the one place on the site where gold
+ * carries structural information rather than accent. That is legitimate here
+ * because the borders are the subject: the band exists to show the state
+ * divided into eight.
+ *
+ * These are literal hex rather than theme tokens for the reason recorded in
+ * BACKLOG: SVG presentation attributes do not resolve Tailwind utilities, and a
+ * class on each of 254 paths costs more than it saves. They move with the
+ * palette by hand, and they moved with it in this pass.
+ */
+const TONES = {
+  light: {
+    county: "#14315c12",
+    hairline: "#c9bda6",
+    boundary: "#14315c",
+    boundaryOpacity: 0.55,
+    outline: "#14315c",
+    outlineOpacity: 0.85,
+    active: "#d19a1e",
+  },
+  dark: {
+    county: "#f6f3ec10",
+    hairline: "#f6f3ec2e",
+    boundary: "#e3b95a",
+    boundaryOpacity: 0.85,
+    outline: "#f6f3ec",
+    outlineOpacity: 0.9,
+    active: "#e3b95a",
+  },
+} as const;
 
 export function TexasCountyMap({
-  /** When set, that region is filled brass and every other county stays pale. */
+  /** When set, that region is filled and every other county stays pale. */
   activeRegion,
+  /** Which surface the map is sitting on. */
+  tone = "light",
   className = "",
 }: {
   activeRegion?: string;
+  tone?: "light" | "dark";
   className?: string;
 }) {
+  const t = TONES[tone];
   const activeName = activeRegion
     ? regions.find((r) => r.slug === activeRegion)?.name
     : undefined;
@@ -101,15 +138,15 @@ export function TexasCountyMap({
       {/* Counties. Hairlines stay hairlines at 390 and at 1280: without
           non-scaling-stroke they thicken as the map scales up and vanish as it
           scales down. */}
-      <g stroke={HAIRLINE} strokeWidth={0.5} strokeLinejoin="round" vectorEffect="non-scaling-stroke">
+      <g stroke={t.hairline} strokeWidth={0.5} strokeLinejoin="round" vectorEffect="non-scaling-stroke">
         {countyShapes.map((county) => (
           <path
             key={county.fips}
             d={county.d}
             fill={
               activeRegion && regionOfCounty.get(county.name) === activeRegion
-                ? ACTIVE_FILL
-                : COUNTY_FILL
+                ? t.active
+                : t.county
             }
             vectorEffect="non-scaling-stroke"
           />
@@ -121,21 +158,21 @@ export function TexasCountyMap({
       <path
         d={REGION_BOUNDARY_PATH}
         fill="none"
-        stroke={BOUNDARY}
+        stroke={t.boundary}
         strokeWidth={1.6}
         strokeLinejoin="round"
         strokeLinecap="round"
-        opacity={0.55}
+        opacity={t.boundaryOpacity}
         vectorEffect="non-scaling-stroke"
       />
       <path
         d={STATE_OUTLINE_PATH}
         fill="none"
-        stroke={BOUNDARY}
+        stroke={t.outline}
         strokeWidth={2}
         strokeLinejoin="round"
         strokeLinecap="round"
-        opacity={0.85}
+        opacity={t.outlineOpacity}
         vectorEffect="non-scaling-stroke"
       />
     </svg>

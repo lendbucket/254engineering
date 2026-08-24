@@ -35,7 +35,8 @@
     "prelink-map": "node scripts/preflight-audit.mjs",
     "link-map": "node scripts/link-map.mjs",
     "build-county-map": "tsx scripts/build-county-map.mts",
-    "fetch-photos": "node scripts/fetch-photos.mjs"
+    "fetch-photos": "node scripts/fetch-photos.mjs",
+    "image-contrast-audit": "node scripts/image-contrast-audit.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",

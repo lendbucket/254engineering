@@ -19,7 +19,7 @@ import { Wordmark } from "@/components/brand/Wordmark";
  *
  * Closing on `pathname` change rather than on click is what covers both.
  */
-export function MobileNav() {
+export function MobileNav({ onDark = false }: { onDark?: boolean } = {}) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
@@ -48,7 +48,7 @@ export function MobileNav() {
         aria-label="Open menu"
         aria-expanded={open}
         onClick={() => setOpen(true)}
-        className="-mr-2 inline-flex h-11 w-11 items-center justify-center text-slate"
+        className={`-mr-2 inline-flex h-11 w-11 items-center justify-center ${onDark ? "text-slate-fg" : "text-slate"}`}
       >
         <span aria-hidden="true" className="relative block h-[13px] w-6">
           <span className="absolute inset-x-0 top-0 h-px bg-current" />

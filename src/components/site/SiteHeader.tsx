@@ -16,11 +16,11 @@ import { business } from "@/config/business";
  */
 export function SiteHeader() {
   return (
-    <header className="border-b border-limestone-line bg-limestone">
+    <header className="bg-slate-ink text-slate-fg">
       <Container>
-        <div className="flex items-center justify-between py-4 sm:py-5">
+        <div className="flex items-center justify-between py-6 sm:py-7">
           <Link href="/" aria-label={`${business.name} home`} className="shrink-0">
-            <Wordmark />
+            <Wordmark onDark />
           </Link>
 
           <nav aria-label="Primary" className="hidden md:block">
@@ -29,7 +29,7 @@ export function SiteHeader() {
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    className="font-sans text-[0.93rem] font-medium text-slate-muted transition-colors hover:text-slate"
+                    className="font-sans text-[0.93rem] font-medium text-slate-fg-muted transition-colors hover:text-brass-light"
                   >
                     {item.label}
                   </Link>
@@ -38,10 +38,10 @@ export function SiteHeader() {
             </ul>
           </nav>
 
-          <MobileNav />
+          <MobileNav onDark />
         </div>
       </Container>
-      <div aria-hidden="true" className="h-px bg-brass/45" />
+      <div aria-hidden="true" className="h-px bg-brass" />
     </header>
   );
 }
