@@ -34,7 +34,8 @@
     "cta-audit": "node scripts/cta-audit.mjs",
     "prelink-map": "node scripts/preflight-audit.mjs",
     "link-map": "node scripts/link-map.mjs",
-    "build-county-map": "tsx scripts/build-county-map.mts"
+    "build-county-map": "tsx scripts/build-county-map.mts",
+    "fetch-photos": "node scripts/fetch-photos.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",

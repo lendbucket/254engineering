@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import {
-  ButtonLink,
   CardGrid,
   cardCell,
   Eyebrow,
@@ -10,6 +9,7 @@ import {
   SectionHeading,
 } from "@/components/ui/primitives";
 import { OfferCta } from "@/components/launch/OfferCta";
+import { HomeHero } from "@/components/home/HomeHero";
 import { CredentialsStrip } from "@/components/site/CredentialsStrip";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
@@ -17,7 +17,6 @@ import { services } from "@/content/services";
 import { regions } from "@/content/regions";
 import { business } from "@/config/business";
 import {
-  modelSentence,
   responsibleChargeCopy,
   specialistsCopy,
 } from "@/content/model-copy";
@@ -34,51 +33,7 @@ export default function HomePage() {
     <>
       <JsonLd data={breadcrumbSchema([{ name: "Home", path: "/" }])} />
 
-      {/* Hero */}
-      <section className="border-b border-limestone-line bg-limestone">
-        <Container>
-          <div className="grid gap-12 py-16 sm:py-20 lg:grid-cols-12 lg:gap-16 lg:py-28">
-            <div className="lg:col-span-7">
-              <Eyebrow>Veteran owned. Statewide.</Eyebrow>
-              <h1 className="mt-4 text-[2.35rem] leading-[1.1] font-semibold text-slate sm:text-[3.1rem] lg:text-[3.4rem]">
-                Texas engineering services in all 254 counties
-              </h1>
-              <p className="mt-7 max-w-xl text-[1.1rem] leading-[1.65] text-slate-muted">
-                Inspections, sealed letters, certifications, and design, built to one standard from
-                the Panhandle to the Rio Grande Valley. {modelSentence()}
-              </p>
-              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-                <ButtonLink href="/services">See the service lines</ButtonLink>
-                <ButtonLink href="/coverage" tone="secondary">
-                  Coverage across Texas
-                </ButtonLink>
-              </div>
-            </div>
-
-            <div className="lg:col-span-5 lg:pl-8">
-              <div className="border-t border-limestone-line pt-8 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-10">
-                <dl className="space-y-7">
-                  <HeroStat
-                    figure="254"
-                    label="Texas counties"
-                    detail="Every county in the state, grouped into eight coverage regions with their own conditions."
-                  />
-                  <HeroStat
-                    figure="8"
-                    label="Coverage regions"
-                    detail="Wind, soil, and permitting change across Texas. The regions are how the firm accounts for that."
-                  />
-                  <HeroStat
-                    figure="1"
-                    label="Standard"
-                    detail="One field protocol and one review process, whichever county the work is in."
-                  />
-                </dl>
-              </div>
-            </div>
-          </div>
-        </Container>
-      </section>
+      <HomeHero />
 
       {/* The name */}
       <section className="border-b border-limestone-line bg-limestone-sunk">
@@ -261,21 +216,6 @@ export default function HomePage() {
   );
 }
 
-function HeroStat({ figure, label, detail }: { figure: string; label: string; detail: string }) {
-  return (
-    <div>
-      <dt className="flex items-baseline gap-3">
-        <span className="font-display text-[2.4rem] leading-none font-semibold text-slate">
-          {figure}
-        </span>
-        <span className="font-sans text-[0.72rem] font-semibold tracking-[0.16em] text-brass-ink uppercase">
-          {label}
-        </span>
-      </dt>
-      <dd className="mt-2.5 text-[0.92rem] leading-[1.6] text-slate-muted">{detail}</dd>
-    </div>
-  );
-}
 
 function ModelPoint({ index, title, body }: { index: string; title: string; body: string }) {
   return (
