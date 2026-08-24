@@ -67,7 +67,7 @@ export default function TermsPage() {
 
               <h2>Firm registration status</h2>
               <p>
-                The firm's registration with the Texas Board of Professional Engineers and Land
+                The firm&apos;s registration with the Texas Board of Professional Engineers and Land
                 Surveyors is pending. Until that registration is active, this firm does not offer or
                 perform engineering services in Texas, and no page of this website should be read as
                 an offer to do so. The footer of every page states the current status, and it changes
@@ -83,7 +83,7 @@ export default function TermsPage() {
                 lender, insurer, or other party will act in a particular way in response to one.
               </p>
               <p>
-                An engineer's obligation runs to the facts and to the public. A firm that promised a
+                An engineer&apos;s obligation runs to the facts and to the public. A firm that promised a
                 result before performing the work would be promising something it is not entitled to
                 deliver.
               </p>
@@ -118,7 +118,7 @@ export default function TermsPage() {
                 Do not submit confidential, privileged, or sensitive information through the forms on
                 this site. Until an engagement exists there is no confidentiality obligation of the
                 kind an engagement creates, and an unsolicited submission relating to a dispute could
-                affect the firm's ability to act in that matter.
+                affect the firm&apos;s ability to act in that matter.
               </p>
               <p>
                 You are responsible for the accuracy of what you submit. Automated, bulk, and

@@ -71,7 +71,7 @@ export default function PrivacyPage() {
               <p>
                 Information collected automatically with a submission. When a form is submitted, the
                 page it was submitted from, the referring page if your browser sent one, and your
-                browser's user agent string are stored alongside it. That is used to understand
+                browser&apos;s user agent string are stored alongside it. That is used to understand
                 which pages produce enquiries and to identify automated submissions.
               </p>
               <p>
@@ -112,7 +112,7 @@ export default function PrivacyPage() {
               <p>
                 Notification email is delivered by Resend. The website is hosted by Vercel, which
                 records ordinary server request logs. Each of those providers processes information
-                on this firm's behalf under their own terms.
+                on this firm&apos;s behalf under their own terms.
               </p>
               <p>
                 Within the firm, submissions are reachable by the people who need them to do the

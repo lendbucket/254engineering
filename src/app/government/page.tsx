@@ -201,7 +201,7 @@ export default function GovernmentPage() {
               <Eyebrow>NAICS codes</Eyebrow>
               <Rule className="mt-5" />
               <p className="mt-6 text-[0.92rem] leading-[1.65] text-slate-muted">
-                The codes under which this firm's services are classified for federal and state
+                The codes under which this firm&apos;s services are classified for federal and state
                 procurement.
               </p>
             </div>

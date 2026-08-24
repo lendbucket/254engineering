@@ -18,14 +18,33 @@ import { Wordmark } from "@/components/brand/Wordmark";
  * user can no longer scroll.
  *
  * Closing on `pathname` change rather than on click is what covers both.
+ *
+ * WHY THAT IS DONE DURING RENDER AND NOT IN AN EFFECT
+ * ---------------------------------------------------
+ * It used to be a useEffect on [pathname] that called setOpen(false), and
+ * react-hooks/set-state-in-effect flagged it. The rule is right. An effect that
+ * synchronously sets state runs after the browser has already committed a
+ * render, so the sheet was painted open on the new route and then closed on a
+ * second pass.
+ *
+ * The replacement is React's documented pattern for adjusting state when a value
+ * changes: keep the previous value in state and compare during render. React
+ * discards the in progress render and restarts with the new state before
+ * anything reaches the DOM, so the sheet is never painted open on a route it
+ * should have closed for. Behaviour is identical, including the back button case
+ * above, which is the whole reason this is keyed on pathname rather than on a
+ * click handler.
  */
 export function MobileNav({ onDark = false }: { onDark?: boolean } = {}) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
-  useEffect(() => {
+  // Close on navigation. See the note above for why this is not an effect.
+  const [renderedPathname, setRenderedPathname] = useState(pathname);
+  if (pathname !== renderedPathname) {
+    setRenderedPathname(pathname);
     setOpen(false);
-  }, [pathname]);
+  }
 
   useEffect(() => {
     if (!open) return;
