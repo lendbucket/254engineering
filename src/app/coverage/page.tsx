@@ -5,6 +5,8 @@ import { PageHeader } from "@/components/site/PageHeader";
 import { PrelaunchNotice } from "@/components/launch/PrelaunchNotice";
 import { OfferCta } from "@/components/launch/OfferCta";
 import { CardGrid, cardCell, SectionHeading } from "@/components/ui/primitives";
+import { TexasCountyMap } from "@/components/map/TexasCountyMap";
+import { RegionKey } from "@/components/map/RegionKey";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { allCounties, regionOfCounty, regions } from "@/content/regions";
@@ -34,6 +36,27 @@ export default function CoveragePage() {
       >
         <PrelaunchNotice />
       </PageHeader>
+
+      <section className="border-b border-limestone-line">
+        <Container>
+          <div className="py-14 sm:py-18">
+            <div className="grid gap-10 lg:grid-cols-12 lg:gap-14">
+              <div className="lg:col-span-7">
+                <TexasCountyMap />
+              </div>
+              <div className="lg:col-span-5 lg:pt-4">
+                <SectionHeading
+                  eyebrow="The whole state"
+                  title="254 counties, eight regions, one standard"
+                  level="h2"
+                  lede="The shapes are US Census county boundaries, joined to the coverage data by county name. The heavier lines are the region borders, derived from the same assignment the county lists below are built from."
+                />
+                <RegionKey className="mt-9" />
+              </div>
+            </div>
+          </div>
+        </Container>
+      </section>
 
       <section className="border-b border-limestone-line">
         <Container>

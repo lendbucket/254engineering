@@ -1,4 +1,5 @@
 import type { Faq } from "./services";
+import type { FigureId } from "@/components/insights/figures";
 
 /**
  * The editorial corpus.
@@ -55,7 +56,13 @@ export type Block =
   | { kind: "h3"; text: string }
   | { kind: "ul"; items: string[] }
   /** A bordered aside. Used for the unverifiable-claim pattern, not for emphasis. */
-  | { kind: "note"; title: string; body: string[] };
+  | { kind: "note"; title: string; body: string[] }
+  /**
+   * A diagram, by id. The markup lives in src/components/insights/figures.tsx
+   * so this file stays a .ts data module: the moment prose data can hold JSX it
+   * stops being reviewable as writing. A wrong id is a type error there.
+   */
+  | { kind: "figure"; id: FigureId };
 
 export type Source = {
   label: string;
@@ -135,6 +142,7 @@ export const insights: Insight[] = [
         kind: "p",
         text: "Read carefully, that section does two separate things. It forbids one selection method and it prescribes another. An entity that solicits qualifications and then quietly ranks the respondents by proposed fee has complied with the first half of the sentence and violated the second.",
       },
+      { kind: "figure", id: "qbs-compliant-versus-not" },
 
       { kind: "h2", text: "The two step, in the order the statute sets" },
       {
@@ -153,6 +161,7 @@ export const insights: Insight[] = [
         kind: "p",
         text: "The word formally in subsection (b) is doing real work. An entity may not keep a first choice warm while it sounds out a second, because the moment two firms are negotiating at once the process has become a price comparison, which is the thing section 2254.003 forbids.",
       },
+      { kind: "figure", id: "qbs-sequence" },
 
       { kind: "h2", text: "What happens when the process is not followed" },
       {
@@ -439,6 +448,7 @@ export const insights: Insight[] = [
         kind: "p",
         text: "Rule 137.33 addresses the common case directly. Work performed by more than one license holder is to be sealed in a manner such that all engineering can be clearly attributed to the responsible license holder or holders. Where two or more licensees have worked on a plan or document, the seal and signature of each is placed on it, with a notation describing the work done under each licensee's responsible charge.",
       },
+      { kind: "figure", id: "seal-scope" },
       {
         kind: "p",
         text: "So a Texas project does not necessarily have one engineer of record. It has a set of seals, each carrying a stated scope, and the responsibility follows the scope rather than the project.",
@@ -457,6 +467,7 @@ export const insights: Insight[] = [
         kind: "p",
         text: "This is the reason a properly run field inspection service separates the two roles rather than blurring them. A technician documents conditions and produces a photographic record keyed to locations. The licensee forms the opinion. The separation is what allows the licensee to have detailed professional knowledge of the evidence rather than of a conclusion someone else reached, and it is the arrangement described on [this firm's structural letters page](/services/structural-letters) and across the rest of the [service lines](/services).",
       },
+      { kind: "figure", id: "evidence-chain" },
       {
         kind: "p",
         text: "It is also why the firm treats the appointment of a licensed engineer in responsible charge as a gate rather than a hire. The position and its current status are set out on [the page about the firm](/about).",

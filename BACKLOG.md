@@ -215,7 +215,8 @@ four correct 404s. The audit was right: the registry claims a page exists on the
 live brand, and it does not yet. A `planned` entry may carry a path without being
 probed, which is exactly the state these are in.
 
-**What to do at deploy.** In the commit that merges this workstream to production,
+**What to do at deploy. CONFIRMED BY THE OPERATOR 2026-08-24: this happens in the
+same commit that merges, not after it.** In that commit,
 change `status: "planned"` to `status: "live"` on all four and delete the three
 line comment above each one. Then run `npm run registry-audit` against the
 deployed site and watch it verify four new URLs rather than assume it will.
@@ -271,3 +272,74 @@ positioning all measured no search demand at all. Recorded in
 `docs/keyword-batch-phase-1.md` with the evidence, so they are not re-proposed.
 The windstorm material is still true and belongs inside the TWIA county pages
 when the county tier is built.
+
+## Visual layer
+
+### The logo derived texture is not built, and is deferred to Section 1
+
+Section 4 called for four things and three shipped: the diagram system, the 254
+county map, and the icon set. The brand texture was deferred on the operator's
+instruction because it is derived from the logo, and the logo does not exist yet.
+
+**What it waits on.** The same `/brand-assets/` delivery that blocks Section 1.
+A texture derived from a placeholder wordmark would be thrown away with the
+placeholder.
+
+### The map restates hex values that also live in globals.css
+
+`src/components/map/TexasCountyMap.tsx` hardcodes five colours as hex strings
+rather than reading the Tailwind theme. SVG presentation attributes such as
+`stroke` and `fill` do not resolve Tailwind utility classes, and the per element
+alternative, a class on every one of 254 paths, costs more than it saves.
+
+This is the same duplication `scripts/brand-rasters.mjs` already carries and it
+has the same expiry: when the logo lands and the palette is confirmed against it,
+both files are revisited together. If the palette moves before then, these five
+values move by hand.
+
+**The values.** County fill, active fill, hairline, boundary, and the two opacity
+figures on the boundary strokes.
+
+### The county geometry is generated and can go stale
+
+`src/content/county-geometry.ts` is written by `npm run build-county-map` from
+us-atlas, which repackages public domain US Census TIGER boundaries. Part of it,
+`REGION_BOUNDARY_PATH`, is derived from the region assignment in
+`src/content/regions.ts`.
+
+**The guard.** The generator stamps a fingerprint of the region and county pairs
+into the output. `TexasCountyMap` recomputes it at module scope and throws if it
+has changed. Every page carrying the map is statically prerendered, so a stale
+file fails the build rather than drawing a wrong boundary forever.
+
+**Injection verified.** A county was moved between regions, the build failed with
+the fingerprint mismatch and the regenerate instruction, and the change was
+reverted. The guard has been watched to fail.
+
+**What to do when regions change.** Run `npm run build-county-map` and commit the
+regenerated file in the same commit as the region change.
+
+**Dependencies.** `us-atlas`, `topojson-client`, `d3-geo`, and the two matching
+`@types` packages are devDependencies used only by that generator. They are not
+in the runtime bundle. The generated file is committed so a deploy never needs
+them.
+
+### There are no service line icons, deliberately
+
+`src/components/ui/icons.tsx` holds three marks: external link, seal, and
+document. Nine service line glyphs were considered and none was built.
+
+**Why.** An icon earns its place when it is faster to recognise than the word or
+carries something the word cannot. "Roof Inspections and Certifications" has no
+faster glyph. What a drawn roof beside it would do is move the page toward the
+register of a consumer services brand, which is the register this site is
+explicitly not in.
+
+**If this is revisited**, the argument to beat is that one, not the absence of a
+visual system. The diagram set and the map are the visual system.
+
+### The mobile menu marks stay in CSS
+
+`MobileNav` draws its bars and its close cross with positioned spans. They were
+left alone rather than converted to icons: the CSS is fewer bytes, scales with
+the type, and works. Replacing it would have been churn dressed as consistency.

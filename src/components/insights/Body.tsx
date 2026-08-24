@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { Block, Source } from "@/content/insights";
+import { figures } from "./figures";
+import { ExternalLinkIcon } from "@/components/ui/icons";
 
 /**
  * The post body renderer.
@@ -120,6 +122,8 @@ export function InsightBody({ blocks }: { blocks: Block[] }) {
                 ))}
               </aside>
             );
+          case "figure":
+            return <div key={i}>{figures[block.id]}</div>;
           case "p":
           default:
             return (
@@ -148,10 +152,13 @@ export function SourceList({ sources }: { sources: Source[] }) {
         <li key={source.url} className="border-l border-limestone-line pl-5">
           <a
             href={source.url}
+            target="_blank"
             rel="noopener noreferrer"
             className="text-[1rem] leading-[1.6] font-semibold text-slate underline decoration-brass/60 underline-offset-4 hover:decoration-brass"
           >
             {source.label}
+            <ExternalLinkIcon className="ml-1.5 align-baseline text-brass-ink" />
+            <span className="sr-only"> (opens in a new tab)</span>
           </a>
           <p className="mt-2 text-[0.94rem] leading-[1.65] text-slate-muted">{source.supports}</p>
         </li>
