@@ -57,29 +57,41 @@ export type ChecklistItem = {
   fields?: { name: string; label: string; placeholder?: string }[];
   /** No upload expected. The person reads something and acknowledges it. */
   acknowledgeOnly?: boolean;
+  /**
+   * Which step of the flow this item appears in.
+   *
+   * Grouping lives here rather than in the component so that the stepper is
+   * derived from the same data the checklist is. Admin items carry a step too
+   * and are simply never rendered in the flow.
+   */
+  step: string;
 };
 
 const ENGINEER: ChecklistItem[] = [
   {
     key: "photo_id_front",
+    step: "identity",
     label: "Government issued photo ID, front",
     help: "A driver licence or passport. A clear photograph taken on a phone is fine as long as every corner is in frame and the text is readable.",
     actor: "person",
   },
   {
     key: "photo_id_back",
+    step: "identity",
     label: "Government issued photo ID, back",
     help: "The reverse of the same document. Passports have no reverse; upload the photo page again and note it in the message to the operator.",
     actor: "person",
   },
   {
     key: "pe_license_card",
+    step: "licensure",
     label: "Texas PE licence verification",
     help: "A wallet card, a certificate, or a printout of the TBPELS roster entry. The licence number is already on file and is shown below for you to check.",
     actor: "person",
   },
   {
     key: "w4",
+    step: "paperwork",
     label: "Form W-4, completed and signed",
     help: "Download the current form from the IRS, complete it, and upload the signed copy. Nothing from this form is entered into this site as data.",
     actor: "person",
@@ -90,6 +102,7 @@ const ENGINEER: ChecklistItem[] = [
   },
   {
     key: "i9_section1",
+    step: "paperwork",
     label: "Form I-9, Section 1",
     help: "Complete Section 1 only and upload it. Section 2 requires the operator to examine your original documents in person or on a live video call, which is arranged separately.",
     actor: "person",
@@ -100,6 +113,7 @@ const ENGINEER: ChecklistItem[] = [
   },
   {
     key: "direct_deposit",
+    step: "pay",
     label: "Direct deposit authorization",
     help: "A voided check or a letter from the bank. The account and routing numbers stay inside the document. This site never asks you to type them.",
     actor: "person",
@@ -110,12 +124,14 @@ const ENGINEER: ChecklistItem[] = [
   },
   {
     key: "employment_agreement",
+    step: "agreements",
     label: "Signed employment agreement",
     help: "The countersigned agreement. If it was executed elsewhere, the operator marks this complete from their side and you can skip it.",
     actor: "person",
   },
   {
     key: "eo_acknowledgment",
+    step: "agreements",
     label: "Errors and omissions coverage",
     help: "Read the declarations page the operator has posted and acknowledge that you have seen it. Nothing to upload.",
     actor: "person",
@@ -125,12 +141,14 @@ const ENGINEER: ChecklistItem[] = [
   // Operator verified. Never rendered in the invite flow.
   {
     key: "identity_verified_video",
+    step: "operator",
     label: "Identity confirmed on video call",
     help: "The operator confirms the person on the call matches the ID on file. Recorded here rather than asking for a selfie holding the document.",
     actor: "admin",
   },
   {
     key: "i9_documents_examined",
+    step: "operator",
     label: "I-9 Section 2 documents examined",
     help: "Federal procedure requires the employer to examine original documents. Tracked here as its own step because it happens live and not through this site.",
     actor: "admin",
@@ -140,30 +158,35 @@ const ENGINEER: ChecklistItem[] = [
 const FIELD_TECH: ChecklistItem[] = [
   {
     key: "photo_id_front",
+    step: "identity",
     label: "Government issued photo ID, front",
     help: "A driver licence or passport, with every corner in frame and the text readable.",
     actor: "person",
   },
   {
     key: "drivers_license",
+    step: "identity",
     label: "Driver licence",
     help: "Field work is dispatched by county and involves driving to the property. A current licence is required.",
     actor: "person",
   },
   {
     key: "vehicle_insurance",
+    step: "coverage",
     label: "Vehicle insurance card",
     help: "Current declarations page or insurance card for the vehicle you would drive on assignments.",
     actor: "person",
   },
   {
     key: "general_liability",
+    step: "coverage",
     label: "General liability insurance",
     help: "A certificate of insurance if you carry general liability. If you do not, acknowledge the waiver text instead and the operator will discuss coverage with you.",
     actor: "person",
   },
   {
     key: "w9",
+    step: "paperwork",
     label: "Form W-9",
     help: "Field technicians are engaged as contractors, so this is a W-9 rather than a W-4. Nothing from it is entered into this site as data.",
     actor: "person",
@@ -174,12 +197,14 @@ const FIELD_TECH: ChecklistItem[] = [
   },
   {
     key: "ica_signed",
+    step: "agreements",
     label: "Signed independent contractor agreement",
     help: "The countersigned agreement. If it was executed elsewhere, the operator marks this complete.",
     actor: "person",
   },
   {
     key: "protocol_certification",
+    step: "agreements",
     label: "Protocol certification acknowledgment",
     help: "Confirm you have read the written inspection protocol for the service lines you would work. Certification on the protocol happens before a first assignment.",
     actor: "person",
@@ -188,6 +213,7 @@ const FIELD_TECH: ChecklistItem[] = [
 
   {
     key: "identity_verified_video",
+    step: "operator",
     label: "Identity confirmed on video call",
     help: "The operator confirms the person on the call matches the ID on file.",
     actor: "admin",
@@ -239,3 +265,80 @@ export const FORBIDDEN_FIELD_PATTERNS = [
   /\bdate[\s_-]*of[\s_-]*birth\b/i,
   /\bdob\b/i,
 ];
+
+/**
+ * The steps of the flow, per role.
+ *
+ * Rendered in this order. An item whose `step` is not in this list, which is
+ * what happens when the operator adds a bespoke item to one person's checklist,
+ * falls into the final catch all rather than disappearing from the flow.
+ */
+export type StepDef = { id: string; title: string; blurb: string };
+
+export const ONBOARDING_STEPS: Record<OnboardingRole, StepDef[]> = {
+  engineer: [
+    {
+      id: "identity",
+      title: "Identity",
+      blurb: "A government issued photo ID. A phone photograph is fine if it is readable.",
+    },
+    {
+      id: "licensure",
+      title: "Licensure",
+      blurb: "Verification of the Texas PE licence already on file.",
+    },
+    {
+      id: "paperwork",
+      title: "Employment paperwork",
+      blurb: "The W-4 and I-9 Section 1, completed and uploaded as documents.",
+    },
+    {
+      id: "pay",
+      title: "Direct deposit",
+      blurb: "A voided check or bank letter. The numbers stay inside the document.",
+    },
+    {
+      id: "agreements",
+      title: "Agreements",
+      blurb: "The signed employment agreement and the insurance acknowledgment.",
+    },
+  ],
+  field_tech: [
+    {
+      id: "identity",
+      title: "Identity and licence",
+      blurb: "A government issued photo ID and a current driver licence.",
+    },
+    {
+      id: "coverage",
+      title: "Insurance",
+      blurb: "Vehicle insurance, and general liability if you carry it.",
+    },
+    {
+      id: "paperwork",
+      title: "Tax paperwork",
+      blurb: "A completed W-9, uploaded as a document.",
+    },
+    {
+      id: "agreements",
+      title: "Agreements",
+      blurb: "The signed contractor agreement and the protocol acknowledgment.",
+    },
+  ],
+};
+
+/** The step an unrecognised item falls into, so nothing is ever unreachable. */
+export const CATCH_ALL_STEP: StepDef = {
+  id: "additional",
+  title: "Additional items",
+  blurb: "Items added to your checklist specifically.",
+};
+
+/** Items the person completes. Operator verified items never appear in the flow. */
+export function personItemKeys(role: OnboardingRole): string[] {
+  return checklists[role].filter((i) => i.actor === "person").map((i) => i.key);
+}
+
+export function itemByKey(role: OnboardingRole, key: string): ChecklistItem | undefined {
+  return checklists[role].find((i) => i.key === key);
+}

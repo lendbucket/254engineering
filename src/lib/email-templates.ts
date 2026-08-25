@@ -217,9 +217,134 @@ export function applicantConfirmation(input: {
  * exactly the kind of string the placeholder audit is built to reject, which is
  * why they live here and not in any module the site imports at runtime.
  */
+
+/**
+ * The operator's notification that an onboarding has been submitted.
+ *
+ * WHAT IS DELIBERATELY NOT IN IT
+ * ------------------------------
+ * No invite token, no signed URL, and no document. An email is the least
+ * controlled place a credential can end up: it sits in an inbox indefinitely, it
+ * is forwarded, and it is indexed by whatever the operator's mail provider does.
+ * Putting a working link to somebody's passport in one would undo the ten minute
+ * signed URL ceiling in src/lib/onboarding-uploads.ts.
+ *
+ * So this says what happened and where to go. The operator follows a plain admin
+ * URL, signs in, and mints a signed URL there when they actually need to look at
+ * a document. That is one more click and it is the difference between a link
+ * that lives for ten minutes and one that lives forever.
+ */
+export function onboardingSubmitted(input: {
+  personName: string;
+  personEmail: string;
+  role: "engineer" | "field_tech";
+  onboardingId: string;
+  itemCount: number;
+}): RenderedEmail {
+  const roleLabel =
+    input.role === "engineer" ? "Professional Engineer" : "Field Inspection Technician";
+
+  const text = [
+    `${input.personName} has submitted their onboarding.`,
+    "",
+    "WHO",
+    `  Name: ${input.personName}`,
+    `  Email: ${input.personEmail}`,
+    `  Role: ${roleLabel}`,
+    "",
+    "WHAT IS WAITING",
+    `  ${input.itemCount} checklist items are complete and ready to review.`,
+    "  Two steps still need you rather than them: identity confirmed on the video",
+    "  call, and I-9 Section 2 document examination, which federal procedure",
+    "  requires be done live.",
+    "",
+    "WHERE",
+    `  ${business.url}/admin/onboarding/${input.onboardingId}`,
+    "",
+    "  Documents are not attached and no link in this email opens one. Sign in to",
+    "  the admin portal and open them there, where each link lasts ten minutes.",
+  ].join("\n");
+
+  return {
+    id: "onboarding.submitted",
+    subject: `Onboarding submitted: ${input.personName}`,
+    text,
+    replyTo: input.personEmail,
+  };
+}
+
+/**
+ * The invite, sent to the person being onboarded.
+ *
+ * This one DOES carry a token, because the token is the entire point of it and
+ * there is no other way to reach the flow. That is a considered trade rather
+ * than an oversight: the link is single purpose, it expires in fourteen days, it
+ * is regenerable, and generating a new one invalidates the old.
+ *
+ * Sent by the operator from the admin portal rather than automatically on
+ * creation, so a link is never in flight before the operator meant it to be.
+ */
+export function onboardingInvite(input: {
+  personName: string;
+  personEmail: string;
+  role: "engineer" | "field_tech";
+  inviteUrl: string;
+  expiresAt: string;
+}): RenderedEmail {
+  const roleLabel =
+    input.role === "engineer" ? "Professional Engineer" : "Field Inspection Technician";
+
+  const text = [
+    `${input.personName},`,
+    "",
+    `Welcome to ${business.name}. Before your first assignment there are a few`,
+    `documents to collect for the ${roleLabel} role.`,
+    "",
+    "YOUR LINK",
+    `  ${input.inviteUrl}`,
+    "",
+    `  It works until ${input.expiresAt} and it is yours alone. Your progress`,
+    "  saves as you go, so you can stop and come back to the same link.",
+    "",
+    "WHAT YOU WILL NEED",
+    "  A government issued photo ID, and the forms named in the flow. Each step",
+    "  says what it wants and links the form where one is needed.",
+    "",
+    "  You are never asked to type a social security, account, or routing number",
+    "  into this site. Where a form involves one, you upload the completed",
+    "  document and nothing is read out of it.",
+    "",
+    "IF SOMETHING IS WRONG",
+    `  Reply to this message or write to ${business.email} and a new link will be`,
+    "  issued.",
+  ].join("\n");
+
+  return {
+    id: "onboarding.invite",
+    subject: `Your onboarding for ${business.name}`,
+    text,
+    to: input.personEmail,
+    replyTo: business.email,
+  };
+}
+
 export function allTemplatesForAudit(): RenderedEmail[] {
 
   return [
+    onboardingSubmitted({
+      personName: "Sample Engineer",
+      personEmail: "sample.engineer@254engineering.com",
+      role: "engineer",
+      onboardingId: "00000000-0000-4000-8000-000000000000",
+      itemCount: 8,
+    }),
+    onboardingInvite({
+      personName: "Sample Engineer",
+      personEmail: "sample.engineer@254engineering.com",
+      role: "engineer",
+      inviteUrl: "https://254engineering.com/onboarding/sample-token-not-a-real-invite-abcdefghij",
+      expiresAt: "7 September 2026",
+    }),
     leadNotification({
       form: "contact",
       name: "Sample Enquirer",
