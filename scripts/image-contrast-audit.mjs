@@ -19,15 +19,32 @@
  *
  * HOW IT WORKS
  * ------------
- * For each declared target: read the element's box and its computed colour, then
- * make the text itself transparent and screenshot the page. Sampling the
- * resulting image inside the box gives the true background under the glyphs,
- * photograph, scrim, gradients and all. The check then compares the text colour
- * against the WORST pixel in that box rather than the average, because a
- * headline is only as legible as its least legible letter.
+ * For each declared target: read the rectangles the TEXT actually occupies and
+ * its computed colour, then make the text transparent and screenshot the page.
+ * Sampling inside those rectangles gives the true background under the glyphs,
+ * photograph, scrim, gradients and all. The check compares the text colour
+ * against the WORST pixel found, because a headline is only as legible as its
+ * least legible letter.
  *
  * Only the extremes matter, so the sample is decimated: every third pixel in
  * both directions is plenty at this resolution and it keeps the run fast.
+ *
+ * WHY TEXT RECTANGLES AND NOT THE ELEMENT BOX
+ * -------------------------------------------
+ * The first version used getBoundingClientRect(). A block level element's box is
+ * as wide as its column whatever the text inside it does, so an eyebrow reading
+ * "Veteran owned. Statewide." reported a box 896 pixels wide for about 250
+ * pixels of glyphs. The check was then sampling 650 pixels of open sky to the
+ * right of the last letter and failing the element on a pixel no reader will
+ * ever see type on.
+ *
+ * That produced a false FAIL on the bold hero that survived two rounds of
+ * tuning the scrim, because no amount of scrim behind the TEXT could change a
+ * verdict being decided somewhere else entirely.
+ *
+ * A Range over the element's text nodes returns getClientRects(), which is one
+ * tight rectangle per rendered line. That is where the glyphs are, so that is
+ * what gets measured.
  */
 import fs from "node:fs";
 import os from "node:os";
@@ -123,17 +140,40 @@ async function run() {
       await page.goto(BASE + target.page, { waitUntil: "networkidle" });
       await page.waitForTimeout(500);
 
-      // Boxes and colours, before anything is hidden.
+      // Text rectangles and colours, before anything is hidden.
       const boxes = [];
       for (const sel of target.selectors) {
         const handles = await page.locator(sel.css).all();
         for (const [i, h] of handles.entries()) {
           if (!(await h.isVisible())) continue;
-          const box = await h.boundingBox();
-          if (!box || box.width < 2 || box.height < 2) continue;
+
+          // One tight rectangle per rendered line of text. See the note above on
+          // why the element box is the wrong thing to measure.
+          const rects = await h.evaluate((el) => {
+            const out = [];
+            const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+            let node;
+            while ((node = walker.nextNode())) {
+              if (!node.nodeValue || !node.nodeValue.trim()) continue;
+              const range = document.createRange();
+              range.selectNodeContents(node);
+              for (const r of range.getClientRects()) {
+                if (r.width >= 2 && r.height >= 2) {
+                  out.push({ x: r.x, y: r.y, width: r.width, height: r.height });
+                }
+              }
+            }
+            return out;
+          });
+          if (rects.length === 0) continue;
+
           const color = parseColor(await h.evaluate((el) => getComputedStyle(el).color));
           if (!color) continue;
-          boxes.push({ label: handles.length > 1 ? `${sel.label} #${i + 1}` : sel.label, box, color });
+          boxes.push({
+            label: handles.length > 1 ? `${sel.label} #${i + 1}` : sel.label,
+            rects,
+            color,
+          });
         }
       }
 
@@ -170,24 +210,26 @@ async function run() {
       const { data, info } = await sharp(shot).raw().toBuffer({ resolveWithObject: true });
       const channels = info.channels;
 
-      for (const { label, box, color } of boxes) {
+      for (const { label, rects, color } of boxes) {
         const textLum = luminance(color.r, color.g, color.b);
         let worst = Infinity;
         let worstPixel = null;
 
-        const x0 = Math.max(0, Math.floor(box.x));
-        const y0 = Math.max(0, Math.floor(box.y));
-        const x1 = Math.min(info.width, Math.ceil(box.x + box.width));
-        const y1 = Math.min(info.height, Math.ceil(box.y + box.height));
+        for (const box of rects) {
+          const x0 = Math.max(0, Math.floor(box.x));
+          const y0 = Math.max(0, Math.floor(box.y));
+          const x1 = Math.min(info.width, Math.ceil(box.x + box.width));
+          const y1 = Math.min(info.height, Math.ceil(box.y + box.height));
 
-        for (let y = y0; y < y1; y += 3) {
-          for (let x = x0; x < x1; x += 3) {
-            const i = (y * info.width + x) * channels;
-            const l = luminance(data[i], data[i + 1], data[i + 2]);
-            const c = contrast(textLum, l);
-            if (c < worst) {
-              worst = c;
-              worstPixel = [data[i], data[i + 1], data[i + 2]];
+          for (let y = y0; y < y1; y += 3) {
+            for (let x = x0; x < x1; x += 3) {
+              const i = (y * info.width + x) * channels;
+              const l = luminance(data[i], data[i + 1], data[i + 2]);
+              const c = contrast(textLum, l);
+              if (c < worst) {
+                worst = c;
+                worstPixel = [data[i], data[i + 1], data[i + 2]];
+              }
             }
           }
         }

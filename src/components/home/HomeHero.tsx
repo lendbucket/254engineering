@@ -1,158 +1,151 @@
 import Image from "next/image";
 import { Container } from "@/components/ui/Container";
 import { ButtonLink } from "@/components/ui/primitives";
+import { CountUp } from "@/components/motion/CountUp";
 import { modelSentence } from "@/content/model-copy";
 
 /**
- * The homepage hero.
+ * The homepage hero, cinematic.
  *
- * THE SIGNATURE IS THE NUMERAL, AND IT IS NOT IN THIS COMPONENT
- * -------------------------------------------------------------
- * The firm is named for the 254 counties of Texas. That number is the one thing
- * about this brand no competitor can copy and no template arrives with, so it is
- * the element the page is built around rather than a statistic tucked into a
- * sidebar, which is where the previous version put it.
+ * WHAT CHANGED FROM THE SPLIT PANEL, AND WHY IT IS SAFE NOW
+ * ---------------------------------------------------------
+ * The previous hero put the type on solid navy and the photograph in its own
+ * panel beside it, because a photograph cannot be both visible behind a headline
+ * and guaranteed not to affect that headline's contrast. That was the right call
+ * at the time and it was a compromise: the picture never got to be large.
  *
- * It is NOT in this component, and it was. A ghosted 254 sat behind the type
- * panel at 7 percent opacity, and contrast-audit was right to fail it.
- * aria-hidden keeps a decoration out of the accessibility tree, but a sighted
- * reader still sees it, so an automated check treats it as text and measured it
- * at 1.13:1. Raising it to clear 3:1 would have turned a watermark into a shout.
+ * What removes the compromise is not a better gradient, it is a measurement.
+ * scripts/image-contrast-audit.mjs samples the rendered pixels underneath every
+ * line of type in this band and compares against the worst one. So the type can
+ * now cross the picture, and whether it is legible is a number this repo checks
+ * on every run rather than a thing somebody eyeballed once.
  *
- * It was cut rather than exempted. The number already appears three times in
- * this band: in the wordmark, in the subject of the headline, and in the first
- * figure. The genuinely oversized treatment lives one section down, where it
- * sits on limestone at 11.67:1 and needs no apology. The signature survived. The
- * redundant ghost did not.
+ * The photograph is full bleed and tall. The scrim is a two axis gradient tuned
+ * so the lower left, where the type lives, stays deep while the upper right,
+ * where the storm is, stays open.
  *
- * THE PHOTOGRAPH GETS ITS OWN PANEL, AND THAT IS THE WHOLE ARGUMENT
- * -----------------------------------------------------------------
- * Two versions of this hero put the photograph behind the type. The first had it
- * at 0.30 under a heavy gradient and the band read as flat navy: the picture was
- * paying no rent at all. The second raised it to 0.55 with a weighted scrim,
- * which was better and still not a photograph, because the scrim had to stay
- * near opaque exactly where the headline was.
+ * THE NUMERAL IS A MONUMENT
+ * -------------------------
+ * 254 is set at the largest size on the site, in gold, bleeding off the bottom
+ * and the right, and it deliberately crosses the boundary between the photograph
+ * and the navy below it. It is the one element permitted to break the grid this
+ * hard, and it is legible enough to be structure rather than watermark, which is
+ * what separates this from the ghosted version that was cut for measuring 1.13:1.
  *
- * That is not a tuning problem, it is a contradiction. A photograph cannot be
- * both clearly visible behind a headline and guaranteed not to affect that
- * headline's contrast, because they are the same pixels. Every value that made
- * the picture legible made the type worse.
- *
- * So they stop sharing pixels. The type sits on solid navy and its contrast is a
- * fixed, checkable number. The photograph occupies its own panel at full
- * strength, where it is finally a photograph rather than an atmosphere, and
- * nothing legible sits on it. Both halves get to be good at their own job, which
- * is what the split was for.
+ * It carries `aria-hidden` because the number is already the subject of the H1
+ * and the first figure below it.
  *
  * PERFORMANCE
  * -----------
- * `priority` preloads it: it is the LCP element on the site's most important
- * route. `sizes` describes the real layout, a full width band on mobile and half
- * the viewport on desktop, so the browser never fetches the 2400px original to
- * fill a 390px band. The panel has an explicit minimum height at every
- * breakpoint, so there is no layout shift while it loads.
+ * `priority` preloads the image: it is the LCP element on the most important
+ * route. Nothing in this band fades in on load. The reveals elsewhere on the page
+ * are scroll driven and this is above the fold, so animating it would delay the
+ * paint it is supposed to be.
  */
 export function HomeHero() {
   return (
-    <section className="relative isolate bg-slate-ink">
-      <Container>
-        <div className="grid items-stretch gap-0 lg:grid-cols-12">
-          {/* The type panel. Solid navy, no image beneath it, so contrast here is
-              a fixed number rather than a function of the photograph. */}
-          <div className="relative overflow-hidden py-20 sm:py-24 lg:col-span-7 lg:py-36 lg:pr-16">
-            <div className="relative">
-              <p className="font-sans text-[0.72rem] font-semibold tracking-[0.22em] text-brass-light uppercase">
-                Veteran owned. Statewide.
-              </p>
-              <span aria-hidden="true" className="mt-6 block h-px w-20 bg-brass" />
+    <section className="relative isolate flex min-h-[38rem] flex-col justify-end overflow-hidden bg-slate-ink sm:min-h-[44rem] lg:min-h-[92vh]">
+      <Image
+        src="/photos/plains-storm-sky.jpg"
+        alt="An open plain under a heavy grey storm sky."
+        fill
+        priority
+        sizes="100vw"
+        className="object-cover object-[55%_42%]"
+      />
 
-              <h1 className="mt-8 font-display text-[2.6rem] leading-[1.02] font-bold tracking-[-0.02em] text-slate-fg sm:text-[3.9rem] lg:text-[4.4rem]">
-                Engineering for
-                <br />
-                every county
-                <br />
-                <span className="text-brass-light">in Texas.</span>
-              </h1>
+      {/* Two axis scrim. Deep at the bottom left under the type, open at the top
+          right where the storm is. Every value here is answerable to
+          image-contrast-audit rather than to taste. */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-gradient-to-t from-slate-ink via-slate-ink/75 to-slate-ink/20"
+      />
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-gradient-to-r from-slate-ink/90 via-slate-ink/35 to-transparent"
+      />
+      {/*
+       * A third scrim, over the type column only.
+       *
+       * The two above are frame wide and they left the eyebrow at 2.55:1, because
+       * the eyebrow sits high in the frame where the vertical gradient is thin and
+       * the brightest cloud in the photograph happens to be behind it.
+       * image-contrast-audit found that; nobody would have seen it by looking.
+       *
+       * Darkening the whole frame would have fixed the number and cost the picture
+       * the openness the bold direction is for. This one is anchored left and dies
+       * out well before the storm, so the type gets its ground and the sky keeps
+       * its drama.
+       */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-y-0 left-0 w-full bg-gradient-to-r from-slate-ink via-slate-ink/75 to-transparent lg:w-[68%]"
+      />
 
-              <p className="mt-9 max-w-xl text-[1.08rem] leading-[1.7] text-slate-fg-muted">
-                Inspections, sealed letters, certifications, and design, built to one standard from
-                the Panhandle to the Rio Grande Valley. {modelSentence()}
-              </p>
+      {/* The monument. Crosses out of the photograph and off two edges. */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-[0.08em] -bottom-[0.22em] font-display text-[9rem] leading-[0.75] font-bold tracking-[-0.04em] text-brass/25 select-none sm:text-[16rem] lg:text-[26rem] xl:text-[32rem]"
+      >
+        254
+      </span>
 
-              <div className="mt-11 flex flex-col gap-3 sm:flex-row">
-                <ButtonLink href="/services" tone="onDark">
-                  See the service lines
-                </ButtonLink>
-                <ButtonLink href="/coverage" tone="onDarkOutline">
-                  Coverage across Texas
-                </ButtonLink>
-              </div>
+      <Container className="relative">
+        <div className="max-w-4xl pt-28 pb-16 sm:pt-36 sm:pb-20 lg:pb-24">
+          <p className="font-sans text-[0.72rem] font-semibold tracking-[0.26em] text-brass-light uppercase">
+            Veteran owned. Statewide.
+          </p>
+          <span aria-hidden="true" className="mt-6 block h-px w-24 bg-brass" />
 
-              <dl className="mt-14 grid grid-cols-3 gap-6 border-t border-slate-fg/20 pt-8 lg:mt-16 lg:gap-8">
-                <HeroFigure figure="254" label="Texas counties" />
-                <HeroFigure figure="8" label="Coverage regions" />
-                <HeroFigure figure="1" label="Standard, statewide" />
-              </dl>
-            </div>
-          </div>
+          <h1 className="mt-9 font-display text-[3rem] leading-[0.94] font-bold tracking-[-0.03em] text-slate-fg sm:text-[4.6rem] lg:text-[6.4rem]">
+            Engineering
+            <br />
+            for every county
+            <br />
+            <span className="text-brass-light">in Texas.</span>
+          </h1>
 
-          {/* The photograph. Its own panel, full strength, nothing legible on it.
-              It bleeds past the container to the viewport edge, which is what
-              stops it reading as an inset picture sitting in a box. */}
-          <div className="relative min-h-[15rem] sm:min-h-[20rem] lg:col-span-5 lg:min-h-0">
-            <div className="absolute inset-y-0 left-1/2 w-screen -translate-x-1/2 lg:left-0 lg:w-[50vw] lg:translate-x-0">
-              <Image
-                src="/photos/plains-storm-sky.jpg"
-                alt="An open plain under a heavy grey storm sky."
-                fill
-                priority
-                sizes="(max-width: 1023px) 100vw, 50vw"
-                /* The panel is tall and narrow on desktop, so the crop matters. Centred
-                   on the cloud alone it reads as abstract weather; pulled down to
-                   the horizon it reads as land under sky, which is the scale the
-                   band is trying to convey. */
-                className="object-cover object-[50%_62%]"
-              />
-              {/* A restrained navy wash so the photograph belongs to the palette
-                  rather than sitting beside it. Nothing legible is on it, so this
-                  is a colour decision and not a contrast one. */}
-              <div
-                aria-hidden="true"
-                className="absolute inset-0 bg-slate-ink/30 mix-blend-multiply"
-              />
-              {/* Softens the seam where the panel meets the type, so the split
-                  reads as one band rather than two boxes. Desktop only: on mobile
-                  the photograph is a full width band and has no seam. */}
-              <div
-                aria-hidden="true"
-                className="absolute inset-y-0 left-0 hidden w-24 bg-gradient-to-r from-slate-ink to-transparent lg:block"
-              />
-            </div>
+          <p className="mt-10 max-w-lg text-[1.06rem] leading-[1.7] text-slate-fg-muted">
+            Inspections, sealed letters, certifications, and design, built to one standard from the
+            Panhandle to the Rio Grande Valley. {modelSentence()}
+          </p>
+
+          <div className="mt-11 flex flex-col gap-3 sm:flex-row">
+            <ButtonLink href="/services" tone="onDark">
+              See the service lines
+            </ButtonLink>
+            <ButtonLink href="/coverage" tone="onDarkOutline">
+              Coverage across Texas
+            </ButtonLink>
           </div>
         </div>
       </Container>
 
-      {/* The gold rule that closes the band. */}
-      <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-px bg-brass/60" />
+      {/* The figure rail, sitting on the gold rule that closes the band. */}
+      <div className="relative border-t border-brass/40 bg-slate-ink/70 backdrop-blur-[2px]">
+        <Container>
+          <dl className="grid grid-cols-3 divide-x divide-slate-fg/15">
+            <HeroFigure figure={254} label="Texas counties" />
+            <HeroFigure figure={8} label="Coverage regions" />
+            <HeroFigure figure={1} label="Standard, statewide" />
+          </dl>
+        </Container>
+      </div>
     </section>
   );
 }
 
-/**
- * A hero figure.
- *
- * `tabular-nums` so 254, 8, and 1 sit on the same rhythm rather than drifting,
- * which is visible when three of them are in a row.
- */
-function HeroFigure({ figure, label }: { figure: string; label: string }) {
+function HeroFigure({ figure, label }: { figure: number; label: string }) {
   return (
-    <div>
+    <div className="px-1 py-6 first:pr-4 last:pl-4 sm:px-6 sm:py-8 first:sm:pl-0 last:sm:pr-0">
       <dt className="sr-only">{label}</dt>
       <dd>
-        <span className="block font-display text-[2.1rem] leading-none font-bold tabular-nums text-brass-light lg:text-[2.6rem]">
-          {figure}
-        </span>
-        <span className="mt-3 block font-sans text-[0.72rem] leading-[1.4] font-medium tracking-[0.1em] text-slate-fg-muted uppercase">
+        <CountUp
+          value={figure}
+          className="block font-display text-[2rem] leading-none font-bold tabular-nums text-brass-light sm:text-[3rem]"
+        />
+        <span className="mt-3 block font-sans text-[0.66rem] leading-[1.4] font-medium tracking-[0.12em] text-slate-fg-muted uppercase sm:text-[0.72rem]">
           {label}
         </span>
       </dd>

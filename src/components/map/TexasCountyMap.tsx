@@ -113,10 +113,20 @@ export function TexasCountyMap({
   activeRegion,
   /** Which surface the map is sitting on. */
   tone = "light",
+  /**
+   * Draw the region borders on as the map scrolls into view.
+   *
+   * Scroll driven rather than time driven, and off entirely under
+   * prefers-reduced-motion. See the motion block in globals.css. The borders are
+   * one path containing every arc in the mesh, so this reads as the state
+   * dividing itself rather than as 254 counties animating separately.
+   */
+  animateBorders = false,
   className = "",
 }: {
   activeRegion?: string;
   tone?: "light" | "dark";
+  animateBorders?: boolean;
   className?: string;
 }) {
   const t = TONES[tone];
@@ -157,6 +167,7 @@ export function TexasCountyMap({
           derived meshes, not drawn shapes. */}
       <path
         d={REGION_BOUNDARY_PATH}
+        data-draw={animateBorders ? "" : undefined}
         fill="none"
         stroke={t.boundary}
         strokeWidth={1.6}

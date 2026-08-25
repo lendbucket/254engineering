@@ -126,4 +126,130 @@
   html {
     scroll-behavior: auto;
   }
+
+  /* Off, not slowed. A reader who asked the operating system for less motion did
+     not ask for the same motion taking longer. */
+  [data-reveal],
+  [data-draw] {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    stroke-dasharray: none !important;
+    stroke-dashoffset: 0 !important;
+  }
+}
+
+/* ==========================================================================
+   MOTION
+   ==========================================================================
+
+   WHY THE REVEALS ARE CSS AND NOT JAVASCRIPT
+   ------------------------------------------
+   The usual scroll reveal is an IntersectionObserver in a client component that
+   starts an element at opacity 0 and fades it in on intersect. It has three
+   defects that all matter more here than the effect does.
+
+   It makes every animated section a client component, which on a site that is
+   almost entirely static server rendered is a real cost for decoration.
+
+   It has to choose between a flash and an invisibility bug. If the hidden state
+   is in the server HTML, a reader with JavaScript off or failing gets a blank
+   page. If the hidden state is applied on mount, anything already in view flashes
+   visible and then hides and re-reveals.
+
+   And it animates on a time axis, so a screenshot taken at an arbitrary moment
+   catches it mid transition, which makes every visual check flaky.
+
+   `animation-timeline: view()` has none of those. The animation is driven by
+   scroll position rather than by time, so an element that is in view is at its
+   final frame deterministically, which is exactly what a screenshot needs.
+   Browsers without support simply render the content normally, which is the
+   correct fallback rather than a degraded one. No JavaScript, no hydration, no
+   flash, and nothing is ever invisible without it.
+
+   EVERYTHING HERE IS OFF UNDER prefers-reduced-motion
+   ---------------------------------------------------
+   Not softened. Off. The block at the bottom removes the animation entirely and
+   the content sits at its final state, because a reader who has asked the
+   operating system for less motion has not asked for slower motion. */
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    /* The standard section reveal. Opacity and transform only, so it can never
+       move layout and can never cause a shift. */
+    [data-reveal] {
+      animation: reveal-rise linear both;
+      animation-timeline: view();
+      /* Starts as the element enters the lower edge, finishes well before the
+         middle of the viewport, so a reader is never watching it arrive. */
+      animation-range: entry 0% cover 22%;
+    }
+
+    /* A quieter variant for things that sit inside an already revealed block. */
+    [data-reveal="soft"] {
+      animation-name: reveal-fade;
+      animation-range: entry 0% cover 18%;
+    }
+
+    /*
+     * The county map region borders, drawing in.
+     *
+     * The dash length is deliberately far longer than any single arc in the
+     * mesh. The path is one element containing every region boundary in the
+     * state, so a dash pattern sized to the whole thing draws the borders on as
+     * a single sweep rather than animating 254 counties independently.
+     */
+    [data-draw] {
+      stroke-dasharray: 9000;
+      animation: draw-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 40%;
+    }
+  }
+}
+
+/*
+ * TRANSFORM ONLY. NOTHING IS EVER TRANSPARENT.
+ *
+ * The first version of these keyframes animated opacity from 0, which is what
+ * almost every scroll reveal does. Probing the rendered page showed the cost
+ * plainly: every element below the fold sat at opacity 0 in the DOM until it was
+ * scrolled to, including the body copy of the homepage.
+ *
+ * That is standard practice and it is the wrong trade HERE. This site is
+ * competing on search authority, its standing law is that honesty is the ranking
+ * strategy, and the highest value page on it would have shipped with its
+ * argument invisible by default. A fade is not worth putting that question to a
+ * crawler.
+ *
+ * So the reveal is a rise and nothing else. The type is always fully opaque, so
+ * it is always legible, always measurable by the contrast audit, always in a
+ * screenshot, and always plainly there to anything reading the page. The motion
+ * still registers: 1.5rem of travel is visible without being decorative.
+ */
+@keyframes reveal-rise {
+  from {
+    transform: translateY(1.5rem);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes reveal-fade {
+  from {
+    transform: translateY(0.6rem);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes draw-in {
+  from {
+    stroke-dashoffset: 9000;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
 }
