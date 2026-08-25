@@ -217,3 +217,53 @@ export function JsonLd({ data }: { data: object }) {
     />
   );
 }
+
+/**
+ * BlogPosting, for the editorial corpus only.
+ *
+ * The type is BlogPosting rather than Article because these are dated posts in a
+ * named section with a hub, which is what the type describes. `author` and
+ * `publisher` both resolve to the Organization node rather than naming a person:
+ * no byline is claimed on this site, and inventing one to satisfy a schema field
+ * would be exactly the fabrication the rest of this file avoids.
+ *
+ * `dateModified` comes from the content file and is set by hand. It is not
+ * derived from the build, for the same reason the sitemap does not carry a build
+ * timestamp: a modification date that moves on every deploy is not a
+ * modification date.
+ *
+ * `citation` carries the primary sources the post lists. It is the one part of
+ * this node that is unusual, and it is here because these posts are built on
+ * statute and rule text, and a machine reader that can see what a page is
+ * grounded in should be able to see it.
+ */
+export function blogPostingSchema(post: {
+  headline: string;
+  description: string;
+  slug: string;
+  datePublished: string;
+  dateModified: string;
+  sources: { label: string; url: string }[];
+}) {
+  const url = `${business.url}/insights/${post.slug}`;
+  return {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "@id": `${url}#post`,
+    headline: post.headline,
+    description: post.description,
+    url,
+    mainEntityOfPage: { "@type": "WebPage", "@id": url },
+    datePublished: post.datePublished,
+    dateModified: post.dateModified,
+    author: { "@id": ORG_ID },
+    publisher: { "@id": ORG_ID },
+    isPartOf: { "@id": SITE_ID },
+    inLanguage: "en-US",
+    citation: post.sources.map((s) => ({
+      "@type": "CreativeWork",
+      name: s.label,
+      url: s.url,
+    })),
+  };
+}

@@ -33,7 +33,10 @@
     "precta-audit": "node scripts/preflight-audit.mjs",
     "cta-audit": "node scripts/cta-audit.mjs",
     "prelink-map": "node scripts/preflight-audit.mjs",
-    "link-map": "node scripts/link-map.mjs"
+    "link-map": "node scripts/link-map.mjs",
+    "build-county-map": "tsx scripts/build-county-map.mts",
+    "fetch-photos": "node scripts/fetch-photos.mjs",
+    "image-contrast-audit": "node scripts/image-contrast-audit.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",
@@ -46,11 +49,14 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/d3-geo": "^3.1.1",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/topojson-client": "^3.1.5",
     "axe-core": "^4.13.0",
     "chrome-launcher": "^1.2.1",
+    "d3-geo": "^3.1.1",
     "eslint": "^9",
     "eslint-config-next": "16.3.1",
     "lighthouse": "^13.4.1",
@@ -58,7 +64,9 @@
     "png-to-ico": "^3.0.2",
     "sharp": "^0.35.3",
     "tailwindcss": "^4",
+    "topojson-client": "^3.1.0",
     "tsx": "^4.23.12",
-    "typescript": "^5"
+    "typescript": "^5",
+    "us-atlas": "^3.0.1"
   }
 }

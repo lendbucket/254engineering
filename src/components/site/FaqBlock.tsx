@@ -13,19 +13,29 @@ import { SectionHeading } from "@/components/ui/primitives";
  * structured data and the visible answers are the same text. Markup describing
  * answers that are not on the page is a manual action waiting to happen.
  */
-export function FaqBlock({ faqs, title = "Common questions" }: { faqs: Faq[]; title?: string }) {
+export function FaqBlock({
+  faqs,
+  title = "Common questions",
+  onDark = false,
+}: {
+  faqs: Faq[];
+  title?: string;
+  onDark?: boolean;
+}) {
+  const rule = onDark ? "divide-slate-fg/15 border-slate-fg/15" : "divide-limestone-line border-limestone-line";
+  const q = onDark ? "text-slate-fg" : "text-slate";
+  const a = onDark ? "text-slate-fg-muted" : "text-slate-muted";
+
   return (
     <section>
-      <SectionHeading eyebrow="Questions" title={title} />
-      <dl className="mt-10 divide-y divide-limestone-line border-t border-limestone-line">
+      <SectionHeading eyebrow="Questions" title={title} onDark={onDark} />
+      <dl className={`mt-10 divide-y border-t ${rule}`}>
         {faqs.map((faq) => (
           <div key={faq.q} className="py-7">
-            <dt className="font-display text-[1.12rem] leading-[1.4] font-semibold text-slate">
+            <dt className={`font-display text-[1.12rem] leading-[1.4] font-semibold ${q}`}>
               {faq.q}
             </dt>
-            <dd className="mt-3 max-w-3xl text-[0.98rem] leading-[1.72] text-slate-muted">
-              {faq.a}
-            </dd>
+            <dd className={`mt-3 max-w-3xl text-[0.98rem] leading-[1.72] ${a}`}>{faq.a}</dd>
           </div>
         ))}
       </dl>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { PageHeader } from "@/components/site/PageHeader";
+import { sectionPhotos } from "@/content/photos";
 import { PrelaunchNotice } from "@/components/launch/PrelaunchNotice";
 import { OfferCta } from "@/components/launch/OfferCta";
 import { CardGrid, cardCell, SectionHeading } from "@/components/ui/primitives";
@@ -28,6 +29,7 @@ export default function ServicesPage() {
       <JsonLd data={breadcrumbSchema(crumbs)} />
 
       <PageHeader
+        image={sectionPhotos.services}
         eyebrow="Service lines"
         title="Engineering services for Texas property and construction"
         lede={`Nine service lines, each ending in a document somebody relies on: a lender, an insurer, a building official, or a court. ${sealedDeliverableSentence()}`}

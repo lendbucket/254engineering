@@ -87,7 +87,7 @@ export default function ContactPage() {
                     >
                       capability statement
                     </Link>
-                    , which states the firm's registration status as it currently stands.
+                    , which states the firm&apos;s registration status as it currently stands.
                   </dd>
                 </div>
                 <div className="py-5">

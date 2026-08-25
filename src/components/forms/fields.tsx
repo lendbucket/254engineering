@@ -73,6 +73,8 @@ export function TextInput({
   autoComplete,
   placeholder,
   defaultValue,
+  value,
+  onChange,
 }: {
   name: string;
   label: string;
@@ -83,6 +85,17 @@ export function TextInput({
   autoComplete?: string;
   placeholder?: string;
   defaultValue?: string;
+  /**
+   * Controlled mode, used by the multi step application flow.
+   *
+   * Optional so the single step forms stay uncontrolled and unchanged. The flow
+   * needs it because it validates a state object rather than the DOM, and an
+   * uncontrolled input never reaches that object: the first build of the flow
+   * looked correct, filled in correctly, and refused to advance from step one
+   * because every value it was validating was undefined.
+   */
+  value?: string;
+  onChange?: (next: string) => void;
 }) {
   const id = `field-${name}`;
   return (
@@ -93,7 +106,7 @@ export function TextInput({
         type={type}
         autoComplete={autoComplete}
         placeholder={placeholder}
-        defaultValue={defaultValue}
+        {...(onChange ? { value: value ?? "", onChange: (e) => onChange(e.target.value) } : { defaultValue })}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : undefined}
         className={`${inputBase} ${inputTone(Boolean(error))}`}
@@ -110,6 +123,8 @@ export function TextArea({
   optional,
   rows = 5,
   placeholder,
+  value,
+  onChange,
 }: {
   name: string;
   label: string;
@@ -118,6 +133,8 @@ export function TextArea({
   optional?: boolean;
   rows?: number;
   placeholder?: string;
+  value?: string;
+  onChange?: (next: string) => void;
 }) {
   const id = `field-${name}`;
   return (
@@ -127,6 +144,7 @@ export function TextArea({
         name={name}
         rows={rows}
         placeholder={placeholder}
+        {...(onChange ? { value: value ?? "", onChange: (e) => onChange(e.target.value) } : {})}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : undefined}
         className={`${inputBase} ${inputTone(Boolean(error))} leading-[1.6]`}
@@ -143,6 +161,8 @@ export function Select({
   hint,
   optional,
   defaultValue,
+  value,
+  onChange,
 }: {
   name: string;
   label: string;
@@ -151,6 +171,8 @@ export function Select({
   hint?: string;
   optional?: boolean;
   defaultValue?: string;
+  value?: string;
+  onChange?: (next: string) => void;
 }) {
   const id = `field-${name}`;
   return (
@@ -158,7 +180,7 @@ export function Select({
       <select
         id={id}
         name={name}
-        defaultValue={defaultValue ?? ""}
+        {...(onChange ? { value: value ?? "", onChange: (e) => onChange(e.target.value) } : { defaultValue: defaultValue ?? "" })}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : undefined}
         className={`${inputBase} ${inputTone(Boolean(error))}`}
@@ -187,11 +209,15 @@ export function YesNo({
   legend,
   error,
   hint,
+  value,
+  onChange,
 }: {
   name: string;
   legend: string;
   error?: string;
   hint?: string;
+  value?: string;
+  onChange?: (next: string) => void;
 }) {
   const id = useId();
   return (
@@ -207,7 +233,15 @@ export function YesNo({
             key={o.value}
             className="inline-flex min-h-[48px] cursor-pointer items-center gap-2.5 rounded-[3px] border border-limestone-line bg-limestone-raised px-5 font-sans text-[0.95rem] text-slate-ink transition-colors has-[:checked]:border-slate has-[:checked]:bg-limestone-sunk"
           >
-            <input type="radio" name={name} value={o.value} className="accent-slate" />
+            <input
+              type="radio"
+              name={name}
+              value={o.value}
+              className="accent-slate"
+              {...(onChange
+                ? { checked: value === o.value, onChange: () => onChange(o.value) }
+                : {})}
+            />
             {o.label}
           </label>
         ))}

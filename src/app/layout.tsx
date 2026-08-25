@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Inter, Source_Serif_4 } from "next/font/google";
+import type React from "react";
+import { Archivo, Inter, Newsreader } from "next/font/google";
 import "./globals.css";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
@@ -7,22 +8,45 @@ import { JsonLd, organizationSchema, websiteSchema } from "@/lib/schema";
 import { business } from "@/config/business";
 
 /**
- * Source Serif 4 for display, Inter for text.
+ * THE DISPLAY FACE IS UNDER REVIEW. TWO DIRECTIONS, ONE TREE.
  *
- * The serif is doing a specific job. This firm has to read as an institution on
- * a capability statement and in a chamber of commerce listing, and a geometric
- * sans headline reads as a startup regardless of what it says. Source Serif 4 is
- * a working text serif rather than a display face: it has the weight range for a
- * hero and the fitting to survive at 18 pixels, which matters because the
- * headings on the service pages are long.
+ * The operator's verdict on the previous design was that it read as generic, and
+ * the display face was the largest single cause. Source Serif 4 is a working
+ * TEXT serif. It is excellent at 18 pixels and it has almost no personality at
+ * 60, which is exactly where a hero needs some, so every headline on the site
+ * was quietly polite.
  *
- * `display: "swap"` on both, so a slow font never blocks the first paint of a
- * page a procurement officer is trying to read.
+ * Two replacements are being evaluated, and rather than branch the repo the face
+ * is selected at build time by the DISPLAY_FONT environment variable so both can
+ * be rendered from the same tree and compared honestly:
+ *
+ *   DISPLAY_FONT=serif       Newsreader. A genuine editorial display serif with
+ *                            real stroke contrast and a sharp, newspaper cut. It
+ *                            reads as a masthead: authority through age.
+ *
+ *   DISPLAY_FONT=grotesque   Archivo. A heavy engineering grotesque cut for
+ *                            signage and data. It reads as a specification
+ *                            sheet: authority through precision.
+ *
+ * Both are variable, both ship the weights a hero needs, and both are on Google
+ * Fonts so neither adds a licence obligation. Default is serif until the
+ * operator rules.
+ *
+ * `display: "swap"` throughout, so a slow font never blocks the first paint of
+ * a page a procurement officer is trying to read.
  */
-const sourceSerif = Source_Serif_4({
+const newsreader = Newsreader({
   subsets: ["latin"],
-  weight: ["400", "600", "700"],
-  variable: "--font-source-serif",
+  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
+  variable: "--font-newsreader",
+  display: "swap",
+});
+
+const archivo = Archivo({
+  subsets: ["latin"],
+  weight: ["500", "600", "700", "800"],
+  variable: "--font-archivo",
   display: "swap",
 });
 
@@ -31,6 +55,18 @@ const inter = Inter({
   variable: "--font-inter",
   display: "swap",
 });
+
+/**
+ * Which face --font-display-active resolves to.
+ *
+ * Read once at module scope. The pages are statically prerendered, so this is a
+ * build time decision and flipping it requires a rebuild, which is the same
+ * property LAUNCH_MODE has and for the same reason: a visual identity that could
+ * change without a deploy leaving a trace is not one this firm should want.
+ */
+const DISPLAY_DIRECTION = (process.env.DISPLAY_FONT ?? "serif").trim().toLowerCase();
+const displayFont = DISPLAY_DIRECTION === "grotesque" ? archivo : newsreader;
+const displayVariable = DISPLAY_DIRECTION === "grotesque" ? "--font-archivo" : "--font-newsreader";
 
 export const metadata: Metadata = {
   metadataBase: new URL(business.url),
@@ -56,7 +92,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${sourceSerif.variable} ${inter.variable}`}>
+    <html
+      lang="en"
+      className={`${displayFont.variable} ${inter.variable}`}
+      // --font-display-active is what globals.css reads. Pointing it at the
+      // chosen face here means the whole type system follows one variable.
+      style={{ ["--font-display-active"]: `var(${displayVariable})` } as React.CSSProperties}
+    >
       <body className="flex min-h-screen flex-col">
         {/*
           The organization and website nodes ship on every page rather than on

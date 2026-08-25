@@ -22,6 +22,7 @@
 // passes is how a broken write path ships.
 import { chromium } from "playwright";
 import { createClient } from "@supabase/supabase-js";
+import { careersChecks } from "./lib/careers-audit.mjs";
 
 const BASE = process.env.BASE_URL || "http://localhost:3225";
 
@@ -231,112 +232,6 @@ async function honeypotChecks() {
 
 // ---------- careers ----------
 
-async function engineerChecks() {
-  const { page, posts } = await openForm("/careers", "/api/apply");
-  const section = page.locator("#professional-engineers");
-  const submit = section.getByRole("button", { name: /submit application/i });
-
-  await submit.click();
-  await page.waitForTimeout(400);
-  rec(
-    "PE application: an empty submission blocks and posts nothing",
-    (await section.getByText("Enter your name.").isVisible().catch(() => false)) &&
-      posts.length === 0,
-  );
-
-  await section.locator('input[name="name"]').fill(MARKER);
-  await section.locator('input[name="email"]').fill("forms.audit@254engineering.com");
-  await section.locator('input[name="city"]').fill("Austin");
-  await section.locator('input[name="licenseNumber"]').fill("PE123456");
-  await section.locator('input[name="disciplines"]').fill("Structural, civil");
-  await section.locator('input[name="availability"]').fill("Twenty hours a week");
-  await submit.click();
-  await page.waitForTimeout(400);
-  rec(
-    "PE application: the TDI appointment question is required, not optional",
-    (await section.getByText(/whether you hold a TDI windstorm appointment/i).isVisible().catch(() => false)) &&
-      posts.length === 0,
-  );
-
-  await section.locator('input[name="tdiAppointed"][value="yes"]').check();
-  rec(
-    "PE application: the yes and no options are a real radio group in a fieldset",
-    (await section.locator("fieldset legend").count()) > 0,
-  );
-  rec("PE application: the form clears 390px with no horizontal scroll", await noHScroll(page));
-
-  await submit.click();
-  const success = await page
-    .getByText(/we have your application/i)
-    .waitFor({ state: "visible", timeout: 15000 })
-    .then(() => true)
-    .catch(() => false);
-  rec("PE application: the success state renders", success);
-
-  const sent = posts[posts.length - 1];
-  rec("PE application: exactly one POST", posts.length === 1);
-  rec(
-    "PE application POST: filed under the engineer track with every answer",
-    !!sent &&
-      sent.role === "professional_engineer" &&
-      sent.name === MARKER &&
-      sent.city === "Austin" &&
-      sent.licenseNumber === "PE123456" &&
-      sent.disciplines === "Structural, civil" &&
-      sent.tdiAppointed === "yes" &&
-      sent.availability === "Twenty hours a week",
-  );
-
-  await page.close();
-}
-
-async function technicianChecks() {
-  const { page, posts } = await openForm("/careers", "/api/apply");
-  const section = page.locator("#field-technicians");
-  const submit = section.getByRole("button", { name: /submit application/i });
-
-  await submit.click();
-  await page.waitForTimeout(400);
-  rec(
-    "technician application: an empty submission blocks and posts nothing",
-    (await section.getByText("Enter your name.").isVisible().catch(() => false)) &&
-      posts.length === 0,
-  );
-
-  await section.locator('input[name="name"]').fill(MARKER);
-  await section.locator('input[name="email"]').fill("forms.audit@254engineering.com");
-  await section.locator('input[name="city"]').fill("Lubbock");
-  await section.locator('textarea[name="counties"]').fill("Lubbock, Hale, Hockley, Terry");
-  await section.locator('textarea[name="experience"]').fill("Nine years roofing.");
-  await section.locator('input[name="droneLicense"][value="yes"]').check();
-  await section.locator('input[name="reliableVehicle"][value="yes"]').check();
-  rec(
-    "technician application: the form clears 390px with no horizontal scroll",
-    await noHScroll(page),
-  );
-
-  await submit.click();
-  const success = await page
-    .getByText(/we have your application/i)
-    .waitFor({ state: "visible", timeout: 15000 })
-    .then(() => true)
-    .catch(() => false);
-  rec("technician application: the success state renders", success);
-
-  const sent = posts[posts.length - 1];
-  rec(
-    "technician application POST: filed under the technician track with every answer",
-    !!sent &&
-      sent.role === "field_technician" &&
-      sent.city === "Lubbock" &&
-      sent.counties === "Lubbock, Hale, Hockley, Terry" &&
-      sent.droneLicense === "yes" &&
-      sent.reliableVehicle === "yes",
-  );
-
-  await page.close();
-}
-
 // ---------- server side guards ----------
 
 async function apiGuardChecks() {
@@ -367,26 +262,6 @@ async function apiGuardChecks() {
   });
   rec("API: /api/lead answers 400 on a malformed body rather than throwing", malformed.status === 400);
 
-  const unknownRole = await post("/api/apply", { role: "chief-wizard", name: "X" });
-  rec(
-    "API: /api/apply refuses an unknown role rather than guessing a track",
-    unknownRole.status === 400,
-    String(unknownRole.status),
-  );
-
-  const wrongTrack = await post("/api/apply", {
-    role: "professional_engineer",
-    name: "Direct Post",
-    email: "forms.audit@254engineering.com",
-    city: "Austin",
-    // No licence number, which the technician schema would not have asked for.
-    counties: "Travis",
-  });
-  rec(
-    "API: /api/apply validates against the schema for the declared track",
-    wrongTrack.status === 422,
-    String(wrongTrack.status),
-  );
 }
 
 // ---------- database round trip ----------
@@ -433,24 +308,29 @@ async function roundTripChecks() {
 
   const { data: apps } = await db
     .from("eng_applications")
-    .select("id, site, role, name, license_number, counties, tdi_appointed, drone_license")
+    .select("id, site, role, name, payload")
     .eq("site", "254")
     .eq("name", MARKER);
 
   rec(
-    "round trip: both applications land in eng_applications under site 254",
-    Array.isArray(apps) && apps.length >= 2,
+    "round trip: the technician application lands in eng_applications under site 254",
+    Array.isArray(apps) && apps.length >= 1 && apps.every((r) => r.site === "254"),
     `${apps?.length ?? 0} row(s)`,
   );
   rec(
-    "round trip: the engineer row keeps the licence and the boolean answer",
+    "round trip: the structured answers land in the payload column",
     Array.isArray(apps) &&
-      apps.some((r) => r.role === "professional_engineer" && r.license_number === "PE123456" && r.tdi_appointed === true),
+      apps.some(
+        (r) =>
+          r.role === "field_technician" &&
+          Array.isArray(r.payload?.countiesServed) &&
+          r.payload.countiesServed.length === 18 &&
+          r.payload.backgroundOther === "Storm restoration",
+      ),
   );
   rec(
-    "round trip: the technician row keeps the counties and the boolean answer",
-    Array.isArray(apps) &&
-      apps.some((r) => r.role === "field_technician" && r.drone_license === true && String(r.counties).includes("Hockley")),
+    "round trip: the row id is the id the uploads were keyed to",
+    Array.isArray(apps) && apps.some((r) => r.id === r.payload?.applicationId),
   );
 
   // Teardown. Audit rows do not belong in a table an operator reads.
@@ -469,8 +349,10 @@ try {
   await contactChecks();
   await waitlistChecks();
   await honeypotChecks();
-  await engineerChecks();
-  await technicianChecks();
+  // The careers flows moved to their own module when they became five step
+  // applications with uploads. They are long enough that leaving them inline
+  // would have buried the lead and waitlist checks under them.
+  await careersChecks(ctx, BASE, rec, recSkip);
   await apiGuardChecks();
   await roundTripChecks();
 } finally {

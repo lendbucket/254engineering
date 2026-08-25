@@ -13,24 +13,29 @@ import type { Crumb } from "@/lib/schema";
  * The current page is the last crumb and is not a link. Linking a page to itself
  * is a dead control that assistive technology still announces as a link.
  */
-export function Breadcrumbs({ crumbs }: { crumbs: Crumb[] }) {
+export function Breadcrumbs({ crumbs, onDark = false }: { crumbs: Crumb[]; onDark?: boolean }) {
+  const trail = onDark ? "text-slate-fg-muted" : "text-slate-muted";
+  const current = onDark ? "text-brass-light" : "text-slate";
+  const hover = onDark ? "hover:text-slate-fg" : "hover:text-slate";
+  const sep = onDark ? "text-slate-fg-muted/50" : "text-limestone-line";
+
   return (
     <nav aria-label="Breadcrumb">
-      <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 font-sans text-[0.82rem] text-slate-muted">
+      <ol className={`flex flex-wrap items-center gap-x-2 gap-y-1 font-sans text-[0.82rem] ${trail}`}>
         {crumbs.map((crumb, i) => {
           const last = i === crumbs.length - 1;
           return (
             <li key={crumb.path} className="flex items-center gap-2">
               {last ? (
-                <span aria-current="page" className="text-slate">
+                <span aria-current="page" className={current}>
                   {crumb.name}
                 </span>
               ) : (
                 <>
-                  <Link href={crumb.path} className="transition-colors hover:text-slate">
+                  <Link href={crumb.path} className={`transition-colors ${hover}`}>
                     {crumb.name}
                   </Link>
-                  <span aria-hidden="true" className="text-limestone-line">
+                  <span aria-hidden="true" className={sep}>
                     /
                   </span>
                 </>

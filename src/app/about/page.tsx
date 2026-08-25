@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { PageHeader } from "@/components/site/PageHeader";
@@ -101,7 +102,19 @@ export default function AboutPage() {
                 title="Licensed engineers in responsible charge"
                 paragraphs={[
                   responsibleChargeCopy(),
-                  "The division of labor is deliberate and it runs one way. Field work gathers evidence and does not reach conclusions. The engineer reads the evidence, forms the opinion, and answers for it. A technician who is asked to decide is being asked to practice engineering.",
+                  <>
+                    The division of labor is deliberate and it runs one way. Field work gathers
+                    evidence and does not reach conclusions. The engineer reads the evidence, forms
+                    the opinion, and answers for it. A technician who is asked to decide is being
+                    asked to practice engineering. The standard behind that division is{" "}
+                    <Link
+                      href="/insights/engineer-of-record-texas"
+                      className="text-slate underline decoration-brass/60 underline-offset-4 hover:decoration-brass"
+                    >
+                      responsible charge, as Texas defines it
+                    </Link>
+                    .
+                  </>,
                 ]}
               />
               <ModelBlock
@@ -139,14 +152,14 @@ export default function AboutPage() {
               <p className="mt-6 text-[1.02rem] leading-[1.75] text-slate-muted">
                 None of that is glamorous and all of it is what fails first when a firm grows past
                 the size a person can hold in their head. Dispatch, protocol capture, review queues,
-                and delivery run on the firm's own systems rather than on a spreadsheet and a group
+                and delivery run on the firm&apos;s own systems rather than on a spreadsheet and a group
                 text, and the reason is unromantic: a record that is complete and consistent is the
                 only thing that makes central review faster than sending an engineer.
               </p>
               <p className="mt-6 text-[1.02rem] leading-[1.75] text-slate-muted">
                 What the technology does not do is form opinions. There is no automated
-                determination anywhere in this firm's deliverables, and there will not be one. A
-                sealed engineering opinion is a licensed person's judgment, and a document that
+                determination anywhere in this firm&apos;s deliverables, and there will not be one. A
+                sealed engineering opinion is a licensed person&apos;s judgment, and a document that
                 implied otherwise would be worth nothing to the lender, court, or building official
                 relying on it.
               </p>
@@ -170,7 +183,7 @@ export default function AboutPage() {
               <p className="mt-6 text-[1.02rem] leading-[1.75] text-slate-muted">
                 {business.legalName} is a veteran owned Texas limited liability company. The claim is
                 made at entity level and it is a fact about the ownership of the firm rather than a
-                marketing position, which is why this site does not build a page around a founder's
+                marketing position, which is why this site does not build a page around a founder&apos;s
                 biography.
               </p>
               <p className="mt-6 text-[1.02rem] leading-[1.75] text-slate-muted">
@@ -208,7 +221,7 @@ function ModelBlock({
 }: {
   index: string;
   title: string;
-  paragraphs: string[];
+  paragraphs: ReactNode[];
 }) {
   return (
     <div>

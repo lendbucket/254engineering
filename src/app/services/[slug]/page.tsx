@@ -12,6 +12,7 @@ import { JsonLd, breadcrumbSchema, faqSchema, serviceSchema } from "@/lib/schema
 import { serviceBySlug, services } from "@/content/services";
 import { regions } from "@/content/regions";
 import { turnaroundCopy } from "@/content/model-copy";
+import { servicePhotos } from "@/content/photos";
 
 /**
  * Every service page is generated at build time and there is no dynamic
@@ -70,7 +71,13 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
       />
       <JsonLd data={faqSchema(service.faqs)} />
 
-      <PageHeader eyebrow="Service line" title={service.h1} lede={service.summary} crumbs={crumbs}>
+      <PageHeader
+        eyebrow="Service line"
+        title={service.h1}
+        lede={service.summary}
+        crumbs={crumbs}
+        image={servicePhotos[service.slug]}
+      >
         <PrelaunchNotice service={service.name} />
       </PageHeader>
 
@@ -172,10 +179,10 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
         </section>
       ) : null}
 
-      <section className="border-b border-limestone-line bg-limestone-sunk">
+      <section className="bg-slate-ink">
         <Container>
-          <div className="py-14 sm:py-18">
-            <FaqBlock faqs={service.faqs} />
+          <div className="py-16 sm:py-20">
+            <FaqBlock faqs={service.faqs} onDark />
           </div>
         </Container>
       </section>

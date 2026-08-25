@@ -21,28 +21,56 @@
  * A component picks by surface, and scripts/contrast-audit.mjs proves it.
  */
 @theme {
-  /* Deep slate blue. The primary, and the only dark surface on the site. */
-  --color-slate-ink: #0e2234;
-  --color-slate: #16324b;
-  --color-slate-soft: #2a536f;
-  --color-slate-muted: #4a5b6b;
+  /*
+   * Deep institutional navy. A FULL SURFACE COLOUR, not just a text colour.
+   *
+   * The token is still called slate because every component on the site is
+   * written against that name and a rename carries no design information. The
+   * values are the new palette.
+   *
+   * The site alternates navy bands and light bands to give the page rhythm.
+   * Before this pass every section was limestone and every section therefore
+   * weighed the same, which is most of why the design read as a template.
+   */
+  --color-slate-ink: #0c1f3d;
+  --color-slate: #14315c;
+  --color-slate-soft: #2e5288;
+  --color-slate-muted: #46536b;
 
-  /* Texas limestone. Warm, pale, and never pure white. */
-  --color-limestone: #f7f3ea;
-  --color-limestone-raised: #fffdf9;
-  --color-limestone-sunk: #efe9dc;
-  --color-limestone-line: #ded5c4;
+  /* Warm off white. Never pure white. */
+  --color-limestone: #f6f3ec;
+  --color-limestone-raised: #fffdf8;
+  --color-limestone-sunk: #ede8dc;
+  --color-limestone-line: #dcd4c4;
 
-  /* Brass. One accent, three values, chosen by surface. See the note above. */
-  --color-brass: #a97c2a;
-  --color-brass-ink: #7c5a15;
-  --color-brass-light: #c9a44f;
+  /*
+   * Gold. Strictly an accent: rules, small marks, and highlight text on navy.
+   *
+   * THE THREE VALUES ARE NOT A STYLE CHOICE, THEY ARE A CONTRAST CONSTRAINT.
+   * --color-brass at #d19a1e measures 2.27:1 on the off white and is unusable
+   * as text there. It is the rule and mark colour on light surfaces, and it is
+   * legitimate TEXT only on navy, where it measures 5.14:1.
+   * --color-brass-ink is the on-light text gold. It is measured against
+   * limestone-sunk, the DARKEST light surface, not against the lightest one:
+   * the first value chosen here cleared 4.85:1 on limestone and shipped at
+   * 4.39:1 on limestone-sunk, where most eyebrows actually sit. 4.99:1 now.
+   * --color-brass-light is the on-navy display gold at 6.99:1.
+   * Measured, not guessed. Changing any of them means re-measuring.
+   */
+  --color-brass: #d19a1e;
+  --color-brass-ink: #7f5c0e;
+  --color-brass-light: #e3b95a;
 
-  /* On-slate text tones. */
-  --color-slate-fg: #f7f3ea;
-  --color-slate-fg-muted: #b9c6d2;
+  /* On-navy text tones. 11.67:1 and 7.34:1 respectively. */
+  --color-slate-fg: #f6f3ec;
+  --color-slate-fg-muted: #b7c4da;
 
-  --font-display: var(--font-source-serif), ui-serif, Georgia, serif;
+  /*
+   * The display face is chosen at build time by DISPLAY_FONT, so the two
+   * directions in the typography gate can be rendered from the same tree
+   * rather than from two branches. See src/app/layout.tsx.
+   */
+  --font-display: var(--font-display-active), ui-serif, Georgia, serif;
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 
   /* A single generous rhythm. Sections breathe or the firm looks small. */

@@ -41,7 +41,11 @@ const TEMPLATES = [
   { name: "coverage hub", path: "/coverage" },
   { name: "region", path: "/coverage/coastal-bend" },
   { name: "government", path: "/government" },
-  { name: "careers", path: "/careers" },
+  { name: "insights hub", path: "/insights" },
+  { name: "insight post", path: "/insights/engineer-of-record-texas" },
+  { name: "careers hub", path: "/careers" },
+  { name: "position: engineer", path: "/careers/professional-engineer" },
+  { name: "position: technician", path: "/careers/field-inspection-technician" },
   { name: "contact", path: "/contact" },
   { name: "waitlist", path: "/waitlist" },
   { name: "privacy", path: "/privacy" },
@@ -61,10 +65,12 @@ const TEMPLATES = [
     expect: "Enter your name.",
   },
   {
-    name: "careers form errors",
-    path: "/careers",
-    submitEmpty: "Submit application",
-    expect: "Enter your name.",
+    // The careers application is five steps now, so the error state under test
+    // is step one refusing to advance rather than a submit being refused.
+    name: "application step errors",
+    path: "/careers/field-inspection-technician",
+    submitEmpty: "Continue",
+    expect: "Enter your full name.",
   },
 ];
 

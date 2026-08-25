@@ -171,3 +171,185 @@ but not for the regulatory claims made about them.
 
 Deliberate. No `aggregateRating`, no `Review` nodes, and nothing on any page that
 implies a rating exists. Revisit only when real reviews exist.
+
+## Careers system
+
+### The engineer application cannot be completed without storage
+
+`scripts/lib/careers-audit.mjs` drives the technician flow through submit and
+stops the engineer flow at the documents step. The engineer seat requires a
+resume, uploading one needs Supabase storage, and a checkout without keys cannot
+get past it.
+
+**What is covered instead.** That the requirement blocks, which is the property
+that matters, plus every upload API guard called directly.
+
+**What to run once production keys exist.** `npm run forms-audit` with
+`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` set. Three checks turn from SKIP
+to real: the engineer submit, and both round trips.
+
+### Section 1 is blocked on the logo files
+
+No `/brand-assets/` directory exists. Colour extraction, the header and footer
+mark, the favicon set, the OG card, and the Organization `logo` property all wait
+on it. Vector source is worth more than a raster: the header needs the lockup
+crisp at 390 and the favicon needs the 254 mark cropped clean.
+
+### JobPosting validThrough needs refreshing
+
+Both positions carry `validThrough: 2026-11-30` in `data/positions.ts`. Nothing
+renews it automatically, deliberately: an auto extending posting is one that
+outlives the job. Refresh it or set `open: false` before it lapses.
+
+## Insights corpus
+
+### DONE. The four registry entries were flipped on deploy
+
+Flipped from `planned` to `live` inside the merge commit that took
+`feat/brand-and-careers` to main, which is where this entry said it had to
+happen. Kept here rather than deleted because the reasoning is the reusable
+part: a registry entry claiming a live URL must not be marked live until that
+URL is actually live, or registry-audit fails on four correct 404s.
+
+The original note follows.
+
+### The four registry entries said `planned` until deploy
+
+`data/keyword-registry.ts` carries all four insights posts as `status: "planned"`
+with their real paths. They are written and they are on this branch. They are not
+on the production domain, and `scripts/registry-audit.mjs` probes
+`https://254engineering.com` for every `live` entry.
+
+**Why it is not just set to live now.** Marking them live made the audit fail on
+four correct 404s. The audit was right: the registry claims a page exists on the
+live brand, and it does not yet. A `planned` entry may carry a path without being
+probed, which is exactly the state these are in.
+
+**What to do at deploy. CONFIRMED BY THE OPERATOR 2026-08-24: this happens in the
+same commit that merges, not after it.** In that commit,
+change `status: "planned"` to `status: "live"` on all four and delete the three
+line comment above each one. Then run `npm run registry-audit` against the
+deployed site and watch it verify four new URLs rather than assume it will.
+
+**Also.** The same four entries were copied verbatim into both sibling repos with
+a note in each `BACKLOG.md`. Those copies are uncommitted in the sibling working
+trees on purpose: sealedengineering is on `main`, and one session per repo
+directory is the standing rule. Whoever works those repos next commits them.
+
+### A contextual link inside a SectionHeading lede does not count
+
+`scripts/link-map.mjs` treats only `<p>`, `<li>`, and `<dd>` as prose containers.
+`SectionHeading` renders its `lede` into a `<div>`, so a link placed there is
+counted as template no matter how much prose surrounds it.
+
+This was found the honest way: the linking pass added three links, link-map moved
+by two, and the missing one was in a lede on `/government`. The link was moved
+into the `PostureBlock` paragraph below it, where the sentence was already
+reaching for it, and the count moved to 21.
+
+**Not fixed, deliberately.** Wrapping a string lede in a `<p>` would make ledes
+across the whole site countable and would inflate the contextual number without
+anybody having written a new link. If that change is ever made, take a fresh
+baseline first and say so, because the before and after numbers in this
+workstream's report would stop being comparable.
+
+### /insights/engineer-of-record-texas needs a cannibalization check after indexing
+
+`/about` is live on `engineer in responsible charge texas` and the new post owns
+`engineer of record texas`. Those are the closest two entries in the registry.
+The intents differ, the post explains the concept and `/about` states the firm's
+position, and the post links to `/about` rather than competing with it.
+
+**Wanted.** Once both are indexed, check Search Console for the two pages trading
+impressions on the same queries. If they are, the post keeps the term and
+`/about` loses it, because `/about` has other work to do.
+
+### /insights/texas-pe-license-lookup will not rank this year
+
+KD 55 against a domain with effectively no authority, competing with PDH Pro and
+EngineeringID. It was accepted as a tier 2 target with that stated in advance
+rather than discovered in six months, and the reasoning is in
+`docs/keyword-batch-phase-1.md`.
+
+**Why it shipped anyway.** It is the highest volume term this brand can honestly
+own, the page is genuinely more useful than what ranks, and it earns its place as
+a link target for the other three posts regardless of where it ranks.
+
+### Three candidate topics were researched and dropped
+
+The windstorm program authority angle, on call contracting, and veteran owned
+positioning all measured no search demand at all. Recorded in
+`docs/keyword-batch-phase-1.md` with the evidence, so they are not re-proposed.
+The windstorm material is still true and belongs inside the TWIA county pages
+when the county tier is built.
+
+## Visual layer
+
+### The logo derived texture is not built, and is deferred to Section 1
+
+Section 4 called for four things and three shipped: the diagram system, the 254
+county map, and the icon set. The brand texture was deferred on the operator's
+instruction because it is derived from the logo, and the logo does not exist yet.
+
+**What it waits on.** The same `/brand-assets/` delivery that blocks Section 1.
+A texture derived from a placeholder wordmark would be thrown away with the
+placeholder.
+
+### The map restates hex values that also live in globals.css
+
+`src/components/map/TexasCountyMap.tsx` hardcodes five colours as hex strings
+rather than reading the Tailwind theme. SVG presentation attributes such as
+`stroke` and `fill` do not resolve Tailwind utility classes, and the per element
+alternative, a class on every one of 254 paths, costs more than it saves.
+
+This is the same duplication `scripts/brand-rasters.mjs` already carries and it
+has the same expiry: when the logo lands and the palette is confirmed against it,
+both files are revisited together. If the palette moves before then, these five
+values move by hand.
+
+**The values.** County fill, active fill, hairline, boundary, and the two opacity
+figures on the boundary strokes.
+
+### The county geometry is generated and can go stale
+
+`src/content/county-geometry.ts` is written by `npm run build-county-map` from
+us-atlas, which repackages public domain US Census TIGER boundaries. Part of it,
+`REGION_BOUNDARY_PATH`, is derived from the region assignment in
+`src/content/regions.ts`.
+
+**The guard.** The generator stamps a fingerprint of the region and county pairs
+into the output. `TexasCountyMap` recomputes it at module scope and throws if it
+has changed. Every page carrying the map is statically prerendered, so a stale
+file fails the build rather than drawing a wrong boundary forever.
+
+**Injection verified.** A county was moved between regions, the build failed with
+the fingerprint mismatch and the regenerate instruction, and the change was
+reverted. The guard has been watched to fail.
+
+**What to do when regions change.** Run `npm run build-county-map` and commit the
+regenerated file in the same commit as the region change.
+
+**Dependencies.** `us-atlas`, `topojson-client`, `d3-geo`, and the two matching
+`@types` packages are devDependencies used only by that generator. They are not
+in the runtime bundle. The generated file is committed so a deploy never needs
+them.
+
+### There are no service line icons, deliberately
+
+`src/components/ui/icons.tsx` holds three marks: external link, seal, and
+document. Nine service line glyphs were considered and none was built.
+
+**Why.** An icon earns its place when it is faster to recognise than the word or
+carries something the word cannot. "Roof Inspections and Certifications" has no
+faster glyph. What a drawn roof beside it would do is move the page toward the
+register of a consumer services brand, which is the register this site is
+explicitly not in.
+
+**If this is revisited**, the argument to beat is that one, not the absence of a
+visual system. The diagram set and the map are the visual system.
+
+### The mobile menu marks stay in CSS
+
+`MobileNav` draws its bars and its close cross with positioned spans. They were
+left alone rather than converted to icons: the CSS is fewer bytes, scales with
+the type, and works. Replacing it would have been churn dressed as consistency.

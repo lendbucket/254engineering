@@ -63,7 +63,11 @@ function pageBody(html) {
   return html.slice(from, to);
 }
 
-const CTA_HREF = /<a[^>]+href="(\/waitlist[^"]*|\/contact|\/careers)"[^>]*>/gi;
+// A link to a position page counts as a conversion path. The careers hub
+// converts by routing to the position, which is where the application lives.
+// The pattern used to require an exact /careers and so reported the rebuilt hub
+// as having no conversion path at all, which was a finding about the audit.
+const CTA_HREF = /<a[^>]+href="(\/waitlist[^"]*|\/contact|\/careers(?:\/[a-z-]+)?|#apply)"[^>]*>/gi;
 const FORM = /<form\b/i;
 const WAITLIST_LANGUAGE = /join the waitlist|get notified|notify me|hear from us|opening soon/i;
 const ORDER_LANGUAGE = /\border (?:a|an|your)\b|\bbuy now\b|\bschedule (?:an|your) inspection\b|\bstart your order\b/i;
