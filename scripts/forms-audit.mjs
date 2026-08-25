@@ -333,13 +333,46 @@ async function roundTripChecks() {
     Array.isArray(apps) && apps.some((r) => r.id === r.payload?.applicationId),
   );
 
-  // Teardown. Audit rows do not belong in a table an operator reads.
+  /*
+   * Teardown, rows and objects.
+   *
+   * The row deletes were here from the start. The object delete was added when
+   * the engineer submit stopped being a skip and started performing a real
+   * upload: the audit began writing a resume into eng-uploads on every run and
+   * removing only the row that pointed at it, which left a private bucket
+   * quietly filling with orphaned PDFs that no record referenced.
+   *
+   * Uploads are keyed by application id, so the ids collected above are exactly
+   * the prefixes to remove. Nothing else in the bucket is touched.
+   */
+  const appIds = Array.isArray(apps) ? apps.map((r) => r.id).filter(Boolean) : [];
+
   const delLeads = await db.from("eng_leads").delete().eq("site", "254").eq("name", MARKER);
   const delApps = await db.from("eng_applications").delete().eq("site", "254").eq("name", MARKER);
   rec(
     "round trip: audit rows are removed afterward",
     !delLeads.error && !delApps.error,
     delLeads.error?.message || delApps.error?.message || "",
+  );
+
+  let objectsRemoved = 0;
+  let objectError = "";
+  for (const id of appIds) {
+    const listed = await db.storage.from("eng-uploads").list(`254/${id}`);
+    if (listed.error) {
+      objectError = listed.error.message;
+      continue;
+    }
+    const paths = (listed.data ?? []).map((o) => `254/${id}/${o.name}`);
+    if (paths.length === 0) continue;
+    const removed = await db.storage.from("eng-uploads").remove(paths);
+    if (removed.error) objectError = removed.error.message;
+    else objectsRemoved += paths.length;
+  }
+  rec(
+    "round trip: uploaded documents are removed afterward",
+    objectError === "",
+    objectError || `${objectsRemoved} object(s) removed across ${appIds.length} application(s)`,
   );
 }
 

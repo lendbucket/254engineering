@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/Container";
-import { Wordmark } from "@/components/brand/Wordmark";
 import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
 import { findByToken, itemsFor } from "@/lib/onboarding";
 import { checklistFor, ROLE_LABELS } from "@/content/onboarding-checklists";
@@ -58,72 +57,68 @@ export default async function OnboardingPage({
   const personRows = rows.filter((r) => r.actor === "person");
 
   return (
-    <div className="flex min-h-screen flex-col bg-limestone">
-      <header className="bg-slate-ink">
+    <>
+      <section className="bg-slate-ink">
         <Container>
-          <div className="flex items-center justify-between py-6">
-            <Wordmark onDark />
-            <p className="font-sans text-[0.72rem] font-semibold tracking-[0.2em] text-brass-light uppercase">
+          <div className="max-w-3xl py-14 sm:py-20">
+            <p className="font-sans text-[0.72rem] font-semibold tracking-[0.22em] text-brass-light uppercase">
               Onboarding
+            </p>
+            <span
+              aria-hidden="true"
+              className="mt-6 block h-px w-20 bg-brass"
+            />
+            <h1 className="font-display text-[2rem] leading-[1.1] font-bold text-slate-fg sm:text-[2.7rem]">
+              Welcome, {onboarding.person_name.split(" ")[0]}
+            </h1>
+            <p className="mt-7 text-[1.05rem] leading-[1.75] text-slate-fg-muted">
+              A few documents before your first assignment as a{" "}
+              {ROLE_LABELS[onboarding.role]}. Each one saves the moment it
+              uploads, so you can stop at any point and come back to this same
+              link.
+            </p>
+            <p className="mt-6 text-[0.98rem] leading-[1.7] text-slate-fg-muted">
+              You are never asked to type a social security, account, or routing
+              number into this site. Where a form involves one, you upload the
+              completed document and nothing is read out of it.
             </p>
           </div>
         </Container>
-        <div aria-hidden="true" className="h-px bg-brass" />
-      </header>
+      </section>
 
-      <main className="flex-1">
-        <section className="bg-slate-ink">
-          <Container>
-            <div className="max-w-3xl py-14 sm:py-20">
-              <h1 className="font-display text-[2rem] leading-[1.1] font-bold text-slate-fg sm:text-[2.7rem]">
-                Welcome, {onboarding.person_name.split(" ")[0]}
-              </h1>
-              <p className="mt-7 text-[1.05rem] leading-[1.75] text-slate-fg-muted">
-                A few documents before your first assignment as a{" "}
-                {ROLE_LABELS[onboarding.role]}. Each one saves the moment it uploads, so you can
-                stop at any point and come back to this same link.
-              </p>
-              <p className="mt-6 text-[0.98rem] leading-[1.7] text-slate-fg-muted">
-                You are never asked to type a social security, account, or routing number into this
-                site. Where a form involves one, you upload the completed document and nothing is
-                read out of it.
-              </p>
-            </div>
-          </Container>
-        </section>
-
-        <OnboardingFlow
-          token={token}
-          role={onboarding.role}
-          status={onboarding.status}
-          items={personRows.map((r) => ({
-            key: r.item_key,
-            label: r.label,
-            status: r.status,
-            rejectedReason: r.rejected_reason,
+      <OnboardingFlow
+        token={token}
+        role={onboarding.role}
+        status={onboarding.status}
+        items={personRows.map((r) => ({
+          key: r.item_key,
+          label: r.label,
+          status: r.status,
+          rejectedReason: r.rejected_reason,
+        }))}
+        definitions={definitions
+          .filter((d) => d.actor === "person")
+          .map((d) => ({
+            key: d.key,
+            label: d.label,
+            help: d.help,
+            step: d.step,
+            reference: d.reference,
+            fields: d.fields,
+            acknowledgeOnly: d.acknowledgeOnly,
           }))}
-          definitions={definitions
-            .filter((d) => d.actor === "person")
-            .map((d) => ({
-              key: d.key,
-              label: d.label,
-              help: d.help,
-              step: d.step,
-              reference: d.reference,
-              fields: d.fields,
-              acknowledgeOnly: d.acknowledgeOnly,
-            }))}
-        />
-      </main>
-
-      <footer className="bg-slate-ink">
+      />
+      {/* The support contact. Inside the page rather than in a second footer:
+          the root layout already renders one, and this needs to sit with the
+          flow rather than under the site's regulatory band. */}
+      <section className="border-b border-limestone-line bg-limestone-sunk">
         <Container>
-          <div className="py-10">
-            <p className="text-[0.92rem] leading-[1.7] text-slate-fg-muted">
+          <div className="max-w-3xl py-12">
+            <p className="text-[0.98rem] leading-[1.75] text-slate-muted">
               Something not working, or a document you cannot produce? Write to{" "}
               <a
                 href={`mailto:${business.email}`}
-                className="font-medium text-slate-fg underline decoration-brass underline-offset-4 transition-colors hover:text-brass-light"
+                className="font-medium text-slate underline decoration-brass underline-offset-4 transition-colors hover:text-brass-ink"
               >
                 {business.email}
               </a>{" "}
@@ -131,7 +126,7 @@ export default async function OnboardingPage({
             </p>
           </div>
         </Container>
-      </footer>
-    </div>
+      </section>
+    </>
   );
 }
