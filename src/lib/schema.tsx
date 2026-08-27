@@ -62,7 +62,10 @@ export function organizationSchema() {
       "Forensic engineering",
     ],
     brand: business.brands.map((b) => ({ "@type": "Brand", name: b.name, url: b.url })),
-    logo: `${business.url}/og/default.png`,
+    // The real mark, not the social card. schema.org logo is meant to be the
+    // organisation logo itself, and a knowledge panel that picks up a 1200x630
+    // card with a tagline on it renders the tagline as the logo.
+    logo: `${business.url}/brand/logo.png`,
     image: `${business.url}/og/default.png`,
     sameAs: business.brands.map((b) => b.url),
     // Only present once the board has actually issued it. See src/lib/launch.ts.

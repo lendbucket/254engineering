@@ -32,46 +32,70 @@
    * Before this pass every section was limestone and every section therefore
    * weighed the same, which is most of why the design read as a template.
    */
-  --color-slate-ink: #0c1f3d;
-  --color-slate: #14315c;
+  --color-slate: #14315d;
+  --color-slate-ink: #14213a;
+  --color-slate-deep: #0e2347;
+  --color-slate-abyss: #0b1b36;
   --color-slate-soft: #2e5288;
-  --color-slate-muted: #46536b;
+  --color-slate-muted: #555e6b;
 
   /* Warm off white. Never pure white. */
-  --color-limestone: #f6f3ec;
-  --color-limestone-raised: #fffdf8;
-  --color-limestone-sunk: #ede8dc;
-  --color-limestone-line: #dcd4c4;
+  --color-limestone: #f4f5f7;
+  --color-limestone-raised: #ffffff;
+  --color-limestone-sunk: #edf1f7;
+  --color-limestone-line: #dde0e4;
+  --color-limestone-edge: #c3c9d1;
 
   /*
    * Gold. Strictly an accent: rules, small marks, and highlight text on navy.
+   *
+   * FIVE VALUES NOW, FROM THE APPROVED v5 DESIGN, AND EVERY ONE IS MEASURED.
+   * See DESIGN_SPEC.md section 2 for the seven v5 pairings that failed AA and
+   * the compliant treatment each was given. The short version:
+   *
+   *   brass       #d9a032  buttons, rules, borders. NEVER text on a light
+   *                        surface: 2.33:1 there. Legitimate text on navy.
+   *   brass-deep  #b77e1b  borders and underlines only. v5 used it as small
+   *                        text on light at 3.20:1, which is why brass-ink
+   *                        exists.
+   *   brass-ink   #8d610f  gold AS TEXT on any light surface. 4.81:1 worst.
+   *   brass-light #e8b04a  gold as text on navy. 6.60:1.
+   *   brass-tint  #fdf6e7  a surface, never text.
    *
    * THE THREE VALUES ARE NOT A STYLE CHOICE, THEY ARE A CONTRAST CONSTRAINT.
    * --color-brass at #d19a1e measures 2.27:1 on the off white and is unusable
    * as text there. It is the rule and mark colour on light surfaces, and it is
    * legitimate TEXT only on navy, where it measures 5.14:1.
-   * --color-brass-ink is the on-light text gold. It is measured against
-   * limestone-sunk, the DARKEST light surface, not against the lightest one:
-   * the first value chosen here cleared 4.85:1 on limestone and shipped at
-   * 4.39:1 on limestone-sunk, where most eyebrows actually sit. 4.99:1 now.
+   * --color-brass-ink is the on-light text gold, measured against every light
+   * surface in the palette rather than the lightest one. That lesson was learned
+   * the expensive way in the previous palette, where a value clearing 4.85:1 on
+   * the page ground shipped at 4.39:1 on the sunk surface, which is where most
+   * eyebrows actually sit. 4.81:1 worst case now.
    * --color-brass-light is the on-navy display gold at 6.99:1.
    * Measured, not guessed. Changing any of them means re-measuring.
    */
-  --color-brass: #d19a1e;
-  --color-brass-ink: #7f5c0e;
-  --color-brass-light: #e3b95a;
+  --color-brass: #d9a032;
+  --color-brass-deep: #b77e1b;
+  --color-brass-ink: #8d610f;
+  --color-brass-light: #e8b04a;
+  --color-brass-tint: #fdf6e7;
 
   /* On-navy text tones. 11.67:1 and 7.34:1 respectively. */
-  --color-slate-fg: #f6f3ec;
-  --color-slate-fg-muted: #b7c4da;
+  --color-slate-fg: #ffffff;
+  --color-slate-fg-muted: #cfd7e3;
+  --color-slate-fg-dim: #9daac0;
+  --color-slate-fg-footer: #dce2eb;
+  --color-slate-fg-label: #8a99b5;
+  --color-ink: #333a45;
+  --color-ink-quiet: #5f6877;
 
   /*
    * The display face is chosen at build time by DISPLAY_FONT, so the two
    * directions in the typography gate can be rendered from the same tree
    * rather than from two branches. See src/app/layout.tsx.
    */
-  --font-display: var(--font-display-active), ui-serif, Georgia, serif;
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-open-sans), Arial, ui-sans-serif, system-ui, sans-serif;
 
   /* A single generous rhythm. Sections breathe or the firm looks small. */
   --spacing-section: 5.5rem;

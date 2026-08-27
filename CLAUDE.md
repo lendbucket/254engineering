@@ -66,6 +66,32 @@ Consequences that are easy to get wrong:
   not. Every page is written fresh in this brand's voice.
 - Cross-brand linking is sparing and honest, never reciprocal footer blasting.
 
+## 2b. The visual system, and one superseded ruling
+
+The operator designed the interface externally and approved it. The artifact is
+`design-reference/254 Landing Page v5.dc.html` and it is the single source of
+visual truth. `DESIGN_SPEC.md` is the extraction: palette, type scale, spacing,
+component inventory, and every deviation forced by accessibility.
+
+**Archivo and Open Sans, and the Newsreader ruling is superseded.** During the
+design elevation workstream the operator was shown two display directions, a
+serif and a grotesque, and ruled for Newsreader. That ruling stood and shipped.
+The approved v5 artifact specifies Archivo for display and Open Sans for text,
+and an approved artifact from the operator outranks an earlier ruling by the same
+operator.
+
+Both facts are recorded rather than the first being quietly replaced, because a
+superseded decision that leaves no trace looks like a decision nobody made, and
+the next session would otherwise read the Newsreader reasoning in the git history
+and assume the current fonts were an accident.
+
+**Gold is an accent and never body text on a light surface.** That rule predates
+v5 and survives it. Seven pairings in the approved design measure under 4.5:1,
+including gold on white at 2.33:1. Each has a compliant nearest treatment
+recorded in `DESIGN_SPEC.md` section 2, and AA wins wherever the two disagree.
+That is the operator's standing ruling, reaffirmed when the deviations were
+approved.
+
 ## 3. Style laws on every rendered string
 
 - **No em dashes and no en dashes.** Anywhere: copy, metadata, schema, alt text, rendered comments.

@@ -8,7 +8,28 @@ Items are removed when they ship, not when they are attempted.
 
 ## Blocked on the owner
 
-### The logo does not exist
+### DONE. The logo arrived and is integrated
+
+Delivered with the approved v5 design as `logo.png` and `logo-dark.png`, now in
+`brand-assets/` and served from `public/brand/`. `Wordmark.tsx` renders the real
+lockup, `npm run brand-rasters` regenerates the icon set, the apple icon, the
+favicon, and the OG card from the artwork, and the schema Organization logo
+points at the mark rather than at the social card.
+
+The icon is the reverse artwork cropped to the numerals on deep navy: the full
+lockup at 16 pixels turns the descriptor into a smudge under the part that
+matters.
+
+Kept rather than deleted because two notes in it are still live. The artwork navy
+is `#012758`, deeper than the UI navy `#14315D`, and the artwork is deliberately
+not recoloured to match. And `scripts/brand-rasters.mjs` still restates palette
+values that also live in `globals.css`, because the script runs in node and
+cannot resolve the Tailwind theme; that duplication is now permanent rather than
+time limited, so it is listed under Engineering below.
+
+The original entry follows.
+
+### The logo did not exist
 
 Every mark on this site is a typographic placeholder: the header and footer
 wordmark in `src/components/brand/Wordmark.tsx`, the favicon set, and the Open
@@ -188,7 +209,14 @@ that matters, plus every upload API guard called directly.
 `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` set. Three checks turn from SKIP
 to real: the engineer submit, and both round trips.
 
-### Section 1 is blocked on the logo files
+### DONE. Section 1 is no longer blocked
+
+The `/brand-assets/` delivery arrived with the approved v5 design. Colour was not
+extracted from the artwork in the end: the approved design specifies the palette
+directly and `DESIGN_SPEC.md` records it, which is a better source than sampling
+pixels. The original entry follows.
+
+### Section 1 was blocked on the logo files
 
 No `/brand-assets/` directory exists. Colour extraction, the header and footer
 mark, the favicon set, the OG card, and the Organization `logo` property all wait
