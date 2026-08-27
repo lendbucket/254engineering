@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+html, body { margin: 0; padding: 0; background: #FFFFFF; scroll-behavior: smooth; }
+body { font-family: 'Barlow', sans-serif; color: #232A38; -webkit-font-smoothing: antialiased; }
+a { color: #14315D; text-decoration: none; }
+a:hover { color: #B77E1B; }
+* { box-sizing: border-box; }
+input::placeholder { color: #949CAB; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</helmet>
+
+<div data-screen-label="Top bar" style="background: #0E2347; color: #C9D0DC; font-size: 13.5px;">
+  <div style="max-width: 1220px; margin: 0 auto; padding: 8px clamp(16px, 4vw, 36px); display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
+    <span style="font-weight: 500; letter-spacing: 0.04em;">Opening soon. Serving all 254 Texas counties.</span>
+    <a href="mailto:info@254engineering.com" style="color: #D9A032; font-weight: 600;" style-hover="color: #E8B04A;">info@254engineering.com</a>
+  </div>
+</div>
+
+<header data-screen-label="Header" style="background: #FFFFFF; border-bottom: 1px solid #E5E1D8; position: sticky; top: 0; z-index: 50;">
+  <div style="max-width: 1220px; margin: 0 auto; padding: 14px clamp(16px, 4vw, 36px); display: flex; align-items: center; justify-content: space-between; gap: 20px;">
+    <a href="#top"><img src="logo.png" alt="254 Engineering Services" style="height: clamp(48px, 7vw, 60px); width: auto; display: block;"></a>
+    <sc-if value="{{ wide }}" hint-placeholder-val="{{ true }}">
+      <nav style="display: flex; align-items: center; gap: clamp(14px, 2vw, 26px);">
+        <a href="#services" style="font-weight: 600; font-size: 15px; color: #3A4356;" style-hover="color: #B77E1B;">Services</a>
+        <a href="#process" style="font-weight: 600; font-size: 15px; color: #3A4356;" style-hover="color: #B77E1B;">How it works</a>
+        <a href="#coverage" style="font-weight: 600; font-size: 15px; color: #3A4356;" style-hover="color: #B77E1B;">Coverage</a>
+        <a href="#windstorm" style="font-weight: 600; font-size: 15px; color: #3A4356;" style-hover="color: #B77E1B;">Windstorm</a>
+        <a href="#government" style="font-weight: 600; font-size: 15px; color: #3A4356;" style-hover="color: #B77E1B;">Government</a>
+        <a href="#careers" style="font-weight: 600; font-size: 15px; color: #3A4356;" style-hover="color: #B77E1B;">Careers</a>
+        <a href="#waitlist" style="background: #D9A032; color: #142542; font-weight: 700; font-size: 14.5px; padding: 12px 22px; display: inline-block;" style-hover="background: #C08A1E; color: #142542;">Join the waitlist</a>
+      </nav>
+    </sc-if>
+    <sc-if value="{{ narrow }}" hint-placeholder-val="{{ false }}">
+      <button onClick="{{ toggleMenu }}" aria-label="Menu" style="background: none; border: 1px solid #C9C4B6; padding: 10px 12px; cursor: pointer; display: flex; flex-direction: column; gap: 5px;">
+        <span style="display: block; width: 22px; height: 2px; background: #14315D;"></span>
+        <span style="display: block; width: 22px; height: 2px; background: #14315D;"></span>
+        <span style="display: block; width: 22px; height: 2px; background: #14315D;"></span>
+      </button>
+    </sc-if>
+  </div>
+  <sc-if value="{{ menuOpen }}" hint-placeholder-val="{{ false }}">
+    <nav style="border-top: 1px solid #E5E1D8; background: #FFFFFF; display: flex; flex-direction: column;">
+      <a href="#services" onClick="{{ closeMenu }}" style="padding: 15px clamp(16px, 4vw, 36px); font-weight: 600; font-size: 16px; color: #3A4356; border-bottom: 1px solid #F0EDE6;">Services</a>
+      <a href="#process" onClick="{{ closeMenu }}" style="padding: 15px clamp(16px, 4vw, 36px); font-weight: 600; font-size: 16px; color: #3A4356; border-bottom: 1px solid #F0EDE6;">How it works</a>
+      <a href="#coverage" onClick="{{ closeMenu }}" style="padding: 15px clamp(16px, 4vw, 36px); font-weight: 600; font-size: 16px; color: #3A4356; border-bottom: 1px solid #F0EDE6;">Coverage</a>
+      <a href="#windstorm" onClick="{{ closeMenu }}" style="padding: 15px clamp(16px, 4vw, 36px); font-weight: 600; font-size: 16px; color: #3A4356; border-bottom: 1px solid #F0EDE6;">Windstorm</a>
+      <a href="#government" onClick="{{ closeMenu }}" style="padding: 15px clamp(16px, 4vw, 36px); font-weight: 600; font-size: 16px; color: #3A4356; border-bottom: 1px solid #F0EDE6;">Government</a>
+      <a href="#careers" onClick="{{ closeMenu }}" style="padding: 15px clamp(16px, 4vw, 36px); font-weight: 600; font-size: 16px; color: #3A4356; border-bottom: 1px solid #F0EDE6;">Careers</a>
+      <a href="#waitlist" onClick="{{ closeMenu }}" style="padding: 15px clamp(16px, 4vw, 36px); font-weight: 700; font-size: 16px; color: #B77E1B;">Join the waitlist</a>
+    </nav>
+  </sc-if>
+</header>
+
+<section id="top" data-screen-label="Hero" style="background: #12294E; background-image: repeating-linear-gradient(0deg, rgba(255,255,255,0.035) 0, rgba(255,255,255,0.035) 1px, transparent 1px, transparent 56px), repeating-linear-gradient(90deg, rgba(255,255,255,0.035) 0, rgba(255,255,255,0.035) 1px, transparent 1px, transparent 56px); color: #F6F5F1; position: relative; overflow: hidden;">
+  <div aria-hidden="true" style="position: absolute; right: clamp(-140px, -8vw, -40px); bottom: -60px; width: clamp(320px, 42vw, 640px); opacity: 0.1; pointer-events: none;">{{ heroTexas }}</div>
+  <div style="max-width: 1220px; margin: 0 auto; padding: clamp(64px, 10vw, 130px) clamp(16px, 4vw, 36px); position: relative; animation: fadeUp 0.7s ease both;">
+    <p style="margin: 0 0 20px 0; font-weight: 600; font-size: 13px; letter-spacing: 0.22em; text-transform: uppercase; color: #D9A032;">Texas Professional Engineering</p>
+    <h1 style="margin: 0; font-family: 'Source Serif 4', serif; font-weight: 600; font-size: clamp(36px, 5.8vw, 64px); line-height: 1.12; letter-spacing: -0.01em; max-width: 21ch;">Named for the 254 counties of Texas. Built to serve every one.</h1>
+    <p style="margin: 26px 0 0 0; font-size: clamp(16.5px, 2vw, 19px); line-height: 1.7; max-width: 58ch; color: #C9D0DC;">Statewide inspections, sealed engineering letters, certifications, and design through licensed Texas Professional Engineers. The firm opens soon.</p>
+    <div style="display: flex; flex-wrap: wrap; gap: 14px; margin-top: 40px;">
+      <a href="#waitlist" style="background: #D9A032; color: #142542; font-weight: 700; font-size: 16px; padding: 17px 32px; display: inline-block;" style-hover="background: #E8B04A; color: #142542;">Join the waitlist</a>
+      <a href="#services" style="border: 1px solid rgba(246,245,241,0.45); color: #F6F5F1; font-weight: 600; font-size: 16px; padding: 17px 32px; display: inline-block;" style-hover="border-color: #D9A032; color: #D9A032;">Explore services</a>
+    </div>
+  </div>
+</section>
+
+<section data-screen-label="Credibility" style="background: #FFFFFF; border-bottom: 1px solid #E5E1D8;">
+  <div style="max-width: 1220px; margin: 0 auto; padding: 30px clamp(16px, 4vw, 36px); display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px 40px;">
+    <div style="display: flex; gap: 12px; align-items: baseline;"><span style="flex: none; width: 22px; height: 3px; background: #D9A032; transform: translateY(-4px);"></span><span style="font-weight: 600; font-size: 15px;">Veteran owned</span></div>
+    <div style="display: flex; gap: 12px; align-items: baseline;"><span style="flex: none; width: 22px; height: 3px; background: #D9A032; transform: translateY(-4px);"></span><span style="font-weight: 600; font-size: 15px;">Licensed Texas Professional Engineers in responsible charge</span></div>
+    <div style="display: flex; gap: 12px; align-items: baseline;"><span style="flex: none; width: 22px; height: 3px; background: #D9A032; transform: translateY(-4px);"></span><span style="font-weight: 600; font-size: 15px;">Serving all 254 Texas counties</span></div>
+    <div style="display: flex; gap: 12px; align-items: baseline;"><span style="flex: none; width: 22px; height: 3px; background: #D9A032; transform: translateY(-4px);"></span><span style="font-weight: 600; font-size: 15px;">SAM registered for government contracting</span></div>
+  </div>
+</section>
+
+<section id="services" data-screen-label="Services" style="background: #F7F5F0;">
+  <div style="max-width: 1220px; margin: 0 auto; padding: clamp(52px, 8vw, 100px) clamp(16px, 4vw, 36px);">
+    <p style="margin: 0 0 12px 0; font-weight: 600; font-size: 12.5px; letter-spacing: 0.2em; text-transform: uppercase; color: #B77E1B;">01 &middot; Services</p>
+    <h2 style="margin: 0 0 10px 0; font-family: 'Source Serif 4', serif; font-weight: 600; font-size: clamp(28px, 4vw, 42px); color: #14315D; letter-spacing: -0.01em;">Three practice areas. Nine services.</h2>
+    <p style="margin: 0 0 40px 0; font-size: 16.5px; line-height: 1.6; color: #545D6E; max-width: 62ch;">Sealed deliverables prepared under the responsible charge of licensed Texas Professional Engineers. Select a service to note it on the waitlist form.</p>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(310px, 100%), 1fr)); gap: clamp(20px, 3vw, 36px);">
+      <sc-for list="{{ groups }}" as="grp" hint-placeholder-count="3">
+        <div>
+          <h3 style="margin: 0 0 14px 0; font-weight: 700; font-size: 15px; letter-spacing: 0.08em; text-transform: uppercase; color: #232A38; border-bottom: 2px solid #14315D; padding-bottom: 10px;">{{ grp.title }}</h3>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <sc-for list="{{ grp.items }}" as="svc" hint-placeholder-count="3">
+              <button onClick="{{ svc.pick }}" style="text-align: left; background: {{ svc.bg }}; border: 1px solid {{ svc.border }}; padding: 16px 18px; cursor: pointer; font-family: 'Barlow', sans-serif; display: flex; gap: 12px; align-items: baseline; transition: border-color 0.15s ease, background 0.15s ease;" style-hover="border-color: #D9A032;">
+                <span style="font-weight: 700; font-size: 13px; color: #B77E1B; flex: none; min-width: 22px;">{{ svc.num }}</span>
+                <span style="font-weight: 600; font-size: 15.5px; line-height: 1.45; color: {{ svc.fg }};">{{ svc.name }}</span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</section>
+
+<section id="process" data-screen-label="How it works" style="background: #FFFFFF;">
+  <div style="max-width: 1220px; margin: 0 auto; padding: clamp(52px, 8vw, 100px) clamp(16px, 4vw, 36px);">
+    <p style="margin: 0 0 12px 0; font-weight: 600; font-size: 12.5px; letter-spacing: 0.2em; text-transform: uppercase; color: #B77E1B;">02 &middot; How it works</p>
+    <h2 style="margin: 0 0 40px 0; font-family: 'Source Serif 4', serif; font-weight: 600; font-size: clamp(28px, 4vw, 42px); color: #14315D; letter-spacing: -0.01em;">From order to sealed deliverable</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: clamp(24px, 3vw, 44px);">
+      <div style="border-top: 2px solid #14315D; padding-top: 22px; position: relative;">
+        <span style="position: absolute; top: -2px; left: 0; width: 44px; height: 2px; background: #D9A032;"></span>
+        <div style="font-family: 'Source Serif 4', serif; font-weight: 700; font-size: 44px; line-height: 1; color: #D9A032;">1</div>
+        <h3 style="margin: 14px 0 8px 0; font-weight: 700; font-size: 18px; color: #14315D;">Order</h3>
+        <p style="margin: 0; font-size: 15.5px; line-height: 1.65; color: #545D6E;">Order online or by phone. A trained field technician collects standardized inspection evidence at the property, or you upload documents for desk review services.</p>
+      </div>
+      <div style="border-top: 2px solid #14315D; padding-top: 22px; position: relative;">
+        <span style="position: absolute; top: -2px; left: 0; width: 44px; height: 2px; background: #D9A032;"></span>
+        <div style="font-family: 'Source Serif 4', serif; font-weight: 700; font-size: 44px; line-height: 1; color: #D9A032;">2</div>
+        <h3 style="margin: 14px 0 8px 0; font-weight: 700; font-size: 18px; color: #14315D;">Engineer review</h3>
+        <p style="margin: 0; font-size: 15.5px; line-height: 1.65; color: #545D6E;">A licensed Texas Professional Engineer reviews the evidence and applies independent professional judgment.</p>
+      </div>
+      <div style="border-top: 2px solid #14315D; padding-top: 22px; position: relative;">
+        <span style="position: absolute; top: -2px; left: 0; width: 44px; height: 2px; background: #D9A032;"></span>
+        <div style="font-family: 'Source Serif 4', serif; font-weight: 700; font-size: 44px; line-height: 1; color: #D9A032;">3</div>
+        <h3 style="margin: 14px 0 8px 0; font-weight: 700; font-size: 18px; color: #14315D;">Sealed deliverable</h3>
+        <p style="margin: 0; font-size: 15.5px; line-height: 1.65; color: #545D6E;">Your sealed deliverable arrives, accepted by permit offices, lenders, and insurers.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="coverage" data-screen-label="Coverage" style="background: #F7F5F0; border-top: 1px solid #E5E1D8;">
+  <div style="max-width: 1220px; margin: 0 auto; padding: clamp(52px, 8vw, 100px) clamp(16px, 4vw, 36px);">
+    <p style="margin: 0 0 12px 0; font-weight: 600; font-size: 12.5px; letter-spacing: 0.2em; text-transform: uppercase; color: #B77E1B;">03 &middot; Coverage</p>
+    <h2 style="margin: 0 0 10px 0; font-family: 'Source Serif 4', serif; font-weight: 600; font-size: clamp(28px, 4.2vw, 44px); color: #14315D; letter-spacing: -0.01em;">All 254 counties of Texas. One firm.</h2>
+    <p style="margin: 0 0 32px 0; font-size: 16.5px; color: #545D6E; max-width: 62ch;">Eight service regions cover the state. Select a region on the map or in the list.</p>
+    <div style="display: flex; flex-wrap: wrap; gap: clamp(28px, 5vw, 64px); align-items: center;">
+      <div style="flex: 1 1 320px; max-width: 540px;">{{ mapSvg }}</div>
+      <div style="flex: 1 1 300px; display: flex; flex-direction: column; gap: 16px;">
+        <div style="background: #14315D; color: #F6F5F1; padding: 20px 22px; min-height: 92px; display: flex; flex-direction: column; justify-content: center;">
+          <p style="margin: 0; font-weight: 600; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #D9A032;">{{ panelKicker }}</p>
+          <p style="margin: 6px 0 0 0; font-family: 'Source Serif 4', serif; font-weight: 600; font-size: 24px; line-height: 1.2;">{{ panelTitle }}</p>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px;">
+          <sc-for list="{{ regions }}" as="rg" hint-placeholder-count="8">
+            <button onClick="{{ rg.pick }}" style="text-align: left; background: {{ rg.bg }}; border: 1px solid {{ rg.border }}; padding: 11px 14px; cursor: pointer; font-family: 'Barlow', sans-serif; display: flex; align-items: center; gap: 11px; transition: border-color 0.15s ease;" style-hover="border-color: #D9A032;">
+              <span style="font-weight: 700; font-size: 13px; color: #B77E1B; min-width: 15px;">{{ rg.n }}</span>
+              <span style="font-weight: 600; font-size: 15px; color: {{ rg.fg }};">{{ rg.name }}</span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="windstorm" data-screen-label="Windstorm" style="background: #12294E; color: #F6F5F1;">
+  <div style="max-width: 1220px; margin: 0 auto; padding: clamp(52px, 8vw, 100px) clamp(16px, 4vw, 36px); display: flex; flex-wrap: wrap; gap: clamp(28px, 5vw, 64px);">
+    <div style="flex: 1 1 320px;">
+      <p style="margin: 0 0 12px 0; font-weight: 600; font-size: 12.5px; letter-spacing: 0.2em; text-transform: uppercase; color: #D9A032;">04 &middot; Coastal windstorm</p>
+      <h2 style="margin: 0; font-family: 'Source Serif 4', serif; font-weight: 600; font-size: clamp(28px, 4vw, 42px); letter-spacing: -0.01em;">Windstorm certification on the Texas coast</h2>
+      <p style="margin: 20px 0 0 0; font-size: 17px; line-height: 1.7; color: #C9D0DC; max-width: 56ch;">WPI-8 and WPI-8E certificates are required for windstorm insurance in the fourteen first tier coastal counties of Texas. These certifications must be performed by licensed engineers. Coastal windstorm work will be a core practice area of the firm at launch.</p>
+    </div>
+    <sc-if value="{{ showCounties }}" hint-placeholder-val="{{ true }}">
+      <div style="flex: 1 1 280px; align-self: center;">
+        <p style="margin: 0 0 12px 0; font-weight: 600; font-size: 12.5px; letter-spacing: 0.14em; text-transform: uppercase; color: #8A93A5;">The fourteen first tier counties</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+          <sc-for list="{{ tierOne }}" as="c" hint-placeholder-count="14">
+            <span style="border: 1px solid #2C4470; color: #E9ECF1; font-weight: 500; font-size: 13.5px; padding: 6px 12px;">{{ c }}</span>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+</section>
+
+<section id="government" data-screen-label="Government and commercial" style="background: #FFFFFF;">
+  <div style="max-width: 1220px; margin: 0 auto; padding: clamp(52px, 8vw, 100px) clamp(16px, 4vw, 36px);">
+    <p style="margin: 0 0 12px 0; font-weight: 600; font-size: 12.5px; letter-spacing: 0.2em; text-transform: uppercase; color: #B77E1B;">05 &middot; Government and commercial</p>
+    <h2 style="margin: 0 0 10px 0; font-family: 'Source Serif 4', serif; font-weight: 600; font-size: clamp(28px, 4vw, 42px); color: #14315D; letter-spacing: -0.01em;">For institutional buyers</h2>
+    <p style="margin: 0 0 32px 0; font-size: 16.5px; color: #545D6E; max-width: 62ch;">For agencies, institutions, and commercial buyers of engineering services.</p>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr)); gap: 14px;">
+      <div style="border: 1px solid #E5E1D8; border-top: 2px solid #14315D; padding: 20px; font-weight: 600; font-size: 16px; color: #232A38;">Qualifications based selection</div>
+      <div style="border: 1px solid #E5E1D8; border-top: 2px solid #14315D; padding: 20px; font-weight: 600; font-size: 16px; color: #232A38;">On call engineering availability</div>
+      <div style="border: 1px solid #E5E1D8; border-top: 2px solid #14315D; padding: 20px; font-weight: 600; font-size: 16px; color: #232A38;">Veteran owned status</div>
+      <div style="border: 1px solid #E5E1D8; border-top: 2px solid #14315D; padding: 20px; font-weight: 600; font-size: 16px; color: #232A38;">SAM registered</div>
+    </div>
+    <p style="margin: 26px 0 0 0; font-size: 16px; color: #545D6E;">Capability statement available on request. <a href="mailto:info@254engineering.com?subject=Capability%20statement%20request" style="font-weight: 700; color: #14315D; border-bottom: 2px solid #D9A032; padding-bottom: 1px;" style-hover="color: #B77E1B;">Request the capability statement</a></p>
+  </div>
+</section>
+
+<section id="careers" data-screen-label="Careers" style="background: #F7F5F0; border-top: 1px solid #E5E1D8;">
+  <div style="max-width: 1220px; margin: 0 auto; padding: clamp(48px, 7vw, 80px) clamp(16px, 4vw, 36px);">
+    <p style="margin: 0 0 12px 0; font-weight: 600; font-size: 12.5px; letter-spacing: 0.2em; text-transform: uppercase; color: #B77E1B;">06 &middot; Careers</p>
+    <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-end; justify-content: space-between;">
+      <div style="flex: 1 1 520px;">
+        <h2 style="margin: 0 0 22px 0; font-family: 'Source Serif 4', serif; font-weight: 600; font-size: clamp(26px, 3.5vw, 36px); color: #14315D; letter-spacing: -0.01em;">Build the firm with us</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 14px;">
+          <div style="background: #FFFFFF; border: 1px solid #E5E1D8; padding: 20px;">
+            <h3 style="margin: 0; font-weight: 700; font-size: 17px; color: #14315D;">Professional Engineers</h3>
+            <p style="margin: 6px 0 0 0; font-size: 15px; line-height: 1.55; color: #545D6E;">Remote review work for licensed Texas PEs.</p>
+          </div>
+          <div style="background: #FFFFFF; border: 1px solid #E5E1D8; padding: 20px;">
+            <h3 style="margin: 0; font-weight: 700; font-size: 17px; color: #14315D;">Field Inspection Technicians</h3>
+            <p style="margin: 6px 0 0 0; font-size: 15px; line-height: 1.55; color: #545D6E;">Statewide. Independent contractor, flat rate per inspection.</p>
+          </div>
+        </div>
+      </div>
+      <a href="mailto:info@254engineering.com?subject=Careers" style="border: 2px solid #14315D; color: #14315D; font-weight: 700; font-size: 15px; padding: 13px 26px; display: inline-block; flex: none;" style-hover="background: #14315D; color: #F6F5F1;">See open roles</a>
+    </div>
+  </div>
+</section>
+
+<section id="waitlist" data-screen-label="Waitlist" style="background: #12294E; background-image: repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 56px), repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 56px); color: #F6F5F1;">
+  <div style="max-width: 1220px; margin: 0 auto; padding: clamp(56px, 9vw, 110px) clamp(16px, 4vw, 36px); display: flex; flex-wrap: wrap; gap: clamp(28px, 5vw, 80px);">
+    <div style="flex: 1 1 300px;">
+      <p style="margin: 0 0 12px 0; font-weight: 600; font-size: 12.5px; letter-spacing: 0.2em; text-transform: uppercase; color: #D9A032;">07 &middot; Waitlist</p>
+      <h2 style="margin: 0; font-family: 'Source Serif 4', serif; font-weight: 600; font-size: clamp(30px, 4.5vw, 46px); letter-spacing: -0.01em;">Join the waitlist</h2>
+      <p style="margin: 18px 0 0 0; font-size: 17px; line-height: 1.7; color: #C9D0DC; max-width: 46ch;">The firm opens soon. Founding customers join the waitlist for launch pricing. We will contact you before launch.</p>
+    </div>
+    <div style="flex: 1 1 340px;">
+      <sc-if value="{{ notSent }}" hint-placeholder-val="{{ true }}">
+        <form onSubmit="{{ submit }}" style="background: #FFFFFF; padding: clamp(22px, 3vw, 32px); display: grid; grid-template-columns: 1fr; gap: 13px; border-top: 4px solid #D9A032;">
+          <input required name="name" placeholder="Name" style="border: 1px solid #CDC9BD; color: #232A38; font-family: 'Barlow', sans-serif; font-size: 16px; padding: 13px 15px; width: 100%; outline: none;" style-focus="border-color: #14315D;">
+          <input required name="email" type="email" placeholder="Email" style="border: 1px solid #CDC9BD; color: #232A38; font-family: 'Barlow', sans-serif; font-size: 16px; padding: 13px 15px; width: 100%; outline: none;" style-focus="border-color: #14315D;">
+          <input name="phone" type="tel" placeholder="Phone" style="border: 1px solid #CDC9BD; color: #232A38; font-family: 'Barlow', sans-serif; font-size: 16px; padding: 13px 15px; width: 100%; outline: none;" style-focus="border-color: #14315D;">
+          <select name="service" value="{{ selectedService }}" onChange="{{ onService }}" style="border: 1px solid #CDC9BD; color: {{ selectColor }}; background: #FFFFFF; font-family: 'Barlow', sans-serif; font-size: 16px; padding: 13px 15px; width: 100%; outline: none;">
+            <option value="" disabled>Service of interest</option>
+            <sc-for list="{{ serviceNames }}" as="nm" hint-placeholder-count="9">
+              <option value="{{ nm }}">{{ nm }}</option>
+            </sc-for>
+          </select>
+          <input name="city" placeholder="City" style="border: 1px solid #CDC9BD; color: #232A38; font-family: 'Barlow', sans-serif; font-size: 16px; padding: 13px 15px; width: 100%; outline: none;" style-focus="border-color: #14315D;">
+          <button type="submit" style="background: #D9A032; border: none; color: #142542; font-family: 'Barlow', sans-serif; font-weight: 700; font-size: 16px; padding: 16px; cursor: pointer;" style-hover="background: #E8B04A;">Join the waitlist</button>
+        </form>
+      </sc-if>
+      <sc-if value="{{ sent }}" hint-placeholder-val="{{ false }}">
+        <div style="background: #FFFFFF; border-top: 4px solid #D9A032; padding: 38px; text-align: center;">
+          <p style="margin: 0; font-family: 'Source Serif 4', serif; font-weight: 600; font-size: 24px; color: #14315D;">You are on the list</p>
+          <p style="margin: 10px 0 0 0; font-size: 16px; color: #545D6E;">We will contact you before launch with founding customer pricing.</p>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</section>
+
+<footer data-screen-label="Footer" style="background: #0C1D3A; color: #C9D0DC;">
+  <div style="max-width: 1220px; margin: 0 auto; padding: clamp(44px, 7vw, 72px) clamp(16px, 4vw, 36px);">
+    <div style="border: 1px solid rgba(246,245,241,0.22);">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));">
+        <div style="padding: 24px; border-bottom: 1px solid rgba(246,245,241,0.22);">
+          <p style="margin: 0 0 8px 0; font-weight: 600; font-size: 11.5px; letter-spacing: 0.18em; text-transform: uppercase; color: #8A93A5;">Firm</p>
+          <p style="margin: 0; font-weight: 700; font-size: 19px; color: #F6F5F1;">254 Engineering Services</p>
+        </div>
+        <div style="padding: 24px; border-bottom: 1px solid rgba(246,245,241,0.22);">
+          <p style="margin: 0 0 8px 0; font-weight: 600; font-size: 11.5px; letter-spacing: 0.18em; text-transform: uppercase; color: #8A93A5;">Contact</p>
+          <a href="mailto:info@254engineering.com" style="color: #D9A032; font-weight: 600; font-size: 16px;" style-hover="color: #E8B04A;">info@254engineering.com</a>
+        </div>
+        <div style="padding: 24px; border-bottom: 1px solid rgba(246,245,241,0.22);">
+          <p style="margin: 0 0 8px 0; font-weight: 600; font-size: 11.5px; letter-spacing: 0.18em; text-transform: uppercase; color: #8A93A5;">Coverage</p>
+          <p style="margin: 0; font-weight: 600; font-size: 16px; color: #F6F5F1;">All 254 Texas counties</p>
+        </div>
+      </div>
+      <div style="padding: 24px; border-bottom: 1px solid rgba(246,245,241,0.22);">
+        <p style="margin: 0 0 8px 0; font-weight: 600; font-size: 11.5px; letter-spacing: 0.18em; text-transform: uppercase; color: #8A93A5;">Registration status</p>
+        <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #E9ECF1;">Firm registration pending with the Texas Board of Professional Engineers and Land Surveyors.</p>
+      </div>
+      <nav style="padding: 18px 24px; display: flex; flex-wrap: wrap; gap: 12px 26px;">
+        <a href="#services" style="color: #C9D0DC; font-weight: 500; font-size: 14.5px;" style-hover="color: #D9A032;">Services</a>
+        <a href="#process" style="color: #C9D0DC; font-weight: 500; font-size: 14.5px;" style-hover="color: #D9A032;">How it works</a>
+        <a href="#coverage" style="color: #C9D0DC; font-weight: 500; font-size: 14.5px;" style-hover="color: #D9A032;">Coverage</a>
+        <a href="#windstorm" style="color: #C9D0DC; font-weight: 500; font-size: 14.5px;" style-hover="color: #D9A032;">Windstorm</a>
+        <a href="#careers" style="color: #C9D0DC; font-weight: 500; font-size: 14.5px;" style-hover="color: #D9A032;">Careers</a>
+        <a href="#waitlist" style="color: #C9D0DC; font-weight: 500; font-size: 14.5px;" style-hover="color: #D9A032;">Waitlist</a>
+      </nav>
+    </div>
+  </div>
+</footer>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showCounties&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Windstorm&quot;}}">
+class Component extends DCLogic {
+  state = {
+    sent: false,
+    menuOpen: false,
+    narrow: typeof window !== 'undefined' && window.innerWidth < 960,
+    region: null,
+    selectedService: ''
+  };
+  componentDidMount() {
+    this._onResize = () => {
+      const narrow = window.innerWidth < 960;
+      if (narrow !== this.state.narrow) this.setState({ narrow, menuOpen: false });
+    };
+    window.addEventListener('resize', this._onResize);
+  }
+  componentWillUnmount() { window.removeEventListener('resize', this._onResize); }
+  renderVals() {
+    const e = React.createElement;
+    const names = ['Roof Inspections and Certifications', 'Windstorm WPI-8 Certifications', 'Foundation Inspections and Certifications', 'Manufactured Home Foundation Certifications for FHA and VA lending', 'Solar Structural Letters', 'Structural Letters for Permits', 'Repair Specifications', 'Residential and Light Commercial Design', 'Forensic and Insurance Engineering'];
+    const mk = (i) => ({
+      num: String(i + 1).padStart(2, '0'),
+      name: names[i],
+      bg: this.state.selectedService === names[i] ? '#FDF6E7' : '#FFFFFF',
+      fg: '#232A38',
+      border: this.state.selectedService === names[i] ? '#D9A032' : '#E5E1D8',
+      pick: () => { this.setState({ selectedService: names[i] }); location.hash = '#waitlist'; }
+    });
+    const groups = [
+      { title: 'Inspections and Certifications', items: [mk(0), mk(1), mk(2), mk(3)] },
+      { title: 'Sealed Letters and Specifications', items: [mk(4), mk(5), mk(6)] },
+      { title: 'Design and Forensics', items: [mk(7), mk(8)] }
+    ];
+    const regionDefs = [
+      { n: '1', name: 'Coastal Bend', x: 54, y: 74 },
+      { n: '2', name: 'Greater Houston', x: 66, y: 57 },
+      { n: '3', name: 'Dallas Fort Worth', x: 56, y: 33 },
+      { n: '4', name: 'San Antonio', x: 46, y: 63 },
+      { n: '5', name: 'Austin and Central Texas', x: 52, y: 52 },
+      { n: '6', name: 'Rio Grande Valley', x: 48, y: 91 },
+      { n: '7', name: 'West Texas', x: 20, y: 50 },
+      { n: '8', name: 'Panhandle', x: 28, y: 12 }
+    ];
+    const sel = this.state.region;
+    const selDef = regionDefs.find(r => r.n === sel);
+    const regions = regionDefs.map(r => ({
+      n: r.n,
+      name: r.name,
+      bg: sel === r.n ? '#FDF6E7' : '#FFFFFF',
+      fg: '#232A38',
+      border: sel === r.n ? '#D9A032' : '#E5E1D8',
+      pick: () => this.setState({ region: this.state.region === r.n ? null : r.n })
+    }));
+    const poly = [[18,0],[38,0],[38,26],[44,29],[50,27],[56,30],[62,29],[67,31],[68,38],[67,44],[69,50],[68,56],[71,60],[66,64],[60,70],[54,77],[50,86],[51,93],[49,97],[45,92],[41,86],[36,80],[31,76],[29,79],[25,72],[19,64],[12,57],[5,51],[0,48],[0,44],[18,44]];
+    const ptsStr = poly.map(p => p.join(',')).join(' ');
+    const mapSvg = e('svg', { viewBox: '-4 -5 80 108', style: { width: '100%', height: 'auto', display: 'block', overflow: 'visible' }, 'aria-label': 'Map of Texas with eight service regions marked' },
+      e('polygon', { points: ptsStr, fill: '#FFFFFF', stroke: '#C9C4B6', strokeWidth: 0.7, strokeLinejoin: 'round' }),
+      regionDefs.map(r => {
+        const active = sel === r.n;
+        return e('g', { key: r.n, onClick: () => this.setState({ region: active ? null : r.n }), style: { cursor: 'pointer' } },
+          active ? e('circle', { cx: r.x, cy: r.y, r: 6.4, fill: 'none', stroke: '#D9A032', strokeWidth: 0.7 }) : null,
+          e('circle', { cx: r.x, cy: r.y, r: active ? 4.4 : 3.4, fill: active ? '#D9A032' : '#14315D', stroke: '#FFFFFF', strokeWidth: 0.8 }),
+          e('text', { x: r.x, y: r.y + 1.25, textAnchor: 'middle', fill: active ? '#142542' : '#FFFFFF', fontSize: 3.3, fontWeight: 700, fontFamily: 'Barlow, sans-serif', style: { pointerEvents: 'none' } }, r.n)
+        );
+      })
+    );
+    const heroTexas = e('svg', { viewBox: '-2 -3 76 104', style: { width: '100%', height: 'auto', display: 'block' }, 'aria-hidden': true },
+      e('polygon', { points: ptsStr, fill: 'none', stroke: '#F6F5F1', strokeWidth: 1.1, strokeLinejoin: 'round' })
+    );
+    return {
+      groups,
+      serviceNames: names,
+      regions,
+      mapSvg,
+      heroTexas,
+      panelKicker: selDef ? 'Region ' + selDef.n + ' of 8' : 'Eight regions',
+      panelTitle: selDef ? selDef.name : 'One standard of practice',
+      tierOne: ['Aransas', 'Brazoria', 'Calhoun', 'Cameron', 'Chambers', 'Galveston', 'Jefferson', 'Kenedy', 'Kleberg', 'Matagorda', 'Nueces', 'Refugio', 'San Patricio', 'Willacy'],
+      showCounties: this.props.showCounties ?? true,
+      wide: !this.state.narrow,
+      narrow: this.state.narrow,
+      menuOpen: this.state.narrow && this.state.menuOpen,
+      toggleMenu: () => this.setState(s => ({ menuOpen: !s.menuOpen })),
+      closeMenu: () => this.setState({ menuOpen: false }),
+      sent: this.state.sent,
+      notSent: !this.state.sent,
+      selectedService: this.state.selectedService,
+      selectColor: this.state.selectedService ? '#232A38' : '#949CAB',
+      onService: (ev) => this.setState({ selectedService: ev.target.value }),
+      submit: (ev) => { ev.preventDefault(); this.setState({ sent: true }); }
+    };
+  }
+}
+</script>
+</body>
+</html>
