@@ -28,6 +28,7 @@
 //                   HTML part by design, and a width check on plain text would
 //                   be a green light for a measurement that never happened.
 import { allTemplatesForAudit } from "../src/lib/email-templates.ts";
+import { business } from "../src/config/business.ts";
 import { context, findBannedPhrases } from "./lib/voice-blocklist.mjs";
 
 const LONG_DASH = /[‒–—―]/;
@@ -37,6 +38,10 @@ const PRODUCTION_ORIGIN = "https://254engineering.com";
 
 /** Subject lines get truncated in a phone notification well before this. */
 const MAX_SUBJECT = 78;
+
+import { readFileSync } from "node:fs";
+import { chromium } from "playwright";
+import { emailIdentity, fromHeader, signatureLines } from "../src/config/email-identity.ts";
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -98,12 +103,209 @@ for (const t of templates) {
     t.replyTo ?? "none",
   );
 
-  if (t.html) {
-    rec(`${label}: HTML part present, needs a 375px render check`, false, "add the render step");
+  /*
+   * The branded HTML part.
+   *
+   * This block used to be a tripwire: any template that grew an HTML part failed
+   * on purpose, with the note "add the render step", so that a branded email
+   * could not ship before somebody wrote the check for it. This is that check.
+   */
+  rec(`${label}: has an HTML part`, typeof t.html === "string" && t.html.length > 0);
+  if (!t.html) continue;
+
+  // The logo, by absolute production URL. Never a CID attachment and never a
+  // data URI: one arrives as a mystery file, the other is stripped by Gmail.
+  rec(
+    `${label}: logo served from the production domain`,
+    t.html.includes(`src="${PRODUCTION_ORIGIN}/brand/`),
+  );
+  rec(`${label}: logo is not a data URI or attachment`, !/src="(data:|cid:)/.test(t.html));
+
+  /*
+   * The right logo for the band it sits on.
+   *
+   * The header band is navy, so the reverse artwork is the correct one. The
+   * light variant on navy is navy on navy and invisible, which is the exact
+   * defect the site's own hero shipped once and no contrast tool caught.
+   */
+  const onNavyBand = /background:#14315d;padding:22px 28px;">\s*<img[^>]*logo-dark\.png/.test(
+    t.html.replace(/\n/g, ""),
+  );
+  rec(`${label}: reverse logo variant on the navy header band`, onNavyBand);
+
+  // Sized in the attribute AND the style, because Outlook honours one and Gmail
+  // the other, and an unsized image in an email renders at its intrinsic width.
+  rec(
+    `${label}: logo has explicit width in both the attribute and the style`,
+    /<img[^>]*width="\d+"[^>]*style="[^"]*width:\d+px/.test(t.html),
+  );
+
+  rec(`${label}: 600px maximum width`, t.html.includes("max-width:600px"));
+  rec(`${label}: inline styles rather than a style block`, !/<style[\s>]/i.test(t.html));
+
+  // Identity. The From display name and the signature both come from
+  // src/config/email-identity.ts, so a template cannot invent its own.
+  rec(`${label}: From matches the identity config`, t.from === fromHeader(t.purpose), t.from);
+  const sender = emailIdentity.senders[t.purpose];
+  rec(
+    `${label}: From carries a display name, not a bare address`,
+    t.from.startsWith(sender.displayName + " <"),
+  );
+
+  /*
+   * The signature, and the version of this check that could not fail.
+   *
+   * It used to assert that the rendered signature matched signatureLines().
+   * Changing the signer's name in the config to "Somebody Else" left it passing,
+   * because the template renders FROM that config: both sides of the comparison
+   * moved together and the assertion was a tautology. Caught by injection.
+   *
+   * What can actually go wrong is structural, and it is checked here: a human
+   * facing template that forgets to ask for a signature at all. The other real
+   * risk, a template hardcoding a name instead of reading the config, is a
+   * source level question and is checked once below rather than per template.
+   */
+  const sig = signatureLines();
+  if (t.purpose === "human") {
+    const missing = sig.filter((line) => !t.html.includes(line) || !t.text.includes(line));
+    rec(
+      `${label}: signature block present in both parts`,
+      missing.length === 0,
+      missing.join(", "),
+    );
   } else {
-    recSkip(
-      `${label}: 375px render`,
-      "no HTML part by design; these are plain text operator notifications",
+    // An operator notification is machine to operator. Nobody signs a message to
+    // themselves, and a signature there would be the firm introducing itself to
+    // the person who runs it.
+    rec(
+      `${label}: operator notification is not signed`,
+      !t.html.includes(emailIdentity.signer.title),
+    );
+  }
+
+  rec(
+    `${label}: footer carries the contact address and the site`,
+    t.html.includes(business.email) && t.html.includes(PRODUCTION_ORIGIN),
+  );
+}
+
+/*
+ * The compliance line, in both launch modes.
+ *
+ * The footer states the registration status through the same registrationLine()
+ * the site footer uses, so one environment variable moves both surfaces. Testing
+ * one mode would only prove the mode the audit happens to run in, and the
+ * dangerous direction is the one nobody runs: a live build still telling
+ * candidates the registration is pending, or a prelaunch build quietly dropping
+ * the disclosure from every email the firm sends.
+ *
+ * Templates are re-rendered per mode rather than reused, because the line is
+ * read at render time.
+ *
+ * LIVE MODE NEEDS THE CREDENTIALS, NOT JUST THE FLAG
+ * ---------------------------------------------------
+ * The first version of this check set LAUNCH_MODE=live and nothing else, and it
+ * failed on all four templates. The code was right and the check was wrong:
+ * tbpelsFirmNumber() returns null without TBPELS_FIRM_NUMBER whatever the mode,
+ * so registrationLine() correctly kept saying pending. Live mode is the flag AND
+ * the credentials, which is exactly how scripts/launch-audit.mjs sets it up, and
+ * the same fixture values are used here so the two audits describe the same
+ * state.
+ */
+{
+  const original = {
+    LAUNCH_MODE: process.env.LAUNCH_MODE,
+    TBPELS_FIRM_NUMBER: process.env.TBPELS_FIRM_NUMBER,
+    TBPELS_PE_LICENSE: process.env.TBPELS_PE_LICENSE,
+  };
+  const PENDING = "Firm registration pending";
+  const seen = {};
+
+  for (const mode of ["prelaunch", "live"]) {
+    process.env.LAUNCH_MODE = mode;
+    process.env.TBPELS_FIRM_NUMBER = mode === "live" ? "AUDIT-FIXTURE-NOT-A-REAL-NUMBER" : "";
+    process.env.TBPELS_PE_LICENSE = mode === "live" ? "AUDIT-FIXTURE-NOT-A-REAL-LICENCE" : "";
+    // A fresh import per mode: the module graph caches, so the query string is
+    // what forces the template functions to be re-evaluated with the new env.
+    const mod = await import(`../src/lib/email-templates.ts?mode=${mode}`);
+    seen[mode] = mod.allTemplatesForAudit();
+  }
+  Object.assign(process.env, original);
+
+  for (const t of seen.prelaunch) {
+    rec(
+      `${t.id}: prelaunch footer states the registration is pending`,
+      (t.html || "").includes(PENDING) && t.text.includes(PENDING),
+    );
+  }
+  for (const t of seen.live) {
+    rec(
+      `${t.id}: live footer drops the pending disclosure`,
+      !(t.html || "").includes(PENDING) && !t.text.includes(PENDING),
+    );
+    // Not merely absent. An empty footer would satisfy the line above, so the
+    // positive claim is asserted too.
+    rec(
+      `${t.id}: live footer states the firm registration number`,
+      (t.html || "").includes("TBPELS Firm No.") && t.text.includes("TBPELS Firm No."),
+    );
+  }
+}
+
+/*
+ * The 375px render.
+ *
+ * An email is read on a phone. A 600px table that does not collapse produces
+ * exactly the sideways drag this firm just spent a workstream removing from the
+ * site, except in a client where the reader cannot do anything about it.
+ *
+ * Measured the same way the site is: scrollWidth against clientWidth, never
+ * against innerWidth, because the layout viewport expands to contain overflow
+ * and the two would move together. That comparison shipped once already.
+ */
+{
+  const browser = await chromium.launch();
+  for (const width of [375, 600]) {
+    const ctx = await browser.newContext({ viewport: { width, height: 900 } });
+    for (const t of templates) {
+      if (!t.html) continue;
+      const page = await ctx.newPage();
+      await page.setContent(t.html, { waitUntil: "domcontentloaded" });
+      const m = await page.evaluate(() => ({
+        sw: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),
+        cw: document.documentElement.clientWidth,
+      }));
+      rec(
+        `${t.id}: renders at ${width}px with no horizontal overflow`,
+        m.sw - m.cw <= 1,
+        `${m.sw} vs ${m.cw}`,
+      );
+      await page.close();
+    }
+    await ctx.close();
+  }
+  await browser.close();
+}
+
+/*
+ * No template hardcodes an identity.
+ *
+ * This is the half of the signature question that a rendered comparison cannot
+ * answer. If a template writes "Robert Reyna" into its own copy, the rendered
+ * output still matches the config today and silently stops matching on the day
+ * the config changes. Read the source instead: the names and titles belong in
+ * src/config/email-identity.ts and nowhere else.
+ */
+{
+  const sources = ["src/lib/email-templates.ts", "src/lib/email-layout.ts"];
+  const identityStrings = [emailIdentity.signer.name, emailIdentity.signer.title];
+  for (const file of sources) {
+    const text = readFileSync(file, "utf8");
+    const found = identityStrings.filter((v) => text.includes(v));
+    rec(
+      `${file}: does not hardcode a name or title from the identity config`,
+      found.length === 0,
+      found.join(", "),
     );
   }
 }

@@ -41,13 +41,17 @@ function client(): Resend | null {
 }
 
 /**
- * The From address.
+ * The From address comes from the template now, not from here.
  *
- * OWNER VERIFICATION: notifications@254engineering.com requires the domain to be
- * verified in Resend before anything sends. Until that is done this returns
- * `sent: false` with the reason, and the rows still land.
+ * Each rendered email carries its own `from`, built by src/config/email-identity
+ * from the template's purpose: an operator notification arrives from the firm,
+ * anything a candidate reads arrives from a named person. A single constant here
+ * could only express one of those, and the wrong one for half the mail.
+ *
+ * OWNER VERIFICATION: every address in that config is on ${business.domain} and
+ * requires the domain to be verified in Resend before anything sends. Until it
+ * is, this returns `sent: false` with the reason and the rows still land.
  */
-const FROM = `254 Engineering Services <notifications@${business.domain}>`;
 
 /**
  * Send an already rendered message.
@@ -72,11 +76,15 @@ export async function notify(email: RenderedEmail): Promise<NotifyResult> {
 
   try {
     const { error } = await mailer.emails.send({
-      from: FROM,
+      from: email.from,
       to: email.to ?? business.notificationEmail,
       subject: email.subject,
       replyTo: email.replyTo,
+      // Multipart. The text part is what a lock screen preview shows and what
+      // survives image blocking; the html part is what makes it look like it
+      // came from a firm. Both are generated from the same blocks.
       text: email.text,
+      html: email.html,
     });
     if (error) return log(email, { sent: false, outcome: "error", reason: error.message });
     return log(email, { sent: true, outcome: "ok" });
