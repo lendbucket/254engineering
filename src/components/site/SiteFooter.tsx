@@ -1,59 +1,62 @@
 import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { Wordmark } from "@/components/brand/Wordmark";
-import { business } from "@/config/business";
-import { registrationLine } from "@/lib/launch";
+import { business, samRegistration } from "@/config/business";
+import { isPrelaunch, registrationLine } from "@/lib/launch";
 import { services } from "@/content/services";
 import { regions } from "@/content/regions";
+import type { ReactNode } from "react";
 
 /**
- * The site footer.
+ * The site footer, as the approved v5 design sets it.
  *
- * THE REGISTRATION LINE IS NOT FINE PRINT
- * ---------------------------------------
- * It appears on every page because that is where a disclosure of pending firm
- * registration belongs, and because once the registration is active the same
- * line carries the TBPELS firm number, which Texas rules require on the firm's
- * public representations. One component, both states, no page able to forget it.
- * See src/lib/launch.ts.
+ * Deep navy `#0B1B36` under a four pixel gold rule, the reverse lockup, a
+ * description, status badges, three link columns, and a centred compliance block
+ * above the copyright.
  *
- * It used to be set at the same size as the copyright notice and directly above
- * it, which put a regulatory disclosure in the visual register of a legal
- * boilerplate nobody reads. That is the wrong register for it in both
- * directions: it made the firm look like it was hiding a pending registration,
- * and it made the line easy to miss for the procurement officer who is
- * specifically looking for it.
+ * THE COMPLIANCE BLOCK, WHERE v5 AND THE GATE DISAGREE
+ * ----------------------------------------------------
+ * v5 shows one sentence: firm registration pending. The firm has two live gates,
+ * not one, and `registrationLine()` states both, because a registered firm with
+ * nobody able to seal still cannot seal and saying only half of that would be
+ * the more flattering half.
  *
- * So it now sits in its own band above the copyright, on the deeper navy, with a
- * gold rule, a label, and type a size larger than the links around it. The firm
- * is stating where it is in its own formation. That reads better said plainly
- * than whispered.
+ * So the TREATMENT is v5's, centred and given room above the copyright, and the
+ * TEXT is whatever the gate function returns. The design decides how it looks
+ * and the compliance gate decides what it says. When the registration issues,
+ * the same function carries the TBPELS firm number into the same block with no
+ * markup change, which is the property the gate exists to have.
+ *
+ * SAM REGISTERED IS A CLAIM AND IS GATED LIKE ONE
+ * -----------------------------------------------
+ * v5 prints a "SAM registered" badge unconditionally. BACKLOG records that the
+ * flag is true on the operator's instruction and has never been checked against
+ * the live SAM record, which is also why the UEI and CAGE are withheld from
+ * /government. The badge is therefore rendered through `samRegistration`, so
+ * setting that flag false removes the claim from every surface at once rather
+ * than leaving a hardcoded one behind in new markup.
  */
 export function SiteFooter() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="mt-auto bg-slate-ink text-slate-fg-muted">
+    <footer className="mt-auto border-t-4 border-brass bg-slate-abyss text-[#c3ccda]">
       <Container>
-        <div className="grid gap-12 py-16 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
-          <div className="lg:pr-6">
-            <Wordmark onDark />
-            <p className="mt-5 max-w-xs text-[0.92rem] leading-[1.65]">
-              Named for the 254 counties of Texas. A veteran owned engineering firm built to serve
-              every one of them.
+        <div className="grid gap-9 pt-[clamp(44px,6vw,68px)] sm:grid-cols-2 lg:grid-cols-4 lg:gap-10">
+          <div>
+            <Wordmark onDark height={74} />
+            <p className="mt-4 max-w-[34ch] text-[14.5px] leading-[1.7]">
+              A Texas engineering firm named for the 254 counties of Texas.
+              {isPrelaunch() ? " Opening soon." : ""}
             </p>
-            <p className="mt-5 text-[0.92rem]">
-              <a
-                href={`mailto:${business.email}`}
-                className="text-slate-fg underline decoration-brass-light/60 underline-offset-4 transition-colors hover:decoration-brass-light"
-              >
-                {business.email}
-              </a>
-            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Badge>Veteran owned</Badge>
+              {samRegistration.registered ? <Badge>SAM registered</Badge> : null}
+            </div>
           </div>
 
-          <FooterColumn title="Services">
-            {services.slice(0, 6).map((s) => (
+          <FooterColumn title="Explore">
+            {services.slice(0, 5).map((s) => (
               <FooterLink key={s.slug} href={`/services/${s.slug}`}>
                 {s.shortName}
               </FooterLink>
@@ -62,43 +65,58 @@ export function SiteFooter() {
           </FooterColumn>
 
           <FooterColumn title="Coverage">
-            {regions.map((r) => (
+            {regions.slice(0, 5).map((r) => (
               <FooterLink key={r.slug} href={`/coverage/${r.slug}`}>
                 {r.name}
               </FooterLink>
             ))}
-          </FooterColumn>
-
-          <FooterColumn title="Firm">
-            <FooterLink href="/about">About the firm</FooterLink>
-            <FooterLink href="/government">Government and public sector</FooterLink>
-            <FooterLink href="/insights">Insights</FooterLink>
-            <FooterLink href="/careers">Careers</FooterLink>
             <FooterLink href="/coverage">All 254 counties</FooterLink>
-            <FooterLink href="/contact">Contact</FooterLink>
           </FooterColumn>
+
+          <div>
+            <p className="mb-3.5 text-[12.5px] font-bold tracking-[0.12em] text-[#8a99b5] uppercase">
+              Company
+            </p>
+            <nav className="flex flex-col gap-2.5">
+              <FooterLink href="/about">About the firm</FooterLink>
+              <FooterLink href="/government">Government and commercial</FooterLink>
+              <FooterLink href="/insights">Insights</FooterLink>
+              <FooterLink href="/careers">Careers</FooterLink>
+              <FooterLink href="/contact">Contact</FooterLink>
+            </nav>
+            <p className="mt-5 text-[12.5px] font-bold tracking-[0.12em] text-[#8a99b5] uppercase">
+              Contact
+            </p>
+            <a
+              href={`mailto:${business.email}`}
+              className="mt-2 block text-[15px] font-semibold text-brass transition-colors hover:text-brass-light"
+            >
+              {business.email}
+            </a>
+            <p className="mt-3 text-[14px] leading-[1.65]">
+              Capability statement available on request.
+            </p>
+          </div>
         </div>
 
-        <div className="border-t border-slate-fg/15 py-10">
-          <p className="font-sans text-[0.7rem] font-semibold tracking-[0.2em] text-brass-light uppercase">
-            Regulatory status
-          </p>
-          <span aria-hidden="true" className="mt-4 block h-px w-16 bg-brass" />
-          <p className="mt-5 max-w-3xl text-[0.98rem] leading-[1.75] text-slate-fg">
-            {registrationLine()}
-          </p>
+        {/* The compliance block. v5's treatment, the gate's words. */}
+        <div className="mt-[clamp(36px,5vw,52px)] border-t border-white/[0.14] py-[26px]">
+          <div className="mx-auto max-w-[760px] text-center">
+            <p className="font-display text-[15px] font-semibold text-slate-fg">{business.name}</p>
+            <p className="mt-2 text-[14.5px] leading-[1.65] text-[#dce2eb]">{registrationLine()}</p>
+          </div>
         </div>
 
-        <div className="border-t border-slate-fg/15 py-7">
-          <div className="flex flex-col gap-3 text-[0.85rem] sm:flex-row sm:items-center sm:justify-between">
+        <div className="border-t border-white/[0.14] py-6">
+          <div className="flex flex-col gap-3 text-[13.5px] sm:flex-row sm:items-center sm:justify-between">
             <p>
               Copyright {year} {business.legalName}. All rights reserved.
             </p>
             <p className="flex gap-5">
-              <Link href="/privacy" className="transition-colors hover:text-slate-fg">
+              <Link href="/privacy" className="transition-colors hover:text-brass">
                 Privacy
               </Link>
-              <Link href="/terms" className="transition-colors hover:text-slate-fg">
+              <Link href="/terms" className="transition-colors hover:text-brass">
                 Terms
               </Link>
             </p>
@@ -109,23 +127,32 @@ export function SiteFooter() {
   );
 }
 
-function FooterColumn({ title, children }: { title: string; children: React.ReactNode }) {
+function Badge({ children }: { children: ReactNode }) {
+  return (
+    <span className="rounded-[2px] border border-white/25 px-2.5 py-[5px] text-[12px] font-semibold tracking-[0.06em] text-[#dce2eb] uppercase">
+      {children}
+    </span>
+  );
+}
+
+function FooterColumn({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div>
-      <h2 className="font-sans text-[0.7rem] font-semibold tracking-[0.18em] text-brass-light uppercase">
+      <p className="mb-3.5 text-[12.5px] font-bold tracking-[0.12em] text-[#8a99b5] uppercase">
         {title}
-      </h2>
-      <ul className="mt-4 space-y-2.5">{children}</ul>
+      </p>
+      <nav className="flex flex-col gap-2.5">{children}</nav>
     </div>
   );
 }
 
-function FooterLink({ href, children }: { href: string; children: React.ReactNode }) {
+function FooterLink({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <li>
-      <Link href={href} className="text-[0.92rem] transition-colors hover:text-slate-fg">
-        {children}
-      </Link>
-    </li>
+    <Link
+      href={href}
+      className="text-[14.5px] font-medium text-[#dce2eb] transition-colors hover:text-brass"
+    >
+      {children}
+    </Link>
   );
 }

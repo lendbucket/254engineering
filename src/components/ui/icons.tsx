@@ -96,3 +96,188 @@ export function DocumentIcon({ className = "", size = 14 }: IconProps) {
     </svg>
   );
 }
+
+/**
+ * The stroked icon set the approved v5 design uses.
+ *
+ * WHY THESE EXIST WHEN THE REPO DELIBERATELY HAS NO SERVICE GLYPHS
+ * ----------------------------------------------------------------
+ * The note at the top of this file records a decision not to draw service line
+ * icons, on the grounds that a glyph beside "Roof Inspections and
+ * Certifications" tells a procurement officer nothing the heading did not. That
+ * reasoning was sound for the design it was written against.
+ *
+ * The operator has since designed the interface and approved it, and v5 puts a
+ * 46 pixel navy tile with a stroked mark on every service card. An approved
+ * design outranks an earlier internal judgement about the same question, so the
+ * icons are here. The earlier note stays above rather than being deleted,
+ * because the argument it makes is still the right one to answer if anybody
+ * proposes adding more.
+ *
+ * All are 24 by 24 on a 1.7 stroke in currentColor, matching v5 exactly, so they
+ * inherit whatever colour the tile sets and cannot drift from the palette.
+ */
+function stroked(size: number) {
+  return {
+    width: size,
+    height: size,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.7,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true as const,
+    focusable: "false" as const,
+  };
+}
+
+export function StarIcon({ size = 24, className = "" }: IconProps) {
+  return (
+    <svg {...stroked(size)} className={className}>
+      <path d="M12 2 L14.6 8.2 21.5 8.8 16.4 13.3 18 20 12 16.4 6 20 7.6 13.3 2.5 8.8 9.4 8.2 Z" />
+    </svg>
+  );
+}
+
+export function ShieldCheckIcon({ size = 24, className = "" }: IconProps) {
+  return (
+    <svg {...stroked(size)} className={className}>
+      <path d="M12 2 L20 6 V12 C20 17 16.5 20.5 12 22 C7.5 20.5 4 17 4 12 V6 Z" />
+      <path d="M8.5 12 L11 14.5 L15.5 9.5" />
+    </svg>
+  );
+}
+
+export function PinIcon({ size = 24, className = "" }: IconProps) {
+  return (
+    <svg {...stroked(size)} className={className}>
+      <path d="M12 21 C12 21 5 14.5 5 9.5 A7 7 0 0 1 19 9.5 C19 14.5 12 21 12 21 Z" />
+      <circle cx="12" cy="9.5" r="2.6" />
+    </svg>
+  );
+}
+
+export function BuildingIcon({ size = 24, className = "" }: IconProps) {
+  return (
+    <svg {...stroked(size)} className={className}>
+      <path d="M3 21 H21" />
+      <path d="M4 21 V9 L12 3 L20 9 V21" />
+      <path d="M8 21 V13 H16 V21" />
+    </svg>
+  );
+}
+
+export function ClipboardCheckIcon({ size = 24, className = "" }: IconProps) {
+  return (
+    <svg {...stroked(size)} className={className}>
+      <path d="M6 4 H18 V20 H6 Z" />
+      <path d="M9 9 H15" />
+      <path d="M9 13 H15" />
+      <path d="M9 17 L10.5 18.5 L13.5 15.5" />
+    </svg>
+  );
+}
+
+export function ClockIcon({ size = 24, className = "" }: IconProps) {
+  return (
+    <svg {...stroked(size)} className={className}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5 V12 L15.2 14" />
+    </svg>
+  );
+}
+
+export function RoofIcon({ size = 24, className = "" }: IconProps) {
+  return (
+    <svg {...stroked(size)} className={className}>
+      <path d="M3 12 L12 4 L21 12" />
+      <path d="M6 12 V20 H18 V12" />
+    </svg>
+  );
+}
+
+export function WindIcon({ size = 24, className = "" }: IconProps) {
+  return (
+    <svg {...stroked(size)} className={className}>
+      <path d="M3 8 H13 A2.8 2.8 0 1 0 10.2 5.2" />
+      <path d="M3 12 H17 A2.8 2.8 0 1 1 14.2 14.8" />
+      <path d="M3 16 H10" />
+    </svg>
+  );
+}
+
+export function FoundationIcon({ size = 24, className = "" }: IconProps) {
+  return (
+    <svg {...stroked(size)} className={className}>
+      <path d="M4 15 H20 V19 H4 Z" />
+      <path d="M7 15 V11 H17 V15" />
+      <path d="M10 11 V8 H14 V11" />
+    </svg>
+  );
+}
+
+export function SolarIcon({ size = 24, className = "" }: IconProps) {
+  return (
+    <svg {...stroked(size)} className={className}>
+      <path d="M4 9 H20 V17 H4 Z" />
+      <path d="M9.3 9 V17" />
+      <path d="M14.6 9 V17" />
+      <path d="M4 13 H20" />
+      <path d="M8 20 H16" />
+    </svg>
+  );
+}
+
+export function ManufacturedHomeIcon({ size = 24, className = "" }: IconProps) {
+  return (
+    <svg {...stroked(size)} className={className}>
+      <path d="M4 8 H20 V15 H4 Z" />
+      <path d="M6 15 V19" />
+      <path d="M12 15 V19" />
+      <path d="M18 15 V19" />
+    </svg>
+  );
+}
+
+export function SealedLetterIcon({ size = 24, className = "" }: IconProps) {
+  return (
+    <svg {...stroked(size)} className={className}>
+      <path d="M7 3 H14 L18 7 V21 H7 Z" />
+      <path d="M14 3 V7 H18" />
+      <circle cx="12.5" cy="15" r="2.6" />
+    </svg>
+  );
+}
+
+export function SpecIcon({ size = 24, className = "" }: IconProps) {
+  return (
+    <svg {...stroked(size)} className={className}>
+      <path d="M6 4 H18 V20 H6 Z" />
+      <path d="M9 9 H15" />
+      <path d="M9 13 H15" />
+      <path d="M9 17 H13" />
+    </svg>
+  );
+}
+
+export function DesignIcon({ size = 24, className = "" }: IconProps) {
+  return (
+    <svg {...stroked(size)} className={className}>
+      <path d="M4 20 H20" />
+      <path d="M4 20 V4" />
+      <path d="M4 20 L15 9" />
+      <path d="M15 9 L15 13 M15 9 L11 9" />
+    </svg>
+  );
+}
+
+export function ForensicIcon({ size = 24, className = "" }: IconProps) {
+  return (
+    <svg {...stroked(size)} className={className}>
+      <circle cx="10" cy="10" r="5.5" />
+      <path d="M14.2 14.2 L20 20" />
+      <path d="M8 10 L10 12 L12 8" />
+    </svg>
+  );
+}

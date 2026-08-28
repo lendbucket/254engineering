@@ -4,6 +4,7 @@
  * Stands up `next dev`, drives Chromium through one page of every template at
  * 320/375/390/430px, and asserts:
  *   1. document.documentElement.scrollWidth === clientWidth (zero horizontal scroll)
+ *   1b. no box that hides its overflow is narrower than its own text
  *   2. every interactive control clears a 44px tap target on the smallest width
  *   3. the mobile menu opens, locks body scroll, and closes on navigation with
  *      the lock released
@@ -70,7 +71,7 @@ async function measurePage(base, browser, path, width) {
   try {
     const res = await page.goto(base + path, { waitUntil: "networkidle", timeout: 90_000 });
     if (!res || res.status() >= 400) {
-      return { hscroll: false, taps: false, note: `HTTP ${res ? res.status() : "no response"}` };
+      return { hscroll: false, taps: false, clip: false, note: `HTTP ${res ? res.status() : "no response"}` };
     }
 
     // Scroll to the bottom before measuring. globals.css sets scroll-behavior
@@ -172,24 +173,65 @@ async function measurePage(base, browser, path, width) {
         );
       });
 
+      /*
+       * Content clipped inside a box that hides its own overflow.
+       *
+       * The document scroll check above cannot see this. A card with
+       * overflow hidden that is narrower than its own text does not widen the
+       * page: it silently cuts the words off at its own edge. The homepage
+       * process cards did exactly that at 390, three columns of about ninety
+       * pixels each with one word per line and the long words sliced, and this
+       * audit reported hscroll ok and taps ok on every width for every
+       * template while it was happening.
+       *
+       * A clipping box whose content is wider than it is, is either a bug or a
+       * deliberate crop. The deliberate crops on this site are images and the
+       * county map, so anything containing or being a replaced element is left
+       * alone and everything else has to fit its own text.
+       */
+      const clipped = [];
+      for (const el of document.querySelectorAll("*")) {
+        const cs = getComputedStyle(el);
+        if (cs.overflowX !== "hidden" && cs.overflow !== "hidden") continue;
+        // A one pixel box is the sr-only technique, not a layout container.
+        if (el.clientWidth <= 4 || el.clientHeight <= 4) continue;
+        const over = el.scrollWidth - el.clientWidth;
+        if (over <= 1) continue;
+        if (["SVG", "IMG", "VIDEO", "CANVAS", "IFRAME"].includes(el.tagName)) continue;
+        // Skip only when a replaced element is what does not fit. Merely
+        // CONTAINING an icon is not an excuse: the process cards each hold an
+        // svg, and a blanket "has a descendant image" skip made this check
+        // green over the exact defect it was written for.
+        const wide = [...el.querySelectorAll("svg, img, video, canvas, iframe")]
+          .some((r) => r.getBoundingClientRect().width > el.clientWidth);
+        if (wide) continue;
+        const what = (el.textContent || "").trim().replace(/s+/g, " ").slice(0, 34);
+        clipped.push(
+          el.tagName.toLowerCase() + (el.id ? "#" + el.id : "") + " clips " + over + "px of " + JSON.stringify(what),
+        );
+      }
       return {
         scrollWidth: de.scrollWidth,
         clientWidth: de.clientWidth,
         widest,
         small: small.slice(0, 5),
         smallCount: small.length,
+        clipped: clipped.slice(0, 4),
+        clippedCount: clipped.length,
       };
     }, MIN_TAP);
 
     const hscroll = m.scrollWidth === m.clientWidth;
     const taps = m.smallCount === 0;
+    const clip = m.clippedCount === 0;
     const notes = [];
     if (!hscroll) notes.push(`scrollW ${m.scrollWidth} != clientW ${m.clientWidth}${m.widest ? `; ${m.widest}` : ""}`);
     if (!taps) notes.push(`${m.smallCount} target(s) under ${MIN_TAP}px: ${m.small.join(", ")}`);
+    if (!clip) notes.push(m.clippedCount + ` clipped box(es): ` + m.clipped.join(", "));
 
-    return { hscroll, taps, note: notes.join(" | ") };
+    return { hscroll, taps, clip, note: notes.join(" | ") };
   } catch (err) {
-    return { hscroll: false, taps: false, note: `error: ${String(err.message).split("\n")[0]}` };
+    return { hscroll: false, taps: false, clip: false, note: `error: ${String(err.message).split("\n")[0]}` };
   } finally {
     await context.close();
   }
@@ -280,9 +322,9 @@ async function main() {
         const cell = await measurePage(base, browser, t.path, w);
         cells[w] = cell;
         log(
-          `  ${pad(t.name, 18)} @${w}: hscroll=${cell.hscroll ? "ok" : "FAIL"} taps=${cell.taps ? "ok" : "FAIL"}${cell.note ? "  (" + cell.note + ")" : ""}`,
+          `  ${pad(t.name, 18)} @${w}: hscroll=${cell.hscroll ? "ok" : "FAIL"} taps=${cell.taps ? "ok" : "FAIL"} clip=${cell.clip ? "ok" : "FAIL"}${cell.note ? "  (" + cell.note + ")" : ""}`,
         );
-        if (!cell.hscroll || !cell.taps) failures.push(`${t.name} @${w}: ${cell.note || "fail"}`);
+        if (!cell.hscroll || !cell.taps || !cell.clip) failures.push(`${t.name} @${w}: ${cell.note || "fail"}`);
       }
       rows.push({ name: t.name, cells });
     }
@@ -299,7 +341,7 @@ async function main() {
       let line = pad(row.name, 20);
       for (const w of WIDTHS) {
         const c = row.cells[w];
-        line += pad(c.hscroll && c.taps ? "pass" : "FAIL", 10);
+        line += pad(c.hscroll && c.taps && c.clip ? "pass" : "FAIL", 10);
       }
       log(line);
     }

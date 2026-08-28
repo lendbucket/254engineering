@@ -29,7 +29,7 @@ function CheckRow({
   children: React.ReactNode;
 }) {
   return (
-    <label className="flex min-h-[48px] cursor-pointer items-center gap-3 rounded-[3px] border border-limestone-line bg-limestone-raised px-4 transition-colors has-[:checked]:border-slate has-[:checked]:bg-limestone-sunk">
+    <label className="flex min-h-[48px] cursor-pointer items-center gap-3 rounded-[3px] border border-limestone-line bg-white px-4 transition-colors has-[:checked]:border-brass has-[:checked]:bg-limestone">
       <input
         type="checkbox"
         checked={checked}
@@ -124,7 +124,7 @@ export function CountyPicker({
           : `${value.length} ${value.length === 1 ? "county" : "counties"} selected`}
       </p>
 
-      <div className="mt-3 divide-y divide-limestone-line overflow-hidden rounded-[3px] border border-limestone-line">
+      <div className="mt-3 divide-y divide-limestone-line overflow-hidden rounded-[4px] border border-limestone-line bg-white">
         {regions.map((region) => {
           const chosen = region.counties.filter((c) => selected.has(c)).length;
           const all = chosen === region.counties.length;
@@ -228,7 +228,7 @@ export function FileField({
       {help ? <p className={hint}>{help}</p> : null}
 
       {state.status === "done" ? (
-        <div className="mt-3 flex items-center justify-between gap-3 rounded-[3px] border border-limestone-line bg-limestone-raised px-4 py-3">
+        <div className="mt-3 flex items-center justify-between gap-3 rounded-[3px] border border-limestone-line bg-white px-4 py-3">
           <span className="min-w-0 flex-1 truncate text-[0.92rem] text-slate">{state.filename}</span>
           <button
             type="button"
@@ -251,7 +251,7 @@ export function FileField({
               // Reset so re-selecting the same file after an error still fires.
               e.target.value = "";
             }}
-            className="block w-full cursor-pointer rounded-[3px] border border-limestone-line bg-limestone-raised px-4 py-3 font-sans text-[0.92rem] text-slate-ink file:mr-4 file:min-h-[40px] file:cursor-pointer file:rounded-[3px] file:border-0 file:bg-slate file:px-4 file:font-sans file:text-[0.88rem] file:font-semibold file:text-slate-fg disabled:opacity-60"
+            className="block w-full cursor-pointer rounded-[3px] border border-limestone-line bg-white px-4 py-3 font-sans text-[15px] text-slate-ink file:mr-4 file:min-h-[40px] file:cursor-pointer file:rounded-[3px] file:border-0 file:bg-slate file:px-4 file:font-sans file:text-[14px] file:font-bold file:text-slate-fg disabled:opacity-60"
           />
         </div>
       )}

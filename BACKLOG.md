@@ -8,7 +8,28 @@ Items are removed when they ship, not when they are attempted.
 
 ## Blocked on the owner
 
-### The logo does not exist
+### DONE. The logo arrived and is integrated
+
+Delivered with the approved v5 design as `logo.png` and `logo-dark.png`, now in
+`brand-assets/` and served from `public/brand/`. `Wordmark.tsx` renders the real
+lockup, `npm run brand-rasters` regenerates the icon set, the apple icon, the
+favicon, and the OG card from the artwork, and the schema Organization logo
+points at the mark rather than at the social card.
+
+The icon is the reverse artwork cropped to the numerals on deep navy: the full
+lockup at 16 pixels turns the descriptor into a smudge under the part that
+matters.
+
+Kept rather than deleted because two notes in it are still live. The artwork navy
+is `#012758`, deeper than the UI navy `#14315D`, and the artwork is deliberately
+not recoloured to match. And `scripts/brand-rasters.mjs` still restates palette
+values that also live in `globals.css`, because the script runs in node and
+cannot resolve the Tailwind theme; that duplication is now permanent rather than
+time limited, so it is listed under Engineering below.
+
+The original entry follows.
+
+### The logo did not exist
 
 Every mark on this site is a typographic placeholder: the header and footer
 wordmark in `src/components/brand/Wordmark.tsx`, the favicon set, and the Open
@@ -188,7 +209,14 @@ that matters, plus every upload API guard called directly.
 `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` set. Three checks turn from SKIP
 to real: the engineer submit, and both round trips.
 
-### Section 1 is blocked on the logo files
+### DONE. Section 1 is no longer blocked
+
+The `/brand-assets/` delivery arrived with the approved v5 design. Colour was not
+extracted from the artwork in the end: the approved design specifies the palette
+directly and `DESIGN_SPEC.md` records it, which is a better source than sampling
+pixels. The original entry follows.
+
+### Section 1 was blocked on the logo files
 
 No `/brand-assets/` directory exists. Colour extraction, the header and footer
 mark, the favicon set, the OG card, and the Organization `logo` property all wait
@@ -353,3 +381,75 @@ visual system. The diagram set and the map are the visual system.
 `MobileNav` draws its bars and its close cross with positioned spans. They were
 left alone rather than converted to icons: the CSS is fewer bytes, scales with
 the type, and works. Replacing it would have been churn dressed as consistency.
+
+## Approved design port: open at the homepage gate
+
+Sections 1 and 2 of the v5 port shipped in 0894461. Five things were decided
+rather than deferred silently, and each is listed here so the decision is
+reviewable and not buried in a diff.
+
+### v5's two interactive constructs are static here
+
+v5 renders How It Works as a selector: three steps in a rail, one detail panel
+beside it, auto cycling on a timer. Coverage is the same construct with an eight
+region list and a map. Both are ported as static compositions, three cards and a
+list, keeping v5's step eyebrow, ghost numeral, and card chrome.
+
+**Why.** The auto cycle hides two thirds of the content behind a timer, which is
+worse for a reader who wants the whole answer and worse for a crawler that reads
+the initial HTML. The material is short enough to show at once.
+
+**If revisited**, the thing to build is a click-to-expand that is fully rendered
+in the HTML and enhanced by script, never a construct whose content only exists
+after a tick.
+
+### The coverage map has no region pins
+
+v5's map is a decorative outline of the state with eight numbered dots that
+anchor the numbered region list. The map here is the real one, 254 county paths
+with the eight region borders drawn from the same assignment the coverage lists
+use, and it carries no numbers. The list is numbered with nothing on the map to
+match.
+
+**Cost.** A reader cannot tell which shape "Panhandle" refers to without
+clicking. This is the largest single fidelity gap in the port.
+
+### The windstorm band lost v5's coastal strip
+
+v5 pairs the windstorm copy with a cropped map of the coast and a dot per first
+tier county. Here it is a two column list on a white card. The counties are
+correct and come from `src/content/windstorm.ts`, but the geography is gone.
+
+### The waitlist form has no card
+
+v5 wraps the form in a white card with a gold top rule and a "Reserve your
+place" heading, and its submit is a full width gold bar. `LeadForm` renders bare
+on the band with a navy submit. The wiring was left alone deliberately, per the
+port's rule that forms wiring is untouched, but the chrome is presentation and
+could be ported without touching the wiring.
+
+### UTM parameters are still not captured
+
+The gate ruling asked for the waitlist wired to `/api/lead` with UTM capture. The
+wiring is done. The capture is not: the lead path records `landingPath` and
+`referrer` only, and adding UTM would mean changing the lead schema, the API
+route, and the storage column, which is exactly the internals change the port
+was told not to make. Flagged rather than done.
+
+## Two surfaces the sitewide propagation could not reach
+
+`feat/onboarding-admin` is unmerged, so the onboarding stepper and the admin
+views do not exist on `feat/approved-design`. The master prompt named both as
+propagation targets and neither was touched, because there was nothing on this
+branch to touch.
+
+**What this costs.** Whichever branch merges second inherits the work. If the
+design port merges first, the onboarding and admin surfaces arrive on main still
+drawn in the pre-v5 language and need their own pass. If onboarding merges first,
+that pass happens inside the design port's merge instead.
+
+**The pass itself is small**, because the propagation went into shared
+components. Both surfaces already render inside the root layout, so the header,
+footer, mastheads, buttons, form fields, and card chrome all come across for
+free. What would need looking at is the stepper's own progress rail and the admin
+tables, which are the only two constructs neither branch shares with a page.

@@ -22,7 +22,7 @@ export function Eyebrow({
 }) {
   return (
     <p
-      className={`font-sans text-[0.7rem] font-semibold tracking-[0.18em] uppercase ${
+      className={`text-[12px] font-bold tracking-[0.14em] uppercase ${
         onDark ? "text-brass-light" : "text-brass-ink"
       } ${className}`}
     >
@@ -44,7 +44,7 @@ export function Rule({ onDark = false, className = "" }: { onDark?: boolean; cla
 type ButtonTone = "primary" | "secondary" | "onDark" | "onDarkOutline";
 
 const buttonBase =
-  "inline-flex items-center justify-center gap-2 rounded-[3px] px-6 py-3.5 text-center font-sans text-[0.94rem] font-semibold tracking-[0.01em] transition-colors duration-150 min-h-[48px]";
+  "inline-flex items-center justify-center gap-2 rounded-[3px] px-7 py-3.5 text-center font-sans text-[15.5px] font-bold transition-colors duration-150 min-h-[48px]";
 
 /**
  * Four tones, and no way to ask for a fifth by passing classes.
@@ -58,11 +58,26 @@ const buttonBase =
  * action that was brass text on a brass button for exactly that reason.
  */
 const buttonTones: Record<ButtonTone, string> = {
-  primary: "bg-slate text-slate-fg hover:bg-slate-ink",
+  /*
+   * Gold fill with navy text, on light surfaces as well as dark.
+   *
+   * The primary tone used to be a navy fill. v5 has exactly one call to action
+   * treatment and it is this one, on the hero, on the windstorm band, and on the
+   * government card. Keeping a second, quieter primary for interior pages would
+   * have meant the most important control on a service page looked less like a
+   * control than the same control on the homepage.
+   *
+   * Gold as a BUTTON FILL is not the thing the standing rule forbids. The rule
+   * is that gold is never body text on a light surface, because gold on white
+   * measures 2.33:1. Navy on gold is the inverse pairing and clears AA, and
+   * contrast-audit measures it on every template.
+   */
+  primary: "bg-brass text-slate-ink hover:bg-brass-light",
   secondary:
-    "border border-slate/25 bg-transparent text-slate hover:border-slate/60 hover:bg-limestone-sunk",
-  onDark: "bg-brass-light text-slate-ink hover:bg-brass",
-  onDarkOutline: "border border-slate-fg/35 text-slate-fg hover:border-slate-fg/70 hover:bg-white/10",
+    "border-[1.5px] border-slate/30 bg-transparent text-slate hover:border-slate hover:bg-limestone-sunk",
+  onDark: "bg-brass text-slate-ink hover:bg-brass-light",
+  onDarkOutline:
+    "border-[1.5px] border-white/50 text-slate-fg hover:border-brass hover:text-brass-light",
 };
 
 /** A link styled as a button. Never a <button>: these all navigate. */
@@ -90,48 +105,16 @@ export function buttonClass(tone: ButtonTone = "primary"): string {
 }
 
 /**
- * The standard section opening: eyebrow, heading, and an optional lede.
+ * The standard section opening.
  *
- * Heading level is a prop because a section heading is an h2 on most pages and
- * an h3 inside a two-level page, and getting that wrong is a real accessibility
- * finding rather than a style one.
+ * This is now a thin alias over `SectionHead` in ui/section.tsx, which is where
+ * the v5 grammar lives. It stays because a dozen call sites import
+ * `SectionHeading` and renaming them all would be churn in the middle of a
+ * design port, where every unrelated line in a diff costs review attention.
+ *
+ * New code should import `SectionHead` directly.
  */
-export function SectionHeading({
-  eyebrow,
-  title,
-  lede,
-  onDark = false,
-  level = "h2",
-  className = "",
-}: {
-  eyebrow?: string;
-  title: string;
-  lede?: ReactNode;
-  onDark?: boolean;
-  level?: "h2" | "h3";
-  className?: string;
-}) {
-  const Heading = level;
-  return (
-    <div className={`max-w-3xl ${className}`}>
-      {eyebrow ? <Eyebrow onDark={onDark}>{eyebrow}</Eyebrow> : null}
-      <Heading
-        className={`mt-3 text-[1.85rem] leading-[1.18] font-semibold sm:text-[2.35rem] ${
-          onDark ? "text-slate-fg" : "text-slate"
-        }`}
-      >
-        {title}
-      </Heading>
-      {lede ? (
-        <div
-          className={`mt-5 text-[1.03rem] leading-[1.7] ${onDark ? "text-slate-fg-muted" : "text-slate-muted"}`}
-        >
-          {lede}
-        </div>
-      ) : null}
-    </div>
-  );
-}
+export { SectionHead as SectionHeading } from "@/components/ui/section";
 
 /**
  * Long form document typography, for the privacy policy and the terms.
@@ -145,10 +128,10 @@ export function Prose({ children, className = "" }: { children: ReactNode; class
   return (
     <div
       className={`
-        text-[1rem] leading-[1.78] text-slate-muted
-        [&_a]:text-slate [&_a]:underline [&_a]:decoration-brass/60 [&_a]:underline-offset-4
-        [&_h2]:mt-14 [&_h2]:text-[1.45rem] [&_h2]:leading-[1.3] [&_h2]:font-semibold [&_h2]:text-slate
-        [&_h3]:mt-9 [&_h3]:text-[1.12rem] [&_h3]:leading-[1.35] [&_h3]:font-semibold [&_h3]:text-slate
+        text-[16.5px] leading-[1.78] text-slate-muted
+        [&_a]:text-slate [&_a]:underline [&_a]:decoration-brass [&_a]:underline-offset-4
+        [&_h2]:mt-14 [&_h2]:font-display [&_h2]:text-[26px] [&_h2]:leading-[1.25] [&_h2]:font-bold [&_h2]:tracking-[-0.01em] [&_h2]:text-slate
+        [&_h3]:mt-9 [&_h3]:font-display [&_h3]:text-[19px] [&_h3]:leading-[1.35] [&_h3]:font-bold [&_h3]:text-slate
         [&_li]:mt-2.5
         [&_p]:mt-5
         [&_strong]:font-semibold [&_strong]:text-slate
@@ -164,17 +147,15 @@ export function Prose({ children, className = "" }: { children: ReactNode; class
 /**
  * The card grid used for services, regions, and every other set of linked cards.
  *
- * WHY IT DRAWS ITS LINES WITH BORDERS RATHER THAN WITH GAPS
- * ---------------------------------------------------------
- * The tidier looking technique is a one pixel gap over a coloured container, so
- * the container shows through as hairlines between the cells. It has one defect
- * and it is visible on any grid whose item count does not fill the last row: the
- * unoccupied cell is not empty, it is a solid block of the line colour. Nine
- * services in a two column grid produced exactly that, a tan rectangle that
- * reads as a card somebody forgot to write.
+ * WHY IT IS A GAP GRID AND NOT A HAIRLINE GRID
+ * -------------------------------------------
+ * It used to draw one pixel lines by bleeding a container colour through gaps,
+ * which put a solid tan rectangle in the unoccupied cell of any short last row.
+ * Nine services in a two column grid produced exactly that, a block that read as
+ * a card somebody forgot to write.
  *
- * Borders on the cells put the lines where they belong and leave a short last
- * row genuinely empty, which is what a table does and what a reader expects.
+ * v5 solves it differently and better: real gaps, and every card carries its own
+ * border and a 3px navy top rule. A short last row is then genuinely empty.
  */
 export function CardGrid({
   children,
@@ -186,23 +167,26 @@ export function CardGrid({
   className?: string;
 }) {
   const colClass = cols === 3 ? "sm:grid-cols-2 lg:grid-cols-3" : "sm:grid-cols-2";
-  return (
-    <ul
-      className={`grid overflow-hidden rounded-[3px] border-t border-l border-limestone-line ${colClass} ${className}`}
-    >
-      {children}
-    </ul>
-  );
+  return <ul className={`grid gap-[18px] ${colClass} ${className}`}>{children}</ul>;
 }
 
-/** The classes every direct child of a CardGrid carries. */
-export const cardCell = "border-r border-b border-limestone-line bg-limestone-raised";
+/**
+ * The classes every direct child of a CardGrid carries.
+ *
+ * v5 separates cards with a gap and gives each one its own border and a 3px navy
+ * top rule, which is why the grid above no longer draws hairlines between cells
+ * and this no longer suppresses its own. The note about the tan rectangle in a
+ * short last row is resolved by the same change: with a gap there is no
+ * container colour showing through, so an unoccupied cell is genuinely empty.
+ */
+export const cardCell =
+  "rounded-[4px] border border-limestone-line border-t-[3px] border-t-slate bg-white";
 
 /** A bordered panel on limestone. The only card treatment on the site. */
 export function Panel({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
     <div
-      className={`rounded-[3px] border border-limestone-line bg-limestone-raised p-6 sm:p-7 ${className}`}
+      className={`rounded-[4px] border border-limestone-line border-t-[3px] border-t-slate bg-white p-6 sm:p-7 ${className}`}
     >
       {children}
     </div>

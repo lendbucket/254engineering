@@ -23,11 +23,20 @@ export function LeadForm({
   variant,
   serviceOptions,
   defaultService,
+  framed,
 }: {
   variant: "contact" | "waitlist";
   serviceOptions: string[];
   /** Pre-selected when the visitor arrived from a specific service page. */
   defaultService?: string;
+  /**
+   * Draw the v5 card around the form: white fill, gold top rule, a heading.
+   *
+   * Needed where the form sits directly on a band, as it does on the homepage.
+   * On /contact and /waitlist it is already inside a Panel and a second frame
+   * would be a box in a box.
+   */
+  framed?: string;
 }) {
   const { state, submit, fail } = useFormPost("/api/lead");
   const successRef = useRef<HTMLDivElement>(null);
@@ -58,12 +67,12 @@ export function LeadForm({
       <div
         ref={successRef}
         tabIndex={-1}
-        className="rounded-[3px] border border-brass/45 bg-limestone-raised p-7"
+        className="rounded-[4px] border border-limestone-line border-t-[3px] border-t-brass bg-white p-7"
       >
-        <p className="font-sans text-[0.7rem] font-semibold tracking-[0.18em] text-brass-ink uppercase">
+        <p className="text-[12px] font-bold tracking-[0.14em] text-brass-ink uppercase">
           {isWaitlist ? "You are on the list" : "Received"}
         </p>
-        <h2 className="mt-3 text-[1.4rem] leading-[1.3] font-semibold text-slate">
+        <h2 className="mt-3 font-display text-[24px] leading-[1.3] font-bold text-slate">
           {isWaitlist ? "Thank you. We have your details." : "Thank you. Your message is with us."}
         </h2>
         <p className="mt-4 text-[0.98rem] leading-[1.7] text-slate-muted">
@@ -77,7 +86,7 @@ export function LeadForm({
 
   const busy = state.status === "submitting";
 
-  return (
+  const form = (
     <form onSubmit={onSubmit} noValidate className="relative space-y-6">
       <Honeypot />
       {state.message ? <FormError message={state.message} /> : null}
@@ -139,9 +148,22 @@ export function LeadForm({
         error={state.errors.message}
       />
 
-      <button type="submit" disabled={busy} className={buttonClass("primary")}>
+      <button
+        type="submit"
+        disabled={busy}
+        className={`${buttonClass("primary")} ${framed ? "w-full" : ""}`}
+      >
         {busy ? "Sending" : isWaitlist ? "Join the waitlist" : "Send message"}
       </button>
     </form>
+  );
+
+  if (!framed) return form;
+
+  return (
+    <div className="rounded-[4px] border border-limestone-line border-t-[3px] border-t-brass bg-white p-[clamp(20px,3vw,30px)] shadow-[0_10px_28px_rgba(20,49,93,0.10)]">
+      <p className="font-display text-[21px] leading-[1.3] font-bold text-slate">{framed}</p>
+      <div className="mt-5">{form}</div>
+    </div>
   );
 }

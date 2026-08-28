@@ -89,22 +89,22 @@ for (const region of regions) {
  */
 const TONES = {
   light: {
-    county: "#14315c12",
-    hairline: "#c9bda6",
-    boundary: "#14315c",
+    county: "#14315d12",
+    hairline: "#c3c9d1",
+    boundary: "#14315d",
     boundaryOpacity: 0.55,
-    outline: "#14315c",
+    outline: "#14315d",
     outlineOpacity: 0.85,
-    active: "#d19a1e",
+    active: "#d9a032",
   },
   dark: {
-    county: "#f6f3ec10",
-    hairline: "#f6f3ec2e",
-    boundary: "#e3b95a",
+    county: "#ffffff12",
+    hairline: "#ffffff2e",
+    boundary: "#e8b04a",
     boundaryOpacity: 0.85,
-    outline: "#f6f3ec",
+    outline: "#ffffff",
     outlineOpacity: 0.9,
-    active: "#e3b95a",
+    active: "#e8b04a",
   },
 } as const;
 

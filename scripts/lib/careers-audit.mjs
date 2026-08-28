@@ -200,30 +200,58 @@ async function technicianFlow(ctx, BASE, rec) {
    * than calling the unconfigured case a failure. The honest failure state is
    * worth asserting in its own right: it is the path a real applicant hits the
    * day storage is down.
+   *
+   * Superseded in part: the choice of which path to assert is no longer made
+   * from this process env at all. See the note directly below.
    */
-  const configured = Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
-
-  if (configured) {
-    const success = await page
+  /*
+   * WHICH OUTCOME IS UNDER TEST IS DECIDED BY WHAT HAPPENED, NOT BY THIS
+   * PROCESS'S ENVIRONMENT.
+   *
+   * This block used to branch on `configured`, which reads the env of the AUDIT.
+   * The outcome is decided by the env of the SERVER, and the two are not the
+   * same thing: once .env.local existed locally, the server began succeeding
+   * while the audit still believed there was no database, so it asserted the
+   * failure path against a success screen and reported two failures on a working
+   * application.
+   *
+   * Waiting for either state and then asserting the invariants of whichever one
+   * arrived tests the property that actually matters, in both environments: the
+   * applicant is never left with nothing, and is never told it worked when it
+   * did not.
+   */
+  const outcome = await Promise.race([
+    page
       .getByText(/your application is with us/i)
       .waitFor({ state: "visible", timeout: 20000 })
-      .then(() => true)
-      .catch(() => false);
-    rec("technician: the success state renders", success);
-  } else {
-    const honestFailure = await page
+      .then(() => "success"),
+    page
       .getByText(/did not save/i)
       .waitFor({ state: "visible", timeout: 20000 })
-      .then(() => true)
-      .catch(() => false);
-    const noFalseSuccess = !(await page
-      .getByText(/your application is with us/i)
-      .isVisible()
-      .catch(() => false));
+      .then(() => "honest-failure"),
+  ]).catch(() => "silent");
+
+  rec(
+    "technician: the submit resolves to a stated outcome rather than silence",
+    outcome !== "silent",
+    outcome === "silent" ? "neither a success nor a failure message appeared" : outcome,
+  );
+
+  if (outcome === "success") {
     rec(
-      "technician: with no database the applicant is told plainly that it did not save",
-      honestFailure && noFalseSuccess,
-      "no Supabase keys for this run, so the failure path is the one under test",
+      "technician: a successful submit does not also show a failure message",
+      !(await page
+        .getByText(/did not save/i)
+        .isVisible()
+        .catch(() => false)),
+    );
+  } else if (outcome === "honest-failure") {
+    rec(
+      "technician: a failed submit is never dressed as a success",
+      !(await page
+        .getByText(/your application is with us/i)
+        .isVisible()
+        .catch(() => false)),
     );
     rec(
       "technician: a failed submit keeps the answers on the page for a retry",

@@ -1,41 +1,66 @@
+import Image from "next/image";
+
 /**
- * Typographic wordmark placeholder.
+ * The brand mark.
  *
- * PENDING: a commissioned logo will replace this. Everything that shows the mark
- * renders this component, including the favicon set and the OG image, both of
- * which are rasterized from it by scripts/brand-rasters.mjs. So the swap when
- * the artwork lands is this file plus one script run, not a hunt through the
- * repo for hardcoded lockups.
+ * THE PLACEHOLDER IS GONE
+ * -----------------------
+ * This component used to draw a typographic stand in: the numerals set in the
+ * display face, a rule, and the descriptor tracked out beside it. That existed
+ * because no artwork did, and it was built so that exactly one file would change
+ * when artwork arrived. This is that change.
  *
- * The construction is the name story in miniature: the number first, at display
- * weight, because the number is what the firm is called; a brass hairline; then
- * the descriptor, tracked out and small, the way a firm sets its own name on a
- * cover sheet rather than the way a product sets a logo.
+ * The real lockup is `brand-assets/logo.png` and its reverse
+ * `brand-assets/logo-dark.png`, delivered with the approved v5 design. Both are
+ * 2262 by 1147 with alpha and neither has canvas padding to trim, so the mark
+ * sits tight to its own bounds and can be positioned as a block.
+ *
+ * WHY TWO FILES AND NOT ONE RECOLOURED
+ * ------------------------------------
+ * The reverse is not the same artwork with a filter on it. In the light lockup
+ * the numerals are navy and the descriptor is navy; in the reverse both are
+ * white while the gold parallelogram and the gold rule stay gold. A CSS invert
+ * would have turned the gold to blue. Two assets is what the designer delivered
+ * and it is what is correct.
+ *
+ * `logo-dark.png` renders as almost nothing against a white background, which is
+ * expected and is not a broken file: it is white artwork for dark surfaces.
+ *
+ * SIZING
+ * ------
+ * The aspect is fixed at 2262 by 1147, so height alone drives it and `width` is
+ * computed. v5 sets the header mark to `clamp(58px, 9vw, 84px)` tall and the
+ * footer mark to 74px, which are the two defaults here.
+ *
+ * `priority` is off by default. The header mark is above the fold on every page
+ * and Next will fetch it early regardless; marking it priority as well competes
+ * with the LCP image for the same preload budget.
  */
+
+const RATIO = 2262 / 1147;
+
 export function Wordmark({
   onDark = false,
+  /** Rendered height in pixels. Width follows the fixed aspect. */
+  height = 72,
+  priority = false,
   className = "",
 }: {
   onDark?: boolean;
+  height?: number;
+  priority?: boolean;
   className?: string;
 }) {
-  const numeral = onDark ? "text-slate-fg" : "text-slate";
-  const rule = onDark ? "bg-brass-light" : "bg-brass";
-  const descriptor = onDark ? "text-slate-fg-muted" : "text-slate-muted";
-
+  const src = onDark ? "/brand/logo-dark.png" : "/brand/logo.png";
   return (
-    <span className={`inline-flex items-center gap-3 ${className}`}>
-      <span className={`font-display text-[1.7rem] leading-none font-semibold tracking-tight ${numeral}`}>
-        254
-      </span>
-      <span aria-hidden="true" className={`h-7 w-px ${rule}`} />
-      <span
-        className={`font-sans text-[0.62rem] leading-[1.35] font-medium tracking-[0.19em] uppercase ${descriptor}`}
-      >
-        Engineering
-        <br />
-        Services
-      </span>
-    </span>
+    <Image
+      src={src}
+      alt="254 Engineering Services"
+      width={Math.round(height * RATIO)}
+      height={height}
+      priority={priority}
+      className={`block h-auto w-auto ${className}`}
+      style={{ height, width: "auto" }}
+    />
   );
 }

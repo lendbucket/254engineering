@@ -19,12 +19,12 @@ import { useId, type ReactNode } from "react";
  */
 
 const inputBase =
-  "block w-full min-h-[48px] rounded-[3px] border bg-limestone-raised px-4 py-3 font-sans text-[1rem] text-slate-ink placeholder:text-slate-muted/60 transition-colors";
+  "block w-full min-h-[48px] rounded-[3px] border bg-white px-4 py-3 font-sans text-[15.5px] text-slate-ink placeholder:text-slate-muted/60 transition-colors";
 
 const inputTone = (invalid: boolean) =>
   invalid
     ? "border-brass-ink focus:border-brass-ink"
-    : "border-limestone-line focus:border-slate-soft";
+    : "border-limestone-line focus:border-slate";
 
 export function Field({
   label,
@@ -45,7 +45,7 @@ export function Field({
     <div>
       <label
         htmlFor={htmlFor}
-        className="block font-sans text-[0.88rem] font-semibold text-slate"
+        className="block font-sans text-[14px] font-bold text-slate"
       >
         {label}
         {optional ? (

@@ -50,7 +50,7 @@ export default function CareersPage() {
         crumbs={crumbs}
       >
         {isPrelaunch() ? (
-          <aside className="rounded-[3px] border border-brass/50 bg-slate/40 px-5 py-4 sm:px-6 sm:py-5">
+          <aside className="border-l-4 border-brass bg-white/[0.07] px-5 py-[18px]">
             <p className="font-sans text-[0.7rem] font-semibold tracking-[0.18em] text-brass-light uppercase">
               Where the firm is today
             </p>

@@ -311,12 +311,12 @@ export function ApplicationFlow({ track }: { track: Track }) {
       <div
         ref={headingRef}
         tabIndex={-1}
-        className="rounded-[3px] border border-brass/45 bg-limestone-raised p-7 sm:p-9"
+        className="rounded-[4px] border border-limestone-line border-t-[3px] border-t-brass bg-white p-7 sm:p-9"
       >
-        <p className="font-sans text-[0.7rem] font-semibold tracking-[0.18em] text-brass-ink uppercase">
+        <p className="text-[12px] font-bold tracking-[0.14em] text-brass-ink uppercase">
           Application received
         </p>
-        <h2 className="mt-3 text-[1.5rem] leading-[1.25] font-semibold text-slate">
+        <h2 className="mt-3 font-display text-[26px] leading-[1.25] font-bold text-slate">
           Thank you. Your application is with us.
         </h2>
         <div className="mt-5 space-y-4 text-[0.98rem] leading-[1.7] text-slate-muted">
@@ -344,19 +344,19 @@ export function ApplicationFlow({ track }: { track: Track }) {
   return (
     <div
       data-testid="application-flow"
-      className="rounded-[3px] border border-limestone-line bg-limestone-raised p-6 sm:p-8"
+      className="rounded-[4px] border border-limestone-line border-t-[3px] border-t-slate bg-white p-6 sm:p-8"
     >
       <StepProgress steps={steps} current={step} />
 
       <div ref={headingRef} tabIndex={-1} className="mt-6 outline-none">
-        <h2 className="text-[1.35rem] leading-[1.25] font-semibold text-slate">{current.title}</h2>
+        <h2 className="font-display text-[23px] leading-[1.25] font-bold text-slate">{current.title}</h2>
         <p className="mt-2 text-[0.94rem] leading-[1.6] text-slate-muted">{current.blurb}</p>
       </div>
 
       {formError ? (
         <p
           role="alert"
-          className="mt-5 rounded-[3px] border border-brass-ink/40 bg-limestone-sunk px-4 py-3 text-[0.9rem] leading-[1.6] text-slate"
+          className="mt-5 border-l-4 border-brass bg-limestone px-4 py-3 text-[14.5px] leading-[1.6] text-slate"
         >
           {formError}
         </p>
@@ -701,9 +701,9 @@ function ReviewSummary({
           .filter(([, v]) => v !== null);
         if (rows.length === 0) return null;
         return (
-          <div key={s.id} className="rounded-[3px] border border-limestone-line bg-limestone p-5">
+          <div key={s.id} className="rounded-[4px] border border-limestone-line border-t-[3px] border-t-slate bg-white p-5">
             <div className="flex items-baseline justify-between gap-4">
-              <h3 className="font-sans text-[0.82rem] font-semibold tracking-[0.14em] text-brass-ink uppercase">
+              <h3 className="text-[12px] font-bold tracking-[0.14em] text-brass-ink uppercase">
                 {s.title}
               </h3>
               <button

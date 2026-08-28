@@ -28,7 +28,10 @@ import { SealIcon } from "@/components/ui/icons";
  * THE REGISTER
  * ------------
  * Hairline borders, one brass accent, no fills, no shadows, no rounded pills, no
- * icons inside the steps. The playbook's line is that a reader who pauses on an
+ * icons inside the steps. The colours and the radius now follow the v5 card, so
+ * a diagram inside an article sits in the same system as the cards around it.
+ * Nothing else about the register changed during the design port: a diagram that
+ * started competing with the prose would be a diagram doing the wrong job. The playbook's line is that a reader who pauses on an
  * element and wonders about it means the element is wrong, and a process diagram
  * is exactly where decoration creeps in.
  */
@@ -52,7 +55,7 @@ export function Figure({
   return (
     <figure className={`mt-10 ${className}`}>
       {children}
-      <figcaption className="mt-4 border-l border-brass pl-4 text-[0.9rem] leading-[1.6] text-slate-muted">
+      <figcaption className="mt-4 border-l-[3px] border-brass pl-4 text-[14.5px] leading-[1.6] text-slate-muted">
         {caption}
       </figcaption>
     </figure>
@@ -76,17 +79,17 @@ export type FlowStep = {
  */
 export function StepFlow({ steps }: { steps: FlowStep[] }) {
   return (
-    <ol className="grid gap-px overflow-hidden rounded-[3px] border border-limestone-line bg-limestone-line sm:grid-cols-2 lg:grid-cols-4">
+    <ol className="grid gap-px overflow-hidden rounded-[4px] border border-limestone-line border-t-[3px] border-t-slate bg-limestone-line sm:grid-cols-2 lg:grid-cols-4">
       {steps.map((step, i) => (
-        <li key={step.title} className="flex flex-col bg-limestone-raised p-5 sm:p-6">
-          <span className="font-sans text-[0.75rem] font-semibold tracking-[0.16em] text-brass-ink tabular-nums">
+        <li key={step.title} className="flex flex-col bg-white p-5 sm:p-6">
+          <span className="text-[12px] font-bold tracking-[0.12em] text-brass-ink tabular-nums">
             {String(i + 1).padStart(2, "0")}
           </span>
-          <span className="mt-3 font-display text-[1.02rem] leading-[1.35] font-semibold text-slate">
+          <span className="mt-3 font-display text-[16.5px] leading-[1.35] font-bold text-slate">
             {step.title}
           </span>
           {step.detail ? (
-            <span className="mt-2.5 text-[0.92rem] leading-[1.65] text-slate-muted">
+            <span className="mt-2.5 text-[14.5px] leading-[1.65] text-slate-muted">
               {step.detail}
             </span>
           ) : null}
@@ -115,15 +118,15 @@ export function ContrastPair({
     side: { label: string; title: string; points: string[] },
     tone: "good" | "bad",
   ) => (
-    <div className="bg-limestone-raised p-5 sm:p-6">
+    <div className="bg-white p-5 sm:p-6">
       <span
-        className={`font-sans text-[0.72rem] font-semibold tracking-[0.16em] uppercase ${
+        className={`text-[12px] font-bold tracking-[0.12em] uppercase ${
           tone === "good" ? "text-brass-ink" : "text-slate-muted"
         }`}
       >
         {side.label}
       </span>
-      <p className="mt-3 font-display text-[1.02rem] leading-[1.35] font-semibold text-slate">
+      <p className="mt-3 font-display text-[16.5px] leading-[1.35] font-bold text-slate">
         {side.title}
       </p>
       <ul className="mt-4 space-y-2.5">
@@ -133,7 +136,7 @@ export function ContrastPair({
               aria-hidden="true"
               className={`mt-[0.65rem] h-px w-3 shrink-0 ${tone === "good" ? "bg-brass" : "bg-slate-muted/50"}`}
             />
-            <span className="text-[0.92rem] leading-[1.65] text-slate-muted">{point}</span>
+            <span className="text-[14.5px] leading-[1.65] text-slate-muted">{point}</span>
           </li>
         ))}
       </ul>
@@ -141,7 +144,7 @@ export function ContrastPair({
   );
 
   return (
-    <div className="grid gap-px overflow-hidden rounded-[3px] border border-limestone-line bg-limestone-line sm:grid-cols-2">
+    <div className="grid gap-px overflow-hidden rounded-[4px] border border-limestone-line border-t-[3px] border-t-slate bg-limestone-line sm:grid-cols-2">
       {column(left, "good")}
       {column(right, "bad")}
     </div>
@@ -164,23 +167,21 @@ export function SealScope({
   seals: { engineer: string; scope: string }[];
 }) {
   return (
-    <div className="overflow-hidden rounded-[3px] border border-limestone-line">
+    <div className="overflow-hidden rounded-[4px] border border-limestone-line border-t-[3px] border-t-slate">
       <div className="border-b border-limestone-line bg-limestone-sunk px-5 py-3.5 sm:px-6">
-        <span className="font-sans text-[0.72rem] font-semibold tracking-[0.16em] text-slate-muted uppercase">
+        <span className="text-[12px] font-bold tracking-[0.12em] text-slate-muted uppercase">
           One sealed document
         </span>
-        <p className="mt-1.5 font-display text-[1.02rem] font-semibold text-slate">{documentName}</p>
+        <p className="mt-1.5 font-display text-[16.5px] font-bold text-slate">{documentName}</p>
       </div>
       <ul className="grid gap-px bg-limestone-line sm:grid-cols-2">
         {seals.map((seal) => (
-          <li key={seal.engineer} className="bg-limestone-raised p-5 sm:p-6">
+          <li key={seal.engineer} className="bg-white p-5 sm:p-6">
             <span className="inline-flex items-center gap-2.5">
-              <SealIcon className="text-brass" />
-              <span className="font-sans text-[0.8rem] font-semibold text-slate">
-                {seal.engineer}
-              </span>
+              <SealIcon className="text-brass-ink" />
+              <span className="text-[14px] font-bold text-slate">{seal.engineer}</span>
             </span>
-            <p className="mt-3 text-[0.92rem] leading-[1.65] text-slate-muted">{seal.scope}</p>
+            <p className="mt-3 text-[14.5px] leading-[1.65] text-slate-muted">{seal.scope}</p>
           </li>
         ))}
       </ul>
