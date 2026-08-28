@@ -1,4 +1,10 @@
-import { business } from "@/config/business";
+import { emailIdentity, fromHeader, type SenderPurpose } from "@/config/email-identity";
+import {
+  renderEmailHtml,
+  renderEmailText,
+  type EmailBlock,
+  type LayoutInput,
+} from "./email-layout";
 
 /**
  * Every outbound email this site sends, as pure functions.
@@ -15,22 +21,39 @@ import { business } from "@/config/business";
  * credentials, no server-only import, so the audit can render every template and
  * check it the way the site's own copy is checked.
  *
- * WHY PLAIN TEXT AND NO HTML PART
- * -------------------------------
- * These are operator notifications, not marketing. One person reads them, on a
- * phone, usually from a lock screen preview, and often replies to the sender
- * directly. Plain text is readable in that preview, quotable in a reply, and
- * immune to the image blocking that would hide half of an HTML version. The
- * audit knows there is no HTML part and reports the 375px render check as not
- * applicable rather than silently passing it.
+ * PLAIN TEXT ONLY IS SUPERSEDED, AND THE REASONING IS KEPT
+ * --------------------------------------------------------
+ * These were text only, and the argument was good: an operator reads a
+ * notification from a lock screen preview, and image blocking hides half of an
+ * HTML email. That argument was for plain text OR html.
+ *
+ * Every template is multipart now, so the preview stays readable, a blocked
+ * image costs nothing, and what a candidate opens looks like it came from a
+ * firm. The text part is still required by the audit and is generated from the
+ * same blocks as the HTML, so the two cannot drift.
+ *
+ * The layout itself is src/lib/email-layout.ts. Templates below assemble blocks
+ * and never write markup, which is what keeps one change to the header or the
+ * footer reaching every message this firm sends.
  */
 
 export type RenderedEmail = {
   /** A stable identifier, used by the audit to name a failure. */
   id: string;
   subject: string;
-  /** The plain text body. There is deliberately no HTML part. */
+  /** The plain text part. Generated from the same blocks as the HTML. */
   text: string;
+  /**
+   * Which sender identity this goes out as.
+   *
+   * "operator" is machine to operator and is not signed. "human" is anything a
+   * person outside the firm reads: named From, reply-to a mailbox somebody
+   * actually reads, and a signature block. The audit asserts the signature
+   * matches src/config/email-identity.ts.
+   */
+  purpose: SenderPurpose;
+  /** The From header, derived from the purpose. */
+  from: string;
   replyTo?: string;
   /**
    * Who receives it. Defaults to the operator when absent.
@@ -48,21 +71,52 @@ export type RenderedEmail = {
 type Line = [string, string | null | undefined];
 
 /**
- * Render label and value pairs, dropping the empty ones.
+ * Assemble a template from blocks.
  *
- * A blank value is omitted rather than rendered as an empty line, so the
- * notification reads as what somebody actually submitted rather than as a form
- * with holes in it.
+ * Every template goes through here, so no template can render its own markup,
+ * forget the plaintext part, or pick a From header that disagrees with its
+ * signature.
  */
-function body(lines: Line[]): string {
-  const rendered = lines
-    .filter(([, value]) => value != null && String(value).trim() !== "")
-    .map(([label, value]) => `${label}: ${String(value).trim()}`)
-    .join("\n");
+function compose(
+  id: string,
+  purpose: SenderPurpose,
+  subject: string,
+  layout: LayoutInput,
+  extra: { to?: string; replyTo?: string } = {},
+): RenderedEmail {
+  /*
+   * Reply-to defaults from the sender identity, and that is not a nicety.
+   *
+   * The human templates went out with no reply-to at all after the layout
+   * landed, because the value used to be written into each template by hand and
+   * the rewrite dropped it. A candidate hitting reply on a confirmation would
+   * have replied to the send-only notifications address.
+   *
+   * An operator template overrides it with the enquirer's address, which is what
+   * makes replying from a phone the whole workflow. A human template that says
+   * nothing gets the mailbox somebody actually reads.
+   */
+  const sender = emailIdentity.senders[purpose];
+  const replyTo =
+    extra.replyTo ?? ("replyTo" in sender ? (sender.replyTo as string) : undefined);
 
-  // The footer carries an absolute URL. A relative path in an email is dead
-  // text, and the audit fails on one.
-  return `${rendered}\n\nSubmitted through ${business.url}.`;
+  return {
+    id,
+    purpose,
+    from: fromHeader(purpose),
+    subject,
+    html: renderEmailHtml(layout),
+    text: renderEmailText(layout),
+    ...extra,
+    replyTo,
+  };
+}
+
+/** Label and value pairs with the empty ones dropped, as layout rows. */
+function rows(lines: Line[]): [string, string][] {
+  return lines
+    .filter(([, v]) => v != null && String(v).trim() !== "")
+    .map(([k, v]) => [k, String(v).trim()] as [string, string]);
 }
 
 export type LeadEmailInput = {
@@ -81,22 +135,43 @@ export function leadNotification(input: LeadEmailInput): RenderedEmail {
   const isWaitlist = input.form === "waitlist";
   const where = input.service ? ` (${input.service})` : "";
 
-  return {
-    id: isWaitlist ? "lead.waitlist" : "lead.contact",
-    subject: `${isWaitlist ? "Waitlist" : "Contact"}: ${input.name}${where}`,
-    replyTo: input.email,
-    text: body([
-      ["Form", isWaitlist ? "Waitlist" : "Contact"],
-      ["Name", input.name],
-      ["Email", input.email],
-      ["Phone", input.phone],
-      ["City", input.city],
-      ["Service of interest", input.service],
-      ["Message", input.message],
-      ["Page", input.landingPath],
-      ["Referrer", input.referrer],
-    ]),
-  };
+  return compose(
+    isWaitlist ? "lead.waitlist" : "lead.contact",
+    "operator",
+    `${isWaitlist ? "Waitlist" : "Contact"}: ${input.name}${where}`,
+    {
+      preheader: `${isWaitlist ? "Waitlist" : "Contact"} enquiry from ${input.name}${input.city ? " in " + input.city : ""}.`,
+      blocks: [
+        {
+          kind: "p",
+          text: `${input.name} submitted the ${isWaitlist ? "waitlist" : "contact"} form.`,
+        },
+        {
+          kind: "details",
+          title: isWaitlist ? "Waitlist enquiry" : "Contact enquiry",
+          rows: rows([
+            ["Name", input.name],
+            ["Email", input.email],
+            ["Phone", input.phone],
+            ["City", input.city],
+            ["Service of interest", input.service],
+            ["Message", input.message],
+          ]),
+        },
+        {
+          kind: "details",
+          title: "Where they came from",
+          rows: rows([
+            ["Page", input.landingPath],
+            ["Referrer", input.referrer],
+          ]),
+        },
+      ],
+    },
+    // Replying to this email replies to the person who submitted it, which is
+    // the whole workflow for an operator reading it on a phone.
+    { replyTo: input.email },
+  );
 }
 
 
@@ -134,37 +209,53 @@ export type ApplicationEmailInput = {
 };
 
 export function applicationNotification(input: ApplicationEmailInput): RenderedEmail {
-  const parts: string[] = [];
+  const blocks: EmailBlock[] = [
+    {
+      kind: "p",
+      text: `${input.name} applied for ${input.positionTitle}, from ${input.city}.`,
+    },
+  ];
 
   for (const section of input.sections) {
-    const rows = section.rows
-      .filter(([, value]) => value != null && String(value).trim() !== "")
-      .map(([label, value]) => `  ${label}: ${String(value).trim()}`)
-      .join("\n");
-    if (rows) parts.push(`${section.heading.toUpperCase()}\n${rows}`);
+    const r = rows(section.rows);
+    if (r.length > 0) blocks.push({ kind: "details", title: section.heading, rows: r });
   }
 
   if (input.documents.length > 0) {
-    const lines = input.documents
-      .map((d) =>
-        d.url
-          ? `  ${d.label}: ${d.filename}\n    ${d.url}`
-          : `  ${d.label}: ${d.filename}\n    Link unavailable. The file is in the eng-uploads bucket under ${input.applicationId}.`,
-      )
-      .join("\n");
-    parts.push(`DOCUMENTS\n${lines}\n\n  Document links expire in seven days.`);
+    blocks.push({
+      kind: "details",
+      title: "Documents",
+      rows: input.documents.map(
+        (d) =>
+          [
+            d.label,
+            d.url
+              ? `${d.filename} ${d.url}`
+              : `${d.filename}. Link unavailable. The file is in the eng-uploads bucket under ${input.applicationId}.`,
+          ] as [string, string],
+      ),
+    });
+    blocks.push({ kind: "note", text: "Document links expire in seven days." });
   } else {
-    parts.push("DOCUMENTS\n  None attached.");
+    blocks.push({ kind: "details", title: "Documents", rows: [["Attached", "None"]] });
   }
 
-  parts.push(`REFERENCE\n  Application id: ${input.applicationId}`);
+  blocks.push({
+    kind: "details",
+    title: "Reference",
+    rows: [["Application id", input.applicationId]],
+  });
 
-  return {
-    id: "apply.notification",
-    subject: `New application: ${input.roleLabel} | ${input.name} | ${input.city}`,
-    replyTo: input.email,
-    text: `${parts.join("\n\n")}\n\nSubmitted through ${business.url}.`,
-  };
+  return compose(
+    "apply.notification",
+    "operator",
+    `New application: ${input.roleLabel} | ${input.name} | ${input.city}`,
+    {
+      preheader: `${input.name} applied for ${input.roleLabel}. Everything they submitted is in this message.`,
+      blocks,
+    },
+    { replyTo: input.email },
+  );
 }
 
 /**
@@ -185,28 +276,34 @@ export function applicantConfirmation(input: {
 }): RenderedEmail {
   const firstName = input.name.trim().split(/\s+/)[0] || input.name;
 
-  return {
-    id: "apply.confirmation",
-    to: input.email,
-    // Replies go to the firm. This is the one template where the recipient is
-    // not the operator, so reply-to cannot be the submitter as it is elsewhere.
-    replyTo: business.email,
-    subject: `We have your application, ${firstName}`,
-    text: [
-      `${firstName},`,
-      "",
-      `Your application for ${input.roleLabel} reached us and it is on the list to be read.`,
-      "",
-      "A person reads every one of these, not a filter. You will get a reply either way, including when the reply is that the firm is not in a position to bring you on yet. That is a real outcome here and it is said plainly rather than left as silence.",
-      "",
-      input.nextStep,
-      "",
-      `Your reference is ${input.applicationId.slice(0, 8)}. Quote it if you need to get in touch about this application.`,
-      "",
-      `254 Engineering Services`,
-      `${business.url}`,
-    ].join("\n"),
-  };
+  return compose(
+    "apply.confirmation",
+    // The one template a person outside the firm reads, so it is named and
+    // signed rather than arriving from a brand with nobody behind it.
+    "human",
+    `We have your application, ${firstName}`,
+    {
+      preheader: `Your application for ${input.roleLabel} reached us and a person will read it.`,
+      signed: true,
+      blocks: [
+        { kind: "p", text: `${firstName},` },
+        {
+          kind: "p",
+          text: `Your application for ${input.roleLabel} reached us and it is on the list to be read.`,
+        },
+        {
+          kind: "p",
+          text: "A person reads every one of these, not a filter. You will get a reply either way, including when the reply is that the firm is not in a position to bring you on yet. That is a real outcome here and it is said plainly rather than left as silence.",
+        },
+        { kind: "p", text: input.nextStep },
+        {
+          kind: "note",
+          text: `Your reference is ${input.applicationId.slice(0, 8)}. Quote it if you need to get in touch about this application.`,
+        },
+      ],
+    },
+    { to: input.email },
+  );
 }
 
 /**
