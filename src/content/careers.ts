@@ -25,26 +25,42 @@ import { peInResponsibleCharge } from "@/lib/launch";
 
 /* ----------------------------------------------------------------- the model */
 
-/** How the operating model reads from the worker's side rather than the buyer's. */
+/**
+ * How the operating model reads from the worker's side rather than the buyer's.
+ *
+ * FOLDED FROM TWO SECTIONS INTO ONE
+ * ---------------------------------
+ * The hub carried this and a second section called "what this firm actually
+ * offers", and they overlapped badly enough that one item, "the whole state,
+ * genuinely", appeared in both under the same title. A reader scrolling past two
+ * versions of the same argument does not read it twice, they stop trusting the
+ * page.
+ *
+ * The stronger line from each pair survives. "Volume from places most firms
+ * never send anybody" beat the vaguer coverage sentence. "Responsible charge
+ * that is never asked to bend" beat the abstract standards line. The engagement
+ * item went entirely: "how we engage" is its own section directly below and says
+ * the same thing with the detail this one could not carry.
+ */
 export function workingModel(): { heading: string; body: string }[] {
   return [
     {
       heading: "The work runs to written protocols",
-      body: "Every service line has a documented inspection procedure that says what is measured, what is photographed, in what order, and what is recorded when a condition cannot be observed. Technicians are certified on a protocol before a first assignment on it. That is not bureaucracy for its own sake: a record collected the same way every time is the only kind a reviewing engineer can rely on without having been there.",
+      body: "Every service line has a documented inspection procedure that says what is measured, what is photographed, in what order, and what is recorded when a condition cannot be observed. Technicians are certified on a protocol before a first assignment on it. Written protocols rather than individual habit is what lets one person's record be read by somebody who was not there.",
     },
     {
       heading: "A licensed engineer sits at the centre",
       body: peInResponsibleCharge()
-        ? "Field work gathers evidence and does not reach conclusions. A Texas licensed Professional Engineer reads the record, forms the opinion, and takes responsible charge of the sealed document. The separation is what lets one standard hold across a state this size."
-        : "Field work gathers evidence and does not reach conclusions. A Texas licensed Professional Engineer will read the record, form the opinion, and take responsible charge of the sealed document. The separation is what will let one standard hold across a state this size. No engineer of record is in place yet, which is why the engineering seat is open.",
+        ? "Field work gathers evidence and does not reach conclusions. A Texas licensed Professional Engineer reads the record, forms the opinion, and takes responsible charge of the sealed document. Responsible charge is never asked to bend: if a record does not support an opinion, the answer is that it does not, and the job goes back to the field."
+        : "Field work gathers evidence and does not reach conclusions. A Texas licensed Professional Engineer will read the record, form the opinion, and take responsible charge of the sealed document. Responsible charge will never be asked to bend: if a record does not support an opinion, the answer is that it does not, and the job goes back to the field. No engineer of record is in place yet, which is why the engineering seat is open.",
     },
     {
-      heading: "The operations are the product",
-      body: "Dispatch, protocol capture, review queues, and delivery run on systems the firm builds rather than on a phone tree and a shared drive. For a technician that means an assignment arrives with the protocol attached and the evidence uploads from the property. For an engineer it means a file arrives complete or it does not arrive at all.",
+      heading: "Technology in the boring places",
+      body: "Dispatch, protocol capture, review queues, and delivery run on systems the firm builds rather than on a phone tree and a shared drive. For a technician that means an assignment arrives with the protocol attached and the evidence uploads from the property. For an engineer it means a review is reading evidence rather than chasing it.",
     },
     {
       heading: "The whole state, genuinely",
-      body: "Coverage is all 254 counties, grouped into eight regions on the lines that already organize permitting and emergency management. For a technician that means work in places most firms never dispatch to. For an engineer it means volume from every part of Texas rather than from one metro.",
+      body: "All 254 counties, grouped into eight regions on the lines that already organize permitting and emergency management. For a technician that means claiming the counties you can actually reach, including places most firms never dispatch to. For an engineer it means volume from every part of Texas rather than from one metro.",
     },
   ];
 }
