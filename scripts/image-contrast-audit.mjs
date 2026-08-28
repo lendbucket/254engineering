@@ -17,17 +17,45 @@
  * hero with a photograph in it is a false green. This measures the actual
  * rendered pixels instead.
  *
+ * A GRADIENT IS THE SAME PROBLEM AS A PHOTOGRAPH
+ * ----------------------------------------------
+ * The approved v5 design has no photography on the homepage. It has four bands
+ * with gradient backgrounds, and axe cannot resolve a gradient either. The first
+ * render of the rebuilt hero put the h1 in navy on a navy gradient, because
+ * globals.css sets a colour on h1 through h4 at the base layer and a declaration
+ * on the element beats the colour inherited from the section. It was invisible,
+ * and contrast-audit passed.
+ *
+ * That is why every dark band on this page is a target below.
+ *
  * HOW IT WORKS
  * ------------
- * For each declared target: read the element's box and its computed colour, then
- * make the text itself transparent and screenshot the page. Sampling the
- * resulting image inside the box gives the true background under the glyphs,
- * photograph, scrim, gradients and all. The check then compares the text colour
- * against the WORST pixel in that box rather than the average, because a
- * headline is only as legible as its least legible letter.
+ * For each declared target: read the rectangles the TEXT actually occupies and
+ * its computed colour, then make the text transparent and screenshot the page.
+ * Sampling inside those rectangles gives the true background under the glyphs,
+ * photograph, scrim, gradients and all. The check compares the text colour
+ * against the WORST pixel found, because a headline is only as legible as its
+ * least legible letter.
  *
  * Only the extremes matter, so the sample is decimated: every third pixel in
  * both directions is plenty at this resolution and it keeps the run fast.
+ *
+ * WHY TEXT RECTANGLES AND NOT THE ELEMENT BOX
+ * -------------------------------------------
+ * The first version used getBoundingClientRect(). A block level element's box is
+ * as wide as its column whatever the text inside it does, so an eyebrow reading
+ * "Veteran owned. Statewide." reported a box 896 pixels wide for about 250
+ * pixels of glyphs. The check was then sampling 650 pixels of open sky to the
+ * right of the last letter and failing the element on a pixel no reader will
+ * ever see type on.
+ *
+ * That produced a false FAIL on the bold hero that survived two rounds of
+ * tuning the scrim, because no amount of scrim behind the TEXT could change a
+ * verdict being decided somewhere else entirely.
+ *
+ * A Range over the element's text nodes returns getClientRects(), which is one
+ * tight rectangle per rendered line. That is where the glyphs are, so that is
+ * what gets measured.
  */
 import fs from "node:fs";
 import os from "node:os";
@@ -50,42 +78,43 @@ const WIDTHS = [390, 1280];
 const TARGETS = [
   {
     page: "/",
-    name: "home hero",
+    name: "hero gradient",
     selectors: [
-      { label: "h1", css: "h1" },
-      { label: "eyebrow", css: "section:first-of-type p.uppercase" },
-      { label: "lede", css: "section:first-of-type p.max-w-xl" },
-      { label: "figures", css: "section:first-of-type dd span:first-child" },
-      { label: "figure labels", css: "section:first-of-type dd span:last-child" },
-    ],
-  },
-  // The interior mastheads. PageHeader renders a photograph panel on the
-  // surfaces mapped in src/content/photos.ts, with the type on solid navy
-  // beside it rather than over it. These entries exist so that construction
-  // cannot silently regress into type-over-picture on a later edit.
-  {
-    page: "/services",
-    name: "services masthead",
-    selectors: [
-      { label: "h1", css: "h1" },
-      { label: "lede", css: "section:first-of-type h1 ~ div" },
+      { label: "h1", css: "section#top h1" },
+      { label: "status pill", css: "section#top span.uppercase" },
+      { label: "lede", css: "section#top p.max-w-\\[56ch\\]" },
+      { label: "stat figure", css: "section#top dd span:first-child" },
+      { label: "stat label", css: "section#top dd span:last-child" },
     ],
   },
   {
-    page: "/coverage/panhandle",
-    name: "region masthead",
+    page: "/",
+    name: "how it works gradient",
     selectors: [
-      { label: "h1", css: "h1" },
-      { label: "lede", css: "section:first-of-type h1 ~ div" },
+      { label: "h2", css: "section#process h2" },
+      { label: "lede", css: "section#process h2 + p" },
     ],
   },
   {
-    page: "/services/windstorm-wpi-8",
-    name: "service masthead",
+    page: "/",
+    name: "windstorm gradient",
     selectors: [
-      { label: "h1", css: "h1" },
-      { label: "lede", css: "section:first-of-type h1 ~ div" },
+      { label: "h2", css: "section#windstorm h2" },
+      { label: "body", css: "section#windstorm p.max-w-\\[58ch\\]" },
     ],
+  },
+  {
+    page: "/",
+    name: "careers band",
+    selectors: [
+      { label: "h2", css: "section#careers h2" },
+      { label: "lede", css: "section#careers h2 + p" },
+    ],
+  },
+  {
+    page: "/",
+    name: "navy capability card",
+    selectors: [{ label: "h3", css: "section#government h3" }],
   },
 ];
 
@@ -123,17 +152,49 @@ async function run() {
       await page.goto(BASE + target.page, { waitUntil: "networkidle" });
       await page.waitForTimeout(500);
 
-      // Boxes and colours, before anything is hidden.
+      // Text rectangles and colours, before anything is hidden.
       const boxes = [];
       for (const sel of target.selectors) {
         const handles = await page.locator(sel.css).all();
         for (const [i, h] of handles.entries()) {
           if (!(await h.isVisible())) continue;
-          const box = await h.boundingBox();
-          if (!box || box.width < 2 || box.height < 2) continue;
+
+          // One tight rectangle per rendered line of text. See the note above on
+          // why the element box is the wrong thing to measure.
+          const rects = await h.evaluate((el) => {
+            const out = [];
+            const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+            let node;
+            while ((node = walker.nextNode())) {
+              if (!node.nodeValue || !node.nodeValue.trim()) continue;
+              const range = document.createRange();
+              range.selectNodeContents(node);
+              for (const r of range.getClientRects()) {
+                if (r.width >= 2 && r.height >= 2) {
+                  // Page coordinates. getClientRects is relative to the viewport
+                  // and the screenshot below is the full page, so anything below
+                  // the fold would otherwise be sampled at the wrong offset or,
+                  // worse, outside the image entirely.
+                  out.push({
+                    x: r.x + window.scrollX,
+                    y: r.y + window.scrollY,
+                    width: r.width,
+                    height: r.height,
+                  });
+                }
+              }
+            }
+            return out;
+          });
+          if (rects.length === 0) continue;
+
           const color = parseColor(await h.evaluate((el) => getComputedStyle(el).color));
           if (!color) continue;
-          boxes.push({ label: handles.length > 1 ? `${sel.label} #${i + 1}` : sel.label, box, color });
+          boxes.push({
+            label: handles.length > 1 ? `${sel.label} #${i + 1}` : sel.label,
+            rects,
+            color,
+          });
         }
       }
 
@@ -165,34 +226,54 @@ async function run() {
       await page.waitForTimeout(200);
 
       const shot = path.join(tmp, `${width}.png`);
-      await page.screenshot({ path: shot });
+      // fullPage, because targets below the fold are the norm on a long page.
+      await page.screenshot({ path: shot, fullPage: true });
 
       const { data, info } = await sharp(shot).raw().toBuffer({ resolveWithObject: true });
       const channels = info.channels;
 
-      for (const { label, box, color } of boxes) {
+      for (const { label, rects, color } of boxes) {
         const textLum = luminance(color.r, color.g, color.b);
         let worst = Infinity;
         let worstPixel = null;
 
-        const x0 = Math.max(0, Math.floor(box.x));
-        const y0 = Math.max(0, Math.floor(box.y));
-        const x1 = Math.min(info.width, Math.ceil(box.x + box.width));
-        const y1 = Math.min(info.height, Math.ceil(box.y + box.height));
+        for (const box of rects) {
+          const x0 = Math.max(0, Math.floor(box.x));
+          const y0 = Math.max(0, Math.floor(box.y));
+          const x1 = Math.min(info.width, Math.ceil(box.x + box.width));
+          const y1 = Math.min(info.height, Math.ceil(box.y + box.height));
 
-        for (let y = y0; y < y1; y += 3) {
-          for (let x = x0; x < x1; x += 3) {
-            const i = (y * info.width + x) * channels;
-            const l = luminance(data[i], data[i + 1], data[i + 2]);
-            const c = contrast(textLum, l);
-            if (c < worst) {
-              worst = c;
-              worstPixel = [data[i], data[i + 1], data[i + 2]];
+          for (let y = y0; y < y1; y += 3) {
+            for (let x = x0; x < x1; x += 3) {
+              const i = (y * info.width + x) * channels;
+              const l = luminance(data[i], data[i + 1], data[i + 2]);
+              const c = contrast(textLum, l);
+              if (c < worst) {
+                worst = c;
+                worstPixel = [data[i], data[i + 1], data[i + 2]];
+              }
             }
           }
         }
 
-        if (!Number.isFinite(worst)) continue;
+        /*
+         * A target that sampled no pixels is a finding, never a skip.
+         *
+         * This was `continue`, and it hid four of the five bands on the rebuilt
+         * homepage: they sit below the fold, the screenshot was viewport only, so
+         * every sample coordinate fell outside the image and the loop ran zero
+         * times. The audit reported a confident pass over the one band it could
+         * see and said nothing about the rest.
+         *
+         * That is the exact failure this file exists to prevent, committed by
+         * this file.
+         */
+        if (!Number.isFinite(worst)) {
+          const message = `${target.name} @${width}: ${label} sampled no pixels, so nothing was measured. The element box is outside the captured image.`;
+          checks.push({ name: `${target.name} @${width}: ${label}`, ok: false, detail: "sampled no pixels" });
+          findings.push(message);
+          continue;
+        }
 
         // 4.5:1 is the AA floor for normal text. Large text is allowed 3:1, and
         // the h1 and the figures qualify, but they are held to 4.5 here anyway:

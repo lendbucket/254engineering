@@ -35,7 +35,7 @@ import { Wordmark } from "@/components/brand/Wordmark";
  * above, which is the whole reason this is keyed on pathname rather than on a
  * click handler.
  */
-export function MobileNav({ onDark = false }: { onDark?: boolean } = {}) {
+export function MobileNav({ prelaunch }: { prelaunch: boolean }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
@@ -61,33 +61,34 @@ export function MobileNav({ onDark = false }: { onDark?: boolean } = {}) {
   }, [open]);
 
   return (
-    <div className="md:hidden">
+    <div className="lg:hidden">
       <button
         type="button"
         aria-label="Open menu"
         aria-expanded={open}
         onClick={() => setOpen(true)}
-        className={`-mr-2 inline-flex h-11 w-11 items-center justify-center ${onDark ? "text-slate-fg" : "text-slate"}`}
+        className="-ml-1 flex min-h-[48px] items-center gap-[10px] px-1 py-[15px] text-[14.5px] font-bold tracking-[0.04em] text-slate-fg"
       >
-        <span aria-hidden="true" className="relative block h-[13px] w-6">
-          <span className="absolute inset-x-0 top-0 h-px bg-current" />
-          <span className="absolute inset-x-0 top-1.5 h-px bg-current" />
-          <span className="absolute inset-x-0 top-3 h-px bg-current" />
+        <span aria-hidden="true" className="flex flex-col gap-[4px]">
+          <span className="block h-[2px] w-[18px] bg-current" />
+          <span className="block h-[2px] w-[18px] bg-current" />
+          <span className="block h-[2px] w-[18px] bg-current" />
         </span>
+        MENU
       </button>
 
       {open ? (
         <div
           data-testid="mobile-menu"
-          className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-limestone"
+          className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-slate-deep"
         >
-          <div className="flex items-center justify-between border-b border-limestone-line px-5 py-4">
-            <Wordmark />
+          <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+            <Wordmark onDark height={52} />
             <button
               type="button"
               aria-label="Close menu"
               onClick={() => setOpen(false)}
-              className="-mr-2 inline-flex h-11 w-11 items-center justify-center text-slate"
+              className="-mr-2 inline-flex h-11 w-11 items-center justify-center text-slate-fg"
             >
               <span aria-hidden="true" className="relative block h-5 w-5">
                 <span className="absolute top-1/2 left-0 h-px w-full rotate-45 bg-current" />
@@ -99,16 +100,22 @@ export function MobileNav({ onDark = false }: { onDark?: boolean } = {}) {
           <nav aria-label="Primary" className="px-5 py-4">
             <ul>
               {primaryNav.map((item) => (
-                <li key={item.href} className="border-b border-limestone-line/70">
+                <li key={item.href} className="border-b border-white/10">
                   <Link
                     href={item.href}
-                    className="block py-4 font-display text-xl font-semibold text-slate"
+                    className="block py-4 text-[15.5px] font-semibold text-slate-fg"
                   >
                     {item.label}
                   </Link>
                 </li>
               ))}
             </ul>
+            <Link
+              href={prelaunch ? "/waitlist" : "/contact"}
+              className="block border-b border-white/10 py-4 text-[15.5px] font-bold text-brass-light"
+            >
+              {prelaunch ? "Join the Waitlist" : "Contact the Firm"}
+            </Link>
           </nav>
         </div>
       ) : null}
