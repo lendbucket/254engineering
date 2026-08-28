@@ -225,3 +225,105 @@ standing rule.
 
 4. **"Founding customers join the waitlist for launch pricing."** A pricing
    reference on a firm that cannot yet sell. Checked against the gate in Section 2.
+
+## Interior Parity Standard
+
+The operator's judgment is that the homepage is at the level the firm needs and
+the interior pages are not. He is right, and the reason is specific: the design
+port applied the homepage's tokens to the interior surfaces without recomposing
+them. Same paint, different architecture.
+
+This section is the checklist every interior page is judged against. It is
+written from measurement of the shipped homepage rather than from impression, so
+that "does this match" is a question with an answer.
+
+### The acceptance test
+
+Place a page's 1280 and 390 screenshots beside the homepage's and ask: would a
+visitor believe the same designer composed both on the same day. Not the same
+colours. The same craft.
+
+### 1. The band rhythm, which is the single biggest device
+
+The homepage is nine sections and it alternates light and dark without exception:
+
+| # | Section | Ground |
+| --- | --- | --- |
+| 1 | hero | navy gradient |
+| 2 | credibility strip | white |
+| 3 | services | limestone |
+| 4 | how it works | navy gradient |
+| 5 | coverage | white |
+| 6 | windstorm | navy gradient |
+| 7 | government | white |
+| 8 | careers | solid navy |
+| 9 | waitlist | limestone |
+
+Three dark bands in nine sections, never two dark adjacent, never more than two
+light in a row. Light alternates between white and limestone so that two
+consecutive light sections still separate.
+
+**The interior failure this names.** A typical interior page today is masthead,
+then five light sections, then one navy call to action. One dark band in seven.
+That is the whole difference between rhythm and a list.
+
+**The rule.** Any interior page with four or more sections carries at least one
+dark band in its middle, not only at the end. The section that earns it is the
+one the page most wants remembered.
+
+### 2. Section padding is generous and constant
+
+`clamp(48px, 7vw, 88px)` vertical on every section, applied by `Section` in
+`ui/section.tsx`. Container `max-width: 1200px` with `clamp(16px, 4vw, 28px)`
+gutter. Interior pages using `py-14 sm:py-18` are tighter than the homepage and
+read as a denser, cheaper page. Use `Section`.
+
+### 3. Type scale, measured at 1280
+
+- Hero h1: 56px, tracking -0.84px, Archivo 700, max 20 characters per line.
+- Section h2: 38px, tracking -0.38px.
+- Lede: 16px, 1.7 line height, capped at 62 characters.
+- Eyebrow: 12px, 0.14em, bold, uppercase, gold.
+
+The oversized display moment is the hero and nothing else competes with it. An
+interior page gets one h1 at `clamp(30px, 4.2vw, 46px)`, deliberately a step
+down, and its h2s match the homepage's.
+
+### 4. Card language
+
+4px radius, 1px limestone border, **3px navy top border**, white fill, 24px
+padding, and on a link card a 3px lift with
+`shadow-[0_10px_24px_rgba(20,49,93,0.14)]` over 200ms. Icon in a 46px navy
+square. Category tag at 11.5px, 0.1em, gold, top right.
+
+A bordered box without the navy top rule is not this system's card.
+
+### 5. The gold devices, and their limits
+
+Gold appears as: the eyebrow, the 3px left bar on a callout, the top rule above
+the footer, the CTA button fill with navy text, and the hairline under a stat
+rail. Gold is never body text on a light surface. One gold signature moment per
+page is permitted and more than one is noise.
+
+### 6. The section head is never bare
+
+Every homepage section opens eyebrow, h2, lede. An interior section that opens
+with only a heading is missing the device that makes the homepage read as
+composed rather than assembled.
+
+### 7. Numbered sequences carry a ghost numeral
+
+The process cards carry a 150px `limestone-sunk` numeral behind the copy,
+bottom right, `aria-hidden`. Any interior page with an ordered sequence uses the
+same treatment rather than a small numeral above a rule.
+
+### 8. The closing band
+
+Every page ends on a conversion band: navy, eyebrow, h2, lede, gold primary
+button, outline secondary. `OfferCta` already does this and every page already
+has it. This is the one device the interior pages did not lose.
+
+### What must NOT change while recomposing
+
+Content, metadata, schema, forms wiring, and compliance gates. Section intro
+lines are permitted where a band needs one, and the voice audit applies to them.

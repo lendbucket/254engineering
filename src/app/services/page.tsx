@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { Container } from "@/components/ui/Container";
 import { PageHeader } from "@/components/site/PageHeader";
 import { sectionPhotos } from "@/content/photos";
 import { PrelaunchNotice } from "@/components/launch/PrelaunchNotice";
 import { OfferCta } from "@/components/launch/OfferCta";
-import { CardGrid, SectionHeading } from "@/components/ui/primitives";
+import { CardGrid } from "@/components/ui/primitives";
+import { Section, SectionHead, StatRail } from "@/components/ui/section";
+import { regions } from "@/content/regions";
 import { ServiceCard } from "@/components/services/ServiceCard";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
@@ -38,34 +39,50 @@ export default function ServicesPage() {
         <PrelaunchNotice />
       </PageHeader>
 
-      <section className="border-b border-limestone-line">
-        <Container>
-          <div className="py-14 sm:py-18">
-            <CardGrid cols={3}>
-              {services.map((service) => (
-                <ServiceCard
-                  key={service.slug}
-                  slug={service.slug}
-                  name={service.name}
-                  summary={service.summary}
-                  heading="h2"
-                  cta="What it involves"
-                />
-              ))}
-            </CardGrid>
-          </div>
-        </Container>
-      </section>
+      {/*
+        The opening statement the grid never had.
 
-      <section className="border-b border-limestone-line bg-limestone-sunk">
-        <Container>
-          <div className="py-14 sm:py-18">
-            <SectionHeading
-              eyebrow="How the work is produced"
-              title="The same process behind every one of them"
-              lede="The service lines differ in what they examine and what they produce. The way the work is carried out does not change between them."
-            />
-            <ol className="mt-11 grid gap-9 sm:grid-cols-2 lg:grid-cols-4 lg:gap-7">
+        This section was nine cards and nothing else: a list wearing card chrome,
+        opening on the first card's own heading. Every homepage section opens
+        eyebrow, heading, lede, and that device is most of why the homepage reads
+        as composed rather than assembled. The stat rail underneath is the
+        homepage's, counting real data rather than stating a number.
+      */}
+      <Section tone="sunk">
+        <SectionHead
+          eyebrow="The service lines"
+          title="Nine documents, one standard behind each"
+          lede="Each line ends in something a lender, an insurer, a building official, or a court has to accept. They differ in what they examine. They do not differ in how the work is carried out."
+        />
+        <div className="mt-8 border-t border-limestone-line pt-7">
+          <StatRail
+            onDark={false}
+            stats={[
+              { figure: services.length, label: "Sealed service lines" },
+              { figure: regions.length, label: "Service regions" },
+              { figure: 254, label: "Texas counties covered" },
+            ]}
+          />
+        </div>
+      </Section>
+
+      {/*
+        The process band is navy, matching the homepage's "How It Works".
+
+        This page had one dark band, at the very end, which is the difference
+        between rhythm and a list. The homepage carries three in nine sections and
+        never puts them all at the bottom. The section that earns the band here is
+        the one the page most wants remembered: that the nine lines are nine
+        documents produced one way.
+      */}
+      <Section tone="navy">
+        <SectionHead
+          eyebrow="How the work is produced"
+          title="The same process behind every one of them"
+          lede="The service lines differ in what they examine and what they produce. The way the work is carried out does not change between them."
+          onDark
+        />
+        <ol className="mt-9 flex flex-wrap gap-[clamp(20px,3vw,28px)]">
               {[
                 {
                   step: "01",
@@ -87,22 +104,50 @@ export default function ServicesPage() {
                   title: "Sealed and delivered",
                   body: "The document is sealed and delivered as a PDF formatted for whoever has to accept it, whether that is a plans examiner, an underwriter, or a loan file.",
                 },
-              ].map((item) => (
-                <li key={item.step}>
-                  <span className="font-sans text-[0.8rem] font-semibold tracking-[0.14em] text-brass-ink">
-                    {item.step}
-                  </span>
-                  <span aria-hidden="true" className="mt-3 mb-4 block h-px w-10 bg-brass" />
-                  <h3 className="text-[1.05rem] leading-[1.35] font-semibold text-slate">
-                    {item.title}
-                  </h3>
-                  <p className="mt-3 text-[0.93rem] leading-[1.7] text-slate-muted">{item.body}</p>
-                </li>
+        ].map((item) => (
+          <li
+            key={item.step}
+            /* basis, not bare flex-1. See the note in ProcessStep: three of
+               these in a wrapping row with a zero basis never reach the wrap
+               threshold and hold four columns at every width. */
+            className="relative flex flex-1 basis-[240px] flex-col overflow-hidden rounded-[4px] bg-white p-[clamp(22px,2.6vw,30px)]"
+          >
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute -bottom-[34px] right-2 font-display text-[132px] leading-none font-extrabold text-limestone-sunk select-none"
+            >
+              {item.step.replace(/^0/, "")}
+            </span>
+            <div className="relative">
+              <p className="text-[12px] font-bold tracking-[0.12em] text-brass-ink uppercase">
+                Step {item.step.replace(/^0/, "")} of 4
+              </p>
+              <h3 className="mt-2 font-display text-[clamp(19px,2.1vw,23px)] leading-[1.25] font-bold text-slate">
+                {item.title}
+              </h3>
+              <p className="mt-3 text-[15px] leading-[1.7] text-slate-muted">{item.body}</p>
+            </div>
+          </li>
+        ))}
+        </ol>
+      </Section>
+
+      <Section tone="white">
+        <div>
+            <CardGrid cols={3}>
+              {services.map((service) => (
+                <ServiceCard
+                  key={service.slug}
+                  slug={service.slug}
+                  name={service.name}
+                  summary={service.summary}
+                  heading="h2"
+                  cta="What it involves"
+                />
               ))}
-            </ol>
-          </div>
-        </Container>
-      </section>
+            </CardGrid>
+        </div>
+      </Section>
 
       <OfferCta />
     </>
