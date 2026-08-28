@@ -1,3 +1,4 @@
+import { business } from "@/config/business";
 import { emailIdentity, fromHeader, type SenderPurpose } from "@/config/email-identity";
 import {
   renderEmailHtml,
@@ -314,9 +315,153 @@ export function applicantConfirmation(input: {
  * exactly the kind of string the placeholder audit is built to reject, which is
  * why they live here and not in any module the site imports at runtime.
  */
+
+/**
+ * The operator's notification that an onboarding has been submitted.
+ *
+ * WHAT IS DELIBERATELY NOT IN IT
+ * ------------------------------
+ * No invite token, no signed URL, and no document. An email is the least
+ * controlled place a credential can end up: it sits in an inbox indefinitely, it
+ * is forwarded, and it is indexed by whatever the operator's mail provider does.
+ * Putting a working link to somebody's passport in one would undo the ten minute
+ * signed URL ceiling in src/lib/onboarding-uploads.ts.
+ *
+ * So this says what happened and where to go. The operator follows a plain admin
+ * URL, signs in, and mints a signed URL there when they actually need to look at
+ * a document. That is one more click and it is the difference between a link
+ * that lives for ten minutes and one that lives forever.
+ */
+export function onboardingSubmitted(input: {
+  personName: string;
+  personEmail: string;
+  role: "engineer" | "field_tech";
+  onboardingId: string;
+  itemCount: number;
+}): RenderedEmail {
+  const roleLabel =
+    input.role === "engineer" ? "Professional Engineer" : "Field Inspection Technician";
+
+  return compose(
+    "onboarding.submitted",
+    "operator",
+    `Onboarding submitted: ${input.personName}`,
+    {
+      preheader: `${input.personName} finished their onboarding checklist and it is ready to review.`,
+      blocks: [
+        { kind: "p", text: `${input.personName} has submitted their onboarding.` },
+        {
+          kind: "details",
+          title: "Who",
+          rows: [
+            ["Name", input.personName],
+            ["Email", input.personEmail],
+            ["Role", roleLabel],
+          ],
+        },
+        {
+          kind: "details",
+          title: "What is waiting",
+          rows: [
+            ["Checklist items complete", String(input.itemCount)],
+            [
+              "Still needs you",
+              "Identity confirmed on the video call, and I-9 Section 2 document examination, which federal procedure requires be done live.",
+            ],
+          ],
+        },
+        {
+          kind: "note",
+          text: "Documents are not attached and no link in this message opens one. Sign in to the admin portal and open them there, where each link lasts ten minutes.",
+        },
+      ],
+      // The button goes to the portal, not to a document. See the note above on
+      // why a signed URL never travels in an email.
+      button: {
+        label: "Open in the admin portal",
+        url: `${business.url}/admin/onboarding/${input.onboardingId}`,
+      },
+    },
+    { replyTo: input.personEmail },
+  );
+}
+
+/**
+ * The invite, sent to the person being onboarded.
+ *
+ * This one DOES carry a token, because the token is the entire point of it and
+ * there is no other way to reach the flow. That is a considered trade rather
+ * than an oversight: the link is single purpose, it expires in fourteen days, it
+ * is regenerable, and generating a new one invalidates the old.
+ *
+ * Sent by the operator from the admin portal rather than automatically on
+ * creation, so a link is never in flight before the operator meant it to be.
+ */
+export function onboardingInvite(input: {
+  personName: string;
+  personEmail: string;
+  role: "engineer" | "field_tech";
+  inviteUrl: string;
+  expiresAt: string;
+}): RenderedEmail {
+  const roleLabel =
+    input.role === "engineer" ? "Professional Engineer" : "Field Inspection Technician";
+
+  return compose(
+    "onboarding.invite",
+    // A person outside the firm reads this one, so it is named and signed.
+    "human",
+    `Your onboarding for ${business.name}`,
+    {
+      preheader: `Your onboarding link for the ${roleLabel} role, and what to have ready.`,
+      signed: true,
+      blocks: [
+        { kind: "p", text: `${input.personName},` },
+        {
+          kind: "p",
+          text: `Welcome to ${business.name}. Before your first assignment there are a few documents to collect for the ${roleLabel} role.`,
+        },
+        {
+          kind: "p",
+          text: `The link below works until ${input.expiresAt} and it is yours alone. Your progress saves as you go, so you can stop and come back to the same link.`,
+        },
+        { kind: "heading", text: "What you will need" },
+        {
+          kind: "p",
+          text: "A government issued photo ID, and the forms named in the flow. Each step says what it wants and links the form where one is needed.",
+        },
+        {
+          kind: "note",
+          text: "You are never asked to type a social security, account, or routing number into this site. Where a form involves one, you upload the completed document and nothing is read out of it.",
+        },
+        {
+          kind: "p",
+          text: `If something is wrong, reply to this message or write to ${business.email} and a new link will be issued.`,
+        },
+      ],
+      button: { label: "Open your onboarding", url: input.inviteUrl },
+    },
+    { to: input.personEmail },
+  );
+}
+
 export function allTemplatesForAudit(): RenderedEmail[] {
 
   return [
+    onboardingSubmitted({
+      personName: "Sample Engineer",
+      personEmail: "sample.engineer@254engineering.com",
+      role: "engineer",
+      onboardingId: "00000000-0000-4000-8000-000000000000",
+      itemCount: 8,
+    }),
+    onboardingInvite({
+      personName: "Sample Engineer",
+      personEmail: "sample.engineer@254engineering.com",
+      role: "engineer",
+      inviteUrl: "https://254engineering.com/onboarding/sample-token-not-a-real-invite-abcdefghij",
+      expiresAt: "7 September 2026",
+    }),
     leadNotification({
       form: "contact",
       name: "Sample Enquirer",

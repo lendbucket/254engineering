@@ -543,3 +543,50 @@ target grew it to a full 44px row in a stacked flex column, so adjacent targets
 are separated by their own height rather than by a margin, and nothing on the
 site places two 44px controls closer than that. Worth a real measurement if a
 dense control cluster is ever added.
+
+## After the onboarding merge: what is now true, and what is still open
+
+`feat/onboarding-admin` merged at 6e0777f. The five workstreams it had been
+blocking are unblocked, and three of the entries above are now resolved rather
+than pending:
+
+- Its two email templates are on the shared branded layout and inside
+  `email-audit`, which went from 4 templates and 102 checks to 6 and 152.
+- The last three `forms-audit` skips are closed on main. The teardown now removes
+  both rows and uploaded objects, and verifies both rather than trusting a delete
+  not to error.
+- The design port and the mobile pass no longer have an unreachable surface.
+
+### The onboarding stepper is still outside two audits
+
+`/onboarding/[token]` is deliberately not in the sitemap and is disallowed in
+robots, which is correct for a private per person surface. The cost is that the
+two audits which discover their own work by reading the sitemap, so that they
+grow when a page is added, cannot see it:
+
+- `mobile-overflow-audit` never checks the stepper at 360 or 390.
+- `seo-audit` never checks it, which is fine and intended.
+
+**What closing this would take.** The stepper only renders for a valid token, so
+an audit would have to seed a probe onboarding through the service role, walk the
+flow, and tear it down, which is what `forms-audit` already does for the careers
+applications. The honest place for it is therefore `forms-audit`, extended with a
+mobile width pass, rather than a second route list bolted onto the overflow
+audit. Not done, and named here rather than left as an assumption that sitemap
+coverage means full coverage.
+
+### The admin portal was never built
+
+Section 3 of the original onboarding master prompt is unstarted. `/admin` returns
+404 on the live site today, and `onboarding.submitted` sends the operator a button
+pointing at `/admin/onboarding/{id}`, which is a link to a page that does not
+exist yet. That email is correct about where the record will live and wrong about
+whether it is reachable, and it is the one thing in the merge that promises
+something absent.
+
+### A correction to an earlier report
+
+`/waitlist` was reported in the metadata audit as indexable but missing from the
+sitemap. It is disallowed in `robots.ts` and has been since before that audit, so
+it is consistently non indexed rather than half configured. The finding was wrong
+and the configuration was right.

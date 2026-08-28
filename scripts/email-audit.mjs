@@ -45,7 +45,6 @@ import { emailIdentity, fromHeader, signatureLines } from "../src/config/email-i
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
-const recSkip = (name, note) => out.push({ name, ok: true, skipped: true, note });
 
 const templates = allTemplatesForAudit();
 

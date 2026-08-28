@@ -387,13 +387,24 @@ async function roundTripChecks() {
   );
 
   /*
-   * Teardown. Audit rows do not belong in a table an operator reads.
+   * Teardown, rows and objects.
    *
-   * The check counts what is left rather than trusting the delete not to error.
-   * A delete that matches nothing does not error, so `!error` was true in every
-   * run that left rows behind: the assertion and the thing it was meant to
-   * assert had no relationship to each other.
+   * Two separate leaks, fixed on two branches, and both are kept here.
+   *
+   * The objects: once the engineer submit stopped being a skip and performed a
+   * real upload, the audit wrote a resume into eng-uploads on every run and
+   * removed only the row that pointed at it, leaving a private bucket filling
+   * with orphaned PDFs no record referenced. Uploads are keyed by application
+   * id, so the ids collected above are exactly the prefixes to remove and
+   * nothing else in the bucket is touched.
+   *
+   * The rows: the check on the row delete asserted `!error`, and a delete that
+   * matches nothing does not error, so it passed through every run that left
+   * rows behind. Thirty of them accumulated in the production tables before
+   * anybody looked. The assertion counts what survives instead.
    */
+  const appIds = Array.isArray(apps) ? apps.map((r) => r.id).filter(Boolean) : [];
+
   await db.from("eng_leads").delete().eq("site", "254").eq("name", MARKER);
   await db.from("eng_applications").delete().eq("site", "254").eq("name", MARKER);
 
@@ -410,6 +421,26 @@ async function roundTripChecks() {
     "round trip: audit rows are removed afterward",
     leadsLeft === 0 && appsLeft === 0,
     `${leadsLeft ?? "?"} lead(s) and ${appsLeft ?? "?"} application(s) still present`,
+  );
+
+  let objectsRemoved = 0;
+  let objectError = "";
+  for (const id of appIds) {
+    const listed = await db.storage.from("eng-uploads").list(`254/${id}`);
+    if (listed.error) {
+      objectError = listed.error.message;
+      continue;
+    }
+    const paths = (listed.data ?? []).map((o) => `254/${id}/${o.name}`);
+    if (paths.length === 0) continue;
+    const removed = await db.storage.from("eng-uploads").remove(paths);
+    if (removed.error) objectError = removed.error.message;
+    else objectsRemoved += paths.length;
+  }
+  rec(
+    "round trip: uploaded documents are removed afterward",
+    objectError === "",
+    objectError || `${objectsRemoved} object(s) removed across ${appIds.length} application(s)`,
   );
 }
 

@@ -22,7 +22,12 @@ import { business } from "@/config/business";
  * noindex; the two agree on purpose.
  */
 export default function robots(): MetadataRoute.Robots {
-  const allowAll = { allow: "/", disallow: ["/api/", "/waitlist"] };
+  // /onboarding and /admin are disallowed because neither is public. Neither is
+  // PROTECTED by this line: an onboarding link needs a valid 43 character token
+  // and the admin needs a session. The disallow exists so a crawler does not
+  // waste requests on routes that answer 404 and redirect, and so all three
+  // signals, robots, the sitemap, and the page metadata, say the same thing.
+  const allowAll = { allow: "/", disallow: ["/api/", "/waitlist", "/onboarding", "/admin"] };
 
   return {
     rules: [
