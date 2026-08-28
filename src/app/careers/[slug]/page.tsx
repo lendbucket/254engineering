@@ -78,14 +78,14 @@ export default async function PositionPage({ params }: { params: Promise<{ slug:
         crumbs={crumbs}
       >
         {!position.open ? (
-          <aside className="rounded-[3px] border border-slate-fg/20 bg-slate/40 px-5 py-4">
+          <aside className="border-l-4 border-brass bg-white/[0.07] px-5 py-[18px]">
             <p className="text-[0.96rem] leading-[1.65] text-slate-fg-muted">
               This position is closed. The description is kept here so that links to it still lead
               somewhere honest.
             </p>
           </aside>
         ) : isPrelaunch() ? (
-          <aside className="rounded-[3px] border border-brass/50 bg-slate/40 px-5 py-4 sm:px-6 sm:py-5">
+          <aside className="border-l-4 border-brass bg-white/[0.07] px-5 py-[18px]">
             <p className="font-sans text-[0.7rem] font-semibold tracking-[0.18em] text-brass-light uppercase">
               Building the bench
             </p>
@@ -245,7 +245,7 @@ export default async function PositionPage({ params }: { params: Promise<{ slug:
             <div className="py-3">
               <a
                 href="#apply"
-                className="flex min-h-[48px] w-full items-center justify-center rounded-[3px] bg-slate px-6 font-sans text-[0.94rem] font-semibold text-slate-fg"
+                className="flex min-h-[48px] w-full items-center justify-center rounded-[3px] bg-brass px-6 font-sans text-[15.5px] font-bold text-slate-ink transition-colors hover:bg-brass-light"
               >
                 Apply for this position
               </a>

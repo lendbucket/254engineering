@@ -435,3 +435,21 @@ wiring is done. The capture is not: the lead path records `landingPath` and
 `referrer` only, and adding UTM would mean changing the lead schema, the API
 route, and the storage column, which is exactly the internals change the port
 was told not to make. Flagged rather than done.
+
+## Two surfaces the sitewide propagation could not reach
+
+`feat/onboarding-admin` is unmerged, so the onboarding stepper and the admin
+views do not exist on `feat/approved-design`. The master prompt named both as
+propagation targets and neither was touched, because there was nothing on this
+branch to touch.
+
+**What this costs.** Whichever branch merges second inherits the work. If the
+design port merges first, the onboarding and admin surfaces arrive on main still
+drawn in the pre-v5 language and need their own pass. If onboarding merges first,
+that pass happens inside the design port's merge instead.
+
+**The pass itself is small**, because the propagation went into shared
+components. Both surfaces already render inside the root layout, so the header,
+footer, mastheads, buttons, form fields, and card chrome all come across for
+free. What would need looking at is the stepper's own progress rail and the admin
+tables, which are the only two constructs neither branch shares with a page.
