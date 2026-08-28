@@ -7,7 +7,8 @@ import path from "node:path";
  * WHAT THIS COVERS AND WHAT IT HONESTLY CANNOT
  * --------------------------------------------
  * Both roles, all five steps, per step validation, the review read back, the
- * consent gate, state surviving back navigation, and zero horizontal scroll at
+ * consent gate, the accuracy attestation, state surviving back navigation, and
+ * zero horizontal scroll at
  * 390 on every step. The technician flow is driven all the way through submit
  * and the POST body is asserted field by field.
  *
@@ -176,6 +177,26 @@ async function technicianFlow(ctx, BASE, rec) {
     (await page.getByText(/tick the box/i).isVisible().catch(() => false)) && posts.length === 0,
   );
 
+  /*
+   * The attestation is a SECOND gate, and it is checked separately.
+   *
+   * Consent and the accuracy attestation used to be one sentence and one tick.
+   * Splitting them means a run that ticks only the first must still be refused,
+   * and asserting that is the only way to know the second box is load bearing
+   * rather than decoration. Tick consent alone here and the submit must not go.
+   */
+  await flowOf(page).locator('input[type="checkbox"]').first().check();
+  await flowOf(page).getByRole("button", { name: /submit application/i }).click();
+  await page.waitForTimeout(500);
+  rec(
+    "technician review: the attestation is required on its own",
+    (await page
+      .getByText(/information you have provided is accurate/i)
+      .first()
+      .isVisible()
+      .catch(() => false)) && posts.length === 0,
+  );
+
   // ---- back navigation keeps state ----
   await page.getByRole("button", { name: /^back$/i }).click();
   await page.waitForTimeout(300);
@@ -188,7 +209,12 @@ async function technicianFlow(ctx, BASE, rec) {
   );
 
   // ---- submit ----
-  await flowOf(page).locator('input[type="checkbox"]').last().check();
+  // Both boxes. The attestation was ticked by the gate check above, and the
+  // consent box was ticked before it; checking every box is idempotent and
+  // survives a future third one being added without silently skipping it.
+  const tBoxes = flowOf(page).locator('input[type="checkbox"]');
+  const tCount = await tBoxes.count();
+  for (let i = 0; i < tCount; i++) await tBoxes.nth(i).check();
   await flowOf(page).getByRole("button", { name: /submit application/i }).click();
 
   /*
@@ -442,7 +468,11 @@ async function engineerFlow(ctx, BASE, rec, recSkip) {
       .catch(() => false),
   );
 
-  await flowOf(page).locator('input[type="checkbox"]').first().check();
+  // Both boxes: permission to be contacted, and the accuracy attestation.
+  const boxes = flowOf(page).locator('input[type="checkbox"]');
+  const boxCount = await boxes.count();
+  for (let i = 0; i < boxCount; i++) await boxes.nth(i).check();
+  rec("engineer review: consent and attestation are two separate boxes", boxCount >= 2, `${boxCount} found`);
   await flowOf(page).getByRole("button", { name: /send|submit/i }).first().click();
 
   const submitted = await page

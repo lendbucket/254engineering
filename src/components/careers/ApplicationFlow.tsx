@@ -606,6 +606,104 @@ export function ApplicationFlow({ track }: { track: Track }) {
           </>
         ) : null}
 
+        {current.id === "experience" ? (
+          <>
+            {/*
+              Optional, and labelled optional on every field.
+
+              These add evaluative substance without asking for anything
+              sensitive. Nothing here is a credential, an identifier, or a
+              number: a link somebody chose to publish, a date, and a paragraph.
+            */}
+            <TextInput
+              name="profileUrl"
+              label="LinkedIn or portfolio"
+              type="url"
+              optional
+              hint="A full web address, if you have one worth reading."
+              error={errors.profileUrl}
+              value={(values.profileUrl as string) ?? ""}
+              onChange={(v) => set("profileUrl", v)}
+            />
+            <TextInput
+              name="availability"
+              label="Earliest availability"
+              type="date"
+              optional
+              hint="Roughly when you could start. An estimate is fine."
+              error={errors.availability}
+              value={(values.availability as string) ?? ""}
+              onChange={(v) => set("availability", v)}
+            />
+            <TextArea
+              name="coverNote"
+              label="Anything you want to add"
+              optional
+              rows={5}
+              hint="Up to 1000 characters. Read by a person, not scored."
+              error={errors.coverNote}
+              value={(values.coverNote as string) ?? ""}
+              onChange={(v) => set("coverNote", v)}
+            />
+          </>
+        ) : null}
+
+        {current.id === "experience" && isEngineer ? (
+          <>
+            {/*
+              References, on the engineering seat only, and entirely optional.
+
+              A reference is evaluative for a licensed role in a way it is not
+              for dispatched field work. The permission line is not decoration:
+              nobody named here is contacted without asking the applicant first,
+              and the schema comment records that so a copy change cannot detach
+              the promise from the field.
+            */}
+            <fieldset className="rounded-[4px] border border-limestone-line p-5">
+              <legend className="px-2 font-sans text-[14px] font-bold text-slate">
+                References, optional
+              </legend>
+              <p className="mt-1 text-[14px] leading-[1.6] text-slate-muted">
+                Two people who have seen your work. They are contacted only after we ask you, and
+                never as part of reading your application.
+              </p>
+              {(["referenceOne", "referenceTwo"] as const).map((key, i) => {
+                const ref = (values[key] as Record<string, string> | undefined) ?? {};
+                const setRef = (part: string, v: string) =>
+                  set(key, { ...ref, [part]: v });
+                return (
+                  <div key={key} className="mt-5 space-y-4">
+                    <p className="text-[12px] font-bold tracking-[0.12em] text-brass-ink uppercase">
+                      Reference {i + 1}
+                    </p>
+                    <TextInput
+                      name={`${key}Name`}
+                      label="Name"
+                      optional
+                      value={ref.name ?? ""}
+                      onChange={(v) => setRef("name", v)}
+                    />
+                    <TextInput
+                      name={`${key}Relationship`}
+                      label="How they know your work"
+                      optional
+                      value={ref.relationship ?? ""}
+                      onChange={(v) => setRef("relationship", v)}
+                    />
+                    <TextInput
+                      name={`${key}Contact`}
+                      label="Phone or email"
+                      optional
+                      value={ref.contact ?? ""}
+                      onChange={(v) => setRef("contact", v)}
+                    />
+                  </div>
+                );
+              })}
+            </fieldset>
+          </>
+        ) : null}
+
         {isReview ? (
           <ReviewSummary
             steps={steps.slice(0, -1)}
@@ -624,13 +722,38 @@ export function ApplicationFlow({ track }: { track: Track }) {
                 className="mt-0.5 h-5 w-5 shrink-0 accent-slate"
               />
               <span className="text-[0.93rem] leading-[1.6] text-slate-ink">
-                I confirm the information above is accurate, and I agree that {business.name} may
-                contact me about this application. I understand a background check may be requested
-                later in the process, and that nothing of that kind is being collected by this form.
+                I agree that {business.name} may contact me about this application. I understand a
+                background check may be requested later in the process, and that nothing of that
+                kind is being collected by this form.
               </span>
             </label>
             {errors.consent ? (
               <p className="mt-2 text-[0.85rem] font-medium text-brass-ink">{errors.consent}</p>
+            ) : null}
+
+            {/*
+              The attestation, separate from the consent above it.
+
+              They used to be one sentence and one tick. They are different
+              undertakings: consent is permission to be contacted, this is the
+              applicant certifying what they wrote is true. Somebody can happily
+              agree to the first without having read back the second, and a
+              single checkbox collected both without ever asking for the second.
+            */}
+            <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-[3px] border border-limestone-line bg-limestone px-4 py-4">
+              <input
+                type="checkbox"
+                checked={values.attestation === true}
+                onChange={(e) => set("attestation", e.target.checked ? true : undefined)}
+                className="mt-0.5 h-5 w-5 shrink-0 accent-slate"
+              />
+              <span className="text-[0.93rem] leading-[1.6] text-slate-ink">
+                I certify that the information I have provided is accurate to the best of my
+                knowledge.
+              </span>
+            </label>
+            {errors.attestation ? (
+              <p className="mt-2 text-[0.85rem] font-medium text-brass-ink">{errors.attestation}</p>
             ) : null}
           </div>
         ) : null}

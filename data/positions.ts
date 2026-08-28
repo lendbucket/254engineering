@@ -60,12 +60,39 @@ export type Position = {
 
   /** The role in the firm's voice. Paragraphs. */
   about: string[];
+  /**
+   * What the person actually does, concretely.
+   *
+   * Kept separate from `about`, which is the argument for the seat. A candidate
+   * deciding whether to apply reads the argument; a candidate deciding whether
+   * they can do the job reads this. Conflating them produces a page that sounds
+   * appealing and never says what the work is.
+   */
+  responsibilities: string[];
   /** Hard requirements. Not preferences. */
   requirements: string[];
   /** Genuine pluses, described as pluses rather than as hidden requirements. */
   pluses: string[];
   /** The engagement model stated plainly, because people find this out late. */
   engagementDetail: string[];
+  /**
+   * How pay is structured, with no figures.
+   *
+   * Structure is publishable and honest: a retainer against a defined commitment,
+   * a flat rate per completed inspection. A number is not, because the number is
+   * agreed with the person at the same time as the commitment it attaches to, and
+   * publishing one before that conversation would be inventing it.
+   */
+  compensationStructure: string[];
+  /**
+   * What the seat becomes as the firm scales, stated as intent.
+   *
+   * The wording matters more here than anywhere else on the site. A firm with no
+   * revenue promising a career path is making a claim it cannot keep, so every
+   * line is written as what the firm intends and what the agreement will say,
+   * never as what will happen.
+   */
+  growth: string[];
 
   open: boolean;
   employmentType: "FULL_TIME" | "PART_TIME" | "CONTRACTOR";
@@ -98,6 +125,14 @@ export const positions: Position[] = [
       "What does not change is responsible charge. If the record in front of you does not support an opinion, the answer is that it does not, and the job goes back to the field. Nobody in this firm is authorized to ask you to seal past that. A firm that would ask is one that eventually costs an engineer their licence rather than its own.",
       "One thing to be plain about, because it affects your decision. The firm's registration with the Texas Board of Professional Engineers and Land Surveyors is not yet issued. A Texas firm registration requires an engineer in responsible charge to be named, so the selected engineer is named on that application. You would be joining at the point where the firm becomes able to practise, not after it.",
     ],
+    responsibilities: [
+      "Read field records produced to a written protocol, form the engineering opinion, and take responsible charge of the sealed deliverable.",
+      "Author and own the review protocols themselves, so the procedure that produces your evidence is one you set rather than one handed to you.",
+      "Decide what the record does and does not support, and send work back to the field when it does not.",
+      "Take responsible charge of design work where the service line calls for it: foundations, framing, and the drawing sets that get a project permitted.",
+      "Be named as the engineer in responsible charge on the firm's registration application with the Texas Board of Professional Engineers and Land Surveyors.",
+      "Set the standard that field certification is written against, so that a technician in Dalhart and a technician in Harlingen produce a record you can read the same way.",
+    ],
     requirements: [
       "An active Texas Professional Engineer licence in good standing.",
       "Structural competence in residential and light commercial work, or another discipline you can demonstrate against the service lines.",
@@ -114,6 +149,18 @@ export const positions: Position[] = [
       "The engagement starts as a part time retainer rather than a full time salary, because the honest position is that the review volume does not exist yet and inventing a headcount to look established is not something this firm does. The retainer is agreed with the selected engineer against a defined review commitment.",
       "It is structured to grow with the volume it reviews. What that growth looks like is written into the agreement rather than promised in an interview.",
       "Responsible charge is not shared and not delegated. What you seal is yours, and the firm's processes exist to make sure the record supporting it is complete before it reaches you.",
+      "The work is remote and asynchronous. Review happens against a queue rather than a calendar, so the hours are yours to arrange within the commitment you agree to.",
+    ],
+    compensationStructure: [
+      "A retainer against a defined review commitment, agreed with the selected engineer and written into the agreement rather than set by a band.",
+      "A per document component as review volume builds, so that the compensation follows the work rather than staying flat while the queue grows.",
+      "The firm supports and pays for a Texas Department of Insurance windstorm appointment for an engineer willing to pursue one, because it is what makes coastal WPI-8 volume possible at all.",
+      "Specific figures are settled in the offer conversation rather than published here. The review commitment they attach to is agreed at the same time, and a number published without it would describe nothing.",
+    ],
+    growth: [
+      "The intent is that this seat becomes the firm's engineering leadership rather than one of many review seats. The engineer named on the firm registration is the engineer who sets how review works here.",
+      "As volume supports it, the intent is to add review capacity under standards this seat authored, which makes the role progressively more about the standard and less about the queue.",
+      "None of that is a promise, and it is written here as intent for that reason. What is contractual is the retainer, the commitment it attaches to, and the refusal right. Everything beyond that is what the firm is trying to build and would rather state honestly than dress up.",
     ],
 
     open: true,
@@ -144,6 +191,14 @@ export const positions: Position[] = [
       "The work is genuinely varied because the state is. A roof in Amarillo, a manufactured home foundation in the valley, a windstorm sequence on the coast where the inspection has to happen before the work is covered up. Each has its own protocol and you are certified on it before you are dispatched on it.",
       "What makes somebody good at this is reliability and thoroughness rather than engineering knowledge. Backgrounds that transfer well include roofing, general construction, home inspection, insurance adjusting, the skilled trades, and the military. What does not transfer is a habit of filling gaps with assumptions: recording that a condition could not be observed is worth more than a guess about it.",
     ],
+    responsibilities: [
+      "Travel to properties in the counties you have chosen to serve and carry out the documented inspection procedure for that service line.",
+      "Capture measurements and photographs keyed to locations, in the order the protocol specifies, so the reviewing engineer can see what you saw.",
+      "Record what could not be observed, plainly, rather than leaving a gap or filling it with an assumption.",
+      "Upload the evidence from the property rather than reconstructing it later.",
+      "Complete protocol certification before a first assignment on any service line, and re-certify when a protocol changes.",
+      "Accept or decline each dispatched job. There is no obligation either way and no penalty for declining.",
+    ],
     requirements: [
       "A reliable vehicle, and a willingness to drive to the far edge of the counties you claim.",
       "Comfort on a ladder and around a roof, worked safely and never past what conditions allow.",
@@ -163,6 +218,17 @@ export const positions: Position[] = [
       "You control the manner and means of the work within the requirements of the written protocol, you supply your own vehicle and equipment, and you are responsible for your own taxes, insurance, and business expenses.",
       "Protocol certification comes before the first assignment. It is not a hurdle for its own sake: central review only works if the record is consistent, and an uncertified inspection is a wasted trip for you and an unreviewable file for the engineer.",
     ],
+    compensationStructure: [
+      "A flat rate per completed inspection, agreed per service line before you take an assignment on it. What you earn on a job is known when you accept it rather than worked out afterward.",
+      "Rates differ by service line, because the work differs. A windstorm sequence on the coast is not a roof condition report in a suburb, and paying the same for both would be paying the wrong amount for one of them.",
+      "There is no minimum volume, no exclusivity, and no penalty for declining a job.",
+      "As an independent contractor you supply your own vehicle and equipment and are responsible for your own taxes, insurance, and business expenses. That is stated here rather than at the offer.",
+    ],
+    growth: [
+      "The intent is that technicians who certify on more protocols see more of the dispatch, because more of it is work they are qualified to take.",
+      "Rural county groups are where technician density is thinnest, so a technician covering one is worth more to the firm than a technician in a metro, and the intent is for the rate structure to reflect that as volume allows.",
+      "The firm intends to support Part 107 certification for technicians who want it, because aerial imagery is how a steep or brittle roof gets inspected without damaging it. That support is an intent rather than a current programme.",
+    ],
 
     open: true,
     employmentType: "CONTRACTOR",
@@ -177,40 +243,26 @@ export const openPositions = (): Position[] => positions.filter((p) => p.open);
 export const positionBySlug = (slug: string): Position | undefined =>
   positions.find((p) => p.slug === slug);
 
+/**
+ * The JobPosting description, from one place.
+ *
+ * Both the hub and the position page emit JobPosting for the same role, and they
+ * were building the description differently once the page gained the deepened
+ * sections. Two structured data blocks describing the same job in different
+ * words is the kind of drift nobody sees, because nobody reads their own JSON-LD
+ * twice.
+ */
+export const positionDescription = (p: Position): string =>
+  [...p.about, ...p.responsibilities].join(" ");
+
 export const positionByTrack = (track: ApplicationTrack): Position | undefined =>
   positions.find((p) => p.track === track);
 
-/**
- * The hiring process, stated once.
+/*
+ * The hiring process moved to src/content/careers.ts.
  *
- * Five steps, and each says what actually happens rather than what sounds
- * reassuring. A candidate reading this should be able to predict their next two
- * weeks.
+ * It was described in five steps here and needed six, and a process described in
+ * two files is a process that gets corrected in one of them. It sits beside the
+ * rest of the careers hub copy now, which is also where the FAQ that references
+ * it lives.
  */
-export const hiringProcess = [
-  {
-    step: "01",
-    title: "Application",
-    body: "You complete the application for the role. It takes about ten minutes and it asks for the things that decide the answer: your licence or your background, the counties you can reach, and your documents. Nothing is asked twice.",
-  },
-  {
-    step: "02",
-    title: "Review",
-    body: "A person reads it, not a filter. You get a reply either way, including when the reply is that the firm is not in a position to bring you on yet, which is a real outcome and is said plainly rather than left as silence.",
-  },
-  {
-    step: "03",
-    title: "Phone interview",
-    body: "A short call about the work itself. For engineers, what you seal and what you will not. For technicians, the counties you would genuinely drive to and what you have inspected before.",
-  },
-  {
-    step: "04",
-    title: "Video interview",
-    body: "A longer conversation, including the specifics of the engagement, the protocols, and how review works. This is where you should ask the awkward questions about volume and pay, because the answers are better heard now.",
-  },
-  {
-    step: "05",
-    title: "Offer",
-    body: "A written agreement stating the engagement, the rate or retainer, and the obligations on both sides. Onboarding and any background verification happen after an offer is accepted, handled directly rather than through this website.",
-  },
-];

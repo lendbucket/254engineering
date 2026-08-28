@@ -76,29 +76,46 @@ export const engagementModels = [
 
 /* ---------------------------------------------------------- the hiring process */
 
+/**
+ * The hiring process.
+ *
+ * Moved here from data/positions.ts and expanded from five steps to six. Two
+ * things were missing and both are things a candidate is entitled to know
+ * before applying: that a licence is checked against the public roster, and
+ * that onboarding runs through a portal rather than over email.
+ *
+ * One source, because a process described in two files is a process that gets
+ * corrected in one of them.
+ */
 export const hiringProcess = [
   {
-    step: "Application review",
-    body: "A person reads every application. Not a filter, not a keyword screen. You get a reply either way, including when the reply is that the firm is not in a position to bring you on yet.",
+    step: "01",
+    title: "Application review",
+    body: "You complete the application for the role. It takes about ten minutes and it asks for the things that decide the answer: your licence or your background, the counties you can reach, and your documents. Nothing is asked twice. A person reads every one, not a filter.",
   },
   {
-    step: "Credential verification",
-    body: "For licensed roles, the licence is checked against the public roster the Texas Board of Professional Engineers and Land Surveyors publishes, and any windstorm appointment against the Texas Department of Insurance. Public records only. Nothing is requested from you that a public source already answers.",
+    step: "02",
+    title: "Credential verification",
+    body: "For licensed roles the licence is checked against the public roster the Texas Board of Professional Engineers and Land Surveyors publishes, and any windstorm appointment against the Texas Department of Insurance. Public records only. Nothing is requested from you that a public source already answers.",
   },
   {
-    step: "Phone interview",
+    step: "03",
+    title: "Phone interview",
     body: "A short call about the work itself. For engineers, what you will seal and what you will not. For technicians, the counties you would genuinely drive to and what you have inspected before.",
   },
   {
-    step: "Video interview and identity verification",
+    step: "04",
+    title: "Video interview and identity",
     body: "A longer conversation covering the engagement, the protocols, and how review works. This is where you should ask the awkward questions about volume and pay, because the answers are better heard now. Identity is confirmed on this call, which for a remote firm dispatching people to private property is a floor rather than a formality.",
   },
   {
-    step: "Offer and written agreement",
+    step: "05",
+    title: "Offer and written agreement",
     body: "A written agreement stating the engagement, the rate or retainer, and the obligations on both sides. Nothing about the arrangement is left to be understood.",
   },
   {
-    step: "Onboarding",
+    step: "06",
+    title: "Onboarding",
     body: "Document collection and protocol certification run through the firm's secure portal rather than over email. Background verification, where a role requires it, happens after an offer is accepted and is handled directly with you.",
   },
 ] as const;
