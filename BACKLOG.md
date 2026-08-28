@@ -381,3 +381,57 @@ visual system. The diagram set and the map are the visual system.
 `MobileNav` draws its bars and its close cross with positioned spans. They were
 left alone rather than converted to icons: the CSS is fewer bytes, scales with
 the type, and works. Replacing it would have been churn dressed as consistency.
+
+## Approved design port: open at the homepage gate
+
+Sections 1 and 2 of the v5 port shipped in 0894461. Five things were decided
+rather than deferred silently, and each is listed here so the decision is
+reviewable and not buried in a diff.
+
+### v5's two interactive constructs are static here
+
+v5 renders How It Works as a selector: three steps in a rail, one detail panel
+beside it, auto cycling on a timer. Coverage is the same construct with an eight
+region list and a map. Both are ported as static compositions, three cards and a
+list, keeping v5's step eyebrow, ghost numeral, and card chrome.
+
+**Why.** The auto cycle hides two thirds of the content behind a timer, which is
+worse for a reader who wants the whole answer and worse for a crawler that reads
+the initial HTML. The material is short enough to show at once.
+
+**If revisited**, the thing to build is a click-to-expand that is fully rendered
+in the HTML and enhanced by script, never a construct whose content only exists
+after a tick.
+
+### The coverage map has no region pins
+
+v5's map is a decorative outline of the state with eight numbered dots that
+anchor the numbered region list. The map here is the real one, 254 county paths
+with the eight region borders drawn from the same assignment the coverage lists
+use, and it carries no numbers. The list is numbered with nothing on the map to
+match.
+
+**Cost.** A reader cannot tell which shape "Panhandle" refers to without
+clicking. This is the largest single fidelity gap in the port.
+
+### The windstorm band lost v5's coastal strip
+
+v5 pairs the windstorm copy with a cropped map of the coast and a dot per first
+tier county. Here it is a two column list on a white card. The counties are
+correct and come from `src/content/windstorm.ts`, but the geography is gone.
+
+### The waitlist form has no card
+
+v5 wraps the form in a white card with a gold top rule and a "Reserve your
+place" heading, and its submit is a full width gold bar. `LeadForm` renders bare
+on the band with a navy submit. The wiring was left alone deliberately, per the
+port's rule that forms wiring is untouched, but the chrome is presentation and
+could be ported without touching the wiring.
+
+### UTM parameters are still not captured
+
+The gate ruling asked for the waitlist wired to `/api/lead` with UTM capture. The
+wiring is done. The capture is not: the lead path records `landingPath` and
+`referrer` only, and adding UTM would mean changing the lead schema, the API
+route, and the storage column, which is exactly the internals change the port
+was told not to make. Flagged rather than done.
