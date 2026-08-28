@@ -59,6 +59,12 @@ const PHASE_ONE = [
     // and mobile-audit's does so by killing whatever is on that port, which left
     // this one with nothing to fetch and a preflight failure that had nothing to
     // do with overflow.
+    // Phase one: it needs the production server on 3225, like the audits above
+    // it, and it asserts the deployed behaviour rather than reading the source.
+    name: "security-audit",
+    why: "the admin portal is closed to an unauthenticated client",
+  },
+  {
     name: "mobile-overflow-audit",
     why: "zero horizontal document scroll on EVERY sitemap route at 360 and 390",
   },

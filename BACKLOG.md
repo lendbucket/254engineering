@@ -629,3 +629,64 @@ else. The brief asked to elevate their framing, including completion states, and
 what shipped is the section rhythm only: their opening context bands and their
 progress and completion treatments are unchanged. Named here rather than counted
 as done.
+
+## The admin portal, and the three things driving it found
+
+Section 3 of the onboarding master prompt, built. Passphrase auth on a signed
+httpOnly cookie, rate limiting, a proxy gate over every admin path, dashboard,
+leads, applications with signed document links, and the onboarding review with
+per item accept and reject, the two operator verification checks, invite
+creation, and resend. `security-audit` joins the harness at 34 checks and is
+injection verified.
+
+### middleware.ts is deprecated in Next 16, and the rename is not cosmetic
+
+Written as `middleware.ts` from memory, it built cleanly and returned 500 on
+every admin route: middleware runs on the edge runtime, which has no
+`node:crypto`, and the session gate verifies an HMAC. The failure is at module
+evaluation in a runtime the build does not exercise, so nothing caught it until
+a request arrived.
+
+`proxy.ts` defaults to the Node.js runtime, which is why the same signing code
+now serves the gate and the routes. The `runtime` config option is not available
+in a proxy file and setting it throws. AGENTS.md says to read the installed docs
+before writing; this is what happens when that is skipped.
+
+### The public header and footer were rendering on the admin portal
+
+An internal tool wearing a marketing header with a "Join the Waitlist" button,
+and a public compliance footer under a table of applicant records. Same defect
+the onboarding flow shipped once, caught the same way both times: by looking at a
+screenshot rather than at the code.
+
+A nested layout cannot remove what a parent rendered, so every public route moved
+into a `(site)` route group with its own layout and the root layout now holds
+only the document. The group is a URL noop: routes, canonicals, and the 33 entry
+sitemap are unchanged, and that was verified rather than assumed.
+
+### The verification checkboxes could be toggled off by an impatient operator
+
+Controlled purely by the server value, so a click set the box, React reverted it
+because the prop had not changed, and it only appeared checked after the round
+trip and the refresh. For about a second nothing visibly happened, and the
+obvious response to nothing happening is to click again, which toggles it back
+off. Found by Playwright reporting "clicking the checkbox did not change its
+state", which is exactly what a person would have experienced.
+
+Optimistic local state leads now and the server value reconciles it, and a failed
+call drops the optimistic value rather than leaving the screen claiming something
+the record does not say.
+
+### Not covered
+
+The rate limiter is per instance and in memory. On a serverless platform a
+determined attacker who can cause new instances can reset their own budget. The
+reasoning for accepting that is written in admin-rate-limit.ts: a store on the
+login path either fails open, defeating the control, or fails closed, locking the
+operator out during an unrelated outage. For one operator and a twelve character
+floor it is the better failure shape, and it should be revisited if this portal
+ever has a second user.
+
+Applications are a list, not a detail view. Every answer is in the operator's
+email and in the payload column, but there is no per application page in the
+portal yet.

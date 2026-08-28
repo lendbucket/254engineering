@@ -1,9 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo, Open_Sans } from "next/font/google";
 import "./globals.css";
-import { SiteHeader } from "@/components/site/SiteHeader";
-import { SiteFooter } from "@/components/site/SiteFooter";
-import { JsonLd, organizationSchema, websiteSchema } from "@/lib/schema";
 import { business } from "@/config/business";
 
 /**
@@ -101,30 +98,23 @@ export const metadata: Metadata = {
   formatDetection: { telephone: false, address: false },
 };
 
+/**
+ * The root layout holds the document and nothing else.
+ *
+ * The header, the footer, the skip link, and the entity schema moved to
+ * src/app/(site)/layout.tsx when the admin portal landed. They were rendering on
+ * every route, which put a marketing header with a waitlist button on top of an
+ * internal tool and a public compliance footer under a table of applicant
+ * records.
+ *
+ * A nested layout cannot remove what a parent rendered, so the split is the only
+ * fix. What stays here is what genuinely belongs to every route: the document,
+ * the language, and the fonts.
+ */
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${archivo.variable} ${openSans.variable}`}>
-      <body className="flex min-h-screen flex-col">
-        {/*
-          The organization and website nodes ship on every page rather than on
-          the homepage alone. A crawler that lands first on a region page should
-          resolve the entity from that page, and both nodes carry stable @id
-          values so repeating them joins rather than duplicates.
-        */}
-        <JsonLd data={organizationSchema()} />
-        <JsonLd data={websiteSchema()} />
-        <a
-          href="#main"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-[60] focus:rounded-[3px] focus:bg-slate focus:px-4 focus:py-2 focus:text-slate-fg"
-        >
-          Skip to content
-        </a>
-        <SiteHeader />
-        <main id="main" className="flex-1">
-          {children}
-        </main>
-        <SiteFooter />
-      </body>
+      <body className="flex min-h-screen flex-col">{children}</body>
     </html>
   );
 }
