@@ -453,3 +453,54 @@ components. Both surfaces already render inside the root layout, so the header,
 footer, mastheads, buttons, form fields, and card chrome all come across for
 free. What would need looking at is the stepper's own progress rail and the admin
 tables, which are the only two constructs neither branch shares with a page.
+
+## forms-audit was filling the production tables, and reporting green
+
+Found during the post deploy verification of the v5 design merge, not by an
+audit. Thirty rows, twenty leads and ten applications, had accumulated in
+`eng_leads` and `eng_applications` across one session of audit runs. Every run
+had passed.
+
+**The mechanism.** forms-audit drives real forms through a real browser at a
+running Next server. That server loads `.env.local`, so every submission wrote a
+real row into the production database. The audit process is a plain node script
+and does not load `.env.local`, so it saw no Supabase credentials, skipped its
+own round trip and teardown block, and printed a skip in green.
+
+Two independent faults, either of which alone would have been caught:
+
+1. The teardown asserted `!error` on the delete. A delete that matches nothing
+   does not error, so the assertion and the thing it was meant to assert had no
+   relationship to each other. It would have passed even with credentials
+   present and a broken filter.
+2. The skip was unconditional. If a submission succeeded, the server wrote a
+   row, and "this leg was not checked" and "rows were created and cannot be
+   removed" are different sentences. Only one of them is safe to print in green.
+
+**Fixed.** The audit loads `.env.local` so its environment matches the server's.
+The teardown counts what is left rather than trusting the delete. Missing
+credentials after a successful submission is now a finding rather than a skip.
+Verified by pointing the delete at a name that matches nothing and watching the
+count check fail with `2 lead(s) still present`.
+
+**No customer data was involved.** Every `254` row in both tables was audit
+debris; the real count was zero before and after the cleanup.
+
+**This is the third instance of one defect class**, after the `configured` bug in
+the careers module and the image contrast audit sampling below the fold: a check
+deciding what is true by looking at something other than the thing it claims to
+measure. Worth treating as the standing risk in this harness rather than as three
+unrelated bugs.
+
+### One SKIP on main is closed on a branch that has not merged
+
+`forms-audit` on main still skips "engineer: review, consent, and submit" with
+the reason "Supabase storage is not configured for this run". That reason is no
+longer true now that the audit loads the env file, and the skip is hardcoded
+rather than gated.
+
+It is already closed in `4b62549` on `feat/onboarding-admin`, which is unmerged.
+Left alone rather than reimplemented here, because two divergent fixes to the
+same check is worse than one skip. It arrives when that branch merges, which will
+also conflict with this file and should be resolved in favour of the branch's
+version of the careers checks plus main's teardown fix.

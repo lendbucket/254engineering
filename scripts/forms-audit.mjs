@@ -24,6 +24,30 @@ import { chromium } from "playwright";
 import { createClient } from "@supabase/supabase-js";
 import { careersChecks } from "./lib/careers-audit.mjs";
 
+/*
+ * The audit reads the same env file the server does, and this is not a
+ * convenience.
+ *
+ * This audit drives real forms through a real browser at a running Next server.
+ * That server loads .env.local, so every submission writes a real row into
+ * whatever database those credentials point at. The audit process is a plain
+ * node script and does NOT load .env.local on its own, so it saw no credentials,
+ * skipped its own teardown, and reported green.
+ *
+ * Thirty audit rows accumulated in the production tables across one session
+ * before anybody looked. The suite passed every single run.
+ *
+ * This is the same defect as the `configured` bug in the careers module: the
+ * audit deciding what the server can do by reading its own environment instead
+ * of the server's. Loading the file here makes the two agree.
+ */
+try {
+  process.loadEnvFile(".env.local");
+} catch {
+  // Absent in CI, which is fine. What is not fine is skipping teardown after a
+  // submission succeeded, and the round trip block below now refuses to.
+}
+
 const BASE = process.env.BASE_URL || "http://localhost:3225";
 
 const out = [];
@@ -32,6 +56,16 @@ const recSkip = (name, note = "") => out.push({ name, ok: true, skipped: true, n
 
 /** A name no real person submits, so audit rows are identifiable and removable. */
 const MARKER = "Zzq Formsaudit";
+
+/**
+ * Whether this run put a row in a real table.
+ *
+ * Set the moment a form reports success, because at that point the server has
+ * written. The teardown reads it to decide whether missing credentials are a
+ * skip or a finding: "not checked" and "rows created and not removable" are
+ * different sentences and only one of them is safe to print in green.
+ */
+let submissionsSucceeded = false;
 
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
@@ -113,6 +147,7 @@ async function contactChecks() {
     .waitFor({ state: "visible", timeout: 15000 })
     .then(() => true)
     .catch(() => false);
+  if (success) submissionsSucceeded = true;
   rec("contact: the success state replaces the form", success);
   rec(
     "contact: the success state clears 390px with no horizontal scroll",
@@ -179,6 +214,7 @@ async function waitlistChecks() {
     .waitFor({ state: "visible", timeout: 15000 })
     .then(() => true)
     .catch(() => false);
+  if (success) submissionsSucceeded = true;
   rec("waitlist: the message field is optional and the form submits without it", success);
 
   const sent = posts[posts.length - 1];
@@ -278,9 +314,26 @@ async function roundTripChecks() {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) {
+    /*
+     * A skip here used to be unconditional, and it was wrong whenever the
+     * submissions above had succeeded.
+     *
+     * If a submission returned success, the server wrote a row. Skipping then
+     * does not mean "this leg was not checked", it means "rows were created and
+     * this run has no way to remove them". Those are different sentences and
+     * only one of them is safe to print in green.
+     */
+    if (submissionsSucceeded) {
+      rec(
+        "round trip: audit rows are removed afterward",
+        false,
+        "submissions succeeded, so rows were written, but SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is not set for this run and the rows cannot be removed",
+      );
+      return;
+    }
     recSkip(
       "round trip: a submitted lead lands in eng_leads",
-      "SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set for this run",
+      "no submission succeeded and no credentials for this run",
     );
     recSkip("round trip: a submitted application lands in eng_applications", "same");
     return;
@@ -333,13 +386,30 @@ async function roundTripChecks() {
     Array.isArray(apps) && apps.some((r) => r.id === r.payload?.applicationId),
   );
 
-  // Teardown. Audit rows do not belong in a table an operator reads.
-  const delLeads = await db.from("eng_leads").delete().eq("site", "254").eq("name", MARKER);
-  const delApps = await db.from("eng_applications").delete().eq("site", "254").eq("name", MARKER);
+  /*
+   * Teardown. Audit rows do not belong in a table an operator reads.
+   *
+   * The check counts what is left rather than trusting the delete not to error.
+   * A delete that matches nothing does not error, so `!error` was true in every
+   * run that left rows behind: the assertion and the thing it was meant to
+   * assert had no relationship to each other.
+   */
+  await db.from("eng_leads").delete().eq("site", "254").eq("name", MARKER);
+  await db.from("eng_applications").delete().eq("site", "254").eq("name", MARKER);
+
+  const { count: leadsLeft } = await db
+    .from("eng_leads")
+    .select("id", { count: "exact", head: true })
+    .eq("name", MARKER);
+  const { count: appsLeft } = await db
+    .from("eng_applications")
+    .select("id", { count: "exact", head: true })
+    .eq("name", MARKER);
+
   rec(
     "round trip: audit rows are removed afterward",
-    !delLeads.error && !delApps.error,
-    delLeads.error?.message || delApps.error?.message || "",
+    leadsLeft === 0 && appsLeft === 0,
+    `${leadsLeft ?? "?"} lead(s) and ${appsLeft ?? "?"} application(s) still present`,
   );
 }
 
