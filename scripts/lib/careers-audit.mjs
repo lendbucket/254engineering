@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 /**
  * The careers application flows, driven end to end in a real browser.
  *
@@ -388,11 +391,69 @@ async function engineerFlow(ctx, BASE, rec, recSkip) {
     `${widths.filter(Boolean).length}/${widths.length} steps`,
   );
 
-  recSkip(
-    "engineer: review, consent, and submit",
-    "the resume is required and uploading one needs Supabase storage, which is not configured for this run",
+  /*
+   * The rest of the engineer seat, which used to be an unconditional skip.
+   *
+   * The skip said "uploading one needs Supabase storage, which is not configured
+   * for this run", and that was true of every run because nothing here ever
+   * attempted it. It stayed amber for the life of the careers system. With
+   * credentials present it now drives the real path: a real file, a real signed
+   * upload, a real PUT to the eng-uploads bucket, and a real submit.
+   *
+   * It still skips without credentials, because there is genuinely nothing to
+   * upload to then. The difference is that the skip is now a fact about the
+   * environment rather than about the audit.
+   */
+  if (!storageConfigured()) {
+    recSkip(
+      "engineer: review, consent, and submit",
+      "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are not set for this run, so there is no bucket to upload to",
+    );
+    await page.close();
+    return;
+  }
+
+  const fixture = writeFixture();
+  await flowOf(page).locator("#upload-resume").setInputFiles(fixture);
+
+  // The upload is a signed URL then a direct PUT, so this waits on the field
+  // reporting done rather than on a fixed delay.
+  const uploaded = await page
+    .getByText(/^Uploaded$|Replace/i)
+    .first()
+    .waitFor({ state: "visible", timeout: 30_000 })
+    .then(() => true)
+    .catch(() => false);
+  rec("engineer step 4: a real resume uploads to the private bucket", uploaded);
+
+  await continueStep(page);
+  rec("engineer step 5 reached", /review/i.test(await stepHeading(page)));
+
+  // Submitting without consent must be refused. The consent box is the only
+  // thing standing between a misclick and an employment record.
+  await flowOf(page).getByRole("button", { name: /send|submit/i }).first().click();
+  await page.waitForTimeout(600);
+  rec(
+    "engineer review: submitting without consent is refused",
+    await page
+      .getByText(/Tick the box/i)
+      .first()
+      .isVisible()
+      .catch(() => false),
   );
 
+  await flowOf(page).locator('input[type="checkbox"]').first().check();
+  await flowOf(page).getByRole("button", { name: /send|submit/i }).first().click();
+
+  const submitted = await page
+    .getByText(/received|thank|we have your application/i)
+    .first()
+    .waitFor({ state: "visible", timeout: 30_000 })
+    .then(() => true)
+    .catch(() => false);
+  rec("engineer review: consent given, the application submits", submitted);
+
+  fs.rmSync(fixture, { force: true });
   await page.close();
 }
 
@@ -479,4 +540,25 @@ async function sharedChecks(ctx, BASE, rec) {
     "careers hub: carries no application form of its own",
     !/<form\b/i.test(hub.slice(hub.indexOf("<main"), hub.lastIndexOf("<footer"))),
   );
+}
+
+/** Whether there is a bucket to upload to at all. */
+function storageConfigured() {
+  return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+}
+
+/**
+ * A minimal real PDF for the resume upload.
+ *
+ * Written rather than committed, because a binary fixture in the repo is a thing
+ * that rots and that nobody can review in a diff. It is removed after the run.
+ */
+function writeFixture() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "formsaudit-"));
+  const file = path.join(dir, "zzq-formsaudit-resume.pdf");
+  fs.writeFileSync(
+    file,
+    "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n",
+  );
+  return file;
 }
