@@ -13,6 +13,8 @@
     "brand-rasters": "node scripts/brand-rasters.mjs",
     "premobile-audit": "node scripts/preflight-harness.mjs",
     "mobile-audit": "node scripts/mobile-audit.mjs",
+    "premobile-overflow-audit": "node scripts/preflight-audit.mjs",
+    "mobile-overflow-audit": "node scripts/mobile-overflow-audit.mjs",
     "precontrast-audit": "node scripts/preflight-harness.mjs",
     "contrast-audit": "node scripts/contrast-audit.mjs",
     "preforms-audit": "node scripts/preflight-audit.mjs",

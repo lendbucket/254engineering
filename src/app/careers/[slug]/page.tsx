@@ -226,7 +226,7 @@ export default async function PositionPage({ params }: { params: Promise<{ slug:
                   <li key={p.slug}>
                     <Link
                       href={`/careers/${p.slug}`}
-                      className="font-sans text-[1rem] font-semibold text-slate underline decoration-brass/60 underline-offset-[6px] transition-colors hover:decoration-brass"
+                      className="flex min-h-[44px] items-center font-sans text-[1rem] font-semibold text-slate underline decoration-brass/60 underline-offset-[6px] transition-colors hover:decoration-brass"
                     >
                       {p.title}
                     </Link>
@@ -238,14 +238,25 @@ export default async function PositionPage({ params }: { params: Promise<{ slug:
         </section>
       ) : null}
 
-      {/* Sticky apply, mobile only. */}
+{/*
+        Sticky apply, mobile only.
+
+        `pb-safe` is the home indicator inset. Without it the button ends at the
+        physical bottom of the display on a notched phone, which puts the last
+        few millimetres of a 48px target under the indicator, where taps go to
+        the system instead of the page.
+
+        It is also the only sticky bar on this route. The rule is one at a time:
+        the header's sticky nav is at the top, this is at the bottom, and nothing
+        else on a position page sticks.
+      */}
       {position.open ? (
-        <div className="sticky bottom-0 z-40 border-t border-limestone-line bg-limestone-raised/95 backdrop-blur md:hidden">
+        <div className="pb-safe sticky bottom-0 z-40 border-t border-limestone-line bg-limestone-raised/95 backdrop-blur md:hidden">
           <Container>
-            <div className="py-3">
+            <div className="pt-3">
               <a
                 href="#apply"
-                className="flex min-h-[48px] w-full items-center justify-center rounded-[3px] bg-brass px-6 font-sans text-[15.5px] font-bold text-slate-ink transition-colors hover:bg-brass-light"
+                className="flex min-h-[48px] w-full items-center justify-center rounded-[3px] bg-brass px-6 font-sans text-[16px] font-bold text-slate-ink transition-colors hover:bg-brass-light"
               >
                 Apply for this position
               </a>

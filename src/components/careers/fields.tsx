@@ -251,7 +251,7 @@ export function FileField({
               // Reset so re-selecting the same file after an error still fires.
               e.target.value = "";
             }}
-            className="block w-full cursor-pointer rounded-[3px] border border-limestone-line bg-white px-4 py-3 font-sans text-[15px] text-slate-ink file:mr-4 file:min-h-[40px] file:cursor-pointer file:rounded-[3px] file:border-0 file:bg-slate file:px-4 file:font-sans file:text-[14px] file:font-bold file:text-slate-fg disabled:opacity-60"
+            className="block w-full cursor-pointer rounded-[3px] border border-limestone-line bg-white px-4 py-3 font-sans text-[16px] text-slate-ink file:mr-4 file:min-h-[40px] file:cursor-pointer file:rounded-[3px] file:border-0 file:bg-slate file:px-4 file:font-sans file:text-[14px] file:font-bold file:text-slate-fg disabled:opacity-60"
           />
         </div>
       )}

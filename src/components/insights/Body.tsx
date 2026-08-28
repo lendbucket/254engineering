@@ -154,7 +154,10 @@ export function SourceList({ sources }: { sources: Source[] }) {
             href={source.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[1rem] leading-[1.6] font-semibold text-slate underline decoration-brass/60 underline-offset-4 hover:decoration-brass"
+            /* inline-flex with a 44px minimum: a citation is a standalone link
+               in a source list, not a link inside a sentence, so it gets the
+               full thumb target rather than the inline exception. */
+            className="inline-flex min-h-[44px] items-center text-[1rem] leading-[1.6] font-semibold text-slate underline decoration-brass/60 underline-offset-4 hover:decoration-brass"
           >
             {source.label}
             <ExternalLinkIcon className="ml-1.5 align-baseline text-brass-ink" />

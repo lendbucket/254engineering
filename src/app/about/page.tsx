@@ -197,7 +197,7 @@ export default function AboutPage() {
               <p className="mt-7">
                 <Link
                   href="/government"
-                  className="font-sans text-[0.96rem] font-semibold text-slate underline decoration-brass/60 underline-offset-[6px] transition-colors hover:decoration-brass"
+                  className="inline-flex min-h-[44px] items-center font-sans text-[0.96rem] font-semibold text-slate underline decoration-brass/60 underline-offset-[6px] transition-colors hover:decoration-brass"
                 >
                   Capability statement for public sector buyers
                 </Link>

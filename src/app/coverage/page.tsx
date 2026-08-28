@@ -113,12 +113,15 @@ export default function CoveragePage() {
                 return (
                   <li
                     key={county}
-                    className="flex items-baseline justify-between gap-3 border-b border-limestone-line py-2.5"
+                    className="flex items-center justify-between gap-3 border-b border-limestone-line"
                   >
-                    <span className="text-[0.94rem] text-slate">{county}</span>
+                    <span className="py-2.5 text-[0.94rem] text-slate">{county}</span>
+                    {/* The padding is on the link rather than the row, so the
+                        region name is a 44px tall target instead of a 19px one.
+                        There are 254 of these and every one was too small. */}
                     <Link
                       href={`/coverage/${region.slug}`}
-                      className="shrink-0 font-sans text-[0.8rem] text-slate-muted underline decoration-limestone-line underline-offset-4 transition-colors hover:text-slate hover:decoration-brass"
+                      className="flex min-h-[44px] shrink-0 items-center font-sans text-[0.8rem] text-slate-muted underline decoration-limestone-line underline-offset-4 transition-colors hover:text-slate hover:decoration-brass"
                     >
                       {region.name}
                     </Link>

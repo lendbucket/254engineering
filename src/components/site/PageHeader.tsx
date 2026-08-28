@@ -65,7 +65,7 @@ export function PageHeader({
   children?: ReactNode;
 }) {
   return (
-    <section className="relative isolate bg-gradient-to-b from-slate via-slate-deep to-slate-abyss">
+    <section className="relative isolate overflow-x-clip bg-gradient-to-b from-slate via-slate-deep to-slate-abyss">
       <Container>
         <div className="grid items-stretch gap-0 lg:grid-cols-12">
           <div
@@ -98,6 +98,10 @@ export function PageHeader({
 
           {image ? (
             <div className="relative min-h-[13rem] sm:min-h-[17rem] lg:col-span-5 lg:min-h-0">
+              {/* 100vw bleed, clipped by the section above rather than by an
+                  ancestor that happens to be doing it. See the note in the patch
+                  history: 100vw includes the scrollbar and is the usual cause of
+                  phantom horizontal overflow. */}
               <div className="absolute inset-y-0 left-1/2 w-screen -translate-x-1/2 lg:left-0 lg:w-[50vw] lg:translate-x-0">
                 <Image
                   src={image.src}

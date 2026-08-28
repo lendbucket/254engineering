@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Archivo, Open_Sans } from "next/font/google";
 import "./globals.css";
 import { SiteHeader } from "@/components/site/SiteHeader";
@@ -49,6 +49,35 @@ const openSans = Open_Sans({
   display: "swap",
 });
 
+
+/**
+ * The viewport, and why each part of it is here.
+ *
+ * `viewport-fit=cover` lets the page paint into the display cutout area on a
+ * notched phone, which is what makes a dark band reach the physical edge instead
+ * of stopping at a white letterbox. It is the half of safe area handling that
+ * lives in the meta tag; the other half is the env() padding on anything fixed
+ * to the bottom, which is in globals.css.
+ *
+ * `maximumScale` and `userScalable` are deliberately NOT set. Locking zoom is
+ * the usual way sites stop iOS zooming a form field, and it is an accessibility
+ * failure: it also stops a person with low vision zooming anything. The correct
+ * fix for the zoom is a 16px font size on the control, which is what the form
+ * fields now carry.
+ *
+ * `themeColor` tints the browser chrome. Two entries rather than one because a
+ * phone in dark mode gets the deeper navy, so the chrome reads as part of the
+ * page in both appearances rather than as a lighter bar sitting above it.
+ */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#14315d" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b1b36" },
+  ],
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(business.url),

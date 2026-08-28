@@ -107,6 +107,37 @@
     scroll-behavior: smooth;
     /* Tabular figures everywhere. This is a firm named after a number. */
     font-variant-numeric: tabular-nums;
+
+    /*
+     * No horizontal rubber banding.
+     *
+     * With no content wider than the viewport there is nothing to scroll to, but
+     * a horizontal drag still produces the elastic overscroll bounce, and on a
+     * phone that reads as the page sliding under the finger. `none` on the x
+     * axis stops the bounce without touching vertical scrolling or the browser's
+     * own back and forward edge gestures, which belong to the user.
+     */
+    overscroll-behavior-x: none;
+
+    /*
+     * Never let a phone reflow the type on its own. iOS inflates text in some
+     * orientations unless this is pinned, which silently breaks a type scale
+     * that was measured at a fixed size.
+     */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  /*
+   * Smooth scrolling is a preference, not a default.
+   *
+   * scroll-behavior above drives in page anchors. Anyone who has asked their
+   * system for less motion gets the jump instead.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
   }
 
   body {
@@ -115,6 +146,65 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    overscroll-behavior-x: none;
+
+    /*
+     * The grey flash on tap, removed and replaced rather than just removed.
+     *
+     * Safari paints a translucent grey box over any tapped element, which is the
+     * single loudest tell that a page is a website rather than an app. Removing
+     * it alone leaves a control with no press feedback at all, so the `:active`
+     * rule below puts a deliberate one back.
+     */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /*
+   * Press feedback on anything tappable.
+   *
+   * A native control acknowledges a finger before the navigation happens. This
+   * is the cheapest possible version of that: a very short dim on press, on
+   * every link and button, with no transition on the way in so it appears
+   * instantly and no layout property involved so it cannot cause a shift.
+   */
+  a:active,
+  button:active,
+  [role="button"]:active,
+  label:active {
+    opacity: 0.72;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    a:active,
+    button:active,
+    [role="button"]:active,
+    label:active {
+      opacity: 1;
+    }
+  }
+
+  /*
+   * Any container that scrolls sideways on purpose keeps momentum and does not
+   * hand its overscroll to the page behind it. Wide by nature content, a table
+   * or a code block, is contained here rather than being allowed to widen the
+   * document.
+   */
+  .scroll-x {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /*
+   * Bottom safe area, for anything fixed to the bottom of the screen.
+   *
+   * On a phone with a home indicator the bottom band of the display is not
+   * tappable, so a bar that ends at the physical edge puts its control under the
+   * indicator. This adds the inset the device reports, and falls back to zero on
+   * hardware that has none.
+   */
+  .pb-safe {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
   }
 
   h1,
