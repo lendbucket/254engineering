@@ -5,6 +5,7 @@ import { Container } from "@/components/ui/Container";
 import { PageHeader } from "@/components/site/PageHeader";
 import { ApplicationFlow } from "@/components/careers/ApplicationFlow";
 import { Eyebrow, Rule, SectionHeading } from "@/components/ui/primitives";
+import { StickyApply } from "@/components/careers/StickyApply";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema, jobPostingSchema } from "@/lib/schema";
 import { openPositions, positionBySlug, positions } from "@data/positions";
@@ -239,31 +240,16 @@ export default async function PositionPage({ params }: { params: Promise<{ slug:
       ) : null}
 
 {/*
-        Sticky apply, mobile only.
+        Sticky apply, mobile only, and it removes itself once the form is on
+        screen. See the note in StickyApply: a sticky element never overlaps the
+        content it is about, and on the licensure step of a five step form this
+        bar was covering a field's worth of a small screen to offer a link to
+        where the reader already was.
 
-        `pb-safe` is the home indicator inset. Without it the button ends at the
-        physical bottom of the display on a notched phone, which puts the last
-        few millimetres of a 48px target under the indicator, where taps go to
-        the system instead of the page.
-
-        It is also the only sticky bar on this route. The rule is one at a time:
-        the header's sticky nav is at the top, this is at the bottom, and nothing
-        else on a position page sticks.
+        It is the only sticky bar on this route. The rule is one at a time: the
+        header's nav is at the top, this is at the bottom, nothing else sticks.
       */}
-      {position.open ? (
-        <div className="pb-safe sticky bottom-0 z-40 border-t border-limestone-line bg-limestone-raised/95 backdrop-blur md:hidden">
-          <Container>
-            <div className="pt-3">
-              <a
-                href="#apply"
-                className="flex min-h-[48px] w-full items-center justify-center rounded-[3px] bg-brass px-6 font-sans text-[16px] font-bold text-slate-ink transition-colors hover:bg-brass-light"
-              >
-                Apply for this position
-              </a>
-            </div>
-          </Container>
-        </div>
-      ) : null}
+      {position.open ? <StickyApply targetId="apply" label="Apply for this position" /> : null}
     </>
   );
 }

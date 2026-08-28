@@ -504,3 +504,42 @@ Left alone rather than reimplemented here, because two divergent fixes to the
 same check is worse than one skip. It arrives when that branch merges, which will
 also conflict with this file and should be resolved in favour of the branch's
 version of the careers checks plus main's teardown fix.
+
+## Mobile app feel pass: what it could not cover
+
+### The onboarding stepper was named as a target and does not exist here
+
+Section 3 of the mobile brief lists the onboarding stepper among the surfaces to
+walk. It lives on `feat/onboarding-admin`, which is still unmerged, so there was
+nothing on this branch to walk or fix. This is the third workstream in a row to
+hit the same wall.
+
+**What it will and will not inherit.** The shared fixes come across for free,
+because they are in components that branch already uses: the 16px control floor,
+the keyboard attributes, the tap target sizes in the footer and breadcrumbs, the
+viewport meta, the manifest, and the overscroll and press feedback rules in
+globals.css. What will need its own pass is the stepper's progress rail and its
+upload control, which are that branch's own components, and the fact that
+`mobile-overflow-audit` reads the sitemap and the onboarding route is
+deliberately not in it, so that route will not be covered by the new audit
+without being added to it by hand.
+
+### Inline links in prose are exempt from the 44px rule, deliberately
+
+The brief asks for every interactive element at 44 by 44. 34 occurrences are
+links inside running sentences: a citation in an insights paragraph, "join the
+waitlist" inside the disclosure, a cross reference mid argument. WCAG 2.5.8
+exempts them, and forcing them to 44px tall would break the line spacing of the
+paragraph they sit in for no gain to anybody.
+
+The sweep classifies inline against standalone rather than counting both, so this
+is recorded as a decision rather than showing up as 34 unfixed findings on the
+next pass. Every standalone target on the site now clears 44 by 44.
+
+### The 8px separation rule is met by construction, not measured
+
+Adjacent target separation was not audited independently. Every fix that grew a
+target grew it to a full 44px row in a stacked flex column, so adjacent targets
+are separated by their own height rather than by a margin, and nothing on the
+site places two 44px controls closer than that. Worth a real measurement if a
+dense control cluster is ever added.
