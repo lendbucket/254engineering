@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { PageHeader } from "@/components/site/PageHeader";
 import { sectionPhotos } from "@/content/photos";
 import { PrelaunchNotice } from "@/components/launch/PrelaunchNotice";
 import { OfferCta } from "@/components/launch/OfferCta";
-import { CardGrid, cardCell, SectionHeading } from "@/components/ui/primitives";
+import { CardGrid, SectionHeading } from "@/components/ui/primitives";
+import { ServiceCard } from "@/components/services/ServiceCard";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { services } from "@/content/services";
@@ -41,24 +41,16 @@ export default function ServicesPage() {
       <section className="border-b border-limestone-line">
         <Container>
           <div className="py-14 sm:py-18">
-            <CardGrid>
+            <CardGrid cols={3}>
               {services.map((service) => (
-                <li key={service.slug} className={cardCell}>
-                  <Link
-                    href={`/services/${service.slug}`}
-                    className="flex h-full flex-col p-7 transition-colors hover:bg-limestone sm:p-8"
-                  >
-                    <h2 className="text-[1.2rem] leading-[1.35] font-semibold text-slate">
-                      {service.name}
-                    </h2>
-                    <p className="mt-3 flex-1 text-[0.96rem] leading-[1.68] text-slate-muted">
-                      {service.summary}
-                    </p>
-                    <span className="mt-6 font-sans text-[0.82rem] font-semibold tracking-[0.06em] text-brass-ink uppercase">
-                      What it involves
-                    </span>
-                  </Link>
-                </li>
+                <ServiceCard
+                  key={service.slug}
+                  slug={service.slug}
+                  name={service.name}
+                  summary={service.summary}
+                  heading="h2"
+                  cta="What it involves"
+                />
               ))}
             </CardGrid>
           </div>

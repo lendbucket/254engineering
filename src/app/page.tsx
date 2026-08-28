@@ -8,12 +8,11 @@ import {
   ClockIcon,
   CredibilityStrip,
   ProcessStep,
-  Section,
-  SectionHead,
-  ServiceCard,
   ShieldCheckIcon,
   StarIcon,
 } from "@/components/home/sections";
+import { ServiceCard } from "@/components/services/ServiceCard";
+import { Callout, Section, SectionHead } from "@/components/ui/section";
 import { TexasCountyMap } from "@/components/map/TexasCountyMap";
 import { LeadForm } from "@/components/forms/LeadForm";
 import { buildMetadata } from "@/lib/seo";
@@ -55,17 +54,6 @@ export const metadata: Metadata = buildMetadata({
  * from what the deliverable actually is rather than invented as marketing
  * labels, and every one is a word already used on the matching service page.
  */
-const SERVICE_TAGS: Record<string, string> = {
-  "roof-inspections": "Certification",
-  "windstorm-wpi-8": "Coastal",
-  "foundation-inspections": "Certification",
-  "solar-structural-letters": "Sealed letter",
-  "manufactured-home-foundation-certifications": "Lending",
-  "structural-letters": "Permitting",
-  "repair-specifications": "Sealed letter",
-  "residential-light-commercial-design": "Design",
-  "forensic-engineering": "Investigation",
-};
 
 export default function HomePage() {
   const prelaunch = isPrelaunch();
@@ -87,13 +75,7 @@ export default function HomePage() {
         />
         <ul className="mt-9 grid gap-[18px] sm:grid-cols-2 lg:grid-cols-3">
           {services.map((s) => (
-            <ServiceCard
-              key={s.slug}
-              slug={s.slug}
-              name={s.name}
-              summary={s.summary}
-              tag={SERVICE_TAGS[s.slug] ?? "Engineering"}
-            />
+            <ServiceCard key={s.slug} slug={s.slug} name={s.name} summary={s.summary} />
           ))}
         </ul>
       </Section>
@@ -133,18 +115,14 @@ export default function HomePage() {
             <TexasCountyMap />
           </div>
           <div className="flex-1 basis-[300px]">
-            <div className="mb-[18px] border-l-4 border-brass bg-limestone px-5 py-[18px]">
-              <p className="text-[12px] font-bold tracking-[0.1em] text-slate-muted uppercase">
-                Every county, exactly once
-              </p>
-              <p className="mt-1.5 font-display text-[22px] font-bold text-slate">
-                {countyCount} counties, {regions.length} regions
-              </p>
-              <p className="mt-2 text-[14px] leading-[1.6] text-slate-muted">
-                Wind, soil, and permitting change across this state. The regions are how the firm
-                accounts for that rather than averaging it.
-              </p>
-            </div>
+            <Callout
+              className="mb-[18px]"
+              label="Every county, exactly once"
+              title={`${countyCount} counties, ${regions.length} regions`}
+            >
+              Wind, soil, and permitting change across this state. The regions are how the firm
+              accounts for that rather than averaging it.
+            </Callout>
             <div className="grid gap-2 sm:grid-cols-2">
               {regions.map((r, i) => (
                 <Link
@@ -297,6 +275,7 @@ export default function HomePage() {
               <LeadForm
                 variant={prelaunch ? "waitlist" : "contact"}
                 serviceOptions={services.map((s) => s.name)}
+                framed={prelaunch ? "Reserve your place" : "Tell us what you need"}
               />
             </div>
           </div>

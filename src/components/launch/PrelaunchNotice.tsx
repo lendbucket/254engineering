@@ -12,6 +12,11 @@ import { isPrelaunch } from "@/lib/launch";
  * Set as a note rather than as a warning banner on purpose. A red alert bar
  * reads as an outage; this is a firm stating where it is in its own formation,
  * which is ordinary and is best set in the register of a footnote on a document.
+ *
+ * The treatment is v5's gold edged aside, the same object as the coverage note
+ * on the homepage and the callouts on the region pages. It used to be a fully
+ * outlined box, which was the only outlined box left on the site once the design
+ * port landed and read as a component from a different system.
  */
 export function PrelaunchNotice({ service }: { service?: string }) {
   if (!isPrelaunch()) return null;
@@ -19,11 +24,11 @@ export function PrelaunchNotice({ service }: { service?: string }) {
   const waitlistHref = service ? `/waitlist?service=${encodeURIComponent(service)}` : "/waitlist";
 
   return (
-    <aside className="rounded-[3px] border border-brass/50 bg-slate/40 px-5 py-4 sm:px-6 sm:py-5">
-      <p className="font-sans text-[0.7rem] font-semibold tracking-[0.18em] text-brass-light uppercase">
+    <aside className="border-l-4 border-brass bg-white/[0.07] px-5 py-[18px]">
+      <p className="text-[12px] font-bold tracking-[0.1em] text-brass-light uppercase">
         Opening soon
       </p>
-      <p className="mt-2.5 text-[0.96rem] leading-[1.65] text-slate-fg-muted">
+      <p className="mt-2 text-[15px] leading-[1.65] text-slate-fg-muted">
         254 Engineering Services is not yet accepting engineering work. Firm registration with the
         Texas Board of Professional Engineers and Land Surveyors is pending, no engineer of record is
         yet in responsible charge, and this page describes a service the firm is being built to

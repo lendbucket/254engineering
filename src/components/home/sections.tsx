@@ -1,22 +1,12 @@
-import Link from "next/link";
-import type { ReactNode } from "react";
 import { Container } from "@/components/ui/Container";
+import { IconTile } from "@/components/ui/section";
 import {
   BuildingIcon,
   ClipboardCheckIcon,
   ClockIcon,
-  DesignIcon,
-  ForensicIcon,
-  FoundationIcon,
-  ManufacturedHomeIcon,
   PinIcon,
-  RoofIcon,
-  SealedLetterIcon,
   ShieldCheckIcon,
-  SolarIcon,
-  SpecIcon,
   StarIcon,
-  WindIcon,
 } from "@/components/ui/icons";
 
 /**
@@ -26,76 +16,12 @@ import {
  * as two thousand lines of markup. Every one of these is presentation: the copy,
  * the data, and the routes all come from the existing content modules.
  *
- * THE SECTION GRAMMAR, WHICH v5 APPLIES WITHOUT EXCEPTION
- * ------------------------------------------------------
- * Vertical padding `clamp(48px, 7vw, 88px)`. An Archivo 700 heading at
- * `clamp(28px, 3.6vw, 38px)` with -0.01em tracking. A 16px lede at 1.7 line
- * height capped at 62 characters. Cards at 4px radius with a 1px border and a
- * 3px top border, lifting 3px on hover.
- *
- * Backgrounds alternate white, `#F4F5F7`, and the navy gradient, which is what
- * gives the page its rhythm.
+ * THE SECTION GRAMMAR LIVES IN ui/section.tsx
+ * -------------------------------------------
+ * `Section`, `SectionHead`, `Callout`, `IconTile`, `StatRail`, and the card
+ * chrome were built here for the homepage and moved once the rest of the site
+ * adopted them. What stays in this file is what only the homepage does.
  */
-
-/** The shared section heading, so the grammar above cannot drift per section. */
-export function SectionHead({
-  title,
-  lede,
-  onDark = false,
-}: {
-  title: string;
-  lede?: string;
-  onDark?: boolean;
-}) {
-  return (
-    <div>
-      <h2
-        className={`font-display text-[clamp(28px,3.6vw,38px)] leading-[1.15] font-bold tracking-[-0.01em] ${
-          onDark ? "text-slate-fg" : "text-slate"
-        }`}
-      >
-        {title}
-      </h2>
-      {lede ? (
-        <p
-          className={`mt-3 max-w-[62ch] text-[16px] leading-[1.7] ${
-            onDark ? "text-slate-fg-muted" : "text-slate-muted"
-          }`}
-        >
-          {lede}
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
-export function Section({
-  id,
-  tone = "white",
-  className = "",
-  children,
-}: {
-  id?: string;
-  tone?: "white" | "sunk" | "navy" | "deep";
-  className?: string;
-  children: ReactNode;
-}) {
-  const bg =
-    tone === "sunk"
-      ? "bg-limestone"
-      : tone === "navy"
-        ? "bg-gradient-to-b from-slate to-slate-deep text-slate-fg"
-        : tone === "deep"
-          ? "bg-slate-deep text-slate-fg"
-          : "bg-white";
-  return (
-    <section id={id} className={`${bg} ${className}`}>
-      <Container>
-        <div className="py-[clamp(48px,7vw,88px)]">{children}</div>
-      </Container>
-    </section>
-  );
-}
 
 /* ------------------------------------------------------------------ credibility */
 
@@ -124,62 +50,6 @@ export function CredibilityStrip({ samRegistered }: { samRegistered: boolean }) 
         </div>
       </Container>
     </section>
-  );
-}
-
-/* --------------------------------------------------------------------- services */
-
-/**
- * Service slug to icon.
- *
- * The order is v5's, which is also the order of `src/content/services.ts`. A
- * slug with no entry falls back to the sealed letter mark rather than rendering
- * an empty tile, so adding a service line cannot leave a hole on the homepage.
- */
-const SERVICE_ICONS: Record<string, typeof RoofIcon> = {
-  "roof-inspections": RoofIcon,
-  "windstorm-wpi-8": WindIcon,
-  "foundation-inspections": FoundationIcon,
-  "solar-structural-letters": SolarIcon,
-  "manufactured-home-foundation-certifications": ManufacturedHomeIcon,
-  "structural-letters": SealedLetterIcon,
-  "repair-specifications": SpecIcon,
-  "residential-light-commercial-design": DesignIcon,
-  "forensic-engineering": ForensicIcon,
-};
-
-export function ServiceCard({
-  slug,
-  name,
-  summary,
-  tag,
-}: {
-  slug: string;
-  name: string;
-  summary: string;
-  tag: string;
-}) {
-  const Icon = SERVICE_ICONS[slug] ?? SealedLetterIcon;
-  return (
-    <li className="h-full">
-      <Link
-        href={`/services/${slug}`}
-        className="group flex h-full flex-col rounded-[4px] border border-limestone-line border-t-[3px] border-t-slate bg-white p-6 transition-all duration-200 hover:-translate-y-[3px] hover:shadow-[0_10px_24px_rgba(20,49,93,0.14)]"
-      >
-        <span className="flex items-center justify-between gap-3">
-          <span className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-[4px] bg-slate text-slate-fg">
-            <Icon size={24} />
-          </span>
-          <span className="text-[11.5px] font-bold tracking-[0.1em] text-brass-ink uppercase">
-            {tag}
-          </span>
-        </span>
-        <span className="mt-4 font-display text-[17px] leading-[1.35] font-semibold text-slate">
-          {name}
-        </span>
-        <span className="mt-2 flex-1 text-[14px] leading-[1.65] text-slate-muted">{summary}</span>
-      </Link>
-    </li>
   );
 }
 
@@ -224,9 +94,9 @@ export function ProcessStep({
         {n}
       </span>
       <div className="relative">
-        <span className="flex h-[52px] w-[52px] items-center justify-center rounded-[4px] bg-slate text-slate-fg">
+        <IconTile size={52}>
           <Icon size={26} />
-        </span>
+        </IconTile>
         <p className="mt-4 text-[12px] font-bold tracking-[0.12em] text-brass-ink uppercase">
           Step {n} of 3
         </p>

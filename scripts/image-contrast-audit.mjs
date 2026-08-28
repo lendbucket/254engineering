@@ -156,6 +156,25 @@ async function run() {
       const boxes = [];
       for (const sel of target.selectors) {
         const handles = await page.locator(sel.css).all();
+        /*
+         * Per selector, not just per target.
+         *
+         * The target level check below only fires when NOTHING on a band
+         * matches, so a single stale selector went unreported: SectionHead
+         * started rendering its lede in a div, `h2 + p` matched nothing, and the
+         * how it works lede simply stopped being measured. The run still said
+         * PASS, and the only visible trace was the pairing count dropping from
+         * 32 to 30.
+         *
+         * A count that quietly shrinks is the same failure as a check that
+         * quietly skips.
+         */
+        if (handles.length === 0) {
+          const message = `${target.name} @${width}: selector ${sel.css} matched nothing, so ${sel.label} was not measured.`;
+          checks.push({ name: `${target.name} @${width}: ${sel.label}`, ok: false, detail: "selector matched nothing" });
+          findings.push(message);
+          continue;
+        }
         for (const [i, h] of handles.entries()) {
           if (!(await h.isVisible())) continue;
 
