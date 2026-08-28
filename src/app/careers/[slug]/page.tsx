@@ -5,10 +5,11 @@ import { Container } from "@/components/ui/Container";
 import { PageHeader } from "@/components/site/PageHeader";
 import { ApplicationFlow } from "@/components/careers/ApplicationFlow";
 import { Eyebrow, Rule, SectionHeading } from "@/components/ui/primitives";
+import { Section, SectionHead } from "@/components/ui/section";
 import { StickyApply } from "@/components/careers/StickyApply";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema, jobPostingSchema } from "@/lib/schema";
-import { openPositions, positionBySlug, positions } from "@data/positions";
+import { openPositions, positionBySlug, positionDescription, positions } from "@data/positions";
 import { isPrelaunch } from "@/lib/launch";
 
 /**
@@ -62,7 +63,7 @@ export default async function PositionPage({ params }: { params: Promise<{ slug:
         <JsonLd
           data={jobPostingSchema({
             title: position.title,
-            description: position.about.join(" "),
+            description: positionDescription(position),
             employmentType: position.employmentType,
             datePosted: position.datePosted,
             validThrough: position.validThrough,
@@ -126,7 +127,7 @@ export default async function PositionPage({ params }: { params: Promise<{ slug:
         <Container>
           <div className="grid gap-12 py-14 sm:py-18 lg:grid-cols-12 lg:gap-16">
             <div className="lg:col-span-4">
-              <Eyebrow>The role</Eyebrow>
+              <Eyebrow>About the role</Eyebrow>
               <Rule className="mt-5" />
             </div>
             <div className="lg:col-span-8">
@@ -143,12 +144,33 @@ export default async function PositionPage({ params }: { params: Promise<{ slug:
         </Container>
       </section>
 
+      {/* What you will do. Concrete, and deliberately separate from the argument
+          for the seat above it: a candidate deciding whether to apply reads the
+          argument, one deciding whether they can do the job reads this. */}
+      <Section id="what-you-will-do" tone="sunk">
+        <SectionHead
+          eyebrow="What you will do"
+          title="The work itself"
+          lede="Stated as tasks rather than as a mission, because this is the part that decides whether the seat is a fit."
+        />
+        <ul className="mt-8 grid gap-[18px] sm:grid-cols-2">
+          {position.responsibilities.map((item) => (
+            <li
+              key={item}
+              className="rounded-[4px] border border-limestone-line border-t-[3px] border-t-slate bg-white p-5"
+            >
+              <span className="text-[15.5px] leading-[1.7] text-slate-muted">{item}</span>
+            </li>
+          ))}
+        </ul>
+      </Section>
+
       {/* Requirements and pluses */}
       <section className="border-b border-limestone-line bg-limestone-sunk">
         <Container>
           <div className="grid gap-12 py-14 sm:py-18 lg:grid-cols-2 lg:gap-16">
             <div>
-              <SectionHeading eyebrow="Requirements" title="What this seat needs" />
+              <SectionHeading eyebrow="What we look for" title="Required" />
               <ul className="mt-8 space-y-4">
                 {position.requirements.map((item) => (
                   <li key={item} className="flex gap-4">
@@ -159,7 +181,7 @@ export default async function PositionPage({ params }: { params: Promise<{ slug:
               </ul>
             </div>
             <div>
-              <SectionHeading eyebrow="Strong pluses" title="What moves an application up" />
+              <SectionHeading eyebrow="What we look for" title="Preferred" />
               <ul className="mt-8 space-y-4">
                 {position.pluses.map((item) => (
                   <li key={item} className="flex gap-4">
@@ -178,7 +200,7 @@ export default async function PositionPage({ params }: { params: Promise<{ slug:
         <Container>
           <div className="grid gap-12 py-14 sm:py-18 lg:grid-cols-12 lg:gap-16">
             <div className="lg:col-span-4">
-              <Eyebrow>The engagement</Eyebrow>
+              <Eyebrow>How you will work</Eyebrow>
               <Rule className="mt-5" />
               <p className="mt-6 text-[0.92rem] leading-[1.65] text-slate-muted">
                 Stated here rather than at the offer, because this is the part people usually find
@@ -198,6 +220,53 @@ export default async function PositionPage({ params }: { params: Promise<{ slug:
           </div>
         </Container>
       </section>
+
+      {/* Compensation structure. Structure only, never a figure: the number is
+          agreed with the person at the same time as the commitment it attaches
+          to, and publishing one before that conversation invents it. */}
+      <Section id="compensation" tone="sunk">
+        <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
+          <div className="lg:col-span-4">
+            <Eyebrow>Compensation</Eyebrow>
+            <Rule className="mt-5" />
+            <p className="mt-6 text-[14.5px] leading-[1.65] text-slate-muted">
+              How pay is structured. Figures are settled in the offer conversation rather than
+              published, because the commitment they attach to is agreed at the same time.
+            </p>
+          </div>
+          <div className="lg:col-span-8">
+            <ul className="space-y-4">
+              {position.compensationStructure.map((item) => (
+                <li key={item} className="flex gap-4">
+                  <span aria-hidden="true" className="mt-[0.7rem] h-px w-4 shrink-0 bg-brass" />
+                  <span className="text-[16px] leading-[1.75] text-slate-muted">{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </Section>
+
+      {/* Growth, stated as intent. A firm at this stage promising a career path
+          is making a claim it cannot keep, so the copy says intent and the
+          contractual parts are named separately. */}
+      <Section id="growth" tone="white">
+        <SectionHead
+          eyebrow="Growth"
+          title="What this seat is intended to become"
+          lede="Written as intent rather than as a promise, because a firm at launch cannot promise a path and should not pretend to."
+        />
+        <ul className="mt-8 space-y-4">
+          {position.growth.map((item) => (
+            <li key={item} className="flex gap-4">
+              <span aria-hidden="true" className="mt-[0.7rem] h-px w-4 shrink-0 bg-brass" />
+              <span className="max-w-[74ch] text-[16px] leading-[1.75] text-slate-muted">
+                {item}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </Section>
 
       {/* The application */}
       {position.open ? (

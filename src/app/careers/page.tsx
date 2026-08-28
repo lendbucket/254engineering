@@ -5,9 +5,19 @@ import { PageHeader } from "@/components/site/PageHeader";
 import { sectionPhotos } from "@/content/photos";
 import { CardGrid, cardCell, Eyebrow, Rule, SectionHeading } from "@/components/ui/primitives";
 import { buildMetadata } from "@/lib/seo";
-import { JsonLd, breadcrumbSchema, jobPostingSchema } from "@/lib/schema";
+import { JsonLd, breadcrumbSchema, faqSchema, jobPostingSchema } from "@/lib/schema";
 import { isPrelaunch } from "@/lib/launch";
-import { hiringProcess, openPositions } from "@data/positions";
+import { openPositions, positionDescription } from "@data/positions";
+import {
+  careersFaqs,
+  engagementModels,
+  equalOpportunity,
+  hiringProcess,
+  standardsAndIntegrity,
+  workingModel,
+} from "@/content/careers";
+import { Section, SectionHead } from "@/components/ui/section";
+import { FaqBlock } from "@/components/site/FaqBlock";
 
 export const metadata: Metadata = buildMetadata({
   title: "Engineering Careers Across Texas | 254 Engineering",
@@ -23,16 +33,24 @@ const crumbs = [
 
 export default function CareersPage() {
   const open = openPositions();
+  const faqs = careersFaqs();
 
   return (
     <>
       <JsonLd data={breadcrumbSchema(crumbs)} />
+      {/*
+        FAQPage from the same array the visible block renders.
+
+        Structured data describing answers that are not on the page is a manual
+        action waiting to happen, which is why both consumers read one source.
+      */}
+      <JsonLd data={faqSchema(faqs)} />
       {open.map((position) => (
         <JsonLd
           key={position.slug}
           data={jobPostingSchema({
             title: position.title,
-            description: position.about.join(" "),
+            description: positionDescription(position),
             employmentType: position.employmentType,
             datePosted: position.datePosted,
             validThrough: position.validThrough,
@@ -63,6 +81,75 @@ export default function CareersPage() {
           </aside>
         ) : null}
       </PageHeader>
+
+      {/* How the firm works, told from the worker's side. */}
+      <Section id="how-it-works-here" tone="white">
+        <SectionHead
+          eyebrow="Working here"
+          title="What the operating model means for you"
+          lede="The firm is built on written protocols, central engineering review, and its own operations software. That is the pitch to a buyer. This is what each of those four things means for the person doing the work."
+        />
+        <div className="mt-9 grid gap-[18px] sm:grid-cols-2">
+          {workingModel().map((item) => (
+            <div
+              key={item.heading}
+              className="rounded-[4px] border border-limestone-line border-t-[3px] border-t-slate bg-white p-6"
+            >
+              <h3 className="font-display text-[18px] leading-[1.3] font-bold text-slate">
+                {item.heading}
+              </h3>
+              <p className="mt-2.5 text-[15px] leading-[1.7] text-slate-muted">{item.body}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-8 border-l-4 border-brass bg-limestone px-5 py-[18px]">
+          <p className="text-[12px] font-bold tracking-[0.1em] text-slate-muted uppercase">
+            The honest stage
+          </p>
+          <p className="mt-2 max-w-[70ch] text-[15px] leading-[1.7] text-slate-muted">
+            This is a firm at launch. There is no office, no team photograph, and no headcount,
+            because there are none of those things yet. Somebody who wants to inherit a working
+            system should not apply. Somebody who wants to set how one works should read the seats
+            below, because the person who takes them writes the standard rather than following it.
+          </p>
+        </div>
+      </Section>
+
+      {/* How we engage. */}
+      <Section id="how-we-engage" tone="sunk">
+        <SectionHead
+          eyebrow="How we engage"
+          title="Two engagement models, stated up front"
+          lede="Which one applies depends on the seat, and neither is discovered at the offer."
+        />
+        <div className="mt-9 grid gap-[18px] lg:grid-cols-2">
+          {engagementModels.map((model) => (
+            <div
+              key={model.title}
+              className="rounded-[4px] border border-limestone-line border-t-[3px] border-t-slate bg-white p-6 sm:p-7"
+            >
+              <p className="text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">
+                {model.kind}
+              </p>
+              <h3 className="mt-2 font-display text-[21px] leading-[1.25] font-bold text-slate">
+                {model.title}
+              </h3>
+              <p className="mt-3 text-[15px] leading-[1.7] text-slate-muted">{model.body}</p>
+              <ul className="mt-4 space-y-2.5">
+                {model.points.map((point) => (
+                  <li key={point} className="flex gap-3">
+                    <span
+                      aria-hidden="true"
+                      className="mt-[0.62rem] h-px w-3 shrink-0 bg-brass"
+                    />
+                    <span className="text-[14.5px] leading-[1.65] text-slate-muted">{point}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </Section>
 
       {/* Open positions */}
       <section className="border-b border-limestone-line">
@@ -107,54 +194,10 @@ export default function CareersPage() {
         </Container>
       </section>
 
-      {/* Why 254 */}
-      <section className="border-b border-limestone-line bg-limestone-sunk">
-        <Container>
-          <div className="py-14 sm:py-18">
-            <SectionHeading
-              eyebrow="Why here"
-              title="What this firm actually offers"
-              lede="Stated without the things a careers page usually claims. There is no office, no team photograph, and no headcount, because the firm is being built and pretending otherwise would be the first thing you found out was untrue."
-            />
-            <div className="mt-12 grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
-              {[
-                {
-                  index: "01",
-                  title: "Engagement that fits the work",
-                  body: "A part time retainer for the engineer seat and per completed inspection for technicians. Nobody is asked to pretend a full time seat exists before the volume does, and nobody is asked to take a rate they have not seen.",
-                },
-                {
-                  index: "02",
-                  title: "The whole state, genuinely",
-                  body: "Work across all 254 counties rather than one metro. For a technician that means claiming the counties you can actually reach. For an engineer it means volume from places most firms never send anybody.",
-                },
-                {
-                  index: "03",
-                  title: "Technology in the boring places",
-                  body: "Dispatch, protocol capture, review queues, and delivery run on the firm's own systems. It means a field record arrives complete and a review is reading evidence rather than chasing it.",
-                },
-                {
-                  index: "04",
-                  title: "Professional standards that hold",
-                  body: "Written protocols rather than individual habit, and responsible charge that is never asked to bend. If a record does not support an opinion, the answer is that it does not, and the job goes back to the field.",
-                },
-              ].map((item) => (
-                <div key={item.index}>
-                  <span className="font-sans text-[0.8rem] font-semibold tracking-[0.14em] text-brass-ink">
-                    {item.index}
-                  </span>
-                  <span aria-hidden="true" className="mt-3 mb-4 block h-px w-10 bg-brass" />
-                  <h3 className="text-[1.05rem] leading-[1.35] font-semibold text-slate">
-                    {item.title}
-                  </h3>
-                  <p className="mt-3 text-[0.93rem] leading-[1.7] text-slate-muted">{item.body}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Container>
-      </section>
-
+      {/* "What this firm actually offers" was folded into the working model
+          section above. It argued the same four points, one of them under an
+          identical title, and two versions of one argument on one page is how a
+          reader stops believing either. */}
       {/* Hiring process */}
       <section className="border-b border-limestone-line">
         <Container>
@@ -162,7 +205,11 @@ export default function CareersPage() {
             <SectionHeading
               eyebrow="The process"
               title="What happens after you apply"
-              lede="Five steps. You should be able to predict your next two weeks from this list."
+              // Counted from the array rather than typed. It said five while the
+              // list had six the moment the process gained credential
+              // verification and onboarding, which is exactly the kind of stale
+              // number nobody re-reads.
+              lede={`${hiringProcess.length} steps. You should be able to predict your next two weeks from this list.`}
             />
             <ol className="mt-11 divide-y divide-limestone-line border-t border-limestone-line">
               {hiringProcess.map((stage) => (
@@ -185,32 +232,48 @@ export default function CareersPage() {
         </Container>
       </section>
 
-      {/* Equal opportunity */}
-      <section className="bg-limestone-sunk">
-        <Container>
-          <div className="grid gap-8 py-12 sm:py-14 lg:grid-cols-12 lg:gap-16">
-            <div className="lg:col-span-4">
-              <Eyebrow>Equal opportunity</Eyebrow>
-              <Rule className="mt-5" />
+      {/* Standards and integrity. The recruiting asset, so it gets a navy band
+          and real estate rather than a paragraph at the bottom. */}
+      <Section id="standards" tone="navy">
+        <SectionHead
+          eyebrow="Standards and integrity"
+          title="What a licensed engineer is protected by here"
+          lede="The reason an engineer would take a seat at a firm this young is that the arrangement is written down rather than promised. These four are contractual, not cultural."
+          onDark
+        />
+        <div className="mt-9 grid gap-[18px] sm:grid-cols-2">
+          {standardsAndIntegrity().map((item) => (
+            <div key={item.heading} className="border-l-4 border-brass bg-white/[0.07] p-6">
+              <h3 className="font-display text-[18px] leading-[1.3] font-bold text-slate-fg">
+                {item.heading}
+              </h3>
+              <p className="mt-2.5 text-[15px] leading-[1.7] text-slate-fg-muted">{item.body}</p>
             </div>
-            <div className="lg:col-span-8">
-              <p className="text-[0.98rem] leading-[1.75] text-slate-muted">
-                Applications are read by a person and considered on the qualifications the role
-                actually requires. {""}
-                254 Engineering Services LLC does not discriminate on race, color, religion, sex,
-                sexual orientation, gender identity, national origin, age, disability, genetic
-                information, veteran status, or any other basis protected by federal or Texas law.
-              </p>
-              <p className="mt-5 text-[0.98rem] leading-[1.75] text-slate-muted">
-                The application asks for nothing sensitive. No social security number, no date of
-                birth, no identity documents, and no bank details are collected by this website. A
-                background check may be requested later in the process, and if it is, it is handled
-                directly with you rather than through a form.
-              </p>
-            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* The FAQ, feeding the schema above from the same array. */}
+      <Section id="questions" tone="white">
+        <FaqBlock faqs={faqs} title="Questions candidates actually ask" />
+      </Section>
+
+      {/* Equal opportunity, full statement, its own block. */}
+      <Section tone="sunk">
+        <div className="grid gap-8 lg:grid-cols-12 lg:gap-16">
+          <div className="lg:col-span-4">
+            <Eyebrow>Equal opportunity</Eyebrow>
+            <Rule className="mt-5" />
           </div>
-        </Container>
-      </section>
+          <div className="lg:col-span-8">
+            {equalOpportunity.map((para) => (
+              <p key={para.slice(0, 40)} className="mt-5 text-[16px] leading-[1.75] text-slate-muted first:mt-0">
+                {para}
+              </p>
+            ))}
+          </div>
+        </div>
+      </Section>
     </>
   );
 }

@@ -96,6 +96,79 @@ const consent = z.literal(true, {
   message: "Tick the box to confirm we may contact you about this application.",
 });
 
+/**
+ * The accuracy attestation on the review step.
+ *
+ * Separate from `consent`, which is permission to be contacted. This one is the
+ * applicant certifying that what they wrote is true, and the two are different
+ * undertakings: somebody can be happy to be contacted and still not have read
+ * back what they typed.
+ */
+const attestation = z.literal(true, {
+  message: "Confirm that the information you have provided is accurate.",
+});
+
+/**
+ * A link to somebody's own work.
+ *
+ * Validated as a URL only when present, because an empty string from an
+ * untouched input is not an invalid URL, it is an unanswered question. http and
+ * https only: a mailto or a javascript scheme in a field the operator will click
+ * from an email is not a link, it is a hazard.
+ */
+const profileUrl = z
+  .string()
+  .trim()
+  .max(500)
+  .refine(
+    (v) => {
+      if (v === "") return true;
+      try {
+        const u = new URL(v);
+        return u.protocol === "https:" || u.protocol === "http:";
+      } catch {
+        return false;
+      }
+    },
+    "Enter a full web address, starting with https://, or leave this blank.",
+  )
+  .optional();
+
+/**
+ * Earliest availability.
+ *
+ * Kept as the string the date input produced rather than coerced to a Date. It
+ * is displayed back to the operator exactly as entered, and parsing it here
+ * would only introduce a timezone question nothing needs answered.
+ */
+const availability = trimmed(40).optional();
+
+/** A short note in the applicant's own words. Capped, and stated as capped. */
+const coverNote = trimmed(1000).optional();
+
+/**
+ * A reference, entirely optional.
+ *
+ * Contacted only with permission, which the form states and this comment records
+ * so a later copy change cannot quietly detach the promise from the field.
+ * Nothing here is a credential: a name, a working relationship, and one way to
+ * reach them.
+ */
+const reference = z
+  .object({
+    name: trimmed(160).optional(),
+    relationship: trimmed(200).optional(),
+    contact: trimmed(200).optional(),
+  })
+  .optional();
+
+/** The optional evaluative fields both roles share. */
+const optionalDepth = {
+  profileUrl,
+  availability,
+  coverNote,
+};
+
 // ---------------------------------------------------------------- technician
 
 export const technicianApplicationSchema = z.object({
@@ -133,7 +206,9 @@ export const technicianApplicationSchema = z.object({
 
   // 5. Review
   consent,
+  attestation,
   company,
+  ...optionalDepth,
   ...attribution,
 });
 
@@ -179,7 +254,14 @@ export const engineerApplicationSchema = z.object({
 
   // 5. Review
   consent,
+  attestation,
   company,
+  ...optionalDepth,
+  // Two references, both optional, contacted only with permission. On the
+  // engineering seat only: a reference is evaluative for a licensed role in a
+  // way it is not for dispatched field work.
+  referenceOne: reference,
+  referenceTwo: reference,
   ...attribution,
 });
 
@@ -212,7 +294,19 @@ export const technicianSteps: StepDef[] = [
     id: "experience",
     title: "Experience",
     blurb: "What you have actually done, rather than what you could learn.",
-    fields: ["backgrounds", "backgroundOther", "yearsExperience", "part107", "liabilityInsurance"],
+    fields: [
+      "backgrounds",
+      "backgroundOther",
+      "yearsExperience",
+      "part107",
+      "liabilityInsurance",
+      // Optional, and listed here so the review step reads them back. An
+      // optional field always passes validation, so its presence in this array
+      // is about the read back rather than about the check.
+      "profileUrl",
+      "availability",
+      "coverNote",
+    ],
   },
   {
     id: "documents",
@@ -224,7 +318,7 @@ export const technicianSteps: StepDef[] = [
     id: "review",
     title: "Review",
     blurb: "Check your answers before you send them.",
-    fields: ["consent"],
+    fields: ["consent", "attestation"],
   },
 ];
 
@@ -252,7 +346,15 @@ export const engineerSteps: StepDef[] = [
     id: "experience",
     title: "Experience",
     blurb: "The practice behind the licence.",
-    fields: ["yearsStructural", "sealedWork", "employmentStatus", "currentEorRoles"],
+    fields: [
+      "yearsStructural",
+      "sealedWork",
+      "employmentStatus",
+      "currentEorRoles",
+      "profileUrl",
+      "availability",
+      "coverNote",
+    ],
   },
   {
     id: "documents",
@@ -264,7 +366,7 @@ export const engineerSteps: StepDef[] = [
     id: "review",
     title: "Review",
     blurb: "Check your answers before you send them.",
-    fields: ["consent"],
+    fields: ["consent", "attestation"],
   },
 ];
 

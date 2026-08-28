@@ -128,6 +128,46 @@ export async function POST(request: Request) {
     }
   }
 
+  /*
+   * The optional depth fields, as their own sections.
+   *
+   * Appended rather than folded into Experience, because an empty optional
+   * answer should leave no trace in the operator's email. The layout drops a
+   * section whose rows are all empty, so a candidate who skipped these produces
+   * exactly the email they produced before the fields existed.
+   */
+  type Row = [string, string | undefined];
+
+  const aboutYou: { heading: string; rows: Row[] }[] = [
+    {
+      heading: "In their own words",
+      rows: [
+        ["LinkedIn or portfolio", answers.profileUrl as string],
+        ["Earliest availability", answers.availability as string],
+        ["Note", answers.coverNote as string],
+      ] as Row[],
+    },
+  ];
+
+  const referenceRows = (label: string, key: string): Row[] => {
+    const r = answers[key] as { name?: string; relationship?: string; contact?: string } | undefined;
+    if (!r) return [];
+    return [
+      [`${label} name`, r.name],
+      [`${label} relationship`, r.relationship],
+      [`${label} contact`, r.contact],
+    ] as Row[];
+  };
+
+  const references: { heading: string; rows: Row[] }[] = isEngineer
+    ? [
+        {
+          heading: "References, contact only with permission",
+          rows: [...referenceRows("First", "referenceOne"), ...referenceRows("Second", "referenceTwo")],
+        },
+      ]
+    : [];
+
   const sections = isEngineer
     ? [
         {
@@ -203,7 +243,7 @@ export async function POST(request: Request) {
       name: data.fullName,
       email: data.email,
       city: (data.city as string) ?? "",
-      sections,
+      sections: [...sections, ...aboutYou, ...references],
       documents,
     }),
   );
