@@ -21,18 +21,27 @@ export function Breadcrumbs({ crumbs, onDark = false }: { crumbs: Crumb[]; onDar
 
   return (
     <nav aria-label="Breadcrumb">
-      <ol className={`flex flex-wrap items-center gap-x-2 gap-y-1 font-sans text-[0.82rem] ${trail}`}>
+      {/* -mx-1.5 pulls the row back so the horizontal padding on each crumb,
+          which is what carries a short word like "Home" to a 44px wide target,
+          does not indent the trail away from the heading below it. */}
+      <ol className={`-mx-1.5 -my-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 font-sans text-[0.82rem] ${trail}`}>
         {crumbs.map((crumb, i) => {
           const last = i === crumbs.length - 1;
           return (
             <li key={crumb.path} className="flex items-center gap-2">
               {last ? (
-                <span aria-current="page" className={current}>
+                <span aria-current="page" className={`flex min-h-[44px] items-center px-1.5 ${current}`}>
                   {crumb.name}
                 </span>
               ) : (
                 <>
-                  <Link href={crumb.path} className={`transition-colors ${hover}`}>
+                  {/* min-h-[44px] with the row's own -my-2.5 below: the target
+                      reaches the thumb standard without the trail growing into a
+                      band of empty space above the heading. */}
+                  <Link
+                    href={crumb.path}
+                    className={`flex min-h-[44px] items-center justify-center px-1.5 transition-colors ${hover}`}
+                  >
                     {crumb.name}
                   </Link>
                   <span aria-hidden="true" className={sep}>

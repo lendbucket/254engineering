@@ -18,8 +18,25 @@ import { useId, type ReactNode } from "react";
  * is hard to complete on a phone is a form that does not get completed.
  */
 
+/*
+ * 16px on every control, and this is the fix for the operator's complaint.
+ *
+ * iOS Safari zooms the viewport when a text control smaller than 16px receives
+ * focus. Once it has zoomed, the layout viewport is wider than the visual one,
+ * and the page can be dragged left and right. That is the "left to right
+ * swiping" reported from a phone, and it is invisible to every desktop check:
+ * the document has no horizontal overflow at any width, in any headless run,
+ * before the tap happens.
+ *
+ * Every control on this site was 15.5px. Half a pixel below the threshold, on
+ * the waitlist, the contact form, and both application steppers.
+ *
+ * The other way to stop the zoom is maximum-scale=1 in the viewport meta, and it
+ * is not an option: it also stops a person with low vision zooming the page at
+ * all. Fixing the font size costs nothing and denies nobody anything.
+ */
 const inputBase =
-  "block w-full min-h-[48px] rounded-[3px] border bg-white px-4 py-3 font-sans text-[15.5px] text-slate-ink placeholder:text-slate-muted/60 transition-colors";
+  "block w-full min-h-[48px] rounded-[3px] border bg-white px-4 py-3 font-sans text-[16px] text-slate-ink placeholder:text-slate-muted/60 transition-colors";
 
 const inputTone = (invalid: boolean) =>
   invalid
@@ -63,6 +80,38 @@ export function Field({
   );
 }
 
+/**
+ * The mobile keyboard, derived from the input type.
+ *
+ * Every call site already states `type`, and the right keyboard follows from it
+ * without exception, so asking each one to also pass `inputMode` would be asking
+ * for the same fact twice and getting it wrong somewhere. `enterkeyhint` is the
+ * label on the return key; "next" is right for every field in these forms
+ * because none of them is the last control before the submit.
+ *
+ * tel gets `inputMode="tel"` as well as `type="tel"`: the type alone is enough
+ * on iOS but Android is more reliable with both, and the pair costs nothing.
+ */
+function keyboardFor(type: string): {
+  inputMode?: "text" | "tel" | "email" | "numeric" | "decimal" | "search" | "url";
+  enterKeyHint?: "enter" | "done" | "go" | "next" | "previous" | "search" | "send";
+} {
+  switch (type) {
+    case "email":
+      return { inputMode: "email", enterKeyHint: "next" };
+    case "tel":
+      return { inputMode: "tel", enterKeyHint: "next" };
+    case "number":
+      return { inputMode: "numeric", enterKeyHint: "next" };
+    case "url":
+      return { inputMode: "url", enterKeyHint: "next" };
+    case "search":
+      return { inputMode: "search", enterKeyHint: "search" };
+    default:
+      return { enterKeyHint: "next" };
+  }
+}
+
 export function TextInput({
   name,
   label,
@@ -104,6 +153,7 @@ export function TextInput({
         id={id}
         name={name}
         type={type}
+        {...keyboardFor(type)}
         autoComplete={autoComplete}
         placeholder={placeholder}
         {...(onChange ? { value: value ?? "", onChange: (e) => onChange(e.target.value) } : { defaultValue })}

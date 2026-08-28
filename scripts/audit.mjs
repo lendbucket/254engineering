@@ -53,6 +53,15 @@ const PHASE_ONE = [
   { name: "cta-audit", why: "a conversion path on every route, honest under the gate" },
   { name: "seo-audit", why: "title and description budgets, uniqueness, schema, Lighthouse SEO 100" },
   { name: "forms-audit", why: "all four forms end to end, plus the server side guards" },
+  {
+    // Phase one, not phase two, because it measures the PRODUCTION build through
+    // the shared server on 3225. Phase two audits each start their own next dev,
+    // and mobile-audit's does so by killing whatever is on that port, which left
+    // this one with nothing to fetch and a preflight failure that had nothing to
+    // do with overflow.
+    name: "mobile-overflow-audit",
+    why: "zero horizontal document scroll on EVERY sitemap route at 360 and 390",
+  },
 ];
 
 const PHASE_TWO = [

@@ -44,7 +44,7 @@ export function Rule({ onDark = false, className = "" }: { onDark?: boolean; cla
 type ButtonTone = "primary" | "secondary" | "onDark" | "onDarkOutline";
 
 const buttonBase =
-  "inline-flex items-center justify-center gap-2 rounded-[3px] px-7 py-3.5 text-center font-sans text-[15.5px] font-bold transition-colors duration-150 min-h-[48px]";
+  "inline-flex items-center justify-center gap-2 rounded-[3px] px-7 py-3.5 text-center font-sans text-[16px] font-bold transition-colors duration-150 min-h-[48px]";
 
 /**
  * Four tones, and no way to ask for a fifth by passing classes.

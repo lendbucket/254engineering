@@ -54,7 +54,7 @@ export default function ContactPage() {
                   <dd className="mt-2">
                     <a
                       href={`mailto:${business.email}`}
-                      className="text-[1.02rem] text-slate underline decoration-brass/60 underline-offset-4 transition-colors hover:decoration-brass"
+                      className="flex min-h-[44px] items-center text-[1.02rem] text-slate underline decoration-brass/60 underline-offset-4 transition-colors hover:decoration-brass"
                     >
                       {business.email}
                     </a>

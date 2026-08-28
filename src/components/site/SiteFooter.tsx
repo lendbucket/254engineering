@@ -89,7 +89,8 @@ export function SiteFooter() {
             </p>
             <a
               href={`mailto:${business.email}`}
-              className="mt-2 block text-[15px] font-semibold text-brass transition-colors hover:text-brass-light"
+              /* A mail link is a tap target like any other. It was 23px tall. */
+              className="mt-2 flex min-h-[44px] items-center text-[15px] font-semibold text-brass transition-colors hover:text-brass-light"
             >
               {business.email}
             </a>
@@ -112,11 +113,21 @@ export function SiteFooter() {
             <p>
               Copyright {year} {business.legalName}. All rights reserved.
             </p>
-            <p className="flex gap-5">
-              <Link href="/privacy" className="transition-colors hover:text-brass">
+            {/* The negative margin keeps the visual position while the padding
+                grows the target: without it the row would gain 24px of height it
+                does not need. gap-2 plus the padding keeps adjacent targets
+                further apart than the 8px minimum. */}
+            <p className="-my-3 flex gap-2">
+              <Link
+                href="/privacy"
+                className="flex min-h-[44px] items-center px-3 transition-colors hover:text-brass"
+              >
                 Privacy
               </Link>
-              <Link href="/terms" className="transition-colors hover:text-brass">
+              <Link
+                href="/terms"
+                className="flex min-h-[44px] items-center px-3 transition-colors hover:text-brass"
+              >
                 Terms
               </Link>
             </p>
@@ -146,11 +157,23 @@ function FooterColumn({ title, children }: { title: string; children: ReactNode 
   );
 }
 
+/**
+ * A footer link, sized for a thumb.
+ *
+ * The text is 14.5px and the line box was 22px tall, so every one of these was a
+ * 22 pixel target stacked directly against its neighbour. On a phone that is the
+ * difference between reaching the page you wanted and reaching the one below it.
+ *
+ * `min-h-[44px]` with the text centred gives the full 44, and because these sit
+ * in a flex column the height itself provides the separation between adjacent
+ * targets: no two are closer than the 8px the app feel standard asks for. The
+ * link stays full width, so the target is the row rather than the words.
+ */
 function FooterLink({ href, children }: { href: string; children: ReactNode }) {
   return (
     <Link
       href={href}
-      className="text-[14.5px] font-medium text-[#dce2eb] transition-colors hover:text-brass"
+      className="flex min-h-[44px] items-center text-[14.5px] font-medium text-[#dce2eb] transition-colors hover:text-brass"
     >
       {children}
     </Link>

@@ -5,6 +5,7 @@ import { Container } from "@/components/ui/Container";
 import { PageHeader } from "@/components/site/PageHeader";
 import { ApplicationFlow } from "@/components/careers/ApplicationFlow";
 import { Eyebrow, Rule, SectionHeading } from "@/components/ui/primitives";
+import { StickyApply } from "@/components/careers/StickyApply";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema, jobPostingSchema } from "@/lib/schema";
 import { openPositions, positionBySlug, positions } from "@data/positions";
@@ -226,7 +227,7 @@ export default async function PositionPage({ params }: { params: Promise<{ slug:
                   <li key={p.slug}>
                     <Link
                       href={`/careers/${p.slug}`}
-                      className="font-sans text-[1rem] font-semibold text-slate underline decoration-brass/60 underline-offset-[6px] transition-colors hover:decoration-brass"
+                      className="flex min-h-[44px] items-center font-sans text-[1rem] font-semibold text-slate underline decoration-brass/60 underline-offset-[6px] transition-colors hover:decoration-brass"
                     >
                       {p.title}
                     </Link>
@@ -238,21 +239,17 @@ export default async function PositionPage({ params }: { params: Promise<{ slug:
         </section>
       ) : null}
 
-      {/* Sticky apply, mobile only. */}
-      {position.open ? (
-        <div className="sticky bottom-0 z-40 border-t border-limestone-line bg-limestone-raised/95 backdrop-blur md:hidden">
-          <Container>
-            <div className="py-3">
-              <a
-                href="#apply"
-                className="flex min-h-[48px] w-full items-center justify-center rounded-[3px] bg-brass px-6 font-sans text-[15.5px] font-bold text-slate-ink transition-colors hover:bg-brass-light"
-              >
-                Apply for this position
-              </a>
-            </div>
-          </Container>
-        </div>
-      ) : null}
+{/*
+        Sticky apply, mobile only, and it removes itself once the form is on
+        screen. See the note in StickyApply: a sticky element never overlaps the
+        content it is about, and on the licensure step of a five step form this
+        bar was covering a field's worth of a small screen to offer a link to
+        where the reader already was.
+
+        It is the only sticky bar on this route. The rule is one at a time: the
+        header's nav is at the top, this is at the bottom, nothing else sticks.
+      */}
+      {position.open ? <StickyApply targetId="apply" label="Apply for this position" /> : null}
     </>
   );
 }
