@@ -590,3 +590,42 @@ something absent.
 sitemap. It is disallowed in `robots.ts` and has been since before that audit, so
 it is consistently non indexed rather than half configured. The finding was wrong
 and the configuration was right.
+
+## Interior parity: what the workstream found, and what it did not cover
+
+### The dark bands were shipped with light ground text, and only pixel sampling saw it
+
+Recomposing six pages onto navy bands moved the sections but not their colours.
+`image-contrast-audit` measured **47 pairings under the 4.5 floor**, as low as
+2.00:1, across the government, position, about, and insights surfaces.
+`contrast-audit` passed every one of them, because the ground is a gradient and
+axe resolves a gradient no better than a photograph. Same blind spot as the
+invisible hero heading.
+
+The audit now covers **126 pairings** rather than the 32 it carried into this
+workstream, and every recomposed band is targeted by a stable id rather than a
+structural selector.
+
+**Two of the findings were the audit's fault, not the pages'.** `color:
+transparent` does not clear an explicitly set `text-decoration-color`, so the
+source citations kept their gold underline while their glyphs vanished and the
+sampler read the underline as the background: 3.3:1 against gold, when the real
+pairing is white on navy at 14:1. And four selectors matched nothing after the
+recomposition, which the "selector matched nothing" check surfaced rather than
+silently skipping. Both are fixed.
+
+### The strip exemption
+
+The homepage credibility strip, the position specification row, and the about
+credentials strip carry no heading and are correct. A strip is a row of facts
+read at a glance, not a section making an argument. Recorded in DESIGN_SPEC.md
+rather than quietly relaxed, because the first measurement flagged all three as
+failures and the rule was over strict rather than the pages being wrong.
+
+### Not covered
+
+The waitlist and the application steppers received the padding change and nothing
+else. The brief asked to elevate their framing, including completion states, and
+what shipped is the section rhythm only: their opening context bands and their
+progress and completion treatments are unchanged. Named here rather than counted
+as done.

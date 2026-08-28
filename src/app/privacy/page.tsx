@@ -42,7 +42,7 @@ export default function PrivacyPage() {
 
       <section>
         <Container width="prose">
-          <div className="py-14 sm:py-18">
+          <div className="py-[clamp(48px,7vw,88px)]">
             <Prose>
               <h2>Who this policy covers</h2>
               <p>

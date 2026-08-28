@@ -6,7 +6,8 @@ import { PageHeader } from "@/components/site/PageHeader";
 import { sectionPhotos } from "@/content/photos";
 import { PrelaunchNotice } from "@/components/launch/PrelaunchNotice";
 import { OfferCta } from "@/components/launch/OfferCta";
-import { Eyebrow, Rule, SectionHeading } from "@/components/ui/primitives";
+import { Rule, SectionHeading } from "@/components/ui/primitives";
+import { Section, SectionHead } from "@/components/ui/section";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { business, samRegistration } from "@/config/business";
@@ -49,7 +50,11 @@ export default function GovernmentPage() {
         <Container>
           <div className="grid gap-12 py-14 sm:py-18 lg:grid-cols-12 lg:gap-16">
             <div className="lg:col-span-4">
-              <Eyebrow>Core competencies</Eyebrow>
+              <SectionHead
+                eyebrow="Core competencies"
+                title="What this firm is built to deliver"
+                level="h2"
+              />
               <Rule className="mt-5" />
             </div>
             <div className="lg:col-span-8">
@@ -74,10 +79,10 @@ export default function GovernmentPage() {
       </section>
 
       {/* Procurement posture */}
-      <section className="border-b border-limestone-line bg-limestone-sunk">
-        <Container>
-          <div className="py-14 sm:py-18">
+      <Section id="contracting" tone="navy">
+        <div>
             <SectionHeading
+              onDark
               eyebrow="How this firm contracts"
               title="Qualifications based selection and on-call availability"
               lede="Texas Government Code Chapter 2254 requires professional engineering services to be procured on the basis of demonstrated competence and qualifications, with a fair and reasonable price negotiated afterward. This firm contracts on that footing and does not submit price-led proposals for engineering services."
@@ -111,9 +116,8 @@ export default function GovernmentPage() {
                 body="Post event structural assessment across the state, including the coastal counties after a named storm. Work is scoped as factual assessment and repair specification. This firm does not perform claim advocacy and does not solicit insurance claims."
               />
             </div>
-          </div>
-        </Container>
-      </section>
+        </div>
+      </Section>
 
       {/* Registrations */}
       <section className="border-b border-limestone-line">
@@ -198,7 +202,11 @@ export default function GovernmentPage() {
         <Container>
           <div className="grid gap-12 py-14 sm:py-18 lg:grid-cols-12 lg:gap-16">
             <div className="lg:col-span-4">
-              <Eyebrow>NAICS codes</Eyebrow>
+              <SectionHead
+                eyebrow="NAICS codes"
+                title="How the firm classifies for procurement"
+                level="h2"
+              />
               <Rule className="mt-5" />
               <p className="mt-6 text-[0.92rem] leading-[1.65] text-slate-muted">
                 The codes under which this firm&apos;s services are classified for federal and state
@@ -267,12 +275,20 @@ export default function GovernmentPage() {
   );
 }
 
+/**
+ * A posture block, which now renders on the navy band.
+ *
+ * The colours are explicit rather than inherited. globals.css sets a colour on
+ * h3 at the base layer, so a heading that relies on inheriting from its dark
+ * section renders navy on navy, and the body was authored in a muted grey that
+ * measured 2.22:1 here.
+ */
 function PostureBlock({ title, body }: { title: string; body: ReactNode }) {
   return (
     <div>
       <span aria-hidden="true" className="mb-4 block h-px w-10 bg-brass" />
-      <h3 className="text-[1.12rem] leading-[1.35] font-semibold text-slate">{title}</h3>
-      <p className="mt-3 text-[0.95rem] leading-[1.72] text-slate-muted">{body}</p>
+      <h3 className="text-[1.12rem] leading-[1.35] font-semibold text-slate-fg">{title}</h3>
+      <p className="mt-3 text-[0.95rem] leading-[1.72] text-slate-fg-muted">{body}</p>
     </div>
   );
 }

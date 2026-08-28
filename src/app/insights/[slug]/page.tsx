@@ -7,6 +7,7 @@ import { FaqBlock } from "@/components/site/FaqBlock";
 import { OfferCta } from "@/components/launch/OfferCta";
 import { InsightBody, SourceList } from "@/components/insights/Body";
 import { CardGrid, cardCell, SectionHeading } from "@/components/ui/primitives";
+import { Section } from "@/components/ui/section";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, blogPostingSchema, breadcrumbSchema, faqSchema } from "@/lib/schema";
 import { insightBySlug, insights } from "@/content/insights";
@@ -91,29 +92,32 @@ export default async function InsightPage({ params }: { params: Promise<{ slug: 
 
       <section className="border-b border-limestone-line">
         <Container>
-          <div className="py-14 sm:py-18">
+          <div className="py-[clamp(48px,7vw,88px)]">
             <InsightBody blocks={post.body} />
           </div>
         </Container>
       </section>
 
-      <section className="border-b border-limestone-line bg-limestone-sunk">
-        <Container>
-          <div className="py-14 sm:py-18">
-            <SectionHeading
-              eyebrow="Sources"
-              title="Every claim above, and where to check it"
-              lede="Primary sources only. Where something could not be traced to one, the page says so rather than repeating it."
-            />
-            <SourceList sources={post.sources} />
-          </div>
-        </Container>
-      </section>
+      {/*
+        The sources band is what a post most wants remembered: the whole claim of
+        this corpus is that every assertion is traceable to a primary source. It
+        was limestone in a run of light sections, and it is the mid page dark
+        band now.
+      */}
+      <Section id="sources" tone="navy">
+        <SectionHeading
+          onDark
+          eyebrow="Sources"
+          title="Every claim above, and where to check it"
+          lede="Primary sources only. Where something could not be traced to one, the page says so rather than repeating it."
+        />
+        <SourceList sources={post.sources} onDark />
+      </Section>
 
       {post.faqs.length > 0 ? (
         <section className="border-b border-limestone-line">
           <Container>
-            <div className="py-14 sm:py-18">
+            <div className="py-[clamp(48px,7vw,88px)]">
               <FaqBlock faqs={post.faqs} />
             </div>
           </Container>
@@ -122,7 +126,7 @@ export default async function InsightPage({ params }: { params: Promise<{ slug: 
 
       <section className="border-b border-limestone-line bg-limestone-sunk">
         <Container>
-          <div className="py-14 sm:py-16">
+          <div className="py-[clamp(48px,7vw,88px)]">
             <SectionHeading eyebrow="More analysis" title="Related reading" level="h2" />
             <CardGrid className="mt-8">
               {others.map((other) => (

@@ -6,7 +6,8 @@ import { PageHeader } from "@/components/site/PageHeader";
 import { FaqBlock } from "@/components/site/FaqBlock";
 import { PrelaunchNotice } from "@/components/launch/PrelaunchNotice";
 import { OfferCta } from "@/components/launch/OfferCta";
-import { CardGrid, cardCell, Eyebrow, Rule, SectionHeading } from "@/components/ui/primitives";
+import { CardGrid, cardCell, SectionHeading } from "@/components/ui/primitives";
+import { Section, SectionHead } from "@/components/ui/section";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema, faqSchema, serviceSchema } from "@/lib/schema";
 import { serviceBySlug, services } from "@/content/services";
@@ -81,30 +82,42 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
         <PrelaunchNotice service={service.name} />
       </PageHeader>
 
-      <section className="border-b border-limestone-line">
-        <Container>
-          <div className="grid gap-12 py-14 sm:py-18 lg:grid-cols-12 lg:gap-16">
-            <div className="lg:col-span-4">
-              <Eyebrow>What it is</Eyebrow>
-              <Rule className="mt-5" />
-            </div>
-            <div className="lg:col-span-8">
-              {service.what.map((paragraph, i) => (
-                <p
-                  key={i}
-                  className={`text-[1.02rem] leading-[1.75] text-slate-muted ${i > 0 ? "mt-6" : ""}`}
-                >
-                  {paragraph}
-                </p>
-              ))}
-            </div>
-          </div>
-        </Container>
-      </section>
+      {/*
+        The opening substance section.
 
-      <section className="border-b border-limestone-line bg-limestone-sunk">
-        <Container>
-          <div className="grid gap-12 py-14 sm:py-18 lg:grid-cols-2 lg:gap-16">
+        It used to be an eyebrow, a rule, and a column of prose with no heading
+        at all, which is the device the homepage never uses. The heading is
+        derived from the service name so it is true for all nine pages and there
+        is no ninefold copy to keep in step.
+
+        The reading column is capped at 68 characters rather than filling eight
+        of twelve columns: this is the paragraph a buyer arriving from search
+        actually reads, and a 90 character measure is where they stop.
+      */}
+      <Section tone="white">
+        <SectionHead
+          eyebrow="What it is"
+          /* "What a roof certifications actually is" was the first attempt.
+             shortName is plural or uncountable on most of the nine, so any
+             construction with an article breaks on them. This one reads
+             correctly for every name in the set. */
+          title={`${service.shortName}, in plain terms`}
+          lede={service.summary}
+        />
+        <div className="mt-9 max-w-[68ch]">
+          {service.what.map((paragraph, i) => (
+            <p
+              key={i}
+              className={`text-[17px] leading-[1.78] text-slate-muted ${i > 0 ? "mt-6" : ""}`}
+            >
+              {paragraph}
+            </p>
+          ))}
+        </div>
+      </Section>
+
+      <Section tone="sunk">
+        <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
             <div>
               <SectionHeading eyebrow="Who orders one" title="The people who need this document" />
               <ul className="mt-9 space-y-4">
@@ -143,9 +156,8 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
                 </p>
               </div>
             </div>
-          </div>
-        </Container>
-      </section>
+        </div>
+      </Section>
 
       {relevantRegions.length > 0 ? (
         <section className="border-b border-limestone-line">

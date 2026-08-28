@@ -89,32 +89,82 @@ const TARGETS = [
   },
   {
     page: "/",
-    name: "how it works gradient",
+    name: "home process gradient",
     selectors: [
       { label: "h2", css: "section#process h2" },
       { label: "lede", css: "section#process h2 + p" },
     ],
   },
+  /*
+   * The bands the interior parity workstream created.
+   *
+   * Every one of these took a section that was written for a light ground and
+   * put it on navy. That is the exact move that produced the invisible hero
+   * heading, and computed style cannot see it because the ground is a gradient.
+   * Each band gets its heading AND its body sampled, because the body is the
+   * half that was authored in a muted grey.
+   */
   {
-    page: "/",
-    name: "windstorm gradient",
+    page: "/services",
+    name: "services hub process band",
     selectors: [
-      { label: "h2", css: "section#windstorm h2" },
-      { label: "body", css: "section#windstorm p.max-w-\\[58ch\\]" },
+      { label: "h2", css: "section#how-produced h2" },
+      { label: "lede", css: "section#how-produced h2 ~ p" },
+      { label: "eyebrow", css: "section#how-produced p.uppercase" },
     ],
   },
   {
-    page: "/",
-    name: "careers band",
+    page: "/coverage",
+    name: "coverage region band",
     selectors: [
-      { label: "h2", css: "section#careers h2" },
-      { label: "lede", css: "section#careers h2 + p" },
+      { label: "h2", css: "section#regions h2" },
+      { label: "lede", css: "section#regions h2 ~ p" },
+      { label: "eyebrow", css: "section#regions p.uppercase" },
     ],
   },
   {
-    page: "/",
-    name: "navy capability card",
-    selectors: [{ label: "h3", css: "section#government h3" }],
+    page: "/coverage/coastal-bend",
+    name: "region service emphasis band",
+    selectors: [
+      { label: "h2", css: "section#emphasis h2" },
+      { label: "lede", css: "section#emphasis h2 ~ p" },
+      { label: "eyebrow", css: "section#emphasis p.uppercase" },
+    ],
+  },
+  {
+    page: "/government",
+    name: "government qualifications band",
+    selectors: [
+      { label: "h2", css: "section#contracting h2" },
+      { label: "posture title", css: "section#contracting h3" },
+      { label: "posture body", css: "section#contracting h3 + p" },
+    ],
+  },
+  {
+    page: "/careers/professional-engineer",
+    name: "position about band",
+    selectors: [
+      { label: "eyebrow", css: "section#about-role p.uppercase" },
+      { label: "h2", css: "section#about-role h2" },
+      { label: "body", css: "section#about-role p:not(.uppercase)" },
+    ],
+  },
+  {
+    page: "/about",
+    name: "about model band",
+    selectors: [
+      { label: "h2", css: "section#model h2" },
+      { label: "body", css: "section#model p" },
+    ],
+  },
+  {
+    page: "/insights/engineer-of-record-texas",
+    name: "post sources band",
+    selectors: [
+      { label: "h2", css: "section#sources h2" },
+      { label: "source link", css: "section#sources ol li a" },
+      { label: "source note", css: "section#sources ol li p" },
+    ],
   },
 ];
 
@@ -240,7 +290,17 @@ async function run() {
          * Only `color` is touched, so button fills, borders, and photographs
          * are untouched and the sampled background is the real one.
          */
-        content: `* { color: transparent !important; text-shadow: none !important; }`,
+        /*
+         * The decoration has to go transparent too.
+         *
+         * `color: transparent` does not clear an explicitly set
+         * text-decoration-color, so an underlined link kept its underline while
+         * its glyphs vanished, and the sampler read those underline pixels as
+         * the background beneath the text. The source citations on the posts
+         * band reported 3.3:1 against gold when the actual pairing is white on
+         * navy. The page was right and this rule was incomplete.
+         */
+        content: `* { color: transparent !important; text-shadow: none !important; -webkit-text-decoration-color: transparent !important; text-decoration-color: transparent !important; }`,
       });
       await page.waitForTimeout(200);
 
