@@ -54,7 +54,7 @@ export default function InsightsPage() {
 
       <section className="border-b border-limestone-line">
         <Container>
-          <div className="py-14 sm:py-18">
+          <div className="py-[clamp(48px,7vw,88px)]">
             <ul className="max-w-[46rem] divide-y divide-limestone-line border-t border-limestone-line">
               {posts.map((post) => (
                 <li key={post.slug} className="py-9">

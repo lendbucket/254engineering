@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { PageHeader } from "@/components/site/PageHeader";
 import { sectionPhotos } from "@/content/photos";
-import { CardGrid, cardCell, Eyebrow, Rule, SectionHeading } from "@/components/ui/primitives";
+import { CardGrid, cardCell, Rule, SectionHeading } from "@/components/ui/primitives";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema, faqSchema, jobPostingSchema } from "@/lib/schema";
 import { isPrelaunch } from "@/lib/launch";
@@ -262,7 +262,11 @@ export default function CareersPage() {
       <Section tone="sunk">
         <div className="grid gap-8 lg:grid-cols-12 lg:gap-16">
           <div className="lg:col-span-4">
-            <Eyebrow>Equal opportunity</Eyebrow>
+            <SectionHead
+              eyebrow="Equal opportunity"
+              title="How applications are read"
+              level="h2"
+            />
             <Rule className="mt-5" />
           </div>
           <div className="lg:col-span-8">

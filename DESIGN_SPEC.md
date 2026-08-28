@@ -327,3 +327,15 @@ has it. This is the one device the interior pages did not lose.
 
 Content, metadata, schema, forms wiring, and compliance gates. Section intro
 lines are permitted where a band needs one, and the voice audit applies to them.
+
+### Addendum: the specification strip is exempt from device 6
+
+The homepage's credibility strip carries four icon and label pairs and no
+heading, and it is correct. So is the specification row on a position page, and
+the credentials strip on the about page. A strip is a row of facts read at a
+glance, not a section making an argument, and giving it a heading would announce
+something the reader can already see.
+
+The rule in device 6 is that a section making an argument opens with a head. A
+strip is not one. The measurement that flagged these was over strict and is
+recorded here rather than quietly relaxed.

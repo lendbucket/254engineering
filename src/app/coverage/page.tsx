@@ -6,6 +6,7 @@ import { sectionPhotos } from "@/content/photos";
 import { PrelaunchNotice } from "@/components/launch/PrelaunchNotice";
 import { OfferCta } from "@/components/launch/OfferCta";
 import { CardGrid, cardCell, SectionHeading } from "@/components/ui/primitives";
+import { Section, SectionHead } from "@/components/ui/section";
 import { TexasCountyMap } from "@/components/map/TexasCountyMap";
 import { RegionKey } from "@/components/map/RegionKey";
 import { buildMetadata } from "@/lib/seo";
@@ -39,9 +40,13 @@ export default function CoveragePage() {
         <PrelaunchNotice />
       </PageHeader>
 
-      <section className="border-b border-limestone-line">
-        <Container>
-          <div className="py-14 sm:py-18">
+      {/*
+        The map is the star, so it gets the homepage's section padding and the
+        white ground the homepage gives its own coverage section rather than the
+        tighter pair this page was using.
+      */}
+      <Section tone="white">
+        <div>
             <div className="grid gap-10 lg:grid-cols-12 lg:gap-14">
               <div className="lg:col-span-7">
                 <TexasCountyMap />
@@ -56,14 +61,18 @@ export default function CoveragePage() {
                 <RegionKey className="mt-9" />
               </div>
             </div>
-          </div>
-        </Container>
-      </section>
+        </div>
+      </Section>
 
-      <section className="border-b border-limestone-line">
-        <Container>
-          <div className="py-14 sm:py-18">
-            <SectionHeading
+      {/*
+        The region grid is the band this page most wants remembered, so it is the
+        one that earns the dark treatment. Before this the page had two dark
+        bands and both were at the ends, which is a list rather than a rhythm.
+      */}
+      <Section id="regions" tone="navy">
+        <div>
+            <SectionHead
+              onDark
               eyebrow="Eight regions"
               title="Every county belongs to exactly one region"
               lede="The groupings follow the state's regional council boundaries rather than being drawn by feel, because those are the lines that already organize permitting, emergency management, and procurement in Texas."
@@ -94,9 +103,8 @@ export default function CoveragePage() {
                 </li>
               ))}
             </CardGrid>
-          </div>
-        </Container>
-      </section>
+        </div>
+      </Section>
 
       <section className="border-b border-limestone-line bg-limestone-sunk">
         <Container>

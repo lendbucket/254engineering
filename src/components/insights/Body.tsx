@@ -145,11 +145,21 @@ export function InsightBody({ blocks }: { blocks: Block[] }) {
  * matters as much as the link: it tells the reader which claim to check against
  * which document, which is what makes the list usable rather than decorative.
  */
-export function SourceList({ sources }: { sources: Source[] }) {
+/**
+ * The sources list, which now has to work on a navy band as well as a light one.
+ *
+ * Every colour is branched rather than inherited. A citation that renders navy
+ * on navy is the same defect the hero shipped once, and this list is the one
+ * element on a post whose whole job is being checkable.
+ */
+export function SourceList({ sources, onDark = false }: { sources: Source[]; onDark?: boolean }) {
   return (
     <ol className="mt-9 max-w-[46rem] space-y-6">
       {sources.map((source) => (
-        <li key={source.url} className="border-l border-limestone-line pl-5">
+        <li
+          key={source.url}
+          className={`border-l pl-5 ${onDark ? "border-brass/60" : "border-limestone-line"}`}
+        >
           <a
             href={source.url}
             target="_blank"
@@ -157,13 +167,19 @@ export function SourceList({ sources }: { sources: Source[] }) {
             /* inline-flex with a 44px minimum: a citation is a standalone link
                in a source list, not a link inside a sentence, so it gets the
                full thumb target rather than the inline exception. */
-            className="inline-flex min-h-[44px] items-center text-[1rem] leading-[1.6] font-semibold text-slate underline decoration-brass/60 underline-offset-4 hover:decoration-brass"
+            className={`inline-flex min-h-[44px] items-center text-[1rem] leading-[1.6] font-semibold underline underline-offset-4 ${
+              onDark
+                ? "text-slate-fg decoration-brass-light/70 hover:decoration-brass-light"
+                : "text-slate decoration-brass/60 hover:decoration-brass"
+            }`}
           >
             {source.label}
-            <ExternalLinkIcon className="ml-1.5 align-baseline text-brass-ink" />
+            <ExternalLinkIcon className={`ml-1.5 align-baseline ${onDark ? "text-brass-light" : "text-brass-ink"}`} />
             <span className="sr-only"> (opens in a new tab)</span>
           </a>
-          <p className="mt-2 text-[0.94rem] leading-[1.65] text-slate-muted">{source.supports}</p>
+          <p className={`mt-2 text-[0.94rem] leading-[1.65] ${onDark ? "text-slate-fg-muted" : "text-slate-muted"}`}>
+            {source.supports}
+          </p>
         </li>
       ))}
     </ol>

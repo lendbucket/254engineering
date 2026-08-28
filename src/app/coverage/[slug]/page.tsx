@@ -5,7 +5,8 @@ import { Container } from "@/components/ui/Container";
 import { PageHeader } from "@/components/site/PageHeader";
 import { PrelaunchNotice } from "@/components/launch/PrelaunchNotice";
 import { OfferCta } from "@/components/launch/OfferCta";
-import { CardGrid, cardCell, Eyebrow, Rule, SectionHeading } from "@/components/ui/primitives";
+import { CardGrid, cardCell, SectionHeading } from "@/components/ui/primitives";
+import { Section, SectionHead } from "@/components/ui/section";
 import { TexasCountyMap } from "@/components/map/TexasCountyMap";
 import { regionPhotos } from "@/content/photos";
 import { buildMetadata } from "@/lib/seo";
@@ -65,8 +66,7 @@ export default async function RegionPage({ params }: { params: Promise<{ slug: s
         <Container>
           <div className="grid gap-12 py-14 sm:py-18 lg:grid-cols-12 lg:gap-16">
             <div className="lg:col-span-4">
-              <Eyebrow>Wind</Eyebrow>
-              <Rule className="mt-5" />
+              <SectionHead eyebrow="Wind" title="What the wind here asks of a structure" level="h2" />
               <p className="mt-6 text-[0.92rem] leading-[1.65] text-slate-muted">
                 What the wind environment requires of a structure in {region.longName}.
               </p>
@@ -89,8 +89,7 @@ export default async function RegionPage({ params }: { params: Promise<{ slug: s
         <Container>
           <div className="grid gap-12 py-14 sm:py-18 lg:grid-cols-12 lg:gap-16">
             <div className="lg:col-span-4">
-              <Eyebrow>Soil</Eyebrow>
-              <Rule className="mt-5" />
+              <SectionHead eyebrow="Soil" title="What the ground does, and what it does to a foundation" level="h2" />
               <p className="mt-6 text-[0.92rem] leading-[1.65] text-slate-muted">
                 What the ground does here, and what a foundation has to be designed against because
                 of it.
@@ -114,8 +113,7 @@ export default async function RegionPage({ params }: { params: Promise<{ slug: s
         <Container>
           <div className="grid gap-12 py-14 sm:py-18 lg:grid-cols-12 lg:gap-16">
             <div className="lg:col-span-4">
-              <Eyebrow>Permitting</Eyebrow>
-              <Rule className="mt-5" />
+              <SectionHead eyebrow="Permitting" title="Who has authority, and what they ask for" level="h2" />
               <p className="mt-6 text-[0.92rem] leading-[1.65] text-slate-muted">
                 Who has authority over the work, and what they ask for before they issue.
               </p>
@@ -134,12 +132,17 @@ export default async function RegionPage({ params }: { params: Promise<{ slug: s
         </Container>
       </section>
 
-      <section className="border-b border-limestone-line bg-limestone-sunk">
-        <Container>
-          <div className="py-14 sm:py-18">
-            <SectionHeading
+      {/*
+        The band a reader remembers about a region, and the one that earns the
+        dark treatment. This template had two dark bands and both were at the
+        ends.
+      */}
+      <Section id="emphasis" tone="navy">
+        <div>
+            <SectionHead
+              onDark
               eyebrow="Service emphasis"
-              title={`What this region asks for most`}
+              title="What this region asks for most"
               lede="All nine service lines are available across the state. These are the ones the conditions above push to the front here."
             />
             <CardGrid className="mt-10">
@@ -163,9 +166,8 @@ export default async function RegionPage({ params }: { params: Promise<{ slug: s
                 );
               })}
             </CardGrid>
-          </div>
-        </Container>
-      </section>
+        </div>
+      </Section>
 
       <section className="border-b border-limestone-line">
         <Container>

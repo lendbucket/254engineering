@@ -41,7 +41,7 @@ export default function ContactPage() {
 
       <section className="border-b border-limestone-line">
         <Container>
-          <div className="grid gap-12 py-14 sm:py-18 lg:grid-cols-12 lg:gap-16">
+          <div className="grid gap-12 py-[clamp(48px,7vw,88px)] lg:grid-cols-12 lg:gap-16">
             <div className="lg:col-span-5">
               <Eyebrow>How to reach the firm</Eyebrow>
               <Rule className="mt-5" />

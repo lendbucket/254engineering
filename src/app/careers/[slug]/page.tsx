@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/Container";
 import { PageHeader } from "@/components/site/PageHeader";
 import { ApplicationFlow } from "@/components/careers/ApplicationFlow";
-import { Eyebrow, Rule, SectionHeading } from "@/components/ui/primitives";
+import { Rule, SectionHeading } from "@/components/ui/primitives";
 import { Section, SectionHead } from "@/components/ui/section";
 import { StickyApply } from "@/components/careers/StickyApply";
 import { buildMetadata } from "@/lib/seo";
@@ -122,19 +122,27 @@ export default async function PositionPage({ params }: { params: Promise<{ slug:
         </Container>
       </section>
 
-      {/* The role */}
-      <section className="border-b border-limestone-line">
+      {/* The argument for the seat, and the band this page most wants
+          remembered. It had ten sections and one dark band, at the very end. */}
+      <section id="about-role" className="border-b border-limestone-line bg-gradient-to-b from-slate to-slate-deep text-slate-fg">
         <Container>
           <div className="grid gap-12 py-14 sm:py-18 lg:grid-cols-12 lg:gap-16">
             <div className="lg:col-span-4">
-              <Eyebrow>About the role</Eyebrow>
+              <SectionHead
+                onDark
+                eyebrow="About the role"
+                title="The seat, in plain terms"
+                level="h2"
+              />
               <Rule className="mt-5" />
             </div>
             <div className="lg:col-span-8">
               {position.about.map((paragraph, i) => (
                 <p
                   key={i}
-                  className={`text-[1.02rem] leading-[1.75] text-slate-muted ${i > 0 ? "mt-6" : ""}`}
+                  // On the navy band. Authored as text-slate-muted, which
+                  // measured 2.00:1 here.
+                  className={`text-[1.02rem] leading-[1.75] text-slate-fg-muted ${i > 0 ? "mt-6" : ""}`}
                 >
                   {paragraph}
                 </p>
@@ -200,7 +208,11 @@ export default async function PositionPage({ params }: { params: Promise<{ slug:
         <Container>
           <div className="grid gap-12 py-14 sm:py-18 lg:grid-cols-12 lg:gap-16">
             <div className="lg:col-span-4">
-              <Eyebrow>How you will work</Eyebrow>
+              <SectionHead
+                eyebrow="How you will work"
+                title="The engagement, stated before the offer"
+                level="h2"
+              />
               <Rule className="mt-5" />
               <p className="mt-6 text-[0.92rem] leading-[1.65] text-slate-muted">
                 Stated here rather than at the offer, because this is the part people usually find
@@ -227,7 +239,11 @@ export default async function PositionPage({ params }: { params: Promise<{ slug:
       <Section id="compensation" tone="sunk">
         <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
           <div className="lg:col-span-4">
-            <Eyebrow>Compensation</Eyebrow>
+            <SectionHead
+              eyebrow="Compensation"
+              title="How pay is structured"
+              level="h2"
+            />
             <Rule className="mt-5" />
             <p className="mt-6 text-[14.5px] leading-[1.65] text-slate-muted">
               How pay is structured. Figures are settled in the offer conversation rather than

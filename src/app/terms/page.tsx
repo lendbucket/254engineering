@@ -35,7 +35,7 @@ export default function TermsPage() {
 
       <section>
         <Container width="prose">
-          <div className="py-14 sm:py-18">
+          <div className="py-[clamp(48px,7vw,88px)]">
             <Prose>
               <h2>Agreement to these terms</h2>
               <p>

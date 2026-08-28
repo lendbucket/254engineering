@@ -5,7 +5,8 @@ import { Container } from "@/components/ui/Container";
 import { PageHeader } from "@/components/site/PageHeader";
 import { CredentialsStrip } from "@/components/site/CredentialsStrip";
 import { OfferCta } from "@/components/launch/OfferCta";
-import { Eyebrow, Rule, SectionHeading } from "@/components/ui/primitives";
+import { Rule, SectionHeading } from "@/components/ui/primitives";
+import { SectionHead } from "@/components/ui/section";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { business } from "@/config/business";
@@ -42,9 +43,9 @@ export default function AboutPage() {
       {/* The name */}
       <section className="border-b border-limestone-line">
         <Container>
-          <div className="grid gap-12 py-14 sm:py-18 lg:grid-cols-12 lg:gap-16">
+          <div className="grid gap-12 py-[clamp(48px,7vw,88px)] lg:grid-cols-12 lg:gap-16">
             <div className="lg:col-span-4">
-              <Eyebrow>The name</Eyebrow>
+              <SectionHead eyebrow="The name" title="Why a firm is named for a number" level="h2" />
               <Rule className="mt-5" />
             </div>
             <div className="lg:col-span-8">
@@ -79,10 +80,13 @@ export default function AboutPage() {
       </section>
 
       {/* The model */}
-      <section className="border-b border-limestone-line bg-limestone-sunk">
+      {/* The argument this page exists to make, and the band it most wants
+          remembered. Seven sections with both dark bands at the ends is a list. */}
+      <section id="model" className="border-b border-limestone-line bg-gradient-to-b from-slate to-slate-deep text-slate-fg">
         <Container>
-          <div className="py-14 sm:py-18">
+          <div className="py-[clamp(48px,7vw,88px)]">
             <SectionHeading
+              onDark
               eyebrow="The model"
               title="Standard field protocols, central engineering review"
               lede="Two things do not scale the same way. Being physically present at a property scales with people and vehicles. Professional judgment scales with the licensed engineer exercising it. Treating them as one job is what limits a firm to the distance one engineer can drive."
@@ -133,9 +137,9 @@ export default function AboutPage() {
       {/* Technology */}
       <section className="border-b border-limestone-line">
         <Container>
-          <div className="grid gap-12 py-14 sm:py-18 lg:grid-cols-12 lg:gap-16">
+          <div className="grid gap-12 py-[clamp(48px,7vw,88px)] lg:grid-cols-12 lg:gap-16">
             <div className="lg:col-span-4">
-              <Eyebrow>The backbone</Eyebrow>
+              <SectionHead eyebrow="The backbone" title="What the firm runs on" level="h2" />
               <Rule className="mt-5" />
             </div>
             <div className="lg:col-span-8">
@@ -171,9 +175,9 @@ export default function AboutPage() {
       {/* Veteran ownership */}
       <section className="border-b border-limestone-line bg-limestone-sunk">
         <Container>
-          <div className="grid gap-12 py-14 sm:py-18 lg:grid-cols-12 lg:gap-16">
+          <div className="grid gap-12 py-[clamp(48px,7vw,88px)] lg:grid-cols-12 lg:gap-16">
             <div className="lg:col-span-4">
-              <Eyebrow>Ownership</Eyebrow>
+              <SectionHead eyebrow="Ownership" title="Who owns this firm" level="h2" />
               <Rule className="mt-5" />
             </div>
             <div className="lg:col-span-8">
@@ -225,13 +229,17 @@ function ModelBlock({
 }) {
   return (
     <div>
-      <span className="font-sans text-[0.8rem] font-semibold tracking-[0.14em] text-brass-ink">
+      {/* Explicit colours: this block renders on the navy band now, and the
+          muted grey it was authored in measured 2.05:1 there. globals.css also
+          sets a colour on h3 at the base layer, so the heading has to say
+          text-slate-fg rather than inherit. */}
+      <span className="font-sans text-[0.8rem] font-semibold tracking-[0.14em] text-brass-light">
         {index}
       </span>
       <span aria-hidden="true" className="mt-3 mb-4 block h-px w-10 bg-brass" />
-      <h3 className="text-[1.15rem] leading-[1.35] font-semibold text-slate">{title}</h3>
+      <h3 className="text-[1.15rem] leading-[1.35] font-semibold text-slate-fg">{title}</h3>
       {paragraphs.map((p, i) => (
-        <p key={i} className="mt-4 text-[0.95rem] leading-[1.72] text-slate-muted">
+        <p key={i} className="mt-4 text-[0.95rem] leading-[1.72] text-slate-fg-muted">
           {p}
         </p>
       ))}
