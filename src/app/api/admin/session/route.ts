@@ -44,15 +44,34 @@ export async function POST(request: Request) {
     );
   }
 
+  /*
+   * Both encodings, because this endpoint has two callers.
+   *
+   * The hydrated form sends JSON. A submit that happens before hydration is a
+   * native form post and sends application/x-www-form-urlencoded, and that path
+   * has to work: the alternative is the browser falling back to a GET with the
+   * passphrase in the query string, which is how this was found.
+   */
+  const contentType = request.headers.get("content-type") || "";
+  const isForm = contentType.includes("application/x-www-form-urlencoded");
+
   let passphrase: unknown;
   try {
-    const body = await request.json();
-    passphrase = (body as { passphrase?: unknown })?.passphrase;
+    if (isForm) {
+      passphrase = (await request.formData()).get("passphrase");
+    } else {
+      const body = await request.json();
+      passphrase = (body as { passphrase?: unknown })?.passphrase;
+    }
   } catch {
     passphrase = undefined;
   }
 
   if (!verifyPassphrase(passphrase)) {
+    if (isForm) {
+      // Back to the login screen with a flag, never with the submitted value.
+      return NextResponse.redirect(new URL("/admin/login?error=1", request.url), { status: 303 });
+    }
     return NextResponse.json({ ok: false, error: "That passphrase is not correct." }, { status: 401 });
   }
 
@@ -62,7 +81,11 @@ export async function POST(request: Request) {
   }
 
   clearLoginAttempts(key);
-  const res = NextResponse.json({ ok: true });
+  // 303 so the browser follows with a GET. A form post that answers with JSON
+  // leaves the operator looking at a page of braces.
+  const res = isForm
+    ? NextResponse.redirect(new URL("/admin", request.url), { status: 303 })
+    : NextResponse.json({ ok: true });
   res.cookies.set(ADMIN_COOKIE, session, sessionCookieOptions());
   return res;
 }

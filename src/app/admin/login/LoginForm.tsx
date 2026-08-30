@@ -56,7 +56,23 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate>
+    /*
+     * method="post" and a real action, and this is a security fix rather than a
+     * nicety.
+     *
+     * The form had neither, so before React hydrated a submit was a NATIVE GET
+     * to the current URL, which put the passphrase in the query string:
+     * /admin/login?passphrase=... It reached browser history, the server log,
+     * and the Referer header of the next request. Caught on the live site,
+     * because a real network is slow enough to submit before hydration in a way
+     * localhost never is.
+     *
+     * With these two attributes the same pre hydration submit posts the
+     * credential in a request body to the endpoint that expects it, and the
+     * route handles the form encoded case with a redirect. onSubmit still
+     * intercepts once hydrated, so the normal path is unchanged.
+     */
+    <form onSubmit={onSubmit} method="post" action="/api/admin/session" noValidate>
       <label htmlFor="passphrase" className="block font-sans text-[14px] font-bold text-slate">
         Passphrase
       </label>

@@ -149,6 +149,31 @@ async function run() {
     rec("session cookie is SameSite=Lax", /samesite=lax/i.test(setCookie), setCookie.slice(0, 80));
   }
 
+  // ---------- the login form cannot leak the passphrase into a URL ----------
+  {
+    /*
+     * The form had no method and no action, so a submit before React hydrated
+     * was a native GET and the passphrase went into the query string. It reached
+     * browser history, the server log, and the next request's Referer header.
+     *
+     * Found on the live site and not on localhost, because a real network is
+     * slow enough for a person to submit before hydration.
+     */
+    const browser = await chromium.launch();
+    const page = await browser.newPage();
+    await page.goto(`${BASE}/admin/login`, { waitUntil: "domcontentloaded" });
+    const form = page.locator("form").first();
+    const method = ((await form.getAttribute("method")) || "get").toLowerCase();
+    const action = (await form.getAttribute("action")) || "";
+    rec("login form posts rather than gets", method === "post", method);
+    rec(
+      "login form action points at the session endpoint",
+      action.includes("/api/admin/session"),
+      action || "none",
+    );
+    await browser.close();
+  }
+
   // ---------- the portal is not indexable ----------
   {
     const robots = await (await fetch(`${BASE}/robots.txt`)).text();
