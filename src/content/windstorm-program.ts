@@ -242,7 +242,7 @@ export const windstormPages: WindstormPage[] = [
         title: "Not every stage needs an engineer",
         body: [
           "The department employs its own inspectors, and TDI describes them as handling non-structural work including most repairs, alterations, and re-roofs. A great deal of coastal work is inspected this way and never involves an engineer.",
-          "An appointed Texas licensed Professional Engineer inspects on the department's behalf where the work calls for it, and is the route for structures and situations a departmental inspector does not cover. Which route a given project takes is a question worth settling before the schedule is built around an assumption.",
+          "[An appointed Texas licensed Professional Engineer](/windstorm/appointed-engineers) inspects on the department's behalf where the work calls for it, and is the route for structures and situations a departmental inspector does not cover. Which route a given project takes is a question worth settling before the schedule is built around an assumption.",
         ],
       },
       {

@@ -99,11 +99,11 @@ export default function WindstormHubPage() {
               <p className="text-[12px] font-bold tracking-[0.14em] text-brass-light uppercase">
                 {String(i + 1).padStart(2, "0")}
               </p>
-              <p className="mt-3 font-display text-[1.1rem] leading-[1.3] font-bold text-slate-fg">
+              <h3 className="mt-3 font-display text-[1.1rem] leading-[1.3] font-bold text-slate-fg">
                 <Link href={`/windstorm/${p.slug}`} className="underline underline-offset-4">
                   {p.name}
                 </Link>
-              </p>
+              </h3>
               <p className="mt-3 text-[0.95rem] leading-[1.7] text-slate-fg/80">{p.question}</p>
             </li>
           ))}

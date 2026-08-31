@@ -66,7 +66,7 @@ export const location = {
   /** Why the firm's own position is a fact worth stating rather than filler. */
   position: [
     "254 Engineering Services is named for the 254 counties of Texas and is built to cover all of them. It is based in Corpus Christi, and that is not an incidental detail about where the mail goes. The Coastal Bend is where the most demanding version of the work sits, and a firm headquartered inside the catastrophe area is answering to the same rules as the structures it is built to certify.",
-    "Corpus Christi is the seat of Nueces County, which is one of the fourteen Texas seacoast counties inside the catastrophe area designated by the Texas Department of Insurance. Inside that line, new construction and reroofing require windstorm inspection and a WPI-8 certificate of compliance before windstorm coverage can be written through the Texas Windstorm Insurance Association. That requirement is the organizing fact of construction here, and it applies to the firm's own city.",
+    "Corpus Christi is the seat of Nueces County, which is one of the fourteen Texas seacoast counties inside the catastrophe area designated by the Texas Department of Insurance. Inside that line, new construction and reroofing require [windstorm inspection and a WPI-8 certificate of compliance](/windstorm) before windstorm coverage can be written through the Texas Windstorm Insurance Association. That requirement is the organizing fact of construction here, and it applies to the firm's own city.",
   ],
 
   /**

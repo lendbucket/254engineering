@@ -87,9 +87,31 @@ function linksIn(html) {
   const found = [];
   const claimed = new Set();
 
-  // Containers that can hold prose. A link outside all of them is chrome.
+  /*
+   * A LINK THAT IS A HEADING IS NAVIGATION, NEVER PROSE
+   * ---------------------------------------------------
+   * Card grids are marked up as lists, correctly: a list of links is a list.
+   * That put every card link inside an li, where the prose heuristic saw a
+   * container of fifteen or so words with a three word anchor and scored it as
+   * contextual writing.
+   *
+   * The effect was not small. The windstorm cluster's sibling cards produced
+   * four inbound "contextual" links to one page, all with the identical anchor,
+   * and the anchor discipline check then correctly reported a repetition that
+   * nobody had written into a sentence. The measurement was manufacturing both
+   * the links and the violation.
+   *
+   * Headings are stripped from the container before anchors are read, so a link
+   * that exists only as a card title falls through to the chrome pass and is
+   * counted as template, which is what it is. A link inside a paragraph that
+   * happens to sit in the same li is still found.
+   *
+   * This changed the numbers, so it is worth being explicit: the drop in the
+   * contextual count at the moment this landed is the correction, not a
+   * regression.
+   */
   for (const c of body.matchAll(/<(p|li|dd)\b[^>]*>([\s\S]*?)<\/\1>/gi)) {
-    const inner = c[2];
+    const inner = c[2].replace(/<h[1-6]\b[^>]*>[\s\S]*?<\/h[1-6]>/gi, " ");
     const containerText = textOf(inner);
     for (const a of inner.matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi)) {
       const href = a[1];

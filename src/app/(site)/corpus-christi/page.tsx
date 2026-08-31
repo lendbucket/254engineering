@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Section, SectionHead } from "@/components/ui/section";
+import { ProseParagraph } from "@/components/ui/prose";
 import { PageHeader } from "@/components/site/PageHeader";
 import { PrelaunchNotice } from "@/components/launch/PrelaunchNotice";
 import { OfferCta } from "@/components/launch/OfferCta";
@@ -66,9 +67,11 @@ export default function LocationPage() {
         />
         <div className="mt-8 max-w-[68ch]">
           {location.position.map((p, i) => (
-            <p key={i} className={`text-[1.02rem] leading-[1.75] text-slate-muted ${i > 0 ? "mt-6" : ""}`}>
-              {p}
-            </p>
+            <ProseParagraph
+              key={i}
+              text={p}
+              className={`text-[1.02rem] leading-[1.75] text-slate-muted ${i > 0 ? "mt-6" : ""}`}
+            />
           ))}
         </div>
       </Section>
@@ -83,9 +86,11 @@ export default function LocationPage() {
         />
         <div className="mt-8 max-w-[68ch]">
           {location.jurisdiction.map((p, i) => (
-            <p key={i} className={`text-[1.02rem] leading-[1.75] text-slate-fg/80 ${i > 0 ? "mt-6" : ""}`}>
-              {p}
-            </p>
+            <ProseParagraph
+              key={i}
+              text={p}
+              className={`text-[1.02rem] leading-[1.75] text-slate-fg/80 ${i > 0 ? "mt-6" : ""}`}
+            />
           ))}
         </div>
       </Section>
@@ -99,9 +104,11 @@ export default function LocationPage() {
         />
         <div className="mt-8 max-w-[68ch]">
           {location.storms.map((p, i) => (
-            <p key={i} className={`text-[1.02rem] leading-[1.75] text-slate-muted ${i > 0 ? "mt-6" : ""}`}>
-              {p}
-            </p>
+            <ProseParagraph
+              key={i}
+              text={p}
+              className={`text-[1.02rem] leading-[1.75] text-slate-muted ${i > 0 ? "mt-6" : ""}`}
+            />
           ))}
         </div>
       </Section>
@@ -115,9 +122,11 @@ export default function LocationPage() {
         />
         <div className="mt-8 max-w-[68ch]">
           {location.ground.map((p, i) => (
-            <p key={i} className={`text-[1.02rem] leading-[1.75] text-slate-muted ${i > 0 ? "mt-6" : ""}`}>
-              {p}
-            </p>
+            <ProseParagraph
+              key={i}
+              text={p}
+              className={`text-[1.02rem] leading-[1.75] text-slate-muted ${i > 0 ? "mt-6" : ""}`}
+            />
           ))}
         </div>
       </Section>
@@ -132,9 +141,11 @@ export default function LocationPage() {
         />
         <div className="mt-8 max-w-[68ch]">
           {location.capability.map((p, i) => (
-            <p key={i} className={`text-[1.02rem] leading-[1.75] text-slate-fg/80 ${i > 0 ? "mt-6" : ""}`}>
-              {p}
-            </p>
+            <ProseParagraph
+              key={i}
+              text={p}
+              className={`text-[1.02rem] leading-[1.75] text-slate-fg/80 ${i > 0 ? "mt-6" : ""}`}
+            />
           ))}
         </div>
       </Section>

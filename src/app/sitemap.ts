@@ -4,6 +4,7 @@ import { services } from "@/content/services";
 import { regions } from "@/content/regions";
 import { location } from "@/content/location";
 import { windstormPages } from "@/content/windstorm-program";
+import { proximityPages } from "@/content/structural-engineer";
 import { openPositions } from "@data/positions";
 import { insights } from "@/content/insights";
 
@@ -65,6 +66,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     entry(`/${location.slug}`, 0.8, "monthly"),
     entry("/windstorm", 0.9, "monthly"),
     ...windstormPages.map((w) => entry(`/windstorm/${w.slug}`, 0.8, "monthly")),
+    entry("/structural-engineer", 0.9, "monthly"),
+    ...proximityPages.map((p) => entry(`/structural-engineer/${p.slug}`, 0.8, "monthly")),
     entry("/government", 0.9, "monthly"),
     entry("/careers", 0.8, "monthly"),
     ...openPositions().map((p) => entry(`/careers/${p.slug}`, 0.7, "monthly")),

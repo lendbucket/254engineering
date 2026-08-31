@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Section, SectionHead } from "@/components/ui/section";
+import { ProseParagraph } from "@/components/ui/prose";
 import { PageHeader } from "@/components/site/PageHeader";
 import { PrelaunchNotice } from "@/components/launch/PrelaunchNotice";
 import { OfferCta } from "@/components/launch/OfferCta";
@@ -90,14 +91,13 @@ export default async function WindstormClusterPage({
             />
             <div className="mt-8 max-w-[68ch]">
               {section.body.map((p, j) => (
-                <p
+                <ProseParagraph
                   key={j}
+                  text={p}
                   className={`text-[1.02rem] leading-[1.75] ${
                     onDark ? "text-slate-fg/80" : "text-slate-muted"
                   } ${j > 0 ? "mt-6" : ""}`}
-                >
-                  {p}
-                </p>
+                />
               ))}
             </div>
           </Section>
@@ -121,11 +121,11 @@ export default async function WindstormClusterPage({
         <ul className="mt-8 grid gap-6 sm:grid-cols-3">
           {siblings.map((s) => (
             <li key={s.slug} className="rounded-[4px] border border-limestone-line border-t-[3px] border-t-slate bg-white p-6">
-              <p className="font-display text-[1.05rem] leading-[1.3] font-bold text-slate">
+              <h3 className="font-display text-[1.05rem] leading-[1.3] font-bold text-slate">
                 <Link href={`/windstorm/${s.slug}`} className="underline underline-offset-4">
                   {s.name}
                 </Link>
-              </p>
+              </h3>
               <p className="mt-3 text-[0.95rem] leading-[1.65] text-slate-muted">{s.question}</p>
             </li>
           ))}
