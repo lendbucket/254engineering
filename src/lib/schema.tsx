@@ -1,4 +1,12 @@
 import { business } from "@/config/business";
+import {
+  contact,
+  founder,
+  geoSchema,
+  hasGeo,
+  hasPostalAddress,
+  postalAddressSchema,
+} from "@/config/contact";
 import { isPrelaunch, tbpelsFirmNumber } from "./launch";
 
 /**
@@ -18,10 +26,18 @@ import { isPrelaunch, tbpelsFirmNumber } from "./launch";
  * markup without them is fabricated structured data, which is both a Google
  * violation and the kind of thing a procurement officer notices.
  *
- * No telephone and no postal address. Neither has been decided, and an invented
- * one in schema is worse than an absent one: schema is machine read, gets copied
- * into knowledge panels and directories, and is very hard to retract once it has
- * been.
+ * Telephone, postal address, geo, and opening hours are present ONLY when they
+ * have been configured in src/config/contact.ts, which reads them from the
+ * environment and defaults every one of them to null. An invented value in
+ * schema is worse than an absent one: schema is machine read, gets copied into
+ * knowledge panels and directories, and is very hard to retract once it has
+ * been. So each property is spread in conditionally and simply does not exist
+ * until the firm has a real answer.
+ *
+ * The entity is a ProfessionalService, which is a LocalBusiness subtype. Once an
+ * address and a geo point are configured this node is a complete local entity
+ * without changing its type, which is what the Google Business Profile in
+ * docs/gbp-brief.md needs to resolve against.
  *
  * No `makesOffer` while the registration is pending, for the same reason the
  * page copy does not claim it.
@@ -68,6 +84,17 @@ export function organizationSchema() {
     logo: `${business.url}/brand/logo.png`,
     image: `${business.url}/og/default.png`,
     sameAs: business.brands.map((b) => b.url),
+    /*
+     * The founder is stated because an entity with a named human behind it is a
+     * different trust proposition to a procurement officer than one without.
+     * It carries no license claim: founder is not a regulated term, and nothing
+     * here says engineer.
+     */
+    founder: { "@type": "Person", name: founder.name },
+    ...(contact.phone ? { telephone: contact.phone } : {}),
+    ...(hasPostalAddress() ? { address: postalAddressSchema() } : {}),
+    ...(hasGeo() ? { geo: geoSchema() } : {}),
+    ...(contact.hours ? { openingHours: contact.hours.split(",").map((h) => h.trim()) } : {}),
     // Only present once the board has actually issued it. See src/lib/launch.ts.
     ...(firmNumber
       ? {

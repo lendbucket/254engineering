@@ -20,9 +20,11 @@
 //      similar at body size. Enforced against page text, meta tags, alt text,
 //      and JSON-LD alike.
 //   2. No emoji, on the same footing and for the same reason.
-//   3. No fabricated phone numbers. This site publishes no phone number at all,
-//      so ANY ten digit number in a phone shape is a finding rather than only a
-//      555 one.
+//   3. No fabricated phone numbers. Exactly one number may appear anywhere in
+//      rendered output: the one configured as FIRM_PHONE and read through
+//      src/config/contact.ts. Every other ten digit number in a phone shape is
+//      a finding, not only a 555 one. When FIRM_PHONE is unset, which is the
+//      default, the permitted set is empty and any number at all is a finding.
 //   4. No email off the firm's own domain.
 //   5. No TODO, TBD, FIXME, PLACEHOLDER, XXX, or lorem ipsum.
 //   6. No PE name, licence number, or firm registration number that is not in
@@ -30,6 +32,27 @@
 //      Texas, and a plausible looking licence number written in as a placeholder
 //      is indistinguishable from a real one to every reader except the board.
 import { credentialAllowlist, permittedCredentialStrings } from "../src/config/credentials.ts";
+import { contact } from "../src/config/contact.ts";
+
+/*
+ * The one permitted phone number, as bare digits.
+ *
+ * Derived from the same config the pages render from, so the audit cannot
+ * disagree with the site about what the number is. If the config is empty the
+ * set is empty, and then every phone shaped string on the site is a finding,
+ * which is the state this build is in and intends to stay in until Robert picks
+ * a number.
+ *
+ * Both directions of this are injection verified. Setting FIRM_PHONE and
+ * rendering a DIFFERENT number must fail, and rendering the configured one must
+ * pass. An allowlist that has only ever been tested in the passing direction is
+ * an allowlist that might be matching everything.
+ */
+const PERMITTED_PHONE_DIGITS = new Set(
+  [contact.phone]
+    .filter(Boolean)
+    .map((v) => String(v).replace(/\D/g, "").replace(/^1(?=\d{10}$)/, "")),
+);
 
 const BASE = process.env.BASE_URL || "http://localhost:3225";
 
@@ -194,13 +217,21 @@ function scanText(route, where, text) {
     for (const m of text.matchAll(pattern)) {
       const digits = m[0].replace(/\D/g, "").replace(/^1(?=\d{10}$)/, "");
       if (digits.length !== 10) continue;
-      // This site publishes no phone number, so every one of them is a finding.
+      // The one configured number is allowed to appear. Nothing else is.
+      if (PERMITTED_PHONE_DIGITS.has(digits)) continue;
       // The 555 case is called out separately only because it names the specific
       // mistake, which makes the report faster to act on.
       if (/^\d{3}555\d{4}$/.test(digits)) {
         record(route, "fabricated 555 number", m[0], where);
       } else {
-        record(route, "unexpected phone number (this site publishes none)", m[0], where);
+        record(
+          route,
+          PERMITTED_PHONE_DIGITS.size === 0
+            ? "unexpected phone number (this site publishes none)"
+            : "phone number that is not the configured FIRM_PHONE",
+          m[0],
+          where,
+        );
       }
     }
   }

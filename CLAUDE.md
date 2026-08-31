@@ -82,7 +82,15 @@ Consequences that are easy to get wrong:
 - Service pages on this site are **firm capability pages** for procurement and institutional
   evaluation. A sibling brand's page on the same service is a different document for a different
   reader, written from scratch, not this one reworded.
-- No city pages here. County pages only. That is this brand's geo shape, not a concession.
+- Geo on this brand is regional. The shipped geo pages are the eight coverage regions under
+  /coverage, each carrying the counties inside it, and the coverage hub carries all 254. There are
+  no city geo pages and no service-times-place combo pages, which is the doorway trap.
+- One exception, and it is an exception about the entity rather than about geo. /corpus-christi is
+  the firm's own location page: where the firm actually is, which is what a Google Business Profile,
+  a LocalBusiness node, and a procurement officer checking principal place of business all ask.
+  There is exactly one and there will only ever be one, because the firm has one address. A second
+  one written for a city the firm merely covers would be the doorway pattern this rule exists to
+  prevent. The full reasoning is at the top of src/content/location.ts.
 - Templates and engineering patterns may be shared between the three repos. Rendered sentences may
   not. Every page is written fresh in this brand's voice.
 - Cross-brand linking is sparing and honest, never reciprocal footer blasting.

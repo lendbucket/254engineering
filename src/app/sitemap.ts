@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { business } from "@/config/business";
 import { services } from "@/content/services";
 import { regions } from "@/content/regions";
+import { location } from "@/content/location";
 import { openPositions } from "@data/positions";
 import { insights } from "@/content/insights";
 
@@ -58,6 +59,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...services.map((s) => entry(`/services/${s.slug}`, 0.8, "monthly")),
     entry("/coverage", 0.9, "monthly"),
     ...regions.map((r) => entry(`/coverage/${r.slug}`, 0.8, "monthly")),
+    // The entity location page. One of these exists and only one ever will.
+    // See the reasoning at the top of src/content/location.ts.
+    entry(`/${location.slug}`, 0.8, "monthly"),
     entry("/government", 0.9, "monthly"),
     entry("/careers", 0.8, "monthly"),
     ...openPositions().map((p) => entry(`/careers/${p.slug}`, 0.7, "monthly")),
