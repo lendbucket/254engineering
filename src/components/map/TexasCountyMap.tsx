@@ -108,16 +108,58 @@ const TONES = {
   },
 } as const;
 
+/**
+ * The id of the shared county geometry, when a page draws this map twice.
+ *
+ * WHY THIS EXISTS
+ * ---------------
+ * The homepage renders the map twice: once in the hero on navy, once in the
+ * coverage section on light. Measured on the live site, that was two identical
+ * 73.7KB inline SVGs in one document, and because the map is a server component
+ * the same path data was serialized again into the RSC flight payload. One
+ * county's path string appeared eight times in the homepage HTML.
+ *
+ * The homepage was the worst LCP of the eight sampled templates at 2.9s against
+ * 1.5 to 2.2s elsewhere, and its document was 55KB transferred against 13 to
+ * 14KB for a service page. The duplicated geometry was most of that difference.
+ *
+ * WHAT THIS DOES NOT DO
+ * ---------------------
+ * It does not change a pixel. The 254 paths are emitted once with no fill and no
+ * stroke, and each instance draws them through a use element carrying its own
+ * tone. Presentation attributes inherit through use, so the light map and the
+ * dark map still paint exactly the colours they painted before.
+ *
+ * It is opt in and explicit rather than automatic. A component cannot know it is
+ * the second map on a page, and a global registry that guessed would be a
+ * hydration bug waiting to happen. The homepage says which instance defines the
+ * geometry and which reuses it; every other page draws a standalone map exactly
+ * as before.
+ *
+ * A map with an activeRegion cannot share geometry, because one region's
+ * counties carry a different fill. That is only ever the region pages, which
+ * draw a single map, so there is nothing to share there anyway.
+ */
+export const COUNTY_GEOMETRY_ID = "tx-county-shapes";
+
 export function TexasCountyMap({
   /** When set, that region is filled and every other county stays pale. */
   activeRegion,
   /** Which surface the map is sitting on. */
   tone = "light",
   className = "",
+  /**
+   * "define" emits the shared geometry and uses it. "reuse" draws only a use
+   * element and requires a "define" instance earlier in the same document.
+   * Undefined is a standalone map, which is what every page except the homepage
+   * renders. Ignored when activeRegion is set.
+   */
+  shared,
 }: {
   activeRegion?: string;
   tone?: "light" | "dark";
   className?: string;
+  shared?: "define" | "reuse";
 }) {
   const t = TONES[tone];
   const activeName = activeRegion
@@ -139,18 +181,36 @@ export function TexasCountyMap({
           non-scaling-stroke they thicken as the map scales up and vanish as it
           scales down. */}
       <g stroke={t.hairline} strokeWidth={0.5} strokeLinejoin="round" vectorEffect="non-scaling-stroke">
-        {countyShapes.map((county) => (
-          <path
-            key={county.fips}
-            d={county.d}
-            fill={
-              activeRegion && regionOfCounty.get(county.name) === activeRegion
-                ? t.active
-                : t.county
-            }
-            vectorEffect="non-scaling-stroke"
-          />
-        ))}
+        {activeRegion || !shared ? (
+          countyShapes.map((county) => (
+            <path
+              key={county.fips}
+              d={county.d}
+              fill={
+                activeRegion && regionOfCounty.get(county.name) === activeRegion
+                  ? t.active
+                  : t.county
+              }
+              vectorEffect="non-scaling-stroke"
+            />
+          ))
+        ) : (
+          <>
+            {shared === "define" ? (
+              <defs>
+                <g id={COUNTY_GEOMETRY_ID}>
+                  {countyShapes.map((county) => (
+                    <path key={county.fips} d={county.d} vectorEffect="non-scaling-stroke" />
+                  ))}
+                </g>
+              </defs>
+            ) : null}
+            {/* fill on the use element inherits down to every path inside the
+                referenced group, which is what keeps the two tones distinct
+                while the geometry is written once. */}
+            <use href={`#${COUNTY_GEOMETRY_ID}`} fill={t.county} />
+          </>
+        )}
       </g>
 
       {/* Region boundaries, then the state outline over the top. Both are

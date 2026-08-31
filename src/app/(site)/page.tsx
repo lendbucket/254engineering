@@ -112,7 +112,7 @@ export default function HomePage() {
         />
         <div className="mt-9 flex flex-wrap items-center gap-[clamp(28px,5vw,64px)]">
           <div className="max-w-[520px] flex-1 basis-[320px]">
-            <TexasCountyMap />
+            <TexasCountyMap shared="reuse" />
           </div>
           <div className="flex-1 basis-[300px]">
             <Callout

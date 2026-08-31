@@ -7,9 +7,23 @@ import { business } from "@/config/business";
  * THE APPROVED DESIGN'S FACES.
  *
  * Archivo for display, Open Sans for text, at the weights the approved v5
- * artifact actually uses: Archivo 500 to 800, Open Sans 400, 600, 700, and 400
- * italic. Nothing heavier is loaded than the design asks for, because every
- * unused weight is a file a phone downloads for nothing.
+ * artifact actually uses: Archivo 500 to 800, Open Sans 400, 600, 700. Nothing
+ * heavier is loaded than the design asks for, because every unused weight is a
+ * file a phone downloads for nothing.
+ *
+ * THE ITALIC FACE IS GONE, AND IT WAS NEVER USED
+ * ----------------------------------------------
+ * Open Sans italic was declared here from the start and rendered nowhere. The
+ * only occurrences of the word italic in the whole source tree were this
+ * declaration and one `not-italic`, which is the address element on the location
+ * page turning OFF the browser default. Four sampled live pages rendered zero
+ * `<em>`, zero `<i>`, and zero italic utility classes.
+ *
+ * It cost a 44KB woff2 on every route, on a site where the Largest Contentful
+ * Paint is a text node on all eight sampled templates. That is the worst kind of
+ * unused byte: it is on the critical path for the metric it is hurting.
+ *
+ * Measured, not assumed. Fonts were 121KB per route before this change.
  *
  * THIS SUPERSEDES THE NEWSREADER RULING, AND THAT IS RECORDED RATHER THAN QUIET
  * ----------------------------------------------------------------------------
@@ -41,7 +55,6 @@ const archivo = Archivo({
 const openSans = Open_Sans({
   subsets: ["latin"],
   weight: ["400", "600", "700"],
-  style: ["normal", "italic"],
   variable: "--font-open-sans",
   display: "swap",
 });
