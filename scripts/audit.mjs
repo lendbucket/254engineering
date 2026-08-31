@@ -68,6 +68,17 @@ const PHASE_ONE = [
     name: "mobile-overflow-audit",
     why: "zero horizontal document scroll on EVERY sitemap route at 360 and 390",
   },
+  {
+    // Phase one for the same reason security-audit is, and this file already
+    // warned about it: phase two audits start their own server by killing
+    // whatever holds 3225, so an audit placed after them finds nothing to
+    // fetch. Put here first time would have saved a red suite.
+    //
+    // Last within phase one because it is by far the slowest: three Lighthouse
+    // runs per template, ten templates.
+    name: "perf-audit",
+    why: "LCP, CLS, TBT, and per template byte budgets",
+  },
 ];
 
 const PHASE_TWO = [

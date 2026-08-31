@@ -85,7 +85,7 @@ export function HomeHero() {
 
           <div className="mx-auto flex w-full max-w-[460px] flex-1 basis-[300px] flex-col items-center self-end">
             <div className="w-full max-w-[400px]">
-              <TexasCountyMap tone="dark" />
+              <TexasCountyMap tone="dark" shared="define" />
             </div>
           </div>
         </div>

@@ -29,6 +29,8 @@
     "coverage-audit": "node scripts/coverage-audit.mjs",
     "prelaunch-audit": "node scripts/preflight-harness.mjs",
     "launch-audit": "node scripts/launch-audit.mjs",
+    "preperf-audit": "node scripts/preflight-audit.mjs",
+    "perf-audit": "node scripts/perf-audit.mjs",
     "audit": "node scripts/audit.mjs",
     "registry-audit": "tsx scripts/registry-audit.mjs",
     "prevoice-audit": "node scripts/preflight-audit.mjs",

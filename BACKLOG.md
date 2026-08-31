@@ -816,3 +816,121 @@ The seven windstorm cluster pages, /services/forensic-engineering,
 the seven non-coastal coverage regions, and /insights all have no contextual
 inbound. The coverage regions in particular are a structural problem: nothing in
 prose anywhere links to a specific region except the Coastal Bend.
+
+## Performance pass and the perf gate, 2026-08-31
+
+### What the measurement changed about the plan
+
+The workstream anticipated image work: next/image everywhere, sizes attributes,
+AVIF and WebP, priority and preload on the LCP image. None of it was done,
+because the baseline said not to.
+
+Every Largest Contentful Paint on all eight sampled templates is a TEXT node.
+Not one is an image. Lighthouse reported zero recoverable bytes for both
+modern-image-formats and uses-responsive-images on every route, and images were
+9 to 65KB against 121KB of fonts and 214KB of JavaScript. There was no image
+problem to solve, and "optimize the images" would have been work that looked
+like performance and moved nothing.
+
+Because the LCP is text on every template, it is gated on font delivery. That is
+what made the font finding the important one rather than a tidy-up.
+
+### The unused italic face
+
+Open Sans italic was declared in the root layout and rendered nowhere. The only
+occurrences of the word italic in the source tree were the declaration itself and
+a single not-italic, which is the address element on the location page turning
+OFF a browser default. Four live pages sampled for em, i, and italic utility
+classes returned zero.
+
+It cost a 44KB woff2 on every route, on the critical path for the metric it was
+hurting. Fonts went from 121KB to 77KB per route.
+
+### The county map was rendered twice on the homepage
+
+Two identical 73.7KB inline SVGs, 256 paths each, in one document: the hero map
+and the coverage section map. Because the map is a server component the geometry
+was serialized again into the RSC flight payload, and one county's path string
+appeared eight times in the homepage HTML. The homepage document was 105KB
+against 15 to 18KB for a content page.
+
+The geometry is now emitted once and drawn twice through a use element carrying
+its own tone, which is opt in per page rather than automatic: a component cannot
+know it is the second map on a page, and a registry that guessed would be a
+hydration bug. Homepage HTML fell from 105KB to 73KB and total from 551KB to
+455KB.
+
+Screenshots at 390 and 1280 on homepage, coverage hub, and region page are
+byte-identical before and after, verified by sha256 rather than by eye.
+
+### What was measured and deliberately not done
+
+**SVG coordinate rounding.** The prompt expected this to halve the map. The
+county paths are already at one decimal place: 43KB of path data across 254
+counties, 6,680 decimal numbers, all at 1dp. Rounding to integers would save
+about 6.7KB uncompressed for real geometry risk. Not done.
+
+**Dynamic import of the lead form.** Tried, measured, reverted. It made things
+marginally worse: 756KB to 765KB of JavaScript, because next/dynamic added a
+chunk that Next preloads anyway, and the chunk sets on the homepage and a static
+content page stayed identical. The application flow at 61KB is already correctly
+code split and loads only on the position page.
+
+**Images, third party, caching, static generation.** No image work for the reason
+above. Zero third party origins on public pages, so nothing to remove. Static
+assets already carry public,max-age=31536000,immutable and documents are
+prerendered and served from cache. The only dynamic routes are admin and the
+token gated onboarding page, both correctly dynamic.
+
+### The gate, and the two ceilings
+
+perf-audit runs Lighthouse performance on ten templates at a fixed throttled
+mobile profile and fails on LCP, CLS, TBT, or a per template byte budget.
+Budgets live in scripts/perf-budgets.mjs with the reasoning.
+
+Lighthouse varies. Measured on this site: the same route, same build, same
+profile, moved 740ms of LCP between consecutive runs, and one route moved 693ms
+across five runs. The gate measures each route three times and judges the BEST
+run, so noise raises the ceiling rather than tripping it, and the spread is
+printed on every line so a page getting noisier is visible before it fails.
+
+The two ceilings need stating plainly because they look like fudging. The same
+commit measured 1555 to 2901ms of LCP on the live host and 2919 to 3183ms served
+from next start on this machine. Localhost is faster on TTFB by two orders of
+magnitude, so the server is not the cause. What is established is that next start
+serves gzip while the edge serves brotli, about 14 percent more wire bytes on the
+same document. What is NOT established is the rest of the gap, which is larger
+than 14 percent of anything. That is recorded as unexplained rather than given a
+confident cause. So the operator's 2.0s specification applies to any real
+deployment and an empirical 3.4s applies to localhost, and which one is used is
+decided by the host being measured rather than by a flag.
+
+### The injection test found a hole in the route set
+
+Injecting a 250ms blocking task on /windstorm passed green, because /windstorm
+was not in the route set. The hub is a different page shape from its cluster
+pages, a card grid rather than prose, and nothing measured it. Added, and the
+same injection then failed correctly at TBT 827ms against the 200ms ceiling.
+
+The byte injection, a 500KB asset on /structural-engineer, failed at 892KB
+against a 540KB budget on exactly that route with no false positives elsewhere.
+Both reverted, both re-verified green.
+
+### And the suite placement, which this file had already warned about
+
+perf-audit was first added to the end of phase two and failed its preflight with
+nothing answering on 3225. The comment above security-audit in scripts/audit.mjs
+describes this exact trap: phase two audits start their own server by killing
+whatever holds that port. It is now last in phase one.
+
+### Still open
+
+The suite is materially slower: perf-audit adds roughly ten minutes, thirty
+Lighthouse runs. That is the price of the gate and it is worth it, but a future
+pass might make the run count configurable per context so a quick local check is
+not the full thirty.
+
+/careers/professional-engineer measured 150ms WORSE on LCP after the change while
+its bytes fell 64KB. That route's own spread across five runs was 452ms, so the
+difference is inside its noise and cannot be called a regression or dismissed as
+noise on the evidence available. Reported rather than filtered out.
