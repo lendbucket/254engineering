@@ -690,3 +690,64 @@ ever has a second user.
 Applications are a list, not a detail view. Every answer is in the operator's
 email and in the payload column, but there is no per application page in the
 portal yet.
+
+## registry-audit rewritten to the differentiation model, 2026-08-31
+
+The operator superseded the keyword ownership model. registry-audit no longer
+flags topic overlap, which was the whole of what it used to do. It now fetches
+all three live sitemaps and scores trigram similarity across titles, H1s,
+descriptions, and heading structures, reporting every close pair and failing
+above 0.75.
+
+### The audit was reading production while claiming to read localhost
+
+The thirteenth instance of the defect class this backlog names: a check that
+passes while looking at the wrong thing.
+
+Sitemap loc values are absolute canonical URLs, so the sitemap served from
+localhost:3225 lists https://254engineering.com. pagesFor fetched those URLs
+verbatim. Every run printed "read 33 pages from http://localhost:3225" and read
+the deployed site instead, which means BASE_URL did nothing and no unshipped
+change could ever be scored.
+
+It was caught only because the audit flagged an H1, the H1 was rewritten, the
+build was verified by curl to serve the new text, and the score did not move.
+Computing the same trigram score by hand off both URLs gave 0.33 against the
+audit's 0.81. The audit was measuring the old page.
+
+Fixed by rebasing every loc onto the requested origin. The failure mode is worth
+naming for the next audit that reads a sitemap: an absolute URL in fetched data
+silently overrides the origin you thought you were testing.
+
+### What the fix found once it could see the local build
+
+/services/manufactured-home-foundation-certifications had the H1 "Manufactured
+Home Foundation Certifications in Texas", which is a literal prefix of Sealed's
+"Manufactured Home Foundation Certifications in Texas, FHA and VA". 0.81. That is
+the find-and-replace test failing in the plainest possible way.
+
+The H1 is now "What Lenders Require on a Manufactured Home Foundation", which is
+this brand's angle rather than a reworded sibling. The page TITLE is unchanged,
+per the operator's ruling that existing service page titles ship as they are. H1
+and title are separate strings and only one of them was ruled on.
+
+### Utility pages are compared but never failed
+
+Privacy, terms, and contact reach 1.00 across all three brands because a privacy
+policy is called a privacy policy. They stay in the comparison and stay printed
+in the watch list, marked as not failed, because silently dropping a page from a
+duplicate check is how a real duplicate later hides behind an exclusion.
+
+### Still in the watch band, deliberately not acted on
+
+title 0.69 on windstorm WPI-8 and title 0.65 on manufactured home foundations,
+both against Sealed. Both are below the fail line and both are titles the
+operator ruled stay as shipped. They are printed on every run so the decision
+stays visible rather than forgotten.
+
+### Injection verified
+
+Set the solar page H1 to Sealed's solar H1 verbatim, rebuilt, ran: FAIL at 1.00
+with exit code 1. Reverted, rebuilt, ran: PASS. The exit code was checked without
+a pipe, because a script that prints FAIL and exits 0 is the same defect class
+again.

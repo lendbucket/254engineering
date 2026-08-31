@@ -40,31 +40,58 @@ must say, what each must not say, and the claims neither may ever make. Flipping
 rebuild, because the pages are statically prerendered. That is deliberate: a compliance state that
 could change without a deploy leaving an audit trail is not one this firm should want.
 
-## 2. Brand territory (two brands never target the same primary keyword, ever)
+## 2. Brand differentiation (the ownership model is superseded)
 
 Three sites, one operator. To a search engine that is a doorway network unless each brand has a
-genuinely distinct identity, audience, and corpus.
+genuinely distinct identity, audience, and corpus. What changed on 2026-08-30 is the mechanism for
+producing that distinctness, not the requirement.
 
-| Brand | Owns |
+**What was ruled before.** `data/keyword-registry.ts` was an ownership map. Every keyword had exactly
+one owning brand, and a brand writing about a term assigned elsewhere was a violation that
+`registry-audit` failed the build on. The table read:
+
+| Brand | Owned |
 | --- | --- |
 | **254 Engineering Services** (this repo) | Institutional and firm level terms, all county level geo, government and municipal content, careers |
 | **Sealed Engineering** | Transactional commercial service terms, city geo, homeowner education |
 | **StampMyPlans** | Contractor and builder direct response, plan stamping process and speed |
 
-`data/keyword-registry.ts` is the single source of truth and is synchronized verbatim across all
-three repos. **Check it before writing any page or post.** If a keyword is not in the registry,
-add it there first, with an owner. If it is owned by another brand, this brand does not target it.
+**What is ruled now.** These are three separate businesses. Each offers the full service menu, each
+serves a different buyer, and each earns in-depth content on every service it performs. Dividing the
+keywords starved two of the three sites of content on work they actually do, which is a worse
+outcome than the overlap it was avoiding. The registry is now a **differentiation record**: for each
+topic it holds the angle each brand takes, so a writer opens it to find out how this brand's
+treatment differs, not whether this brand is permitted to write at all.
+
+The supersession is recorded rather than the old model being quietly deleted, for the same reason
+the Newsreader ruling in 2b is still written down. A prohibition that vanishes without a trace looks
+like a rule nobody ever set, and the next session reads the ownership reasoning in the git history
+and assumes the current registry is a mistake.
+
+**The one prohibition that survives, and it is absolute.** No page may share substantial copy,
+structure, headings, or paraphrase with a sibling page on the same subject. Each is written
+independently from primary sources for its own buyer. **The test: any page that could be
+find-and-replaced into a sibling page fails and is rewritten.** Overlap in subject is the strategy.
+Overlap in sentences is the doorway.
+
+`data/keyword-registry.ts` remains synchronized verbatim across all three repos, and is still the
+first thing to read before writing any page or post.
 
 Consequences that are easy to get wrong:
 
 - Service pages on this site are **firm capability pages** for procurement and institutional
-  evaluation, not transactional landing pages. The transactional "service plus Texas" variants
-  belong to Sealed Engineering, and each service page carries one honest contextual link there for
-  readers who want to order.
-- No city pages here. County pages only.
+  evaluation. A sibling brand's page on the same service is a different document for a different
+  reader, written from scratch, not this one reworded.
+- No city pages here. County pages only. That is this brand's geo shape, not a concession.
 - Templates and engineering patterns may be shared between the three repos. Rendered sentences may
   not. Every page is written fresh in this brand's voice.
 - Cross-brand linking is sparing and honest, never reciprocal footer blasting.
+
+`scripts/registry-audit.mjs` changed with the ruling. It no longer flags topic overlap. It fetches
+all three live sitemaps and scores similarity across titles, H1s, descriptions, and heading
+structures, reporting the score for every close pair and failing above 0.75. Privacy, terms, and
+contact are compared and shown but never failed, because three privacy policies owned by one
+operator share an H1 for reasons that have nothing to do with search.
 
 ## 2b. The visual system, and one superseded ruling
 
