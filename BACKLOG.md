@@ -751,3 +751,68 @@ Set the solar page H1 to Sealed's solar H1 verbatim, rebuilt, ran: FAIL at 1.00
 with exit code 1. Reverted, rebuilt, ran: PASS. The exit code was checked without
 a pipe, because a script that prints FAIL and exits 0 is the same defect class
 again.
+
+## Phase 3, the proximity head term and an honest link count, 2026-08-31
+
+### link-map was counting card navigation as prose
+
+The fourteenth instance of the defect class this backlog names, and the first one
+where the audit was inventing findings rather than missing them.
+
+Card grids are marked up as lists, which is correct. That put every card link
+inside an li, and the prose heuristic saw a container of about fifteen words with
+a three word anchor and scored it as writing. The windstorm sibling cards
+produced four inbound "contextual" links to /windstorm/appointed-engineers, all
+with the same anchor, and the anchor discipline check then reported a repetition
+that nobody had written into a sentence. The measurement manufactured both the
+links and the violation, and the linking pass was being judged against it.
+
+Links inside a heading are now stripped from the container before anchors are
+read. A card title falls through to the chrome pass and is counted as template.
+
+Measured on the pre-Phase-3 tree with the corrected script, in a worktree, rather
+than assumed: baseline reported 35 contextual links, of which 11 were windstorm
+card navigation. Genuine prose links at baseline were 24. After this pass, 37.
+
+### What the inflation was hiding
+
+All seven windstorm cluster pages had exactly one "contextual" inbound link,
+which was their own sibling card. With the correction they show as what they are:
+no prose inbound at all. The hub has two and the cluster has none.
+
+That is a real gap and it is now visible instead of papered over. The cluster
+pages need prose inbound from the service pages and the coastal region page in a
+later pass. It was not done in this one because no sentence on those pages wanted
+the link, and writing one to carry a link is what section 8 forbids.
+
+### Links dropped rather than forced
+
+/services/roof-inspections, /services/forensic-engineering, and
+/services/manufactured-home-foundation-certifications were on the target list and
+got nothing. No existing sentence on any source page wanted them. Each is still
+reachable through template navigation, and each is a candidate for the next
+content that legitimately mentions it.
+
+### Contextual links now live in the copy, not the component
+
+Body strings may carry [anchor](/path), rendered by ProseParagraph. The first
+version of the proximity hub special cased one section in the page component and
+appended a paragraph after it, which works exactly once before the component
+fills with conditionals nobody can find copy in. The token pattern requires a
+leading slash, so an external URL cannot be smuggled into body copy through it.
+
+### No /roof-certification page, deliberately
+
+"roof certification" measured 500/mo at KD 0 and is the second unqualified head
+term worth having. /services/roof-inspections already opens by defining the term
+and stating who orders one, so a second page would have restated it in different
+words. The reasoning is recorded at the top of src/content/structural-engineer.ts
+so the gap is not filled later by someone who reads it as an oversight.
+
+### Still open
+
+The seven windstorm cluster pages, /services/forensic-engineering,
+/services/roof-inspections, /services/manufactured-home-foundation-certifications,
+the seven non-coastal coverage regions, and /insights all have no contextual
+inbound. The coverage regions in particular are a structural problem: nothing in
+prose anywhere links to a specific region except the Coastal Bend.
