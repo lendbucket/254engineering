@@ -690,3 +690,129 @@ ever has a second user.
 Applications are a list, not a detail view. Every answer is in the operator's
 email and in the payload column, but there is no per application page in the
 portal yet.
+
+## registry-audit rewritten to the differentiation model, 2026-08-31
+
+The operator superseded the keyword ownership model. registry-audit no longer
+flags topic overlap, which was the whole of what it used to do. It now fetches
+all three live sitemaps and scores trigram similarity across titles, H1s,
+descriptions, and heading structures, reporting every close pair and failing
+above 0.75.
+
+### The audit was reading production while claiming to read localhost
+
+The thirteenth instance of the defect class this backlog names: a check that
+passes while looking at the wrong thing.
+
+Sitemap loc values are absolute canonical URLs, so the sitemap served from
+localhost:3225 lists https://254engineering.com. pagesFor fetched those URLs
+verbatim. Every run printed "read 33 pages from http://localhost:3225" and read
+the deployed site instead, which means BASE_URL did nothing and no unshipped
+change could ever be scored.
+
+It was caught only because the audit flagged an H1, the H1 was rewritten, the
+build was verified by curl to serve the new text, and the score did not move.
+Computing the same trigram score by hand off both URLs gave 0.33 against the
+audit's 0.81. The audit was measuring the old page.
+
+Fixed by rebasing every loc onto the requested origin. The failure mode is worth
+naming for the next audit that reads a sitemap: an absolute URL in fetched data
+silently overrides the origin you thought you were testing.
+
+### What the fix found once it could see the local build
+
+/services/manufactured-home-foundation-certifications had the H1 "Manufactured
+Home Foundation Certifications in Texas", which is a literal prefix of Sealed's
+"Manufactured Home Foundation Certifications in Texas, FHA and VA". 0.81. That is
+the find-and-replace test failing in the plainest possible way.
+
+The H1 is now "What Lenders Require on a Manufactured Home Foundation", which is
+this brand's angle rather than a reworded sibling. The page TITLE is unchanged,
+per the operator's ruling that existing service page titles ship as they are. H1
+and title are separate strings and only one of them was ruled on.
+
+### Utility pages are compared but never failed
+
+Privacy, terms, and contact reach 1.00 across all three brands because a privacy
+policy is called a privacy policy. They stay in the comparison and stay printed
+in the watch list, marked as not failed, because silently dropping a page from a
+duplicate check is how a real duplicate later hides behind an exclusion.
+
+### Still in the watch band, deliberately not acted on
+
+title 0.69 on windstorm WPI-8 and title 0.65 on manufactured home foundations,
+both against Sealed. Both are below the fail line and both are titles the
+operator ruled stay as shipped. They are printed on every run so the decision
+stays visible rather than forgotten.
+
+### Injection verified
+
+Set the solar page H1 to Sealed's solar H1 verbatim, rebuilt, ran: FAIL at 1.00
+with exit code 1. Reverted, rebuilt, ran: PASS. The exit code was checked without
+a pipe, because a script that prints FAIL and exits 0 is the same defect class
+again.
+
+## Phase 3, the proximity head term and an honest link count, 2026-08-31
+
+### link-map was counting card navigation as prose
+
+The fourteenth instance of the defect class this backlog names, and the first one
+where the audit was inventing findings rather than missing them.
+
+Card grids are marked up as lists, which is correct. That put every card link
+inside an li, and the prose heuristic saw a container of about fifteen words with
+a three word anchor and scored it as writing. The windstorm sibling cards
+produced four inbound "contextual" links to /windstorm/appointed-engineers, all
+with the same anchor, and the anchor discipline check then reported a repetition
+that nobody had written into a sentence. The measurement manufactured both the
+links and the violation, and the linking pass was being judged against it.
+
+Links inside a heading are now stripped from the container before anchors are
+read. A card title falls through to the chrome pass and is counted as template.
+
+Measured on the pre-Phase-3 tree with the corrected script, in a worktree, rather
+than assumed: baseline reported 35 contextual links, of which 11 were windstorm
+card navigation. Genuine prose links at baseline were 24. After this pass, 37.
+
+### What the inflation was hiding
+
+All seven windstorm cluster pages had exactly one "contextual" inbound link,
+which was their own sibling card. With the correction they show as what they are:
+no prose inbound at all. The hub has two and the cluster has none.
+
+That is a real gap and it is now visible instead of papered over. The cluster
+pages need prose inbound from the service pages and the coastal region page in a
+later pass. It was not done in this one because no sentence on those pages wanted
+the link, and writing one to carry a link is what section 8 forbids.
+
+### Links dropped rather than forced
+
+/services/roof-inspections, /services/forensic-engineering, and
+/services/manufactured-home-foundation-certifications were on the target list and
+got nothing. No existing sentence on any source page wanted them. Each is still
+reachable through template navigation, and each is a candidate for the next
+content that legitimately mentions it.
+
+### Contextual links now live in the copy, not the component
+
+Body strings may carry [anchor](/path), rendered by ProseParagraph. The first
+version of the proximity hub special cased one section in the page component and
+appended a paragraph after it, which works exactly once before the component
+fills with conditionals nobody can find copy in. The token pattern requires a
+leading slash, so an external URL cannot be smuggled into body copy through it.
+
+### No /roof-certification page, deliberately
+
+"roof certification" measured 500/mo at KD 0 and is the second unqualified head
+term worth having. /services/roof-inspections already opens by defining the term
+and stating who orders one, so a second page would have restated it in different
+words. The reasoning is recorded at the top of src/content/structural-engineer.ts
+so the gap is not filled later by someone who reads it as an oversight.
+
+### Still open
+
+The seven windstorm cluster pages, /services/forensic-engineering,
+/services/roof-inspections, /services/manufactured-home-foundation-certifications,
+the seven non-coastal coverage regions, and /insights all have no contextual
+inbound. The coverage regions in particular are a structural problem: nothing in
+prose anywhere links to a specific region except the Coastal Bend.

@@ -254,7 +254,7 @@ export const services: Service[] = [
     slug: "manufactured-home-foundation-certifications",
     name: "Manufactured Home Foundation Certifications",
     shortName: "Manufactured Home Certifications",
-    h1: "Manufactured Home Foundation Certifications in Texas",
+    h1: "What Lenders Require on a Manufactured Home Foundation",
     title: "Manufactured Home Foundation Certification | 254 Engineering",
     description:
       "The engineer's foundation certification an FHA, VA, or USDA loan requires on a manufactured home in Texas, and what it confirms. Join the waitlist.",
