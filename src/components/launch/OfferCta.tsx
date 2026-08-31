@@ -1,6 +1,7 @@
 import { ButtonLink, Eyebrow } from "@/components/ui/primitives";
 import { Container } from "@/components/ui/Container";
 import { isPrelaunch } from "@/lib/launch";
+import { displayPhone, telHref } from "@/config/contact";
 
 /**
  * The call to action, in both launch modes.
@@ -14,6 +15,15 @@ import { isPrelaunch } from "@/lib/launch";
  * naming the registration is both the honest version and, for the audience this
  * site is built for, the more credible one. Procurement officers and lenders
  * know exactly what firm registration is and what it means that it is pending.
+ *
+ * THE PHONE AFFORDANCE APPEARS ONLY WHEN THERE IS A PHONE
+ * -------------------------------------------------------
+ * A call option is the highest intent path on any page that has one, and it is
+ * the first thing a contractor standing on a roof will reach for. It is also the
+ * easiest thing on the site to fake, so it is rendered from the same config as
+ * everything else in src/config/contact.ts and is simply absent while FIRM_PHONE
+ * is unset, which is the current state. Nothing here degrades to a dead link or
+ * a placeholder number: the button does not exist until the number does.
  */
 export function OfferCta({
   /** The service being asked about, if the CTA sits on a service page. */
@@ -26,6 +36,8 @@ export function OfferCta({
   body?: string;
 }) {
   const prelaunch = isPrelaunch();
+  const phone = displayPhone();
+  const tel = telHref();
   const waitlistHref = service ? `/waitlist?service=${encodeURIComponent(service)}` : "/waitlist";
 
   return (
@@ -50,7 +62,11 @@ export function OfferCta({
               <ButtonLink href={prelaunch ? waitlistHref : "/contact"} tone="onDark">
                 {prelaunch ? "Join the waitlist" : "Contact the firm"}
               </ButtonLink>
-              {prelaunch ? (
+              {tel && phone ? (
+                <ButtonLink href={tel} tone="onDarkOutline">
+                  Call {phone}
+                </ButtonLink>
+              ) : prelaunch ? (
                 <ButtonLink href="/about" tone="onDarkOutline">
                   How the firm works
                 </ButtonLink>
