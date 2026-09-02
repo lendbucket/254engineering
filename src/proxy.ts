@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { ADMIN_COOKIE, readSession } from "@/lib/admin-session";
+import { OPS_COOKIE, readOpsSession } from "@/lib/ops-session";
 
 /**
- * The admin gate.
+ * The portal gate.
  *
  * WHY THIS IS proxy.ts AND NOT middleware.ts
  * ------------------------------------------
@@ -18,59 +18,88 @@ import { ADMIN_COOKIE, readSession } from "@/lib/admin-session";
  *
  * WHY THE CHECK IS HERE AND ALSO IN EVERY ROUTE
  * ---------------------------------------------
- * Middleware is the right place to keep an unauthenticated request from ever
- * reaching an admin page, and it is the wrong place to be the only check. A
- * matcher is a pattern, and a pattern is one typo away from leaving a route
+ * A matcher is a pattern, and a pattern is one typo away from leaving a route
  * uncovered while every test that goes through the matcher still passes. So this
- * is a gate, not the lock: each admin route and API handler verifies the session
- * again for itself.
+ * is a gate, not the lock. The portal layout re-checks for every page beneath
+ * it, and every route handler calls can() before it reads or writes.
  *
  * Defence in depth stated plainly, because a future session reading only this
- * file would reasonably conclude the route checks are redundant and remove them.
- * They are not redundant. They are the ones that hold if this file's matcher is
- * ever wrong.
+ * file would reasonably conclude the other checks are redundant and remove them.
+ * They are not redundant. They are the ones that hold if this matcher is wrong.
  *
- * WHAT AN UNAUTHENTICATED REQUEST GETS
- * ------------------------------------
- * A page request redirects to the login screen. An API request gets 401 JSON and
- * never a redirect: a fetch that follows a redirect to an HTML login page
- * produces a parse error at the call site rather than an honest "you are not
- * signed in", and the client cannot tell those apart.
+ * THE COOKIE IS CHECKED HERE, THE ROLE IS NOT TRUSTED HERE
+ * --------------------------------------------------------
+ * This verifies a signature and an expiry, which is all that can be done without
+ * a database. Whether the person is suspended, and what role they actually hold
+ * today, is decided by currentActor against the profiles table on every request
+ * beneath this. A gate that made authorization decisions from a twelve hour
+ * cookie would make suspension advisory.
  *
- * The login page and the session endpoint are the only admin paths open, because
- * they are how a session is obtained in the first place.
+ * THE SHARED PASSPHRASE IS GONE, THE SCREENS BEHIND IT ARE NOT
+ * ------------------------------------------------------------
+ * /admin used to be gated by one passphrase in the environment. That is retired:
+ * src/lib/admin-auth.ts and admin-session.ts are deleted, and the login, logout,
+ * and session endpoints with them, so there is no second way in left to
+ * re-enable by accident.
+ *
+ * The leads, applications, and onboarding screens still answer under /admin and
+ * are now gated by the same session as the portal, admin role only. They are
+ * real work the operator does today and Phase 1 and Phase 3 absorb them into
+ * the portal properly. Removing them now to make the retirement look complete
+ * would have deleted capability and replaced it with nothing.
  */
 
-const OPEN_PATHS = new Set(["/admin/login", "/api/admin/session"]);
+const OPEN_PATHS = new Set([
+  "/portal/login",
+  "/portal/set-password",
+  "/api/portal/session",
+  "/api/portal/set-password",
+]);
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  /*
+   * The retired sign in surface. These no longer exist as files; the redirect is
+   * here so a bookmark lands on the real sign in rather than a 404 that looks
+   * like an outage.
+   */
+  if (pathname === "/admin/login" || pathname === "/api/admin/session" || pathname === "/admin/logout") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/portal/login";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
   if (OPEN_PATHS.has(pathname)) return NextResponse.next();
 
-  const authed = readSession(request.cookies.get(ADMIN_COOKIE)?.value);
-  if (authed) return NextResponse.next();
+  const claims = readOpsSession(request.cookies.get(OPS_COOKIE)?.value);
+  if (claims) return NextResponse.next();
 
   if (pathname.startsWith("/api/")) {
+    // JSON, never a redirect. A fetch that follows a redirect to an HTML sign in
+    // page produces a parse error at the call site rather than an honest "you
+    // are not signed in", and the caller cannot tell those apart.
     return NextResponse.json({ ok: false, error: "Not signed in." }, { status: 401 });
   }
 
   const url = request.nextUrl.clone();
-  url.pathname = "/admin/login";
-  // Where they were going, so the login can send them back. Only ever a path on
-  // this site: `next` is validated at the login screen before it is used, and an
-  // open redirect out of an admin login is a phishing primitive.
-  url.search = pathname.startsWith("/admin") ? `?next=${encodeURIComponent(pathname)}` : "";
+  url.pathname = "/portal/login";
+  // Where they were going, so sign in can send them back. Only ever a path on
+  // this site: `next` is validated again at the login screen, and an open
+  // redirect out of a sign in is a phishing primitive.
+  url.search = pathname.startsWith("/portal") ? `?next=${encodeURIComponent(pathname)}` : "";
   return NextResponse.redirect(url);
 }
 
 export const config = {
   /*
-   * Every admin surface, page and API.
+   * Every portal surface, page and API, plus the retired admin prefixes so they
+   * cannot answer.
    *
-   * Written as two explicit prefixes rather than one clever pattern. The
-   * failure mode of a clever matcher is a route that quietly is not covered,
-   * and that failure is silent.
+   * Written as explicit prefixes rather than one clever pattern. The failure
+   * mode of a clever matcher is a route that quietly is not covered, and that
+   * failure is silent.
    */
-  matcher: ["/admin/:path*", "/api/admin/:path*"],
+  matcher: ["/portal/:path*", "/api/portal/:path*", "/admin/:path*", "/api/admin/:path*"],
 };

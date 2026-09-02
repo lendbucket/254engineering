@@ -42,6 +42,12 @@ const BASE = process.env.BASE_URL || "http://localhost:3225";
  * expensive starts.
  */
 const PHASE_ZERO = [
+  {
+    // First, because everything after it may touch a database and this is what
+    // decides which one. It needs no server, no build, and no network.
+    name: "db-guard-audit",
+    why: "audits cannot reach production without an explicit flag that defaults off",
+  },
   { name: "registry-audit", why: "keyword ownership is self consistent and every live claim resolves" },
   { name: "email-audit", why: "every outbound template: voice, absolute links, plaintext part" },
 ];
@@ -62,7 +68,15 @@ const PHASE_ONE = [
     // Phase one: it needs the production server on 3225, like the audits above
     // it, and it asserts the deployed behaviour rather than reading the source.
     name: "security-audit",
-    why: "the admin portal is closed to an unauthenticated client",
+    why: "the portal perimeter is closed to an unauthenticated client",
+  },
+  {
+    // Phase one: it signs in through the running server as each role and
+    // attempts everything, so it needs both the server and the service role key.
+    // security-audit is the unauthenticated perimeter; this is what happens once
+    // somebody is legitimately inside.
+    name: "roles-audit",
+    why: "the authorization matrix, asserted independently and then over HTTP",
   },
   {
     name: "mobile-overflow-audit",

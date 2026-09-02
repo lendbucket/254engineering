@@ -445,9 +445,131 @@ export function onboardingInvite(input: {
   );
 }
 
+/**
+ * The portal invitation.
+ *
+ * NO PASSWORD IN THIS EMAIL, AND THAT IS THE POINT
+ * ------------------------------------------------
+ * The admin does not choose a password and the platform does not generate one to
+ * send. A temporary password in an email is a working credential sitting in two
+ * mailboxes for as long as either of them exists, and it is still valid after
+ * the person has changed it if they never actually did.
+ *
+ * What goes out is a one time link. The person chooses their own password behind
+ * it, the link dies on use, and it expires on its own if they never open it.
+ */
+export function portalInvite(input: {
+  personName: string;
+  personEmail: string;
+  role: "admin" | "engineer" | "field_tech";
+  /** Absent when the address already had credentials on this project. */
+  setPasswordUrl: string | null;
+  expiresAt: string | null;
+  invitedBy: string;
+  signInUrl: string;
+}): RenderedEmail {
+  const roleLabel =
+    input.role === "admin"
+      ? "Administrator"
+      : input.role === "engineer"
+        ? "Professional Engineer"
+        : "Field Technician";
+
+  return compose(
+    "portal.invite",
+    "human",
+    `Your ${business.shortName} portal account`,
+    {
+      preheader: `Set your password and sign in as ${roleLabel}.`,
+      signed: true,
+      blocks: [
+        { kind: "p", text: `${input.personName},` },
+        {
+          kind: "p",
+          text: `An account has been created for you on the ${business.name} portal with the ${roleLabel} role. ${input.invitedBy} set it up.`,
+        },
+        {
+          kind: "p",
+          text: input.setPasswordUrl
+            ? `Your sign in address is ${input.personEmail}. Use the button below to choose a password, and you are in.`
+            : `Your sign in address is ${input.personEmail}, and you already have a password for it. Use the button below and sign in with the password you already use.`,
+        },
+        {
+          kind: "note",
+          text: input.setPasswordUrl
+            ? `The link works once and expires ${input.expiresAt}. Nobody at the firm knows or can see your password, including whoever created the account.`
+            : "Your existing password was not changed and nobody at the firm can see it. If you have forgotten it, ask an administrator to send a reset link.",
+        },
+        {
+          kind: "p",
+          text: `If you were not expecting this, write to ${business.email} and it will be cancelled.`,
+        },
+      ],
+      button: input.setPasswordUrl
+        ? { label: "Choose your password", url: input.setPasswordUrl }
+        : { label: "Sign in to the portal", url: input.signInUrl },
+    },
+    { to: input.personEmail },
+  );
+}
+
+/** An administrator forcing a reset, or a person who has lost their password. */
+export function portalPasswordReset(input: {
+  personName: string;
+  personEmail: string;
+  setPasswordUrl: string;
+  expiresAt: string;
+  forcedByAdmin: boolean;
+}): RenderedEmail {
+  return compose(
+    "portal.password_reset",
+    "human",
+    `Reset your ${business.shortName} portal password`,
+    {
+      preheader: "A one time link to choose a new password.",
+      signed: true,
+      blocks: [
+        { kind: "p", text: `${input.personName},` },
+        {
+          kind: "p",
+          text: input.forcedByAdmin
+            ? "An administrator has reset your portal password. Your previous password no longer works and any open sessions have ended."
+            : "A password reset was requested for your portal account.",
+        },
+        {
+          kind: "note",
+          text: `The link works once and expires ${input.expiresAt}.`,
+        },
+        {
+          kind: "p",
+          text: `If you did not expect this, write to ${business.email} straight away.`,
+        },
+      ],
+      button: { label: "Choose a new password", url: input.setPasswordUrl },
+    },
+    { to: input.personEmail },
+  );
+}
+
 export function allTemplatesForAudit(): RenderedEmail[] {
 
   return [
+    portalInvite({
+      personName: "Sample Engineer",
+      personEmail: "sample.engineer@254engineering.com",
+      role: "engineer",
+      setPasswordUrl: "https://254engineering.com/portal/set-password?token=sample",
+      expiresAt: "in three days",
+      invitedBy: "Sample Administrator",
+      signInUrl: "https://254engineering.com/portal/login",
+    }),
+    portalPasswordReset({
+      personName: "Sample Technician",
+      personEmail: "sample.tech@254engineering.com",
+      setPasswordUrl: "https://254engineering.com/portal/set-password?token=sample",
+      expiresAt: "in three days",
+      forcedByAdmin: true,
+    }),
     onboardingSubmitted({
       personName: "Sample Engineer",
       personEmail: "sample.engineer@254engineering.com",

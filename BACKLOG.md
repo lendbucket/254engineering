@@ -934,3 +934,103 @@ not the full thirty.
 its bytes fell 64KB. That route's own spread across five runs was 452ms, so the
 difference is inside its noise and cannot be called a regression or dismissed as
 noise on the evidence available. Reported rather than filtered out.
+
+## Operations platform, Phase 0: foundation, auth, roles, shell, 2026-09-02
+
+### The whole program's schema landed in Phase 0, on purpose
+
+Twenty five tables covering all six phases: identity, clients and files,
+protocols and dispatch and evidence, credentials and certification, documents
+and ledgers and the responsible charge log, tasks and threads and notifications,
+and the fee schedule. Empty tables are cheap; retrofitting a foreign key onto a
+populated table across a live portal is not.
+
+Every one has RLS on with zero policies, the same closed door the eng_ tables
+already used. Authorization is application code in src/lib/ops-authz.ts, in
+front of every query, asserted by scripts/roles-audit.mjs.
+
+### Two defects the schema had, both found by running it rather than reading it
+
+**The audit trail's own foreign keys fought its immutability trigger.**
+actor_id was declared "on delete set null", so deleting a profile asked Postgres
+to UPDATE the append only table, and the trigger correctly refused. The result
+was that a profile referenced by any trail row could not be deleted at all, and
+the error named the trigger rather than the constraint. Found when a
+demonstration teardown could not remove its own accounts.
+
+The fix is to drop the reference, not weaken the trigger, and it is the better
+model anyway: a regulatory trail whose rows depend on a profile still existing
+loses its actor the day somebody leaves. That is why actor_email is denormalised
+beside it. Same for eng_responsible_charge_log, which was "on delete restrict"
+and would have blocked the delete outright, on a record that has to survive the
+engineer leaving the firm for ten years.
+
+**signInWithPassword silently turned the shared service role client into that
+user.** supabaseAdmin() is a module level singleton. Calling
+auth.signInWithPassword() on it succeeds and stores the user's session inside the
+client, so every later .from() call travels as that user, RLS applies, and every
+eng_ table returns nothing.
+
+The symptom was worse than the cause: the sign in worked, the profile lookup
+immediately after it came back empty, and the person was told their credentials
+were wrong. It would have shipped as "the portal does not work" with no obvious
+lead. Credential checks now use a throwaway client that never touches a table.
+
+Both were found by the end to end demonstration, not by reading the code, and
+neither would have been caught by a type checker or a unit test with a mocked
+client.
+
+### auth.users is shared with the other applications on this project
+
+Every table this platform owns carries the eng_ prefix because the Supabase
+project hosts several unrelated apps. auth.users has no prefix and cannot have
+one. The operator's own address already existed there from another application.
+
+So account creation has two outcomes and they are deliberately different. A new
+address gets an auth user and a one time link. An EXISTING address is linked and
+its password is left completely alone, because it is the same credential another
+application uses and resetting it here would lock somebody out of something else
+without telling them why. The admin is told which happened, and the invite email
+changes its button from "choose your password" to "sign in".
+
+The seed script does the same thing, which is why the first administrator was
+linked rather than created.
+
+### roles-audit is written so it cannot be a tautology
+
+The obvious way to test an authorization module is to loop over its own matrix.
+That passes forever, including on the day somebody widens a role. So the audit
+states who may do what a second time, by hand, and fails when the two disagree.
+Injection verified: granting field_tech pricing.read and audit.read produced four
+failures across the matrix check and the redaction check.
+
+The second half signs in as each role through the real endpoint and attempts what
+each must not do. A pure matrix proves the module is self consistent; it proves
+nothing about whether the route handlers call it.
+
+### The passphrase is retired, the screens behind it are not
+
+The shared ADMIN_PASSPHRASE, its session module, and the login, logout, and
+session endpoints are deleted. security-audit asserts the old surface no longer
+issues a session.
+
+The leads, applications, and onboarding screens still answer under /admin and are
+now gated by the same accounts as the portal, admin role only. They are real work
+the operator does today and Phase 1 and Phase 3 absorb them properly. Deleting
+them now to make the retirement look complete would have removed capability and
+given nothing back. That is a deliberate temporary duplication and it is the one
+piece of Phase 0 that is not finished architecture.
+
+### Still open, and known
+
+ADMIN_PASSPHRASE can be removed from the Vercel environment; nothing reads it.
+OPS_SESSION_SECRET must be SET there before the portal works in production, and
+it is not set yet. Without it the sign in screen says so rather than rejecting
+correct passwords silently.
+
+The command palette navigates and does not search. Searching clients and files
+starts when there are clients and files, and the palette says so rather than
+returning nothing.
+
+The dashboard shows live counts and two designed empty states. It does not show a
+revenue chart with invented numbers.

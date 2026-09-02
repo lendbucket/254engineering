@@ -21,7 +21,7 @@
 // and the summary keeps them apart, because a run that quietly counts skips as
 // passes is how a broken write path ships.
 import { chromium } from "playwright";
-import { createClient } from "@supabase/supabase-js";
+import { auditClient } from "./lib/db-target.mjs";
 import { careersChecks } from "./lib/careers-audit.mjs";
 
 /*
@@ -339,7 +339,7 @@ async function roundTripChecks() {
     return;
   }
 
-  const db = createClient(url, key, { auth: { persistSession: false } });
+  const db = auditClient("forms-audit");
 
   const { data: leads } = await db
     .from("eng_leads")

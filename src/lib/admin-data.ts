@@ -1,7 +1,7 @@
 import "server-only";
-import { cookies } from "next/headers";
 import { supabaseAdmin } from "./supabase";
-import { ADMIN_COOKIE, readSession } from "./admin-session";
+import { currentActor } from "./ops-auth";
+import { can } from "./ops-authz";
 
 /**
  * Reads for the admin portal.
@@ -17,6 +17,19 @@ import { ADMIN_COOKIE, readSession } from "./admin-session";
  * nobody was allowed to read look identical on screen, and only one of them is a
  * security failure.
  *
+ * THE SHARED PASSPHRASE IS GONE
+ * -----------------------------
+ * These screens used to sit behind one passphrase held in the environment, with
+ * no user, no role, and no way to tell two people apart in a log. They now sit
+ * behind the same Supabase backed accounts as the rest of the platform and
+ * require the admin role specifically.
+ *
+ * The screens themselves are unchanged and are deliberately still here. Leads,
+ * applications, and onboarding are real work the operator does today, and Phase
+ * 1 and Phase 3 absorb them into the portal properly. Deleting them now to make
+ * a retirement look tidy would have taken away working capability and given
+ * nothing back.
+ *
  * READS ARE SERVICE ROLE, WHICH IS WHY THEY LIVE BEHIND server-only
  * -----------------------------------------------------------------
  * eng_leads, eng_applications, and both onboarding tables have RLS enabled with
@@ -27,8 +40,8 @@ import { ADMIN_COOKIE, readSession } from "./admin-session";
  */
 
 export async function requireAdmin(): Promise<void> {
-  const jar = await cookies();
-  if (!readSession(jar.get(ADMIN_COOKIE)?.value)) {
+  const actor = await currentActor();
+  if (!can(actor, "profiles.list")) {
     throw new Error("Not signed in.");
   }
 }

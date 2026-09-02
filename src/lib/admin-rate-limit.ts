@@ -12,7 +12,7 @@ import "server-only";
  *
  * It does not defend against a distributed attempt from many addresses, and it
  * is not pretending to. The honest control for that is the passphrase length
- * floor in admin-auth.ts.
+ * floor now enforced in src/lib/ops-auth.ts.
  *
  * IN MEMORY, AND WHY THAT IS THE RIGHT SIZE HERE
  * ----------------------------------------------
