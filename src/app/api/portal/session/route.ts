@@ -34,6 +34,22 @@ export const dynamic = "force-dynamic";
 const GENERIC = "Check the email and password.";
 
 export async function POST(request: NextRequest) {
+  /*
+   * Rate limit FIRST, before the configuration check.
+   *
+   * The configuration short circuit used to come first, which meant an
+   * unconfigured deployment answered every attempt with a 503 and never counted
+   * one. security-audit caught it against production: twelve wrong sign ins in a
+   * row, all accepted. Nothing could be signed into, so nothing was at risk, but
+   * an endpoint that answers forever is worth closing whatever it answers.
+   */
+  const limit = takeLoginAttempt(clientKey(request.headers));
+  if (!limit.allowed) {
+    const res = NextResponse.json({ ok: false, error: "Too many attempts. Wait a moment." }, { status: 429 });
+    res.headers.set("Retry-After", String(limit.retryAfterSeconds));
+    return res;
+  }
+
   if (!opsSessionConfigured()) {
     return NextResponse.json(
       { ok: false, error: "The portal is not configured on this deployment." },
@@ -69,15 +85,6 @@ export async function POST(request: NextRequest) {
           { status: 303 },
         )
       : NextResponse.json({ ok: false, error }, { status });
-
-  // Rate limit before touching the password, keyed on the caller rather than on
-  // the email, so guessing a hundred addresses costs the same as guessing one.
-  const limit = takeLoginAttempt(clientKey(request.headers));
-  if (!limit.allowed) {
-    const res = fail(429, "Too many attempts. Wait a moment.");
-    res.headers.set("Retry-After", String(limit.retryAfterSeconds));
-    return res;
-  }
 
   if (!email || !password) return fail(400, GENERIC);
 
