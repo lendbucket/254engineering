@@ -172,6 +172,21 @@ const GATED = { prelaunch: true };
   rec("an engineer cannot cancel a file", !canTransition(engineer, "intake", "cancelled", LIVE).ok);
   rec("an engineer cannot dispatch", !canTransition(engineer, "needs_dispatch", "dispatched", LIVE).ok);
   rec("a signed out actor can do nothing", !canTransition(null, "intake", "needs_dispatch", LIVE).ok);
+
+  /*
+   * A technician has to be able to finish their own job without being handed
+   * files.transition, which would let them move anything anywhere. These four
+   * are the whole of what they may do, and the fifth is the one that matters:
+   * evidence submitted is reachable from under review as well, and a technician
+   * reaching it from there would be yanking a file back from the engineer
+   * holding it. Same destination, different act, different permission.
+   */
+  rec("a technician can start capture on a dispatched job", canTransition(tech, "dispatched", "evidence_in_progress", LIVE).ok);
+  rec("a technician can submit their own evidence", canTransition(tech, "evidence_in_progress", "evidence_submitted", LIVE).ok);
+  rec("a technician can resume after a revision request", canTransition(tech, "revisions_requested", "evidence_in_progress", LIVE).ok);
+  rec("a technician cannot pull a file back out of review", !canTransition(tech, "under_review", "evidence_submitted", LIVE).ok);
+  rec("an engineer can send a file back out of review", canTransition(engineer, "under_review", "evidence_submitted", LIVE).ok);
+  rec("a technician still cannot move a file to needs dispatch", !canTransition(tech, "evidence_in_progress", "needs_dispatch", LIVE).ok);
   rec(
     "a suspended admin can do nothing",
     !canTransition({ id: "a", role: "admin", status: "suspended" }, "intake", "needs_dispatch", LIVE).ok,

@@ -124,12 +124,30 @@ const TRANSITIONS: Record<FileStatus, FileStatus[]> = {
  */
 export const GATED_STATUSES: FileStatus[] = ["sealed", "delivered"];
 
-/** Which action a transition needs, so authorization and the grammar agree. */
-function actionFor(to: FileStatus): Parameters<typeof can>[1] {
+/**
+ * Which action a transition needs, so authorization and the grammar agree.
+ *
+ * WHY THIS TAKES THE PAIR AND NOT JUST THE DESTINATION
+ * ----------------------------------------------------
+ * Two different people move a file to evidence submitted and they are doing two
+ * different things. A technician finishing a capture is submitting. An engineer
+ * pushing a file back out of review is reopening it, and that is a review
+ * decision, not a submission.
+ *
+ * Keying only on the destination collapsed those into one permission, and the
+ * consequence was concrete: a technician who could submit their own file could
+ * also reach into a file already under review and pull it back out from under
+ * the engineer holding it. The destination is the same status; the act is not.
+ */
+function actionFor(from: FileStatus, to: FileStatus): Parameters<typeof can>[1] {
   if (to === "sealed") return "documents.seal";
   if (to === "delivered") return "documents.deliver";
   if (to === "cancelled") return "files.cancel";
   if (to === "dispatched") return "offers.dispatch";
+  if (to === "evidence_in_progress") return "evidence.start";
+  if (to === "evidence_submitted") {
+    return from === "under_review" ? "review.decide" : "evidence.submit";
+  }
   return "files.transition";
 }
 
@@ -178,7 +196,7 @@ export function canTransition(
     };
   }
 
-  if (!can(actor, actionFor(to))) {
+  if (!can(actor, actionFor(from, to))) {
     return { ok: false, reason: `Your role cannot move a file to ${STATUS_LABEL[to].toLowerCase()}.` };
   }
 
