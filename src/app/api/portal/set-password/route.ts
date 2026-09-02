@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { consumeTokenAndSetPassword, requestContext } from "@/lib/ops-auth";
-import { takeLoginAttempt, clientKey } from "@/lib/admin-rate-limit";
+import { takeLoginAttempt, clientKey } from "@/lib/ops-rate-limit";
 import { writeAudit } from "@/lib/ops-audit";
 
 /**

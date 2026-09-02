@@ -177,22 +177,61 @@ async function run() {
     rec("a forged set-password token is refused", res.status !== 200, `HTTP ${res.status}`);
   }
 
-  // ---------- rate limiting ----------
+  // ---------- rate limiting, both dimensions ----------
+  /*
+   * The limiter has two buckets and one number cannot describe it.
+   *
+   * This check used to send twelve attempts across twelve DIFFERENT addresses
+   * and call the result rate limiting. When the limiter gained a per account
+   * key so a typo could not lock the operator out, that probe started passing
+   * through untouched, and it was right to fail: the change had made spraying
+   * cheaper. Both dimensions are asserted now so neither can be widened
+   * silently in service of the other.
+   */
   {
-    let limited = false;
+    // Guessing ONE account. This is the bucket a typo consumes.
+    let identityLimited = 0;
     for (let i = 0; i < 12; i++) {
       const res = await fetch(`${BASE}/api/portal/session`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-forwarded-for": "203.0.113.77" },
-        body: JSON.stringify({ email: `guess-${i}@example.com`, password: `guess-${i}` }),
+        body: JSON.stringify({ email: "one-account@example.com", password: `guess-${i}` }),
       });
       if (res.status === 429) {
-        limited = true;
-        rec("rate limit sends Retry-After", Boolean(res.headers.get("retry-after")), res.headers.get("retry-after") || "missing");
+        identityLimited = i + 1;
+        rec(
+          "rate limit sends Retry-After",
+          Boolean(res.headers.get("retry-after")),
+          res.headers.get("retry-after") || "missing",
+        );
         break;
       }
     }
-    rec("repeated wrong sign ins are rate limited", limited, limited ? "" : "12 attempts all accepted");
+    rec(
+      "repeated wrong sign ins against ONE account are rate limited",
+      identityLimited > 0,
+      identityLimited ? `refused at attempt ${identityLimited}` : "12 attempts all accepted",
+    );
+
+    // Spraying MANY accounts from one host. A different bucket, and the one
+    // the per account key would otherwise have left wide open.
+    let sprayLimited = 0;
+    for (let i = 0; i < 30; i++) {
+      const res = await fetch(`${BASE}/api/portal/session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-forwarded-for": "203.0.113.78" },
+        body: JSON.stringify({ email: `spray-${i}@example.com`, password: "one-common-password" }),
+      });
+      if (res.status === 429) {
+        sprayLimited = i + 1;
+        break;
+      }
+    }
+    rec(
+      "spraying one password across many accounts from one address is rate limited",
+      sprayLimited > 0,
+      sprayLimited ? `refused at attempt ${sprayLimited}` : "30 attempts all accepted",
+    );
   }
 
   // ---------- forged and tampered cookies ----------
@@ -248,6 +287,41 @@ async function run() {
     await browser.close();
   }
 
+  // ---------- the break glass is closed to everyone but the operator ----------
+  {
+    /*
+     * /api/portal/unlock clears the sign in rate limiter. It has to be
+     * reachable without a session, because the person who needs it is by
+     * definition unable to sign in, so it is protected by OPS_UNLOCK_TOKEN
+     * instead of by the session gate.
+     *
+     * A wrong token must be indistinguishable from the route not existing. A
+     * 401 confirms the endpoint is there and worth attacking; a 404 says
+     * nothing. It shipped as a 401 once because the proxy was gating it, which
+     * also meant the endpoint could never run for the one person who needed it.
+     */
+    const probes = [
+      ["no token", "/api/portal/unlock"],
+      ["a wrong token", "/api/portal/unlock?token=definitely-not-the-unlock-token"],
+      ["an empty token", "/api/portal/unlock?token="],
+    ];
+    for (const [label, path] of probes) {
+      const res = await fetch(BASE + path, { redirect: "manual" });
+      rec(
+        `unlock: ${label} is indistinguishable from the route not existing`,
+        res.status === 404,
+        `HTTP ${res.status}`,
+      );
+    }
+
+    const post = await fetch(`${BASE}/api/portal/unlock`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: "definitely-not-the-unlock-token" }),
+      redirect: "manual",
+    });
+    rec("unlock: a wrong token cannot clear the limiter", post.status === 404, `HTTP ${post.status}`);
+  }
   // ---------- the portal is not indexable ----------
   {
     const robots = await (await fetch(`${BASE}/robots.txt`)).text();

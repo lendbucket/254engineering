@@ -54,6 +54,18 @@ const OPEN_PATHS = new Set([
   "/portal/set-password",
   "/api/portal/session",
   "/api/portal/set-password",
+  /*
+   * The break glass has to be open, and that is the whole point of it.
+   *
+   * It exists for somebody the rate limiter has locked out, who therefore cannot
+   * sign in. Gated behind the session it would be blocked by exactly the
+   * condition it is meant to clear, which is what happened the first time this
+   * shipped: the endpoint answered 401 from this proxy and never ran.
+   *
+   * It is not unprotected. It requires OPS_UNLOCK_TOKEN and answers 404 without
+   * it, so being reachable and being open are not the same thing here.
+   */
+  "/api/portal/unlock",
 ]);
 
 export function proxy(request: NextRequest) {
