@@ -678,12 +678,13 @@ export function QuestionEditor({
             {busy ? "Adding" : "Add question"}
           </button>
         </form>
-      ) : (
-        <p className="mt-4 text-[13px] leading-[1.55] text-slate-muted">
-          Questions cannot be edited on a published protocol, for the same reason its items cannot.
-          Draft the next version.
-        </p>
-      )}
+      ) : null}
+      {/*
+        * No "questions cannot be edited" line here. The page prints the same
+        * sentence about the protocol immediately below this block, and two
+        * paragraphs in a row saying the same thing reads as a screen nobody
+        * proofread.
+        */}
     </div>
   );
 }

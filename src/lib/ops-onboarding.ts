@@ -277,7 +277,12 @@ export type ActivationView = {
     activated_at: string | null;
     profile_id: string | null;
   };
-  items: (OnboardingItemView & { issuedOn: string | null; credentialKind: string | null })[];
+  items: (OnboardingItemView & {
+    issuedOn: string | null;
+    credentialKind: string | null;
+    /** Whether this document HAS an expiry date. A W-9 does not. */
+    expires: boolean;
+  })[];
   readiness: Readiness;
 };
 
@@ -308,6 +313,7 @@ export async function activationView(actor: Actor | null, onboardingId: string):
     expiresOn: (r.expires_on as string | null) ?? null,
     issuedOn: (r.issued_on as string | null) ?? null,
     credentialKind: CREDENTIAL_OF_ITEM[r.item_key as string]?.kind ?? null,
+    expires: CREDENTIAL_OF_ITEM[r.item_key as string]?.expires ?? false,
   }));
 
   return {

@@ -197,7 +197,15 @@ export default async function OnboardingPage({
                         />
                       </div>
 
-                      {item.credentialKind ? (
+                      {/*
+                        * Only documents that HAVE an expiry get the date
+                        * fields. A W-9 and a signed contractor agreement do not
+                        * expire, and asking for a date that does not exist is
+                        * asking somebody to invent one or to conclude the form
+                        * is broken. Same class as an optional checklist item
+                        * that says "Needs a note".
+                        */}
+                      {item.credentialKind && item.expires ? (
                         <ItemDates
                           onboardingId={selected.onboarding.id}
                           itemKey={item.itemKey}
