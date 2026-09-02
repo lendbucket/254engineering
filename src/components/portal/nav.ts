@@ -23,7 +23,7 @@ export type NavItem = {
   action: Action;
   /** Shown in the bottom tab bar on a phone. At most five, by design. */
   primary?: boolean;
-  icon: "home" | "files" | "people" | "review" | "jobs" | "clients" | "audit" | "profile";
+  icon: "home" | "files" | "people" | "review" | "jobs" | "clients" | "audit" | "profile" | "protocols" | "techs";
 };
 
 export const NAV: NavItem[] = [
@@ -32,6 +32,8 @@ export const NAV: NavItem[] = [
   { href: "/portal/review", label: "Review queue", short: "Review", action: "review.queue", primary: true, icon: "review" },
   { href: "/portal/files", label: "Files", short: "Files", action: "files.list", primary: true, icon: "files" },
   { href: "/portal/clients", label: "Clients", short: "Clients", action: "clients.list", icon: "clients" },
+  { href: "/portal/protocols", label: "Protocols", short: "Specs", action: "protocols.author", icon: "protocols" },
+  { href: "/portal/techs", label: "Technicians", short: "Techs", action: "profiles.list", icon: "techs" },
   { href: "/portal/people", label: "People", short: "People", action: "profiles.list", primary: true, icon: "people" },
   { href: "/portal/audit", label: "Audit trail", short: "Audit", action: "audit.read", icon: "audit" },
   { href: "/portal/profile", label: "Your profile", short: "You", action: "profiles.read_self", primary: true, icon: "profile" },

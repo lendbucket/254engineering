@@ -137,9 +137,17 @@ const GATED = { prelaunch: true };
     ["cancelled", "intake", false],
   ];
 
+  /*
+   * This block tests the GRAMMAR, which move follows which. The preconditions
+   * that are not grammar are satisfied so they cannot mask it: a file being
+   * dispatched has a technician on it, and that rule is asserted on its own
+   * below rather than folded into a table about move ordering.
+   */
+  const GRAMMAR = { ...LIVE, assignedTech: true };
+
   let wrong = 0;
   for (const [from, to, expected] of EXPECTED) {
-    const actual = canTransition(admin, from, to, LIVE).ok;
+    const actual = canTransition(admin, from, to, GRAMMAR).ok;
     if (actual !== expected) {
       wrong++;
       rec(`${from} to ${to}`, false, `expected ${expected}, machine says ${actual}`);
@@ -170,8 +178,40 @@ const GATED = { prelaunch: true };
   rec("a technician cannot cancel a file", !canTransition(tech, "intake", "cancelled", LIVE).ok);
   rec("an engineer can seal once the gate is lifted", canTransition(engineer, "under_review", "sealed", LIVE).ok);
   rec("an engineer cannot cancel a file", !canTransition(engineer, "intake", "cancelled", LIVE).ok);
-  rec("an engineer cannot dispatch", !canTransition(engineer, "needs_dispatch", "dispatched", LIVE).ok);
+  /*
+   * Dispatched is reached by ACCEPTING an offer, so two things have to hold at
+   * once: somebody is on the file, and the actor is allowed to respond to
+   * offers. Both are asserted, and the order matters: the assignment refusal
+   * comes first so an administrator clicking too early is told what is missing
+   * rather than that they lack a permission they have.
+   */
+  const ASSIGNED = { ...LIVE, assignedTech: true };
+  rec("an engineer cannot dispatch", !canTransition(engineer, "needs_dispatch", "dispatched", ASSIGNED).ok);
+  rec("a technician accepting a job dispatches the file", canTransition(tech, "needs_dispatch", "dispatched", ASSIGNED).ok);
+  rec("an administrator can dispatch on a technician's behalf", canTransition(admin, "needs_dispatch", "dispatched", ASSIGNED).ok);
+  const empty = canTransition(admin, "needs_dispatch", "dispatched", { ...LIVE, assignedTech: false });
+  rec("a file with nobody on it cannot be dispatched", !empty.ok);
+  rec("and the refusal says why rather than blaming permissions", /nobody has accepted/i.test(empty.reason ?? ""), empty.reason);
+  rec(
+    "an unspecified assignment is treated as nobody, not as yes",
+    !canTransition(admin, "needs_dispatch", "dispatched", LIVE).ok,
+  );
   rec("a signed out actor can do nothing", !canTransition(null, "intake", "needs_dispatch", LIVE).ok);
+
+  /*
+   * A technician has to be able to finish their own job without being handed
+   * files.transition, which would let them move anything anywhere. These four
+   * are the whole of what they may do, and the fifth is the one that matters:
+   * evidence submitted is reachable from under review as well, and a technician
+   * reaching it from there would be yanking a file back from the engineer
+   * holding it. Same destination, different act, different permission.
+   */
+  rec("a technician can start capture on a dispatched job", canTransition(tech, "dispatched", "evidence_in_progress", LIVE).ok);
+  rec("a technician can submit their own evidence", canTransition(tech, "evidence_in_progress", "evidence_submitted", LIVE).ok);
+  rec("a technician can resume after a revision request", canTransition(tech, "revisions_requested", "evidence_in_progress", LIVE).ok);
+  rec("a technician cannot pull a file back out of review", !canTransition(tech, "under_review", "evidence_submitted", LIVE).ok);
+  rec("an engineer can send a file back out of review", canTransition(engineer, "under_review", "evidence_submitted", LIVE).ok);
+  rec("a technician still cannot move a file to needs dispatch", !canTransition(tech, "evidence_in_progress", "needs_dispatch", LIVE).ok);
   rec(
     "a suspended admin can do nothing",
     !canTransition({ id: "a", role: "admin", status: "suspended" }, "intake", "needs_dispatch", LIVE).ok,

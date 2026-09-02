@@ -14,13 +14,75 @@ databases and the guard between them.
 | Phase | Branch | State |
 | --- | --- | --- |
 | 0. Foundation, auth, roles, shell | `feat/ops-foundation` | Merged, deployed, verified on production |
-| 1. Clients, contacts, files, the state machine | `feat/ops-crm` | Approved by the operator; merge pending its suite |
-| 2. Dispatch and field operations | `feat/ops-field` | In progress |
+| 1. Clients, contacts, files, the state machine | `feat/ops-crm` | Merged, deployed, verified on production |
+| 2. Dispatch and field operations | `feat/ops-field` | Built and walked end to end on development; at the operator's gate |
 | 3. Field tech onboarding | not started | |
 | 4. Engineer review and responsible charge | not started | |
 | 5. Tasks, communication, notifications | not started | |
 | 6. Documents, billing hooks, dashboards | not started | |
 | 7. The order engine | not started | Specified below. Blocked on 2 and 4. |
+
+## Phase 2, as built
+
+Protocol authoring, dispatch by coverage and certification, offer accept and
+decline, protocol driven capture with the device camera and an offline queue,
+the submission gate, and the administrator's roster with a coverage map and the
+pay ledger.
+
+### What is deliberately not there, and why
+
+**Nothing geocodes.** Dispatch ranks by open workload and then by straight line
+distance, and distance needs two points. There is no geocoder in this stack, and
+the county geometry in this repo is projected screen coordinates rather than
+latitude and longitude, so it cannot be used to derive one. An administrator
+enters a technician's base once on the roster; a property's coordinates are a
+column nothing fills automatically. Until both exist for a given file, the
+ranking is workload and then name, and the dispatch screen says which side is
+missing rather than implying a proximity nobody measured.
+
+**The offline queue survives signal loss, not a cold start.** Captures are held
+in IndexedDB and upload when connectivity returns, with the tab open. There is
+no service worker, so a technician who closes the tab in a dead zone cannot
+reopen the app until they have signal. That is the case that actually happens on
+a two hour inspection; the cold start case is a separate piece of work and is in
+BACKLOG.md rather than half done.
+
+**Certification is set against the record, not earned.** Dispatch reads
+eng_certifications and refuses anybody not certified for the service line. The
+workflow that produces a certification, the training run and the score, is Phase
+3.
+
+### Rulings this phase settled
+
+**A file reaches dispatched by acceptance, never by sending offers.** Offering
+changes nothing about a file's status. The rule now lives in canTransition,
+which takes `assignedTech` alongside `prelaunch`, and refuses the move when
+nobody is on the file. A file marked dispatched with nobody on it is not a
+status, it is a lie.
+
+**A technician's pay is written at submission, not at seal.** What they were
+paid for is the visit, and the visit is done. Whether the engineer later requests
+a revision is a separate question about the work. This is the same principle the
+operator set for Phase 4 refunds, pointed at the other end of the file: no money
+rule may create pressure on an engineer's conclusion, and a technician's fee that
+depended on the engineer's finding would be exactly that.
+
+**Holding an offer is not holding the job.** Several technicians can read the
+same checklist while deciding. Only the one who accepted may capture against it.
+
+**A published protocol is never edited, only superseded.** Files in flight are
+being worked to it.
+
+### Two new actions in the authorization matrix
+
+`evidence.start` and `evidence.submit`, held by all three roles. They exist
+because a technician had no way to move their own file out of dispatched without
+being handed `files.transition`, which would have let them move anything
+anywhere. `actionFor` now takes the pair rather than the destination, because
+evidence submitted is reachable from evidence in progress and from under review,
+and those are two different acts: a technician finishing a capture, and an
+engineer reopening a file. Keyed on the destination alone, a technician could
+pull a file back from the engineer holding it.
 
 ## Phase 7: the order engine, automated intake across all three brands
 

@@ -54,6 +54,13 @@ const PHASE_ZERO = [
     name: "files-audit",
     why: "the transition grammar, and that the prelaunch gate does not leak",
   },
+  {
+    // Pure: dispatch eligibility and ranking, and the evidence submission gate.
+    // Beside files-audit because it is the other half of the same question,
+    // what the platform will and will not let happen to a file.
+    name: "dispatch-audit",
+    why: "the three eligibility gates, offer responses, and the submission gate",
+  },
   { name: "registry-audit", why: "keyword ownership is self consistent and every live claim resolves" },
   { name: "email-audit", why: "every outbound template: voice, absolute links, plaintext part" },
 ];

@@ -83,6 +83,13 @@ const EXPECTED = {
   "offers.respond":               { admin: true,  engineer: false, field_tech: true },
   "offers.dispatch":              { admin: true,  engineer: false, field_tech: false },
   "evidence.capture":             { admin: false, engineer: false, field_tech: true },
+  // Moving a file INTO and OUT OF capture. All three, and for a reason each:
+  // a tech starts and finishes their own job, an engineer sends one back for
+  // revision, an admin does both on somebody's behalf. What a tech still cannot
+  // do is pull a file out of review, because that destination is reached under
+  // review.decide rather than evidence.submit. See actionFor in ops-files.ts.
+  "evidence.start":               { admin: true,  engineer: true,  field_tech: true },
+  "evidence.submit":              { admin: true,  engineer: true,  field_tech: true },
   "evidence.review":              { admin: true,  engineer: true,  field_tech: false },
 
   "protocols.author":             { admin: true,  engineer: true,  field_tech: false },

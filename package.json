@@ -33,6 +33,8 @@
     "perf-audit": "node scripts/perf-audit.mjs",
     "audit": "node scripts/audit.mjs",
     "files-audit": "tsx scripts/files-audit.mjs",
+    "dispatch-audit": "tsx scripts/dispatch-audit.mjs",
+    "seed-field-demo": "tsx scripts/seed-field-demo.mjs",
     "db-guard-audit": "node scripts/db-guard-audit.mjs",
     "preroles-audit": "node scripts/preflight-audit.mjs",
     "roles-audit": "tsx scripts/roles-audit.mjs",

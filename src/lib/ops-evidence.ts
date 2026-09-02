@@ -62,7 +62,21 @@ export function itemStatus(item: ProtocolItem, captures: CapturedItem[]): ItemSt
   const needed = item.kind === "photo" ? Math.max(1, item.minCount ?? 1) : 1;
 
   let usable = 0;
-  let problem: string | null = null;
+  /*
+   * A value that was recorded and fell outside the expected range.
+   *
+   * Kept apart from the general problem because of what happens next: a
+   * technician records a pitch of 40, sees the item is still blocked, and
+   * records 6. If the out of range reading kept blocking, that item would be
+   * unsatisfiable for the rest of the visit and the only way out would be
+   * deleting a capture, which nobody would think to do while standing on a
+   * roof. The correction counts, and the bad reading is still in the record for
+   * the engineer to see.
+   *
+   * Found by walking the flow: the package would not submit and the blocker
+   * named a measurement that had already been corrected.
+   */
+  let rangeProblem: string | null = null;
 
   for (const capture of mine) {
     switch (item.kind) {
@@ -76,11 +90,11 @@ export function itemStatus(item: ProtocolItem, captures: CapturedItem[]): ItemSt
         if (capture.valueNumber === null || capture.valueNumber === undefined) break;
         const v = capture.valueNumber;
         if (item.minValue != null && v < item.minValue) {
-          problem = `${v}${item.unit ? ` ${item.unit}` : ""} is below the expected minimum of ${item.minValue}.`;
+          rangeProblem = `${v}${item.unit ? ` ${item.unit}` : ""} is below the expected minimum of ${item.minValue}.`;
           break;
         }
         if (item.maxValue != null && v > item.maxValue) {
-          problem = `${v}${item.unit ? ` ${item.unit}` : ""} is above the expected maximum of ${item.maxValue}.`;
+          rangeProblem = `${v}${item.unit ? ` ${item.unit}` : ""} is above the expected maximum of ${item.maxValue}.`;
           break;
         }
         usable++;
@@ -92,19 +106,28 @@ export function itemStatus(item: ProtocolItem, captures: CapturedItem[]): ItemSt
     }
   }
 
-  const satisfied = usable >= needed && problem === null;
+  const satisfied = usable >= needed;
+  let problem: string | null = satisfied ? null : rangeProblem;
   if (!satisfied && !problem) {
     if (usable === 0) {
-      problem =
+      /*
+       * An optional item that has not been captured is not a shortfall, and
+       * telling a technician an optional item "needs a photograph" is telling
+       * them something that is not true. It reads as a requirement, and a
+       * checklist that cries wolf on the optional items is one where the
+       * required ones stop standing out.
+       */
+      const noun =
         item.kind === "photo"
           ? needed > 1
-            ? `Needs ${needed} photographs.`
-            : "Needs a photograph."
+            ? `${needed} photographs`
+            : "a photograph"
           : item.kind === "document"
-            ? "Needs a document."
+            ? "a document"
             : item.kind === "note"
-              ? "Needs a note."
-              : "Needs a value.";
+              ? "a note"
+              : "a value";
+      problem = item.required ? `Needs ${noun}.` : `Optional. Add ${noun} if it applies.`;
     } else {
       problem = `${usable} of ${needed} captured.`;
     }

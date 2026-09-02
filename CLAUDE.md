@@ -262,6 +262,23 @@ production**, and it is expected to be run as
 `ALLOW_PRODUCTION_DB=1 npx tsx scripts/seed-admin.mjs "Name" email`. The friction
 is deliberate.
 
+**`seed-field-demo` carries the same `neverProduction` standing as roles-audit.**
+It writes technicians, coverage, a protocol and files that dispatch reads. One
+production run would put three people who do not exist into the roster and into
+every future dispatch plan, and the audit rows it produces cannot be deleted.
+Everything it writes is obviously fake by design: Demo names, example.com
+addresses, and streets that do not exist. It prints a known development password
+for those accounts, which is safe only because of the guard around it; if that
+guard is ever weakened, the printed password becomes a real credential and has
+to go with it.
+
+**`scripts/lib/db-target.mjs` loads `.env.local`.** Every script that opens a
+connection therefore reads the same credentials the dev server does. forms-audit
+recorded this defect once already: an audit that decides what the database can do
+by reading its own environment, while the server it is testing reads
+`.env.local`, is an audit measuring a different system, and it passed every run
+while writing nothing.
+
 ## 7. Session mechanics
 
 - Feature branches. No force pushes to main. Merges only on the operator's word.

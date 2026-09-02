@@ -84,6 +84,8 @@ export type Action =
   | "offers.respond"
   | "offers.dispatch"
   | "evidence.capture"
+  | "evidence.start"
+  | "evidence.submit"
   | "evidence.review"
   // engineering
   | "protocols.author"
@@ -123,7 +125,7 @@ const MATRIX: Record<Role, Action[]> = {
     "clients.list", "clients.create", "clients.update",
     "files.list", "files.create", "files.update", "files.assign", "files.transition", "files.cancel",
     "offers.dispatch", "offers.list_own", "offers.respond",
-    "evidence.review",
+    "evidence.review", "evidence.start", "evidence.submit",
     "protocols.author", "protocols.publish",
     "review.queue", "review.decide", "documents.seal", "documents.deliver",
     "pricing.read", "ledger.read_own", "ledger.read_all", "ledger.approve",
@@ -134,7 +136,7 @@ const MATRIX: Record<Role, Action[]> = {
     "profiles.read_self", "profiles.update_self",
     "clients.list",
     "files.list", "files.update", "files.transition",
-    "evidence.review",
+    "evidence.review", "evidence.start", "evidence.submit",
     "protocols.author", "protocols.publish",
     "review.queue", "review.decide", "documents.seal", "documents.deliver",
     "ledger.read_own", "time.log_own",
@@ -147,7 +149,7 @@ const MATRIX: Record<Role, Action[]> = {
     "profiles.read_self", "profiles.update_self",
     "offers.list_own", "offers.respond",
     "files.list",
-    "evidence.capture",
+    "evidence.capture", "evidence.start", "evidence.submit",
     "ledger.read_own",
   ],
 };
