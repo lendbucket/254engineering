@@ -38,6 +38,7 @@ export function DispatchPanel({
   alreadyOffered,
   feeCents,
   proximityUnavailable,
+  propertyLocated,
   protocolName,
 }: {
   fileId: string;
@@ -46,6 +47,7 @@ export function DispatchPanel({
   alreadyOffered: { techId: string; state: string }[];
   feeCents: number | null;
   proximityUnavailable: boolean;
+  propertyLocated: boolean;
   protocolName: string | null;
 }) {
   const router = useRouter();
@@ -106,9 +108,11 @@ export function DispatchPanel({
 
       {proximityUnavailable ? (
         <p className="mt-2 max-w-[70ch] text-[12.5px] leading-[1.5] text-slate-muted">
-          Ranked by open workload and then by name. No distance is shown because neither this
-          property nor these technicians have coordinates on record, and a distance nobody measured
-          is worse than none.
+          Ranked by open workload and then by name. No distance is shown because{" "}
+          {propertyLocated
+            ? "none of these technicians has a base coordinate on record"
+            : "this property has no coordinates on record"}
+          , and a distance nobody measured is worse than none.
         </p>
       ) : null}
 

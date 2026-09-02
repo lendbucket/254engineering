@@ -165,6 +165,16 @@ const FILES = [
     latitude: 27.8339,
     longitude: -97.0611,
   },
+  {
+    // A third, so there is always one sitting at needs_dispatch after the other
+    // two have been worked through a demonstration.
+    file_number: "254-2026-9003",
+    property_address: "312 Demo Harbour Row",
+    city: "Rockport",
+    county: "Aransas",
+    status: "needs_dispatch",
+    notes: "Seeded. Kept at needs dispatch so the dispatch screen always has something on it.",
+  },
 ];
 
 async function idOf(table, match, insert) {

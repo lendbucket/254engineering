@@ -403,6 +403,8 @@ export type DispatchContext = {
   feeCents: number | null;
   /** True when no candidate has coordinates, so the ranking is load and name only. */
   proximityUnavailable: boolean;
+  /** Whether the PROPERTY has coordinates, so the screen can say which side is missing. */
+  propertyLocated: boolean;
   alreadyOffered: { techId: string; state: OfferState }[];
 };
 
@@ -512,6 +514,7 @@ export async function dispatchContext(
     protocol: await publishedProtocolFor(file.service_slug),
     feeCents,
     proximityUnavailable: plan.offers.length > 0 && plan.offers.every((o) => o.distanceMiles === null),
+    propertyLocated: num(file.latitude) !== null && num(file.longitude) !== null,
     alreadyOffered: (offers ?? []).map((o) => ({ techId: o.tech_id as string, state: o.state as OfferState })),
   };
 }

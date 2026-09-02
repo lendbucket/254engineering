@@ -249,6 +249,21 @@ const JOB = { county: "Nueces", serviceSlug: "windstorm-wpi-8" };
   );
   rec("whitespace is not a note", !blank.satisfied);
 
+  /*
+   * An optional item that has not been captured is not a shortfall. Telling a
+   * technician an optional item "needs a photograph" is telling them something
+   * that is not true, and a checklist that cries wolf on the optional items is
+   * one where the required ones stop standing out.
+   */
+  const optionalNote = itemStatus(items[3], []);
+  rec("an untouched optional item does not read as a demand", !/^Needs /.test(optionalNote.problem ?? ""), optionalNote.problem);
+  rec("and says it is optional", /optional/i.test(optionalNote.problem ?? ""), optionalNote.problem);
+  rec(
+    "a required item still says it is needed",
+    /^Needs /.test(itemStatus(items[1], []).problem ?? ""),
+    itemStatus(items[1], []).problem,
+  );
+
   const noProtocol = checklistState([], []);
   rec("a file with no protocol cannot be submitted by accident", !noProtocol.canSubmit);
   rec("and says so rather than showing zero of zero", progressLabel(noProtocol) === "No protocol attached", progressLabel(noProtocol));

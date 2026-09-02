@@ -1034,3 +1034,82 @@ returning nothing.
 
 The dashboard shows live counts and two designed empty states. It does not show a
 revenue chart with invented numbers.
+
+## Operations platform, Phase 2: dispatch and the field, 2026-09-02
+
+Protocol authoring, dispatch by coverage and certification, offers with first
+acceptance winning, protocol driven capture with the device camera and an
+offline queue, the submission gate, and the roster with a coverage map and the
+pay ledger. What follows is what it does not do, and why.
+
+### Nothing geocodes, so proximity is half a feature
+
+Dispatch ranks by open workload and then by straight line distance. Distance
+needs two points and neither is filled automatically. There is no geocoder in
+this stack, and the county geometry in this repo is projected screen coordinates
+rather than latitude and longitude, so it cannot be used to derive one. Recorded
+because that is the obvious idea and it is wrong.
+
+An administrator enters a technician's base once on the roster, which is a thirty
+second job with a map open. A property's coordinates are a column nothing fills.
+Until both exist for a given file, the ranking is workload and then name, and the
+dispatch panel says which side is missing rather than implying a proximity nobody
+measured.
+
+**What would finish it.** Either a geocoding call at intake, which is a paid
+dependency and a network round trip on a form submit, or a county centroid table
+built from a primary source. The second is the cheaper answer and would give
+every file a usable point from the county it already carries.
+
+### The offline queue survives signal loss, not a cold start
+
+Captures are held in IndexedDB and upload when connectivity returns. That covers
+the case that actually happens: the tab stays open and the signal comes and goes
+across a two hour inspection.
+
+It does not cover a technician who closes the tab in a dead zone. There is no
+service worker, so the app cannot boot without a network. Making the whole portal
+work from a cold start offline is a real piece of work with its own failure modes
+around stale bundles and a signed session that has expired, and half of it would
+be worse than none.
+
+**localStorage was tried and is wrong**, recorded so it is not tried again. It
+holds strings, so a photograph has to be base64 encoded, which inflates it by a
+third against a quota of about five megabytes. One roof photograph from a modern
+phone is four. The quota fills on the second frame.
+
+### Certification is set against the record, not earned
+
+Dispatch reads `eng_certifications` and refuses anybody not certified for the
+service line. That gate works. The workflow that produces a certification, the
+training run and the score, is Phase 3, and until it ships an administrator sets
+the row directly.
+
+### Evidence photographs have no thumbnails and no preview after the session
+
+A technician sees local previews of what they captured in the session that
+captured it. Coming back later, they see counts and status rather than the
+images, because rendering a stored photograph needs a signed download URL per
+capture and that endpoint is not built.
+
+It belongs with Phase 4, where an engineer reviewing a package needs to see every
+frame anyway, and building a worse version of that viewer for the technician
+first would be building it twice.
+
+### Four defects the walkthrough found that reading the code did not
+
+Recorded because the lesson is about method, not about these four. All of them
+typechecked, built, and passed the pure audits.
+
+A technician could not accept a job, because reaching dispatched was keyed to an
+administrator only permission. The offline queue's idempotency did not work at
+all, because the unique index was partial and `ON CONFLICT` cannot infer a
+partial index from a column list. Holding an offer was treated as holding the
+job, so the technician who lost a race could still write evidence onto it. And a
+corrected measurement stayed blocked forever, so an item was unsatisfiable for
+the rest of a visit once a bad reading had been entered.
+
+The second one is the one to remember. One check in the walkthrough went green on
+the resulting refusal while asserting something else entirely, which is the
+recurring defect class in this repo, and this time it caught me writing the check
+rather than reading the code.

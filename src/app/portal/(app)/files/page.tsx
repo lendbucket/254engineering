@@ -184,6 +184,7 @@ export default async function FilesPage({
               alreadyOffered={dispatch.alreadyOffered}
               feeCents={dispatch.feeCents}
               proximityUnavailable={dispatch.proximityUnavailable}
+              propertyLocated={dispatch.propertyLocated}
               protocolName={
                 dispatch.protocol ? `${dispatch.protocol.name} v${dispatch.protocol.version}` : null
               }
