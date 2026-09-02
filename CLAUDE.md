@@ -242,9 +242,10 @@ from (select table_name||'.'||column_name||':'||data_type||':'||is_nullable as s
 ```
 
 At the split both returned `295e928584cea806d90c5a2f2dede886` across 439
-columns. Every migration in `supabase/migrations/` applies to both, in order,
-and a migration applied to one and not the other is a defect the fingerprint
-catches.
+columns. After migration 0002 (Phase 2, field dispatch) both return
+`b4b422e1b761ae633b7729dff63f7669` across 441. Every migration in
+`supabase/migrations/` applies to both, in order, and a migration applied to one
+and not the other is a defect the fingerprint catches.
 
 **roles-audit runs against development only, and no flag overrides that.** Operator
 ruling, 2026-09-02. It creates accounts, signs them in, and deletes them; the
