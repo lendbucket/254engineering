@@ -25,6 +25,24 @@
  * ALLOW_PRODUCTION_DB=0, =false, =no, and =maybe are all refusals. There is
  * exactly one string that opens the door.
  *
+ * AND FOR SOME SCRIPTS, NO STRING OPENS IT
+ * ----------------------------------------
+ * ALLOW_PRODUCTION_DB exists for the handful of things that legitimately belong
+ * against production: seeding the first administrator, mainly. It does NOT exist
+ * for audits that write.
+ *
+ * roles-audit creates three accounts, signs them in, attempts escalations, and
+ * deletes them. The deletions are verified, but the audit trail rows are
+ * permanent because that table refuses deletes by design, so a single run leaves
+ * probe sign ins in the firm's regulatory memory forever. The operator ruled on
+ * 2026-09-02 that it runs against development only, never production, and that
+ * the flag must not be able to override the ruling.
+ *
+ * So `neverProduction` is a property of the CALLER, checked before the flag is
+ * even looked at. A future session that sets ALLOW_PRODUCTION_DB=1 and runs the
+ * roles audit gets a refusal explaining why, rather than a green run and a
+ * permanent mess.
+ *
  * WHY THE CLIENT IS BUILT HERE RATHER THAN CHECKED HERE
  * -----------------------------------------------------
  * A guard you have to remember to call is a guard that will be forgotten by the
@@ -68,11 +86,35 @@ export function describeTarget(url) {
  *
  * `purpose` appears in the refusal so the operator can see which audit tried.
  */
-export function auditClient(purpose = "this script") {
+export function auditClient(purpose = "this script", options = {}) {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !key) return null;
+
+  /*
+   * Checked FIRST, and deliberately not reachable by the flag. See the note
+   * above: this is a standing ruling, not a default.
+   */
+  if (options.neverProduction && isProduction(url)) {
+    console.error("");
+    console.error("=".repeat(72));
+    console.error("REFUSED: this audit never runs against production.");
+    console.error("=".repeat(72));
+    console.error("");
+    console.error(`  ${purpose} writes to the database. It creates accounts, signs them in,`);
+    console.error("  and deletes them again. The deletions work; the audit trail rows do not");
+    console.error("  go away, because that table refuses deletes by design.");
+    console.error("");
+    console.error("  One run against production leaves probe sign ins in the firm's");
+    console.error("  regulatory memory permanently. The operator ruled on 2026-09-02 that");
+    console.error("  this audit runs against development only.");
+    console.error("");
+    console.error("  ALLOW_PRODUCTION_DB does not override this and is not meant to.");
+    console.error("  Point SUPABASE_URL at the development project.");
+    console.error("");
+    process.exit(1);
+  }
 
   if (isProduction(url) && process.env.ALLOW_PRODUCTION_DB !== "1") {
     console.error("");

@@ -75,6 +75,11 @@ const PHASE_ONE = [
     // attempts everything, so it needs both the server and the service role key.
     // security-audit is the unauthenticated perimeter; this is what happens once
     // somebody is legitimately inside.
+    // DEVELOPMENT ONLY, by the operator's ruling of 2026-09-02, and enforced in
+    // scripts/lib/db-target.mjs rather than here so that running the script
+    // directly is bound by it too. It writes, and the audit trail rows it
+    // produces cannot be deleted afterwards. Against production run only
+    // security-audit and db-guard-audit, neither of which writes anything.
     name: "roles-audit",
     why: "the authorization matrix, asserted independently and then over HTTP",
   },

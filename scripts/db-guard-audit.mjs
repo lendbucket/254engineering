@@ -15,6 +15,9 @@
  *      bypass db-target cannot prevent by construction, so it is prevented by
  *      inspection instead.
  *
+ *   3. The audits that write declare neverProduction, so no environment
+ *      variable can point them at the real database.
+ *
  * Runs without a database and without a network, so it is cheap enough to sit at
  * the very front of the suite.
  */
@@ -91,6 +94,22 @@ rec(
   unnamed.length === 0,
   unnamed.join(", "),
 );
+
+// ---------- the write-heavy audits can never reach production ----------
+/*
+ * roles-audit creates accounts and its sign ins land permanently in the audit
+ * trail. The operator ruled it development only on 2026-09-02. This asserts the
+ * declaration is still in the file, because the ruling is only as good as the
+ * flag that carries it.
+ */
+{
+  const rolesSource = fs.readFileSync(path.join("scripts", "roles-audit.mjs"), "utf8");
+  rec(
+    "roles-audit declares neverProduction, so no flag can point it at production",
+    /auditClient\(\s*["']roles-audit["']\s*,\s*\{[^}]*neverProduction:\s*true/.test(rolesSource),
+    "the operator's 2026-09-02 ruling, enforced in code",
+  );
+}
 
 // ---------- what this run is actually pointed at ----------
 const current = process.env.SUPABASE_URL;

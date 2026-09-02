@@ -29,6 +29,14 @@
  * The accounts are torn down afterwards and the teardown is VERIFIED, because
  * forms-audit once filled production tables while reporting green and the
  * lesson was that a delete which matched nothing still returned no error.
+ *
+ * DEVELOPMENT ONLY, WITH NO OVERRIDE
+ * ----------------------------------
+ * The teardown removes the accounts. It cannot remove the audit trail rows their
+ * sign ins produced, because that table refuses deletes by design, so a run
+ * against production would permanently seed the firm's regulatory memory with
+ * probe events. Ruled development only on 2026-09-02, enforced by
+ * neverProduction below rather than by remembering.
  */
 import { auditClient, describeTarget } from "./lib/db-target.mjs";
 import { can, actionsFor, visibleFiles, canSeeFile, redactFile, ROLES } from "../src/lib/ops-authz.ts";
@@ -212,7 +220,12 @@ async function signIn(email, password) {
   return { ok: res.ok, cookie: match ? `eng_ops=${match[1]}` : null };
 }
 
-const db = auditClient("roles-audit");
+/*
+ * neverProduction, and it is not a precaution: it is the operator's ruling of
+ * 2026-09-02. This audit writes, and what it writes into the audit trail cannot
+ * be deleted afterwards. Development only, with no override.
+ */
+const db = auditClient("roles-audit", { neverProduction: true });
 
 if (!db) {
   rec("live cross role probes ran", false, "SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY missing, so the HTTP half was SKIPPED");

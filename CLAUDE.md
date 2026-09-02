@@ -246,6 +246,17 @@ columns. Every migration in `supabase/migrations/` applies to both, in order,
 and a migration applied to one and not the other is a defect the fingerprint
 catches.
 
+**roles-audit runs against development only, and no flag overrides that.** Operator
+ruling, 2026-09-02. It creates accounts, signs them in, and deletes them; the
+deletions are verified but the audit trail rows their sign ins produce are
+permanent, because that table refuses deletes by design. One production run would
+seed the firm's regulatory memory with probe events forever. The rule is carried
+by `neverProduction` in `scripts/lib/db-target.mjs`, checked before
+`ALLOW_PRODUCTION_DB` is even read, and asserted by `db-guard-audit`.
+
+**Against production, run only `security-audit` and `db-guard-audit`.** Neither
+writes anything. Everything else that touches a database goes to development.
+
 **Seeding the first administrator is the one thing that legitimately runs against
 production**, and it is expected to be run as
 `ALLOW_PRODUCTION_DB=1 npx tsx scripts/seed-admin.mjs "Name" email`. The friction
