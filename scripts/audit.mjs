@@ -48,6 +48,12 @@ const PHASE_ZERO = [
     name: "db-guard-audit",
     why: "audits cannot reach production without an explicit flag that defaults off",
   },
+  {
+    // Pure: the file state machine, the compliance gate, and county derivation.
+    // No server, no database, no network.
+    name: "files-audit",
+    why: "the transition grammar, and that the prelaunch gate does not leak",
+  },
   { name: "registry-audit", why: "keyword ownership is self consistent and every live claim resolves" },
   { name: "email-audit", why: "every outbound template: voice, absolute links, plaintext part" },
 ];

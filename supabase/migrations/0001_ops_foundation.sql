@@ -367,9 +367,40 @@ create table if not exists eng_file_events (
   meta          jsonb
 );
 create index if not exists eng_file_events_file_idx on eng_file_events (file_id, created_at desc);
+/*
+ * The file timeline is append only for people, and deletable BY ITS FILE.
+ *
+ * file_id is "on delete cascade", and the strict trigger refused DELETE at any
+ * depth, so the cascade always failed and no eng_files row could ever be deleted
+ * for any reason. Found when a demonstration teardown could not remove the file
+ * it had just created.
+ *
+ * The regulatory trail above keeps the strict rule and has no foreign key at
+ * all. This one narrates a file, so if the file is gone the narration should go
+ * with it rather than dangle. pg_trigger_depth tells a direct DELETE from a
+ * cascade; UPDATE stays forbidden at every depth, because editing history is
+ * what this is actually for.
+ */
+create or replace function eng_forbid_mutation_allow_cascade()
+returns trigger
+language plpgsql
+as $
+begin
+  if tg_op = 'UPDATE' then
+    raise exception 'eng: % is append only. UPDATE is not permitted on it.', tg_table_name;
+  end if;
+  if pg_trigger_depth() <= 1 then
+    raise exception
+      'eng: % is append only. Delete the parent record instead of the history it produced.',
+      tg_table_name;
+  end if;
+  return old;
+end;
+$;
+
 drop trigger if exists eng_file_events_immutable on eng_file_events;
 create trigger eng_file_events_immutable before update or delete on eng_file_events
-  for each row execute function eng_forbid_mutation();
+  for each row execute function eng_forbid_mutation_allow_cascade();
 
 
 -- --- PHASE 2: protocols, dispatch, evidence ---------------------------------
