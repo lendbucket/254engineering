@@ -62,8 +62,9 @@ export default async function PortalLoginPage({
               role="alert"
               className="mt-5 rounded-[3px] border border-[#f0d9a8] bg-[#fdf3e0] px-3 py-2.5 text-[13.5px] leading-[1.55] text-[#7a4c05]"
             >
-              The portal is not configured on this deployment, so nobody can sign in. The operator
-              needs to set OPS_SESSION_SECRET and the Supabase credentials.
+              The portal is not configured on this deployment, so nobody can sign in yet. The
+              operator has been told what is missing; the details are in the server logs
+              rather than on this page.
             </p>
           )}
 
