@@ -59,6 +59,78 @@ const BASE = process.env.BASE_URL || "http://localhost:3225";
 const WIDTHS = [360, 390];
 const SLACK = 1;
 
+/*
+ * THE PORTAL IS NOT IN THE SITEMAP, AND HAS TO BE WALKED ANYWAY
+ * ------------------------------------------------------------
+ * Every portal route is noindex and disallowed in robots, so the sitemap, which
+ * is this audit's route list, does not name a single one. That is correct for
+ * the sitemap and it would have left the entire operations platform outside the
+ * one check that guarantees a phone never scrolls sideways.
+ *
+ * So the portal routes are listed here explicitly and walked with a real signed
+ * in session, created for the run and torn down after it. A probe account is the
+ * only way to see these pages at all: an unauthenticated request is a redirect,
+ * and a redirect never overflows anything.
+ *
+ * The probe is an ADMIN because an admin sees the most navigation. Five tab bar
+ * items on a 360px screen is the densest the chrome ever gets, and it is the
+ * layout most likely to overflow.
+ */
+const PORTAL_ROUTES = [
+  "/portal",
+  "/portal/people",
+  "/portal/files",
+  "/portal/clients",
+  "/portal/audit",
+  "/portal/profile",
+  "/portal/review",
+  "/portal/jobs",
+  "/portal/login",
+  "/portal/set-password",
+];
+
+const PROBE_DOMAIN = "mobile-audit.invalid";
+let probe = null;
+
+async function createProbe() {
+  const { auditClient } = await import("./lib/db-target.mjs");
+  const db = auditClient("mobile-overflow-audit");
+  if (!db) return null;
+
+  const stamp = Date.now();
+  const email = `probe-${stamp}@${PROBE_DOMAIN}`;
+  const password = `probe-${stamp}-mobile-overflow-audit`;
+  const { data, error } = await db.auth.admin.createUser({ email, password, email_confirm: true });
+  if (error || !data?.user) return null;
+  const { error: pErr } = await db.from("eng_profiles").insert({
+    id: data.user.id,
+    email,
+    display_name: "Mobile Probe",
+    role: "admin",
+    status: "active",
+  });
+  if (pErr) {
+    await db.auth.admin.deleteUser(data.user.id).catch(() => {});
+    return null;
+  }
+
+  const res = await fetch(`${BASE}/api/portal/session`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const m = (res.headers.get("set-cookie") ?? "").match(/eng_ops=([^;]+)/);
+  return { db, id: data.user.id, email, cookie: m ? m[1] : null };
+}
+
+async function destroyProbe() {
+  if (!probe) return true;
+  await probe.db.from("eng_profiles").delete().eq("id", probe.id);
+  await probe.db.auth.admin.deleteUser(probe.id).catch(() => {});
+  const { data } = await probe.db.from("eng_profiles").select("email").like("email", `%@${PROBE_DOMAIN}`);
+  return (data ?? []).length === 0;
+}
+
 async function routes() {
   const xml = await (await fetch(`${BASE}/sitemap.xml`)).text();
   const found = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(
@@ -67,7 +139,7 @@ async function routes() {
   // The homepage and the waitlist are reachable and indexable; whether they are
   // in the sitemap is a separate question from whether they overflow.
   for (const extra of ["/", "/waitlist"]) if (!found.includes(extra)) found.push(extra);
-  return found;
+  return [...found, ...PORTAL_ROUTES];
 }
 
 const findings = [];
@@ -75,6 +147,21 @@ const checks = [];
 
 async function run() {
   const list = await routes();
+  probe = await createProbe();
+  if (!probe?.cookie) {
+    // Reported as a failure, not skipped quietly. A portal that was never
+    // measured is not a portal that passed.
+    checks.push({
+      name: "portal routes measured with a signed in session",
+      ok: false,
+      detail: probe
+        ? "the probe account could not sign in"
+        : "SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY missing",
+    });
+  } else {
+    checks.push({ name: "portal routes measured with a signed in session", ok: true, detail: "" });
+  }
+
   const browser = await chromium.launch();
 
   for (const width of WIDTHS) {
@@ -84,6 +171,18 @@ async function run() {
       hasTouch: true,
       deviceScaleFactor: 2,
     });
+
+    if (probe?.cookie) {
+      await ctx.addCookies([
+        {
+          name: "eng_ops",
+          value: probe.cookie,
+          url: BASE,
+          httpOnly: true,
+          sameSite: "Lax",
+        },
+      ]);
+    }
 
     for (const route of list) {
       const page = await ctx.newPage();
@@ -162,8 +261,21 @@ async function run() {
 
 await run();
 
+/*
+ * The probe account is removed and the removal is VERIFIED, because forms-audit
+ * once filled production tables while reporting green and the lesson was that a
+ * delete which matched nothing still returned no error.
+ */
+checks.push({
+  name: "the mobile probe account was removed",
+  ok: await destroyProbe(),
+  detail: "a probe left behind is a live admin account nobody created on purpose",
+});
+
 console.log("================ MOBILE HORIZONTAL OVERFLOW ================");
-console.log(`${BASE}, every sitemap route at ${WIDTHS.join(" and ")}\n`);
+console.log(
+  `${BASE}, every sitemap route plus ${PORTAL_ROUTES.length} portal routes at ${WIDTHS.join(" and ")}\n`,
+);
 const failed = checks.filter((c) => !c.ok);
 for (const c of failed) console.log(`  FAIL: ${c.name} (${c.detail})`);
 console.log("");

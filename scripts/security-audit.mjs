@@ -12,10 +12,20 @@
  *
  * IT TESTS THE DEPLOYED BEHAVIOUR, NOT THE SOURCE
  * -----------------------------------------------
- * Reading middleware.ts and concluding the routes are protected is the mistake
- * this file exists to avoid: a matcher can be wrong, a route can be added
- * outside it, and the source still reads correctly. Every check here is an HTTP
- * request.
+ * Reading proxy.ts and concluding the routes are protected is the mistake this
+ * file exists to avoid: a matcher can be wrong, a route can be added outside it,
+ * and the source still reads correctly. Every check here is an HTTP request.
+ *
+ * THE PASSPHRASE IS GONE AND THIS FILE PROVES IT
+ * ----------------------------------------------
+ * The portal replaced one shared passphrase with Supabase backed accounts. The
+ * old sign in surface is asserted to no longer answer, because a retired auth
+ * path that still works is worse than one that was never retired: nobody is
+ * watching it.
+ *
+ * Role boundaries are NOT checked here. scripts/roles-audit.mjs signs in as each
+ * role and attempts everything, which needs the service role key and a database.
+ * This file is the unauthenticated perimeter and stays runnable without either.
  */
 import { chromium } from "playwright";
 
@@ -26,6 +36,14 @@ const rec = (name, ok, note = "") => out.push({ name, ok, note });
 
 /** Pages a signed out visitor must never see. */
 const ADMIN_PAGES = [
+  "/portal",
+  "/portal/people",
+  "/portal/audit",
+  "/portal/profile",
+  "/portal/review",
+  "/portal/jobs",
+  "/portal/files",
+  "/portal/clients",
   "/admin",
   "/admin/leads",
   "/admin/applications",
@@ -34,9 +52,44 @@ const ADMIN_PAGES = [
 ];
 
 /** API paths a signed out client must never reach. */
-const ADMIN_APIS = ["/api/admin/onboarding"];
+const ADMIN_APIS = ["/api/admin/onboarding", "/api/portal/people", "/api/portal/password"];
+
+/** The retired passphrase surface. These must not answer at all any more. */
+const RETIRED = ["/admin/login", "/admin/logout", "/api/admin/session"];
 
 async function run() {
+  // ---------- the retired passphrase surface is gone ----------
+  for (const path of RETIRED) {
+    const res = await fetch(BASE + path, { redirect: "manual" });
+    const location = res.headers.get("location") || "";
+    rec(
+      `retired: ${path} no longer serves a sign in`,
+      res.status !== 200,
+      `HTTP ${res.status}`,
+    );
+    rec(
+      `retired: ${path} points at the portal sign in`,
+      location.includes("/portal/login") || res.status === 404,
+      location || `HTTP ${res.status}`,
+    );
+  }
+
+  {
+    // The old endpoint accepted a passphrase. It must not accept anything now.
+    const res = await fetch(`${BASE}/api/admin/session`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ passphrase: "anything at all" }),
+      redirect: "manual",
+    });
+    rec("retired: the passphrase endpoint issues no session", res.status !== 200, `HTTP ${res.status}`);
+    rec(
+      "retired: the passphrase endpoint sets no cookie",
+      !(res.headers.get("set-cookie") || "").includes("eng_"),
+      (res.headers.get("set-cookie") || "").slice(0, 40),
+    );
+  }
+
   // ---------- pages redirect, never render ----------
   for (const path of ADMIN_PAGES) {
     const res = await fetch(BASE + path, { redirect: "manual" });
@@ -48,7 +101,7 @@ async function run() {
     );
     rec(
       `signed out: ${path} redirects to the login screen`,
-      location.includes("/admin/login"),
+      location.includes("/portal/login"),
       location || "no location header",
     );
 
@@ -80,37 +133,58 @@ async function run() {
     );
   }
 
-  // ---------- the login endpoint ----------
+  // ---------- the sign in endpoint ----------
   {
-    const res = await fetch(`${BASE}/api/admin/session`, {
+    const res = await fetch(`${BASE}/api/portal/session`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ passphrase: "definitely-not-the-passphrase" }),
+      body: JSON.stringify({ email: "nobody@example.com", password: "definitely-not-the-password" }),
     });
-    rec("wrong passphrase is rejected", res.status === 401 || res.status === 503, `HTTP ${res.status}`);
+    rec("wrong credentials are rejected", res.status === 401 || res.status === 503, `HTTP ${res.status}`);
     const setCookie = res.headers.get("set-cookie") || "";
-    rec("wrong passphrase sets no session cookie", !setCookie.includes("eng_admin"), setCookie.slice(0, 40));
+    rec("wrong credentials set no session cookie", !setCookie.includes("eng_ops="), setCookie.slice(0, 40));
+
+    const body = await res.text();
+    /*
+     * The same answer for a wrong password and an unknown address. Anything that
+     * distinguishes them turns this endpoint into an account enumerator, and the
+     * staff of this firm are named on a public careers page.
+     */
+    rec(
+      "a failed sign in does not reveal whether the account exists",
+      !/no account|not found|unknown user|no such/i.test(body),
+      body.slice(0, 80),
+    );
   }
 
   {
-    // An empty body must not be treated as an empty passphrase matching an
-    // empty secret. The unset case has to be a closed door.
-    const res = await fetch(`${BASE}/api/admin/session`, {
+    // An empty body must not be treated as empty credentials matching anything.
+    const res = await fetch(`${BASE}/api/portal/session`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: "{}",
     });
-    rec("empty passphrase is rejected", res.status !== 200, `HTTP ${res.status}`);
+    rec("empty credentials are rejected", res.status !== 200, `HTTP ${res.status}`);
+  }
+
+  {
+    // The one time link endpoint is open by design. It must still refuse junk.
+    const res = await fetch(`${BASE}/api/portal/set-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: "not-a-real-token", password: "a-long-enough-password" }),
+    });
+    rec("a forged set-password token is refused", res.status !== 200, `HTTP ${res.status}`);
   }
 
   // ---------- rate limiting ----------
   {
     let limited = false;
     for (let i = 0; i < 12; i++) {
-      const res = await fetch(`${BASE}/api/admin/session`, {
+      const res = await fetch(`${BASE}/api/portal/session`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-forwarded-for": "203.0.113.77" },
-        body: JSON.stringify({ passphrase: `guess-${i}` }),
+        body: JSON.stringify({ email: `guess-${i}@example.com`, password: `guess-${i}` }),
       });
       if (res.status === 429) {
         limited = true;
@@ -118,7 +192,7 @@ async function run() {
         break;
       }
     }
-    rec("repeated wrong passphrases are rate limited", limited, limited ? "" : "12 attempts all accepted");
+    rec("repeated wrong sign ins are rate limited", limited, limited ? "" : "12 attempts all accepted");
   }
 
   // ---------- forged and tampered cookies ----------
@@ -130,8 +204,8 @@ async function run() {
       ["an expired but signed shape", `1.abc.whatever`],
     ];
     for (const [label, value] of forged) {
-      const res = await fetch(`${BASE}/admin`, {
-        headers: { cookie: `eng_admin=${value}` },
+      const res = await fetch(`${BASE}/portal`, {
+        headers: { cookie: `eng_ops=${value}` },
         redirect: "manual",
       });
       rec(`forged cookie rejected: ${label}`, res.status !== 200, `HTTP ${res.status}`);
@@ -142,7 +216,7 @@ async function run() {
   {
     // Without the real passphrase no cookie can be minted, so this asserts the
     // attributes on the sign out cookie, which is written by the same helper.
-    const res = await fetch(`${BASE}/api/admin/session`, { method: "DELETE" });
+    const res = await fetch(`${BASE}/api/portal/session`, { method: "DELETE" });
     const setCookie = res.headers.get("set-cookie") || "";
     rec("session cookie is HttpOnly", /httponly/i.test(setCookie), setCookie.slice(0, 80));
     rec("session cookie is Secure", /secure/i.test(setCookie), setCookie.slice(0, 80));
@@ -161,14 +235,14 @@ async function run() {
      */
     const browser = await chromium.launch();
     const page = await browser.newPage();
-    await page.goto(`${BASE}/admin/login`, { waitUntil: "domcontentloaded" });
+    await page.goto(`${BASE}/portal/login`, { waitUntil: "domcontentloaded" });
     const form = page.locator("form").first();
     const method = ((await form.getAttribute("method")) || "get").toLowerCase();
     const action = (await form.getAttribute("action")) || "";
     rec("login form posts rather than gets", method === "post", method);
     rec(
       "login form action points at the session endpoint",
-      action.includes("/api/admin/session"),
+      action.includes("/api/portal/session"),
       action || "none",
     );
     await browser.close();
@@ -178,12 +252,14 @@ async function run() {
   {
     const robots = await (await fetch(`${BASE}/robots.txt`)).text();
     rec("robots disallows /admin", robots.includes("Disallow: /admin"));
+    rec("robots disallows /portal", robots.includes("Disallow: /portal"));
     const sitemap = await (await fetch(`${BASE}/sitemap.xml`)).text();
     rec("sitemap lists no admin route", !sitemap.includes("/admin"));
+    rec("sitemap lists no portal route", !sitemap.includes("/portal"));
 
     const browser = await chromium.launch();
     const page = await browser.newPage();
-    await page.goto(`${BASE}/admin/login`, { waitUntil: "domcontentloaded" });
+    await page.goto(`${BASE}/portal/login`, { waitUntil: "domcontentloaded" });
     const robotsMeta = await page
       .locator('meta[name="robots"]')
       .getAttribute("content")
@@ -198,13 +274,19 @@ async function run() {
 
   // ---------- the service role key never reaches a browser ----------
   {
-    const res = await fetch(`${BASE}/admin/login`);
+    const res = await fetch(`${BASE}/portal/login`);
     const html = await res.text();
     rec(
-      "no service role key in the login HTML",
+      "no service role key in the sign in HTML",
       !/SUPABASE_SERVICE_ROLE|service_role|eyJhbGciOi/i.test(html),
     );
-    rec("no passphrase in the login HTML", !new RegExp("ADMIN_PASSPHRASE").test(html));
+    rec("no session secret in the sign in HTML", !/OPS_SESSION_SECRET/.test(html));
+    /*
+     * There must be no browser Supabase client anywhere on this site. The closed
+     * door pattern depends on it: RLS is on with zero policies, so an anon key in
+     * the browser would be a second access path to reason about for no benefit.
+     */
+    rec("no anon key or public Supabase URL reaches the browser", !/NEXT_PUBLIC_SUPABASE/.test(html));
   }
 }
 

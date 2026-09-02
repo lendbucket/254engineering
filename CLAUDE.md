@@ -200,6 +200,68 @@ trusted.** An audit that has never failed has never been tested.
 The build race guard (`prebuild`, and the `pre` hook on every audit) refuses to build under a live
 server and performs a BUILD_ID handshake so an audit can never score a stale artifact.
 
+## 6b. Two databases, and the guard between them
+
+There are two Supabase projects. Which one a command talks to is decided by
+`SUPABASE_URL`, and reaching the wrong one is prevented by code rather than by
+care.
+
+| | Project ref | Holds |
+| --- | --- | --- |
+| **Production** | `fsaryeciduszuahgjbly` | Real leads, applications, onboarding records, portal accounts. Shared with unrelated apps, which is why every table this firm owns is `eng_` prefixed. |
+| **Development** | `ythzaiqeoijlrdibnieo` | The same schema and nothing else. Created 2026-09-02. Every audit points here. |
+
+**Production credentials live only in Vercel.** `.env.local` carries the
+development project. The production service role key is not in the working tree
+and must not be put there.
+
+**Why this exists.** Before the split, every audit run wrote to production:
+roles-audit created accounts there, mobile-overflow-audit signed a probe in
+there, and forms-audit had already once filled production tables with thirty rows
+while reporting green. Test runs and real records shared a database, and the only
+thing keeping them apart was that nobody had made a mistake yet.
+
+**The guard.** `scripts/lib/db-target.mjs` owns client construction for every
+script, so the only way to get a connection is through the check. If
+`SUPABASE_URL` is production and `ALLOW_PRODUCTION_DB` is not exactly the
+string `1`, the script exits before a client exists. The flag defaults off and
+is compared exactly, so `0`, `false`, `no`, and `true` are all refusals.
+
+`scripts/db-guard-audit.mjs` runs first in the suite and asserts both directions
+plus the one bypass the module cannot prevent by construction: no script in
+`scripts/` may import `@supabase/supabase-js` directly.
+
+**The schemas are identical and that is verified rather than assumed.** Compare
+the fingerprint on both projects; they must match:
+
+```sql
+select md5(string_agg(sig, '|' order by sig)), count(*)
+from (select table_name||'.'||column_name||':'||data_type||':'||is_nullable as sig
+      from information_schema.columns
+      where table_schema='public' and table_name like 'eng\_%') t;
+```
+
+At the split both returned `295e928584cea806d90c5a2f2dede886` across 439
+columns. Every migration in `supabase/migrations/` applies to both, in order,
+and a migration applied to one and not the other is a defect the fingerprint
+catches.
+
+**roles-audit runs against development only, and no flag overrides that.** Operator
+ruling, 2026-09-02. It creates accounts, signs them in, and deletes them; the
+deletions are verified but the audit trail rows their sign ins produce are
+permanent, because that table refuses deletes by design. One production run would
+seed the firm's regulatory memory with probe events forever. The rule is carried
+by `neverProduction` in `scripts/lib/db-target.mjs`, checked before
+`ALLOW_PRODUCTION_DB` is even read, and asserted by `db-guard-audit`.
+
+**Against production, run only `security-audit` and `db-guard-audit`.** Neither
+writes anything. Everything else that touches a database goes to development.
+
+**Seeding the first administrator is the one thing that legitimately runs against
+production**, and it is expected to be run as
+`ALLOW_PRODUCTION_DB=1 npx tsx scripts/seed-admin.mjs "Name" email`. The friction
+is deliberate.
+
 ## 7. Session mechanics
 
 - Feature branches. No force pushes to main. Merges only on the operator's word.

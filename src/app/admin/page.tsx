@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { countsBySite } from "@/lib/admin-data";
-import { adminAuthStatus } from "@/lib/admin-auth";
 import { AdminShell, Panel, TableWrap, Td, Th } from "@/components/admin/shell";
 
 export const dynamic = "force-dynamic";
@@ -79,7 +78,7 @@ export default async function AdminDashboard() {
       </Panel>
 
       <Panel title="Configuration" className="mt-[18px]">
-        <p className="text-[14.5px] leading-[1.7] text-slate-muted">{adminAuthStatus()}</p>
+        <p className="text-[14.5px] leading-[1.7] text-slate-muted">"Accounts are managed in the portal under People."</p>
       </Panel>
     </AdminShell>
   );

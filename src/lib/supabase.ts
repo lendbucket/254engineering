@@ -56,6 +56,35 @@ export function supabaseAdmin(): SupabaseClient | null {
 }
 
 /**
+ * A THROWAWAY client, for verifying a password and nothing else.
+ *
+ * WHY THIS EXISTS, AND IT IS NOT A STYLE PREFERENCE
+ * -------------------------------------------------
+ * supabaseAdmin() above is a module level singleton. Calling
+ * auth.signInWithPassword() on it SUCCEEDS and, as a side effect, stores that
+ * user's session inside the client. Every later .from() call on the same
+ * instance then travels as that user rather than as the service role, RLS
+ * applies, and because every eng_ table has RLS on with zero policies, the
+ * queries return nothing.
+ *
+ * The symptom is worse than the cause: the sign in itself works, and then the
+ * profile lookup immediately after it comes back empty, so the person is told
+ * their credentials are wrong. It was found by an end to end demonstration where
+ * the password was set successfully and the very next sign in failed.
+ *
+ * So credential checks get their own client, built per call and dropped
+ * afterwards. It is never used for a table read. The one shared client never
+ * signs anybody in and therefore never stops being the service role.
+ */
+export function supabaseCredentialCheck(): SupabaseClient | null {
+  if (!supabaseConfigured()) return null;
+  return createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    global: { headers: { "x-application-name": "254engineering-auth" } },
+  });
+}
+
+/**
  * The value written to the `site` column on every row this site inserts.
  *
  * The eng_ tables are shared across the brand family, so this is what separates
