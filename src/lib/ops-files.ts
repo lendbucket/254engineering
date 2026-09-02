@@ -143,7 +143,18 @@ function actionFor(from: FileStatus, to: FileStatus): Parameters<typeof can>[1] 
   if (to === "sealed") return "documents.seal";
   if (to === "delivered") return "documents.deliver";
   if (to === "cancelled") return "files.cancel";
-  if (to === "dispatched") return "offers.dispatch";
+  /*
+   * Reaching dispatched is the act of ACCEPTING an offer, not the act of
+   * sending one. Sending offers changes nothing about the file's status, by
+   * design. So the permission is offers.respond, which an administrator and a
+   * technician hold and an engineer does not.
+   *
+   * This was wrong the first time and the walkthrough caught it: keyed to
+   * offers.dispatch, a technician accepting a job had the file claimed under
+   * them and then the status move refused, leaving a file with somebody
+   * assigned to it sitting at needs dispatch.
+   */
+  if (to === "dispatched") return "offers.respond";
   if (to === "evidence_in_progress") return "evidence.start";
   if (to === "evidence_submitted") {
     return from === "under_review" ? "review.decide" : "evidence.submit";
@@ -166,7 +177,7 @@ export function canTransition(
   actor: Actor | null,
   from: FileStatus,
   to: FileStatus,
-  now: { prelaunch?: boolean } = {},
+  now: { prelaunch?: boolean; assignedTech?: boolean } = {},
 ): TransitionResult {
   if (from === to) return { ok: false, reason: `This file is already ${STATUS_LABEL[to].toLowerCase()}.` };
 
@@ -182,6 +193,23 @@ export function canTransition(
     return {
       ok: false,
       reason: `A file at ${STATUS_LABEL[from].toLowerCase()} can only move to: ${legal}.`,
+    };
+  }
+
+  /*
+   * A file cannot be dispatched with nobody on it.
+   *
+   * This is the rule the status column exists to protect, and it lives here
+   * rather than in the write path so the audit can assert it and the file
+   * screen can show the button blocked with the reason rather than failing on
+   * the click. The caller passes what it knows; unknown means no.
+   */
+  if (to === "dispatched" && !now.assignedTech) {
+    return {
+      ok: false,
+      reason:
+        "Nobody has accepted this job yet. A file reaches dispatched when a technician accepts " +
+        "an offer, because a file marked dispatched with nobody on it is not a status, it is a lie.",
     };
   }
 
@@ -207,7 +235,7 @@ export function canTransition(
 export function availableTransitions(
   actor: Actor | null,
   from: FileStatus,
-  now: { prelaunch?: boolean } = {},
+  now: { prelaunch?: boolean; assignedTech?: boolean } = {},
 ): { to: FileStatus; allowed: boolean; reason?: string }[] {
   return TRANSITIONS[from].map((to) => {
     const result = canTransition(actor, from, to, now);

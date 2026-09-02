@@ -223,6 +223,26 @@ const JOB = { county: "Nueces", serviceSlug: "windstorm-wpi-8" };
   rec("a measurement above the expected maximum is refused", !outOfRange.satisfied);
   rec("and the refusal states the bound", /maximum of 24/.test(outOfRange.problem ?? ""), outOfRange.problem);
 
+  /*
+   * The correction case. A technician records a bad reading, sees the item is
+   * still blocked, and records a good one. If the bad reading kept blocking,
+   * that item would be unsatisfiable for the rest of the visit and the only way
+   * out would be deleting a capture, which nobody thinks to do on a roof.
+   */
+  const corrected = itemStatus(items[2], [
+    { itemKey: "pitch", kind: "measurement", valueNumber: 40 },
+    { itemKey: "pitch", kind: "measurement", valueNumber: 6 },
+  ]);
+  rec("a corrected measurement satisfies the item", corrected.satisfied, corrected.problem ?? "");
+  rec("and the order does not matter", itemStatus(items[2], [
+    { itemKey: "pitch", kind: "measurement", valueNumber: 6 },
+    { itemKey: "pitch", kind: "measurement", valueNumber: 40 },
+  ]).satisfied);
+  rec(
+    "a lone out of range reading still blocks",
+    !itemStatus(items[2], [{ itemKey: "pitch", kind: "measurement", valueNumber: 40 }]).satisfied,
+  );
+
   const blank = itemStatus(
     { id: "5", itemKey: "n", kind: "note", label: "Note", required: true },
     [{ itemKey: "n", kind: "note", valueText: "   " }],

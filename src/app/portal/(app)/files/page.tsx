@@ -246,7 +246,9 @@ export default async function FilesPage({
             <TransitionControls
               fileId={selected.id}
               status={selected.status}
-              options={availableTransitions(actor, selected.status)}
+              options={availableTransitions(actor, selected.status, {
+                assignedTech: Boolean(selected.assigned_tech_id),
+              })}
             />
 
             <p className="mt-7 text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">Timeline</p>

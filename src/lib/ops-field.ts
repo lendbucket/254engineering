@@ -859,6 +859,7 @@ export type EvidenceRow = {
 export type JobView = {
   file: {
     id: string;
+    assigned_tech_id: string | null;
     file_number: string;
     property_address: string;
     city: string | null;
@@ -1003,6 +1004,29 @@ export async function recordCapture(
 
   const view = await jobView(actor, fileId);
   if (!view) return { ok: false, error: "That job is not yours." };
+
+  /*
+   * Holding an OFFER is not holding the job.
+   *
+   * jobView deliberately opens to anybody the file was offered to, because a
+   * technician deciding whether to accept should be able to read the checklist
+   * first. Capturing against it is a different act, and until somebody has
+   * accepted, several people can see the same file. Without this check the
+   * technician who lost the race could still write evidence onto a job that is
+   * not theirs, and the engineer would review a package assembled by two people
+   * without knowing it.
+   *
+   * Caught by walking the flow rather than by reading it.
+   */
+  if (actor.role === "field_tech" && view.file.assigned_tech_id !== actor.id) {
+    return {
+      ok: false,
+      error: view.file.assigned_tech_id
+        ? "Another technician accepted this job first."
+        : "Accept this job before capturing against it.",
+    };
+  }
+
   if (["evidence_submitted", "under_review", "sealed", "delivered", "closed", "cancelled"].includes(view.file.status)) {
     return { ok: false, error: "This file has left the field. Capture is closed on it." };
   }

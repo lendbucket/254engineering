@@ -371,7 +371,9 @@ export async function transitionFile(
   const current = await getFile(actor, id);
   if (!current) return { ok: false, error: "That file does not exist, or is not yours to move." };
 
-  const verdict = canTransition(actor, current.status, to);
+  const verdict = canTransition(actor, current.status, to, {
+    assignedTech: Boolean(current.assigned_tech_id),
+  });
   if (!verdict.ok) return { ok: false, error: verdict.reason };
 
   const patch: Record<string, unknown> = { status: to };

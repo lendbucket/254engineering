@@ -53,6 +53,26 @@
  */
 import { createClient } from "@supabase/supabase-js";
 
+/*
+ * The credentials come from the same file the dev server reads.
+ *
+ * forms-audit already recorded this defect and fixed it locally: an audit that
+ * decides what the database can do by reading its own environment, while the
+ * server it is testing reads .env.local, is an audit measuring a different
+ * system. It passed every run while writing nothing.
+ *
+ * Loading it here rather than in each script means the module that owns client
+ * construction also owns where the credentials came from, and a new script
+ * cannot forget. An explicit environment variable still wins, because that is
+ * how a deliberate one off run against a different project is expressed.
+ */
+try {
+  process.loadEnvFile(".env.local");
+} catch {
+  // Absent in CI and on a fresh clone, which is fine: auditClient returns null
+  // and every caller says out loud that it could not connect.
+}
+
 /**
  * The production project reference, written down.
  *

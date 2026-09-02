@@ -84,3 +84,25 @@ on conflict (id) do update
   set public = false,
       file_size_limit = excluded.file_size_limit,
       allowed_mime_types = excluded.allowed_mime_types;
+
+-- 6. The capture idempotency index, made usable.
+--
+-- 0001 created it partial: unique on (file_id, client_capture_id) WHERE
+-- client_capture_id IS NOT NULL. That index is correct and it is unreachable.
+-- ON CONFLICT infers a target from a column list, and a partial index can only
+-- be inferred if the statement repeats its WHERE clause, which PostgREST has no
+-- way to express. Every upsert against it failed with "there is no unique or
+-- exclusion constraint matching the ON CONFLICT specification", so the offline
+-- queue's whole reason for existing did not work.
+--
+-- The partial clause was never buying anything. Postgres treats NULLs as
+-- distinct in a unique index by default, so rows with no capture id do not
+-- collide with each other whether the predicate is there or not.
+--
+-- Found by walking the flow over HTTP rather than by reading it. Worth writing
+-- down: the failure surfaced as a capture being refused, and one check in the
+-- walkthrough went green on that refusal while asserting something else
+-- entirely.
+drop index if exists eng_evidence_capture_key;
+create unique index if not exists eng_evidence_capture_key
+  on eng_evidence_items (file_id, client_capture_id);

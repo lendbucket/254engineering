@@ -137,9 +137,17 @@ const GATED = { prelaunch: true };
     ["cancelled", "intake", false],
   ];
 
+  /*
+   * This block tests the GRAMMAR, which move follows which. The preconditions
+   * that are not grammar are satisfied so they cannot mask it: a file being
+   * dispatched has a technician on it, and that rule is asserted on its own
+   * below rather than folded into a table about move ordering.
+   */
+  const GRAMMAR = { ...LIVE, assignedTech: true };
+
   let wrong = 0;
   for (const [from, to, expected] of EXPECTED) {
-    const actual = canTransition(admin, from, to, LIVE).ok;
+    const actual = canTransition(admin, from, to, GRAMMAR).ok;
     if (actual !== expected) {
       wrong++;
       rec(`${from} to ${to}`, false, `expected ${expected}, machine says ${actual}`);
@@ -170,7 +178,24 @@ const GATED = { prelaunch: true };
   rec("a technician cannot cancel a file", !canTransition(tech, "intake", "cancelled", LIVE).ok);
   rec("an engineer can seal once the gate is lifted", canTransition(engineer, "under_review", "sealed", LIVE).ok);
   rec("an engineer cannot cancel a file", !canTransition(engineer, "intake", "cancelled", LIVE).ok);
-  rec("an engineer cannot dispatch", !canTransition(engineer, "needs_dispatch", "dispatched", LIVE).ok);
+  /*
+   * Dispatched is reached by ACCEPTING an offer, so two things have to hold at
+   * once: somebody is on the file, and the actor is allowed to respond to
+   * offers. Both are asserted, and the order matters: the assignment refusal
+   * comes first so an administrator clicking too early is told what is missing
+   * rather than that they lack a permission they have.
+   */
+  const ASSIGNED = { ...LIVE, assignedTech: true };
+  rec("an engineer cannot dispatch", !canTransition(engineer, "needs_dispatch", "dispatched", ASSIGNED).ok);
+  rec("a technician accepting a job dispatches the file", canTransition(tech, "needs_dispatch", "dispatched", ASSIGNED).ok);
+  rec("an administrator can dispatch on a technician's behalf", canTransition(admin, "needs_dispatch", "dispatched", ASSIGNED).ok);
+  const empty = canTransition(admin, "needs_dispatch", "dispatched", { ...LIVE, assignedTech: false });
+  rec("a file with nobody on it cannot be dispatched", !empty.ok);
+  rec("and the refusal says why rather than blaming permissions", /nobody has accepted/i.test(empty.reason ?? ""), empty.reason);
+  rec(
+    "an unspecified assignment is treated as nobody, not as yes",
+    !canTransition(admin, "needs_dispatch", "dispatched", LIVE).ok,
+  );
   rec("a signed out actor can do nothing", !canTransition(null, "intake", "needs_dispatch", LIVE).ok);
 
   /*
