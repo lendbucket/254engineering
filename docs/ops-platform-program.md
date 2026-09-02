@@ -140,10 +140,78 @@ sites. All audits green including a new `order-audit` asserting catalog
 integrity, price consistency across sites, and that no site can place an order in
 prelaunch.
 
-### Open questions for the operator, raised at specification time
+### Operator rulings on payment and refunds, 2026-09-02
 
-These are design decisions the spec does not settle and that should not be
-settled by whoever writes the code.
+These are settled. The questions that produced them are kept below, because a
+ruling with no visible question reads as an arbitrary preference to whoever
+inherits it.
+
+**1. Capture at submission, refund on decline.** Not authorize and capture later.
+A card authorization expires in about seven days and an engineer's review plus a
+revision cycle may not fit inside that, so a deferred capture can fail after the
+work is already done. A refund is a worse outcome for the firm's cash flow and a
+far better one for the customer, and it never leaves the firm holding completed
+work it cannot bill.
+
+**2. The refund rule, in three cases.** Disclosed at checkout in plain language,
+before payment, not in a terms link nobody opens.
+
+| What happened | The customer receives |
+| --- | --- |
+| Declined before any visit or review | Full refund |
+| Declined after a technician visited | Refund less the disclosed inspection fee, and the engineer's findings |
+| Declined after desk review, no visit | Full refund |
+
+**The principle that governs this rule and any future change to it: no refund
+rule may create financial pressure on the engineer toward a favourable
+conclusion.**
+
+That sentence is the reason the middle row is written the way it is. The customer
+pays for the inspection whether or not the answer is the one they wanted, so
+neither the firm nor the engineer is better off when the answer is yes. A rule
+that refunded the visit on a decline would quietly pay the firm more for
+certifying than for refusing, which is the exact incentive a professional
+engineering practice must not have.
+
+**3. County and coastal pricing differences appear as a named line item** at the
+price step. Never as an unexplained higher total. A customer comparing a Nueces
+property against a published inland price will notice the difference; finding out
+afterwards is how a fixed price stops feeling fixed.
+
+**4. The compliance gate goes in the customer terms as well as the code.** It is
+what makes the order engine lawful to operate, not a launch toggle.
+
+### A consequence of ruling 2 that reaches into Phase 4
+
+The principle in ruling 2 is about the refund rule, and it does not stop there.
+
+Phase 4 as specified writes an engineer production ledger entry **per sealed
+document**, from the fee schedule tier. Read alongside ruling 2, that is the same
+incentive the ruling exists to forbid, one layer in: an engineer who seals is
+paid, and an engineer who reviews the same package and declines is not. The
+pressure the refund rule was carefully drained of is reintroduced by the payroll.
+
+This is not a defect in anything built yet, because Phase 4 does not exist. It is
+a design constraint on it, recorded here so it is decided rather than
+discovered:
+
+- **Production pay should attach to the review, not to the seal.** A completed
+  review is the work. Sealing is the conclusion, and paying for one conclusion
+  and not the other is paying for the conclusion.
+- A declined file should therefore write a production entry too, at the same
+  tier, and the responsible charge log already records refusals, so the two
+  records agree about what happened.
+- If the operator prefers a different resolution, it needs to be a deliberate one
+  with the reasoning written down, because the alternative is a payroll rule that
+  contradicts a stated ethical principle in the same repository.
+
+Raised at specification time rather than at implementation time, since by
+implementation time the fee schedule will have rows in it.
+
+### The questions that produced those rulings
+
+Kept for the reasoning, not because they are still open. All four were ruled on
+2026-09-02 and the rulings are above.
 
 **1. The Stripe authorization window versus the review timeline.** The spec says
 authorize on submission and capture per policy. A card authorization expires,
