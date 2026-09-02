@@ -21,13 +21,13 @@ import "server-only";
  *   is the one that actually stops password guessing, and it is the one a typo
  *   consumes.
  *
- *   Per address: the IP alone. Forty in fifteen minutes. This is what stops
+ *   Per address: the IP alone. Twenty in fifteen minutes. This is what stops
  *   somebody spraying one password across two hundred addresses from a single
  *   host, which the per identity bucket alone would happily allow.
  *
  * The operator mistyping his own password now costs him eight attempts against
- * his own address, not eight against everything he might try next, and the
- * ceiling that would lock him out entirely is five times further away.
+ * his own address rather than eight against everything he might try next, and
+ * he still has twelve left for a different address before anything stops him.
  *
  * A SUCCESSFUL SIGN IN CLEARS BOTH
  * --------------------------------
@@ -59,10 +59,23 @@ const MAX_PER_IDENTITY = 8;
 /**
  * Attempts from one address across ALL accounts before it is refused.
  *
- * Deliberately well above the per identity ceiling. It exists to stop spraying,
- * not to catch a person who cannot remember which of two passwords they used.
+ * Above the per identity ceiling, but not far above, and the distance is the
+ * whole design decision.
+ *
+ * This started at forty, which was chosen to be generous to a locked out
+ * operator. security-audit caught what that actually bought an attacker: its
+ * spraying probe sends twelve attempts across twelve different addresses from
+ * one host, and forty let every one of them through. The old IP-only limiter
+ * had stopped that at eight. Widening the operator's escape hatch had quietly
+ * made password spraying five times cheaper.
+ *
+ * Twenty is the compromise, and it is a compromise rather than a free win. A
+ * sprayer gets twenty attempts per fifteen minutes from one address instead of
+ * eight, which is a real if modest loosening. An operator who exhausts eight
+ * typos on their own address still has twelve left to try a different one, which
+ * is far more than anybody needs and is the thing that was actually broken.
  */
-const MAX_PER_ADDRESS = 40;
+const MAX_PER_ADDRESS = 20;
 
 const MAX_TRACKED = 5000;
 

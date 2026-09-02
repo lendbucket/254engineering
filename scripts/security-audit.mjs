@@ -177,22 +177,61 @@ async function run() {
     rec("a forged set-password token is refused", res.status !== 200, `HTTP ${res.status}`);
   }
 
-  // ---------- rate limiting ----------
+  // ---------- rate limiting, both dimensions ----------
+  /*
+   * The limiter has two buckets and one number cannot describe it.
+   *
+   * This check used to send twelve attempts across twelve DIFFERENT addresses
+   * and call the result rate limiting. When the limiter gained a per account
+   * key so a typo could not lock the operator out, that probe started passing
+   * through untouched, and it was right to fail: the change had made spraying
+   * cheaper. Both dimensions are asserted now so neither can be widened
+   * silently in service of the other.
+   */
   {
-    let limited = false;
+    // Guessing ONE account. This is the bucket a typo consumes.
+    let identityLimited = 0;
     for (let i = 0; i < 12; i++) {
       const res = await fetch(`${BASE}/api/portal/session`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-forwarded-for": "203.0.113.77" },
-        body: JSON.stringify({ email: `guess-${i}@example.com`, password: `guess-${i}` }),
+        body: JSON.stringify({ email: "one-account@example.com", password: `guess-${i}` }),
       });
       if (res.status === 429) {
-        limited = true;
-        rec("rate limit sends Retry-After", Boolean(res.headers.get("retry-after")), res.headers.get("retry-after") || "missing");
+        identityLimited = i + 1;
+        rec(
+          "rate limit sends Retry-After",
+          Boolean(res.headers.get("retry-after")),
+          res.headers.get("retry-after") || "missing",
+        );
         break;
       }
     }
-    rec("repeated wrong sign ins are rate limited", limited, limited ? "" : "12 attempts all accepted");
+    rec(
+      "repeated wrong sign ins against ONE account are rate limited",
+      identityLimited > 0,
+      identityLimited ? `refused at attempt ${identityLimited}` : "12 attempts all accepted",
+    );
+
+    // Spraying MANY accounts from one host. A different bucket, and the one
+    // the per account key would otherwise have left wide open.
+    let sprayLimited = 0;
+    for (let i = 0; i < 30; i++) {
+      const res = await fetch(`${BASE}/api/portal/session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-forwarded-for": "203.0.113.78" },
+        body: JSON.stringify({ email: `spray-${i}@example.com`, password: "one-common-password" }),
+      });
+      if (res.status === 429) {
+        sprayLimited = i + 1;
+        break;
+      }
+    }
+    rec(
+      "spraying one password across many accounts from one address is rate limited",
+      sprayLimited > 0,
+      sprayLimited ? `refused at attempt ${sprayLimited}` : "30 attempts all accepted",
+    );
   }
 
   // ---------- forged and tampered cookies ----------
