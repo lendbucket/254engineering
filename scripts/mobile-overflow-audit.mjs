@@ -186,7 +186,35 @@ async function run() {
 
     for (const route of list) {
       const page = await ctx.newPage();
-      const res = await page.goto(BASE + route, { waitUntil: "networkidle" });
+
+      /*
+       * domcontentloaded plus a settle, not networkidle.
+       *
+       * networkidle waits for the network to go quiet, and a portal page never
+       * quite does: it timed out at thirty seconds on /portal and threw, which
+       * killed the whole audit. One route's timeout took a hundred and fifteen
+       * other checks with it and reported as an overflow failure, which it was
+       * not.
+       *
+       * Horizontal overflow is a layout property. domcontentloaded plus a short
+       * settle is what layout needs and is far more deterministic than waiting
+       * on a network that may have a long lived connection on it.
+       *
+       * The try/catch is the other half: a route that will not load is a
+       * FINDING, recorded against that route, not an exception that hides every
+       * route after it.
+       */
+      let res;
+      try {
+        res = await page.goto(BASE + route, { waitUntil: "domcontentloaded", timeout: 45000 });
+        await page.waitForTimeout(600);
+      } catch (err) {
+        findings.push(`${route} @${width}: did not load (${String(err.message).split("\n")[0]})`);
+        checks.push({ name: `${route} @${width}`, ok: false, detail: "did not load" });
+        await page.close();
+        continue;
+      }
+
       if (!res || res.status() !== 200) {
         findings.push(`${route} @${width}: HTTP ${res ? res.status() : "no response"}`);
         checks.push({ name: `${route} @${width}`, ok: false, detail: "not 200" });
@@ -279,11 +307,24 @@ console.log(
 const failed = checks.filter((c) => !c.ok);
 for (const c of failed) console.log(`  FAIL: ${c.name} (${c.detail})`);
 console.log("");
-if (findings.length === 0) {
+/*
+ * The exit code counts BOTH, and it did not.
+ *
+ * It was decided by findings.length alone, while the probe teardown check was
+ * pushed to `checks`. So a probe account left behind on a live database printed
+ * FAIL in the output and exited 0, and the suite went green around it. A check
+ * that cannot fail the build is a check nobody is running.
+ *
+ * Found when a crashed run left its probe behind and the next run reported the
+ * leftover and passed anyway.
+ */
+if (findings.length === 0 && failed.length === 0) {
   console.log(`PASS: ${checks.length} route and width combinations, zero horizontal document scroll.`);
   process.exitCode = 0;
 } else {
   for (const f of findings) console.log(`  - ${f}`);
-  console.log(`\nFAIL: ${findings.length} finding(s) across ${checks.length} checks.`);
+  console.log(
+    `\nFAIL: ${findings.length} overflow finding(s) and ${failed.length} failed check(s) across ${checks.length} checks.`,
+  );
   process.exitCode = 1;
 }
