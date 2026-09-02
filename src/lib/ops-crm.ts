@@ -61,6 +61,14 @@ export type FileRow = {
   city: string | null;
   county: string;
   twia_county: boolean;
+  /*
+   * Carried on the row because dispatch ranks by distance and needs a point.
+   * Nothing geocodes them, so they are usually null and planDispatch degrades to
+   * ranking by workload, which it says on screen rather than implying a
+   * proximity nobody measured.
+   */
+  latitude: number | string | null;
+  longitude: number | string | null;
   urgency: string;
   status: FileStatus;
   due_at: string | null;
@@ -74,7 +82,7 @@ export type FileRow = {
 };
 
 const FILE_COLUMNS =
-  "id, file_number, client_id, service_slug, property_address, city, county, twia_county, urgency, status, due_at, assigned_tech_id, assigned_engineer_id, client_price_cents, tech_cost_cents, engineer_cost_cents, created_at, notes";
+  "id, file_number, client_id, service_slug, property_address, city, county, twia_county, latitude, longitude, urgency, status, due_at, assigned_tech_id, assigned_engineer_id, client_price_cents, tech_cost_cents, engineer_cost_cents, created_at, notes";
 
 // ------------------------------------------------------------------ clients
 

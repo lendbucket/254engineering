@@ -8,7 +8,10 @@ import { TEXAS_COUNTIES, twiaStatus } from "@/lib/ops-counties";
 import { services } from "@/content/services";
 import { isPrelaunch } from "@/lib/launch";
 import { Chip, EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
+import { dispatchContext, jobView } from "@/lib/ops-field";
+import { progressLabel } from "@/lib/ops-evidence";
 import { NewFileForm, TransitionControls } from "./FileClient";
+import { DispatchPanel } from "./DispatchPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +55,26 @@ export default async function FilesPage({
   });
   const selected = params.id ? await getFile(actor, params.id) : null;
   const timeline = selected ? await fileTimeline(selected.id) : [];
+
+  /*
+   * Dispatch is loaded only when the file is actually waiting for one. Planning
+   * a dispatch reads every technician, their certifications and their live
+   * workload, which is three queries nobody needs on a delivered file.
+   */
+  const dispatch =
+    selected && selected.status === "needs_dispatch" && can(actor, "offers.dispatch")
+      ? await dispatchContext(actor, selected)
+      : null;
+
+  // The evidence summary, for an administrator or engineer watching a job in the
+  // field. Same jobView the technician's own screen renders, same gate.
+  const job =
+    selected &&
+    ["dispatched", "evidence_in_progress", "evidence_submitted", "revisions_requested", "under_review"].includes(
+      selected.status,
+    )
+      ? await jobView(actor, selected.id)
+      : null;
   const clients = can(actor, "files.create") ? await listClients(actor) : [];
 
   const filterHref = (patch: Record<string, string | undefined>) => {
@@ -152,6 +175,22 @@ export default async function FilesPage({
           </div>
         </div>
 
+        {dispatch ? (
+          <div className="border-b border-limestone-line px-4 py-4 sm:px-5">
+            <DispatchPanel
+              fileId={selected.id}
+              offers={dispatch.plan.offers}
+              ineligible={dispatch.plan.ineligible}
+              alreadyOffered={dispatch.alreadyOffered}
+              feeCents={dispatch.feeCents}
+              proximityUnavailable={dispatch.proximityUnavailable}
+              protocolName={
+                dispatch.protocol ? `${dispatch.protocol.name} v${dispatch.protocol.version}` : null
+              }
+            />
+          </div>
+        ) : null}
+
         <div className="grid gap-5 px-4 py-5 sm:px-5 lg:grid-cols-2">
           <div>
             <p className="text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">Overview</p>
@@ -236,12 +275,41 @@ export default async function FilesPage({
               </ol>
             )}
 
+            {job?.protocol ? (
+              <>
+                <p className="mt-7 text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">
+                  Evidence
+                </p>
+                <p className="mt-2 text-[13.5px] font-semibold text-slate">
+                  {progressLabel(job.state)}
+                </p>
+                <p className="mt-0.5 text-[13px] text-slate-muted">
+                  Working to {job.protocol.name} v{job.protocol.version}.
+                </p>
+                {job.state.blockers.length > 0 ? (
+                  <ul className="mt-2 flex flex-col gap-1">
+                    {job.state.blockers.map((b) => (
+                      <li key={b} className="text-[13px] leading-[1.5] text-slate-muted">
+                        {b}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                <Link
+                  href={`/portal/jobs/${selected.id}`}
+                  className="mt-3 inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-slate underline underline-offset-4"
+                >
+                  Open the checklist
+                </Link>
+              </>
+            ) : null}
+
             <div className="mt-7 rounded-[4px] border border-dashed border-limestone-line px-4 py-4">
-              <p className="text-[13px] font-semibold text-slate">Evidence, documents, tasks, messages</p>
+              <p className="text-[13px] font-semibold text-slate">Documents, tasks, messages</p>
               <p className="mt-1.5 text-[12.5px] leading-[1.55] text-slate-muted">
-                Evidence capture arrives with dispatch, documents and sealing with review, and tasks
-                and messages after that. They are empty because those phases have not shipped, not
-                because this file is missing anything.
+                Documents and sealing arrive with review, and tasks and messages after that. They are
+                empty because those phases have not shipped, not because this file is missing
+                anything.
               </p>
             </div>
           </div>
