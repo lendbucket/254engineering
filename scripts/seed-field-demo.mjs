@@ -379,6 +379,160 @@ for (const file of FILES) {
   console.error(`  file: ${file.file_number} at ${file.status}`);
 }
 
+
+// --- credentials, so the fourth dispatch gate has something to read ---------
+
+/*
+ * Phase 3 added credentials as a hard dispatch gate. Without these rows every
+ * seeded technician is correctly ineligible and the demonstration looks broken,
+ * which is the gate working rather than a defect.
+ *
+ * One of them carries a lapsed insurance certificate on purpose, so the
+ * ineligible list has a credential reason in it as well as a certification one.
+ * A dispatch screen whose exclusions are all the same kind is one where the
+ * other kinds have never been looked at.
+ */
+const iso = (days) => {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+};
+
+const CREDENTIALS = {
+  "demo.tech.coastal@example.com": [
+    { kind: "drivers_license", expires_on: iso(500) },
+    { kind: "vehicle_insurance", expires_on: iso(120) },
+    { kind: "w9", expires_on: null },
+    { kind: "ic_agreement", expires_on: null },
+  ],
+  "demo.tech.valley@example.com": [
+    { kind: "drivers_license", expires_on: iso(300) },
+    // Expiring inside the warning window, so the roster panel has something to
+    // show and it can be seen NOT blocking.
+    { kind: "vehicle_insurance", expires_on: iso(20) },
+    { kind: "w9", expires_on: null },
+    { kind: "ic_agreement", expires_on: null },
+  ],
+  "demo.tech.uncertified@example.com": [
+    { kind: "drivers_license", expires_on: iso(400) },
+    // Lapsed on purpose. This technician is now excluded for two independent
+    // reasons, which is the realistic case and the one most likely to be
+    // reported badly.
+    { kind: "vehicle_insurance", expires_on: iso(-14) },
+    { kind: "w9", expires_on: null },
+    { kind: "ic_agreement", expires_on: null },
+  ],
+};
+
+for (const tech of techIds) {
+  const wanted = CREDENTIALS[tech.email] ?? [];
+  for (const c of wanted) {
+    const { data: existing } = await db
+      .from("eng_credentials")
+      .select("id")
+      .eq("profile_id", tech.id)
+      .eq("kind", c.kind)
+      .maybeSingle();
+    const row = {
+      profile_id: tech.id,
+      kind: c.kind,
+      label: "Seeded for development",
+      expires_on: c.expires_on,
+      status: "verified",
+      verified_at: new Date().toISOString(),
+    };
+    if (existing) await db.from("eng_credentials").update(row).eq("id", existing.id);
+    else await db.from("eng_credentials").insert(row);
+  }
+  console.error(`  credentials: ${tech.name}, ${wanted.length} on file`);
+}
+
+// --- the certification check on the published protocol ----------------------
+
+const QUESTIONS = [
+  {
+    prompt: "How many elevations of the structure does this protocol require?",
+    options: ["Two, front and back", "Four, one per face", "As many as look useful"],
+    correct_index: 1,
+    rationale:
+      "Four, one per face. An engineer cannot rule out damage on a face nobody photographed, so a missing elevation means the file cannot be sealed.",
+  },
+  {
+    prompt: "There is no attic access, so you cannot photograph the deck attachment. What do you do?",
+    options: [
+      "Skip the item and note it in the observations",
+      "Photograph whatever blocks the access",
+      "Guess the attachment from the roof covering",
+    ],
+    correct_index: 1,
+    rationale:
+      "Photograph the obstruction. The engineer needs to see WHY there is no deck shot, and a skipped item with a note looks identical to one you forgot.",
+  },
+  {
+    prompt: "The roof measures a pitch of zero. What do you enter?",
+    options: ["Zero", "Leave it blank, because zero is not a reading", "The nearest whole number above zero"],
+    correct_index: 0,
+    rationale:
+      "Enter zero. It is a reading and the platform records it as one. A blank is a missing item and holds the whole package.",
+  },
+  {
+    prompt: "You have finished everything the checklist asks for. What submits the package?",
+    options: [
+      "Leaving the app; it submits by itself",
+      "Pressing submit, once every required item is captured and uploaded",
+      "Telling the office by phone",
+    ],
+    correct_index: 1,
+    rationale:
+      "Pressing submit. It stays disabled until every required item is captured and everything queued on your phone has uploaded, and it tells you which item is missing.",
+  },
+];
+
+{
+  const { data: existing } = await db
+    .from("eng_protocol_questions")
+    .select("id")
+    .eq("template_id", protocolId)
+    .limit(1);
+  if (existing?.length) {
+    console.error("  check questions: already present");
+  } else {
+    await db.from("eng_protocol_questions").insert(
+      QUESTIONS.map((q, i) => ({ ...q, template_id: protocolId, sort_order: i })),
+    );
+    console.error(`  check questions: ${QUESTIONS.length} on the published protocol`);
+  }
+}
+
+// --- an application to walk the onboarding path with ------------------------
+
+{
+  const email = "demo.applicant@example.com";
+  const { data: existing } = await db
+    .from("eng_applications")
+    .select("id")
+    .eq("email", email)
+    .maybeSingle();
+  if (existing) {
+    console.error("  application: already present");
+  } else {
+    await db.from("eng_applications").insert({
+      site: "254",
+      role: "Field Inspection Technician",
+      name: "Demo Applicant",
+      email,
+      phone: null,
+      city: "Victoria",
+      counties: "Victoria, Calhoun, Refugio and sometimes Goliad",
+      experience: "Seeded application. Not a real person.",
+      drone_license: false,
+      reliable_vehicle: true,
+      status: "new",
+    });
+    console.error("  application: one waiting to be invited");
+  }
+}
+
 console.error("");
 console.error("Seeded. Everything above is obviously fake by design: Demo names,");
 console.error("example.com addresses, and streets that do not exist.");

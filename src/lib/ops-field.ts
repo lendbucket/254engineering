@@ -1,5 +1,15 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase";
+import { credentialBlockersFor } from "./ops-onboarding";
+import {
+  canAttempt,
+  forTechnician,
+  gradeAttempt,
+  type Answer,
+  type CertificationRecord,
+  type CheckQuestion,
+  type PublicQuestion,
+} from "./ops-certification";
 import { writeAudit, diffOf, safeDiff } from "./ops-audit";
 import { can, type Actor } from "./ops-authz";
 import { transitionFile } from "./ops-crm";
@@ -428,6 +438,14 @@ async function candidateTechs(): Promise<TechCandidate[]> {
     .eq("status", "certified");
 
   /*
+   * Phase 3's fourth gate. Computed here rather than inside planDispatch so that
+   * module never has to know what today is: every expiry rule in
+   * ops-credentials is tested at a date of the caller's choosing, and a pure
+   * function that reads the clock cannot be.
+   */
+  const blockersBy = await credentialBlockersFor(ids);
+
+  /*
    * Open jobs means assigned and not finished. Delivered, closed and cancelled
    * files are not load; a technician holding four delivered files is holding
    * nothing.
@@ -455,6 +473,7 @@ async function candidateTechs(): Promise<TechCandidate[]> {
     status: p.status as TechCandidate["status"],
     coverageCounties: (p.coverage_counties as string[]) ?? [],
     certifiedFor: certBy.get(p.id as string) ?? [],
+    credentialBlockers: blockersBy.get(p.id as string) ?? [],
     openJobs: loadBy.get(p.id as string) ?? 0,
     baseLat: num(p.base_lat as number | string | null),
     baseLng: num(p.base_lng as number | string | null),
@@ -1351,6 +1370,381 @@ export async function setTechBase(
     entityType: "profile",
     entityId: techId,
     summary: `Set field base to ${input.baseCity ?? "unset"}`,
+    ...context,
+  });
+  return { ok: true };
+}
+
+// -------------------------------------------------- the certification check
+
+/**
+ * The protocol check: questions, attempts, and the certification they produce.
+ *
+ * Lives beside protocols rather than in its own module because it IS part of the
+ * protocol. The engineer writes the checklist and the questions about it in one
+ * sitting, on one document, and a technician is certified against a version
+ * rather than against a service line in the abstract.
+ */
+
+type QuestionRow = {
+  id: string;
+  template_id: string;
+  sort_order: number;
+  prompt: string;
+  options: string[];
+  correct_index: number;
+  rationale: string;
+};
+
+const toQuestion = (r: QuestionRow): CheckQuestion => ({
+  id: r.id,
+  prompt: r.prompt,
+  options: r.options,
+  correctIndex: r.correct_index,
+  rationale: r.rationale,
+});
+
+/**
+ * Every question on a template, answer key included.
+ *
+ * NOT EXPORTED, AND THAT IS THE POINT
+ * -----------------------------------
+ * The only two callers are the authoring view, which is gated on
+ * protocols.author, and the grader, which runs on the server. Exporting this
+ * would put it one careless import away from a page that serializes its props
+ * to the browser, and a check whose answers are in the page source is a
+ * formality that writes a certification record.
+ */
+async function questionsWithKey(templateId: string): Promise<CheckQuestion[]> {
+  const db = supabaseAdmin();
+  if (!db) return [];
+  const { data } = await db
+    .from("eng_protocol_questions")
+    .select("id, template_id, sort_order, prompt, options, correct_index, rationale")
+    .eq("template_id", templateId)
+    .order("sort_order");
+  return ((data ?? []) as QuestionRow[]).map(toQuestion);
+}
+
+/** The authoring view. Gated on protocols.author, answers included. */
+export async function protocolQuestions(
+  actor: Actor | null,
+  templateId: string,
+): Promise<CheckQuestion[]> {
+  if (!can(actor, "protocols.author")) return [];
+  return questionsWithKey(templateId);
+}
+
+export async function addProtocolQuestion(
+  actor: Actor & { email: string },
+  templateId: string,
+  input: { prompt: string; options: string[]; correctIndex: number; rationale: string },
+  context: Context = {},
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  if (!can(actor, "protocols.author")) return { ok: false, error: "Your role cannot author protocols." };
+
+  const template = await getProtocol(actor, templateId);
+  if (!template) return { ok: false, error: "That protocol does not exist." };
+  if (template.status !== "draft") {
+    return { ok: false, error: "A published protocol cannot be edited. Start the next version instead." };
+  }
+
+  const options = input.options.map((o) => o.trim()).filter(Boolean);
+  if (options.length < 2) return { ok: false, error: "A question needs at least two options." };
+  if (options.length > 6) return { ok: false, error: "Six options is the most a question can carry." };
+  if (new Set(options.map((o) => o.toLowerCase())).size !== options.length) {
+    return { ok: false, error: "Two options say the same thing, so the question has two right answers." };
+  }
+  if (!Number.isInteger(input.correctIndex) || input.correctIndex < 0 || input.correctIndex >= options.length) {
+    return { ok: false, error: "Mark which option is correct." };
+  }
+  if (!input.prompt.trim()) return { ok: false, error: "The question needs a prompt." };
+  /*
+   * The rationale is required rather than optional. It is the only thing a
+   * technician who got the question wrong receives, and a check that fails
+   * somebody without telling them why has taught nothing and will be failed
+   * again.
+   */
+  if (input.rationale.trim().length < 10) {
+    return {
+      ok: false,
+      error: "Write the reasoning. It is the only thing a technician who gets this wrong will read.",
+    };
+  }
+
+  const existing = await questionsWithKey(templateId);
+  const { error } = await db.from("eng_protocol_questions").insert({
+    template_id: templateId,
+    sort_order: existing.length,
+    prompt: input.prompt.trim(),
+    options,
+    correct_index: input.correctIndex,
+    rationale: input.rationale.trim(),
+  });
+  if (error) return { ok: false, error: error.message };
+
+  await writeAudit({
+    actor,
+    action: "protocol.question_add",
+    entityType: "protocol",
+    entityId: templateId,
+    summary: `Added a check question to ${template.name} v${template.version}`,
+    ...context,
+  });
+  return { ok: true };
+}
+
+export async function removeProtocolQuestion(
+  actor: Actor & { email: string },
+  templateId: string,
+  questionId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  if (!can(actor, "protocols.author")) return { ok: false, error: "Your role cannot author protocols." };
+  const template = await getProtocol(actor, templateId);
+  if (!template) return { ok: false, error: "That protocol does not exist." };
+  if (template.status !== "draft") {
+    return { ok: false, error: "A published protocol cannot be edited. Start the next version instead." };
+  }
+  const { error } = await db
+    .from("eng_protocol_questions")
+    .delete()
+    .eq("id", questionId)
+    .eq("template_id", templateId);
+  return error ? { ok: false, error: error.message } : { ok: true };
+}
+
+export type CheckView = {
+  serviceSlug: string;
+  templateId: string;
+  protocolName: string;
+  version: number;
+  items: ProtocolItem[];
+  questions: PublicQuestion[];
+  certification: CertificationRecord | null;
+  attemptable: { ok: true } | { ok: false; reason: string };
+};
+
+/**
+ * The check as a technician receives it.
+ *
+ * The questions come back through forTechnician, which drops the answer key. The
+ * protocol items come back in full, because the check is open book by design:
+ * the point is that the technician knows where to look, not that they memorised
+ * it in a room with no phone.
+ */
+export async function checkFor(actor: Actor | null, serviceSlug: string): Promise<CheckView | null> {
+  const db = supabaseAdmin();
+  if (!db || !actor) return null;
+  if (actor.role !== "field_tech" && actor.role !== "admin") return null;
+
+  const protocol = await publishedProtocolFor(serviceSlug);
+  if (!protocol) return null;
+
+  const { data: cert } = await db
+    .from("eng_certifications")
+    .select("service_slug, status, template_id, score, attempts")
+    .eq("profile_id", actor.id)
+    .eq("service_slug", serviceSlug)
+    .maybeSingle();
+
+  const certification: CertificationRecord | null = cert
+    ? {
+        serviceSlug: cert.service_slug as string,
+        status: cert.status as CertificationRecord["status"],
+        templateId: (cert.template_id as string | null) ?? null,
+        score: (cert.score as number | null) ?? null,
+        attempts: (cert.attempts as number) ?? 0,
+      }
+    : null;
+
+  return {
+    serviceSlug,
+    templateId: protocol.id,
+    protocolName: protocol.name,
+    version: protocol.version,
+    items: protocol.items,
+    questions: forTechnician(await questionsWithKey(protocol.id)),
+    certification,
+    attemptable: canAttempt(certification),
+  };
+}
+
+export type AttemptResult = {
+  passed: boolean;
+  score: number;
+  correct: number;
+  total: number;
+  wrong: { questionId: string; prompt: string; rationale: string }[];
+  unanswered: string[];
+};
+
+/**
+ * Grade an attempt and, if it passes, certify.
+ *
+ * THE GRADING HAPPENS HERE AND NOWHERE ELSE
+ * -----------------------------------------
+ * The browser sends option indices and receives a verdict. It never held the
+ * answers, so there is nothing in the page to inspect, and a client that lies
+ * about its answers is only lying about which options it picked.
+ *
+ * Every attempt is written before the certification is touched, into an append
+ * only table. A certification with no attempts behind it is a claim; with them
+ * it is evidence, and the engineer who wants to know why somebody keeps missing
+ * the deck attachment question can read it.
+ */
+export async function submitAttempt(
+  actor: Actor & { email: string },
+  serviceSlug: string,
+  answers: Answer[],
+  context: Context = {},
+): Promise<{ ok: true; result: AttemptResult } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  if (actor.role !== "field_tech" && actor.role !== "admin") {
+    return { ok: false, error: "Only a technician sits a protocol check." };
+  }
+
+  const view = await checkFor(actor, serviceSlug);
+  if (!view) return { ok: false, error: "There is no published protocol for that service line." };
+  if (!view.attemptable.ok) return { ok: false, error: view.attemptable.reason };
+  if (view.questions.length === 0) {
+    return {
+      ok: false,
+      error:
+        "This protocol has no check questions yet, so there is nothing to be certified against. " +
+        "The engineer who authored it adds them before a technician can certify.",
+    };
+  }
+
+  const questions = await questionsWithKey(view.templateId);
+  const grade = gradeAttempt(questions, answers);
+
+  await db.from("eng_certification_attempts").insert({
+    profile_id: actor.id,
+    template_id: view.templateId,
+    service_slug: serviceSlug,
+    score: grade.score,
+    passed: grade.passed,
+    answers,
+    wrong_question_ids: grade.wrong.map((w) => w.questionId),
+  });
+
+  const attempts = (view.certification?.attempts ?? 0) + 1;
+  await db.from("eng_certifications").upsert(
+    {
+      profile_id: actor.id,
+      service_slug: serviceSlug,
+      template_id: view.templateId,
+      status: grade.passed ? "certified" : "failed",
+      score: grade.score,
+      attempts,
+      certified_at: grade.passed ? new Date().toISOString() : null,
+    },
+    { onConflict: "profile_id,service_slug" },
+  );
+
+  if (grade.passed) {
+    /*
+     * The profile's summary flag follows the certifications rather than being
+     * set independently. Two places that both claim to say whether somebody is
+     * certified is two places that will disagree.
+     */
+    await db.from("eng_profiles").update({ certification_status: "certified" }).eq("id", actor.id);
+  }
+
+  await writeAudit({
+    actor,
+    action: grade.passed ? "certification.pass" : "certification.fail",
+    entityType: "profile",
+    entityId: actor.id,
+    summary: `${serviceSlug}: ${grade.correct} of ${grade.total} on attempt ${attempts}`,
+    ...context,
+  });
+
+  return {
+    ok: true,
+    result: {
+      passed: grade.passed,
+      score: grade.score,
+      correct: grade.correct,
+      total: grade.total,
+      wrong: grade.wrong,
+      unanswered: grade.unanswered,
+    },
+  };
+}
+
+/**
+ * Withdraw a certification.
+ *
+ * An act by the engineer in responsible charge, and it does not come back by
+ * retaking the check. ops-certification refuses an attempt on a revoked record
+ * for exactly that reason.
+ */
+export async function revokeCertification(
+  actor: Actor & { email: string },
+  profileId: string,
+  serviceSlug: string,
+  reason: string,
+  context: Context = {},
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  if (!can(actor, "protocols.publish")) {
+    return { ok: false, error: "Only an engineer or an administrator can revoke a certification." };
+  }
+  if (!reason.trim()) {
+    return { ok: false, error: "Say why. A revocation with no reason is one nobody can act on or reverse." };
+  }
+
+  const { error } = await db
+    .from("eng_certifications")
+    .update({ status: "revoked", revoked_at: new Date().toISOString() })
+    .eq("profile_id", profileId)
+    .eq("service_slug", serviceSlug);
+  if (error) return { ok: false, error: error.message };
+
+  await writeAudit({
+    actor,
+    action: "certification.revoke",
+    entityType: "profile",
+    entityId: profileId,
+    summary: `Revoked ${serviceSlug}: ${reason.trim()}`,
+    ...context,
+  });
+  return { ok: true };
+}
+
+/** Restore a revoked certification, which is the same person deciding again. */
+export async function restoreCertification(
+  actor: Actor & { email: string },
+  profileId: string,
+  serviceSlug: string,
+  context: Context = {},
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  if (!can(actor, "protocols.publish")) {
+    return { ok: false, error: "Only an engineer or an administrator can restore a certification." };
+  }
+  const { error } = await db
+    .from("eng_certifications")
+    .update({ status: "failed", revoked_at: null })
+    .eq("profile_id", profileId)
+    .eq("service_slug", serviceSlug)
+    .eq("status", "revoked");
+  if (error) return { ok: false, error: error.message };
+
+  await writeAudit({
+    actor,
+    action: "certification.restore",
+    entityType: "profile",
+    entityId: profileId,
+    summary: `Restored ${serviceSlug} to uncertified, so the check can be retaken`,
     ...context,
   });
   return { ok: true };
