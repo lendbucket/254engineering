@@ -248,6 +248,41 @@ async function run() {
     await browser.close();
   }
 
+  // ---------- the break glass is closed to everyone but the operator ----------
+  {
+    /*
+     * /api/portal/unlock clears the sign in rate limiter. It has to be
+     * reachable without a session, because the person who needs it is by
+     * definition unable to sign in, so it is protected by OPS_UNLOCK_TOKEN
+     * instead of by the session gate.
+     *
+     * A wrong token must be indistinguishable from the route not existing. A
+     * 401 confirms the endpoint is there and worth attacking; a 404 says
+     * nothing. It shipped as a 401 once because the proxy was gating it, which
+     * also meant the endpoint could never run for the one person who needed it.
+     */
+    const probes = [
+      ["no token", "/api/portal/unlock"],
+      ["a wrong token", "/api/portal/unlock?token=definitely-not-the-unlock-token"],
+      ["an empty token", "/api/portal/unlock?token="],
+    ];
+    for (const [label, path] of probes) {
+      const res = await fetch(BASE + path, { redirect: "manual" });
+      rec(
+        `unlock: ${label} is indistinguishable from the route not existing`,
+        res.status === 404,
+        `HTTP ${res.status}`,
+      );
+    }
+
+    const post = await fetch(`${BASE}/api/portal/unlock`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: "definitely-not-the-unlock-token" }),
+      redirect: "manual",
+    });
+    rec("unlock: a wrong token cannot clear the limiter", post.status === 404, `HTTP ${post.status}`);
+  }
   // ---------- the portal is not indexable ----------
   {
     const robots = await (await fetch(`${BASE}/robots.txt`)).text();

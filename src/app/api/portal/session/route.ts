@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { verifyCredentials, requestContext } from "@/lib/ops-auth";
 import { issueOpsSession, opsCookieOptions, OPS_COOKIE, opsSessionConfigured } from "@/lib/ops-session";
-import { takeLoginAttempt, clearLoginAttempts, clientKey } from "@/lib/admin-rate-limit";
+import { takeLoginAttempt, clearLoginAttempts, clientKey } from "@/lib/ops-rate-limit";
 import { writeAudit } from "@/lib/ops-audit";
 import { homeFor } from "@/lib/ops-authz";
 import { supabaseAdmin } from "@/lib/supabase";
@@ -34,29 +34,6 @@ export const dynamic = "force-dynamic";
 const GENERIC = "Check the email and password.";
 
 export async function POST(request: NextRequest) {
-  /*
-   * Rate limit FIRST, before the configuration check.
-   *
-   * The configuration short circuit used to come first, which meant an
-   * unconfigured deployment answered every attempt with a 503 and never counted
-   * one. security-audit caught it against production: twelve wrong sign ins in a
-   * row, all accepted. Nothing could be signed into, so nothing was at risk, but
-   * an endpoint that answers forever is worth closing whatever it answers.
-   */
-  const limit = takeLoginAttempt(clientKey(request.headers));
-  if (!limit.allowed) {
-    const res = NextResponse.json({ ok: false, error: "Too many attempts. Wait a moment." }, { status: 429 });
-    res.headers.set("Retry-After", String(limit.retryAfterSeconds));
-    return res;
-  }
-
-  if (!opsSessionConfigured()) {
-    return NextResponse.json(
-      { ok: false, error: "The portal is not configured on this deployment." },
-      { status: 503 },
-    );
-  }
-
   const contentType = request.headers.get("content-type") ?? "";
   const isForm = contentType.includes("application/x-www-form-urlencoded");
 
@@ -86,9 +63,50 @@ export async function POST(request: NextRequest) {
         )
       : NextResponse.json({ ok: false, error }, { status });
 
+  const attempted = email.trim().toLowerCase();
+
+  /*
+   * RATE LIMIT HERE: after the body is read, before anything is verified.
+   *
+   * After, because the email is half the key. Counting by address alone is what
+   * locked the operator out of his own portal with a handful of typos, and a
+   * control that stops the owner working is one that gets switched off. Keyed by
+   * address AND account, a typo costs eight attempts against that one account
+   * rather than against everything.
+   *
+   * Before verification, because a limiter that runs after the password check
+   * has not limited anything.
+   *
+   * And before the configuration check, because that short circuit used to come
+   * first and meant an unconfigured deployment answered every attempt forever
+   * without counting one. security-audit caught that against production.
+   */
+  const limit = takeLoginAttempt(clientKey(request.headers), attempted || undefined);
+  if (!limit.allowed) {
+    const res = isForm
+      ? NextResponse.redirect(new URL("/portal/login?throttled=1", request.url), { status: 303 })
+      : NextResponse.json(
+          {
+            ok: false,
+            error: "Too many attempts. Wait a few minutes and try again.",
+            retryAfterSeconds: limit.retryAfterSeconds,
+          },
+          { status: 429 },
+        );
+    res.headers.set("Retry-After", String(limit.retryAfterSeconds));
+    return res;
+  }
+
+  if (!opsSessionConfigured()) {
+    return NextResponse.json(
+      { ok: false, error: "The portal is not configured on this deployment." },
+      { status: 503 },
+    );
+  }
+
   if (!email || !password) return fail(400, GENERIC);
 
-  const result = await verifyCredentials(email.trim().toLowerCase(), password);
+  const result = await verifyCredentials(attempted, password);
 
   if (!result.ok) {
     const { ip, userAgent } = await requestContext();
@@ -111,7 +129,7 @@ export async function POST(request: NextRequest) {
     return fail(401, GENERIC);
   }
 
-  clearLoginAttempts(clientKey(request.headers));
+  clearLoginAttempts(clientKey(request.headers), attempted);
 
   const session = issueOpsSession(result.profile.id, result.profile.role);
   if (!session) return fail(503, "The portal is not configured.");
