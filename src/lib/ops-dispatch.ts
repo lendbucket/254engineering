@@ -11,9 +11,9 @@ import type { Actor } from "./ops-authz";
  * who asks "why did he get that job and I did not" has an answer somebody can
  * read out of one file.
  *
- * THE THREE HARD FILTERS COME FIRST, AND NONE OF THEM IS A PREFERENCE
- * -------------------------------------------------------------------
- * A technician is eligible only if all three hold. These are not weighted, they
+ * THE FOUR HARD FILTERS COME FIRST, AND NONE OF THEM IS A PREFERENCE
+ * ------------------------------------------------------------------
+ * A technician is eligible only if all four hold. These are not weighted, they
  * are gates, because each one represents work the person is not permitted or not
  * equipped to do:
  *
@@ -26,6 +26,18 @@ import type { Actor } from "./ops-authz";
  *   produces evidence an engineer cannot rely on.
  *
  *   Status. Active accounts only. A suspended technician is suspended.
+ *
+ *   Credentials. A current driver licence, vehicle insurance, W-9 and contractor
+ *   agreement. Added in Phase 3, and the reason it was not here from the start
+ *   is worth keeping: the documents were being collected by the onboarding
+ *   system and nothing joined them to dispatch, so a lapsed insurance
+ *   certificate stopped nothing. The blockers are computed by ops-credentials
+ *   and arrive here already decided, so this module stays free of dates.
+ *
+ * The order of the four is the order an operator can act on them. Status first,
+ * because a suspended account explains everything else. Then coverage, then
+ * certification, then credentials, which is the one most likely to be a phone
+ * call rather than a decision.
  *
  * THEN THE RANKING, WHICH IS A PREFERENCE AND SAYS SO
  * ---------------------------------------------------
@@ -50,6 +62,15 @@ export type TechCandidate = {
   baseLng?: number | null;
   /** Service lines this technician has passed the protocol check for. */
   certifiedFor: string[];
+  /**
+   * Why this technician's paperwork stops them, already decided.
+   *
+   * Passed in rather than computed here so this module never has to know what
+   * today is. A pure function that reads the clock is a pure function that
+   * cannot be tested at a date of the caller's choosing, and every expiry rule
+   * in ops-credentials is exactly that kind of test.
+   */
+  credentialBlockers?: string[];
   /** Files currently assigned and not finished. */
   openJobs: number;
 };
@@ -129,6 +150,14 @@ export function planDispatch(
         id: tech.id,
         displayName: tech.displayName,
         reason: "Not certified for this service line.",
+      });
+      continue;
+    }
+    if (tech.credentialBlockers?.length) {
+      ineligible.push({
+        id: tech.id,
+        displayName: tech.displayName,
+        reason: tech.credentialBlockers.join(" "),
       });
       continue;
     }
