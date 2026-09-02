@@ -1178,3 +1178,21 @@ the protocol.
 engineer to revoke the certifications it supersedes**, which is an act they can
 already take. The platform deliberately does not do it for them, because it
 cannot tell a typo from a new required photograph.
+
+### One forms-audit failure that was never explained
+
+During the Phase 3 verification, forms-audit failed once inside a full suite run
+on the check "round trip: the structured answers land in the payload column". It
+passed on the immediately preceding run, passed 80/80 in isolation straight
+afterwards, and passed again on the next full suite run.
+
+**It is recorded because it is unexplained, not because it is understood.** The
+suite run that failed had 81 checks where the isolated run had 80, which says
+the environment differed, and the leading theory is leftover state from an
+earlier suite run that was killed mid flight before its teardown. That was not
+confirmed: by the time it was investigated the marker rows were gone, cleaned up
+by the teardown of the run that failed.
+
+If it recurs, the thing to capture BEFORE re-running is the contents of
+eng_applications where name = 'Zzq Formsaudit', because the failing assertion is
+about the payload column on that row and the evidence disappears at teardown.
