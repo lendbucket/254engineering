@@ -83,12 +83,42 @@ function referenceFor(kind: "O" | "Q"): string {
  */
 export function siteFromKey(provided: string | null | undefined): string | null {
   const raw = process.env.ORDER_INTAKE_KEYS;
-  if (!raw || !provided) return null;
+
+  /*
+   * THE CALLER LEARNS NOTHING. THE OPERATOR LEARNS EVERYTHING.
+   *
+   * Every refusal below returns the same null, and the route answers the same
+   * 404, so an attacker cannot tell an unset variable from a wrong key. That is
+   * deliberate and it stays.
+   *
+   * What was wrong was that the OPERATOR could not tell either. The first real
+   * configuration of this endpoint set ORDER_INTAKE_KEYS to a bare secret
+   * rather than the JSON map it expects, the parse threw, every request
+   * answered 404, and nothing anywhere said why. A design that is opaque to an
+   * attacker and opaque to the person who has to configure it is only half
+   * designed.
+   *
+   * These lines go to the runtime log, which is the operator's and not the
+   * caller's. They name the fault and never the key.
+   */
+  if (!raw) {
+    console.error("[intake] ORDER_INTAKE_KEYS is not set on this deployment.");
+    return null;
+  }
+  if (!provided) return null;
 
   let keys: Record<string, string>;
   try {
     keys = JSON.parse(raw) as Record<string, string>;
   } catch {
+    console.error(
+      "[intake] ORDER_INTAKE_KEYS is set but is not valid JSON. It has to be a map of site to key, " +
+        'for example {"254":"the-secret"}. A bare secret parses as nothing and every request answers 404.',
+    );
+    return null;
+  }
+  if (typeof keys !== "object" || keys === null || Array.isArray(keys)) {
+    console.error("[intake] ORDER_INTAKE_KEYS parsed but is not an object of site to key.");
     return null;
   }
 
@@ -98,6 +128,10 @@ export function siteFromKey(provided: string | null | undefined): string | null 
     const knownHash = createHash("sha256").update(key, "utf8").digest();
     if (timingSafeEqual(givenHash, knownHash)) return site;
   }
+
+  console.error(
+    `[intake] a request presented a key that matches none of the ${Object.keys(keys).length} configured site(s): ${Object.keys(keys).join(", ")}.`,
+  );
   return null;
 }
 

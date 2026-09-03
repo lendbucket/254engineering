@@ -77,7 +77,15 @@ export async function POST(request: NextRequest) {
    * calling site gets one clear sentence rather than a per service refusal it
    * has to interpret.
    */
+  /*
+   * Logged as well as answered, for the same reason the key diagnostics above
+   * are: a preview configured to take orders and quietly refusing them looks
+   * identical from outside to one nobody configured.
+   */
   if (isPrelaunch()) {
+    console.error(
+      "[orders] refused: the compliance gate is closed on this deployment. LAUNCH_MODE is not live.",
+    );
     return NextResponse.json(
       {
         ok: false,
