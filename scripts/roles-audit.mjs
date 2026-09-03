@@ -104,6 +104,15 @@ const EXPECTED = {
   "ledger.read_all":              { admin: true,  engineer: false, field_tech: false },
   "ledger.approve":               { admin: true,  engineer: false, field_tech: false },
 
+  /*
+   * Everybody. A task list and a conversation are not privileges; a platform
+   * where a technician cannot write down their own next action is one where
+   * they keep a separate list beside it, and a platform where they cannot ask a
+   * question is one where the question goes unasked.
+   */
+  "tasks.use":                    { admin: true,  engineer: true,  field_tech: true },
+  "messages.use":                 { admin: true,  engineer: true,  field_tech: true },
+
   "audit.read":                   { admin: true,  engineer: false, field_tech: false },
   "time.log_own":                 { admin: true,  engineer: true,  field_tech: false },
   "responsible_charge.read_own":  { admin: true,  engineer: true,  field_tech: false },

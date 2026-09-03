@@ -551,9 +551,66 @@ export function portalPasswordReset(input: {
   );
 }
 
+/**
+ * The one email every portal notification goes out as.
+ *
+ * WHY ONE TEMPLATE AND NOT ONE PER KIND
+ * -------------------------------------
+ * Thirteen notification kinds would be thirteen templates, thirteen entries in
+ * the email audit, and thirteen places for the voice to drift. They all say the
+ * same shape of thing: something happened, here is what, here is where to look.
+ * The kind decides the words, which are composed where the event happens and
+ * where the context actually is; this decides how they are dressed.
+ *
+ * It is "human" rather than "operator" because a field technician reading that
+ * a job was offered to them is a person outside the office, not a machine to
+ * machine log line, and the audit holds human mail to a named sender and a real
+ * reply address.
+ */
+export function opsNotification(input: {
+  to: string;
+  title: string;
+  body: string | null;
+  href: string | null;
+}): RenderedEmail {
+  const base = (process.env.NEXT_PUBLIC_SITE_URL || "https://254engineering.com").replace(/\/$/, "");
+  const url = input.href ? (input.href.startsWith("http") ? input.href : `${base}${input.href}`) : null;
+
+  return compose(
+    "ops.notification",
+    "human",
+    input.title,
+    {
+      preheader: input.body ?? input.title,
+      signed: true,
+      blocks: [
+        { kind: "p", text: input.title },
+        ...(input.body ? [{ kind: "p" as const, text: input.body }] : []),
+        {
+          kind: "note",
+          text: "You can change which of these reach you by email, on your profile in the portal. A few cannot be turned off: a document of yours expiring, and a certification being withdrawn. Both stop you being offered work, so you are told even if you have muted everything else.",
+        },
+      ],
+      button: url ? { label: "Open it in the portal", url } : undefined,
+    },
+    { to: input.to },
+  );
+}
+
+
 export function allTemplatesForAudit(): RenderedEmail[] {
 
   return [
+    /*
+     * Every portal notification goes out as this one template, so the audit
+     * holds one thing rather than thirteen near copies of it.
+     */
+    opsNotification({
+      to: "sample.tech@254engineering.com",
+      title: "A job in Nueces County is offered to you",
+      body: "1400 Sample Street, Corpus Christi. Windstorm evidence, flat rate $185.00.",
+      href: "/portal/jobs",
+    }),
     portalInvite({
       personName: "Sample Engineer",
       personEmail: "sample.engineer@254engineering.com",

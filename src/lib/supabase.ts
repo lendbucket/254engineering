@@ -1,4 +1,5 @@
 import "server-only";
+import { guardError, previewPointingAtProduction } from "./db-guard";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 /**
@@ -38,6 +39,26 @@ export function supabaseConfigured(): boolean {
 }
 
 /**
+ * The one place a client is built, and therefore the one place to stop a
+ * preview deployment from reaching the firm's real database.
+ *
+ * THROWS RATHER THAN RETURNING NULL, WHICH IS THE OPPOSITE OF THE RULE BELOW
+ * --------------------------------------------------------------------------
+ * supabaseAdmin returns null when the environment is simply unconfigured,
+ * because losing a form submission is better than showing a 500 to somebody who
+ * just typed their details in.
+ *
+ * This case is different and the difference is the point. An unconfigured
+ * deployment can do nothing. A MISpointed one can do everything, to the wrong
+ * database, silently. Returning null here would let every caller treat the
+ * firm's production data as "not configured" and carry on, which is exactly the
+ * quiet failure the guard exists to prevent. So it is loud.
+ */
+function refuseIfPreviewOnProduction(): void {
+  if (previewPointingAtProduction()) throw guardError();
+}
+
+/**
  * The service role client, or null when the environment is not configured.
  *
  * Returns null rather than throwing so a form route can decide what to do about
@@ -45,6 +66,7 @@ export function supabaseConfigured(): boolean {
  * their details in is worse, because they will not type them again.
  */
 export function supabaseAdmin(): SupabaseClient | null {
+  refuseIfPreviewOnProduction();
   if (!supabaseConfigured()) return null;
   if (cached) return cached;
 
@@ -77,6 +99,7 @@ export function supabaseAdmin(): SupabaseClient | null {
  * signs anybody in and therefore never stops being the service role.
  */
 export function supabaseCredentialCheck(): SupabaseClient | null {
+  refuseIfPreviewOnProduction();
   if (!supabaseConfigured()) return null;
   return createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },

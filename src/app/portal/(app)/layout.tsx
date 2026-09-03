@@ -2,8 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { currentActor } from "@/lib/ops-auth";
+import { previewPointingAtProduction } from "@/lib/db-guard";
+import { MispointedPreview } from "@/components/portal/MispointedPreview";
+import { listNotifications, unreadCount } from "@/lib/ops-notify";
 import { can, ROLE_LABEL } from "@/lib/ops-authz";
-import { supabaseAdmin } from "@/lib/supabase";
 import { navFor, mobileTabsFor } from "@/components/portal/nav";
 import {
   CommandPalette,
@@ -48,6 +50,14 @@ import { Wordmark } from "@/components/brand/Wordmark";
 export const dynamic = "force-dynamic";
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
+  /*
+   * Checked before anything reads the database, because the throw in
+   * supabase.ts would otherwise reach the person as a stack trace. That throw
+   * is what actually protects the data; this is the same fact addressed to
+   * whoever is standing in front of it.
+   */
+  if (previewPointingAtProduction()) return <MispointedPreview />;
+
   const actor = await currentActor();
 
   if (!actor) {
@@ -63,26 +73,21 @@ export default async function PortalLayout({ children }: { children: React.React
   const tabs = mobileTabsFor(items);
   const overflow = items.filter((i) => !tabs.some((t) => t.href === i.href));
 
-  // The bell reads real rows from the start. It is empty today and it is not
-  // pretending to be anything else.
-  const db = supabaseAdmin();
-  const { data: notifications } = db
-    ? await db
-        .from("eng_notifications")
-        .select("id, title, body, href, created_at, read_at")
-        .eq("profile_id", actor.id)
-        .order("created_at", { ascending: false })
-        .limit(12)
-    : { data: null };
-
-  const list = (notifications ?? []).map((n) => ({
+  /*
+   * The bell reads through ops-notify rather than querying here, so the one
+   * place that knows what a notification is stays the one place. It has read
+   * real rows since Phase 0; Phase 5 is when anything started writing them.
+   */
+  const notifications = await listNotifications(actor.id, 12);
+  const list = notifications.map((n) => ({
     id: String(n.id),
-    title: n.title as string,
-    body: (n.body as string | null) ?? null,
-    href: (n.href as string | null) ?? null,
-    created_at: n.created_at as string,
+    title: n.title,
+    body: n.body,
+    href: n.href,
+    created_at: n.created_at,
+    read: Boolean(n.read_at),
   }));
-  const unread = (notifications ?? []).filter((n) => !n.read_at).length;
+  const unread = await unreadCount(actor.id);
 
   return (
     <div className="min-h-dvh bg-limestone">

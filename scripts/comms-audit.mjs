@@ -25,8 +25,10 @@ import {
   canReadThread,
   canSeeTask,
   channelsFor,
+  credentialTasks,
   defaultPreference,
   emailIsMandatory,
+  firstDueFor,
   isOverdue,
   kindSpec,
   kindsForRole,
@@ -236,30 +238,157 @@ const otherTech = actor("field_tech", "tech-2");
 }
 
 // =====================================================================
-// Compliance seeds.
+// The firm's real compliance calendar.
 // =====================================================================
 {
-  rec("there are compliance seeds", COMPLIANCE_SEEDS.length >= 5, String(COMPLIANCE_SEEDS.length));
-  rec("each has a unique key", new Set(COMPLIANCE_SEEDS.map((s) => s.key)).size === COMPLIANCE_SEEDS.length);
-  rec("each has a real description rather than a restated title", COMPLIANCE_SEEDS.every((s) => s.description.length > 40));
+  rec("each seed has a unique key", new Set(COMPLIANCE_SEEDS.map((s) => s.key)).size === COMPLIANCE_SEEDS.length);
+  rec("each has a real description rather than a restated title", COMPLIANCE_SEEDS.every((s) => s.description.length > 60));
   rec("each recurs on a rule the module understands", COMPLIANCE_SEEDS.every((s) => RECURRENCES.includes(s.recurrence)));
 
   /*
-   * The regulatory ones, named by hand rather than counted, so dropping one is
-   * a failure rather than a smaller number.
+   * Named by hand, from the operator's list, so dropping one is a failure rather
+   * than a smaller number. These are the obligations that go wrong quietly:
+   * nothing breaks on the day, and the consequence arrives months later attached
+   * to work already delivered.
    */
-  const MUST_EXIST = ["credential_sweep", "tbpels_status", "pe_licence_renewal", "responsible_charge_export"];
+  const MUST_EXIST = [
+    "pe_licence_renewal",
+    "dwc_005_filing",
+    "tbpels_registration_renewal",
+    "eo_policy_renewal",
+    "credential_sweep",
+  ];
   for (const key of MUST_EXIST) {
-    rec(`the ${key} compliance task is seeded`, COMPLIANCE_SEEDS.some((s) => s.key === key));
+    rec(`the ${key} obligation is seeded`, COMPLIANCE_SEEDS.some((s) => s.key === key));
   }
+
+  const pe = COMPLIANCE_SEEDS.find((s) => s.key === "pe_licence_renewal");
+  rec("the PE licence renewal is annual", pe?.recurrence === "annually");
+  rec("and anchored to 30 September, as the operator gave it", pe?.anchor?.month === 9 && pe?.anchor?.day === 30);
+  rec("and is urgent, because an expired licence taints work already sealed", pe?.priority === "urgent");
+
+  const dwc = COMPLIANCE_SEEDS.find((s) => s.key === "dwc_005_filing");
+  rec("the DWC-005 filing is annual", dwc?.recurrence === "annually");
+  /*
+   * The window is stated from general knowledge, not from the Division. This
+   * repo's rule is that a number which cannot be traced to a primary source is
+   * marked unverified rather than repeated as fact, and a compliance deadline is
+   * the last place to break it.
+   */
+  rec("the DWC-005 window is flagged as needing confirmation", dwc?.needsConfirmation === true);
+  /*
+   * Tests the intent, not a sentence. The first version matched an exact phrase
+   * and failed the moment the wording improved, which teaches whoever hits it to
+   * edit the assertion rather than think about it.
+   */
   rec(
-    "the registration check is urgent while registration is pending",
-    COMPLIANCE_SEEDS.find((s) => s.key === "tbpels_status")?.priority === "urgent",
+    "and the task itself points at the Division as the authority",
+    /with the Division/i.test(dwc?.description ?? ""),
   );
   rec(
-    "the responsible charge export is a recurring task rather than a hope",
-    COMPLIANCE_SEEDS.find((s) => s.key === "responsible_charge_export")?.recurrence === "monthly",
+    "and says the anchor is provisional until then",
+    /provisional|not a primary source/i.test(dwc?.description ?? ""),
   );
+
+  /*
+   * The two with no known date. A guessed renewal date is worse than an empty
+   * one: an empty field asks a question, a wrong date answers it incorrectly and
+   * then stops asking.
+   */
+  for (const key of ["tbpels_registration_renewal", "eo_policy_renewal"]) {
+    const seed = COMPLIANCE_SEEDS.find((s) => s.key === key);
+    rec(`${key} carries no invented due date`, seed?.anchor === null);
+    /*
+     * The description has to say WHERE the real date comes from, so the empty
+     * field is a question with an answer rather than an oversight. The operator
+     * supplied both on 2026-09-02: the TBPELS date is set on launch day, one
+     * year from issuance, and the errors and omissions date when the policy
+     * binds.
+     */
+    rec(
+      `and says where its real date comes from`,
+      /set on launch day|one year from issuance|when the policy binds|declarations page|registration certificate/i.test(
+        seed?.description ?? "",
+      ),
+      seed?.description?.slice(0, 50),
+    );
+  }
+
+  rec(
+    "no seed is anchored to a date nobody supplied",
+    COMPLIANCE_SEEDS.filter((s) => s.anchor).every((s) => ["pe_licence_renewal", "dwc_005_filing"].includes(s.key)),
+    COMPLIANCE_SEEDS.filter((s) => s.anchor).map((s) => s.key).join(", "),
+  );
+
+  // First due dates, at fixed clocks so nothing drifts.
+  const before = new Date("2026-03-01T09:00:00");
+  const after = new Date("2026-10-05T09:00:00");
+  const iso = (d) => (d ? d.toISOString().slice(0, 10) : null);
+
+  rec("the PE renewal falls this year when September is still ahead", iso(firstDueFor(pe, before)) === "2026-09-30");
+  rec("and next year once it has passed", iso(firstDueFor(pe, after)) === "2027-09-30");
+  rec("an unanchored obligation gets no due date at all", firstDueFor(COMPLIANCE_SEEDS.find((s) => s.key === "eo_policy_renewal"), before) === null);
+  rec(
+    "an obligation due today is due today rather than next year",
+    iso(firstDueFor(pe, new Date("2026-09-30T00:00:00"))) === "2026-09-30",
+  );
+}
+
+// =====================================================================
+// Credentials become tasks.
+// =====================================================================
+{
+  const cred = (over) => ({
+    credentialId: over.credentialId ?? "c1",
+    profileId: over.profileId ?? "p1",
+    personName: over.personName ?? "Demo Tech",
+    kindLabel: over.kindLabel ?? "Vehicle insurance",
+    expiresOn: over.expiresOn ?? "2026-10-01",
+    state: over.state,
+  });
+
+  const all = [
+    cred({ credentialId: "a", state: "current", expiresOn: "2027-01-01" }),
+    cred({ credentialId: "b", state: "expiring", expiresOn: "2026-09-20" }),
+    cred({ credentialId: "c", state: "expired", expiresOn: "2026-08-01" }),
+  ];
+  const tasks = credentialTasks(all);
+
+  rec("a current credential produces no task", tasks.length === 2, `${tasks.length} tasks`);
+  rec("an expiring one does", tasks.some((t) => t.key === "credential:b"));
+  rec("an expired one does", tasks.some((t) => t.key === "credential:c"));
+
+  /*
+   * An expired credential is already stopping the technician being dispatched.
+   * A pending one is not yet, and calling both urgent would make urgent
+   * meaningless on the list where it has to mean something.
+   */
+  rec("an expired credential is urgent", tasks.find((t) => t.key === "credential:c")?.priority === "urgent");
+  rec("an expiring one is high rather than urgent", tasks.find((t) => t.key === "credential:b")?.priority === "high");
+
+  rec("the task names the person", tasks.every((t) => t.title.includes("Demo Tech")));
+  rec("and the document", tasks.every((t) => t.title.includes("Vehicle insurance")));
+  rec("and the date", tasks.every((t) => /20\d\d-\d\d-\d\d/.test(t.title)));
+  rec(
+    "an expired one says dispatch is already refusing",
+    /already refusing/i.test(tasks.find((t) => t.key === "credential:c")?.description ?? ""),
+  );
+
+  /*
+   * The key is derived from the credential, so a second sweep updates one task
+   * rather than producing two. A duplicated compliance task is one somebody
+   * closes without doing, because the other copy makes it look handled.
+   */
+  const again = credentialTasks(all);
+  rec("running the sweep twice produces the same keys", JSON.stringify(tasks.map((t) => t.key)) === JSON.stringify(again.map((t) => t.key)));
+  rec("keys are unique within a sweep", new Set(tasks.map((t) => t.key)).size === tasks.length);
+
+  /*
+   * The due date is the expiry itself. Padding it invents a second, softer
+   * deadline that people then treat as the real one.
+   */
+  rec("the task is due on the expiry, not before it", tasks.find((t) => t.key === "credential:b")?.dueAt.startsWith("2026-09-20"));
+  rec("an empty credential list produces no tasks", credentialTasks([]).length === 0);
 }
 
 // =====================================================================

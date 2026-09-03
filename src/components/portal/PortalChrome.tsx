@@ -53,6 +53,10 @@ function Icon({ name, className = "" }: { name: NavItem["icon"] | "bell" | "sear
       return <svg {...common}><circle cx="12" cy="8" r="3.5" /><path d="M5 20a7 7 0 0 1 14 0" /></svg>;
     case "protocols":
       return <svg {...common}><path d="M6 3h12a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" /><path d="M8.5 8.5h7M8.5 12h7M8.5 15.5h4" /></svg>;
+    case "tasks":
+      return <svg {...common}><path d="M4 6h16M4 12h16M4 18h10" /><path d="m17 17 2 2 3-4" /></svg>;
+    case "messages":
+      return <svg {...common}><path d="M4 5h16v11H9l-4 4z" /><path d="M8 9h8M8 12h5" /></svg>;
     case "charge":
       return <svg {...common}><path d="M7 4h10v16H7z" /><path d="M10 8.5h4M10 12h4M10 15.5h2" /></svg>;
     case "onboarding":
@@ -243,10 +247,36 @@ export function NotificationBell({
   items,
 }: {
   unread: number;
-  items: { id: string; title: string; body: string | null; href: string | null; created_at: string }[];
+  items: {
+    id: string;
+    title: string;
+    body: string | null;
+    href: string | null;
+    created_at: string;
+    read: boolean;
+  }[];
 }) {
   const [open, setOpen] = useState(false);
+  const [seen, setSeen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+
+  /*
+   * Opening the panel marks everything read.
+   *
+   * Not clicking an item: somebody who opens the bell, reads four titles and
+   * decides none of them need action has read them, and leaving the badge at
+   * four teaches them the badge means nothing. The rows keep their own read_at
+   * either way, so nothing is lost.
+   */
+  useEffect(() => {
+    if (!open || seen) return;
+    setSeen(true);
+    void fetch("/api/portal/comms", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "mark_read", ids: [] }),
+    }).catch(() => undefined);
+  }, [open, seen]);
 
   useEffect(() => {
     if (!open) return;
@@ -275,7 +305,21 @@ export function NotificationBell({
       </button>
 
       {open ? (
-        <div className="absolute right-0 z-50 mt-2 w-[min(340px,calc(100vw-32px))] rounded-[4px] border border-limestone-line bg-white shadow-[0_18px_40px_rgba(11,26,48,0.22)]">
+        /*
+         * Fixed to the viewport on a phone, absolute to the bell above it.
+         *
+         * Anchored to the bell alone, right-0 measures from the BELL's right
+         * edge, and the bell is not the rightmost thing in the header: the menu
+         * button and the avatar sit to its right. At 390 that put the panel's
+         * left edge at -62px, with the first sixty pixels of every notification
+         * off the screen.
+         *
+         * mobile-overflow-audit could not catch it. The panel is clipped rather
+         * than widening the document, so scrollWidth still equalled clientWidth
+         * and the page was, by that measure, fine. Found by opening the bell in
+         * a screenshot and reading the titles.
+         */
+        <div className="fixed inset-x-4 top-[calc(60px+env(safe-area-inset-top))] z-50 rounded-[4px] border border-limestone-line bg-white shadow-[0_18px_40px_rgba(11,26,48,0.22)] sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-[340px]">
           <p className="border-b border-limestone-line px-4 py-3 text-[12px] font-bold tracking-[0.12em] text-brass-ink uppercase">
             Notifications
           </p>
@@ -290,7 +334,9 @@ export function NotificationBell({
                   <Link
                     href={n.href ?? "#"}
                     onClick={() => setOpen(false)}
-                    className="block px-4 py-3 hover:bg-limestone"
+                    className={`block px-4 py-3 hover:bg-limestone ${
+                      n.read ? "" : "border-l-[3px] border-l-brass"
+                    }`}
                   >
                     <p className="text-[14px] font-semibold text-slate">{n.title}</p>
                     {n.body ? <p className="mt-1 text-[13px] leading-[1.55] text-slate-muted">{n.body}</p> : null}

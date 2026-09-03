@@ -305,71 +305,168 @@ export type ComplianceSeed = {
   description: string;
   recurrence: Recurrence;
   priority: TaskPriority;
+  /**
+   * The calendar day the obligation falls on, when the firm knows it.
+   *
+   * Null means the date is genuinely not known here, and the seeded task is
+   * created WITHOUT a due date so the operator sets it. A guessed renewal date
+   * is worse than an empty one: an empty field asks a question, and a wrong date
+   * answers it incorrectly and then stops asking.
+   */
+  anchor: { month: number; day: number } | null;
+  /**
+   * The date or window is stated from general knowledge rather than checked
+   * against the issuing authority.
+   *
+   * The task description says so and asks for confirmation. This repo's standing
+   * rule is that a number which cannot be traced to a primary source is stated
+   * as unverified rather than repeated as fact, and a compliance deadline is the
+   * last place to break it.
+   */
+  needsConfirmation?: boolean;
 };
 
 /**
- * The recurring compliance tasks the firm seeds itself with.
+ * The firm's real recurring obligations, as given by the operator on
+ * 2026-09-02.
  *
- * WHY THESE ARE IN CODE AND NOT LEFT TO SOMEBODY TO REMEMBER
- * ----------------------------------------------------------
- * Every one of them is a thing that, unnoticed, stops the firm operating
- * lawfully or stops a technician being dispatchable. They are exactly the
- * category of work that never gets written down because everybody assumes it is
- * obvious, and then a certificate lapses in March and nobody finds out until a
- * job is refused in July.
+ * WHY THESE AND NOT A TIDY GENERIC LIST
+ * -------------------------------------
+ * Each one goes wrong quietly. Nothing breaks on the day a licence lapses or a
+ * filing is missed; the consequence arrives months later, attached to work
+ * already done, which is the worst possible time to find out. They are the
+ * category nobody writes down because everybody assumes it is obvious.
  *
- * They seed once, into real task rows, and are then the operator's to edit or
- * cancel. This list is a starting point, not a permanent authority: a task
- * somebody has to keep deleting is a task list nobody reads.
+ * WHAT IS DATED HERE AND WHAT IS DELIBERATELY NOT
+ * -----------------------------------------------
+ * The PE licence renewal date came from the operator. The DWC-005 window is
+ * stated from general knowledge and flagged for confirmation. The TBPELS and
+ * errors and omissions renewals carry no date, because nobody has given one and
+ * inventing a compliance deadline is worse than leaving a field that asks.
  */
 export const COMPLIANCE_SEEDS: ComplianceSeed[] = [
   {
-    key: "credential_sweep",
-    title: "Check every technician credential for expiry",
-    description:
-      "The roster flags anything expiring within 45 days. This is the monthly look at it, so a lapse is found before dispatch finds it.",
-    recurrence: "monthly",
-    priority: "high",
-  },
-  {
-    key: "insurance_review",
-    title: "Confirm firm general liability and professional liability are current",
-    description: "The firm's own cover, not a technician's. A lapse here stops everything.",
-    recurrence: "quarterly",
-    priority: "urgent",
-  },
-  {
-    key: "tbpels_status",
-    title: "Check the TBPELS firm registration status",
-    description:
-      "While registration is pending this is the standing check on it. Once granted it becomes the annual renewal check.",
-    recurrence: "monthly",
-    priority: "urgent",
-  },
-  {
     key: "pe_licence_renewal",
-    title: "Confirm every engineer's Texas PE licence is current",
-    description: "An expired licence means work sealed under it is a problem, not a delay.",
+    title: "Renew the engineer of record's Texas PE licence",
+    description:
+      "Due 30 September. An expired licence does not delay work sealed under it, it makes that work a problem, and the files are already delivered by the time anybody notices.",
     recurrence: "annually",
     priority: "urgent",
+    anchor: { month: 9, day: 30 },
   },
   {
-    key: "responsible_charge_export",
-    title: "Export the responsible charge log for the month",
+    key: "dwc_005_filing",
+    title: "File the DWC-005 nonsubscriber notice with the Texas Division of Workers Compensation",
     description:
-      "One file per engineer per month, kept outside the platform. A regulator asking in two years should not depend on this software still existing.",
+      "Required annually of an employer that does not carry workers compensation insurance. The filing window is believed to run from 1 February to 30 April. The operator is confirming the current dates and the current form with the Division; until that is done this description is not a primary source and the anchor below is provisional.",
+    recurrence: "annually",
+    priority: "urgent",
+    anchor: { month: 2, day: 1 },
+    needsConfirmation: true,
+  },
+  {
+    key: "tbpels_registration_renewal",
+    title: "Renew the TBPELS firm registration",
+    description:
+      "Renewal falls one year from issuance, so the date is set on launch day when the certificate arrives. Registration is pending as this task is seeded, and the firm cannot offer engineering services without it.",
+    recurrence: "annually",
+    priority: "urgent",
+    anchor: null,
+  },
+  {
+    key: "eo_policy_renewal",
+    title: "Renew the errors and omissions policy",
+    description:
+      "Professional liability cover for the firm. The date is set when the policy binds, from the declarations page. A lapse here is not a paperwork problem, it is the firm carrying its own exposure on every file in flight.",
+    recurrence: "annually",
+    priority: "urgent",
+    anchor: null,
+  },
+  {
+    key: "credential_sweep",
+    title: "Work the technician credential expiry list",
+    description:
+      "The roster flags anything expiring within 45 days and dispatch refuses anybody whose required documents have lapsed. This is the monthly look at the list, so a lapse is found here rather than by a job that cannot be offered to anyone.",
     recurrence: "monthly",
-    priority: "normal",
-  },
-  {
-    key: "protocol_review",
-    title: "Review the published protocols against what reviews keep sending back",
-    description:
-      "If the same item is missing on every package, the protocol is unclear rather than the technicians being careless.",
-    recurrence: "quarterly",
-    priority: "normal",
+    priority: "high",
+    anchor: null,
   },
 ];
+
+/**
+ * When a seeded task is first due.
+ *
+ * An anchored obligation lands on its next occurrence: if 30 September has
+ * already passed this year, the first one is next year. An unanchored obligation
+ * gets NO due date, so the operator is asked rather than told.
+ */
+export function firstDueFor(seed: ComplianceSeed, now: Date = new Date()): Date | null {
+  if (!seed.anchor) return null;
+  const thisYear = new Date(now.getFullYear(), seed.anchor.month - 1, seed.anchor.day);
+  if (thisYear.getTime() >= now.getTime()) return thisYear;
+  return new Date(now.getFullYear() + 1, seed.anchor.month - 1, seed.anchor.day);
+}
+
+// -------------------------------------------------- credentials become tasks
+
+export type ExpiringCredential = {
+  credentialId: string;
+  profileId: string;
+  personName: string;
+  kindLabel: string;
+  expiresOn: string;
+  /** From ops-credentials.expiryState. */
+  state: "current" | "expiring" | "expired";
+};
+
+export type DerivedTask = {
+  /** Stable, so re-running the sweep updates rather than duplicates. */
+  key: string;
+  profileId: string;
+  title: string;
+  description: string;
+  dueAt: string;
+  priority: TaskPriority;
+};
+
+/**
+ * Turn expiring credentials into tasks.
+ *
+ * WHY THIS IS DERIVED AND NOT SEEDED
+ * ----------------------------------
+ * The other obligations are the firm's own calendar and repeat whatever happens.
+ * This one is a fact about data that changes every week: a technician renews an
+ * insurance certificate and the task should disappear, another joins and a new
+ * one should exist. Seeding a fixed task per technician would produce a list
+ * that is wrong the moment anybody is onboarded.
+ *
+ * The key is derived from the credential id, so running the sweep twice updates
+ * one task rather than producing two. A duplicated compliance task is one
+ * somebody closes without doing, because the other copy makes it look handled.
+ *
+ * The due date is the EXPIRY itself, not some days before it. A task due the day
+ * the cover ends is honest about the deadline; padding it invents a second,
+ * softer date that people then treat as the real one.
+ */
+export function credentialTasks(credentials: ExpiringCredential[]): DerivedTask[] {
+  return credentials
+    .filter((c) => c.state === "expiring" || c.state === "expired")
+    .map((c) => ({
+      key: `credential:${c.credentialId}`,
+      profileId: c.profileId,
+      title:
+        c.state === "expired"
+          ? `${c.personName}: ${c.kindLabel} expired on ${c.expiresOn}`
+          : `${c.personName}: ${c.kindLabel} expires ${c.expiresOn}`,
+      description:
+        c.state === "expired"
+          ? "Dispatch is already refusing this technician for it. Collect the replacement document and record the new expiry on the roster."
+          : "Collect the replacement before it lapses. Once it does, dispatch refuses this technician until it is replaced.",
+      dueAt: `${c.expiresOn}T00:00:00.000Z`,
+      // An expired credential is already stopping work. A pending one is not.
+      priority: c.state === "expired" ? "urgent" : "high",
+    }));
+}
 
 export type TaskSubject = {
   assigneeId: string | null;

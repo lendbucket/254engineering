@@ -51,6 +51,8 @@ const ADMIN_PAGES = [
   "/portal/onboarding",
   "/portal/certification",
   "/portal/charge-log",
+  "/portal/tasks",
+  "/portal/messages",
   "/admin",
   "/admin/leads",
   "/admin/applications",
@@ -68,6 +70,7 @@ const ADMIN_APIS = [
   "/api/portal/files",
   "/api/portal/field",
   "/api/portal/review",
+  "/api/portal/comms",
   "/api/portal/onboarding",
 ];
 

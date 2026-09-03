@@ -3,13 +3,16 @@ import { supabaseAdmin } from "./supabase";
 import { writeAudit } from "./ops-audit";
 import { can, type Actor } from "./ops-authz";
 import { createAccount } from "./ops-auth";
+import { raise } from "./ops-notify";
 import { canonicalCounty } from "./ops-counties";
 import { checklistFor } from "@/content/onboarding-checklists";
 import { createOnboarding } from "./onboarding";
 import {
+  CREDENTIAL_LABEL,
   CREDENTIAL_OF_ITEM,
   activationReadiness,
   credentialBlockers,
+  expiryState,
   type CredentialRecord,
   type OnboardingItemView,
   type Readiness,
@@ -528,6 +531,31 @@ export async function recordCredential(
     ? await db.from("eng_credentials").update(row).eq("id", input.id).eq("profile_id", profileId)
     : await db.from("eng_credentials").insert(row);
   if (error) return { ok: false, error: error.message };
+
+  /*
+   * If the document that was just recorded is already inside the warning
+   * window, say so now rather than waiting for a monthly sweep. Mandatory
+   * email: a lapsed credential stops dispatch offering them work.
+   */
+  if (row.expires_on && expiryState(row.expires_on) !== "current") {
+    const { data: person } = await db
+      .from("eng_profiles")
+      .select("role, display_name")
+      .eq("id", profileId)
+      .maybeSingle();
+    if (person) {
+      await raise({
+        profileId,
+        role: person.role as Actor["role"],
+        kind: "credential.expiring",
+        title: `Your ${CREDENTIAL_LABEL[input.kind as keyof typeof CREDENTIAL_LABEL] ?? input.kind} expires ${row.expires_on}`,
+        body: "Dispatch refuses a technician whose required documents have lapsed. Send the replacement to the operator before then.",
+        href: "/portal/certification",
+        entityType: "profile",
+        entityId: profileId,
+      });
+    }
+  }
 
   await writeAudit({
     actor,
