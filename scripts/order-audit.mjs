@@ -964,6 +964,40 @@ const answerAll = (entry, pick = () => 0) =>
   // The webhook must record a dashboard refund rather than only logging it.
   const hook = fs.readFileSync("src/app/api/stripe/webhook/route.ts", "utf8");
   rec("a refund made outside the platform is written down", hook.includes("recordExternalRefund("));
+
+  /*
+   * The one that cost four real refunds. readEvent required
+   * charge.refunds.data[0], which Stripe does not expand on the charge object
+   * it sends, so every delivery returned null, answered 200 and wrote nothing.
+   */
+  const adapter = fs.readFileSync("src/lib/payments-stripe.ts", "utf8");
+  const refundBranch = adapter.slice(adapter.indexOf('event.type === "charge.refunded"'));
+  rec(
+    "a refund event does not depend on a field Stripe does not send",
+    !/if \(!intent \|\| !latest\)/.test(refundBranch),
+    "charge.refunds is a paginated sub list and arrives unexpanded",
+  );
+  rec(
+    "and takes the amount from amount_refunded, which is always present",
+    /charge\.amount_refunded/.test(refundBranch),
+  );
+  rec(
+    "and carries it under a name that says it is cumulative",
+    /refundedToDateCents/.test(refundBranch),
+    "a single refund amount and a running total must not share a field name",
+  );
+
+  const pay = fs.readFileSync("src/lib/ops-payments.ts", "utf8");
+  const recorder = pay.slice(pay.indexOf("export async function recordExternalRefund"));
+  rec(
+    "the recorder writes the difference rather than the running total",
+    /const delta = input\.refundedToDateCents - alreadyRefunded/.test(recorder),
+    "writing the total whole would double the ledger on a second partial refund",
+  );
+  rec(
+    "and writes nothing when the ledger already agrees",
+    /if \(delta <= 0\)/.test(recorder),
+  );
   rec(
     "and an expired checkout closes the order rather than only noting it",
     hook.includes("markAbandoned("),

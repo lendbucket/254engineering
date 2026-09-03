@@ -83,8 +83,21 @@ export type PaymentEvent =
   | {
       kind: "charge.refunded";
       chargeRef: string;
+      /**
+       * An idempotency key, not an amount carrier. The provider's refund id
+       * when the payload happens to include it, and the event id otherwise,
+       * which is stable across redeliveries.
+       */
       refundRef: string;
-      amountCents: number;
+      /**
+       * CUMULATIVE refunds on this charge, not the size of this one.
+       *
+       * Named at length because the difference is a double refund in the
+       * ledger. The recorder writes the difference between this and what it
+       * already holds, which is what lets the total come right even when an
+       * event is lost.
+       */
+      refundedToDateCents: number;
     };
 
 /**

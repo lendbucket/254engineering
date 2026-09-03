@@ -306,10 +306,12 @@ export async function markAbandoned(
  */
 export async function recordExternalRefund(input: {
   chargeRef: string;
+  /** Idempotency key only. Never an amount. */
   refundRef: string;
-  amountCents: number;
+  /** CUMULATIVE refunds on the charge, from which the delta is derived. */
+  refundedToDateCents: number;
   provider: string;
-}): Promise<{ ok: true; alreadyRecorded: boolean } | { ok: false; error: string }> {
+}): Promise<{ ok: true; alreadyRecorded: boolean; recordedCents?: number } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The order system is not configured." };
 
@@ -333,10 +335,34 @@ export async function recordExternalRefund(input: {
     return { ok: false, error: "No charge on file for that refund." };
   }
 
+  /*
+   * The delta, not the figure the provider sent.
+   *
+   * amount_refunded is cumulative, so writing it whole would double the ledger
+   * the second time a charge is partly refunded. Taking the difference against
+   * what is already on file makes the total converge on the provider's even if
+   * an earlier event was never delivered, which is the failure this whole path
+   * exists because of.
+   */
+  const { data: priorRefunds } = await db
+    .from("eng_order_payments")
+    .select("amount_cents")
+    .eq("order_id", charge.order_id)
+    .eq("kind", "refund")
+    .eq("status", "succeeded");
+
+  const alreadyRefunded = (priorRefunds ?? []).reduce((n, r) => n + Number(r.amount_cents), 0);
+  const delta = input.refundedToDateCents - alreadyRefunded;
+
+  if (delta <= 0) {
+    // The ledger already agrees with the provider. Nothing to write.
+    return { ok: true, alreadyRecorded: true };
+  }
+
   const { error } = await db.from("eng_order_payments").insert({
     order_id: charge.order_id,
     kind: "refund",
-    amount_cents: input.amountCents,
+    amount_cents: delta,
     provider: input.provider,
     provider_ref: input.refundRef,
     status: "succeeded",
@@ -351,7 +377,7 @@ export async function recordExternalRefund(input: {
     charge.order_id as string,
     "refund.recorded",
     true,
-    `${money(input.amountCents)} was refunded to your card.`,
+    `${money(delta)} was refunded to your card.`,
     { provider_ref: input.refundRef, issued_outside_the_platform: true },
   );
 
@@ -360,7 +386,7 @@ export async function recordExternalRefund(input: {
    * of the operator's second case, where the inspection fee is retained, and
    * that order is still owed the engineer's finding.
    */
-  if (input.amountCents >= Number(charge.amount_cents)) {
+  if (input.refundedToDateCents >= Number(charge.amount_cents)) {
     const { data: order } = await db
       .from("eng_service_orders")
       .select("status")
@@ -379,10 +405,10 @@ export async function recordExternalRefund(input: {
     action: "order.refund_recorded",
     entityType: "service_order",
     entityId: charge.order_id as string,
-    summary: `${money(input.amountCents)} refunded outside the platform, recorded from ${input.refundRef}`,
+    summary: `${money(delta)} refunded outside the platform, recorded from ${input.refundRef}`,
   });
 
-  return { ok: true, alreadyRecorded: false };
+  return { ok: true, alreadyRecorded: false, recordedCents: delta };
 }
 
 // ------------------------------------------------------------------ refunds

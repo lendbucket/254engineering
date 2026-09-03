@@ -51,7 +51,15 @@ export async function POST(request: NextRequest) {
    * unhandled. Answering 200 is deliberate: Stripe retries a non-2xx for days,
    * and an event this firm has no behaviour for is not a failure.
    */
-  if (!parsed) return NextResponse.json({ ok: true, handled: false });
+  if (!parsed) {
+    /*
+     * The adapter logs which event this was and why. That is load bearing: this
+     * exact branch swallowed four real refunds on 2026-09-03 because readEvent
+     * returned null for a field Stripe does not send, and a 200 with no line
+     * anywhere is indistinguishable from a webhook that was never delivered.
+     */
+    return NextResponse.json({ ok: true, handled: false });
+  }
 
   if (parsed.kind === "checkout.completed") {
     if (!parsed.orderId) {
@@ -112,7 +120,7 @@ export async function POST(request: NextRequest) {
     const result = await recordExternalRefund({
       chargeRef: parsed.chargeRef,
       refundRef: parsed.refundRef,
-      amountCents: parsed.amountCents,
+      refundedToDateCents: parsed.refundedToDateCents,
       provider: provider.name,
     });
 
@@ -120,6 +128,18 @@ export async function POST(request: NextRequest) {
       console.error(`[stripe] refund ${parsed.refundRef} could not be recorded: ${result.error}`);
       return NextResponse.json({ ok: true, handled: false, reason: "no charge on file" });
     }
+
+    /*
+     * Logged on the way through, including the duplicate case. Four refunds
+     * once reached this route, verified, answered 200 and left no trace
+     * anywhere, and the only way anybody found out was by looking for a row
+     * that was not there. A handled webhook should say so.
+     */
+    console.log(
+      `[stripe] refund ${parsed.refundRef} on ${parsed.chargeRef}: ${
+        result.alreadyRecorded ? "already on file, nothing written" : `recorded ${result.recordedCents} cents`
+      }`,
+    );
 
     return NextResponse.json({ ok: true, handled: true, duplicate: result.alreadyRecorded });
   }

@@ -241,13 +241,40 @@ export function stripeProvider(): PaymentProvider {
       if (event.type === "charge.refunded") {
         const charge = event.data.object as Stripe.Charge;
         const intent = typeof charge.payment_intent === "string" ? charge.payment_intent : charge.payment_intent?.id;
+
+        if (!intent) {
+          console.error(
+            `[stripe] charge.refunded for ${charge.id} carried no payment_intent, so there is no charge on file to attach it to.`,
+          );
+          return null;
+        }
+
+        /*
+         * DO NOT REQUIRE charge.refunds.data.
+         *
+         * refunds is a paginated sub-list and Stripe does not expand it on the
+         * charge object it sends in a webhook. The first version of this
+         * required charge.refunds.data[0] and returned null without logging a
+         * word when it was missing, which is every real delivery.
+         *
+         * On 2026-09-03 four dashboard refunds reached a correctly configured
+         * endpoint, verified, answered 200 and recorded nothing, and the only
+         * trace anywhere was the absence of a row. That silence is the defect;
+         * the missing field was just the trigger.
+         *
+         * amount_refunded is always present and is CUMULATIVE across every
+         * refund on the charge. That is the better figure to carry:
+         * recordExternalRefund writes the difference between it and what is
+         * already on file, so the ledger converges on the truth whether one
+         * event arrives, several do, or some are lost entirely.
+         */
         const latest = charge.refunds?.data?.[0];
-        if (!intent || !latest) return null;
         return {
           kind: "charge.refunded",
           chargeRef: intent,
-          refundRef: latest.id,
-          amountCents: latest.amount,
+          // Only an idempotency key. The event id is stable across redeliveries.
+          refundRef: latest?.id ?? event.id,
+          refundedToDateCents: charge.amount_refunded,
         };
       }
 
