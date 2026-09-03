@@ -3,7 +3,15 @@ import { supabaseAdmin } from "./supabase";
 import { deploymentOrigin } from "./site-url";
 import { writeAudit } from "./ops-audit";
 import { catalogFor } from "@data/catalog";
-import { canTransitionOrder, landingStatusFor, quoteFor, refundFor, type ReviewOutcome } from "./ops-orders";
+import {
+  canTransitionOrder,
+  FIRM_CANCELLATION_CASE,
+  landingStatusFor,
+  quoteFor,
+  refundFor,
+  refundForFirmCancellation,
+  type ReviewOutcome,
+} from "./ops-orders";
 import { event, issueCustomerLink } from "./ops-intake";
 import { isKnown, money } from "./ops-money";
 import { LIVE_KEY_FIX, LIVE_KEY_HEADLINE, liveKeyOffProduction } from "./db-guard";
@@ -409,6 +417,186 @@ export async function recordExternalRefund(input: {
   });
 
   return { ok: true, alreadyRecorded: false, recordedCents: delta };
+}
+
+/**
+ * The firm cancels a paid order and gives everything back.
+ *
+ * THE FOURTH CASE, AND WHY IT IS NOT settleDecision
+ * -------------------------------------------------
+ * settleDecision carries the operator's three case rule, which is about an
+ * ENGINEER'S judgment. Before this existed the only route to a refund was
+ * through that function, so unwinding an order placed by mistake meant routing
+ * the file to review and recording a refusal to seal. That writes a false
+ * professional judgment into eng_audit_events, which refuses deletes, and it
+ * would have been permanent.
+ *
+ * So this is a separate act with a separate name, recorded against the operator
+ * who authorised it rather than against an engineer who never saw the file.
+ *
+ * IT ALWAYS REFUNDS EVERYTHING
+ * ----------------------------
+ * Including when a technician has already attended. See
+ * refundForFirmCancellation for the reasoning; the short version is that the
+ * customer receives nothing they asked for, so charging them for the firm's own
+ * change of mind is not a refund policy. The consequence is that cancelling is
+ * always the most expensive option for the firm, which is what stops it being
+ * the cheap way out of an awkward engineering decision.
+ *
+ * A REASON IS REQUIRED
+ * --------------------
+ * Not for tidiness. This is the one refund path with no engineering decision
+ * behind it, so the only record of why the money moved is the sentence the
+ * person types. An empty reason is refused.
+ */
+export async function cancelAndRefund(input: {
+  orderId: string;
+  reason: string;
+  actor: { id: string | null; role: string; email: string };
+}): Promise<
+  | { ok: true; refundedCents: number; providerRef: string; alreadyRefunded: boolean }
+  | { ok: false; error: string }
+> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The order system is not configured." };
+
+  const reason = input.reason.trim();
+  if (reason.length < 10) {
+    return {
+      ok: false,
+      error: "Say why this is being cancelled. It is the only record of why the money moved.",
+    };
+  }
+
+  const { data: order } = await db
+    .from("eng_service_orders")
+    .select("id, reference, status, currency")
+    .eq("id", input.orderId)
+    .maybeSingle();
+  if (!order) return { ok: false, error: "That order does not exist." };
+
+  if (!canTransitionOrder(order.status as never, "refunded")) {
+    return {
+      ok: false,
+      error: `That order is ${order.status}, which cannot be refunded. Only a paid order can be.`,
+    };
+  }
+
+  const { data: charges } = await db
+    .from("eng_order_payments")
+    .select("provider, provider_ref, amount_cents")
+    .eq("order_id", input.orderId)
+    .eq("kind", "charge")
+    .eq("status", "succeeded");
+
+  const paidCents = (charges ?? []).reduce((n, c) => n + Number(c.amount_cents), 0);
+  const charge = (charges ?? [])[0];
+
+  if (!charge || paidCents <= 0) {
+    /*
+     * Nothing was ever taken. Cancel it rather than pretending to refund, and
+     * say which of the two happened, because "cancelled" and "refunded" are
+     * different answers to a customer asking about their card.
+     */
+    const closed = await markAbandoned(input.orderId, `The firm cancelled this order. ${reason}`);
+    if (!closed.ok) return { ok: false, error: closed.error };
+    await writeAudit({
+      actor: input.actor as never,
+      action: "order.cancelled_by_firm",
+      entityType: "service_order",
+      entityId: input.orderId,
+      summary: `${order.reference}: cancelled with nothing charged. ${reason}`,
+    });
+    return { ok: true, refundedCents: 0, providerRef: "", alreadyRefunded: false };
+  }
+
+  const { data: priorRefunds } = await db
+    .from("eng_order_payments")
+    .select("amount_cents")
+    .eq("order_id", input.orderId)
+    .eq("kind", "refund")
+    .eq("status", "succeeded");
+
+  const alreadyRefunded = (priorRefunds ?? []).reduce((n, r) => n + Number(r.amount_cents), 0);
+  const owed = paidCents - alreadyRefunded;
+
+  if (owed <= 0) {
+    return { ok: true, refundedCents: 0, providerRef: "", alreadyRefunded: true };
+  }
+
+  const decision = refundForFirmCancellation({ paidCents: owed });
+  if (!isKnown(decision.refundCents)) {
+    return { ok: false, error: "The amount to refund could not be worked out. Nothing was done." };
+  }
+
+  const provider = paymentProvider();
+  const result = await provider.refund({
+    chargeRef: charge.provider_ref as string,
+    amountCents: decision.refundCents,
+    reason: FIRM_CANCELLATION_CASE,
+  });
+
+  /*
+   * The row goes in before the status changes, and a failure to record it is
+   * reported as a failure even though the money may already have moved. That
+   * ordering is the lesson from settleDecision, which used to tell a customer
+   * they had been refunded whether or not the ledger agreed.
+   */
+  const { error: payError } = await db.from("eng_order_payments").insert({
+    order_id: input.orderId,
+    kind: "refund",
+    amount_cents: result.amountCents,
+    currency: (order.currency as string) ?? "usd",
+    provider: provider.name,
+    provider_ref: result.ref,
+    status: result.status,
+    refund_case: FIRM_CANCELLATION_CASE,
+    failure_reason: result.failureReason ?? null,
+  });
+
+  if (result.status === "failed") {
+    await event(input.orderId, "refund.failed", false, `The refund did not go through: ${result.failureReason}`);
+    return { ok: false, error: result.failureReason ?? "The refund failed at the provider." };
+  }
+
+  if (payError) {
+    console.error(
+      `[payments] ${order.reference}: a firm cancellation refund of ${result.amountCents} went out under ${result.ref} and did not record: ${payError.message}`,
+    );
+    await event(
+      input.orderId,
+      "refund.unrecorded",
+      false,
+      `A refund of ${money(result.amountCents)} was issued under ${result.ref} and could not be written to the ledger. Reconcile this by hand.`,
+    );
+    return { ok: false, error: "The refund was issued and could not be recorded. It needs a person." };
+  }
+
+  await db
+    .from("eng_service_orders")
+    .update({ status: "refunded", refunded_at: new Date().toISOString() })
+    .eq("id", input.orderId);
+
+  await event(input.orderId, "order.cancelled_by_firm", true, decision.explanation, {
+    reason,
+    refunded_cents: result.amountCents,
+    provider_ref: result.ref,
+  });
+
+  await writeAudit({
+    actor: input.actor as never,
+    action: "order.cancelled_by_firm",
+    entityType: "service_order",
+    entityId: input.orderId,
+    summary: `${order.reference}: cancelled by the firm and refunded ${money(result.amountCents)}. ${reason}`,
+  });
+
+  return {
+    ok: true,
+    refundedCents: result.amountCents,
+    providerRef: result.ref,
+    alreadyRefunded: false,
+  };
 }
 
 // ------------------------------------------------------------------ refunds
