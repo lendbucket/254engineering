@@ -1,0 +1,112 @@
+import Link from "next/link";
+import type { Attention, MoneyTile, Tile } from "@/lib/ops-dashboard";
+import { isKnown, money } from "@/lib/ops-money";
+
+/**
+ * The dashboard's three kinds of tile.
+ *
+ * WHY COUNTS AND MONEY ARE TWO COMPONENTS
+ * ---------------------------------------
+ * A count of zero is a fact: nothing is in the queue. A money figure of null is
+ * the absence of a fact: nobody has entered the price. They render differently
+ * on purpose, and keeping them in one component is how the second eventually
+ * gets rendered like the first.
+ *
+ * CountTile only ever receives a number. MoneyTile is the only thing here that
+ * can print "not set", and it is the only thing that ever should.
+ */
+
+const TONE: Record<Tile["tone"], string> = {
+  neutral: "border-t-slate",
+  good: "border-t-[#2f7a4f]",
+  warn: "border-t-brass",
+  bad: "border-t-[#b3261e]",
+};
+
+const NUMBER_TONE: Record<Tile["tone"], string> = {
+  neutral: "text-slate",
+  good: "text-slate",
+  warn: "text-[#7a4c05]",
+  bad: "text-[#8c1d18]",
+};
+
+export function CountTiles({ tiles }: { tiles: Tile[] }) {
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+      {tiles.map((tile) => (
+        <Link
+          key={tile.label}
+          href={tile.href}
+          className={`block rounded-[4px] border border-limestone-line border-t-[3px] bg-white p-4 transition-colors hover:bg-limestone/50 ${TONE[tile.tone]}`}
+        >
+          <p className={`font-display text-[28px] leading-none font-bold ${NUMBER_TONE[tile.tone]}`}>
+            {tile.count}
+          </p>
+          <p className="mt-2 text-[13px] leading-[1.35] font-semibold text-slate">{tile.label}</p>
+          <p className="mt-1.5 text-[12px] leading-[1.45] text-slate-muted">{tile.note}</p>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Money, where absent is a visible state.
+ *
+ * An unknown figure prints "not set" in the same weight as a real one, and the
+ * note underneath says what would have to happen for it to become a number. It
+ * is deliberately not a dash and not an empty space, because both read as a
+ * rendering fault and somebody eventually decides they mean zero.
+ */
+export function MoneyTiles({ tiles }: { tiles: MoneyTile[] }) {
+  return (
+    <div className="grid gap-3 sm:gap-4 sm:grid-cols-2">
+      {tiles.map((tile) => (
+        <div
+          key={tile.label}
+          className="rounded-[4px] border border-limestone-line border-t-[3px] border-t-brass bg-white p-4"
+        >
+          <p className="text-[13px] font-semibold text-slate">{tile.label}</p>
+          <p
+            className={`mt-1.5 font-display text-[26px] leading-none font-bold ${
+              isKnown(tile.value) ? "text-slate" : "text-slate-muted"
+            }`}
+          >
+            {money(tile.value)}
+          </p>
+          <p className="mt-2 max-w-[46ch] text-[12px] leading-[1.5] text-slate-muted">{tile.note}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function AttentionList({ items }: { items: Attention[] }) {
+  if (items.length === 0) {
+    return (
+      <div className="rounded-[4px] border border-dashed border-limestone-line px-5 py-8 text-center">
+        <p className="text-[15px] font-semibold text-slate">Nothing needs you right now</p>
+        <p className="mx-auto mt-2 max-w-[52ch] text-[14px] leading-[1.6] text-slate-muted">
+          Overdue work, missing figures and expiring credentials appear here when they exist. An
+          empty list means the checks ran and found nothing, not that nothing was checked.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <ul className="flex flex-col gap-2.5">
+      {items.map((item) => (
+        <li key={item.label}>
+          <Link
+            href={item.href}
+            className="block rounded-[4px] border border-limestone-line border-l-[3px] border-l-brass bg-white px-4 py-3 transition-colors hover:bg-limestone/50"
+          >
+            <p className="text-[14px] font-semibold text-slate">{item.label}</p>
+            <p className="mt-1 max-w-[74ch] text-[13px] leading-[1.55] text-slate-muted">{item.detail}</p>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}

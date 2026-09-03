@@ -19,6 +19,7 @@
  * The second thing it guards is the formula escape on exports, which now belongs
  * to one module rather than being copied into each one.
  */
+import fs from "node:fs";
 import {
   add,
   coverageSentence,
@@ -311,6 +312,116 @@ const rec = (name, ok, note = "") => out.push({ name, ok, note });
   rec("but still states what it is", clean.some((l) => /not an engineering opinion/i.test(l)));
   rec("and still says photographs are not embedded", clean.some((l) => /not embedded/i.test(l)));
   rec("the singular reads correctly", /1 image is/.test(clean.find((l) => /not embedded/i.test(l)) ?? ""));
+}
+
+// ---------------------------------------------------------------------------
+// The surfaces, read from disk.
+//
+// Everything above tests the modules. This tests that nothing else quietly
+// reimplements them. The defect this catches is the one the modules exist to
+// prevent: a page that formats cents itself, gets null, and prints $0.00.
+//
+// It reads source rather than a running page on purpose. A rendered screen only
+// shows the branch the current data happens to take, and the dangerous branch is
+// the one with no data in it.
+// ---------------------------------------------------------------------------
+{
+  const read = (p) => (fs.existsSync(p) ? fs.readFileSync(p, "utf8") : null);
+
+  const surfaces = [
+    "src/app/portal/(app)/page.tsx",
+    "src/app/portal/(app)/billing/page.tsx",
+    "src/app/portal/(app)/documents/page.tsx",
+    "src/components/portal/Dashboard.tsx",
+  ];
+
+  for (const p of surfaces) {
+    const src = read(p);
+    rec(`${p} exists`, src !== null);
+    if (!src) continue;
+
+    /*
+     * Dividing by 100 and formatting is what money() is for. Anywhere else it is
+     * a second implementation, and the second one is the one that has not
+     * thought about null.
+     */
+    rec(
+      `${p} does not format cents itself`,
+      !/\/\s*100\s*\)?\s*\.toFixed/.test(src) && !/toLocaleString\(["']en-US["']/.test(src),
+      "use money() or moneyCell()",
+    );
+  }
+
+  const dash = read("src/components/portal/Dashboard.tsx") ?? "";
+  rec("the dashboard renders money through money()", /\bmoney\(/.test(dash));
+  rec(
+    "and asks isKnown rather than testing truthiness",
+    /isKnown\(/.test(dash) && !/tile\.value\s*\?/.test(dash),
+    "a zero is truthy-false and would render as absent",
+  );
+
+  const countTile = dash.slice(dash.indexOf("export function CountTiles"), dash.indexOf("export function MoneyTiles"));
+  rec(
+    "the count tile never calls money()",
+    countTile.length > 0 && !/\bmoney\(/.test(countTile),
+    "counts and money are different facts",
+  );
+
+  const board = read("src/lib/ops-dashboard.ts") ?? "";
+  rec("dashboard money is typed Cents", /value: Cents;/.test(board));
+  /*
+   * The mirror of the rule the rest of this file enforces. An empty ledger is a
+   * real zero and must read as one; only a read that failed is unknown. The
+   * first version of the dashboard got this backwards and printed "not set" for
+   * a month in which an engineer had simply earned nothing.
+   */
+  rec(
+    "an empty ledger is a zero, not an absence",
+    /rows === null \? null : rows\.reduce/.test(board),
+    "only a failed read is unknown",
+  );
+  /*
+   * Counted, not merely found. Both money-bearing dashboards say it, and a
+   * check that passes on one occurrence goes green while the other role has
+   * quietly lost the distinction. That is the defect class this project keeps
+   * hitting, and it caught this exact check being too weak.
+   */
+  rec(
+    "and both ledgers say a failed read is not a zero",
+    (board.match(/could not be read, so this is not a zero/g) ?? []).length >= 2,
+    "the engineer's production and the technician's pay",
+  );
+
+  const docs = read("src/lib/ops-docs.ts") ?? "";
+  rec("every export is composed through csv()", (docs.match(/return csv\(/g) ?? []).length >= 3);
+  rec(
+    "no export builds a row by joining commas",
+    !/\.join\(","\)/.test(docs),
+    "cell() is the only escaping rule",
+  );
+  rec("money cells go through moneyCell", /moneyCell\(/.test(docs));
+  rec(
+    "the by-file export states what an empty cell means",
+    /has not been entered\. It is not a zero/.test(docs),
+  );
+  rec(
+    "the by-period export states which files it left out",
+    /excluded rather than counted as nothing/.test(docs),
+  );
+
+  const route = read("src/app/api/portal/exports/route.ts") ?? "";
+  rec("the export route exists", route.length > 0);
+  rec(
+    "every export writes an audit row",
+    (route.match(/writeAudit\(/g) ?? []).length >= 2,
+    "taking records off the platform is an event",
+  );
+  rec("the billing exports check billing.read", /can\(actor, "billing\.read"\)/.test(route));
+  rec(
+    "the report is chosen from a fixed list",
+    /report === "binder"/.test(route) && /That is not a report this platform produces/.test(route),
+    "never a path or table name from the caller",
+  );
 }
 
 console.log("============ MONEY, BINDER, AND EXPORTS ============");
