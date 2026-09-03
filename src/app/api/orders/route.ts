@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { placeOrder, requestQuote, siteFromKey } from "@/lib/ops-intake";
+import { startCheckout } from "@/lib/ops-payments";
 import { isPrelaunch } from "@/lib/launch";
 
 export const dynamic = "force-dynamic";
@@ -23,12 +24,16 @@ export const dynamic = "force-dynamic";
  * says "wrong key" confirms it is an order intake worth attacking. One that
  * behaves like a route that does not exist says nothing.
  *
- * WHAT IT DOES NOT DO YET
- * -----------------------
- * Take money. An order is created at awaiting_payment and nothing charges it.
- * The Stripe leg is the next piece of Phase 7 and needs the test keys that are
- * now on Preview. Until then this route is the whole path from a customer's
- * answers to a file in the portal, minus the till.
+ * IT RETURNS A CHECKOUT URL, AND THE ORDER SURVIVES IF IT CANNOT
+ * --------------------------------------------------------------
+ * One call places the order and opens a checkout, so the calling site has one
+ * round trip and one thing to redirect to.
+ *
+ * If the checkout cannot be opened, the response still carries the order. The
+ * order exists at awaiting_payment, it is visible in the portal, and somebody
+ * can send the customer a payment link. Failing the whole request would throw
+ * away a completed flow because a payment provider was briefly unreachable,
+ * and the customer would have to answer every question again.
  */
 
 const NOWHERE = () => NextResponse.json({ ok: false }, { status: 404 });
@@ -157,7 +162,24 @@ export async function POST(request: NextRequest) {
    * the firm declined it. The calling site shows the customer the message, and
    * a disqualification is the flow working rather than an error.
    */
-  return result.ok
-    ? NextResponse.json(result, { status: result.duplicate ? 200 : 201 })
-    : NextResponse.json(result, { status: 422 });
+  if (!result.ok) return NextResponse.json(result, { status: 422 });
+
+  /*
+   * A duplicate does not open a second checkout. The first one is still valid
+   * and Stripe's idempotency key on the order would return it anyway; asking
+   * again would just be a round trip to learn that.
+   */
+  let checkout: { url: string } | { error: string } | null = null;
+  if (!result.duplicate) {
+    const started = await startCheckout(result.orderId);
+    checkout = started.ok ? { url: started.url } : { error: started.error };
+    if (!started.ok) {
+      console.error(`[orders] ${result.reference} placed and its checkout did not open: ${started.error}`);
+    }
+  }
+
+  return NextResponse.json(
+    { ...result, checkout },
+    { status: result.duplicate ? 200 : 201 },
+  );
 }

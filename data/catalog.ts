@@ -18,29 +18,49 @@
  * receive at the end.
  *
  * ----------------------------------------------------------------------------
- * EVERY PRICE IN THIS FILE IS NULL, AND THAT IS NOT A PLACEHOLDER
+ * THE PRICES ARE THE OPERATOR'S, SET ON 2026-09-03
  * ----------------------------------------------------------------------------
- * A published price is a commercial decision belonging to the operator, and this
- * repository has no way to derive one. Inventing a number here would put a
- * fabricated figure on three public websites and into a checkout, which is the
- * single thing the standing rules of this project forbid above all others.
+ * Every price here was given by the operator. None was derived, estimated, or
+ * carried over from another firm's published rates. That distinction is the
+ * whole reason this file shipped with every price null until today: a price is
+ * a commercial decision and inventing one would have put a fabricated figure on
+ * three public websites and into a checkout.
  *
- * So `priceCents` is `Cents`, which is a number or null, and null means nobody
- * has set it. A service with no price:
+ * The ruling, verbatim in dollars:
  *
- *   - cannot be ordered, and the intake API refuses it by name;
- *   - never renders a number on any of the three sites;
- *   - renders the same waitlist the compliance gate renders, for the same
- *     reason, which is that the firm is not ready to take that order.
+ *   solar structural letter                        450
+ *   roof certification letter                      600
+ *   foundation certification                       650
+ *   manufactured home foundation certification     650
+ *   structural letter for permit                   550
+ *   WPI-8E windstorm evaluation                    850
+ *   repair specification                           900
+ *   forensic and custom                            quote only
+ *   coastal surcharge, first tier counties          75
+ *   inspection fee retained on decline after a visit 175
  *
- * `orderable()` below is the one function that decides, and it answers no while
- * the price is null. That is deliberately the same answer it gives during
- * prelaunch, because from the customer's side the two situations are identical:
- * the firm is not taking this order today.
+ * TWO PRICES IN THAT RULING HAVE NOWHERE TO GO YET
+ * ------------------------------------------------
+ * "beam and header sizing 750" and "carport and patio cover plan set 1500" are
+ * not in this catalog and not in src/content/services.ts. They are products
+ * rather than restatements of the nine service lines the sites publish, and
+ * adding a catalog entry for a service page that does not exist would fail
+ * order-audit's rule that every entry names a real service.
  *
- * WHEN THE OPERATOR SETS PRICES, that is the only edit needed. Nothing else in
- * the engine changes, and `order-audit` will start asserting the fuller set of
- * checks it currently skips for want of a number.
+ * They are deliberately absent rather than guessed at. See BACKLOG.
+ *
+ * WHAT IS STILL NULL, AND WHY
+ * ---------------------------
+ * priceCents is still Cents, and the two quote services still carry null,
+ * because nothing is owed on a quote request until somebody scopes it. The
+ * arithmetic that treats null as unknown rather than zero is unchanged and is
+ * still what stops an unpriced service reaching a checkout.
+ *
+ * THE INSPECTION FEE IS ON FIELD SERVICES ONLY
+ * --------------------------------------------
+ * A desk review has no site visit, so there is no visit to retain a fee for,
+ * and its refund is always full. Setting one on a desk service would create a
+ * deduction the middle row of the refund rule can never justify.
  */
 
 import type { Cents } from "@/lib/ops-money";
@@ -97,9 +117,25 @@ export type CatalogEntry = {
    */
   priceCents: Cents;
   /**
-   * Added for a property in a TWIA designated coastal county, or null when
-   * unset. Shown to the customer as its own named line, never folded into a
-   * larger total. Operator ruling, 2026-09-02.
+   * Added for a property in a first tier coastal county. Shown to the customer
+   * as its own named line, never folded into a larger total. Operator rulings,
+   * 2026-09-02 and 2026-09-03.
+   *
+   * WHICH COUNTIES, AND THE ONE THAT IS NOT A YES OR A NO
+   * -----------------------------------------------------
+   * First tier is the fourteen TWIA designated seaward counties, which is what
+   * twiaStatus() returns "designated" for. Harris County returns "check"
+   * instead, because the designated area there is the part east of State
+   * Highway 146 and a county name cannot express that. A "check" county gets no
+   * surcharge today, which errs toward not overcharging a customer the firm
+   * cannot yet prove is in the designated area.
+   *
+   * APPLIED TO DESK SERVICES TOO, WHICH IS AN INTERPRETATION
+   * --------------------------------------------------------
+   * The operator gave the surcharge as a property of the location rather than
+   * of the service, so it is set on every orderable entry. A coastal letter
+   * carries windstorm design criteria an inland one does not, which supports
+   * reading it that way. Flagged in the report rather than assumed silently.
    */
   coastalSurchargeCents: Cents;
   /**
@@ -151,9 +187,9 @@ export const CATALOG: CatalogEntry[] = [
   {
     serviceSlug: "roof-inspections",
     orderType: "field",
-    priceCents: null,
-    coastalSurchargeCents: null,
-    inspectionFeeCents: null,
+    priceCents: 60000,
+    coastalSurchargeCents: 7500,
+    inspectionFeeCents: 17500,
     protocolServiceSlug: "roof-inspections",
     qualifiers: [
       ADDRESS_QUALIFIER,
@@ -195,9 +231,9 @@ export const CATALOG: CatalogEntry[] = [
   {
     serviceSlug: "windstorm-wpi-8",
     orderType: "field",
-    priceCents: null,
-    coastalSurchargeCents: null,
-    inspectionFeeCents: null,
+    priceCents: 85000,
+    coastalSurchargeCents: 7500,
+    inspectionFeeCents: 17500,
     protocolServiceSlug: "windstorm-wpi-8",
     qualifiers: [
       ADDRESS_QUALIFIER,
@@ -242,9 +278,9 @@ export const CATALOG: CatalogEntry[] = [
   {
     serviceSlug: "foundation-inspections",
     orderType: "field",
-    priceCents: null,
-    coastalSurchargeCents: null,
-    inspectionFeeCents: null,
+    priceCents: 65000,
+    coastalSurchargeCents: 7500,
+    inspectionFeeCents: 17500,
     protocolServiceSlug: "foundation-inspections",
     qualifiers: [
       ADDRESS_QUALIFIER,
@@ -285,9 +321,9 @@ export const CATALOG: CatalogEntry[] = [
   {
     serviceSlug: "manufactured-home-foundation-certifications",
     orderType: "field",
-    priceCents: null,
-    coastalSurchargeCents: null,
-    inspectionFeeCents: null,
+    priceCents: 65000,
+    coastalSurchargeCents: 7500,
+    inspectionFeeCents: 17500,
     protocolServiceSlug: "manufactured-home-foundation-certifications",
     qualifiers: [
       ADDRESS_QUALIFIER,
@@ -331,8 +367,8 @@ export const CATALOG: CatalogEntry[] = [
   {
     serviceSlug: "solar-structural-letters",
     orderType: "desk",
-    priceCents: null,
-    coastalSurchargeCents: null,
+    priceCents: 45000,
+    coastalSurchargeCents: 7500,
     inspectionFeeCents: null,
     protocolServiceSlug: null,
     qualifiers: [
@@ -378,8 +414,8 @@ export const CATALOG: CatalogEntry[] = [
   {
     serviceSlug: "structural-letters",
     orderType: "desk",
-    priceCents: null,
-    coastalSurchargeCents: null,
+    priceCents: 55000,
+    coastalSurchargeCents: 7500,
     inspectionFeeCents: null,
     protocolServiceSlug: null,
     qualifiers: [
@@ -428,8 +464,8 @@ export const CATALOG: CatalogEntry[] = [
      */
     serviceSlug: "repair-specifications",
     orderType: "desk",
-    priceCents: null,
-    coastalSurchargeCents: null,
+    priceCents: 90000,
+    coastalSurchargeCents: 7500,
     inspectionFeeCents: null,
     protocolServiceSlug: null,
     qualifiers: [

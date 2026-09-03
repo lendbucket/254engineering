@@ -1518,3 +1518,91 @@ catalog, which asserts no price is published in the repository.
 
 **Until the operator sets prices, the only thing the intake will accept in a
 live gate is a quote request.** That is the honest state and not a defect.
+
+### Two prices in the operator's ruling have nowhere to go
+
+The 2026-09-03 pricing ruling included **beam and header sizing at 750** and
+**carport and patio cover plan set at 1500**. Neither is in `data/catalog.ts`
+and neither is in `src/content/services.ts`.
+
+They read as products rather than restatements of the nine service lines the
+sites publish. A catalog entry naming a service page that does not exist fails
+`order-audit`'s rule that every entry names a real service, and inventing two
+service pages means inventing copy, titles and descriptions for regulated work,
+which is not something to guess at.
+
+**What is needed from the operator: are these two new service lines needing
+their own pages, or fixed price variants of an existing one?** Beam and header
+sizing plausibly sits under residential and light commercial design; a carport
+and patio cover plan set plausibly does too, which would make that service
+partly fixed price and partly quoted. That is a catalog structure question, not
+a data entry one.
+
+Until then the seven prices that map cleanly are set and those two are absent
+rather than approximated.
+
+### The coastal surcharge is applied to desk services, which is an interpretation
+
+The operator gave "coastal surcharge 75 on the first tier counties" without
+restricting it to field work, so it is set on all seven orderable entries
+including the three desk services.
+
+The reading: it is a property of the location rather than of the service, and a
+coastal letter does carry windstorm design criteria an inland one does not.
+**If the intent was field only, three entries change and nothing else does.**
+
+Harris County gets no surcharge, because `twiaStatus` returns "check" there
+rather than "designated": the designated area is the part east of State Highway
+146 and a county name cannot express that. Erring toward not charging is the
+right direction for a fee the firm cannot yet prove applies.
+
+### A desk order could never have been sealed, and the fix has a boundary
+
+`checklistState` sets `canSubmit` only when every required protocol item is
+satisfied **and there is at least one required item**. That second condition was
+right for every file that existed before Phase 7: a technician must not submit a
+field job with no protocol, which is gathering nothing and calling it done.
+
+A desk order legitimately has no evidence protocol. Under that rule every desk
+order was permanently unsealable, found by trying to seal one.
+
+`deskPackageComplete` now answers the question that applies to a desk order:
+did the customer supply the inputs the catalog marked required? A file with no
+order behind it, and a field order with no protocol, both still return
+incomplete, so the original protection is untouched.
+
+**The boundary worth knowing:** a desk order's completeness is now the presence
+of the customer's files, not their adequacy. An engineer can still ask for
+revisions or decline, which is the right place for that judgment, but the
+platform no longer blocks the seal on a document being useless rather than
+absent.
+
+### Stripe is wired and has never spoken to Stripe
+
+Everything is built: checkout sessions, the webhook with signature verification,
+the paid transition, auto release to dispatch or review, the customer link, and
+all three refund cases.
+
+**It has only ever run against the fake provider.** The Stripe test keys are on
+Preview scope, so the real adapter is unexercised: no real session has been
+created, no real signature verified, and no real refund issued. The fake refuses
+an unsigned webhook and the shapes match, which is not the same as Stripe
+agreeing.
+
+What is needed: a preview deployment with the Preview scoped keys, a test card
+through a real Checkout session, a real webhook delivery, and a decline to watch
+the refund land in the Stripe dashboard. That is the last verification the
+program's Phase 7 gate asks for and it has not happened.
+
+### settleDecision used to report a refund it had not recorded
+
+Found by the walkthrough, through a colliding provider ref in the fake. The
+first version wrote the customer facing "you have been refunded" event whether
+or not the payment row landed, and only skipped the status change. The result
+was the worst available shape: the customer told they were refunded, the order
+still reading in fulfilment, and no payment row to reconcile against.
+
+It now records `refund.unrecorded` internally, names the provider ref the money
+went out under, and returns not-ok. The customer is not told a refund
+succeeded, and not told it failed either, because by that point the money may
+genuinely have moved.

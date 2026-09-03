@@ -38,6 +38,7 @@ import {
   orderBlockedReason,
   orderable,
 } from "../data/catalog.ts";
+import { isKnown, money } from "../src/lib/ops-money.ts";
 import {
   ORDER_STATUSES,
   QUOTE_STATUSES,
@@ -139,25 +140,127 @@ const answerAll = (entry, pick = () => 0) =>
 // 2. NO PRICE IS INVENTED, AND NULL NEVER BECOMES A NUMBER
 // ===========================================================================
 {
-  const withPrices = CATALOG.filter((e) => e.priceCents !== null);
-  rec(
-    "no price is published in the repository",
-    withPrices.length === 0,
-    withPrices.length
-      ? `${withPrices.map((e) => e.serviceSlug).join(", ")} carry a price; if the operator set these deliberately, update this check`
-      : "every price is null until the operator sets one",
-  );
+  /*
+   * THIS SECTION FLIPPED ON 2026-09-03, AND THE OLD VERSION IS WORTH KNOWING.
+   *
+   * It used to assert that NO price existed in the repository, because none did:
+   * a price is the operator's commercial decision and inventing one would have
+   * put a fabricated figure on three public sites and into a checkout. That
+   * check carried its own instruction to update it once the operator ruled.
+   *
+   * They ruled. So the question changed from "is anything priced" to "is
+   * everything that can be ordered priced correctly", and the checks below are
+   * the ones the old note promised would arrive.
+   *
+   * The invariant that did not change: a null price still means unknown and
+   * still refuses the order. The two quote services prove it is still live.
+   */
+  const orderableEntries = CATALOG.filter((e) => e.orderType !== "quote");
+  const quoteEntries = catalogByType("quote");
 
-  for (const entry of CATALOG.filter((e) => e.orderType !== "quote")) {
+  for (const entry of orderableEntries) {
     rec(
-      `${entry.serviceSlug}: cannot be ordered while its price is unset`,
-      !orderable(entry, false),
+      `${entry.serviceSlug}: carries a published price`,
+      isKnown(entry.priceCents),
+      money(entry.priceCents),
+    );
+    rec(
+      `${entry.serviceSlug}: and can therefore be ordered once the gate lifts`,
+      orderable(entry, false),
       orderBlockedReason(entry, false) ?? "",
+    );
+    rec(
+      `${entry.serviceSlug}: the price is a whole number of cents`,
+      Number.isInteger(entry.priceCents),
+    );
+    /*
+     * A price under a hundred dollars on sealed engineering work is far more
+     * likely to be dollars typed where cents were meant than a real price. The
+     * bound is deliberately loose: it catches a factor of a hundred, not a
+     * pricing decision.
+     */
+    rec(
+      `${entry.serviceSlug}: the price is in cents, not dollars`,
+      (entry.priceCents ?? 0) >= 10000,
+      money(entry.priceCents),
     );
   }
 
-  for (const entry of CATALOG.filter((e) => e.orderType === "field")) {
-    const noFee = priced(entry, { inspectionFeeCents: null });
+  for (const entry of quoteEntries) {
+    rec(`${entry.serviceSlug}: a quote service carries no price`, entry.priceCents === null);
+    rec(
+      `${entry.serviceSlug}: and no inspection fee`,
+      entry.inspectionFeeCents === null,
+      "nothing is owed until a scope is accepted",
+    );
+  }
+
+  /*
+   * The operator set the fee on field services only. A desk review has no
+   * visit, so a fee on one would be a deduction the middle row of the refund
+   * rule can never justify: it would retain money for an inspection that did
+   * not happen.
+   */
+  for (const entry of catalogByType("field")) {
+    rec(
+      `${entry.serviceSlug}: a field service discloses an inspection fee`,
+      isKnown(entry.inspectionFeeCents),
+      money(entry.inspectionFeeCents),
+    );
+    rec(
+      `${entry.serviceSlug}: and the fee is less than the price`,
+      (entry.inspectionFeeCents ?? 0) < (entry.priceCents ?? 0),
+      `${money(entry.inspectionFeeCents)} of ${money(entry.priceCents)}`,
+    );
+  }
+
+  for (const entry of catalogByType("desk")) {
+    rec(
+      `${entry.serviceSlug}: a desk service retains nothing on a decline`,
+      entry.inspectionFeeCents === null,
+      "there is no visit to retain a fee for",
+    );
+  }
+
+  /*
+   * One surcharge, everywhere it applies. Three different coastal figures would
+   * be three prices for the same fact about a property, and the customer
+   * comparing two services on the same address would find the coast costing
+   * different amounts.
+   */
+  const surcharges = new Set(
+    orderableEntries.map((e) => e.coastalSurchargeCents).filter((c) => c !== null),
+  );
+  rec(
+    "the coastal surcharge is one figure across every orderable service",
+    surcharges.size === 1,
+    [...surcharges].map((c) => money(c)).join(", "),
+  );
+  rec(
+    "and every orderable service has it set",
+    orderableEntries.every((e) => isKnown(e.coastalSurchargeCents)),
+    "a coastal property must never be quoted the inland price",
+  );
+
+  /*
+   * The unpriced path still has to work, because the two quote services use it
+   * and because a service added tomorrow will start there. Proven on a copy
+   * with the price removed rather than by finding an unpriced entry, since
+   * there are no longer any orderable ones.
+   */
+  const unpriced = { ...orderableEntries[0], priceCents: null };
+  rec(
+    "removing a price still refuses the order",
+    !orderable(unpriced, false),
+    orderBlockedReason(unpriced, false) ?? "",
+  );
+  rec(
+    "and still says the price is not published",
+    /price has not been published/.test(orderBlockedReason(unpriced, false) ?? ""),
+  );
+
+  for (const entry of catalogByType("field")) {
+    const noFee = { ...entry, inspectionFeeCents: null };
     rec(
       `${entry.serviceSlug}: a field order with no inspection fee cannot be taken`,
       !orderable(noFee, false),
@@ -170,7 +273,7 @@ const answerAll = (entry, pick = () => 0) =>
   }
 
   const field = catalogByType("field")[0];
-  const q = quoteFor(field, false);
+  const q = quoteFor({ ...field, priceCents: null }, false);
   rec("an unpriced quote has no total", q.totalCents === null);
   rec("and says why rather than showing nothing", Boolean(q.unavailable));
   rec("and never renders a dollar zero", !/\$0\.00/.test(JSON.stringify(q)));
@@ -397,7 +500,7 @@ const answerAll = (entry, pick = () => 0) =>
   );
   rec("and promises no further charge on a decline", /never charged more/.test(text));
 
-  const unset = refundDisclosure(catalogByType("field")[0]);
+  const unset = refundDisclosure({ ...catalogByType("field")[0], inspectionFeeCents: null });
   rec(
     "with no fee set, the disclosure says so rather than naming a number",
     /not published yet/.test(unset.join(" ")) && !/\$/.test(unset.join(" ")),
@@ -458,10 +561,25 @@ const answerAll = (entry, pick = () => 0) =>
 {
   const src = fs.readFileSync("data/catalog.ts", "utf8");
   rec("the catalog says it is synchronized across the three repos", /SYNCHRONIZED FILE/.test(src));
+  /*
+   * The header used to have to explain why every price was null. Now it has to
+   * record whose prices these are, which is the same protection pointed the
+   * other way: a figure with no attribution is one a later session cannot tell
+   * from an invented one.
+   */
   rec(
-    "and explains why every price is null",
-    /EVERY PRICE IN THIS FILE IS NULL/.test(src),
-    "so the next session does not read it as unfinished and invent one",
+    "the catalog records that the prices are the operator's",
+    /THE PRICES ARE THE OPERATOR'S/.test(src),
+    "a price with no attribution cannot be told from an invented one",
+  );
+  rec(
+    "and names the two products the ruling had nowhere to put",
+    /beam and header sizing/.test(src) && /carport and patio cover/.test(src),
+    "absent deliberately, not overlooked",
+  );
+  rec(
+    "and still explains that a null price refuses the order",
+    /nothing is owed on a quote request/.test(src),
   );
   rec(
     "the catalog imports the money type rather than using plain numbers",
