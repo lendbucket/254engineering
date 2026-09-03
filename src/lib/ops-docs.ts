@@ -53,6 +53,17 @@ const DOCUMENT_COLUMNS =
  * one that matters: a document marked that way is one somebody deliberately kept
  * from the field and the engineering side, and filtering it out in JavaScript
  * after loading it would mean it had already been serialized into a response.
+ *
+ * WHAT THIS DELIBERATELY DOES NOT SCOPE
+ * -------------------------------------
+ * Documents are not narrowed to the files an engineer is on. An engineer already
+ * sees every file in the review queue and can be handed any of them, so a
+ * deliverable they cannot open is a document they will be asked about and cannot
+ * read. The gate is the role, through documents.read, which no technician has.
+ *
+ * Identity documents are not in this table. They live in eng_credentials with
+ * their own storage keys and their own screens, which is why a technician's
+ * driver licence cannot appear here by any visibility setting.
  */
 export async function listDocuments(
   actor: Actor | null,

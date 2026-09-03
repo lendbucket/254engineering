@@ -99,7 +99,26 @@ const EXPECTED = {
   "documents.seal":               { admin: true,  engineer: true,  field_tech: false },
   "documents.deliver":            { admin: true,  engineer: true,  field_tech: false },
 
+  /*
+   * A deliverable and its supporting record. An engineer is handed any file in
+   * the queue, so a document they cannot open is one they will be asked about
+   * and cannot read. A technician gets neither: their evidence reaches them on
+   * the job screen, and the document centre is where sealed work and firm
+   * papers live.
+   */
+  "documents.read":               { admin: true,  engineer: true,  field_tech: false },
+
+  /*
+   * pricing.read is what a file is worth. billing.read is what the firm makes,
+   * across every file, including what each technician costs.
+   *
+   * They are deliberately separate. An engineer sees the first because they are
+   * paid production against a tier and a number they cannot see is one they
+   * cannot check. The second is the firm's own margin and belongs to the
+   * operator alone.
+   */
   "pricing.read":                 { admin: true,  engineer: true,  field_tech: false },
+  "billing.read":                 { admin: true,  engineer: false, field_tech: false },
   "ledger.read_own":              { admin: true,  engineer: true,  field_tech: true },
   "ledger.read_all":              { admin: true,  engineer: false, field_tech: false },
   "ledger.approve":               { admin: true,  engineer: false, field_tech: false },
