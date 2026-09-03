@@ -11,16 +11,29 @@ databases and the guard between them.
 
 ## Status
 
-| Phase | Branch | State |
+**This table went stale and is now a pointer. `docs/platform-state.md` is the
+state of the platform; when the two disagree, that file is newer.**
+
+The table below said phases 4 through 7 had not started, for some time after all
+four had shipped. It is kept rather than deleted because the specifications
+further down this file are still the specifications, and a reader needs to know
+which parts of this document to trust.
+
+| Phase | Branch | State as of 2026-09-03, at `a2d1637` |
 | --- | --- | --- |
 | 0. Foundation, auth, roles, shell | `feat/ops-foundation` | Merged, deployed, verified on production |
 | 1. Clients, contacts, files, the state machine | `feat/ops-crm` | Merged, deployed, verified on production |
-| 2. Dispatch and field operations | `feat/ops-field` | Built and walked end to end on development; at the operator's gate |
-| 3. Field tech onboarding | `feat/ops-tech-onboarding` | Built and walked end to end on development |
-| 4. Engineer review and responsible charge | not started | |
-| 5. Tasks, communication, notifications | not started | |
-| 6. Documents, billing hooks, dashboards | not started | |
-| 7. The order engine | not started | Specified below. Blocked on 2 and 4. |
+| 2. Dispatch and field operations | `feat/ops-field` | Merged, deployed |
+| 3. Field tech onboarding | `feat/ops-tech-onboarding` | Merged, deployed |
+| 4. Engineer review and responsible charge | `feat/ops-engineer-review` | Merged, deployed |
+| 5. Tasks, communication, notifications | `feat/ops-comms` | Merged, deployed |
+| 6. Documents, billing hooks, dashboards | `feat/ops-documents-dashboards` | Merged, deployed |
+| 7. The order engine | `feat/ops-order-engine` | Merged, deployed. Migrations 0006 and 0007 applied to production; schema fingerprint matches development |
+| 7b. Stuck order attention, firm cancellation | `feat/ops-order-attention` | Merged, deployed |
+
+Everything above is on this repository only. The order flow does not exist on
+`sealedengineering` or `stampmyplans` yet, which is the largest open item in
+`BACKLOG.md`.
 
 ## Phase 2, as built
 
