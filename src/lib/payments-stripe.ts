@@ -175,7 +175,12 @@ export function stripeProvider(): PaymentProvider {
           typeof session.payment_intent === "string"
             ? session.payment_intent
             : session.payment_intent?.id;
-        if (!intent) return null;
+        if (!intent) {
+          console.error(
+            `[stripe] ${event.type} for ${session.id} carried no payment_intent, so there is nothing to record a charge against.`,
+          );
+          return null;
+        }
         return {
           kind: "checkout.completed",
           sessionRef: session.id,
@@ -210,7 +215,16 @@ export function stripeProvider(): PaymentProvider {
       /*
        * Everything else. Returned as null rather than falling through, so a new
        * Stripe event type cannot take a branch written for a different one.
+       *
+       * Logged, because a webhook that arrives, verifies and does nothing is
+       * indistinguishable from one that was never sent. The first real Stripe
+       * test delivered two events, both answered 200, and nothing in the
+       * platform changed or said why. That is the same silence the intake key
+       * had before it was given a voice.
        */
+      console.log(
+        `[stripe] ${event.type} verified and not acted on. This platform handles checkout.session.completed, checkout.session.expired and charge.refunded.`,
+      );
       return null;
     },
   };

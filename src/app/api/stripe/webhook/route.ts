@@ -47,6 +47,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false }, { status: 400 });
   }
 
+  /*
+   * The adapter has already logged which event this was and why it went
+   * unhandled. Answering 200 is deliberate: Stripe retries a non-2xx for days,
+   * and an event this firm has no behaviour for is not a failure.
+   */
   if (!parsed) return NextResponse.json({ ok: true, handled: false });
 
   if (parsed.kind === "checkout.completed") {
