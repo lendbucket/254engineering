@@ -136,6 +136,8 @@ const OPEN_BY_DESIGN = new Set([
   "/portal/set-password",
   "/api/portal/session",
   "/api/portal/set-password",
+  // Open deliberately, and the first thing this audit asks. See LIVENESS below.
+  "/api/portal/health",
   // Clears the sign in rate limiter, so it cannot be behind the sign in it
   // exists to unblock. Guarded by a token instead, and tested below.
   "/api/portal/unlock",
@@ -145,6 +147,73 @@ const OPEN_BY_DESIGN = new Set([
 const RETIRED = ["/admin/login", "/admin/logout", "/api/admin/session"];
 
 async function run() {
+  // =======================================================================
+  // LIVENESS. Before anything else, because a broken deployment passes every
+  // check below and a healthy one cannot score better.
+  //
+  // WHY THIS IS HERE
+  // On 2026-09-03 production ran for hours with a wrong service role key. Every
+  // database call failed, nobody could sign in, a valid password link reported
+  // itself invalid, and the failed sign ins wrote no audit rows because the
+  // write that records them failed too. This audit ran against that host and
+  // passed all 126 checks.
+  //
+  // It was not wrong. Every check it makes asks whether a signed out client is
+  // refused, and a deployment that cannot reach a database refuses everybody.
+  // "Closed" and "broken" look identical from out here, and broken scores
+  // better, because nothing leaks from a system that can read nothing.
+  //
+  // So the perimeter result now means something only when the thing behind it
+  // is alive. If it is not, this audit stops and says so, rather than handing
+  // back a green perimeter for a dead site. That is the same rule the suite
+  // runner learned: a red that means two things is not a result.
+  // =======================================================================
+  {
+    let alive = false;
+    let body = "";
+    let status = 0;
+    try {
+      const res = await fetch(`${BASE}/api/portal/health`, { redirect: "manual" });
+      status = res.status;
+      body = (await res.text()).trim();
+      alive = res.status === 200 && body === '{"ok":true}';
+    } catch (e) {
+      body = String(e);
+    }
+
+    rec(
+      "LIVENESS: the deployment can read its own database",
+      alive,
+      alive ? "" : `HTTP ${status} ${body.slice(0, 120)}`,
+    );
+
+    /*
+     * The probe must stay a single bit. A health endpoint that grows a project
+     * ref, a row count, an error string or a build id is a reconnaissance
+     * surface, and it is open to everybody by design.
+     */
+    rec(
+      "and the probe reveals nothing but that one bit",
+      body === '{"ok":true}' || body === '{"ok":false}',
+      `body was ${body.slice(0, 160)}`,
+    );
+
+    if (!alive) {
+      console.log("");
+      console.log("=".repeat(72));
+      console.log("THE PERIMETER WAS NOT MEASURED");
+      console.log("=".repeat(72));
+      console.log(`${BASE} cannot reach its database, so every check below would`);
+      console.log("pass for the wrong reason: a deployment that can read nothing");
+      console.log("refuses everybody. Fix the deployment, then run this again.");
+      console.log("");
+      console.log("Look for the cause in the runtime log, not here. This audit is");
+      console.log("deliberately not told what went wrong.");
+      console.log("");
+      return;
+    }
+  }
+
   // ---------- every portal route is actually covered by this audit ----------
   /*
    * Run first, because everything below it is only meaningful if the lists are

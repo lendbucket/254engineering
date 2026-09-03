@@ -66,6 +66,14 @@ const OPEN_PATHS = new Set([
    * it, so being reachable and being open are not the same thing here.
    */
   "/api/portal/unlock",
+  /*
+   * The liveness probe, open for the same reason the break glass above is open:
+   * it exists to detect a condition that breaks authentication, so it cannot
+   * live behind authentication. It reveals one bit, whether this deployment can
+   * read its own database, and that bit is already inferable by anybody who
+   * tries to sign in. See the route for what it is forbidden to say.
+   */
+  "/api/portal/health",
 ]);
 
 export function proxy(request: NextRequest) {

@@ -1291,3 +1291,82 @@ page. Phase 6 built the two that were missing, so the filter is gone and the old
 reasoning is recorded in `nav.ts` rather than deleted.
 
 Sign in still lands each role on the surface they work in, through `homeFor`.
+
+## The production outage of 2026-09-03, and the audit that scored it green
+
+### What happened
+
+Production ran for roughly two hours unable to reach its database. Every call
+failed with `Invalid API key`, so nobody could sign in, a valid one time password
+link reported itself invalid, and the failed sign ins wrote no audit rows because
+the write that records them failed too.
+
+`security-audit` was run against that host during the outage and **passed all 126
+checks**.
+
+### Why the audit passed, which is the part worth keeping
+
+It was not lying. Every check it makes asks whether a signed out client is
+refused, and a deployment that cannot reach a database refuses everybody. A
+closed portal and a broken one are indistinguishable from outside, and **the
+broken one scores better than a healthy one would**, because nothing can leak
+from a system that can read nothing.
+
+That is the recurring defect class in this repository at full size: a check that
+passes while looking at the wrong thing.
+
+### What was added
+
+`/api/portal/health` returns exactly `{"ok":true}` with 200 or `{"ok":false}`
+with 503 and nothing else. Not the project ref, not a row count, not the error,
+not a build id. `security-audit` runs it first and prints
+`THE PERIMETER WAS NOT MEASURED` instead of a perimeter result when it fails.
+
+Injection verified three directions: healthy passes 128 checks, a wrong service
+role key fails liveness and refuses to score the perimeter, and a probe body
+carrying an extra field fails both checks so the endpoint cannot quietly become
+a reconnaissance surface.
+
+### The part that is still a hole
+
+**Nothing watches the health probe on a schedule.** It is a check an audit runs
+when somebody runs the audit. Production was down for two hours and the way it
+was discovered was the operator trying to sign in.
+
+A cron hitting `/api/portal/health` and alerting on a 503 is the obvious next
+step and is not built. Until it is, the honest statement is that this platform
+has no outage detection, only outage diagnosis.
+
+### The signal I misread, recorded because the misreading is the lesson
+
+Earlier the same day, verifying Phase 6 on the live host, I noticed production's
+audit trail was unchanged at 215 rows after running `security-audit` against it,
+and reported that as reassurance that the audit writes nothing.
+
+It was the symptom. A failed sign in writes an audit row before it branches, so a
+failure that leaves no row anywhere is a client that cannot reach its project at
+all. **That exact inference had already been made and written down during the
+Phase 5 preview incident, one day earlier, in this same repository.** I had the
+diagnosis and did not apply it, because the number I was looking at was the
+number I wanted to see.
+
+**If a count that should have moved has not moved, that is a finding, not a
+clean bill of health.**
+
+### And a second one: fixing the key while the URL stayed wrong
+
+After the key was corrected, production began writing to the **development**
+database. One probe row landed in development at 13:29:29 before the URL was
+also corrected. The outage had been replaced by something worse, and it was
+caught only because the evidence test checks both databases rather than one.
+
+The row cannot be removed; that table refuses deletes by design. It is
+development, so it is noise rather than harm, but it is the second time in two
+days that a Vercel environment variable change pointed a deployment at the wrong
+project. `previewPointingAtProduction` in `src/lib/db-guard.ts` guards a preview
+against production and has no counterpart guarding production against
+development, because production legitimately has no fixed expectation the code
+can assert from inside.
+
+**A `PRODUCTION_EXPECTED_REF` check, asserting at boot that a production
+deployment is pointed at the production ref, would close it.** Not built.
