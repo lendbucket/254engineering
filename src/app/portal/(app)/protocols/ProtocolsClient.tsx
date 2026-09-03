@@ -460,3 +460,231 @@ export function PublishButton({ id, itemCount }: { id: string; itemCount: number
     </div>
   );
 }
+
+/**
+ * The check questions on a protocol.
+ *
+ * WHY THEY LIVE ON THE PROTOCOL AND NOT ON A SEPARATE SCREEN
+ * ----------------------------------------------------------
+ * The engineer who decides what a technician must capture is the one who decides
+ * what they must understand about capturing it. Those are one act on one
+ * document, and splitting them into two screens produces protocols with no
+ * questions, which is a certification gate with no door.
+ *
+ * The rationale is required rather than optional. It is the only thing a
+ * technician who gets the question wrong receives, and a check that fails
+ * somebody without telling them why has taught nothing.
+ */
+export function QuestionEditor({
+  templateId,
+  questions,
+  editable,
+}: {
+  templateId: string;
+  questions: { id: string; prompt: string; options: string[]; correctIndex: number; rationale: string }[];
+  editable: boolean;
+}) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [prompt, setPrompt] = useState("");
+  const [options, setOptions] = useState(["", ""]);
+  const [correctIndex, setCorrectIndex] = useState(0);
+  const [rationale, setRationale] = useState("");
+
+  async function send(payload: Record<string, unknown>) {
+    const res = await fetch("/api/portal/onboarding", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const body = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+    if (!res.ok || !body?.ok) throw new Error(body?.error ?? "That did not work.");
+  }
+
+  return (
+    <div>
+      <p className="text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">
+        Certification check
+      </p>
+      <p className="mt-1.5 max-w-[70ch] text-[13px] leading-[1.55] text-slate-muted">
+        A technician cannot be offered work on this service line until they answer all of these
+        correctly. Retakes are free and a wrong answer shows your reasoning, so write the reasoning
+        as if it is the only thing they will read about that item, because it is.
+      </p>
+
+      {questions.length === 0 ? (
+        <p className="mt-3 text-[13.5px] leading-[1.5] text-slate-muted">
+          No questions yet. A protocol can be published without them, and until they exist nobody can
+          certify against it, so nobody can be dispatched on this line.
+        </p>
+      ) : (
+        <ol className="mt-3 divide-y divide-limestone-line">
+          {questions.map((q, i) => (
+            <li key={q.id} className="py-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[14px] font-semibold text-slate">
+                    {i + 1}. {q.prompt}
+                  </p>
+                  <ul className="mt-1.5 flex flex-col gap-0.5">
+                    {q.options.map((o, index) => (
+                      <li
+                        key={o}
+                        className={`text-[13px] leading-[1.5] ${
+                          index === q.correctIndex ? "font-semibold text-slate" : "text-slate-muted"
+                        }`}
+                      >
+                        {index === q.correctIndex ? "Correct: " : ""}
+                        {o}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-1.5 max-w-[65ch] text-[13px] leading-[1.5] text-slate-muted">
+                    Shown when wrong: {q.rationale}
+                  </p>
+                </div>
+                {editable ? (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await send({ action: "remove_question", templateId, questionId: q.id });
+                      router.refresh();
+                    }}
+                    className="inline-flex min-h-[44px] shrink-0 items-center rounded-[3px] border border-limestone-line px-3 text-[13px] font-semibold text-slate-muted hover:border-slate hover:text-slate"
+                  >
+                    Remove
+                  </button>
+                ) : null}
+              </div>
+            </li>
+          ))}
+        </ol>
+      )}
+
+      {editable ? (
+        <form
+          className="mt-5 border-t border-limestone-line pt-5"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setBusy(true);
+            setError(null);
+            try {
+              await send({
+                action: "add_question",
+                templateId,
+                prompt,
+                options: options.filter((o) => o.trim()),
+                correctIndex,
+                rationale,
+              });
+              setPrompt("");
+              setOptions(["", ""]);
+              setCorrectIndex(0);
+              setRationale("");
+              router.refresh();
+            } catch (err) {
+              setError(err instanceof Error ? err.message : "That did not work.");
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          <p className="text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">Add a question</p>
+
+          <div className="mt-3 flex flex-col gap-3">
+            <div>
+              <label htmlFor="q-prompt" className={label}>
+                The question
+              </label>
+              <input
+                id="q-prompt"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                required
+                placeholder="There is no attic access. What do you do?"
+                className={`${field} mt-1.5`}
+              />
+            </div>
+
+            <fieldset>
+              <legend className={label}>Options, and which one is right</legend>
+              <div className="mt-1.5 flex flex-col gap-2">
+                {options.map((option, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="correct"
+                      checked={correctIndex === index}
+                      onChange={() => setCorrectIndex(index)}
+                      aria-label={`Option ${index + 1} is correct`}
+                      className="h-5 w-5 shrink-0 accent-[#1d2a35]"
+                    />
+                    <input
+                      value={option}
+                      onChange={(e) =>
+                        setOptions((prev) => prev.map((o, i) => (i === index ? e.target.value : o)))
+                      }
+                      placeholder={`Option ${index + 1}`}
+                      className={field}
+                    />
+                    {options.length > 2 ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOptions((prev) => prev.filter((_, i) => i !== index));
+                          if (correctIndex >= index && correctIndex > 0) setCorrectIndex(correctIndex - 1);
+                        }}
+                        className="inline-flex min-h-[44px] shrink-0 items-center px-2 text-[13px] font-semibold text-slate-muted"
+                      >
+                        Remove
+                      </button>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+              {options.length < 6 ? (
+                <button
+                  type="button"
+                  onClick={() => setOptions((prev) => [...prev, ""])}
+                  className="mt-2 inline-flex min-h-[44px] items-center rounded-[3px] border border-limestone-line px-3 text-[13px] font-semibold text-slate"
+                >
+                  Another option
+                </button>
+              ) : null}
+            </fieldset>
+
+            <div>
+              <label htmlFor="q-rationale" className={label}>
+                Why the right answer is right
+              </label>
+              <input
+                id="q-rationale"
+                value={rationale}
+                onChange={(e) => setRationale(e.target.value)}
+                required
+                placeholder="Photograph the obstruction so the engineer can see why there is no deck shot."
+                className={`${field} mt-1.5`}
+              />
+              <p className="mt-1.5 text-[12.5px] leading-[1.5] text-slate-muted">
+                Shown to anybody who gets this wrong. It is the only thing they receive.
+              </p>
+            </div>
+          </div>
+
+          <Problem message={error} />
+
+          <button type="submit" disabled={busy} className={`${button} mt-4`}>
+            {busy ? "Adding" : "Add question"}
+          </button>
+        </form>
+      ) : null}
+      {/*
+        * No "questions cannot be edited" line here. The page prints the same
+        * sentence about the protocol immediately below this block, and two
+        * paragraphs in a row saying the same thing reads as a screen nobody
+        * proofread.
+        */}
+    </div>
+  );
+}

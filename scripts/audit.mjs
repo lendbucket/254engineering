@@ -61,6 +61,13 @@ const PHASE_ZERO = [
     name: "dispatch-audit",
     why: "the three eligibility gates, offer responses, and the submission gate",
   },
+  {
+    // Pure: what a technician must hold to be dispatchable, whether it is still
+    // current, and how a service line is earned. Beside dispatch-audit because
+    // it asserts the fourth gate that one now has.
+    name: "onboarding-audit",
+    why: "credential expiry, activation readiness, and the protocol certification check",
+  },
   { name: "registry-audit", why: "keyword ownership is self consistent and every live claim resolves" },
   { name: "email-audit", why: "every outbound template: voice, absolute links, plaintext part" },
 ];

@@ -23,17 +23,31 @@ export type NavItem = {
   action: Action;
   /** Shown in the bottom tab bar on a phone. At most five, by design. */
   primary?: boolean;
-  icon: "home" | "files" | "people" | "review" | "jobs" | "clients" | "audit" | "profile" | "protocols" | "techs";
+  icon:
+    | "home" | "files" | "people" | "review" | "jobs" | "clients" | "audit"
+    | "profile" | "protocols" | "techs" | "onboarding" | "certification";
 };
 
 export const NAV: NavItem[] = [
   { href: "/portal", label: "Dashboard", short: "Home", action: "files.list", primary: true, icon: "home" },
   { href: "/portal/jobs", label: "My jobs", short: "Jobs", action: "offers.list_own", primary: true, icon: "jobs" },
+  {
+    // A technician's own gate status. Primary on a phone, because "why am I not
+    // getting work" is the question this screen exists to answer and hiding it
+    // behind a menu is how somebody spends a week assuming the platform is quiet.
+    href: "/portal/certification",
+    label: "Certification",
+    short: "Certs",
+    action: "evidence.capture",
+    primary: true,
+    icon: "certification",
+  },
   { href: "/portal/review", label: "Review queue", short: "Review", action: "review.queue", primary: true, icon: "review" },
   { href: "/portal/files", label: "Files", short: "Files", action: "files.list", primary: true, icon: "files" },
   { href: "/portal/clients", label: "Clients", short: "Clients", action: "clients.list", icon: "clients" },
   { href: "/portal/protocols", label: "Protocols", short: "Specs", action: "protocols.author", icon: "protocols" },
   { href: "/portal/techs", label: "Technicians", short: "Techs", action: "profiles.list", icon: "techs" },
+  { href: "/portal/onboarding", label: "Onboarding", short: "Onboard", action: "profiles.create", icon: "onboarding" },
   { href: "/portal/people", label: "People", short: "People", action: "profiles.list", primary: true, icon: "people" },
   { href: "/portal/audit", label: "Audit trail", short: "Audit", action: "audit.read", icon: "audit" },
   { href: "/portal/profile", label: "Your profile", short: "You", action: "profiles.read_self", primary: true, icon: "profile" },

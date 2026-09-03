@@ -16,7 +16,7 @@ databases and the guard between them.
 | 0. Foundation, auth, roles, shell | `feat/ops-foundation` | Merged, deployed, verified on production |
 | 1. Clients, contacts, files, the state machine | `feat/ops-crm` | Merged, deployed, verified on production |
 | 2. Dispatch and field operations | `feat/ops-field` | Built and walked end to end on development; at the operator's gate |
-| 3. Field tech onboarding | not started | |
+| 3. Field tech onboarding | `feat/ops-tech-onboarding` | Built and walked end to end on development |
 | 4. Engineer review and responsible charge | not started | |
 | 5. Tasks, communication, notifications | not started | |
 | 6. Documents, billing hooks, dashboards | not started | |
@@ -83,6 +83,72 @@ evidence submitted is reachable from evidence in progress and from under review,
 and those are two different acts: a technician finishing a capture, and an
 engineer reopening a file. Keyed on the destination alone, a technician could
 pull a file back from the engineer holding it.
+
+## Phase 3, as built
+
+The applicant to dispatchable path, and the two gates that decide whether a
+technician can be offered work.
+
+### What the existing onboarding system was missing
+
+It never ended anywhere. Invite tokens, a per hire checklist, a private bucket
+and an operator verification step all existed and are good. What did not exist
+was the join to dispatch: a completed onboarding was a folder of accepted
+documents, and somebody then created an account by hand, retyped the coverage,
+and remembered the insurance expiry.
+
+Activation is that join, and it is the one irreversible step in the phase.
+
+### The two holes this closed, both of which were worse than omissions
+
+**The roster's expiry warning could never fire.** eng_credentials carried
+expires_on from the start, with an index and a comment saying the Phase 2 alerts
+read it, and nothing ever wrote a row. An operator seeing an empty expiry panel
+concludes nothing is expiring.
+
+**Dispatch ignored paperwork entirely.** Three gates, none of them about whether
+the technician was insured. Credentials are now the fourth, ordered last of the
+four so an operator meets the reasons in the order they can act on them: status,
+coverage, certification, credentials.
+
+**The certification gate had no door.** planDispatch refused anybody without a
+certified row and the only way to get one was writing it into the table by hand.
+
+### Rulings this phase settled
+
+**Expired blocks, expiring warns.** A technician whose insurance renews next
+Tuesday can work on Monday. A certificate expiring today is valid today.
+
+**A lapsed optional certificate still blocks.** It is a worse state than never
+having uploaded one, because it means the firm believed there was cover.
+
+**A renewal beside a lapsed copy wins.** Otherwise keeping records is what
+blocks somebody and the fix looks like deleting them.
+
+**Every question on a protocol check must be right, and retakes are free.**
+There is no such thing as eighty percent of an evidence package. The pressure
+that a strict mark would create is released the other way: the reasoning for
+every wrong answer appears immediately, retakes cost nothing, and attempts are
+counted rather than held against anybody.
+
+**A revoked certification is not undone by retaking.** Revocation is an act by
+the engineer in responsible charge. It comes back the way it went.
+
+**Nothing reads a document.** Expiry dates are typed by the person holding the
+card or the operator verifying it. There is no OCR and there will not be: the
+firm needs the document, not the data off it, and a date a machine pulled off a
+phone photograph is a date nobody checked.
+
+**Coverage counties are validated against the canonical 254 before storage,**
+because dispatch matches on the string and a typo silently excludes somebody
+from every job in a place they cover while the roster shows coverage as set.
+
+### Still open
+
+The legacy /admin/onboarding screens still exist and now overlap this. They are
+not deleted, because they are the surface the operator uses today and the invite
+flow the applicant sees lives under /onboarding/[token], which is unchanged.
+Retiring them is a separate piece of work.
 
 ## Phase 7: the order engine, automated intake across all three brands
 

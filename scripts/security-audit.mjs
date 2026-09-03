@@ -28,6 +28,8 @@
  * This file is the unauthenticated perimeter and stays runnable without either.
  */
 import { chromium } from "playwright";
+import { readdirSync, existsSync } from "node:fs";
+import { join } from "node:path";
 
 const BASE = process.env.BASE_URL || "http://localhost:3225";
 
@@ -44,6 +46,10 @@ const ADMIN_PAGES = [
   "/portal/jobs",
   "/portal/files",
   "/portal/clients",
+  "/portal/techs",
+  "/portal/protocols",
+  "/portal/onboarding",
+  "/portal/certification",
   "/admin",
   "/admin/leads",
   "/admin/applications",
@@ -52,12 +58,125 @@ const ADMIN_PAGES = [
 ];
 
 /** API paths a signed out client must never reach. */
-const ADMIN_APIS = ["/api/admin/onboarding", "/api/portal/people", "/api/portal/password"];
+const ADMIN_APIS = [
+  "/api/admin/onboarding",
+  "/api/portal/people",
+  "/api/portal/password",
+  // Never listed since Phase 1 shipped it. Found by the coverage check below on
+  // its first run, which is the argument for the coverage check.
+  "/api/portal/files",
+  "/api/portal/field",
+  "/api/portal/onboarding",
+];
+
+/**
+ * The lists above are hand written, and a hand written list of routes drifts
+ * the moment somebody adds one.
+ *
+ * It drifted the first time within a single phase: Phase 2 added /portal/techs,
+ * /portal/protocols and /api/portal/field, and this audit went on reporting
+ * that the portal was closed while never asking about any of them. Passing
+ * while looking at the wrong thing is the recurring defect class in this repo,
+ * and a perimeter audit is the worst place for it.
+ *
+ * So the routes are also DISCOVERED from the filesystem and the two are
+ * compared. A new surface fails this audit until somebody has decided, in
+ * writing, that a signed out client must not reach it.
+ *
+ * Discovery is one level deep on purpose. A nested route under a covered parent
+ * is reached through it, and a nested route under a NEW parent shows up as the
+ * uncovered parent.
+ */
+function discoverRoutes() {
+  const root = process.cwd();
+  const pages = [];
+  const apis = [];
+
+  const appDir = join(root, "src", "app", "portal", "(app)");
+  if (existsSync(appDir)) {
+    if (existsSync(join(appDir, "page.tsx"))) pages.push("/portal");
+    for (const entry of readdirSync(appDir, { withFileTypes: true })) {
+      if (!entry.isDirectory() || entry.name.startsWith("[")) continue;
+      if (existsSync(join(appDir, entry.name, "page.tsx"))) pages.push(`/portal/${entry.name}`);
+    }
+  }
+
+  const apiDir = join(root, "src", "app", "api", "portal");
+  if (existsSync(apiDir)) {
+    for (const entry of readdirSync(apiDir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      if (existsSync(join(apiDir, entry.name, "route.ts"))) apis.push(`/api/portal/${entry.name}`);
+    }
+  }
+  return { pages, apis };
+}
+
+/**
+ * Routes that are open by design, and why each one has to be.
+ *
+ * Every entry is a deliberate hole in the perimeter, so they are named here
+ * rather than skipped by a pattern. src/proxy.ts holds the same list and these
+ * two must agree; a route open in the proxy and absent here would be an open
+ * door nobody tests.
+ */
+const OPEN_BY_DESIGN = new Set([
+  "/portal/login",
+  "/portal/set-password",
+  "/api/portal/session",
+  "/api/portal/set-password",
+  // Clears the sign in rate limiter, so it cannot be behind the sign in it
+  // exists to unblock. Guarded by a token instead, and tested below.
+  "/api/portal/unlock",
+]);
 
 /** The retired passphrase surface. These must not answer at all any more. */
 const RETIRED = ["/admin/login", "/admin/logout", "/api/admin/session"];
 
 async function run() {
+  // ---------- every portal route is actually covered by this audit ----------
+  /*
+   * Run first, because everything below it is only meaningful if the lists are
+   * complete. An audit that says the portal is closed while three of its routes
+   * were never asked about is worse than no audit.
+   */
+  {
+    const found = discoverRoutes();
+    const coveredPages = new Set(ADMIN_PAGES);
+    const coveredApis = new Set(ADMIN_APIS);
+
+    const uncoveredPages = found.pages.filter(
+      (p) => !coveredPages.has(p) && !OPEN_BY_DESIGN.has(p),
+    );
+    const uncoveredApis = found.apis.filter(
+      (p) => !coveredApis.has(p) && !OPEN_BY_DESIGN.has(p),
+    );
+
+    rec(
+      `every portal page on disk is in the perimeter list (${found.pages.length} found)`,
+      uncoveredPages.length === 0,
+      uncoveredPages.length ? `not covered: ${uncoveredPages.join(", ")}` : "",
+    );
+    rec(
+      `every portal API on disk is in the perimeter list (${found.apis.length} found)`,
+      uncoveredApis.length === 0,
+      uncoveredApis.length ? `not covered: ${uncoveredApis.join(", ")}` : "",
+    );
+
+    /*
+     * And the other direction. A route removed from the app but left in the
+     * list above means this audit is spending its checks on a 404 and quietly
+     * covering nothing, which reads green forever.
+     */
+    const missingPages = ADMIN_PAGES.filter(
+      (p) => p.startsWith("/portal") && !p.includes("00000000") && !found.pages.includes(p),
+    );
+    rec(
+      "the perimeter list holds no portal page that no longer exists",
+      missingPages.length === 0,
+      missingPages.join(", "),
+    );
+  }
+
   // ---------- the retired passphrase surface is gone ----------
   for (const path of RETIRED) {
     const res = await fetch(BASE + path, { redirect: "manual" });

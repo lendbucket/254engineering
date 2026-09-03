@@ -1113,3 +1113,86 @@ The second one is the one to remember. One check in the walkthrough went green o
 the resulting refusal while asserting something else entirely, which is the
 recurring defect class in this repo, and this time it caught me writing the check
 rather than reading the code.
+
+## Operations platform, Phase 3: the applicant to dispatchable path, 2026-09-02
+
+Onboarding joined to dispatch, credential expiry as a hard gate, and the
+protocol certification check. What follows is what it does not do.
+
+### The legacy /admin/onboarding screens now overlap this and are not deleted
+
+The operator uses them today, and the invite flow the applicant actually sees
+lives at /onboarding/[token] and is unchanged by any of this. Deleting the admin
+screens to make the new one look complete would remove capability and give
+nothing back, which is the same reasoning Phase 0 recorded about the leads and
+applications screens.
+
+Retiring them is its own piece of work: the item decisions, the reject reasons,
+and the two operator verification steps all live there and would need to move.
+
+### Nothing reads a document, so every date is typed
+
+Expiry dates come from the person holding the card or the operator verifying it.
+There is no OCR in this system and there will not be. The standing rule is that
+the firm needs the document and not the data off it, and a date extracted by a
+machine from a phone photograph is a date nobody checked, gating whether
+somebody is sent to a property.
+
+**The cost is real and is accepted.** An operator who accepts an insurance
+certificate and does not type the expiry has an onboarding that will not
+activate, and the readiness check names the document rather than saying the form
+is incomplete. That is the trade: a refusal somebody can act on, instead of a
+silent null that becomes a technician working uninsured eleven months later.
+
+### Credential renewals after activation are an operator action, not a flow
+
+Once somebody is activated, a renewed insurance certificate arrives by email and
+the operator records it on the roster. There is no route for a technician to
+upload a replacement document themselves, and there should be: the person whose
+insurance lapsed is the person most motivated to fix it, and making them wait
+for an operator is how a dispatchable technician stays blocked over a weekend.
+
+It is not built because the upload surface a technician would use is the
+onboarding flow, which is invite scoped and token authenticated, and reusing it
+for a signed in person is a different auth path rather than a new button.
+
+### The certification check is comprehension, not competence
+
+Four multiple choice questions establish that somebody has read the protocol and
+understands what the engineer expects. They do not establish that the person can
+get onto a roof safely or hold a camera straight. Nothing here claims otherwise,
+and the label on the record says certified against a protocol version rather
+than qualified.
+
+A field assessment, where an experienced technician reviews somebody's first
+package before it counts, is the honest next step and is not built.
+
+### Stale certifications warn rather than block, and that is a judgment call
+
+A technician certified on version one of a protocol stays certified when version
+two publishes. Blocking would empty the dispatch pool the moment an engineer
+fixes a typo, and the pressure that creates is on the engineer not to improve
+the protocol.
+
+**If a version bump ever carries a material change, the honest answer is for the
+engineer to revoke the certifications it supersedes**, which is an act they can
+already take. The platform deliberately does not do it for them, because it
+cannot tell a typo from a new required photograph.
+
+### One forms-audit failure that was never explained
+
+During the Phase 3 verification, forms-audit failed once inside a full suite run
+on the check "round trip: the structured answers land in the payload column". It
+passed on the immediately preceding run, passed 80/80 in isolation straight
+afterwards, and passed again on the next full suite run.
+
+**It is recorded because it is unexplained, not because it is understood.** The
+suite run that failed had 81 checks where the isolated run had 80, which says
+the environment differed, and the leading theory is leftover state from an
+earlier suite run that was killed mid flight before its teardown. That was not
+confirmed: by the time it was investigated the marker rows were gone, cleaned up
+by the teardown of the run that failed.
+
+If it recurs, the thing to capture BEFORE re-running is the contents of
+eng_applications where name = 'Zzq Formsaudit', because the failing assertion is
+about the payload column on that row and the evidence disappears at teardown.

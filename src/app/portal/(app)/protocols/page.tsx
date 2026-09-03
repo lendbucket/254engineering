@@ -2,10 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
-import { getProtocol, listProtocols } from "@/lib/ops-field";
+import { getProtocol, listProtocols, protocolQuestions } from "@/lib/ops-field";
 import { services } from "@/content/services";
 import { Chip, EmptyState, PageHead } from "@/components/portal/surfaces";
-import { ItemEditor, NewProtocolForm, PublishButton } from "./ProtocolsClient";
+import { ItemEditor, NewProtocolForm, PublishButton, QuestionEditor } from "./ProtocolsClient";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +47,12 @@ export default async function ProtocolsPage({
 
   const templates = await listProtocols(actor);
   const selected = params.id ? await getProtocol(actor, params.id) : null;
+  /*
+   * The answer key is on this screen because the author needs to see it. It
+   * reaches no other surface: ops-field keeps questionsWithKey unexported and
+   * the technician's copy goes through forTechnician, which drops it.
+   */
+  const questions = selected ? await protocolQuestions(actor, selected.id) : [];
 
   const serviceName = (slug: string) => services.find((s) => s.slug === slug)?.name ?? slug;
 
@@ -193,6 +199,14 @@ export default async function ProtocolsPage({
                     ))}
                   </ol>
                 )}
+
+                <div className="mt-7 border-t border-limestone-line pt-5">
+                  <QuestionEditor
+                    templateId={selected.id}
+                    questions={questions}
+                    editable={selected.status === "draft"}
+                  />
+                </div>
 
                 {selected.status === "draft" ? (
                   <>
