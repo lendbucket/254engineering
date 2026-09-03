@@ -78,6 +78,14 @@ const PHASE_ZERO = [
     name: "review-audit",
     why: "the four review actions, and that declining to seal is never blocked",
   },
+  {
+    // Pure: thread visibility, notification channels, recurrence arithmetic.
+    // The check that matters most here is that an administrator cannot read a
+    // direct message they are not in, which is a deliberate limit on the most
+    // powerful role and exactly the kind of rule a support case quietly removes.
+    name: "comms-audit",
+    why: "who can read a thread, and what reaches somebody outside the app",
+  },
   { name: "registry-audit", why: "keyword ownership is self consistent and every live claim resolves" },
   { name: "email-audit", why: "every outbound template: voice, absolute links, plaintext part" },
 ];
