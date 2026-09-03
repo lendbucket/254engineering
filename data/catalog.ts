@@ -110,6 +110,33 @@ export type RequiredInput = {
 export type CatalogEntry = {
   /** Matches a slug in src/content/services.ts. Checked by order-audit. */
   serviceSlug: string;
+  /**
+   * The deliverable within that service line.
+   *
+   * WHY A SERVICE LINE HAS MORE THAN ONE OF THESE
+   * ---------------------------------------------
+   * Operator ruling, 2026-09-03. Residential and light commercial design sells
+   * beam and header sizing at a fixed price, a carport and patio cover plan set
+   * at a fixed price, and custom foundation and framing packages by quote. One
+   * service page, three deliverables, two of them priced and one not.
+   *
+   * The catalog was one entry per service before that, which made a service
+   * either wholly fixed price or wholly quoted. It is now a list of
+   * DELIVERABLES, and `serviceSlug` is which page each belongs to.
+   *
+   * THE NAME MATCHES eng_fee_schedule, NOT A NEW IDEA
+   * -------------------------------------------------
+   * That table already keys on (kind, service_slug, tier, county_band,
+   * urgency), so a tier is the unit the firm already prices at, for the client
+   * price, the technician's pay and the engineer's production alike. Using the
+   * same word means one tier has one client price and one engineer production
+   * figure, and the two cannot drift into describing different things.
+   *
+   * Unique with serviceSlug. order-audit enforces it.
+   */
+  tier: string;
+  /** What the customer chooses, in their words. */
+  name: string;
   orderType: OrderType;
   /**
    * The published price, or null when the operator has not set one.
@@ -121,21 +148,36 @@ export type CatalogEntry = {
    * as its own named line, never folded into a larger total. Operator rulings,
    * 2026-09-02 and 2026-09-03.
    *
-   * WHICH COUNTIES, AND THE ONE THAT IS NOT A YES OR A NO
-   * -----------------------------------------------------
+   * WHICH COUNTIES, AND WHY HARRIS CARRIES NOTHING
+   * ----------------------------------------------
    * First tier is the fourteen TWIA designated seaward counties, which is what
-   * twiaStatus() returns "designated" for. Harris County returns "check"
-   * instead, because the designated area there is the part east of State
-   * Highway 146 and a county name cannot express that. A "check" county gets no
-   * surcharge today, which errs toward not overcharging a customer the firm
-   * cannot yet prove is in the designated area.
+   * twiaStatus() returns "designated" for.
    *
-   * APPLIED TO DESK SERVICES TOO, WHICH IS AN INTERPRETATION
-   * --------------------------------------------------------
-   * The operator gave the surcharge as a property of the location rather than
-   * of the service, so it is set on every orderable entry. A coastal letter
-   * carries windstorm design criteria an inland one does not, which supports
-   * reading it that way. Flagged in the report rather than assumed silently.
+   * HARRIS COUNTY CARRIES NO SURCHARGE. Operator ruling, 2026-09-03, and the
+   * reasoning is recorded here at their instruction because it is the one
+   * county where a name is not an answer.
+   *
+   * The windstorm designated area in Harris is not the county. It is the part
+   * of it east of State Highway 146, which is a line through a county of four
+   * and a half million people: Baytown, Seabrook and La Porte are inside it and
+   * Houston is not. twiaStatus() therefore returns "check" for Harris rather
+   * than a boolean, because a county name genuinely cannot express where a
+   * property sits relative to a highway.
+   *
+   * A "check" county gets no surcharge. The alternative is charging every
+   * Houston customer 75 dollars for a coastal designation that does not apply to
+   * them, and the firm would be collecting it on the strength of a county name
+   * it knows to be the wrong unit. When the platform can place a property
+   * against that line, from a geocode or from the customer's own answer, Harris
+   * becomes answerable and this changes. Until then not charging is the only
+   * defensible direction.
+   *
+   * APPLIED TO DESK DELIVERABLES TOO
+   * --------------------------------
+   * Operator ruling, 2026-09-03, confirming the reading: a coastal letter
+   * carries windstorm criteria an inland one does not, so the engineer does
+   * more work whether or not anybody drives out. The surcharge is a property of
+   * the property, not of whether there is a site visit.
    */
   coastalSurchargeCents: Cents;
   /**
@@ -186,6 +228,8 @@ export const CATALOG: CatalogEntry[] = [
   // ------------------------------------------------------------- field orders
   {
     serviceSlug: "roof-inspections",
+    tier: "standard",
+    name: "Roof certification letter",
     orderType: "field",
     priceCents: 60000,
     coastalSurchargeCents: 7500,
@@ -230,6 +274,8 @@ export const CATALOG: CatalogEntry[] = [
   },
   {
     serviceSlug: "windstorm-wpi-8",
+    tier: "standard",
+    name: "WPI-8E windstorm evaluation",
     orderType: "field",
     priceCents: 85000,
     coastalSurchargeCents: 7500,
@@ -277,6 +323,8 @@ export const CATALOG: CatalogEntry[] = [
   },
   {
     serviceSlug: "foundation-inspections",
+    tier: "standard",
+    name: "Foundation certification",
     orderType: "field",
     priceCents: 65000,
     coastalSurchargeCents: 7500,
@@ -320,6 +368,8 @@ export const CATALOG: CatalogEntry[] = [
   },
   {
     serviceSlug: "manufactured-home-foundation-certifications",
+    tier: "standard",
+    name: "Manufactured home foundation certification",
     orderType: "field",
     priceCents: 65000,
     coastalSurchargeCents: 7500,
@@ -366,6 +416,8 @@ export const CATALOG: CatalogEntry[] = [
   // -------------------------------------------------------------- desk orders
   {
     serviceSlug: "solar-structural-letters",
+    tier: "standard",
+    name: "Solar structural letter",
     orderType: "desk",
     priceCents: 45000,
     coastalSurchargeCents: 7500,
@@ -413,6 +465,8 @@ export const CATALOG: CatalogEntry[] = [
   },
   {
     serviceSlug: "structural-letters",
+    tier: "standard",
+    name: "Structural letter for permit",
     orderType: "desk",
     priceCents: 55000,
     coastalSurchargeCents: 7500,
@@ -463,6 +517,8 @@ export const CATALOG: CatalogEntry[] = [
      * the engineer would have nothing to write from.
      */
     serviceSlug: "repair-specifications",
+    tier: "standard",
+    name: "Repair specification",
     orderType: "desk",
     priceCents: 90000,
     coastalSurchargeCents: 7500,
@@ -506,8 +562,118 @@ export const CATALOG: CatalogEntry[] = [
   },
 
   // ------------------------------------------------------------- quote orders
+  /*
+   * RESIDENTIAL AND LIGHT COMMERCIAL DESIGN SELLS THREE THINGS
+   * ----------------------------------------------------------
+   * Operator ruling, 2026-09-03. Two fixed price deliverables and one quoted,
+   * on one service page. This is the case the tier field exists for: before it,
+   * a service line was either wholly priced or wholly quoted, and neither was
+   * true of this one.
+   */
   {
     serviceSlug: "residential-light-commercial-design",
+    tier: "beam-header-sizing",
+    name: "Beam and header sizing",
+    orderType: "desk",
+    priceCents: 75000,
+    coastalSurchargeCents: 7500,
+    inspectionFeeCents: null,
+    protocolServiceSlug: null,
+    qualifiers: [
+      ADDRESS_QUALIFIER,
+      {
+        id: "dimensions",
+        prompt: "Do you know the span and what the beam carries?",
+        help: "A size comes from a span and a load. Without both there is nothing to calculate.",
+        options: ["Yes", "No, I need somebody to work that out"],
+        disqualifyOn: [1],
+        disqualifiedMessage:
+          "Sizing a beam needs the span and what sits above it. If those have to be established on site, that is a custom package rather than a sizing, and the quote path on this page is the right way in.",
+      },
+    ],
+    requiredInputs: [
+      {
+        id: "spans",
+        label: "The span, and what the beam or header carries",
+        help: "Clear span in feet, and what bears on it: roof only, one floor above, two, a wall.",
+        kind: "text",
+        required: true,
+      },
+      {
+        id: "plans",
+        label: "A plan, sketch or photograph of the opening",
+        help: "Whatever shows the opening and what is above it. A phone photograph and a hand sketch are enough.",
+        kind: "file",
+        required: true,
+        accepts: "PDF or photographs",
+      },
+      {
+        id: "preference",
+        label: "Any material preference",
+        help: "Optional. Dimensional lumber, engineered lumber, steel. If it does not matter, say so.",
+        kind: "text",
+        required: false,
+      },
+    ],
+    turnaround: "No site visit. The engineer's review begins when the span and the loads are complete.",
+    receives: [
+      "A sealed sizing for the beam or header, with the span and loads it was calculated for stated on it",
+    ],
+  },
+  {
+    serviceSlug: "residential-light-commercial-design",
+    tier: "carport-patio-plan-set",
+    name: "Carport and patio cover plan set",
+    orderType: "desk",
+    priceCents: 150000,
+    coastalSurchargeCents: 7500,
+    inspectionFeeCents: null,
+    protocolServiceSlug: null,
+    qualifiers: [
+      ADDRESS_QUALIFIER,
+      {
+        id: "attachment",
+        prompt: "Is the cover free standing, or attached to the house?",
+        help: "An attached cover loads the existing structure, which changes what has to be checked.",
+        options: ["Free standing", "Attached to the house", "I am not sure"],
+        disqualifyOn: [],
+        disqualifiedMessage: "",
+      },
+    ],
+    requiredInputs: [
+      {
+        id: "dimensions",
+        label: "The dimensions you want",
+        help: "Length, width and height. Approximate is fine at this stage.",
+        kind: "text",
+        required: true,
+      },
+      {
+        id: "site",
+        label: "Photographs of where it goes",
+        help: "Wide enough to see the whole area, including the wall it attaches to if it does.",
+        kind: "file",
+        required: true,
+        accepts: "Photographs",
+      },
+      {
+        id: "permit_office",
+        label: "Which city or county will review it",
+        help: "Optional, and useful. Some offices want particular details called out.",
+        kind: "text",
+        required: false,
+      },
+    ],
+    turnaround: "No site visit. The engineer's review begins when the dimensions and photographs are complete.",
+    receives: [
+      "A sealed plan set for the cover, to the wind loads for the property's county",
+      "A document a permit office can review without asking for more",
+    ],
+  },
+  {
+    serviceSlug: "residential-light-commercial-design",
+    tier: "custom-package",
+    name: "Custom foundation and framing package",
     orderType: "quote",
     priceCents: null,
     coastalSurchargeCents: null,
@@ -543,6 +709,8 @@ export const CATALOG: CatalogEntry[] = [
   },
   {
     serviceSlug: "forensic-engineering",
+    tier: "standard",
+    name: "Forensic investigation",
     orderType: "quote",
     priceCents: null,
     coastalSurchargeCents: null,
@@ -583,8 +751,29 @@ export const CATALOG: CatalogEntry[] = [
 
 // ---------------------------------------------------------------- accessors
 
-export const catalogFor = (serviceSlug: string): CatalogEntry | undefined =>
-  CATALOG.find((entry) => entry.serviceSlug === serviceSlug);
+/**
+ * One deliverable.
+ *
+ * The tier is optional, and that is a deliberate compatibility affordance
+ * rather than laziness: seven of the nine service lines have exactly one
+ * deliverable, so asking for the service is unambiguous. Where a line has
+ * several, omitting the tier returns undefined rather than the first one,
+ * because guessing which of three products somebody meant is how a customer
+ * gets charged 1500 for a 750 job.
+ */
+export function catalogFor(serviceSlug: string, tier?: string): CatalogEntry | undefined {
+  const forService = deliverablesFor(serviceSlug);
+  if (tier) return forService.find((entry) => entry.tier === tier);
+  return forService.length === 1 ? forService[0] : undefined;
+}
+
+/** Every deliverable a service line sells, in the order the customer sees. */
+export const deliverablesFor = (serviceSlug: string): CatalogEntry[] =>
+  CATALOG.filter((entry) => entry.serviceSlug === serviceSlug);
+
+/** Stable identity for one deliverable, used by orders and by the fee schedule. */
+export const deliverableKey = (entry: CatalogEntry): string =>
+  `${entry.serviceSlug}:${entry.tier}`;
 
 export const catalogByType = (type: OrderType): CatalogEntry[] =>
   CATALOG.filter((entry) => entry.orderType === type);
@@ -607,7 +796,7 @@ export function orderBlockedReason(
   entry: CatalogEntry | undefined,
   prelaunch: boolean,
 ): string | null {
-  if (!entry) return "This service is not in the order catalog.";
+  if (!entry) return "That deliverable is not in the order catalog.";
   if (prelaunch) {
     return "The firm's registration with the Texas Board of Professional Engineers and Land Surveyors is pending. No order can be placed and no payment can be taken until it is active.";
   }

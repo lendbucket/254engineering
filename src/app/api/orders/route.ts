@@ -42,6 +42,7 @@ type Body = {
   intent?: "order" | "quote";
   clientRequestId?: string;
   serviceSlug?: string;
+  tier?: string;
   customer?: { name?: string; email?: string; phone?: string; company?: string };
   property?: {
     propertyAddress?: string;
@@ -107,6 +108,7 @@ export async function POST(request: NextRequest) {
       site,
       clientRequestId: body.clientRequestId ?? "",
       serviceSlug: body.serviceSlug ?? "",
+      tier: body.tier,
       customer: {
         name: body.customer?.name ?? "",
         email: body.customer?.email ?? "",
@@ -139,6 +141,7 @@ export async function POST(request: NextRequest) {
     site,
     clientRequestId: body.clientRequestId ?? "",
     serviceSlug: body.serviceSlug ?? "",
+    tier: body.tier,
     customer: {
       name: body.customer?.name ?? "",
       email: body.customer?.email ?? "",

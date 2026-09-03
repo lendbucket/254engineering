@@ -5,7 +5,7 @@ import { writeAudit } from "./ops-audit";
 import { createClient, createFile, SYSTEM_AUTHOR } from "./ops-crm";
 import { resolveCounty, twiaStatus } from "./ops-counties";
 import { isPrelaunch } from "./launch";
-import { catalogFor, orderBlockedReason, type CatalogEntry } from "@data/catalog";
+import { catalogFor, deliverablesFor, orderBlockedReason, type CatalogEntry } from "@data/catalog";
 import {
   landingStatusFor,
   qualify,
@@ -131,6 +131,15 @@ export type PlaceOrderInput = {
   site: string;
   clientRequestId: string;
   serviceSlug: string;
+  /**
+   * Which deliverable on that service line.
+   *
+   * Optional, and catalogFor refuses to guess when a line sells more than one.
+   * Seven of the nine lines have a single deliverable and the caller can leave
+   * it out; residential design sells three and must name one, because picking
+   * the first is how somebody gets charged 1500 for a 750 job.
+   */
+  tier?: string;
   customer: IntakeCustomer;
   property: IntakeProperty;
   answers: QualifierAnswer[];
@@ -185,7 +194,16 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     };
   }
 
-  const entry = catalogFor(input.serviceSlug);
+  const entry = catalogFor(input.serviceSlug, input.tier);
+  if (!entry && deliverablesFor(input.serviceSlug).length > 1) {
+    return {
+      ok: false,
+      error: `That service sells more than one thing. Choose one: ${deliverablesFor(input.serviceSlug)
+        .map((d) => `${d.name} (${d.tier})`)
+        .join(", ")}.`,
+      field: "tier",
+    };
+  }
   const blocked = orderBlockedReason(entry, isPrelaunch());
   if (!entry || blocked) {
     return { ok: false, error: blocked ?? "That service cannot be ordered.", field: "serviceSlug" };
@@ -242,6 +260,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
       site: input.site,
       reference,
       service_slug: entry.serviceSlug,
+      tier: entry.tier,
       order_type: entry.orderType,
       status: "awaiting_payment",
       customer_name: trimmed(input.customer.name),
@@ -465,6 +484,7 @@ export type RequestQuoteInput = {
   site: string;
   clientRequestId: string;
   serviceSlug: string;
+  tier?: string;
   customer: IntakeCustomer;
   property?: Partial<IntakeProperty>;
   answers?: QualifierAnswer[];
@@ -505,10 +525,26 @@ export async function requestQuote(input: RequestQuoteInput): Promise<RequestQuo
     };
   }
 
-  const entry = catalogFor(input.serviceSlug);
+  /*
+   * A quote request resolves to the QUOTED deliverable on the line when the
+   * caller does not name one. A service that sells two fixed price things and
+   * one quoted thing has exactly one sensible answer to "quote me for this",
+   * and refusing to answer it would make the quote path unreachable from a
+   * service page that also sells fixed price work.
+   */
+  const quotable = deliverablesFor(input.serviceSlug).filter((d) => d.orderType === "quote");
+  const entry =
+    catalogFor(input.serviceSlug, input.tier) ?? (quotable.length === 1 ? quotable[0] : undefined);
   const blocked = orderBlockedReason(entry, isPrelaunch());
   if (!entry || blocked) {
     return { ok: false, error: blocked ?? "That service is not in the catalog.", field: "serviceSlug" };
+  }
+  if (entry.orderType !== "quote") {
+    return {
+      ok: false,
+      error: `${entry.name} has a published price and is ordered rather than quoted.`,
+      field: "tier",
+    };
   }
 
   if (!trimmed(input.customer.name)) return { ok: false, error: "A name is needed.", field: "customer.name" };
@@ -536,6 +572,7 @@ export async function requestQuote(input: RequestQuoteInput): Promise<RequestQuo
       site: input.site,
       reference,
       service_slug: entry.serviceSlug,
+      tier: entry.tier,
       status: "new",
       customer_name: trimmed(input.customer.name),
       customer_email: trimmed(input.customer.email).toLowerCase(),

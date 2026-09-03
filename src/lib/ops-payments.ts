@@ -76,7 +76,7 @@ export async function startCheckout(orderId: string): Promise<CheckoutResult> {
   const { data: order } = await db
     .from("eng_service_orders")
     .select(
-      "id, reference, status, service_slug, customer_email, total_cents, price_cents, coastal_surcharge_cents, currency, twia_county, county, property_address",
+      "id, reference, status, service_slug, tier, customer_email, total_cents, price_cents, coastal_surcharge_cents, currency, twia_county, county, property_address",
     )
     .eq("id", orderId)
     .maybeSingle();
@@ -89,7 +89,7 @@ export async function startCheckout(orderId: string): Promise<CheckoutResult> {
     return { ok: false, error: "That order has no total, so it cannot be charged." };
   }
 
-  const entry = catalogFor(order.service_slug as string);
+  const entry = catalogFor(order.service_slug as string, (order.tier as string | null) ?? undefined);
   const lines = entry
     ? quoteFor(
         {
@@ -113,7 +113,7 @@ export async function startCheckout(orderId: string): Promise<CheckoutResult> {
     amountCents: Number(order.total_cents),
     currency: (order.currency as string) ?? "usd",
     customerEmail: order.customer_email as string,
-    description: `${entry?.serviceSlug ?? order.service_slug} at ${order.property_address}`,
+    description: `${entry?.name ?? order.service_slug} at ${order.property_address}`,
     lines: chargeable.length ? chargeable : [{ label: "Sealed document", amountCents: Number(order.total_cents) }],
     successUrl: `${business.url}/order/${order.reference}?paid=1`,
     cancelUrl: `${business.url}/order/${order.reference}?cancelled=1`,
@@ -470,13 +470,13 @@ export async function deskPackageComplete(
 
   const { data: order } = await db
     .from("eng_service_orders")
-    .select("id, order_type, service_slug")
+    .select("id, order_type, service_slug, tier")
     .eq("file_id", fileId)
     .maybeSingle();
 
   if (!order || order.order_type !== "desk") return { applies: false, complete: false, blockers: [] };
 
-  const entry = catalogFor(order.service_slug as string);
+  const entry = catalogFor(order.service_slug as string, (order.tier as string | null) ?? undefined);
   const required = (entry?.requiredInputs ?? []).filter((i) => i.required);
 
   const { data: supplied } = await db

@@ -35,6 +35,8 @@ import {
   CATALOG,
   catalogFor,
   catalogByType,
+  deliverableKey,
+  deliverablesFor,
   orderBlockedReason,
   orderable,
 } from "../data/catalog.ts";
@@ -79,18 +81,97 @@ const answerAll = (entry, pick = () => 0) =>
 // ===========================================================================
 {
   const slugs = CATALOG.map((e) => e.serviceSlug);
-  rec("the catalog has entries", CATALOG.length > 0, `${CATALOG.length}`);
-  rec("no service appears twice", new Set(slugs).size === slugs.length);
+  rec("the catalog has deliverables", CATALOG.length > 0, `${CATALOG.length}`);
+
+  /*
+   * THE CATALOG IS A LIST OF DELIVERABLES, NOT OF SERVICES.
+   *
+   * It used to assert that no service appeared twice, which was true while a
+   * service line was either wholly fixed price or wholly quoted. The operator's
+   * 2026-09-03 ruling made residential design sell three things, so a repeated
+   * serviceSlug is now correct and the identity that has to be unique is the
+   * pair with the tier.
+   */
+  const keys = CATALOG.map((e) => deliverableKey(e));
+  rec("no deliverable appears twice", new Set(keys).size === keys.length, keys.join(", "));
+  rec(
+    "every deliverable names a tier",
+    CATALOG.every((e) => typeof e.tier === "string" && e.tier.length > 0),
+  );
+  rec(
+    "and a name a customer could choose from",
+    CATALOG.every((e) => typeof e.name === "string" && e.name.length > 3),
+  );
 
   const serviceSlugs = new Set(services.map((s) => s.slug));
   const unknown = slugs.filter((s) => !serviceSlugs.has(s));
-  rec("every catalog entry names a real service", unknown.length === 0, unknown.join(", "));
+  rec("every deliverable belongs to a real service", unknown.length === 0, unknown.join(", "));
 
   const uncatalogued = services.map((s) => s.slug).filter((s) => !slugs.includes(s));
   rec(
-    "every service the sites publish is in the catalog",
+    "every service the sites publish sells something",
     uncatalogued.length === 0,
     uncatalogued.length ? `missing: ${uncatalogued.join(", ")}` : "",
+  );
+
+  /*
+   * The ruling this structure exists for, asserted as a fact rather than left
+   * to the reader of a comment.
+   */
+  const design = deliverablesFor("residential-light-commercial-design");
+  rec("residential design sells three deliverables", design.length === 3, `${design.length}`);
+  rec(
+    "two of them fixed price and one quoted",
+    design.filter((d) => d.orderType === "desk").length === 2 &&
+      design.filter((d) => d.orderType === "quote").length === 1,
+    design.map((d) => `${d.tier}:${d.orderType}`).join(" "),
+  );
+  rec(
+    "beam and header sizing is 750",
+    design.find((d) => d.tier === "beam-header-sizing")?.priceCents === 75000,
+    money(design.find((d) => d.tier === "beam-header-sizing")?.priceCents),
+  );
+  rec(
+    "the carport and patio cover plan set is 1500",
+    design.find((d) => d.tier === "carport-patio-plan-set")?.priceCents === 150000,
+    money(design.find((d) => d.tier === "carport-patio-plan-set")?.priceCents),
+  );
+  rec(
+    "and the custom package carries no price",
+    design.find((d) => d.tier === "custom-package")?.priceCents === null,
+  );
+
+  /*
+   * The lookup must refuse to guess. Charging somebody 1500 for a 750 job
+   * because the catalog returned the first match is the failure this prevents.
+   */
+  rec(
+    "asking for a multi deliverable line without a tier returns nothing",
+    catalogFor("residential-light-commercial-design") === undefined,
+    "it must not pick one",
+  );
+  rec(
+    "and naming the tier resolves it",
+    catalogFor("residential-light-commercial-design", "beam-header-sizing")?.priceCents === 75000,
+  );
+  rec(
+    "a single deliverable line still resolves without a tier",
+    catalogFor("roof-inspections")?.priceCents === 60000,
+  );
+  rec(
+    "an unknown tier resolves to nothing rather than the wrong thing",
+    catalogFor("residential-light-commercial-design", "no-such-tier") === undefined,
+  );
+
+  /*
+   * The tier is the fee schedule's word, and that is the point of using it. If
+   * these ever diverge, one tier would have a client price under one name and
+   * an engineer production figure under another.
+   */
+  const migration = fs.readFileSync("supabase/migrations/0007_order_tiers.sql", "utf8");
+  rec(
+    "the migration explains that tier is the fee schedule's own unit",
+    /eng_fee_schedule/.test(migration),
   );
 
   for (const entry of CATALOG) {
@@ -230,6 +311,11 @@ const answerAll = (entry, pick = () => 0) =>
    */
   const surcharges = new Set(
     orderableEntries.map((e) => e.coastalSurchargeCents).filter((c) => c !== null),
+  );
+  rec(
+    "the coastal surcharge is on desk deliverables as well as field ones",
+    catalogByType("desk").every((e) => isKnown(e.coastalSurchargeCents)),
+    "operator ruling: the engineer does more work whether or not anybody drives out",
   );
   rec(
     "the coastal surcharge is one figure across every orderable service",
@@ -560,6 +646,13 @@ const answerAll = (entry, pick = () => 0) =>
 // ===========================================================================
 {
   const src = fs.readFileSync("data/catalog.ts", "utf8");
+  /*
+   * Flattened, because these assertions are about what the file SAYS and not
+   * about where a comment happens to wrap. The first version matched a phrase
+   * that spanned two lines and failed on the line break rather than on the
+   * absence of the sentence.
+   */
+  const flat = src.replace(/\s*\n\s*\*?\s*/g, " ");
   rec("the catalog says it is synchronized across the three repos", /SYNCHRONIZED FILE/.test(src));
   /*
    * The header used to have to explain why every price was null. Now it has to
@@ -580,6 +673,25 @@ const answerAll = (entry, pick = () => 0) =>
   rec(
     "and still explains that a null price refuses the order",
     /nothing is owed on a quote request/.test(src),
+  );
+
+  /*
+   * Recorded at the operator's instruction, 2026-09-03. Harris is the one county
+   * where the surcharge question has no answer from a name, and the reasoning
+   * has to live where somebody changing the surcharge will read it.
+   */
+  rec(
+    "the catalog records why Harris County carries no surcharge",
+    /State Highway 146/.test(flat),
+    "the designated area is a line through the county, not the county",
+  );
+  rec(
+    "and says what would have to change for it to",
+    /place a property against that line/.test(flat),
+  );
+  rec(
+    "and that the surcharge applies to desk work too",
+    /whether or not anybody drives out/.test(flat),
   );
   rec(
     "the catalog imports the money type rather than using plain numbers",
