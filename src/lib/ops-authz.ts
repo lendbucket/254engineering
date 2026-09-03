@@ -101,6 +101,9 @@ export type Action =
   | "ledger.read_own"
   | "ledger.read_all"
   | "ledger.approve"
+  // Reconciliation against the payment provider. Admin only, because applying
+  // it records that money moved and releases work off the back of it.
+  | "payments.reconcile"
   // tasks and communication
   | "tasks.use"
   | "messages.use"
@@ -134,6 +137,7 @@ const MATRIX: Record<Role, Action[]> = {
     "protocols.author", "protocols.publish",
     "review.queue", "review.decide", "documents.seal", "documents.deliver", "documents.read",
     "pricing.read", "billing.read", "ledger.read_own", "ledger.read_all", "ledger.approve",
+    "payments.reconcile",
     "tasks.use", "messages.use",
     "audit.read", "time.log_own",
     "responsible_charge.read_own", "responsible_charge.read_all",

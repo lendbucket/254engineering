@@ -43,6 +43,7 @@ import {
 import { isKnown, money } from "../src/lib/ops-money.ts";
 import { deploymentOrigin } from "../src/lib/site-url.ts";
 import { blockersOn, emptyState, firstIncomplete, stepsFor } from "../src/lib/order-flow.ts";
+import { judge } from "../src/lib/reconcile-rules.ts";
 import {
   ORDER_STATUSES,
   QUOTE_STATUSES,
@@ -852,6 +853,120 @@ const answerAll = (entry, pick = () => 0) =>
   rec(
     "and says card details never reach this site",
     /never reach this site/.test(flowSource),
+  );
+}
+
+// ===========================================================================
+// 11. RECONCILING AGAINST THE PROVIDER
+//
+// The webhook is a message and messages are lost. These are the answers the
+// platform gives when it asks the provider directly, and the ones that matter
+// most are the refusals: a wrong reading here cancels an order somebody paid
+// for, or records money that never moved.
+// ===========================================================================
+{
+  const session = (over = {}) => ({
+    known: true,
+    status: {
+      ref: "cs_test_x",
+      state: "complete",
+      paid: true,
+      chargeRef: "pi_x",
+      amountCents: 67500,
+      orderId: "o1",
+      ...over,
+    },
+  });
+  const order = (totalCents) => ({ totalCents });
+
+  // The reason the whole thing exists.
+  const lost = judge(order(67500), session());
+  rec("a paid session the platform never recorded is found", lost.verdict === "paid_unrecorded");
+  rec("and is acted on", lost.intent === "record_payment", lost.detail);
+
+  // Abandoned.
+  const gone = judge(order(67500), session({ paid: false, state: "expired", chargeRef: null, amountCents: null }));
+  rec("an expired unpaid session is an abandonment", gone.verdict === "abandoned");
+  rec("and is cancelled rather than left waiting forever", gone.intent === "cancel", gone.detail);
+  rec("and the customer is told nothing was charged", /nothing was charged/i.test(gone.detail));
+
+  // Still payable. The one an impatient sweep would wrongly close.
+  const live = judge(order(67500), session({ paid: false, state: "open", chargeRef: null, amountCents: null }));
+  rec("a session the customer can still pay is left alone", live.verdict === "still_open");
+  rec("and nothing is done to it", live.intent === "none", live.detail);
+
+  // ---- the refusals ----
+
+  const mismatch = judge(order(67500), session({ amountCents: 45000 }));
+  rec("a payment for a different amount is not recorded", mismatch.intent === "none");
+  rec("and is reported as a disagreement", mismatch.verdict === "amount_disagrees");
+  rec("naming both figures", /675/.test(mismatch.detail) && /450/.test(mismatch.detail), mismatch.detail);
+
+  const unpriced = judge(order(null), session());
+  rec("a paid order that was never priced is not recorded either", unpriced.intent === "none");
+  rec(
+    "because there would be no price to reconstruct",
+    unpriced.verdict === "amount_disagrees",
+    unpriced.detail,
+  );
+
+  const noCharge = judge(order(67500), session({ chargeRef: null }));
+  rec("paid with nothing to record it against is refused", noCharge.intent === "none", noCharge.detail);
+
+  /*
+   * The dangerous one. A session id the provider does not recognise is almost
+   * always an id from the other mode, and reading it as unpaid would cancel an
+   * order that had been paid for.
+   */
+  const foreign = judge(order(67500), { known: false, reason: "unknown_to_provider" });
+  rec("a session the provider does not know is NOT treated as unpaid", foreign.intent !== "cancel");
+  rec("and does nothing at all", foreign.intent === "none", foreign.detail);
+  rec(
+    "and says why that is not evidence of non payment",
+    /not evidence/i.test(foreign.detail),
+    foreign.detail,
+  );
+
+  const never = judge(order(67500), { known: false, reason: "no_session" });
+  rec("an order that never reached checkout is not cancelled by the sweep", never.intent === "none");
+  rec("and sends the operator to look by hand", /by hand/i.test(never.detail), never.detail);
+
+  const down = judge(order(67500), { known: false, reason: "unreachable", message: "connect ETIMEDOUT" });
+  rec("a provider that cannot be reached changes nothing", down.intent === "none");
+  rec("and reports the reason rather than a verdict", /ETIMEDOUT/.test(down.detail), down.detail);
+
+  /*
+   * No answer may ever both refuse to record a payment and cancel the order.
+   * That combination is the one that loses a customer their money, so it is
+   * asserted across every case rather than argued about per case.
+   */
+  const every = [lost, gone, live, mismatch, unpriced, noCharge, foreign, never, down];
+  rec(
+    "no case cancels an order the provider says was paid",
+    !every.some((j) => j.intent === "cancel" && j.verdict !== "abandoned"),
+  );
+  rec("and only one verdict ever cancels", every.filter((j) => j.intent === "cancel").length === 1);
+  rec("and only one verdict ever records money", every.filter((j) => j.intent === "record_payment").length === 1);
+
+  // The route that carries it must be admin only and read by default.
+  const route = fs.readFileSync("src/app/api/portal/orders/reconcile/route.ts", "utf8");
+  rec(
+    "the reconcile route checks payments.reconcile",
+    route.includes('can(actor, "payments.reconcile")'),
+  );
+  rec(
+    "a GET on it can never apply",
+    !/export async function GET[\s\S]{0,500}apply: true/.test(route),
+    "a link followed in a browser must not move money",
+  );
+  rec("and applying is opt in rather than the default", route.includes("body?.apply === true"));
+
+  // The webhook must record a dashboard refund rather than only logging it.
+  const hook = fs.readFileSync("src/app/api/stripe/webhook/route.ts", "utf8");
+  rec("a refund made outside the platform is written down", hook.includes("recordExternalRefund("));
+  rec(
+    "and an expired checkout closes the order rather than only noting it",
+    hook.includes("markAbandoned("),
   );
 }
 

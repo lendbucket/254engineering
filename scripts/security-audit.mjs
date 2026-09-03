@@ -86,6 +86,10 @@ const ADMIN_APIS = [
   // check below is what made sure they were listed here on the day they shipped.
   "/api/portal/exports",
   "/api/portal/documents",
+  // Asks Stripe what became of an order and can record that money moved. The
+  // first route nested two deep, which is what exposed the one level discovery
+  // above as a hole rather than a simplification.
+  "/api/portal/orders/reconcile",
 ];
 
 /**
@@ -102,31 +106,41 @@ const ADMIN_APIS = [
  * compared. A new surface fails this audit until somebody has decided, in
  * writing, that a signed out client must not reach it.
  *
- * Discovery is one level deep on purpose. A nested route under a covered parent
- * is reached through it, and a nested route under a NEW parent shows up as the
- * uncovered parent.
+ * DISCOVERY USED TO BE ONE LEVEL DEEP, AND THE REASON WAS WRONG
+ * -------------------------------------------------------------
+ * It said: a nested route under a covered parent is reached through it, and a
+ * nested route under a NEW parent shows up as the uncovered parent.
+ *
+ * The second half only holds when the parent directory has a route.ts of its
+ * own. /api/portal/orders/reconcile has no /api/portal/orders route, so the
+ * parent was a bare directory, matched nothing, and the child was invisible.
+ * Phase 7 added exactly that shape and this audit would have gone on reporting
+ * a closed perimeter without ever asking about a route that records payments.
+ *
+ * It now walks the whole tree. The cost is that deep routes must be listed by
+ * their full path, which is the point.
  */
 function discoverRoutes() {
   const root = process.cwd();
   const pages = [];
   const apis = [];
 
-  const appDir = join(root, "src", "app", "portal", "(app)");
-  if (existsSync(appDir)) {
-    if (existsSync(join(appDir, "page.tsx"))) pages.push("/portal");
-    for (const entry of readdirSync(appDir, { withFileTypes: true })) {
-      if (!entry.isDirectory() || entry.name.startsWith("[")) continue;
-      if (existsSync(join(appDir, entry.name, "page.tsx"))) pages.push(`/portal/${entry.name}`);
+  function walk(dir, prefix, marker, into) {
+    if (!existsSync(dir)) return;
+    if (existsSync(join(dir, marker)) && prefix) into.push(prefix);
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      // Dynamic segments cannot be probed without inventing an id, and route
+      // groups are not path segments at all.
+      if (entry.name.startsWith("[")) continue;
+      const segment = entry.name.startsWith("(") ? "" : `/${entry.name}`;
+      walk(join(dir, entry.name), `${prefix}${segment}`, marker, into);
     }
   }
 
-  const apiDir = join(root, "src", "app", "api", "portal");
-  if (existsSync(apiDir)) {
-    for (const entry of readdirSync(apiDir, { withFileTypes: true })) {
-      if (!entry.isDirectory()) continue;
-      if (existsSync(join(apiDir, entry.name, "route.ts"))) apis.push(`/api/portal/${entry.name}`);
-    }
-  }
+  walk(join(root, "src", "app", "portal", "(app)"), "/portal", "page.tsx", pages);
+  walk(join(root, "src", "app", "api", "portal"), "/api/portal", "route.ts", apis);
+
   return { pages, apis };
 }
 

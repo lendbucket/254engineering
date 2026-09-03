@@ -247,6 +247,144 @@ export async function markPaid(input: {
   return { ok: true, alreadyRecorded: false };
 }
 
+/**
+ * A checkout that will never be paid, closed out.
+ *
+ * WHY THIS EXISTS RATHER THAN AN EVENT ON ITS OWN
+ * -----------------------------------------------
+ * The webhook used to write a `checkout.expired` event and leave the order at
+ * awaiting_payment. That reads as harmless and is the exact ambiguity that cost
+ * this platform three orders: an expired session and a paid session whose
+ * confirmation was lost are then the same row, and nothing counts either.
+ *
+ * An expired session cannot be paid. Saying so in the status is what makes the
+ * remaining awaiting_payment rows mean something.
+ */
+export async function markAbandoned(
+  orderId: string,
+  reason: string,
+): Promise<{ ok: true; changed: boolean } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The order system is not configured." };
+
+  const { data: order } = await db
+    .from("eng_service_orders")
+    .select("id, reference, status")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (!order) return { ok: false, error: "That order does not exist." };
+
+  /*
+   * A paid order whose session later expired is not abandoned. Stripe can send
+   * both, and the order of arrival is not guaranteed, so this refuses on the
+   * state machine rather than assuming the expiry came last.
+   */
+  if (!canTransitionOrder(order.status as never, "cancelled")) {
+    return { ok: true, changed: false };
+  }
+
+  await event(orderId, "checkout.expired", true, reason);
+  await db
+    .from("eng_service_orders")
+    .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
+    .eq("id", orderId);
+
+  return { ok: true, changed: true };
+}
+
+/**
+ * A refund the platform did not issue.
+ *
+ * Somebody refunded in the Stripe dashboard. Before this existed the webhook
+ * logged a line and returned, and the comment above it said the event was
+ * "recorded" when nothing was written anywhere. The firm's ledger would have
+ * shown a charge and no refund, permanently, for money that had gone back.
+ *
+ * It is deliberately not settleDecision. That function carries the operator's
+ * three case rule and decides an AMOUNT; this one is told the amount by the
+ * provider and only writes down what already happened.
+ */
+export async function recordExternalRefund(input: {
+  chargeRef: string;
+  refundRef: string;
+  amountCents: number;
+  provider: string;
+}): Promise<{ ok: true; alreadyRecorded: boolean } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The order system is not configured." };
+
+  const { data: charge } = await db
+    .from("eng_order_payments")
+    .select("id, order_id, amount_cents")
+    .eq("provider", input.provider)
+    .eq("provider_ref", input.chargeRef)
+    .eq("kind", "charge")
+    .maybeSingle();
+
+  /*
+   * A refund against a charge this platform never recorded. Loud, and not an
+   * error the caller should retry: the charge is missing, and retrying the
+   * refund notice will not produce it. Reconciliation is what fixes this.
+   */
+  if (!charge) {
+    console.error(
+      `[payments] refund ${input.refundRef} is against charge ${input.chargeRef}, which this platform has no record of. Reconcile the order before this will attach.`,
+    );
+    return { ok: false, error: "No charge on file for that refund." };
+  }
+
+  const { error } = await db.from("eng_order_payments").insert({
+    order_id: charge.order_id,
+    kind: "refund",
+    amount_cents: input.amountCents,
+    provider: input.provider,
+    provider_ref: input.refundRef,
+    status: "succeeded",
+    refund_case: "issued_outside_the_platform",
+  });
+  if (error) {
+    if (error.code === "23505") return { ok: true, alreadyRecorded: true };
+    return { ok: false, error: error.message };
+  }
+
+  await event(
+    charge.order_id as string,
+    "refund.recorded",
+    true,
+    `${money(input.amountCents)} was refunded to your card.`,
+    { provider_ref: input.refundRef, issued_outside_the_platform: true },
+  );
+
+  /*
+   * Only a full refund changes the order's status. A partial one is the shape
+   * of the operator's second case, where the inspection fee is retained, and
+   * that order is still owed the engineer's finding.
+   */
+  if (input.amountCents >= Number(charge.amount_cents)) {
+    const { data: order } = await db
+      .from("eng_service_orders")
+      .select("status")
+      .eq("id", charge.order_id)
+      .maybeSingle();
+    if (order && canTransitionOrder(order.status as never, "refunded")) {
+      await db
+        .from("eng_service_orders")
+        .update({ status: "refunded", refunded_at: new Date().toISOString() })
+        .eq("id", charge.order_id);
+    }
+  }
+
+  await writeAudit({
+    actor: { id: null, role: "admin", email: "order-engine@254engineering.com" },
+    action: "order.refund_recorded",
+    entityType: "service_order",
+    entityId: charge.order_id as string,
+    summary: `${money(input.amountCents)} refunded outside the platform, recorded from ${input.refundRef}`,
+  });
+
+  return { ok: true, alreadyRecorded: false };
+}
+
 // ------------------------------------------------------------------ refunds
 
 export type RefundOutcome =

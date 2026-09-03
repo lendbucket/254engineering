@@ -4,6 +4,7 @@ import { LIVE_KEY_EXPLANATION, LIVE_KEY_FIX, LIVE_KEY_HEADLINE, liveKeyOffProduc
 import type {
   CheckoutRequest,
   CheckoutSession,
+  CheckoutStatus,
   PaymentEvent,
   PaymentProvider,
   RefundRequest,
@@ -155,6 +156,44 @@ export function stripeProvider(): PaymentProvider {
           failureReason: err instanceof Error ? err.message : "the refund call failed",
         };
       }
+    },
+
+    async retrieveCheckout(sessionRef: string) {
+      let session: Stripe.Checkout.Session;
+      try {
+        session = await stripe().checkout.sessions.retrieve(sessionRef);
+      } catch (err) {
+        /*
+         * A session Stripe does not have is not an unpaid session. The two are
+         * reported differently on purpose: the first is usually a session id
+         * from the other mode (a cs_test id asked of a live key, or the
+         * reverse), and answering "not paid" to that would invite somebody to
+         * cancel an order that had in fact been paid for.
+         */
+        if (err && typeof err === "object" && "code" in err && err.code === "resource_missing") {
+          return null;
+        }
+        throw err;
+      }
+
+      /*
+       * payment_status is the authority, not status. A session can read
+       * complete while payment_status is unpaid, which is what a delayed
+       * payment method looks like, and treating complete as paid would record
+       * money that has not moved.
+       */
+      const paid = session.payment_status === "paid" || session.payment_status === "no_payment_required";
+      const intent =
+        typeof session.payment_intent === "string" ? session.payment_intent : (session.payment_intent?.id ?? null);
+
+      return {
+        ref: session.id,
+        state: session.status === "complete" ? "complete" : session.status === "expired" ? "expired" : "open",
+        paid,
+        chargeRef: paid ? intent : null,
+        amountCents: session.amount_total ?? null,
+        orderId: session.metadata?.order_id ?? null,
+      } satisfies CheckoutStatus;
     },
 
     readEvent(rawBody: string, signature: string | null): PaymentEvent | null {

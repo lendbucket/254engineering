@@ -87,12 +87,47 @@ export type PaymentEvent =
       amountCents: number;
     };
 
+/**
+ * What the provider says about a checkout we started, asked long afterwards.
+ *
+ * This exists because a webhook is a message and messages are lost. The
+ * platform's record of a checkout is written from an event Stripe sends; if
+ * that event never arrives the order sits at awaiting_payment forever, and an
+ * abandoned checkout and a paid one whose confirmation was lost are the same
+ * row. One of those customers has been charged and has no order.
+ *
+ * So this is the pull to the webhook's push, and the provider is the authority.
+ * Nothing derived from our own records can answer it.
+ */
+export type CheckoutStatus = {
+  ref: string;
+  /**
+   * Open means the customer could still pay it, so it is not yet a discrepancy.
+   * Complete and expired are both settled, and only one of them took money.
+   */
+  state: "open" | "complete" | "expired";
+  /** The provider's answer on whether money moved. Nothing else decides this. */
+  paid: boolean;
+  /** The charge to record. Null unless paid. */
+  chargeRef: string | null;
+  /** What the provider says was taken, which may disagree with our total. */
+  amountCents: number | null;
+  /** Carried in metadata when the session was created. */
+  orderId: string | null;
+};
+
 export type PaymentProvider = {
   readonly name: string;
   /** True when it can actually reach the provider. */
   configured(): boolean;
   createCheckout(request: CheckoutRequest): Promise<CheckoutSession>;
   refund(request: RefundRequest): Promise<RefundResult>;
+  /**
+   * Ask the provider what became of a session. Null when it has never heard of
+   * it, which is a different fact from "it was not paid" and is reported as
+   * such rather than being treated as an abandonment.
+   */
+  retrieveCheckout(sessionRef: string): Promise<CheckoutStatus | null>;
   /**
    * Verify a webhook and reduce it, or throw if the signature is wrong.
    *
@@ -118,8 +153,22 @@ export type FakeLedgerEntry =
   | { kind: "checkout"; reference: string; amountCents: number; lines: { label: string; amountCents: number }[] }
   | { kind: "refund"; chargeRef: string; amountCents: number; reason: string };
 
-export function fakeProvider(): PaymentProvider & { ledger: FakeLedgerEntry[] } {
+export function fakeProvider(): PaymentProvider & {
+  ledger: FakeLedgerEntry[];
+  /**
+   * Declare what became of a session the fake handed out, so reconciliation can
+   * be exercised without a network.
+   *
+   * The case worth testing is the one the audit could not otherwise reach: a
+   * session the customer paid where the webhook never arrived. Nothing in the
+   * platform's own records distinguishes it from an abandonment, which is
+   * exactly why the provider has to be asked.
+   */
+  settle(ref: string, outcome: { paid: boolean; expired?: boolean; amountCents?: number; orderId?: string | null }): void;
+  forget(ref: string): void;
+} {
   const ledger: FakeLedgerEntry[] = [];
+  const sessions = new Map<string, CheckoutStatus>();
   let n = 0;
 
   /*
@@ -140,6 +189,27 @@ export function fakeProvider(): PaymentProvider & { ledger: FakeLedgerEntry[] } 
     ledger,
     configured: () => true,
 
+    settle(ref, outcome) {
+      const existing = sessions.get(ref);
+      sessions.set(ref, {
+        ref,
+        state: outcome.expired ? "expired" : outcome.paid ? "complete" : "open",
+        paid: outcome.paid,
+        chargeRef: outcome.paid ? `pi_fake_${run}_${ref.slice(-4)}` : null,
+        amountCents: outcome.amountCents ?? existing?.amountCents ?? null,
+        orderId: outcome.orderId ?? existing?.orderId ?? null,
+      });
+    },
+
+    /** A session the provider has never heard of, which is its own finding. */
+    forget(ref) {
+      sessions.delete(ref);
+    },
+
+    async retrieveCheckout(sessionRef) {
+      return sessions.get(sessionRef) ?? null;
+    },
+
     async createCheckout(request) {
       n += 1;
       ledger.push({
@@ -148,8 +218,19 @@ export function fakeProvider(): PaymentProvider & { ledger: FakeLedgerEntry[] } 
         amountCents: request.amountCents,
         lines: request.lines,
       });
+      const ref = `cs_fake_${run}_${n}`;
+      // Born open and unpaid, which is what a real session is a moment after it
+      // is created. A test moves it on with settle().
+      sessions.set(ref, {
+        ref,
+        state: "open",
+        paid: false,
+        chargeRef: null,
+        amountCents: request.amountCents,
+        orderId: request.orderId,
+      });
       return {
-        ref: `cs_fake_${run}_${n}`,
+        ref,
         url: `https://checkout.invalid/fake/${request.reference}`,
       };
     },

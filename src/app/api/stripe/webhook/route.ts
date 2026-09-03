@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { paymentProvider, markPaid } from "@/lib/ops-payments";
-import { event } from "@/lib/ops-intake";
+import { paymentProvider, markPaid, markAbandoned, recordExternalRefund } from "@/lib/ops-payments";
 
 export const dynamic = "force-dynamic";
 
@@ -82,11 +81,15 @@ export async function POST(request: NextRequest) {
 
   if (parsed.kind === "checkout.expired") {
     if (parsed.orderId) {
-      await event(
+      /*
+       * Closes the order rather than only noting the expiry. Writing an event
+       * and leaving the status at awaiting_payment is what made an expired
+       * checkout and a paid one whose webhook was lost the same row, which cost
+       * this platform three orders on 2026-09-03.
+       */
+      await markAbandoned(
         parsed.orderId,
-        "checkout.expired",
-        false,
-        "The customer opened a checkout and did not finish it. Nothing was charged.",
+        "You opened a checkout and did not finish it, so the order was closed. Nothing was charged.",
       );
     }
     return NextResponse.json({ ok: true, handled: true });
@@ -94,13 +97,31 @@ export async function POST(request: NextRequest) {
 
   if (parsed.kind === "charge.refunded") {
     /*
-     * Recorded, not acted on. The platform issues its own refunds through
-     * settleDecision and writes the row there; this is the confirmation, and a
-     * refund somebody made in the Stripe dashboard instead shows up here as the
-     * only trace of it.
+     * Written down, which the previous version claimed to do and did not.
+     *
+     * It logged a line and returned handled, with a comment saying this was the
+     * only trace of a refund issued in the Stripe dashboard. A log line is not
+     * a trace: the firm's ledger would have shown a charge and no refund,
+     * permanently, for money that had gone back to a customer.
+     *
+     * recordExternalRefund is idempotent on the refund's own id, so a redelivery
+     * is one row, and it refuses when the charge is not on file rather than
+     * inventing one. That refusal is a 200 because retrying will not conjure the
+     * missing charge; reconciliation is what fixes that case.
      */
-    console.log(`[stripe] refund confirmed ${parsed.refundRef} on ${parsed.chargeRef}`);
-    return NextResponse.json({ ok: true, handled: true });
+    const result = await recordExternalRefund({
+      chargeRef: parsed.chargeRef,
+      refundRef: parsed.refundRef,
+      amountCents: parsed.amountCents,
+      provider: provider.name,
+    });
+
+    if (!result.ok) {
+      console.error(`[stripe] refund ${parsed.refundRef} could not be recorded: ${result.error}`);
+      return NextResponse.json({ ok: true, handled: false, reason: "no charge on file" });
+    }
+
+    return NextResponse.json({ ok: true, handled: true, duplicate: result.alreadyRecorded });
   }
 
   return NextResponse.json({ ok: true, handled: false });
