@@ -42,6 +42,7 @@ export type FileStatus =
   | "evidence_submitted"
   | "under_review"
   | "revisions_requested"
+  | "refused"
   | "sealed"
   | "delivered"
   | "closed"
@@ -55,6 +56,7 @@ export const FILE_STATUSES: FileStatus[] = [
   "evidence_submitted",
   "under_review",
   "revisions_requested",
+  "refused",
   "sealed",
   "delivered",
   "closed",
@@ -69,6 +71,7 @@ export const STATUS_LABEL: Record<FileStatus, string> = {
   evidence_submitted: "Evidence submitted",
   under_review: "Under review",
   revisions_requested: "Revisions requested",
+  refused: "Declined to seal",
   sealed: "Sealed",
   delivered: "Delivered",
   closed: "Closed",
@@ -84,6 +87,7 @@ export const STATUS_TONE: Record<FileStatus, "neutral" | "good" | "warn" | "bad"
   evidence_submitted: "warn",
   under_review: "warn",
   revisions_requested: "bad",
+  refused: "bad",
   sealed: "good",
   delivered: "good",
   closed: "neutral",
@@ -106,8 +110,24 @@ const TRANSITIONS: Record<FileStatus, FileStatus[]> = {
   dispatched: ["evidence_in_progress", "needs_dispatch", "cancelled"],
   evidence_in_progress: ["evidence_submitted", "needs_dispatch", "cancelled"],
   evidence_submitted: ["under_review", "revisions_requested", "cancelled"],
-  under_review: ["sealed", "revisions_requested", "evidence_submitted", "cancelled"],
+  /*
+   * Under review is where the four review actions land. A site visit goes back
+   * to needs_dispatch rather than to revisions, because the difference is who
+   * acts next: revisions are for the technician already holding the file, a
+   * site visit is a new journey through dispatch.
+   */
+  under_review: ["sealed", "refused", "revisions_requested", "needs_dispatch", "evidence_submitted", "cancelled"],
   revisions_requested: ["evidence_in_progress", "evidence_submitted", "under_review", "cancelled"],
+  /*
+   * A licensed engineer examined this package and would not certify it. The
+   * file is closed out and the client told; it does not go back into review by
+   * the same route it came, because reopening a refusal is a decision somebody
+   * makes deliberately by opening a new file rather than by pressing back.
+   *
+   * Not terminal, because the work still has to be closed and, rarely, called
+   * off entirely.
+   */
+  refused: ["closed", "cancelled"],
   sealed: ["delivered", "cancelled"],
   delivered: ["closed"],
   closed: [],
@@ -155,6 +175,12 @@ function actionFor(from: FileStatus, to: FileStatus): Parameters<typeof can>[1] 
    * assigned to it sitting at needs dispatch.
    */
   if (to === "dispatched") return "offers.respond";
+  /*
+   * Declining to seal is a review decision and is NEVER gated by the compliance
+   * gate. An engineer must always be able to say no; the gate exists to stop
+   * the firm saying yes.
+   */
+  if (to === "refused") return "review.decide";
   if (to === "evidence_in_progress") return "evidence.start";
   if (to === "evidence_submitted") {
     return from === "under_review" ? "review.decide" : "evidence.submit";
@@ -251,6 +277,7 @@ export function availableTransitions(
  */
 export const STATUS_TIMESTAMP: Partial<Record<FileStatus, string>> = {
   dispatched: "dispatched_at",
+  refused: "refused_at",
   evidence_submitted: "evidence_submitted_at",
   sealed: "sealed_at",
   delivered: "delivered_at",

@@ -50,6 +50,7 @@ const ADMIN_PAGES = [
   "/portal/protocols",
   "/portal/onboarding",
   "/portal/certification",
+  "/portal/charge-log",
   "/admin",
   "/admin/leads",
   "/admin/applications",
@@ -66,6 +67,7 @@ const ADMIN_APIS = [
   // its first run, which is the argument for the coverage check.
   "/api/portal/files",
   "/api/portal/field",
+  "/api/portal/review",
   "/api/portal/onboarding",
 ];
 

@@ -176,8 +176,30 @@ useful to a person there, **which could not be produced by find and replacing th
 Run the suite before any report of completion.
 
 ```
-npm run build && npx next start -p 3225      # one terminal
-AUDIT_KILL_STALE=1 npm run audit             # another
+npm run audit
+```
+
+**The suite starts its own server.** It clears the audit ports, builds once,
+starts the app, waits until both `/` and `/portal/login` answer 200, runs, and
+tears it down. There is no second terminal and no build flag.
+
+That changed on 2026-09-02 after three runs in one session were invalidated the
+same way: a build at the end of an earlier step killed the server on 3225, and
+the suite then measured nothing while reporting eleven audits as failed. The
+preflights were never wrong, they said exactly what had happened; the defect was
+that a run could get that far at all. A suite that can be pointed at nothing,
+and report content failures about it, is a suite whose red means two things.
+
+The runner re-checks the server between phase zero and phase one, refuses to
+start if the build fails, and prints `THE SUITE DID NOT RUN TO COMPLETION`
+rather than a list of failures when it could not measure anything.
+
+**`BASE_URL` means "use this server, do not manage one".** That is how a run
+against production works, and with it set the suite refuses outright if the host
+is not answering:
+
+```
+BASE_URL=https://254engineering.com npx tsx scripts/security-audit.mjs
 ```
 
 | Audit | Enforces |
