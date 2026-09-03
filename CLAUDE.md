@@ -282,6 +282,29 @@ by `neverProduction` in `scripts/lib/db-target.mjs`, checked before
 **Against production, run only `security-audit` and `db-guard-audit`.** Neither
 writes anything. Everything else that touches a database goes to development.
 
+**A preview deployment must be pointed at development, and the app now refuses
+if it is not.** Vercel previews inherit the Preview environment, and adding a
+variable to a Vercel project defaults to All Environments, so a preview silently
+inherits production unless somebody scopes it. That happened on 2026-09-03: a
+preview of an unmerged branch was pushed for the operator to walk, their sign in
+attempt landed in PRODUCTION's audit trail, and it is still there because that
+table refuses deletes.
+
+`previewPointingAtProduction()` in `src/lib/db-guard.ts` is the application's
+equivalent of `db-target.mjs`. `supabaseAdmin()` and `supabaseCredentialCheck()`
+throw rather than returning null, because an unconfigured deployment can do
+nothing while a mispointed one can do everything to the wrong database, and the
+portal root layout renders an explanation instead of a stack trace.
+
+It fires on exactly one combination, preview plus the production ref, and
+`db-guard-audit` asserts the negative cases harder than the positive one:
+production itself, a local machine, a Vercel development deployment and a
+preview on dev are all untouched. A guard that could misfire on production would
+be a worse defect than the hole it closes.
+
+`ALLOW_PRODUCTION_PREVIEW=1` is the way past it, spelled exactly as
+`ALLOW_PRODUCTION_DB` is, and is almost never the right answer.
+
 **Seeding the first administrator is the one thing that legitimately runs against
 production**, and it is expected to be run as
 `ALLOW_PRODUCTION_DB=1 npx tsx scripts/seed-admin.mjs "Name" email`. The friction

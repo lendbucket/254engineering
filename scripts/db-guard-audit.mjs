@@ -24,6 +24,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import { isProduction, refOf, describeTarget, PRODUCTION_REF, DEVELOPMENT_REF } from "./lib/db-target.mjs";
+import {
+  GUARD_FIX,
+  GUARD_HEADLINE,
+  previewPointingAtProduction,
+} from "../src/lib/db-guard.ts";
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -118,6 +123,96 @@ rec(
   !isProduction(current),
   current ? describeTarget(current) : "SUPABASE_URL is unset",
 );
+
+// =====================================================================
+// The DEPLOYED APP's guard, which is a different thing from this file's.
+//
+// Everything above guards SCRIPTS. The application had no equivalent: it read
+// SUPABASE_URL from its environment and believed it. On 2026-09-03 a preview
+// deployment inherited the production environment, and an operator's sign in
+// attempt landed in production's audit trail, where it remains.
+//
+// The check below is deliberately narrow, and the narrowness is the design. It
+// fires on exactly one combination. A guard that could misfire on production
+// would be a worse defect than the hole it closes, so the NEGATIVE cases here
+// matter more than the positive one.
+// =====================================================================
+{
+  const PROD = `https://${PRODUCTION_REF}.supabase.co`;
+  const DEV = `https://${DEVELOPMENT_REF}.supabase.co`;
+
+  /** [description, env, should the guard fire] */
+  const CASES = [
+    ["a preview pointed at production", { VERCEL_ENV: "preview", SUPABASE_URL: PROD }, true],
+
+    // Every one of these must NOT fire.
+    ["production itself", { VERCEL_ENV: "production", SUPABASE_URL: PROD }, false],
+    ["a preview pointed at development", { VERCEL_ENV: "preview", SUPABASE_URL: DEV }, false],
+    ["a local machine pointed at development", { SUPABASE_URL: DEV }, false],
+    ["a local machine pointed at production", { SUPABASE_URL: PROD }, false],
+    ["a Vercel development deployment", { VERCEL_ENV: "development", SUPABASE_URL: PROD }, false],
+    ["an unset environment", {}, false],
+    ["a preview with no database configured", { VERCEL_ENV: "preview" }, false],
+    ["a preview pointed at some third project", { VERCEL_ENV: "preview", SUPABASE_URL: "https://elsewhere.supabase.co" }, false],
+    ["a malformed url on a preview", { VERCEL_ENV: "preview", SUPABASE_URL: "not-a-url" }, false],
+  ];
+
+  let wrong = 0;
+  for (const [label, env, expected] of CASES) {
+    const fired = previewPointingAtProduction(env);
+    if (fired !== expected) {
+      wrong++;
+      rec(`app guard: ${label}`, false, `expected ${expected}, got ${fired}`);
+    }
+  }
+  rec(`the app guard fires on exactly one combination (${CASES.length} cases)`, wrong === 0);
+
+  /*
+   * The one that would be catastrophic. Stated on its own rather than left
+   * inside the table, because if this ever goes wrong the firm's production
+   * portal stops working and the cause is the safety mechanism.
+   */
+  rec(
+    "PRODUCTION IS NEVER BLOCKED BY THIS GUARD",
+    !previewPointingAtProduction({ VERCEL_ENV: "production", SUPABASE_URL: PROD }),
+  );
+
+  /*
+   * The escape hatch, spelled exactly as ALLOW_PRODUCTION_DB is for scripts.
+   * One string opens the door and everything else is a refusal.
+   */
+  const withFlag = (value) =>
+    previewPointingAtProduction({ VERCEL_ENV: "preview", SUPABASE_URL: PROD, ALLOW_PRODUCTION_PREVIEW: value });
+  rec("the escape hatch opens on exactly the string 1", !withFlag("1"));
+  for (const value of ["0", "false", "no", "true", "yes", "", " 1", "1 "]) {
+    rec(`and refuses ${JSON.stringify(value)}`, withFlag(value));
+  }
+
+  rec(
+    "the guard message names the fix rather than only the problem",
+    /Preview environment/i.test(GUARD_FIX) && /SUPABASE_URL/.test(GUARD_FIX),
+  );
+  rec("and the headline says what is wrong in one line", GUARD_HEADLINE.length > 20 && GUARD_HEADLINE.length < 90);
+
+  /*
+   * The chokepoint. A guard that lives in a component somebody can forget to
+   * render is a convention; this one is in the function that builds the client,
+   * so there is no way to a connection that goes around it.
+   */
+  const supabaseSource = fs.readFileSync(path.join(process.cwd(), "src", "lib", "supabase.ts"), "utf8");
+  rec(
+    "the check is called where the client is built, not only in a screen",
+    /refuseIfPreviewOnProduction\(\);/.test(supabaseSource),
+  );
+  rec(
+    "both client builders call it",
+    (supabaseSource.match(/refuseIfPreviewOnProduction\(\);/g) ?? []).length >= 2,
+  );
+  rec(
+    "and it throws rather than returning null, so a caller cannot treat production as unconfigured",
+    /throw guardError\(\)/.test(supabaseSource),
+  );
+}
 
 console.log("================ DATABASE TARGET GUARD ================");
 console.log(`configured target: ${current ? describeTarget(current) : "unset"}\n`);

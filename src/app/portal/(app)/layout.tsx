@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { currentActor } from "@/lib/ops-auth";
+import { previewPointingAtProduction } from "@/lib/db-guard";
+import { MispointedPreview } from "@/components/portal/MispointedPreview";
 import { listNotifications, unreadCount } from "@/lib/ops-notify";
 import { can, ROLE_LABEL } from "@/lib/ops-authz";
 import { navFor, mobileTabsFor } from "@/components/portal/nav";
@@ -48,6 +50,14 @@ import { Wordmark } from "@/components/brand/Wordmark";
 export const dynamic = "force-dynamic";
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
+  /*
+   * Checked before anything reads the database, because the throw in
+   * supabase.ts would otherwise reach the person as a stack trace. That throw
+   * is what actually protects the data; this is the same fact addressed to
+   * whoever is standing in front of it.
+   */
+  if (previewPointingAtProduction()) return <MispointedPreview />;
+
   const actor = await currentActor();
 
   if (!actor) {
