@@ -42,6 +42,7 @@ import {
 } from "../data/catalog.ts";
 import { isKnown, money } from "../src/lib/ops-money.ts";
 import { deploymentOrigin } from "../src/lib/site-url.ts";
+import { blockersOn, emptyState, firstIncomplete, stepsFor } from "../src/lib/order-flow.ts";
 import {
   ORDER_STATUSES,
   QUOTE_STATUSES,
@@ -740,6 +741,117 @@ const answerAll = (entry, pick = () => 0) =>
     "a local machine falls back to the real site rather than a guessed port",
     local === "https://254engineering.com",
     local,
+  );
+}
+
+// ===========================================================================
+// 10. THE CUSTOMER'S PATH THROUGH AN ORDER
+// ===========================================================================
+{
+  const roof = catalogFor("roof-inspections");
+  const design = deliverablesFor("residential-light-commercial-design");
+  const custom = design.find((d) => d.tier === "custom-package");
+
+  /*
+   * The program describes six steps and a customer never sees six. Rendering
+   * all of them and greying four out would make the flow look longer than it
+   * is, and abandonment on a form tracks its apparent length.
+   */
+  const single = stepsFor(roof, 1).map((s) => s.id);
+  rec(
+    "a single deliverable line does not ask which deliverable",
+    !single.includes("deliverable"),
+    single.join(" > "),
+  );
+  rec("and ends at payment", single[single.length - 1] === "pay", single.join(" > "));
+
+  const many = stepsFor(null, 3).map((s) => s.id);
+  rec("a line selling three things asks which one first", many[0] === "deliverable", many.join(" > "));
+  rec(
+    "and asks nothing else until it is answered",
+    many.length === 1,
+    "the later steps depend on which deliverable it is",
+  );
+
+  const quoteSteps = stepsFor(custom, 3).map((s) => s.id);
+  rec("a quote deliverable has no payment step", !quoteSteps.includes("pay"), quoteSteps.join(" > "));
+  rec("and still shows terms before sending", quoteSteps.includes("review"));
+
+  /*
+   * The one that matters most. A customer must not be able to reach payment
+   * without the refund rule having been on screen, because that disclosure is
+   * the operator's ruling and a checkout reached around it is a charge under
+   * terms nobody was shown.
+   */
+  const state = emptyState("standard");
+  state.property = { propertyAddress: "1 Somewhere", city: "Corpus Christi", county: "", postalCode: "" };
+  state.customer = { name: "A Person", email: "a@example.com", phone: "", company: "" };
+  state.answers = roof.qualifiers.map((q) => ({ qualifierId: q.id, optionIndex: 0 }));
+  state.inputs = { access_notes: "Gate code." };
+
+  rec(
+    "everything else complete, the review step still blocks",
+    blockersOn("review", roof, state).length === 1,
+    blockersOn("review", roof, state).join(" | "),
+  );
+  rec(
+    "and says it is the decline terms that are unread",
+    /declines/.test(blockersOn("review", roof, state)[0] ?? ""),
+  );
+  state.acceptedTerms = true;
+  rec("accepting them clears it", blockersOn("review", roof, state).length === 0);
+
+  // A skipped qualifier is named, not summarised.
+  const half = emptyState("standard");
+  half.answers = [{ qualifierId: roof.qualifiers[0].id, optionIndex: 0 }];
+  const missing = blockersOn("qualify", roof, half);
+  rec("an unanswered question is listed by its own words", missing.length === roof.qualifiers.length - 1);
+  rec(
+    "and never as a generic please complete all fields",
+    !missing.some((m) => /all fields|required fields/i.test(m)),
+    missing[0],
+  );
+
+  // Required files are demanded; optional ones are not.
+  const solar = catalogFor("solar-structural-letters");
+  const noDocs = emptyState("standard");
+  const need = blockersOn("requirements", solar, noDocs);
+  rec(
+    "a desk deliverable demands its required documents",
+    need.length === solar.requiredInputs.filter((i) => i.required).length,
+    need.join(" | "),
+  );
+  rec(
+    "and does not demand the optional ones",
+    !need.some((n) => n === solar.requiredInputs.find((i) => !i.required)?.label),
+  );
+
+  const withDocs = emptyState("standard");
+  withDocs.files = { layout: [{ name: "a.pdf", storageKey: "k", bucket: "b" }], mounting: [{ name: "b.pdf", storageKey: "k2", bucket: "b" }] };
+  rec("supplying them clears it", blockersOn("requirements", solar, withDocs).length === 0);
+
+  // firstIncomplete sends somebody back to the right place, not to the start.
+  const partial = emptyState("standard");
+  partial.answers = roof.qualifiers.map((q) => ({ qualifierId: q.id, optionIndex: 0 }));
+  rec(
+    "a half finished flow resumes at the first thing missing",
+    firstIncomplete(stepsFor(roof, 1), roof, partial) === "property",
+    String(firstIncomplete(stepsFor(roof, 1), roof, partial)),
+  );
+
+  /*
+   * The browser never prices anything. A price computed in a browser is a price
+   * a browser can change, and the server recomputes from the catalog anyway.
+   */
+  const flowSource = fs.readFileSync("src/components/order/OrderFlow.tsx", "utf8");
+  rec(
+    "the flow component never totals a price itself",
+    !/priceCents\s*\+|\+\s*coastalSurchargeCents/.test(flowSource),
+    "the server computes every total",
+  );
+  rec(
+    "and says card details never reach this site",
+    /never reach this site/.test(flowSource),
   );
 }
 

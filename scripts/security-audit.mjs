@@ -170,6 +170,17 @@ const CRON_ROUTE = "/api/cron/health-watch";
  */
 const INTAKE_ROUTE = "/api/orders";
 
+/**
+ * This site's own order flow, which a customer's browser talks to directly.
+ *
+ * It carries no key, deliberately: a key shipped to a browser is public, and
+ * this route is the site talking to its own server. What bounds it instead is
+ * that ops-intake recomputes the price, re-evaluates the qualifiers and
+ * resolves the county whatever the request says, and the compliance gate is
+ * checked before any of it. The checks below assert the two that matter.
+ */
+const FLOW_ROUTE = "/api/order-flow";
+
 /** The retired passphrase surface. These must not answer at all any more. */
 const RETIRED = ["/admin/login", "/admin/logout", "/api/admin/session"];
 
@@ -767,6 +778,85 @@ async function run() {
      */
     const home = await (await fetch(`${BASE}/`)).text();
     rec("no intake key reaches the browser", !/ORDER_INTAKE_KEYS|x-intake-key/i.test(home));
+  }
+
+  // =======================================================================
+  // THE PUBLIC ORDER FLOW
+  //
+  // Open to a browser by design. What stops it being a way to create work the
+  // firm never agreed to is that nothing it sends is trusted.
+  // =======================================================================
+  {
+    const post = (body) =>
+      fetch(`${BASE}${FLOW_ROUTE}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+    const unknown = await post({ action: "nonsense" });
+    rec("the flow refuses an action it does not have", unknown.status === 400 || unknown.status === 409);
+
+    /*
+     * A price sent by the caller must be ignored, not honoured. This asserts
+     * the route has no field for it at all: a body carrying priceCents and
+     * totalCents must not produce an order at that price.
+     */
+    const source = readFileSync("src/app/api/order-flow/route.ts", "utf8");
+    rec(
+      "the flow route accepts no price from the caller",
+      !/priceCents|totalCents|amountCents/.test(source),
+      "the server recomputes every figure from the catalog",
+    );
+    rec(
+      "and takes its site from SITE_KEY rather than the request",
+      /site: SITE_KEY/.test(source),
+      "a browser must not be able to say which brand it is",
+    );
+    rec(
+      "and checks the compliance gate before anything else",
+      source.indexOf("isPrelaunch()") < source.indexOf("placeOrder("),
+      "an order must not be created and then refused",
+    );
+
+    const uploadSource = readFileSync("src/lib/order-uploads.ts", "utf8");
+    rec(
+      "an upload path is built from a validated draft id, never a filename",
+      /SAFE\.test\(params\.draftId\)/.test(uploadSource) && /SAFE\.test\(params\.inputKey\)/.test(uploadSource),
+    );
+    rec(
+      "and the extension comes from the content type rather than the name",
+      /extension is taken from the content type/.test(uploadSource),
+      "a name the customer typed must never decide the path",
+    );
+
+    /*
+     * The customer portal is a signed link and nothing else. A reference on its
+     * own must open nothing, or every order is readable by anybody who can
+     * guess six characters.
+     */
+    const noToken = await fetch(`${BASE}/order/254-O2026-XXXXXX`, { redirect: "manual" });
+    const noTokenBody = noToken.status === 200 ? await noToken.text() : "";
+    rec(
+      "an order reference with no token opens nothing",
+      noToken.status !== 200 || /does not open an order/.test(noTokenBody),
+      `HTTP ${noToken.status}`,
+    );
+
+    const badToken = await fetch(`${BASE}/order/254-O2026-XXXXXX?token=not-a-real-token`, {
+      redirect: "manual",
+    });
+    const badBody = badToken.status === 200 ? await badToken.text() : "";
+    rec(
+      "and a wrong token says the same thing as a missing one",
+      badToken.status !== 200 || /does not open an order/.test(badBody),
+      "distinguishing them would confirm the order exists",
+    );
+    rec(
+      "the customer page is never indexed",
+      !badBody || /noindex/.test(badBody),
+      "an order status page in a search result would be a leak",
+    );
   }
 }
 

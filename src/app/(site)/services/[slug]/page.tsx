@@ -221,7 +221,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
         </Container>
       </section>
 
-      <OfferCta service={service.name} />
+      <OfferCta service={service.name} serviceSlug={service.slug} />
     </>
   );
 }
