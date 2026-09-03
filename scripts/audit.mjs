@@ -306,19 +306,29 @@ try {
   }
 
   /*
-   * Checked again before phase one rather than trusted from setup. Phase zero
-   * is minutes of pure checks, and a server that fell over in between would
-   * otherwise produce a wall of content failures with the real cause nowhere on
-   * screen.
+   * Checked before EVERY phase one audit, not once before the phase.
+   *
+   * The first version checked once, between phase zero and phase one, and that
+   * was not enough: a run lost its server partway through phase one and the
+   * suite reported mobile-overflow-audit and perf-audit as failed. The pages
+   * "did not load" and the preflight said "fetch failed", which is the true
+   * story told in a way that reads as two broken audits.
+   *
+   * Phase one is the long half, twenty minutes of browsers and Lighthouse. A
+   * check at the top of it says nothing about minute nineteen. Two fetches
+   * before each audit costs nothing against what they cost, and it is the
+   * difference between a red suite that means "the app is broken" and one that
+   * means "there was no app".
    */
-  if (!(await healthy(BASE))) {
-    throw new Error(
-      `The server stopped answering between phase zero and phase one. Everything after this ` +
-        "point would have measured nothing, so the suite stops instead of reporting it as failures.",
-    );
-  }
-
   for (const audit of PHASE_ONE) {
+    if (!(await healthy(BASE))) {
+      throw new Error(
+        `The server stopped answering before ${audit.name}. Everything from here would have ` +
+          "measured nothing, so the suite stops rather than reporting absent pages as content " +
+          "failures. The server's own log is where to look: it ends cleanly when something " +
+          "killed the process, and carries the error when it fell over by itself.",
+      );
+    }
     run(audit, { ...process.env, BASE_URL: BASE });
   }
 
@@ -363,6 +373,19 @@ if (setupError) {
   if (results.length) {
     console.log("  What did run before it stopped:");
     for (const r of results) console.log(`    ${r.code === 0 ? "PASS" : "FAIL"}  ${r.name}`);
+    /*
+     * The health check runs BEFORE each audit, so one already in flight when the
+     * server went away still fails, and it fails looking like a content problem.
+     * Saying so is the difference between a reader chasing a defect that does
+     * not exist and a reader re-running the suite.
+     */
+    const last = results[results.length - 1];
+    if (last.code !== 0) {
+      console.log("");
+      console.log(`  ${last.name} is the last thing that ran and it failed. Treat that as unknown`);
+      console.log("  rather than as a defect: an audit already running when the server went away");
+      console.log("  fails the way a broken page would. Re-run before believing it.");
+    }
   }
   console.log("");
   process.exitCode = 1;
