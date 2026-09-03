@@ -124,8 +124,24 @@ export type CreateClientInput = {
   attribution?: Record<string, unknown>;
 };
 
+/**
+ * Who opened this record.
+ *
+ * A person, or the order engine. SYSTEM_AUTHOR carries no profile id, so
+ * created_by is null and the audit row says the order engine did it rather than
+ * attributing a machine's work to whichever administrator happened to be handy.
+ */
+export type Author = (Actor & { email: string }) | typeof SYSTEM_AUTHOR;
+
+export const SYSTEM_AUTHOR = {
+  id: null,
+  role: "admin",
+  status: "active",
+  email: "order-engine@254engineering.com",
+} as const;
+
 export async function createClient(
-  actor: Actor & { email: string },
+  actor: Author,
   input: CreateClientInput,
   context: { ip?: string | null; userAgent?: string | null } = {},
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
@@ -274,7 +290,7 @@ export type CreateFileInput = {
  * like nobody wanted it.
  */
 export async function createFile(
-  actor: Actor & { email: string },
+  actor: Author,
   input: CreateFileInput,
   context: { ip?: string | null; userAgent?: string | null } = {},
 ): Promise<{ ok: true; id: string; fileNumber: string } | { ok: false; error: string }> {

@@ -124,6 +124,14 @@ const EXPECTED = {
   "ledger.approve":               { admin: true,  engineer: false, field_tech: false },
 
   /*
+   * Reconciliation asks Stripe what really happened and can record a payment
+   * the platform missed, which releases the work and issues the customer their
+   * link. That is the operator's decision to take, not an engineer's, and a
+   * technician has no business knowing an order exists before it is dispatched.
+   */
+  "payments.reconcile":           { admin: true,  engineer: false, field_tech: false },
+
+  /*
    * Everybody. A task list and a conversation are not privileges; a platform
    * where a technician cannot write down their own next action is one where
    * they keep a separate list beside it, and a platform where they cannot ask a

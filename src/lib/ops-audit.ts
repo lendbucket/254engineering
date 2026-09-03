@@ -35,7 +35,15 @@ import type { Actor } from "./ops-authz";
  */
 
 export type AuditInput = {
-  actor: Pick<Actor, "id" | "role"> & { email?: string } | null;
+  /**
+   * Null when nobody was signed in. An id of null with a role present is the
+   * platform acting for a customer: the order engine placing an order.
+   *
+   * eng_audit_events.actor_id is a bare uuid with no foreign key, which is what
+   * makes "a real event with no person behind it" recordable rather than a
+   * choice between a lie and a missing row.
+   */
+  actor: (Omit<Pick<Actor, "id" | "role">, "id"> & { id: string | null; email?: string }) | null;
   action: string;
   entityType: string;
   entityId?: string | null;

@@ -1,6 +1,11 @@
 import { business } from "@/config/business";
 import { emailIdentity, fromHeader, type SenderPurpose } from "@/config/email-identity";
 import {
+  OUTCOME_HEADLINE,
+  OUTCOME_MEANING,
+  type ProbeOutcome,
+} from "./health-watch";
+import {
   renderEmailHtml,
   renderEmailText,
   type EmailBlock,
@@ -598,9 +603,92 @@ export function opsNotification(input: {
 }
 
 
+export type OutageAlertInput = {
+  /**
+   * Which fault this is. Three of the four outcomes send the operator to three
+   * different places, and one generic "the site is down" would send them to the
+   * wrong one two times out of three.
+   */
+  outcome: Exclude<ProbeOutcome, "healthy">;
+  /** The host that was probed, as a customer would reach it. */
+  host: string;
+  /** What the probe answered. */
+  status: number | null;
+  /** Its body, or the fetch error. Truncated by the caller. */
+  detail: string;
+  checkedAt: string;
+  /** How often this will arrive again while it stays down. */
+  everyMinutes: number;
+};
+
+/**
+ * The portal is not answering.
+ *
+ * WHY THIS EMAIL EXISTS
+ * ---------------------
+ * On 2026-09-03 production ran for about two hours unable to reach its
+ * database, and the way it was discovered was the operator trying to sign in
+ * and failing. The platform had no way to tell anybody it was broken.
+ *
+ * WHY IT REPEATS RATHER THAN SENDING ONCE
+ * ---------------------------------------
+ * Alerting once would need the watcher to remember it had already alerted, and
+ * the only durable place to remember anything is the database that is down. A
+ * flag that lives in the thing being watched is not a flag.
+ *
+ * So it repeats on every check, and the email says so, and the operator can
+ * infer the duration from the number of these in the thread. Noisy while
+ * broken is the right failure direction for an outage nobody noticed for two
+ * hours.
+ */
+export function outageAlert(input: OutageAlertInput): RenderedEmail {
+  return compose(
+    "ops.outage",
+    "operator",
+    `${OUTCOME_HEADLINE[input.outcome]} at ${input.host}`,
+    {
+      preheader: `${OUTCOME_HEADLINE[input.outcome]}. Checked at ${input.checkedAt}.`,
+      blocks: [
+        { kind: "p", text: OUTCOME_MEANING[input.outcome] },
+        {
+          kind: "details",
+          title: "What the check saw",
+          rows: rows([
+            ["Host", input.host],
+            ["Health check", `${input.host}/api/portal/health`],
+            ["What this is", OUTCOME_HEADLINE[input.outcome]],
+            ["Answered", input.status === null ? "nothing, the request itself failed" : String(input.status)],
+            ["Detail", input.detail],
+            ["Checked at", input.checkedAt],
+          ]),
+        },
+        {
+          kind: "p",
+          text: "The probe itself is deliberately not told what went wrong, so it can say one bit and nothing more. The cause is in the deployment's runtime log rather than in this email.",
+        },
+        {
+          kind: "note",
+          text: `This will arrive again every ${input.everyMinutes} minutes until the check passes. There is no reminder to switch off and no state to reset: the watcher keeps nothing, because the only place it could keep anything is the database it is watching.`,
+        },
+      ],
+    },
+    // A reply reaches the firm mailbox rather than the send-only notifications
+    // address. Replying to a machine alert is unlikely and a dead end is worse.
+    { replyTo: business.email },
+  );
+}
+
 export function allTemplatesForAudit(): RenderedEmail[] {
 
   return [
+    outageAlert({
+      outcome: "unhealthy",
+      host: "https://254engineering.com",
+      status: 503,
+      detail: '{"ok":false}',
+      checkedAt: "3 September 2026 at 13:29 UTC",
+      everyMinutes: 5,
+    }),
     /*
      * Every portal notification goes out as this one template, so the audit
      * holds one thing rather than thirteen near copies of it.

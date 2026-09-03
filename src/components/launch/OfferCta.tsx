@@ -28,10 +28,13 @@ import { displayPhone, telHref } from "@/config/contact";
 export function OfferCta({
   /** The service being asked about, if the CTA sits on a service page. */
   service,
+  /** The slug, when this sits on a service page and the line can be ordered. */
+  serviceSlug,
   headline,
   body,
 }: {
   service?: string;
+  serviceSlug?: string;
   headline?: string;
   body?: string;
 }) {
@@ -39,6 +42,15 @@ export function OfferCta({
   const phone = displayPhone();
   const tel = telHref();
   const waitlistHref = service ? `/waitlist?service=${encodeURIComponent(service)}` : "/waitlist";
+
+  /*
+   * In live mode a service page offers the order rather than the contact form.
+   * orderable() is not consulted here: the order page renders the refusal
+   * itself, with the reason, which is better than a link that silently is not
+   * there. A page that says "order this" and then explains why it cannot yet is
+   * honest; a missing button is a site that looks broken.
+   */
+  const orderHref = serviceSlug ? `/order/start/${serviceSlug}` : "/contact";
 
   return (
     <section className="bg-slate text-slate-fg">
@@ -59,8 +71,8 @@ export function OfferCta({
                   : "Send the address, the scope, and the date it has to be in hand. You will get a straight answer on whether it is work this firm should take and what it involves.")}
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <ButtonLink href={prelaunch ? waitlistHref : "/contact"} tone="onDark">
-                {prelaunch ? "Join the waitlist" : "Contact the firm"}
+              <ButtonLink href={prelaunch ? waitlistHref : orderHref} tone="onDark">
+                {prelaunch ? "Join the waitlist" : serviceSlug ? "Order this" : "Contact the firm"}
               </ButtonLink>
               {tel && phone ? (
                 <ButtonLink href={tel} tone="onDarkOutline">

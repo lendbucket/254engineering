@@ -28,7 +28,14 @@
  * This file is the unauthenticated perimeter and stays runnable without either.
  */
 import { chromium } from "playwright";
-import { readdirSync, existsSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync } from "node:fs";
+import {
+  HEALTH_PROBE_PATH,
+  HEALTH_WATCH_CRON,
+  OUTCOME_HEADLINE,
+  classifyProbe,
+  shouldAlert,
+} from "../src/lib/health-watch.ts";
 import { join } from "node:path";
 
 const BASE = process.env.BASE_URL || "http://localhost:3225";
@@ -79,6 +86,10 @@ const ADMIN_APIS = [
   // check below is what made sure they were listed here on the day they shipped.
   "/api/portal/exports",
   "/api/portal/documents",
+  // Asks Stripe what became of an order and can record that money moved. The
+  // first route nested two deep, which is what exposed the one level discovery
+  // above as a hole rather than a simplification.
+  "/api/portal/orders/reconcile",
 ];
 
 /**
@@ -95,31 +106,41 @@ const ADMIN_APIS = [
  * compared. A new surface fails this audit until somebody has decided, in
  * writing, that a signed out client must not reach it.
  *
- * Discovery is one level deep on purpose. A nested route under a covered parent
- * is reached through it, and a nested route under a NEW parent shows up as the
- * uncovered parent.
+ * DISCOVERY USED TO BE ONE LEVEL DEEP, AND THE REASON WAS WRONG
+ * -------------------------------------------------------------
+ * It said: a nested route under a covered parent is reached through it, and a
+ * nested route under a NEW parent shows up as the uncovered parent.
+ *
+ * The second half only holds when the parent directory has a route.ts of its
+ * own. /api/portal/orders/reconcile has no /api/portal/orders route, so the
+ * parent was a bare directory, matched nothing, and the child was invisible.
+ * Phase 7 added exactly that shape and this audit would have gone on reporting
+ * a closed perimeter without ever asking about a route that records payments.
+ *
+ * It now walks the whole tree. The cost is that deep routes must be listed by
+ * their full path, which is the point.
  */
 function discoverRoutes() {
   const root = process.cwd();
   const pages = [];
   const apis = [];
 
-  const appDir = join(root, "src", "app", "portal", "(app)");
-  if (existsSync(appDir)) {
-    if (existsSync(join(appDir, "page.tsx"))) pages.push("/portal");
-    for (const entry of readdirSync(appDir, { withFileTypes: true })) {
-      if (!entry.isDirectory() || entry.name.startsWith("[")) continue;
-      if (existsSync(join(appDir, entry.name, "page.tsx"))) pages.push(`/portal/${entry.name}`);
+  function walk(dir, prefix, marker, into) {
+    if (!existsSync(dir)) return;
+    if (existsSync(join(dir, marker)) && prefix) into.push(prefix);
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      // Dynamic segments cannot be probed without inventing an id, and route
+      // groups are not path segments at all.
+      if (entry.name.startsWith("[")) continue;
+      const segment = entry.name.startsWith("(") ? "" : `/${entry.name}`;
+      walk(join(dir, entry.name), `${prefix}${segment}`, marker, into);
     }
   }
 
-  const apiDir = join(root, "src", "app", "api", "portal");
-  if (existsSync(apiDir)) {
-    for (const entry of readdirSync(apiDir, { withFileTypes: true })) {
-      if (!entry.isDirectory()) continue;
-      if (existsSync(join(apiDir, entry.name, "route.ts"))) apis.push(`/api/portal/${entry.name}`);
-    }
-  }
+  walk(join(root, "src", "app", "portal", "(app)"), "/portal", "page.tsx", pages);
+  walk(join(root, "src", "app", "api", "portal"), "/api/portal", "route.ts", apis);
+
   return { pages, apis };
 }
 
@@ -136,15 +157,115 @@ const OPEN_BY_DESIGN = new Set([
   "/portal/set-password",
   "/api/portal/session",
   "/api/portal/set-password",
+  // Open deliberately, and the first thing this audit asks. See LIVENESS below.
+  "/api/portal/health",
   // Clears the sign in rate limiter, so it cannot be behind the sign in it
   // exists to unblock. Guarded by a token instead, and tested below.
   "/api/portal/unlock",
 ]);
 
+/**
+ * The outage watcher. Not a portal route, so route discovery above does not see
+ * it, and it is checked explicitly below instead.
+ *
+ * It sends email, which makes an unauthenticated trigger a way to fill the
+ * operator's inbox. It must answer 404 without the cron secret, the same way
+ * /api/portal/unlock does when its token is absent: indistinguishable from a
+ * route that is not there.
+ */
+const CRON_ROUTE = "/api/cron/health-watch";
+
+/**
+ * The order intake, called server side by all three brands with a per site key.
+ *
+ * Not under /api/portal, so the route discovery above does not see it, and it
+ * writes orders and opens files. Reachable without a key it would let anybody
+ * create work the firm believes it has been asked for.
+ */
+const INTAKE_ROUTE = "/api/orders";
+
+/**
+ * This site's own order flow, which a customer's browser talks to directly.
+ *
+ * It carries no key, deliberately: a key shipped to a browser is public, and
+ * this route is the site talking to its own server. What bounds it instead is
+ * that ops-intake recomputes the price, re-evaluates the qualifiers and
+ * resolves the county whatever the request says, and the compliance gate is
+ * checked before any of it. The checks below assert the two that matter.
+ */
+const FLOW_ROUTE = "/api/order-flow";
+
 /** The retired passphrase surface. These must not answer at all any more. */
 const RETIRED = ["/admin/login", "/admin/logout", "/api/admin/session"];
 
 async function run() {
+  // =======================================================================
+  // LIVENESS. Before anything else, because a broken deployment passes every
+  // check below and a healthy one cannot score better.
+  //
+  // WHY THIS IS HERE
+  // On 2026-09-03 production ran for hours with a wrong service role key. Every
+  // database call failed, nobody could sign in, a valid password link reported
+  // itself invalid, and the failed sign ins wrote no audit rows because the
+  // write that records them failed too. This audit ran against that host and
+  // passed all 126 checks.
+  //
+  // It was not wrong. Every check it makes asks whether a signed out client is
+  // refused, and a deployment that cannot reach a database refuses everybody.
+  // "Closed" and "broken" look identical from out here, and broken scores
+  // better, because nothing leaks from a system that can read nothing.
+  //
+  // So the perimeter result now means something only when the thing behind it
+  // is alive. If it is not, this audit stops and says so, rather than handing
+  // back a green perimeter for a dead site. That is the same rule the suite
+  // runner learned: a red that means two things is not a result.
+  // =======================================================================
+  {
+    let alive = false;
+    let body = "";
+    let status = 0;
+    try {
+      const res = await fetch(`${BASE}/api/portal/health`, { redirect: "manual" });
+      status = res.status;
+      body = (await res.text()).trim();
+      alive = res.status === 200 && body === '{"ok":true}';
+    } catch (e) {
+      body = String(e);
+    }
+
+    rec(
+      "LIVENESS: the deployment can read its own database",
+      alive,
+      alive ? "" : `HTTP ${status} ${body.slice(0, 120)}`,
+    );
+
+    /*
+     * The probe must stay a single bit. A health endpoint that grows a project
+     * ref, a row count, an error string or a build id is a reconnaissance
+     * surface, and it is open to everybody by design.
+     */
+    rec(
+      "and the probe reveals nothing but that one bit",
+      body === '{"ok":true}' || body === '{"ok":false}',
+      `body was ${body.slice(0, 160)}`,
+    );
+
+    if (!alive) {
+      console.log("");
+      console.log("=".repeat(72));
+      console.log("THE PERIMETER WAS NOT MEASURED");
+      console.log("=".repeat(72));
+      console.log(`${BASE} cannot reach its database, so every check below would`);
+      console.log("pass for the wrong reason: a deployment that can read nothing");
+      console.log("refuses everybody. Fix the deployment, then run this again.");
+      console.log("");
+      console.log("Look for the cause in the runtime log, not here. This audit is");
+      console.log("deliberately not told what went wrong.");
+      console.log("");
+      return;
+    }
+  }
+
   // ---------- every portal route is actually covered by this audit ----------
   /*
    * Run first, because everything below it is only meaningful if the lists are
@@ -492,6 +613,264 @@ async function run() {
      * the browser would be a second access path to reason about for no benefit.
      */
     rec("no anon key or public Supabase URL reaches the browser", !/NEXT_PUBLIC_SUPABASE/.test(html));
+  }
+
+  // =======================================================================
+  // THE OUTAGE WATCHER
+  //
+  // It exists because production was down for two hours on 2026-09-03 and the
+  // way it was found was the operator failing to sign in. It sends email, so
+  // the checks here are about it not being a way to send email to the operator
+  // on demand, and about the schedule agreeing with what the email promises.
+  // =======================================================================
+  {
+    const noAuth = await fetch(`${BASE}${CRON_ROUTE}`, { redirect: "manual" });
+    rec(
+      "the outage watcher refuses an unauthenticated caller",
+      noAuth.status === 404,
+      `HTTP ${noAuth.status}`,
+    );
+
+    const wrongSecret = await fetch(`${BASE}${CRON_ROUTE}`, {
+      redirect: "manual",
+      headers: { authorization: "Bearer not-the-cron-secret" },
+    });
+    rec(
+      "and refuses a wrong secret the same way",
+      wrongSecret.status === 404,
+      `HTTP ${wrongSecret.status}`,
+    );
+
+    /*
+     * Indistinguishable, deliberately. A different status for "no secret" and
+     * "wrong secret" tells an outsider whether the watcher is configured, which
+     * is a fact about the deployment they have no use for.
+     */
+    rec(
+      "and the two refusals are indistinguishable",
+      noAuth.status === wrongSecret.status,
+      `${noAuth.status} vs ${wrongSecret.status}`,
+    );
+
+    const body = (await wrongSecret.text()).trim();
+    rec(
+      "the refusal says nothing about why",
+      !/secret|cron|token|unauthor/i.test(body),
+      body.slice(0, 80),
+    );
+
+    /*
+     * vercel.json cannot import the constant, so it holds a copy, and a copy
+     * that drifts turns the promise in the alert email into a small lie about
+     * how long the site has been down.
+     */
+    const vercelConfig = JSON.parse(readFileSync("vercel.json", "utf8"));
+    const cron = (vercelConfig.crons ?? []).find((c) => c.path === CRON_ROUTE);
+    rec("the watcher is actually scheduled", Boolean(cron), JSON.stringify(vercelConfig.crons ?? []));
+    rec(
+      "and the schedule matches the interval the alert email promises",
+      cron?.schedule === HEALTH_WATCH_CRON,
+      `vercel.json says ${cron?.schedule}, health-watch.ts says ${HEALTH_WATCH_CRON}`,
+    );
+    rec(
+      "and it probes the same endpoint this audit does",
+      HEALTH_PROBE_PATH === "/api/portal/health",
+      HEALTH_PROBE_PATH,
+    );
+
+    /*
+     * The classifier, which is the part that decides what the operator is told.
+     *
+     * Its first version had two outcomes and called everything that was not a
+     * healthy 200 a database outage. The first real run emailed one because the
+     * production host answered 403 with a Vercel Security Checkpoint page. An
+     * alert naming the wrong cause sends somebody to the wrong place, and one
+     * that repeats every five minutes for a reason that is not an outage gets
+     * muted, which loses the alert that matters.
+     */
+    const CLASSIFY = [
+      ["a healthy probe", 200, '{"ok":true}', "healthy"],
+      ["the same with whitespace", 200, ' {"ok":true}\n', "healthy"],
+      ["the app reporting it cannot read its database", 503, '{"ok":false}', "unhealthy"],
+      ["a Vercel security checkpoint", 403, "<!DOCTYPE html><title>Vercel Security Checkpoint</title>", "challenged"],
+      ["an attack challenge served as 200", 200, "<html><body>Attack Challenge Mode</body></html>", "challenged"],
+      ["a bot filter asking for JavaScript", 403, "Enable JavaScript and cookies to continue", "challenged"],
+      ["any other html page", 500, "<!doctype html><h1>Something went wrong</h1>", "challenged"],
+      ["a network failure with no status", null, "fetch failed", "unreachable"],
+      ["a 404 with an empty body", 404, "", "unreachable"],
+      ["a 200 with the wrong json", 200, '{"ok":"yes"}', "unreachable"],
+      ["a 200 that claims health with extra fields", 200, '{"ok":true,"ref":"fsary"}', "unreachable"],
+      ["a 503 with the wrong json", 503, '{"down":true}', "unreachable"],
+    ];
+
+    let misclassified = 0;
+    for (const [label, status, body, expected] of CLASSIFY) {
+      const got = classifyProbe(status, body);
+      if (got !== expected) {
+        misclassified++;
+        rec(`classify: ${label}`, false, `expected ${expected}, got ${got}`);
+      }
+    }
+    rec(
+      `the probe classifier reads every shape correctly (${CLASSIFY.length} cases)`,
+      misclassified === 0,
+    );
+
+    rec(
+      "a healthy probe never alerts",
+      !shouldAlert("healthy"),
+      "an alert on success trains the operator to ignore alerts",
+    );
+    rec(
+      "and every fault does",
+      ["unhealthy", "challenged", "unreachable"].every((o) => shouldAlert(o)),
+    );
+
+    /*
+     * A firewall challenge and a database outage must not read as the same
+     * event. They send the operator to different places, and the whole point of
+     * separating them was that the first alert this watcher ever sent named the
+     * wrong one.
+     */
+    rec(
+      "a firewall challenge and a database outage say different things",
+      OUTCOME_HEADLINE.challenged !== OUTCOME_HEADLINE.unhealthy,
+    );
+    rec(
+      "and the challenge headline names the firewall rather than the database",
+      /firewall/i.test(OUTCOME_HEADLINE.challenged) && !/database/i.test(OUTCOME_HEADLINE.challenged),
+    );
+    rec(
+      "and the outage headline names the database",
+      /database/i.test(OUTCOME_HEADLINE.unhealthy),
+    );
+  }
+
+  // =======================================================================
+  // THE ORDER INTAKE
+  //
+  // It creates orders, clients and files. A caller without a brand's key must
+  // not be able to reach it, and the refusal must not confirm what it is.
+  // =======================================================================
+  {
+    const body = JSON.stringify({ serviceSlug: "roof-inspections" });
+    const json = { "Content-Type": "application/json" };
+
+    const noKey = await fetch(`${BASE}${INTAKE_ROUTE}`, { method: "POST", headers: json, body });
+    rec("the order intake refuses a caller with no key", noKey.status === 404, `HTTP ${noKey.status}`);
+
+    const badKey = await fetch(`${BASE}${INTAKE_ROUTE}`, {
+      method: "POST",
+      headers: { ...json, "x-intake-key": "not-a-real-intake-key" },
+      body,
+    });
+    rec("and a wrong key the same way", badKey.status === 404, `HTTP ${badKey.status}`);
+    rec(
+      "and the two are indistinguishable",
+      noKey.status === badKey.status,
+      `${noKey.status} vs ${badKey.status}`,
+    );
+
+    const text = (await badKey.text()).trim();
+    rec(
+      "and the refusal says nothing about keys or orders",
+      !/key|intake|order|unauthor/i.test(text),
+      text.slice(0, 80),
+    );
+
+    // A GET must not be an accidental read of anything.
+    const get = await fetch(`${BASE}${INTAKE_ROUTE}`, { redirect: "manual" });
+    rec(
+      "the intake answers nothing to a GET",
+      get.status === 405 || get.status === 404,
+      `HTTP ${get.status}`,
+    );
+
+    /*
+     * The keys must not be in any bundle. The whole reason intake is called
+     * server to server is that a key in a browser is a key anybody has.
+     */
+    const home = await (await fetch(`${BASE}/`)).text();
+    rec("no intake key reaches the browser", !/ORDER_INTAKE_KEYS|x-intake-key/i.test(home));
+  }
+
+  // =======================================================================
+  // THE PUBLIC ORDER FLOW
+  //
+  // Open to a browser by design. What stops it being a way to create work the
+  // firm never agreed to is that nothing it sends is trusted.
+  // =======================================================================
+  {
+    const post = (body) =>
+      fetch(`${BASE}${FLOW_ROUTE}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+    const unknown = await post({ action: "nonsense" });
+    rec("the flow refuses an action it does not have", unknown.status === 400 || unknown.status === 409);
+
+    /*
+     * A price sent by the caller must be ignored, not honoured. This asserts
+     * the route has no field for it at all: a body carrying priceCents and
+     * totalCents must not produce an order at that price.
+     */
+    const source = readFileSync("src/app/api/order-flow/route.ts", "utf8");
+    rec(
+      "the flow route accepts no price from the caller",
+      !/priceCents|totalCents|amountCents/.test(source),
+      "the server recomputes every figure from the catalog",
+    );
+    rec(
+      "and takes its site from SITE_KEY rather than the request",
+      /site: SITE_KEY/.test(source),
+      "a browser must not be able to say which brand it is",
+    );
+    rec(
+      "and checks the compliance gate before anything else",
+      source.indexOf("isPrelaunch()") < source.indexOf("placeOrder("),
+      "an order must not be created and then refused",
+    );
+
+    const uploadSource = readFileSync("src/lib/order-uploads.ts", "utf8");
+    rec(
+      "an upload path is built from a validated draft id, never a filename",
+      /SAFE\.test\(params\.draftId\)/.test(uploadSource) && /SAFE\.test\(params\.inputKey\)/.test(uploadSource),
+    );
+    rec(
+      "and the extension comes from the content type rather than the name",
+      /extension is taken from the content type/.test(uploadSource),
+      "a name the customer typed must never decide the path",
+    );
+
+    /*
+     * The customer portal is a signed link and nothing else. A reference on its
+     * own must open nothing, or every order is readable by anybody who can
+     * guess six characters.
+     */
+    const noToken = await fetch(`${BASE}/order/254-O2026-XXXXXX`, { redirect: "manual" });
+    const noTokenBody = noToken.status === 200 ? await noToken.text() : "";
+    rec(
+      "an order reference with no token opens nothing",
+      noToken.status !== 200 || /does not open an order/.test(noTokenBody),
+      `HTTP ${noToken.status}`,
+    );
+
+    const badToken = await fetch(`${BASE}/order/254-O2026-XXXXXX?token=not-a-real-token`, {
+      redirect: "manual",
+    });
+    const badBody = badToken.status === 200 ? await badToken.text() : "";
+    rec(
+      "and a wrong token says the same thing as a missing one",
+      badToken.status !== 200 || /does not open an order/.test(badBody),
+      "distinguishing them would confirm the order exists",
+    );
+    rec(
+      "the customer page is never indexed",
+      !badBody || /noindex/.test(badBody),
+      "an order status page in a search result would be a leak",
+    );
   }
 }
 

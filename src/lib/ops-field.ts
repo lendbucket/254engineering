@@ -1,5 +1,6 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase";
+import { recordTechnicianVisit } from "./ops-payments";
 import { credentialBlockersFor } from "./ops-onboarding";
 import { raise } from "./ops-notify";
 import {
@@ -1168,6 +1169,17 @@ export async function deleteCapture(
  * A technician's fee that depended on the engineer's finding would be exactly
  * that pressure pointed at the other end of the same file.
  */
+/**
+ * Submitting evidence is the moment a visit becomes a fact.
+ *
+ * The middle row of the refund rule turns on whether a technician actually
+ * attended, and this is the only point in the platform where that becomes
+ * certain: an offer accepted is an intention, a dispatch is a plan, and
+ * evidence captured on site is the thing that happened.
+ *
+ * Recording it here rather than inferring it later from assignments matters,
+ * because an assignment can be withdrawn and evidence cannot be un-gathered.
+ */
 export async function submitEvidence(
   actor: Actor & { email: string },
   fileId: string,
@@ -1242,6 +1254,13 @@ export async function submitEvidence(
       entityId: fileId,
     });
   }
+
+  /*
+   * A visit is now a fact on the order, if there is one. See the note on this
+   * function: the refund rule's middle row turns on whether anybody attended,
+   * and evidence gathered on site is the only unambiguous evidence of it.
+   */
+  await recordTechnicianVisit(fileId);
 
   return { ok: true };
 }

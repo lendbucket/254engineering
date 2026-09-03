@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { previewPointingAtProduction } from "@/lib/db-guard";
-import { MispointedPreview } from "@/components/portal/MispointedPreview";
+import { mispointing } from "@/lib/db-guard";
+import { MispointedDeployment } from "@/components/portal/Mispointed";
 
 /**
  * Everything under /portal, signed in or not.
@@ -14,7 +14,7 @@ import { MispointedPreview } from "@/components/portal/MispointedPreview";
  * here would redirect the login page to the login page. Splitting the group is
  * what makes that impossible rather than a bug somebody fixes twice.
  *
- * The mispointed preview check is the opposite case and belongs here, above the
+ * The mispointing check is the opposite case and belongs here, above the
  * split. It was put in (app) first and that was wrong: an unauthenticated
  * visitor to a preview wired to production got the ordinary login page, typed a
  * password, and received a 500 from the throw in supabase.ts. Protected, and
@@ -31,6 +31,7 @@ export const metadata: Metadata = {
 };
 
 export default function PortalRootLayout({ children }: { children: React.ReactNode }) {
-  if (previewPointingAtProduction()) return <MispointedPreview />;
+  const fault = mispointing();
+  if (fault) return <MispointedDeployment fault={fault} />;
   return children;
 }

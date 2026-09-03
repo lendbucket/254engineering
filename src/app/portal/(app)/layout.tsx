@@ -2,8 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { currentActor } from "@/lib/ops-auth";
-import { previewPointingAtProduction } from "@/lib/db-guard";
-import { MispointedPreview } from "@/components/portal/MispointedPreview";
+import { mispointing } from "@/lib/db-guard";
+import { MispointedDeployment } from "@/components/portal/Mispointed";
 import { listNotifications, unreadCount } from "@/lib/ops-notify";
 import { can, ROLE_LABEL } from "@/lib/ops-authz";
 import { navFor, mobileTabsFor } from "@/components/portal/nav";
@@ -56,7 +56,8 @@ export default async function PortalLayout({ children }: { children: React.React
    * is what actually protects the data; this is the same fact addressed to
    * whoever is standing in front of it.
    */
-  if (previewPointingAtProduction()) return <MispointedPreview />;
+  const mispointed = mispointing();
+  if (mispointed) return <MispointedDeployment fault={mispointed} />;
 
   const actor = await currentActor();
 

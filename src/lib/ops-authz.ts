@@ -101,6 +101,9 @@ export type Action =
   | "ledger.read_own"
   | "ledger.read_all"
   | "ledger.approve"
+  // Reconciliation against the payment provider. Admin only, because applying
+  // it records that money moved and releases work off the back of it.
+  | "payments.reconcile"
   // tasks and communication
   | "tasks.use"
   | "messages.use"
@@ -134,6 +137,7 @@ const MATRIX: Record<Role, Action[]> = {
     "protocols.author", "protocols.publish",
     "review.queue", "review.decide", "documents.seal", "documents.deliver", "documents.read",
     "pricing.read", "billing.read", "ledger.read_own", "ledger.read_all", "ledger.approve",
+    "payments.reconcile",
     "tasks.use", "messages.use",
     "audit.read", "time.log_own",
     "responsible_charge.read_own", "responsible_charge.read_all",
@@ -173,7 +177,22 @@ const ALLOWED = new Map<Role, Set<Action>>(
  * Suspension that still lets somebody look around is not suspension, and the
  * sign in screen is where a suspended person gets an explanation.
  */
-export function can(actor: Actor | null, action: Action): boolean {
+/**
+ * What can() actually needs to answer the question.
+ *
+ * Widened from Actor when the order engine arrived. Intake acts on a customer's
+ * behalf and no person did it, so it has no profile id, and inventing one meant
+ * either a sentinel uuid that violates the created_by foreign key or a phantom
+ * admin profile that every fan-out over active admins would then include: it
+ * would join every file thread and receive every notification addressed to
+ * administrators.
+ *
+ * can() reads role and status and never touched the id, so this costs nothing
+ * and every existing Actor still satisfies it.
+ */
+export type AuthzSubject = Pick<Actor, "role" | "status">;
+
+export function can(actor: AuthzSubject | null, action: Action): boolean {
   if (!actor) return false;
   if (actor.status !== "active") return false;
   return ALLOWED.get(actor.role)?.has(action) ?? false;

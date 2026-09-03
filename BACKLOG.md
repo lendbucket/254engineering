@@ -1291,3 +1291,405 @@ page. Phase 6 built the two that were missing, so the filter is gone and the old
 reasoning is recorded in `nav.ts` rather than deleted.
 
 Sign in still lands each role on the surface they work in, through `homeFor`.
+
+## The production outage of 2026-09-03, and the audit that scored it green
+
+### What happened
+
+Production ran for roughly two hours unable to reach its database. Every call
+failed with `Invalid API key`, so nobody could sign in, a valid one time password
+link reported itself invalid, and the failed sign ins wrote no audit rows because
+the write that records them failed too.
+
+`security-audit` was run against that host during the outage and **passed all 126
+checks**.
+
+### Why the audit passed, which is the part worth keeping
+
+It was not lying. Every check it makes asks whether a signed out client is
+refused, and a deployment that cannot reach a database refuses everybody. A
+closed portal and a broken one are indistinguishable from outside, and **the
+broken one scores better than a healthy one would**, because nothing can leak
+from a system that can read nothing.
+
+That is the recurring defect class in this repository at full size: a check that
+passes while looking at the wrong thing.
+
+### What was added
+
+`/api/portal/health` returns exactly `{"ok":true}` with 200 or `{"ok":false}`
+with 503 and nothing else. Not the project ref, not a row count, not the error,
+not a build id. `security-audit` runs it first and prints
+`THE PERIMETER WAS NOT MEASURED` instead of a perimeter result when it fails.
+
+Injection verified three directions: healthy passes 128 checks, a wrong service
+role key fails liveness and refuses to score the perimeter, and a probe body
+carrying an extra field fails both checks so the endpoint cannot quietly become
+a reconnaissance surface.
+
+### The part that is still a hole
+
+**Nothing watches the health probe on a schedule.** It is a check an audit runs
+when somebody runs the audit. Production was down for two hours and the way it
+was discovered was the operator trying to sign in.
+
+A cron hitting `/api/portal/health` and alerting on a 503 is the obvious next
+step and is not built. Until it is, the honest statement is that this platform
+has no outage detection, only outage diagnosis.
+
+### The signal I misread, recorded because the misreading is the lesson
+
+Earlier the same day, verifying Phase 6 on the live host, I noticed production's
+audit trail was unchanged at 215 rows after running `security-audit` against it,
+and reported that as reassurance that the audit writes nothing.
+
+It was the symptom. A failed sign in writes an audit row before it branches, so a
+failure that leaves no row anywhere is a client that cannot reach its project at
+all. **That exact inference had already been made and written down during the
+Phase 5 preview incident, one day earlier, in this same repository.** I had the
+diagnosis and did not apply it, because the number I was looking at was the
+number I wanted to see.
+
+**If a count that should have moved has not moved, that is a finding, not a
+clean bill of health.**
+
+### And a second one: fixing the key while the URL stayed wrong
+
+After the key was corrected, production began writing to the **development**
+database. One probe row landed in development at 13:29:29 before the URL was
+also corrected. The outage had been replaced by something worse, and it was
+caught only because the evidence test checks both databases rather than one.
+
+The row cannot be removed; that table refuses deletes by design. It is
+development, so it is noise rather than harm, but it is the second time in two
+days that a Vercel environment variable change pointed a deployment at the wrong
+project. `previewPointingAtProduction` in `src/lib/db-guard.ts` guards a preview
+against production and has no counterpart guarding production against
+development, because production legitimately has no fixed expectation the code
+can assert from inside.
+
+**A `PRODUCTION_EXPECTED_REF` check, asserting at boot that a production
+deployment is pointed at the production ref, would close it.** Not built.
+
+### The production guard, and the signal it is allowed to trust
+
+`productionPointingElsewhere` in `src/lib/db-guard.ts` refuses to open a
+database connection when a production deployment is pointed at anything but the
+production project. It closes the hole that let production write one row into
+development on 2026-09-03.
+
+**Its first version fired on the operator's own laptop.** `.env.local` carries
+`VERCEL_ENV="production"`, written there by `vercel env pull`, so any check that
+trusts that variable alone treats a local `next start` as production. It refused
+every local database connection and would have broken the entire audit harness.
+It was caught by running the health probe locally and seeing it answer 503, not
+by the predicate tests, which all passed.
+
+So the guard also requires `VERCEL_DEPLOYMENT_ID`, which Vercel sets at runtime
+and `vercel env pull` does not write.
+
+**The known fragility.** If Vercel ever stops setting `VERCEL_DEPLOYMENT_ID`,
+the guard returns false and silently stops guarding. That is a fail open, and it
+is the deliberate direction: a guard that wrongly refuses production is a worse
+outage than the one it prevents. It is written down here rather than treated as
+a guarantee. `db-guard-audit` carries the laptop case as a permanent regression
+test, so the misfire cannot come back quietly.
+
+### The outage watcher's first alert was wrong, and that is why it classifies
+
+`/api/cron/health-watch` runs every five minutes and emails on a fault. The
+first version treated anything that was not a healthy 200 as a database outage.
+The first time it ran for real it emailed one, because production was answering
+403 with a Vercel Security Checkpoint page: a firewall challenging the monitor,
+not a database fault.
+
+An alert that names the wrong cause sends somebody to the wrong place, and one
+that repeats every five minutes for a reason that is not an outage gets muted,
+which loses the alert that matters. `classifyProbe` now separates four outcomes
+and each carries its own sentence about where to look.
+
+**What is still not solved: it keeps no state, so it repeats every five minutes
+while a fault lasts.** Deduplicating needs somewhere to record "already
+alerted", and the only durable store is the database being watched. The email
+says it will repeat. For a fault that went unnoticed for two hours, noisy is the
+right direction, but it is a tradeoff rather than a solved problem.
+
+### Production served a Vercel Security Checkpoint to everything for a period
+
+On 2026-09-03, for a window of roughly twenty minutes, every request to
+production including `/` returned 403 with Vercel's Security Checkpoint page.
+It cleared without intervention, which points at automatic DDoS mitigation
+rather than a setting somebody changed.
+
+**It matters more here than on most sites.** This firm's entire strategy is
+organic search, and a challenge page served to crawlers is a site that cannot be
+crawled. Nothing in this repository can see the firewall configuration, and the
+watcher can now tell the operator when it is happening, which is the most this
+layer can do about it.
+
+Worth checking in the Vercel dashboard whether Attack Challenge Mode is on, and
+worth knowing that it is a thing that can happen unattended.
+
+### Phase 7: does anything still write eng_orders?
+
+`eng_orders` is the legacy intake table reconstructed in migration 0000: a form
+submission with `plan_type`, `file_paths`, UTM capture and `status` defaulting
+to `received`. Phase 7's order lives in `eng_service_orders` instead, and 0006
+leaves the legacy table untouched.
+
+**The reason it was not repurposed is a question this repository cannot answer.**
+It holds zero rows in production, nothing in `src/` writes it, and no `eng_files`
+row references it. But the `eng_` tables are shared across the brand family and
+it carries a `site` column, so **sealedengineering or stampmyplans may still
+post to it.** Rewriting a shared table's meaning on the strength of what one of
+three repositories can see is exactly the assumption that should not be made.
+
+**What is needed: confirmation from the operator, or a look at the other two
+repos, on whether either still writes eng_orders.** If neither does, it can be
+dropped in a later migration and the name freed. Until then two tables with
+similar names is the cost of not guessing, and the header of 0006 explains it so
+the next session does not read it as an oversight.
+
+### Migration 0006 is on development only
+
+Applied to `ythzaiqeoijlrdibnieo`, fingerprint `f27078a89edc555283d50476b2be252e`
+across 605 columns. Production stays at `1187b16a91c10ff758ce8953e4efb1ca` /
+489 until the operator gives the merge word, which is the standing sequence:
+migration to production before the code that needs it deploys.
+
+### A payment row can never be deleted, including a demo one
+
+`eng_order_payments` has a delete trigger and `order_id ... on delete restrict`,
+so a payment cannot be removed and an order that took one cannot be removed
+either. That is right for money and it has a consequence worth knowing before
+somebody hits it: **any demo or test order that records a payment is permanent,
+in development as well as production.**
+
+A seeding script for the order flow should stop short of payments, or accept
+that development accumulates them the way it accumulates audit rows. The
+verification of 0006 worked around it by disabling the trigger inside a
+transaction, which is available to a migration and deliberately not to the
+application.
+
+### The order flow UI and the Stripe leg are not built
+
+Phase 7 has its catalog, its pure core, its schema and its intake API. What a
+customer actually touches does not exist yet:
+
+- **The six step flow** the program describes (service, qualification, property,
+  requirements, price and terms, payment) as a shared embeddable component
+  rendered on all three sites in each brand's own tokens and voice.
+- **The Stripe leg.** Test keys are on Preview scope now. `eng_order_payments`
+  is designed for it and nothing writes there. An order is created at
+  `awaiting_payment` and stays there.
+- **Auto dispatch on payment.** `landingStatusFor` says where a paid order
+  belongs and nothing moves it, because nothing marks an order paid.
+- **The customer portal.** `issueCustomerLink` and `orderForCustomerToken`
+  exist and no page reads them, so no customer has anywhere to look.
+- **Refund execution.** `refundFor` computes the three cases exactly and no code
+  calls Stripe to carry one out.
+
+The intake API is the whole path from a customer's answers to a file in the
+portal, minus the till. That is a real milestone and it is not the phase.
+
+### The intake walkthrough passed 24 checks while creating no files
+
+The first run of the Phase 7 walkthrough asserted the HTTP responses and
+nothing else. All 24 passed. Every order was recording a `client.failed` event
+reading "Could not find the 'landingPath' column of 'eng_clients'", because
+`createClient` spreads its `attribution` argument straight into the insert and
+the keys have to be real column names, and intake was passing camelCase.
+
+**No client and no file were created, and the API answered 201 either way.** The
+defect was found by reading the order's own event trail in the database, not by
+the walkthrough.
+
+The walkthrough now asserts what landed: a client, a linked file, the catalog
+snapshot, the disclosure text, the event trail, and that nothing in it ends in
+`.failed`. That last check is the one that would have caught this on the first
+run.
+
+### The intake cannot place a real order today, by design
+
+Every catalog price is null, so `orderBlockedReason` refuses every field and
+desk order. The happy path was verified with fixture prices patched in locally
+and reverted immediately afterwards; `order-audit` is green on the committed
+catalog, which asserts no price is published in the repository.
+
+**Until the operator sets prices, the only thing the intake will accept in a
+live gate is a quote request.** That is the honest state and not a defect.
+
+### Two prices in the operator's ruling have nowhere to go
+
+The 2026-09-03 pricing ruling included **beam and header sizing at 750** and
+**carport and patio cover plan set at 1500**. Neither is in `data/catalog.ts`
+and neither is in `src/content/services.ts`.
+
+They read as products rather than restatements of the nine service lines the
+sites publish. A catalog entry naming a service page that does not exist fails
+`order-audit`'s rule that every entry names a real service, and inventing two
+service pages means inventing copy, titles and descriptions for regulated work,
+which is not something to guess at.
+
+**What is needed from the operator: are these two new service lines needing
+their own pages, or fixed price variants of an existing one?** Beam and header
+sizing plausibly sits under residential and light commercial design; a carport
+and patio cover plan set plausibly does too, which would make that service
+partly fixed price and partly quoted. That is a catalog structure question, not
+a data entry one.
+
+Until then the seven prices that map cleanly are set and those two are absent
+rather than approximated.
+
+### The coastal surcharge is applied to desk services, which is an interpretation
+
+The operator gave "coastal surcharge 75 on the first tier counties" without
+restricting it to field work, so it is set on all seven orderable entries
+including the three desk services.
+
+The reading: it is a property of the location rather than of the service, and a
+coastal letter does carry windstorm design criteria an inland one does not.
+**If the intent was field only, three entries change and nothing else does.**
+
+Harris County gets no surcharge, because `twiaStatus` returns "check" there
+rather than "designated": the designated area is the part east of State Highway
+146 and a county name cannot express that. Erring toward not charging is the
+right direction for a fee the firm cannot yet prove applies.
+
+### A desk order could never have been sealed, and the fix has a boundary
+
+`checklistState` sets `canSubmit` only when every required protocol item is
+satisfied **and there is at least one required item**. That second condition was
+right for every file that existed before Phase 7: a technician must not submit a
+field job with no protocol, which is gathering nothing and calling it done.
+
+A desk order legitimately has no evidence protocol. Under that rule every desk
+order was permanently unsealable, found by trying to seal one.
+
+`deskPackageComplete` now answers the question that applies to a desk order:
+did the customer supply the inputs the catalog marked required? A file with no
+order behind it, and a field order with no protocol, both still return
+incomplete, so the original protection is untouched.
+
+**The boundary worth knowing:** a desk order's completeness is now the presence
+of the customer's files, not their adequacy. An engineer can still ask for
+revisions or decline, which is the right place for that judgment, but the
+platform no longer blocks the seal on a document being useless rather than
+absent.
+
+### Stripe is wired and has never spoken to Stripe
+
+Everything is built: checkout sessions, the webhook with signature verification,
+the paid transition, auto release to dispatch or review, the customer link, and
+all three refund cases.
+
+**It has only ever run against the fake provider.** The Stripe test keys are on
+Preview scope, so the real adapter is unexercised: no real session has been
+created, no real signature verified, and no real refund issued. The fake refuses
+an unsigned webhook and the shapes match, which is not the same as Stripe
+agreeing.
+
+What is needed: a preview deployment with the Preview scoped keys, a test card
+through a real Checkout session, a real webhook delivery, and a decline to watch
+the refund land in the Stripe dashboard. That is the last verification the
+program's Phase 7 gate asks for and it has not happened.
+
+### settleDecision used to report a refund it had not recorded
+
+Found by the walkthrough, through a colliding provider ref in the fake. The
+first version wrote the customer facing "you have been refunded" event whether
+or not the payment row landed, and only skipped the status change. The result
+was the worst available shape: the customer told they were refunded, the order
+still reading in fulfilment, and no payment row to reconcile against.
+
+It now records `refund.unrecorded` internally, names the provider ref the money
+went out under, and returns not-ok. The customer is not told a refund
+succeeded, and not told it failed either, because by that point the money may
+genuinely have moved.
+
+### Nothing reconciles a started checkout against Stripe
+
+Found on 2026-09-03, at the end of the real Stripe leg. Three probe orders in
+development sit at `awaiting_payment` with a recorded `cs_test_` session id and
+no payment row, because the webhook never delivered for them. Stripe's side of
+those three is not visible from the platform at all.
+
+The gap is not the missing webhook, which is a configuration fault and was
+eventually fixed. The gap is that **the platform cannot tell the difference
+between a checkout that was abandoned and a checkout that was paid while the
+confirmation was lost.** Both look exactly like `awaiting_payment` with no
+payment row, forever, and no surface anywhere counts them.
+
+That is the money shaped version of the defect class this repo keeps finding: a
+state that looks fine because nothing is looking. A customer in the second case
+has been charged and has no order, and would find out by calling.
+
+What is needed, in the order it matters:
+
+1. A read only reconciliation that lists orders left at `awaiting_payment` past
+   the Checkout session's own expiry, so the operator can see them at all.
+2. Retrieving each session from Stripe and comparing `payment_status`, which is
+   the only authority on whether money moved.
+3. Only then, a way to complete or refund from that finding, through
+   `markPaid` and `settleDecision` rather than around them.
+
+`settleDecision` refuses to refund without a payment row, which is correct and
+should stay correct. The answer is to record the charge that exists, not to
+loosen the rule.
+
+**Built the same day, on the operator's instruction, and this entry is kept
+because the reasoning above is still the reason it exists.** All three steps
+shipped in `e759b10`: `src/lib/reconcile-rules.ts` decides, `src/lib/ops-reconcile.ts`
+carries it out through `markPaid`, and `POST /api/portal/orders/reconcile`
+carries it, admin only, reading unless told to apply.
+
+I had proposed deferring it on the grounds that a reconciler bolted on at the
+end of a phase gets trusted before it has been tested against a real
+discrepancy. The operator overruled that and was right to: three real
+discrepancies were sitting in development waiting to be its first exercise,
+which is a better test than anything a later phase would have invented.
+
+**What remains undone here:** nothing surfaces the report in the portal. It is
+an API route an admin can call and there is no screen for it, so an operator
+learns about a stuck order only by asking. A dashboard count of orders left at
+`awaiting_payment` past their session expiry is the piece that would make it
+noticed rather than looked for.
+
+### There is no way to refund an order except by declining to seal it
+
+Found on 2026-09-03, immediately after reconciliation recorded three real
+payments and the next step was to give the money back.
+
+`settleDecision` is the only path to a refund, and the only caller is
+`recordDecision` in `ops-engineer.ts`, on a seal or a refusal. That is right for
+the case it was built for: the engineer's decision settles the money, in one
+place, so a caller cannot forget it on a refusal.
+
+It leaves no path at all for the cases that are not an engineering judgment:
+
+- an order placed by mistake, or a duplicate;
+- a customer who telephones to cancel before anybody starts;
+- a probe or test order that has to be unwound;
+- an order the firm decides not to take for a reason that is commercial rather
+  than technical.
+
+Cancelling the file does nothing to the order or its money. `markAbandoned`
+only closes orders that were never paid. So a paid order can currently be
+refunded only by routing it to an engineer and recording a refusal to seal.
+
+**Why that workaround must not be used.** `review.refuse` writes to
+`eng_audit_events`, which refuses deletes by design, and it records that a
+licensed engineer reviewed a file and declined to seal it. Doing that to unwind
+a payment would put a false professional judgment into the firm's regulatory
+memory permanently. It is the one shortcut here that is worse than the problem.
+
+What is needed: an operator refund that is honestly labelled as one. A fourth
+refund case, `cancelled_by_the_firm`, full amount, no inspection fee, recorded
+against the operator who authorised it rather than against an engineer. The
+existing three cases stay exactly as the operator ruled them, because they are
+about an engineering decision and this one is not.
+
+Until it exists, the three reconciled probe orders in development stay paid.
+They also can no longer be deleted: `eng_order_payments` is ON DELETE RESTRICT,
+so an order that took a payment cannot be removed, which is correct and is the
+price of recording the truth about them.

@@ -1,5 +1,6 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase";
+import { deskPackageComplete, orderForFile, settleDecision } from "./ops-payments";
 import { writeAudit } from "./ops-audit";
 import { can, type Actor } from "./ops-authz";
 import { transitionFile } from "./ops-crm";
@@ -217,8 +218,7 @@ export async function packageFor(actor: Actor | null, fileId: string): Promise<P
     file: file as PackageView["file"],
     protocolName: view.protocol ? `${view.protocol.name} v${view.protocol.version}` : null,
     items,
-    complete: view.state.canSubmit,
-    blockers: view.state.blockers,
+    ...(await completeness(fileId, view)),
     session: session
       ? {
           id: session.id as string,
@@ -237,6 +237,27 @@ export async function packageFor(actor: Actor | null, fileId: string): Promise<P
  * second tab does not start a second clock and produce two answers about how
  * long the review took.
  */
+/**
+ * Whether this package may be sealed, and why not if it may not.
+ *
+ * Two different questions depending on what kind of work it is. A field file
+ * asks the evidence checklist. A desk file has no protocol and asks whether the
+ * customer supplied what the catalog required, because that is what a desk
+ * engineer is reviewing. See deskPackageComplete for the blocker that produced
+ * this split.
+ */
+async function completeness(
+  fileId: string,
+  view: { state: { canSubmit: boolean; blockers: string[] } },
+): Promise<{ complete: boolean; blockers: string[] }> {
+  if (view.state.canSubmit) return { complete: true, blockers: [] };
+
+  const desk = await deskPackageComplete(fileId);
+  if (desk.applies) return { complete: desk.complete, blockers: desk.blockers };
+
+  return { complete: view.state.canSubmit, blockers: view.state.blockers };
+}
+
 export async function openReview(
   actor: Actor & { email: string },
   fileId: string,
@@ -503,6 +524,36 @@ export async function decideReview(
     }`,
     ...context,
   });
+
+  /*
+   * THE DECISION SETTLES THE MONEY, AND IT HAPPENS HERE
+   * --------------------------------------------------
+   * settleDecision is called for a seal as well as a refusal, so exactly one
+   * place knows what a decision does to a customer's payment. A caller that had
+   * to remember to skip it on a seal is one that will one day forget on a
+   * refusal, and the customer would be left charged for work the firm declined.
+   *
+   * It is called after the decision is already recorded, and its failure does
+   * not undo the decision. An engineer's professional judgment is not
+   * contingent on a payment provider being reachable: the file stays declined,
+   * the refund is recorded as needing a hand, and the operator can see it.
+   *
+   * A file with no order behind it, which is every file staff opened by hand,
+   * settles to nothing and says so.
+   */
+  const order = await orderForFile(fileId);
+  if (order && (action === "seal" || action === "refuse")) {
+    const settled = await settleDecision({
+      orderId: order.id as string,
+      outcome: action === "seal" ? "seal" : "refuse",
+      actorId: actor.id,
+    });
+    if (!settled.ok) {
+      console.error(
+        `[review] ${pkg.file.file_number}: the decision stands and the refund did not: ${settled.error}`,
+      );
+    }
+  }
 
   return { ok: true, action, minutes, paidCents };
 }
