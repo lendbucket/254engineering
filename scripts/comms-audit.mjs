@@ -276,9 +276,18 @@ const otherTech = actor("field_tech", "tech-2");
    * the last place to break it.
    */
   rec("the DWC-005 window is flagged as needing confirmation", dwc?.needsConfirmation === true);
+  /*
+   * Tests the intent, not a sentence. The first version matched an exact phrase
+   * and failed the moment the wording improved, which teaches whoever hits it to
+   * edit the assertion rather than think about it.
+   */
   rec(
-    "and the task itself tells whoever opens it to confirm with the Division",
-    /confirmed with the Division/i.test(dwc?.description ?? ""),
+    "and the task itself points at the Division as the authority",
+    /with the Division/i.test(dwc?.description ?? ""),
+  );
+  rec(
+    "and says the anchor is provisional until then",
+    /provisional|not a primary source/i.test(dwc?.description ?? ""),
   );
 
   /*
@@ -289,10 +298,19 @@ const otherTech = actor("field_tech", "tech-2");
   for (const key of ["tbpels_registration_renewal", "eo_policy_renewal"]) {
     const seed = COMPLIANCE_SEEDS.find((s) => s.key === key);
     rec(`${key} carries no invented due date`, seed?.anchor === null);
+    /*
+     * The description has to say WHERE the real date comes from, so the empty
+     * field is a question with an answer rather than an oversight. The operator
+     * supplied both on 2026-09-02: the TBPELS date is set on launch day, one
+     * year from issuance, and the errors and omissions date when the policy
+     * binds.
+     */
     rec(
-      `and asks the operator to set it`,
-      /set the due date/i.test(seed?.description ?? ""),
-      seed?.description?.slice(0, 40),
+      `and says where its real date comes from`,
+      /set on launch day|one year from issuance|when the policy binds|declarations page|registration certificate/i.test(
+        seed?.description ?? "",
+      ),
+      seed?.description?.slice(0, 50),
     );
   }
 

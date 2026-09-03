@@ -358,7 +358,7 @@ export const COMPLIANCE_SEEDS: ComplianceSeed[] = [
     key: "dwc_005_filing",
     title: "File the DWC-005 nonsubscriber notice with the Texas Division of Workers Compensation",
     description:
-      "Required annually of an employer that does not carry workers compensation insurance. The filing window is believed to run from 1 February to 30 April, and the current dates and the current form must be confirmed with the Division before filing, because this description is not a primary source.",
+      "Required annually of an employer that does not carry workers compensation insurance. The filing window is believed to run from 1 February to 30 April. The operator is confirming the current dates and the current form with the Division; until that is done this description is not a primary source and the anchor below is provisional.",
     recurrence: "annually",
     priority: "urgent",
     anchor: { month: 2, day: 1 },
@@ -368,7 +368,7 @@ export const COMPLIANCE_SEEDS: ComplianceSeed[] = [
     key: "tbpels_registration_renewal",
     title: "Renew the TBPELS firm registration",
     description:
-      "Set the due date from the registration certificate once it is granted. Registration is pending as this task is seeded, so there is no date to put here yet, and the firm cannot offer engineering services without it.",
+      "Renewal falls one year from issuance, so the date is set on launch day when the certificate arrives. Registration is pending as this task is seeded, and the firm cannot offer engineering services without it.",
     recurrence: "annually",
     priority: "urgent",
     anchor: null,
@@ -377,7 +377,7 @@ export const COMPLIANCE_SEEDS: ComplianceSeed[] = [
     key: "eo_policy_renewal",
     title: "Renew the errors and omissions policy",
     description:
-      "Professional liability cover for the firm. Set the due date from the declarations page. A lapse here is not a paperwork problem, it is the firm carrying its own exposure on every file in flight.",
+      "Professional liability cover for the firm. The date is set when the policy binds, from the declarations page. A lapse here is not a paperwork problem, it is the firm carrying its own exposure on every file in flight.",
     recurrence: "annually",
     priority: "urgent",
     anchor: null,
