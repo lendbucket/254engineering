@@ -161,6 +161,15 @@ const OPEN_BY_DESIGN = new Set([
  */
 const CRON_ROUTE = "/api/cron/health-watch";
 
+/**
+ * The order intake, called server side by all three brands with a per site key.
+ *
+ * Not under /api/portal, so the route discovery above does not see it, and it
+ * writes orders and opens files. Reachable without a key it would let anybody
+ * create work the firm believes it has been asked for.
+ */
+const INTAKE_ROUTE = "/api/orders";
+
 /** The retired passphrase surface. These must not answer at all any more. */
 const RETIRED = ["/admin/login", "/admin/logout", "/api/admin/session"];
 
@@ -710,6 +719,54 @@ async function run() {
       "and the outage headline names the database",
       /database/i.test(OUTCOME_HEADLINE.unhealthy),
     );
+  }
+
+  // =======================================================================
+  // THE ORDER INTAKE
+  //
+  // It creates orders, clients and files. A caller without a brand's key must
+  // not be able to reach it, and the refusal must not confirm what it is.
+  // =======================================================================
+  {
+    const body = JSON.stringify({ serviceSlug: "roof-inspections" });
+    const json = { "Content-Type": "application/json" };
+
+    const noKey = await fetch(`${BASE}${INTAKE_ROUTE}`, { method: "POST", headers: json, body });
+    rec("the order intake refuses a caller with no key", noKey.status === 404, `HTTP ${noKey.status}`);
+
+    const badKey = await fetch(`${BASE}${INTAKE_ROUTE}`, {
+      method: "POST",
+      headers: { ...json, "x-intake-key": "not-a-real-intake-key" },
+      body,
+    });
+    rec("and a wrong key the same way", badKey.status === 404, `HTTP ${badKey.status}`);
+    rec(
+      "and the two are indistinguishable",
+      noKey.status === badKey.status,
+      `${noKey.status} vs ${badKey.status}`,
+    );
+
+    const text = (await badKey.text()).trim();
+    rec(
+      "and the refusal says nothing about keys or orders",
+      !/key|intake|order|unauthor/i.test(text),
+      text.slice(0, 80),
+    );
+
+    // A GET must not be an accidental read of anything.
+    const get = await fetch(`${BASE}${INTAKE_ROUTE}`, { redirect: "manual" });
+    rec(
+      "the intake answers nothing to a GET",
+      get.status === 405 || get.status === 404,
+      `HTTP ${get.status}`,
+    );
+
+    /*
+     * The keys must not be in any bundle. The whole reason intake is called
+     * server to server is that a key in a browser is a key anybody has.
+     */
+    const home = await (await fetch(`${BASE}/`)).text();
+    rec("no intake key reaches the browser", !/ORDER_INTAKE_KEYS|x-intake-key/i.test(home));
   }
 }
 

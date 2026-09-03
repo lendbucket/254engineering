@@ -1470,3 +1470,51 @@ that development accumulates them the way it accumulates audit rows. The
 verification of 0006 worked around it by disabling the trigger inside a
 transaction, which is available to a migration and deliberately not to the
 application.
+
+### The order flow UI and the Stripe leg are not built
+
+Phase 7 has its catalog, its pure core, its schema and its intake API. What a
+customer actually touches does not exist yet:
+
+- **The six step flow** the program describes (service, qualification, property,
+  requirements, price and terms, payment) as a shared embeddable component
+  rendered on all three sites in each brand's own tokens and voice.
+- **The Stripe leg.** Test keys are on Preview scope now. `eng_order_payments`
+  is designed for it and nothing writes there. An order is created at
+  `awaiting_payment` and stays there.
+- **Auto dispatch on payment.** `landingStatusFor` says where a paid order
+  belongs and nothing moves it, because nothing marks an order paid.
+- **The customer portal.** `issueCustomerLink` and `orderForCustomerToken`
+  exist and no page reads them, so no customer has anywhere to look.
+- **Refund execution.** `refundFor` computes the three cases exactly and no code
+  calls Stripe to carry one out.
+
+The intake API is the whole path from a customer's answers to a file in the
+portal, minus the till. That is a real milestone and it is not the phase.
+
+### The intake walkthrough passed 24 checks while creating no files
+
+The first run of the Phase 7 walkthrough asserted the HTTP responses and
+nothing else. All 24 passed. Every order was recording a `client.failed` event
+reading "Could not find the 'landingPath' column of 'eng_clients'", because
+`createClient` spreads its `attribution` argument straight into the insert and
+the keys have to be real column names, and intake was passing camelCase.
+
+**No client and no file were created, and the API answered 201 either way.** The
+defect was found by reading the order's own event trail in the database, not by
+the walkthrough.
+
+The walkthrough now asserts what landed: a client, a linked file, the catalog
+snapshot, the disclosure text, the event trail, and that nothing in it ends in
+`.failed`. That last check is the one that would have caught this on the first
+run.
+
+### The intake cannot place a real order today, by design
+
+Every catalog price is null, so `orderBlockedReason` refuses every field and
+desk order. The happy path was verified with fixture prices patched in locally
+and reverted immediately afterwards; `order-audit` is green on the committed
+catalog, which asserts no price is published in the repository.
+
+**Until the operator sets prices, the only thing the intake will accept in a
+live gate is a quote request.** That is the honest state and not a defect.
