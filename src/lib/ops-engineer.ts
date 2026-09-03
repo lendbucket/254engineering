@@ -4,6 +4,7 @@ import { writeAudit } from "./ops-audit";
 import { can, type Actor } from "./ops-authz";
 import { transitionFile } from "./ops-crm";
 import { jobView } from "./ops-field";
+import { raise } from "./ops-notify";
 import { isPrelaunch } from "./launch";
 import {
   ACTION_TARGET,
@@ -423,6 +424,72 @@ export async function decideReview(
       else if (!/duplicate key/i.test(error.message)) {
         return { ok: false, error: `The review was recorded but production pay failed: ${error.message}` };
       }
+    }
+  }
+
+  /*
+   * Who a decision reaches depends on what it was.
+   *
+   * A technician is told when their package comes back, because they are the
+   * one who has to act. A refusal goes to administrators, because it is a
+   * commercial and regulatory event rather than a field one, and because
+   * telling a technician "an engineer would not certify your work" as a push
+   * notification is not how that conversation should start.
+   */
+  const { data: admins } = await db
+    .from("eng_profiles")
+    .select("id")
+    .eq("role", "admin")
+    .eq("status", "active");
+
+  if (action === "revisions" || action === "site_visit") {
+    const { data: file } = await db
+      .from("eng_files")
+      .select("assigned_tech_id")
+      .eq("id", fileId)
+      .maybeSingle();
+    const techId = (file?.assigned_tech_id as string | null) ?? null;
+    if (techId) {
+      await raise({
+        profileId: techId,
+        role: "field_tech",
+        kind: "review.revisions",
+        title:
+          action === "revisions"
+            ? `${pkg.file.file_number} came back for revisions`
+            : `${pkg.file.file_number} needs another site visit`,
+        body: note,
+        href: `/portal/jobs/${fileId}`,
+        entityType: "file",
+        entityId: fileId,
+      });
+    }
+  }
+
+  for (const admin of admins ?? []) {
+    if ((admin.id as string) === actor.id) continue;
+    if (action === "refuse") {
+      await raise({
+        profileId: admin.id as string,
+        role: "admin",
+        kind: "review.refused",
+        title: `An engineer declined to seal ${pkg.file.file_number}`,
+        body: note,
+        href: `/portal/review?id=${fileId}`,
+        entityType: "file",
+        entityId: fileId,
+      });
+    } else if (action === "seal") {
+      await raise({
+        profileId: admin.id as string,
+        role: "admin",
+        kind: "review.sealed",
+        title: `${pkg.file.file_number} was sealed`,
+        body: `${pkg.file.property_address}, ${pkg.file.county} County.`,
+        href: `/portal/files?id=${fileId}`,
+        entityType: "file",
+        entityId: fileId,
+      });
     }
   }
 

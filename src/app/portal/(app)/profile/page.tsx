@@ -2,12 +2,16 @@ import { notFound } from "next/navigation";
 import { currentActor, MIN_PASSWORD_LENGTH } from "@/lib/ops-auth";
 import { actionsFor, can, ROLE_LABEL } from "@/lib/ops-authz";
 import { PageHead, Panel } from "@/components/portal/surfaces";
+import { preferencesFor } from "@/lib/ops-notify";
+import { kindsForRole } from "@/lib/ops-comms";
 import { PasswordForm } from "./PasswordForm";
+import { PreferencesForm } from "./PreferencesForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProfilePage() {
   const actor = await currentActor();
+  const stored = actor ? await preferencesFor(actor.id, actor.role) : [];
   if (!can(actor, "profiles.read_self")) notFound();
 
   const rows: [string, string][] = [
@@ -49,6 +53,19 @@ export default async function ProfilePage() {
         <div className="flex flex-col gap-4">
           <Panel title="Password" description="Only you ever know it. Nobody at the firm can see it.">
             <PasswordForm minLength={MIN_PASSWORD_LENGTH} />
+          </Panel>
+
+          <Panel
+            title="Notifications"
+            description="Everything reaches you in the portal. This is what also reaches you by email."
+          >
+            <PreferencesForm
+              preferences={kindsForRole(actor!.role).map((spec) => ({
+                kind: spec.kind,
+                label: spec.label,
+                email: stored.find((p) => p.kind === spec.kind)?.email ?? spec.emailByDefault,
+              }))}
+            />
           </Panel>
 
           <Panel

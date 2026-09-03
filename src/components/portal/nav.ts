@@ -25,7 +25,8 @@ export type NavItem = {
   primary?: boolean;
   icon:
     | "home" | "files" | "people" | "review" | "jobs" | "clients" | "audit"
-    | "profile" | "protocols" | "techs" | "onboarding" | "certification" | "charge";
+    | "profile" | "protocols" | "techs" | "onboarding" | "certification" | "charge"
+    | "tasks" | "messages";
 };
 
 export const NAV: NavItem[] = [
@@ -52,6 +53,8 @@ export const NAV: NavItem[] = [
     action: "responsible_charge.read_own",
     icon: "charge",
   },
+  { href: "/portal/tasks", label: "Tasks", short: "Tasks", action: "tasks.use", primary: true, icon: "tasks" },
+  { href: "/portal/messages", label: "Messages", short: "Chat", action: "messages.use", primary: true, icon: "messages" },
   { href: "/portal/files", label: "Files", short: "Files", action: "files.list", primary: true, icon: "files" },
   { href: "/portal/clients", label: "Clients", short: "Clients", action: "clients.list", icon: "clients" },
   { href: "/portal/protocols", label: "Protocols", short: "Specs", action: "protocols.author", icon: "protocols" },

@@ -99,6 +99,9 @@ export type Action =
   | "ledger.read_own"
   | "ledger.read_all"
   | "ledger.approve"
+  // tasks and communication
+  | "tasks.use"
+  | "messages.use"
   // records
   | "audit.read"
   | "time.log_own"
@@ -129,6 +132,7 @@ const MATRIX: Record<Role, Action[]> = {
     "protocols.author", "protocols.publish",
     "review.queue", "review.decide", "documents.seal", "documents.deliver",
     "pricing.read", "ledger.read_own", "ledger.read_all", "ledger.approve",
+    "tasks.use", "messages.use",
     "audit.read", "time.log_own",
     "responsible_charge.read_own", "responsible_charge.read_all",
   ],
@@ -139,6 +143,7 @@ const MATRIX: Record<Role, Action[]> = {
     "evidence.review", "evidence.start", "evidence.submit",
     "protocols.author", "protocols.publish",
     "review.queue", "review.decide", "documents.seal", "documents.deliver",
+    "tasks.use", "messages.use",
     "ledger.read_own", "time.log_own",
     "responsible_charge.read_own",
     // An engineer sees what a file is worth, because they are paid production on
@@ -150,6 +155,7 @@ const MATRIX: Record<Role, Action[]> = {
     "offers.list_own", "offers.respond",
     "files.list",
     "evidence.capture", "evidence.start", "evidence.submit",
+    "tasks.use", "messages.use",
     "ledger.read_own",
   ],
 };

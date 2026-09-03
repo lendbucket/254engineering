@@ -1,6 +1,7 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase";
 import { credentialBlockersFor } from "./ops-onboarding";
+import { raise } from "./ops-notify";
 import {
   canAttempt,
   forTechnician,
@@ -559,7 +560,7 @@ export async function sendOffers(
 
   const { data: file } = await db
     .from("eng_files")
-    .select("id, file_number, county, service_slug, latitude, longitude, status, assigned_tech_id")
+    .select("id, file_number, property_address, county, service_slug, latitude, longitude, status, assigned_tech_id")
     .eq("id", fileId)
     .maybeSingle();
   if (!file) return { ok: false, error: "That file does not exist." };
@@ -628,6 +629,27 @@ export async function sendOffers(
       ctx.feeCents === null ? "no scheduled rate" : `$${(ctx.feeCents / 100).toFixed(2)}`
     }.`,
   });
+
+  /*
+   * Everybody offered the job is told. This is the notification the whole field
+   * half of the platform exists to deliver: without it a technician has to keep
+   * the portal open to find out there is work.
+   */
+  for (const id of techIds) {
+    const offer = eligible.get(id)!;
+    await raise({
+      profileId: id,
+      role: "field_tech",
+      kind: "offer.received",
+      title: `A job in ${file.county} County is offered to you`,
+      body: `${file.property_address}${
+        offer.amountCents === null ? "" : `, flat rate $${(offer.amountCents / 100).toFixed(2)}`
+      }.`,
+      href: "/portal/jobs",
+      entityType: "file",
+      entityId: fileId,
+    });
+  }
 
   await writeAudit({
     actor,
@@ -780,6 +802,31 @@ export async function acceptOffer(
   if (file.status === "needs_dispatch") {
     const moved = await transitionFile(actor, offer.file_id as string, "dispatched", "Offer accepted.", context);
     if (!moved.ok) return { ok: false, error: moved.error };
+  }
+
+  /*
+   * The technicians who did not get it are told, once, and it is off by default
+   * in the preferences. Somebody who loses three offers in a week does not need
+   * three emails about it, and a notification people resent is one that makes
+   * them ignore the ones that matter.
+   */
+  const { data: lost } = await db
+    .from("eng_assignments")
+    .select("tech_id")
+    .eq("file_id", offer.file_id)
+    .eq("state", "withdrawn");
+  for (const row of lost ?? []) {
+    if (row.tech_id === offer.tech_id) continue;
+    await raise({
+      profileId: row.tech_id as string,
+      role: "field_tech",
+      kind: "offer.lost",
+      title: "A job you were offered was taken",
+      body: `${file.file_number} went to another technician.`,
+      href: "/portal/jobs",
+      entityType: "file",
+      entityId: offer.file_id as string,
+    });
   }
 
   await writeAudit({
@@ -1171,6 +1218,29 @@ export async function submitEvidence(
     if (error && !/duplicate key/i.test(error.message)) {
       return { ok: false, error: `Evidence submitted, but the pay ledger entry failed: ${error.message}` };
     }
+  }
+
+  /*
+   * Everybody who can review is told a package is waiting. Not one nominated
+   * engineer: a queue that notifies a single person is a queue that stops when
+   * that person is on holiday.
+   */
+  const { data: reviewers } = await db
+    .from("eng_profiles")
+    .select("id, role")
+    .in("role", ["engineer", "admin"])
+    .eq("status", "active");
+  for (const reviewer of reviewers ?? []) {
+    await raise({
+      profileId: reviewer.id as string,
+      role: reviewer.role as "engineer" | "admin",
+      kind: "evidence.submitted",
+      title: `An evidence package is ready to review`,
+      body: `${view.file.file_number}, ${view.file.property_address}, ${view.file.county} County.`,
+      href: `/portal/review?id=${fileId}`,
+      entityType: "file",
+      entityId: fileId,
+    });
   }
 
   return { ok: true };
@@ -1707,6 +1777,22 @@ export async function revokeCertification(
     .eq("profile_id", profileId)
     .eq("service_slug", serviceSlug);
   if (error) return { ok: false, error: error.message };
+
+  /*
+   * Mandatory email. A revoked certification stops somebody working, and the
+   * consequence lands outside the platform, so they are told even if they have
+   * muted everything.
+   */
+  await raise({
+    profileId,
+    role: "field_tech",
+    kind: "certification.revoked",
+    title: `Your certification for ${serviceSlug} was withdrawn`,
+    body: reason.trim(),
+    href: "/portal/certification",
+    entityType: "profile",
+    entityId: profileId,
+  });
 
   await writeAudit({
     actor,
