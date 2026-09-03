@@ -1,5 +1,5 @@
 import "server-only";
-import { guardError, previewPointingAtProduction } from "./db-guard";
+import { guardError, mispointing } from "./db-guard";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 /**
@@ -54,8 +54,9 @@ export function supabaseConfigured(): boolean {
  * firm's production data as "not configured" and carry on, which is exactly the
  * quiet failure the guard exists to prevent. So it is loud.
  */
-function refuseIfPreviewOnProduction(): void {
-  if (previewPointingAtProduction()) throw guardError();
+function refuseIfMispointed(): void {
+  const fault = mispointing();
+  if (fault) throw guardError(fault);
 }
 
 /**
@@ -66,7 +67,7 @@ function refuseIfPreviewOnProduction(): void {
  * their details in is worse, because they will not type them again.
  */
 export function supabaseAdmin(): SupabaseClient | null {
-  refuseIfPreviewOnProduction();
+  refuseIfMispointed();
   if (!supabaseConfigured()) return null;
   if (cached) return cached;
 
@@ -99,7 +100,7 @@ export function supabaseAdmin(): SupabaseClient | null {
  * signs anybody in and therefore never stops being the service role.
  */
 export function supabaseCredentialCheck(): SupabaseClient | null {
-  refuseIfPreviewOnProduction();
+  refuseIfMispointed();
   if (!supabaseConfigured()) return null;
   return createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },

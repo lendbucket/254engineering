@@ -1370,3 +1370,62 @@ can assert from inside.
 
 **A `PRODUCTION_EXPECTED_REF` check, asserting at boot that a production
 deployment is pointed at the production ref, would close it.** Not built.
+
+### The production guard, and the signal it is allowed to trust
+
+`productionPointingElsewhere` in `src/lib/db-guard.ts` refuses to open a
+database connection when a production deployment is pointed at anything but the
+production project. It closes the hole that let production write one row into
+development on 2026-09-03.
+
+**Its first version fired on the operator's own laptop.** `.env.local` carries
+`VERCEL_ENV="production"`, written there by `vercel env pull`, so any check that
+trusts that variable alone treats a local `next start` as production. It refused
+every local database connection and would have broken the entire audit harness.
+It was caught by running the health probe locally and seeing it answer 503, not
+by the predicate tests, which all passed.
+
+So the guard also requires `VERCEL_DEPLOYMENT_ID`, which Vercel sets at runtime
+and `vercel env pull` does not write.
+
+**The known fragility.** If Vercel ever stops setting `VERCEL_DEPLOYMENT_ID`,
+the guard returns false and silently stops guarding. That is a fail open, and it
+is the deliberate direction: a guard that wrongly refuses production is a worse
+outage than the one it prevents. It is written down here rather than treated as
+a guarantee. `db-guard-audit` carries the laptop case as a permanent regression
+test, so the misfire cannot come back quietly.
+
+### The outage watcher's first alert was wrong, and that is why it classifies
+
+`/api/cron/health-watch` runs every five minutes and emails on a fault. The
+first version treated anything that was not a healthy 200 as a database outage.
+The first time it ran for real it emailed one, because production was answering
+403 with a Vercel Security Checkpoint page: a firewall challenging the monitor,
+not a database fault.
+
+An alert that names the wrong cause sends somebody to the wrong place, and one
+that repeats every five minutes for a reason that is not an outage gets muted,
+which loses the alert that matters. `classifyProbe` now separates four outcomes
+and each carries its own sentence about where to look.
+
+**What is still not solved: it keeps no state, so it repeats every five minutes
+while a fault lasts.** Deduplicating needs somewhere to record "already
+alerted", and the only durable store is the database being watched. The email
+says it will repeat. For a fault that went unnoticed for two hours, noisy is the
+right direction, but it is a tradeoff rather than a solved problem.
+
+### Production served a Vercel Security Checkpoint to everything for a period
+
+On 2026-09-03, for a window of roughly twenty minutes, every request to
+production including `/` returned 403 with Vercel's Security Checkpoint page.
+It cleared without intervention, which points at automatic DDoS mitigation
+rather than a setting somebody changed.
+
+**It matters more here than on most sites.** This firm's entire strategy is
+organic search, and a challenge page served to crawlers is a site that cannot be
+crawled. Nothing in this repository can see the firewall configuration, and the
+watcher can now tell the operator when it is happening, which is the most this
+layer can do about it.
+
+Worth checking in the Vercel dashboard whether Attack Challenge Mode is on, and
+worth knowing that it is a thing that can happen unattended.

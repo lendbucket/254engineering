@@ -28,7 +28,14 @@
  * This file is the unauthenticated perimeter and stays runnable without either.
  */
 import { chromium } from "playwright";
-import { readdirSync, existsSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync } from "node:fs";
+import {
+  HEALTH_PROBE_PATH,
+  HEALTH_WATCH_CRON,
+  OUTCOME_HEADLINE,
+  classifyProbe,
+  shouldAlert,
+} from "../src/lib/health-watch.ts";
 import { join } from "node:path";
 
 const BASE = process.env.BASE_URL || "http://localhost:3225";
@@ -142,6 +149,17 @@ const OPEN_BY_DESIGN = new Set([
   // exists to unblock. Guarded by a token instead, and tested below.
   "/api/portal/unlock",
 ]);
+
+/**
+ * The outage watcher. Not a portal route, so route discovery above does not see
+ * it, and it is checked explicitly below instead.
+ *
+ * It sends email, which makes an unauthenticated trigger a way to fill the
+ * operator's inbox. It must answer 404 without the cron secret, the same way
+ * /api/portal/unlock does when its token is absent: indistinguishable from a
+ * route that is not there.
+ */
+const CRON_ROUTE = "/api/cron/health-watch";
 
 /** The retired passphrase surface. These must not answer at all any more. */
 const RETIRED = ["/admin/login", "/admin/logout", "/api/admin/session"];
@@ -561,6 +579,137 @@ async function run() {
      * the browser would be a second access path to reason about for no benefit.
      */
     rec("no anon key or public Supabase URL reaches the browser", !/NEXT_PUBLIC_SUPABASE/.test(html));
+  }
+
+  // =======================================================================
+  // THE OUTAGE WATCHER
+  //
+  // It exists because production was down for two hours on 2026-09-03 and the
+  // way it was found was the operator failing to sign in. It sends email, so
+  // the checks here are about it not being a way to send email to the operator
+  // on demand, and about the schedule agreeing with what the email promises.
+  // =======================================================================
+  {
+    const noAuth = await fetch(`${BASE}${CRON_ROUTE}`, { redirect: "manual" });
+    rec(
+      "the outage watcher refuses an unauthenticated caller",
+      noAuth.status === 404,
+      `HTTP ${noAuth.status}`,
+    );
+
+    const wrongSecret = await fetch(`${BASE}${CRON_ROUTE}`, {
+      redirect: "manual",
+      headers: { authorization: "Bearer not-the-cron-secret" },
+    });
+    rec(
+      "and refuses a wrong secret the same way",
+      wrongSecret.status === 404,
+      `HTTP ${wrongSecret.status}`,
+    );
+
+    /*
+     * Indistinguishable, deliberately. A different status for "no secret" and
+     * "wrong secret" tells an outsider whether the watcher is configured, which
+     * is a fact about the deployment they have no use for.
+     */
+    rec(
+      "and the two refusals are indistinguishable",
+      noAuth.status === wrongSecret.status,
+      `${noAuth.status} vs ${wrongSecret.status}`,
+    );
+
+    const body = (await wrongSecret.text()).trim();
+    rec(
+      "the refusal says nothing about why",
+      !/secret|cron|token|unauthor/i.test(body),
+      body.slice(0, 80),
+    );
+
+    /*
+     * vercel.json cannot import the constant, so it holds a copy, and a copy
+     * that drifts turns the promise in the alert email into a small lie about
+     * how long the site has been down.
+     */
+    const vercelConfig = JSON.parse(readFileSync("vercel.json", "utf8"));
+    const cron = (vercelConfig.crons ?? []).find((c) => c.path === CRON_ROUTE);
+    rec("the watcher is actually scheduled", Boolean(cron), JSON.stringify(vercelConfig.crons ?? []));
+    rec(
+      "and the schedule matches the interval the alert email promises",
+      cron?.schedule === HEALTH_WATCH_CRON,
+      `vercel.json says ${cron?.schedule}, health-watch.ts says ${HEALTH_WATCH_CRON}`,
+    );
+    rec(
+      "and it probes the same endpoint this audit does",
+      HEALTH_PROBE_PATH === "/api/portal/health",
+      HEALTH_PROBE_PATH,
+    );
+
+    /*
+     * The classifier, which is the part that decides what the operator is told.
+     *
+     * Its first version had two outcomes and called everything that was not a
+     * healthy 200 a database outage. The first real run emailed one because the
+     * production host answered 403 with a Vercel Security Checkpoint page. An
+     * alert naming the wrong cause sends somebody to the wrong place, and one
+     * that repeats every five minutes for a reason that is not an outage gets
+     * muted, which loses the alert that matters.
+     */
+    const CLASSIFY = [
+      ["a healthy probe", 200, '{"ok":true}', "healthy"],
+      ["the same with whitespace", 200, ' {"ok":true}\n', "healthy"],
+      ["the app reporting it cannot read its database", 503, '{"ok":false}', "unhealthy"],
+      ["a Vercel security checkpoint", 403, "<!DOCTYPE html><title>Vercel Security Checkpoint</title>", "challenged"],
+      ["an attack challenge served as 200", 200, "<html><body>Attack Challenge Mode</body></html>", "challenged"],
+      ["a bot filter asking for JavaScript", 403, "Enable JavaScript and cookies to continue", "challenged"],
+      ["any other html page", 500, "<!doctype html><h1>Something went wrong</h1>", "challenged"],
+      ["a network failure with no status", null, "fetch failed", "unreachable"],
+      ["a 404 with an empty body", 404, "", "unreachable"],
+      ["a 200 with the wrong json", 200, '{"ok":"yes"}', "unreachable"],
+      ["a 200 that claims health with extra fields", 200, '{"ok":true,"ref":"fsary"}', "unreachable"],
+      ["a 503 with the wrong json", 503, '{"down":true}', "unreachable"],
+    ];
+
+    let misclassified = 0;
+    for (const [label, status, body, expected] of CLASSIFY) {
+      const got = classifyProbe(status, body);
+      if (got !== expected) {
+        misclassified++;
+        rec(`classify: ${label}`, false, `expected ${expected}, got ${got}`);
+      }
+    }
+    rec(
+      `the probe classifier reads every shape correctly (${CLASSIFY.length} cases)`,
+      misclassified === 0,
+    );
+
+    rec(
+      "a healthy probe never alerts",
+      !shouldAlert("healthy"),
+      "an alert on success trains the operator to ignore alerts",
+    );
+    rec(
+      "and every fault does",
+      ["unhealthy", "challenged", "unreachable"].every((o) => shouldAlert(o)),
+    );
+
+    /*
+     * A firewall challenge and a database outage must not read as the same
+     * event. They send the operator to different places, and the whole point of
+     * separating them was that the first alert this watcher ever sent named the
+     * wrong one.
+     */
+    rec(
+      "a firewall challenge and a database outage say different things",
+      OUTCOME_HEADLINE.challenged !== OUTCOME_HEADLINE.unhealthy,
+    );
+    rec(
+      "and the challenge headline names the firewall rather than the database",
+      /firewall/i.test(OUTCOME_HEADLINE.challenged) && !/database/i.test(OUTCOME_HEADLINE.challenged),
+    );
+    rec(
+      "and the outage headline names the database",
+      /database/i.test(OUTCOME_HEADLINE.unhealthy),
+    );
   }
 }
 

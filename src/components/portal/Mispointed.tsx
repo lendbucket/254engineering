@@ -1,7 +1,7 @@
-import { GUARD_EXPLANATION, GUARD_FIX, GUARD_HEADLINE } from "@/lib/db-guard";
+import type { Mispointing } from "@/lib/db-guard";
 
 /**
- * What a preview pointed at production shows instead of the portal.
+ * What a mispointed deployment shows instead of the portal.
  *
  * WHY A SCREEN AND NOT JUST THE THROWN ERROR
  * ------------------------------------------
@@ -13,8 +13,17 @@ import { GUARD_EXPLANATION, GUARD_FIX, GUARD_HEADLINE } from "@/lib/db-guard";
  * This is the same fact, addressed to the person. It says what is wrong, what it
  * prevented, and the exact setting that fixes it, because the operator reading
  * it is the only one who can change a Vercel environment variable.
+ *
+ * ONE SCREEN, TWO FAULTS
+ * ----------------------
+ * It began as the preview-pointed-at-production screen. When the mirror fault
+ * happened, production pointed at development, the honest thing was to widen
+ * this rather than write a second screen: two screens is two places for the
+ * wording to rot, and the reader's question is the same either way. The words
+ * come from db-guard so the thrown error and this screen cannot disagree about
+ * what went wrong.
  */
-export function MispointedPreview() {
+export function MispointedDeployment({ fault }: { fault: Mispointing }) {
   return (
     <main className="grid min-h-dvh place-items-center bg-slate px-5 py-12">
       <div className="w-full max-w-[62ch] rounded-[4px] border border-[#a3241c] border-t-[3px] bg-white px-6 py-7">
@@ -22,21 +31,19 @@ export function MispointedPreview() {
           Stopped before anything was read or written
         </p>
         <h1 className="mt-2 font-display text-[24px] leading-[1.2] font-bold text-slate">
-          {GUARD_HEADLINE}
+          {fault.headline}
         </h1>
-        <p className="mt-3 text-[15px] leading-[1.65] text-slate-muted">{GUARD_EXPLANATION}</p>
+        <p className="mt-3 text-[15px] leading-[1.65] text-slate-muted">{fault.explanation}</p>
 
         <p className="mt-5 text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">
           How to fix it
         </p>
-        <p className="mt-2 text-[14.5px] leading-[1.65] text-slate-muted">{GUARD_FIX}</p>
+        <p className="mt-2 text-[14.5px] leading-[1.65] text-slate-muted">{fault.fix}</p>
 
         <p className="mt-5 border-t border-limestone-line pt-4 text-[13.5px] leading-[1.6] text-slate-muted">
-          If you genuinely intend a preview to read production, set
-          <span className="font-mono"> ALLOW_PRODUCTION_PREVIEW=1 </span>
-          on this deployment. It is spelled exactly, so anything else is a refusal, and it is almost
-          never the right answer: a preview is an unmerged branch, and an unmerged branch writing to
-          the firm's records is how a test becomes a permanent row.
+          If you genuinely intend this, set
+          <span className="font-mono"> {fault.hatch}=1 </span>
+          on this deployment. {fault.hatchNote}
         </p>
       </div>
     </main>
