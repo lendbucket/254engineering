@@ -1196,3 +1196,30 @@ by the teardown of the run that failed.
 If it recurs, the thing to capture BEFORE re-running is the contents of
 eng_applications where name = 'Zzq Formsaudit', because the failing assertion is
 about the payload column on that row and the evidence disappears at teardown.
+
+### Production pay is more generous than the signed agreement, and needs an amendment
+
+**Operator ruling, 2026-09-02:** engineer production pay attaches to the
+completed review, not to the seal. A file the engineer declines to seal writes a
+production ledger entry at the same tier a sealed one would have.
+
+**The reasoning.** Paying only on a seal pays for a conclusion rather than for
+the work, and creates financial pressure toward a favourable one. The operator
+states that Recital E of the engineer's agreement forbids that pressure, and
+their earlier refund ruling on the order engine had already rejected the same
+incentive one layer out.
+
+**The gap.** The operator states this is more generous than section 3.2 of the
+signed agreement as written. The code now behaves the generous way, on their
+instruction, which means the platform and the executed contract disagree in the
+engineer's favour.
+
+**What is needed: a short written amendment to section 3.2**, so the agreement
+says what the platform does. Until it exists, an engineer who declines a file is
+paid by the software under a term the contract does not yet contain. That is the
+right way round for an ethical rule to fail, and it is still a disagreement
+between two records and should not be left standing.
+
+The agreement is not in this repository. The clause numbers above are the
+operator's citations, recorded as given rather than paraphrased, because nothing
+in this repo can verify them.

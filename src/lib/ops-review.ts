@@ -15,10 +15,35 @@ import type { FileStatus } from "./ops-files";
  * whatever its documentation claims.
  *
  * So refusal is a first class action with its own status, its own row in the
- * responsible charge log, and, per the constraint recorded at Phase 7
- * specification time, its own production ledger entry at the same tier a seal
- * would have paid. The engineer is paid for the review. Paying for one
- * conclusion and not the other is paying for the conclusion.
+ * responsible charge log, and its own production ledger entry at the same tier
+ * a seal would have paid.
+ *
+ * PRODUCTION PAY ATTACHES TO THE COMPLETED REVIEW, NOT TO THE SEAL
+ * ----------------------------------------------------------------
+ * Operator ruling, 2026-09-02, confirming the constraint recorded at Phase 7
+ * specification time. The reasoning, in the order it was made:
+ *
+ *   Paying only on a seal creates financial pressure toward a favourable
+ *   conclusion. An engineer who seals is paid and an engineer who reviews the
+ *   same package and declines is not, which pays for a conclusion rather than
+ *   for the work.
+ *
+ *   The operator states that Recital E of the engineer's agreement forbids
+ *   exactly that pressure, and their own refund ruling on the order engine had
+ *   already rejected it one layer out: the customer pays for the inspection
+ *   whether or not the answer is the one they wanted, so neither the firm nor
+ *   the engineer is better off when the answer is yes.
+ *
+ * The agreement itself is not in this repository, so the citation above is
+ * recorded as the operator's and is not paraphrased further here. What the code
+ * does is the part this file is responsible for: a completed review writes a
+ * production entry, and a declined file writes one at the same tier as a sealed
+ * one.
+ *
+ * This is MORE generous than section 3.2 of the signed agreement as the
+ * operator describes it, and a short written amendment should paper it. That is
+ * recorded in BACKLOG.md rather than left as a comment, because it is an action
+ * somebody has to take rather than a fact about the code.
  *
  * REFUSAL IS NOT CANCELLATION AND NOT A REVISION
  * ----------------------------------------------
