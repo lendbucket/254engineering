@@ -93,6 +93,14 @@ const PHASE_ZERO = [
     name: "money-audit",
     why: "an absent figure is never a zero, and a missing evidence item is never omitted",
   },
+  {
+    // Pure: the order catalog, the price a customer is shown, and the refund
+    // rule. The refund rule is thirty lines and every one of them is a
+    // professional ethics decision the operator ruled on, so it is checked
+    // across a matrix rather than at the three points the table names.
+    name: "order-audit",
+    why: "no invented price, nothing orderable in prelaunch, and a refusal never worth more than a seal",
+  },
   { name: "registry-audit", why: "keyword ownership is self consistent and every live claim resolves" },
   { name: "email-audit", why: "every outbound template: voice, absolute links, plaintext part" },
 ];
