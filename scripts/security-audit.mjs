@@ -62,6 +62,9 @@ const ADMIN_PAGES = [
   "/portal/messages",
   "/portal/documents",
   "/portal/billing",
+  // Names customers, properties and amounts, and carries the controls that ask
+  // Stripe about a payment and give one back. Admin only behind the perimeter.
+  "/portal/orders",
   "/admin",
   "/admin/leads",
   "/admin/applications",
