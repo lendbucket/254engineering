@@ -265,6 +265,52 @@ export function refundFor(input: RefundInput): Refund {
  * disclosure can never describe a fee different from the one that would actually
  * be retained.
  */
+/**
+ * The fourth case: the firm cancels, and it is not an engineering decision.
+ *
+ * Operator ruling, 2026-09-03. The three cases in refundFor above are about an
+ * ENGINEER'S judgment on a document. They deliberately have no branch for an
+ * order placed by mistake, a duplicate, a customer who telephones to cancel
+ * before anybody starts, or work the firm decides not to take for a commercial
+ * reason. Until this existed, the only way to give money back was to route the
+ * file to review and record a refusal to seal, which would have written a false
+ * professional judgment into an audit trail that refuses deletes.
+ *
+ * WHY IT IS A SEPARATE FUNCTION AND NOT A FOURTH BRANCH
+ * -----------------------------------------------------
+ * refundFor takes a ReviewOutcome and carries three invariants about what an
+ * engineer's decision does to a customer's money. Adding a non engineering
+ * outcome to it would put the firm's commercial choices and the engineer's
+ * professional ones behind the same door, and the whole point of the rule is
+ * that those two must never be able to influence each other.
+ *
+ * WHY IT NEVER RETAINS THE INSPECTION FEE
+ * ---------------------------------------
+ * Even when a technician attended. The middle row of the engineer's rule
+ * retains that fee because the customer received an inspection and the firm
+ * must not be paid more for certifying than for refusing. Here the firm is the
+ * one withdrawing, so the customer receives nothing they asked for and the cost
+ * of that decision belongs to whoever made it. Charging somebody for the firm's
+ * own change of mind is not a refund policy.
+ *
+ * The consequence is deliberate: cancelling is always the most expensive option
+ * for the firm, so it can never be the cheap way out of an awkward engineering
+ * decision.
+ */
+export function refundForFirmCancellation(input: { paidCents: Cents }): Refund {
+  return {
+    refundCents: input.paidCents,
+    retainedCents: isKnown(input.paidCents) ? 0 : null,
+    caseName: "Cancelled by the firm",
+    explanation:
+      "The firm cancelled this order and refunded it in full. Nothing is retained, including any inspection that had already happened, because the decision to stop was the firm's and not yours.",
+    receivesFindings: true,
+  };
+}
+
+/** The stored refund_case for the fourth case. One spelling, used everywhere. */
+export const FIRM_CANCELLATION_CASE = "cancelled_by_the_firm";
+
 export function refundDisclosure(entry: CatalogEntry): string[] {
   const lines = [
     "The engineer reviews what is gathered and decides. They may seal it, ask for revisions, ask for another visit, or decline to seal.",

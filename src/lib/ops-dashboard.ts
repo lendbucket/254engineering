@@ -6,6 +6,7 @@ import { unreadCount } from "./ops-notify";
 import { fileMargins, marginByPeriod, type FileMargin } from "./ops-docs";
 import { expiryState } from "./ops-credentials";
 import { periodOf } from "./ops-review";
+import { ordersNeedingAttention } from "./ops-reconcile";
 import type { Cents, PeriodTotals } from "./ops-money";
 
 /**
@@ -118,7 +119,7 @@ async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
   const now = new Date().toISOString();
   const soon = new Date(Date.now() + HOURS_48).toISOString();
 
-  const [inQueue, overdueEvidence, dueSoon, openOffers, activeTechs, atIntake, tasks, unread, margins, expiring] =
+  const [inQueue, overdueEvidence, dueSoon, openOffers, activeTechs, atIntake, tasks, unread, margins, expiring, stuckOrders] =
     await Promise.all([
       countRows((d) =>
         d.from("eng_files").select("id", { count: "exact", head: true }).in("status", REVIEW_QUEUE_STATUSES),
@@ -153,7 +154,11 @@ async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
       unreadCount(actor.id),
       fileMargins(actor),
       expiringCredentialCount(),
+      ordersNeedingAttention(),
     ]);
+
+  const needsAction = stuckOrders.filter((o) => o.attention.level === "act");
+  const watching = stuckOrders.filter((o) => o.attention.level === "watch");
 
   const periods = marginByPeriod(margins);
   const thisPeriod = periods.find((p) => p.period === periodOf(new Date())) ?? null;
@@ -215,6 +220,26 @@ async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
       tone: expiring === 0 ? "good" : "warn",
     },
     {
+      /*
+       * Money that may already have moved. This tile is why the whole
+       * order-attention module exists: three orders once took 675 dollars each
+       * and sat unrecorded because nothing anywhere counted them, and they were
+       * found by a person going to look for a row.
+       *
+       * It reads "act" only, not every order needing attention, so an
+       * abandonment nobody has closed does not turn the tile red beside a
+       * payment that may be lost.
+       */
+      label: "Orders stuck on payment",
+      count: needsAction.length,
+      note:
+        needsAction.length === 0
+          ? "Nothing is waiting on a payment that should have arrived."
+          : "A checkout was started and no payment was ever recorded.",
+      href: "/portal/orders",
+      tone: needsAction.length === 0 ? "good" : "bad",
+    },
+    {
       label: "Tasks overdue",
       count: tasks.overdue,
       note: `${tasks.open} open in total.`,
@@ -239,6 +264,27 @@ async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
   ];
 
   const attention: Attention[] = [];
+
+  /*
+   * First in the list, ahead of everything else on this screen, because it is
+   * the only entry that can mean a customer has been charged and has no order.
+   */
+  if (needsAction.length > 0) {
+    attention.push({
+      label: `${needsAction.length} order${needsAction.length === 1 ? "" : "s"} stuck on payment`,
+      detail:
+        "A checkout was started more than a day ago and no payment was recorded. Either nobody paid, or somebody paid and the platform never heard. Ask the provider.",
+      href: "/portal/orders",
+    });
+  }
+  if (watching.length > 0) {
+    attention.push({
+      label: `${watching.length} order${watching.length === 1 ? "" : "s"} abandoned before checkout`,
+      detail: "Nothing can have been charged on these. They are waiting to be closed.",
+      href: "/portal/orders",
+    });
+  }
+
   if (overdueEvidence > 0) {
     attention.push({
       label: `${overdueEvidence} file${overdueEvidence === 1 ? "" : "s"} past the evidence deadline`,

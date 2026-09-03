@@ -90,6 +90,9 @@ const ADMIN_APIS = [
   // first route nested two deep, which is what exposed the one level discovery
   // above as a hole rather than a simplification.
   "/api/portal/orders/reconcile",
+  // Moves a customer's money back. Closed to a signed out client, and admin
+  // only behind that.
+  "/api/portal/orders/refund",
 ];
 
 /**

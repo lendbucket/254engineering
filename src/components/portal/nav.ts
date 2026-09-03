@@ -26,7 +26,7 @@ export type NavItem = {
   icon:
     | "home" | "files" | "people" | "review" | "jobs" | "clients" | "audit"
     | "profile" | "protocols" | "techs" | "onboarding" | "certification" | "charge"
-    | "tasks" | "messages" | "documents" | "billing";
+    | "tasks" | "messages" | "documents" | "billing" | "orders";
 };
 
 export const NAV: NavItem[] = [
@@ -57,6 +57,7 @@ export const NAV: NavItem[] = [
   { href: "/portal/messages", label: "Messages", short: "Chat", action: "messages.use", primary: true, icon: "messages" },
   { href: "/portal/files", label: "Files", short: "Files", action: "files.list", primary: true, icon: "files" },
   { href: "/portal/documents", label: "Documents", short: "Docs", action: "documents.read", icon: "documents" },
+  { href: "/portal/orders", label: "Orders", short: "Orders", action: "payments.reconcile", icon: "orders" },
   { href: "/portal/billing", label: "Billing", short: "Money", action: "billing.read", icon: "billing" },
   { href: "/portal/clients", label: "Clients", short: "Clients", action: "clients.list", icon: "clients" },
   { href: "/portal/protocols", label: "Protocols", short: "Specs", action: "protocols.author", icon: "protocols" },

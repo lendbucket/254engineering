@@ -132,6 +132,15 @@ const EXPECTED = {
   "payments.reconcile":           { admin: true,  engineer: false, field_tech: false },
 
   /*
+   * Cancelling a paid order and refunding it in full. Admin alone, and an
+   * engineer is excluded on purpose rather than by omission: the whole reason
+   * this case exists separately from review.decide is that a commercial
+   * withdrawal must never be reachable from the screen where somebody is
+   * deciding whether to seal a document.
+   */
+  "payments.refund":              { admin: true,  engineer: false, field_tech: false },
+
+  /*
    * Everybody. A task list and a conversation are not privileges; a platform
    * where a technician cannot write down their own next action is one where
    * they keep a separate list beside it, and a platform where they cannot ask a

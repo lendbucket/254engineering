@@ -44,6 +44,7 @@ import { isKnown, money } from "../src/lib/ops-money.ts";
 import { deploymentOrigin } from "../src/lib/site-url.ts";
 import { blockersOn, emptyState, firstIncomplete, stepsFor } from "../src/lib/order-flow.ts";
 import { judge } from "../src/lib/reconcile-rules.ts";
+import { attentionFor, CHECKOUT_SESSION_HOURS, worstLevel } from "../src/lib/order-attention.ts";
 import {
   ORDER_STATUSES,
   QUOTE_STATUSES,
@@ -57,6 +58,8 @@ import {
   quoteFor,
   refundDisclosure,
   refundFor,
+  refundForFirmCancellation,
+  FIRM_CANCELLATION_CASE,
 } from "../src/lib/ops-orders.ts";
 import { services } from "../src/content/services.ts";
 
@@ -1002,6 +1005,159 @@ const answerAll = (entry, pick = () => 0) =>
     "and an expired checkout closes the order rather than only noting it",
     hook.includes("markAbandoned("),
   );
+}
+
+// ===========================================================================
+// 12. NOTICING AN ORDER THAT HAS STOPPED
+// ===========================================================================
+{
+  const H = 60 * 60 * 1000;
+  const now = Date.parse("2026-09-03T18:00:00Z");
+  const ago = (hours) => new Date(now - hours * H).toISOString();
+  const order = (over = {}) => ({
+    status: "awaiting_payment",
+    placedAt: ago(48),
+    hasPayment: false,
+    hasCheckout: true,
+    ...over,
+  });
+
+  // The case the whole module exists for.
+  const stuck = attentionFor(order(), now);
+  rec("an unpaid checkout older than a day is flagged", stuck.level === "act", stuck.label);
+  rec(
+    "and says a payment may have been taken rather than assuming nobody paid",
+    /either an abandonment|payment nobody recorded/i.test(stuck.detail),
+    stuck.detail,
+  );
+
+  /*
+   * The false alarm that would make the whole screen worthless. A customer who
+   * opened a checkout twenty minutes ago is not a fault, and an operator shown
+   * four of those a day stops reading the fifth.
+   */
+  rec("a checkout opened minutes ago is not a fault", attentionFor(order({ placedAt: ago(0.3) }), now).level === "none");
+  rec("nor one at 23 hours", attentionFor(order({ placedAt: ago(23) }), now).level === "none");
+  rec(
+    "and the boundary is the checkout session own life",
+    attentionFor(order({ placedAt: ago(CHECKOUT_SESSION_HOURS + 0.1) }), now).level === "act",
+    CHECKOUT_SESSION_HOURS + " hours",
+  );
+
+  // A paid order is never reported as stuck, whatever else is true of it.
+  rec("a paid order is never stuck", attentionFor(order({ hasPayment: true }), now).level === "none");
+  rec(
+    "even one whose status never advanced",
+    attentionFor(order({ hasPayment: true, placedAt: ago(500) }), now).level === "none",
+    "that is a different fault and belongs on a different screen",
+  );
+
+  // Never reached checkout: nothing can have been charged.
+  const never = attentionFor(order({ hasCheckout: false }), now);
+  rec("an order that never reached checkout is only watched", never.level === "watch");
+  rec(
+    "and says plainly that nothing can have been charged",
+    /nothing can have been charged/i.test(never.detail),
+    never.detail,
+  );
+
+  // An unknown age is a fault rather than a pass.
+  const undated = attentionFor(order({ placedAt: null }), now);
+  rec("an unpaid order with no placed date is flagged, not waved through", undated.level === "act");
+
+  // Nothing downstream of payment is judged here.
+  for (const st of ["draft", "paid", "in_fulfilment", "complete", "refunded", "cancelled"]) {
+    rec(st + " is not this screen business", attentionFor(order({ status: st }), now).level === "none");
+  }
+
+  rec("the worst level wins on a dashboard", worstLevel(["none", "watch", "act"]) === "act");
+  rec("and a quiet set stays quiet", worstLevel(["none", "none"]) === "none");
+}
+
+// ===========================================================================
+// 13. THE FOURTH REFUND CASE: THE FIRM CANCELS
+// ===========================================================================
+{
+  /*
+   * Kept apart from the engineer three cases on purpose. The invariant that
+   * matters is that cancelling is always the MOST expensive option for the
+   * firm, so it can never be the cheap way out of an awkward decision to seal.
+   */
+  const cancelled = refundForFirmCancellation({ paidCents: 67500 });
+  rec("a firm cancellation refunds everything", cancelled.refundCents === 67500);
+  rec("and retains nothing", cancelled.retainedCents === 0);
+  rec("and is named as the firm doing", /cancelled by the firm/i.test(cancelled.caseName));
+  rec(
+    "and tells the customer the decision was not theirs",
+    /and not yours|decision to stop was the firm/i.test(cancelled.explanation),
+    cancelled.explanation,
+  );
+
+  /*
+   * The comparison that carries the ethics rule. A technician attended, so the
+   * engineer rule retains the inspection fee; the firm cancellation does not,
+   * because the customer received nothing they asked for.
+   */
+  const engineerDeclined = refundFor({
+    paidCents: 67500,
+    inspectionFeeCents: 17500,
+    outcome: "refuse",
+    technicianVisited: true,
+  });
+  rec("an engineer declining after a visit still retains the disclosed fee", engineerDeclined.retainedCents === 17500);
+  rec(
+    "and the firm cancelling the same order retains nothing",
+    refundForFirmCancellation({ paidCents: 67500 }).retainedCents === 0,
+  );
+  /*
+   * STRICTLY more, not "at least as much". An earlier version of this check
+   * used >=, and an injected version that retained exactly the inspection fee
+   * on a firm cancellation slipped past it: the two came out equal. Equal is
+   * not good enough. Once a technician has attended, cancelling must cost the
+   * firm MORE than declining, or the two are interchangeable at the moment the
+   * engineer is deciding.
+   */
+  rec(
+    "so cancelling costs the firm strictly more than declining, once anybody has attended",
+    refundForFirmCancellation({ paidCents: 67500 }).refundCents > engineerDeclined.refundCents,
+    "if they were equal, cancelling would be an interchangeable way out of an engineering decision",
+  );
+
+  // An unknown amount refuses rather than guessing, exactly as refundFor does.
+  const unknown = refundForFirmCancellation({ paidCents: null });
+  rec("an unknown paid amount refuses to compute", !isKnown(unknown.refundCents));
+  rec("and retains nothing rather than zero", !isKnown(unknown.retainedCents));
+
+  rec("the stored case name has one spelling", FIRM_CANCELLATION_CASE === "cancelled_by_the_firm");
+
+  // The writer, and the route that carries it.
+  const pay = fs.readFileSync("src/lib/ops-payments.ts", "utf8");
+  const fn = pay.slice(pay.indexOf("export async function cancelAndRefund"));
+  rec("cancelling requires a written reason", /reason\.length < 10/.test(fn));
+  rec(
+    "and refuses an order that cannot be refunded rather than forcing it",
+    /canTransitionOrder\(order\.status/.test(fn),
+  );
+  rec(
+    "and records the refund row before moving the order to refunded",
+    fn.indexOf("eng_order_payments") < fn.indexOf('status: "refunded"'),
+    "settleDecision once told a customer they were refunded whether or not the ledger agreed",
+  );
+  rec("and writes the audit row against the operator", /action: "order\.cancelled_by_firm"/.test(fn));
+
+  const route = fs.readFileSync("src/app/api/portal/orders/refund/route.ts", "utf8");
+  rec("the refund route checks payments.refund", route.includes('can(actor, "payments.refund")'));
+  rec(
+    "and has no GET at all",
+    !/export async function GET/.test(route),
+    "a link must never be able to move a customer money",
+  );
+
+  // The dashboard has to be able to see it, or nobody is told.
+  const dash = fs.readFileSync("src/lib/ops-dashboard.ts", "utf8");
+  rec("the dashboard counts stuck orders", /ordersNeedingAttention\(\)/.test(dash));
+  rec("and gives them a tile", /Orders stuck on payment/.test(dash));
+  rec("and puts them in the attention list", /stuck on payment/.test(dash));
 }
 
 console.log("============ THE ORDER ENGINE ============");

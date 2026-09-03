@@ -3,6 +3,7 @@ import { supabaseAdmin } from "./supabase";
 import { markAbandoned, markPaid, paymentProvider } from "./ops-payments";
 import { event } from "./ops-intake";
 import { judge, type ProviderAnswer, type ReconcileVerdict } from "./reconcile-rules";
+import { attentionFor, type OrderAttention } from "./order-attention";
 
 /**
  * Asking the payment provider what really happened.
@@ -103,6 +104,89 @@ export async function unreconciledOrders(): Promise<
     totalCents: o.total_cents === null ? null : Number(o.total_cents),
     createdAt: o.created_at as string,
   }));
+}
+
+export type OrderNeedingAttention = {
+  id: string;
+  reference: string;
+  status: string;
+  serviceSlug: string;
+  customerEmail: string;
+  propertyAddress: string;
+  totalCents: number | null;
+  placedAt: string | null;
+  createdAt: string;
+  sessionRef: string | null;
+  attention: OrderAttention;
+};
+
+/**
+ * Every order that has stopped moving, judged by order-attention.
+ *
+ * WHY IT LOADS THE CHECKOUT EVENTS AND THE PAYMENTS IN BULK
+ * ---------------------------------------------------------
+ * Two extra queries rather than two per order. The number of orders waiting on
+ * payment is small by definition, but the shape matters more than the count: a
+ * per row lookup here would be a screen that gets slower exactly as things go
+ * wrong, which is when somebody is most likely to be staring at it.
+ */
+export async function ordersNeedingAttention(): Promise<OrderNeedingAttention[]> {
+  const db = supabaseAdmin();
+  if (!db) return [];
+
+  const { data: orders } = await db
+    .from("eng_service_orders")
+    .select(
+      "id, reference, status, service_slug, customer_email, property_address, total_cents, placed_at, created_at",
+    )
+    .eq("status", "awaiting_payment")
+    .order("created_at", { ascending: true });
+
+  if (!orders?.length) return [];
+
+  const ids = orders.map((o) => o.id as string);
+
+  const [{ data: payments }, { data: checkouts }] = await Promise.all([
+    db.from("eng_order_payments").select("order_id").in("order_id", ids).eq("kind", "charge"),
+    db.from("eng_order_events").select("order_id, detail").in("order_id", ids).eq("event", "checkout.started"),
+  ]);
+
+  const paid = new Set((payments ?? []).map((p) => p.order_id as string));
+  const sessions = new Map<string, string>();
+  for (const e of checkouts ?? []) {
+    const ref = (e.detail as { session_ref?: unknown } | null)?.session_ref;
+    if (typeof ref === "string" && ref) sessions.set(e.order_id as string, ref);
+  }
+
+  return orders
+    .map((o) => {
+      const id = o.id as string;
+      const attention = attentionFor({
+        status: o.status as string,
+        placedAt: (o.placed_at as string | null) ?? null,
+        hasPayment: paid.has(id),
+        hasCheckout: sessions.has(id),
+      });
+      return {
+        id,
+        reference: o.reference as string,
+        status: o.status as string,
+        serviceSlug: o.service_slug as string,
+        customerEmail: o.customer_email as string,
+        propertyAddress: o.property_address as string,
+        totalCents: o.total_cents === null ? null : Number(o.total_cents),
+        placedAt: (o.placed_at as string | null) ?? null,
+        createdAt: o.created_at as string,
+        sessionRef: sessions.get(id) ?? null,
+        attention,
+      };
+    })
+    .filter((o) => o.attention.level !== "none");
+}
+
+/** Just the count, for a dashboard tile that must not load every row. */
+export async function stuckOrderCount(): Promise<number> {
+  return (await ordersNeedingAttention()).filter((o) => o.attention.level === "act").length;
 }
 
 /** Ask the provider, turning every failure into an answer rather than a throw. */
