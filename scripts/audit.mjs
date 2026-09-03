@@ -33,8 +33,11 @@
 // first failure hides how much else is broken, which turns one fix into five
 // round trips.
 import { spawnSync } from "node:child_process";
+import { assertClearToBuild } from "./lib/build-guard.mjs";
+import { startNextServer } from "./lib/dev-server.mjs";
 
-const BASE = process.env.BASE_URL || "http://localhost:3225";
+const PORT = Number(process.env.AUDIT_PORT || 3225);
+const BASE = process.env.BASE_URL || `http://localhost:${PORT}`;
 
 /**
  * Phase zero needs neither a server nor a build. Cheap, fast, and run first so
@@ -135,6 +138,133 @@ const PHASE_TWO = [
 
 const results = [];
 
+/**
+ * The suite owns its server.
+ *
+ * WHY THIS EXISTS
+ * ---------------
+ * The suite used to assume a server was already running on 3225, started by
+ * hand in another terminal. Three runs in one session were invalidated because
+ * a build at the end of an earlier step killed it, and the suite then measured
+ * nothing: eleven audits failed with ECONNREFUSED and the summary looked like a
+ * catastrophic regression rather than an absent server.
+ *
+ * The preflights were never wrong. Each one said "Nothing is answering at
+ * http://localhost:3225" and printed the command to fix it. The defect was that
+ * a run could get that far at all. A suite that can be pointed at nothing, and
+ * report failures about it, is a suite whose red means two different things.
+ *
+ * So the runner builds once, starts the server, waits until the pages the suite
+ * actually depends on answer, runs, and tears it down. A run can no longer
+ * measure nothing.
+ *
+ * THE ESCAPE HATCH, AND WHY IT IS AN ENVIRONMENT VARIABLE
+ * -------------------------------------------------------
+ * Setting BASE_URL says "I have a server, use it and do not manage one". That
+ * is what a run against production is: BASE_URL=https://254engineering.com with
+ * only the audits that write nothing. Building and starting a local server for
+ * that would be absurd, and refusing to allow it would remove the one workflow
+ * that verifies a deployment.
+ */
+const MANAGED = !process.env.BASE_URL;
+
+/**
+ * The pages the suite depends on. Both, because either can be up alone.
+ *
+ * Both are public and both must answer 200. The home page proves the marketing
+ * build rendered; the sign in page proves the portal half did, and it is open by
+ * design so it does not redirect.
+ */
+const HEALTH_PATHS = ["/", "/portal/login"];
+
+/**
+ * Is this page actually there?
+ *
+ * A 2xx and nothing else. The first version accepted anything under 500, on the
+ * reasoning that a portal route redirecting an unauthenticated caller is correct
+ * rather than down. True, but neither path here is a guarded route, and the
+ * looseness meant a 404 counted as healthy: an app serving nothing but 404s
+ * would have passed the check and every content audit after it would have failed
+ * with the real cause nowhere on screen.
+ *
+ * Found by injecting a health path that does not exist and watching the suite
+ * run anyway. The check was the thing being tested and it was wrong.
+ */
+async function answers(url) {
+  try {
+    const res = await fetch(url, { redirect: "manual" });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function healthy(base) {
+  for (const path of HEALTH_PATHS) {
+    if (!(await answers(base + path))) return false;
+  }
+  return true;
+}
+
+async function waitUntilHealthy(base, timeoutMs = 120_000) {
+  const deadline = Date.now() + timeoutMs;
+  let lastBad = "";
+  while (Date.now() < deadline) {
+    let allGood = true;
+    for (const path of HEALTH_PATHS) {
+      if (!(await answers(base + path))) {
+        allGood = false;
+        lastBad = path;
+        break;
+      }
+    }
+    if (allGood) return;
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+  throw new Error(
+    `The server came up but ${lastBad} never answered within ${Math.round(timeoutMs / 1000)}s. ` +
+      "The suite refuses to run against a half started server, because the audits would " +
+      "report content failures about pages that were simply not there yet.",
+  );
+}
+
+/**
+ * Build once, start the server, and prove it is answering.
+ *
+ * The build is not optional and there is no flag to skip it. seo-audit and
+ * perf-audit measure the production bundle, so a suite run against a stale
+ * build is a suite measuring the wrong artifact, which is the same class of
+ * problem as measuring nothing and harder to notice.
+ */
+async function bringUpServer() {
+  console.log(`${"=".repeat(72)}`);
+  console.log("SETUP: the suite starts its own server.");
+  console.log("=".repeat(72));
+
+  // The runner owns the audit ports, so it clears them rather than refusing.
+  // Anything holding one is a leftover from an earlier run.
+  assertClearToBuild({ kill: true, label: "the audit suite" });
+
+  console.log("\n  building ...");
+  const build = spawnSync("npm", ["run", "build"], {
+    stdio: "inherit",
+    env: process.env,
+    shell: process.platform === "win32",
+  });
+  if (build.status !== 0) {
+    throw new Error(
+      "The build failed, so there is nothing to audit. The suite stops here rather than " +
+        "running against whatever .next happened to contain.",
+    );
+  }
+
+  console.log("\n  starting the server ...");
+  const server = await startNextServer({ port: PORT });
+  await waitUntilHealthy(server.base);
+  console.log(`  serving ${server.base}, and ${HEALTH_PATHS.join(" and ")} both answer.\n`);
+  return server;
+}
+
 function run(audit, env) {
   console.log(`\n${"=".repeat(72)}`);
   console.log(`RUNNING: ${audit.name}  (${audit.why})`);
@@ -147,43 +277,99 @@ function run(audit, env) {
   results.push({ name: audit.name, code: r.status ?? 1 });
 }
 
-for (const audit of PHASE_ZERO) {
-  run(audit, { ...process.env });
-}
+let server = null;
+let setupError = null;
 
-for (const audit of PHASE_ONE) {
-  run(audit, { ...process.env, BASE_URL: BASE });
-}
+try {
+  if (MANAGED) {
+    server = await bringUpServer();
+  } else {
+    console.log(`Using the server at ${BASE}, because BASE_URL is set.`);
+    if (!(await healthy(BASE))) {
+      throw new Error(
+        `BASE_URL is set to ${BASE} but it is not answering. Nothing was run, because a ` +
+          "suite pointed at nothing reports failures about content rather than about the server.",
+      );
+    }
+  }
 
-console.log(`\n${"=".repeat(72)}`);
-console.log("PHASE TWO: these audits start their own server.");
-console.log(`The server on ${BASE} will be stopped, because next dev writes .next`);
-console.log("and tearing it underneath a running server is the failure the build");
-console.log("guard exists to prevent. Restart it afterward with:");
-console.log("  npm run build && npx next start -p 3225");
-console.log("=".repeat(72));
+  for (const audit of PHASE_ZERO) {
+    run(audit, { ...process.env });
+  }
 
-for (const audit of PHASE_TWO) {
-  // BASE_URL is deliberately removed. With it set these harnesses point at the
-  // shared server instead of spawning their own, and the launch audit in
-  // particular would then measure one mode twice while reporting on two.
-  const env = { ...process.env, AUDIT_KILL_STALE: "1" };
-  delete env.BASE_URL;
-  run(audit, env);
+  /*
+   * Checked again before phase one rather than trusted from setup. Phase zero
+   * is minutes of pure checks, and a server that fell over in between would
+   * otherwise produce a wall of content failures with the real cause nowhere on
+   * screen.
+   */
+  if (!(await healthy(BASE))) {
+    throw new Error(
+      `The server stopped answering between phase zero and phase one. Everything after this ` +
+        "point would have measured nothing, so the suite stops instead of reporting it as failures.",
+    );
+  }
+
+  for (const audit of PHASE_ONE) {
+    run(audit, { ...process.env, BASE_URL: BASE });
+  }
+
+  console.log(`\n${"=".repeat(72)}`);
+  console.log("PHASE TWO: these audits start their own servers.");
+  console.log(`The server on ${BASE} is stopped first, because next dev writes .next`);
+  console.log("and tearing it underneath a running server is the failure the build");
+  console.log("guard exists to prevent.");
+  console.log("=".repeat(72));
+
+  if (server) {
+    await server.stop();
+    server = null;
+  }
+
+  for (const audit of PHASE_TWO) {
+    // BASE_URL is deliberately removed. With it set these harnesses point at the
+    // shared server instead of spawning their own, and the launch audit in
+    // particular would then measure one mode twice while reporting on two.
+    const env = { ...process.env, AUDIT_KILL_STALE: "1" };
+    delete env.BASE_URL;
+    run(audit, env);
+  }
+} catch (err) {
+  setupError = err;
+} finally {
+  if (server) await server.stop();
 }
 
 console.log(`\n${"=".repeat(72)}`);
 console.log("SUITE SUMMARY");
 console.log("=".repeat(72));
-for (const r of results) {
-  console.log(`  ${r.code === 0 ? "PASS" : "FAIL"}  ${r.name}`);
+
+if (setupError) {
+  /*
+   * Loud, and distinct from a failing audit. "The suite could not run" and
+   * "the suite ran and found problems" are different states, and a summary that
+   * renders them identically is how an absent server gets read as a regression.
+   */
+  console.log("\n  THE SUITE DID NOT RUN TO COMPLETION\n");
+  console.log(`  ${setupError.message}\n`);
+  if (results.length) {
+    console.log("  What did run before it stopped:");
+    for (const r of results) console.log(`    ${r.code === 0 ? "PASS" : "FAIL"}  ${r.name}`);
+  }
+  console.log("");
+  process.exitCode = 1;
+} else {
+  for (const r of results) {
+    console.log(`  ${r.code === 0 ? "PASS" : "FAIL"}  ${r.name}`);
+  }
+  const failed = results.filter((r) => r.code !== 0);
+  console.log(
+    failed.length === 0
+      ? `\nAll ${results.length} audits pass.`
+      : `\n${failed.length} of ${results.length} audits failed: ${failed.map((r) => r.name).join(", ")}`,
+  );
+  process.exitCode = failed.length ? 1 : 0;
 }
-const failed = results.filter((r) => r.code !== 0);
-console.log(
-  failed.length === 0
-    ? `\nAll ${results.length} audits pass.`
-    : `\n${failed.length} of ${results.length} audits failed: ${failed.map((r) => r.name).join(", ")}`,
-);
 
 // link-map is a measurement, not a gate. It has no failure condition, because
 // "too few contextual links" is a judgment about a content plan rather than a
@@ -193,5 +379,3 @@ console.log(
   "\nNot in the suite: `npm run link-map` measures contextual versus template inbound",
 );
 console.log("links and has no pass or fail. Run it before and after any linking pass.");
-
-process.exitCode = failed.length ? 1 : 0;
