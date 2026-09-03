@@ -1606,3 +1606,37 @@ It now records `refund.unrecorded` internally, names the provider ref the money
 went out under, and returns not-ok. The customer is not told a refund
 succeeded, and not told it failed either, because by that point the money may
 genuinely have moved.
+
+### Nothing reconciles a started checkout against Stripe
+
+Found on 2026-09-03, at the end of the real Stripe leg. Three probe orders in
+development sit at `awaiting_payment` with a recorded `cs_test_` session id and
+no payment row, because the webhook never delivered for them. Stripe's side of
+those three is not visible from the platform at all.
+
+The gap is not the missing webhook, which is a configuration fault and was
+eventually fixed. The gap is that **the platform cannot tell the difference
+between a checkout that was abandoned and a checkout that was paid while the
+confirmation was lost.** Both look exactly like `awaiting_payment` with no
+payment row, forever, and no surface anywhere counts them.
+
+That is the money shaped version of the defect class this repo keeps finding: a
+state that looks fine because nothing is looking. A customer in the second case
+has been charged and has no order, and would find out by calling.
+
+What is needed, in the order it matters:
+
+1. A read only reconciliation that lists orders left at `awaiting_payment` past
+   the Checkout session's own expiry, so the operator can see them at all.
+2. Retrieving each session from Stripe and comparing `payment_status`, which is
+   the only authority on whether money moved.
+3. Only then, a way to complete or refund from that finding, through
+   `markPaid` and `settleDecision` rather than around them.
+
+`settleDecision` refuses to refund without a payment row, which is correct and
+should stay correct. The answer is to record the charge that exists, not to
+loosen the rule.
+
+Deliberately not built during Phase 7. It is a new surface with new failure
+modes, and bolting it on at the end of a phase is how a reconciliation tool ends
+up trusted before it has been tested against a real discrepancy.
