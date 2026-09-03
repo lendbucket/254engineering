@@ -68,6 +68,13 @@ const PHASE_ZERO = [
     name: "onboarding-audit",
     why: "credential expiry, activation readiness, and the protocol certification check",
   },
+  {
+    // Pure: the four review actions, the responsible charge log, and the export.
+    // The check that matters most in the whole suite is in here: that declining
+    // to seal is always available, including while the compliance gate is on.
+    name: "review-audit",
+    why: "the four review actions, and that declining to seal is never blocked",
+  },
   { name: "registry-audit", why: "keyword ownership is self consistent and every live claim resolves" },
   { name: "email-audit", why: "every outbound template: voice, absolute links, plaintext part" },
 ];

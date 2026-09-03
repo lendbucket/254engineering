@@ -125,6 +125,16 @@ const GATED = { prelaunch: true };
     ["evidence_submitted", "revisions_requested", true],
     ["evidence_submitted", "sealed", false],
     ["under_review", "sealed", true],
+    ["under_review", "refused", true],
+    ["under_review", "needs_dispatch", true],
+    ["refused", "closed", true],
+    ["refused", "cancelled", true],
+    // A refusal does not go back into review by pressing back. Reopening one is
+    // a deliberate act: somebody opens a new file.
+    ["refused", "under_review", false],
+    ["refused", "sealed", false],
+    ["refused", "delivered", false],
+    ["evidence_submitted", "refused", false],
     ["under_review", "revisions_requested", true],
     ["under_review", "delivered", false],
     ["revisions_requested", "evidence_in_progress", true],
@@ -211,6 +221,24 @@ const GATED = { prelaunch: true };
   rec("a technician can resume after a revision request", canTransition(tech, "revisions_requested", "evidence_in_progress", LIVE).ok);
   rec("a technician cannot pull a file back out of review", !canTransition(tech, "under_review", "evidence_submitted", LIVE).ok);
   rec("an engineer can send a file back out of review", canTransition(engineer, "under_review", "evidence_submitted", LIVE).ok);
+
+  /*
+   * The asymmetry that matters most in this whole machine. While the firm is
+   * prelaunch, sealing is blocked and declining to seal is not. A gate that
+   * stopped an engineer refusing, while leaving certification available, would
+   * be the exact inversion of what the gate is for.
+   */
+  rec("an engineer can decline to seal", canTransition(engineer, "under_review", "refused", LIVE).ok);
+  rec(
+    "and can still decline while the compliance gate is active",
+    canTransition(engineer, "under_review", "refused", GATED).ok,
+    canTransition(engineer, "under_review", "refused", GATED).reason,
+  );
+  rec(
+    "while sealing in the same state is refused",
+    !canTransition(engineer, "under_review", "sealed", GATED).ok,
+  );
+  rec("a technician cannot decline to seal", !canTransition(tech, "under_review", "refused", LIVE).ok);
   rec("a technician still cannot move a file to needs dispatch", !canTransition(tech, "evidence_in_progress", "needs_dispatch", LIVE).ok);
   rec(
     "a suspended admin can do nothing",

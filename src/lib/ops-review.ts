@@ -1,0 +1,399 @@
+import { can, type Actor } from "./ops-authz";
+import { isPrelaunch } from "./launch";
+import type { FileStatus } from "./ops-files";
+
+/**
+ * Engineer review: the four things a licensed engineer may do with a package,
+ * and the record each one leaves.
+ *
+ * WHY REFUSAL IS ONE OF THE FOUR AND NOT AN EDGE CASE
+ * ----------------------------------------------------
+ * An engineer who cannot stand behind a conclusion has to be able to say so,
+ * and saying so has to be as easy, as fast, and as well supported by the
+ * software as sealing is. A platform where sealing is one button and refusing
+ * means writing an email to explain yourself is a platform applying pressure,
+ * whatever its documentation claims.
+ *
+ * So refusal is a first class action with its own status, its own row in the
+ * responsible charge log, and, per the constraint recorded at Phase 7
+ * specification time, its own production ledger entry at the same tier a seal
+ * would have paid. The engineer is paid for the review. Paying for one
+ * conclusion and not the other is paying for the conclusion.
+ *
+ * REFUSAL IS NOT CANCELLATION AND NOT A REVISION
+ * ----------------------------------------------
+ * Cancelled means the work was called off. Revisions requested means the
+ * evidence was insufficient and somebody is going back. Refused means a
+ * licensed engineer examined a complete package and would not certify it. Those
+ * are three different facts about a property, and collapsing them would destroy
+ * the only record that says which one happened.
+ *
+ * THE COMPLIANCE GATE IS DELIBERATELY ASYMMETRIC
+ * ----------------------------------------------
+ * While the firm is prelaunch, sealing is blocked and refusing is not. That
+ * asymmetry is the right way round and is worth stating plainly: a gate that
+ * blocked an engineer from declining to certify, while leaving certification
+ * available, would be the exact inversion of what the gate is for.
+ */
+
+export type ReviewAction = "seal" | "revisions" | "site_visit" | "refuse";
+
+export const REVIEW_ACTIONS: ReviewAction[] = ["seal", "revisions", "site_visit", "refuse"];
+
+export const ACTION_LABEL: Record<ReviewAction, string> = {
+  seal: "Seal and deliver",
+  revisions: "Send back for revisions",
+  site_visit: "Send back for a site visit",
+  refuse: "Decline to seal",
+};
+
+/**
+ * What each action does to the file.
+ *
+ * A site visit goes back to needs_dispatch rather than to revisions_requested,
+ * because the difference is who acts next. Revisions are for the technician who
+ * already holds the file: photograph the thing you missed. A site visit is a
+ * new journey, possibly by a different technician, and it goes through dispatch
+ * like any other.
+ */
+export const ACTION_TARGET: Record<ReviewAction, FileStatus> = {
+  seal: "sealed",
+  revisions: "revisions_requested",
+  site_visit: "needs_dispatch",
+  refuse: "refused",
+};
+
+/** Which permission each action needs. */
+const ACTION_PERMISSION: Record<ReviewAction, Parameters<typeof can>[1]> = {
+  seal: "documents.seal",
+  revisions: "review.decide",
+  site_visit: "review.decide",
+  refuse: "review.decide",
+};
+
+/**
+ * Actions that require the engineer to write something, and why each does.
+ *
+ * A revision request with no note is a file bouncing back to somebody who now
+ * has to guess what was wrong. A refusal with no reason is unusable to the
+ * client, to the next engineer, and to the board.
+ *
+ * Sealing needs no note, which is the asymmetry the other way and is also
+ * correct: the deliverable IS the statement.
+ */
+export const REQUIRES_REASON: Record<ReviewAction, boolean> = {
+  seal: false,
+  revisions: true,
+  site_visit: true,
+  refuse: true,
+};
+
+/** The shortest reason that is actually a reason. */
+export const MIN_REASON_LENGTH = 15;
+
+export type ReviewSubject = {
+  status: FileStatus;
+  /** Whether every required item on the protocol is captured. */
+  packageComplete: boolean;
+  /** Whether an engineer is assigned. */
+  assignedEngineerId: string | null;
+};
+
+export type ReviewVerdict = { ok: true } | { ok: false; reason: string };
+
+/**
+ * May this actor take this review action on this file?
+ *
+ * ORDER OF CHECKS, AND WHY
+ * ------------------------
+ * Status first, because "this file is not in review" explains everything else.
+ * Then the compliance gate, which applies to everybody including an
+ * administrator, and which only ever blocks sealing. Then authorization. Then
+ * the reason requirement, last, because it is the only one the person can fix
+ * without leaving the screen.
+ */
+export function canReview(
+  actor: Actor | null,
+  subject: ReviewSubject,
+  action: ReviewAction,
+  reason: string | null,
+  now: { prelaunch?: boolean } = {},
+): ReviewVerdict {
+  if (subject.status !== "under_review") {
+    return {
+      ok: false,
+      reason: "A file has to be under review before it can be decided. Take it into review first.",
+    };
+  }
+
+  const prelaunch = now.prelaunch ?? isPrelaunch();
+  if (prelaunch && action === "seal") {
+    return {
+      ok: false,
+      reason:
+        "The firm cannot seal work yet. Firm registration with the Texas Board of Professional " +
+        "Engineers and Land Surveyors is pending and no Professional Engineer is in responsible " +
+        "charge. Declining to seal is still available, and deliberately so.",
+    };
+  }
+
+  if (!can(actor, ACTION_PERMISSION[action])) {
+    return { ok: false, reason: `Your role cannot ${ACTION_LABEL[action].toLowerCase()}.` };
+  }
+
+  /*
+   * Sealing an incomplete package is the one thing this function refuses that
+   * an engineer might reasonably expect to be allowed. It is refused because
+   * the seal says the engineer reviewed the evidence the protocol required, and
+   * on an incomplete package that statement is not true.
+   *
+   * Every other action is available on an incomplete package. Refusing one is
+   * often exactly the right call.
+   */
+  if (action === "seal" && !subject.packageComplete) {
+    return {
+      ok: false,
+      reason:
+        "This package is missing required evidence. Sealing it would certify a review of evidence " +
+        "that is not there. Send it back for revisions, or decline.",
+    };
+  }
+
+  if (REQUIRES_REASON[action]) {
+    const written = (reason ?? "").trim();
+    if (written.length < MIN_REASON_LENGTH) {
+      return {
+        ok: false,
+        reason:
+          action === "refuse"
+            ? "Write why you will not seal this. It goes to the client, to the responsible charge log, and to whoever picks this file up next."
+            : "Say what is needed. Without it the file goes back to somebody who has to guess.",
+      };
+    }
+  }
+
+  return { ok: true };
+}
+
+/** The actions this actor could take right now, for rendering buttons that work. */
+export function availableReviewActions(
+  actor: Actor | null,
+  subject: ReviewSubject,
+  now: { prelaunch?: boolean } = {},
+): { action: ReviewAction; allowed: boolean; reason?: string }[] {
+  return REVIEW_ACTIONS.map((action) => {
+    /*
+     * Probed with a reason long enough to pass the reason check, so a button is
+     * not reported as blocked merely because the box is empty. The empty box is
+     * a state of the form, not a property of the file, and showing "you must
+     * write a reason" as though it were a permission problem is how a screen
+     * teaches somebody that its explanations are noise.
+     */
+    const verdict = canReview(actor, subject, action, "x".repeat(MIN_REASON_LENGTH), now);
+    return verdict.ok ? { action, allowed: true } : { action, allowed: false, reason: verdict.reason };
+  });
+}
+
+// ------------------------------------------------- the responsible charge log
+
+/**
+ * One row of the responsible charge log, built from what actually happened.
+ *
+ * WHY THIS IS A PURE FUNCTION AND NOT AN INSERT
+ * ---------------------------------------------
+ * The log is the artifact that proves to the board that a licensed engineer was
+ * genuinely in responsible charge of work sealed under their name. Its value
+ * comes entirely from nobody having typed it: a log filled in at the end of the
+ * month is a recollection, and a recollection is what an enforcement action
+ * takes apart.
+ *
+ * Building the row here, from the review that just happened, means the audit can
+ * assert the mapping exhaustively. The insert is a separate, dumb step.
+ *
+ * REFUSALS ARE LOGGED AS LOUDLY AS SEALS
+ * --------------------------------------
+ * A log containing only the files an engineer sealed describes an engineer who
+ * never said no, which is not a defensible professional record. The refusals are
+ * the part that shows judgment was being exercised.
+ */
+export type ChargeLogInput = {
+  engineerId: string;
+  fileId: string;
+  documentId?: string | null;
+  documentType?: string | null;
+  propertyAddress: string;
+  county: string;
+  action: ReviewAction;
+  reviewMinutes: number | null;
+  revisionCount: number;
+  siteVisit: boolean;
+  reason: string | null;
+  at?: Date;
+};
+
+export type ChargeLogRow = {
+  engineer_id: string;
+  file_id: string;
+  document_id: string | null;
+  document_type: string | null;
+  property_address: string;
+  county: string;
+  reviewed_at: string;
+  review_minutes: number | null;
+  revision_count: number;
+  site_visit: boolean;
+  refused: boolean;
+  refusal_reason: string | null;
+  period: string;
+};
+
+export function chargeLogRow(input: ChargeLogInput): ChargeLogRow {
+  const at = input.at ?? new Date();
+  return {
+    engineer_id: input.engineerId,
+    file_id: input.fileId,
+    document_id: input.documentId ?? null,
+    document_type: input.documentType ?? null,
+    property_address: input.propertyAddress,
+    county: input.county,
+    reviewed_at: at.toISOString(),
+    review_minutes: input.reviewMinutes,
+    revision_count: input.revisionCount,
+    site_visit: input.siteVisit,
+    refused: input.action === "refuse",
+    /*
+     * The reason is carried ONLY for a refusal. A revision note is operational
+     * chatter between an engineer and a technician; a refusal reason is part of
+     * the professional record and belongs in the log that a board reads.
+     */
+    refusal_reason: input.action === "refuse" ? (input.reason ?? "").trim() || null : null,
+    period: periodOf(at),
+  };
+}
+
+/** The month a record belongs to, as YYYY-MM. */
+export function periodOf(at: Date): string {
+  return `${at.getFullYear()}-${String(at.getMonth() + 1).padStart(2, "0")}`;
+}
+
+// ------------------------------------------------------------- monthly export
+
+export type ExportRow = {
+  reviewed_at: string;
+  property_address: string;
+  county: string;
+  document_type: string | null;
+  review_minutes: number | null;
+  revision_count: number;
+  site_visit: boolean;
+  refused: boolean;
+  refusal_reason: string | null;
+};
+
+const CSV_HEADERS = [
+  "Reviewed at",
+  "Property",
+  "County",
+  "Document",
+  "Review minutes",
+  "Revisions requested",
+  "Site visit",
+  "Outcome",
+  "Reason for declining",
+];
+
+/**
+ * Escape one CSV cell.
+ *
+ * A leading =, +, - or @ is prefixed with a single quote. That is not
+ * decoration: a spreadsheet treats those as the start of a formula, and this
+ * export contains free text an engineer wrote about why they would not seal
+ * something. A refusal reason beginning "-- the roof deck" would be evaluated
+ * rather than read, and the export exists to be handed to a regulator.
+ */
+function cell(value: unknown): string {
+  const text = value === null || value === undefined ? "" : String(value);
+  const guarded = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+  return `"${guarded.replace(/"/g, '""')}"`;
+}
+
+/**
+ * The monthly responsible charge export.
+ *
+ * A regulator asking what an engineer was responsible for in March gets one
+ * file per engineer per month, built from rows nobody could edit, with the
+ * refusals in it.
+ */
+export function monthlyExportCsv(
+  rows: ExportRow[],
+  meta: { engineerName: string; licenseNumber: string | null; period: string },
+): string {
+  const lines: string[] = [];
+
+  lines.push([cell("Responsible charge log"), cell(meta.period)].join(","));
+  lines.push([cell("Engineer"), cell(meta.engineerName)].join(","));
+  lines.push([cell("Texas PE licence"), cell(meta.licenseNumber ?? "not recorded")].join(","));
+  lines.push([cell("Records"), cell(rows.length)].join(","));
+  lines.push(
+    [cell("Declined to seal"), cell(rows.filter((r) => r.refused).length)].join(","),
+  );
+  lines.push("");
+  lines.push(CSV_HEADERS.map(cell).join(","));
+
+  for (const row of rows) {
+    lines.push(
+      [
+        cell(row.reviewed_at),
+        cell(row.property_address),
+        cell(row.county),
+        cell(row.document_type),
+        cell(row.review_minutes),
+        cell(row.revision_count),
+        cell(row.site_visit ? "yes" : "no"),
+        cell(row.refused ? "Declined to seal" : "Sealed"),
+        cell(row.refusal_reason),
+      ].join(","),
+    );
+  }
+
+  return lines.join("\r\n");
+}
+
+// ------------------------------------------------------------------ the clock
+
+/**
+ * Minutes between two instants, rounded to the nearest minute, floored at zero.
+ *
+ * WHY REVIEW TIME IS MEASURED RATHER THAN ASKED FOR
+ * -------------------------------------------------
+ * The responsible charge log states how long the engineer spent on a file, and
+ * a number somebody types at the end of the month is the number they wish were
+ * true. This is the elapsed time between opening the package and deciding.
+ *
+ * It is honest about being wall clock, not attention: an engineer who opens a
+ * file and goes to lunch produces a large number that means nothing. That is why
+ * the log records it as elapsed time and why a person can correct it, with the
+ * correction flagged as manual so the two can be told apart.
+ */
+export function minutesBetween(startedAt: Date, endedAt: Date): number {
+  return Math.max(0, Math.round((endedAt.getTime() - startedAt.getTime()) / 60_000));
+}
+
+/**
+ * A review that took implausibly little time, for the engineer's own dashboard.
+ *
+ * NOT A BLOCK, AND THAT IS DELIBERATE
+ * -----------------------------------
+ * There is no minimum review time and there must not be one. A second look at a
+ * file an engineer already knows can legitimately take ninety seconds, and a
+ * platform that refuses would teach people to leave the tab open while they make
+ * coffee, which corrupts the only honest number in the log.
+ *
+ * It is surfaced instead. The engineer sees it on their own record, before
+ * anybody else asks.
+ */
+export const BRISK_REVIEW_MINUTES = 3;
+
+export function isBriskReview(minutes: number | null): boolean {
+  return minutes !== null && minutes < BRISK_REVIEW_MINUTES;
+}
