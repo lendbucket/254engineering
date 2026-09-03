@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { chargeLog, chargeLogPeriods, productionLedger, timeLog } from "@/lib/ops-engineer";
-import { isBriskReview, periodOf } from "@/lib/ops-review";
+import { isBriskReview, outcomeLabel, periodOf } from "@/lib/ops-review";
 import { Chip, EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
 import { ExportButton, TimeForm } from "./ChargeLogClient";
 
@@ -54,6 +54,7 @@ export default async function ChargeLogPage({
   ]);
 
   const refusals = rows.filter((r) => r.refused);
+  const sealed = rows.filter((r) => r.decision === "seal");
   const forPeriod = production.filter((p) => p.period === period);
   const pending = forPeriod.filter((p) => p.status === "pending" || p.status === "approved");
 
@@ -96,6 +97,7 @@ export default async function ChargeLogPage({
                   {refusals.length > 0
                     ? `, ${refusals.length} of which you declined to seal`
                     : ", none declined"}
+                  {sealed.length > 0 ? `, ${sealed.length} sealed` : ""}
                   .
                 </p>
                 <ExportButton period={period} />
@@ -121,7 +123,16 @@ export default async function ChargeLogPage({
                           {r.site_visit ? ", site visit" : ""}
                         </p>
                       </div>
-                      <Chip label={r.refused ? "Declined to seal" : "Sealed"} tone={r.refused ? "bad" : "good"} />
+                      {/*
+                        * Labelled from the decision, never from "not refused".
+                        * A revision request rendered as "Sealed" is a false
+                        * statement about a licensed engineer's work, and this
+                        * screen and the export both used to make it.
+                        */}
+                      <Chip
+                        label={outcomeLabel(r)}
+                        tone={r.refused ? "bad" : r.decision === "seal" ? "good" : "neutral"}
+                      />
                     </div>
 
                     {r.refusal_reason ? (

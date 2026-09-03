@@ -258,6 +258,7 @@ export type ChargeLogInput = {
 
 export type ChargeLogRow = {
   engineer_id: string;
+  decision: ReviewAction;
   file_id: string;
   document_id: string | null;
   document_type: string | null;
@@ -276,6 +277,17 @@ export function chargeLogRow(input: ChargeLogInput): ChargeLogRow {
   const at = input.at ?? new Date();
   return {
     engineer_id: input.engineerId,
+    /*
+     * WHICH of the four outcomes, stored rather than inferred.
+     *
+     * This row used to carry only `refused`, so everything that was not a
+     * refusal rendered as "Sealed": on the engineer's own log AND in the CSV
+     * handed to a regulator. A file sent back for revisions was reported as
+     * sealed, which is a false statement in the one document this table exists
+     * to produce, and it could not be fixed in the view because the fact was
+     * never kept.
+     */
+    decision: input.action,
     file_id: input.fileId,
     document_id: input.documentId ?? null,
     document_type: input.documentType ?? null,
@@ -297,6 +309,28 @@ export function chargeLogRow(input: ChargeLogInput): ChargeLogRow {
 }
 
 /** The month a record belongs to, as YYYY-MM. */
+/**
+ * How an outcome reads, in the log and in the export.
+ *
+ * A null decision belongs to a row written before the outcome was stored, and
+ * it says so rather than being guessed. Filling those in as "Sealed" would be
+ * committing the original error a second time, in an append only table where it
+ * could never be corrected.
+ */
+export const OUTCOME_LABEL: Record<ReviewAction, string> = {
+  seal: "Sealed",
+  revisions: "Sent back for revisions",
+  site_visit: "Sent back for a site visit",
+  refuse: "Declined to seal",
+};
+
+export function outcomeLabel(row: { decision: ReviewAction | null; refused: boolean }): string {
+  if (row.decision) return OUTCOME_LABEL[row.decision];
+  // Older rows kept only the boolean. A refusal is still certain; the rest are
+  // not, and the log says so instead of picking one.
+  return row.refused ? OUTCOME_LABEL.refuse : "Outcome not recorded";
+}
+
 export function periodOf(at: Date): string {
   return `${at.getFullYear()}-${String(at.getMonth() + 1).padStart(2, "0")}`;
 }
@@ -305,6 +339,7 @@ export function periodOf(at: Date): string {
 
 export type ExportRow = {
   reviewed_at: string;
+  decision: ReviewAction | null;
   property_address: string;
   county: string;
   document_type: string | null;
@@ -375,7 +410,7 @@ export function monthlyExportCsv(
         cell(row.review_minutes),
         cell(row.revision_count),
         cell(row.site_visit ? "yes" : "no"),
-        cell(row.refused ? "Declined to seal" : "Sealed"),
+        cell(outcomeLabel(row)),
         cell(row.refusal_reason),
       ].join(","),
     );

@@ -96,3 +96,23 @@ create unique index if not exists eng_rcl_once_per_review
 -- rounds by reading the timeline every time is both slow and a place for two
 -- answers to appear.
 alter table eng_files add column if not exists revision_count integer not null default 0;
+
+-- 6. The responsible charge log records WHICH decision was taken.
+--
+-- It shipped with a `refused` boolean, and everything that was not a refusal was
+-- therefore rendered as "Sealed": in the engineer's own log, and in the CSV
+-- handed to a regulator. A file sent back for revisions was reported as sealed.
+--
+-- That is a false statement in the one document this table exists to produce,
+-- and it could not be fixed in the view, because the fact was never stored. Four
+-- outcomes, one boolean.
+--
+-- Existing rows keep a null decision rather than being backfilled to a guess.
+-- The log is append only precisely so that nobody rewrites history in it, and
+-- inferring "sealed" for every old non refusal would be committing the original
+-- error a second time and calling it a migration.
+alter table eng_responsible_charge_log add column if not exists decision text
+  check (decision in ('seal', 'revisions', 'site_visit', 'refuse'));
+
+comment on column eng_responsible_charge_log.decision is
+  'Which of the four review outcomes this row records. Null on rows written before 2026-09-02, when only refusals were distinguished; those are shown as an unrecorded outcome rather than guessed.';

@@ -31,6 +31,7 @@ import {
   isBriskReview,
   minutesBetween,
   monthlyExportCsv,
+  outcomeLabel,
   periodOf,
 } from "../src/lib/ops-review.ts";
 
@@ -239,6 +240,56 @@ const GATED = { prelaunch: true };
     at,
   };
 
+  /*
+   * WHICH outcome, not just "was it a refusal".
+   *
+   * The row shipped carrying only `refused`, so everything that was not a
+   * refusal was rendered as "Sealed" on the engineer's log AND in the CSV handed
+   * to a regulator. A file sent back for revisions was reported as sealed. That
+   * is a false statement in the document this whole table exists to produce, and
+   * it was invisible to every check here because none of them asked what the
+   * label said.
+   *
+   * Found by looking at a screenshot.
+   */
+  for (const action of ["seal", "revisions", "site_visit", "refuse"]) {
+    const row = chargeLogRow({ ...base, action });
+    rec(`a ${action} is recorded as a ${action}`, row.decision === action, row.decision);
+  }
+  rec(
+    "the four outcomes read as four different things",
+    new Set(
+      ["seal", "revisions", "site_visit", "refuse"].map((a) =>
+        outcomeLabel({ decision: a, refused: a === "refuse" }),
+      ),
+    ).size === 4,
+  );
+  rec(
+    "a revision request is never labelled as sealed",
+    outcomeLabel({ decision: "revisions", refused: false }) !== "Sealed",
+    outcomeLabel({ decision: "revisions", refused: false }),
+  );
+  rec(
+    "and neither is a site visit",
+    outcomeLabel({ decision: "site_visit", refused: false }) !== "Sealed",
+    outcomeLabel({ decision: "site_visit", refused: false }),
+  );
+  /*
+   * Rows written before the decision was stored. A refusal is still certain;
+   * everything else is not, and the log says so rather than guessing. Guessing
+   * "Sealed" would commit the original error a second time, in an append only
+   * table where it could never be corrected.
+   */
+  rec(
+    "an old row with no decision is not guessed as sealed",
+    outcomeLabel({ decision: null, refused: false }) === "Outcome not recorded",
+    outcomeLabel({ decision: null, refused: false }),
+  );
+  rec(
+    "but an old refusal is still known to be one",
+    outcomeLabel({ decision: null, refused: true }) === "Declined to seal",
+  );
+
   const sealed = chargeLogRow({ ...base, action: "seal", documentType: "WPI-8" });
   rec("a seal writes a log row", sealed.file_id === "file-1" && sealed.engineer_id === "eng-1");
   rec("marked as not refused", sealed.refused === false);
@@ -274,6 +325,7 @@ const GATED = { prelaunch: true };
 {
   const rows = [
     {
+      decision: "seal",
       reviewed_at: "2026-03-02T14:00:00.000Z",
       property_address: "1400 Example Street",
       county: "Nueces",
@@ -285,6 +337,7 @@ const GATED = { prelaunch: true };
       refusal_reason: null,
     },
     {
+      decision: "refuse",
       reviewed_at: "2026-03-09T10:00:00.000Z",
       property_address: "88 Example Court",
       county: "Aransas",
@@ -316,6 +369,22 @@ const GATED = { prelaunch: true };
   rec("both rows are present", csv.includes("1400 Example Street") && csv.includes("88 Example Court"));
   rec("a refusal is labelled as one", csv.includes('"Declined to seal"'));
   rec("a seal is labelled as one", csv.includes('"Sealed"'));
+
+  /*
+   * The export is the document a board reads. A revision request appearing in it
+   * as "Sealed" would tell a regulator an engineer certified work they sent
+   * back.
+   */
+  const mixed = monthlyExportCsv(
+    [
+      { ...rows[0], decision: "revisions", refused: false },
+      { ...rows[0], decision: "site_visit", refused: false },
+    ],
+    { engineerName: "E", licenseNumber: null, period: "2026-03" },
+  );
+  rec("a revision request is not exported as a seal", !mixed.includes('"Sealed"'), "the export said Sealed");
+  rec("it is exported as what it was", mixed.includes("Sent back for revisions"));
+  rec("and so is a site visit", mixed.includes("Sent back for a site visit"));
 
   /*
    * The refusal reason above begins with two hyphens. A spreadsheet treats a

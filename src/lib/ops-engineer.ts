@@ -457,7 +457,7 @@ export async function chargeLog(
   let query = db
     .from("eng_responsible_charge_log")
     .select(
-      "id, file_id, reviewed_at, property_address, county, document_type, review_minutes, revision_count, site_visit, refused, refusal_reason",
+      "id, file_id, decision, reviewed_at, property_address, county, document_type, review_minutes, revision_count, site_visit, refused, refusal_reason",
     )
     .order("reviewed_at", { ascending: false })
     .limit(500);
