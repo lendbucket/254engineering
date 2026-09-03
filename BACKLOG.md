@@ -1654,3 +1654,42 @@ an API route an admin can call and there is no screen for it, so an operator
 learns about a stuck order only by asking. A dashboard count of orders left at
 `awaiting_payment` past their session expiry is the piece that would make it
 noticed rather than looked for.
+
+### There is no way to refund an order except by declining to seal it
+
+Found on 2026-09-03, immediately after reconciliation recorded three real
+payments and the next step was to give the money back.
+
+`settleDecision` is the only path to a refund, and the only caller is
+`recordDecision` in `ops-engineer.ts`, on a seal or a refusal. That is right for
+the case it was built for: the engineer's decision settles the money, in one
+place, so a caller cannot forget it on a refusal.
+
+It leaves no path at all for the cases that are not an engineering judgment:
+
+- an order placed by mistake, or a duplicate;
+- a customer who telephones to cancel before anybody starts;
+- a probe or test order that has to be unwound;
+- an order the firm decides not to take for a reason that is commercial rather
+  than technical.
+
+Cancelling the file does nothing to the order or its money. `markAbandoned`
+only closes orders that were never paid. So a paid order can currently be
+refunded only by routing it to an engineer and recording a refusal to seal.
+
+**Why that workaround must not be used.** `review.refuse` writes to
+`eng_audit_events`, which refuses deletes by design, and it records that a
+licensed engineer reviewed a file and declined to seal it. Doing that to unwind
+a payment would put a false professional judgment into the firm's regulatory
+memory permanently. It is the one shortcut here that is worse than the problem.
+
+What is needed: an operator refund that is honestly labelled as one. A fourth
+refund case, `cancelled_by_the_firm`, full amount, no inspection fee, recorded
+against the operator who authorised it rather than against an engineer. The
+existing three cases stay exactly as the operator ruled them, because they are
+about an engineering decision and this one is not.
+
+Until it exists, the three reconciled probe orders in development stay paid.
+They also can no longer be deleted: `eng_order_payments` is ON DELETE RESTRICT,
+so an order that took a payment cannot be removed, which is correct and is the
+price of recording the truth about them.
