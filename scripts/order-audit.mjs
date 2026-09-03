@@ -41,6 +41,7 @@ import {
   orderable,
 } from "../data/catalog.ts";
 import { isKnown, money } from "../src/lib/ops-money.ts";
+import { deploymentOrigin } from "../src/lib/site-url.ts";
 import {
   ORDER_STATUSES,
   QUOTE_STATUSES,
@@ -697,6 +698,48 @@ const answerAll = (entry, pick = () => 0) =>
     "the catalog imports the money type rather than using plain numbers",
     /type \{ Cents \}/.test(src),
     "a price that cannot be null is a price that will be zero",
+  );
+}
+
+// ===========================================================================
+// 9. WHERE A PAID CUSTOMER IS SENT BACK TO
+// ===========================================================================
+{
+  /*
+   * The first real Stripe payment redirected a customer paying on a preview to
+   * production, which did not have their order and answered 404. A deployment
+   * that sends people somewhere other than itself cannot be exercised end to
+   * end, and the version that matters is a preview handing a real customer a
+   * link into production.
+   */
+  const prod = deploymentOrigin({ VERCEL_ENV: "production", VERCEL_BRANCH_URL: "main-abc.vercel.app" });
+  rec("production sends a customer to the canonical domain", prod === "https://254engineering.com", prod);
+  rec(
+    "and never to its own vercel.app hostname",
+    !prod.includes("vercel.app"),
+    "a receipt should not link to a host the firm does not publish",
+  );
+
+  const preview = deploymentOrigin({
+    VERCEL_ENV: "preview",
+    VERCEL_BRANCH_URL: "branch-alias.vercel.app",
+    VERCEL_URL: "one-deployment.vercel.app",
+  });
+  rec("a preview sends a customer back to itself", preview === "https://branch-alias.vercel.app", preview);
+  rec(
+    "preferring the branch alias over the deployment url",
+    !preview.includes("one-deployment"),
+    "the alias is stable across deployments of the same branch",
+  );
+
+  const noAlias = deploymentOrigin({ VERCEL_ENV: "preview", VERCEL_URL: "one-deployment.vercel.app" });
+  rec("and falls back to the deployment url when there is no alias", noAlias === "https://one-deployment.vercel.app");
+
+  const local = deploymentOrigin({});
+  rec(
+    "a local machine falls back to the real site rather than a guessed port",
+    local === "https://254engineering.com",
+    local,
   );
 }
 

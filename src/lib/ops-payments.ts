@@ -1,6 +1,6 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase";
-import { business } from "@/config/business";
+import { deploymentOrigin } from "./site-url";
 import { writeAudit } from "./ops-audit";
 import { catalogFor } from "@data/catalog";
 import { canTransitionOrder, landingStatusFor, quoteFor, refundFor, type ReviewOutcome } from "./ops-orders";
@@ -125,8 +125,8 @@ export async function startCheckout(orderId: string): Promise<CheckoutResult> {
     customerEmail: order.customer_email as string,
     description: `${entry?.name ?? order.service_slug} at ${order.property_address}`,
     lines: chargeable.length ? chargeable : [{ label: "Sealed document", amountCents: Number(order.total_cents) }],
-    successUrl: `${business.url}/order/${order.reference}?paid=1`,
-    cancelUrl: `${business.url}/order/${order.reference}?cancelled=1`,
+    successUrl: `${deploymentOrigin()}/order/${order.reference}?paid=1`,
+    cancelUrl: `${deploymentOrigin()}/order/${order.reference}?cancelled=1`,
   });
 
   await event(orderId, "checkout.started", false, `Checkout opened for ${money(Number(order.total_cents))}.`, {
