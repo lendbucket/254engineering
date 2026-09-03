@@ -1637,6 +1637,20 @@ What is needed, in the order it matters:
 should stay correct. The answer is to record the charge that exists, not to
 loosen the rule.
 
-Deliberately not built during Phase 7. It is a new surface with new failure
-modes, and bolting it on at the end of a phase is how a reconciliation tool ends
-up trusted before it has been tested against a real discrepancy.
+**Built the same day, on the operator's instruction, and this entry is kept
+because the reasoning above is still the reason it exists.** All three steps
+shipped in `e759b10`: `src/lib/reconcile-rules.ts` decides, `src/lib/ops-reconcile.ts`
+carries it out through `markPaid`, and `POST /api/portal/orders/reconcile`
+carries it, admin only, reading unless told to apply.
+
+I had proposed deferring it on the grounds that a reconciler bolted on at the
+end of a phase gets trusted before it has been tested against a real
+discrepancy. The operator overruled that and was right to: three real
+discrepancies were sitting in development waiting to be its first exercise,
+which is a better test than anything a later phase would have invented.
+
+**What remains undone here:** nothing surfaces the report in the portal. It is
+an API route an admin can call and there is no screen for it, so an operator
+learns about a stuck order only by asking. A dashboard count of orders left at
+`awaiting_payment` past their session expiry is the piece that would make it
+noticed rather than looked for.
