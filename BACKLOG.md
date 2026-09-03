@@ -1429,3 +1429,44 @@ layer can do about it.
 
 Worth checking in the Vercel dashboard whether Attack Challenge Mode is on, and
 worth knowing that it is a thing that can happen unattended.
+
+### Phase 7: does anything still write eng_orders?
+
+`eng_orders` is the legacy intake table reconstructed in migration 0000: a form
+submission with `plan_type`, `file_paths`, UTM capture and `status` defaulting
+to `received`. Phase 7's order lives in `eng_service_orders` instead, and 0006
+leaves the legacy table untouched.
+
+**The reason it was not repurposed is a question this repository cannot answer.**
+It holds zero rows in production, nothing in `src/` writes it, and no `eng_files`
+row references it. But the `eng_` tables are shared across the brand family and
+it carries a `site` column, so **sealedengineering or stampmyplans may still
+post to it.** Rewriting a shared table's meaning on the strength of what one of
+three repositories can see is exactly the assumption that should not be made.
+
+**What is needed: confirmation from the operator, or a look at the other two
+repos, on whether either still writes eng_orders.** If neither does, it can be
+dropped in a later migration and the name freed. Until then two tables with
+similar names is the cost of not guessing, and the header of 0006 explains it so
+the next session does not read it as an oversight.
+
+### Migration 0006 is on development only
+
+Applied to `ythzaiqeoijlrdibnieo`, fingerprint `f27078a89edc555283d50476b2be252e`
+across 605 columns. Production stays at `1187b16a91c10ff758ce8953e4efb1ca` /
+489 until the operator gives the merge word, which is the standing sequence:
+migration to production before the code that needs it deploys.
+
+### A payment row can never be deleted, including a demo one
+
+`eng_order_payments` has a delete trigger and `order_id ... on delete restrict`,
+so a payment cannot be removed and an order that took one cannot be removed
+either. That is right for money and it has a consequence worth knowing before
+somebody hits it: **any demo or test order that records a payment is permanent,
+in development as well as production.**
+
+A seeding script for the order flow should stop short of payments, or accept
+that development accumulates them the way it accumulates audit rows. The
+verification of 0006 worked around it by disabling the trigger inside a
+transaction, which is available to a migration and deliberately not to the
+application.
