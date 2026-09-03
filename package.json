@@ -37,6 +37,7 @@
     "onboarding-audit": "tsx scripts/onboarding-audit.mjs",
     "review-audit": "tsx scripts/review-audit.mjs",
     "comms-audit": "tsx scripts/comms-audit.mjs",
+    "money-audit": "tsx scripts/money-audit.mjs",
     "seed-field-demo": "tsx scripts/seed-field-demo.mjs",
     "db-guard-audit": "tsx scripts/db-guard-audit.mjs",
     "preroles-audit": "node scripts/preflight-audit.mjs",

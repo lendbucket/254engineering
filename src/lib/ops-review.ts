@@ -1,3 +1,4 @@
+import { cell } from "./csv";
 import { can, type Actor } from "./ops-authz";
 import { isPrelaunch } from "./launch";
 import type { FileStatus } from "./ops-files";
@@ -362,20 +363,14 @@ const CSV_HEADERS = [
   "Reason for declining",
 ];
 
-/**
- * Escape one CSV cell.
+/*
+ * The escaping rule moved to src/lib/csv.ts in Phase 6.
  *
- * A leading =, +, - or @ is prefixed with a single quote. That is not
- * decoration: a spreadsheet treats those as the start of a formula, and this
- * export contains free text an engineer wrote about why they would not seal
- * something. A refusal reason beginning "-- the roof deck" would be evaluated
- * rather than read, and the export exists to be handed to a regulator.
+ * This file wrote its own, and Phase 6 added four more exports. Five copies of
+ * a formula guard is five chances for one of them to be the copy that forgot
+ * it, and the one that forgets is the file handed to a regulator. One rule,
+ * one audit, and every export inherits both.
  */
-function cell(value: unknown): string {
-  const text = value === null || value === undefined ? "" : String(value);
-  const guarded = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
-  return `"${guarded.replace(/"/g, '""')}"`;
-}
 
 /**
  * The monthly responsible charge export.
