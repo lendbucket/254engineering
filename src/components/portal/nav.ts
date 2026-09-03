@@ -25,7 +25,7 @@ export type NavItem = {
   primary?: boolean;
   icon:
     | "home" | "files" | "people" | "review" | "jobs" | "clients" | "audit"
-    | "profile" | "protocols" | "techs" | "onboarding" | "certification";
+    | "profile" | "protocols" | "techs" | "onboarding" | "certification" | "charge";
 };
 
 export const NAV: NavItem[] = [
@@ -43,6 +43,15 @@ export const NAV: NavItem[] = [
     icon: "certification",
   },
   { href: "/portal/review", label: "Review queue", short: "Review", action: "review.queue", primary: true, icon: "review" },
+  {
+    // An engineer's own regulatory record. Their licence stands on it, so it is
+    // one tap away rather than behind a menu.
+    href: "/portal/charge-log",
+    label: "Responsible charge",
+    short: "Charge",
+    action: "responsible_charge.read_own",
+    icon: "charge",
+  },
   { href: "/portal/files", label: "Files", short: "Files", action: "files.list", primary: true, icon: "files" },
   { href: "/portal/clients", label: "Clients", short: "Clients", action: "clients.list", icon: "clients" },
   { href: "/portal/protocols", label: "Protocols", short: "Specs", action: "protocols.author", icon: "protocols" },
