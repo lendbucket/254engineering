@@ -147,6 +147,15 @@ const FILES = [
     county: "Nueces",
     status: "needs_dispatch",
     notes: "Seeded for the dispatch screen. Nothing here is a real property.",
+    /*
+     * The three seeded files carry three different money states on purpose, so
+     * the billing screen demonstrates all of them rather than only the happy one.
+     *
+     * This one has all three figures, so it has a knowable margin.
+     */
+    client_price_cents: 45000,
+    tech_cost_cents: 18500,
+    engineer_cost_cents: 9000,
   },
   {
     file_number: "254-2026-9002",
@@ -164,6 +173,15 @@ const FILES = [
      */
     latitude: 27.8339,
     longitude: -97.0611,
+    /*
+     * Priced and dispatched, with no engineer production figure. This is the
+     * common real state today, because production rates exist for one service
+     * line. It is excluded from every total rather than counted as costing
+     * nothing, which is the whole point of ops-money.
+     */
+    client_price_cents: 45000,
+    tech_cost_cents: 18500,
+    engineer_cost_cents: null,
   },
   {
     // A third, so there is always one sitting at needs_dispatch after the other
@@ -174,6 +192,13 @@ const FILES = [
     county: "Aransas",
     status: "needs_dispatch",
     notes: "Seeded. Kept at needs dispatch so the dispatch screen always has something on it.",
+    /*
+     * Nothing priced at all. A file at intake that nobody has quoted, which must
+     * not read as a job worth zero dollars.
+     */
+    client_price_cents: null,
+    tech_cost_cents: null,
+    engineer_cost_cents: null,
   },
 ];
 
@@ -365,14 +390,18 @@ for (const file of FILES) {
     console.error(`  file: ${file.file_number} already present`);
     continue;
   }
+  /*
+   * Money comes from the file's own record above rather than from a constant
+   * here. It used to be one price and one technician cost applied to all three,
+   * which meant every seeded file was in the same money state and the screens
+   * that distinguish "not entered" from "zero" had nothing to show.
+   */
   const { error } = await db.from("eng_files").insert({
     ...file,
     client_id: clientId,
     service_slug: SERVICE,
     twia_county: true,
     protocol_template_id: protocolId,
-    client_price_cents: 45000,
-    tech_cost_cents: 18500,
     evidence_due_at: new Date(Date.now() + 3 * 86_400_000).toISOString(),
   });
   if (error) throw new Error(`file ${file.file_number}: ${error.message}`);

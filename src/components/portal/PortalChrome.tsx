@@ -65,6 +65,10 @@ function Icon({ name, className = "" }: { name: NavItem["icon"] | "bell" | "sear
       return <svg {...common}><circle cx="12" cy="9.5" r="5.5" /><path d="m8.5 14.5-1 6.5 4.5-2.4 4.5 2.4-1-6.5" /></svg>;
     case "techs":
       return <svg {...common}><circle cx="12" cy="7" r="3.2" /><path d="M5.5 21a6.5 6.5 0 0 1 13 0" /><path d="m19 3 1.6 1.6-3.2 3.2" /></svg>;
+    case "documents":
+      return <svg {...common}><path d="M5 4h9l5 5v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" /><path d="M14 4v5h5" /><path d="M8 13h8M8 16.5h5" /></svg>;
+    case "billing":
+      return <svg {...common}><path d="M3 6h18v12H3z" /><circle cx="12" cy="12" r="2.6" /><path d="M6.5 12h.01M17.5 12h.01" /></svg>;
     case "bell":
       return <svg {...common}><path d="M18 8a6 6 0 1 0-12 0c0 6-2 7-2 7h16s-2-1-2-7" /><path d="M13.7 20a2 2 0 0 1-3.4 0" /></svg>;
     case "search":

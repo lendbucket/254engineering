@@ -53,6 +53,8 @@ const ADMIN_PAGES = [
   "/portal/charge-log",
   "/portal/tasks",
   "/portal/messages",
+  "/portal/documents",
+  "/portal/billing",
   "/admin",
   "/admin/leads",
   "/admin/applications",
@@ -72,6 +74,11 @@ const ADMIN_APIS = [
   "/api/portal/review",
   "/api/portal/comms",
   "/api/portal/onboarding",
+  // Hands out CSVs naming properties, people and money, and signed links into
+  // private buckets. Both are closed to a signed out client and the coverage
+  // check below is what made sure they were listed here on the day they shipped.
+  "/api/portal/exports",
+  "/api/portal/documents",
 ];
 
 /**

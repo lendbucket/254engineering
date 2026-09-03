@@ -86,6 +86,13 @@ const PHASE_ZERO = [
     name: "comms-audit",
     why: "who can read a thread, and what reaches somebody outside the app",
   },
+  {
+    // Pure: money, the evidence binder, and the one CSV escaping rule. The check
+    // that matters here is that an absent figure never becomes a zero, because
+    // the error always points the same way and always looks plausible.
+    name: "money-audit",
+    why: "an absent figure is never a zero, and a missing evidence item is never omitted",
+  },
   { name: "registry-audit", why: "keyword ownership is self consistent and every live claim resolves" },
   { name: "email-audit", why: "every outbound template: voice, absolute links, plaintext part" },
 ];

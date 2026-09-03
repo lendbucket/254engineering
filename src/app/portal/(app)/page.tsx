@@ -1,73 +1,149 @@
 import { redirect } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
-import { can, homeFor } from "@/lib/ops-authz";
-import { supabaseAdmin } from "@/lib/supabase";
+import { can, ROLE_LABEL } from "@/lib/ops-authz";
+import { dashboardFor } from "@/lib/ops-dashboard";
 import { isPrelaunch } from "@/lib/launch";
-import { EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
+import { money } from "@/lib/ops-money";
+import { AttentionList, CountTiles, MoneyTiles } from "@/components/portal/Dashboard";
+import { ButtonLink, EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
 
 export const dynamic = "force-dynamic";
 
 /**
- * The administrator's home.
+ * The dashboard, for all three roles.
  *
- * Engineers and technicians never land here: their home is their queue and their
- * jobs. homeFor in the authorization module is the single answer to "where does
- * this role belong", used by sign in and by this redirect, so the two cannot
- * disagree.
+ * WHAT CHANGED, AND WHY THE OLD REASONING IS STILL HERE
+ * -----------------------------------------------------
+ * This page used to redirect anyone who was not an administrator to their queue,
+ * on the reasoning that an engineer's dashboard was the review queue and a
+ * technician's was their jobs, so a generic one would be a third empty page.
+ * That was correct while it was true.
  *
- * WHAT THIS SHOWS TODAY, HONESTLY
+ * Phase 6 gave the other two roles something a queue does not show them: an
+ * engineer's minutes and production for the period alongside the queue depth, a
+ * technician's deadlines and what they are owed alongside their offers. Sign in
+ * still lands each role on the surface they work in, through homeFor. This is
+ * where they come to see the whole picture.
+ *
+ * EVERY NUMBER HERE IS A LIVE ROW
  * -------------------------------
- * Counts of real rows, which are zero, and the compliance state. It does not
- * show a revenue chart with invented numbers or a pipeline with sample files.
- * The dashboard the program describes arrives in Phase 6 when there is something
- * to put in it.
+ * There is no sample data on this page and there never will be. A count of zero
+ * renders as zero with a sentence saying what zero means. A money figure nobody
+ * has entered renders as "not set", never as $0.00.
  */
 export default async function PortalHome() {
   const actor = await currentActor();
-  if (actor && actor.role !== "admin") redirect(homeFor(actor.role));
-  if (!can(actor, "files.list")) redirect("/portal/profile");
+  if (!actor) redirect("/portal/login");
+  if (!can(actor, "files.list") && !can(actor, "offers.list_own")) redirect("/portal/profile");
 
-  const db = supabaseAdmin();
-  const counts = { people: 0, clients: 0, files: 0, events: 0 };
-  if (db) {
-    const [people, clients, filesCount, events] = await Promise.all([
-      db.from("eng_profiles").select("id", { count: "exact", head: true }),
-      db.from("eng_clients").select("id", { count: "exact", head: true }),
-      db.from("eng_files").select("id", { count: "exact", head: true }),
-      db.from("eng_audit_events").select("id", { count: "exact", head: true }),
-    ]);
-    counts.people = people.count ?? 0;
-    counts.clients = clients.count ?? 0;
-    counts.files = filesCount.count ?? 0;
-    counts.events = events.count ?? 0;
+  const dashboard = await dashboardFor(actor);
+  const firstName = actor.display_name.split(" ")[0];
+
+  if (!dashboard) {
+    return (
+      <>
+        <PageHead eyebrow="Operations" title={`Good to see you, ${firstName}`} />
+        <EmptyState
+          title="Your dashboard is not available"
+          body="This account is not active, so nothing is being read on your behalf. Ask an administrator to look at it."
+        />
+      </>
+    );
   }
 
-  const tiles = [
-    { label: "People with accounts", value: counts.people },
-    { label: "Clients", value: counts.clients },
-    { label: "Open files", value: counts.files },
-    { label: "Audit events recorded", value: counts.events },
-  ];
+  const lede =
+    dashboard.role === "admin"
+      ? "The firm at a glance. Every number is a live row, and a money figure nobody has entered says so rather than showing a zero."
+      : dashboard.role === "engineer"
+        ? "Your queue, your time and your production for this period. Nothing here is estimated."
+        : "Your offers, your deadlines and your pay. Nothing here is estimated.";
 
   return (
     <>
       <PageHead
-        eyebrow="Operations"
-        title={`Good to see you, ${actor!.display_name.split(" ")[0]}`}
-        lede="The firm at a glance. Counts are live rows, not samples."
+        eyebrow={ROLE_LABEL[actor.role]}
+        title={`Good to see you, ${firstName}`}
+        lede={lede}
+        actions={
+          dashboard.role === "admin" ? (
+            <ButtonLink href="/portal/billing" tone="ghost">
+              Billing
+            </ButtonLink>
+          ) : undefined
+        }
       />
 
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        {tiles.map((t) => (
-          <div
-            key={t.label}
-            className="rounded-[4px] border border-limestone-line border-t-[3px] border-t-slate bg-white p-4"
-          >
-            <p className="font-display text-[28px] leading-none font-bold text-slate">{t.value}</p>
-            <p className="mt-2 text-[12.5px] leading-[1.4] text-slate-muted">{t.label}</p>
-          </div>
-        ))}
+      <CountTiles tiles={dashboard.tiles} />
+
+      <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <Panel
+          title="Needs you"
+          description="Only things somebody has to act on. An empty list is a result, not a gap."
+        >
+          <AttentionList items={dashboard.attention} />
+        </Panel>
+
+        <Panel
+          title={dashboard.role === "field_tech" ? "Your pay" : "Money"}
+          description={
+            dashboard.role === "admin"
+              ? "Totals cover only files where every figure is present."
+              : "Read from the ledger, not recalculated here."
+          }
+        >
+          <MoneyTiles tiles={dashboard.money} />
+        </Panel>
       </div>
+
+      {dashboard.role === "admin" && dashboard.periods.length > 0 ? (
+        <Panel
+          className="mt-4"
+          title="Margin by period"
+          description="A file counts toward a period on the month it was delivered, or the month it was opened if it has not been."
+          actions={
+            <ButtonLink href="/api/portal/exports?report=period" tone="ghost">
+              Export
+            </ButtonLink>
+          }
+        >
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[560px] border-collapse text-left">
+              <thead>
+                <tr className="border-b border-limestone-line">
+                  {["Period", "Files", "Revenue", "Cost", "Margin", "Coverage"].map((h) => (
+                    <th
+                      key={h}
+                      scope="col"
+                      className="py-2 pr-4 text-[11px] font-bold tracking-[0.1em] text-slate-muted uppercase"
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {dashboard.periods.slice(0, 12).map((p) => (
+                  <tr key={p.period} className="border-b border-limestone-line last:border-0">
+                    <td className="py-2.5 pr-4 align-top text-[13.5px] font-semibold text-slate">{p.period}</td>
+                    <td className="py-2.5 pr-4 align-top text-[13.5px] text-slate">
+                      {p.complete} of {p.files}
+                    </td>
+                    <td className="py-2.5 pr-4 align-top text-[13.5px] text-slate">{money(p.revenue)}</td>
+                    <td className="py-2.5 pr-4 align-top text-[13.5px] text-slate">{money(p.cost)}</td>
+                    <td className="py-2.5 pr-4 align-top text-[13.5px] font-semibold text-slate">
+                      {money(p.margin)}
+                      {p.marginPercent === null ? "" : ` (${p.marginPercent}%)`}
+                    </td>
+                    <td className="py-2.5 pr-4 align-top text-[12px] leading-[1.45] text-slate-muted">
+                      {p.coverage}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Panel>
+      ) : null}
 
       {isPrelaunch() ? (
         <div className="mt-6 rounded-[4px] border border-[#f0d9a8] border-l-[3px] border-l-brass bg-[#fdf3e0] px-4 py-3.5">
@@ -81,21 +157,6 @@ export default async function PortalHome() {
           </p>
         </div>
       ) : null}
-
-      <div className="mt-6 grid gap-4 lg:grid-cols-2">
-        <Panel title="Pipeline" description="Files by status.">
-          <EmptyState
-            title="No files yet"
-            body="Clients and files arrive in the next phase. When they do, this becomes the pipeline by status with overdue work first."
-          />
-        </Panel>
-        <Panel title="Attention" description="Overdue work and expiring credentials.">
-          <EmptyState
-            title="Nothing needs you"
-            body="Credential expiry alerts and overdue files appear here once technicians are onboarded and files are moving."
-          />
-        </Panel>
-      </div>
     </>
   );
 }

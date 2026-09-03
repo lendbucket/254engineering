@@ -26,7 +26,7 @@ export type NavItem = {
   icon:
     | "home" | "files" | "people" | "review" | "jobs" | "clients" | "audit"
     | "profile" | "protocols" | "techs" | "onboarding" | "certification" | "charge"
-    | "tasks" | "messages";
+    | "tasks" | "messages" | "documents" | "billing";
 };
 
 export const NAV: NavItem[] = [
@@ -56,6 +56,8 @@ export const NAV: NavItem[] = [
   { href: "/portal/tasks", label: "Tasks", short: "Tasks", action: "tasks.use", primary: true, icon: "tasks" },
   { href: "/portal/messages", label: "Messages", short: "Chat", action: "messages.use", primary: true, icon: "messages" },
   { href: "/portal/files", label: "Files", short: "Files", action: "files.list", primary: true, icon: "files" },
+  { href: "/portal/documents", label: "Documents", short: "Docs", action: "documents.read", icon: "documents" },
+  { href: "/portal/billing", label: "Billing", short: "Money", action: "billing.read", icon: "billing" },
   { href: "/portal/clients", label: "Clients", short: "Clients", action: "clients.list", icon: "clients" },
   { href: "/portal/protocols", label: "Protocols", short: "Specs", action: "protocols.author", icon: "protocols" },
   { href: "/portal/techs", label: "Technicians", short: "Techs", action: "profiles.list", icon: "techs" },
@@ -75,11 +77,21 @@ export const NAV: NavItem[] = [
  */
 export const MOBILE_TAB_LIMIT = 5;
 
-export function navFor(role: Role, allowed: (action: Action) => boolean): NavItem[] {
-  const items = NAV.filter((item) => allowed(item.action));
-  // An engineer's dashboard is the review queue and a tech's is their jobs, so
-  // the generic dashboard is admin only rather than a third empty page.
-  return role === "admin" ? items : items.filter((i) => i.href !== "/portal");
+/*
+ * Every role gets the dashboard, and that is a change.
+ *
+ * It was admin only, on the reasoning that an engineer's dashboard was the
+ * review queue and a technician's was their jobs, so a generic one would be a
+ * third empty page. Phase 6 built the two that were missing: the engineer's
+ * carries their queue, their minutes this period and their production ledger,
+ * and the technician's carries offers, deadlines and what they are owed.
+ *
+ * The old reasoning is recorded rather than deleted because it was right while
+ * it was true. Sign in still lands each role on the surface they work in, via
+ * homeFor. The dashboard is where they go to see everything at once.
+ */
+export function navFor(_role: Role, allowed: (action: Action) => boolean): NavItem[] {
+  return NAV.filter((item) => allowed(item.action));
 }
 
 export function mobileTabsFor(items: NavItem[]): NavItem[] {

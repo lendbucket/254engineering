@@ -1223,3 +1223,71 @@ between two records and should not be left standing.
 The agreement is not in this repository. The clause numbers above are the
 operator's citations, recorded as given rather than paraphrased, because nothing
 in this repo can verify them.
+
+## Phase 6: documents, billing, dashboards
+
+### There is no invoicing, and billing is read only
+
+`/portal/billing` shows margin per file and per period from figures already on
+the file. Nothing sends a bill, takes a payment, or talks to an accounting
+system.
+
+**Why it stops there.** Invoicing belongs with the order engine: what is billed,
+when, at what price, and what happens on a refund are all decisions that layer
+owns. Building half of it now would leave two billing models to reconcile, and
+the second one always wins on a schedule nobody chose.
+
+### The period a file counts toward is a judgment, not a fact from the data
+
+A file counts toward the month it was delivered, and toward the month it was
+opened when it has not been delivered. That is written into `fileMargins` with
+the reasoning beside it.
+
+**It is a defensible choice rather than a correct one.** An accountant may want
+revenue recognised on a different event, and if one ever says so, the change is
+one line and the exports move with it. Recorded because a number that looks
+factual and is actually a convention is the kind of thing that gets discovered
+during an audit rather than before one.
+
+### The evidence binder is a CSV and not a PDF
+
+Every reader a binder has, a client, an insurer, a board, a court, can open a
+CSV without being told how, and can still open it in ten years with software
+nobody has chosen yet. A PDF would look better and would need a rendering
+dependency, a font decision, and a page layout that cannot be diffed.
+
+**If a regulator or a client ever requires a paginated document**, the manifest
+is already assembled purely in `ops-binder.ts` and only the rendering changes.
+
+### The document centre does not accept uploads
+
+Documents reach the platform through the surfaces that produce them: onboarding
+for credentials, review for deliverables. A general uploader on the document
+centre would be a second path into `eng_documents` with none of the checks those
+surfaces run.
+
+`recordDocument` exists in `ops-docs.ts` for the surfaces that need it and is not
+wired to a form.
+
+### Sixteen charge log rows in development will read oddly forever
+
+The development project carries sixteen `eng_responsible_charge_log` rows from
+Phase 4 walkthrough runs, all with a null `decision`, because the column was
+added after those rows were written. The engineer's dashboard in development
+therefore reports sixteen reviews for the current period against an empty
+production ledger.
+
+**They cannot be cleaned up.** The table refuses deletes by design, which is the
+point of it. This is development noise and not a defect, and it is written down
+so the next person to look at that dashboard does not spend an hour hunting a
+ledger bug that is not there. Production is unaffected: those rows were never
+written there.
+
+### The dashboard is now on the nav for every role, superseding an earlier rule
+
+`navFor` used to hide `/portal` from engineers and technicians, on the reasoning
+that their dashboard was their queue and a generic one would be a third empty
+page. Phase 6 built the two that were missing, so the filter is gone and the old
+reasoning is recorded in `nav.ts` rather than deleted.
+
+Sign in still lands each role on the surface they work in, through `homeFor`.
