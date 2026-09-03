@@ -27,7 +27,10 @@ import { isProduction, refOf, describeTarget, PRODUCTION_REF, DEVELOPMENT_REF } 
 import {
   GUARD_FIX,
   GUARD_HEADLINE,
+  LIVE_KEY_FIX,
+  LIVE_KEY_HEADLINE,
   PRODUCTION_EXPECTED_REF,
+  liveKeyOffProduction,
   PRODUCTION_GUARD_FIX,
   PRODUCTION_GUARD_HEADLINE,
   mispointing,
@@ -342,6 +345,114 @@ rec(
     rec(
       "the expected production ref is the production project",
       PRODUCTION_EXPECTED_REF === PRODUCTION_REF,
+    );
+  }
+
+  // =====================================================================
+  // THE LIVE STRIPE KEY GUARD.
+  //
+  // Added 2026-09-03 after a preview was configured with sk_live rather than
+  // sk_test and the first order against it returned a cs_live checkout
+  // session: a real payment page for 675 dollars on a probe order for a
+  // property that does not exist. Nothing was charged, because the plan was
+  // caught before a card went through it.
+  //
+  // configured() checked that the keys were PRESENT and never what they were,
+  // which is the same shape as the app reading SUPABASE_URL and believing it.
+  // =====================================================================
+  {
+    const LIVE = "sk_live_51abcdefghijklmnop";
+    const TEST = "sk_test_51abcdefghijklmnop";
+
+    /** [description, env, should the guard fire] */
+    const KEY_CASES = [
+      // The fault that happened.
+      ["a preview holding a live key", { VERCEL_ENV: "preview", STRIPE_SECRET_KEY: LIVE }, true],
+      // Just as wrong, and the reason the test is "is this production".
+      ["a Vercel development deployment holding a live key", { VERCEL_ENV: "development", STRIPE_SECRET_KEY: LIVE }, true],
+      ["a laptop with no VERCEL_ENV holding a live key", { STRIPE_SECRET_KEY: LIVE }, true],
+
+      // Every one of these must NOT fire.
+      ["production holding a live key", { VERCEL_ENV: "production", STRIPE_SECRET_KEY: LIVE }, false],
+      ["a preview holding a test key", { VERCEL_ENV: "preview", STRIPE_SECRET_KEY: TEST }, false],
+      ["production holding a test key", { VERCEL_ENV: "production", STRIPE_SECRET_KEY: TEST }, false],
+      ["a preview with no Stripe key at all", { VERCEL_ENV: "preview" }, false],
+      ["an empty key", { VERCEL_ENV: "preview", STRIPE_SECRET_KEY: "" }, false],
+      ["a restricted live key, which is not sk_live", { VERCEL_ENV: "preview", STRIPE_SECRET_KEY: "rk_live_abc" }, false],
+      ["an unset environment", {}, false],
+    ];
+
+    let wrong = 0;
+    for (const [label, env, expected] of KEY_CASES) {
+      const fired = liveKeyOffProduction(env);
+      if (fired !== expected) {
+        wrong++;
+        rec(`live key guard: ${label}`, false, `expected ${expected}, got ${fired}`);
+      }
+    }
+    rec(`the live key guard fires on exactly the wrong shape (${KEY_CASES.length} cases)`, wrong === 0);
+
+    /*
+     * The catastrophic one for THIS guard is the opposite of the database
+     * guards': refusing wrongly here stops real customers paying. So the only
+     * thing that permits a live key is the same variable production itself
+     * reports, and nothing else can take it away.
+     */
+    rec(
+      "PRODUCTION WITH A LIVE KEY IS NEVER BLOCKED",
+      !liveKeyOffProduction({ VERCEL_ENV: "production", STRIPE_SECRET_KEY: LIVE }),
+    );
+    rec(
+      "and not even a deployment id can change that",
+      !liveKeyOffProduction({ VERCEL_ENV: "production", STRIPE_SECRET_KEY: LIVE, ...DEPLOY }),
+      "unlike the database guard, this one must never depend on a second variable",
+    );
+
+    // The escape hatch, spelled exactly as the other two are.
+    const withLiveFlag = (value) =>
+      liveKeyOffProduction({
+        VERCEL_ENV: "preview",
+        STRIPE_SECRET_KEY: LIVE,
+        ALLOW_LIVE_KEY_OFF_PRODUCTION: value,
+      });
+    rec("the live key escape hatch opens on exactly the string 1", !withLiveFlag("1"));
+    for (const value of ["0", "false", "no", "true", "yes", "", " 1", "1 "]) {
+      rec(`and refuses ${JSON.stringify(value)}`, withLiveFlag(value));
+    }
+
+    rec(
+      "the message says what would have happened rather than only what was refused",
+      /real money/i.test(LIVE_KEY_HEADLINE + " " + LIVE_KEY_FIX) === false &&
+        LIVE_KEY_HEADLINE.length > 20 &&
+        LIVE_KEY_HEADLINE.length < 90,
+      LIVE_KEY_HEADLINE,
+    );
+    rec(
+      "and the fix names the webhook secret as well as the key",
+      /STRIPE_WEBHOOK_SECRET/.test(LIVE_KEY_FIX),
+      "an endpoint made in live mode signs with a different secret",
+    );
+
+    /*
+     * The chokepoint. A guard in a caller is a convention; this one has to be
+     * inside the function that builds the Stripe client, so there is no path to
+     * the provider that goes around it.
+     */
+    const stripeSource = fs.readFileSync(
+      path.join(process.cwd(), "src", "lib", "payments-stripe.ts"),
+      "utf8",
+    );
+    rec(
+      "the live key check is inside the function that builds the Stripe client",
+      /function stripe\(\): Stripe \{[\s\S]{0,400}liveKeyOffProduction\(\)/.test(stripeSource),
+    );
+    rec(
+      "and it throws rather than falling through to a client",
+      /if \(liveKeyOffProduction\(\)\) \{\s*throw new Error/.test(stripeSource),
+    );
+    rec(
+      "and configured() reports it rather than claiming the keys are fine",
+      /configured\(\): boolean \{[\s\S]{0,400}liveKeyOffProduction\(\)/.test(stripeSource),
     );
   }
 

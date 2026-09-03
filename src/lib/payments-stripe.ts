@@ -1,5 +1,6 @@
 import "server-only";
 import Stripe from "stripe";
+import { LIVE_KEY_EXPLANATION, LIVE_KEY_FIX, LIVE_KEY_HEADLINE, liveKeyOffProduction } from "./db-guard";
 import type {
   CheckoutRequest,
   CheckoutSession,
@@ -41,6 +42,14 @@ import type {
 let client: Stripe | null = null;
 
 function stripe(): Stripe {
+  /*
+   * The chokepoint, for the same reason refuseIfMispointed sits inside
+   * supabaseAdmin: a check in a caller is a convention, and a check in the
+   * function that builds the client is the only way there is no path around it.
+   */
+  if (liveKeyOffProduction()) {
+    throw new Error(`${LIVE_KEY_HEADLINE}. ${LIVE_KEY_EXPLANATION} ${LIVE_KEY_FIX}`);
+  }
   if (!process.env.STRIPE_SECRET_KEY) throw new Error("STRIPE_SECRET_KEY is not set.");
   if (!client) {
     client = new Stripe(process.env.STRIPE_SECRET_KEY, {
@@ -61,6 +70,13 @@ export function stripeProvider(): PaymentProvider {
     name: "stripe",
 
     configured(): boolean {
+      /*
+       * Not configured, rather than throwing, so startCheckout answers the
+       * caller with a sentence instead of a stack trace. The throw in stripe()
+       * is what actually protects the money; this is the same fact addressed to
+       * whoever is looking at the response.
+       */
+      if (liveKeyOffProduction()) return false;
       return Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET);
     },
 

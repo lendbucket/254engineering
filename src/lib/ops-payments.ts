@@ -6,6 +6,7 @@ import { catalogFor } from "@data/catalog";
 import { canTransitionOrder, landingStatusFor, quoteFor, refundFor, type ReviewOutcome } from "./ops-orders";
 import { event, issueCustomerLink } from "./ops-intake";
 import { isKnown, money } from "./ops-money";
+import { LIVE_KEY_FIX, LIVE_KEY_HEADLINE, liveKeyOffProduction } from "./db-guard";
 import { fakeProvider, type PaymentProvider } from "./payments";
 import { stripeProvider } from "./payments-stripe";
 
@@ -70,6 +71,15 @@ export async function startCheckout(orderId: string): Promise<CheckoutResult> {
 
   const provider = paymentProvider();
   if (!provider.configured()) {
+    /*
+     * Named rather than generic, because the two reasons a provider is not
+     * configured need different actions: a missing key is a gap, and a live key
+     * off production is a mistake that would have moved real money.
+     */
+    if (liveKeyOffProduction()) {
+      console.error(`[payments] ${LIVE_KEY_HEADLINE}. ${LIVE_KEY_FIX}`);
+      return { ok: false, error: LIVE_KEY_HEADLINE + ". " + LIVE_KEY_FIX };
+    }
     return { ok: false, error: "Payments are not configured on this deployment." };
   }
 

@@ -74,6 +74,8 @@ export function refOf(url: string | undefined | null): string | null {
 
 export type GuardEnv = {
   VERCEL_ENV?: string;
+  STRIPE_SECRET_KEY?: string;
+  ALLOW_LIVE_KEY_OFF_PRODUCTION?: string;
   /**
    * Set by Vercel at RUNTIME only, and that is the whole reason it is here.
    * See onAVercelDeployment below.
@@ -173,6 +175,65 @@ export function productionPointingElsewhere(env: GuardEnv = process.env as Guard
   if (env.ALLOW_PRODUCTION_ON_OTHER_DB === "1") return false;
   return true;
 }
+
+/**
+ * Is a deployment that is not production holding a LIVE Stripe key?
+ *
+ * WHAT HAPPENED, 2026-09-03
+ * -------------------------
+ * The preview was configured for the first real payment test and the key put on
+ * it was sk_live rather than sk_test. The first order placed against it returned
+ * a cs_live checkout session: a real payment page, for 675 dollars, on a probe
+ * order for a property that does not exist.
+ *
+ * Nothing was charged, because a Checkout Session is only a page until somebody
+ * pays and the session was expired. What would have happened next is the whole
+ * point: the plan was to put a card through it and then decline the file to
+ * watch the refund. Against a live key that is a real charge, a real refund, and
+ * non refundable Stripe fees on a test.
+ *
+ * configured() checked that the keys were PRESENT and never what they were.
+ * That is the same shape as the morning's incident, where the deployed app read
+ * SUPABASE_URL and believed it.
+ *
+ * WHY THE TEST IS "IS THIS PRODUCTION" AND NOT "IS THIS A DEPLOYMENT"
+ * -------------------------------------------------------------------
+ * productionPointingElsewhere requires VERCEL_DEPLOYMENT_ID as well, because
+ * .env.local carries VERCEL_ENV="production" and a guard that trusted the
+ * variable alone fired on the operator's laptop.
+ *
+ * This one deliberately does not, and the reason is which way each fails. That
+ * guard refusing wrongly would take the portal down, so it fails open. THIS
+ * guard refusing wrongly would stop real customers paying, which is worse
+ * again, so the only thing that permits a live key is the same variable
+ * production itself reports. A production deployment can never be blocked by
+ * it, whatever Vercel changes about its other variables.
+ *
+ * The cost is known and accepted: a laptop whose .env.local claims production
+ * and holds a live key is allowed one. That is a deliberate act by somebody who
+ * put a live key on their own machine, not a configuration slip, and it is
+ * written down here rather than left to be discovered.
+ */
+export function liveKeyOffProduction(env: GuardEnv = process.env as GuardEnv): boolean {
+  const key = env.STRIPE_SECRET_KEY ?? "";
+  if (!key.startsWith("sk_live_")) return false;
+  if (env.VERCEL_ENV === "production") return false;
+  if (env.ALLOW_LIVE_KEY_OFF_PRODUCTION === "1") return false;
+  return true;
+}
+
+export const LIVE_KEY_HEADLINE = "This deployment is holding a live Stripe key";
+
+export const LIVE_KEY_EXPLANATION =
+  "A deployment that is not production is configured with an sk_live secret key. Anything it charges " +
+  "would be real money on a real card, and any refund it issued would move real money back less the " +
+  "fees, on orders that exist only to be tested. It has refused to reach Stripe rather than let that " +
+  "happen.";
+
+export const LIVE_KEY_FIX =
+  "Put the sk_test key on this environment instead, and check STRIPE_WEBHOOK_SECRET with it: an " +
+  "endpoint created in live mode has a different signing secret from one created in test mode, and " +
+  "test events will not verify against a live secret. Then redeploy.";
 
 // --------------------------------------------------------------- the messages
 
