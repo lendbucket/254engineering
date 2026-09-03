@@ -266,7 +266,8 @@ from (select table_name||'.'||column_name||':'||data_type||':'||is_nullable as s
 At the split both returned `295e928584cea806d90c5a2f2dede886` across 439
 columns. After migration 0002 (Phase 2, field dispatch) both return
 `b4b422e1b761ae633b7729dff63f7669` across 441, and after 0003 (Phase 3, tech
-onboarding) `ad2663f8e0e6cd2508c9b5bd43c7b7f4` across 467. Every migration in
+onboarding) `ad2663f8e0e6cd2508c9b5bd43c7b7f4` across 467, and after 0004
+(Phase 4, engineer review) `7249bb177ad22e5bab4da2ab0cae44f9` across 483. Every migration in
 `supabase/migrations/` applies to both, in order, and a migration applied to one
 and not the other is a defect the fingerprint catches.
 
