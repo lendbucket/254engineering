@@ -1693,3 +1693,46 @@ Until it exists, the three reconciled probe orders in development stay paid.
 They also can no longer be deleted: `eng_order_payments` is ON DELETE RESTRICT,
 so an order that took a payment cannot be removed, which is correct and is the
 price of recording the truth about them.
+
+### Three brands write the same tables directly, and only one of them can read
+
+Recorded 2026-09-03 during the production database cutover, where it surfaced as
+a blocker and was worked around rather than fixed. Operator ruling the same day:
+the fix is the right architecture and is separate work, to be done after launch.
+
+**How it stands.** `sealedengineering` and `stampmyplans` hold a service role key
+for the shared project and write `eng_leads` and `eng_orders` into it directly.
+254 reads those tables with no site filter, which is deliberate: its portal is
+the single inbox for all three brands, and `src/app/portal/(app)/clients/page.tsx`
+says so in a comment.
+
+**What that costs.** Three deployments hold a key that can read and write every
+`eng_` table, including orders, payments and the audit trail. Two of them need
+none of that; they need to record a lead. The coupling is also why the database
+migration had to move three projects in one window instead of one, and why a
+schema change to `eng_leads` is now a three repository change that nothing
+enforces or verifies.
+
+It is the same shape as the finding that started the migration. The `eng_`
+prefix and the `site` column are a naming convention standing in for a boundary.
+
+**The fix: the sisters POST to a 254 intake API.**
+
+- One endpoint on this repository, keyed per brand, which is the pattern
+  `/api/orders` already uses with `ORDER_INTAKE_KEYS`.
+- The sisters hold a brand key that can create a lead and nothing else. No
+  service role key, no database credential, no reach into orders or the trail.
+- The `site` is taken from the key rather than from the request body, exactly as
+  `/api/order-flow` takes it from `SITE_KEY`, so a brand cannot write as another.
+- Validation, the compliance gate and the audit row all happen in one place
+  instead of three.
+
+**Why it was not done during the cutover.** It is a new public surface with a new
+authorization boundary, and bolting it on inside a migration window is how a
+thing that touches money and regulatory records gets shipped without being
+exercised. The window needed two environment variables per sister; this needs an
+endpoint, a key rotation, an audit, and a change to two repositories that would
+then need their own verification.
+
+**What has to be true before it ships:** the sisters' service role keys are
+revoked afterwards, not merely unused, or the boundary is decorative.
