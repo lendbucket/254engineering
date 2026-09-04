@@ -331,6 +331,21 @@ export default async function FilesPage({
         eyebrow="Work"
         title="Files"
         lede="One file per deliverable request, from intake to delivered. The platform enforces the order."
+        actions={
+          /*
+           * The other way in. Somebody already looking at the work is the
+           * person most likely to be told about a new job, and sending them to
+           * the sidebar for it is a tax on the common case.
+           */
+          can(actor, "files.create") ? (
+            <Link
+              href="/portal/intake"
+              className="inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white hover:bg-[var(--navy-hover)]"
+            >
+              New job
+            </Link>
+          ) : null
+        }
       />
 
       <RestrictedMode also="Files can be created and prepared. The rule is in the state machine, not in these buttons." />

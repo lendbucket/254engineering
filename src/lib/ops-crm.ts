@@ -334,14 +334,48 @@ export async function createFile(
   const twiaFlag = twia === "designated" ? true : twia === "check" ? Boolean(input.twiaOverride) : false;
 
   const year = new Date().getFullYear();
-  const { count } = await db
+  /*
+   * THE NEXT NUMBER COMES FROM THE HIGHEST ONE, NOT FROM A COUNT.
+   *
+   * It counted before, and a count is only the right answer while the numbers
+   * are a gapless run starting at one. Anything that breaks that assumption
+   * breaks file creation ENTIRELY rather than degrading: delete one file and
+   * the count points at a number already taken, the three retries hit the same
+   * wall, and every subsequent intake fails with "could not allocate a file
+   * number".
+   *
+   * Found on 2026-09-04 building the telephone intake. Development held files
+   * numbered 0007 to 0009 and a seeded block at 9001 to 9003, so the count was
+   * six, and NO FILE COULD BE CREATED AT ALL: not by this path, and not by the
+   * "Open a file" button that had been there since Phase 6. The failure was
+   * invisible until somebody tried, because nothing had created a file on
+   * development since the seed ran.
+   *
+   * Ordering by file_number as text is correct while the sequence is zero
+   * padded to a fixed width, which formatFileNumber does. If a year ever
+   * exceeds that width the padding changes and this ordering stops being right,
+   * which is worth knowing about rather than discovering.
+   */
+  const { data: highest } = await db
     .from("eng_files")
-    .select("id", { count: "exact", head: true })
-    .gte("created_at", `${year}-01-01T00:00:00Z`);
+    .select("file_number")
+    .like("file_number", `%-${year}-%`)
+    .order("file_number", { ascending: false })
+    .limit(1);
 
-  // Retry once on the unique collision two simultaneous intakes would cause.
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const fileNumber = formatFileNumber(year, (count ?? 0) + 1 + attempt);
+  const lastSequence = highest?.[0]?.file_number
+    ? Number(String(highest[0].file_number).split("-").pop())
+    : 0;
+  const nextSequence = Number.isFinite(lastSequence) ? lastSequence : 0;
+
+  /*
+   * Retries are for the collision two simultaneous intakes cause, which is a
+   * real race this does not remove: both read the same highest number. Five
+   * rather than three, because the seeded blocks that exposed the count bug
+   * also make a short run of taken numbers plausible.
+   */
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const fileNumber = formatFileNumber(year, nextSequence + 1 + attempt);
     const { data, error } = await db
       .from("eng_files")
       .insert({
