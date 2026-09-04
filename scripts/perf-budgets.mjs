@@ -9,6 +9,37 @@
  * page legitimately needs more bytes, that is a real answer and it belongs in
  * the comment. "The audit was failing" is not.
  *
+ * A SINGLE SAMPLE IS NOT EVIDENCE
+ * -------------------------------
+ * Operator ruling, 2026-09-04, and it is the first thing to read here.
+ *
+ * Lighthouse on this site moves a route's LCP by up to 740ms between
+ * consecutive runs of the same build. One measurement therefore says almost
+ * nothing: it is a draw from a distribution roughly a third as wide as the
+ * budget itself. No number in this file may be set, raised, or defended on the
+ * strength of one run, and no red run may be dismissed as noise on the strength
+ * of one green one. Three samples, and the median.
+ *
+ * THE CEILINGS BELOW PREDATE THE STATISTIC NOW JUDGING THEM
+ * ---------------------------------------------------------
+ * This is a real caveat and not a footnote, so it sits above the numbers.
+ *
+ * Until 2026-09-04 perf-audit judged each route on the BEST of three runs. The
+ * ceilings below were calibrated against that, and were themselves derived from
+ * the worst observed run plus headroom, which made the gate forgiving twice
+ * over: a generous line, tested with an optimistic statistic.
+ *
+ * perf-audit now judges the MEDIAN of three, which is stricter. Every ceiling
+ * in this file was therefore set under a regime that is no longer in force, and
+ * a route sitting close to its ceiling may now fail where it always passed.
+ *
+ * WHEN THAT HAPPENS IT IS A FINDING, NOT A CALIBRATION ERROR. The route is
+ * genuinely slower than the line the firm drew for it, and it always was; the
+ * old statistic simply could not see it. The two honest answers are to make the
+ * route faster, or for the operator to re-derive the ceiling deliberately, with
+ * the reason and the date, under the rule at the top of this file. Quietly
+ * nudging a number so a red run goes green is neither.
+ *
  * WHERE THESE NUMBERS CAME FROM
  * -----------------------------
  * Measured on 2026-08-31 against the production build served locally, on the

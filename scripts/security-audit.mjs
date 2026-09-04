@@ -616,8 +616,40 @@ async function run() {
     const robots = await (await fetch(`${BASE}/robots.txt`)).text();
     rec("robots disallows /admin", robots.includes("Disallow: /admin"));
     rec("robots disallows /portal", robots.includes("Disallow: /portal"));
+
+    /*
+     * /waitlist MUST NOT be disallowed, and that is not a relaxation.
+     *
+     * Sitemap audit, 2026-09-04: disallow and noindex cancel rather than stack.
+     * A crawler obeying a disallow never fetches the page and so never reads
+     * the noindex, while the URL stays indexable from the two homepage links
+     * that point at it. The page is kept out of the index BY the noindex, and
+     * the noindex only works if the page can be fetched.
+     *
+     * Both halves are asserted, because either alone is satisfied by the broken
+     * state: disallowed with a noindex nobody can read, or crawlable with no
+     * noindex at all.
+     */
+    rec(
+      "robots does NOT disallow /waitlist, so its noindex can be read",
+      !/Disallow: \/waitlist/.test(robots),
+      "a disallowed page cannot be crawled to discover the noindex it is asking crawlers to obey",
+    );
+
+    /*
+     * /onboarding keeps its disallow and that is deliberate. It needs a 43
+     * character token and is linked from nowhere, so no crawler can discover
+     * the URL and there is nothing for a bare URL listing to be made of. The
+     * difference from /waitlist is discoverability, not the directive.
+     */
+    rec("robots still disallows /onboarding, which nothing links to", robots.includes("Disallow: /onboarding"));
     const sitemap = await (await fetch(`${BASE}/sitemap.xml`)).text();
     rec("sitemap lists no admin route", !sitemap.includes("/admin"));
+    rec(
+      "and no waitlist route, which is noindex",
+      !sitemap.includes("/waitlist"),
+      "removing the disallow makes it crawlable, not submitted",
+    );
     rec("sitemap lists no portal route", !sitemap.includes("/portal"));
 
     const browser = await chromium.launch();

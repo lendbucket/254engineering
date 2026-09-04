@@ -20,6 +20,7 @@
  * engineering it is not registered to practise. It is asserted for every role
  * including admin, and from every status that could otherwise reach it.
  */
+import fs from "node:fs";
 import {
   canTransition,
   availableTransitions,
@@ -315,6 +316,90 @@ const GATED = { prelaunch: true };
 {
   const unlabelled = FILE_STATUSES.filter((s) => !STATUS_LABEL[s]);
   rec("every status has a human label", unlabelled.length === 0, unlabelled.join(", "));
+}
+
+// =====================================================================
+// ONE WRITER FOR eng_files.status
+//
+// A grammar that some paths obey and others route around is not a grammar.
+//
+// This was not hypothetical. Until Phase 10 Section 1, ops-payments released
+// paid work with a raw \`db.from("eng_files").update({ status: target })\` that
+// never called canTransition and never wrote the file event every other move
+// writes. It moved desk work from intake to evidence_submitted, which the
+// grammar did not permit, and nothing noticed because the only enforcement
+// lived in the function being skipped.
+//
+// The rule: transitionFile in ops-crm.ts is the only thing in src/ that may
+// write that column. Everything else asks it.
+//
+// The check reads STATEMENTS rather than files, because a module may
+// legitimately update other columns on eng_files (ops-engineer assigns an
+// engineer, ops-field attaches a protocol) and a file level grep would either
+// miss the violation or flag those.
+// =====================================================================
+{
+  const OWNER = "src/lib/ops-crm.ts";
+
+  /** Every .ts and .tsx under src, so a route handler cannot do it either. */
+  function sourceFiles(dir) {
+    const found = [];
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = dir + "/" + entry.name;
+      if (entry.isDirectory()) found.push(...sourceFiles(full));
+      else if (/\.tsx?$/.test(entry.name)) found.push(full);
+    }
+    return found;
+  }
+
+  const offenders = [];
+  for (const file of sourceFiles("src")) {
+    if (file === OWNER) continue;
+    const text = fs.readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+
+    /*
+     * Each fragment runs from a mention of the table to the end of that
+     * statement, so ".update({ status: x })" is seen while a select elsewhere
+     * in the module is not.
+     */
+    const parts = text.split('from("eng_files")').slice(1);
+    for (const part of parts) {
+      const statement = part.split(";")[0];
+      if (!/\.update\(/.test(statement)) continue;
+      if (!/\bstatus\b/.test(statement)) continue;
+      offenders.push(file.replace(/^src\//, "") + ": " + statement.trim().slice(0, 60));
+    }
+  }
+
+  rec(
+    "only ops-crm writes eng_files.status",
+    offenders.length === 0,
+    offenders.length ? offenders.join(" | ") : "transitionFile is the one door",
+  );
+
+  /*
+   * And the owner really does own it, so the check above cannot be passing
+   * because the write moved somewhere this scan does not look.
+   */
+  const owner = fs.readFileSync(OWNER, "utf8");
+  rec(
+    "and ops-crm writes it through transitionFile, which asks canTransition first",
+    /export async function transitionFile[\s\S]*?canTransition\([\s\S]*?\.update\(patch\)/.test(owner),
+    "the guard has to run before the write, not beside it",
+  );
+
+  /*
+   * The move that started this. Desk work arrives with its evidence already
+   * attached, so intake to evidence_submitted is legal, and the release path
+   * depends on it being legal rather than on nobody checking.
+   */
+  rec(
+    "a desk file may go from intake straight to evidence submitted",
+    canTransition({ role: "admin", status: "active" }, "intake", "evidence_submitted", {
+      prelaunch: false,
+    }).ok,
+    "the release path relies on this being permitted rather than on nobody checking",
+  );
 }
 
 console.log("================ FILES AND COUNTIES ================");

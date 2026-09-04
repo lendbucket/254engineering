@@ -6,6 +6,54 @@ reason and, where one exists, the concrete incident that produced it.
 
 Items are removed when they ship, not when they are attempted.
 
+## Cross repo
+
+Items owned by a sibling repo, recorded here because they were found here.
+Nothing in this section is actionable in this repository.
+
+### sealedengineering /order must return 307 and never 308, and nothing asserts it
+
+Recorded 2026-09-04 during the three site sitemap audit. Operator ruling the
+same day: add the assertion when a session next opens in that repo.
+
+**Why this is here and not there.** `~/projects/sealedengineering` has
+uncommitted work on `main` (`BACKLOG.md`, `scripts/registry-audit.mjs`,
+`src/data/keyword-registry.ts`) from another session. Appending to a dirty tree
+risks this entry being committed with unrelated work, or being lost when that
+work is reset. The operator's instruction allowed for exactly this fallback.
+
+**What to add there.** An assertion that `/order` responds **307** and never
+**308**, with the reasoning in the check rather than only in a commit message.
+
+**The reasoning, which is the part worth carrying across.** In prelaunch
+`/order` calls `redirect("/waitlist")`, because a form that cannot be
+submitted is worse than a page that sends you somewhere useful. That redirect is
+TEMPORARY and must stay temporary: at launch `/order` stops redirecting and
+becomes the order flow. A 308 is cached hard by browsers and by search engines,
+so every client that saw one would keep sending itself to `/waitlist` after
+launch, and the highest intent page on that site would be unreachable for
+exactly the people who had visited before. The server would be serving the right
+thing and the client would never ask for it, which is close to undiagnosable
+from the outside.
+
+**Why it is at real risk of being "tidied".** A permanent redirect looks more
+correct to a reader who does not know the page is gated, and this analysis
+nearly made that exact change: the operator's first ruling was to make it
+permanent, and it was withdrawn only because the gate was read first. A comment
+alone did not stop the near miss. An assertion would have.
+
+**The related trap already recorded in that file.** `/order/page.tsx` carries
+`export const dynamic = "force-dynamic"` and a comment explaining that it is
+load bearing: when the page was prerendered, `/order` served a build time
+redirect to `/waitlist` while `/waitlist` evaluated the launch flag at
+runtime and redirected back, producing ERR_TOO_MANY_REDIRECTS and an unreachable
+order flow. Found by `forms-audit` running a live server against a prelaunch
+build, which is the state a deploy is in between an environment change and the
+next build. The 307 assertion belongs beside that one.
+
+**Not a defect today.** `/order` currently returns 307 correctly. This is a
+guard against a plausible future edit, not a repair.
+
 ## Suspended by decision
 
 ### Phase 9 is suspended after Section 2, by decision, with Sections 3 to 6 unbuilt

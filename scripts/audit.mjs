@@ -73,6 +73,20 @@ const PHASE_ZERO = [
     why: "a customer cannot become a member of staff",
   },
   {
+    // Phase 10 Section 1. The firm's primary intake is a telephone call, and
+    // until this section there was no path from one to a priced, dispatchable
+    // job: an administrator could open an unpriced file and nothing else.
+    //
+    // The failure it guards is not the path being absent, which is obvious. It
+    // is the path being present and quietly producing a DIFFERENT file from the
+    // one the website produces for the same job, which nobody notices until an
+    // engineer cannot seal one of them.
+    //
+    // Pure, and needs no condition: the rules module has no server-only import.
+    name: "intake-audit",
+    why: "a telephoned job and a web job land in the same state, at the same price, with the gate applying to the money and not to the record",
+  },
+  {
     // Phase 9 Section 2. Attribution decides who gets paid, and both directions
     // of wrong are expensive: too generous and a partner earns on business the
     // firm already had, too mean and the firm loses the partner. Neither

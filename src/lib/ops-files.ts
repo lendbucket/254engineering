@@ -1,6 +1,6 @@
 import { isPrelaunch } from "./launch";
 import type { Actor } from "./ops-authz";
-import { can } from "./ops-authz";
+import { can, type AuthzSubject } from "./ops-authz";
 
 /**
  * The file's state machine.
@@ -105,7 +105,23 @@ export const STATUS_TONE: Record<FileStatus, "neutral" | "good" | "warn" | "bad"
  * that hard produces files that sit in "dispatched" forever as a lie.
  */
 const TRANSITIONS: Record<FileStatus, FileStatus[]> = {
-  intake: ["needs_dispatch", "under_review", "cancelled"],
+  /*
+   * DESK WORK GOES STRAIGHT TO EVIDENCE SUBMITTED, AND THAT IS NOT A SHORTCUT.
+   *
+   * Added Phase 10 Section 1, operator ruling 2026-09-04. This grammar was
+   * written for field work, where a file needs a technician before an engineer
+   * has anything to look at. A desk order arrives with everything the customer
+   * was asked for already attached, so there is no visit to dispatch and no
+   * evidence still to gather: the package is complete on arrival.
+   *
+   * It was ALWAYS behaving this way. ops-payments released paid desk work with
+   * a raw status update that never called canTransition, so the code did the
+   * right thing by a route the grammar forbade, and the disagreement was
+   * invisible because the only enforcement was in the path being skipped.
+   * Both are fixed together: the move is legal here, and that module now goes
+   * through transitionFile like everything else.
+   */
+  intake: ["needs_dispatch", "under_review", "evidence_submitted", "cancelled"],
   needs_dispatch: ["dispatched", "intake", "cancelled"],
   dispatched: ["evidence_in_progress", "needs_dispatch", "cancelled"],
   evidence_in_progress: ["evidence_submitted", "needs_dispatch", "cancelled"],
@@ -200,7 +216,15 @@ export type TransitionResult = { ok: true } | { ok: false; reason: string };
  * a permission error that suggests somebody else could do it.
  */
 export function canTransition(
-  actor: Actor | null,
+  /*
+   * An AuthzSubject rather than an Actor, because role and status are all this
+   * function reads: it passes the value straight to can() and never touches an
+   * id. Narrowing it here is what lets the platform acting on its own, which
+   * has no profile row and therefore no id, be judged by exactly the same rule
+   * as a person. The alternative was widening Actor.id to string | null
+   * everywhere, which weakens every other signature to fix one caller.
+   */
+  actor: AuthzSubject | null,
   from: FileStatus,
   to: FileStatus,
   now: { prelaunch?: boolean; assignedTech?: boolean } = {},

@@ -279,6 +279,28 @@ export type CreateFileInput = {
   twiaOverride?: boolean;
   fromLeadId?: string | null;
   clientPriceCents?: number | null;
+
+  /*
+   * Phase 10 Section 1. Everything below was addable only because 0015 added
+   * the columns, EXCEPT deliverable, which has existed since Phase 6 and which
+   * nothing has ever written. A file could not say which of its service line's
+   * deliverables it was for, on either the operator path or the customer path.
+   */
+
+  /** The catalog tier. Optional because seven of nine lines sell exactly one. */
+  deliverable?: string | null;
+
+  intakeChannel?: import("./job-intake-rules").IntakeChannel;
+  /** When the call happened, which is not when the file was opened. */
+  intakeTakenAt?: string | null;
+
+  /** What the catalog said, kept beside the price that applies. */
+  catalogPriceCents?: number | null;
+  coastalSurchargeCents?: number | null;
+  priceOverrideReason?: string | null;
+
+  paymentIntent?: import("./job-intake-rules").PaymentIntent;
+  paymentNote?: string | null;
 };
 
 /**
@@ -335,6 +357,21 @@ export async function createFile(
         due_at: input.dueAt || null,
         notes: input.notes?.trim() || null,
         client_price_cents: input.clientPriceCents ?? null,
+        deliverable: input.deliverable || null,
+        intake_channel: input.intakeChannel ?? "web",
+        intake_taken_at: input.intakeTakenAt || null,
+        catalog_price_cents: input.catalogPriceCents ?? null,
+        coastal_surcharge_cents: input.coastalSurchargeCents ?? null,
+        price_override_reason: input.priceOverrideReason || null,
+        /*
+         * Stamped only when there IS an override, so an ordinary job carries no
+         * overridden_by and a screen can tell "nobody changed this" from
+         * "somebody changed it and we lost who".
+         */
+        price_overridden_by: input.priceOverrideReason ? actor.id : null,
+        price_overridden_at: input.priceOverrideReason ? new Date().toISOString() : null,
+        payment_intent: input.paymentIntent ?? "unset",
+        payment_note: input.paymentNote || null,
         converted_from_lead_id: input.fromLeadId || null,
         created_by: actor.id,
         status: "intake",
@@ -374,8 +411,36 @@ export async function createFile(
  * right timestamp, and write both records. It never contains a rule of its own,
  * because a rule here would be a rule the test suite does not see.
  */
+/**
+ * The file as the PLATFORM sees it, with no visibility scoping.
+ *
+ * Used only by transitionFile, and only when the actor is the platform itself
+ * rather than a person. It is not exported: an unscoped read is exactly the
+ * hole canSeeFile exists to close, and the way it stays closed is that nothing
+ * else can reach this.
+ *
+ * There is no redaction either, deliberately. Redaction hides a client price
+ * from a technician; the order engine releasing paid work needs the file's real
+ * status and assignment to decide anything at all.
+ */
+async function fileForSystem(id: string): Promise<FileRow | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
+  const { data } = await db.from("eng_files").select(FILE_COLUMNS).eq("id", id).maybeSingle();
+  return (data as FileRow) ?? null;
+}
+
 export async function transitionFile(
-  actor: Actor & { email: string },
+  /*
+   * Author rather than Actor, so the order engine can move a file it just took
+   * payment for. Before Phase 10 Section 1 ops-payments did that with a raw
+   * status update that never called canTransition, because this signature would
+   * not accept the only actor it had.
+   *
+   * A rule a caller cannot satisfy is a rule that caller routes around, and the
+   * grammar was silently not applying to the one path that mattered most.
+   */
+  actor: Author,
   id: string,
   to: FileStatus,
   note: string | null,
@@ -384,7 +449,12 @@ export async function transitionFile(
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
 
-  const current = await getFile(actor, id);
+  /*
+   * A person's read is scoped to what they may see; the platform's is not.
+   * Both then face the same canTransition below, which is the point: the
+   * system gets a wider VIEW and not a wider set of MOVES.
+   */
+  const current = actor.id === null ? await fileForSystem(id) : await getFile(actor, id);
   if (!current) return { ok: false, error: "That file does not exist, or is not yours to move." };
 
   const verdict = canTransition(actor, current.status, to, {

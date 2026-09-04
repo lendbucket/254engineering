@@ -1,3 +1,4 @@
+import { takeJob, searchClients, type TakeJobInput } from "@/lib/ops-job-intake";
 import { NextResponse, type NextRequest } from "next/server";
 import { currentActor, requestContext } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
@@ -50,6 +51,47 @@ export async function POST(request: NextRequest) {
     return result.ok
       ? NextResponse.json({ ok: true, id: result.id })
       : NextResponse.json({ ok: false, error: result.error }, { status: 400 });
+  }
+
+  /*
+   * THE TELEPHONE CALL PATH.
+   *
+   * Phase 10 Section 1. Everything the operator enters in one action, because
+   * the alternative is what the gate 0 walk found: a client screen and a file
+   * screen and no price on either, with the person on the telephone in between.
+   *
+   * The permission is files.create, the same one create_file uses. Taking a job
+   * IS opening a file; the difference is how much is known at the time, not who
+   * is allowed to do it.
+   */
+  if (action === "take_job") {
+    if (!can(actor, "files.create")) {
+      return NextResponse.json({ ok: false, error: "Not permitted." }, { status: 403 });
+    }
+
+    const result = await takeJob(actor, (body ?? {}) as TakeJobInput, context);
+    return result.ok
+      ? NextResponse.json(result)
+      : NextResponse.json(
+          { ok: false, error: result.error, field: result.field },
+          { status: 400 },
+        );
+  }
+
+  /*
+   * Client search, for the dedupe step inside the intake.
+   *
+   * Behind the same session as everything else here, and it returns only what
+   * the intake needs to tell two clients apart. It is a POST rather than a GET
+   * because this route is a POST route; making it a GET would mean a second
+   * matcher entry and a second place to check the session.
+   */
+  if (action === "search_clients") {
+    if (!can(actor, "clients.list")) {
+      return NextResponse.json({ ok: false, error: "Not permitted." }, { status: 403 });
+    }
+    const matches = await searchClients(String(body?.query ?? ""));
+    return NextResponse.json({ ok: true, matches });
   }
 
   if (action === "create_file") {
