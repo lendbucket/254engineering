@@ -278,8 +278,21 @@ the trigger functions' search_path) changes behaviour without changing shape, so
 that figure is unchanged by it. After 0009 and 0010 (Phase 8 Section 1, the B2B
 accounts and the API request log) **both projects return
 `9b32a7cced94549f7aeea93cc3ee3d6e` across 719 columns and 48 tables**, applied
-to production on 2026-09-04 when that branch merged. A divergence while a
-feature branch is open is expected; a divergence after it merges is the defect.
+to production on 2026-09-04 when that branch merged. After 0011 (Phase 8 Section
+2, the job queue) and 0012 (Section 3, observability) **all three return
+`7bf0d1553cf0169d366389eeae4b7497` across 765 columns and 53 tables**, with row
+level security on all 53, 31 triggers and 5 functions, none of them with an
+unpinned search_path. Applied to production on 2026-09-04 when that branch
+merged. A divergence while a feature branch is open is expected; a divergence
+after it merges is the defect.
+
+0011 and 0012 add the first tables in this schema that are deliberately NOT
+append only. `eng_jobs`, `eng_cron_runs`, `eng_error_events` and
+`eng_metrics_daily` are telemetry about the machine rather than a regulatory or
+financial fact, they are meant to be pruned on a schedule, and the append only
+trigger would make a retention job impossible while protecting nothing anybody
+could be asked to produce. That is worth stating plainly, because "every table
+in this schema refuses deletes" would otherwise read as the rule.
 
 **The fingerprint is now also checked without either database.**
 `scripts/migration-audit.mjs` replays every migration into an in process Postgres
