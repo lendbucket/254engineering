@@ -250,6 +250,87 @@ groups uuids, long opaque references, identifier shaped tokens and digit runs. T
 cost is over grouping, which is the right way to be wrong here, and nothing is
 lost, because `eng_error_events` keeps every message exactly as recorded.
 
+### The portal design system
+
+The operator designed the portal externally and approved it. The export is at
+`design-reference/portal/`, and `docs/PORTAL_DESIGN_STANDARDS.md` is the copy
+that governs every portal and customer surface.
+
+**The document and the code cannot drift.** `token-audit` parses the standards
+file's own css block and asserts each token in `src/styles/portal.css` matches
+it value for value. Editing one and not the other is a failing build. The tokens
+are spelled exactly as the document spells them, so somebody holding the two
+side by side moves between them without translating.
+
+**77 files are held to it**: every file under `src/app/portal`,
+`src/components/portal`, `src/app/account`, `src/app/(site)/order` and
+`src/components/order`. No colour literal, no font size off the scale, no radius
+off the scale, no gradient, no shadow outside the two overlay tokens, and no CSS
+`text-transform` faking sentence case. The public marketing site is deliberately
+outside this: it has its own approved v5 design and its own voice audit, and
+marketing copy may legitimately be warmer than an interface.
+
+**The absent data chip is wired to `ops-money`**, not reimplemented. It is the
+visual form of a rule the platform already enforces in three places, so
+`MoneyFigure` calls the same `isKnown` and `money` that billing, the CSV exports
+and `money-audit` use. There is exactly one definition of absent.
+
+#### What the design claimed that was not true
+
+The design was drawn against a description of the platform rather than against
+the platform, which is the right way to design and the wrong thing to build from
+unexamined. Its standards file stated six product truths. Four held.
+
+| Claim | As built |
+| --- | --- |
+| Technicians paid flat rate on submission, independent of the decision | True, with one word wrong. The entitlement is WRITTEN on submission and an operator approves and pays it later. |
+| Engineer decisions equal weight and pay the same | Equal weight is true and enforced by `refundFor`. "Pay the same" is unimplemented: there is no engineer pay ledger. |
+| Declines refund everything except the disclosed $175 fee | **Describes one of four cases as the rule.** Two of the four are full refunds. |
+| Protocols versioned, a file governed by the version captured under | True. |
+| Charge log append only and embeds an evidence hash per decision | Append only is true and trigger enforced. **The hash does not exist.** |
+| Roles are owner, engineer, technician, dispatcher | **Three roles**: admin, engineer, field_tech. |
+
+Two of those would have put an untrue sentence on a screen, and a third was
+found while porting: the sign in screen claimed multi factor authentication is
+required for all staff accounts, and there is no MFA in this platform.
+
+All three were dropped rather than rendered. The evidence hash is the one worth
+remembering: it was a fabricated cryptographic assurance on the one screen whose
+purpose is to be the regulatory record an engineer's licence stands on.
+
+#### What was not built, and the condition for each
+
+**The sealed letter.** Nothing produces one, and `isPrelaunch()` stops a file
+reaching sealed at all. A screen rendering one would carry a seal for an
+engineer who has reviewed nothing. The document sheet was built over the
+evidence binder instead, which had only ever existed as a CSV, and its
+limitations note says plainly that it is not sealed and that no sealed
+deliverable exists for the file. BACKLOG carries the three things that must be
+true first, and the third is a credential question rather than a design one.
+
+**The 403.** Every gated route answers `notFound()`, and `security-audit` asserts
+a refusal is indistinguishable from a route that does not exist. A 403 confirms
+the page exists to somebody who should not know that.
+
+**The command palette's search index, saved views, bulk table actions, the SLA
+engine, the reports module, per user notification channels, and the dispatcher
+role.** All recorded in BACKLOG with what the prototype already models. Two
+screens port without an affordance and say so: the dashboard's action list is
+unranked because there is no SLA engine, and the files toolbar has no saved
+views.
+
+#### Two rulings made while porting
+
+The restricted mode statement has one wording. Three screens described the
+compliance gate in three different sentences, all accurate, only one audited.
+`RestrictedMode` says it once and reads `isPrelaunch()` itself, so a screen
+cannot forget it; a screen with something additional passes `also` and may never
+restate the shared part.
+
+The screen title stays in `PageHead` and is not repeated in the header. The
+chrome rule was drawn before `PageHead` existed, and the same word twice forty
+pixels apart is noise on screens already dense with real information.
+
 ### The guards
 
 | Guard | Stops |
@@ -263,18 +344,21 @@ lost, because `eng_error_events` keeps every message exactly as recorded.
 | The health cron | Silence when the portal or its database goes down |
 | `eng_cron_runs` | A cron that stopped firing looking the same as a cron with nothing to do |
 | `scrubEvent` and `beforeBreadcrumb` | A credential, a signed URL or an identity document leaving in an error report |
+| `token-audit` | The design document and the code disagreeing, and any colour, size or radius escaping the tokens |
+| `portal-voice-audit` | An exclamation, an emoji, reassurance or Title Case reaching an operational screen, and the gate 0 corrections being quietly reverted |
 | `readCustomerSession` and the proxy's account branch | A customer session opening a portal route, or a staff session opening a customer one. Neither branch reads the other's cookie, and the account branch is decided first |
 
 ### The harness
 
-27 audits, all passing. Every one has been verified by injecting the violation it
+29 audits, all passing. Every one has been verified by injecting the violation it
 exists to catch and watching it fail, and several of those injections found the
 check rather than the code.
 
-`order-audit` is 499 checks, `security-audit` 191, `observability-audit` 139,
-`jobs-audit` 136, `accounts-audit` 69, `roles-audit` 36, `migration-audit` 17.
+`order-audit` is 499 checks, `security-audit` 207, `observability-audit` 139,
+`jobs-audit` 136, `token-audit` 67, `accounts-audit` 69, `roles-audit` 36,
+`portal-voice-audit` 25, `migration-audit` 17.
 
-Four are new in Phase 8.
+Four are new in Phase 8 and two in the design port.
 
 `accounts-audit` asks whether a customer and a member of staff can be confused
 for each other, which is the failure that would look like a working site right up

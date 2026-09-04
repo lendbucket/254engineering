@@ -79,8 +79,10 @@ rec("there are portal components to read", FILES.length > 0, `${FILES.length} fi
  * by shape: a string with no space in it is not a sentence, and a string that
  * looks like a Tailwind class list is not copy.
  */
+const readNormalised = (path) => readFileSync(path, "utf8").split("\r\n").join("\n");
+
 function copyStringsOf(path) {
-  const source = readFileSync(path, "utf8")
+  const source = readNormalised(path)
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
     .split("\n")
@@ -351,7 +353,7 @@ report("sentence case, not Title Case", titleCase, "including buttons and column
 // =========================================================================
 
 {
-  const standards = readFileSync("docs/PORTAL_DESIGN_STANDARDS.md", "utf8");
+  const standards = readNormalised("docs/PORTAL_DESIGN_STANDARDS.md");
 
   rec(
     "the standards file still forbids exclamation marks and emoji",
@@ -428,7 +430,7 @@ report("sentence case, not Title Case", titleCase, "including buttons and column
   const restricted = "src/components/portal/design/RestrictedMode.tsx";
   rec("the RestrictedMode component exists", existsSync(restricted));
   if (existsSync(restricted)) {
-    const source = readFileSync(restricted, "utf8");
+    const source = readNormalised(restricted);
     rec(
       "and it reads the gate itself rather than taking a boolean",
       /if \(!isPrelaunch\(\)\) return null;/.test(source),

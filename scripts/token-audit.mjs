@@ -43,8 +43,23 @@ const TOKENS = "src/styles/portal.css";
 rec("the standards document is in the repository", existsSync(STANDARDS));
 rec("and the token file exists", existsSync(TOKENS));
 
-const standardsText = readFileSync(STANDARDS, "utf8");
-const tokenText = readFileSync(TOKENS, "utf8");
+/**
+ * Read with the line endings normalised, and that is not a detail.
+ *
+ * This audit passed on the branch and failed the moment the branch merged,
+ * because git re-checked the standards document out with CRLF and the fence
+ * pattern below wanted a bare newline straight after the css fence. Nothing
+ * about the document had changed.
+ *
+ * The same audit would have failed for anyone cloning this repository fresh on
+ * Windows, which is a portability defect rather than a formatting one: a check
+ * that depends on how git happened to write a file is a check that reports on
+ * the checkout instead of on the content.
+ */
+const readNormalised = (path) => readFileSync(path, "utf8").split("\r\n").join("\n");
+
+const standardsText = readNormalised(STANDARDS);
+const tokenText = readNormalised(TOKENS);
 
 /**
  * The document's own CSS block, parsed.
@@ -358,7 +373,7 @@ rec(
 // across the public site, which this workstream is not allowed to do, so the
 // duplication is asserted instead of tidied.
 
-const globals = readFileSync("src/app/globals.css", "utf8");
+const globals = readNormalised("src/app/globals.css");
 const siteTokens = new Map();
 for (const line of globals.split("\n")) {
   const m = line.match(/^\s*(--color-[a-z-]+)\s*:\s*(#[0-9A-Fa-f]{3,8})\s*;/);
