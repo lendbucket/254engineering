@@ -1,8 +1,10 @@
 import { takeJob, searchClients, type TakeJobInput } from "@/lib/ops-job-intake";
+import { sendPaymentLink, invoiceAccount } from "@/lib/ops-job-billing";
+import { dispatchContext } from "@/lib/ops-field";
 import { NextResponse, type NextRequest } from "next/server";
 import { currentActor, requestContext } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
-import { createFile, transitionFile, convertLead, createClient } from "@/lib/ops-crm";
+import { createFile, transitionFile, convertLead, createClient, getFile } from "@/lib/ops-crm";
 import type { FileStatus } from "@/lib/ops-files";
 
 /**
@@ -92,6 +94,49 @@ export async function POST(request: NextRequest) {
     }
     const matches = await searchClients(String(body?.query ?? ""));
     return NextResponse.json({ ok: true, matches });
+  }
+
+  /*
+   * GETTING PAID FOR A TELEPHONED JOB.
+   *
+   * Both refuse under the compliance gate and both say why, so this is
+   * unexercised code until LAUNCH_MODE flips. That is recorded in the launch
+   * sequence rather than left to be discovered on a customer.
+   *
+   * billing.charge rather than files.create: raising money against a job is a
+   * different act from writing the job down, and a coordinator who may do the
+   * second should not automatically be able to do the first.
+   */
+  if (action === "send_payment_link" || action === "invoice_account") {
+    if (!can(actor, "payments.charge")) {
+      return NextResponse.json({ ok: false, error: "Not permitted." }, { status: 403 });
+    }
+    const fileId = String(body?.fileId ?? "");
+    const result =
+      action === "send_payment_link"
+        ? await sendPaymentLink(actor, fileId)
+        : await invoiceAccount(actor, fileId);
+
+    return result.ok
+      ? NextResponse.json(result)
+      : NextResponse.json({ ok: false, error: result.error }, { status: 400 });
+  }
+
+  /*
+   * The dispatch plan for a file, so the intake can offer the job without
+   * sending the operator to another screen first. The same dispatchContext the
+   * files screen renders from, so the two cannot disagree about who is
+   * eligible.
+   */
+  if (action === "dispatch_context") {
+    if (!can(actor, "offers.dispatch")) {
+      return NextResponse.json({ ok: false, error: "Not permitted." }, { status: 403 });
+    }
+    const file = await getFile(actor, String(body?.fileId ?? ""));
+    if (!file) return NextResponse.json({ ok: false, error: "No such file." }, { status: 404 });
+
+    const context = await dispatchContext(actor, file);
+    return NextResponse.json({ ok: true, dispatch: context });
   }
 
   if (action === "create_file") {

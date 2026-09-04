@@ -16,6 +16,13 @@ import {
   type PaymentIntent,
 } from "@/lib/job-intake-rules";
 import type { CatalogEntry } from "@data/catalog";
+import { DispatchPanel } from "../files/DispatchPanel";
+/*
+ * A type only import, which is erased at compile time. ops-field carries
+ * "server-only", and that guard is about VALUES reaching the browser: nothing
+ * of this import survives into the bundle.
+ */
+import type { DispatchContext } from "@/lib/ops-field";
 
 type Deliverable = {
   serviceSlug: string;
@@ -99,6 +106,15 @@ export function IntakeClient({
   const [takenAt, setTakenAt] = useState("");
   const [notes, setNotes] = useState("");
 
+  /*
+   * The dispatch plan for the job just taken, fetched after it lands.
+   *
+   * Undefined means not asked yet, null means asked and there is nothing to
+   * show. Those are different and the screen says different things about them,
+   * which is the same rule the rest of the portal follows: absent is not zero.
+   */
+  const [dispatch, setDispatch] = useState<DispatchContext | null | undefined>(undefined);
+
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{
@@ -152,6 +168,39 @@ export function IntakeClient({
    * shows nothing without needing an effect to have cleared it.
    */
   const visibleMatches = chosen || query.trim().length < 2 ? [] : matches;
+
+  /*
+   * Item 5: dispatch from the same screen.
+   *
+   * The operator is still on the telephone. Sending them to the files screen to
+   * offer the job means either the customer waits or the job does not get
+   * offered while somebody remembers to.
+   *
+   * The panel is the SAME component the files screen renders, fed by the same
+   * dispatchContext, so there is one dispatch surface and not two that can
+   * disagree about who is eligible.
+   */
+  useEffect(() => {
+    if (!done || done.landedAt !== "needs_dispatch") return;
+
+    let live = true;
+    void (async () => {
+      try {
+        const res = await fetch("/api/portal/files", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "dispatch_context", fileId: done.fileId }),
+        });
+        const body = await res.json().catch(() => null);
+        if (live) setDispatch(body?.ok ? (body.dispatch as DispatchContext | null) : null);
+      } catch {
+        if (live) setDispatch(null);
+      }
+    })();
+    return () => {
+      live = false;
+    };
+  }, [done]);
 
   const forLine = useMemo(
     () => deliverables.filter((d) => d.serviceSlug === serviceSlug),
@@ -287,7 +336,7 @@ export function IntakeClient({
         </h2>
         <p className="mt-3 text-[15px] leading-[1.6] text-[var(--secondary)]">
           {done.landedAt === "needs_dispatch"
-            ? "The file is open and waiting for a technician. Dispatch it now, or leave it in the queue for somebody to pick up."
+            ? "The file is open and waiting for a technician. Offer it below while you are still on the call, or leave it in the queue for somebody to pick up."
             : done.landedAt === "evidence_submitted"
               ? "The file is open and in the engineer's review queue. There is nothing to dispatch: desk work arrives with its evidence attached."
               : "The file is open and sitting at intake. A quote has nothing to dispatch and nothing to review until somebody accepts a number."}
@@ -300,12 +349,38 @@ export function IntakeClient({
           </p>
         ) : null}
 
+        {done.landedAt === "needs_dispatch" ? (
+          <div className="mt-5 border-t border-[var(--border)] pt-5">
+            {dispatch === undefined ? (
+              <p className="text-[13.5px] text-[var(--secondary)]">Working out who can take it.</p>
+            ) : dispatch === null ? (
+              <p className="text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+                The dispatch plan could not be loaded here. Open the file and offer it from there;
+                nothing about the job is wrong.
+              </p>
+            ) : (
+              <DispatchPanel
+                fileId={done.fileId}
+                offers={dispatch.plan.offers}
+                ineligible={dispatch.plan.ineligible}
+                alreadyOffered={dispatch.alreadyOffered}
+                feeCents={dispatch.feeCents}
+                proximityUnavailable={dispatch.proximityUnavailable}
+                propertyLocated={dispatch.propertyLocated}
+                protocolName={
+                  dispatch.protocol ? `${dispatch.protocol.name} v${dispatch.protocol.version}` : null
+                }
+              />
+            )}
+          </div>
+        ) : null}
+
         <div className="mt-5 flex flex-wrap gap-3">
           <Link
             href={`/portal/files?id=${done.fileId}`}
             className="inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white hover:bg-[var(--navy-hover)]"
           >
-            {done.landedAt === "needs_dispatch" ? "Open the file and dispatch it" : "Open the file"}
+            Open the file
           </Link>
           <button
             type="button"

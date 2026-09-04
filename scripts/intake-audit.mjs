@@ -375,6 +375,148 @@ console.log("");
   );
 }
 
+// ============================ GETTING PAID, AND THE PATHS THAT HAVE NEVER RUN
+
+/*
+ * Item 4. Both routes are refused by the compliance gate today, so what can be
+ * asserted is the REFUSAL and the shape of the code behind it. That is worth
+ * asserting precisely, because unexercised code is exactly where a wrong
+ * assumption survives until the day it matters.
+ */
+{
+  const billing = codeOnly("src/lib/ops-job-billing.ts");
+
+  rec(
+    "the payment link path asks the gate before doing anything",
+    /export async function sendPaymentLink[\s\S]{0,400}refusedBecause\("link_sent"/.test(billing),
+    "the screen decides which buttons to draw; this decides what may happen",
+  );
+  rec(
+    "and the invoice path does too",
+    /export async function invoiceAccount[\s\S]{0,900}refusedBecause\("invoiced"/.test(billing),
+  );
+  rec(
+    "the gate is asked through paymentOptions, not re-implemented",
+    /paymentOptions\(\{/.test(billing) && /isPrelaunch\(\)/.test(billing),
+    "a second implementation of the gate is a second answer to whether the firm may take money",
+  );
+
+  /*
+   * Both raise a real order. A second way to be paid that produced no order
+   * would be a second ledger, and the firm would have two answers to what a
+   * customer has paid.
+   */
+  rec(
+    "both routes raise an order row",
+    /createOrderForFile\(actor, file, client, "card"\)/.test(billing) &&
+      /createOrderForFile\(actor, file, client, "invoice"\)/.test(billing),
+  );
+  rec(
+    "and the order carries the file's price rather than re-deriving it",
+    /total_cents: file\.client_price_cents/.test(billing),
+    "re-deriving would silently discard an override the operator recorded a reason for",
+  );
+  rec(
+    "a job with no price cannot be charged",
+    /client_price_cents === null[\s\S]{0,120}nothing to charge/.test(billing),
+  );
+  rec(
+    "a client with no email cannot be sent anywhere",
+    /nowhere to send a link or an invoice/.test(billing),
+  );
+
+  /*
+   * A failed checkout leaves the order in place and SAYS so. Rolling back
+   * silently is how an operator raises a second one and a customer pays twice.
+   */
+  rec(
+    "a failed checkout reports the reference that already exists",
+    /was raised and the payment link could not be created/.test(billing),
+  );
+
+  /*
+   * The customer facing email is a composed template, not a string built in the
+   * billing module. A template email-audit cannot see is a template nothing
+   * checks for voice, for a plaintext part, or for the 375px layout.
+   */
+  rec(
+    "the payment link email is a composed template",
+    /jobPaymentLink\(\{/.test(billing) && !/subject:/.test(billing),
+    "an inline body would put the one customer facing email on this path outside every email rule",
+  );
+
+  /*
+   * Scoped to the function body, not measured as a DISTANCE from its name.
+   *
+   * The first version asked whether "jobPaymentLink(" appeared within 400
+   * characters of "allTemplatesForAudit", and an injection that inserted
+   * another template in front of it walked straight past: the string was still
+   * inside the window, and the window was the only thing being tested.
+   *
+   * Running the function would be better still, and is not available here:
+   * email-templates carries "server-only", which this audit deliberately does
+   * not pull in. email-audit runs it for real and is where that assertion
+   * lives; this one only has to know the template is IN the list.
+   */
+  const templates = codeOnly("src/lib/email-templates.ts");
+  const listAt = templates.indexOf("export function allTemplatesForAudit");
+  const listBody =
+    listAt === -1 ? "" : templates.slice(listAt, templates.indexOf("\n}", listAt));
+
+  rec("the email audit enumerates every template", listAt !== -1);
+  rec(
+    "and that template is registered with the email audit",
+    /jobPaymentLink\(\{/.test(listBody),
+    "a template the audit cannot see is a template nothing checks",
+  );
+
+  /*
+   * Charging is admin only, in the payments family, and NOT the same permission
+   * as writing a job down.
+   */
+  const route = codeOnly("src/app/api/portal/files/route.ts");
+  rec(
+    "charging requires payments.charge, not files.create",
+    /send_payment_link[\s\S]{0,300}can\(actor, "payments\.charge"\)/.test(route),
+    "writing a job down and asking somebody to pay for it are different acts",
+  );
+
+  const authz = codeOnly("src/lib/ops-authz.ts");
+  rec("payments.charge exists as an action", /"payments\.charge"/.test(authz));
+}
+
+// ======================================= DISPATCH FROM THE SAME SCREEN
+
+{
+  const client = codeOnly("src/app/portal/(app)/intake/IntakeClient.tsx");
+
+  rec(
+    "the done screen fetches a dispatch plan when the job needs one",
+    /dispatch_context/.test(client) && /landedAt !== "needs_dispatch"/.test(client),
+    "sending the operator to another screen means the job is offered later or not at all",
+  );
+  rec(
+    "and renders the same panel the files screen renders",
+    /<DispatchPanel/.test(client) && /from "\.\.\/files\/DispatchPanel"/.test(client),
+    "two dispatch surfaces is two answers to who is eligible",
+  );
+  rec(
+    "a plan that could not be loaded is distinguished from one with nobody in it",
+    /dispatch === undefined/.test(client) && /dispatch === null/.test(client),
+    "absent is not empty, which is the rule the rest of the portal follows",
+  );
+
+  const route = codeOnly("src/app/api/portal/files/route.ts");
+  rec(
+    "the dispatch plan is behind the dispatch permission",
+    /dispatch_context[\s\S]{0,220}can\(actor, "offers\.dispatch"\)/.test(route),
+  );
+  rec(
+    "and it is built by dispatchContext rather than a second query",
+    /await dispatchContext\(actor, file\)/.test(route),
+  );
+}
+
 // ==================================================== the vocabularies agree
 
 {

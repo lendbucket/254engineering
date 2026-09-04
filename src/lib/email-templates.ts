@@ -518,6 +518,60 @@ export function portalInvite(input: {
   );
 }
 
+/**
+ * The payment link for a job the customer did not place themselves.
+ *
+ * Phase 10 Section 1 item 4. Somebody telephoned, the firm wrote the job down,
+ * and this is how they pay for it.
+ *
+ * UNEXERCISED UNTIL LAUNCH, and deliberately so: the compliance gate refuses
+ * every payment while registration is pending, so this template is composed,
+ * audited for voice and layout like every other, and has never been sent.
+ *
+ * The tone assumes a conversation already happened. Somebody agreed to this on
+ * a call, so the email confirms rather than sells, and the price is stated as
+ * the figure they were told rather than introduced as news.
+ */
+export function jobPaymentLink(input: {
+  customerName: string;
+  customerEmail: string;
+  reference: string;
+  propertyAddress: string;
+  deliverableName: string;
+  amount: string;
+  payUrl: string;
+  /** Who took the call, so the customer knows who to reply to. */
+  takenBy: string;
+}): RenderedEmail {
+  return compose(
+    "job.payment_link",
+    "human",
+    `Your ${input.deliverableName} for ${input.propertyAddress}`,
+    {
+      preheader: `Reference ${input.reference}. Nothing is charged until you complete the payment page.`,
+      signed: true,
+      blocks: [
+        { kind: "p", text: `${input.customerName},` },
+        {
+          kind: "p",
+          text: `This is the ${input.deliverableName} for ${input.propertyAddress} that you arranged with ${input.takenBy}. The reference is ${input.reference}.`,
+        },
+        { kind: "p", text: `The agreed price is ${input.amount}.` },
+        {
+          kind: "note",
+          text: "Card details are entered on the payment provider's page and never reach this firm. Nothing is charged until you complete it.",
+        },
+        {
+          kind: "p",
+          text: `If anything here is wrong, reply to this email before paying and it will be corrected.`,
+        },
+      ],
+      button: { label: "Pay for this job", url: input.payUrl },
+    },
+    { to: input.customerEmail },
+  );
+}
+
 /** An administrator forcing a reset, or a person who has lost their password. */
 export function portalPasswordReset(input: {
   personName: string;
@@ -776,6 +830,16 @@ export function errorAlert(input: ErrorAlertInput): RenderedEmail {
 export function allTemplatesForAudit(): RenderedEmail[] {
 
   return [
+    jobPaymentLink({
+      customerName: "Sample Customer",
+      customerEmail: "sample@example.com",
+      reference: "254-O2026-ABCDEF",
+      propertyAddress: "100 Sample Street, Corpus Christi",
+      deliverableName: "WPI-8E windstorm evaluation",
+      amount: "$925.00",
+      payUrl: "https://254engineering.com/pay/sample",
+      takenBy: "the firm",
+    }),
     errorAlert({
       kind: "rate",
       fingerprint: "/api/order-flow | route | the payment provider refused the session",

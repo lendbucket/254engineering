@@ -107,6 +107,17 @@ export type Action =
   // Cancelling a paid order and refunding it in full. Admin only, and it is
   // deliberately NOT a review outcome: see refundForFirmCancellation.
   | "payments.refund"
+  /*
+   * Raising money against a job the customer did not place themselves: a
+   * payment link, or an invoice to an account with terms.
+   *
+   * In this family rather than beside files.create, and admin only for the same
+   * reason the two above are. Writing a job down and asking somebody to pay for
+   * it are different acts. Phase 10 Section 2 introduces a coordinator who
+   * should be able to do the first without the second, and putting this here
+   * now means that role arrives without needing this decision revisited.
+   */
+  | "payments.charge"
   // Customer ordering accounts: terms, credit, statements. Admin only, because
   // it is the firm deciding who may owe it money.
   | "accounts.manage"
@@ -146,7 +157,7 @@ const MATRIX: Record<Role, Action[]> = {
     "protocols.author", "protocols.publish",
     "review.queue", "review.decide", "documents.seal", "documents.deliver", "documents.read",
     "pricing.read", "billing.read", "ledger.read_own", "ledger.read_all", "ledger.approve",
-    "payments.reconcile", "payments.refund", "accounts.manage", "jobs.manage",
+    "payments.reconcile", "payments.charge", "payments.refund", "accounts.manage", "jobs.manage",
     "tasks.use", "messages.use",
     "audit.read", "time.log_own",
     "responsible_charge.read_own", "responsible_charge.read_all",
