@@ -145,6 +145,230 @@ export async function startCheckout(orderId: string): Promise<CheckoutResult> {
   return { ok: true, url: session.url, sessionRef: session.ref };
 }
 
+/**
+ * One checkout for a whole batch.
+ *
+ * The customer pays once. Each property is still its own order, so the session
+ * carries the BATCH id in metadata and markBatchPaid fans the result back out.
+ *
+ * WHY THE LINES ARE PER PROPERTY
+ * ------------------------------
+ * Stripe shows what it is given. A single line reading "10 properties, 6750.00"
+ * is a number somebody has to trust; ten lines each naming an address is a
+ * receipt they can check against what they submitted. The coastal surcharge
+ * lands inside the property it belongs to, because that is where it was earned.
+ */
+export async function startBatchCheckout(batchId: string): Promise<CheckoutResult> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The order system is not configured." };
+
+  const provider = paymentProvider();
+  if (!provider.configured()) {
+    if (liveKeyOffProduction()) {
+      console.error(`[payments] ${LIVE_KEY_HEADLINE}. ${LIVE_KEY_FIX}`);
+      return { ok: false, error: LIVE_KEY_HEADLINE + ". " + LIVE_KEY_FIX };
+    }
+    return { ok: false, error: "Payments are not configured on this deployment." };
+  }
+
+  const { data: batch } = await db
+    .from("eng_order_batches")
+    .select("id, reference, status, total_cents, currency, account_id")
+    .eq("id", batchId)
+    .maybeSingle();
+
+  if (!batch) return { ok: false, error: "That submission does not exist." };
+  if (batch.status !== "awaiting_payment") {
+    return { ok: false, error: `That submission is ${batch.status} and is not waiting for payment.` };
+  }
+  if (!isKnown(batch.total_cents === null ? null : Number(batch.total_cents))) {
+    return { ok: false, error: "That submission has no total, so it cannot be charged." };
+  }
+
+  const { data: orders } = await db
+    .from("eng_service_orders")
+    .select("id, reference, property_address, batch_share_cents, customer_email")
+    .eq("batch_id", batchId)
+    .order("created_at", { ascending: true });
+
+  if (!orders?.length) return { ok: false, error: "That submission has no properties on it." };
+
+  const lines = orders
+    .filter((o) => o.batch_share_cents !== null)
+    .map((o) => ({
+      label: `${o.reference}: ${o.property_address}`,
+      amountCents: Number(o.batch_share_cents),
+    }));
+
+  /*
+   * The lines must add up to what is being charged. If they do not, something
+   * upstream disagreed with itself about the total, and taking the money anyway
+   * would charge a figure no receipt explains.
+   */
+  const lineTotal = lines.reduce((n, l) => n + l.amountCents, 0);
+  if (lineTotal !== Number(batch.total_cents)) {
+    console.error(
+      `[payments] ${batch.reference}: line items total ${lineTotal} and the batch total is ${batch.total_cents}. Refusing to charge.`,
+    );
+    return {
+      ok: false,
+      error: "The properties on this submission do not add up to its total. Nothing was charged.",
+    };
+  }
+
+  const session = await provider.createCheckout({
+    reference: batch.reference as string,
+    orderId: batch.id as string,
+    amountCents: Number(batch.total_cents),
+    currency: (batch.currency as string) ?? "usd",
+    customerEmail: orders[0].customer_email as string,
+    description: `${orders.length} properties submitted together as ${batch.reference}`,
+    lines,
+    successUrl: `${deploymentOrigin()}/account/orders/${batch.reference}?paid=1`,
+    cancelUrl: `${deploymentOrigin()}/account/orders/${batch.reference}?cancelled=1`,
+    subjectKind: "batch",
+  });
+
+  for (const o of orders) {
+    await event(o.id as string, "checkout.started", false, `Checkout opened for batch ${batch.reference}.`, {
+      session_ref: session.ref,
+      provider: provider.name,
+      batch_reference: batch.reference,
+    });
+  }
+
+  return { ok: true, url: session.url, sessionRef: session.ref };
+}
+
+/**
+ * A batch payment arrived.
+ *
+ * ONE charge row, on the batch, because one payment happened. Each order is then
+ * released through the same path a single paid order uses, and none of them gets
+ * a charge row of its own: ten charge rows for one payment would be ten times
+ * the money in the ledger.
+ *
+ * Idempotent on the charge ref, exactly as markPaid is, because Stripe delivers
+ * more than once.
+ */
+export async function markBatchPaid(input: {
+  batchId: string;
+  chargeRef: string;
+  amountCents: number;
+  provider: string;
+}): Promise<{ ok: true; alreadyRecorded: boolean; released: number } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The order system is not configured." };
+
+  const { data: batch } = await db
+    .from("eng_order_batches")
+    .select("id, reference, status")
+    .eq("id", input.batchId)
+    .maybeSingle();
+  if (!batch) return { ok: false, error: "That submission does not exist." };
+
+  const { error: payError } = await db.from("eng_order_payments").insert({
+    batch_id: input.batchId,
+    kind: "charge",
+    amount_cents: input.amountCents,
+    provider: input.provider,
+    provider_ref: input.chargeRef,
+    status: "succeeded",
+  });
+
+  if (payError) {
+    if (payError.code === "23505") return { ok: true, alreadyRecorded: true, released: 0 };
+    return { ok: false, error: payError.message };
+  }
+
+  await db
+    .from("eng_order_batches")
+    .update({ status: "accepted", paid_at: new Date().toISOString() })
+    .eq("id", input.batchId);
+
+  const { data: orders } = await db
+    .from("eng_service_orders")
+    .select("id, reference, status, order_type, file_id")
+    .eq("batch_id", input.batchId);
+
+  let released = 0;
+  for (const o of orders ?? []) {
+    if (!canTransitionOrder(o.status as never, "paid")) continue;
+    await db
+      .from("eng_service_orders")
+      .update({ status: "in_fulfilment", paid_at: new Date().toISOString() })
+      .eq("id", o.id);
+    await event(
+      o.id as string,
+      "payment.received",
+      true,
+      `Paid as part of ${batch.reference}. The firm is arranging the work.`,
+    );
+    await releaseForFulfilment(o.id as string, o.order_type as string, o.file_id as string | null);
+    released += 1;
+  }
+
+  await writeAudit({
+    actor: { id: null, role: "admin", email: "order-engine@254engineering.com" },
+    action: "batch.paid",
+    entityType: "order_batch",
+    entityId: input.batchId,
+    summary: `${batch.reference}: ${money(input.amountCents)} received, ${released} properties released`,
+  });
+
+  return { ok: true, alreadyRecorded: false, released };
+}
+
+/**
+ * A batch checkout that will never be paid, closed out with its orders.
+ *
+ * The batch and every order under it, in one act. Closing the batch and leaving
+ * ten orders at awaiting_payment would put ten rows on the stuck order screen
+ * for one abandonment, and an operator who sees ten rows for one event stops
+ * trusting the screen.
+ */
+export async function abandonBatch(
+  batchId: string,
+  reason: string,
+): Promise<{ ok: true; closed: number } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The order system is not configured." };
+
+  const { data: batch } = await db
+    .from("eng_order_batches")
+    .select("id, reference, status")
+    .eq("id", batchId)
+    .maybeSingle();
+  if (!batch) return { ok: false, error: "That submission does not exist." };
+
+  /*
+   * A batch that was paid is not abandoned, whatever order the events arrived
+   * in. Stripe does not guarantee that a completion precedes an expiry, so this
+   * refuses on state rather than assuming the expiry came last.
+   */
+  if (batch.status !== "awaiting_payment" && batch.status !== "draft") {
+    return { ok: true, closed: 0 };
+  }
+
+  const { data: orders } = await db
+    .from("eng_service_orders")
+    .select("id, status")
+    .eq("batch_id", batchId);
+
+  let closed = 0;
+  for (const o of orders ?? []) {
+    const result = await markAbandoned(o.id as string, reason);
+    if (result.ok && result.changed) closed += 1;
+  }
+
+  await db
+    .from("eng_order_batches")
+    .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
+    .eq("id", batchId);
+
+  return { ok: true, closed };
+}
+
 // -------------------------------------------------------------------- paid
 
 /**
@@ -209,40 +433,7 @@ export async function markPaid(input: {
     `Payment of ${money(input.amountCents)} received. The firm is arranging the work.`,
   );
 
-  /*
-   * Where the work goes. A field order needs a technician before an engineer has
-   * anything to look at; a desk order already has everything the customer was
-   * asked for, so it goes straight into the review queue and no dispatch it does
-   * not need is ever created.
-   */
-  const target = landingStatusFor(order.order_type as "field" | "desk" | "quote");
-  if (target && order.file_id) {
-    await db.from("eng_files").update({ status: target }).eq("id", order.file_id);
-    await event(
-      input.orderId,
-      "work.released",
-      false,
-      target === "needs_dispatch"
-        ? "The file is released for dispatch."
-        : "The file is released into the review queue.",
-    );
-  } else if (target && !order.file_id) {
-    await event(
-      input.orderId,
-      "work.blocked",
-      false,
-      "Paid, and there is no file to release. Somebody has to open one by hand.",
-    );
-  }
-
-  /*
-   * The customer's way in. Issued on payment rather than at placement, so an
-   * abandoned checkout never produces a link to an order nobody paid for.
-   */
-  const link = await issueCustomerLink({ orderId: input.orderId });
-  if (link) {
-    await event(input.orderId, "customer_link.issued", false, "A status link was issued for the customer.");
-  }
+  await releaseForFulfilment(input.orderId, order.order_type as string, order.file_id as string | null);
 
   await writeAudit({
     actor: { id: null, role: "admin", email: "order-engine@254engineering.com" },
@@ -253,6 +444,118 @@ export async function markPaid(input: {
   });
 
   return { ok: true, alreadyRecorded: false };
+}
+
+/**
+ * Move an order into fulfilment and open the customer's way in.
+ *
+ * EXTRACTED SO THAT PAID AND INVOICED CANNOT DIVERGE
+ * --------------------------------------------------
+ * A card order reaches this through markPaid, after a charge row exists. An
+ * invoiced order reaches it through acceptOnInvoice, with no charge row at all,
+ * because the money arrives at period close.
+ *
+ * They must do the same thing to the work. Written twice, one of them would
+ * eventually stop issuing the customer link, or release a field order into the
+ * review queue, and the difference would only show up as a customer who never
+ * got a status page.
+ */
+export async function releaseForFulfilment(
+  orderId: string,
+  orderType: string,
+  fileId: string | null,
+): Promise<void> {
+  const db = supabaseAdmin();
+  if (!db) return;
+
+  /*
+   * Where the work goes. A field order needs a technician before an engineer has
+   * anything to look at; a desk order already has everything the customer was
+   * asked for, so it goes straight into the review queue and no dispatch it does
+   * not need is ever created.
+   */
+  const target = landingStatusFor(orderType as "field" | "desk" | "quote");
+  if (target && fileId) {
+    await db.from("eng_files").update({ status: target }).eq("id", fileId);
+    await event(
+      orderId,
+      "work.released",
+      false,
+      target === "needs_dispatch"
+        ? "The file is released for dispatch."
+        : "The file is released into the review queue.",
+    );
+  } else if (target && !fileId) {
+    await event(
+      orderId,
+      "work.blocked",
+      false,
+      "Released, and there is no file to release. Somebody has to open one by hand.",
+    );
+  }
+
+  /*
+   * The customer's way in. Issued when the work is released rather than at
+   * placement, so an abandoned checkout never produces a link to an order
+   * nobody paid for.
+   */
+  const link = await issueCustomerLink({ orderId });
+  if (link) {
+    await event(orderId, "customer_link.issued", false, "A status link was issued for the customer.");
+  }
+}
+
+/**
+ * An order on an invoiced account, accepted without payment.
+ *
+ * The credit decision has already been made by the caller. This does not repeat
+ * it, and it does not create a charge row: nothing has been paid, and a zero
+ * amount payment row would be a lie in the ledger. The order is billed at period
+ * close by the statement, and until then it counts against the account's
+ * outstanding balance because it is unbilled work.
+ */
+export async function acceptOnInvoice(
+  orderId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The order system is not configured." };
+
+  const { data: order } = await db
+    .from("eng_service_orders")
+    .select("id, reference, status, order_type, file_id, total_cents")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (!order) return { ok: false, error: "That order does not exist." };
+
+  if (!canTransitionOrder(order.status as never, "paid")) {
+    return { ok: false, error: `That order is ${order.status} and cannot be accepted.` };
+  }
+
+  await db
+    .from("eng_service_orders")
+    .update({ status: "in_fulfilment", paid_at: new Date().toISOString() })
+    .eq("id", orderId);
+
+  await event(
+    orderId,
+    "order.accepted_on_account",
+    true,
+    `Accepted on your account. ${money(
+      order.total_cents === null ? null : Number(order.total_cents),
+    )} will appear on your next statement rather than being charged now.`,
+  );
+
+  await releaseForFulfilment(orderId, order.order_type as string, order.file_id as string | null);
+
+  await writeAudit({
+    actor: { id: null, role: "admin", email: "order-engine@254engineering.com" },
+    action: "order.accepted_on_invoice",
+    entityType: "service_order",
+    entityId: orderId,
+    summary: `${order.reference}: accepted on account, to be billed at period close`,
+  });
+
+  return { ok: true };
 }
 
 /**

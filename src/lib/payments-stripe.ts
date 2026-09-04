@@ -12,6 +12,20 @@ import type {
 } from "./payments";
 
 /**
+ * Which of our objects a session is for.
+ *
+ * A batch session must not carry an order_id, and an order session must not
+ * carry a batch_id. The webhook branches on exactly this, so an id in the wrong
+ * key would send a batch payment to markPaid, which would look for an order that
+ * does not exist and answer 500 while the money sat in Stripe.
+ */
+function subjectMetadata(request: CheckoutRequest): Record<string, string> {
+  return request.subjectKind === "batch"
+    ? { batch_id: request.orderId, reference: request.reference }
+    : { order_id: request.orderId, reference: request.reference };
+}
+
+/**
  * Stripe, behind the boundary.
  *
  * WHY CHECKOUT SESSIONS AND NOT PAYMENT INTENTS DIRECTLY
@@ -92,9 +106,9 @@ export function stripeProvider(): PaymentProvider {
            * find it by matching an amount or an email, either of which can be
            * true of two orders at once.
            */
-          metadata: { order_id: request.orderId, reference: request.reference },
+          metadata: subjectMetadata(request),
           payment_intent_data: {
-            metadata: { order_id: request.orderId, reference: request.reference },
+            metadata: subjectMetadata(request),
             description: `${request.reference}: ${request.description}`,
           },
           line_items: request.lines.map((line) => ({
@@ -226,6 +240,7 @@ export function stripeProvider(): PaymentProvider {
           chargeRef: intent,
           amountCents: session.amount_total ?? 0,
           orderId: session.metadata?.order_id ?? null,
+          batchId: session.metadata?.batch_id ?? null,
         };
       }
 
@@ -235,6 +250,7 @@ export function stripeProvider(): PaymentProvider {
           kind: "checkout.expired",
           sessionRef: session.id,
           orderId: session.metadata?.order_id ?? null,
+          batchId: session.metadata?.batch_id ?? null,
         };
       }
 

@@ -1,5 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { paymentProvider, markPaid, markAbandoned, recordExternalRefund } from "@/lib/ops-payments";
+import {
+  paymentProvider,
+  markPaid,
+  markBatchPaid,
+  markAbandoned,
+  abandonBatch,
+  recordExternalRefund,
+} from "@/lib/ops-payments";
 
 export const dynamic = "force-dynamic";
 
@@ -62,6 +69,37 @@ export async function POST(request: NextRequest) {
   }
 
   if (parsed.kind === "checkout.completed") {
+    /*
+     * A batch first, because a batch session carries batch_id and no order_id.
+     * Falling through to the order branch would look for an order with a batch's
+     * id, find nothing, and answer 500 while the money sat in Stripe.
+     */
+    if (parsed.batchId) {
+      const result = await markBatchPaid({
+        batchId: parsed.batchId,
+        chargeRef: parsed.chargeRef,
+        amountCents: parsed.amountCents,
+        provider: provider.name,
+      });
+
+      if (!result.ok) {
+        console.error(`[stripe] could not record batch payment for ${parsed.batchId}: ${result.error}`);
+        return NextResponse.json({ ok: false }, { status: 500 });
+      }
+
+      console.log(
+        `[stripe] batch ${parsed.batchId}: ${
+          result.alreadyRecorded ? "already recorded" : `recorded and released ${result.released} properties`
+        }`,
+      );
+      return NextResponse.json({
+        ok: true,
+        handled: true,
+        duplicate: result.alreadyRecorded,
+        released: result.released,
+      });
+    }
+
     if (!parsed.orderId) {
       console.error(`[stripe] a completed checkout carried no order id: ${parsed.sessionRef}`);
       return NextResponse.json({ ok: true, handled: false });
@@ -88,6 +126,20 @@ export async function POST(request: NextRequest) {
   }
 
   if (parsed.kind === "checkout.expired") {
+    /*
+     * A batch, same as above and for the same reason. Without this an expired
+     * batch would sit at awaiting_payment forever with its orders beneath it,
+     * which is precisely the state the stuck order screen exists to catch, ten
+     * rows at a time instead of one.
+     */
+    if (parsed.batchId) {
+      await abandonBatch(
+        parsed.batchId,
+        "You opened a checkout for these properties and did not finish it. Nothing was charged.",
+      );
+      return NextResponse.json({ ok: true, handled: true });
+    }
+
     if (parsed.orderId) {
       /*
        * Closes the order rather than only noting the expiry. Writing an event

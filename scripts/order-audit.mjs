@@ -1348,6 +1348,170 @@ const answerAll = (entry, pick = () => 0) =>
     shares.map((s) => s.shareCents).join(" + "));
 }
 
+// ===========================================================================
+// 16. THE MONEY PATH FOR A BATCH
+//
+// A batch payment is one payment covering many orders. Everything below is a
+// way of getting that wrong, and each has a shape that would look like a
+// working site.
+// ===========================================================================
+{
+  const pay = fs.readFileSync("src/lib/ops-payments.ts", "utf8");
+  const batchPaid = pay.slice(pay.indexOf("export async function markBatchPaid"));
+  const batchCheckout = pay.slice(
+    pay.indexOf("export async function startBatchCheckout"),
+    pay.indexOf("export async function markBatchPaid"),
+  );
+
+  /*
+   * ONE charge row for one payment. Ten charge rows for a ten property batch
+   * would be ten times the money in the ledger, and every margin figure and
+   * every refund computed from it would be wrong.
+   */
+  rec(
+    "a batch payment writes its charge against the BATCH",
+    /batch_id: input\.batchId,\s*\n\s*kind: "charge"/.test(batchPaid),
+    "one payment, one row",
+  );
+  rec(
+    "and never a charge row per order",
+    !/order_id: o\.id[\s\S]{0,120}kind: "charge"/.test(batchPaid),
+    "ten rows for one payment would be ten times the money",
+  );
+  rec(
+    "and it is idempotent on the charge ref",
+    /23505/.test(batchPaid),
+    "Stripe delivers more than once",
+  );
+  rec(
+    "and each order is released through the shared path",
+    /releaseForFulfilment\(/.test(batchPaid),
+    "so a batch order and a single order reach fulfilment the same way",
+  );
+  rec(
+    "and an order that cannot transition is skipped rather than forced",
+    /canTransitionOrder/.test(batchPaid),
+  );
+
+  /*
+   * The line items must add up to what is charged. If they do not, something
+   * upstream disagreed with itself and the customer would be charged a figure
+   * no receipt explains.
+   */
+  rec(
+    "a batch checkout refuses when its lines do not sum to its total",
+    /lineTotal !== Number\(batch\.total_cents\)/.test(batchCheckout),
+  );
+  rec(
+    "and the lines are per property rather than one opaque total",
+    /o\.property_address/.test(batchCheckout),
+    "a receipt somebody can check against what they submitted",
+  );
+  rec(
+    "and the session says it is a batch",
+    /subjectKind: "batch"/.test(batchCheckout),
+    "an order id in the wrong key would send the payment to markPaid",
+  );
+
+  // An invoiced order is released without inventing a payment.
+  const invoice = pay.slice(pay.indexOf("export async function acceptOnInvoice"));
+  rec(
+    "an invoiced order creates no charge row",
+    !/eng_order_payments/.test(invoice.slice(0, invoice.indexOf("export async function", 10))),
+    "nothing has been paid, and a zero amount row would be a lie in the ledger",
+  );
+  rec(
+    "and is released through the same shared path as a paid one",
+    /releaseForFulfilment\(/.test(invoice.slice(0, invoice.indexOf("export async function", 10))),
+  );
+  rec(
+    "and tells the customer it will be on a statement rather than charged now",
+    /statement rather than being charged now/.test(invoice),
+  );
+
+  // An abandoned batch closes its orders too.
+  const abandon = pay.slice(pay.indexOf("export async function abandonBatch"));
+  rec(
+    "an abandoned batch closes every order under it",
+    /markAbandoned\(o\.id/.test(abandon),
+    "otherwise one abandonment puts ten rows on the stuck order screen",
+  );
+  rec(
+    "and refuses to abandon a batch that was already paid",
+    /status !== "awaiting_payment" && batch\.status !== "draft"/.test(abandon),
+    "Stripe does not guarantee a completion arrives before an expiry",
+  );
+
+  // The webhook routes a batch before it routes an order.
+  const hook = fs.readFileSync("src/app/api/stripe/webhook/route.ts", "utf8");
+  const completed = hook.indexOf('parsed.kind === "checkout.completed"');
+  const batchBranch = hook.indexOf("parsed.batchId", completed);
+  const orderBranch = hook.indexOf("!parsed.orderId", completed);
+  /*
+   * The first version of this used indexOf("parsed.batchId") and passed against
+   * an injected `if (parsed.batchId && false)`, because the string was still
+   * there. Position is not reachability. It now asserts the condition itself.
+   */
+  rec(
+    "the webhook checks for a batch before it checks for an order",
+    batchBranch !== -1 && orderBranch !== -1 && batchBranch < orderBranch,
+    "otherwise a batch payment looks for an order with a batch id and answers 500",
+  );
+  const completedBranch = hook.slice(completed, hook.indexOf('parsed.kind === "checkout.expired"'));
+  rec(
+    "and the COMPLETED branch's batch check is reachable rather than merely present",
+    /if \(parsed\.batchId\) \{/.test(completedBranch),
+    "scoped to that branch: the identical line in the expired branch satisfied an unscoped check",
+  );
+  rec(
+    "and an expired batch is closed as well as an expired order",
+    /abandonBatch\(/.test(hook),
+  );
+
+  // The batch wrapper does not reimplement placing an order.
+  const bulk = fs.readFileSync("src/lib/ops-bulk.ts", "utf8");
+  rec(
+    "a batch places each property through placeOrder",
+    /placeOrder\(\{/.test(bulk),
+    "a second implementation would be a second answer to what the firm may take",
+  );
+  rec(
+    "and derives a per order idempotency key from the batch one",
+    /clientRequestId: `\$\{input\.clientRequestId\}:\$\{item\.ref\}`/.test(bulk),
+    "so a retry finds each order rather than creating ten more",
+  );
+  rec(
+    "and checks the compliance gate before any order exists",
+    bulk.indexOf("previewBatch(") < bulk.indexOf("placeOrder({"),
+  );
+  rec(
+    "and refuses a batch for an account belonging to another brand",
+    /account\.site !== input\.site/.test(bulk),
+  );
+  rec(
+    "and runs the credit decision before accepting invoiced work",
+    /creditDecision\(/.test(bulk),
+  );
+  rec(
+    "and stamps each order with its share of the batch",
+    /batch_share_cents: item\.priceCents/.test(bulk),
+    "the charge belongs to the batch, so without this one property cannot be refunded",
+  );
+  rec(
+    "and never charges for a batch with nothing acceptable",
+    /split\.empty/.test(bulk),
+  );
+  rec(
+    "and an unbilled invoiced order counts against the credit limit",
+    /is\("statement_id", null\)/.test(bulk),
+    "otherwise a limit means nothing until the first of the month",
+  );
+  rec(
+    "and a failed balance read is unknown rather than zero",
+    /if \(sErr \|\| uErr\)/.test(bulk),
+  );
+}
+
 console.log("============ THE ORDER ENGINE ============");
 console.log("the refund rule, the prices nobody invented, and the gate\n");
 for (const r of out) console.log(`  ${r.ok ? "PASS" : "FAIL"}: ${r.name}${r.note ? ` (${r.note})` : ""}`);
