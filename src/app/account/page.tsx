@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { currentCustomer } from "@/lib/customer-auth";
+import Link from "next/link";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { SignOutButton } from "./SignOutButton";
 
@@ -34,11 +35,26 @@ export default async function AccountHomePage() {
           : "This account pays by card at the time of ordering."}
       </p>
 
-      <div className="mt-8 rounded-[4px] border border-limestone-line bg-white px-5 py-4">
+      <div className="mt-8 rounded-[4px] border border-limestone-line border-t-[3px] border-t-brass bg-white px-5 py-5">
+        <h2 className="font-display text-[1.15rem] font-semibold text-slate">
+          Order for several properties
+        </h2>
+        <p className="mt-2 text-[13.5px] leading-[1.65] text-slate-muted">
+          One submission, one payment, and each property becomes its own file. You see which the
+          firm can take and which it cannot, with the reason, before anything is charged.
+        </p>
+        <Link
+          href="/account/order"
+          className="mt-4 inline-flex min-h-[44px] items-center rounded-[3px] bg-brass px-5 text-[14px] font-bold text-slate-ink"
+        >
+          Start a submission
+        </Link>
+      </div>
+
+      <div className="mt-4 rounded-[4px] border border-limestone-line bg-white px-5 py-4">
         <p className="text-[13.5px] leading-[1.65] text-slate-muted">
-          Ordering for several properties at once, saved properties, API access and statements are
-          being built. Until they are here, orders go through the service pages as usual and this
-          screen is how the firm knows who you are.
+          Saved properties, API access and statements are being built. Single orders still go
+          through the service pages as usual.
         </p>
       </div>
 

@@ -855,6 +855,55 @@ async function run() {
      * own must open nothing, or every order is readable by anybody who can
      * guess six characters.
      */
+    /*
+     * THE CUSTOMER SURFACE.
+     *
+     * A second perimeter, gated by a different cookie. It is checked here, over
+     * HTTP against the running app, because accounts-audit is pure and can only
+     * prove the proxy SAYS the right thing. This proves the deployed route
+     * actually refuses.
+     */
+    for (const path of ["/account", "/account/order", "/account/orders/254-B2026-XXXXXX"]) {
+      const res = await fetch(`${BASE}${path}`, { redirect: "manual" });
+      rec(
+        `${path} is closed to a signed out client`,
+        res.status === 307 || res.status === 302,
+        `HTTP ${res.status}`,
+      );
+      const location = res.headers.get("location") ?? "";
+      rec(
+        `and sends them to the CUSTOMER sign in, not the staff one`,
+        location.includes("/account/login"),
+        location || "(no location)",
+      );
+    }
+
+    for (const path of ["/api/account/bulk", "/api/account/session"]) {
+      const res = await fetch(`${BASE}${path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      rec(
+        `${path} answers JSON rather than redirecting`,
+        res.status === 400 || res.status === 401,
+        `HTTP ${res.status}`,
+      );
+    }
+
+    {
+      const res = await fetch(`${BASE}/api/account/bulk`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "submit", serviceSlug: "roof-inspections", properties: [] }),
+      });
+      rec(
+        "a signed out client cannot submit a bulk order",
+        res.status === 401,
+        `HTTP ${res.status}`,
+      );
+    }
+
     const noToken = await fetch(`${BASE}/order/254-O2026-XXXXXX`, { redirect: "manual" });
     const noTokenBody = noToken.status === 200 ? await noToken.text() : "";
     rec(

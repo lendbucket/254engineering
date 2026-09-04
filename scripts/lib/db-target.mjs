@@ -102,6 +102,49 @@ export function describeTarget(url) {
 }
 
 /**
+ * A client for a project named EXPLICITLY, rather than read from the
+ * environment.
+ *
+ * WHY THIS EXISTS AT ALL, GIVEN auditClient
+ * -----------------------------------------
+ * Every script but one reaches exactly one database, and auditClient is the door
+ * for that. scripts/copy-project.mjs is the exception: copying between two
+ * projects means holding both at once, and there is no way to express that with
+ * a function that reads a single SUPABASE_URL.
+ *
+ * The first version of that script imported @supabase/supabase-js directly, and
+ * db-guard-audit failed the build for it. That rule is right, and the answer is
+ * a second door in the same wall rather than a hole beside it: this function
+ * applies the SAME production check, so copying FROM production still requires
+ * ALLOW_PRODUCTION_DB, spelled exactly as everywhere else.
+ *
+ * `role` appears in the refusal, because "the source is production" and "the
+ * destination is production" want very different reactions from a reader.
+ */
+export function pairClient(url, key, role, purpose = "this script") {
+  if (!url || !key) {
+    console.error(`REFUSED: ${purpose} was given no URL or key for the ${role}.`);
+    process.exit(1);
+  }
+
+  if (isProduction(url) && process.env.ALLOW_PRODUCTION_DB !== "1") {
+    console.error("");
+    console.error("=".repeat(72));
+    console.error(`REFUSED: the ${role} is the PRODUCTION project.`);
+    console.error("=".repeat(72));
+    console.error("");
+    console.error(`  ${purpose} was pointed at ${describeTarget(url)} as its ${role}.`);
+    console.error("");
+    console.error("  Set ALLOW_PRODUCTION_DB=1 if that is genuinely intended. It is compared");
+    console.error("  to the exact string, so 0, false, no and true are all refusals.");
+    console.error("");
+    process.exit(1);
+  }
+
+  return createClient(url, key, { auth: { persistSession: false } });
+}
+
+/**
  * A service role client for a script, or a hard exit.
  *
  * `purpose` appears in the refusal so the operator can see which audit tried.

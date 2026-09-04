@@ -40,7 +40,7 @@
  * amendment, 2026-09-03.
  */
 
-import { createClient } from "@supabase/supabase-js";
+import { pairClient } from "./lib/db-target.mjs";
 
 const MODE = process.argv.includes("--apply")
   ? "apply"
@@ -117,8 +117,17 @@ if (toRef === PRODUCTION_REF) {
   process.exit(1);
 }
 
-const src = createClient(fromUrl, fromKey, { auth: { persistSession: false } });
-const dst = createClient(toUrl, toKey, { auth: { persistSession: false } });
+/*
+ * Both clients come through the guard rather than being constructed here.
+ *
+ * db-guard-audit failed this script's first version for importing the Supabase
+ * client directly, and it was right to: a second way to open a connection is a
+ * second place the production check does not run. pairClient applies the same
+ * check to each side, so copying FROM production requires ALLOW_PRODUCTION_DB,
+ * which is exactly the friction that should exist.
+ */
+const src = pairClient(fromUrl, fromKey, "source", "copy-project");
+const dst = pairClient(toUrl, toKey, "destination", "copy-project");
 
 console.log(`copy-project: ${MODE.toUpperCase()}`);
 console.log(`  from ${fromRef}`);
