@@ -21,6 +21,8 @@ export {
   type StatusTone,
 } from "./Primitives";
 
+export { RestrictedMode } from "./RestrictedMode";
+
 export { DataTable, TableFooter, EmptyState, ErrorState, type Column } from "./Table";
 
 export {

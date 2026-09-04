@@ -70,7 +70,7 @@ export function LoginForm({ next, disabled }: { next: string | null; disabled: b
     <form onSubmit={onSubmit} method="post" action="/api/portal/session" noValidate className="mt-7">
       <input type="hidden" name="next" value={target} />
 
-      <label htmlFor="email" className="block text-[13px] font-semibold text-slate">
+      <label htmlFor="email" className="block text-[13.5px] font-semibold text-[var(--ink)]">
         Email
       </label>
       <input
@@ -82,11 +82,17 @@ export function LoginForm({ next, disabled }: { next: string | null; disabled: b
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         disabled={disabled}
-        /* 16px, so iOS does not zoom the page on focus and leave it panned. */
-        className="mt-1.5 min-h-[48px] w-full rounded-[3px] border border-limestone-line bg-white px-3 text-[16px] text-slate outline-none focus:border-slate"
+        /*
+         * 16px, so iOS does not zoom the page on focus and leave it panned.
+         *
+         * It is not on the standards file's type scale, and it is the one place
+         * that is correct: the scale is about hierarchy, and this is about a
+         * platform behaviour. token-audit allows 16 for exactly this reason.
+         */
+        className="mt-1.5 min-h-[var(--tap-target)] w-full rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-white px-3 text-[16px] text-[var(--ink)] outline-none focus:border-[var(--navy)]"
       />
 
-      <label htmlFor="password" className="mt-4 block text-[13px] font-semibold text-slate">
+      <label htmlFor="password" className="mt-4 block text-[13.5px] font-semibold text-[var(--ink)]">
         Password
       </label>
       <input
@@ -98,24 +104,37 @@ export function LoginForm({ next, disabled }: { next: string | null; disabled: b
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         disabled={disabled}
-        className="mt-1.5 min-h-[48px] w-full rounded-[3px] border border-limestone-line bg-white px-3 text-[16px] text-slate outline-none focus:border-slate"
+        className="mt-1.5 min-h-[var(--tap-target)] w-full rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-white px-3 text-[16px] text-[var(--ink)] outline-none focus:border-[var(--navy)]"
       />
 
       {error ? (
-        <p role="alert" className="mt-4 rounded-[3px] border border-[#f3c9c6] bg-[#fdeceb] px-3 py-2.5 text-[13.5px] leading-[1.5] text-[#8c1d18]">
+        <p
+          role="alert"
+          className="mt-4 rounded-[var(--radius-control)] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-3 py-2.5 text-[13.5px] leading-[1.5] text-[var(--red)]"
+        >
           {error}
         </p>
       ) : null}
 
+      {/*
+        THE BUTTON WAS GOLD AND IS NOW NAVY.
+
+        The standards file is explicit twice over: the primary button is navy
+        with white text, and gold appears only in the logo, warnings, pending
+        states and the active nav bar. A gold sign in button is gold as
+        decoration, which is the one use the palette rules out.
+
+        This is presentation. Nothing about what the button does changed.
+      */}
       <button
         type="submit"
         disabled={busy || disabled}
-        className="mt-6 min-h-[48px] w-full rounded-[3px] bg-brass px-4 text-[15px] font-bold text-slate-ink transition-colors hover:bg-brass-light disabled:cursor-not-allowed disabled:opacity-60"
+        className="mt-6 min-h-[var(--tap-target)] w-full rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[15px] font-bold text-white transition-colors hover:bg-[var(--navy-hover)] disabled:cursor-not-allowed disabled:opacity-45"
       >
-        {busy ? "Signing in..." : "Sign in"}
+        {busy ? "Signing in" : "Sign in"}
       </button>
 
-      <p className="mt-5 text-[13px] leading-[1.6] text-slate-muted">
+      <p className="mt-5 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
         Accounts are created by an administrator. If you have lost your password, ask them to send a
         reset link.
       </p>

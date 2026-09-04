@@ -170,6 +170,12 @@ const PORTED = [
   "src/components/portal/design/Primitives.tsx",
   "src/components/portal/design/Table.tsx",
   "src/components/portal/design/Record.tsx",
+  "src/components/portal/design/RestrictedMode.tsx",
+
+  // Section 2 item 1: sign in, not found, and the restricted mode alert.
+  "src/app/portal/(public)/login/page.tsx",
+  "src/app/portal/(public)/login/LoginForm.tsx",
+  "src/app/portal/(app)/not-found.tsx",
 ];
 
 const portalFiles = allPortalFiles.filter((f) => PORTED.includes(f));
