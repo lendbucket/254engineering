@@ -1,6 +1,7 @@
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { JsonLd, organizationSchema, websiteSchema } from "@/lib/schema";
+import { ReferralCapture } from "@/components/site/ReferralCapture";
 
 /**
  * The public site's chrome.
@@ -51,6 +52,13 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
         {children}
       </main>
       <SiteFooter />
+      {/*
+        A partner link is captured wherever it lands, which is why this is in
+        the chrome rather than on the order flow. Partners link to a service
+        page, a county page, or the homepage, and a capture that only ran at
+        checkout would miss every referral that browsed first.
+      */}
+      <ReferralCapture />
     </>
   );
 }

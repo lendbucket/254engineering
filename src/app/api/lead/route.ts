@@ -3,6 +3,8 @@ import { contactSchema, fieldErrors, waitlistSchema } from "@/lib/forms";
 import { insertLead } from "@/lib/intake";
 import { queueEmail } from "@/lib/ops-jobs";
 import { leadNotification } from "@/lib/email-templates";
+import { cookies } from "next/headers";
+import { partnerForVisitor, VISITOR_COOKIE } from "@/lib/ops-partners";
 
 /**
  * Contact and waitlist intake.
@@ -43,6 +45,14 @@ export async function POST(request: Request) {
   const userAgent = request.headers.get("user-agent") ?? undefined;
   const form = isWaitlist ? "waitlist" : "contact";
 
+  /*
+   * Read before the row is written, because the answer lives in a cookie that
+   * only exists for the length of this request. A lead the firm cannot trace
+   * back to the partner who sent it is a partner who will eventually ask why
+   * their traffic never shows up.
+   */
+  const partner = await partnerForVisitor((await cookies()).get(VISITOR_COOKIE)?.value);
+
   const write = await insertLead({
     form,
     name: data.name,
@@ -54,6 +64,8 @@ export async function POST(request: Request) {
     landingPath: data.landingPath,
     referrer: data.referrer,
     userAgent,
+    partnerId: partner?.partnerId ?? null,
+    partnerCode: partner?.code ?? null,
   });
 
   /*

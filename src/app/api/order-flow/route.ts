@@ -4,6 +4,7 @@ import { startCheckout } from "@/lib/ops-payments";
 import { signOrderUpload } from "@/lib/order-uploads";
 import { SITE_KEY } from "@/lib/supabase";
 import { isPrelaunch } from "@/lib/launch";
+import { attributeOrder, VISITOR_COOKIE } from "@/lib/ops-partners";
 
 export const dynamic = "force-dynamic";
 
@@ -153,6 +154,29 @@ export async function POST(request: NextRequest) {
   });
 
   if (!result.ok) return bad(result.error, 422);
+
+  /*
+   * ATTRIBUTION, BEFORE CHECKOUT AND NEVER AFTER IT.
+   *
+   * The order exists and is not yet paid, which is the only window in which the
+   * attribution columns are writable: 0014's trigger freezes them the moment
+   * paid_at is set. Running this after startCheckout would be a race against
+   * the customer's own card.
+   *
+   * It is awaited rather than queued. A partner's earnings hanging on a job
+   * that might retry later is the kind of eventual correctness that produces a
+   * dispute, and the work here is two reads and one update.
+   *
+   * It never throws by construction, and a failure to attribute must not fail
+   * an order the customer has already completed.
+   */
+  await attributeOrder({
+    orderId: result.orderId,
+    reference: result.reference,
+    customerEmail: customer.email,
+    visitorKey: request.cookies.get(VISITOR_COOKIE)?.value ?? null,
+    typedCode: body.attribution?.partner_code ?? null,
+  });
 
   const checkout = await startCheckout(result.orderId);
   if (!checkout.ok) {

@@ -73,6 +73,19 @@ const PHASE_ZERO = [
     why: "a customer cannot become a member of staff",
   },
   {
+    // Phase 9 Section 2. Attribution decides who gets paid, and both directions
+    // of wrong are expensive: too generous and a partner earns on business the
+    // firm already had, too mean and the firm loses the partner. Neither
+    // announces itself, because an order attributed to the wrong partner looks
+    // exactly like one attributed to the right partner.
+    //
+    // Pure with no condition needed, because the rule module deliberately has
+    // no server-only import: a rule nobody can run in isolation is a rule
+    // nobody can argue with.
+    name: "partner-audit",
+    why: "the four attribution rules, exercised rather than grepped, plus a frozen attribution on a paid order",
+  },
+  {
     // Phase 8 Section 2. A queue is the easiest place in a platform to build a
     // silent failure, because the whole point of it is that nobody is watching
     // when the work happens. Every check traces back to one rule: a job that

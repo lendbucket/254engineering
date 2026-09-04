@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { OPS_COOKIE, readOpsSession } from "@/lib/ops-session";
 import { CUSTOMER_COOKIE, readCustomerSession } from "@/lib/customer-session";
+import { PARTNER_COOKIE, readPartnerSession } from "@/lib/partner-session";
 
 /**
  * The portal gate.
@@ -85,6 +86,21 @@ const OPEN_PATHS = new Set([
  * side. One list holding both would be one edit away from a portal route
  * inheriting a customer exemption.
  */
+/**
+ * The partner paths reachable with no session.
+ *
+ * Exactly the shape of CUSTOMER_OPEN_PATHS below and just as short: signing in,
+ * and setting a password from a token that was emailed. Nothing else. A partner
+ * dashboard behind an accidentally open path would show one partner's earnings
+ * to anybody who guessed the URL.
+ */
+const PARTNER_OPEN_PATHS = new Set([
+  "/partner/login",
+  "/partner/set-password",
+  "/api/partner/session",
+  "/api/partner/set-password",
+]);
+
 const CUSTOMER_OPEN_PATHS = new Set([
   "/account/login",
   "/account/set-password",
@@ -108,6 +124,37 @@ export function proxy(request: NextRequest) {
    * to see what a customer sees signs in as that customer, which is a thing the
    * audit trail records rather than a capability the cookie carries.
    */
+  /*
+   * THE PARTNER BRANCH. Third principal, and it returns before either of the
+   * others is reached.
+   *
+   * Ordering is the whole point of putting it here. Every branch returns, so a
+   * partner path can never fall through to the customer branch and a partner
+   * cookie is never offered to the staff reader. The three readers are also
+   * incapable of accepting each other's cookies: different names, different
+   * secrets, different HMAC labels, and different payload shapes, with the
+   * partner's carrying a marker field the other two readers reject outright.
+   *
+   * A partner session is NOT a fallback for anything. An operator who wants to
+   * see what a partner sees signs in as that partner, which the audit trail
+   * records rather than the cookie granting.
+   */
+  if (pathname.startsWith("/partner") || pathname.startsWith("/api/partner")) {
+    if (PARTNER_OPEN_PATHS.has(pathname)) return NextResponse.next();
+
+    const partner = readPartnerSession(request.cookies.get(PARTNER_COOKIE)?.value);
+    if (partner) return NextResponse.next();
+
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ ok: false, error: "Not signed in." }, { status: 401 });
+    }
+
+    const url = request.nextUrl.clone();
+    url.pathname = "/partner/login";
+    url.search = `?next=${encodeURIComponent(pathname)}`;
+    return NextResponse.redirect(url);
+  }
+
   if (pathname.startsWith("/account") || pathname.startsWith("/api/account")) {
     if (CUSTOMER_OPEN_PATHS.has(pathname)) return NextResponse.next();
 
@@ -175,5 +222,16 @@ export const config = {
     // failure mode of a clever matcher is a route that is quietly uncovered.
     "/account/:path*",
     "/api/account/:path*",
+    /*
+     * The partner surface. Added when injection verification found the branch
+     * above was DEAD CODE: it was written, reviewed, and reachable by nothing,
+     * because a matcher that does not name a prefix means the proxy never runs
+     * for it. Every partner page would have rendered to a signed out visitor.
+     *
+     * The gate is not the only lock, so this was never the sole protection, but
+     * a gate nothing routes through is a gate in name only.
+     */
+    "/partner/:path*",
+    "/api/partner/:path*",
   ],
 };

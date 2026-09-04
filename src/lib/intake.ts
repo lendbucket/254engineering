@@ -35,6 +35,13 @@ export type LeadRow = {
   landingPath?: string;
   referrer?: string;
   userAgent?: string;
+  /*
+   * The partner whose link brought this browser, if any. Written here rather
+   * than resolved later, because the visitor cookie that answers the question
+   * exists only during the request.
+   */
+  partnerId?: string | null;
+  partnerCode?: string | null;
 };
 
 export async function insertLead(row: LeadRow): Promise<WriteResult> {
@@ -53,6 +60,8 @@ export async function insertLead(row: LeadRow): Promise<WriteResult> {
     landing_path: row.landingPath || null,
     referrer: row.referrer || null,
     user_agent: row.userAgent || null,
+    partner_id: row.partnerId || null,
+    partner_code: row.partnerCode || null,
   });
 
   return error ? { ok: false, error: error.message } : { ok: true };
