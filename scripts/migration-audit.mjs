@@ -57,9 +57,9 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * mistake could have been applied to by hand, which is exactly how 0001 stayed
  * broken for a month. A constant has to be changed by a person who noticed.
  */
-const EXPECTED_FINGERPRINT = "eac11d782d44bd11cb893637f67d2ee1";
-const EXPECTED_COLUMNS = 607;
-const EXPECTED_TABLES = 39;
+const EXPECTED_FINGERPRINT = "2f92026fb0d75e4cc9d0942be067999f";
+const EXPECTED_COLUMNS = 712;
+const EXPECTED_TABLES = 47;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -201,7 +201,7 @@ if (failedAt === null) {
     select count(*)::int as n from pg_trigger t join pg_class c on c.oid = t.tgrelid
     where not t.tgisinternal and c.relname like 'eng\\_%'
   `);
-  rec("the triggers are all there", trgRows.rows[0].n === 24, `${trgRows.rows[0].n} of 24`);
+  rec("the triggers are all there", trgRows.rows[0].n === 29, `${trgRows.rows[0].n} of 29`);
 
   const rlsRows = await db.query(`
     select count(*)::int as n from pg_class c join pg_namespace n2 on n2.oid = c.relnamespace

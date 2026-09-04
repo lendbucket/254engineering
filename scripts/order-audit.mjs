@@ -45,6 +45,8 @@ import { deploymentOrigin } from "../src/lib/site-url.ts";
 import { blockersOn, emptyState, firstIncomplete, stepsFor } from "../src/lib/order-flow.ts";
 import { judge } from "../src/lib/reconcile-rules.ts";
 import { attentionFor, CHECKOUT_SESSION_HOURS, worstLevel } from "../src/lib/order-attention.ts";
+import { creditDecision, outstandingOf } from "../src/lib/account-credit.ts";
+import { batchShares, splitBatch, splitSummary } from "../src/lib/bulk-order.ts";
 import {
   ORDER_STATUSES,
   QUOTE_STATUSES,
@@ -1158,6 +1160,192 @@ const answerAll = (entry, pick = () => 0) =>
   rec("the dashboard counts stuck orders", /ordersNeedingAttention\(\)/.test(dash));
   rec("and gives them a tile", /Orders stuck on payment/.test(dash));
   rec("and puts them in the attention list", /stuck on payment/.test(dash));
+}
+
+// ===========================================================================
+// 14. CREDIT: WHETHER THE FIRM TAKES WORK IT MAY NOT BE PAID FOR
+// ===========================================================================
+{
+  const acct = (over = {}) => ({
+    billingMode: "invoice",
+    status: "active",
+    creditLimitCents: 500000,
+    outstandingCents: 0,
+    oldestUnpaidDays: null,
+    netDays: 30,
+    ...over,
+  });
+
+  /*
+   * The inversion that matters most. The operator ruled credit terms default
+   * to NONE. Written the other way round, every account created before
+   * somebody set a limit would have an infinite one, and the first anybody
+   * would know is a large unpaid balance.
+   */
+  const noTerms = creditDecision(acct({ creditLimitCents: null }), 67500);
+  rec("a null credit limit means NO credit, never unlimited", !noTerms.ok);
+  rec("and says the firm sets one rather than blaming the customer",
+    noTerms.reason === "no_credit_terms" && /the firm sets one/i.test(noTerms.message),
+    noTerms.message);
+
+  // A card account is not on credit at all.
+  const card = creditDecision(acct({ billingMode: "card", creditLimitCents: null }), 67500);
+  rec("a card account is never refused for credit reasons", card.ok, card.reason);
+
+  // Suspended and closed refuse before anything about money is considered.
+  rec("a suspended account cannot order", !creditDecision(acct({ status: "suspended" }), 100).ok);
+  rec("nor a closed one", !creditDecision(acct({ status: "closed" }), 100).ok);
+  rec("and the two say different things",
+    creditDecision(acct({ status: "suspended" }), 100).reason !==
+      creditDecision(acct({ status: "closed" }), 100).reason);
+
+  /*
+   * Overdue is checked BEFORE the limit. An account within its limit that has
+   * not paid a ninety day old statement is the worse case, and telling them
+   * they are over their limit would be both wrong and confusing.
+   */
+  const late = creditDecision(acct({ oldestUnpaidDays: 90, outstandingCents: 100 }), 100);
+  rec("an overdue account is refused even when well within its limit", !late.ok);
+  rec("and is told it is overdue, not over limit", late.reason === "overdue", late.message);
+  rec("and the terms are named in days", /30 day/.test(late.message), late.message);
+
+  // Exactly at the terms is not yet overdue.
+  rec("an account exactly at its terms is not yet overdue",
+    creditDecision(acct({ oldestUnpaidDays: 30 }), 100).ok);
+  rec("and one day past is", !creditDecision(acct({ oldestUnpaidDays: 31 }), 100).ok);
+
+  /*
+   * An unknown balance refuses rather than assuming zero. Assuming zero is
+   * assuming the flattering direction, which is the mistake Phase 6 exists to
+   * prevent: an absent figure is not a zero.
+   */
+  const unknown = creditDecision(acct({ outstandingCents: null }), 67500);
+  rec("an unknown balance refuses rather than assuming zero", !unknown.ok);
+  rec("and says so plainly", unknown.reason === "outstanding_unknown", unknown.message);
+
+  // The limit itself.
+  rec("an order inside the limit is allowed",
+    creditDecision(acct({ outstandingCents: 400000 }), 67500).ok);
+  const over = creditDecision(acct({ outstandingCents: 450000 }), 67500);
+  rec("an order that would cross the limit is refused", !over.ok);
+  rec("and names both figures rather than just saying no",
+    /5,175|5175/.test(over.message.replace(/[$.]/g, "")) && /5,000|5000/.test(over.message.replace(/[$.]/g, "")),
+    over.message);
+
+  // The projection includes the order being placed, not just what is owed.
+  rec("the limit is tested against the balance PLUS this order",
+    !creditDecision(acct({ outstandingCents: 499000 }), 67500).ok,
+    "499 dollars owed plus a 675 dollar order crosses a 5000 dollar limit");
+
+  // outstandingOf refuses to add an unknown to a known.
+  rec("an outstanding total with an unknown part is unknown",
+    outstandingOf({ issuedUnpaidCents: 1000, unbilledCents: null }) === null);
+  rec("and a known one adds up",
+    outstandingOf({ issuedUnpaidCents: 1000, unbilledCents: 500 }) === 1500);
+}
+
+// ===========================================================================
+// 15. BULK: PARTIAL FAILURE IS EXPLICIT
+// ===========================================================================
+{
+  const roof = catalogFor("roof-inspections");
+  const TWIA = new Set(["Nueces"]);
+  const good = (ref, county = "Bexar") => ({
+    ref,
+    propertyAddress: ref + " Somewhere St",
+    county,
+    answers: roof.qualifiers.map((q) => ({ qualifierId: q.id, optionIndex: 0 })),
+  });
+  // Answering the first qualifier with an option the catalog disqualifies on.
+  // The shape is options: string[] with disqualifyOn: number[], so the bad
+  // answer is an INDEX the catalog names rather than a flag on the option.
+  const badQ = roof.qualifiers.findIndex((q) => q.disqualifyOn.length > 0);
+  const badIndex = roof.qualifiers[badQ].disqualifyOn[0];
+  const bad = (ref) => ({
+    ...good(ref),
+    answers: roof.qualifiers.map((q, i) => ({
+      qualifierId: q.id,
+      optionIndex: i === badQ ? badIndex : 0,
+    })),
+  });
+
+  /*
+   * The operator rule, word for word: three of ten rejected, the customer is
+   * told which and why before paying, and pays for seven.
+   */
+  const ten = [];
+  for (let i = 1; i <= 7; i++) ten.push(good("P" + i));
+  for (let i = 8; i <= 10; i++) ten.push(bad("P" + i));
+  const split = splitBatch(roof, ten, TWIA);
+
+  rec("ten submitted, seven accepted", split.accepted.length === 7, String(split.accepted.length));
+  rec("and three rejected", split.rejected.length === 3, String(split.rejected.length));
+  rec("the rejected are NAMED, not counted",
+    split.rejected.map((r) => r.ref).join(",") === "P8,P9,P10",
+    split.rejected.map((r) => r.ref).join(","));
+  rec("each carries its own reason from the catalog",
+    split.rejected.every((r) => r.reason && r.reason.length > 20),
+    split.rejected[0] && split.rejected[0].reason);
+  rec("and none of them says something generic",
+    !split.rejected.some((r) => /rejected|invalid|error/i.test(r.reason)),
+    "a reason a customer cannot act on is not a reason");
+  rec("the total is for the seven only",
+    split.totalCents === 7 * 60000,
+    String(split.totalCents));
+
+  // The summary names the split rather than summarising it away.
+  const summary = splitSummary(split);
+  rec("the summary says how many and that the rest are not charged for",
+    /7 of 10/.test(summary) && /not charged/.test(summary), summary);
+
+  // A duplicate reference is rejected rather than silently collapsed.
+  const dupes = splitBatch(roof, [good("A"), good("A"), good("B")], TWIA);
+  rec("a duplicate reference is rejected, not silently collapsed",
+    dupes.accepted.length === 2 && dupes.rejected.length === 1,
+    dupes.accepted.length + " accepted, " + dupes.rejected.length + " rejected");
+  rec("and says why it matters",
+    /matched back/i.test(dupes.rejected[0].reason), dupes.rejected[0].reason);
+
+  // Missing fields are rejections with their own words, not crashes.
+  const blanks = splitBatch(roof, [
+    { ...good("X"), propertyAddress: "" },
+    { ...good("Y"), county: "" },
+  ], TWIA);
+  rec("a property with no address is rejected", blanks.rejected.length === 2);
+  rec("and the county rejection explains what county decides",
+    /protocol and the price/i.test(blanks.rejected[1].reason), blanks.rejected[1].reason);
+
+  /*
+   * Nothing acceptable means no checkout. A checkout for zero properties is a
+   * charge for nothing.
+   */
+  const none = splitBatch(roof, [bad("Z1"), bad("Z2")], TWIA);
+  rec("a batch with nothing acceptable is flagged empty", none.empty);
+  rec("and its total is zero rather than null", none.totalCents === 0);
+  rec("and the summary says nothing will be charged",
+    /Nothing will be charged/.test(splitSummary(none)), splitSummary(none));
+
+  // The coastal surcharge applies per property, not per batch.
+  const mixed = splitBatch(roof, [good("I1", "Bexar"), good("C1", "Nueces")], TWIA);
+  rec("a coastal property in a batch carries the surcharge",
+    mixed.accepted.find((a) => a.ref === "C1").priceCents === 67500,
+    String(mixed.accepted.find((a) => a.ref === "C1").priceCents));
+  rec("and an inland one in the same batch does not",
+    mixed.accepted.find((a) => a.ref === "I1").priceCents === 60000,
+    String(mixed.accepted.find((a) => a.ref === "I1").priceCents));
+  rec("and the batch total is the sum of the two",
+    mixed.totalCents === 127500, String(mixed.totalCents));
+
+  /*
+   * The shares are what a refund of one property out of a batch works from,
+   * because the charge row belongs to the batch. They must sum to the total
+   * exactly rather than being recomputed from a percentage later.
+   */
+  const shares = batchShares(mixed);
+  rec("every accepted property has a share", shares.length === mixed.accepted.length);
+  rec("and the shares sum to the batch total exactly",
+    shares.reduce((n, s) => n + s.shareCents, 0) === mixed.totalCents,
+    shares.map((s) => s.shareCents).join(" + "));
 }
 
 console.log("============ THE ORDER ENGINE ============");
