@@ -18,7 +18,7 @@ const field =
   "min-h-[44px] w-full rounded-[3px] border border-limestone-line bg-white px-3 text-[16px] text-slate outline-none focus:border-slate";
 const label = "block text-[13px] font-semibold text-slate";
 const button =
-  "inline-flex min-h-[44px] items-center justify-center rounded-[3px] bg-brass px-4 text-[14px] font-bold text-slate-ink transition-colors hover:bg-brass-light disabled:opacity-50";
+  "inline-flex min-h-[var(--tap-target)] items-center justify-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white transition-colors hover:bg-[var(--navy-hover)] disabled:opacity-50";
 
 async function post(payload: Record<string, unknown>) {
   const res = await fetch("/api/portal/field", {

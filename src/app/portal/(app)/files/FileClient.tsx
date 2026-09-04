@@ -108,7 +108,7 @@ export function TransitionControls({
                 className={
                   destructive
                     ? "inline-flex min-h-[44px] items-center rounded-[3px] border border-[#c9312a] px-4 text-[14px] font-bold text-[#8c1d18] hover:bg-[#fdeceb] disabled:opacity-60"
-                    : "inline-flex min-h-[44px] items-center rounded-[3px] bg-brass px-4 text-[14px] font-bold text-slate-ink hover:bg-brass-light disabled:opacity-60"
+                    : "inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white hover:bg-[var(--navy-hover)] disabled:opacity-60"
                 }
               >
                 {busy === o.to ? "Moving..." : STATUS_LABEL[o.to]}
@@ -122,7 +122,7 @@ export function TransitionControls({
           {blocked.map((o) => (
             <div
               key={o.to}
-              className="rounded-[3px] border border-[#f0d9a8] border-l-[3px] border-l-brass bg-[#fdf3e0] px-3 py-2.5"
+              className="rounded-[3px] border border-[#f0d9a8] bg-[#fdf3e0] px-3 py-2.5"
             >
               <p className="text-[13px] font-semibold text-[#7a4c05]">
                 {STATUS_LABEL[o.to]} is not available
@@ -274,7 +274,7 @@ export function NewFileForm({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex min-h-[44px] items-center rounded-[3px] bg-brass px-4 text-[14px] font-bold text-slate-ink hover:bg-brass-light"
+        className="inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white hover:bg-[var(--navy-hover)]"
       >
         {open ? "Cancel" : "Open a file"}
       </button>
@@ -282,7 +282,7 @@ export function NewFileForm({
       {open ? (
         <form
           onSubmit={onSubmit}
-          className="mt-4 rounded-[4px] border border-limestone-line border-t-[3px] border-t-slate bg-white p-4 sm:p-5"
+          className="mt-4 rounded-[4px] border border-limestone-line bg-white p-4 sm:p-5"
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
@@ -345,7 +345,7 @@ export function NewFileForm({
           <button
             type="submit"
             disabled={busy}
-            className="mt-4 min-h-[48px] w-full rounded-[3px] bg-brass px-4 text-[15px] font-bold text-slate-ink hover:bg-brass-light disabled:opacity-60 sm:w-auto sm:px-6"
+            className="mt-4 min-h-[var(--tap-target)] w-full rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[15px] font-bold text-white hover:bg-[var(--navy-hover)] disabled:opacity-60 sm:w-auto sm:px-6"
           >
             {busy ? "Opening..." : "Open the file"}
           </button>

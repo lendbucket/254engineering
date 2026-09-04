@@ -118,7 +118,7 @@ export default async function OnboardingPage({
                         href={`/portal/onboarding?id=${o.id}`}
                         className={`block rounded-[4px] border bg-white p-4 transition-colors hover:border-slate ${
                           selected?.onboarding.id === o.id
-                            ? "border-slate border-l-[3px] border-l-brass"
+                            ? "border-slate"
                             : "border-limestone-line"
                         }`}
                       >
@@ -149,7 +149,7 @@ export default async function OnboardingPage({
               Back to the list
             </Link>
 
-            <div className="rounded-[4px] border border-limestone-line border-t-[3px] border-t-slate bg-white">
+            <div className="rounded-[4px] border border-limestone-line bg-white">
               <div className="border-b border-limestone-line px-4 py-4 sm:px-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">

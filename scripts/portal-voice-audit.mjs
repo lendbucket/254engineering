@@ -214,6 +214,30 @@ const REASSURANCE = [
   "sorry about that",
   "thanks for your patience",
   "please be patient",
+
+  /*
+   * GREETINGS, ADDED AFTER ONE SHIPPED PAST THIS AUDIT.
+   *
+   * The owner dashboard's largest heading read "Good to see you, Shots" and
+   * this check passed it, because the list held apologies and encouragements
+   * and nobody had thought of a greeting. It is the same category: warmth in
+   * place of information, in the one piece of type on a dashboard that has to
+   * say what the screen is.
+   *
+   * A person opening an operations portal knows who they are. The name belongs
+   * in the user menu, where it answers WHICH account is signed in.
+   */
+  "good to see you",
+  "good morning",
+  "good afternoon",
+  "good evening",
+  "welcome back",
+  "welcome to",
+  "hi there",
+  "hello there",
+  "happy to help",
+  "we're here to help",
+  "we are here to help",
 ];
 report(
   "no reassurance copy",

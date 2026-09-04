@@ -100,7 +100,7 @@ export function NewPersonForm({ counties }: { counties: string[] }) {
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="inline-flex min-h-[44px] items-center rounded-[3px] bg-brass px-4 text-[14px] font-bold text-slate-ink hover:bg-brass-light"
+          className="inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white hover:bg-[var(--navy-hover)]"
         >
           {open ? "Cancel" : "Add a person"}
         </button>
@@ -114,7 +114,7 @@ export function NewPersonForm({ counties }: { counties: string[] }) {
       {open ? (
         <form
           onSubmit={onSubmit}
-          className="mt-4 rounded-[4px] border border-limestone-line border-t-[3px] border-t-slate bg-white p-4 sm:p-5"
+          className="mt-4 rounded-[4px] border border-limestone-line bg-white p-4 sm:p-5"
         >
           <fieldset>
             <legend className={label}>Role</legend>
@@ -226,7 +226,7 @@ export function NewPersonForm({ counties }: { counties: string[] }) {
           <button
             type="submit"
             disabled={busy}
-            className="mt-4 min-h-[48px] w-full rounded-[3px] bg-brass px-4 text-[15px] font-bold text-slate-ink hover:bg-brass-light disabled:opacity-60 sm:w-auto sm:px-6"
+            className="mt-4 min-h-[var(--tap-target)] w-full rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[15px] font-bold text-white hover:bg-[var(--navy-hover)] disabled:opacity-60 sm:w-auto sm:px-6"
           >
             {busy ? "Creating..." : "Create and send the invite"}
           </button>

@@ -41,7 +41,7 @@ export function OpenReviewButton({ fileId, status }: { fileId: string; status: s
   const [error, setError] = useState<string | null>(null);
 
   return (
-    <div className="mb-6 rounded-[4px] border border-limestone-line border-l-[3px] border-l-brass bg-limestone px-4 py-3">
+    <div className="mb-6 rounded-[4px] border border-limestone-line bg-limestone px-4 py-3">
       <p className="text-[13.5px] font-semibold text-slate">
         {status === "under_review" ? "This file is in review" : "Not yet in review"}
       </p>
@@ -79,7 +79,7 @@ export function OpenReviewButton({ fileId, status }: { fileId: string; status: s
             setBusy(false);
           }
         }}
-        className="mt-3 inline-flex min-h-[44px] items-center justify-center rounded-[3px] bg-brass px-4 text-[14px] font-bold text-slate-ink disabled:opacity-50"
+        className="mt-3 inline-flex min-h-[var(--tap-target)] items-center justify-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white disabled:opacity-50"
       >
         {busy ? "Opening" : "Take this into review"}
       </button>
@@ -272,7 +272,7 @@ export function DecisionPanel({
               className={`inline-flex min-h-[48px] items-center justify-center rounded-[3px] px-5 text-[15px] font-bold disabled:opacity-50 ${
                 chosen === "refuse"
                   ? "border border-[#a3241c] bg-[#a3241c] text-white"
-                  : "bg-brass text-slate-ink"
+                  : "bg-[var(--navy)] text-white"
               }`}
             >
               {busy ? "Recording" : CONFIRM[chosen]}

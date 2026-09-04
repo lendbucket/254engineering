@@ -32,7 +32,7 @@ export default async function SetPasswordPage({
           <Wordmark onDark height={44} priority />
         </div>
 
-        <div className="rounded-[4px] border border-limestone-line border-t-[3px] border-t-brass bg-white p-6 sm:p-7">
+        <div className="rounded-[4px] border border-limestone-line bg-white p-6 sm:p-7">
           {result.ok ? (
             <>
               <h1 className="font-display text-[22px] leading-[1.2] font-bold text-slate">

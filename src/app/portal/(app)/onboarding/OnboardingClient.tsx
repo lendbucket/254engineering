@@ -15,7 +15,7 @@ import type { ExpiryState } from "@/lib/ops-credentials";
 const field =
   "min-h-[44px] w-full rounded-[3px] border border-limestone-line bg-white px-3 text-[16px] text-slate outline-none focus:border-slate";
 const primary =
-  "inline-flex min-h-[44px] items-center justify-center rounded-[3px] bg-brass px-4 text-[14px] font-bold text-slate-ink transition-colors hover:bg-brass-light disabled:opacity-50";
+  "inline-flex min-h-[var(--tap-target)] items-center justify-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white transition-colors hover:bg-[var(--navy-hover)] disabled:opacity-50";
 const ghost =
   "inline-flex min-h-[44px] items-center justify-center rounded-[3px] border border-limestone-line px-4 text-[14px] font-semibold text-slate hover:border-slate disabled:opacity-50";
 
@@ -72,7 +72,7 @@ export function InviteButton({ applicationId, defaultRole }: { applicationId: st
   if (token) {
     const url = `${window.location.origin}/onboarding/${token}`;
     return (
-      <div className="mt-3 rounded-[3px] border border-limestone-line border-l-[3px] border-l-brass bg-limestone px-3 py-3">
+      <div className="mt-3 rounded-[3px] border border-limestone-line bg-limestone px-3 py-3">
         <p className="text-[13px] font-semibold text-slate">Invitation link, shown once</p>
         <p className="mt-1.5 font-mono text-[12px] leading-[1.5] break-all text-slate">{url}</p>
         <p className="mt-2 text-[12.5px] leading-[1.5] text-slate-muted">
@@ -449,7 +449,7 @@ export function ActivatePanel({
   if (token || linked) {
     const url = token ? `${window.location.origin}/portal/set-password?token=${token}` : null;
     return (
-      <div className="rounded-[3px] border border-limestone-line border-l-[3px] border-l-brass bg-limestone px-3 py-3">
+      <div className="rounded-[3px] border border-limestone-line bg-limestone px-3 py-3">
         <p className="text-[13px] font-semibold text-slate">Account created</p>
         {url ? (
           <>

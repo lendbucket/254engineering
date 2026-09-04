@@ -95,7 +95,7 @@ export function Composer({
       <button
         type="submit"
         disabled={busy || !body.trim()}
-        className="mt-3 inline-flex min-h-[48px] items-center justify-center rounded-[3px] bg-brass px-6 text-[15px] font-bold text-slate-ink transition-colors hover:bg-brass-light disabled:opacity-50"
+        className="mt-3 inline-flex min-h-[var(--tap-target)] items-center justify-center rounded-[var(--radius-control)] bg-[var(--navy)] px-6 text-[15px] font-bold text-white transition-colors hover:bg-[var(--navy-hover)] disabled:opacity-50"
       >
         {busy ? "Sending" : "Send"}
       </button>
@@ -116,7 +116,7 @@ export function StartDirect({ people }: { people: { id: string; name: string; ro
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex min-h-[44px] items-center justify-center rounded-[3px] bg-brass px-4 text-[14px] font-bold text-slate-ink"
+        className="inline-flex min-h-[var(--tap-target)] items-center justify-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white"
       >
         Message somebody
       </button>
@@ -260,7 +260,7 @@ export function NewChannel() {
         <button
           type="submit"
           disabled={busy}
-          className="inline-flex min-h-[44px] items-center rounded-[3px] bg-brass px-4 text-[14px] font-bold text-slate-ink disabled:opacity-50"
+          className="inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white disabled:opacity-50"
         >
           {busy ? "Opening" : "Open the channel"}
         </button>

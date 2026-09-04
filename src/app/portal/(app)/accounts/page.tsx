@@ -49,7 +49,7 @@ export default async function AccountsPage() {
       ) : (
         <>
           {blocked.length > 0 ? (
-            <div className="mb-4 rounded-[4px] border border-[#f0d9a8] border-l-[3px] border-l-brass bg-[#fdf3e0] px-4 py-3.5">
+            <div className="mb-4 rounded-[4px] border border-[#f0d9a8] bg-[#fdf3e0] px-4 py-3.5">
               <p className="text-[13px] font-bold tracking-[0.1em] text-[#7a4c05] uppercase">
                 {blocked.length} account{blocked.length === 1 ? "" : "s"} cannot order
               </p>

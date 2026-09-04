@@ -109,7 +109,7 @@ export default async function ChargeLogPage({
                     key={r.id}
                     className={`rounded-[4px] border bg-white p-4 ${
                       r.refused
-                        ? "border-[#e8bdb8] border-l-[3px] border-l-[#a3241c]"
+                        ? "border-[#e8bdb8] border-l-[#a3241c]"
                         : "border-limestone-line"
                     }`}
                   >

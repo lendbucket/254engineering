@@ -87,7 +87,7 @@ export function DispatchPanel({
   }
 
   return (
-    <div className="rounded-[4px] border border-limestone-line border-t-[3px] border-t-slate bg-white px-4 py-4 sm:px-5">
+    <div className="rounded-[4px] border border-limestone-line bg-white px-4 py-4 sm:px-5">
       <p className="text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">Dispatch</p>
 
       {protocolName ? (
@@ -207,7 +207,7 @@ export function DispatchPanel({
             type="button"
             disabled={busy || selected.length === 0}
             onClick={() => void send()}
-            className="mt-4 inline-flex min-h-[48px] items-center justify-center rounded-[3px] bg-brass px-5 text-[15px] font-bold text-slate-ink transition-colors hover:bg-brass-light disabled:opacity-50"
+            className="mt-4 inline-flex min-h-[var(--tap-target)] items-center justify-center rounded-[var(--radius-control)] bg-[var(--navy)] px-5 text-[15px] font-bold text-white transition-colors hover:bg-[var(--navy-hover)] disabled:opacity-50"
           >
             {busy
               ? "Sending"

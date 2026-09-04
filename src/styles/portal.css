@@ -173,6 +173,20 @@
  * another. The one uppercase treatment in the system, the column header, is a
  * genuine visual style on text that is already written in sentence case.
  */
+/*
+ * The kicker: the one uppercase treatment in the system.
+ *
+ * Colour is deliberately NOT set here, so the same class works on the navy rail
+ * and on a white panel and a caller picks the colour. .portal-column-header
+ * below is this plus the colour a table header always wants.
+ */
+.portal-kicker {
+  font-size: var(--type-column-header);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-column-header);
+  text-transform: uppercase;
+}
+
 .portal-column-header {
   font-size: var(--type-column-header);
   font-weight: var(--weight-bold);

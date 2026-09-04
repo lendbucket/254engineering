@@ -209,7 +209,7 @@ export function OrdersClient({
           type="button"
           disabled={busy !== null}
           onClick={() => ask(false)}
-          className="inline-flex min-h-[44px] items-center rounded-[3px] bg-brass px-4 text-[13px] font-bold text-slate-ink disabled:opacity-45"
+          className="inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white disabled:opacity-45"
         >
           {busy === "ask" ? "Asking" : "Ask the provider what happened"}
         </button>

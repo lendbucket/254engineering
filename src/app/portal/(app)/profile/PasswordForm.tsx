@@ -82,7 +82,7 @@ export function PasswordForm({ minLength }: { minLength: number }) {
       <button
         type="submit"
         disabled={busy}
-        className="mt-5 min-h-[48px] w-full rounded-[3px] bg-brass px-4 text-[15px] font-bold text-slate-ink hover:bg-brass-light disabled:opacity-60 sm:w-auto sm:px-6"
+        className="mt-5 min-h-[var(--tap-target)] w-full rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[15px] font-bold text-white hover:bg-[var(--navy-hover)] disabled:opacity-60 sm:w-auto sm:px-6"
       >
         {busy ? "Saving..." : "Change password"}
       </button>

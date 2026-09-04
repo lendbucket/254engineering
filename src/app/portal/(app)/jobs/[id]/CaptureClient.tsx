@@ -267,7 +267,7 @@ export function Checklist({
       </div>
 
       {!online ? (
-        <div className="mb-4 rounded-[4px] border border-[#f0d9a8] border-l-[3px] border-l-brass bg-[#fdf3e0] px-4 py-3">
+        <div className="mb-4 rounded-[4px] border border-[#f0d9a8] bg-[#fdf3e0] px-4 py-3">
           <p className="text-[13.5px] leading-[1.55] font-semibold text-[#7a4c05]">
             No signal. Keep working.
           </p>
@@ -315,9 +315,9 @@ export function Checklist({
               key={item.id}
               className={`rounded-[4px] border bg-white p-4 ${
                 status.satisfied
-                  ? "border-limestone-line border-l-[3px] border-l-[#2f6b45]"
+                  ? "border-limestone-line border-l-[#2f6b45]"
                   : item.required
-                    ? "border-limestone-line border-l-[3px] border-l-brass"
+                    ? "border-limestone-line"
                     : "border-limestone-line"
               }`}
             >
@@ -417,7 +417,7 @@ export function Checklist({
               type="button"
               disabled={!canSubmit || submitting}
               onClick={() => void submit()}
-              className="inline-flex min-h-[52px] w-full items-center justify-center rounded-[3px] bg-brass px-4 text-[16px] font-bold text-slate-ink transition-colors hover:bg-brass-light disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:px-8"
+              className="inline-flex min-h-[52px] w-full items-center justify-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[16px] font-bold text-white transition-colors hover:bg-[var(--navy-hover)] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:px-8"
             >
               {submitting ? "Submitting" : "Submit this package"}
             </button>

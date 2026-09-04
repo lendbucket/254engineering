@@ -26,7 +26,7 @@ import type { Mispointing } from "@/lib/db-guard";
 export function MispointedDeployment({ fault }: { fault: Mispointing }) {
   return (
     <main className="grid min-h-dvh place-items-center bg-slate px-5 py-12">
-      <div className="w-full max-w-[62ch] rounded-[4px] border border-[#a3241c] border-t-[3px] bg-white px-6 py-7">
+      <div className="w-full max-w-[62ch] rounded-[4px] border border-[#a3241c] bg-white px-6 py-7">
         <p className="text-[12px] font-bold tracking-[0.14em] text-[#a3241c] uppercase">
           Stopped before anything was read or written
         </p>

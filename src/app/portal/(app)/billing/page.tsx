@@ -103,7 +103,7 @@ export default async function BillingPage() {
           </Panel>
 
           {incomplete.length > 0 ? (
-            <div className="mt-4 rounded-[4px] border border-[#f0d9a8] border-l-[3px] border-l-brass bg-[#fdf3e0] px-4 py-3.5">
+            <div className="mt-4 rounded-[4px] border border-[#f0d9a8] bg-[#fdf3e0] px-4 py-3.5">
               <p className="text-[13px] font-bold tracking-[0.1em] text-[#7a4c05] uppercase">
                 {incomplete.length} file{incomplete.length === 1 ? "" : "s"} left out of the totals
               </p>

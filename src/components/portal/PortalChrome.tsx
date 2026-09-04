@@ -105,17 +105,30 @@ export function SidebarNav({ items }: { items: NavItem[] }) {
       {items.map((item) => {
         const active = isActive(pathname, item.href);
         return (
+          /*
+            THE ACTIVE ITEM IS MARKED BY A GOLD BAR, NOT BY A TINTED PILL.
+
+            The standards file specifies a 3px gold bar on the active item, and
+            it is one of the four places gold is allowed to appear at all. The
+            tinted pill it replaces was a second way of saying the same thing
+            and read as a button rather than as a position.
+
+            The bar is rendered as a border rather than an absolutely positioned
+            element so it cannot drift out of alignment with its row, and the
+            inactive rows carry a transparent border of the same width so
+            nothing shifts sideways when the selection moves.
+          */
           <Link
             key={item.href}
             href={item.href}
             aria-current={active ? "page" : undefined}
-            className={`flex min-h-[44px] items-center gap-3 rounded-[4px] px-3 text-[14px] font-semibold transition-colors ${
+            className={`flex min-h-[var(--tap-target)] items-center gap-3 border-l-[var(--active-bar-width)] px-3 text-[13.5px] font-semibold transition-colors ${
               active
-                ? "bg-white/[0.14] text-slate-fg"
-                : "text-slate-fg/70 hover:bg-white/[0.07] hover:text-slate-fg"
+                ? "border-l-[var(--gold)] bg-white/[0.08] text-white"
+                : "border-l-transparent text-white/70 hover:bg-white/[0.05] hover:text-white"
             }`}
           >
-            <span className={active ? "text-brass-light" : "text-slate-fg/55"}>
+            <span className={active ? "text-[var(--gold-bright)]" : "text-white/55"}>
               <Icon name={item.icon} />
             </span>
             {item.label}
@@ -138,18 +151,30 @@ export function MobileTabs({ items }: { items: NavItem[] }) {
   return (
     <nav
       aria-label="Portal"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-white/12 bg-slate-deep pb-[env(safe-area-inset-bottom)] lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-white/12 bg-[var(--navy)] pb-[env(safe-area-inset-bottom)] lg:hidden"
     >
       <ul className="flex">
         {items.map((item) => {
           const active = isActive(pathname, item.href);
           return (
             <li key={item.href} className="flex-1">
+              {/*
+                A GOLD BAR ON TOP OF THE ACTIVE TAB, NOT JUST GOLD TEXT.
+
+                The standards file specifies it, and on a phone it is the more
+                useful of the two: a 11px label in a slightly different colour
+                is hard to pick out at arm's length in daylight, and a bar at
+                the edge of the tab is not. The inactive tabs carry a
+                transparent bar of the same height so nothing moves when the
+                selection changes.
+              */}
               <Link
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`flex min-h-[56px] flex-col items-center justify-center gap-1 px-1 py-2 text-[11px] font-semibold ${
-                  active ? "text-brass-light" : "text-slate-fg/65"
+                className={`flex min-h-[56px] flex-col items-center justify-center gap-1 border-t-[var(--active-bar-width)] px-1 py-2 text-[11px] font-semibold ${
+                  active
+                    ? "border-t-[var(--gold)] text-[var(--gold-bright)]"
+                    : "border-t-transparent text-white/65"
                 }`}
               >
                 <Icon name={item.icon} />
@@ -212,11 +237,16 @@ export function ProfileMenu({
         aria-haspopup="menu"
         className="flex min-h-[44px] min-w-[44px] items-center gap-2 rounded-[4px] px-2 text-slate-fg hover:bg-white/[0.08]"
       >
-        <span className="grid h-8 w-8 place-items-center rounded-full bg-brass text-[12px] font-bold text-slate-ink">
+        {/*
+          The avatar was a gold disc, which is gold as decoration and the one
+          use the palette rules out. It is the navy the rest of the chrome uses,
+          with white initials.
+        */}
+        <span className="grid h-8 w-8 place-items-center rounded-full border border-white/25 bg-[var(--navy)] text-[12px] font-bold text-white">
           {initials || "?"}
         </span>
         <span className="hidden text-left sm:block">
-          <span className="block text-[13px] leading-tight font-semibold">{displayName}</span>
+          <span className="block text-[13.5px] leading-tight font-semibold">{displayName}</span>
           <span className="block text-[11px] leading-tight text-slate-fg/60">{roleLabel}</span>
         </span>
       </button>
@@ -224,18 +254,18 @@ export function ProfileMenu({
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 z-50 mt-2 w-[260px] rounded-[4px] border border-limestone-line bg-white p-2 shadow-[0_18px_40px_rgba(11,26,48,0.22)]"
+          className="absolute right-0 z-50 mt-2 w-[260px] rounded-[4px] border border-limestone-line bg-white p-2 shadow-[var(--shadow-menu)]"
         >
           <div className="border-b border-limestone-line px-3 pt-2 pb-3">
-            <p className="text-[13px] font-semibold text-slate">{displayName}</p>
+            <p className="text-[13.5px] font-semibold text-slate">{displayName}</p>
             <p className="mt-0.5 text-[12px] break-all text-slate-muted">{email}</p>
-            <p className="mt-1 text-[11px] font-bold tracking-[0.1em] text-brass-ink uppercase">{roleLabel}</p>
+            <p className="portal-kicker mt-1 text-[var(--gold-deep)]">{roleLabel}</p>
           </div>
           <Link
             href="/portal/profile"
             role="menuitem"
             onClick={() => setOpen(false)}
-            className="mt-1 flex min-h-[44px] items-center rounded-[3px] px-3 text-[14px] font-semibold text-slate hover:bg-limestone"
+            className="mt-1 flex min-h-[44px] items-center rounded-[3px] px-3 text-[13.5px] font-semibold text-slate hover:bg-limestone"
           >
             Your profile and password
           </Link>
@@ -243,7 +273,7 @@ export function ProfileMenu({
             type="button"
             role="menuitem"
             onClick={signOut}
-            className="flex min-h-[44px] w-full items-center rounded-[3px] px-3 text-left text-[14px] font-semibold text-slate hover:bg-limestone"
+            className="flex min-h-[44px] w-full items-center rounded-[3px] px-3 text-left text-[13.5px] font-semibold text-slate hover:bg-limestone"
           >
             Sign out
           </button>
@@ -309,8 +339,12 @@ export function NotificationBell({
         className="relative grid h-11 w-11 place-items-center rounded-[4px] text-slate-fg hover:bg-white/[0.08]"
       >
         <Icon name="bell" />
+        {/*
+          The unread count stays gold, and this is the legitimate use: it is a
+          pending state, which is one of the four things gold is for.
+        */}
         {unread > 0 ? (
-          <span className="absolute top-1.5 right-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-brass px-1 text-[10px] font-bold text-slate-ink">
+          <span className="absolute top-1.5 right-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--gold)] px-1 text-[11px] font-bold text-[var(--ink-navy)]">
             {unread > 9 ? "9+" : unread}
           </span>
         ) : null}
@@ -331,12 +365,12 @@ export function NotificationBell({
          * and the page was, by that measure, fine. Found by opening the bell in
          * a screenshot and reading the titles.
          */
-        <div className="fixed inset-x-4 top-[calc(60px+env(safe-area-inset-top))] z-50 rounded-[4px] border border-limestone-line bg-white shadow-[0_18px_40px_rgba(11,26,48,0.22)] sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-[340px]">
-          <p className="border-b border-limestone-line px-4 py-3 text-[12px] font-bold tracking-[0.12em] text-brass-ink uppercase">
+        <div className="fixed inset-x-4 top-[calc(60px+env(safe-area-inset-top))] z-50 rounded-[4px] border border-limestone-line bg-white shadow-[var(--shadow-menu)] sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-[340px]">
+          <p className="portal-kicker border-b border-[var(--border)] px-4 py-3 text-[var(--gold-deep)]">
             Notifications
           </p>
           {items.length === 0 ? (
-            <p className="px-4 py-6 text-[14px] leading-[1.6] text-slate-muted">
+            <p className="px-4 py-6 text-[13.5px] leading-[1.6] text-slate-muted">
               Nothing yet. Job offers, review requests, and deadline reminders arrive here.
             </p>
           ) : (
@@ -347,11 +381,11 @@ export function NotificationBell({
                     href={n.href ?? "#"}
                     onClick={() => setOpen(false)}
                     className={`block px-4 py-3 hover:bg-limestone ${
-                      n.read ? "" : "border-l-[3px] border-l-brass"
+                      n.read ? "" : ""
                     }`}
                   >
-                    <p className="text-[14px] font-semibold text-slate">{n.title}</p>
-                    {n.body ? <p className="mt-1 text-[13px] leading-[1.55] text-slate-muted">{n.body}</p> : null}
+                    <p className="text-[13.5px] font-semibold text-slate">{n.title}</p>
+                    {n.body ? <p className="mt-1 text-[13.5px] leading-[1.55] text-slate-muted">{n.body}</p> : null}
                   </Link>
                 </li>
               ))}
@@ -401,7 +435,7 @@ export function CommandPalette({ items }: { items: NavItem[] }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="hidden min-h-[40px] items-center gap-2 rounded-[4px] border border-white/15 px-3 text-[13px] text-slate-fg/70 hover:border-white/30 hover:text-slate-fg lg:flex"
+        className="hidden min-h-[40px] items-center gap-2 rounded-[4px] border border-white/15 px-3 text-[13.5px] text-slate-fg/70 hover:border-white/30 hover:text-slate-fg lg:flex"
       >
         <Icon name="search" />
         <span>Search</span>
@@ -416,7 +450,7 @@ export function CommandPalette({ items }: { items: NavItem[] }) {
           <div
             role="dialog"
             aria-label="Command palette"
-            className="mx-auto w-full max-w-[520px] overflow-hidden rounded-[4px] border border-limestone-line bg-white shadow-[0_24px_60px_rgba(11,26,48,0.35)]"
+            className="mx-auto w-full max-w-[520px] overflow-hidden rounded-[4px] border border-limestone-line bg-white shadow-[var(--shadow-modal)]"
           >
             <input
               ref={inputRef}
@@ -435,7 +469,7 @@ export function CommandPalette({ items }: { items: NavItem[] }) {
                       setOpen(false);
                       router.push(item.href);
                     }}
-                    className="flex min-h-[44px] w-full items-center gap-3 px-4 text-left text-[14px] font-semibold text-slate hover:bg-limestone"
+                    className="flex min-h-[44px] w-full items-center gap-3 px-4 text-left text-[13.5px] font-semibold text-slate hover:bg-limestone"
                   >
                     <span className="text-brass-ink">
                       <Icon name={item.icon} />
@@ -445,7 +479,7 @@ export function CommandPalette({ items }: { items: NavItem[] }) {
                 </li>
               ))}
               {matches.length === 0 ? (
-                <li className="px-4 py-4 text-[14px] text-slate-muted">Nothing here matches that.</li>
+                <li className="px-4 py-4 text-[13.5px] text-slate-muted">Nothing here matches that.</li>
               ) : null}
             </ul>
             <p className="border-t border-limestone-line bg-limestone px-4 py-3 text-[12px] leading-[1.5] text-slate-muted">
@@ -485,7 +519,7 @@ export function MobileMore({ items }: { items: NavItem[] }) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-limestone-line px-4 py-3">
-              <p className="text-[12px] font-bold tracking-[0.12em] text-brass-ink uppercase">More</p>
+              <p className="portal-kicker text-[var(--gold-deep)]">More</p>
               <button
                 type="button"
                 onClick={() => setOpen(false)}

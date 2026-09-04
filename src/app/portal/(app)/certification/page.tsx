@@ -134,8 +134,8 @@ export default async function CertificationPage({
                           key={p.service_slug as string}
                           className={`rounded-[4px] border bg-white p-4 ${
                             certified
-                              ? "border-limestone-line border-l-[3px] border-l-[#2f6b45]"
-                              : "border-limestone-line border-l-[3px] border-l-brass"
+                              ? "border-limestone-line border-l-[#2f6b45]"
+                              : "border-limestone-line"
                           }`}
                         >
                           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -165,7 +165,7 @@ export default async function CertificationPage({
                           ) : (
                             <a
                               href={`/portal/certification?service=${p.service_slug as string}`}
-                              className="mt-3 inline-flex min-h-[48px] items-center justify-center rounded-[3px] bg-brass px-5 text-[15px] font-bold text-slate-ink"
+                              className="mt-3 inline-flex min-h-[var(--tap-target)] items-center justify-center rounded-[var(--radius-control)] bg-[var(--navy)] px-5 text-[15px] font-bold text-white"
                             >
                               {cert ? "Take it again" : "Read the protocol and take the check"}
                             </a>

@@ -176,6 +176,11 @@ const PORTED = [
   "src/app/portal/(public)/login/page.tsx",
   "src/app/portal/(public)/login/LoginForm.tsx",
   "src/app/portal/(app)/not-found.tsx",
+
+  // Section 2 item 2: the chrome every owner screen sits inside.
+  "src/app/portal/(app)/layout.tsx",
+  "src/components/portal/PortalChrome.tsx",
+  "src/components/portal/surfaces.tsx",
 ];
 
 const portalFiles = allPortalFiles.filter((f) => PORTED.includes(f));
@@ -308,11 +313,26 @@ for (const [standard, site] of TWINS) {
     shadowTokens.join(", "),
   );
 
-  const cardShadows = portalFiles.filter((f) => /shadow-\[|drop-shadow-\[/.test(codeOnly(f)));
+  /*
+   * A shadow is allowed only through one of the two overlay TOKENS.
+   *
+   * The first version banned every shadow-[...] outright, which caught the
+   * dropdown, the notification panel and the command palette: three overlays
+   * the standards file explicitly permits, written as three different hand
+   * rolled rgba values. Banning them was wrong and allowing arbitrary ones
+   * would be worse, so the rule is that the value must be a token. That also
+   * collapses the three near identical values into the two the document names.
+   */
+  const rawShadows = [];
+  for (const f of portalFiles) {
+    for (const m of codeOnly(f).matchAll(/(?:drop-)?shadow-\[([^\]]+)\]/g)) {
+      if (!/^var\(--shadow-(menu|modal)\)$/.test(m[1])) rawShadows.push(`${f}: ${m[0]}`);
+    }
+  }
   rec(
-    "no portal component declares an arbitrary shadow",
-    cardShadows.length === 0,
-    cardShadows.slice(0, 4).join(", ") || "none",
+    "every shadow comes from one of the two overlay tokens",
+    rawShadows.length === 0,
+    rawShadows.slice(0, 4).join("  |  ") || "menu and modal only, and no card carries one",
   );
 
   /*
@@ -333,7 +353,7 @@ for (const [standard, site] of TWINS) {
     "sentence case is written, not CSS transformed",
     transforms.length === 0,
     transforms.slice(0, 6).join(", ") ||
-      "the one uppercase treatment is .portal-column-header in the token file",
+      "the only uppercase treatments are .portal-kicker and .portal-column-header",
   );
 
   rec(

@@ -37,12 +37,11 @@ export default async function PortalHome() {
   if (!can(actor, "files.list") && !can(actor, "offers.list_own")) redirect("/portal/profile");
 
   const dashboard = await dashboardFor(actor);
-  const firstName = actor.display_name.split(" ")[0];
 
   if (!dashboard) {
     return (
       <>
-        <PageHead eyebrow="Operations" title={`Good to see you, ${firstName}`} />
+        <PageHead eyebrow="Operations" title="Dashboard" />
         <EmptyState
           title="Your dashboard is not available"
           body="This account is not active, so nothing is being read on your behalf. Ask an administrator to look at it."
@@ -60,9 +59,22 @@ export default async function PortalHome() {
 
   return (
     <>
+      {/*
+        "Good to see you, Shots" is gone.
+
+        The standards file's voice rule is terse, neutral and factual, and names
+        reassurance and cleverness as things never to write. A greeting is both.
+        It also occupied the largest type on the screen, which is the one place
+        a dashboard has to say what it is, and said nothing: the reader already
+        knows who they are and did not open an operations portal to be greeted.
+
+        The name is not lost. It is in the header's user menu, where somebody
+        checks WHICH account they are signed in as, which is the only question a
+        name on this screen ever answered.
+      */}
       <PageHead
         eyebrow={ROLE_LABEL[actor.role]}
-        title={`Good to see you, ${firstName}`}
+        title="Dashboard"
         lede={lede}
         actions={
           dashboard.role === "admin" ? (
@@ -146,7 +158,7 @@ export default async function PortalHome() {
       ) : null}
 
       {isPrelaunch() ? (
-        <div className="mt-6 rounded-[4px] border border-[#f0d9a8] border-l-[3px] border-l-brass bg-[#fdf3e0] px-4 py-3.5">
+        <div className="mt-6 rounded-[4px] border border-[#f0d9a8] bg-[#fdf3e0] px-4 py-3.5">
           <p className="text-[13px] font-bold tracking-[0.1em] text-[#7a4c05] uppercase">
             Compliance gate active
           </p>

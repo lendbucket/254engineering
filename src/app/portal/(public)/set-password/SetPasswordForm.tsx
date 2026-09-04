@@ -105,7 +105,7 @@ export function SetPasswordForm({ token, minLength }: { token: string; minLength
       <button
         type="submit"
         disabled={busy}
-        className="mt-6 min-h-[48px] w-full rounded-[3px] bg-brass px-4 text-[15px] font-bold text-slate-ink transition-colors hover:bg-brass-light disabled:cursor-not-allowed disabled:opacity-60"
+        className="mt-6 min-h-[var(--tap-target)] w-full rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[15px] font-bold text-white transition-colors hover:bg-[var(--navy-hover)] disabled:cursor-not-allowed disabled:opacity-60"
       >
         {busy ? "Saving..." : "Set my password"}
       </button>

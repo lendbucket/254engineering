@@ -80,7 +80,7 @@ export default async function MessagesPage({
                       href={`/portal/messages?id=${t.id}`}
                       className={`block rounded-[4px] border bg-white p-4 transition-colors hover:border-slate ${
                         open?.thread.id === t.id
-                          ? "border-slate border-l-[3px] border-l-brass"
+                          ? "border-slate"
                           : "border-limestone-line"
                       }`}
                     >
@@ -118,7 +118,7 @@ export default async function MessagesPage({
               Back to conversations
             </Link>
 
-            <div className="rounded-[4px] border border-limestone-line border-t-[3px] border-t-slate bg-white">
+            <div className="rounded-[4px] border border-limestone-line bg-white">
               <div className="border-b border-limestone-line px-4 py-3 sm:px-5">
                 <h2 className="font-display text-[18px] leading-[1.25] font-bold text-slate">
                   {open.thread.title}

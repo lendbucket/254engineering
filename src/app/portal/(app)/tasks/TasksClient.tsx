@@ -53,7 +53,7 @@ export function QuickAdd({
 
   return (
     <form
-      className="rounded-[4px] border border-limestone-line border-t-[3px] border-t-slate bg-white p-4"
+      className="rounded-[4px] border border-limestone-line bg-white p-4"
       onSubmit={async (e) => {
         e.preventDefault();
         if (!title.trim()) return;
@@ -98,7 +98,7 @@ export function QuickAdd({
         <button
           type="submit"
           disabled={busy || !title.trim()}
-          className="inline-flex min-h-[48px] shrink-0 items-center justify-center rounded-[3px] bg-brass px-6 text-[16px] font-bold text-slate-ink transition-colors hover:bg-brass-light disabled:opacity-50"
+          className="inline-flex min-h-[var(--tap-target)] shrink-0 items-center justify-center rounded-[var(--radius-control)] bg-[var(--navy)] px-6 text-[16px] font-bold text-white transition-colors hover:bg-[var(--navy-hover)] disabled:opacity-50"
         >
           {busy ? "Adding" : "Add"}
         </button>
@@ -245,7 +245,7 @@ export function SeedButton() {
             setBusy(false);
           }
         }}
-        className="inline-flex min-h-[44px] items-center rounded-[3px] bg-brass px-4 text-[14px] font-bold text-slate-ink disabled:opacity-50"
+        className="inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white disabled:opacity-50"
       >
         {busy ? "Seeding" : "Seed the compliance tasks"}
       </button>

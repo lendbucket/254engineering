@@ -100,7 +100,7 @@ export default async function TasksPage({
       </div>
 
       {can(actor, "profiles.list") && seeded.length === 0 ? (
-        <div className="mb-5 rounded-[4px] border border-limestone-line border-l-[3px] border-l-brass bg-white px-4 py-4">
+        <div className="mb-5 rounded-[4px] border border-limestone-line bg-white px-4 py-4">
           <p className="text-[14px] font-semibold text-slate">The compliance obligations are not seeded yet</p>
           <p className="mt-1.5 max-w-[75ch] text-[13px] leading-[1.55] text-slate-muted">
             The PE licence renewal, the DWC-005 filing, the TBPELS and errors and omissions renewals,
@@ -126,9 +126,9 @@ export default async function TasksPage({
                 key={task.id}
                 className={`rounded-[4px] border bg-white p-4 ${
                   late
-                    ? "border-[#e8bdb8] border-l-[3px] border-l-[#a3241c]"
+                    ? "border-[#e8bdb8] border-l-[#a3241c]"
                     : task.priority === "urgent"
-                      ? "border-limestone-line border-l-[3px] border-l-brass"
+                      ? "border-limestone-line"
                       : "border-limestone-line"
                 }`}
               >

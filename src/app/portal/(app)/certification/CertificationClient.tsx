@@ -104,7 +104,7 @@ export function CheckRunner({
 
   if (result?.passed) {
     return (
-      <div className="rounded-[4px] border border-limestone-line border-t-[3px] border-t-[#2f6b45] bg-white px-4 py-6 sm:px-6">
+      <div className="rounded-[4px] border border-limestone-line border-t-[#2f6b45] bg-white px-4 py-6 sm:px-6">
         <p className="text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">Certified</p>
         <h2 className="mt-2 font-display text-[22px] leading-[1.2] font-bold text-slate">{serviceName}</h2>
         <p className="mt-2 max-w-[65ch] text-[14px] leading-[1.6] text-slate-muted">
@@ -113,7 +113,7 @@ export function CheckRunner({
         </p>
         <a
           href="/portal/certification"
-          className="mt-4 inline-flex min-h-[48px] items-center justify-center rounded-[3px] bg-brass px-5 text-[15px] font-bold text-slate-ink"
+          className="mt-4 inline-flex min-h-[var(--tap-target)] items-center justify-center rounded-[var(--radius-control)] bg-[var(--navy)] px-5 text-[15px] font-bold text-white"
         >
           Back to your certifications
         </a>
@@ -130,7 +130,7 @@ export function CheckRunner({
         Back to your certifications
       </a>
 
-      <div className="rounded-[4px] border border-limestone-line border-t-[3px] border-t-slate bg-white px-4 py-5 sm:px-5">
+      <div className="rounded-[4px] border border-limestone-line bg-white px-4 py-5 sm:px-5">
         <p className="text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">{protocolName}</p>
         <h2 className="mt-1 font-display text-[20px] leading-[1.2] font-bold text-slate">{serviceName}</h2>
         <p className="mt-2 max-w-[70ch] text-[13.5px] leading-[1.55] text-slate-muted">
@@ -163,11 +163,11 @@ export function CheckRunner({
       </div>
 
       {blocked ? (
-        <div className="mt-6 rounded-[4px] border border-limestone-line border-l-[3px] border-l-brass bg-white px-4 py-4">
+        <div className="mt-6 rounded-[4px] border border-limestone-line bg-white px-4 py-4">
           <p className="text-[13.5px] leading-[1.55] text-slate-muted">{blocked}</p>
         </div>
       ) : questions.length === 0 ? (
-        <div className="mt-6 rounded-[4px] border border-limestone-line border-l-[3px] border-l-brass bg-white px-4 py-4">
+        <div className="mt-6 rounded-[4px] border border-limestone-line bg-white px-4 py-4">
           <p className="text-[14px] font-semibold text-slate">No check questions on this protocol yet</p>
           <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-[1.55] text-slate-muted">
             The engineer who wrote this protocol has not added the questions yet, so there is nothing
@@ -177,7 +177,7 @@ export function CheckRunner({
       ) : (
         <div className="mt-6">
           {result && !result.passed ? (
-            <div className="mb-5 rounded-[4px] border border-[#e8bdb8] border-l-[3px] border-l-[#a3241c] bg-[#fdf1f0] px-4 py-4">
+            <div className="mb-5 rounded-[4px] border border-[#e8bdb8] border-l-[#a3241c] bg-[#fdf1f0] px-4 py-4">
               <p className="text-[14px] font-bold text-[#a3241c]">
                 {result.correct} of {result.total}. Not passed.
               </p>
@@ -203,7 +203,7 @@ export function CheckRunner({
                 <li
                   key={q.id}
                   className={`rounded-[4px] border bg-white p-4 ${
-                    missed ? "border-[#e8bdb8] border-l-[3px] border-l-[#a3241c]" : "border-limestone-line"
+                    missed ? "border-[#e8bdb8] border-l-[#a3241c]" : "border-limestone-line"
                   }`}
                 >
                   <fieldset>
@@ -259,7 +259,7 @@ export function CheckRunner({
               type="button"
               disabled={busy}
               onClick={() => void submit()}
-              className="inline-flex min-h-[52px] w-full items-center justify-center rounded-[3px] bg-brass px-5 text-[16px] font-bold text-slate-ink transition-colors hover:bg-brass-light disabled:opacity-50 sm:w-auto sm:px-8"
+              className="inline-flex min-h-[52px] w-full items-center justify-center rounded-[var(--radius-control)] bg-[var(--navy)] px-5 text-[16px] font-bold text-white transition-colors hover:bg-[var(--navy-hover)] disabled:opacity-50 sm:w-auto sm:px-8"
             >
               {busy ? "Checking" : result ? "Submit again" : "Submit the check"}
             </button>

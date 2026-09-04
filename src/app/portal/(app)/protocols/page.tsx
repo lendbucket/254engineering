@@ -68,7 +68,7 @@ export default async function ProtocolsPage({
       />
 
       {uncovered.length > 0 ? (
-        <div className="mb-6 rounded-[4px] border border-limestone-line border-l-[3px] border-l-brass bg-white px-4 py-3">
+        <div className="mb-6 rounded-[4px] border border-limestone-line bg-white px-4 py-3">
           <p className="text-[13px] font-semibold text-slate">
             {uncovered.length} service line{uncovered.length === 1 ? "" : "s"} cannot be dispatched yet
           </p>
@@ -103,7 +103,7 @@ export default async function ProtocolsPage({
                       href={`/portal/protocols?id=${t.id}`}
                       className={`block rounded-[4px] border bg-white p-4 transition-colors hover:border-slate ${
                         selected?.id === t.id
-                          ? "border-slate border-l-[3px] border-l-brass"
+                          ? "border-slate"
                           : "border-limestone-line"
                       }`}
                     >
@@ -136,7 +136,7 @@ export default async function ProtocolsPage({
               Back to the list
             </Link>
 
-            <div className="rounded-[4px] border border-limestone-line border-t-[3px] border-t-slate bg-white">
+            <div className="rounded-[4px] border border-limestone-line bg-white">
               <div className="border-b border-limestone-line px-4 py-4 sm:px-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">

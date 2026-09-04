@@ -1842,3 +1842,30 @@ insurer, an opposing expert, or a board investigator, asks the firm to
 demonstrate that a sealed document's evidence is the evidence that was reviewed.
 That question is the entire reason the column was drawn, and it is a good
 question.
+
+### An unmatched portal URL renders the public 404, a refused one renders the portal 404
+
+Recorded 2026-09-04, during the portal design port. Operator ruling the same
+day: leave it, record it, do not fix it.
+
+**What happens.** `notFound()` called from inside a matched portal route, which
+is what every role refusal does, renders `src/app/portal/(app)/not-found.tsx`
+inside the portal chrome. A URL under `/portal` that matches no route at all
+falls through to `src/app/not-found.tsx`, the public site's, with public site
+copy and public site links.
+
+**Why it is not a leak.** Both are only reachable by a signed in user: the proxy
+sends a signed out client to `/portal/login` before either can render. A signed
+in user learning that `/portal/queue` exists and is not theirs learns nothing,
+because the navigation is built from the same permission list and simply does
+not draw items their role cannot open. `security-audit`'s rule is about a signed
+out client, and that rule is unaffected.
+
+**Why it was not fixed.** Making them identical needs a catch all route under
+`/portal`, which is a routing change in a workstream that is presentation only,
+for a purely cosmetic gain. The wrong trade.
+
+**The condition that would make it worth doing:** a signed in role that should
+not be able to enumerate routes at all, which would be a genuinely different
+security posture from the one this platform has, or a catch all arriving anyway
+for another reason and this coming along free with it.

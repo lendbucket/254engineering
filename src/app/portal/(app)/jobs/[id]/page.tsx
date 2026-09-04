@@ -111,7 +111,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
           }))}
         />
       ) : (
-        <div className="rounded-[4px] border border-limestone-line border-l-[3px] border-l-brass bg-white px-4 py-4">
+        <div className="rounded-[4px] border border-limestone-line bg-white px-4 py-4">
           <p className="text-[14px] font-semibold text-slate">No protocol is attached to this file</p>
           <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-[1.55] text-slate-muted">
             There is nothing to capture against yet, and nothing can be submitted. An engineer

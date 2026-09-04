@@ -16,18 +16,23 @@ import { isKnown, money } from "@/lib/ops-money";
  * can print "not set", and it is the only thing that ever should.
  */
 
-const TONE: Record<Tile["tone"], string> = {
-  neutral: "border-t-slate",
-  good: "border-t-[#2f7a4f]",
-  warn: "border-t-brass",
-  bad: "border-t-[#b3261e]",
-};
-
+/*
+ * THE COLOURED TOP RULE ON EVERY TILE IS GONE.
+ *
+ * The standards file rules out accent borders on cards, and a dashboard of nine
+ * tiles each with its own coloured rule was nine lines competing for attention
+ * and none of them survivable at a glance: the eye cannot rank nine things.
+ *
+ * The state moves entirely into the FIGURE, which is where somebody looks
+ * anyway. A tile that needs attention has a coloured number; the rest are navy.
+ * That leaves at most a couple of coloured things on the screen, which is the
+ * number a person can actually act on.
+ */
 const NUMBER_TONE: Record<Tile["tone"], string> = {
-  neutral: "text-slate",
-  good: "text-slate",
-  warn: "text-[#7a4c05]",
-  bad: "text-[#8c1d18]",
+  neutral: "text-[var(--navy)]",
+  good: "text-[var(--navy)]",
+  warn: "text-[var(--gold-deep)]",
+  bad: "text-[var(--red)]",
 };
 
 export function CountTiles({ tiles }: { tiles: Tile[] }) {
@@ -37,7 +42,7 @@ export function CountTiles({ tiles }: { tiles: Tile[] }) {
         <Link
           key={tile.label}
           href={tile.href}
-          className={`block rounded-[4px] border border-limestone-line border-t-[3px] bg-white p-4 transition-colors hover:bg-limestone/50 ${TONE[tile.tone]}`}
+          className="block rounded-[var(--radius-card)] border border-[var(--border)] bg-white p-4 transition-colors hover:bg-[var(--row-hover)]"
         >
           <p className={`font-display text-[28px] leading-none font-bold ${NUMBER_TONE[tile.tone]}`}>
             {tile.count}
@@ -64,7 +69,7 @@ export function MoneyTiles({ tiles }: { tiles: MoneyTile[] }) {
       {tiles.map((tile) => (
         <div
           key={tile.label}
-          className="rounded-[4px] border border-limestone-line border-t-[3px] border-t-brass bg-white p-4"
+          className="rounded-[4px] border border-limestone-line bg-white p-4"
         >
           <p className="text-[13px] font-semibold text-slate">{tile.label}</p>
           <p
@@ -100,7 +105,7 @@ export function AttentionList({ items }: { items: Attention[] }) {
         <li key={item.label}>
           <Link
             href={item.href}
-            className="block rounded-[4px] border border-limestone-line border-l-[3px] border-l-brass bg-white px-4 py-3 transition-colors hover:bg-limestone/50"
+            className="block rounded-[4px] border border-limestone-line bg-white px-4 py-3 transition-colors hover:bg-limestone/50"
           >
             <p className="text-[14px] font-semibold text-slate">{item.label}</p>
             <p className="mt-1 max-w-[74ch] text-[13px] leading-[1.55] text-slate-muted">{item.detail}</p>

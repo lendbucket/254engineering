@@ -177,7 +177,7 @@ export function BaseForm({
         <button
           type="submit"
           disabled={busy}
-          className="inline-flex min-h-[44px] items-center justify-center rounded-[3px] bg-brass px-4 text-[14px] font-bold text-slate-ink disabled:opacity-50"
+          className="inline-flex min-h-[var(--tap-target)] items-center justify-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white disabled:opacity-50"
         >
           {busy ? "Saving" : "Save base"}
         </button>

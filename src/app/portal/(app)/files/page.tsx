@@ -124,7 +124,7 @@ export default async function FilesPage({
               <Link
                 href={`/portal/files?id=${f.id}`}
                 className={`block rounded-[4px] border bg-white p-4 transition-colors hover:border-slate ${
-                  selected?.id === f.id ? "border-slate border-l-[3px] border-l-brass" : "border-limestone-line"
+                  selected?.id === f.id ? "border-slate" : "border-limestone-line"
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -154,7 +154,7 @@ export default async function FilesPage({
         Back to the list
       </Link>
 
-      <div className="rounded-[4px] border border-limestone-line border-t-[3px] border-t-slate bg-white">
+      <div className="rounded-[4px] border border-limestone-line bg-white">
         <div className="border-b border-limestone-line px-4 py-4 sm:px-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
@@ -334,7 +334,7 @@ export default async function FilesPage({
       />
 
       {isPrelaunch() ? (
-        <div className="mb-5 rounded-[4px] border border-[#f0d9a8] border-l-[3px] border-l-brass bg-[#fdf3e0] px-4 py-3">
+        <div className="mb-5 rounded-[4px] border border-[#f0d9a8] bg-[#fdf3e0] px-4 py-3">
           <p className="text-[12px] font-bold tracking-[0.1em] text-[#7a4c05] uppercase">
             Compliance gate active
           </p>

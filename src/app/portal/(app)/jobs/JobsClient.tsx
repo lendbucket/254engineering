@@ -98,7 +98,7 @@ export function OfferControls({ offerId, fileId }: { offerId: string; fileId: st
             type="button"
             disabled={busy !== null}
             onClick={() => respond("accept_offer")}
-            className="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-[3px] bg-brass px-4 text-[15px] font-bold text-slate-ink transition-colors hover:bg-brass-light disabled:opacity-50"
+            className="inline-flex min-h-[var(--tap-target)] flex-1 items-center justify-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[15px] font-bold text-white transition-colors hover:bg-[var(--navy-hover)] disabled:opacity-50"
           >
             {busy === "accept" ? "Accepting" : "Accept this job"}
           </button>
