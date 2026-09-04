@@ -82,12 +82,17 @@ Operator, in the dashboard, on the new project. Not available to this session.
 ### Step 5. Dry run the copy, writing nothing
 
 Run the copy script in read only mode against both projects. It reports the row
-count per table it would move and the storage objects it would move, and
-compares them to what production holds: 244 rows across five tables, 2 objects,
-152 kB.
+count per table it would move and the storage objects it would move.
 
-**Verify:** the counts match production exactly, and the script names every table
-it intends to touch.
+**Verify:** the counts are read from the source AT COPY TIME and compared to what
+the copy would write. They are not compared to a figure recorded earlier.
+
+Operator amendment, 2026-09-03: the 244 row figure in section 1 of the decision
+document is already stale, because `eng_audit_events` grows on every production
+touch including the operator's own sign ins, and it can never shrink. A check
+asserting a number written down yesterday would fail for the most ordinary
+reason there is, and worse, it would pass if the source had somehow shrunk to
+match. The count has one meaning: source and destination agree, now.
 
 **Rollback:** none needed; nothing was written.
 
@@ -133,6 +138,54 @@ same keys.
 downloaded from the new project and compared byte for byte.
 
 **Rollback:** delete the objects and repeat.
+
+### Step 8b. Resolve the sister brands. THIS BLOCKS STEP 9.
+
+Operator amendment, 2026-09-03, and it was the right call: this was originally
+placed before step 14, on the reasoning that dropping the old tables is what
+would break the sisters. That reasoning was wrong. The damage happens at step 9.
+
+**What was found, by reading the two repositories and the live tables:**
+
+| | Writes | Portal | Points at |
+| --- | --- | --- | --- |
+| stampmyplans | `eng_leads`, `eng_orders` | none | `fsaryeciduszuahgjbly`, confirmed in its `.env.local` |
+| sealedengineering | `eng_leads`, `eng_orders` | none | unknown from here; its deployed value is in its own Vercel project |
+
+**And the part that makes it a blocker.** 254's portal reads leads and
+applications with NO SITE FILTER. Verified by reading the queries, not by
+grepping around them:
+
+- `listLeads()` in `src/lib/admin-data.ts` selects `site` and never filters on it
+- `listApplications()` in the same file does the same
+- the lead conversion inbox in `src/app/portal/(app)/clients/page.tsx` filters
+  only on `status`, and its own comment says the leads "have been here since the
+  sites launched"
+
+254's portal is deliberately the shared inbox for all three brands. Cut over 254
+alone and the sisters keep writing to the old project while the only screen
+anybody opens reads the new one. No error, no gap in a sequence, nothing to
+notice, and it surfaces as a customer who was never called back.
+
+**One fact that makes the fix cheap:** every row in every shared table carries
+`site = '254'`. The sisters have written zero rows to date. There is no data to
+move, only future writes to redirect.
+
+**The options, for the operator:**
+
+1. **Move all three in the same window.** Recommended. The sisters have no
+   portal, no auth, no storage and no rows; each is two environment variables
+   and a redeploy. The single inbox survives.
+2. **Leave the sisters on the old project.** Rejected: 254 would need a second
+   client pointed at the wattsmith project to read its own inbox, which defeats
+   the entire purpose of the migration.
+3. **Have the sisters POST to a 254 intake API** rather than writing Supabase
+   directly. The better architecture, and it removes the shared table coupling
+   permanently. It is new work, not a cutover step, and should not be folded
+   into this window.
+
+**Rollback:** not applicable. This step is a decision and a verification, not a
+change. Step 9 does not begin until it is answered.
 
 ### Step 9. Point the application at the new project
 
