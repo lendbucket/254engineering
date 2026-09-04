@@ -7,16 +7,28 @@
   exported artifact that gets re-exported, and a standards document that can
   change under the code without a commit is not a standard.
 
-  ONE PART OF THIS FILE IS NOT TRUE OF THE PLATFORM AS BUILT.
+  THE PRODUCT TRUTHS SECTION HAS BEEN CORRECTED. THE REST IS VERBATIM.
 
-  The "Product truths" section states six things. Four are true, one is partly
-  true and one is false. They are verified line by line, with the evidence, in
-  docs/portal-design-port.md. Read that before rendering anything this file
-  describes, because two of its statements would put an untrue sentence on a
-  regulatory screen if taken at face value.
+  Six product truths were stated in the export. Four held, one was partly true
+  and one was false, and two of them would have put an untrue sentence on a
+  screen. They were verified line by line against the code and the schema in
+  docs/portal-design-port.md, the operator ruled on 2026-09-04, and the section
+  below now says what the platform does.
 
-  The tokens, type scale, spacing, component and voice rules are adopted whole
-  and are not in question.
+  The corrections are marked in place rather than made silently. A standards
+  file that quietly disagrees with an export somebody else still has open is a
+  standards file nobody can trust, and the next reader needs to know which lines
+  moved and why.
+
+  The tokens, type scale, spacing, component and voice rules are adopted whole,
+  verbatim, and are not in question.
+
+  ON THE DASH RULE. The standing law forbids em and en dashes in anything this
+  firm writes. Every one in this file is on a line quoted verbatim from the
+  operator's export, and none is in the corrected text. They are left alone
+  because a document that claims to be verbatim and is not is worth less than a
+  document with a punctuation mark in it, and nothing here is rendered to a
+  visitor. Copy taken FROM this file into a component follows the dash rule.
 -->
 
 # 254 Engineering Services — Brand & Design Standards
@@ -99,19 +111,93 @@ Green only on status dots. Never gradients. New tints via oklch near these ancho
   design's own philosophy. "Action required", not "Needs you!".
 
 ## Product truths (do not contradict)
-- Prelaunch: registration pending → sealing and order intake disabled; public site is waitlist-only.
-- Technicians are paid flat-rate on submission, independent of the engineer's decision.
-- Engineer decisions (seal / revise / site visit / decline) are equal-weight and pay the same.
-- Declines refund everything except the disclosed $175 inspection fee.
-- Protocols are versioned; a file is governed by the version it was captured under.
-- The responsible charge log is append-only and embeds an evidence hash per decision.
+
+Corrected against the code on 2026-09-04. Four of the six statements in the
+export held; the two that did not are rewritten below with the original quoted,
+because a correction with no trace looks like a rule nobody set.
+
+- **Prelaunch: registration pending, so sealing and order intake are disabled and
+  the public site is waitlist only.** Unchanged. One function, `isPrelaunch()`,
+  and one variable, `LAUNCH_MODE`.
+
+- **Technicians earn a flat rate per job, written to the ledger on submission,
+  independent of the engineer's decision. An operator approves and pays it
+  later.**
+  *Export said: "Technicians are paid flat-rate on submission."* The entitlement
+  is written on submission by `submitEvidence`, before any engineer has looked at
+  the package, and nothing in the decision path can touch it. It lands as
+  `status: 'pending'` and an operator moves it to approved and then paid, so
+  "paid on submission" overstates it. The prototype's own technician pay screen
+  says "written on submission" and is the wording to follow.
+
+- **Engineer decisions are equal weight: a refusal never earns the firm more than
+  a seal.** `refundFor` carries three invariants that `order-audit` enforces, and
+  the middle one exists precisely so an engineer never decides under financial
+  pressure. "Pay the same" is not contradicted and is not implemented: there is
+  no engineer pay ledger, so nothing pays engineers differently because nothing
+  pays engineers yet. Do not render an engineer earnings figure.
+
+- **A decline refunds in full unless a technician actually attended, in which
+  case the disclosed inspection fee for that service is retained and the customer
+  receives the engineer's findings.**
+  *Export said: "Declines refund everything except the disclosed $175 inspection
+  fee."* That describes one of four cases as though it were the rule:
+
+  | What happened | The customer receives |
+  | --- | --- |
+  | Declined before any visit or review | Full refund, nothing retained |
+  | Declined after desk review, no visit | Full refund, nothing retained |
+  | Declined after a technician attended | Refund less the inspection fee, plus the findings |
+  | Cancelled by the firm | Full refund, including any inspection already done |
+
+  **The fee is per catalog entry, not a constant.** `inspectionFeeCents` is set on
+  each service line and is `17500` on two of them today. Never hard code $175, and
+  never compose refund copy by hand: render the `explanation` string `refundFor`
+  returns, so the screen and the ledger cannot disagree.
+
+- **Protocols are versioned; a file is governed by the version it was captured
+  under.** Unchanged and verified. `eng_protocol_templates` carries `version` with
+  `unique (service_slug, version)`, and `eng_files.protocol_template_id`
+  references it `on delete restrict`.
+
+- **The responsible charge log is append only, enforced by a database trigger.**
+  *Export said: "...and embeds an evidence hash per decision."* **It does not.**
+  Nothing computes an evidence hash and nothing stores one; every "hash" in the
+  schema is a credential. The Evidence hash column and the sentence claiming it
+  are dropped by operator ruling, because a fabricated cryptographic assurance on
+  the firm's regulatory record is the worst possible place for one. The
+  immutability half is true and stays: `eng_rcl_immutable` refuses UPDATE and
+  DELETE, and `migration-audit` replays the table and asserts the refusal.
+  Real evidence hashing is in BACKLOG and is worth building.
+
+## Roles
+
+Three, not four. `ROLES` in `src/lib/ops-authz.ts` is `admin`, `engineer`,
+`field_tech`, labelled Administrator, Professional Engineer, Field Technician.
+
+There is no owner role and no dispatcher role. Dispatch is a capability inside
+the administrator role, surfaced by `DispatchPanel` on a file, not a person who
+signs in. The export's permissions matrix names four; it belongs to the unbuilt
+Settings screen and is not ported.
+
+## There is no 403, deliberately
+
+The export draws one. It is dropped, and the reason is recorded here so a later
+reader does not restore it as a missing screen.
+
+Every portal route answers `notFound()` when a role may not see it, and
+`security-audit` asserts that a refusal is indistinguishable from a route that
+does not exist. A 403 saying "you do not have permission to view this" confirms
+the page exists to somebody who should not know that, which is a regression
+against a rule the harness already enforces. The 403's visual treatment is
+carried into the 404 so nothing about the design is lost.
 
 ## Build roadmap (for Claude Code)
 The prototype (`254 Portal v2.dc.html`) is the design source of truth. These need real backend behavior; UI hooks that already exist in the prototype are noted.
 
 ### Identity & access
 - SSO optional (provider TBD — not Google) + MFA enforcement; password policy. Hook: sign-in screen, Settings > Security.
-- Role-based permissions matrix (owner / engineer / technician / dispatcher), per-module read/write, with an admin screen to manage it. Hook: user-menu "Preferences"; roles shown in header identity block.
+- Role-based permissions matrix, per-module read/write, with an admin screen to manage it. Hook: user-menu "Preferences"; roles shown in header identity block. NOTE: the export said owner / engineer / technician / dispatcher. The platform has three roles, admin / engineer / field_tech. See Roles above.
 - API keys + webhook management for partners (title companies, insurers).
 
 ### Compliance & audit

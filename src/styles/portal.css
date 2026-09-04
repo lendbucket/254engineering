@@ -1,0 +1,182 @@
+/**
+ * The portal design system, as tokens.
+ *
+ * THE NAMES ARE THE DOCUMENT'S NAMES, DELIBERATELY
+ * ------------------------------------------------
+ * Every custom property below is spelled exactly as docs/PORTAL_DESIGN_STANDARDS.md
+ * spells it. Somebody holding the standards document open beside this file can
+ * move between them without translating, and scripts/token-audit.mjs parses the
+ * document's own CSS block and asserts that every value here matches it. The
+ * document and the code cannot drift, because a drift is a failing build.
+ *
+ * WHY THIS SITS BESIDE THE SITE'S @theme RATHER THAN REPLACING IT
+ * ---------------------------------------------------------------
+ * The public site is written against Tailwind theme names, --color-slate,
+ * --color-limestone, --color-brass and the rest, and those names are in several
+ * hundred components. This workstream is presentation for the PORTAL and is
+ * explicitly not allowed to change behaviour elsewhere, so renaming the site's
+ * palette is out of scope.
+ *
+ * Nine of these colours are the same hex as a site token, because the design was
+ * drawn from the same anchors. That is two names for one colour, which is a
+ * drift risk, so token-audit asserts each twin pair holds the same value. The
+ * duplication is checked rather than tidied, which is the honest trade when
+ * tidying it would mean touching the public site.
+ *
+ * WHAT A COMPONENT MAY CONTAIN
+ * ----------------------------
+ * No colour literal, no radius literal, no font size literal. token-audit fails
+ * the build on a raw hex, rgb(), hsl(), or a px radius or font size outside the
+ * scale in any portal component. The rule exists because a one off hex is how a
+ * palette stops being a palette, and because the contrast work below is only
+ * true of the values named here.
+ */
+
+:root {
+  /* ------------------------------------------------------------- colour --- */
+
+  --navy: #14315d;
+  --navy-hover: #0e2347;
+  --ink-navy: #0b1b36;
+
+  /*
+   * Gold appears only in the logo, warnings, pending states, and the active nav
+   * bar. It is never decoration and never body text on a light surface, where it
+   * measures 2.33:1. That is the operator's standing ruling and it predates this
+   * design; --gold-deep is the on-light text value.
+   */
+  --gold: #d9a032;
+  --gold-bright: #e8b04a;
+  --gold-deep: #8d610f;
+
+  --warn-bg: #fff9ec;
+  --warn-border: #e8d9ae;
+  --warn-ink: #5c4a12;
+
+  --ink: #333a45;
+  --secondary: #555e6b;
+  --muted: #8a93a0;
+
+  --border: #dde0e4;
+  --border-strong: #c3c9d1;
+  --row-rule: #edf1f7;
+  --row-hover: #f8f9fb;
+  --canvas: #f4f5f7;
+
+  /* Green is for status dots and nothing else. */
+  --green: #3e7a4e;
+  --green-bg: #eef4ef;
+  --green-border: #cbddce;
+
+  /* Failures and required field asterisks, sparingly. */
+  --red: #b4232a;
+
+  /* ---------------------------------------------------------- typography --- */
+  /*
+   * The scale as named steps rather than numbers at call sites. A component
+   * asking for --type-panel-title says what it is; one asking for 16px says
+   * nothing and cannot be re-tuned centrally.
+   */
+  --type-page-display: 30px;
+  --type-kpi: 24px;
+  --type-screen-title: 17px;
+  --type-panel-title: 16px;
+  --type-body: 15px;
+  --type-body-sm: 13.5px;
+  --type-meta: 12.5px;
+  --type-meta-sm: 12px;
+  --type-column-header: 11px;
+
+  --weight-display: 800;
+  --weight-bold: 700;
+  --weight-semibold: 600;
+  --weight-medium: 500;
+  --weight-regular: 400;
+
+  --tracking-column-header: 0.08em;
+
+  /* --------------------------------------------------------------- shape --- */
+  /*
+   * Desktop and mobile are different values for the same idea, so both are
+   * tokens and the mobile ones are applied at the breakpoint rather than being
+   * typed into components. The standards file gives 4px cards on desktop and
+   * 12px on mobile; a component that hard coded either would be wrong at the
+   * other width.
+   */
+  --radius-card: 4px;
+  --radius-control: 3px;
+  --radius-pill: 12px;
+  --radius-chip: 2px;
+  --radius-select-chip: 16px;
+
+  /* -------------------------------------------------------------- space --- */
+  --panel-padding: 18px;
+  --row-padding-y: 11px;
+  --page-gutter: 28px;
+  --section-gap: 20px;
+
+  /* ------------------------------------------------------------ overlays --- */
+  /*
+   * The ONLY shadows in the system. Cards carry none, by rule: a shadow on a
+   * card is the thing that makes an interface look like a template. These two
+   * exist because a menu and a modal float above the page and have to say so.
+   */
+  --shadow-menu: 0 8px 24px rgba(20, 49, 93, 0.18);
+  --shadow-modal: 0 18px 46px rgba(11, 27, 54, 0.42);
+
+  /* -------------------------------------------------------------- chrome --- */
+  --sidebar-width: 230px;
+  --header-height: 58px;
+  --active-bar-width: 3px;
+  --tap-target: 44px;
+}
+
+/*
+ * Mobile shape, at the width the standards file names.
+ *
+ * 390 is the design width, so the switch is below the next breakpoint up rather
+ * than at 390 exactly: a 414px phone is a phone and wants the phone treatment.
+ */
+@media (max-width: 767px) {
+  :root {
+    --radius-card: 12px;
+    --radius-control: 8px;
+    --page-gutter: 16px;
+    --panel-padding: 16px;
+  }
+}
+
+/* ========================================================== base surfaces === */
+
+.portal-surface {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: var(--type-body-sm);
+  /*
+   * Tabular figures on everything, not only on tables.
+   *
+   * A KPI that reflows as it counts, or a timestamp column whose digits do not
+   * line up, is the difference between a tool and a web page. The standards file
+   * asks for it on tables and figures; applying it to the whole portal surface
+   * is simpler and there is no portal text where proportional digits are better.
+   */
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Sentence case is a rule, and it is enforced by writing rather than by CSS.
+ *
+ * text-transform is deliberately NOT used to force it. A CSS transform would
+ * make the DOM disagree with the screen, which breaks a screen reader, breaks
+ * copy and paste, and makes voice-audit read one thing while a person sees
+ * another. The one uppercase treatment in the system, the column header, is a
+ * genuine visual style on text that is already written in sentence case.
+ */
+.portal-column-header {
+  font-size: var(--type-column-header);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-column-header);
+  text-transform: uppercase;
+  color: var(--secondary);
+}

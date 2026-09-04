@@ -1791,3 +1791,54 @@ written speculatively against a table with a few dozen rows in it.
 
 **The condition to watch:** the queue screen taking a noticeable moment to load,
 or `eng_jobs` passing about fifty thousand rows.
+
+### The responsible charge log has no evidence hash, and should
+
+Recorded 2026-09-04, during the portal design port. Operator ruling the same
+day: drop the column from the design, record the real thing here, because the
+design was right to want it.
+
+**What the design asked for.** An Evidence hash column on the responsible charge
+log, with the footnote "Each entry embeds a hash of the evidence set exactly as
+it stood at the moment of the decision."
+
+**What exists.** The log is append only and that half is real:
+`eng_rcl_immutable` refuses UPDATE and DELETE by trigger, and `migration-audit`
+replays the table and asserts both refusals. There is no hash. Nothing computes
+one anywhere in the codebase, and every occurrence of "hash" in the schema is a
+credential: `invite_token_hash`, `token_hash`, `key_hash`, and the scrypt
+password hash on customer accounts.
+
+**Why it was dropped rather than stubbed.** A hash on that screen is a claim that
+the evidence behind a sealed document has not changed since a licensed engineer
+put their name to it. Rendering a value the platform did not compute would be a
+fabricated cryptographic assurance on the firm's regulatory record, which is the
+worst place available for one. An empty column would be almost as bad, because a
+column implies the thing exists and is merely missing today.
+
+**What it would take, and why the hash is the easy part.**
+
+1. *A canonical serialisation of the evidence set.* The hash has to cover
+   something reproducible: for each evidence item, its protocol item key, its
+   storage key, its byte length and its captured timestamp, sorted by item key.
+   Anything that varies between two reads of an unchanged file, a signed URL for
+   instance, must be excluded, or the hash fails to verify for a reason that has
+   nothing to do with tampering.
+2. *A column*, `evidence_hash text`, written in the same statement that writes
+   the log row, so a decision cannot be recorded without one.
+3. *A verifier*, and this is the part that makes it worth anything. A stored hash
+   nobody can re-check is a string. There has to be a function that reads the
+   file's evidence as it stands today, recomputes, and reports match or divergence,
+   with a screen that shows the answer. Without it the column is decoration with
+   a technical smell.
+4. *A decision about what divergence MEANS.* Evidence can legitimately be added
+   to a file after a decision, on a revision. So the verifier answers "the set
+   this engineer sealed against is intact" rather than "the file has not changed",
+   and the difference has to be visible or the first legitimate revision reads as
+   tampering.
+
+**The condition that makes it real:** the first time somebody outside the firm, an
+insurer, an opposing expert, or a board investigator, asks the firm to
+demonstrate that a sealed document's evidence is the evidence that was reviewed.
+That question is the entire reason the column was drawn, and it is a good
+question.
