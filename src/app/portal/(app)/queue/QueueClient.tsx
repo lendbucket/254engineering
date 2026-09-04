@@ -74,12 +74,16 @@ export function QueueClient({ jobs }: { jobs: DeadJob[] }) {
               {j.lastError || "No error was recorded, which is itself worth looking at."}
             </p>
 
+            {/*
+              Wrapped rather than scrolled. A payload on one nowrap line inside
+              an overflow container is clipped at 390 with nothing saying it can
+              be scrolled, and the identifier that got cut off is exactly the
+              one somebody is reading the row to find.
+            */}
             {Object.keys(j.payload).length > 0 ? (
-              <div className="mt-1.5 max-w-full overflow-x-auto">
-                <p className="font-mono text-[12px] whitespace-nowrap text-slate-muted">
-                  {JSON.stringify(j.payload)}
-                </p>
-              </div>
+              <p className="mt-1.5 max-w-[76ch] font-mono text-[12px] leading-[1.5] break-all text-slate-muted">
+                {JSON.stringify(j.payload)}
+              </p>
             ) : null}
 
             <button

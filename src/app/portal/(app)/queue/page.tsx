@@ -39,6 +39,15 @@ export const dynamic = "force-dynamic";
  * A kind that stops being registered vanishes from this screen, which is the
  * symptom an operator would otherwise chase for an hour: enqueues refused for a
  * kind nobody can see is missing.
+ *
+ * WHY THE KINDS ARE A LIST AND NOT A TABLE
+ * ----------------------------------------
+ * The first version was a four column table with a min width, scrolling inside
+ * its own container. That satisfies the mobile rule and the page overflow was
+ * zero, but at 390 it rendered as "SAFE TO RUN TWICE BECAU" against the edge
+ * with nothing saying it could be scrolled. Content clipped with no affordance
+ * is content nobody reads. Stacked, both counts sit beside the name and the
+ * reason gets a full line at every width.
  */
 
 const AGE = (seconds: number) => {
@@ -179,51 +188,25 @@ export default async function QueuePage() {
         description="Read from the live registry. A kind missing from this list is a kind whose enqueues are being refused."
         className="mt-6"
       >
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[560px] border-collapse text-left">
-            <thead>
-              <tr className="border-b border-limestone-line">
-                <th className="pb-2 text-[11px] font-bold tracking-[0.1em] text-slate-muted uppercase">
-                  Kind
-                </th>
-                <th className="pb-2 text-[11px] font-bold tracking-[0.1em] text-slate-muted uppercase">
-                  Safe to run twice because
-                </th>
-                <th className="pb-2 text-right text-[11px] font-bold tracking-[0.1em] text-slate-muted uppercase">
-                  Waiting
-                </th>
-                <th className="pb-2 text-right text-[11px] font-bold tracking-[0.1em] text-slate-muted uppercase">
-                  Dead
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {kinds.map((k) => (
-                <tr key={k.kind} className="border-b border-limestone-line last:border-0">
-                  <td className="py-2.5 pr-3 align-top font-mono text-[13px] font-semibold text-slate">
-                    {k.kind}
-                  </td>
-                  <td className="py-2.5 pr-3 align-top text-[13px] leading-[1.5] text-slate-muted">
-                    {k.natural ? (
-                      <span className="mr-1.5 align-middle">
-                        <Chip label="Naturally" tone="neutral" />
-                      </span>
-                    ) : null}
-                    {k.idempotency}
-                  </td>
-                  <td className="py-2.5 text-right align-top font-mono text-[13px] text-slate">
-                    {k.pending}
-                  </td>
-                  <td
-                    className={`py-2.5 text-right align-top font-mono text-[13px] ${k.dead > 0 ? "font-bold text-[#8c1d18]" : "text-slate-muted"}`}
-                  >
-                    {k.dead}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ul className="divide-y divide-limestone-line">
+          {kinds.map((k) => (
+            <li key={k.kind} className="flex flex-wrap items-baseline gap-x-3 gap-y-1.5 py-3 first:pt-0 last:pb-0">
+              <span className="font-mono text-[13px] font-semibold text-slate">{k.kind}</span>
+              <span className="text-[12.5px] text-slate-muted">
+                {k.pending} waiting
+              </span>
+              <span
+                className={k.dead > 0 ? "text-[12.5px] font-bold text-[#8c1d18]" : "text-[12.5px] text-slate-muted"}
+              >
+                {k.dead} dead
+              </span>
+              {k.natural ? <Chip label="Naturally" tone="neutral" /> : null}
+              <p className="w-full max-w-[76ch] text-[13px] leading-[1.55] text-slate-muted">
+                {k.idempotency}
+              </p>
+            </li>
+          ))}
+        </ul>
         <p className="mt-3 max-w-[76ch] text-[12.5px] leading-[1.55] text-slate-muted">
           A lease can expire while a job is still running, so every kind here has to survive being
           run a second time. Each one says how, and the audit refuses a handler that does not.

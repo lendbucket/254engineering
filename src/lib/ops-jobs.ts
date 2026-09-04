@@ -164,7 +164,20 @@ export async function enqueue(
       kind,
       payload,
       idempotency_key: key,
-      run_after: (options.runAfter ?? new Date()).toISOString(),
+      /*
+       * run_after is only written when a DELAY was asked for. Left out, the
+       * column's own default of now() applies, and the row becomes eligible on
+       * the database's clock rather than on this machine's.
+       *
+       * Found during the Section 2 walk. Four jobs enqueued and a batch run
+       * milliseconds later claimed none of them: the application wrote a
+       * run_after a second or so ahead of the database's now(), so the claim's
+       * "run_after <= now()" was false for rows that were meant to be eligible
+       * immediately. Harmless in production, where the worker runs every
+       * minute, and exactly the sort of thing that makes an operator testing
+       * the queue believe it is broken.
+       */
+      ...(options.runAfter ? { run_after: options.runAfter.toISOString() } : {}),
       ...(options.maxAttempts ? { max_attempts: options.maxAttempts } : {}),
     })
     .select("id")
