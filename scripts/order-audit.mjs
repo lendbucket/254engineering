@@ -1517,7 +1517,22 @@ const answerAll = (entry, pick = () => 0) =>
 // ===========================================================================
 {
   const st = fs.readFileSync("src/lib/ops-statements.ts", "utf8");
-  const close = st.slice(st.indexOf("export async function closePeriod"), st.indexOf("export async function issueStatement"));
+  /*
+   * The slice boundaries moved in Phase 8 Section 2, when issuing went on the
+   * job queue. The three refusals that used to live inside issueStatement were
+   * lifted into issuableStatement so the route that QUEUES the issue and the
+   * job that PERFORMS it ask the same question in the same words; without that,
+   * an operator would press a button, get a 200, and find out in a dead letter
+   * that the statement was already issued.
+   *
+   * This audit caught the move, correctly: the checks were scoped to
+   * issueStatement and the guards were no longer there. They are scoped to the
+   * function that owns the rule now, and there is a new check below that
+   * issueStatement still calls it, because a guard that exists in a function
+   * nobody calls is not a guard.
+   */
+  const close = st.slice(st.indexOf("export async function closePeriod"), st.indexOf("export async function issuableStatement"));
+  const eligible = st.slice(st.indexOf("export async function issuableStatement"), st.indexOf("export async function issueStatement"));
   const issue = st.slice(st.indexOf("export async function issueStatement"), st.indexOf("export async function startStatementCheckout"));
   const checkout = st.slice(st.indexOf("export async function startStatementCheckout"), st.indexOf("export async function markStatementPaid"));
   const paid = st.slice(st.indexOf("export async function markStatementPaid"), st.indexOf("export async function statementsFor"));
@@ -1562,10 +1577,20 @@ const answerAll = (entry, pick = () => 0) =>
     /existing\.status !== "open"/.test(close),
     "a late order belongs on the next period, not on a bill already sent",
   );
-  rec("and cannot be issued twice", /statement\.status !== "open"/.test(issue));
+  rec("and cannot be issued twice", /statement\.status !== "open"/.test(eligible));
   rec(
     "and an empty statement cannot be issued at all",
-    /Number\(statement\.total_cents\) <= 0/.test(issue),
+    /Number\(statement\.total_cents\) <= 0/.test(eligible),
+  );
+  rec(
+    "and a statement that does not exist is refused",
+    /That statement does not exist/.test(eligible),
+  );
+  rec(
+    "and issuing actually runs those refusals rather than trusting the caller",
+    /const eligible = await issuableStatement\(statementId\);/.test(issue) &&
+      /if \(!eligible\.ok\) return eligible;/.test(issue),
+    "the queue can enqueue a statement that changed state between the button and the worker",
   );
 
   /*

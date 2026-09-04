@@ -73,6 +73,17 @@ const PHASE_ZERO = [
     why: "a customer cannot become a member of staff",
   },
   {
+    // Phase 8 Section 2. A queue is the easiest place in a platform to build a
+    // silent failure, because the whole point of it is that nobody is watching
+    // when the work happens. Every check traces back to one rule: a job that
+    // did not run must be visible.
+    //
+    // Pure, and react-server for the same reason accounts-audit is: it imports
+    // the queue itself, which is marked server-only.
+    name: "jobs-audit",
+    why: "mandatory idempotency per kind, a lease that survives a killed worker, and no job lost in silence",
+  },
+  {
     // Pure: the file state machine, the compliance gate, and county derivation.
     // No server, no database, no network.
     name: "files-audit",

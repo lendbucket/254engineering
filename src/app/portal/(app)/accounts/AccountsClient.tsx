@@ -53,10 +53,17 @@ export function AccountsClient({ rows }: { rows: Row[] }) {
         setError(data.error ?? "That did not work.");
         return;
       }
+      /*
+       * Issuing is queued now, so the notice says queued. Telling the operator
+       * a statement was sent when a job has only been written is the same shape
+       * of lie as a webhook reporting handled for a write that never happened.
+       */
       setNote(
-        data.reference
-          ? `${data.reference}: ${data.lines ?? 0} line${data.lines === 1 ? "" : "s"}, ${money(data.totalCents ?? null)}`
-          : "Done.",
+        data.queued
+          ? `${data.reference ?? "It"} is queued to issue${data.duplicate ? ", and was already waiting" : ""}. The job queue shows it if the send fails.`
+          : data.reference
+            ? `${data.reference}: ${data.lines ?? 0} line${data.lines === 1 ? "" : "s"}, ${money(data.totalCents ?? null)}`
+            : "Done.",
       );
       router.refresh();
     } catch {
@@ -139,7 +146,7 @@ export function AccountsClient({ rows }: { rows: Row[] }) {
                       }
                       className="inline-flex min-h-[44px] items-center rounded-[3px] bg-slate px-4 text-[13px] font-bold text-white disabled:opacity-45"
                     >
-                      {busy === `issue-${r.id}` ? "Issuing" : "Issue it"}
+                      {busy === `issue-${r.id}` ? "Queueing" : "Issue it"}
                     </button>
                   </>
                 ) : null}

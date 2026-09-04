@@ -1,8 +1,7 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase";
 import type { Role } from "./ops-authz";
-import { notify } from "./notify";
-import { opsNotification } from "./email-templates";
+import { enqueue } from "./ops-jobs";
 import {
   NOTIFICATION_KINDS,
   channelsFor,
@@ -112,41 +111,29 @@ export async function raise(input: RaiseInput): Promise<RaiseResult> {
 
   if (!channels.includes("email")) return { ok: true, channels };
 
-  let address = input.email ?? null;
-  if (!address) {
-    const { data: profile } = await db
-      .from("eng_profiles")
-      .select("email, display_name")
-      .eq("id", input.profileId)
-      .maybeSingle();
-    address = (profile?.email as string) ?? null;
-  }
-  if (!address) {
-    await db.from("eng_notifications").update({ email_error: "No address on the profile." }).eq("id", data.id);
-    return { ok: true, channels, emailError: "No address on the profile." };
-  }
-
-  const rendered = opsNotification({
-    to: address,
-    title: input.title,
-    body: input.body ?? null,
-    href: input.href ?? null,
-  });
-  const sent = await notify(rendered);
-
-  if (sent.outcome === "ok") {
-    await db.from("eng_notifications").update({ emailed_at: new Date().toISOString() }).eq("id", data.id);
-    return { ok: true, channels };
-  }
-
   /*
-   * A failure is written down rather than lost. emailed_at being null says
-   * nothing about whether an email was attempted, and "I was never told" is
-   * exactly the conversation where that distinction matters.
+   * THE ROW IS WRITTEN, THE EMAIL IS QUEUED.
+   *
+   * The insert above already happened, so the bell is correct the moment this
+   * request returns. What leaves is the send, because it talks to Resend and
+   * nobody raising a notification should wait on a mail provider.
+   *
+   * The queue is not allowed to turn a raised notification into a failure: an
+   * enqueue that could not be written is recorded on the row and reported, and
+   * the notification itself still stands. That is the same shape as the old
+   * email_error, which is deliberate, because the operator reads that column.
    */
-  const message = sent.reason ?? sent.outcome;
-  await db.from("eng_notifications").update({ email_error: message }).eq("id", data.id);
-  return { ok: true, channels, emailError: message };
+  const queued = await enqueue("notification.deliver", { notificationId: data.id });
+
+  if (!queued.ok) {
+    await db
+      .from("eng_notifications")
+      .update({ email_error: `The email could not be queued: ${queued.error}` })
+      .eq("id", data.id);
+    return { ok: true, channels, emailError: queued.error };
+  }
+
+  return { ok: true, channels };
 }
 
 /** Raise the same notification for several people, without stopping on one failure. */

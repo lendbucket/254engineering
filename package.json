@@ -43,6 +43,7 @@
     "db-guard-audit": "tsx scripts/db-guard-audit.mjs",
     "migration-audit": "tsx scripts/migration-audit.mjs",
     "accounts-audit": "tsx --conditions=react-server scripts/accounts-audit.mjs",
+    "jobs-audit": "tsx --conditions=react-server scripts/jobs-audit.mjs",
     "preroles-audit": "node scripts/preflight-audit.mjs",
     "roles-audit": "tsx scripts/roles-audit.mjs",
     "registry-audit": "tsx scripts/registry-audit.mjs",

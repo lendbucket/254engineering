@@ -1736,3 +1736,58 @@ then need their own verification.
 
 **What has to be true before it ships:** the sisters' service role keys are
 revoked afterwards, not merely unused, or the boundary is decorative.
+
+### Evidence thumbnails: a column that has never been written
+
+Recorded 2026-09-04, during Phase 8 Section 2.
+
+`eng_evidence_items.thumb_key` has existed since migration 0001 and nothing has
+ever written it. Generating a thumbnail needs an image pipeline this deployment
+does not have: the captures are photographs uploaded from a phone, and producing
+a small version of one means decoding, resizing and re-encoding it somewhere.
+
+The job queue registers `evidence.thumbnail` and it fails on purpose, with a
+sentence saying what is missing. That was a choice between two honest options.
+Leaving the kind unregistered would dead letter any future enqueue with "no
+handler is registered", which reads like a bug in the queue; failing with the
+real reason is the difference between a defect and a decision. Nothing enqueues
+the kind today, so the queue screen shows it registered with zero of everything.
+
+**What would make it real:** an image pipeline. `sharp` does not run on the
+Vercel Node runtime without care about the binary, and the alternative is a
+provider that resizes on delivery, which would change how evidence is served
+rather than how it is stored. Neither is a decision to take inside a queue
+section.
+
+**The condition to watch:** the first operator who opens a file with forty
+captures on a phone and waits for forty full size photographs to load. That is
+the day this stops being a nicety.
+
+### eng_jobs grows forever, and nothing prunes it
+
+Recorded 2026-09-04, during Phase 8 Section 2.
+
+Every job that has ever run stays in `eng_jobs`. At the volumes this platform
+sees today that is a table with hundreds of rows and it is the right default:
+"did that email actually go" is a question worth answering three months later,
+and a queue that deletes its own history cannot answer it.
+
+It does not stay right. One email per order plus one notification per status
+change puts the table into six figures inside a year of real trading, and
+`queueHealth` reads every pending, running and dead row on every load of the
+queue screen and on every worker run.
+
+**What is needed:** a retention rule, and it has to distinguish the three states
+rather than sweeping by age. A `done` job older than ninety days is a log line.
+A `dead` job is a failure nobody has dealt with and must never be pruned by a
+timer, because pruning it is exactly the silence this section was built to
+remove. A `pending` job older than ninety days is a defect, not a candidate for
+deletion.
+
+**Why it was not done now:** a pruning job is a scheduled delete against a table
+that records what the platform did, and the first version of one is where the
+predicate is wrong. It deserves its own exercise on real data rather than being
+written speculatively against a table with a few dozen rows in it.
+
+**The condition to watch:** the queue screen taking a noticeable moment to load,
+or `eng_jobs` passing about fifty thousand rows.

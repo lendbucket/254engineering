@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { contactSchema, fieldErrors, waitlistSchema } from "@/lib/forms";
 import { insertLead } from "@/lib/intake";
-import { notify } from "@/lib/notify";
+import { queueEmail } from "@/lib/ops-jobs";
 import { leadNotification } from "@/lib/email-templates";
 
 /**
@@ -56,7 +56,12 @@ export async function POST(request: Request) {
     userAgent,
   });
 
-  const mail = await notify(
+  /*
+   * The email leaves on the queue. The row above is the record and it is
+   * already written; a person filling in a form must not wait on Resend, and a
+   * Resend outage must not decide whether their enquiry was captured.
+   */
+  const mail = await queueEmail(
     leadNotification({
       form,
       name: data.name,
@@ -73,7 +78,7 @@ export async function POST(request: Request) {
   // Logged, never surfaced. See the note in src/lib/intake.ts for why a failed
   // write still answers 200.
   if (!write.ok) console.error(`[lead] write failed (${form}): ${write.error}`);
-  if (!mail.sent) console.error(`[lead] notification not sent (${form}): ${mail.reason}`);
+  if (!mail.ok) console.error(`[lead] notification not queued (${form}): ${mail.error}`);
 
   return NextResponse.json({ ok: true });
 }

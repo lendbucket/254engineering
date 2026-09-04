@@ -57,9 +57,12 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * mistake could have been applied to by hand, which is exactly how 0001 stayed
  * broken for a month. A constant has to be changed by a person who noticed.
  */
-const EXPECTED_FINGERPRINT = "9b32a7cced94549f7aeea93cc3ee3d6e";
-const EXPECTED_COLUMNS = 719;
-const EXPECTED_TABLES = 48;
+const EXPECTED_FINGERPRINT = "8b1dee7c095418d7e91bcc3434a00796";
+const EXPECTED_COLUMNS = 734;
+const EXPECTED_TABLES = 49;
+const EXPECTED_TRIGGERS = 30;
+/** eng_jobs is the 49th table; eng_claim_jobs is the fifth function. Both 0011. */
+const EXPECTED_FUNCTIONS = 5;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -190,7 +193,16 @@ if (failedAt === null) {
     order by p.proname
   `);
   const fns = fnRows.rows;
-  rec("the four trigger functions exist", fns.length === 4, fns.map((f) => f.proname).join(", "));
+  /*
+   * Not all of these are trigger functions any more. 0011 added eng_claim_jobs,
+   * which is the queue's atomic claim and is called directly. The check is on
+   * the count and the pinning, both of which apply to either sort.
+   */
+  rec(
+    `the ${EXPECTED_FUNCTIONS} eng_ functions exist`,
+    fns.length === EXPECTED_FUNCTIONS,
+    fns.map((f) => f.proname).join(", "),
+  );
   rec(
     "and every one has its search_path pinned",
     fns.length > 0 && fns.every((f) => f.pinned),
@@ -201,7 +213,11 @@ if (failedAt === null) {
     select count(*)::int as n from pg_trigger t join pg_class c on c.oid = t.tgrelid
     where not t.tgisinternal and c.relname like 'eng\\_%'
   `);
-  rec("the triggers are all there", trgRows.rows[0].n === 29, `${trgRows.rows[0].n} of 29`);
+  rec(
+    "the triggers are all there",
+    trgRows.rows[0].n === EXPECTED_TRIGGERS,
+    `${trgRows.rows[0].n} of ${EXPECTED_TRIGGERS}`,
+  );
 
   const rlsRows = await db.query(`
     select count(*)::int as n from pg_class c join pg_namespace n2 on n2.oid = c.relnamespace

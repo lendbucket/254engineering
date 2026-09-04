@@ -48,6 +48,17 @@ export const dynamic = "force-dynamic";
  * says it will, and the operator reads duration from how many arrived. For a
  * fault that went unnoticed for two hours, noisy is the correct direction.
  *
+ * WHY ITS ALERT DOES NOT GO ON THE JOB QUEUE
+ * ------------------------------------------
+ * Every other outbound email on this platform is enqueued. This one is not, and
+ * the reason is the same one written above about state: the queue lives in the
+ * database being watched. An outage alert routed through it would be an alert
+ * that cannot leave during precisely the outage it exists to report, and the
+ * symptom would be silence, which is indistinguishable from everything working.
+ *
+ * jobs-audit asserts this route still calls notify directly, so a later pass
+ * tidying "the last unqueued send" cannot quietly remove the exception.
+ *
  * WHY IT REFUSES WITHOUT CRON_SECRET
  * ----------------------------------
  * This endpoint sends email. Reachable without a secret it is a way for anybody

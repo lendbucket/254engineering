@@ -8,7 +8,7 @@ import {
 } from "@/lib/onboarding";
 import { createOnboardingUpload } from "@/lib/onboarding-uploads";
 import { itemByKey } from "@/content/onboarding-checklists";
-import { notify } from "@/lib/notify";
+import { queueEmail } from "@/lib/ops-jobs";
 import { onboardingSubmitted } from "@/lib/email-templates";
 
 /**
@@ -175,7 +175,11 @@ async function handleSubmit(
     return NextResponse.json({ ok: false, error: write.error }, { status: 500 });
   }
 
-  await notify(
+  /*
+   * The submission is recorded above. The operator's notification leaves on the
+   * queue rather than holding the person who just pressed submit.
+   */
+  const queued = await queueEmail(
     onboardingSubmitted({
       personName,
       personEmail: email,
@@ -184,6 +188,7 @@ async function handleSubmit(
       itemCount: items.filter((i) => i.actor === "person").length,
     }),
   );
+  if (!queued.ok) console.error(`[onboarding] submission mail not queued: ${queued.error}`);
 
   return NextResponse.json({ ok: true });
 }

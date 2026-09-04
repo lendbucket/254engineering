@@ -3,7 +3,7 @@ import { createAccount, currentActor, issueSetPasswordToken, requestContext } fr
 import { can, type Role } from "@/lib/ops-authz";
 import { writeAudit } from "@/lib/ops-audit";
 import { supabaseAdmin } from "@/lib/supabase";
-import { notify } from "@/lib/notify";
+import { queueEmail } from "@/lib/ops-jobs";
 import { portalInvite, portalPasswordReset } from "@/lib/email-templates";
 import { business } from "@/config/business";
 
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
 
     if (!created.ok) return NextResponse.json({ ok: false, error: created.error }, { status: 400 });
 
-    const sent = await notify(
+    const sent = await queueEmail(
       portalInvite({
         personName: displayName,
         personEmail: email,
@@ -113,15 +113,20 @@ export async function POST(request: NextRequest) {
      * The account exists whether or not the email left. Saying so is the
      * difference between an operator who resends the invite and an operator who
      * creates the account a second time and hits "already has an account".
+     *
+     * emailSent now means QUEUED, and the copy the operator reads says queued
+     * rather than sent. Claiming a send this route no longer performs would be
+     * the same lie as a webhook reporting handled for a write that never
+     * happened, and the queue screen is where a send that failed shows up.
      */
     return NextResponse.json({
       ok: true,
       profileId: created.profileId,
       linked: created.linked,
-      emailSent: sent.sent,
-      emailError: sent.sent
+      emailSent: sent.ok,
+      emailError: sent.ok
         ? null
-        : "The account was created but the invite email did not send. Resend it from the roster.",
+        : "The account was created but the invite email could not be queued. Resend it from the roster.",
     });
   }
 
@@ -147,7 +152,7 @@ export async function POST(request: NextRequest) {
     );
     if (!issued) return NextResponse.json({ ok: false, error: "The link could not be issued." }, { status: 500 });
 
-    const sent = await notify(
+    const sent = await queueEmail(
       action === "resend_invite"
         ? portalInvite({
             personName: target.display_name as string,
@@ -177,7 +182,7 @@ export async function POST(request: NextRequest) {
       userAgent,
     });
 
-    return NextResponse.json({ ok: true, emailSent: sent.sent });
+    return NextResponse.json({ ok: true, emailSent: sent.ok });
   }
 
   // ------------------------------------------------------- suspend/restore

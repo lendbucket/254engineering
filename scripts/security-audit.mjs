@@ -67,6 +67,8 @@ const ADMIN_PAGES = [
   "/portal/orders",
   // Names every customer organisation, what it owes and on what terms.
   "/portal/accounts",
+  // Names every failed job and its error, which can carry a customer address.
+  "/portal/queue",
   "/admin",
   "/admin/leads",
   "/admin/applications",
@@ -101,6 +103,9 @@ const ADMIN_APIS = [
   // Customer ordering accounts: terms, credit limits, closing a period and
   // issuing a statement. It decides who may owe the firm money.
   "/api/portal/accounts",
+  // Retrying a dead job re-runs a side effect, so this is behind the perimeter
+  // and admin only behind that.
+  "/api/portal/queue",
 ];
 
 /**
