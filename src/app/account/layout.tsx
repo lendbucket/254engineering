@@ -16,5 +16,5 @@ export const metadata: Metadata = {
  * credential stuffing, and there is nothing here for a crawler.
  */
 export default function AccountLayout({ children }: { children: React.ReactNode }) {
-  return <div className="min-h-dvh bg-limestone">{children}</div>;
+  return <div className="min-h-dvh bg-[var(--canvas)]">{children}</div>;
 }

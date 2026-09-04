@@ -24,11 +24,11 @@ export default async function AccountSettingsPage() {
         <Wordmark height={36} />
       </div>
 
-      <p className="text-[11px] font-bold tracking-[0.14em] text-brass-ink uppercase">Your account</p>
-      <h1 className="mt-2 font-display text-[clamp(1.6rem,3vw,2.1rem)] leading-[1.2] font-semibold text-slate">
+      <p className="portal-kicker text-[var(--gold-deep)]">Your account</p>
+      <h1 className="mt-2 font-display text-[clamp(1.6rem,3vw,2.1rem)] leading-[1.2] font-semibold text-[var(--navy)]">
         Settings
       </h1>
-      <p className="mt-3 max-w-[62ch] text-[1rem] leading-[1.7] text-slate-muted">
+      <p className="mt-3 max-w-[62ch] text-[1rem] leading-[1.7] text-[var(--secondary)]">
         What the firm uses by default when this organisation orders. Everything here can still be
         changed on a single order.
       </p>
@@ -64,7 +64,7 @@ export default async function AccountSettingsPage() {
         />
       </div>
 
-      <p className="mt-8 text-[13.5px] text-slate-muted">
+      <p className="mt-8 text-[13.5px] text-[var(--secondary)]">
         <Link href="/account" className="underline underline-offset-2">
           Back to your account
         </Link>

@@ -33,11 +33,11 @@ export default async function AccountLoginPage({
           <Wordmark height={44} priority />
         </div>
 
-        <div className="rounded-[4px] border border-limestone-line border-t-[3px] border-t-brass bg-white p-6 sm:p-7">
-          <h1 className="font-display text-[22px] leading-[1.2] font-bold text-slate">
+        <div className="rounded-[4px] border border-[var(--border)] border-t-brass bg-white p-6 sm:p-7">
+          <h1 className="font-display text-[24px] leading-[1.2] font-bold text-[var(--navy)]">
             Sign in to your account
           </h1>
-          <p className="mt-2 text-[14px] leading-[1.6] text-slate-muted">
+          <p className="mt-2 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
             For organisations that order regularly. If you placed a single order, the link emailed
             to you opens it without signing in.
           </p>
@@ -47,13 +47,13 @@ export default async function AccountLoginPage({
               <AccountLoginForm next={safeNext} />
             </div>
           ) : (
-            <p className="mt-5 rounded-[3px] bg-[#fdf3e0] px-3 py-2.5 text-[13.5px] leading-[1.6] text-[#7a4c05]">
+            <p className="mt-5 rounded-[3px] bg-[var(--warn-bg)] px-3 py-2.5 text-[13.5px] leading-[1.6] text-[var(--warn-ink)]">
               Accounts are not available on this deployment yet.
             </p>
           )}
         </div>
 
-        <p className="mt-5 text-center text-[13px] text-slate-muted">
+        <p className="mt-5 text-center text-[13.5px] text-[var(--secondary)]">
           <Link href="/" className="underline underline-offset-2">
             Back to the site
           </Link>

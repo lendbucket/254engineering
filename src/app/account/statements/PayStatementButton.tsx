@@ -32,12 +32,12 @@ export function PayStatementButton({ statementId }: { statementId: string }) {
             setBusy(false);
           }
         }}
-        className="inline-flex min-h-[44px] items-center rounded-[3px] bg-slate px-4 text-[13px] font-bold text-white disabled:opacity-45"
+        className="inline-flex min-h-[44px] items-center rounded-[3px] bg-slate px-4 text-[13.5px] font-bold text-white disabled:opacity-45"
       >
         {busy ? "Opening" : "Pay this statement"}
       </button>
       {error ? (
-        <p role="alert" className="mt-2 text-[13px] text-[#8a1f1f]">
+        <p role="alert" className="mt-2 text-[13.5px] text-[var(--red)]">
           {error}
         </p>
       ) : null}

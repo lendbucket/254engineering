@@ -46,7 +46,25 @@ function walk(dir, acc = []) {
   return acc;
 }
 
-const FILES = [...walk("src/app/portal"), ...walk("src/components/portal")];
+/*
+ * The customer surfaces are read too.
+ *
+ * The standards file's voice section governs "any 254 Engineering Services
+ * product surface", not only the staff side, and the account screens are as
+ * operational as the portal: somebody checking what they owe does not want to
+ * be told it is going great.
+ *
+ * The public marketing site is NOT here. It has its own voice audit with its
+ * own rules, because marketing copy may legitimately be warmer than an
+ * interface and the two should not be held to one standard.
+ */
+const FILES = [
+  ...walk("src/app/portal"),
+  ...walk("src/components/portal"),
+  ...walk("src/app/account"),
+  ...walk("src/app/(site)/order"),
+  ...walk("src/components/order"),
+];
 rec("there are portal components to read", FILES.length > 0, `${FILES.length} files`);
 
 /**

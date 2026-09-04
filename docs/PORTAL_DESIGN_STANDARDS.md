@@ -223,6 +223,31 @@ that leaves the screen less repetitive wins.
 The header keeps what only it can carry: the data-as-of time, search, the bell,
 and the user menu.
 
+## The sealed letter is not built, and the sheet is
+
+The export has two document screens. Only one of them can be built honestly
+today, and this is recorded here so the absent one does not read as an
+oversight.
+
+**The sealed letter is not built.** Nothing in this platform produces one: every
+deliverable is an uploaded file, there is no letter generator, no seal image and
+no signature block, and `isPrelaunch()` stops a file reaching `sealed` at all
+while the registration is pending. A screen rendering one would be a picture of
+a document that cannot exist, carrying a seal for an engineer who has reviewed
+nothing. That is the evidence hash finding in a worse place, because a sealed
+engineering letter is the actual regulated artifact.
+
+**The document sheet is built**, over the evidence binder, which has been
+assembled from real rows since Phase 6 and had only ever existed as a CSV.
+`DocumentSheet`, `SheetLetterhead` and `SheetRecordNote` are in use at
+`/portal/documents/binder/[fileId]`, so when a sealed letter becomes real it is
+a page rather than a system.
+
+The binder's own limitations note is the model for how a document here talks
+about itself: it says it is not an engineering opinion, that it is not sealed,
+and that no sealed deliverable exists for the file. BACKLOG carries what has to
+be true before the letter can be built, in order.
+
 ## There is no 403, deliberately
 
 The export draws one. It is dropped, and the reason is recorded here so a later

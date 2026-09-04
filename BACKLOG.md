@@ -1869,3 +1869,43 @@ for a purely cosmetic gain. The wrong trade.
 not be able to enumerate routes at all, which would be a genuinely different
 security posture from the one this platform has, or a catch all arriving anyway
 for another reason and this coming along free with it.
+
+### The sealed letter screen is not built, and cannot be honestly
+
+Recorded 2026-09-04, during the portal design port, Section 2 item 6.
+
+**What the design has.** A "Sealed letter" screen: a 760px document sheet with a
+letterhead, findings, a PE seal and a signature block.
+
+**Why it was not built.** Nothing in this platform produces a sealed letter.
+`eng_documents` can hold a deliverable with `sealed_at` and the sealing facts
+beside it, and every deliverable that exists is an uploaded file. There is no
+letter generator, no seal image, and no signature block, because there is no
+Professional Engineer in responsible charge and `isPrelaunch()` stops a file
+reaching `sealed` at all.
+
+A screen rendering one would be a picture of a document that cannot exist,
+carrying a seal and a signature for an engineer who has not reviewed anything.
+That is the evidence hash finding again, in a worse place: a sealed engineering
+letter is the actual regulated artifact.
+
+**What was built instead.** The document sheet, over the evidence binder, which
+has been assembled from real rows since Phase 6 and had only ever existed as a
+CSV. `/portal/documents/binder/[fileId]` renders it on the sheet the design
+specifies, and its limitations note says plainly that it is not an engineering
+opinion, that it is not sealed, and that no sealed deliverable exists for the
+file. The components the letter would need, `DocumentSheet`, `SheetLetterhead`
+and `SheetRecordNote`, are built and in use, so the letter is a page and not a
+system when it becomes real.
+
+**What has to be true first, in order:**
+
+1. The TBPELS firm registration issues and a PE is in responsible charge, so
+   `LAUNCH_MODE` can go live and a file can reach `sealed`.
+2. A decision about what a sealed letter IS: a generated PDF this platform
+   composes, or a document the engineer produces elsewhere and uploads. Only the
+   first needs this screen; the second needs a viewer.
+3. If generated: the seal image, the signature, and where they are stored, which
+   is a credential question rather than a design one. A seal that any staff
+   account can render onto a document is a seal that has left the engineer's
+   control.

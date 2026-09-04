@@ -137,7 +137,21 @@ function walk(dir, acc = []) {
   return acc;
 }
 
-const PORTAL_DIRS = ["src/app/portal", "src/components/portal"];
+/*
+ * The customer surfaces are governed too.
+ *
+ * The account screens are Phase 8 Section 1 and postdate the design entirely;
+ * the order flow and the tracking page predate it. All three are surfaces of
+ * the same product a customer meets, and leaving them on the old styling would
+ * mean the design stops at the staff door, which is not where a brand stops.
+ */
+const PORTAL_DIRS = [
+  "src/app/portal",
+  "src/components/portal",
+  "src/app/account",
+  "src/app/(site)/order",
+  "src/components/order",
+];
 const allPortalFiles = PORTAL_DIRS.flatMap((d) => walk(d)).filter((f) => f !== TOKENS);
 
 /**
@@ -166,9 +180,24 @@ const allPortalFiles = PORTAL_DIRS.flatMap((d) => walk(d)).filter((f) => f !== T
  *   stalling.
  */
 const PORTED = [
-  // Everything under src/app/portal and src/components/portal. The colour, type,
-  // radius, shadow, gradient and case rules now govern the whole portal rather
-  // than a growing subset, which is what this list existed to reach.
+  // Every portal and customer surface. The list existed so the audit could be
+  // real while the port was partial; it now names everything.
+  "src/app/(site)/order/[reference]/page.tsx",
+  "src/app/(site)/order/start/[slug]/page.tsx",
+  "src/app/account/SignOutButton.tsx",
+  "src/app/account/layout.tsx",
+  "src/app/account/login/AccountLoginForm.tsx",
+  "src/app/account/login/page.tsx",
+  "src/app/account/order/BulkOrderClient.tsx",
+  "src/app/account/order/page.tsx",
+  "src/app/account/orders/[reference]/page.tsx",
+  "src/app/account/page.tsx",
+  "src/app/account/set-password/SetPasswordForm.tsx",
+  "src/app/account/set-password/page.tsx",
+  "src/app/account/settings/SettingsClient.tsx",
+  "src/app/account/settings/page.tsx",
+  "src/app/account/statements/PayStatementButton.tsx",
+  "src/app/account/statements/page.tsx",
   "src/app/portal/(app)/accounts/AccountsClient.tsx",
   "src/app/portal/(app)/accounts/page.tsx",
   "src/app/portal/(app)/audit/page.tsx",
@@ -179,6 +208,7 @@ const PORTED = [
   "src/app/portal/(app)/charge-log/page.tsx",
   "src/app/portal/(app)/clients/ClientsClient.tsx",
   "src/app/portal/(app)/clients/page.tsx",
+  "src/app/portal/(app)/documents/binder/[fileId]/page.tsx",
   "src/app/portal/(app)/documents/page.tsx",
   "src/app/portal/(app)/files/DispatchPanel.tsx",
   "src/app/portal/(app)/files/FileClient.tsx",
@@ -219,6 +249,7 @@ const PORTED = [
   "src/app/portal/(public)/set-password/SetPasswordForm.tsx",
   "src/app/portal/(public)/set-password/page.tsx",
   "src/app/portal/layout.tsx",
+  "src/components/order/OrderFlow.tsx",
   "src/components/portal/CoverageMap.tsx",
   "src/components/portal/Dashboard.tsx",
   "src/components/portal/Mispointed.tsx",

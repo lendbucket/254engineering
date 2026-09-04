@@ -93,13 +93,28 @@ export default async function DocumentsPage() {
             {
               key: "binder",
               head: "Binder",
+              /*
+                READ IT, OR TAKE IT AWAY. Two different jobs.
+                The sheet is for looking at the binder; the CSV is for handing it
+                to somebody else's system. The export was the only option, which
+                meant answering "what did we capture on that file" involved
+                downloading a spreadsheet.
+              */
               cell: (f) => (
-                <a
-                  href={`/api/portal/exports?report=binder&fileId=${f.id}`}
-                  className="font-semibold text-[var(--navy)] underline decoration-brass decoration-2 underline-offset-4"
-                >
-                  Export
-                </a>
+                <span className="flex flex-wrap gap-x-3">
+                  <a
+                    href={`/portal/documents/binder/${f.id}`}
+                    className="font-semibold text-[var(--navy)] underline decoration-[var(--gold)] decoration-2 underline-offset-4"
+                  >
+                    Read
+                  </a>
+                  <a
+                    href={`/api/portal/exports?report=binder&fileId=${f.id}`}
+                    className="font-semibold text-[var(--secondary)] underline decoration-[var(--border-strong)] decoration-2 underline-offset-4"
+                  >
+                    CSV
+                  </a>
+                </span>
               ),
             },
           ]}
@@ -116,10 +131,10 @@ export default async function DocumentsPage() {
                 {f.property_address}, {f.county} County
               </p>
               <a
-                href={`/api/portal/exports?report=binder&fileId=${f.id}`}
-                className="mt-3 inline-flex min-h-[44px] items-center text-[13.5px] font-bold text-[var(--navy)] underline decoration-brass decoration-2 underline-offset-4"
+                href={`/portal/documents/binder/${f.id}`}
+                className="mt-3 inline-flex min-h-[var(--tap-target)] items-center text-[13.5px] font-bold text-[var(--navy)] underline decoration-[var(--gold)] decoration-2 underline-offset-4"
               >
-                Export the binder
+                Read the binder
               </a>
             </div>
           )}
