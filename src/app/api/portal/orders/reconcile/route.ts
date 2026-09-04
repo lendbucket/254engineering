@@ -3,6 +3,7 @@ import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { writeAudit } from "@/lib/ops-audit";
 import { reconcileAll } from "@/lib/ops-reconcile";
+import { enqueue } from "@/lib/ops-jobs";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,20 @@ export const dynamic = "force-dynamic";
  * A GET is the read only run, and cannot apply whatever it is asked, because a
  * request that changes money should not be something a browser can be tricked
  * into making by following a link.
+ *
+ * THE READ STAYS IN THE REQUEST, THE APPLYING SWEEP LEAVES
+ * --------------------------------------------------------
+ * The read only run IS the report the operator opened this screen to read, so
+ * queueing it would be queueing the answer to the question being asked. The
+ * applying run is different: it walks every pending order, asks Stripe about
+ * each one and records what it finds, and nobody needs to hold a browser open
+ * for that. It goes on the queue and the operator reads the result from the
+ * read only run afterwards.
+ *
+ * Running the applying sweep twice is harmless by construction, which is why
+ * orders.reconcile is the one job kind that declares itself naturally
+ * idempotent: markPaid dedupes on the provider's charge ref, so a second sweep
+ * finds the charge already on file and writes nothing.
  */
 
 async function guard() {
@@ -62,22 +77,43 @@ export async function POST(request: NextRequest) {
     ? (body.references as unknown[]).filter((r): r is string => typeof r === "string")
     : undefined;
 
-  const report = await reconcileAll({ apply, references });
+  if (apply) {
+    const queued = await enqueue("orders.reconcile", { apply: true, references: references ?? null });
+    if (!queued.ok) {
+      return NextResponse.json({ ok: false, error: queued.error }, { status: 503 });
+    }
+
+    /*
+     * Audited at the moment it was ASKED FOR, naming the person who asked,
+     * because that is the fact a dispute needs and the job itself has no actor.
+     * What the sweep then found is on the order's own record.
+     */
+    await writeAudit({
+      actor: { id: g.actor.id, role: g.actor.role, email: g.actor.email },
+      action: "orders.reconcile_applied",
+      entityType: "service_order",
+      entityId: null,
+      summary: references?.length
+        ? `Queued an applying reconciliation of ${references.length} named order(s)`
+        : "Queued an applying reconciliation of every order awaiting payment",
+    });
+
+    return NextResponse.json({ ok: true, queued: true, duplicate: queued.duplicate });
+  }
+
+  const report = await reconcileAll({ apply: false, references });
 
   /*
    * Audited whether or not anything changed, because "an admin asked the
    * provider about these orders and it said nothing was wrong" is exactly the
    * fact somebody will want on record if a customer disputes it later.
    */
-  const changed = report.findings.filter((f) => f.action === "recorded_payment" || f.action === "cancelled");
   await writeAudit({
     actor: { id: g.actor.id, role: g.actor.role, email: g.actor.email },
-    action: apply ? "orders.reconcile_applied" : "orders.reconcile_read",
+    action: "orders.reconcile_read",
     entityType: "service_order",
     entityId: null,
-    summary: apply
-      ? `Reconciled ${report.examined} order(s) against ${report.provider}: ${changed.length} changed`
-      : `Read ${report.examined} order(s) against ${report.provider}, changed nothing`,
+    summary: `Read ${report.examined} order(s) against ${report.provider}, changed nothing`,
   });
 
   return NextResponse.json({ ok: true, ...report });

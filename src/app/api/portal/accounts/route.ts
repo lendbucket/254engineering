@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
-import { closePeriod, issueStatement, periodKey } from "@/lib/ops-statements";
+import { closePeriod, issuableStatement, periodKey } from "@/lib/ops-statements";
+import { enqueue } from "@/lib/ops-jobs";
 import { supabaseAdmin } from "@/lib/supabase";
 import { writeAudit } from "@/lib/ops-audit";
 
@@ -57,13 +58,45 @@ export async function POST(request: NextRequest) {
       : NextResponse.json({ ok: false, error: result.error }, { status: 400 });
   }
 
+  /*
+   * ISSUING LEAVES THE REQUEST. CLOSING DOES NOT.
+   *
+   * Closing a period is a read and a set of inserts against this database, and
+   * the operator is looking at the result: the line count and the total are the
+   * whole reason close and issue are two actions rather than one. So it stays.
+   *
+   * Issuing sends the statement to the customer, which means a mail provider,
+   * and nobody pressing "issue" needs to watch that happen. The refusal cases
+   * that matter to the operator, a statement that does not exist or is already
+   * issued, are still answered here rather than discovered on the queue, so the
+   * button still tells the truth about whether the action was accepted.
+   */
   if (action === "issue-statement") {
     const statementId = typeof body?.statementId === "string" ? body.statementId : "";
     if (!statementId) return NextResponse.json({ ok: false, error: "Which statement?" }, { status: 400 });
-    const result = await issueStatement(statementId, g.actor.email);
-    return result.ok
-      ? NextResponse.json({ ok: true, dueAt: result.dueAt })
-      : NextResponse.json({ ok: false, error: result.error }, { status: 400 });
+
+    /*
+     * Asked and answered before it is queued. issuableStatement is the same
+     * function the job runs, so the refusals the operator sees here are exactly
+     * the refusals the job would produce, and pressing the button on a
+     * statement that is already issued still says so rather than succeeding
+     * into a queue.
+     */
+    const eligible = await issuableStatement(statementId);
+    if (!eligible.ok) {
+      return NextResponse.json({ ok: false, error: eligible.error }, { status: 400 });
+    }
+
+    const queued = await enqueue("statement.issue", { statementId });
+    if (!queued.ok) {
+      return NextResponse.json({ ok: false, error: queued.error }, { status: 503 });
+    }
+    return NextResponse.json({
+      ok: true,
+      queued: true,
+      duplicate: queued.duplicate,
+      reference: eligible.statement.reference,
+    });
   }
 
   if (action === "set-terms") {

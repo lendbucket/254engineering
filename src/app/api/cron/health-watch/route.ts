@@ -3,6 +3,8 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { business } from "@/config/business";
 import { outageAlert } from "@/lib/email-templates";
 import { notify } from "@/lib/notify";
+import { enqueue } from "@/lib/ops-jobs";
+import { cronStarted, cronFinished } from "@/lib/ops-observability";
 import {
   HEALTH_PROBE_PATH,
   HEALTH_WATCH_EVERY_MINUTES,
@@ -48,6 +50,17 @@ export const dynamic = "force-dynamic";
  * says it will, and the operator reads duration from how many arrived. For a
  * fault that went unnoticed for two hours, noisy is the correct direction.
  *
+ * WHY ITS ALERT DOES NOT GO ON THE JOB QUEUE
+ * ------------------------------------------
+ * Every other outbound email on this platform is enqueued. This one is not, and
+ * the reason is the same one written above about state: the queue lives in the
+ * database being watched. An outage alert routed through it would be an alert
+ * that cannot leave during precisely the outage it exists to report, and the
+ * symptom would be silence, which is indistinguishable from everything working.
+ *
+ * jobs-audit asserts this route still calls notify directly, so a later pass
+ * tidying "the last unqueued send" cannot quietly remove the exception.
+ *
  * WHY IT REFUSES WITHOUT CRON_SECRET
  * ----------------------------------
  * This endpoint sends email. Reachable without a secret it is a way for anybody
@@ -87,6 +100,31 @@ export async function GET(request: NextRequest) {
   const host = business.url;
   const checkedAt = new Date().toISOString();
 
+  /*
+   * Recorded before the probe, so a run killed by a timeout leaves a row with
+   * no finished_at. The status page reads that as "started and never
+   * reported", which is what a cron dying every five minutes actually looks
+   * like and is invisible if only completions are written.
+   */
+  const runId = await cronStarted("health-watch");
+
+  /*
+   * The error alert sweep rides along on this schedule rather than having a
+   * cron of its own.
+   *
+   * Every five minutes is the right cadence for it: the alert rules already
+   * carry an hour long cooldown, so sweeping more often changes nothing except
+   * the number of no-op jobs, and sweeping less often delays the news. Putting
+   * it on the minutely worker would write 1440 rows a day to say nothing 1439
+   * times.
+   *
+   * It is enqueued rather than run here, because it sends email and email on
+   * this platform goes through the queue. This route's own alert is the one
+   * deliberate exception, for reasons written below.
+   */
+  const sweep = await enqueue("errors.alert", {});
+  if (!sweep.ok) console.error(`[health-watch] could not queue the error sweep: ${sweep.error}`);
+
   let status: number | null = null;
   let detail = "";
 
@@ -116,12 +154,24 @@ export async function GET(request: NextRequest) {
      * to ignore its emails, and the one that matters then looks like the rest.
      */
     console.log(`[health-watch] ok ${host}${HEALTH_PROBE_PATH} ${status}`);
+    await cronFinished(runId, true, `healthy, ${status}`);
     return NextResponse.json({ ok: true, outcome, host, status, checkedAt });
   }
 
   console.error(
     `[health-watch] ${outcome.toUpperCase()} ${host}${HEALTH_PROBE_PATH} status=${status} detail=${detail.slice(0, 200)}`,
   );
+
+  /*
+   * ok: true on the run row even though the site is down.
+   *
+   * The row records whether the WATCHER worked, not whether the site did. A
+   * watcher that marked itself failed every time it found a fault would make
+   * the status page say the watcher is broken during exactly the outage it
+   * successfully detected, and an operator would then distrust the one signal
+   * that was working.
+   */
+  await cronFinished(runId, true, `${outcome}, status ${status ?? "none"}`);
 
   const result = await notify(
     outageAlert({

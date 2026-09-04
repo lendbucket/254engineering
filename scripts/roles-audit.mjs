@@ -148,6 +148,13 @@ const EXPECTED = {
   "accounts.manage":              { admin: true,  engineer: false, field_tech: false },
 
   /*
+   * The job queue. Retrying a dead job re-runs a side effect: it can send an
+   * email a customer already received, or push money adjacent work forward.
+   * That is the operator alone, for the same reason reconciliation is.
+   */
+  "jobs.manage":                  { admin: true,  engineer: false, field_tech: false },
+
+  /*
    * Everybody. A task list and a conversation are not privileges; a platform
    * where a technician cannot write down their own next action is one where
    * they keep a separate list beside it, and a platform where they cannot ask a

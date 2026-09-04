@@ -212,10 +212,22 @@ export async function closePeriod(
  * computed later from net_days. If the terms change next month, a statement
  * already sent must not silently acquire a different due date.
  */
-export async function issueStatement(
+/**
+ * Can this statement be issued, and why not.
+ *
+ * Extracted so the route that QUEUES the issue and the job that PERFORMS it ask
+ * the same question in the same words. Issuing moved onto the job queue in
+ * Phase 8, and the operator pressing the button still has to be told "that one
+ * is already issued" then and there rather than discovering it in a dead
+ * letter. Two copies of these three checks would drift, and the drift would
+ * show up as a button that accepts work the job then refuses.
+ */
+export async function issuableStatement(
   statementId: string,
-  actorEmail?: string,
-): Promise<{ ok: true; dueAt: string } | { ok: false; error: string }> {
+): Promise<
+  | { ok: true; statement: { id: string; reference: string; account_id: string; total_cents: number } }
+  | { ok: false; error: string }
+> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The order system is not configured." };
 
@@ -231,6 +243,28 @@ export async function issueStatement(
   if (statement.total_cents === null || Number(statement.total_cents) <= 0) {
     return { ok: false, error: "That statement has nothing on it, so there is nothing to issue." };
   }
+
+  return {
+    ok: true,
+    statement: {
+      id: statement.id as string,
+      reference: statement.reference as string,
+      account_id: statement.account_id as string,
+      total_cents: Number(statement.total_cents),
+    },
+  };
+}
+
+export async function issueStatement(
+  statementId: string,
+  actorEmail?: string,
+): Promise<{ ok: true; dueAt: string } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The order system is not configured." };
+
+  const eligible = await issuableStatement(statementId);
+  if (!eligible.ok) return eligible;
+  const statement = eligible.statement;
 
   const { data: account } = await db
     .from("eng_customer_accounts")

@@ -3,6 +3,7 @@ import { currentActor, requestContext } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { csvHeaders } from "@/lib/csv";
 import { binderCsv, binderFor, fileMargins, marginCsv, periodCsv } from "@/lib/ops-docs";
+import { enqueue } from "@/lib/ops-jobs";
 import { writeAudit } from "@/lib/ops-audit";
 
 export const dynamic = "force-dynamic";
@@ -64,6 +65,26 @@ export async function GET(request: NextRequest) {
       }`,
       ...context,
     });
+
+    /*
+     * THE DOWNLOAD IS NOT QUEUED. THE RECORD OF IT IS.
+     *
+     * The test the whole section is built on is whether the person in front of
+     * the request needs this to have happened before the response. For a file
+     * somebody just clicked to download, the answer is obviously yes, and a
+     * queued CSV is a CSV nobody receives. So the binder is assembled here.
+     *
+     * What leaves is the entry on the file's own timeline, which is how anybody
+     * later reading the file learns a binder was assembled from it and when.
+     * That is nobody's blocking concern, and putting it on the queue keeps a
+     * slow or unavailable write from failing a download that had already
+     * succeeded.
+     */
+    const recorded = await enqueue("document.binder", {
+      fileId,
+      requestedFor: stamp(),
+    });
+    if (!recorded.ok) console.error(`[exports] binder event not queued: ${recorded.error}`);
 
     return new NextResponse(binderCsv(binder), {
       headers: csvHeaders(`binder-${binder.fileNumber}-${stamp()}.csv`),

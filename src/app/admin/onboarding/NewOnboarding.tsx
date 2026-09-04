@@ -133,7 +133,7 @@ export function NewOnboarding() {
         {result ? (
           <div className="border-l-4 border-brass bg-limestone px-4 py-3 sm:col-span-2">
             <p className="text-[12px] font-bold tracking-[0.12em] text-brass-ink uppercase">
-              {result.emailed ? "Invited and emailed" : `Invited, email ${result.outcome}`}
+              {result.emailed ? "Invited, email queued" : `Invited, email ${result.outcome}`}
             </p>
             <p className="mt-2 break-all text-[14px] leading-[1.6] text-slate">{result.inviteUrl}</p>
             <p className="mt-2 text-[13.5px] text-slate-muted">

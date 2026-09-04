@@ -26,7 +26,7 @@ export type NavItem = {
   icon:
     | "home" | "files" | "people" | "review" | "jobs" | "clients" | "audit"
     | "profile" | "protocols" | "techs" | "onboarding" | "certification" | "charge"
-    | "tasks" | "messages" | "documents" | "billing" | "orders" | "accounts";
+    | "tasks" | "messages" | "documents" | "billing" | "orders" | "accounts" | "queue" | "status";
 };
 
 export const NAV: NavItem[] = [
@@ -65,6 +65,8 @@ export const NAV: NavItem[] = [
   { href: "/portal/techs", label: "Technicians", short: "Techs", action: "profiles.list", icon: "techs" },
   { href: "/portal/onboarding", label: "Onboarding", short: "Onboard", action: "profiles.create", icon: "onboarding" },
   { href: "/portal/people", label: "People", short: "People", action: "profiles.list", primary: true, icon: "people" },
+  { href: "/portal/queue", label: "Job queue", short: "Queue", action: "jobs.manage", icon: "queue" },
+  { href: "/portal/status", label: "Platform status", short: "Status", action: "jobs.manage", icon: "status" },
   { href: "/portal/audit", label: "Audit trail", short: "Audit", action: "audit.read", icon: "audit" },
   { href: "/portal/profile", label: "Your profile", short: "You", action: "profiles.read_self", primary: true, icon: "profile" },
 ];

@@ -77,11 +77,13 @@ export function NewPersonForm({ counties }: { counties: string[] }) {
         return;
       }
 
-      // The account exists whether or not the mail left. Say which happened.
+      // The account exists whether or not the mail was queued. Say which
+      // happened, and say queued rather than sent, because that is what the
+      // route actually did.
       setNotice(
         body.emailSent
-          ? "Account created and the invite is on its way."
-          : (body.emailError ?? "Account created. The invite email did not send."),
+          ? "Account created and the invite is queued to send."
+          : (body.emailError ?? "Account created. The invite email could not be queued."),
       );
       setBusy(false);
       setOpen(false);
@@ -263,12 +265,12 @@ export function PersonActions({ person, selfId }: { person: Person; selfId: stri
       setNotice(
         action === "resend_invite"
           ? body.emailSent
-            ? "Invite resent."
-            : "Link reissued, but the email did not send."
+            ? "Invite reissued and queued to send."
+            : "Link reissued, but the email could not be queued."
           : action === "force_reset"
             ? body.emailSent
-              ? "Reset link sent."
-              : "Link reissued, but the email did not send."
+              ? "Reset link reissued and queued to send."
+              : "Link reissued, but the email could not be queued."
             : action === "suspend"
               ? "Suspended."
               : "Restored.",

@@ -10,7 +10,7 @@ import {
 } from "@/lib/onboarding";
 import { inviteUrl } from "@/lib/onboarding-tokens";
 import { onboardingInvite } from "@/lib/email-templates";
-import { notify } from "@/lib/notify";
+import { queueEmail } from "@/lib/ops-jobs";
 import { business } from "@/config/business";
 
 export const runtime = "nodejs";
@@ -104,11 +104,18 @@ export async function POST(request: Request) {
     if (!created.ok) return NextResponse.json({ ok: false, error: created.error }, { status: 500 });
 
     const url = inviteUrl(business.url, created.data.token);
-    // Sent explicitly rather than on creation, so a link is never in flight
-    // before the operator meant it to be. That decision is the branch's, and it
-    // is kept: creating and sending are one operator action here, but the send
-    // is still a separate call whose outcome is reported.
-    const sent = await notify(
+    /*
+     * Sent explicitly rather than on creation, so a link is never in flight
+     * before the operator meant it to be. That decision is the branch's, and it
+     * is kept: creating and sending are one operator action here, but the send
+     * is still a separate call whose outcome is reported.
+     *
+     * What changed is that the outcome reported is the ENQUEUE, not the send.
+     * The link is returned in this response either way, which is why queuing
+     * the mail costs the operator nothing: they can copy it now and the email
+     * follows. Whether it actually left is on the job queue screen.
+     */
+    const sent = await queueEmail(
       onboardingInvite({
         personName: created.data.onboarding.person_name,
         personEmail: created.data.onboarding.email,
@@ -121,8 +128,8 @@ export async function POST(request: Request) {
       ok: true,
       id: created.data.onboarding.id,
       inviteUrl: url,
-      emailed: sent.outcome === "ok",
-      emailOutcome: sent.outcome,
+      emailed: sent.ok,
+      emailOutcome: sent.ok ? "queued" : sent.error,
     });
   }
 

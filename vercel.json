@@ -4,6 +4,14 @@
     {
       "path": "/api/cron/health-watch",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/jobs",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/daily",
+      "schedule": "15 6 * * *"
     }
   ]
 }

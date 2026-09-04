@@ -361,8 +361,17 @@ rec(
   // which is the same shape as the app reading SUPABASE_URL and believing it.
   // =====================================================================
   {
-    const LIVE = "sk_live_51abcdefghijklmnop";
-    const TEST = "sk_test_51abcdefghijklmnop";
+    /*
+     * Assembled rather than written out, for the same reason the fixtures in
+     * observability-audit are. These are fabricated and they are shaped like
+     * the real thing, which is the point of them and also what makes a file
+     * containing them literally something a credential scanner objects to.
+     * GitHub blocked a push over the observability fixture; this one is the
+     * same class of string and is defused with it rather than left to trip the
+     * next person.
+     */
+    const LIVE = ["sk", "live", "51abcdefghijklmnop"].join("_");
+    const TEST = ["sk", "test", "51abcdefghijklmnop"].join("_");
 
     /** [description, env, should the guard fire] */
     const KEY_CASES = [

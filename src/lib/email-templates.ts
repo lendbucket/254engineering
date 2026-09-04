@@ -678,9 +678,119 @@ export function outageAlert(input: OutageAlertInput): RenderedEmail {
   );
 }
 
+
+export type ErrorAlertInput = {
+  /**
+   * Which piece of news this is.
+   *
+   * "new" and "rate" are genuinely different messages and they get different
+   * subjects. A fault appearing for the first time asks "what changed"; a fault
+   * suddenly firing eleven times in fifteen minutes asks "what is happening
+   * right now". A single generic subject would send the operator to the wrong
+   * question half the time, which is the same reasoning the outage alert's four
+   * outcomes are built on.
+   */
+  kind: "new" | "rate";
+  /** The readable fingerprint, so it can be searched for on the status page. */
+  fingerprint: string;
+  /** The message, already scrubbed. */
+  title: string;
+  /** Total occurrences ever recorded for this fault. */
+  occurrences: number;
+  /** How many landed inside the rate window. */
+  inWindow: number;
+  windowMinutes: number;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  /** How many other faults were eligible and cut by the per sweep cap. */
+  suppressed: number;
+  release: string;
+  environment: string;
+  statusUrl: string;
+  cooldownMinutes: number;
+};
+
+/**
+ * A fault is new, or a fault has become frequent.
+ *
+ * WHY THE BODY SAYS WHAT WILL HAPPEN NEXT
+ * ---------------------------------------
+ * The same reason the outage alert says it will arrive every five minutes. An
+ * alert that does not tell you its own cadence leaves the reader unable to tell
+ * silence from "it is fixed", and this one is quieter than the outage watcher:
+ * one email per fault per hour, with a cap of three per sweep. Somebody who does
+ * not know about the cap will read three alerts as three faults.
+ */
+export function errorAlert(input: ErrorAlertInput): RenderedEmail {
+  const headline =
+    input.kind === "rate"
+      ? `A fault is repeating: ${input.inWindow} times in ${input.windowMinutes} minutes`
+      : "A fault that has not happened before";
+
+  return compose(
+    "ops.error_alert",
+    "operator",
+    `${headline} on ${input.environment}`,
+    {
+      preheader: `${input.title.slice(0, 90)} (last seen ${input.lastSeenAt})`,
+      blocks: [
+        {
+          kind: "p",
+          text:
+            input.kind === "rate"
+              ? "This fault has crossed the rate threshold, which means it is happening often enough to be affecting somebody rather than being a one off. The release and route below are where to start."
+              : "This is the first time this particular fault has been recorded. It may be harmless and it may be the first symptom of a deploy that went wrong; either way it was not happening before, which is the only thing this email claims.",
+        },
+        {
+          kind: "details",
+          title: "The fault",
+          rows: rows([
+            ["What it says", input.title],
+            ["Fingerprint", input.fingerprint],
+            ["In the last " + input.windowMinutes + " minutes", String(input.inWindow)],
+            ["Recorded in total", String(input.occurrences)],
+            ["First seen", input.firstSeenAt],
+            ["Last seen", input.lastSeenAt],
+            ["Release", input.release],
+            ["Environment", input.environment],
+          ]),
+        },
+        {
+          kind: "p",
+          text: `The status page has the full list, the queue depth and the last run of every scheduled job: ${input.statusUrl}`,
+        },
+        {
+          kind: "note",
+          text:
+            `One email per fault per ${input.cooldownMinutes} minutes, and at most three faults per sweep` +
+            (input.suppressed > 0
+              ? `. ${input.suppressed} other fault${input.suppressed === 1 ? " was" : "s were"} eligible and held back by that cap, so this is not the whole picture. The status page is.`
+              : ". A fault that keeps firing will send again after the cooldown rather than going quiet."),
+        },
+      ],
+    },
+    { replyTo: business.email },
+  );
+}
+
 export function allTemplatesForAudit(): RenderedEmail[] {
 
   return [
+    errorAlert({
+      kind: "rate",
+      fingerprint: "/api/order-flow | route | the payment provider refused the session",
+      title: "The payment provider refused the session",
+      occurrences: 41,
+      inWindow: 14,
+      windowMinutes: 15,
+      firstSeenAt: "4 September 2026 at 09:12 UTC",
+      lastSeenAt: "4 September 2026 at 10:31 UTC",
+      suppressed: 2,
+      release: "1ca47ffb21c0",
+      environment: "production",
+      statusUrl: "https://254engineering.com/portal/status",
+      cooldownMinutes: 60,
+    }),
     outageAlert({
       outcome: "unhealthy",
       host: "https://254engineering.com",

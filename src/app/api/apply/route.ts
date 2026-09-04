@@ -5,7 +5,7 @@ import {
   technicianApplicationSchema,
 } from "@/lib/application-schemas";
 import { insertStructuredApplication } from "@/lib/intake";
-import { notify } from "@/lib/notify";
+import { queueEmail } from "@/lib/ops-jobs";
 import { applicantConfirmation, applicationNotification } from "@/lib/email-templates";
 import { signedDownloadUrl } from "@/lib/uploads";
 import { positionByTrack } from "@data/positions";
@@ -235,7 +235,7 @@ export async function POST(request: Request) {
         },
       ];
 
-  const operatorMail = await notify(
+  const operatorMail = await queueEmail(
     applicationNotification({
       roleLabel,
       positionTitle,
@@ -248,7 +248,7 @@ export async function POST(request: Request) {
     }),
   );
 
-  const applicantMail = await notify(
+  const applicantMail = await queueEmail(
     applicantConfirmation({
       roleLabel: positionTitle,
       name: data.fullName,
@@ -260,10 +260,17 @@ export async function POST(request: Request) {
     }),
   );
 
-  // Both outcomes are already logged inside notify(). Nothing here is surfaced
-  // to the applicant, because the application is recorded either way.
-  void operatorMail;
-  void applicantMail;
+  /*
+   * Both emails leave on the queue. The application row is the record and it is
+   * already written; an applicant pressing submit must not wait on two round
+   * trips to a mail provider, and a provider outage must not decide whether
+   * their application was captured.
+   *
+   * A failed ENQUEUE is a different thing from a failed send, so it is logged
+   * here. A failed SEND is the queue's to show, on the screen built for it.
+   */
+  if (!operatorMail.ok) console.error(`[apply] operator mail not queued: ${operatorMail.error}`);
+  if (!applicantMail.ok) console.error(`[apply] applicant mail not queued: ${applicantMail.error}`);
 
   return NextResponse.json({ ok: true, applicationId: data.applicationId });
 }
