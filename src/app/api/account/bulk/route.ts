@@ -4,6 +4,7 @@ import { previewBatch, placeBatch, accountBalance } from "@/lib/ops-bulk";
 import { startBatchCheckout } from "@/lib/ops-payments";
 import { creditDecision } from "@/lib/account-credit";
 import { SITE_KEY } from "@/lib/supabase";
+import { accountDefaults } from "@/lib/ops-account";
 import type { BulkProperty } from "@/lib/bulk-order";
 
 export const dynamic = "force-dynamic";
@@ -118,6 +119,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "A submission needs a key." }, { status: 400 });
     }
 
+    /*
+     * The organisation's standing defaults, applied here rather than by the
+     * browser. A default the customer's own page filled in would be a default
+     * the customer could change without changing the setting, and the operator
+     * would have no way to know which orders actually carried it.
+     *
+     * The standing access instructions become the access_notes input on every
+     * order in the batch, and the preferred turnaround is recorded beside them
+     * because the catalog does not price urgency. See ops-account for why that
+     * one is a preference rather than a commitment.
+     */
+    const defaults = await accountDefaults(me.accountId);
+    const inputs: Record<string, string> = {};
+    if (defaults?.accessInstructions) inputs.access_notes = defaults.accessInstructions;
+    if (defaults?.preferredUrgency) {
+      inputs.account_turnaround_preference = defaults.preferredUrgency;
+    }
+
     const result = await placeBatch({
       site: SITE_KEY,
       clientRequestId,
@@ -129,6 +148,7 @@ export async function POST(request: NextRequest) {
         email: me.email,
       },
       properties,
+      inputs,
     });
 
     if (!result.ok) {

@@ -51,10 +51,24 @@ export default async function AccountHomePage() {
         </Link>
       </div>
 
+      <div className="mt-4 rounded-[4px] border border-limestone-line bg-white px-5 py-5">
+        <h2 className="font-display text-[1.15rem] font-semibold text-slate">Settings</h2>
+        <p className="mt-2 text-[13.5px] leading-[1.65] text-slate-muted">
+          The billing contact, the standing access instructions that go onto every order, and the
+          properties you order against repeatedly.
+        </p>
+        <Link
+          href="/account/settings"
+          className="mt-4 inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-slate underline underline-offset-2"
+        >
+          Open settings
+        </Link>
+      </div>
+
       <div className="mt-4 rounded-[4px] border border-limestone-line bg-white px-5 py-4">
         <p className="text-[13.5px] leading-[1.65] text-slate-muted">
-          Saved properties, API access and statements are being built. Single orders still go
-          through the service pages as usual.
+          API access and statements are being built. Single orders still go through the service
+          pages as usual.
         </p>
       </div>
 

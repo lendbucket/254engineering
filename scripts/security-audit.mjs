@@ -863,7 +863,12 @@ async function run() {
      * prove the proxy SAYS the right thing. This proves the deployed route
      * actually refuses.
      */
-    for (const path of ["/account", "/account/order", "/account/orders/254-B2026-XXXXXX"]) {
+    for (const path of [
+      "/account",
+      "/account/order",
+      "/account/settings",
+      "/account/orders/254-B2026-XXXXXX",
+    ]) {
       const res = await fetch(`${BASE}${path}`, { redirect: "manual" });
       rec(
         `${path} is closed to a signed out client`,
@@ -878,7 +883,7 @@ async function run() {
       );
     }
 
-    for (const path of ["/api/account/bulk", "/api/account/session"]) {
+    for (const path of ["/api/account/bulk", "/api/account/session", "/api/account/settings"]) {
       const res = await fetch(`${BASE}${path}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

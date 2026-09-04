@@ -294,6 +294,79 @@ withEnv({ CUSTOMER_SESSION_SECRET: CUS_SECRET }, () => {
 }
 
 // =========================================================================
+// 4. WHAT AN ACCOUNT OWNER MAY DO THAT A MEMBER MAY NOT
+// =========================================================================
+
+{
+  const account = codeOnly("src/lib/ops-account.ts");
+
+  /*
+   * account_role has two values and this is the only place it matters. Each of
+   * the three mutating functions checks it, and the check lives in the module
+   * rather than the route so a second caller cannot skip it.
+   */
+  for (const fn of ["updateDefaults", "addProperty", "archiveProperty"]) {
+    const start = account.indexOf(`export async function ${fn}`);
+    const body = start === -1 ? "" : account.slice(start, account.indexOf("export async function", start + 10));
+    rec(
+      `${fn} refuses a member`,
+      start !== -1 && /me\.accountRole !== "owner"/.test(body),
+      "the check is in the module, not the route",
+    );
+  }
+
+  const route = codeOnly("src/app/api/account/settings/route.ts");
+  rec(
+    "and the settings route does not decide who may do it",
+    !/accountRole/.test(route),
+    "one place decides, so a second action cannot forget",
+  );
+
+  /*
+   * A property id from another organisation must match nothing rather than be
+   * loaded and then refused. Filtering after the fact has already fetched the
+   * row it is about to hide.
+   */
+  rec(
+    "archiving a property is scoped to the account in the query",
+    /\.eq\("account_id", me\.accountId\)/.test(account),
+  );
+  rec(
+    "and a property is archived rather than deleted",
+    /archived_at: new Date\(\)\.toISOString\(\)/.test(account) && !/\.delete\(\)/.test(account),
+    "orders already placed against it must keep their record",
+  );
+
+  /*
+   * A stored default that nothing reads is a settings screen that lies. The
+   * standing access instructions have to reach the order, and they have to be
+   * applied on the SERVER: a default the browser filled in is a default the
+   * customer can change without changing the setting.
+   */
+  const bulk = codeOnly("src/app/api/account/bulk/route.ts");
+  rec(
+    "the standing access instructions are applied to a bulk submission",
+    /inputs\.access_notes = defaults\.accessInstructions/.test(bulk),
+  );
+  rec(
+    "and they are read on the server rather than sent by the browser",
+    /accountDefaults\(me\.accountId\)/.test(bulk),
+  );
+
+  /*
+   * The one default that is NOT wired to behaviour, and says so. The catalog
+   * does not price urgency, so setting a file to expedited from a saved
+   * preference would commit the firm to faster work at the standard price.
+   */
+  const settingsUi = readFileSync("src/app/account/settings/SettingsClient.tsx", "utf8");
+  rec(
+    "the turnaround preference does not claim to be a commitment",
+    /not a commitment/.test(settingsUi) && /does not change\s*\n?\s*the price/.test(settingsUi.replace(/\s+/g, " ")),
+    settingsUi.includes("not a commitment") ? "" : "a promise the firm has not priced",
+  );
+}
+
+// =========================================================================
 
 const failed = out.filter((o) => !o.ok);
 for (const o of out) console.log(`  ${o.ok ? "PASS" : "FAIL"}: ${o.name}${o.note ? ` (${o.note})` : ""}`);
