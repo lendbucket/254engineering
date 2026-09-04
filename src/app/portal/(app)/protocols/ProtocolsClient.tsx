@@ -15,10 +15,10 @@ import type { EvidenceKind } from "@/lib/ops-evidence";
  */
 
 const field =
-  "min-h-[44px] w-full rounded-[3px] border border-limestone-line bg-white px-3 text-[16px] text-slate outline-none focus:border-slate";
-const label = "block text-[13px] font-semibold text-slate";
+  "min-h-[44px] w-full rounded-[3px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--navy)] outline-none focus:border-slate";
+const label = "block text-[13.5px] font-semibold text-[var(--navy)]";
 const button =
-  "inline-flex min-h-[44px] items-center justify-center rounded-[3px] bg-brass px-4 text-[14px] font-bold text-slate-ink transition-colors hover:bg-brass-light disabled:opacity-50";
+  "inline-flex min-h-[var(--tap-target)] items-center justify-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white transition-colors hover:bg-[var(--navy-hover)] disabled:opacity-50";
 
 async function post(payload: Record<string, unknown>) {
   const res = await fetch("/api/portal/field", {
@@ -34,7 +34,7 @@ async function post(payload: Record<string, unknown>) {
 function Problem({ message }: { message: string | null }) {
   if (!message) return null;
   return (
-    <p role="alert" className="mt-2 text-[13px] leading-[1.5] font-semibold text-[#a3241c]">
+    <p role="alert" className="mt-2 text-[13.5px] leading-[1.5] font-semibold text-[var(--red)]">
       {message}
     </p>
   );
@@ -66,7 +66,7 @@ export function NewProtocolForm({
 
   return (
     <form
-      className="rounded-[4px] border border-limestone-line bg-white p-4"
+      className="rounded-[4px] border border-[var(--border)] bg-white p-4"
       onSubmit={async (e) => {
         e.preventDefault();
         setBusy(true);
@@ -91,7 +91,7 @@ export function NewProtocolForm({
         }
       }}
     >
-      <p className="text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">New protocol</p>
+      <p className="portal-kicker text-[var(--gold-deep)]">New protocol</p>
 
       <div className="mt-3 flex flex-col gap-3">
         <div>
@@ -156,7 +156,7 @@ export function NewProtocolForm({
                 </option>
               ))}
             </select>
-            <p className="mt-1.5 text-[12.5px] leading-[1.5] text-slate-muted">
+            <p className="mt-1.5 text-[12.5px] leading-[1.5] text-[var(--secondary)]">
               Copies every item. This is how a version two normally starts: change two items out of
               fifteen rather than retyping the other thirteen.
             </p>
@@ -173,7 +173,7 @@ export function NewProtocolForm({
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="inline-flex min-h-[44px] items-center rounded-[3px] border border-limestone-line px-4 text-[14px] font-semibold text-slate"
+          className="inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] px-4 text-[13.5px] font-semibold text-[var(--navy)]"
         >
           Cancel
         </button>
@@ -241,7 +241,7 @@ function AddItem({ templateId }: { templateId: string }) {
         }
       }}
     >
-      <p className="text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">Add an item</p>
+      <p className="portal-kicker text-[var(--gold-deep)]">Add an item</p>
 
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <div className="sm:col-span-2">
@@ -274,7 +274,7 @@ function AddItem({ templateId }: { templateId: string }) {
               </option>
             ))}
           </select>
-          <p className="mt-1.5 text-[12.5px] leading-[1.5] text-slate-muted">
+          <p className="mt-1.5 text-[12.5px] leading-[1.5] text-[var(--secondary)]">
             {KINDS.find((k) => k.value === kind)?.hint}
           </p>
         </div>
@@ -290,7 +290,7 @@ function AddItem({ templateId }: { templateId: string }) {
             placeholder="derived from the label"
             className={`${field} mt-1.5`}
           />
-          <p className="mt-1.5 text-[12.5px] leading-[1.5] text-slate-muted">
+          <p className="mt-1.5 text-[12.5px] leading-[1.5] text-[var(--secondary)]">
             How this item is identified in the record. Stable across versions, so a review can
             compare the same item between them.
           </p>
@@ -373,12 +373,12 @@ function AddItem({ templateId }: { templateId: string }) {
         </div>
 
         <div className="sm:col-span-2">
-          <label className="flex min-h-[44px] items-center gap-2.5 text-[14px] text-slate">
+          <label className="flex min-h-[44px] items-center gap-2.5 text-[13.5px] text-[var(--navy)]">
             <input
               type="checkbox"
               checked={required}
               onChange={(e) => setRequired(e.target.checked)}
-              className="h-5 w-5 accent-[#1d2a35]"
+              className="h-5 w-5 accent-[var(--navy)]"
             />
             Required. The package cannot be submitted without it.
           </label>
@@ -410,7 +410,7 @@ function RemoveItem({ templateId, itemId }: { templateId: string; itemId: string
           setBusy(false);
         }
       }}
-      className="inline-flex min-h-[44px] shrink-0 items-center rounded-[3px] border border-limestone-line px-3 text-[13px] font-semibold text-slate-muted hover:border-slate hover:text-slate"
+      className="inline-flex min-h-[44px] shrink-0 items-center rounded-[3px] border border-[var(--border)] px-3 text-[13.5px] font-semibold text-[var(--secondary)] hover:border-slate hover:text-[var(--navy)]"
     >
       {busy ? "Removing" : "Remove"}
     </button>
@@ -426,8 +426,8 @@ export function PublishButton({ id, itemCount }: { id: string; itemCount: number
 
   return (
     <div>
-      <p className="text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">Publish</p>
-      <p className="mt-1.5 max-w-[70ch] text-[13px] leading-[1.55] text-slate-muted">
+      <p className="portal-kicker text-[var(--gold-deep)]">Publish</p>
+      <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
         Publishing makes this the protocol every new job in this service line is worked to, and
         retires the version it replaces. After that it cannot be edited, only superseded.
       </p>
@@ -452,7 +452,7 @@ export function PublishButton({ id, itemCount }: { id: string; itemCount: number
         {busy ? "Publishing" : "Publish this protocol"}
       </button>
       {itemCount === 0 ? (
-        <p className="mt-2 text-[13px] text-slate-muted">
+        <p className="mt-2 text-[13.5px] text-[var(--secondary)]">
           Add at least one required item first. An empty checklist is one a technician can never
           finish.
         </p>
@@ -504,17 +504,17 @@ export function QuestionEditor({
 
   return (
     <div>
-      <p className="text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">
+      <p className="portal-kicker text-[var(--gold-deep)]">
         Certification check
       </p>
-      <p className="mt-1.5 max-w-[70ch] text-[13px] leading-[1.55] text-slate-muted">
+      <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
         A technician cannot be offered work on this service line until they answer all of these
         correctly. Retakes are free and a wrong answer shows your reasoning, so write the reasoning
         as if it is the only thing they will read about that item, because it is.
       </p>
 
       {questions.length === 0 ? (
-        <p className="mt-3 text-[13.5px] leading-[1.5] text-slate-muted">
+        <p className="mt-3 text-[13.5px] leading-[1.5] text-[var(--secondary)]">
           No questions yet. A protocol can be published without them, and until they exist nobody can
           certify against it, so nobody can be dispatched on this line.
         </p>
@@ -524,15 +524,15 @@ export function QuestionEditor({
             <li key={q.id} className="py-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-[14px] font-semibold text-slate">
+                  <p className="text-[13.5px] font-semibold text-[var(--navy)]">
                     {i + 1}. {q.prompt}
                   </p>
                   <ul className="mt-1.5 flex flex-col gap-0.5">
                     {q.options.map((o, index) => (
                       <li
                         key={o}
-                        className={`text-[13px] leading-[1.5] ${
-                          index === q.correctIndex ? "font-semibold text-slate" : "text-slate-muted"
+                        className={`text-[13.5px] leading-[1.5] ${
+                          index === q.correctIndex ? "font-semibold text-[var(--navy)]" : "text-[var(--secondary)]"
                         }`}
                       >
                         {index === q.correctIndex ? "Correct: " : ""}
@@ -540,7 +540,7 @@ export function QuestionEditor({
                       </li>
                     ))}
                   </ul>
-                  <p className="mt-1.5 max-w-[65ch] text-[13px] leading-[1.5] text-slate-muted">
+                  <p className="mt-1.5 max-w-[65ch] text-[13.5px] leading-[1.5] text-[var(--secondary)]">
                     Shown when wrong: {q.rationale}
                   </p>
                 </div>
@@ -551,7 +551,7 @@ export function QuestionEditor({
                       await send({ action: "remove_question", templateId, questionId: q.id });
                       router.refresh();
                     }}
-                    className="inline-flex min-h-[44px] shrink-0 items-center rounded-[3px] border border-limestone-line px-3 text-[13px] font-semibold text-slate-muted hover:border-slate hover:text-slate"
+                    className="inline-flex min-h-[44px] shrink-0 items-center rounded-[3px] border border-[var(--border)] px-3 text-[13.5px] font-semibold text-[var(--secondary)] hover:border-slate hover:text-[var(--navy)]"
                   >
                     Remove
                   </button>
@@ -564,7 +564,7 @@ export function QuestionEditor({
 
       {editable ? (
         <form
-          className="mt-5 border-t border-limestone-line pt-5"
+          className="mt-5 border-t border-[var(--border)] pt-5"
           onSubmit={async (e) => {
             e.preventDefault();
             setBusy(true);
@@ -590,7 +590,7 @@ export function QuestionEditor({
             }
           }}
         >
-          <p className="text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">Add a question</p>
+          <p className="portal-kicker text-[var(--gold-deep)]">Add a question</p>
 
           <div className="mt-3 flex flex-col gap-3">
             <div>
@@ -618,7 +618,7 @@ export function QuestionEditor({
                       checked={correctIndex === index}
                       onChange={() => setCorrectIndex(index)}
                       aria-label={`Option ${index + 1} is correct`}
-                      className="h-5 w-5 shrink-0 accent-[#1d2a35]"
+                      className="h-5 w-5 shrink-0 accent-[var(--navy)]"
                     />
                     <input
                       value={option}
@@ -635,7 +635,7 @@ export function QuestionEditor({
                           setOptions((prev) => prev.filter((_, i) => i !== index));
                           if (correctIndex >= index && correctIndex > 0) setCorrectIndex(correctIndex - 1);
                         }}
-                        className="inline-flex min-h-[44px] shrink-0 items-center px-2 text-[13px] font-semibold text-slate-muted"
+                        className="inline-flex min-h-[44px] shrink-0 items-center px-2 text-[13.5px] font-semibold text-[var(--secondary)]"
                       >
                         Remove
                       </button>
@@ -647,7 +647,7 @@ export function QuestionEditor({
                 <button
                   type="button"
                   onClick={() => setOptions((prev) => [...prev, ""])}
-                  className="mt-2 inline-flex min-h-[44px] items-center rounded-[3px] border border-limestone-line px-3 text-[13px] font-semibold text-slate"
+                  className="mt-2 inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] px-3 text-[13.5px] font-semibold text-[var(--navy)]"
                 >
                   Another option
                 </button>
@@ -666,7 +666,7 @@ export function QuestionEditor({
                 placeholder="Photograph the obstruction so the engineer can see why there is no deck shot."
                 className={`${field} mt-1.5`}
               />
-              <p className="mt-1.5 text-[12.5px] leading-[1.5] text-slate-muted">
+              <p className="mt-1.5 text-[12.5px] leading-[1.5] text-[var(--secondary)]">
                 Shown to anybody who gets this wrong. It is the only thing they receive.
               </p>
             </div>

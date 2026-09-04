@@ -14,8 +14,8 @@ export function PasswordForm({ minLength }: { minLength: number }) {
   const [done, setDone] = useState(false);
 
   const field =
-    "mt-1.5 min-h-[48px] w-full rounded-[3px] border border-limestone-line bg-white px-3 text-[16px] text-slate outline-none focus:border-slate";
-  const label = "block text-[13px] font-semibold text-slate";
+    "mt-1.5 min-h-[48px] w-full rounded-[3px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--navy)] outline-none focus:border-slate";
+  const label = "block text-[13.5px] font-semibold text-[var(--navy)]";
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -61,7 +61,7 @@ export function PasswordForm({ minLength }: { minLength: number }) {
       <div className="mt-4">
         <label htmlFor="next" className={label}>New password</label>
         <input id="next" name="next" type="password" autoComplete="new-password" required minLength={minLength} className={field} />
-        <p className="mt-1.5 text-[12.5px] text-slate-muted">At least {minLength} characters.</p>
+        <p className="mt-1.5 text-[12.5px] text-[var(--secondary)]">At least {minLength} characters.</p>
       </div>
       <div className="mt-4">
         <label htmlFor="confirm" className={label}>Type the new one again</label>
@@ -69,12 +69,12 @@ export function PasswordForm({ minLength }: { minLength: number }) {
       </div>
 
       {error ? (
-        <p role="alert" className="mt-4 rounded-[3px] border border-[#f3c9c6] bg-[#fdeceb] px-3 py-2.5 text-[13.5px] text-[#8c1d18]">
+        <p role="alert" className="mt-4 rounded-[3px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-3 py-2.5 text-[13.5px] text-[var(--red)]">
           {error}
         </p>
       ) : null}
       {done ? (
-        <p role="status" className="mt-4 rounded-[3px] border border-[#bcdcc7] bg-[#e8f3ec] px-3 py-2.5 text-[13.5px] text-[#14522f]">
+        <p role="status" className="mt-4 rounded-[3px] border border-[var(--green-border)] bg-[var(--green-bg)] px-3 py-2.5 text-[13.5px] text-[var(--green)]">
           Your password is changed.
         </p>
       ) : null}
@@ -82,7 +82,7 @@ export function PasswordForm({ minLength }: { minLength: number }) {
       <button
         type="submit"
         disabled={busy}
-        className="mt-5 min-h-[48px] w-full rounded-[3px] bg-brass px-4 text-[15px] font-bold text-slate-ink hover:bg-brass-light disabled:opacity-60 sm:w-auto sm:px-6"
+        className="mt-5 min-h-[var(--tap-target)] w-full rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[15px] font-bold text-white hover:bg-[var(--navy-hover)] disabled:opacity-60 sm:w-auto sm:px-6"
       >
         {busy ? "Saving..." : "Change password"}
       </button>

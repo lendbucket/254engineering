@@ -49,33 +49,33 @@ export default async function BulkOrderPage({
         <Wordmark height={36} />
       </div>
 
-      <p className="text-[11px] font-bold tracking-[0.14em] text-brass-ink uppercase">
+      <p className="portal-kicker text-[var(--gold-deep)]">
         {me.displayName}
       </p>
-      <h1 className="mt-2 font-display text-[clamp(1.7rem,3vw,2.2rem)] leading-[1.2] font-semibold text-slate">
+      <h1 className="mt-2 font-display text-[clamp(1.7rem,3vw,2.2rem)] leading-[1.2] font-semibold text-[var(--navy)]">
         Order for several properties
       </h1>
 
       {orderable.length === 0 ? (
-        <div className="mt-8 rounded-[4px] border border-limestone-line border-t-[3px] border-t-brass bg-white px-6 py-7">
-          <h2 className="font-display text-[1.25rem] font-semibold text-slate">
+        <div className="mt-8 rounded-[4px] border border-[var(--border)] border-t-brass bg-white px-6 py-7">
+          <h2 className="font-display text-[1.25rem] font-semibold text-[var(--navy)]">
             {prelaunch ? "The firm is not taking orders yet" : "Nothing can be ordered in bulk yet"}
           </h2>
-          <p className="mt-3 text-[1rem] leading-[1.7] text-slate-muted">
+          <p className="mt-3 text-[1rem] leading-[1.7] text-[var(--secondary)]">
             {prelaunch
               ? "254 Engineering Services is not yet accepting engineering work. Firm registration with the Texas Board of Professional Engineers and Land Surveyors is pending."
               : "Every service on this account is quoted rather than fixed price, so each one is a conversation rather than a submission."}
           </p>
           <Link
             href="/account"
-            className="mt-6 inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-slate underline underline-offset-2"
+            className="mt-6 inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-[var(--navy)] underline underline-offset-2"
           >
             Back to your account
           </Link>
         </div>
       ) : (
         <>
-          <p className="mt-3 max-w-[68ch] text-[1.02rem] leading-[1.7] text-slate-muted">
+          <p className="mt-3 max-w-[68ch] text-[1.02rem] leading-[1.7] text-[var(--secondary)]">
             Paste the properties, answer the qualifying questions once, and change any property
             where the answer differs. You see which the firm can take, which it cannot and why, and
             what the total is, before anything is charged.
@@ -86,10 +86,10 @@ export default async function BulkOrderPage({
               <Link
                 key={o.service.slug}
                 href={`/account/order?service=${o.service.slug}`}
-                className={`inline-flex min-h-[44px] items-center rounded-[3px] border px-3.5 text-[13px] font-semibold ${
+                className={`inline-flex min-h-[44px] items-center rounded-[3px] border px-3.5 text-[13.5px] font-semibold ${
                   o.service.slug === chosen.service.slug
-                    ? "border-slate bg-slate text-white"
-                    : "border-limestone-line bg-white text-slate"
+                    ? "border-[var(--navy)] bg-slate text-white"
+                    : "border-[var(--border)] bg-white text-[var(--navy)]"
                 }`}
               >
                 {o.service.shortName}

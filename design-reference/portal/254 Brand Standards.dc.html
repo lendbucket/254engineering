@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Open+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F4F5F7;}
+a{color:#14315D;text-decoration:none;}a:hover{color:#0E2347;text-decoration:underline;}
+</style>
+</helmet>
+<div style="font-family:'Open Sans',sans-serif;color:#333A45;font-size:15px;line-height:1.6;display:flex;justify-content:center;padding:48px 24px 80px;">
+<div style="width:100%;max-width:860px;display:flex;flex-direction:column;gap:28px;">
+
+  <div data-screen-label="Cover" style="background:#14315D;border-radius:4px;padding:44px 48px;">
+    <img src="brand-assets/logo-dark.png" alt="254 Engineering Services" style="height:56px;display:block;">
+    <div style="font-family:'Archivo',sans-serif;font-weight:800;font-size:30px;color:#FFFFFF;margin-top:22px;">Portal brand standards</div>
+    <div style="font-size:14px;color:#CFD7E3;margin-top:6px;max-width:60ch;">Binding reference for every screen of the 254 Engineering Services operations portal. Version 1.0, September 2026.</div>
+  </div>
+
+  <div style="background:#FFFFFF;border:1px solid #DDE0E4;border-radius:4px;padding:28px 32px;">
+    <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:18px;color:#14315D;">1. Color</div>
+    <div style="font-size:13.5px;color:#555E6B;margin-top:4px;">Navy is structural, gold is attention. Gold never decorates; it appears only in the logo, warnings, pending states, and the active-nav bar.</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:18px;">
+      <sc-for list="{{ colors }}" as="c" hint-placeholder-count="12">
+        <div style="border:1px solid #EDF1F7;border-radius:4px;overflow:hidden;">
+          <div style="height:52px;background:{{ c.hex }};border-bottom:1px solid #EDF1F7;"></div>
+          <div style="padding:8px 10px;"><div style="font-size:12.5px;font-weight:700;color:#333A45;">{{ c.name }}</div><div style="font-size:11.5px;color:#8A93A0;font-variant-numeric:tabular-nums;">{{ c.hex }}</div><div style="font-size:11.5px;color:#555E6B;">{{ c.use }}</div></div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="background:#FFFFFF;border:1px solid #DDE0E4;border-radius:4px;padding:28px 32px;">
+    <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:18px;color:#14315D;">2. Typography</div>
+    <div style="font-size:13.5px;color:#555E6B;margin-top:4px;">Archivo for headings and figures, Open Sans for everything else. Numbers always use tabular figures in tables and KPIs.</div>
+    <div style="display:flex;flex-direction:column;gap:0;margin-top:16px;">
+      <sc-for list="{{ typeScale }}" as="t" hint-placeholder-count="7">
+        <div style="display:flex;align-items:baseline;gap:18px;padding:10px 0;border-bottom:1px solid #EDF1F7;">
+          <div style="width:200px;flex-shrink:0;font-size:12px;color:#8A93A0;">{{ t.role }} &middot; {{ t.spec }}</div>
+          <div style="font-family:{{ t.family }};font-weight:{{ t.weight }};font-size:{{ t.size }};color:{{ t.color }};letter-spacing:{{ t.ls }};text-transform:{{ t.tt }};">{{ t.sample }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="background:#FFFFFF;border:1px solid #DDE0E4;border-radius:4px;padding:28px 32px;">
+    <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:18px;color:#14315D;">3. Shape and spacing</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 28px;margin-top:14px;font-size:13.5px;">
+      <div>Desktop cards and panels: 4px radius, 1px #DDE0E4 border, white on #F4F5F7</div>
+      <div>Desktop buttons and inputs: 3px radius</div>
+      <div>Mobile cards: 12px radius; mobile buttons: 8px radius, 44px+ hit targets</div>
+      <div>Status pills: 12px radius; chips and kbd hints: 2px</div>
+      <div>Panel padding: 16&ndash;22px; table rows: 10&ndash;13px vertical</div>
+      <div>Page gutters: 28px desktop, 16px mobile; section gap: 20px</div>
+      <div>No drop shadows on cards; shadows only on overlays (menus, modals, toasts)</div>
+      <div>No accent borders (top or left) on cards &mdash; alerts use a full tinted box instead</div>
+    </div>
+  </div>
+
+  <div style="background:#FFFFFF;border:1px solid #DDE0E4;border-radius:4px;padding:28px 32px;">
+    <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:18px;color:#14315D;">4. Components</div>
+    <div style="display:flex;flex-direction:column;gap:20px;margin-top:16px;">
+      <div>
+        <div style="font-size:11.5px;letter-spacing:0.08em;text-transform:uppercase;font-weight:700;color:#555E6B;">Buttons</div>
+        <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;align-items:center;">
+          <button style="background:#14315D;color:#FFFFFF;border:none;border-radius:3px;padding:11px 18px;font-size:14.5px;font-weight:700;cursor:pointer;font-family:'Open Sans',sans-serif;">Primary</button>
+          <button style="background:#FFFFFF;color:#14315D;border:1px solid #C3C9D1;border-radius:3px;padding:11px 18px;font-size:14.5px;font-weight:700;cursor:pointer;font-family:'Open Sans',sans-serif;">Secondary</button>
+          <button style="border:1px solid #C3C9D1;background:#FFFFFF;color:#333A45;border-radius:3px;padding:6px 12px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:'Open Sans',sans-serif;">Toolbar</button>
+          <span style="font-size:12.5px;color:#8A93A0;">Hover: navy darkens to #0E2347, borders darken to navy. One primary button per view region.</span>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11.5px;letter-spacing:0.08em;text-transform:uppercase;font-weight:700;color:#555E6B;">Status</div>
+        <div style="display:flex;gap:18px;margin-top:8px;flex-wrap:wrap;align-items:center;">
+          <sc-for list="{{ statuses }}" as="st" hint-placeholder-count="5">
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:#555E6B;"><span style="width:7px;height:7px;border-radius:50%;background:{{ st.dot }};"></span>{{ st.label }}</span>
+          </sc-for>
+          <span style="font-size:12.5px;color:#8A93A0;">Dot + text, never a filled colored chip. Green = good, gold = pending or warning, navy = in motion, gray = inert, red = failed (sparingly).</span>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11.5px;letter-spacing:0.08em;text-transform:uppercase;font-weight:700;color:#555E6B;">System alert</div>
+        <div style="background:#FFF9EC;border:1px solid #E8D9AE;border-radius:3px;padding:10px 14px;font-size:13px;color:#5C4A12;display:flex;align-items:center;gap:10px;margin-top:8px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8D610F" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"></path></svg>
+          <span><span style="font-weight:700;">Restricted mode.</span> Bold lead-in names the condition; the sentence after states what is and is not affected.</span>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11.5px;letter-spacing:0.08em;text-transform:uppercase;font-weight:700;color:#555E6B;">Absent data</div>
+        <div style="display:flex;align-items:center;gap:14px;margin-top:8px;">
+          <span style="border:1px dashed #C3C9D1;border-radius:2px;padding:1px 7px;font-size:12px;font-style:italic;color:#555E6B;">not recorded</span>
+          <span style="font-size:13.5px;font-variant-numeric:tabular-nums;">$0</span>
+          <span style="font-size:12.5px;color:#8A93A0;">A missing figure never looks like zero. Dashed italic chip for absent; plain numeral for a true zero. Absent values are excluded from totals, and the exclusion is stated in a footnote.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:#FFFFFF;border:1px solid #DDE0E4;border-radius:4px;padding:28px 32px;">
+    <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:18px;color:#14315D;">5. Voice</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px;">
+      <div style="border:1px solid #EDF1F7;border-radius:4px;padding:14px 16px;">
+        <div style="font-size:11.5px;letter-spacing:0.08em;text-transform:uppercase;font-weight:700;color:#3E7A4E;">Write</div>
+        <div style="font-size:13.5px;line-height:1.8;margin-top:6px;">Action required<br>Sorted by priority<br>Declining does not affect your standing.<br>Sealing is disabled &mdash; firm registration pending.<br>Showing 1&ndash;14 of 14</div>
+      </div>
+      <div style="border:1px solid #EDF1F7;border-radius:4px;padding:14px 16px;">
+        <div style="font-size:11.5px;letter-spacing:0.08em;text-transform:uppercase;font-weight:700;color:#B4232A;">Never</div>
+        <div style="font-size:13.5px;line-height:1.8;margin-top:6px;color:#555E6B;">Needs you!<br>Ranked by cost of ignoring it<br>Copy that explains the design's own philosophy<br>Exclamation marks, emoji, or reassurance<br>Second-person cleverness ("we've got you")</div>
+      </div>
+    </div>
+    <div style="font-size:13.5px;color:#555E6B;margin-top:14px;line-height:1.7;">Sentence case everywhere, including buttons and column headers. Terse and factual; state the condition, then the consequence. Middle dots (&middot;) separate metadata, em dashes introduce a cause. Timestamps are explicit ("Sep 3, 11:42 AM"), currency has no decimals under $10,000, and every table states its own count.</div>
+  </div>
+
+  <div style="background:#FFFFFF;border:1px solid #DDE0E4;border-radius:4px;padding:28px 32px;">
+    <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:18px;color:#14315D;">6. Layout patterns</div>
+    <div style="font-size:13.5px;line-height:1.9;margin-top:10px;">
+      <span style="font-weight:700;">Desktop:</span> 230px navy sidebar (icon + label, gold active bar), 58px white header (title, data-freshness note, search, bell, help, user menu), content max-width 1100&ndash;1240px, version footer on every screen.<br>
+      <span style="font-weight:700;">Tables:</span> uppercase 11px column headers, sortable with &#9662; caret, row hover #F8F9FB, pagination footer, Filter/Export/column-config toolbar.<br>
+      <span style="font-weight:700;">Records:</span> breadcrumb, header band with ref + status pill + actions + labeled field grid, History timeline (dot rail, actor + timestamp per event).<br>
+      <span style="font-weight:700;">Mobile (390px):</span> navy status bar and header, one-handed reach, cards 12px radius, bottom tab bar, home indicator, sync-status line.<br>
+      <span style="font-weight:700;">Documents:</span> letters render on a white 760px sheet with letterhead, 2px navy rule, seal + signature block, small-print record note.
+    </div>
+  </div>
+
+  <div style="font-size:11.5px;color:#8A93A0;display:flex;gap:16px;">
+    <span>254 Engineering Services LLC</span><span>Brand standards v1.0</span><span style="margin-left:auto;">Maintained alongside 254 Portal v2</span>
+  </div>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      colors: [
+        { name: 'Navy', hex: '#14315D', use: 'Primary, headings, sidebar' },
+        { name: 'Navy hover', hex: '#0E2347', use: 'Pressed and hover' },
+        { name: 'Ink navy', hex: '#0B1B36', use: 'Overlays, device frame' },
+        { name: 'Gold', hex: '#D9A032', use: 'Warnings, pending, active bar' },
+        { name: 'Gold deep', hex: '#8D610F', use: 'Warning text on light' },
+        { name: 'Warn tint', hex: '#FFF9EC', use: 'Alert background (#E8D9AE border)' },
+        { name: 'Body ink', hex: '#333A45', use: 'Body text' },
+        { name: 'Secondary', hex: '#555E6B', use: 'Labels, metadata' },
+        { name: 'Muted', hex: '#8A93A0', use: 'Footnotes, inert dots' },
+        { name: 'Border', hex: '#DDE0E4', use: 'Card borders (#EDF1F7 row rules)' },
+        { name: 'Canvas', hex: '#F4F5F7', use: 'Page background' },
+        { name: 'Green', hex: '#3E7A4E', use: 'Good status dots only' },
+      ],
+      typeScale: [
+        { role: 'Page display', spec: 'Archivo 800, 30px', family: "'Archivo',sans-serif", weight: 800, size: '30px', color: '#14315D', ls: '0', tt: 'none', sample: 'Operations portal' },
+        { role: 'KPI figure', spec: 'Archivo 700, 24px, tabular', family: "'Archivo',sans-serif", weight: 700, size: '24px', color: '#14315D', ls: '0', tt: 'none', sample: '$5,250' },
+        { role: 'Screen title', spec: 'Archivo 700, 17px', family: "'Archivo',sans-serif", weight: 700, size: '17px', color: '#14315D', ls: '0', tt: 'none', sample: 'Dashboard' },
+        { role: 'Panel title', spec: 'Archivo 700, 16px', family: "'Archivo',sans-serif", weight: 700, size: '16px', color: '#14315D', ls: '0', tt: 'none', sample: 'Review queue' },
+        { role: 'Body', spec: 'Open Sans 400, 13.5\u201315px', family: "'Open Sans',sans-serif", weight: 400, size: '14px', color: '#333A45', ls: '0', tt: 'none', sample: 'The evidence package was reviewed in full by the undersigned.' },
+        { role: 'Metadata', spec: 'Open Sans 400, 12\u201312.5px', family: "'Open Sans',sans-serif", weight: 400, size: '12.5px', color: '#555E6B', ls: '0', tt: 'none', sample: 'Sep 3, 11:42 AM \u00b7 M. Delgado' },
+        { role: 'Column header / kicker', spec: 'Open Sans 700, 11px, uppercase', family: "'Open Sans',sans-serif", weight: 700, size: '11px', color: '#555E6B', ls: '0.08em', tt: 'uppercase', sample: 'Sorted by priority' },
+      ],
+      statuses: [
+        { label: 'Current', dot: '#3E7A4E' },
+        { label: 'Pending', dot: '#D9A032' },
+        { label: 'Under review', dot: '#14315D' },
+        { label: 'Intake', dot: '#8A93A0' },
+        { label: 'Failed', dot: '#B4232A' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

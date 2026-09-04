@@ -1791,3 +1791,121 @@ written speculatively against a table with a few dozen rows in it.
 
 **The condition to watch:** the queue screen taking a noticeable moment to load,
 or `eng_jobs` passing about fifty thousand rows.
+
+### The responsible charge log has no evidence hash, and should
+
+Recorded 2026-09-04, during the portal design port. Operator ruling the same
+day: drop the column from the design, record the real thing here, because the
+design was right to want it.
+
+**What the design asked for.** An Evidence hash column on the responsible charge
+log, with the footnote "Each entry embeds a hash of the evidence set exactly as
+it stood at the moment of the decision."
+
+**What exists.** The log is append only and that half is real:
+`eng_rcl_immutable` refuses UPDATE and DELETE by trigger, and `migration-audit`
+replays the table and asserts both refusals. There is no hash. Nothing computes
+one anywhere in the codebase, and every occurrence of "hash" in the schema is a
+credential: `invite_token_hash`, `token_hash`, `key_hash`, and the scrypt
+password hash on customer accounts.
+
+**Why it was dropped rather than stubbed.** A hash on that screen is a claim that
+the evidence behind a sealed document has not changed since a licensed engineer
+put their name to it. Rendering a value the platform did not compute would be a
+fabricated cryptographic assurance on the firm's regulatory record, which is the
+worst place available for one. An empty column would be almost as bad, because a
+column implies the thing exists and is merely missing today.
+
+**What it would take, and why the hash is the easy part.**
+
+1. *A canonical serialisation of the evidence set.* The hash has to cover
+   something reproducible: for each evidence item, its protocol item key, its
+   storage key, its byte length and its captured timestamp, sorted by item key.
+   Anything that varies between two reads of an unchanged file, a signed URL for
+   instance, must be excluded, or the hash fails to verify for a reason that has
+   nothing to do with tampering.
+2. *A column*, `evidence_hash text`, written in the same statement that writes
+   the log row, so a decision cannot be recorded without one.
+3. *A verifier*, and this is the part that makes it worth anything. A stored hash
+   nobody can re-check is a string. There has to be a function that reads the
+   file's evidence as it stands today, recomputes, and reports match or divergence,
+   with a screen that shows the answer. Without it the column is decoration with
+   a technical smell.
+4. *A decision about what divergence MEANS.* Evidence can legitimately be added
+   to a file after a decision, on a revision. So the verifier answers "the set
+   this engineer sealed against is intact" rather than "the file has not changed",
+   and the difference has to be visible or the first legitimate revision reads as
+   tampering.
+
+**The condition that makes it real:** the first time somebody outside the firm, an
+insurer, an opposing expert, or a board investigator, asks the firm to
+demonstrate that a sealed document's evidence is the evidence that was reviewed.
+That question is the entire reason the column was drawn, and it is a good
+question.
+
+### An unmatched portal URL renders the public 404, a refused one renders the portal 404
+
+Recorded 2026-09-04, during the portal design port. Operator ruling the same
+day: leave it, record it, do not fix it.
+
+**What happens.** `notFound()` called from inside a matched portal route, which
+is what every role refusal does, renders `src/app/portal/(app)/not-found.tsx`
+inside the portal chrome. A URL under `/portal` that matches no route at all
+falls through to `src/app/not-found.tsx`, the public site's, with public site
+copy and public site links.
+
+**Why it is not a leak.** Both are only reachable by a signed in user: the proxy
+sends a signed out client to `/portal/login` before either can render. A signed
+in user learning that `/portal/queue` exists and is not theirs learns nothing,
+because the navigation is built from the same permission list and simply does
+not draw items their role cannot open. `security-audit`'s rule is about a signed
+out client, and that rule is unaffected.
+
+**Why it was not fixed.** Making them identical needs a catch all route under
+`/portal`, which is a routing change in a workstream that is presentation only,
+for a purely cosmetic gain. The wrong trade.
+
+**The condition that would make it worth doing:** a signed in role that should
+not be able to enumerate routes at all, which would be a genuinely different
+security posture from the one this platform has, or a catch all arriving anyway
+for another reason and this coming along free with it.
+
+### The sealed letter screen is not built, and cannot be honestly
+
+Recorded 2026-09-04, during the portal design port, Section 2 item 6.
+
+**What the design has.** A "Sealed letter" screen: a 760px document sheet with a
+letterhead, findings, a PE seal and a signature block.
+
+**Why it was not built.** Nothing in this platform produces a sealed letter.
+`eng_documents` can hold a deliverable with `sealed_at` and the sealing facts
+beside it, and every deliverable that exists is an uploaded file. There is no
+letter generator, no seal image, and no signature block, because there is no
+Professional Engineer in responsible charge and `isPrelaunch()` stops a file
+reaching `sealed` at all.
+
+A screen rendering one would be a picture of a document that cannot exist,
+carrying a seal and a signature for an engineer who has not reviewed anything.
+That is the evidence hash finding again, in a worse place: a sealed engineering
+letter is the actual regulated artifact.
+
+**What was built instead.** The document sheet, over the evidence binder, which
+has been assembled from real rows since Phase 6 and had only ever existed as a
+CSV. `/portal/documents/binder/[fileId]` renders it on the sheet the design
+specifies, and its limitations note says plainly that it is not an engineering
+opinion, that it is not sealed, and that no sealed deliverable exists for the
+file. The components the letter would need, `DocumentSheet`, `SheetLetterhead`
+and `SheetRecordNote`, are built and in use, so the letter is a page and not a
+system when it becomes real.
+
+**What has to be true first, in order:**
+
+1. The TBPELS firm registration issues and a PE is in responsible charge, so
+   `LAUNCH_MODE` can go live and a file can reach `sealed`.
+2. A decision about what a sealed letter IS: a generated PDF this platform
+   composes, or a document the engineer produces elsewhere and uploads. Only the
+   first needs this screen; the second needs a viewer.
+3. If generated: the seal image, the signature, and where they are stored, which
+   is a credential question rather than a design one. A seal that any staff
+   account can render onto a document is a seal that has left the engineer's
+   control.

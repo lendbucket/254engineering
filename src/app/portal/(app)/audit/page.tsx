@@ -78,9 +78,9 @@ export default async function AuditPage() {
             empty={<EmptyState title="Nothing recorded yet" body="Every action anyone takes in the platform lands here." />}
             card={(e) => (
               <div>
-                <p className="font-mono text-[12.5px] text-brass-ink">{e.action}</p>
-                <p className="mt-1 text-[14px] leading-[1.5] text-slate">{e.summary ?? e.entity_type}</p>
-                <p className="mt-1.5 text-[12.5px] text-slate-muted">
+                <p className="font-mono text-[12.5px] text-[var(--gold-deep)]">{e.action}</p>
+                <p className="mt-1 text-[13.5px] leading-[1.5] text-[var(--navy)]">{e.summary ?? e.entity_type}</p>
+                <p className="mt-1.5 text-[12.5px] text-[var(--secondary)]">
                   {e.actor_email ?? "system"}, {stamp(e.created_at)}
                 </p>
               </div>

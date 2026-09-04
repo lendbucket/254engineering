@@ -83,26 +83,26 @@ export default async function TasksPage({
           <a
             key={label}
             href={`/portal/tasks${value ? `?status=${value}` : ""}`}
-            className={`inline-flex min-h-[40px] items-center rounded-[3px] border px-3 text-[13px] font-semibold ${
+            className={`inline-flex min-h-[40px] items-center rounded-[3px] border px-3 text-[13.5px] font-semibold ${
               (params.status ?? "") === value
-                ? "border-slate bg-slate text-slate-fg"
-                : "border-limestone-line text-slate-muted"
+                ? "border-slate bg-slate text-[var(--navy)]-fg"
+                : "border-[var(--border)] text-[var(--secondary)]"
             }`}
           >
             {label}
           </a>
         ))}
         {overdue.length > 0 ? (
-          <span className="inline-flex min-h-[40px] items-center rounded-[3px] border border-[#e8bdb8] bg-[#fdf1f0] px-3 text-[13px] font-semibold text-[#a3241c]">
+          <span className="inline-flex min-h-[40px] items-center rounded-[3px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-3 text-[13.5px] font-semibold text-[var(--red)]">
             {overdue.length} overdue
           </span>
         ) : null}
       </div>
 
       {can(actor, "profiles.list") && seeded.length === 0 ? (
-        <div className="mb-5 rounded-[4px] border border-limestone-line border-l-[3px] border-l-brass bg-white px-4 py-4">
-          <p className="text-[14px] font-semibold text-slate">The compliance obligations are not seeded yet</p>
-          <p className="mt-1.5 max-w-[75ch] text-[13px] leading-[1.55] text-slate-muted">
+        <div className="mb-5 rounded-[4px] border border-[var(--border)] bg-white px-4 py-4">
+          <p className="text-[13.5px] font-semibold text-[var(--navy)]">The compliance obligations are not seeded yet</p>
+          <p className="mt-1.5 max-w-[75ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
             The PE licence renewal, the DWC-005 filing, the TBPELS and errors and omissions renewals,
             and the monthly credential sweep. Two of them carry no due date on purpose, because
             nobody has given one and a guessed compliance deadline is worse than an empty field.
@@ -126,21 +126,21 @@ export default async function TasksPage({
                 key={task.id}
                 className={`rounded-[4px] border bg-white p-4 ${
                   late
-                    ? "border-[#e8bdb8] border-l-[3px] border-l-[#a3241c]"
+                    ? "border-[var(--warn-border)] border-l-[var(--red)]"
                     : task.priority === "urgent"
-                      ? "border-limestone-line border-l-[3px] border-l-brass"
-                      : "border-limestone-line"
+                      ? "border-[var(--border)]"
+                      : "border-[var(--border)]"
                 }`}
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-[15px] leading-[1.35] font-semibold text-slate">{task.title}</p>
+                    <p className="text-[15px] leading-[1.35] font-semibold text-[var(--navy)]">{task.title}</p>
                     {task.description ? (
-                      <p className="mt-1 max-w-[75ch] text-[13px] leading-[1.55] text-slate-muted">
+                      <p className="mt-1 max-w-[75ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
                         {task.description}
                       </p>
                     ) : null}
-                    <p className="mt-1.5 text-[12.5px] text-slate-muted">
+                    <p className="mt-1.5 text-[12.5px] text-[var(--secondary)]">
                       {task.due_at ? `Due ${when(task.due_at)}` : "No due date"}
                       {task.recurrence ? `, ${RECURRENCE_LABEL[task.recurrence as Recurrence] ?? task.recurrence}` : ""}
                       {task.assignee_id
@@ -172,7 +172,7 @@ export default async function TasksPage({
       )}
 
       {derived.length > 0 ? (
-        <p className="mt-6 max-w-[75ch] text-[12.5px] leading-[1.55] text-slate-muted">
+        <p className="mt-6 max-w-[75ch] text-[12.5px] leading-[1.55] text-[var(--secondary)]">
           {derived.length} of these came from the credentials record rather than from a person. They
           appear when a document is inside 45 days of expiry and close themselves when it is
           replaced, so the list shrinks on its own rather than filling with things somebody already

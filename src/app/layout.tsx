@@ -55,6 +55,20 @@ const archivo = Archivo({
 const openSans = Open_Sans({
   subsets: ["latin"],
   weight: ["400", "600", "700"],
+  /*
+   * Italic is loaded, and it is loaded for exactly one thing.
+   *
+   * The portal standards specify an italic 400 face and use it in a single
+   * component: the absent data chip, the dashed outline that says "not
+   * recorded" where a figure would be. Without a real italic the browser slants
+   * the upright face, and a synthesised oblique on a 12px chip is the kind of
+   * mush that makes a careful interface look careless.
+   *
+   * One extra file for one component is a real cost. It is worth it because
+   * that component is the visual form of the rule that an absent figure is
+   * never a zero, which is a rule this platform enforces in three places.
+   */
+  style: ["normal", "italic"],
   variable: "--font-open-sans",
   display: "swap",
 });

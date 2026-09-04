@@ -45,6 +45,8 @@
     "accounts-audit": "tsx --conditions=react-server scripts/accounts-audit.mjs",
     "jobs-audit": "tsx --conditions=react-server scripts/jobs-audit.mjs",
     "observability-audit": "tsx --conditions=react-server scripts/observability-audit.mjs",
+    "token-audit": "tsx scripts/token-audit.mjs",
+    "portal-voice-audit": "tsx scripts/portal-voice-audit.mjs",
     "preroles-audit": "node scripts/preflight-audit.mjs",
     "roles-audit": "tsx scripts/roles-audit.mjs",
     "registry-audit": "tsx scripts/registry-audit.mjs",

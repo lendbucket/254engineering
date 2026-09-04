@@ -66,15 +66,15 @@ export function CoverageMap({
       </svg>
 
       <figcaption className="mt-3">
-        <p className="text-[13px] font-semibold text-slate">
+        <p className="text-[13.5px] font-semibold text-[var(--navy)]">
           {covered} of 254 counties have at least one active technician
         </p>
         <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5">
           {TIERS.map((t) => (
-            <li key={t.label} className="flex items-center gap-1.5 text-[12.5px] text-slate-muted">
+            <li key={t.label} className="flex items-center gap-1.5 text-[12.5px] text-[var(--secondary)]">
               <span
                 aria-hidden="true"
-                className="inline-block h-3 w-3 rounded-[2px] border border-limestone-line"
+                className="inline-block h-3 w-3 rounded-[2px] border border-[var(--border)]"
                 style={{ backgroundColor: t.fill }}
               />
               {t.label}

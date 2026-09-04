@@ -56,29 +56,29 @@ export default async function OrderStartPage({ params }: { params: Promise<{ slu
   return (
     <Container>
       <div className="mx-auto max-w-[68ch] py-12 sm:py-16">
-        <p className="text-[11px] font-bold tracking-[0.14em] text-brass-ink uppercase">
+        <p className="portal-kicker text-[var(--gold-deep)]">
           {service.shortName}
         </p>
-        <h1 className="mt-2 font-display text-[clamp(1.7rem,3vw,2.2rem)] leading-[1.2] font-semibold text-slate">
+        <h1 className="mt-2 font-display text-[clamp(1.7rem,3vw,2.2rem)] leading-[1.2] font-semibold text-[var(--navy)]">
           Order {service.shortName.toLowerCase()}
         </h1>
 
         {available.length === 0 ? (
-          <div className="mt-8 rounded-[4px] border border-limestone-line border-t-[3px] border-t-brass bg-white px-6 py-7">
-            <h2 className="font-display text-[1.25rem] leading-[1.25] font-semibold text-slate">
+          <div className="mt-8 rounded-[4px] border border-[var(--border)] border-t-brass bg-white px-6 py-7">
+            <h2 className="font-display text-[1.25rem] leading-[1.25] font-semibold text-[var(--navy)]">
               {prelaunch ? "The firm is not taking orders yet" : "This cannot be ordered online yet"}
             </h2>
-            <p className="mt-3 text-[1rem] leading-[1.7] text-slate-muted">{blockedReason}</p>
+            <p className="mt-3 text-[1rem] leading-[1.7] text-[var(--secondary)]">{blockedReason}</p>
             <Link
               href={prelaunch ? `/waitlist?service=${encodeURIComponent(service.name)}` : "/contact"}
-              className="mt-6 inline-flex min-h-[44px] items-center rounded-[3px] bg-brass px-5 text-[14px] font-bold text-slate-ink"
+              className="mt-6 inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-5 text-[13.5px] font-bold text-white"
             >
               {prelaunch ? "Join the waitlist" : "Contact the firm"}
             </Link>
           </div>
         ) : (
           <>
-            <p className="mt-3 max-w-[62ch] text-[1.02rem] leading-[1.7] text-slate-muted">
+            <p className="mt-3 max-w-[62ch] text-[1.02rem] leading-[1.7] text-[var(--secondary)]">
               A few questions decide whether this is work the firm can take, then the property, then
               what the engineer needs. You see the price and what happens if the engineer declines
               before anything is charged.
@@ -93,7 +93,7 @@ export default async function OrderStartPage({ params }: { params: Promise<{ slu
           </>
         )}
 
-        <p className="mt-8 text-[13.5px] leading-[1.6] text-slate-muted">
+        <p className="mt-8 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
           <Link href={`/services/${slug}`} className="underline underline-offset-2">
             Read what {service.shortName.toLowerCase()} covers
           </Link>{" "}

@@ -28,28 +28,28 @@ export default async function AccountSetPasswordPage({
         <div className="mb-6 flex justify-center">
           <Wordmark height={44} priority />
         </div>
-        <div className="rounded-[4px] border border-limestone-line border-t-[3px] border-t-brass bg-white p-6 sm:p-7">
+        <div className="rounded-[4px] border border-[var(--border)] border-t-brass bg-white p-6 sm:p-7">
           {result.ok ? (
             <>
-              <h1 className="font-display text-[22px] leading-[1.2] font-bold text-slate">
+              <h1 className="font-display text-[24px] leading-[1.2] font-bold text-[var(--navy)]">
                 Choose your password
               </h1>
-              <p className="mt-2 text-[14px] leading-[1.6] text-slate-muted">
+              <p className="mt-2 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
                 {result.displayName}, your sign in address is{" "}
-                <span className="font-semibold break-all text-slate">{result.email}</span>.
+                <span className="font-semibold break-all text-[var(--navy)]">{result.email}</span>.
               </p>
               <AccountSetPasswordForm token={token!} minLength={MIN_CUSTOMER_PASSWORD_LENGTH} />
             </>
           ) : (
             <>
-              <h1 className="font-display text-[22px] leading-[1.2] font-bold text-slate">
+              <h1 className="font-display text-[24px] leading-[1.2] font-bold text-[var(--navy)]">
                 {result.reason === "expired"
                   ? "That link has expired"
                   : result.reason === "used"
                     ? "That link has already been used"
                     : "That link is not valid"}
               </h1>
-              <p className="mt-3 text-[14px] leading-[1.6] text-slate-muted">
+              <p className="mt-3 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
                 {result.reason === "expired"
                   ? "Links last three days. The firm can send a new one."
                   : result.reason === "used"

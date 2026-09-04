@@ -72,8 +72,8 @@ export default async function PeoplePage() {
       head: "Name",
       cell: (p) => (
         <div>
-          <p className="font-semibold text-slate">{p.display_name}</p>
-          <p className="text-[12.5px] break-all text-slate-muted">{p.email}</p>
+          <p className="font-semibold text-[var(--navy)]">{p.display_name}</p>
+          <p className="text-[12.5px] break-all text-[var(--secondary)]">{p.email}</p>
         </div>
       ),
     },
@@ -132,15 +132,15 @@ export default async function PeoplePage() {
               <div>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-[15px] font-semibold text-slate">{p.display_name}</p>
-                    <p className="mt-0.5 text-[13px] break-all text-slate-muted">{p.email}</p>
+                    <p className="text-[15px] font-semibold text-[var(--navy)]">{p.display_name}</p>
+                    <p className="mt-0.5 text-[13.5px] break-all text-[var(--secondary)]">{p.email}</p>
                   </div>
                   <Chip label={p.status} tone={STATUS_TONE[p.status]} />
                 </div>
-                <p className="mt-2 text-[12.5px] font-bold tracking-[0.08em] text-brass-ink uppercase">
+                <p className="mt-2 portal-kicker text-[var(--gold-deep)]">
                   {ROLE_LABEL[p.role]}
                 </p>
-                <p className="mt-1 text-[13px] text-slate-muted">Last sign in {when(p.last_sign_in_at)}</p>
+                <p className="mt-1 text-[13.5px] text-[var(--secondary)]">Last sign in {when(p.last_sign_in_at)}</p>
                 <div className="mt-3">
                   <PersonActions person={p} selfId={actor!.id} />
                 </div>

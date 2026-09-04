@@ -67,12 +67,12 @@ export default async function BillingPage() {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[620px] border-collapse text-left">
                 <thead>
-                  <tr className="border-b border-limestone-line">
+                  <tr className="border-b border-[var(--border)]">
                     {["Period", "Files counted", "Revenue", "Cost", "Margin", "What it covers"].map((h) => (
                       <th
                         key={h}
                         scope="col"
-                        className="py-2 pr-4 text-[11px] font-bold tracking-[0.1em] text-slate-muted uppercase"
+                        className="py-2 pr-4 portal-kicker text-[var(--secondary)]"
                       >
                         {h}
                       </th>
@@ -81,18 +81,18 @@ export default async function BillingPage() {
                 </thead>
                 <tbody>
                   {periods.map((p) => (
-                    <tr key={p.period} className="border-b border-limestone-line last:border-0">
-                      <td className="py-2.5 pr-4 align-top text-[13.5px] font-semibold text-slate">{p.period}</td>
-                      <td className="py-2.5 pr-4 align-top text-[13.5px] text-slate">
+                    <tr key={p.period} className="border-b border-[var(--border)] last:border-0">
+                      <td className="py-2.5 pr-4 align-top text-[13.5px] font-semibold text-[var(--navy)]">{p.period}</td>
+                      <td className="py-2.5 pr-4 align-top text-[13.5px] text-[var(--navy)]">
                         {p.complete} of {p.files}
                       </td>
-                      <td className="py-2.5 pr-4 align-top text-[13.5px] text-slate">{money(p.revenue)}</td>
-                      <td className="py-2.5 pr-4 align-top text-[13.5px] text-slate">{money(p.cost)}</td>
-                      <td className="py-2.5 pr-4 align-top text-[13.5px] font-semibold text-slate">
+                      <td className="py-2.5 pr-4 align-top text-[13.5px] text-[var(--navy)]">{money(p.revenue)}</td>
+                      <td className="py-2.5 pr-4 align-top text-[13.5px] text-[var(--navy)]">{money(p.cost)}</td>
+                      <td className="py-2.5 pr-4 align-top text-[13.5px] font-semibold text-[var(--navy)]">
                         {money(p.margin)}
                         {p.marginPercent === null ? "" : ` (${p.marginPercent}%)`}
                       </td>
-                      <td className="max-w-[42ch] py-2.5 pr-4 align-top text-[12px] leading-[1.45] text-slate-muted">
+                      <td className="max-w-[42ch] py-2.5 pr-4 align-top text-[12px] leading-[1.45] text-[var(--secondary)]">
                         {p.coverage}
                       </td>
                     </tr>
@@ -103,11 +103,11 @@ export default async function BillingPage() {
           </Panel>
 
           {incomplete.length > 0 ? (
-            <div className="mt-4 rounded-[4px] border border-[#f0d9a8] border-l-[3px] border-l-brass bg-[#fdf3e0] px-4 py-3.5">
-              <p className="text-[13px] font-bold tracking-[0.1em] text-[#7a4c05] uppercase">
+            <div className="mt-4 rounded-[4px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-4 py-3.5">
+              <p className="portal-kicker text-[var(--warn-ink)]">
                 {incomplete.length} file{incomplete.length === 1 ? "" : "s"} left out of the totals
               </p>
-              <p className="mt-1.5 max-w-[74ch] text-[13.5px] leading-[1.6] text-[#7a4c05]">
+              <p className="mt-1.5 max-w-[74ch] text-[13.5px] leading-[1.6] text-[var(--warn-ink)]">
                 Each is missing at least one of the three figures. They are excluded rather than
                 counted as nothing, because adding up what is present would report a margin higher
                 than the truth by exactly the amount nobody has entered. The table below names what
@@ -146,7 +146,7 @@ export default async function BillingPage() {
                   cell: (f) => {
                     const m = marginOf(f);
                     return (
-                      <span className={m.margin === null ? "text-slate-muted" : "font-semibold"}>
+                      <span className={m.margin === null ? "text-[var(--secondary)]" : "font-semibold"}>
                         {money(m.margin)}
                         {m.marginPercent === null ? "" : ` (${m.marginPercent}%)`}
                       </span>
@@ -161,7 +161,7 @@ export default async function BillingPage() {
                     return m.missing.length === 0 ? (
                       <Chip label="Complete" tone="good" />
                     ) : (
-                      <span className="text-[12.5px] text-slate-muted">{m.missing.join(", ")}</span>
+                      <span className="text-[12.5px] text-[var(--secondary)]">{m.missing.join(", ")}</span>
                     );
                   },
                 },
@@ -171,28 +171,28 @@ export default async function BillingPage() {
                 return (
                   <div>
                     <div className="flex items-start justify-between gap-3">
-                      <p className="text-[15px] font-bold text-slate">{f.file_number}</p>
+                      <p className="text-[15px] font-bold text-[var(--navy)]">{f.file_number}</p>
                       {m.missing.length === 0 ? (
                         <Chip label="Complete" tone="good" />
                       ) : (
                         <Chip label="Incomplete" tone="warn" />
                       )}
                     </div>
-                    <p className="mt-1 text-[13px] leading-[1.5] text-slate-muted">
+                    <p className="mt-1 text-[13.5px] leading-[1.5] text-[var(--secondary)]">
                       {f.property_address}, {f.county} County
                     </p>
-                    <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-[13px]">
-                      <dt className="text-slate-muted">Client price</dt>
-                      <dd className="text-right text-slate">{money(f.clientPriceCents)}</dd>
-                      <dt className="text-slate-muted">Technician</dt>
-                      <dd className="text-right text-slate">{money(f.techCostCents)}</dd>
-                      <dt className="text-slate-muted">Production</dt>
-                      <dd className="text-right text-slate">{money(f.engineerCostCents)}</dd>
-                      <dt className="font-semibold text-slate">Margin</dt>
-                      <dd className="text-right font-semibold text-slate">{money(m.margin)}</dd>
+                    <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-[13.5px]">
+                      <dt className="text-[var(--secondary)]">Client price</dt>
+                      <dd className="text-right text-[var(--navy)]">{money(f.clientPriceCents)}</dd>
+                      <dt className="text-[var(--secondary)]">Technician</dt>
+                      <dd className="text-right text-[var(--navy)]">{money(f.techCostCents)}</dd>
+                      <dt className="text-[var(--secondary)]">Production</dt>
+                      <dd className="text-right text-[var(--navy)]">{money(f.engineerCostCents)}</dd>
+                      <dt className="font-semibold text-[var(--navy)]">Margin</dt>
+                      <dd className="text-right font-semibold text-[var(--navy)]">{money(m.margin)}</dd>
                     </dl>
                     {m.missing.length > 0 ? (
-                      <p className="mt-2.5 text-[12.5px] leading-[1.5] text-slate-muted">
+                      <p className="mt-2.5 text-[12.5px] leading-[1.5] text-[var(--secondary)]">
                         Not counted in any total. Missing: {m.missing.join(", ")}.
                       </p>
                     ) : null}

@@ -26,7 +26,7 @@ export type NavItem = {
   icon:
     | "home" | "files" | "people" | "review" | "jobs" | "clients" | "audit"
     | "profile" | "protocols" | "techs" | "onboarding" | "certification" | "charge"
-    | "tasks" | "messages" | "documents" | "billing" | "orders" | "accounts" | "queue" | "status";
+    | "tasks" | "messages" | "documents" | "billing" | "orders" | "accounts" | "queue" | "status" | "pay";
 };
 
 export const NAV: NavItem[] = [
@@ -42,6 +42,16 @@ export const NAV: NavItem[] = [
     action: "evidence.capture",
     primary: true,
     icon: "certification",
+  },
+  {
+    // A technician who cannot see what they have earned asks by text message.
+    // Primary on a phone for the same reason Certification is: it answers a
+    // question somebody has on a driveway, not at a desk.
+    href: "/portal/pay",
+    label: "Your pay",
+    short: "Pay",
+    action: "ledger.read_own",
+    icon: "pay",
   },
   { href: "/portal/review", label: "Review queue", short: "Review", action: "review.queue", primary: true, icon: "review" },
   {

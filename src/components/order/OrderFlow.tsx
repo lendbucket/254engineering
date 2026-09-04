@@ -165,18 +165,18 @@ export function OrderFlow({
 
   if (done) {
     return (
-      <div className="rounded-[4px] border border-limestone-line border-t-[3px] border-t-slate bg-white px-6 py-7">
-        <h2 className="font-display text-[1.4rem] leading-[1.2] font-semibold text-slate">
+      <div className="rounded-[4px] border border-[var(--border)] border-t-slate bg-white px-6 py-7">
+        <h2 className="font-display text-[1.4rem] leading-[1.2] font-semibold text-[var(--navy)]">
           {entry?.orderType === "quote" ? "Your request is with the firm" : "Your order is placed"}
         </h2>
-        <p className="mt-3 text-[1rem] leading-[1.7] text-slate-muted">
-          Reference <span className="font-mono font-semibold text-slate">{done.reference}</span>.
+        <p className="mt-3 text-[1rem] leading-[1.7] text-[var(--secondary)]">
+          Reference <span className="font-mono font-semibold text-[var(--navy)]">{done.reference}</span>.
           {entry?.orderType === "quote"
             ? " Somebody will scope it and come back with a written quote. Nothing is charged until you accept one."
             : " A link to follow it has been recorded against your email."}
         </p>
         {done.unpaid ? (
-          <p className="mt-4 rounded-[4px] border border-[#f0d9a8] bg-[#fdf3e0] px-4 py-3 text-[14.5px] leading-[1.65] text-[#7a4c05]">
+          <p className="mt-4 rounded-[4px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-4 py-3 text-[13.5px] leading-[1.65] text-[var(--warn-ink)]">
             Nothing has been charged. The payment page could not be opened, so the firm will send
             you a payment link for this reference. {done.unpaid}
           </p>
@@ -189,18 +189,18 @@ export function OrderFlow({
 
   if (disqualified) {
     return (
-      <div className="rounded-[4px] border border-limestone-line border-t-[3px] border-t-brass bg-white px-6 py-7">
-        <h2 className="font-display text-[1.3rem] leading-[1.25] font-semibold text-slate">
+      <div className="rounded-[4px] border border-[var(--border)] border-t-brass bg-white px-6 py-7">
+        <h2 className="font-display text-[1.3rem] leading-[1.25] font-semibold text-[var(--navy)]">
           This is not work the firm can take
         </h2>
-        <p className="mt-3 text-[1rem] leading-[1.7] text-slate-muted">{disqualified}</p>
+        <p className="mt-3 text-[1rem] leading-[1.7] text-[var(--secondary)]">{disqualified}</p>
         <button
           type="button"
           onClick={() => {
             setDisqualified(null);
             setState((s) => ({ ...s, answers: [] }));
           }}
-          className="mt-6 min-h-[44px] rounded-[3px] border border-limestone-line px-4 text-[14px] font-bold text-slate hover:bg-limestone"
+          className="mt-6 min-h-[44px] rounded-[3px] border border-[var(--border)] px-4 text-[13.5px] font-bold text-[var(--navy)] hover:bg-[var(--canvas)]"
         >
           Go back and change an answer
         </button>
@@ -213,15 +213,15 @@ export function OrderFlow({
   // ---------------------------------------------------------------- steps
 
   return (
-    <div className="rounded-[4px] border border-limestone-line border-t-[3px] border-t-slate bg-white">
-      <div className="border-b border-limestone-line px-6 py-4">
-        <p className="text-[11px] font-bold tracking-[0.14em] text-brass-ink uppercase">
+    <div className="rounded-[4px] border border-[var(--border)] border-t-slate bg-white">
+      <div className="border-b border-[var(--border)] px-6 py-4">
+        <p className="portal-kicker text-[var(--gold-deep)]">
           Step {index + 1} of {steps.length}
         </p>
-        <h2 className="mt-1 font-display text-[1.3rem] leading-[1.25] font-semibold text-slate">
+        <h2 className="mt-1 font-display text-[1.3rem] leading-[1.25] font-semibold text-[var(--navy)]">
           {step.title}
         </h2>
-        <p className="mt-1.5 text-[14.5px] leading-[1.6] text-slate-muted">{step.blurb}</p>
+        <p className="mt-1.5 text-[13.5px] leading-[1.6] text-[var(--secondary)]">{step.blurb}</p>
       </div>
 
       <div className="px-6 py-6">
@@ -232,7 +232,7 @@ export function OrderFlow({
               <label
                 key={d.tier}
                 className={`flex cursor-pointer items-start gap-3 rounded-[4px] border px-4 py-3.5 ${
-                  state.tier === d.tier ? "border-slate bg-limestone/60" : "border-limestone-line"
+                  state.tier === d.tier ? "border-[var(--navy)] bg-[var(--canvas)]/60" : "border-[var(--border)]"
                 }`}
               >
                 <input
@@ -243,8 +243,8 @@ export function OrderFlow({
                   onChange={() => set({ tier: d.tier })}
                 />
                 <span>
-                  <span className="block text-[15px] font-semibold text-slate">{d.name}</span>
-                  <span className="mt-0.5 block text-[13.5px] leading-[1.55] text-slate-muted">
+                  <span className="block text-[15px] font-semibold text-[var(--navy)]">{d.name}</span>
+                  <span className="mt-0.5 block text-[13.5px] leading-[1.55] text-[var(--secondary)]">
                     {d.orderType === "quote" ? "Quoted. Nothing is charged until you accept." : d.turnaround}
                   </span>
                 </span>
@@ -257,9 +257,9 @@ export function OrderFlow({
           <div className="flex flex-col gap-7">
             {entry.qualifiers.map((q) => (
               <fieldset key={q.id}>
-                <legend className="text-[15px] font-semibold text-slate">{q.prompt}</legend>
+                <legend className="text-[15px] font-semibold text-[var(--navy)]">{q.prompt}</legend>
                 {q.help ? (
-                  <p className="mt-1.5 text-[13.5px] leading-[1.55] text-slate-muted">{q.help}</p>
+                  <p className="mt-1.5 text-[13.5px] leading-[1.55] text-[var(--secondary)]">{q.help}</p>
                 ) : null}
                 <div className="mt-3 flex flex-col gap-2">
                   {q.options.map((option, i) => (
@@ -270,7 +270,7 @@ export function OrderFlow({
                         checked={state.answers.some((a) => a.qualifierId === q.id && a.optionIndex === i)}
                         onChange={() => answer(q.id, i)}
                       />
-                      <span className="text-[15px] text-slate">{option}</span>
+                      <span className="text-[15px] text-[var(--navy)]">{option}</span>
                     </label>
                   ))}
                 </div>
@@ -334,17 +334,17 @@ export function OrderFlow({
           <div className="flex flex-col gap-6">
             {entry.requiredInputs.map((input) => (
               <div key={input.id}>
-                <label className="text-[15px] font-semibold text-slate" htmlFor={input.id}>
+                <label className="text-[15px] font-semibold text-[var(--navy)]" htmlFor={input.id}>
                   {input.label}
                   {input.required ? "" : " (optional)"}
                 </label>
-                <p className="mt-1 text-[13.5px] leading-[1.55] text-slate-muted">{input.help}</p>
+                <p className="mt-1 text-[13.5px] leading-[1.55] text-[var(--secondary)]">{input.help}</p>
                 {input.kind === "file" ? (
                   <div className="mt-2.5">
                     <input
                       id={input.id}
                       type="file"
-                      className="text-[14px]"
+                      className="text-[13.5px]"
                       onChange={(e) => {
                         const f = e.target.files?.[0];
                         if (f) void upload(input.id, f);
@@ -352,7 +352,7 @@ export function OrderFlow({
                     />
                     <ul className="mt-2 flex flex-col gap-1">
                       {(state.files[input.id] ?? []).map((f) => (
-                        <li key={f.storageKey} className="text-[13.5px] text-slate-muted">
+                        <li key={f.storageKey} className="text-[13.5px] text-[var(--secondary)]">
                           {f.name}
                         </li>
                       ))}
@@ -364,7 +364,7 @@ export function OrderFlow({
                     rows={input.kind === "text" ? 3 : 1}
                     value={state.inputs[input.id] ?? ""}
                     onChange={(e) => set({ inputs: { ...state.inputs, [input.id]: e.target.value } })}
-                    className="mt-2.5 w-full rounded-[3px] border border-limestone-line px-3 py-2 text-[15px] text-slate"
+                    className="mt-2.5 w-full rounded-[3px] border border-[var(--border)] px-3 py-2 text-[15px] text-[var(--navy)]"
                   />
                 )}
               </div>
@@ -378,11 +378,11 @@ export function OrderFlow({
       </div>
 
       {blockers.length > 0 && index > 0 ? (
-        <div className="border-t border-limestone-line bg-limestone/50 px-6 py-3">
-          <p className="text-[13px] font-semibold text-slate">Still needed</p>
+        <div className="border-t border-[var(--border)] bg-[var(--canvas)]/50 px-6 py-3">
+          <p className="text-[13.5px] font-semibold text-[var(--navy)]">Still needed</p>
           <ul className="mt-1 flex flex-col gap-0.5">
             {blockers.map((b) => (
-              <li key={b} className="text-[13px] leading-[1.5] text-slate-muted">
+              <li key={b} className="text-[13.5px] leading-[1.5] text-[var(--secondary)]">
                 {b}
               </li>
             ))}
@@ -391,17 +391,17 @@ export function OrderFlow({
       ) : null}
 
       {error ? (
-        <div role="alert" className="border-t border-limestone-line bg-[#fdeceb] px-6 py-3">
-          <p className="text-[14px] leading-[1.6] text-[#8c1d18]">{error}</p>
+        <div role="alert" className="border-t border-[var(--border)] bg-[var(--warn-bg)] px-6 py-3">
+          <p className="text-[13.5px] leading-[1.6] text-[var(--red)]">{error}</p>
         </div>
       ) : null}
 
-      <div className="flex items-center justify-between gap-3 border-t border-limestone-line px-6 py-4">
+      <div className="flex items-center justify-between gap-3 border-t border-[var(--border)] px-6 py-4">
         <button
           type="button"
           disabled={index === 0}
           onClick={() => setIndex((i) => Math.max(0, i - 1))}
-          className="min-h-[44px] rounded-[3px] px-3 text-[14px] font-bold text-slate-muted disabled:opacity-40"
+          className="min-h-[44px] rounded-[3px] px-3 text-[13.5px] font-bold text-[var(--secondary)] disabled:opacity-40"
         >
           Back
         </button>
@@ -410,7 +410,7 @@ export function OrderFlow({
             type="button"
             disabled={blockers.length > 0 || submitting}
             onClick={() => void submit()}
-            className="min-h-[44px] rounded-[3px] bg-brass px-5 text-[14px] font-bold text-slate-ink disabled:opacity-40"
+            className="min-h-[var(--tap-target)] rounded-[var(--radius-control)] bg-[var(--navy)] px-5 text-[13.5px] font-bold text-white disabled:opacity-40"
           >
             {submitting
               ? "Sending"
@@ -423,13 +423,13 @@ export function OrderFlow({
             type="button"
             disabled={blockers.length > 0}
             onClick={() => setIndex((i) => Math.min(steps.length - 1, i + 1))}
-            className="min-h-[44px] rounded-[3px] bg-brass px-5 text-[14px] font-bold text-slate-ink disabled:opacity-40"
+            className="min-h-[var(--tap-target)] rounded-[var(--radius-control)] bg-[var(--navy)] px-5 text-[13.5px] font-bold text-white disabled:opacity-40"
           >
             Continue
           </button>
         )}
       </div>
-      <p className="border-t border-limestone-line px-6 py-3 text-[12.5px] leading-[1.55] text-slate-muted">
+      <p className="border-t border-[var(--border)] px-6 py-3 text-[12.5px] leading-[1.55] text-[var(--secondary)]">
         {serviceName}. Card details are entered on Stripe's page and never reach this site.
       </p>
     </div>
@@ -452,16 +452,16 @@ function Field({
   const id = label.toLowerCase().replace(/\s+/g, "-");
   return (
     <div>
-      <label htmlFor={id} className="text-[15px] font-semibold text-slate">
+      <label htmlFor={id} className="text-[15px] font-semibold text-[var(--navy)]">
         {label}
       </label>
-      {hint ? <p className="mt-1 text-[13.5px] leading-[1.55] text-slate-muted">{hint}</p> : null}
+      {hint ? <p className="mt-1 text-[13.5px] leading-[1.55] text-[var(--secondary)]">{hint}</p> : null}
       <input
         id={id}
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-2 w-full rounded-[3px] border border-limestone-line px-3 py-2 text-[15px] text-slate"
+        className="mt-2 w-full rounded-[3px] border border-[var(--border)] px-3 py-2 text-[15px] text-[var(--navy)]"
       />
     </div>
   );
@@ -493,7 +493,7 @@ function ReviewStep({
   if (entry.orderType === "quote") {
     return (
       <div>
-        <p className="text-[1rem] leading-[1.7] text-slate">
+        <p className="text-[1rem] leading-[1.7] text-[var(--navy)]">
           {entry.name} is quoted rather than priced. Nothing is charged now and nothing is owed
           until you accept a written scope.
         </p>
@@ -504,7 +504,7 @@ function ReviewStep({
             checked={state.acceptedTerms}
             onChange={(e) => onAccept(e.target.checked)}
           />
-          <span className="text-[14.5px] leading-[1.65] text-slate-muted">
+          <span className="text-[13.5px] leading-[1.65] text-[var(--secondary)]">
             I understand this is a request for a quote and not an order.
           </span>
         </label>
@@ -514,24 +514,24 @@ function ReviewStep({
 
   return (
     <div>
-      <dl className="border-t border-limestone-line">
-        <div className="flex justify-between border-b border-limestone-line py-2.5">
-          <dt className="text-[15px] text-slate-muted">{entry.name}</dt>
-          <dd className="text-[15px] text-slate">{dollars(entry.priceCents)}</dd>
+      <dl className="border-t border-[var(--border)]">
+        <div className="flex justify-between border-b border-[var(--border)] py-2.5">
+          <dt className="text-[15px] text-[var(--secondary)]">{entry.name}</dt>
+          <dd className="text-[15px] text-[var(--navy)]">{dollars(entry.priceCents)}</dd>
         </div>
       </dl>
-      <p className="mt-3 text-[13.5px] leading-[1.6] text-slate-muted">
+      <p className="mt-3 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
         A property in a first tier coastal county carries a named surcharge of{" "}
         {dollars(entry.coastalSurchargeCents)}, shown as its own line on the payment page. The firm
         works out which county the address is in rather than asking you to.
       </p>
 
-      <h3 className="mt-7 text-[13px] font-bold tracking-[0.1em] text-brass-ink uppercase">
+      <h3 className="mt-7 portal-kicker text-[var(--gold-deep)]">
         If the engineer declines
       </h3>
       <ul className="mt-3 flex flex-col gap-2.5">
         {refundLines(entry).map((line) => (
-          <li key={line} className="text-[14.5px] leading-[1.65] text-slate-muted">
+          <li key={line} className="text-[13.5px] leading-[1.65] text-[var(--secondary)]">
             {line}
           </li>
         ))}
@@ -544,7 +544,7 @@ function ReviewStep({
           checked={state.acceptedTerms}
           onChange={(e) => onAccept(e.target.checked)}
         />
-        <span className="text-[14.5px] leading-[1.65] text-slate-muted">
+        <span className="text-[13.5px] leading-[1.65] text-[var(--secondary)]">
           I have read what happens if the engineer declines to seal.
         </span>
       </label>

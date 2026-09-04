@@ -26,21 +26,21 @@ import type { Mispointing } from "@/lib/db-guard";
 export function MispointedDeployment({ fault }: { fault: Mispointing }) {
   return (
     <main className="grid min-h-dvh place-items-center bg-slate px-5 py-12">
-      <div className="w-full max-w-[62ch] rounded-[4px] border border-[#a3241c] border-t-[3px] bg-white px-6 py-7">
-        <p className="text-[12px] font-bold tracking-[0.14em] text-[#a3241c] uppercase">
+      <div className="w-full max-w-[62ch] rounded-[4px] border border-[var(--red)] bg-white px-6 py-7">
+        <p className="portal-kicker text-[var(--red)]">
           Stopped before anything was read or written
         </p>
-        <h1 className="mt-2 font-display text-[24px] leading-[1.2] font-bold text-slate">
+        <h1 className="mt-2 font-display text-[24px] leading-[1.2] font-bold text-[var(--navy)]">
           {fault.headline}
         </h1>
-        <p className="mt-3 text-[15px] leading-[1.65] text-slate-muted">{fault.explanation}</p>
+        <p className="mt-3 text-[15px] leading-[1.65] text-[var(--secondary)]">{fault.explanation}</p>
 
-        <p className="mt-5 text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">
+        <p className="mt-5 portal-kicker text-[var(--gold-deep)]">
           How to fix it
         </p>
-        <p className="mt-2 text-[14.5px] leading-[1.65] text-slate-muted">{fault.fix}</p>
+        <p className="mt-2 text-[13.5px] leading-[1.65] text-[var(--secondary)]">{fault.fix}</p>
 
-        <p className="mt-5 border-t border-limestone-line pt-4 text-[13.5px] leading-[1.6] text-slate-muted">
+        <p className="mt-5 border-t border-[var(--border)] pt-4 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
           If you genuinely intend this, set
           <span className="font-mono"> {fault.hatch}=1 </span>
           on this deployment. {fault.hatchNote}

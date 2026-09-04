@@ -68,12 +68,12 @@ function Figure({
   note?: string;
 }) {
   const colour =
-    tone === "bad" ? "text-[#8c1d18]" : tone === "warn" ? "text-[#7a4c05]" : "text-slate";
+    tone === "bad" ? "text-[var(--red)]" : tone === "warn" ? "text-[var(--warn-ink)]" : "text-[var(--navy)]";
   return (
-    <div className="rounded-[4px] border border-limestone-line bg-white px-4 py-3">
-      <p className="text-[11px] font-bold tracking-[0.12em] text-slate-muted uppercase">{label}</p>
-      <p className={`mt-1 font-display text-[26px] leading-[1.1] font-bold ${colour}`}>{value}</p>
-      {note ? <p className="mt-1 text-[12.5px] leading-[1.5] text-slate-muted">{note}</p> : null}
+    <div className="rounded-[4px] border border-[var(--border)] bg-white px-4 py-3">
+      <p className="portal-kicker text-[var(--secondary)]">{label}</p>
+      <p className={`mt-1 font-display text-[24px] leading-[1.1] font-bold ${colour}`}>{value}</p>
+      {note ? <p className="mt-1 text-[12.5px] leading-[1.5] text-[var(--secondary)]">{note}</p> : null}
     </div>
   );
 }
@@ -191,23 +191,23 @@ export default async function QueuePage() {
         <ul className="divide-y divide-limestone-line">
           {kinds.map((k) => (
             <li key={k.kind} className="flex flex-wrap items-baseline gap-x-3 gap-y-1.5 py-3 first:pt-0 last:pb-0">
-              <span className="font-mono text-[13px] font-semibold text-slate">{k.kind}</span>
-              <span className="text-[12.5px] text-slate-muted">
+              <span className="font-mono text-[13.5px] font-semibold text-[var(--navy)]">{k.kind}</span>
+              <span className="text-[12.5px] text-[var(--secondary)]">
                 {k.pending} waiting
               </span>
               <span
-                className={k.dead > 0 ? "text-[12.5px] font-bold text-[#8c1d18]" : "text-[12.5px] text-slate-muted"}
+                className={k.dead > 0 ? "text-[12.5px] font-bold text-[var(--red)]" : "text-[12.5px] text-[var(--secondary)]"}
               >
                 {k.dead} dead
               </span>
               {k.natural ? <Chip label="Naturally" tone="neutral" /> : null}
-              <p className="w-full max-w-[76ch] text-[13px] leading-[1.55] text-slate-muted">
+              <p className="w-full max-w-[76ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
                 {k.idempotency}
               </p>
             </li>
           ))}
         </ul>
-        <p className="mt-3 max-w-[76ch] text-[12.5px] leading-[1.55] text-slate-muted">
+        <p className="mt-3 max-w-[76ch] text-[12.5px] leading-[1.55] text-[var(--secondary)]">
           A lease can expire while a job is still running, so every kind here has to survive being
           run a second time. Each one says how, and the audit refuses a handler that does not.
         </p>

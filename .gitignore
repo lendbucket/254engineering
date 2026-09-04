@@ -50,3 +50,8 @@ screenshots/
 /254 Engineering Services Landing Page.zip
 /1.png
 /dark background.png
+
+# The design export is committed unpacked. The archive and the thumbnail are not:
+# one is a duplicate of everything beside it and the other is a preview image.
+design-reference/portal/Design form workflow.zip
+design-reference/portal/.thumbnail

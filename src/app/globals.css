@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+/*
+ * The portal design system.
+ *
+ * Its tokens are named exactly as docs/PORTAL_DESIGN_STANDARDS.md names them,
+ * and token-audit asserts the two agree value for value. Imported after
+ * Tailwind so the portal tokens resolve in every portal component, and kept in
+ * its own file because the site palette below is a different surface with a
+ * different set of names and merging them would hide which is which.
+ */
+@import "../styles/portal.css";
+
 /**
  * 254 Engineering Services design tokens.
  *

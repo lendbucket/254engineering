@@ -19,8 +19,8 @@ type Person = {
 };
 
 const field =
-  "mt-1.5 min-h-[48px] w-full rounded-[3px] border border-limestone-line bg-white px-3 text-[16px] text-slate outline-none focus:border-slate";
-const label = "block text-[13px] font-semibold text-slate";
+  "mt-1.5 min-h-[48px] w-full rounded-[3px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--navy)] outline-none focus:border-slate";
+const label = "block text-[13.5px] font-semibold text-[var(--navy)]";
 
 /**
  * Creating an account.
@@ -100,12 +100,12 @@ export function NewPersonForm({ counties }: { counties: string[] }) {
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="inline-flex min-h-[44px] items-center rounded-[3px] bg-brass px-4 text-[14px] font-bold text-slate-ink hover:bg-brass-light"
+          className="inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white hover:bg-[var(--navy-hover)]"
         >
           {open ? "Cancel" : "Add a person"}
         </button>
         {notice ? (
-          <p role="status" className="text-[13.5px] leading-[1.5] text-[#14522f]">
+          <p role="status" className="text-[13.5px] leading-[1.5] text-[var(--green)]">
             {notice}
           </p>
         ) : null}
@@ -114,7 +114,7 @@ export function NewPersonForm({ counties }: { counties: string[] }) {
       {open ? (
         <form
           onSubmit={onSubmit}
-          className="mt-4 rounded-[4px] border border-limestone-line border-t-[3px] border-t-slate bg-white p-4 sm:p-5"
+          className="mt-4 rounded-[4px] border border-[var(--border)] bg-white p-4 sm:p-5"
         >
           <fieldset>
             <legend className={label}>Role</legend>
@@ -122,8 +122,8 @@ export function NewPersonForm({ counties }: { counties: string[] }) {
               {(["admin", "engineer", "field_tech"] as Role[]).map((r) => (
                 <label
                   key={r}
-                  className={`flex min-h-[48px] flex-1 cursor-pointer items-center gap-2 rounded-[3px] border px-3 text-[14px] font-semibold ${
-                    role === r ? "border-slate bg-limestone text-slate" : "border-limestone-line text-slate-muted"
+                  className={`flex min-h-[48px] flex-1 cursor-pointer items-center gap-2 rounded-[3px] border px-3 text-[13.5px] font-semibold ${
+                    role === r ? "border-slate bg-[var(--canvas)] text-[var(--navy)]" : "border-[var(--border)] text-[var(--secondary)]"
                   }`}
                 >
                   <input
@@ -189,7 +189,7 @@ export function NewPersonForm({ counties }: { counties: string[] }) {
                   </datalist>
                 </div>
               </div>
-              <p className="mt-4 text-[13px] leading-[1.55] text-slate-muted">
+              <p className="mt-4 text-[13.5px] leading-[1.55] text-[var(--secondary)]">
                 Coverage counties decide which job offers reach this technician. They can be set
                 here or later, and dispatch will not offer work in a county that is not on the list.
               </p>
@@ -201,7 +201,7 @@ export function NewPersonForm({ counties }: { counties: string[] }) {
                 name="coverageCounties"
                 multiple
                 size={6}
-                className="mt-1.5 w-full rounded-[3px] border border-limestone-line bg-white px-3 py-2 text-[16px] text-slate outline-none focus:border-slate"
+                className="mt-1.5 w-full rounded-[3px] border border-[var(--border)] bg-white px-3 py-2 text-[16px] text-[var(--navy)] outline-none focus:border-slate"
               >
                 {counties.map((c) => (
                   <option key={c} value={c}>
@@ -213,12 +213,12 @@ export function NewPersonForm({ counties }: { counties: string[] }) {
           ) : null}
 
           {error ? (
-            <p role="alert" className="mt-4 rounded-[3px] border border-[#f3c9c6] bg-[#fdeceb] px-3 py-2.5 text-[13.5px] text-[#8c1d18]">
+            <p role="alert" className="mt-4 rounded-[3px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-3 py-2.5 text-[13.5px] text-[var(--red)]">
               {error}
             </p>
           ) : null}
 
-          <p className="mt-4 text-[13px] leading-[1.55] text-slate-muted">
+          <p className="mt-4 text-[13.5px] leading-[1.55] text-[var(--secondary)]">
             No password is set here. They receive a one time link and choose their own, which
             nobody at the firm can see.
           </p>
@@ -226,7 +226,7 @@ export function NewPersonForm({ counties }: { counties: string[] }) {
           <button
             type="submit"
             disabled={busy}
-            className="mt-4 min-h-[48px] w-full rounded-[3px] bg-brass px-4 text-[15px] font-bold text-slate-ink hover:bg-brass-light disabled:opacity-60 sm:w-auto sm:px-6"
+            className="mt-4 min-h-[var(--tap-target)] w-full rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[15px] font-bold text-white hover:bg-[var(--navy-hover)] disabled:opacity-60 sm:w-auto sm:px-6"
           >
             {busy ? "Creating..." : "Create and send the invite"}
           </button>
@@ -284,7 +284,7 @@ export function PersonActions({ person, selfId }: { person: Person; selfId: stri
   }
 
   const btn =
-    "inline-flex min-h-[40px] items-center rounded-[3px] border border-limestone-line px-3 text-[13px] font-semibold text-slate hover:bg-limestone disabled:opacity-50";
+    "inline-flex min-h-[40px] items-center rounded-[3px] border border-[var(--border)] px-3 text-[13.5px] font-semibold text-[var(--navy)] hover:bg-[var(--canvas)] disabled:opacity-50";
 
   return (
     <div>
@@ -305,7 +305,7 @@ export function PersonActions({ person, selfId }: { person: Person; selfId: stri
         )}
 
         {person.id === selfId ? (
-          <span className="inline-flex min-h-[40px] items-center text-[13px] text-slate-muted">
+          <span className="inline-flex min-h-[40px] items-center text-[13.5px] text-[var(--secondary)]">
             This is you
           </span>
         ) : person.status === "suspended" ? (
@@ -323,8 +323,8 @@ export function PersonActions({ person, selfId }: { person: Person; selfId: stri
           </button>
         )}
       </div>
-      {notice ? <p className="mt-2 text-[12.5px] text-[#14522f]">{notice}</p> : null}
-      {error ? <p role="alert" className="mt-2 text-[12.5px] text-[#8c1d18]">{error}</p> : null}
+      {notice ? <p className="mt-2 text-[12.5px] text-[var(--green)]">{notice}</p> : null}
+      {error ? <p role="alert" className="mt-2 text-[12.5px] text-[var(--red)]">{error}</p> : null}
     </div>
   );
 }

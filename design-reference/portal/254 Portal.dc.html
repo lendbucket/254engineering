@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Open+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F4F5F7;}
+a{color:#14315D;text-decoration:none;}a:hover{color:#0E2347;text-decoration:underline;}
+@keyframes spin{to{transform:rotate(360deg);}}
+input,textarea,button{font-family:'Open Sans',sans-serif;}
+::placeholder{color:#5F6877;opacity:1;}
+</style>
+</helmet>
+<div style="font-family:'Open Sans',sans-serif;color:#333A45;font-size:15px;line-height:1.6;">
+
+<sc-if value="{{ isSignin }}" hint-placeholder-val="{{ true }}">
+<div data-screen-label="Sign in" style="min-height:100vh;background:#F4F5F7;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 16px;gap:22px;">
+  <div style="background:#FFFFFF;width:100%;max-width:420px;border:1px solid #DDE0E4;border-top:3px solid #14315D;border-radius:4px;padding:40px 36px 32px;box-sizing:border-box;">
+    <img src="brand-assets/logo.png" alt="254 Engineering Services" style="height:72px;display:block;margin:0 auto 8px;">
+    <div style="text-align:center;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;font-weight:700;color:#555E6B;margin-bottom:26px;">Operations portal</div>
+    <sc-if value="{{ portalOpen }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <label style="display:flex;flex-direction:column;gap:5px;font-size:13.5px;font-weight:600;color:#333A45;">Email
+          <input type="email" placeholder="you@254engineering.com" style="border:1px solid #C3C9D1;border-radius:3px;padding:11px 12px;font-size:15.5px;color:#333A45;outline:none;" style-focus="border-color:#14315D;box-shadow:0 0 0 2px rgba(20,49,93,0.15);">
+        </label>
+        <label style="display:flex;flex-direction:column;gap:5px;font-size:13.5px;font-weight:600;color:#333A45;">Password
+          <input type="password" placeholder="Your password" style="border:1px solid #C3C9D1;border-radius:3px;padding:11px 12px;font-size:15.5px;color:#333A45;outline:none;" style-focus="border-color:#14315D;box-shadow:0 0 0 2px rgba(20,49,93,0.15);">
+        </label>
+        <button onClick="{{ asOwner }}" style="background:#14315D;color:#FFFFFF;border:none;border-radius:3px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;margin-top:4px;" style-hover="background:#0E2347;">Sign in</button>
+        <div style="text-align:center;font-size:13.5px;"><a href="#" style="color:#555E6B;">Trouble signing in</a></div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ portalClosed }}" hint-placeholder-val="{{ false }}">
+      <div style="border-left:3px solid #D9A032;background:#F4F5F7;padding:16px 18px;border-radius:0 3px 3px 0;">
+        <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:17px;color:#14315D;margin-bottom:6px;">The portal is closed right now</div>
+        <div style="font-size:14px;color:#555E6B;line-height:1.65;">Planned maintenance until 6:00 PM Central today. Anything you already submitted is safe, including captures queued on your phone. If a job is due before then, call the office.</div>
+      </div>
+    </sc-if>
+  </div>
+  <div style="max-width:420px;text-align:center;font-size:12.5px;color:#555E6B;line-height:1.7;">254 Engineering Services LLC. Firm registration pending with the Texas Board of Professional Engineers and Land Surveyors.</div>
+  <div style="background:#FFFFFF;border:1px solid #DDE0E4;border-radius:4px;padding:14px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;">
+    <span style="font-size:11.5px;letter-spacing:0.1em;text-transform:uppercase;font-weight:700;color:#8D610F;">Prototype, sign in as</span>
+    <button onClick="{{ asOwner }}" style="border:1px solid #C3C9D1;background:#FFFFFF;color:#14315D;border-radius:3px;padding:8px 14px;font-size:14px;font-weight:700;cursor:pointer;" style-hover="border-color:#14315D;background:#EDF1F7;">Owner</button>
+    <button onClick="{{ asEngineer }}" style="border:1px solid #C3C9D1;background:#FFFFFF;color:#14315D;border-radius:3px;padding:8px 14px;font-size:14px;font-weight:700;cursor:pointer;" style-hover="border-color:#14315D;background:#EDF1F7;">Engineer</button>
+    <button onClick="{{ asTech }}" style="border:1px solid #C3C9D1;background:#FFFFFF;color:#14315D;border-radius:3px;padding:8px 14px;font-size:14px;font-weight:700;cursor:pointer;" style-hover="border-color:#14315D;background:#EDF1F7;">Technician</button>
+    <button onClick="{{ toggleUnavailable }}" style="border:none;background:none;color:#555E6B;font-size:13px;cursor:pointer;text-decoration:underline;">{{ unavailableLabel }}</button>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isOwner }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Owner dashboard" style="display:flex;min-height:100vh;background:#F4F5F7;">
+  <div style="width:230px;flex-shrink:0;background:#14315D;display:flex;flex-direction:column;">
+    <div style="padding:20px 18px 14px;border-bottom:1px solid rgba(255,255,255,0.12);"><img src="brand-assets/logo-dark.png" alt="254 Engineering Services" style="height:44px;display:block;"></div>
+    <nav style="display:flex;flex-direction:column;padding:12px 0;gap:2px;">
+      <sc-for list="{{ ownerNav }}" as="n" hint-placeholder-count="8">
+        <div style="display:flex;align-items:center;gap:10px;padding:9px 18px;font-size:14px;font-weight:600;color:{{ n.color }};border-left:3px solid {{ n.bar }};background:{{ n.bg }};cursor:pointer;" style-hover="color:#FFFFFF;">{{ n.label }}</div>
+      </sc-for>
+    </nav>
+    <div style="margin-top:auto;padding:16px 18px;border-top:1px solid rgba(255,255,255,0.12);font-size:12.5px;color:#9DAAC0;line-height:1.6;">Robert Calloway<br>Administrator</div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+    <div style="background:#FFFFFF;border-bottom:1px solid #DDE0E4;padding:0 28px;height:58px;display:flex;align-items:center;gap:18px;">
+      <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:17px;color:#14315D;">Dashboard</div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:10px;border:1px solid #DDE0E4;border-radius:3px;padding:7px 12px;width:320px;color:#5F6877;font-size:13.5px;cursor:pointer;" style-hover="border-color:#C3C9D1;">
+        <span style="flex:1;">Search files, clients, actions</span>
+        <span style="border:1px solid #DDE0E4;border-radius:2px;padding:1px 6px;font-size:11px;color:#555E6B;background:#F4F5F7;">Ctrl K</span>
+      </div>
+      <button onClick="{{ signOut }}" style="border:none;background:none;color:#555E6B;font-size:13.5px;cursor:pointer;text-decoration:underline;">Sign out</button>
+    </div>
+    <div style="padding:24px 28px 40px;display:flex;flex-direction:column;gap:20px;max-width:1240px;box-sizing:border-box;width:100%;">
+      <div style="background:#EDF1F7;border-left:3px solid #D9A032;border-radius:0 3px 3px 0;padding:12px 16px;font-size:13.5px;color:#333A45;">Firm registration is pending with TBPELS and no engineer is in responsible charge. Documents cannot be sealed and no orders can be taken. Everything else works.</div>
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;">
+        <sc-for list="{{ pipeline }}" as="p" hint-placeholder-count="6">
+          <div style="background:#FFFFFF;border:1px solid #DDE0E4;border-top:3px solid #14315D;border-radius:4px;padding:14px 16px;">
+            <div style="font-family:'Archivo',sans-serif;font-weight:800;font-size:30px;line-height:1;color:#14315D;">{{ p.count }}</div>
+            <div style="font-size:12px;letter-spacing:0.06em;text-transform:uppercase;font-weight:700;color:#555E6B;margin-top:8px;">{{ p.label }}</div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:20px;align-items:start;">
+        <div style="display:flex;flex-direction:column;gap:20px;min-width:0;">
+          <div style="background:#FFFFFF;border:1px solid #DDE0E4;border-top:3px solid #14315D;border-radius:4px;">
+            <div style="padding:18px 22px 4px;">
+              <div style="font-size:11.5px;letter-spacing:0.12em;text-transform:uppercase;font-weight:700;color:#8D610F;">Ranked by cost of ignoring it</div>
+              <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:20px;color:#14315D;margin-top:2px;">Needs you</div>
+            </div>
+            <sc-if value="{{ hasData }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;flex-direction:column;">
+                <sc-for list="{{ needsYou }}" as="it" hint-placeholder-count="5">
+                  <div style="display:flex;align-items:flex-start;gap:14px;padding:14px 22px;border-top:1px solid #EDF1F7;">
+                    <div style="font-family:'Archivo',sans-serif;font-weight:800;font-size:15px;color:#C3C9D1;width:18px;flex-shrink:0;padding-top:2px;">{{ it.rank }}</div>
+                    <div style="flex:1;min-width:0;">
+                      <div style="font-weight:600;font-size:14.5px;color:#333A45;">{{ it.title }}</div>
+                      <div style="font-size:13px;color:#555E6B;margin-top:1px;">{{ it.detail }}</div>
+                    </div>
+                    <span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;font-weight:700;color:#555E6B;background:#EDF1F7;border-radius:2px;padding:3px 8px;flex-shrink:0;">{{ it.tag }}</span>
+                    <a href="#" style="font-size:13.5px;font-weight:700;flex-shrink:0;padding-top:1px;">Open</a>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+            <sc-if value="{{ noData }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:28px 22px 32px;text-align:center;color:#555E6B;font-size:14px;">Nothing needs you. When something goes wrong, a failed refund, a job nobody can take, an expiring credential, it appears here first, worst first.</div>
+            </sc-if>
+          </div>
+          <div style="background:#FFFFFF;border:1px solid #DDE0E4;border-top:3px solid #14315D;border-radius:4px;">
+            <div style="padding:18px 22px 12px;display:flex;align-items:baseline;gap:12px;">
+              <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:20px;color:#14315D;">Money, September 2026</div>
+              <a href="#" style="font-size:13px;margin-left:auto;">All periods</a>
+            </div>
+            <sc-if value="{{ hasData }}" hint-placeholder-val="{{ true }}">
+              <div>
+                <div style="display:grid;grid-template-columns:2.2fr 1fr 1fr 1fr 1fr;gap:8px;padding:8px 22px;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;font-weight:700;color:#555E6B;border-bottom:1px solid #DDE0E4;">
+                  <div>File</div><div style="text-align:right;">Collected</div><div style="text-align:right;">Tech cost</div><div style="text-align:right;">Production</div><div style="text-align:right;">Margin</div>
+                </div>
+                <sc-for list="{{ moneyRows }}" as="r" hint-placeholder-count="3">
+                  <div style="display:grid;grid-template-columns:2.2fr 1fr 1fr 1fr 1fr;gap:8px;padding:11px 22px;font-size:14px;border-bottom:1px solid #EDF1F7;align-items:center;">
+                    <div><span style="font-weight:600;color:#14315D;">{{ r.ref }}</span> <span style="color:#555E6B;font-size:13px;">{{ r.service }}</span></div>
+                    <div style="text-align:right;">{{ r.collected }}</div>
+                    <div style="text-align:right;"><sc-if value="{{ r.techAbsent }}" hint-placeholder-val="{{ false }}"><span style="border:1px dashed #C3C9D1;border-radius:2px;padding:1px 7px;font-size:12px;font-style:italic;color:#555E6B;">not recorded</span></sc-if><sc-if value="{{ r.techPresent }}" hint-placeholder-val="{{ true }}">{{ r.tech }}</sc-if></div>
+                    <div style="text-align:right;"><sc-if value="{{ r.prodAbsent }}" hint-placeholder-val="{{ false }}"><span style="border:1px dashed #C3C9D1;border-radius:2px;padding:1px 7px;font-size:12px;font-style:italic;color:#555E6B;">not recorded</span></sc-if><sc-if value="{{ r.prodPresent }}" hint-placeholder-val="{{ true }}">{{ r.prod }}</sc-if></div>
+                    <div style="text-align:right;font-weight:700;"><sc-if value="{{ r.marginAbsent }}" hint-placeholder-val="{{ false }}"><span style="border:1px dashed #C3C9D1;border-radius:2px;padding:1px 7px;font-size:12px;font-style:italic;color:#555E6B;font-weight:400;">cannot compute</span></sc-if><sc-if value="{{ r.marginPresent }}" hint-placeholder-val="{{ true }}">{{ r.margin }}</sc-if></div>
+                  </div>
+                </sc-for>
+                <div style="display:flex;justify-content:space-between;align-items:baseline;padding:12px 22px 6px;gap:16px;">
+                  <div style="font-size:13px;color:#555E6B;max-width:60%;">Margin total covers 2 of 3 files. 254-0138 has no production figure recorded, so it is left out rather than counted as zero.</div>
+                  <div style="font-family:'Archivo',sans-serif;font-weight:800;font-size:22px;color:#14315D;">$810</div>
+                </div>
+                <div style="padding:0 22px 16px;text-align:right;font-size:11.5px;letter-spacing:0.06em;text-transform:uppercase;font-weight:700;color:#555E6B;">Margin, 2 of 3 files</div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ noData }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:22px 22px 30px;text-align:center;color:#555E6B;font-size:14px;">No money has moved. Figures appear when the first order is taken, and a figure that is missing will always look different from a zero.</div>
+            </sc-if>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:20px;min-width:0;">
+          <div style="background:#FFFFFF;border:1px solid #DDE0E4;border-top:3px solid #14315D;border-radius:4px;">
+            <div style="padding:18px 20px 8px;font-family:'Archivo',sans-serif;font-weight:700;font-size:20px;color:#14315D;">Compliance</div>
+            <sc-for list="{{ compliance }}" as="c" hint-placeholder-count="4">
+              <div style="padding:12px 20px;border-top:1px solid #EDF1F7;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <div style="font-weight:600;font-size:14px;flex:1;">{{ c.name }}</div>
+                  <span style="font-size:10.5px;letter-spacing:0.08em;text-transform:uppercase;font-weight:700;border-radius:2px;padding:2px 7px;color:{{ c.chipColor }};background:{{ c.chipBg }};">{{ c.chip }}</span>
+                </div>
+                <div style="font-size:13px;color:#555E6B;margin-top:2px;">{{ c.detail }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="background:#FFFFFF;border:1px solid #DDE0E4;border-top:3px solid #14315D;border-radius:4px;padding:18px 20px;">
+            <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:20px;color:#14315D;">Lead flow</div>
+            <sc-if value="{{ hasData }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;gap:28px;margin-top:12px;">
+                <div><div style="font-family:'Archivo',sans-serif;font-weight:800;font-size:26px;color:#14315D;line-height:1;">4</div><div style="font-size:12px;color:#555E6B;margin-top:5px;">Waitlist, this week</div></div>
+                <div><div style="font-family:'Archivo',sans-serif;font-weight:800;font-size:26px;color:#14315D;line-height:1;">61</div><div style="font-size:12px;color:#555E6B;margin-top:5px;">Waitlist, total</div></div>
+                <div><div style="font-family:'Archivo',sans-serif;font-weight:800;font-size:26px;color:#14315D;line-height:1;">2</div><div style="font-size:12px;color:#555E6B;margin-top:5px;">Quote requests open</div></div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ noData }}" hint-placeholder-val="{{ false }}">
+              <div style="color:#555E6B;font-size:14px;margin-top:8px;">No signups yet. The waitlist on the public site feeds this panel.</div>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isEngineer }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;min-height:100vh;background:#F4F5F7;">
+  <div style="width:230px;flex-shrink:0;background:#14315D;display:flex;flex-direction:column;">
+    <div style="padding:20px 18px 14px;border-bottom:1px solid rgba(255,255,255,0.12);"><img src="brand-assets/logo-dark.png" alt="254 Engineering Services" style="height:44px;display:block;"></div>
+    <nav style="display:flex;flex-direction:column;padding:12px 0;gap:2px;">
+      <sc-for list="{{ engNav }}" as="n" hint-placeholder-count="4">
+        <div onClick="{{ n.onClick }}" style="display:flex;align-items:center;gap:10px;padding:9px 18px;font-size:14px;font-weight:600;color:{{ n.color }};border-left:3px solid {{ n.bar }};background:{{ n.bg }};cursor:pointer;" style-hover="color:#FFFFFF;">{{ n.label }}</div>
+      </sc-for>
+    </nav>
+    <div style="margin-top:auto;padding:16px 18px;border-top:1px solid rgba(255,255,255,0.12);font-size:12.5px;color:#9DAAC0;line-height:1.6;">Elena Vasquez, PE<br>Engineer</div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+    <div style="background:#FFFFFF;border-bottom:1px solid #DDE0E4;padding:0 28px;height:58px;display:flex;align-items:center;gap:18px;">
+      <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:17px;color:#14315D;">{{ engTitle }}</div>
+      <button onClick="{{ signOut }}" style="margin-left:auto;border:none;background:none;color:#555E6B;font-size:13.5px;cursor:pointer;text-decoration:underline;">Sign out</button>
+    </div>
+
+    <sc-if value="{{ engDash }}" hint-placeholder-val="{{ true }}">
+    <div data-screen-label="Engineer dashboard" style="padding:24px 28px 40px;display:flex;flex-direction:column;gap:20px;max-width:1100px;box-sizing:border-box;width:100%;">
+      <div style="background:#EDF1F7;border-left:3px solid #D9A032;border-radius:0 3px 3px 0;padding:12px 16px;font-size:13.5px;color:#333A45;">Sealing is unavailable. The firm's TBPELS registration is pending and no engineer is in responsible charge. Reviews, revision requests, site visit orders and declines all work.</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+        <sc-for list="{{ engStats }}" as="s" hint-placeholder-count="4">
+          <div style="background:#FFFFFF;border:1px solid #DDE0E4;border-top:3px solid #14315D;border-radius:4px;padding:14px 16px;">
+            <div style="font-family:'Archivo',sans-serif;font-weight:800;font-size:28px;line-height:1;color:#14315D;">{{ s.value }}</div>
+            <div style="font-size:12px;letter-spacing:0.06em;text-transform:uppercase;font-weight:700;color:#555E6B;margin-top:8px;">{{ s.label }}</div>
+            <div style="font-size:12.5px;color:#555E6B;margin-top:4px;">{{ s.note }}</div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="background:#FFFFFF;border:1px solid #DDE0E4;border-top:3px solid #14315D;border-radius:4px;">
+        <div style="padding:18px 22px 8px;display:flex;align-items:baseline;">
+          <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:20px;color:#14315D;">Waiting longest</div>
+          <button onClick="{{ toQueue }}" style="margin-left:auto;border:none;background:none;color:#14315D;font-size:13.5px;font-weight:700;cursor:pointer;text-decoration:underline;">Open the queue</button>
+        </div>
+        <sc-if value="{{ hasData }}" hint-placeholder-val="{{ true }}">
+          <sc-for list="{{ queue }}" as="q" hint-placeholder-count="3">
+            <div style="display:flex;align-items:center;gap:14px;padding:13px 22px;border-top:1px solid #EDF1F7;">
+              <div style="width:110px;font-weight:700;color:#14315D;font-size:14px;flex-shrink:0;">{{ q.ref }}</div>
+              <div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:14.5px;">{{ q.service }}</div><div style="font-size:13px;color:#555E6B;">{{ q.addr }}</div></div>
+              <div style="font-size:13px;color:#8D610F;font-weight:700;width:110px;text-align:right;flex-shrink:0;">{{ q.waiting }}</div>
+              <button onClick="{{ q.onOpen }}" style="border:1px solid #C3C9D1;background:#FFFFFF;color:#14315D;border-radius:3px;padding:7px 14px;font-size:13.5px;font-weight:700;cursor:pointer;flex-shrink:0;" style-hover="border-color:#14315D;background:#EDF1F7;">Open</button>
+            </div>
+          </sc-for>
+        </sc-if>
+        <sc-if value="{{ noData }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:26px 22px 32px;text-align:center;color:#555E6B;font-size:14px;">The queue is empty. A package appears here the moment a technician submits evidence or a desk order arrives with its uploads.</div>
+        </sc-if>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ engQueue }}" hint-placeholder-val="{{ false }}">
+    <div data-screen-label="Review queue" style="padding:24px 28px 40px;max-width:1100px;box-sizing:border-box;width:100%;">
+      <div style="background:#FFFFFF;border:1px solid #DDE0E4;border-top:3px solid #14315D;border-radius:4px;">
+        <div style="padding:18px 22px 10px;">
+          <div style="font-size:11.5px;letter-spacing:0.12em;text-transform:uppercase;font-weight:700;color:#8D610F;">Ordered by time waiting, oldest first</div>
+          <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:20px;color:#14315D;margin-top:2px;">Review queue</div>
+        </div>
+        <sc-if value="{{ hasData }}" hint-placeholder-val="{{ true }}">
+          <div>
+            <div style="display:grid;grid-template-columns:110px 1.6fr 1.3fr 1fr 110px 90px;gap:10px;padding:8px 22px;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;font-weight:700;color:#555E6B;border-bottom:1px solid #DDE0E4;">
+              <div>File</div><div>Service</div><div>Property</div><div>County</div><div style="text-align:right;">Waiting</div><div></div>
+            </div>
+            <sc-for list="{{ queue }}" as="q" hint-placeholder-count="3">
+              <div style="display:grid;grid-template-columns:110px 1.6fr 1.3fr 1fr 110px 90px;gap:10px;padding:13px 22px;font-size:14px;border-bottom:1px solid #EDF1F7;align-items:center;">
+                <div style="font-weight:700;color:#14315D;">{{ q.ref }}</div>
+                <div>{{ q.service }}<div style="font-size:12.5px;color:#555E6B;">{{ q.pack }}</div></div>
+                <div style="font-size:13.5px;">{{ q.addr }}</div>
+                <div style="font-size:13.5px;">{{ q.county }}<sc-if value="{{ q.coastal }}" hint-placeholder-val="{{ false }}"><div style="font-size:11px;letter-spacing:0.06em;text-transform:uppercase;font-weight:700;color:#8D610F;">Coastal, first tier</div></sc-if></div>
+                <div style="text-align:right;font-weight:700;color:#8D610F;font-size:13.5px;">{{ q.waiting }}</div>
+                <button onClick="{{ q.onOpen }}" style="border:1px solid #C3C9D1;background:#FFFFFF;color:#14315D;border-radius:3px;padding:7px 12px;font-size:13.5px;font-weight:700;cursor:pointer;" style-hover="border-color:#14315D;background:#EDF1F7;">Open</button>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ noData }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:26px 22px 32px;text-align:center;color:#555E6B;font-size:14px;">Nothing is waiting for review.</div>
+        </sc-if>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ engPackage }}" hint-placeholder-val="{{ false }}">
+    <div data-screen-label="Evidence package" style="padding:20px 28px 40px;box-sizing:border-box;width:100%;max-width:1280px;">
+      <button onClick="{{ toQueue }}" style="border:none;background:none;color:#555E6B;font-size:13.5px;cursor:pointer;padding:0;text-decoration:underline;">Back to the queue</button>
+      <div style="display:flex;align-items:baseline;gap:14px;margin-top:10px;flex-wrap:wrap;">
+        <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:24px;color:#14315D;">254-0138</div>
+        <div style="font-size:15px;">1204 Brawner Parkway, Corpus Christi, Nueces County</div>
+        <span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;font-weight:700;color:#14315D;background:#EDF1F7;border-radius:2px;padding:3px 8px;">Under review</span>
+      </div>
+      <div style="font-size:13.5px;color:#555E6B;margin-top:2px;">Roof certification letter, for Gulfway Property Group. Submitted by Marcus Delgado, Sep 3, 11:42 AM. Waiting 31 hours.</div>
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:20px;margin-top:18px;align-items:start;">
+        <div style="min-width:0;">
+          <div style="background:#FFFFFF;border:1px solid #DDE0E4;border-radius:4px;overflow:hidden;">
+            <div style="aspect-ratio:4/3;background:repeating-linear-gradient(45deg,#E9EDF2,#E9EDF2 14px,#F3F5F8 14px,#F3F5F8 28px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;">
+              <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:19px;color:#14315D;">{{ selPhoto.label }}</div>
+              <div style="font-size:13px;color:#555E6B;">Evidence photograph, shown at full size for judgment</div>
+            </div>
+            <div style="display:flex;gap:18px;padding:10px 16px;border-top:1px solid #EDF1F7;font-size:12.5px;color:#555E6B;flex-wrap:wrap;">
+              <span>Captured {{ selPhoto.time }}</span><span>In app camera</span><span>GPS logged, matches the property</span><span>Original resolution</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;overflow-x:auto;padding:12px 2px 4px;">
+            <sc-for list="{{ photos }}" as="ph" hint-placeholder-count="12">
+              <div onClick="{{ ph.onSelect }}" style="width:92px;flex-shrink:0;cursor:pointer;">
+                <div style="height:64px;border-radius:3px;background:repeating-linear-gradient(45deg,#E9EDF2,#E9EDF2 8px,#F3F5F8 8px,#F3F5F8 16px);border:2px solid {{ ph.border }};box-sizing:border-box;"></div>
+                <div style="font-size:10.5px;color:#555E6B;margin-top:3px;line-height:1.35;">{{ ph.label }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="background:#FFFFFF;border:1px solid #DDE0E4;border-top:3px solid #14315D;border-radius:4px;margin-top:14px;padding:20px 22px;">
+            <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:20px;color:#14315D;">Your decision</div>
+            <div style="font-size:13.5px;color:#555E6B;margin-top:3px;max-width:70ch;">All four are recorded in the responsible charge log. Production pays on the completed review, whichever conclusion you reach.</div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px;">
+              <sc-if value="{{ canSeal }}" hint-placeholder-val="{{ false }}">
+                <button onClick="{{ askSeal }}" style="text-align:left;background:#FFFFFF;border:1px solid #C3C9D1;border-radius:4px;padding:16px;cursor:pointer;display:flex;flex-direction:column;gap:6px;" style-hover="border-color:#14315D;box-shadow:0 6px 16px rgba(20,49,93,0.12);">
+                  <span style="font-family:'Archivo',sans-serif;font-weight:700;font-size:16px;color:#14315D;">Seal</span>
+                  <span style="font-size:12.5px;color:#555E6B;line-height:1.5;">Applies your seal. This is the legal act, and it is yours.</span>
+                </button>
+              </sc-if>
+              <sc-if value="{{ cannotSeal }}" hint-placeholder-val="{{ true }}">
+                <div style="text-align:left;background:#F4F5F7;border:1px solid #DDE0E4;border-radius:4px;padding:16px;display:flex;flex-direction:column;gap:6px;">
+                  <span style="font-family:'Archivo',sans-serif;font-weight:700;font-size:16px;color:#555E6B;">Seal</span>
+                  <span style="font-size:12.5px;color:#555E6B;line-height:1.5;">Unavailable. The firm's registration is pending and no engineer is in responsible charge. The other three decisions stand.</span>
+                </div>
+              </sc-if>
+              <button onClick="{{ askRevisions }}" style="text-align:left;background:#FFFFFF;border:1px solid #C3C9D1;border-radius:4px;padding:16px;cursor:pointer;display:flex;flex-direction:column;gap:6px;" style-hover="border-color:#14315D;box-shadow:0 6px 16px rgba(20,49,93,0.12);">
+                <span style="font-family:'Archivo',sans-serif;font-weight:700;font-size:16px;color:#14315D;">Request revisions</span>
+                <span style="font-size:12.5px;color:#555E6B;line-height:1.5;">Returns the file to the technician with your list of what is missing or unusable.</span>
+              </button>
+              <button onClick="{{ askVisit }}" style="text-align:left;background:#FFFFFF;border:1px solid #C3C9D1;border-radius:4px;padding:16px;cursor:pointer;display:flex;flex-direction:column;gap:6px;" style-hover="border-color:#14315D;box-shadow:0 6px 16px rgba(20,49,93,0.12);">
+                <span style="font-family:'Archivo',sans-serif;font-weight:700;font-size:16px;color:#14315D;">Require a site visit</span>
+                <span style="font-size:12.5px;color:#555E6B;line-height:1.5;">Orders a further visit before any decision. Dispatch offers it in Nueces County.</span>
+              </button>
+              <button onClick="{{ askDecline }}" style="text-align:left;background:#FFFFFF;border:1px solid #C3C9D1;border-radius:4px;padding:16px;cursor:pointer;display:flex;flex-direction:column;gap:6px;" style-hover="border-color:#14315D;box-shadow:0 6px 16px rgba(20,49,93,0.12);">
+                <span style="font-family:'Archivo',sans-serif;font-weight:700;font-size:16px;color:#14315D;">Decline to seal</span>
+                <span style="font-size:12.5px;color:#555E6B;line-height:1.5;">Refuses the certification. As legitimate as sealing, and paid the same.</span>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div style="background:#FFFFFF;border:1px solid #DDE0E4;border-radius:4px;padding:16px 18px;">
+            <div style="font-size:11.5px;letter-spacing:0.1em;text-transform:uppercase;font-weight:700;color:#8D610F;">Protocol</div>
+            <div style="font-weight:600;font-size:14.5px;margin-top:4px;">Roof certification protocol, v3</div>
+            <div style="font-size:13px;color:#555E6B;">Published Aug 12, 2026. 12 required items. This file was captured against v3 and v3 governs it.</div>
+          </div>
+          <div style="background:#FFFFFF;border:1px solid #DDE0E4;border-radius:4px;padding:16px 18px;">
+            <div style="font-size:11.5px;letter-spacing:0.1em;text-transform:uppercase;font-weight:700;color:#8D610F;">Completeness</div>
+            <div style="font-weight:600;font-size:14.5px;margin-top:4px;">12 of 12 required items captured</div>
+            <div style="font-size:13px;color:#555E6B;">Nothing is missing. All uploads verified at original resolution.</div>
+          </div>
+          <div style="background:#FFFFFF;border:1px solid #DDE0E4;border-radius:4px;padding:16px 18px;">
+            <div style="font-size:11.5px;letter-spacing:0.1em;text-transform:uppercase;font-weight:700;color:#8D610F;">Measurements and notes</div>
+            <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;font-size:13.5px;">
+              <div style="display:flex;justify-content:space-between;gap:10px;"><span style="color:#555E6B;">Roof pitch</span><span style="font-weight:600;">6:12, measured</span></div>
+              <div style="display:flex;justify-content:space-between;gap:10px;"><span style="color:#555E6B;">Covering</span><span style="font-weight:600;">Composition shingle, one layer</span></div>
+              <div style="display:flex;justify-content:space-between;gap:10px;"><span style="color:#555E6B;">Decking</span><span style="font-weight:600;">1x8 plank, seen from attic</span></div>
+              <div style="display:flex;justify-content:space-between;gap:10px;"><span style="color:#555E6B;">Visible damage</span><span style="font-weight:600;">None noted by technician</span></div>
+            </div>
+          </div>
+          <div style="background:#FFFFFF;border:1px solid #DDE0E4;border-left:3px solid #D9A032;border-radius:4px;padding:16px 18px;">
+            <div style="font-size:11.5px;letter-spacing:0.1em;text-transform:uppercase;font-weight:700;color:#8D610F;">County flags, Nueces</div>
+            <div style="font-size:13.5px;color:#333A45;margin-top:6px;line-height:1.6;">TWIA first tier coastal county. Windstorm criteria apply to this letter whether or not a windstorm service was ordered. The coastal surcharge was disclosed at order.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isTech }}" hint-placeholder-val="{{ false }}">
+<div style="min-height:100vh;background:#0B1B36;display:flex;align-items:center;justify-content:center;padding:28px 12px;box-sizing:border-box;">
+  <div style="width:390px;height:812px;background:#FFFFFF;border-radius:28px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,0.45);">
+
+    <sc-if value="{{ techHome }}" hint-placeholder-val="{{ true }}">
+    <div data-screen-label="Technician home" style="display:flex;flex-direction:column;flex:1;min-height:0;">
+      <div style="background:#14315D;padding:18px 20px 16px;flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <img src="brand-assets/logo-dark.png" alt="254" style="height:30px;">
+          <button onClick="{{ signOut }}" style="margin-left:auto;border:none;background:none;color:#9DAAC0;font-size:12.5px;cursor:pointer;text-decoration:underline;">Sign out</button>
+        </div>
+        <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:21px;color:#FFFFFF;margin-top:14px;">Marcus Delgado</div>
+        <div style="font-size:13px;color:#CFD7E3;">Corpus Christi. Covering Nueces, San Patricio, Aransas.</div>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px;background:#F4F5F7;">
+        <sc-if value="{{ hasData }}" hint-placeholder-val="{{ true }}">
+          <div style="background:#FFFFFF;border:1px solid #DDE0E4;border-top:3px solid #D9A032;border-radius:4px;padding:16px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;font-weight:700;color:#8D610F;">Offer</span>
+              <span style="margin-left:auto;font-size:12.5px;color:#555E6B;">Respond by 6:00 PM today</span>
+            </div>
+            <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:18px;color:#14315D;margin-top:8px;">Roof certification</div>
+            <div style="font-size:14px;color:#333A45;">214 Copano Ridge Rd, Rockport, Aransas County</div>
+            <div style="font-size:14px;margin-top:6px;"><span style="font-weight:700;color:#14315D;">Flat rate $120.</span> <span style="color:#555E6B;">About 35 miles from your base.</span></div>
+            <div style="display:flex;gap:10px;margin-top:14px;">
+              <button style="flex:1;background:#14315D;color:#FFFFFF;border:none;border-radius:3px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;min-height:48px;" style-hover="background:#0E2347;">Accept</button>
+              <button style="flex:1;background:#FFFFFF;color:#14315D;border:1px solid #C3C9D1;border-radius:3px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;min-height:48px;" style-hover="border-color:#14315D;">Decline</button>
+            </div>
+            <div style="font-size:12px;color:#555E6B;margin-top:8px;">Declining never counts against you. Holding the offer is not holding the job.</div>
+          </div>
+          <div style="background:#FFFFFF;border:1px solid #DDE0E4;border-top:3px solid #14315D;border-radius:4px;padding:16px;">
+            <div style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;font-weight:700;color:#8D610F;">Active job</div>
+            <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:18px;color:#14315D;margin-top:8px;">254-0143, Roof certification</div>
+            <div style="font-size:14px;color:#333A45;">3812 Leopard St, Corpus Christi</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:10px;">
+              <div style="flex:1;height:8px;background:#EDF1F7;border-radius:4px;overflow:hidden;"><div style="width:{{ progressPct }};height:100%;background:#D9A032;"></div></div>
+              <div style="font-size:13px;font-weight:700;color:#14315D;white-space:nowrap;">{{ capturedCount }} of 12</div>
+            </div>
+            <div style="font-size:13px;color:#8D610F;font-weight:700;margin-top:6px;">Due Friday, Sep 4</div>
+            <button onClick="{{ openJob }}" style="width:100%;margin-top:12px;background:#14315D;color:#FFFFFF;border:none;border-radius:3px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;min-height:48px;" style-hover="background:#0E2347;">Continue the checklist</button>
+          </div>
+          <div style="background:#FFFFFF;border:1px solid #DDE0E4;border-top:3px solid #14315D;border-radius:4px;padding:16px;">
+            <div style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;font-weight:700;color:#8D610F;">Pay</div>
+            <div style="display:flex;gap:24px;margin-top:10px;">
+              <div><div style="font-family:'Archivo',sans-serif;font-weight:800;font-size:24px;color:#14315D;line-height:1;">$840</div><div style="font-size:12.5px;color:#555E6B;margin-top:4px;">Paid this month</div></div>
+              <div><div style="font-family:'Archivo',sans-serif;font-weight:800;font-size:24px;color:#14315D;line-height:1;">$240</div><div style="font-size:12.5px;color:#555E6B;margin-top:4px;">Pending payout</div></div>
+            </div>
+            <div style="font-size:12.5px;color:#555E6B;margin-top:10px;">You are paid when you submit, not when the engineer decides.</div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ noData }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#FFFFFF;border:1px solid #DDE0E4;border-top:3px solid #14315D;border-radius:4px;padding:24px 18px;text-align:center;">
+            <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:17px;color:#14315D;">No offers right now</div>
+            <div style="font-size:13.5px;color:#555E6B;margin-top:6px;line-height:1.6;">Offers appear here when a job in one of your counties needs someone with your certifications. You will get a notification the moment one does.</div>
+          </div>
+          <div style="background:#FFFFFF;border:1px solid #DDE0E4;border-top:3px solid #14315D;border-radius:4px;padding:16px;">
+            <div style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;font-weight:700;color:#8D610F;">Pay</div>
+            <div style="font-family:'Archivo',sans-serif;font-weight:800;font-size:24px;color:#14315D;margin-top:8px;line-height:1;">$0</div>
+            <div style="font-size:12.5px;color:#555E6B;margin-top:6px;">Nothing earned yet. You are paid a flat rate per completed job, written the moment you submit.</div>
+          </div>
+        </sc-if>
+      </div>
+      <div style="flex-shrink:0;background:#FFFFFF;border-top:1px solid #DDE0E4;display:grid;grid-template-columns:repeat(4,1fr);height:60px;">
+        <sc-for list="{{ techTabs }}" as="t" hint-placeholder-count="4">
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;font-weight:700;color:{{ t.color }};border-top:2px solid {{ t.bar }};cursor:pointer;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{ t.icon }}"></path></svg>
+            {{ t.label }}
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ techJob }}" hint-placeholder-val="{{ false }}">
+    <div data-screen-label="Technician checklist" style="display:flex;flex-direction:column;flex:1;min-height:0;">
+      <div style="background:#14315D;padding:14px 16px 14px;flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <button onClick="{{ techBack }}" style="border:none;background:none;color:#FFFFFF;font-size:15px;cursor:pointer;padding:8px 8px 8px 0;display:flex;align-items:center;gap:4px;font-weight:600;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>Back
+          </button>
+          <div style="margin-left:auto;font-size:12.5px;color:#CFD7E3;">254-0143</div>
+        </div>
+        <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:18px;color:#FFFFFF;margin-top:4px;">3812 Leopard St, Corpus Christi</div>
+        <div style="font-size:13px;color:#CFD7E3;">Roof certification protocol, v3</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:12px;">
+          <div style="flex:1;height:10px;background:rgba(255,255,255,0.18);border-radius:5px;overflow:hidden;"><div style="width:{{ progressPct }};height:100%;background:#E8B04A;"></div></div>
+          <div style="font-size:14px;font-weight:700;color:#FFFFFF;white-space:nowrap;">{{ capturedCount }} of 12 captured</div>
+        </div>
+      </div>
+      <div style="background:#FDF6E7;padding:10px 16px;font-size:13px;color:#8D610F;font-weight:600;flex-shrink:0;display:flex;gap:8px;align-items:center;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"></path></svg>
+        No signal. 2 captures are queued and will upload when signal returns.
+      </div>
+      <div style="flex:1;overflow-y:auto;background:#F4F5F7;">
+        <sc-for list="{{ checklist }}" as="c" hint-placeholder-count="12">
+          <div style="display:flex;align-items:center;gap:12px;padding:13px 16px;background:#FFFFFF;border-bottom:1px solid #EDF1F7;min-height:52px;">
+            <div style="width:40px;height:40px;border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:{{ c.tileBg }};border:{{ c.tileBorder }};box-sizing:border-box;">
+              <sc-if value="{{ c.done }}" hint-placeholder-val="{{ true }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#14315D" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg></sc-if>
+              <sc-if value="{{ c.uploading }}" hint-placeholder-val="{{ false }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8D610F" stroke-width="2.5" stroke-linecap="round" style="animation:spin 1.1s linear infinite;"><path d="M21 12a9 9 0 11-6.2-8.56"></path></svg></sc-if>
+              <sc-if value="{{ c.queued }}" hint-placeholder-val="{{ false }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8D610F" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 3"></path></svg></sc-if>
+              <sc-if value="{{ c.missing }}" hint-placeholder-val="{{ false }}"><span style="font-family:'Archivo',sans-serif;font-weight:800;font-size:14px;color:#555E6B;">{{ c.num }}</span></sc-if>
+            </div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:600;font-size:15px;color:#333A45;line-height:1.35;">{{ c.label }}</div>
+              <div style="font-size:12.5px;color:{{ c.subColor }};margin-top:1px;font-weight:{{ c.subWeight }};">{{ c.sub }}</div>
+            </div>
+            <sc-if value="{{ c.missing }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ c.onCapture }}" style="background:#14315D;color:#FFFFFF;border:none;border-radius:3px;padding:0 16px;height:46px;font-size:14px;font-weight:700;cursor:pointer;flex-shrink:0;display:flex;align-items:center;gap:7px;" style-hover="background:#0E2347;">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                Capture
+              </button>
+            </sc-if>
+          </div>
+        </sc-for>
+        <div style="padding:14px 16px 20px;font-size:12.5px;color:#555E6B;line-height:1.6;">Photographs are taken inside the app so they carry time and location. Retake any item by pressing and holding it.</div>
+      </div>
+      <div style="flex-shrink:0;background:#FFFFFF;border-top:1px solid #DDE0E4;padding:12px 16px 16px;">
+        <sc-if value="{{ canSubmit }}" hint-placeholder-val="{{ false }}">
+          <button style="width:100%;background:#14315D;color:#FFFFFF;border:none;border-radius:3px;padding:16px;font-size:16px;font-weight:700;cursor:pointer;min-height:52px;" style-hover="background:#0E2347;">Submit the evidence package</button>
+          <div style="font-size:12.5px;color:#555E6B;text-align:center;margin-top:7px;">All 12 required items captured. Your $120 is written the moment this submits.</div>
+        </sc-if>
+        <sc-if value="{{ cannotSubmit }}" hint-placeholder-val="{{ true }}">
+          <button style="width:100%;background:#EDF1F7;color:#555E6B;border:1px solid #DDE0E4;border-radius:3px;padding:16px;font-size:16px;font-weight:700;cursor:default;min-height:52px;">Submit locked</button>
+          <div style="font-size:12.5px;color:#8D610F;font-weight:600;text-align:center;margin-top:7px;">{{ missingCount }} required items not captured yet. The list above shows which.</div>
+        </sc-if>
+      </div>
+    </div>
+    </sc-if>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ confirmOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;inset:0;background:rgba(11,27,54,0.55);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50;">
+  <div style="background:#FFFFFF;border-radius:4px;border-top:3px solid #14315D;width:100%;max-width:520px;padding:28px;box-sizing:border-box;">
+    <sc-if value="{{ confirmSeal }}" hint-placeholder-val="{{ false }}">
+      <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:21px;color:#14315D;">Apply your seal</div>
+      <div style="font-size:14.5px;color:#333A45;margin-top:10px;line-height:1.7;">You are sealing the roof certification letter for 1204 Brawner Parkway, Corpus Christi, file 254-0138. The seal is yours personally as a licensed Texas Professional Engineer, and the act is recorded in the responsible charge log with the evidence exactly as it stands now.</div>
+      <div style="background:#F4F5F7;border-radius:3px;padding:12px 14px;font-size:13px;color:#555E6B;margin-top:14px;">12 of 12 required items captured. Nueces County, windstorm criteria applied. Nothing about this file changes after you seal.</div>
+    </sc-if>
+    <sc-if value="{{ confirmDecline }}" hint-placeholder-val="{{ false }}">
+      <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:21px;color:#14315D;">Decline to seal</div>
+      <div style="font-size:14.5px;color:#333A45;margin-top:10px;line-height:1.7;">Your finding, in your words. It goes to the customer with the refund, and into the responsible charge log.</div>
+      <textarea rows="4" placeholder="What you found, and why this roof cannot be certified" style="width:100%;box-sizing:border-box;border:1px solid #C3C9D1;border-radius:3px;padding:11px 12px;font-size:14.5px;margin-top:12px;resize:vertical;outline:none;" style-focus="border-color:#14315D;"></textarea>
+      <div style="background:#F4F5F7;border-left:3px solid #D9A032;border-radius:0 3px 3px 0;padding:12px 14px;font-size:13px;color:#333A45;margin-top:12px;line-height:1.6;">A technician visited, so the customer is refunded everything except the disclosed $175 inspection fee, and they receive your findings. Your production pays the same as it would for a seal.</div>
+    </sc-if>
+    <sc-if value="{{ confirmRevisions }}" hint-placeholder-val="{{ false }}">
+      <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:21px;color:#14315D;">Request revisions</div>
+      <div style="font-size:14.5px;color:#333A45;margin-top:10px;line-height:1.7;">The file returns to Marcus Delgado with your list. The customer is told the review continues, not that anything went wrong.</div>
+      <textarea rows="4" placeholder="What must be added, retaken, or measured again" style="width:100%;box-sizing:border-box;border:1px solid #C3C9D1;border-radius:3px;padding:11px 12px;font-size:14.5px;margin-top:12px;resize:vertical;outline:none;" style-focus="border-color:#14315D;"></textarea>
+    </sc-if>
+    <sc-if value="{{ confirmVisit }}" hint-placeholder-val="{{ false }}">
+      <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:21px;color:#14315D;">Require a site visit</div>
+      <div style="font-size:14.5px;color:#333A45;margin-top:10px;line-height:1.7;">Orders a further visit before any decision is made. Dispatch will offer it to certified technicians covering Nueces County, and the file returns to your queue when the new evidence arrives.</div>
+      <textarea rows="3" placeholder="What the visit must establish" style="width:100%;box-sizing:border-box;border:1px solid #C3C9D1;border-radius:3px;padding:11px 12px;font-size:14.5px;margin-top:12px;resize:vertical;outline:none;" style-focus="border-color:#14315D;"></textarea>
+    </sc-if>
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;">
+      <button onClick="{{ closeConfirm }}" style="background:#FFFFFF;color:#14315D;border:1px solid #C3C9D1;border-radius:3px;padding:11px 18px;font-size:14.5px;font-weight:700;cursor:pointer;" style-hover="border-color:#14315D;">Cancel</button>
+      <button onClick="{{ closeConfirm }}" style="background:#14315D;color:#FFFFFF;border:none;border-radius:3px;padding:11px 18px;font-size:14.5px;font-weight:700;cursor:pointer;" style-hover="background:#0E2347;">{{ confirmCta }}</button>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;mode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;prelaunch-empty&quot;,&quot;prelaunch-sample&quot;,&quot;live-sample&quot;],&quot;default&quot;:&quot;prelaunch-sample&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Data state&quot;,&quot;description&quot;:&quot;prelaunch is the truthful state. Sample rows exist so the design can be judged. live-sample enables the seal action.&quot;}}">
+class Component extends DCLogic {
+  state = { screen: 'signin', unavailable: false, engView: 'dash', techView: 'home', photoIdx: 0, confirm: null, captured: {} };
+  renderVals() {
+    const s = this.state;
+    const mode = this.props.mode ?? 'prelaunch-sample';
+    const hasData = mode !== 'prelaunch-empty';
+    const isLive = mode === 'live-sample';
+    const set = (p) => this.setState(p);
+    const navy = '#14315D';
+    const photoLabels = ['Address verification, house number', 'Front elevation, full roof plane', 'Rear elevation, full roof plane', 'Left elevation', 'Right elevation', 'Ridge line, close', 'Flashing at penetrations', 'Attic access, decking from below', 'Pitch measurement', 'Covering type and layers', 'Overview from street', 'Gutter and eave condition'];
+    const photoTimes = ['10:02 AM', '10:06 AM', '10:11 AM', '10:14 AM', '10:17 AM', '10:24 AM', '10:29 AM', '10:41 AM', '10:45 AM', '10:48 AM', '10:52 AM', '10:55 AM'];
+    const photos = photoLabels.map((label, i) => ({ label, time: photoTimes[i], border: i === s.photoIdx ? '#D9A032' : 'transparent', onSelect: () => set({ photoIdx: i }) }));
+
+    // Technician checklist: base statuses, capture overrides
+    const baseStatus = ['done','done','done','done','done','done','uploading','queued','missing','missing','missing','missing'];
+    const checkSubs = { done: 'Captured', uploading: 'Uploading', queued: 'Queued, waiting for signal', missing: 'Required' };
+    const checklist = baseStatus.map((st, i) => {
+      const status = (st === 'missing' && s.captured[i]) ? 'done' : st;
+      const done = status === 'done', uploading = status === 'uploading', queued = status === 'queued', missing = status === 'missing';
+      return {
+        num: String(i + 1), label: photoLabels[i],
+        done, uploading, queued, missing,
+        sub: done ? (s.captured[i] ? 'Captured just now' : 'Captured ' + photoTimes[i]) : checkSubs[status],
+        subColor: missing ? '#8D610F' : '#555E6B',
+        subWeight: missing ? 700 : 400,
+        tileBg: done ? '#EDF1F7' : (missing ? '#FFFFFF' : '#FDF6E7'),
+        tileBorder: missing ? '2px dashed #C3C9D1' : '1px solid transparent',
+        onCapture: () => this.setState(st => ({ captured: { ...st.captured, [i]: true } })),
+      };
+    });
+    const missingCount = checklist.filter(c => c.missing).length;
+    const capturedCount = 12 - missingCount;
+
+    const queue = hasData ? [
+      { ref: '254-0138', service: 'Roof certification', pack: '12 of 12 items, complete', addr: '1204 Brawner Pkwy, Corpus Christi', county: 'Nueces', coastal: true, waiting: '31 hours', onOpen: () => set({ screen: 'engineer', engView: 'package' }) },
+      { ref: '254-0141', service: 'Foundation certification', pack: '10 of 10 items, complete', addr: '78 Hackberry Ln, San Antonio', county: 'Bexar', coastal: false, waiting: '9 hours', onOpen: () => set({ screen: 'engineer', engView: 'package' }) },
+      { ref: '254-0134', service: 'Solar structural letter', pack: 'Desk review, 3 uploads', addr: '5510 Duval St, Austin', county: 'Travis', coastal: false, waiting: '2 hours', onOpen: () => set({ screen: 'engineer', engView: 'package' }) },
+    ] : [];
+
+    const navItem = (label, active, onClick) => ({ label, onClick, color: active ? '#FFFFFF' : '#CFD7E3', bar: active ? '#D9A032' : 'transparent', bg: active ? 'rgba(255,255,255,0.08)' : 'transparent' });
+    const engViewIs = (v) => s.engView === v;
+
+    const tabIcons = {
+      home: 'M3 10.5L12 3l9 7.5V20a1 1 0 01-1 1h-5v-6h-6v6H4a1 1 0 01-1-1z',
+      jobs: 'M4 7h16v13H4zM8 7V5a2 2 0 012-2h4a2 2 0 012 2v2',
+      messages: 'M21 12a8 8 0 01-8 8H4l2-3a8 8 0 1115-5z',
+      pay: 'M12 2v20M17 6H9.5a3 3 0 000 6h5a3 3 0 010 6H6',
+    };
+
+    return {
+      isSignin: s.screen === 'signin',
+      portalOpen: !s.unavailable, portalClosed: s.unavailable,
+      unavailableLabel: s.unavailable ? 'View the open state' : 'View the unavailable state',
+      toggleUnavailable: () => set({ unavailable: !s.unavailable }),
+      isOwner: s.screen === 'owner',
+      isEngineer: s.screen === 'engineer',
+      isTech: s.screen === 'tech',
+      asOwner: () => set({ screen: 'owner' }),
+      asEngineer: () => set({ screen: 'engineer', engView: 'dash' }),
+      asTech: () => set({ screen: 'tech', techView: 'home' }),
+      signOut: () => set({ screen: 'signin' }),
+      hasData, noData: !hasData,
+
+      ownerNav: [navItem('Dashboard', true), navItem('Files'), navItem('Dispatch'), navItem('Clients'), navItem('Billing'), navItem('Tasks'), navItem('Compliance'), navItem('Messages'), navItem('Roster')],
+      pipeline: hasData
+        ? [{ label: 'Intake', count: '2' }, { label: 'Needs dispatch', count: '1' }, { label: 'Dispatched', count: '1' }, { label: 'Evidence', count: '2' }, { label: 'Under review', count: '3' }, { label: 'Sealed', count: '0' }]
+        : [{ label: 'Intake', count: '0' }, { label: 'Needs dispatch', count: '0' }, { label: 'Dispatched', count: '0' }, { label: 'Evidence', count: '0' }, { label: 'Under review', count: '0' }, { label: 'Sealed', count: '0' }],
+      needsYou: [
+        { rank: '1', title: 'A refund failed at the provider', detail: '254-0129, $600 to K. Braddock. Stripe refused the refund 14 hours ago and nothing will retry it by itself.', tag: 'Money' },
+        { rank: '2', title: 'No eligible technician in Cameron County', detail: 'Foundation certification, Brownsville. Two techs cover the county, neither is certified for foundations.', tag: 'Dispatch' },
+        { rank: '3', title: 'An order stopped moving', detail: '254-0145 paid 26 hours ago, offer sent, nobody has accepted.', tag: 'Order' },
+        { rank: '4', title: 'Insurance expiring, Marcus Delgado', detail: 'General liability lapses Sep 15, 12 days out. Expired blocks dispatch, expiring warns.', tag: 'Compliance' },
+        { rank: '5', title: 'Contractor agreement waiting on you', detail: 'Terry Whitfield signed 2 days ago. Onboarding holds until you countersign.', tag: 'Task' },
+      ],
+      moneyRows: [
+        { ref: '254-0138', service: 'Roof certification', collected: '$600', tech: '$120', techAbsent: false, techPresent: true, prod: '', prodAbsent: true, prodPresent: false, margin: '', marginAbsent: true, marginPresent: false },
+        { ref: '254-0141', service: 'Foundation certification', collected: '$650', tech: '$120', techAbsent: false, techPresent: true, prod: '$85', prodAbsent: false, prodPresent: true, margin: '$445', marginAbsent: false, marginPresent: true },
+        { ref: '254-0134', service: 'Solar structural letter', collected: '$450', tech: '$0', techAbsent: false, techPresent: true, prod: '$85', prodAbsent: false, prodPresent: true, margin: '$365', marginAbsent: false, marginPresent: true },
+      ],
+      compliance: [
+        { name: 'TBPELS firm registration', detail: 'Pending. No date on record, and a blank date here is an open question, not nothing.', chip: 'Open question', chipColor: '#8D610F', chipBg: '#FDF6E7' },
+        { name: 'General liability insurance', detail: 'Firm policy, expires Nov 30, 2026.', chip: 'Current', chipColor: '#14315D', chipBg: '#EDF1F7' },
+        ...(hasData ? [{ name: 'M. Delgado, contractor insurance', detail: 'Expires Sep 15, 2026. 12 days. Dispatch warns now, blocks on expiry.', chip: '12 days', chipColor: '#8D610F', chipBg: '#FDF6E7' }] : []),
+        { name: 'SAM.gov registration', detail: 'Asserted, never verified against the live record. UEI and CAGE withheld until it is.', chip: 'Unverified', chipColor: '#8D610F', chipBg: '#FDF6E7' },
+      ],
+
+      engNav: [navItem('Dashboard', engViewIs('dash'), () => set({ engView: 'dash' })), navItem('Review queue', engViewIs('queue') || engViewIs('package'), () => set({ engView: 'queue' })), navItem('Messages', false, () => {}), navItem('Production', false, () => {})],
+      engTitle: engViewIs('dash') ? 'Dashboard' : 'Review',
+      engDash: engViewIs('dash'), engQueue: engViewIs('queue'), engPackage: engViewIs('package'),
+      toQueue: () => set({ engView: 'queue' }),
+      engStats: hasData ? [
+        { value: '3', label: 'In your queue', note: '2 field packages, 1 desk review' },
+        { value: '31h', label: 'Oldest waiting', note: '254-0138, Corpus Christi' },
+        { value: '6.4h', label: 'Review time, this week', note: 'Logged while a package is open' },
+        { value: '$255', label: 'Production, this month', note: 'Pays on the review, sealed or declined' },
+      ] : [
+        { value: '0', label: 'In your queue', note: 'Nothing is waiting' },
+        { value: '', label: 'Oldest waiting', note: 'No package is waiting' },
+        { value: '0h', label: 'Review time, this week', note: 'Logged while a package is open' },
+        { value: '$0', label: 'Production, this month', note: 'Pays on the review, sealed or declined' },
+      ],
+      queue,
+      photos, selPhoto: photos[s.photoIdx],
+      canSeal: isLive, cannotSeal: !isLive,
+      askSeal: () => set({ confirm: 'seal' }),
+      askDecline: () => set({ confirm: 'decline' }),
+      askRevisions: () => set({ confirm: 'revisions' }),
+      askVisit: () => set({ confirm: 'visit' }),
+      closeConfirm: () => set({ confirm: null }),
+      confirmOpen: s.confirm !== null,
+      confirmSeal: s.confirm === 'seal', confirmDecline: s.confirm === 'decline',
+      confirmRevisions: s.confirm === 'revisions', confirmVisit: s.confirm === 'visit',
+      confirmCta: s.confirm === 'seal' ? 'Apply the seal' : s.confirm === 'decline' ? 'Record the decline' : s.confirm === 'revisions' ? 'Send to the technician' : 'Order the visit',
+
+      techHome: s.techView === 'home', techJob: s.techView === 'job',
+      openJob: () => set({ techView: 'job' }),
+      techBack: () => set({ techView: 'home' }),
+      techTabs: [
+        { label: 'Home', icon: tabIcons.home, color: navy, bar: '#D9A032' },
+        { label: 'Jobs', icon: tabIcons.jobs, color: '#555E6B', bar: 'transparent' },
+        { label: 'Messages', icon: tabIcons.messages, color: '#555E6B', bar: 'transparent' },
+        { label: 'Pay', icon: tabIcons.pay, color: '#555E6B', bar: 'transparent' },
+      ],
+      checklist, missingCount: String(missingCount), capturedCount: String(capturedCount),
+      progressPct: Math.round((capturedCount / 12) * 100) + '%',
+      canSubmit: missingCount === 0, cannotSubmit: missingCount > 0,
+    };
+  }
+}
+</script>
+</body>
+</html>

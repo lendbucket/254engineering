@@ -43,8 +43,8 @@ export default async function ProfilePage() {
           <dl className="divide-y divide-limestone-line">
             {rows.map(([k, v]) => (
               <div key={k} className="grid gap-1 py-3 sm:grid-cols-[180px_1fr] sm:gap-4">
-                <dt className="text-[13px] font-semibold text-slate">{k}</dt>
-                <dd className="text-[14px] leading-[1.55] break-words text-slate-muted">{v}</dd>
+                <dt className="text-[13.5px] font-semibold text-[var(--navy)]">{k}</dt>
+                <dd className="text-[13.5px] leading-[1.55] break-words text-[var(--secondary)]">{v}</dd>
               </div>
             ))}
           </dl>
@@ -76,7 +76,7 @@ export default async function ProfilePage() {
               {actionsFor(actor!.role).map((a) => (
                 <li
                   key={a}
-                  className="rounded-[3px] border border-limestone-line bg-limestone px-2 py-1 font-mono text-[11.5px] text-slate-muted"
+                  className="rounded-[3px] border border-[var(--border)] bg-[var(--canvas)] px-2 py-1 font-mono text-[11px] text-[var(--secondary)]"
                 >
                   {a}
                 </li>

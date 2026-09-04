@@ -56,14 +56,14 @@ export default async function BatchPage({
         <Wordmark height={36} />
       </div>
 
-      <p className="font-mono text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">
+      <p className="font-mono portal-kicker text-[var(--gold-deep)]">
         {batch.reference}
       </p>
-      <h1 className="mt-2 font-display text-[clamp(1.6rem,3vw,2.1rem)] leading-[1.2] font-semibold text-slate">
+      <h1 className="mt-2 font-display text-[clamp(1.6rem,3vw,2.1rem)] leading-[1.2] font-semibold text-[var(--navy)]">
         {batch.accepted_count} propert{batch.accepted_count === 1 ? "y" : "ies"} submitted together
       </h1>
 
-      <p className="mt-3 text-[1rem] leading-[1.7] text-slate-muted">
+      <p className="mt-3 text-[1rem] leading-[1.7] text-[var(--secondary)]">
         {batch.status === "awaiting_payment"
           ? "Nothing has been charged yet. This is waiting for payment."
           : batch.status === "accepted"
@@ -74,27 +74,27 @@ export default async function BatchPage({
       </p>
 
       {batch.total_cents !== null ? (
-        <p className="mt-2 text-[1rem] font-semibold text-slate">
+        <p className="mt-2 text-[1rem] font-semibold text-[var(--navy)]">
           Total {money(Number(batch.total_cents))}
         </p>
       ) : null}
 
-      <h2 className="mt-8 text-[11px] font-bold tracking-[0.14em] text-brass-ink uppercase">
+      <h2 className="mt-8 portal-kicker text-[var(--gold-deep)]">
         The properties
       </h2>
-      <ul className="mt-3 divide-y divide-limestone-line border-t border-limestone-line">
+      <ul className="mt-3 divide-y divide-limestone-line border-t border-[var(--border)]">
         {(orders ?? []).map((o) => (
           <li key={o.id as string} className="py-3">
             <div className="flex flex-wrap items-baseline gap-x-3">
-              <span className="font-mono text-[12.5px] font-semibold text-slate">
+              <span className="font-mono text-[12.5px] font-semibold text-[var(--navy)]">
                 {o.reference as string}
               </span>
-              <span className="text-[13.5px] text-slate">{o.property_address as string}</span>
-              <span className="ml-auto text-[13.5px] text-slate-muted">
+              <span className="text-[13.5px] text-[var(--navy)]">{o.property_address as string}</span>
+              <span className="ml-auto text-[13.5px] text-[var(--secondary)]">
                 {o.batch_share_cents === null ? "" : money(Number(o.batch_share_cents))}
               </span>
             </div>
-            <p className="mt-1 text-[13px] leading-[1.55] text-slate-muted">
+            <p className="mt-1 text-[13.5px] leading-[1.55] text-[var(--secondary)]">
               {CUSTOMER_STATUS[o.status as keyof typeof CUSTOMER_STATUS] ?? (o.status as string)}
             </p>
           </li>
@@ -103,23 +103,23 @@ export default async function BatchPage({
 
       {rejections.length > 0 ? (
         <>
-          <h2 className="mt-8 text-[11px] font-bold tracking-[0.14em] text-brass-ink uppercase">
+          <h2 className="mt-8 portal-kicker text-[var(--gold-deep)]">
             Not taken, and not charged for
           </h2>
           <ul className="mt-3 space-y-2">
             {rejections.map((r) => (
-              <li key={r.ref} className="rounded-[3px] bg-[#fdf3e0] px-3 py-2.5">
-                <p className="font-mono text-[12.5px] font-semibold text-[#7a4c05]">
+              <li key={r.ref} className="rounded-[3px] bg-[var(--warn-bg)] px-3 py-2.5">
+                <p className="font-mono text-[12.5px] font-semibold text-[var(--warn-ink)]">
                   {r.ref} {r.address}
                 </p>
-                <p className="mt-0.5 text-[13px] leading-[1.55] text-[#7a4c05]">{r.reason}</p>
+                <p className="mt-0.5 text-[13.5px] leading-[1.55] text-[var(--warn-ink)]">{r.reason}</p>
               </li>
             ))}
           </ul>
         </>
       ) : null}
 
-      <p className="mt-8 text-[13.5px] text-slate-muted">
+      <p className="mt-8 text-[13.5px] text-[var(--secondary)]">
         <Link href="/account" className="underline underline-offset-2">
           Back to your account
         </Link>

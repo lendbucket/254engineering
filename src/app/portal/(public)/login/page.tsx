@@ -4,10 +4,39 @@ import { currentActor } from "@/lib/ops-auth";
 import { homeFor } from "@/lib/ops-authz";
 import { opsSessionConfigured } from "@/lib/ops-session";
 import { supabaseConfigured } from "@/lib/supabase";
+import { RestrictedMode, SystemAlert } from "@/components/portal/design";
 import { LoginForm } from "./LoginForm";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Sign in, ported to the design system.
+ *
+ * WHAT CHANGED, AND WHAT DELIBERATELY DID NOT
+ * -------------------------------------------
+ * Presentation only. Every behaviour is untouched: the redirect for an already
+ * signed in actor, the suspended and reset notices, and the configuration check
+ * that says so rather than rejecting a correct password in silence.
+ *
+ * The navy gradient is gone. The standards file says never gradients, and the
+ * prototype puts this screen on the light canvas with the logo above a white
+ * card. token-audit fails the build on a gradient in a ported file.
+ *
+ * THE LINE THAT IS NOT HERE, AND WHY
+ * ----------------------------------
+ * The prototype's sign in screen reads "Multi-factor authentication is required
+ * for all staff accounts."
+ *
+ * There is no MFA in this platform. Not partially, not behind a flag: the
+ * string does not appear anywhere in the codebase, and the standards file's own
+ * build roadmap lists "MFA enforcement" as work still to do with this screen as
+ * its hook. So the sentence is a security claim about protection an account
+ * does not have, told to the person signing in to that account, and it is the
+ * same class of fabrication as the evidence hash the operator ruled out at gate
+ * 0. It is dropped rather than rendered.
+ *
+ * If MFA is built, this is where the sentence goes back.
+ */
 export default async function PortalLoginPage({
   searchParams,
 }: {
@@ -28,50 +57,52 @@ export default async function PortalLoginPage({
   const ready = opsSessionConfigured() && supabaseConfigured();
 
   return (
-    <main className="grid min-h-dvh place-items-center bg-gradient-to-b from-slate via-slate-deep to-slate-abyss px-4 py-10">
+    <main className="portal-surface grid min-h-dvh place-items-center px-4 py-10">
       <div className="w-full max-w-[420px]">
         <div className="mb-6 flex justify-center">
-          <Wordmark onDark height={44} priority />
+          <Wordmark height={44} priority />
         </div>
 
-        <div className="rounded-[4px] border border-limestone-line border-t-[3px] border-t-brass bg-white p-6 sm:p-7">
-          <h1 className="font-display text-[22px] leading-[1.2] font-bold text-slate">
-            Sign in to the portal
+        <div className="rounded-[var(--radius-card)] border border-[var(--border)] bg-white p-6 sm:p-7">
+          <h1 className="font-display text-[17px] leading-[1.25] font-bold text-[var(--navy)]">
+            Operations portal
           </h1>
-          <p className="mt-2 text-[14px] leading-[1.6] text-slate-muted">
-            Operations for 254 Engineering Services. This area is not public and is not indexed.
+          <p className="mt-2 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+            This area is not public and is not indexed.
           </p>
 
-          {params.suspended ? (
-            <p
-              role="alert"
-              className="mt-5 rounded-[3px] border border-[#f3c9c6] bg-[#fdeceb] px-3 py-2.5 text-[13.5px] leading-[1.55] text-[#8c1d18]"
-            >
-              That account is suspended. An administrator can restore it.
-            </p>
-          ) : null}
+          <div className="mt-5 flex flex-col gap-3">
+            {params.suspended ? (
+              <SystemAlert condition="Account suspended." tone="failed">
+                An administrator can restore it. Signing in is refused until they do.
+              </SystemAlert>
+            ) : null}
 
-          {params.reset ? (
-            <p className="mt-5 rounded-[3px] border border-[#bcdcc7] bg-[#e8f3ec] px-3 py-2.5 text-[13.5px] leading-[1.55] text-[#14522f]">
-              Your password is set. Sign in with it.
-            </p>
-          ) : null}
+            {params.reset ? (
+              <p className="rounded-[var(--radius-control)] border border-[var(--green-border)] bg-[var(--green-bg)] px-3 py-2.5 text-[13.5px] leading-[1.55] text-[var(--green)]">
+                Your password is set. Sign in with it.
+              </p>
+            ) : null}
 
-          {ready ? null : (
-            <p
-              role="alert"
-              className="mt-5 rounded-[3px] border border-[#f0d9a8] bg-[#fdf3e0] px-3 py-2.5 text-[13.5px] leading-[1.55] text-[#7a4c05]"
-            >
-              The portal is not configured on this deployment, so nobody can sign in yet. The
-              operator has been told what is missing; the details are in the server logs
-              rather than on this page.
-            </p>
-          )}
+            {ready ? null : (
+              <SystemAlert condition="Not configured." tone="failed">
+                The portal is not configured on this deployment, so nobody can sign in. What is
+                missing is in the server logs rather than on this page.
+              </SystemAlert>
+            )}
+
+            {/*
+              Rendered unconditionally. The component reads the gate itself and
+              returns null once it lifts, so there is nothing to remember to
+              remove on launch day.
+            */}
+            <RestrictedMode />
+          </div>
 
           <LoginForm next={params.next ?? null} disabled={!ready} />
         </div>
 
-        <p className="mt-5 text-center text-[12px] leading-[1.6] text-slate-fg/55">
+        <p className="mt-5 text-center text-[12px] leading-[1.6] text-[var(--secondary)]">
           Firm registration pending with the Texas Board of Professional Engineers and Land
           Surveyors. No engineer of record is yet in responsible charge.
         </p>

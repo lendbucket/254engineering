@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
+import { RELEASE, ENVIRONMENT } from "@/lib/ops-observability";
 import { currentActor } from "@/lib/ops-auth";
 import { mispointing } from "@/lib/db-guard";
 import { MispointedDeployment } from "@/components/portal/Mispointed";
@@ -91,37 +92,79 @@ export default async function PortalLayout({ children }: { children: React.React
   const unread = await unreadCount(actor.id);
 
   return (
-    <div className="min-h-dvh bg-limestone">
+    <div className="portal-surface min-h-dvh">
       {/* Desktop sidebar. Fixed, dark, and the same navy the public site uses. */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[248px] flex-col bg-gradient-to-b from-slate to-slate-deep lg:flex">
+      {/*
+        230px and flat. The standards file gives the width, and it forbids
+        gradients outright: a gradient on a fixed rail is the thing that dates
+        an interface fastest, and this one ran navy to navy so it was carrying
+        no information at all.
+      */}
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[var(--sidebar-width)] flex-col bg-[var(--navy)] lg:flex">
         <div className="border-b border-white/10 px-5 py-5">
           <Link href="/portal" aria-label="254 Engineering portal" className="block">
             <Wordmark onDark height={34} />
           </Link>
-          <p className="mt-2 text-[10px] font-bold tracking-[0.16em] text-brass-light uppercase">
-            Operations
-          </p>
+          <p className="portal-kicker mt-2 text-[var(--gold-bright)]">Operations</p>
         </div>
         <div className="flex-1 overflow-y-auto px-3 py-4">
           <SidebarNav items={items} />
         </div>
         <div className="border-t border-white/10 px-5 py-4">
-          <p className="text-[11px] leading-[1.5] text-slate-fg/55">
+          <p className="text-[12px] leading-[1.5] text-white/55">
             Firm registration pending with TBPELS. No engineer of record is yet in responsible
             charge.
+          </p>
+          {/*
+            The version footer the standards file asks for, carrying values the
+            platform actually has: the commit this deployment was built from and
+            which environment it is. Both come from the environment Vercel sets,
+            and RELEASE is the same string the error store tags every fault with,
+            so a fault report and a screenshot can be matched to each other.
+
+            This is not the feature flag and environment banner system in the
+            build roadmap. It is two facts that already exist, displayed.
+          */}
+          <p className="mt-3 font-mono text-[12px] leading-[1.5] text-white/40">
+            {RELEASE} · {ENVIRONMENT}
           </p>
         </div>
       </aside>
 
-      <div className="lg:pl-[248px]">
-        {/* The top bar, on both form factors. */}
-        <header className="sticky top-0 z-30 border-b border-white/10 bg-slate-deep pt-[env(safe-area-inset-top)]">
-          <div className="flex min-h-[60px] items-center gap-2 px-3 sm:px-5">
+      <div className="lg:pl-[var(--sidebar-width)]">
+        {/*
+          WHITE ON DESKTOP, NAVY ON A PHONE, AND THAT IS THE DESIGN.
+
+          The standards file specifies a 58px white header beside the navy rail.
+          On a phone there is no rail, so the header IS the navy chrome and
+          carries the logo; making it white there would leave the screen with no
+          brand surface at all and a status bar that does not match the app.
+        */}
+        <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--navy)] pt-[env(safe-area-inset-top)] lg:border-[var(--border)] lg:bg-white">
+          <div className="flex min-h-[var(--header-height)] items-center gap-2 px-3 sm:px-5">
             <div className="lg:hidden">
               <Link href="/portal" aria-label="254 Engineering portal" className="block py-2">
                 <Wordmark onDark height={26} />
               </Link>
             </div>
+            {/*
+              The render time, and it is honest rather than decorative.
+
+              Every portal route is force-dynamic, so this page was built from
+              the database at this moment and the figure below is the truth
+              about how stale what you are reading is. On a cached surface the
+              same line would be a lie, which is why it says "data as of" and
+              not "last updated".
+            */}
+            <p className="ml-3 hidden text-[12px] text-[var(--secondary)] lg:block">
+              Data as of{" "}
+              {new Date().toLocaleTimeString("en-US", {
+                timeZone: "America/Chicago",
+                hour: "numeric",
+                minute: "2-digit",
+              })}{" "}
+              CT
+            </p>
             <div className="ml-auto flex items-center gap-1 sm:gap-2">
               <CommandPalette items={items} />
               <NotificationBell unread={unread} items={list} />
@@ -136,7 +179,7 @@ export default async function PortalLayout({ children }: { children: React.React
         </header>
 
         {/* pb accounts for the fixed tab bar plus the home indicator. */}
-        <main className="mx-auto w-full max-w-[1280px] px-4 py-6 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:pb-10">
+        <main className="mx-auto flex w-full max-w-[1280px] flex-col gap-[var(--section-gap)] px-[var(--page-gutter)] py-6 pb-[calc(88px+env(safe-area-inset-bottom))] lg:pb-10">
           {children}
         </main>
       </div>

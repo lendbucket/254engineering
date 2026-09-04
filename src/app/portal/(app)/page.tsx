@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
+import { RestrictedMode } from "@/components/portal/design";
 import { currentActor } from "@/lib/ops-auth";
 import { can, ROLE_LABEL } from "@/lib/ops-authz";
 import { dashboardFor } from "@/lib/ops-dashboard";
-import { isPrelaunch } from "@/lib/launch";
 import { money } from "@/lib/ops-money";
 import { AttentionList, CountTiles, MoneyTiles } from "@/components/portal/Dashboard";
 import { ButtonLink, EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
@@ -37,12 +37,11 @@ export default async function PortalHome() {
   if (!can(actor, "files.list") && !can(actor, "offers.list_own")) redirect("/portal/profile");
 
   const dashboard = await dashboardFor(actor);
-  const firstName = actor.display_name.split(" ")[0];
 
   if (!dashboard) {
     return (
       <>
-        <PageHead eyebrow="Operations" title={`Good to see you, ${firstName}`} />
+        <PageHead eyebrow="Operations" title="Dashboard" />
         <EmptyState
           title="Your dashboard is not available"
           body="This account is not active, so nothing is being read on your behalf. Ask an administrator to look at it."
@@ -60,9 +59,22 @@ export default async function PortalHome() {
 
   return (
     <>
+      {/*
+        "Good to see you, Shots" is gone.
+
+        The standards file's voice rule is terse, neutral and factual, and names
+        reassurance and cleverness as things never to write. A greeting is both.
+        It also occupied the largest type on the screen, which is the one place
+        a dashboard has to say what it is, and said nothing: the reader already
+        knows who they are and did not open an operations portal to be greeted.
+
+        The name is not lost. It is in the header's user menu, where somebody
+        checks WHICH account they are signed in as, which is the only question a
+        name on this screen ever answered.
+      */}
       <PageHead
         eyebrow={ROLE_LABEL[actor.role]}
-        title={`Good to see you, ${firstName}`}
+        title="Dashboard"
         lede={lede}
         actions={
           dashboard.role === "admin" ? (
@@ -109,12 +121,12 @@ export default async function PortalHome() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[560px] border-collapse text-left">
               <thead>
-                <tr className="border-b border-limestone-line">
+                <tr className="border-b border-[var(--border)]">
                   {["Period", "Files", "Revenue", "Cost", "Margin", "Coverage"].map((h) => (
                     <th
                       key={h}
                       scope="col"
-                      className="py-2 pr-4 text-[11px] font-bold tracking-[0.1em] text-slate-muted uppercase"
+                      className="py-2 pr-4 portal-kicker text-[var(--secondary)]"
                     >
                       {h}
                     </th>
@@ -123,18 +135,18 @@ export default async function PortalHome() {
               </thead>
               <tbody>
                 {dashboard.periods.slice(0, 12).map((p) => (
-                  <tr key={p.period} className="border-b border-limestone-line last:border-0">
-                    <td className="py-2.5 pr-4 align-top text-[13.5px] font-semibold text-slate">{p.period}</td>
-                    <td className="py-2.5 pr-4 align-top text-[13.5px] text-slate">
+                  <tr key={p.period} className="border-b border-[var(--border)] last:border-0">
+                    <td className="py-2.5 pr-4 align-top text-[13.5px] font-semibold text-[var(--navy)]">{p.period}</td>
+                    <td className="py-2.5 pr-4 align-top text-[13.5px] text-[var(--navy)]">
                       {p.complete} of {p.files}
                     </td>
-                    <td className="py-2.5 pr-4 align-top text-[13.5px] text-slate">{money(p.revenue)}</td>
-                    <td className="py-2.5 pr-4 align-top text-[13.5px] text-slate">{money(p.cost)}</td>
-                    <td className="py-2.5 pr-4 align-top text-[13.5px] font-semibold text-slate">
+                    <td className="py-2.5 pr-4 align-top text-[13.5px] text-[var(--navy)]">{money(p.revenue)}</td>
+                    <td className="py-2.5 pr-4 align-top text-[13.5px] text-[var(--navy)]">{money(p.cost)}</td>
+                    <td className="py-2.5 pr-4 align-top text-[13.5px] font-semibold text-[var(--navy)]">
                       {money(p.margin)}
                       {p.marginPercent === null ? "" : ` (${p.marginPercent}%)`}
                     </td>
-                    <td className="py-2.5 pr-4 align-top text-[12px] leading-[1.45] text-slate-muted">
+                    <td className="py-2.5 pr-4 align-top text-[12px] leading-[1.45] text-[var(--secondary)]">
                       {p.coverage}
                     </td>
                   </tr>
@@ -145,18 +157,7 @@ export default async function PortalHome() {
         </Panel>
       ) : null}
 
-      {isPrelaunch() ? (
-        <div className="mt-6 rounded-[4px] border border-[#f0d9a8] border-l-[3px] border-l-brass bg-[#fdf3e0] px-4 py-3.5">
-          <p className="text-[13px] font-bold tracking-[0.1em] text-[#7a4c05] uppercase">
-            Compliance gate active
-          </p>
-          <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-[1.6] text-[#7a4c05]">
-            Firm registration with TBPELS is pending and no Professional Engineer is in responsible
-            charge. Files can be created and prepared, and no file can reach sealed or delivered.
-            The platform enforces that rather than trusting anyone to remember it.
-          </p>
-        </div>
-      ) : null}
+      <RestrictedMode also="Files can be created and prepared. The platform enforces the rest rather than trusting anyone to remember it." />
     </>
   );
 }

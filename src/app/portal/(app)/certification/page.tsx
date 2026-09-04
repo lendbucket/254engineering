@@ -115,7 +115,7 @@ export default async function CertificationPage({
             />
           ) : (
             <section aria-labelledby="lines">
-              <h2 id="lines" className="text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">
+              <h2 id="lines" className="portal-kicker text-[var(--gold-deep)]">
                 Service lines
               </h2>
               <div className="mt-3">
@@ -134,16 +134,16 @@ export default async function CertificationPage({
                           key={p.service_slug as string}
                           className={`rounded-[4px] border bg-white p-4 ${
                             certified
-                              ? "border-limestone-line border-l-[3px] border-l-[#2f6b45]"
-                              : "border-limestone-line border-l-[3px] border-l-brass"
+                              ? "border-[var(--border)] border-l-[var(--green)]"
+                              : "border-[var(--border)]"
                           }`}
                         >
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <p className="text-[15px] font-semibold text-slate">
+                              <p className="text-[15px] font-semibold text-[var(--navy)]">
                                 {serviceName(p.service_slug as string)}
                               </p>
-                              <p className="mt-0.5 text-[13px] text-slate-muted">
+                              <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">
                                 {p.name as string} v{p.version as number}
                               </p>
                             </div>
@@ -154,18 +154,18 @@ export default async function CertificationPage({
                           </div>
 
                           {certified ? (
-                            <p className="mt-3 text-[13.5px] leading-[1.5] text-slate-muted">
+                            <p className="mt-3 text-[13.5px] leading-[1.5] text-[var(--secondary)]">
                               You can be offered work on this line once your paperwork is current.
                             </p>
                           ) : cert?.status === "revoked" ? (
-                            <p className="mt-3 text-[13.5px] leading-[1.5] text-slate-muted">
+                            <p className="mt-3 text-[13.5px] leading-[1.5] text-[var(--secondary)]">
                               This certification was withdrawn by the engineer in responsible charge.
                               Retaking the check does not restore it; they do.
                             </p>
                           ) : (
                             <a
                               href={`/portal/certification?service=${p.service_slug as string}`}
-                              className="mt-3 inline-flex min-h-[48px] items-center justify-center rounded-[3px] bg-brass px-5 text-[15px] font-bold text-slate-ink"
+                              className="mt-3 inline-flex min-h-[var(--tap-target)] items-center justify-center rounded-[var(--radius-control)] bg-[var(--navy)] px-5 text-[15px] font-bold text-white"
                             >
                               {cert ? "Take it again" : "Read the protocol and take the check"}
                             </a>
@@ -183,23 +183,23 @@ export default async function CertificationPage({
         <div className="flex flex-col gap-6">
           <Panel title="Your paperwork">
             {paperwork.length === 0 ? (
-              <p className="text-[13.5px] leading-[1.55] text-slate-muted">
+              <p className="text-[13.5px] leading-[1.55] text-[var(--secondary)]">
                 Everything required is on file and current. Nothing in your documents is stopping a
                 job reaching you.
               </p>
             ) : (
               <>
-                <p className="text-[13.5px] leading-[1.55] font-semibold text-[#a3241c]">
+                <p className="text-[13.5px] leading-[1.55] font-semibold text-[var(--red)]">
                   This is stopping jobs reaching you.
                 </p>
                 <ul className="mt-2 flex flex-col gap-1.5">
                   {paperwork.map((b) => (
-                    <li key={b.kind + b.reason} className="text-[13.5px] leading-[1.5] text-slate-muted">
+                    <li key={b.kind + b.reason} className="text-[13.5px] leading-[1.5] text-[var(--secondary)]">
                       {b.reason}
                     </li>
                   ))}
                 </ul>
-                <p className="mt-3 text-[13px] leading-[1.55] text-slate-muted">
+                <p className="mt-3 text-[13.5px] leading-[1.55] text-[var(--secondary)]">
                   Send the replacement document to the operator. Nothing on this site asks you to
                   type a policy number, an account number, or a social security number, and it never
                   will.
@@ -208,16 +208,16 @@ export default async function CertificationPage({
             )}
 
             {expiring.length > 0 ? (
-              <div className="mt-4 rounded-[3px] border border-[#f0d9a8] bg-[#fdf3e0] px-3 py-2.5">
-                <p className="text-[13px] font-semibold text-[#7a4c05]">Expiring soon</p>
+              <div className="mt-4 rounded-[3px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-3 py-2.5">
+                <p className="text-[13.5px] font-semibold text-[var(--warn-ink)]">Expiring soon</p>
                 <ul className="mt-1 flex flex-col gap-1">
                   {expiring.map((e) => (
-                    <li key={e.kind} className="text-[13px] leading-[1.5] text-[#7a4c05]">
+                    <li key={e.kind} className="text-[13.5px] leading-[1.5] text-[var(--warn-ink)]">
                       {CREDENTIAL_LABEL[e.kind]} in {e.days} day{e.days === 1 ? "" : "s"}, on {e.expiresOn}.
                     </li>
                   ))}
                 </ul>
-                <p className="mt-1.5 text-[12.5px] leading-[1.5] text-[#7a4c05]">
+                <p className="mt-1.5 text-[12.5px] leading-[1.5] text-[var(--warn-ink)]">
                   This does not stop you working. It stops you the day it lapses.
                 </p>
               </div>
@@ -225,7 +225,7 @@ export default async function CertificationPage({
           </Panel>
 
           <Panel title="How the check works">
-            <ul className="flex flex-col gap-2 text-[13.5px] leading-[1.55] text-slate-muted">
+            <ul className="flex flex-col gap-2 text-[13.5px] leading-[1.55] text-[var(--secondary)]">
               <li>
                 The protocol is on the page while you answer. It is meant to be read, not memorised.
               </li>
@@ -247,13 +247,13 @@ export default async function CertificationPage({
 
           {templates.length > 0 && actor?.role === "admin" ? (
             <Panel title="Authoring">
-              <p className="text-[13.5px] leading-[1.55] text-slate-muted">
+              <p className="text-[13.5px] leading-[1.55] text-[var(--secondary)]">
                 Check questions are written on the protocol itself, by the engineer who will review
                 the work.
               </p>
               <a
                 href="/portal/protocols"
-                className="mt-3 inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-slate underline underline-offset-4"
+                className="mt-3 inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-[var(--navy)] underline underline-offset-4"
               >
                 Open protocols
               </a>

@@ -93,33 +93,48 @@ export default async function DocumentsPage() {
             {
               key: "binder",
               head: "Binder",
+              /*
+                READ IT, OR TAKE IT AWAY. Two different jobs.
+                The sheet is for looking at the binder; the CSV is for handing it
+                to somebody else's system. The export was the only option, which
+                meant answering "what did we capture on that file" involved
+                downloading a spreadsheet.
+              */
               cell: (f) => (
-                <a
-                  href={`/api/portal/exports?report=binder&fileId=${f.id}`}
-                  className="font-semibold text-slate underline decoration-brass decoration-2 underline-offset-4"
-                >
-                  Export
-                </a>
+                <span className="flex flex-wrap gap-x-3">
+                  <a
+                    href={`/portal/documents/binder/${f.id}`}
+                    className="font-semibold text-[var(--navy)] underline decoration-[var(--gold)] decoration-2 underline-offset-4"
+                  >
+                    Read
+                  </a>
+                  <a
+                    href={`/api/portal/exports?report=binder&fileId=${f.id}`}
+                    className="font-semibold text-[var(--secondary)] underline decoration-[var(--border-strong)] decoration-2 underline-offset-4"
+                  >
+                    CSV
+                  </a>
+                </span>
               ),
             },
           ]}
           card={(f) => (
             <div>
               <div className="flex items-start justify-between gap-3">
-                <p className="text-[15px] font-bold text-slate">{f.file_number}</p>
+                <p className="text-[15px] font-bold text-[var(--navy)]">{f.file_number}</p>
                 <Chip
                   label={STATUS_LABEL[f.status as FileStatus] ?? f.status}
                   tone={STATUS_TONE[f.status as FileStatus] ?? "neutral"}
                 />
               </div>
-              <p className="mt-1 text-[13.5px] leading-[1.5] text-slate-muted">
+              <p className="mt-1 text-[13.5px] leading-[1.5] text-[var(--secondary)]">
                 {f.property_address}, {f.county} County
               </p>
               <a
-                href={`/api/portal/exports?report=binder&fileId=${f.id}`}
-                className="mt-3 inline-flex min-h-[44px] items-center text-[14px] font-bold text-slate underline decoration-brass decoration-2 underline-offset-4"
+                href={`/portal/documents/binder/${f.id}`}
+                className="mt-3 inline-flex min-h-[var(--tap-target)] items-center text-[13.5px] font-bold text-[var(--navy)] underline decoration-[var(--gold)] decoration-2 underline-offset-4"
               >
-                Export the binder
+                Read the binder
               </a>
             </div>
           )}
@@ -155,7 +170,7 @@ export default async function DocumentsPage() {
                 d.sealed_at ? (
                   <Chip label="Sealed" tone="good" />
                 ) : (
-                  <span className="text-slate-muted">Not sealed</span>
+                  <span className="text-[var(--secondary)]">Not sealed</span>
                 ),
             },
             {
@@ -170,7 +185,7 @@ export default async function DocumentsPage() {
               cell: (d) => (
                 <a
                   href={`/api/portal/documents?id=${d.id}`}
-                  className="font-semibold text-slate underline decoration-brass decoration-2 underline-offset-4"
+                  className="font-semibold text-[var(--navy)] underline decoration-brass decoration-2 underline-offset-4"
                 >
                   Open
                 </a>
@@ -180,16 +195,16 @@ export default async function DocumentsPage() {
           card={(d) => (
             <div>
               <div className="flex items-start justify-between gap-3">
-                <p className="text-[15px] font-bold text-slate">{d.title}</p>
+                <p className="text-[15px] font-bold text-[var(--navy)]">{d.title}</p>
                 {d.sealed_at ? <Chip label="Sealed" tone="good" /> : null}
               </div>
-              <p className="mt-1 text-[13px] leading-[1.5] text-slate-muted">
+              <p className="mt-1 text-[13.5px] leading-[1.5] text-[var(--secondary)]">
                 {KIND_LABEL[d.kind] ?? d.kind}, {VISIBILITY_LABEL[d.visibility] ?? d.visibility},{" "}
                 {bytes(d.byte_size)}
               </p>
               <a
                 href={`/api/portal/documents?id=${d.id}`}
-                className="mt-3 inline-flex min-h-[44px] items-center text-[14px] font-bold text-slate underline decoration-brass decoration-2 underline-offset-4"
+                className="mt-3 inline-flex min-h-[44px] items-center text-[13.5px] font-bold text-[var(--navy)] underline decoration-brass decoration-2 underline-offset-4"
               >
                 Open the file
               </a>
@@ -204,9 +219,9 @@ export default async function DocumentsPage() {
         />
       </Panel>
 
-      <p className="mt-4 max-w-[74ch] text-[13px] leading-[1.6] text-slate-muted">
+      <p className="mt-4 max-w-[74ch] text-[13.5px] leading-[1.6] text-[var(--secondary)]">
         Every export is written to the{" "}
-        <Link href="/portal/audit" className="font-semibold text-slate underline underline-offset-2">
+        <Link href="/portal/audit" className="font-semibold text-[var(--navy)] underline underline-offset-2">
           audit trail
         </Link>{" "}
         with who took it and when. That is the point of the trail, and it applies to administrators

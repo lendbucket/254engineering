@@ -94,6 +94,22 @@ const PHASE_ZERO = [
     why: "nothing secret leaves the process, and a stalled cron says so rather than showing a timestamp",
   },
   {
+    // The portal design port. The token check reads the standards DOCUMENT and
+    // asserts the code agrees with it value for value, so the two cannot drift.
+    // The component rules are scoped to the files ported so far, and the audit
+    // prints how many remain on every run.
+    name: "token-audit",
+    why: "the design document and the code say the same thing, and nothing escaped the tokens",
+  },
+  {
+    // The standards file's voice rules over portal SOURCE, which is a different
+    // job from voice-audit's marketing voice over the rendered site. It also
+    // asserts the gate 0 corrections are still in place, because a later edit
+    // restoring the export's wording would put the evidence hash claim back.
+    name: "portal-voice-audit",
+    why: "no exclamation, no emoji, no reassurance, and the corrected product truths stay corrected",
+  },
+  {
     // Pure: the file state machine, the compliance gate, and county derivation.
     // No server, no database, no network.
     name: "files-audit",

@@ -37,13 +37,13 @@ export function PageHead({
   return (
     <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
       <div className="min-w-0">
-        {eyebrow ? (
-          <p className="text-[11px] font-bold tracking-[0.14em] text-brass-ink uppercase">{eyebrow}</p>
-        ) : null}
-        <h1 className="mt-1 font-display text-[clamp(22px,3vw,30px)] leading-[1.15] font-bold tracking-[-0.01em] text-slate">
+        {eyebrow ? <p className="portal-kicker text-[var(--secondary)]">{eyebrow}</p> : null}
+        <h1 className="mt-1 font-display text-[clamp(17px,3vw,30px)] leading-[1.15] font-bold tracking-[-0.01em] text-[var(--navy)]">
           {title}
         </h1>
-        {lede ? <p className="mt-2 max-w-[70ch] text-[14px] leading-[1.6] text-slate-muted">{lede}</p> : null}
+        {lede ? (
+          <p className="mt-2 max-w-[70ch] text-[13.5px] leading-[1.6] text-[var(--secondary)]">{lede}</p>
+        ) : null}
       </div>
       {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
     </header>
@@ -64,19 +64,29 @@ export function Panel({
   className?: string;
 }) {
   return (
+    /*
+      THE ACCENT BORDER IS GONE.
+
+      The standards file is explicit: no accent borders, top or left, on cards.
+      Every panel carried a 3px navy top rule, which on a screen with six panels
+      is six horizontal lines competing with the content and none of them saying
+      anything. A card is a card because of its border and its ground.
+    */
     <section
-      className={`rounded-[4px] border border-limestone-line border-t-[3px] border-t-slate bg-white ${className}`}
+      className={`rounded-[var(--radius-card)] border border-[var(--border)] bg-white ${className}`}
     >
       {title ? (
-        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-limestone-line px-4 py-3 sm:px-5">
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--border)] px-[var(--panel-padding)] py-3">
           <div className="min-w-0">
-            <h2 className="text-[15px] font-bold text-slate">{title}</h2>
-            {description ? <p className="mt-1 text-[13px] leading-[1.55] text-slate-muted">{description}</p> : null}
+            <h2 className="font-display text-[16px] font-bold text-[var(--navy)]">{title}</h2>
+            {description ? (
+              <p className="mt-1 text-[13.5px] leading-[1.55] text-[var(--secondary)]">{description}</p>
+            ) : null}
           </div>
           {actions ? <div className="flex gap-2">{actions}</div> : null}
         </div>
       ) : null}
-      <div className="px-4 py-4 sm:px-5">{children}</div>
+      <div className="px-[var(--panel-padding)] py-[var(--panel-padding)]">{children}</div>
     </section>
   );
 }
@@ -91,9 +101,9 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="rounded-[4px] border border-dashed border-limestone-line px-5 py-10 text-center">
-      <p className="text-[15px] font-semibold text-slate">{title}</p>
-      <p className="mx-auto mt-2 max-w-[52ch] text-[14px] leading-[1.6] text-slate-muted">{body}</p>
+    <div className="rounded-[var(--radius-card)] border border-dashed border-[var(--border)] px-5 py-10 text-center">
+      <p className="text-[15px] font-semibold text-[var(--navy)]">{title}</p>
+      <p className="mx-auto mt-2 max-w-[52ch] text-[13.5px] leading-[1.6] text-[var(--secondary)]">{body}</p>
       {action ? <div className="mt-5 flex justify-center">{action}</div> : null}
     </div>
   );
@@ -104,24 +114,29 @@ export function ErrorState({ title, body }: { title: string; body: string }) {
   return (
     <div
       role="alert"
-      className="rounded-[4px] border border-l-[3px] border-limestone-line border-l-[#b3261e] bg-white px-5 py-4"
+      /*
+        A full tinted box, not a card with a red left edge. The standards file
+        rules out accent borders and says alerts are tinted boxes, and a tint is
+        legible at a glance where a 3px edge is not.
+      */
+      className="rounded-[var(--radius-card)] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-5 py-4"
     >
-      <p className="text-[15px] font-semibold text-slate">{title}</p>
-      <p className="mt-1.5 max-w-[62ch] text-[14px] leading-[1.6] text-slate-muted">{body}</p>
+      <p className="text-[15px] font-semibold text-[var(--warn-ink)]">{title}</p>
+      <p className="mt-1.5 max-w-[62ch] text-[13.5px] leading-[1.6] text-[var(--warn-ink)]">{body}</p>
     </div>
   );
 }
 
 export function Chip({ label, tone = "neutral" }: { label: string; tone?: "neutral" | "good" | "warn" | "bad" }) {
   const tones = {
-    neutral: "bg-limestone text-slate-muted border-limestone-line",
-    good: "bg-[#e8f3ec] text-[#14522f] border-[#bcdcc7]",
-    warn: "bg-[#fdf3e0] text-[#7a4c05] border-[#f0d9a8]",
-    bad: "bg-[#fdeceb] text-[#8c1d18] border-[#f3c9c6]",
+    neutral: "bg-[var(--row-rule)] text-[var(--secondary)] border-[var(--border)]",
+    good: "bg-[var(--green-bg)] text-[var(--green)] border-[var(--green-border)]",
+    warn: "bg-[var(--warn-bg)] text-[var(--warn-ink)] border-[var(--warn-border)]",
+    bad: "bg-[var(--warn-bg)] text-[var(--red)] border-[var(--warn-border)]",
   } as const;
   return (
     <span
-      className={`inline-block rounded-[3px] border px-2 py-0.5 text-[11px] font-bold tracking-[0.06em] uppercase ${tones[tone]}`}
+      className={`portal-kicker inline-block rounded-[var(--radius-pill)] border px-2 py-0.5 ${tones[tone]}`}
     >
       {label}
     </span>
@@ -137,15 +152,23 @@ export function ButtonLink({
   children: ReactNode;
   tone?: "primary" | "ghost";
 }) {
+  /*
+    THE PRIMARY BUTTON WAS GOLD ON EVERY SCREEN IN THE PORTAL.
+
+    One component, twenty five screens. The standards file rules gold out twice:
+    the primary button is navy with white text, and gold appears only in the
+    logo, warnings, pending states and the active nav bar. This single change is
+    most of why the portal did not look like the design.
+  */
   const base =
-    "inline-flex min-h-[44px] items-center justify-center rounded-[3px] px-4 text-[14px] font-bold transition-colors";
+    "inline-flex min-h-[var(--tap-target)] items-center justify-center rounded-[var(--radius-control)] px-4 text-[13.5px] font-bold transition-colors";
   return (
     <Link
       href={href}
       className={
         tone === "primary"
-          ? `${base} bg-brass text-slate-ink hover:bg-brass-light`
-          : `${base} border border-limestone-line text-slate hover:bg-limestone`
+          ? `${base} bg-[var(--navy)] text-white hover:bg-[var(--navy-hover)]`
+          : `${base} border border-[var(--border-strong)] bg-white text-[var(--navy)] hover:bg-[var(--row-hover)]`
       }
     >
       {children}
@@ -187,7 +210,7 @@ export function RecordTable<T extends { id: string }>({
       {/* Phone: a stack of cards. No sideways scroll, ever. */}
       <ul className="flex flex-col gap-3 lg:hidden">
         {rows.map((row) => (
-          <li key={row.id} className="rounded-[4px] border border-limestone-line bg-white p-4">
+          <li key={row.id} className="rounded-[var(--radius-card)] border border-[var(--border)] bg-white p-4">
             {rowHref ? (
               <Link href={rowHref(row)} className="block">
                 {card(row)}
@@ -203,14 +226,12 @@ export function RecordTable<T extends { id: string }>({
       <div className="hidden lg:block">
         <table className="w-full border-collapse text-left">
           <thead>
-            <tr className="border-b border-limestone-line">
+            <tr className="border-b border-[var(--border)]">
               {columns.map((c) => (
                 <th
                   key={c.key}
                   scope="col"
-                  className={`py-2 pr-4 text-[11px] font-bold tracking-[0.1em] text-slate-muted uppercase ${
-                    c.wide ? "hidden xl:table-cell" : ""
-                  }`}
+                  className={`portal-column-header py-2 pr-4 ${c.wide ? "hidden xl:table-cell" : ""}`}
                 >
                   {c.head}
                 </th>
@@ -219,11 +240,11 @@ export function RecordTable<T extends { id: string }>({
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.id} className="border-b border-limestone-line last:border-0 hover:bg-limestone/60">
+              <tr key={row.id} className="border-b border-[var(--row-rule)] last:border-0 hover:bg-[var(--row-hover)]">
                 {columns.map((c) => (
                   <td
                     key={c.key}
-                    className={`py-2.5 pr-4 align-top text-[13.5px] text-slate ${c.wide ? "hidden xl:table-cell" : ""}`}
+                    className={`py-[var(--row-padding-y)] pr-4 align-top text-[13.5px] text-[var(--ink)] ${c.wide ? "hidden xl:table-cell" : ""}`}
                   >
                     {c.cell(row)}
                   </td>

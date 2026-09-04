@@ -68,11 +68,11 @@ export default async function ProtocolsPage({
       />
 
       {uncovered.length > 0 ? (
-        <div className="mb-6 rounded-[4px] border border-limestone-line border-l-[3px] border-l-brass bg-white px-4 py-3">
-          <p className="text-[13px] font-semibold text-slate">
+        <div className="mb-6 rounded-[4px] border border-[var(--border)] bg-white px-4 py-3">
+          <p className="text-[13.5px] font-semibold text-[var(--navy)]">
             {uncovered.length} service line{uncovered.length === 1 ? "" : "s"} cannot be dispatched yet
           </p>
-          <p className="mt-1 max-w-[75ch] text-[13px] leading-[1.55] text-slate-muted">
+          <p className="mt-1 max-w-[75ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
             {uncovered.map((s) => s.name).join(", ")}. Each needs a published protocol before a
             technician can be offered work on it.
           </p>
@@ -103,14 +103,14 @@ export default async function ProtocolsPage({
                       href={`/portal/protocols?id=${t.id}`}
                       className={`block rounded-[4px] border bg-white p-4 transition-colors hover:border-slate ${
                         selected?.id === t.id
-                          ? "border-slate border-l-[3px] border-l-brass"
-                          : "border-limestone-line"
+                          ? "border-slate"
+                          : "border-[var(--border)]"
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-[14.5px] font-semibold text-slate">{t.name}</p>
-                          <p className="mt-0.5 text-[13px] text-slate-muted">
+                          <p className="text-[13.5px] font-semibold text-[var(--navy)]">{t.name}</p>
+                          <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">
                             {serviceName(t.service_slug)}, version {t.version}
                           </p>
                         </div>
@@ -131,23 +131,23 @@ export default async function ProtocolsPage({
           <div>
             <Link
               href="/portal/protocols"
-              className="mb-4 inline-flex min-h-[44px] items-center text-[14px] font-semibold text-slate-muted lg:hidden"
+              className="mb-4 inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-[var(--secondary)] lg:hidden"
             >
               Back to the list
             </Link>
 
-            <div className="rounded-[4px] border border-limestone-line border-t-[3px] border-t-slate bg-white">
-              <div className="border-b border-limestone-line px-4 py-4 sm:px-5">
+            <div className="rounded-[4px] border border-[var(--border)] bg-white">
+              <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h2 className="font-display text-[20px] leading-[1.2] font-bold text-slate">
+                    <h2 className="font-display text-[17px] leading-[1.2] font-bold text-[var(--navy)]">
                       {selected.name}
                     </h2>
-                    <p className="mt-1 text-[13.5px] text-slate-muted">
+                    <p className="mt-1 text-[13.5px] text-[var(--secondary)]">
                       {serviceName(selected.service_slug)}, version {selected.version}
                     </p>
                     {selected.summary ? (
-                      <p className="mt-2 max-w-[70ch] text-[13.5px] leading-[1.55] text-slate-muted">
+                      <p className="mt-2 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
                         {selected.summary}
                       </p>
                     ) : null}
@@ -163,7 +163,7 @@ export default async function ProtocolsPage({
 
               <div className="px-4 py-5 sm:px-5">
                 {selected.items.length === 0 ? (
-                  <p className="text-[13.5px] text-slate-muted">
+                  <p className="text-[13.5px] text-[var(--secondary)]">
                     Nothing on this checklist yet. A protocol with no items cannot be published,
                     because a technician could never finish it.
                   </p>
@@ -172,11 +172,11 @@ export default async function ProtocolsPage({
                     {selected.items.map((item, i) => (
                       <li key={item.id} className="flex items-start justify-between gap-3 py-3">
                         <div className="min-w-0">
-                          <p className="text-[14px] font-semibold text-slate">
+                          <p className="text-[13.5px] font-semibold text-[var(--navy)]">
                             {i + 1}. {item.label}
                             {item.required ? "" : " (optional)"}
                           </p>
-                          <p className="mt-0.5 text-[13px] text-slate-muted">
+                          <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">
                             {KIND_LABEL[item.kind] ?? item.kind}
                             {item.kind === "photo" && item.minCount && item.minCount > 1
                               ? `, ${item.minCount} frames`
@@ -187,7 +187,7 @@ export default async function ProtocolsPage({
                               : ""}
                           </p>
                           {item.instructions ? (
-                            <p className="mt-1 max-w-[70ch] text-[13px] leading-[1.5] text-slate-muted">
+                            <p className="mt-1 max-w-[70ch] text-[13.5px] leading-[1.5] text-[var(--secondary)]">
                               {item.instructions}
                             </p>
                           ) : null}
@@ -200,7 +200,7 @@ export default async function ProtocolsPage({
                   </ol>
                 )}
 
-                <div className="mt-7 border-t border-limestone-line pt-5">
+                <div className="mt-7 border-t border-[var(--border)] pt-5">
                   <QuestionEditor
                     templateId={selected.id}
                     questions={questions}
@@ -210,15 +210,15 @@ export default async function ProtocolsPage({
 
                 {selected.status === "draft" ? (
                   <>
-                    <div className="mt-6 border-t border-limestone-line pt-5">
+                    <div className="mt-6 border-t border-[var(--border)] pt-5">
                       <ItemEditor.Add templateId={selected.id} />
                     </div>
-                    <div className="mt-6 border-t border-limestone-line pt-5">
+                    <div className="mt-6 border-t border-[var(--border)] pt-5">
                       <PublishButton id={selected.id} itemCount={selected.items.length} />
                     </div>
                   </>
                 ) : (
-                  <p className="mt-6 border-t border-limestone-line pt-5 text-[13px] leading-[1.55] text-slate-muted">
+                  <p className="mt-6 border-t border-[var(--border)] pt-5 text-[13.5px] leading-[1.55] text-[var(--secondary)]">
                     A {selected.status} protocol cannot be edited. Files are being worked to it, and
                     changing the checklist under a technician on a roof moves the submission gate
                     while they are trying to clear it. Draft the next version instead.

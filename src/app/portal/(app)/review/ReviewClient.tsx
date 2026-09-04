@@ -41,17 +41,17 @@ export function OpenReviewButton({ fileId, status }: { fileId: string; status: s
   const [error, setError] = useState<string | null>(null);
 
   return (
-    <div className="mb-6 rounded-[4px] border border-limestone-line border-l-[3px] border-l-brass bg-limestone px-4 py-3">
-      <p className="text-[13.5px] font-semibold text-slate">
+    <div className="mb-6 rounded-[4px] border border-[var(--border)] bg-[var(--canvas)] px-4 py-3">
+      <p className="text-[13.5px] font-semibold text-[var(--navy)]">
         {status === "under_review" ? "This file is in review" : "Not yet in review"}
       </p>
-      <p className="mt-1 max-w-[70ch] text-[13px] leading-[1.55] text-slate-muted">
+      <p className="mt-1 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
         Taking it into review starts the clock. The elapsed time until you decide goes on your
         responsible charge record, which is the record your licence stands on, so it is measured
         rather than asked for afterwards.
       </p>
       {error ? (
-        <p role="alert" className="mt-2 text-[13px] font-semibold text-[#a3241c]">
+        <p role="alert" className="mt-2 text-[13.5px] font-semibold text-[var(--red)]">
           {error}
         </p>
       ) : null}
@@ -79,7 +79,7 @@ export function OpenReviewButton({ fileId, status }: { fileId: string; status: s
             setBusy(false);
           }
         }}
-        className="mt-3 inline-flex min-h-[44px] items-center justify-center rounded-[3px] bg-brass px-4 text-[14px] font-bold text-slate-ink disabled:opacity-50"
+        className="mt-3 inline-flex min-h-[var(--tap-target)] items-center justify-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white disabled:opacity-50"
       >
         {busy ? "Opening" : "Take this into review"}
       </button>
@@ -110,8 +110,8 @@ export function DecisionPanel({
   if (done) {
     return (
       <div>
-        <p className="text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">Recorded</p>
-        <p className="mt-2 max-w-[70ch] text-[14px] leading-[1.6] text-slate">
+        <p className="portal-kicker text-[var(--gold-deep)]">Recorded</p>
+        <p className="mt-2 max-w-[70ch] text-[13.5px] leading-[1.6] text-[var(--navy)]">
           {done.action === "refuse"
             ? "You declined to seal this file."
             : `Decision recorded: ${ACTION_LABEL[done.action].toLowerCase()}.`}{" "}
@@ -123,7 +123,7 @@ export function DecisionPanel({
         </p>
         <a
           href="/portal/review"
-          className="mt-4 inline-flex min-h-[44px] items-center text-[14px] font-semibold text-slate underline underline-offset-4"
+          className="mt-4 inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-[var(--navy)] underline underline-offset-4"
         >
           Back to the queue
         </a>
@@ -135,18 +135,18 @@ export function DecisionPanel({
 
   return (
     <div>
-      <p className="text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">Your decision</p>
+      <p className="portal-kicker text-[var(--gold-deep)]">Your decision</p>
 
       {!complete ? (
         <div className="mt-2">
-          <p className="text-[13.5px] leading-[1.55] text-slate-muted">
+          <p className="text-[13.5px] leading-[1.55] text-[var(--secondary)]">
             This package is missing required evidence. It cannot be sealed, because the seal states
             you reviewed the evidence the protocol required. Every other decision is available, and
             on a package that cannot be completed, declining is often the right one.
           </p>
           <ul className="mt-2 flex flex-col gap-1">
             {blockers.map((b) => (
-              <li key={b} className="text-[13px] leading-[1.5] text-[#a3241c]">
+              <li key={b} className="text-[13.5px] leading-[1.5] text-[var(--red)]">
                 {b}
               </li>
             ))}
@@ -155,7 +155,7 @@ export function DecisionPanel({
       ) : null}
 
       {!inReview ? (
-        <p className="mt-2 text-[13.5px] leading-[1.55] text-slate-muted">
+        <p className="mt-2 text-[13.5px] leading-[1.55] text-[var(--secondary)]">
           Take the file into review first. Deciding without opening it would leave your responsible
           charge record saying a review took no time at all.
         </p>
@@ -178,17 +178,17 @@ export function DecisionPanel({
                 className={`inline-flex min-h-[52px] w-full items-center justify-center rounded-[3px] border px-4 text-[15px] font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                   selected
                     ? isRefusal
-                      ? "border-[#a3241c] bg-[#fdf1f0] text-[#a3241c]"
-                      : "border-slate bg-slate text-slate-fg"
+                      ? "border-[var(--red)] bg-[var(--warn-bg)] text-[var(--red)]"
+                      : "border-slate bg-slate text-[var(--navy)]-fg"
                     : isRefusal
-                      ? "border-[#a3241c] bg-white text-[#a3241c] hover:bg-[#fdf1f0]"
-                      : "border-limestone-line bg-white text-slate hover:border-slate"
+                      ? "border-[var(--red)] bg-white text-[var(--red)] hover:bg-[var(--warn-bg)]"
+                      : "border-[var(--border)] bg-white text-[var(--navy)] hover:border-slate"
                 }`}
               >
                 {ACTION_LABEL[action]}
               </button>
               {!allowed && blockedReason ? (
-                <p className="mt-1.5 text-[12.5px] leading-[1.5] text-slate-muted">{blockedReason}</p>
+                <p className="mt-1.5 text-[12.5px] leading-[1.5] text-[var(--secondary)]">{blockedReason}</p>
               ) : null}
             </div>
           );
@@ -196,13 +196,13 @@ export function DecisionPanel({
       </div>
 
       {chosen && active?.allowed ? (
-        <div className="mt-5 rounded-[4px] border border-limestone-line bg-limestone p-4">
-          <p className="text-[14px] font-semibold text-slate">{ACTION_LABEL[chosen]}</p>
-          <p className="mt-1 max-w-[70ch] text-[13px] leading-[1.55] text-slate-muted">{HELP[chosen]}</p>
+        <div className="mt-5 rounded-[4px] border border-[var(--border)] bg-[var(--canvas)] p-4">
+          <p className="text-[13.5px] font-semibold text-[var(--navy)]">{ACTION_LABEL[chosen]}</p>
+          <p className="mt-1 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">{HELP[chosen]}</p>
 
           {chosen !== "seal" ? (
             <div className="mt-3">
-              <label htmlFor="decision-reason" className="block text-[13px] font-semibold text-slate">
+              <label htmlFor="decision-reason" className="block text-[13.5px] font-semibold text-[var(--navy)]">
                 {chosen === "refuse" ? "Why you will not seal this" : "What is needed"}
               </label>
               <textarea
@@ -210,9 +210,9 @@ export function DecisionPanel({
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 rows={4}
-                className="mt-1.5 w-full rounded-[3px] border border-limestone-line bg-white px-3 py-2.5 text-[16px] leading-[1.5] text-slate outline-none focus:border-slate"
+                className="mt-1.5 w-full rounded-[3px] border border-[var(--border)] bg-white px-3 py-2.5 text-[16px] leading-[1.5] text-[var(--navy)] outline-none focus:border-slate"
               />
-              <p className="mt-1.5 text-[12.5px] text-slate-muted">
+              <p className="mt-1.5 text-[12.5px] text-[var(--secondary)]">
                 {reason.trim().length < MIN_REASON_LENGTH
                   ? `${MIN_REASON_LENGTH - reason.trim().length} more character${
                       MIN_REASON_LENGTH - reason.trim().length === 1 ? "" : "s"
@@ -223,7 +223,7 @@ export function DecisionPanel({
           ) : null}
 
           {error ? (
-            <p role="alert" className="mt-3 text-[13.5px] leading-[1.5] font-semibold text-[#a3241c]">
+            <p role="alert" className="mt-3 text-[13.5px] leading-[1.5] font-semibold text-[var(--red)]">
               {error}
             </p>
           ) : null}
@@ -271,8 +271,8 @@ export function DecisionPanel({
               }}
               className={`inline-flex min-h-[48px] items-center justify-center rounded-[3px] px-5 text-[15px] font-bold disabled:opacity-50 ${
                 chosen === "refuse"
-                  ? "border border-[#a3241c] bg-[#a3241c] text-white"
-                  : "bg-brass text-slate-ink"
+                  ? "border border-[var(--red)] bg-[var(--red)] text-white"
+                  : "bg-[var(--navy)] text-white"
               }`}
             >
               {busy ? "Recording" : CONFIRM[chosen]}
@@ -283,7 +283,7 @@ export function DecisionPanel({
                 setChosen(null);
                 setReason("");
               }}
-              className="inline-flex min-h-[48px] items-center rounded-[3px] px-4 text-[15px] font-semibold text-slate-muted"
+              className="inline-flex min-h-[48px] items-center rounded-[3px] px-4 text-[15px] font-semibold text-[var(--secondary)]"
             >
               Back
             </button>
