@@ -7,6 +7,7 @@ import {
   abandonBatch,
   recordExternalRefund,
 } from "@/lib/ops-payments";
+import { markStatementPaid } from "@/lib/ops-statements";
 
 export const dynamic = "force-dynamic";
 
@@ -98,6 +99,34 @@ export async function POST(request: NextRequest) {
         duplicate: result.alreadyRecorded,
         released: result.released,
       });
+    }
+
+    /*
+     * A statement, for the same reason as a batch: its session carries a
+     * statement_id and no order_id, and falling through would look for an order
+     * that does not exist.
+     */
+    if (parsed.statementId) {
+      const result = await markStatementPaid({
+        statementId: parsed.statementId,
+        chargeRef: parsed.chargeRef,
+        amountCents: parsed.amountCents,
+        provider: provider.name,
+      });
+
+      if (!result.ok) {
+        console.error(
+          `[stripe] could not record statement payment for ${parsed.statementId}: ${result.error}`,
+        );
+        return NextResponse.json({ ok: false }, { status: 500 });
+      }
+
+      console.log(
+        `[stripe] statement ${parsed.statementId}: ${
+          result.alreadyRecorded ? "already recorded" : "recorded"
+        }`,
+      );
+      return NextResponse.json({ ok: true, handled: true, duplicate: result.alreadyRecorded });
     }
 
     if (!parsed.orderId) {

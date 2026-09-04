@@ -65,6 +65,8 @@ const ADMIN_PAGES = [
   // Names customers, properties and amounts, and carries the controls that ask
   // Stripe about a payment and give one back. Admin only behind the perimeter.
   "/portal/orders",
+  // Names every customer organisation, what it owes and on what terms.
+  "/portal/accounts",
   "/admin",
   "/admin/leads",
   "/admin/applications",
@@ -96,6 +98,9 @@ const ADMIN_APIS = [
   // Moves a customer's money back. Closed to a signed out client, and admin
   // only behind that.
   "/api/portal/orders/refund",
+  // Customer ordering accounts: terms, credit limits, closing a period and
+  // issuing a statement. It decides who may owe the firm money.
+  "/api/portal/accounts",
 ];
 
 /**

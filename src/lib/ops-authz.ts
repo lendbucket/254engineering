@@ -107,6 +107,9 @@ export type Action =
   // Cancelling a paid order and refunding it in full. Admin only, and it is
   // deliberately NOT a review outcome: see refundForFirmCancellation.
   | "payments.refund"
+  // Customer ordering accounts: terms, credit, statements. Admin only, because
+  // it is the firm deciding who may owe it money.
+  | "accounts.manage"
   // tasks and communication
   | "tasks.use"
   | "messages.use"
@@ -140,7 +143,7 @@ const MATRIX: Record<Role, Action[]> = {
     "protocols.author", "protocols.publish",
     "review.queue", "review.decide", "documents.seal", "documents.deliver", "documents.read",
     "pricing.read", "billing.read", "ledger.read_own", "ledger.read_all", "ledger.approve",
-    "payments.reconcile", "payments.refund",
+    "payments.reconcile", "payments.refund", "accounts.manage",
     "tasks.use", "messages.use",
     "audit.read", "time.log_own",
     "responsible_charge.read_own", "responsible_charge.read_all",

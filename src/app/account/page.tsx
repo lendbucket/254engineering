@@ -65,12 +65,20 @@ export default async function AccountHomePage() {
         </Link>
       </div>
 
-      <div className="mt-4 rounded-[4px] border border-limestone-line bg-white px-5 py-4">
-        <p className="text-[13.5px] leading-[1.65] text-slate-muted">
-          API access and statements are being built. Single orders still go through the service
-          pages as usual.
-        </p>
-      </div>
+      {me.account.billingMode === "invoice" ? (
+        <div className="mt-4 rounded-[4px] border border-limestone-line bg-white px-5 py-5">
+          <h2 className="font-display text-[1.15rem] font-semibold text-slate">Statements</h2>
+          <p className="mt-2 text-[13.5px] leading-[1.65] text-slate-muted">
+            What has been billed, what is still to be billed, and paying an outstanding statement.
+          </p>
+          <Link
+            href="/account/statements"
+            className="mt-4 inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-slate underline underline-offset-2"
+          >
+            Open statements
+          </Link>
+        </div>
+      ) : null}
 
       <div className="mt-6">
         <SignOutButton />

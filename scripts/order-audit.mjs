@@ -1512,6 +1512,151 @@ const answerAll = (entry, pick = () => 0) =>
   );
 }
 
+// ===========================================================================
+// 17. INVOICING: WHERE A BUG BILLS THE WRONG AMOUNT
+// ===========================================================================
+{
+  const st = fs.readFileSync("src/lib/ops-statements.ts", "utf8");
+  const close = st.slice(st.indexOf("export async function closePeriod"), st.indexOf("export async function issueStatement"));
+  const issue = st.slice(st.indexOf("export async function issueStatement"), st.indexOf("export async function startStatementCheckout"));
+  const checkout = st.slice(st.indexOf("export async function startStatementCheckout"), st.indexOf("export async function markStatementPaid"));
+  const paid = st.slice(st.indexOf("export async function markStatementPaid"), st.indexOf("export async function statementsFor"));
+
+  /*
+   * An order with no total is skipped and said out loud, never billed as zero.
+   * A zero line on a statement is a claim that the work was free, and it is the
+   * Phase 6 rule applied to invoicing.
+   */
+  rec(
+    "an order with no total is left off the statement rather than billed as nothing",
+    /o\.total_cents === null/.test(close) && /statement\.skipped/.test(close),
+  );
+
+  /*
+   * Claiming the order by setting statement_id is the lock. Without it two
+   * closes running at once each gather the same orders.
+   */
+  rec(
+    "an order is claimed by its statement so a second close cannot re-bill it",
+    /statement_id: statementId/.test(close) && /is\("statement_id", null\)/.test(close),
+  );
+  rec(
+    "and only work that has actually been agreed is billable",
+    /in\("status", \["paid", "in_fulfilment", "complete"\]\)/.test(close),
+    "a draft or an unpaid order is not a bill",
+  );
+
+  /*
+   * The header total is recomputed from the lines rather than accumulated, so
+   * a close that ran twice or skipped an order cannot leave a total that
+   * disagrees with what is printed beneath it.
+   */
+  rec(
+    "the statement total is recomputed from its lines, not accumulated",
+    /const headerTotal = \(allLines \?\? \[\]\)\.reduce/.test(close),
+  );
+
+  // An issued statement is a document that has been sent.
+  rec(
+    "an issued statement is never reopened to add a late order",
+    /existing\.status !== "open"/.test(close),
+    "a late order belongs on the next period, not on a bill already sent",
+  );
+  rec("and cannot be issued twice", /statement\.status !== "open"/.test(issue));
+  rec(
+    "and an empty statement cannot be issued at all",
+    /Number\(statement\.total_cents\) <= 0/.test(issue),
+  );
+
+  /*
+   * The due date is stored at issue rather than computed later from net_days.
+   * If the terms change next month, a statement already sent must not silently
+   * acquire a different due date.
+   */
+  rec(
+    "the due date is stored when the statement is issued",
+    /due_at: dueAt/.test(issue),
+    "so changing the terms later cannot move a due date already given",
+  );
+
+  // The same refusal the batch checkout has, for the same reason.
+  rec(
+    "a statement checkout refuses when its lines do not sum to its total",
+    /lineTotal !== Number\(statement\.total_cents\)/.test(checkout),
+  );
+  rec(
+    "and it charges only an issued statement",
+    /statement\.status !== "issued"/.test(checkout),
+    "an open statement is a working total, not a bill",
+  );
+  rec("and the session says it is a statement", /subjectKind: "statement"/.test(checkout));
+
+  // One charge row for one payment, idempotent, and the work is untouched.
+  rec("a paid statement writes one charge row against the statement", /statement_id: input\.statementId/.test(paid));
+  rec("and is idempotent on the charge ref", /23505/.test(paid));
+  rec(
+    "and does not touch the orders beneath it",
+    !/eng_service_orders/.test(paid),
+    "paying the bill does not change the work",
+  );
+
+  // The webhook routes a statement before an order, same reason as a batch.
+  const hook = fs.readFileSync("src/app/api/stripe/webhook/route.ts", "utf8");
+  const completedPart = hook.slice(
+    hook.indexOf('parsed.kind === "checkout.completed"'),
+    hook.indexOf('parsed.kind === "checkout.expired"'),
+  );
+  rec(
+    "the webhook routes a statement payment before an order",
+    completedPart.indexOf("parsed.statementId") < completedPart.indexOf("!parsed.orderId"),
+  );
+  rec(
+    "and that branch is reachable rather than merely present",
+    /if \(parsed\.statementId\) \{/.test(completedPart),
+  );
+
+  // No dunning. The operator ruled it, and absence is asserted rather than assumed.
+  /*
+   * Read with comments stripped. The first version matched the very paragraph
+   * explaining that there IS no dunning, which is a check reading prose rather
+   * than code, and it is the fifth time that has happened today.
+   */
+  const stCode = st.replace(/\/\*[\s\S]*?\*\//g, "").split("\n").filter((l) => !/^\s*\/\//.test(l)).join("\n");
+  rec(
+    "nothing chases an overdue statement",
+    !/dunning|reminder|late_fee|lateFee|escalat/i.test(stCode),
+    "the operator ruled the state is made visible and nothing chases it",
+  );
+
+  // The operator side.
+  const admin = fs.readFileSync("src/lib/ops-accounts-admin.ts", "utf8");
+  rec(
+    "the accounts screen computes can-they-order from the same rule the customer hits",
+    /creditDecision\(/.test(admin),
+    "so the screen and the refusal cannot disagree",
+  );
+  rec(
+    "converting a client keeps its history rather than moving it",
+    /references that row rather than replacing/.test(admin) || /client_id: clientId/.test(admin),
+  );
+  rec(
+    "and accounts are for organisations only",
+    /client\.kind !== "organization"/.test(admin),
+  );
+
+  const route = fs.readFileSync("src/app/api/portal/accounts/route.ts", "utf8");
+  rec("the operator account route checks accounts.manage", route.includes('can(actor, "accounts.manage")'));
+  rec(
+    "and a credit limit is cleared explicitly rather than by omission",
+    /"creditLimitCents" in body/.test(route),
+    "an absent field must not silently remove credit, nor grant it",
+  );
+  rec(
+    "and a negative credit limit is refused rather than stored",
+    /raw >= 0/.test(route),
+  );
+}
+
 console.log("============ THE ORDER ENGINE ============");
 console.log("the refund rule, the prices nobody invented, and the gate\n");
 for (const r of out) console.log(`  ${r.ok ? "PASS" : "FAIL"}: ${r.name}${r.note ? ` (${r.note})` : ""}`);

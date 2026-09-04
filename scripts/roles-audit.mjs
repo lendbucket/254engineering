@@ -141,6 +141,13 @@ const EXPECTED = {
   "payments.refund":              { admin: true,  engineer: false, field_tech: false },
 
   /*
+   * Customer ordering accounts: credit terms, closing a period, issuing a
+   * statement. The firm deciding who may owe it money, which is the operator
+   * alone. An engineer has no more business here than in the ledger.
+   */
+  "accounts.manage":              { admin: true,  engineer: false, field_tech: false },
+
+  /*
    * Everybody. A task list and a conversation are not privileges; a platform
    * where a technician cannot write down their own next action is one where
    * they keep a separate list beside it, and a platform where they cannot ask a

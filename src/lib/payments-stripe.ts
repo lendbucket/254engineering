@@ -20,9 +20,13 @@ import type {
  * does not exist and answer 500 while the money sat in Stripe.
  */
 function subjectMetadata(request: CheckoutRequest): Record<string, string> {
-  return request.subjectKind === "batch"
-    ? { batch_id: request.orderId, reference: request.reference }
-    : { order_id: request.orderId, reference: request.reference };
+  if (request.subjectKind === "batch") {
+    return { batch_id: request.orderId, reference: request.reference };
+  }
+  if (request.subjectKind === "statement") {
+    return { statement_id: request.orderId, reference: request.reference };
+  }
+  return { order_id: request.orderId, reference: request.reference };
 }
 
 /**
@@ -241,6 +245,7 @@ export function stripeProvider(): PaymentProvider {
           amountCents: session.amount_total ?? 0,
           orderId: session.metadata?.order_id ?? null,
           batchId: session.metadata?.batch_id ?? null,
+          statementId: session.metadata?.statement_id ?? null,
         };
       }
 
@@ -251,6 +256,7 @@ export function stripeProvider(): PaymentProvider {
           sessionRef: session.id,
           orderId: session.metadata?.order_id ?? null,
           batchId: session.metadata?.batch_id ?? null,
+          statementId: session.metadata?.statement_id ?? null,
         };
       }
 

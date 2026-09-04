@@ -36,7 +36,7 @@ export type CheckoutRequest = {
    * order that does not exist, and the money would arrive with nothing to
    * attach it to.
    */
-  subjectKind?: "order" | "batch";
+  subjectKind?: "order" | "batch" | "statement";
   orderId: string;
   amountCents: number;
   currency: string;
@@ -89,8 +89,15 @@ export type PaymentEvent =
       /** Exactly one of these is set, decided when the session was created. */
       orderId: string | null;
       batchId: string | null;
+      statementId: string | null;
     }
-  | { kind: "checkout.expired"; sessionRef: string; orderId: string | null; batchId: string | null }
+  | {
+      kind: "checkout.expired";
+      sessionRef: string;
+      orderId: string | null;
+      batchId: string | null;
+      statementId: string | null;
+    }
   | {
       kind: "charge.refunded";
       chargeRef: string;
