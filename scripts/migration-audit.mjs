@@ -57,11 +57,11 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * mistake could have been applied to by hand, which is exactly how 0001 stayed
  * broken for a month. A constant has to be changed by a person who noticed.
  */
-const EXPECTED_FINGERPRINT = "8b1dee7c095418d7e91bcc3434a00796";
-const EXPECTED_COLUMNS = 734;
-const EXPECTED_TABLES = 49;
-const EXPECTED_TRIGGERS = 30;
-/** eng_jobs is the 49th table; eng_claim_jobs is the fifth function. Both 0011. */
+const EXPECTED_FINGERPRINT = "7bf0d1553cf0169d366389eeae4b7497";
+const EXPECTED_COLUMNS = 765;
+const EXPECTED_TABLES = 53;
+const EXPECTED_TRIGGERS = 31;
+/** 0012 added four tables and one touch trigger. eng_claim_jobs is still the only non trigger function. */
 const EXPECTED_FUNCTIONS = 5;
 
 const out = [];

@@ -30,7 +30,9 @@ export type JobKind =
   | "evidence.thumbnail"
   | "document.binder"
   | "statement.issue"
-  | "orders.reconcile";
+  | "orders.reconcile"
+  | "metrics.rollup"
+  | "errors.alert";
 
 export type JobPayload = Record<string, unknown>;
 

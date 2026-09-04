@@ -1,12 +1,22 @@
 import "server-only";
 import { createHash } from "node:crypto";
-import { registerJob } from "./ops-jobs";
+import { registerJob, enqueue, queueEmail } from "./ops-jobs";
 import type { JobOutcome } from "./job-rules";
 import { supabaseAdmin } from "./supabase";
 import { notify } from "./notify";
 import { opsNotification } from "./email-templates";
 import { issueStatement } from "./ops-statements";
 import { reconcileAll } from "./ops-reconcile";
+import { rollupDay } from "./ops-metrics";
+import { errorAlert } from "./email-templates";
+import { RELEASE, ENVIRONMENT } from "./ops-observability";
+import { business } from "@/config/business";
+import {
+  selectAlerts,
+  RATE_WINDOW_MINUTES,
+  COOLDOWN_MINUTES,
+  type ErrorTypeSnapshot,
+} from "./alert-rules";
 
 /**
  * Every handler, and how each one survives running twice.
@@ -316,6 +326,142 @@ registerJob("orders.reconcile", {
     const unreachable = report.findings.filter((f) => f.verdict === "unreachable");
     if (unreachable.length > 0 && unreachable.length === report.findings.length) {
       return { kind: "retry", error: "The payment provider could not be reached for any order." };
+    }
+
+    return { kind: "done" };
+  },
+});
+
+// ------------------------------------------------------------ metrics.rollup
+
+/**
+ * Compute one day's operational figures.
+ *
+ * Keyed on the day, so a second enqueue for the same day finds the first. The
+ * rollup itself recomputes rather than accumulates, so even a duplicate that
+ * slipped past the key would produce the same numbers.
+ */
+registerJob("metrics.rollup", {
+  idempotency: (p) => keyOf("rollup", p.day ?? "yesterday"),
+  run: async (p): Promise<JobOutcome> => {
+    const day = typeof p.day === "string" ? p.day : undefined;
+    const report = day ? await rollupDay(day) : await rollupDay();
+
+    if (!report) return { kind: "retry", error: "The database is not configured." };
+
+    /*
+     * A metric that could not be computed is a RETRY, not a success with a
+     * gap. The whole point of leaving it out of the table rather than writing
+     * zero is that a gap means "not computed", and a job that shrugged at the
+     * gap would leave one there permanently.
+     */
+    if (report.unavailable.length > 0) {
+      return {
+        kind: "retry",
+        error: `Could not compute: ${report.unavailable.join(", ")}`,
+      };
+    }
+
+    return { kind: "done" };
+  },
+});
+
+// ------------------------------------------------------------- errors.alert
+
+/**
+ * Look at what has been failing and decide whether to email about it.
+ *
+ * WHY THE SWEEP IS A JOB AND NOT PART OF THE CRON ROUTE
+ * -----------------------------------------------------
+ * It sends email, and email on this platform goes through the queue. Putting
+ * the decision in the cron and the sending in the queue would split one piece
+ * of reasoning across two places; putting both here keeps the rule and its
+ * consequence together, and gives the sweep the same retry and dead letter
+ * treatment as everything else.
+ *
+ * The alert timestamps are written BEFORE the email is queued, deliberately.
+ * If this job runs twice, the second run reads the timestamp the first wrote
+ * and sends nothing. The cost of that ordering is that a failure between the
+ * stamp and the queue loses one alert; the alternative loses the cooldown
+ * entirely and sends an alert per sweep, which is the failure that trains an
+ * operator to filter the sender.
+ */
+registerJob("errors.alert", {
+  idempotency: "naturally",
+  why: "the decision is read from alerted_new_at and alerted_rate_at, which the sweep writes before it queues anything, so a second sweep in the same cooldown finds the stamps and sends nothing.",
+  run: async (): Promise<JobOutcome> => {
+    const client = db();
+    if (!client) return { kind: "retry", error: "The database is not configured." };
+
+    const since = new Date(Date.now() - RATE_WINDOW_MINUTES * 60_000).toISOString();
+
+    const { data: types, error } = await client
+      .from("eng_error_types")
+      .select(
+        "fingerprint, title, occurrences, first_seen_at, last_seen_at, alerted_new_at, alerted_rate_at, muted",
+      )
+      .gte("last_seen_at", since)
+      .limit(200);
+
+    if (error) return { kind: "retry", error: `Could not read the faults: ${error.message}` };
+    if (!types || types.length === 0) return { kind: "done" };
+
+    const { data: events } = await client
+      .from("eng_error_events")
+      .select("fingerprint")
+      .gte("occurred_at", since);
+
+    const inWindow = new Map<string, number>();
+    for (const e of events ?? []) {
+      const f = e.fingerprint as string;
+      inWindow.set(f, (inWindow.get(f) ?? 0) + 1);
+    }
+
+    const snapshots: ErrorTypeSnapshot[] = types.map((t) => ({
+      fingerprint: t.fingerprint as string,
+      title: t.title as string,
+      occurrences: Number(t.occurrences),
+      inWindow: inWindow.get(t.fingerprint as string) ?? 0,
+      firstSeenAtMs: Date.parse(t.first_seen_at as string),
+      lastSeenAtMs: Date.parse(t.last_seen_at as string),
+      alertedNewAtMs: t.alerted_new_at ? Date.parse(t.alerted_new_at as string) : null,
+      alertedRateAtMs: t.alerted_rate_at ? Date.parse(t.alerted_rate_at as string) : null,
+      muted: Boolean(t.muted),
+    }));
+
+    const { chosen, suppressed } = selectAlerts(snapshots);
+    if (chosen.length === 0) return { kind: "done" };
+
+    const now = new Date().toISOString();
+
+    for (const { type, kind, because } of chosen) {
+      await client
+        .from("eng_error_types")
+        .update(kind === "rate" ? { alerted_rate_at: now } : { alerted_new_at: now })
+        .eq("fingerprint", type.fingerprint);
+
+      console.warn(`[alert] ${kind}: ${type.fingerprint} (${because})`);
+
+      const queued = await queueEmail(
+        errorAlert({
+          kind,
+          fingerprint: type.fingerprint,
+          title: type.title,
+          occurrences: type.occurrences,
+          inWindow: type.inWindow,
+          windowMinutes: RATE_WINDOW_MINUTES,
+          firstSeenAt: new Date(type.firstSeenAtMs).toISOString(),
+          lastSeenAt: new Date(type.lastSeenAtMs).toISOString(),
+          suppressed,
+          release: RELEASE,
+          environment: ENVIRONMENT,
+          statusUrl: `${business.url}/portal/status`,
+          cooldownMinutes: COOLDOWN_MINUTES,
+        }),
+      );
+      if (!queued.ok) {
+        return { kind: "retry", error: `Could not queue the alert: ${queued.error}` };
+      }
     }
 
     return { kind: "done" };

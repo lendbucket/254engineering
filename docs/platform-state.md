@@ -137,6 +137,119 @@ subject rather than exactly one, because a refund of one property out of a batch
 legitimately names both, and that row is what says which property the money went
 back for.
 
+
+### Phase 8 Section 2, the job queue
+
+Requests enqueue and return. Nothing that talks to a provider is done while
+somebody waits, and the rule the whole section is shaped by is that **a job that
+did not run must be visible**.
+
+**Claiming is lease based, not status based.** `eng_claim_jobs` is one SQL
+statement using `FOR UPDATE SKIP LOCKED`, so two workers take different rows
+rather than the same row or blocking. A row marked running whose lease has
+lapsed is claimable again, and that single fact is what makes a worker killed
+mid job recoverable instead of silently lost. The alternative, trusting the
+status, produces a job that never runs again and never says so.
+
+**Idempotency is mandatory by construction.** A lease expires, so a job CAN run
+twice; that is the price of surviving a worker killed without warning, and the
+alternative is worse and quieter. So every registration declares how it survives
+it: a key function that dedupes the enqueue, or the literal `"naturally"` with a
+sentence saying why. `jobs-audit` fails the build on a kind carrying neither, on
+a thin reason, and on a key function that returns the same string for different
+work.
+
+**Registration is not a side effect import.** The first version had each caller
+write `import "@/lib/job-handlers"` for its side effect, which is a line with no
+referenced symbol and therefore the line a tidy up deletes. Losing it would
+produce the worst failure available: an empty registry, every enqueue refused
+and every claimed job dead lettered on "no handler is registered", for code that
+was correct. `loadHandlers()` is a lazy dynamic import inside `enqueue` and
+`runBatch`, and the audit now bans the bare import rather than asserting it.
+
+**What moved onto the queue.** Every outbound email, the notification delivery,
+the evidence binder's timeline record, statement issuance and the applying
+reconciliation sweep. The notification ROW stays synchronous, because the bell
+has to be right the moment the request returns.
+
+**Three things deliberately did not move**, each asserted so it cannot drift:
+
+- **The outage alert.** The queue lives in the database being watched. Routed
+  through it, the alert could not leave during precisely the outage it exists to
+  report, and the symptom would be silence.
+- **The binder download.** A queued CSV is a CSV nobody receives. What is queued
+  is the record that it was assembled.
+- **The read only reconciliation sweep.** It IS the report the operator opened
+  the screen to read.
+
+**Retries** back off exponentially with full jitter, floored so a first retry is
+not effectively immediate and capped at an hour so the whole sequence stays
+inside an afternoon. A fatal failure skips the retries entirely, because five
+identical failures spread over an hour only delay the moment somebody sees a
+queue that needs a person. Exhausted and fatal jobs become `dead`. Nothing is
+deleted.
+
+**/portal/queue** shows depth, the oldest wait, dead letter contents with the
+error in full, and retry by hand. `queueHealth` returns null on a failed read and
+the screen renders that as a failure, because a dashboard reporting an empty
+queue because it could not look is the exact defect the section removes.
+
+### Phase 8 Section 3, observability
+
+**The scrubber is verified by what actually leaves the process.** The weak
+version of that check reads `beforeSend` and asserts it calls the scrubber,
+which proves a wire is connected and nothing about what travels along it. So
+`observability-audit` stands up a real Sentry client with a transport that
+captures the envelope instead of posting it, throws a real error carrying a
+service role JWT, a live Stripe key, a webhook secret, a Resend key, a bearer
+token, a signed evidence URL, a driver licence number and an email address, in
+the message, in headers, in extras nested three deep, in a breadcrumb and in the
+user object, and asserts on the serialised bytes the transport was handed.
+
+Cookies and the raw request body are dropped outright rather than scrubbed,
+because a field that cannot be made safe and is not needed should not be sent at
+all. The user is reduced to an id.
+
+**Faults are recorded in this firm's own database as well as in Sentry.** Sentry
+is configured by a DSN in the environment; unset, wrong, or lapsed, it reports
+nothing and says nothing, and an error dashboard with nothing on it looks exactly
+like a platform with no errors. Alerting reads the local store, so it cannot be
+silenced by a third party or by a variable nobody set. `onRequestError` in
+`src/instrumentation.ts` catches every server side fault Next handles, not only
+the ones somebody remembered to wrap.
+
+**Alerting is about not sending.** The failure that actually happens is four
+hundred emails, a filter rule, and a real outage landing in that folder. So:
+a new fault type alerts once, a fault crossing ten occurrences in fifteen minutes
+alerts, both on an hour cooldown, at most three per sweep with the count of what
+was held back, and a fault older than an hour never announces itself as news
+because a backfill is a report rather than an alert. Muting silences the email
+and never the counting, so a muted fault still appears on the status page.
+
+**Daily metrics are recomputed, never accumulated**, and an absent figure is
+absent rather than zero. If a source query fails, that metric is left out of the
+table and the job retries; a gap therefore means "not computed" and a zero means
+"genuinely none". Exercised twice in a row on real data: identical.
+
+**/portal/status** shows every dependency, every cron and the queue, each with
+the timestamp it was read at. A cron's verdict is computed against its own
+interval, because a timestamp is not a verdict: "last run 09:12" looks the same
+whether the job ran a minute ago or stopped a month ago. Never run, stalled and
+late are three separate verdicts. `configured` and `checked` are separate claims
+and the page never conflates them: only the database is actually probed, and
+nothing else claims it was.
+
+**What the walk found that the code review did not.** Twelve occurrences of one
+fault rendered as twelve separate faults, each with a count of one. The
+fingerprint stripped only word bounded digit runs, and `cs_test_4` has no word
+boundary between the underscore and the digit. Because the rate threshold counts
+per fingerprint, twelve faults of one occurrence each could never have alerted:
+the function was failing at exactly the thing it was written to prevent, and every
+fingerprint check in the audit had used a number with spaces either side. The fix
+groups uuids, long opaque references, identifier shaped tokens and digit runs. The
+cost is over grouping, which is the right way to be wrong here, and nothing is
+lost, because `eng_error_events` keeps every message exactly as recorded.
+
 ### The guards
 
 | Guard | Stops |
@@ -148,24 +261,47 @@ back for.
 | `productionPointingElsewhere()` | A production deployment reaching development |
 | `liveKeyOffProduction()` | An `sk_live` Stripe key on anything that is not production |
 | The health cron | Silence when the portal or its database goes down |
+| `eng_cron_runs` | A cron that stopped firing looking the same as a cron with nothing to do |
+| `scrubEvent` and `beforeBreadcrumb` | A credential, a signed URL or an identity document leaving in an error report |
 | `readCustomerSession` and the proxy's account branch | A customer session opening a portal route, or a staff session opening a customer one. Neither branch reads the other's cookie, and the account branch is decided first |
 
 ### The harness
 
-25 audits, all passing. Every one has been verified by injecting the violation it
+27 audits, all passing. Every one has been verified by injecting the violation it
 exists to catch and watching it fail, and several of those injections found the
 check rather than the code.
 
-`order-audit` is 497 checks, `security-audit` 185, `accounts-audit` 69,
-`roles-audit` 36, `migration-audit` 16.
+`order-audit` is 499 checks, `security-audit` 191, `observability-audit` 139,
+`jobs-audit` 136, `accounts-audit` 69, `roles-audit` 36, `migration-audit` 17.
 
-Two of those are new in Phase 8. `accounts-audit` asks whether a customer and a
-member of staff can be confused for each other, which is the failure that would
-look like a working site right up until a buyer opened the review queue.
+Four are new in Phase 8.
+
+`accounts-audit` asks whether a customer and a member of staff can be confused
+for each other, which is the failure that would look like a working site right up
+until a buyer opened the review queue.
+
 `migration-audit` replays every migration into an in process Postgres and
-fingerprints the result; it exists because `0001` spent a month unable to apply
+fingerprints the result. It exists because `0001` spent a month unable to apply
 to an empty database while both live projects held the objects it failed to
 create, which comparing the two projects to each other could never have caught.
+
+`jobs-audit` enforces the mandatory idempotency declaration, the lease surviving
+a killed worker, and every route that was supposed to move onto the queue having
+actually moved. Nineteen injected violations, nineteen caught.
+
+`observability-audit` asserts on the bytes a real Sentry transport was handed,
+and that a stalled cron reads as stalled rather than as a timestamp. Twenty nine
+injected violations, twenty nine caught.
+
+**Of the forty eight injections across those two, eight walked past on the first
+run and every one was a defect in the check rather than in the code.** A SQL
+comment explaining `FOR UPDATE SKIP LOCKED` satisfied a check for `FOR UPDATE
+SKIP LOCKED`. A backoff cap was compared against the constant it was meant to
+bound. `indexOf(a) < indexOf(b)` returned true when `a` was absent and returned
+`-1`. A function body scoper ran past its function into the next one and answered
+with the wrong function's guard. That is the recurring defect class in this
+repository, and it is worth writing down that it appears most often inside the
+audits written to hunt it.
 
 ---
 
@@ -196,6 +332,65 @@ about a place it covers.
 **A Google Business Profile.** Blocked on the registration and on a verifiable
 address. See `docs/gbp-brief.md`, which is a brief rather than a submission for
 exactly this reason.
+
+### Not built in Phase 8, and the condition that would make each real
+
+Section 4 of the phase, recorded here rather than in a commit message so it
+outlives the branch.
+
+**Evidence thumbnails.** `eng_evidence_items.thumb_key` has existed since `0001`
+and nothing has ever written it. The job kind is registered and fails on purpose
+with a sentence saying what is missing, which is the difference between a defect
+and a decision: leaving it unregistered would dead letter any future enqueue with
+"no handler is registered", which reads like a bug in the queue.
+
+*The condition:* the first operator who opens a file with forty captures on a
+phone and waits for forty full size photographs. It needs an image pipeline this
+deployment does not have, and choosing one is not a decision to take inside a
+queue section.
+
+**Retention.** `eng_jobs`, `eng_error_events` and `eng_cron_runs` all grow
+forever. At today's volumes that is correct: "did that email actually go" is
+worth answering three months later, and a queue that deletes its own history
+cannot answer it. It stops being correct somewhere in the first year of real
+trading, and `queueHealth` reads every pending, running and dead row on every
+page load.
+
+*The condition:* the queue screen taking a noticeable moment, or `eng_jobs`
+passing about fifty thousand rows. The rule has to distinguish the states rather
+than sweeping by age: a `done` job older than ninety days is a log line, a
+`pending` one is a defect, and a `dead` one must never be pruned by a timer,
+because pruning it is the exact silence Section 2 exists to remove.
+
+**Sentry alert rules.** The DSN is not set and no Sentry project is wired.
+Release tagging, environment tagging and the scrubbing are all in place and
+exercised, and nothing reaches Sentry until somebody sets `SENTRY_DSN` in Vercel.
+Alerting does not wait on that, because it reads this firm's own fault store.
+
+*The condition:* wanting the grouping, the stack frames and the release
+comparison that Sentry does better than a table in Postgres. The status page
+says plainly when the DSN is absent, so this cannot be quietly forgotten.
+
+**Metric charts.** The status page shows yesterday as figures. Fourteen days are
+stored and nothing plots them.
+
+*The condition:* enough days to have a shape worth looking at. A chart over four
+data points is decoration.
+
+**Uptime as a number.** There is no percentage anywhere. The watcher detects an
+outage and emails; nothing computes availability over a period.
+
+*The condition:* a customer or an insurer asking for one. Computing it from the
+watcher's runs would produce a figure whose denominator is "times we happened to
+check", and a number like that on a page invites a promise the firm has not made.
+
+**Alerting on queue depth.** A queue that is behind is visible on two screens and
+emails nobody. A dead letter is visible and emails nobody.
+
+*The condition:* the first time somebody finds out about a stuck queue from a
+customer. The rules are already written for faults and would extend; the reason
+to wait is that a depth threshold picked before there is any traffic is a
+threshold picked from nothing.
 
 ### Not built, and it should be
 

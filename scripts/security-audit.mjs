@@ -69,6 +69,9 @@ const ADMIN_PAGES = [
   "/portal/accounts",
   // Names every failed job and its error, which can carry a customer address.
   "/portal/queue",
+  // Names every fault this deployment has recorded, which credential is set,
+  // and yesterday's revenue. A reconnaissance page if it were ever open.
+  "/portal/status",
   "/admin",
   "/admin/leads",
   "/admin/applications",
@@ -106,6 +109,9 @@ const ADMIN_APIS = [
   // Retrying a dead job re-runs a side effect, so this is behind the perimeter
   // and admin only behind that.
   "/api/portal/queue",
+  // Silencing an alert is a decision to stop being told about a fault, which
+  // is exactly the control an intruder would want.
+  "/api/portal/status",
 ];
 
 /**
@@ -190,6 +196,18 @@ const OPEN_BY_DESIGN = new Set([
  * route that is not there.
  */
 const CRON_ROUTE = "/api/cron/health-watch";
+
+/**
+ * Every scheduled route, because they all take the same secret and they all do
+ * something an anonymous caller must not be able to trigger.
+ *
+ * health-watch sends email. jobs drives the queue, which sends email, issues
+ * statements and asks Stripe about payments. daily queues a rollup. The check
+ * below is a loop rather than three copies, because the version of this file
+ * that checked only health-watch was written when it was the only cron, and the
+ * two that arrived afterwards would have been unchecked forever.
+ */
+const CRON_ROUTES = ["/api/cron/health-watch", "/api/cron/jobs", "/api/cron/daily"];
 
 /**
  * The order intake, called server side by all three brands with a per site key.
@@ -693,6 +711,29 @@ async function run() {
       HEALTH_PROBE_PATH === "/api/portal/health",
       HEALTH_PROBE_PATH,
     );
+
+    /*
+     * EVERY cron, not just the watcher.
+     *
+     * The worker route drives the whole queue, which sends email, issues
+     * statements and asks Stripe about payments. An open trigger on it is
+     * strictly worse than an open trigger on the watcher, and it was added in
+     * a phase where this block only knew about one route.
+     */
+    for (const route of CRON_ROUTES) {
+      const anon = await fetch(`${BASE}${route}`, { redirect: "manual" });
+      const wrong = await fetch(`${BASE}${route}`, {
+        redirect: "manual",
+        headers: { authorization: "Bearer not-the-cron-secret" },
+      });
+      rec(`${route} refuses an unauthenticated caller`, anon.status === 404, `HTTP ${anon.status}`);
+      rec(`${route} refuses a wrong secret identically`, wrong.status === 404, `HTTP ${wrong.status}`);
+      rec(
+        `${route} is scheduled in vercel.json`,
+        (vercelConfig.crons ?? []).some((c) => c.path === route),
+        JSON.stringify((vercelConfig.crons ?? []).map((c) => c.path)),
+      );
+    }
 
     /*
      * The classifier, which is the part that decides what the operator is told.

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createHash, timingSafeEqual, randomUUID } from "node:crypto";
 import { runBatch, queueHealth } from "@/lib/ops-jobs";
+import { cronStarted, cronFinished, captureError } from "@/lib/ops-observability";
 
 export const dynamic = "force-dynamic";
 
@@ -58,8 +59,31 @@ export async function GET(request: NextRequest) {
   const workerId = `worker-${randomUUID().slice(0, 8)}`;
   const startedAt = Date.now();
 
-  const report = await runBatch(workerId);
+  /*
+   * The run row is written before the batch and closed after it. A worker
+   * killed by the function timeout leaves a started row with no finished_at,
+   * which is the ONLY evidence that would exist for a worker that is being
+   * killed on every invocation: the jobs it claimed come back when their leases
+   * lapse and the queue looks merely slow.
+   */
+  const runId = await cronStarted("jobs");
+
+  let report;
+  try {
+    report = await runBatch(workerId);
+  } catch (err) {
+    await cronFinished(runId, false, err instanceof Error ? err.message : "the batch threw");
+    await captureError(err, { route: "/api/cron/jobs", kind: "cron" });
+    return NextResponse.json({ ok: false }, { status: 500 });
+  }
+
   const health = await queueHealth();
+
+  await cronFinished(
+    runId,
+    true,
+    `claimed ${report.claimed}, done ${report.done}, retried ${report.retried}, dead ${report.dead}`,
+  );
 
   /*
    * Logged on every run, including the empty one.

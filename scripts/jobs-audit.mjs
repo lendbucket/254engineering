@@ -124,6 +124,11 @@ rec("there are registered job kinds", kinds.length > 0, `${kinds.length}`);
  * reads a NEW field fails this audit loudly: the two probes would produce the
  * same string and the "keys different work differently" check goes red, which
  * is the correct outcome for a key nobody has thought about.
+ *
+ * That is not hypothetical. Section 3 added metrics.rollup, keyed on `day`,
+ * and this audit went red on the next run because neither probe carried one.
+ * The field was added here rather than the check being loosened, which is the
+ * whole point of the arrangement.
  */
 const PROBE_A = {
   id: "a",
@@ -135,6 +140,7 @@ const PROBE_A = {
   fileId: "file-a",
   requestedFor: "2026-09-04",
   statementId: "statement-a",
+  day: "2026-09-01",
 };
 const PROBE_B = {
   id: "b",
@@ -146,6 +152,7 @@ const PROBE_B = {
   fileId: "file-b",
   requestedFor: "2026-09-05",
   statementId: "statement-b",
+  day: "2026-09-02",
 };
 
 /*
@@ -596,11 +603,32 @@ rec(
    * precisely the outage it exists to report, and the symptom would be silence.
    * Asserted so a later pass tidying "the last unqueued send" cannot remove it.
    */
+  /*
+   * Scoped to the outage alert itself, which it was not at first.
+   *
+   * The original check asserted the route contained no enqueue AT ALL, and it
+   * went red the moment Section 3 gave that route a second job to do: it now
+   * queues the error alert sweep, which is ordinary queued work and has nothing
+   * to do with the exception. A check that forbids a whole file from touching
+   * the queue is checking the file rather than the rule.
+   *
+   * The rule is narrower and survives: the OUTAGE ALERT is sent by notify, in
+   * the request, and is never handed to the queue.
+   */
   const watcher = codeOnly("src/app/api/cron/health-watch/route.ts");
   rec(
     "the outage alert still sends directly, not through the queue",
-    /await notify\(/.test(watcher) && !/queueEmail\(|enqueue\(/.test(watcher),
+    /await notify\(\s*\n\s*outageAlert\(/.test(watcher),
     "an alert that needs the database to report the database being down is no alert",
+  );
+  rec(
+    "and it is never queued instead",
+    !/queueEmail\(\s*\n?\s*outageAlert\(|enqueue\(\s*"email\.send"/.test(watcher),
+  );
+  rec(
+    "the sweep it does queue is not the alert",
+    /enqueue\("errors\.alert"/.test(watcher),
+    "queueing the sweep is ordinary work; queueing the outage alert would not be",
   );
   /*
    * Whitespace collapsed before matching, because the sentence is wrapped

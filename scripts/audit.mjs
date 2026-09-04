@@ -84,6 +84,16 @@ const PHASE_ZERO = [
     why: "mandatory idempotency per kind, a lease that survives a killed worker, and no job lost in silence",
   },
   {
+    // Phase 8 Section 3. An error reporter is a pipe out of the building, and
+    // the check that matters stands up a real Sentry client with a capturing
+    // transport and asserts on the bytes it was handed rather than on whether
+    // beforeSend is wired. Plus: a stalled cron has to read as stalled.
+    //
+    // Pure, and react-server because it imports the observability modules.
+    name: "observability-audit",
+    why: "nothing secret leaves the process, and a stalled cron says so rather than showing a timestamp",
+  },
+  {
     // Pure: the file state machine, the compliance gate, and county derivation.
     // No server, no database, no network.
     name: "files-audit",

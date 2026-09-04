@@ -44,6 +44,7 @@
     "migration-audit": "tsx scripts/migration-audit.mjs",
     "accounts-audit": "tsx --conditions=react-server scripts/accounts-audit.mjs",
     "jobs-audit": "tsx --conditions=react-server scripts/jobs-audit.mjs",
+    "observability-audit": "tsx --conditions=react-server scripts/observability-audit.mjs",
     "preroles-audit": "node scripts/preflight-audit.mjs",
     "roles-audit": "tsx scripts/roles-audit.mjs",
     "registry-audit": "tsx scripts/registry-audit.mjs",
@@ -59,6 +60,7 @@
     "image-contrast-audit": "node scripts/image-contrast-audit.mjs"
   },
   "dependencies": {
+    "@sentry/nextjs": "^10.73.0",
     "@supabase/supabase-js": "^2.112.3",
     "next": "16.3.1",
     "react": "19.2.8",
@@ -70,6 +72,7 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",
+    "@sentry/node": "^10.73.0",
     "@tailwindcss/postcss": "^4",
     "@types/d3-geo": "^3.1.1",
     "@types/node": "^20",
