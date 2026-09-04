@@ -17,7 +17,7 @@
  * It is pure. No server, no database, no network, so it runs in phase zero.
  */
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { issueOpsSession, readOpsSession, OPS_COOKIE } from "../src/lib/ops-session.ts";
 import {
   issueCustomerSession,
@@ -363,6 +363,156 @@ withEnv({ CUSTOMER_SESSION_SECRET: CUS_SECRET }, () => {
     "the turnaround preference does not claim to be a commitment",
     /not a commitment/.test(settingsUi) && /does not change\s*\n?\s*the price/.test(settingsUi.replace(/\s+/g, " ")),
     settingsUi.includes("not a commitment") ? "" : "a promise the firm has not priced",
+  );
+}
+
+// =========================================================================
+// 5. THE ORDERING API
+//
+// A public surface that creates orders and moves money. Everything below is
+// a way of getting that wrong that would still look like a working API.
+// =========================================================================
+
+{
+  const keys = codeOnly("src/lib/account-api-keys.ts");
+  const route = codeOnly("src/app/api/v1/orders/route.ts");
+
+  /*
+   * The whole security model. A key belongs to one organisation and the route
+   * reads the organisation off the key, so there is no field in which a caller
+   * could ask to order for somebody else.
+   */
+  rec(
+    "the API takes its account from the key",
+    /accountId: key\.accountId/.test(route),
+  );
+  rec(
+    "and never from the request body",
+    !/body\?\.accountId|body\.accountId/.test(route),
+    "there must be no field in which to ask",
+  );
+
+  rec(
+    "a key is stored hashed, never in plaintext",
+    /key_hash: hashKey\(key\)/.test(keys) && !/key_plain|plaintext:/.test(keys),
+  );
+  rec(
+    "and is looked up by hash rather than compared in the application",
+    /\.eq\("key_hash", hashKey\(presented\)\)/.test(keys),
+  );
+  /*
+   * Scoped to verifyApiKey. An unscoped check passed against an injected
+   * version that removed this filter, because revokeApiKey contains the same
+   * clause and satisfied it. The right string in the wrong function is not the
+   * check anybody meant to write.
+   */
+  const verify = keys.slice(
+    keys.indexOf("export async function verifyApiKey"),
+    keys.indexOf("export async function withinRateLimit"),
+  );
+  rec(
+    "a revoked key is refused by the same query that finds it",
+    /\.is\("revoked_at", null\)/.test(verify),
+    "not by a separate check somebody could forget",
+  );
+  rec(
+    "and a suspended account closes every key on it",
+    /account\.status !== "active"/.test(keys),
+    "otherwise a suspension would only apply to the website",
+  );
+
+  /*
+   * One refusal for an absent key, a malformed key, a wrong key, a revoked key
+   * and a suspended account. Distinguishing them tells somebody holding a
+   * revoked key that it was once real.
+   */
+  /*
+   * The 401 branch must return ONE constant. Counting occurrences of the word
+   * passed against an injected version that added a second, different message
+   * beside it, because the original string was still there once.
+   */
+  const authBranch = route.slice(route.indexOf("if (!key)"), route.indexOf("const limit ="));
+  rec(
+    "every authentication failure gives one message",
+    /error: "Unauthorised\." \}/.test(authBranch) && !/presented \?/.test(authBranch),
+    "a branch here tells somebody a revoked key was once real",
+  );
+
+  // The compliance gate applies to the API exactly as to the website.
+  rec(
+    "the API is closed by the compliance gate",
+    /if \(isPrelaunch\(\)\) \{/.test(route),
+    "the condition itself, because a disabled branch still contains the call",
+  );
+  rec(
+    "and the gate is checked before anything is created",
+    route.indexOf("isPrelaunch()") < route.indexOf("placeBatch("),
+  );
+
+  // Rate limiting, and where it lives.
+  rec("the API is rate limited", /withinRateLimit\(key\)/.test(route));
+  rec(
+    "the limit is counted in the database, not in process memory",
+    /from\("eng_account_api_requests"\)/.test(keys) && !/new Map\(\)/.test(keys),
+    "a limiter in memory is enforced per function instance, so the real ceiling is the limit times however many are warm",
+  );
+  rec(
+    "a refused request counts against the limit too",
+    /recordApiRequest\(\{ key, route: ROUTE, status: 429 \}\)/.test(route),
+    "otherwise bad bodies are free",
+  );
+  rec(
+    "and a key with no limit set takes the platform default rather than none",
+    /rate_limit_per_minute === null \? DEFAULT_RATE_LIMIT/.test(keys),
+    "an unset limit must not be the permissive case",
+  );
+
+  /*
+   * The API must not be a second order engine. It calls placeBatch, which
+   * calls placeOrder, which is what order-audit points at.
+   */
+  rec("the API places work through placeBatch", /placeBatch\(\{/.test(route));
+  rec(
+    "and does not compute a price of its own",
+    !/priceCents\s*[*+]|totalCents\s*=/.test(route),
+  );
+  rec("and requires an idempotency key", /clientRequestId is required/.test(route));
+
+  rec(
+    "only an owner can create or revoke a key",
+    (keys.match(/accountRole !== "owner"/g) ?? []).length >= 2,
+  );
+  rec(
+    "and revoking is scoped to the account in the query",
+    /\.eq\("account_id", me\.accountId\)/.test(keys),
+  );
+
+  /*
+   * The request log holds no request body. It exists to count requests, and a
+   * second copy of a property address and a customer email is a second place
+   * that data has to be protected.
+   */
+  rec(
+    "the request log stores no request body",
+    !/body: |payload: |properties:/.test(codeOnly("src/lib/account-api-keys.ts").slice(keys.indexOf("recordApiRequest"))),
+  );
+
+  // Documented in the repo, not on the public site.
+  rec("the API is documented", existsSync("docs/ordering-api.md"));
+  const docs = readFileSync("docs/ordering-api.md", "utf8");
+  rec(
+    "and the documentation says it is not published publicly",
+    /not on the public site/.test(docs),
+  );
+  rec(
+    "and says an unset credit limit means no credit",
+    /no credit limit set has no credit/.test(docs.replace(/\*/g, "")),
+    "markdown emphasis sits inside that phrase, so the check reads it unstarred",
+  );
+  rec(
+    "and tells a caller not to resubmit after a 503",
+    /Do not resubmit/.test(docs),
+    "a resubmission after a saved batch would place everything twice",
   );
 }
 

@@ -909,6 +909,40 @@ async function run() {
       );
     }
 
+    /*
+     * THE ORDERING API. Public by necessity: a key holder has no cookie.
+     */
+    {
+      const noKey = await fetch(`${BASE}/api/v1/orders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ serviceSlug: "roof-inspections", properties: [{}] }),
+      });
+      rec("the ordering API refuses a caller with no key", noKey.status === 401, `HTTP ${noKey.status}`);
+
+      const badKey = await fetch(`${BASE}/api/v1/orders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", authorization: "Bearer eng_live_not_a_real_key" },
+        body: JSON.stringify({ serviceSlug: "roof-inspections", properties: [{}] }),
+      });
+      rec("and a wrong key the same way", badKey.status === 401, `HTTP ${badKey.status}`);
+
+      const bodyText = await badKey.text();
+      rec(
+        "and the two are indistinguishable",
+        noKey.status === badKey.status,
+        "a different answer tells somebody a revoked key was once real",
+      );
+      rec(
+        "and the refusal says nothing about accounts or keys",
+        !/account|revoked|expired|suspend/i.test(bodyText),
+        bodyText.slice(0, 60),
+      );
+
+      const get = await fetch(`${BASE}/api/v1/orders`);
+      rec("the ordering API answers nothing to a GET", get.status === 405, `HTTP ${get.status}`);
+    }
+
     const noToken = await fetch(`${BASE}/order/254-O2026-XXXXXX`, { redirect: "manual" });
     const noTokenBody = noToken.status === 200 ? await noToken.text() : "";
     rec(

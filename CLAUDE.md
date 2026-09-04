@@ -275,8 +275,8 @@ and not the other is a defect the fingerprint catches.
 Continuing the chain: after 0006 and 0007 (Phase 7, the order engine) both
 projects return `eac11d782d44bd11cb893637f67d2ee1` across 607, and 0008 (pinning
 the trigger functions' search_path) changes behaviour without changing shape, so
-that figure is unchanged by it. **0009 (Phase 8, B2B accounts) is on development
-only at `2f92026fb0d75e4cc9d0942be067999f` across 712, and production will not
+that figure is unchanged by it. **0009 and 0010 (Phase 8, B2B accounts and the API request log) are on development
+only at `9b32a7cced94549f7aeea93cc3ee3d6e` across 719, and production will not
 match until that branch merges.** A divergence while a feature branch is open is
 expected; a divergence after it merges is the defect.
 

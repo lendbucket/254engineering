@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { currentCustomer } from "@/lib/customer-auth";
 import { updateDefaults, addProperty, archiveProperty } from "@/lib/ops-account";
+import { issueApiKey, revokeApiKey } from "@/lib/account-api-keys";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +61,33 @@ export async function POST(request: NextRequest) {
     if (!id) return NextResponse.json({ ok: false, error: "Which property?" }, { status: 400 });
 
     const result = await archiveProperty(me, id);
+    return result.ok
+      ? NextResponse.json({ ok: true })
+      : NextResponse.json({ ok: false, error: result.error }, { status: 400 });
+  }
+
+  if (action === "create-key") {
+    const result = await issueApiKey(
+      me,
+      typeof body?.label === "string" ? body.label : "",
+      typeof body?.rateLimitPerMinute === "number" ? body.rateLimitPerMinute : undefined,
+    );
+
+    /*
+     * The plaintext key is in this response and nowhere else, ever. The screen
+     * says so, because a customer who closes the dialog without copying it has
+     * to create another one and there is no way to recover this.
+     */
+    return result.ok
+      ? NextResponse.json({ ok: true, key: result.key, prefix: result.prefix, id: result.id })
+      : NextResponse.json({ ok: false, error: result.error }, { status: 403 });
+  }
+
+  if (action === "revoke-key") {
+    const keyId = typeof body?.keyId === "string" ? body.keyId : "";
+    if (!keyId) return NextResponse.json({ ok: false, error: "Which key?" }, { status: 400 });
+
+    const result = await revokeApiKey(me, keyId, typeof body?.reason === "string" ? body.reason : undefined);
     return result.ok
       ? NextResponse.json({ ok: true })
       : NextResponse.json({ ok: false, error: result.error }, { status: 400 });

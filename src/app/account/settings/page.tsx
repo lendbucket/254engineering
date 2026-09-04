@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { currentCustomer } from "@/lib/customer-auth";
 import { accountDefaults, savedProperties } from "@/lib/ops-account";
+import { listApiKeys } from "@/lib/account-api-keys";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { SettingsClient } from "./SettingsClient";
 
@@ -11,9 +12,10 @@ export default async function AccountSettingsPage() {
   const me = await currentCustomer();
   if (!me) redirect("/account/login");
 
-  const [defaults, properties] = await Promise.all([
+  const [defaults, properties, keys] = await Promise.all([
     accountDefaults(me.accountId),
     savedProperties(me.accountId),
+    listApiKeys(me.accountId),
   ]);
 
   return (
@@ -43,6 +45,14 @@ export default async function AccountSettingsPage() {
               defaultCounties: [],
             }
           }
+          apiKeys={keys.map((k) => ({
+            id: k.id,
+            label: k.label,
+            prefix: k.prefix,
+            rateLimitPerMinute: k.rate_limit_per_minute,
+            lastUsedAt: k.last_used_at,
+            revokedAt: k.revoked_at,
+          }))}
           properties={properties.map((p) => ({
             id: p.id,
             label: p.label,

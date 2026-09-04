@@ -11,6 +11,15 @@ type Defaults = {
   defaultCounties: string[];
 };
 
+type ApiKey = {
+  id: string;
+  label: string;
+  prefix: string;
+  rateLimitPerMinute: number | null;
+  lastUsedAt: string | null;
+  revokedAt: string | null;
+};
+
 type Property = {
   id: string;
   label: string | null;
@@ -31,10 +40,12 @@ type Property = {
 export function SettingsClient({
   defaults,
   properties,
+  apiKeys,
   isOwner,
 }: {
   defaults: Defaults;
   properties: Property[];
+  apiKeys: ApiKey[];
   isOwner: boolean;
 }) {
   const router = useRouter();
@@ -46,6 +57,8 @@ export function SettingsClient({
     defaultCounties: defaults.defaultCounties.join(", "),
   });
   const [prop, setProp] = useState({ label: "", propertyAddress: "", city: "", county: "", postalCode: "" });
+  const [keyLabel, setKeyLabel] = useState("");
+  const [freshKey, setFreshKey] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
@@ -269,6 +282,112 @@ export function SettingsClient({
               className="mt-3 inline-flex min-h-[44px] items-center rounded-[3px] border border-limestone-line bg-white px-4 text-[13.5px] font-semibold text-slate disabled:opacity-45"
             >
               {busy === "add" ? "Adding" : "Add property"}
+            </button>
+          </div>
+        ) : null}
+      </section>
+
+      <section className="mt-4 rounded-[4px] border border-limestone-line bg-white p-5">
+        <h2 className="font-display text-[1.15rem] font-semibold text-slate">API keys</h2>
+        <p className="mt-1 text-[12.5px] leading-[1.55] text-slate-muted">
+          For placing orders from your own systems. A key can order only for this organisation,
+          because the account is read from the key rather than from the request.
+        </p>
+
+        {apiKeys.length > 0 ? (
+          <ul className="mt-4 divide-y divide-limestone-line border-t border-limestone-line">
+            {apiKeys.map((k) => (
+              <li key={k.id} className="flex flex-wrap items-baseline gap-x-3 py-2.5">
+                <span className="font-mono text-[12.5px] text-slate">{k.prefix}…</span>
+                <span className="text-[13.5px] font-semibold text-slate">{k.label}</span>
+                <span className="text-[12.5px] text-slate-muted">
+                  {k.revokedAt
+                    ? "revoked"
+                    : k.lastUsedAt
+                      ? `last used ${new Date(k.lastUsedAt).toLocaleDateString("en-US")}`
+                      : "never used"}
+                </span>
+                {isOwner && !k.revokedAt ? (
+                  <button
+                    type="button"
+                    disabled={busy !== null}
+                    onClick={() => post({ action: "revoke-key", keyId: k.id }, k.id)}
+                    className="ml-auto min-h-[44px] text-[13px] font-semibold text-slate underline underline-offset-2"
+                  >
+                    Revoke
+                  </button>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-3 text-[13.5px] text-slate-muted">No keys yet.</p>
+        )}
+
+        {freshKey ? (
+          <div className="mt-4 rounded-[3px] border border-[#f0d9a8] bg-[#fdf3e0] px-3 py-3">
+            <p className="text-[12px] font-bold tracking-[0.08em] text-[#7a4c05] uppercase">
+              Copy this now
+            </p>
+            <p className="mt-1 text-[13px] leading-[1.55] text-[#7a4c05]">
+              This is the only time it can be shown. Only a hash of it is stored, so the firm cannot
+              show it to you again and cannot recover it if you lose it.
+            </p>
+            <code className="mt-2 block overflow-x-auto rounded-[3px] bg-white px-2.5 py-2 font-mono text-[12.5px] break-all text-slate">
+              {freshKey}
+            </code>
+            <button
+              type="button"
+              onClick={() => setFreshKey(null)}
+              className="mt-2 min-h-[44px] text-[13px] font-semibold text-[#7a4c05] underline underline-offset-2"
+            >
+              I have copied it
+            </button>
+          </div>
+        ) : null}
+
+        {isOwner ? (
+          <div className="mt-5 border-t border-limestone-line pt-4">
+            <label htmlFor="keyLabel" className="block text-[13px] font-bold text-slate">
+              Create a key
+            </label>
+            <input
+              id="keyLabel"
+              placeholder="What it is for, e.g. ordering from the CRM"
+              value={keyLabel}
+              onChange={(e) => setKeyLabel(e.target.value)}
+              className={field}
+            />
+            <button
+              type="button"
+              disabled={busy !== null || !keyLabel.trim()}
+              onClick={async () => {
+                setBusy("key");
+                setError(null);
+                setNote(null);
+                try {
+                  const res = await fetch("/api/account/settings", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "create-key", label: keyLabel }),
+                  });
+                  const data = await res.json();
+                  if (!res.ok || !data.ok) {
+                    setError(data.error ?? "That did not work.");
+                    return;
+                  }
+                  setFreshKey(data.key);
+                  setKeyLabel("");
+                  router.refresh();
+                } catch {
+                  setError("The request did not complete.");
+                } finally {
+                  setBusy(null);
+                }
+              }}
+              className="mt-3 inline-flex min-h-[44px] items-center rounded-[3px] border border-limestone-line bg-white px-4 text-[13.5px] font-semibold text-slate disabled:opacity-45"
+            >
+              {busy === "key" ? "Creating" : "Create key"}
             </button>
           </div>
         ) : null}
