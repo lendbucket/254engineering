@@ -52,6 +52,27 @@ const PHASE_ZERO = [
     why: "audits cannot reach production without an explicit flag that defaults off",
   },
   {
+    // Replays every migration into an in process Postgres and fingerprints the
+    // result. Runs here because it needs no server, no build and no network, and
+    // because a schema that cannot be rebuilt should stop the run early.
+    //
+    // It exists because 0001 spent a month unable to apply to an empty database
+    // and nothing noticed: the live databases had the objects, the FILE did not
+    // create them, and that is only discovered during a recovery.
+    name: "migration-audit",
+    why: "every migration replays from nothing and produces the schema in use",
+  },
+  {
+    // Phase 8 added a second kind of person. This asks whether the two can be
+    // confused for each other, which is the failure that would look like a
+    // working site right up until a customer opened the review queue.
+    //
+    // Pure, and it needs --conditions=react-server because it imports the
+    // session modules, which are marked server-only.
+    name: "accounts-audit",
+    why: "a customer cannot become a member of staff",
+  },
+  {
     // Pure: the file state machine, the compliance gate, and county derivation.
     // No server, no database, no network.
     name: "files-audit",

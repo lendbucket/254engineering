@@ -384,7 +384,7 @@ create index if not exists eng_file_events_file_idx on eng_file_events (file_id,
 create or replace function eng_forbid_mutation_allow_cascade()
 returns trigger
 language plpgsql
-as $
+as $$
 begin
   if tg_op = 'UPDATE' then
     raise exception 'eng: % is append only. UPDATE is not permitted on it.', tg_table_name;
@@ -396,7 +396,7 @@ begin
   end if;
   return old;
 end;
-$;
+$$;
 
 drop trigger if exists eng_file_events_immutable on eng_file_events;
 create trigger eng_file_events_immutable before update or delete on eng_file_events

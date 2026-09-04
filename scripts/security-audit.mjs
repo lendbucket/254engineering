@@ -65,6 +65,8 @@ const ADMIN_PAGES = [
   // Names customers, properties and amounts, and carries the controls that ask
   // Stripe about a payment and give one back. Admin only behind the perimeter.
   "/portal/orders",
+  // Names every customer organisation, what it owes and on what terms.
+  "/portal/accounts",
   "/admin",
   "/admin/leads",
   "/admin/applications",
@@ -96,6 +98,9 @@ const ADMIN_APIS = [
   // Moves a customer's money back. Closed to a signed out client, and admin
   // only behind that.
   "/api/portal/orders/refund",
+  // Customer ordering accounts: terms, credit limits, closing a period and
+  // issuing a statement. It decides who may owe the firm money.
+  "/api/portal/accounts",
 ];
 
 /**
@@ -855,6 +860,94 @@ async function run() {
      * own must open nothing, or every order is readable by anybody who can
      * guess six characters.
      */
+    /*
+     * THE CUSTOMER SURFACE.
+     *
+     * A second perimeter, gated by a different cookie. It is checked here, over
+     * HTTP against the running app, because accounts-audit is pure and can only
+     * prove the proxy SAYS the right thing. This proves the deployed route
+     * actually refuses.
+     */
+    for (const path of [
+      "/account",
+      "/account/order",
+      "/account/settings",
+      "/account/orders/254-B2026-XXXXXX",
+    ]) {
+      const res = await fetch(`${BASE}${path}`, { redirect: "manual" });
+      rec(
+        `${path} is closed to a signed out client`,
+        res.status === 307 || res.status === 302,
+        `HTTP ${res.status}`,
+      );
+      const location = res.headers.get("location") ?? "";
+      rec(
+        `and sends them to the CUSTOMER sign in, not the staff one`,
+        location.includes("/account/login"),
+        location || "(no location)",
+      );
+    }
+
+    for (const path of ["/api/account/bulk", "/api/account/session", "/api/account/settings"]) {
+      const res = await fetch(`${BASE}${path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      rec(
+        `${path} answers JSON rather than redirecting`,
+        res.status === 400 || res.status === 401,
+        `HTTP ${res.status}`,
+      );
+    }
+
+    {
+      const res = await fetch(`${BASE}/api/account/bulk`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "submit", serviceSlug: "roof-inspections", properties: [] }),
+      });
+      rec(
+        "a signed out client cannot submit a bulk order",
+        res.status === 401,
+        `HTTP ${res.status}`,
+      );
+    }
+
+    /*
+     * THE ORDERING API. Public by necessity: a key holder has no cookie.
+     */
+    {
+      const noKey = await fetch(`${BASE}/api/v1/orders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ serviceSlug: "roof-inspections", properties: [{}] }),
+      });
+      rec("the ordering API refuses a caller with no key", noKey.status === 401, `HTTP ${noKey.status}`);
+
+      const badKey = await fetch(`${BASE}/api/v1/orders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", authorization: "Bearer eng_live_not_a_real_key" },
+        body: JSON.stringify({ serviceSlug: "roof-inspections", properties: [{}] }),
+      });
+      rec("and a wrong key the same way", badKey.status === 401, `HTTP ${badKey.status}`);
+
+      const bodyText = await badKey.text();
+      rec(
+        "and the two are indistinguishable",
+        noKey.status === badKey.status,
+        "a different answer tells somebody a revoked key was once real",
+      );
+      rec(
+        "and the refusal says nothing about accounts or keys",
+        !/account|revoked|expired|suspend/i.test(bodyText),
+        bodyText.slice(0, 60),
+      );
+
+      const get = await fetch(`${BASE}/api/v1/orders`);
+      rec("the ordering API answers nothing to a GET", get.status === 405, `HTTP ${get.status}`);
+    }
+
     const noToken = await fetch(`${BASE}/order/254-O2026-XXXXXX`, { redirect: "manual" });
     const noTokenBody = noToken.status === 200 ? await noToken.text() : "";
     rec(

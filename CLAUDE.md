@@ -272,6 +272,21 @@ after 0005 (Phase 5, comms) `1187b16a91c10ff758ce8953e4efb1ca` across 489. Every
 `supabase/migrations/` applies to both, in order, and a migration applied to one
 and not the other is a defect the fingerprint catches.
 
+Continuing the chain: after 0006 and 0007 (Phase 7, the order engine) both
+projects return `eac11d782d44bd11cb893637f67d2ee1` across 607, and 0008 (pinning
+the trigger functions' search_path) changes behaviour without changing shape, so
+that figure is unchanged by it. **0009 and 0010 (Phase 8, B2B accounts and the API request log) are on development
+only at `9b32a7cced94549f7aeea93cc3ee3d6e` across 719, and production will not
+match until that branch merges.** A divergence while a feature branch is open is
+expected; a divergence after it merges is the defect.
+
+**The fingerprint is now also checked without either database.**
+`scripts/migration-audit.mjs` replays every migration into an in process Postgres
+and asserts the result equals the figure above. It exists because 0001 spent a
+month unable to apply to an empty database while both live projects held the
+objects it failed to create: comparing the two projects to each other could never
+have caught that, because they were both right and the FILES were wrong.
+
 **roles-audit runs against development only, and no flag overrides that.** Operator
 ruling, 2026-09-02. It creates accounts, signs them in, and deletes them; the
 deletions are verified but the audit trail rows their sign ins produce are

@@ -28,6 +28,15 @@
 export type CheckoutRequest = {
   /** Our order reference, shown on the customer's statement and in Stripe. */
   reference: string;
+  /**
+   * The id of the thing being paid for, and what kind of thing it is.
+   *
+   * A batch payment covers many orders, so the session must say which it is.
+   * Passing a batch id as an order id would make the webhook try to mark an
+   * order that does not exist, and the money would arrive with nothing to
+   * attach it to.
+   */
+  subjectKind?: "order" | "batch" | "statement";
   orderId: string;
   amountCents: number;
   currency: string;
@@ -77,9 +86,18 @@ export type PaymentEvent =
       /** The charge or payment intent that actually took the money. */
       chargeRef: string;
       amountCents: number;
+      /** Exactly one of these is set, decided when the session was created. */
       orderId: string | null;
+      batchId: string | null;
+      statementId: string | null;
     }
-  | { kind: "checkout.expired"; sessionRef: string; orderId: string | null }
+  | {
+      kind: "checkout.expired";
+      sessionRef: string;
+      orderId: string | null;
+      batchId: string | null;
+      statementId: string | null;
+    }
   | {
       kind: "charge.refunded";
       chargeRef: string;

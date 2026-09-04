@@ -45,6 +45,8 @@ import { deploymentOrigin } from "../src/lib/site-url.ts";
 import { blockersOn, emptyState, firstIncomplete, stepsFor } from "../src/lib/order-flow.ts";
 import { judge } from "../src/lib/reconcile-rules.ts";
 import { attentionFor, CHECKOUT_SESSION_HOURS, worstLevel } from "../src/lib/order-attention.ts";
+import { creditDecision, outstandingOf } from "../src/lib/account-credit.ts";
+import { batchShares, splitBatch, splitSummary } from "../src/lib/bulk-order.ts";
 import {
   ORDER_STATUSES,
   QUOTE_STATUSES,
@@ -1158,6 +1160,501 @@ const answerAll = (entry, pick = () => 0) =>
   rec("the dashboard counts stuck orders", /ordersNeedingAttention\(\)/.test(dash));
   rec("and gives them a tile", /Orders stuck on payment/.test(dash));
   rec("and puts them in the attention list", /stuck on payment/.test(dash));
+}
+
+// ===========================================================================
+// 14. CREDIT: WHETHER THE FIRM TAKES WORK IT MAY NOT BE PAID FOR
+// ===========================================================================
+{
+  const acct = (over = {}) => ({
+    billingMode: "invoice",
+    status: "active",
+    creditLimitCents: 500000,
+    outstandingCents: 0,
+    oldestUnpaidDays: null,
+    netDays: 30,
+    ...over,
+  });
+
+  /*
+   * The inversion that matters most. The operator ruled credit terms default
+   * to NONE. Written the other way round, every account created before
+   * somebody set a limit would have an infinite one, and the first anybody
+   * would know is a large unpaid balance.
+   */
+  const noTerms = creditDecision(acct({ creditLimitCents: null }), 67500);
+  rec("a null credit limit means NO credit, never unlimited", !noTerms.ok);
+  rec("and says the firm sets one rather than blaming the customer",
+    noTerms.reason === "no_credit_terms" && /the firm sets one/i.test(noTerms.message),
+    noTerms.message);
+
+  // A card account is not on credit at all.
+  const card = creditDecision(acct({ billingMode: "card", creditLimitCents: null }), 67500);
+  rec("a card account is never refused for credit reasons", card.ok, card.reason);
+
+  // Suspended and closed refuse before anything about money is considered.
+  rec("a suspended account cannot order", !creditDecision(acct({ status: "suspended" }), 100).ok);
+  rec("nor a closed one", !creditDecision(acct({ status: "closed" }), 100).ok);
+  rec("and the two say different things",
+    creditDecision(acct({ status: "suspended" }), 100).reason !==
+      creditDecision(acct({ status: "closed" }), 100).reason);
+
+  /*
+   * Overdue is checked BEFORE the limit. An account within its limit that has
+   * not paid a ninety day old statement is the worse case, and telling them
+   * they are over their limit would be both wrong and confusing.
+   */
+  const late = creditDecision(acct({ oldestUnpaidDays: 90, outstandingCents: 100 }), 100);
+  rec("an overdue account is refused even when well within its limit", !late.ok);
+  rec("and is told it is overdue, not over limit", late.reason === "overdue", late.message);
+  rec("and the terms are named in days", /30 day/.test(late.message), late.message);
+
+  // Exactly at the terms is not yet overdue.
+  rec("an account exactly at its terms is not yet overdue",
+    creditDecision(acct({ oldestUnpaidDays: 30 }), 100).ok);
+  rec("and one day past is", !creditDecision(acct({ oldestUnpaidDays: 31 }), 100).ok);
+
+  /*
+   * An unknown balance refuses rather than assuming zero. Assuming zero is
+   * assuming the flattering direction, which is the mistake Phase 6 exists to
+   * prevent: an absent figure is not a zero.
+   */
+  const unknown = creditDecision(acct({ outstandingCents: null }), 67500);
+  rec("an unknown balance refuses rather than assuming zero", !unknown.ok);
+  rec("and says so plainly", unknown.reason === "outstanding_unknown", unknown.message);
+
+  // The limit itself.
+  rec("an order inside the limit is allowed",
+    creditDecision(acct({ outstandingCents: 400000 }), 67500).ok);
+  const over = creditDecision(acct({ outstandingCents: 450000 }), 67500);
+  rec("an order that would cross the limit is refused", !over.ok);
+  rec("and names both figures rather than just saying no",
+    /5,175|5175/.test(over.message.replace(/[$.]/g, "")) && /5,000|5000/.test(over.message.replace(/[$.]/g, "")),
+    over.message);
+
+  // The projection includes the order being placed, not just what is owed.
+  rec("the limit is tested against the balance PLUS this order",
+    !creditDecision(acct({ outstandingCents: 499000 }), 67500).ok,
+    "499 dollars owed plus a 675 dollar order crosses a 5000 dollar limit");
+
+  // outstandingOf refuses to add an unknown to a known.
+  rec("an outstanding total with an unknown part is unknown",
+    outstandingOf({ issuedUnpaidCents: 1000, unbilledCents: null }) === null);
+  rec("and a known one adds up",
+    outstandingOf({ issuedUnpaidCents: 1000, unbilledCents: 500 }) === 1500);
+}
+
+// ===========================================================================
+// 15. BULK: PARTIAL FAILURE IS EXPLICIT
+// ===========================================================================
+{
+  const roof = catalogFor("roof-inspections");
+  const TWIA = new Set(["Nueces"]);
+  const good = (ref, county = "Bexar") => ({
+    ref,
+    propertyAddress: ref + " Somewhere St",
+    county,
+    answers: roof.qualifiers.map((q) => ({ qualifierId: q.id, optionIndex: 0 })),
+  });
+  // Answering the first qualifier with an option the catalog disqualifies on.
+  // The shape is options: string[] with disqualifyOn: number[], so the bad
+  // answer is an INDEX the catalog names rather than a flag on the option.
+  const badQ = roof.qualifiers.findIndex((q) => q.disqualifyOn.length > 0);
+  const badIndex = roof.qualifiers[badQ].disqualifyOn[0];
+  const bad = (ref) => ({
+    ...good(ref),
+    answers: roof.qualifiers.map((q, i) => ({
+      qualifierId: q.id,
+      optionIndex: i === badQ ? badIndex : 0,
+    })),
+  });
+
+  /*
+   * The operator rule, word for word: three of ten rejected, the customer is
+   * told which and why before paying, and pays for seven.
+   */
+  const ten = [];
+  for (let i = 1; i <= 7; i++) ten.push(good("P" + i));
+  for (let i = 8; i <= 10; i++) ten.push(bad("P" + i));
+  const split = splitBatch(roof, ten, TWIA);
+
+  rec("ten submitted, seven accepted", split.accepted.length === 7, String(split.accepted.length));
+  rec("and three rejected", split.rejected.length === 3, String(split.rejected.length));
+  rec("the rejected are NAMED, not counted",
+    split.rejected.map((r) => r.ref).join(",") === "P8,P9,P10",
+    split.rejected.map((r) => r.ref).join(","));
+  rec("each carries its own reason from the catalog",
+    split.rejected.every((r) => r.reason && r.reason.length > 20),
+    split.rejected[0] && split.rejected[0].reason);
+  rec("and none of them says something generic",
+    !split.rejected.some((r) => /rejected|invalid|error/i.test(r.reason)),
+    "a reason a customer cannot act on is not a reason");
+  rec("the total is for the seven only",
+    split.totalCents === 7 * 60000,
+    String(split.totalCents));
+
+  // The summary names the split rather than summarising it away.
+  const summary = splitSummary(split);
+  rec("the summary says how many and that the rest are not charged for",
+    /7 of 10/.test(summary) && /not charged/.test(summary), summary);
+
+  // A duplicate reference is rejected rather than silently collapsed.
+  const dupes = splitBatch(roof, [good("A"), good("A"), good("B")], TWIA);
+  rec("a duplicate reference is rejected, not silently collapsed",
+    dupes.accepted.length === 2 && dupes.rejected.length === 1,
+    dupes.accepted.length + " accepted, " + dupes.rejected.length + " rejected");
+  rec("and says why it matters",
+    /matched back/i.test(dupes.rejected[0].reason), dupes.rejected[0].reason);
+
+  // Missing fields are rejections with their own words, not crashes.
+  const blanks = splitBatch(roof, [
+    { ...good("X"), propertyAddress: "" },
+    { ...good("Y"), county: "" },
+  ], TWIA);
+  rec("a property with no address is rejected", blanks.rejected.length === 2);
+  rec("and the county rejection explains what county decides",
+    /protocol and the price/i.test(blanks.rejected[1].reason), blanks.rejected[1].reason);
+
+  /*
+   * Nothing acceptable means no checkout. A checkout for zero properties is a
+   * charge for nothing.
+   */
+  const none = splitBatch(roof, [bad("Z1"), bad("Z2")], TWIA);
+  rec("a batch with nothing acceptable is flagged empty", none.empty);
+  rec("and its total is zero rather than null", none.totalCents === 0);
+  rec("and the summary says nothing will be charged",
+    /Nothing will be charged/.test(splitSummary(none)), splitSummary(none));
+
+  // The coastal surcharge applies per property, not per batch.
+  const mixed = splitBatch(roof, [good("I1", "Bexar"), good("C1", "Nueces")], TWIA);
+  rec("a coastal property in a batch carries the surcharge",
+    mixed.accepted.find((a) => a.ref === "C1").priceCents === 67500,
+    String(mixed.accepted.find((a) => a.ref === "C1").priceCents));
+  rec("and an inland one in the same batch does not",
+    mixed.accepted.find((a) => a.ref === "I1").priceCents === 60000,
+    String(mixed.accepted.find((a) => a.ref === "I1").priceCents));
+  rec("and the batch total is the sum of the two",
+    mixed.totalCents === 127500, String(mixed.totalCents));
+
+  /*
+   * The shares are what a refund of one property out of a batch works from,
+   * because the charge row belongs to the batch. They must sum to the total
+   * exactly rather than being recomputed from a percentage later.
+   */
+  const shares = batchShares(mixed);
+  rec("every accepted property has a share", shares.length === mixed.accepted.length);
+  rec("and the shares sum to the batch total exactly",
+    shares.reduce((n, s) => n + s.shareCents, 0) === mixed.totalCents,
+    shares.map((s) => s.shareCents).join(" + "));
+}
+
+// ===========================================================================
+// 16. THE MONEY PATH FOR A BATCH
+//
+// A batch payment is one payment covering many orders. Everything below is a
+// way of getting that wrong, and each has a shape that would look like a
+// working site.
+// ===========================================================================
+{
+  const pay = fs.readFileSync("src/lib/ops-payments.ts", "utf8");
+  const batchPaid = pay.slice(pay.indexOf("export async function markBatchPaid"));
+  const batchCheckout = pay.slice(
+    pay.indexOf("export async function startBatchCheckout"),
+    pay.indexOf("export async function markBatchPaid"),
+  );
+
+  /*
+   * ONE charge row for one payment. Ten charge rows for a ten property batch
+   * would be ten times the money in the ledger, and every margin figure and
+   * every refund computed from it would be wrong.
+   */
+  rec(
+    "a batch payment writes its charge against the BATCH",
+    /batch_id: input\.batchId,\s*\n\s*kind: "charge"/.test(batchPaid),
+    "one payment, one row",
+  );
+  rec(
+    "and never a charge row per order",
+    !/order_id: o\.id[\s\S]{0,120}kind: "charge"/.test(batchPaid),
+    "ten rows for one payment would be ten times the money",
+  );
+  rec(
+    "and it is idempotent on the charge ref",
+    /23505/.test(batchPaid),
+    "Stripe delivers more than once",
+  );
+  rec(
+    "and each order is released through the shared path",
+    /releaseForFulfilment\(/.test(batchPaid),
+    "so a batch order and a single order reach fulfilment the same way",
+  );
+  rec(
+    "and an order that cannot transition is skipped rather than forced",
+    /canTransitionOrder/.test(batchPaid),
+  );
+
+  /*
+   * The line items must add up to what is charged. If they do not, something
+   * upstream disagreed with itself and the customer would be charged a figure
+   * no receipt explains.
+   */
+  rec(
+    "a batch checkout refuses when its lines do not sum to its total",
+    /lineTotal !== Number\(batch\.total_cents\)/.test(batchCheckout),
+  );
+  rec(
+    "and the lines are per property rather than one opaque total",
+    /o\.property_address/.test(batchCheckout),
+    "a receipt somebody can check against what they submitted",
+  );
+  rec(
+    "and the session says it is a batch",
+    /subjectKind: "batch"/.test(batchCheckout),
+    "an order id in the wrong key would send the payment to markPaid",
+  );
+
+  // An invoiced order is released without inventing a payment.
+  const invoice = pay.slice(pay.indexOf("export async function acceptOnInvoice"));
+  rec(
+    "an invoiced order creates no charge row",
+    !/eng_order_payments/.test(invoice.slice(0, invoice.indexOf("export async function", 10))),
+    "nothing has been paid, and a zero amount row would be a lie in the ledger",
+  );
+  rec(
+    "and is released through the same shared path as a paid one",
+    /releaseForFulfilment\(/.test(invoice.slice(0, invoice.indexOf("export async function", 10))),
+  );
+  rec(
+    "and tells the customer it will be on a statement rather than charged now",
+    /statement rather than being charged now/.test(invoice),
+  );
+
+  // An abandoned batch closes its orders too.
+  const abandon = pay.slice(pay.indexOf("export async function abandonBatch"));
+  rec(
+    "an abandoned batch closes every order under it",
+    /markAbandoned\(o\.id/.test(abandon),
+    "otherwise one abandonment puts ten rows on the stuck order screen",
+  );
+  rec(
+    "and refuses to abandon a batch that was already paid",
+    /status !== "awaiting_payment" && batch\.status !== "draft"/.test(abandon),
+    "Stripe does not guarantee a completion arrives before an expiry",
+  );
+
+  // The webhook routes a batch before it routes an order.
+  const hook = fs.readFileSync("src/app/api/stripe/webhook/route.ts", "utf8");
+  const completed = hook.indexOf('parsed.kind === "checkout.completed"');
+  const batchBranch = hook.indexOf("parsed.batchId", completed);
+  const orderBranch = hook.indexOf("!parsed.orderId", completed);
+  /*
+   * The first version of this used indexOf("parsed.batchId") and passed against
+   * an injected `if (parsed.batchId && false)`, because the string was still
+   * there. Position is not reachability. It now asserts the condition itself.
+   */
+  rec(
+    "the webhook checks for a batch before it checks for an order",
+    batchBranch !== -1 && orderBranch !== -1 && batchBranch < orderBranch,
+    "otherwise a batch payment looks for an order with a batch id and answers 500",
+  );
+  const completedBranch = hook.slice(completed, hook.indexOf('parsed.kind === "checkout.expired"'));
+  rec(
+    "and the COMPLETED branch's batch check is reachable rather than merely present",
+    /if \(parsed\.batchId\) \{/.test(completedBranch),
+    "scoped to that branch: the identical line in the expired branch satisfied an unscoped check",
+  );
+  rec(
+    "and an expired batch is closed as well as an expired order",
+    /abandonBatch\(/.test(hook),
+  );
+
+  // The batch wrapper does not reimplement placing an order.
+  const bulk = fs.readFileSync("src/lib/ops-bulk.ts", "utf8");
+  rec(
+    "a batch places each property through placeOrder",
+    /placeOrder\(\{/.test(bulk),
+    "a second implementation would be a second answer to what the firm may take",
+  );
+  rec(
+    "and derives a per order idempotency key from the batch one",
+    /clientRequestId: `\$\{input\.clientRequestId\}:\$\{item\.ref\}`/.test(bulk),
+    "so a retry finds each order rather than creating ten more",
+  );
+  rec(
+    "and checks the compliance gate before any order exists",
+    bulk.indexOf("previewBatch(") < bulk.indexOf("placeOrder({"),
+  );
+  rec(
+    "and refuses a batch for an account belonging to another brand",
+    /account\.site !== input\.site/.test(bulk),
+  );
+  rec(
+    "and runs the credit decision before accepting invoiced work",
+    /creditDecision\(/.test(bulk),
+  );
+  rec(
+    "and stamps each order with its share of the batch",
+    /batch_share_cents: item\.priceCents/.test(bulk),
+    "the charge belongs to the batch, so without this one property cannot be refunded",
+  );
+  rec(
+    "and never charges for a batch with nothing acceptable",
+    /split\.empty/.test(bulk),
+  );
+  rec(
+    "and an unbilled invoiced order counts against the credit limit",
+    /is\("statement_id", null\)/.test(bulk),
+    "otherwise a limit means nothing until the first of the month",
+  );
+  rec(
+    "and a failed balance read is unknown rather than zero",
+    /if \(sErr \|\| uErr\)/.test(bulk),
+  );
+}
+
+// ===========================================================================
+// 17. INVOICING: WHERE A BUG BILLS THE WRONG AMOUNT
+// ===========================================================================
+{
+  const st = fs.readFileSync("src/lib/ops-statements.ts", "utf8");
+  const close = st.slice(st.indexOf("export async function closePeriod"), st.indexOf("export async function issueStatement"));
+  const issue = st.slice(st.indexOf("export async function issueStatement"), st.indexOf("export async function startStatementCheckout"));
+  const checkout = st.slice(st.indexOf("export async function startStatementCheckout"), st.indexOf("export async function markStatementPaid"));
+  const paid = st.slice(st.indexOf("export async function markStatementPaid"), st.indexOf("export async function statementsFor"));
+
+  /*
+   * An order with no total is skipped and said out loud, never billed as zero.
+   * A zero line on a statement is a claim that the work was free, and it is the
+   * Phase 6 rule applied to invoicing.
+   */
+  rec(
+    "an order with no total is left off the statement rather than billed as nothing",
+    /o\.total_cents === null/.test(close) && /statement\.skipped/.test(close),
+  );
+
+  /*
+   * Claiming the order by setting statement_id is the lock. Without it two
+   * closes running at once each gather the same orders.
+   */
+  rec(
+    "an order is claimed by its statement so a second close cannot re-bill it",
+    /statement_id: statementId/.test(close) && /is\("statement_id", null\)/.test(close),
+  );
+  rec(
+    "and only work that has actually been agreed is billable",
+    /in\("status", \["paid", "in_fulfilment", "complete"\]\)/.test(close),
+    "a draft or an unpaid order is not a bill",
+  );
+
+  /*
+   * The header total is recomputed from the lines rather than accumulated, so
+   * a close that ran twice or skipped an order cannot leave a total that
+   * disagrees with what is printed beneath it.
+   */
+  rec(
+    "the statement total is recomputed from its lines, not accumulated",
+    /const headerTotal = \(allLines \?\? \[\]\)\.reduce/.test(close),
+  );
+
+  // An issued statement is a document that has been sent.
+  rec(
+    "an issued statement is never reopened to add a late order",
+    /existing\.status !== "open"/.test(close),
+    "a late order belongs on the next period, not on a bill already sent",
+  );
+  rec("and cannot be issued twice", /statement\.status !== "open"/.test(issue));
+  rec(
+    "and an empty statement cannot be issued at all",
+    /Number\(statement\.total_cents\) <= 0/.test(issue),
+  );
+
+  /*
+   * The due date is stored at issue rather than computed later from net_days.
+   * If the terms change next month, a statement already sent must not silently
+   * acquire a different due date.
+   */
+  rec(
+    "the due date is stored when the statement is issued",
+    /due_at: dueAt/.test(issue),
+    "so changing the terms later cannot move a due date already given",
+  );
+
+  // The same refusal the batch checkout has, for the same reason.
+  rec(
+    "a statement checkout refuses when its lines do not sum to its total",
+    /lineTotal !== Number\(statement\.total_cents\)/.test(checkout),
+  );
+  rec(
+    "and it charges only an issued statement",
+    /statement\.status !== "issued"/.test(checkout),
+    "an open statement is a working total, not a bill",
+  );
+  rec("and the session says it is a statement", /subjectKind: "statement"/.test(checkout));
+
+  // One charge row for one payment, idempotent, and the work is untouched.
+  rec("a paid statement writes one charge row against the statement", /statement_id: input\.statementId/.test(paid));
+  rec("and is idempotent on the charge ref", /23505/.test(paid));
+  rec(
+    "and does not touch the orders beneath it",
+    !/eng_service_orders/.test(paid),
+    "paying the bill does not change the work",
+  );
+
+  // The webhook routes a statement before an order, same reason as a batch.
+  const hook = fs.readFileSync("src/app/api/stripe/webhook/route.ts", "utf8");
+  const completedPart = hook.slice(
+    hook.indexOf('parsed.kind === "checkout.completed"'),
+    hook.indexOf('parsed.kind === "checkout.expired"'),
+  );
+  rec(
+    "the webhook routes a statement payment before an order",
+    completedPart.indexOf("parsed.statementId") < completedPart.indexOf("!parsed.orderId"),
+  );
+  rec(
+    "and that branch is reachable rather than merely present",
+    /if \(parsed\.statementId\) \{/.test(completedPart),
+  );
+
+  // No dunning. The operator ruled it, and absence is asserted rather than assumed.
+  /*
+   * Read with comments stripped. The first version matched the very paragraph
+   * explaining that there IS no dunning, which is a check reading prose rather
+   * than code, and it is the fifth time that has happened today.
+   */
+  const stCode = st.replace(/\/\*[\s\S]*?\*\//g, "").split("\n").filter((l) => !/^\s*\/\//.test(l)).join("\n");
+  rec(
+    "nothing chases an overdue statement",
+    !/dunning|reminder|late_fee|lateFee|escalat/i.test(stCode),
+    "the operator ruled the state is made visible and nothing chases it",
+  );
+
+  // The operator side.
+  const admin = fs.readFileSync("src/lib/ops-accounts-admin.ts", "utf8");
+  rec(
+    "the accounts screen computes can-they-order from the same rule the customer hits",
+    /creditDecision\(/.test(admin),
+    "so the screen and the refusal cannot disagree",
+  );
+  rec(
+    "converting a client keeps its history rather than moving it",
+    /references that row rather than replacing/.test(admin) || /client_id: clientId/.test(admin),
+  );
+  rec(
+    "and accounts are for organisations only",
+    /client\.kind !== "organization"/.test(admin),
+  );
+
+  const route = fs.readFileSync("src/app/api/portal/accounts/route.ts", "utf8");
+  rec("the operator account route checks accounts.manage", route.includes('can(actor, "accounts.manage")'));
+  rec(
+    "and a credit limit is cleared explicitly rather than by omission",
+    /"creditLimitCents" in body/.test(route),
+    "an absent field must not silently remove credit, nor grant it",
+  );
+  rec(
+    "and a negative credit limit is refused rather than stored",
+    /raw >= 0/.test(route),
+  );
 }
 
 console.log("============ THE ORDER ENGINE ============");
