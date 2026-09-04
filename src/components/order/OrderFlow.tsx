@@ -143,6 +143,17 @@ export function OrderFlow({
           utm_campaign: params.get("utm_campaign") ?? undefined,
           landing_path: window.location.pathname,
           referrer: document.referrer || undefined,
+          /*
+           * The partner code rides here, in the object the UTM parameters
+           * already ride in, rather than on a path of its own. One capture
+           * shape means one place to look when an order arrives attributed to
+           * nobody.
+           *
+           * Trimmed but not otherwise judged: whether it matches a partner is
+           * the server's question, and a client that decided would be a client
+           * telling a stranger which codes are real.
+           */
+          partner_code: state.partnerCode.trim() || undefined,
         },
       }),
     });
@@ -327,6 +338,24 @@ export function OrderFlow({
                 onChange={(v) => set({ customer: { ...state.customer, company: v } })}
               />
             </div>
+            {/*
+              The hand entered referral code.
+
+              Last, small, and optional, because that is what it is. Most
+              referrals arrive on a tracked link and never see this box; it
+              exists for the ones that arrive as somebody saying a name out
+              loud, which is how most real referrals actually happen.
+
+              The label says "referral code" rather than "partner code",
+              because the customer has no idea the firm has partners and does
+              not need to learn it here.
+            */}
+            <Field
+              label="Referral code"
+              hint="Optional. If somebody gave you a code, enter it here."
+              value={state.partnerCode}
+              onChange={(v) => set({ partnerCode: v })}
+            />
           </div>
         ) : null}
 

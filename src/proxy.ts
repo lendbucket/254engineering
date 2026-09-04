@@ -222,5 +222,16 @@ export const config = {
     // failure mode of a clever matcher is a route that is quietly uncovered.
     "/account/:path*",
     "/api/account/:path*",
+    /*
+     * The partner surface. Added when injection verification found the branch
+     * above was DEAD CODE: it was written, reviewed, and reachable by nothing,
+     * because a matcher that does not name a prefix means the proxy never runs
+     * for it. Every partner page would have rendered to a signed out visitor.
+     *
+     * The gate is not the only lock, so this was never the sole protection, but
+     * a gate nothing routes through is a gate in name only.
+     */
+    "/partner/:path*",
+    "/api/partner/:path*",
   ],
 };

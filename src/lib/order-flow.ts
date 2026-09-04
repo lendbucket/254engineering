@@ -103,6 +103,14 @@ export type FlowState = {
   inputs: Record<string, string>;
   files: Record<string, { name: string; storageKey: string; bucket: string }[]>;
   acceptedTerms: boolean;
+  /*
+   * A partner code, typed by hand, when somebody was told one out loud.
+   *
+   * Optional, and it is not in blockersOn: an order must never be held up by a
+   * referral field. Somebody who cannot remember the code buys anyway, and the
+   * partner's tracked link is the path that does not depend on memory.
+   */
+  partnerCode: string;
 };
 
 export function emptyState(tier: string | null = null): FlowState {
@@ -114,6 +122,7 @@ export function emptyState(tier: string | null = null): FlowState {
     inputs: {},
     files: {},
     acceptedTerms: false,
+    partnerCode: "",
   };
 }
 

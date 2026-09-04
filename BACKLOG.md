@@ -6,6 +6,62 @@ reason and, where one exists, the concrete incident that produced it.
 
 Items are removed when they ship, not when they are attempted.
 
+## Suspended by decision
+
+### Phase 9 is suspended after Section 2, by decision, with Sections 3 to 6 unbuilt
+
+Recorded 2026-09-04. Operator decision the same day: merge Phase 9 Section 2 and
+start Phase 10. This is a deliberate stop, not an abandonment and not an
+oversight, and it is written down because the state it leaves on main looks
+exactly like an oversight to somebody reading the code cold.
+
+**What is on main.** The partner tables (0013), attribution (0014), the pure
+attribution rule in `src/lib/attribution-rules.ts`, the capture path at
+`/api/referral` with `ReferralCapture` in the public chrome, a hand entered
+referral code on the order flow, partner attribution on orders and on leads, the
+partner session module, and the partner branch in the proxy with both prefixes in
+the matcher. `partner-audit` gates all of it.
+
+**What is NOT on main, and this is the part that reads as a mistake.** There is
+no partner portal. There are no pages under `/partner` and no routes under
+`/api/partner`, so the session module and the proxy branch guard a surface that
+does not exist yet. A partner today can be attributed business and has no way to
+see it, and nothing pays them, because compensation is Section 3.
+
+**Why merging it anyway was right.** Migration numbering. Main was at 0012 and
+this branch carried 0013 and 0014. Phase 10 Section 2, roles and permissions,
+needs migrations of its own; branching Phase 10 from an unmerged main would have
+produced a second 0013 and two orderings of the same number reaching production
+depending on which merged first. Merging first makes Phase 10 start at 0015 and
+the question never arises.
+
+**Why it is inert in production.** `/api/referral` records a touch only when the
+code matches an ACTIVE partner, and production has no partner rows at all. Every
+`?ref=` on the live site is a 204 that writes nothing. The firm begins
+accumulating attribution the moment a first partner exists and not before.
+
+**What remains, in the order the phase defined them:**
+
+3. Compensation and payout: the four models as configuration, accrual on
+   delivery, reversal by counter entry and never by editing an accrual, the
+   holdback window, partner statements in their own table, and `marginOf`
+   gaining a fourth cost with its own injection test in `money-audit`.
+4. The partner portal, mobile first and deliberately narrow. This is the section
+   that makes the proxy branch above load bearing rather than latent.
+5. Marketing assets, and the compliance of partner copy against the four non
+   negotiables the operator set: the performing firm named near the offer, no
+   partner surface making a claim the public site could not, no partner name on
+   a deliverable or the responsible charge log, and partner branding primary
+   only inside the partner portal.
+6. The operator's side: the partner roster, approving and suspending, and the
+   attribution disputes screen.
+
+**The condition that makes this urgent:** a real partner agreement being signed.
+Until then the program earns nothing and owes nothing, and the attribution being
+captured now is the thing that makes Section 3 possible to build honestly later,
+because it will have real touches to reason about rather than invented ones.
+
+
 ## Blocked on the owner
 
 ### DONE. The logo arrived and is integrated
