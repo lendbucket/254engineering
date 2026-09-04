@@ -72,6 +72,9 @@ const ADMIN_PAGES = [
   // Names every fault this deployment has recorded, which credential is set,
   // and yesterday's revenue. A reconnaissance page if it were ever open.
   "/portal/status",
+  // A technician's own earnings. Their pay is nobody else's business and it is
+  // certainly not a signed out client's.
+  "/portal/pay",
   "/admin",
   "/admin/leads",
   "/admin/applications",

@@ -81,20 +81,20 @@ export default async function MessagesPage({
                       className={`block rounded-[4px] border bg-white p-4 transition-colors hover:border-slate ${
                         open?.thread.id === t.id
                           ? "border-slate"
-                          : "border-limestone-line"
+                          : "border-[var(--border)]"
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-[14.5px] font-semibold text-slate">{t.title}</p>
+                          <p className="text-[13.5px] font-semibold text-[var(--navy)]">{t.title}</p>
                           {t.preview ? (
-                            <p className="mt-1 line-clamp-2 text-[13px] leading-[1.5] text-slate-muted">
+                            <p className="mt-1 line-clamp-2 text-[13.5px] leading-[1.5] text-[var(--secondary)]">
                               {t.preview}
                             </p>
                           ) : (
-                            <p className="mt-1 text-[13px] text-slate-muted">Nothing said yet.</p>
+                            <p className="mt-1 text-[13.5px] text-[var(--secondary)]">Nothing said yet.</p>
                           )}
-                          <p className="mt-1 text-[12px] text-slate-muted">
+                          <p className="mt-1 text-[12px] text-[var(--secondary)]">
                             {KIND_LABEL[t.kind]}
                             {t.last_message_at ? `, ${when(t.last_message_at)}` : ""}
                           </p>
@@ -113,17 +113,17 @@ export default async function MessagesPage({
           <div>
             <Link
               href="/portal/messages"
-              className="mb-3 inline-flex min-h-[44px] items-center text-[14px] font-semibold text-slate-muted lg:hidden"
+              className="mb-3 inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-[var(--secondary)] lg:hidden"
             >
               Back to conversations
             </Link>
 
-            <div className="rounded-[4px] border border-limestone-line bg-white">
-              <div className="border-b border-limestone-line px-4 py-3 sm:px-5">
-                <h2 className="font-display text-[18px] leading-[1.25] font-bold text-slate">
+            <div className="rounded-[4px] border border-[var(--border)] bg-white">
+              <div className="border-b border-[var(--border)] px-4 py-3 sm:px-5">
+                <h2 className="font-display text-[17px] leading-[1.25] font-bold text-[var(--navy)]">
                   {open.thread.title}
                 </h2>
-                <p className="mt-0.5 text-[12.5px] text-slate-muted">
+                <p className="mt-0.5 text-[12.5px] text-[var(--secondary)]">
                   {KIND_LABEL[open.thread.kind]}
                   {open.thread.kind === "channel" && open.thread.channel_roles?.length
                     ? `, readable by ${open.thread.channel_roles.join(" and ")}`
@@ -136,7 +136,7 @@ export default async function MessagesPage({
 
               <div className="px-4 py-4 sm:px-5">
                 {open.messages.length === 0 ? (
-                  <p className="text-[13.5px] leading-[1.55] text-slate-muted">
+                  <p className="text-[13.5px] leading-[1.55] text-[var(--secondary)]">
                     Nothing said yet. Whatever you write here reaches everybody named above and
                     nobody else.
                   </p>
@@ -148,17 +148,17 @@ export default async function MessagesPage({
                         <li key={m.id} className={mine ? "sm:pl-10" : "sm:pr-10"}>
                           <div
                             className={`rounded-[4px] border px-3.5 py-3 ${
-                              mine ? "border-slate bg-limestone" : "border-limestone-line bg-white"
+                              mine ? "border-slate bg-[var(--canvas)]" : "border-[var(--border)] bg-white"
                             }`}
                           >
-                            <p className="text-[12.5px] font-semibold text-brass-ink">
+                            <p className="text-[12.5px] font-semibold text-[var(--gold-deep)]">
                               {mine ? "You" : m.author_name}
                               {m.author_role && !mine ? `, ${m.author_role.replace(/_/g, " ")}` : ""}
                             </p>
-                            <p className="mt-1 text-[14.5px] leading-[1.55] whitespace-pre-wrap text-slate">
+                            <p className="mt-1 text-[13.5px] leading-[1.55] whitespace-pre-wrap text-[var(--navy)]">
                               {m.body}
                             </p>
-                            <p className="mt-1.5 text-[12px] text-slate-muted">{when(m.created_at)}</p>
+                            <p className="mt-1.5 text-[12px] text-[var(--secondary)]">{when(m.created_at)}</p>
                           </div>
                         </li>
                       );
@@ -167,11 +167,11 @@ export default async function MessagesPage({
                 )}
 
                 {open.canPost ? (
-                  <div className="mt-5 border-t border-limestone-line pt-4">
+                  <div className="mt-5 border-t border-[var(--border)] pt-4">
                     <Composer threadId={open.thread.id} participants={open.thread.participants} />
                   </div>
                 ) : (
-                  <p className="mt-5 border-t border-limestone-line pt-4 text-[13px] text-slate-muted">
+                  <p className="mt-5 border-t border-[var(--border)] pt-4 text-[13.5px] text-[var(--secondary)]">
                     You can read this conversation and not add to it.
                   </p>
                 )}

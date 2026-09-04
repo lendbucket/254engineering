@@ -166,22 +166,84 @@ const allPortalFiles = PORTAL_DIRS.flatMap((d) => walk(d)).filter((f) => f !== T
  *   stalling.
  */
 const PORTED = [
-  // Section 1: the component library itself.
+  // Everything under src/app/portal and src/components/portal. The colour, type,
+  // radius, shadow, gradient and case rules now govern the whole portal rather
+  // than a growing subset, which is what this list existed to reach.
+  "src/app/portal/(app)/accounts/AccountsClient.tsx",
+  "src/app/portal/(app)/accounts/page.tsx",
+  "src/app/portal/(app)/audit/page.tsx",
+  "src/app/portal/(app)/billing/page.tsx",
+  "src/app/portal/(app)/certification/CertificationClient.tsx",
+  "src/app/portal/(app)/certification/page.tsx",
+  "src/app/portal/(app)/charge-log/ChargeLogClient.tsx",
+  "src/app/portal/(app)/charge-log/page.tsx",
+  "src/app/portal/(app)/clients/ClientsClient.tsx",
+  "src/app/portal/(app)/clients/page.tsx",
+  "src/app/portal/(app)/documents/page.tsx",
+  "src/app/portal/(app)/files/DispatchPanel.tsx",
+  "src/app/portal/(app)/files/FileClient.tsx",
+  "src/app/portal/(app)/files/page.tsx",
+  "src/app/portal/(app)/jobs/JobsClient.tsx",
+  "src/app/portal/(app)/jobs/[id]/CaptureClient.tsx",
+  "src/app/portal/(app)/jobs/[id]/page.tsx",
+  "src/app/portal/(app)/jobs/page.tsx",
+  "src/app/portal/(app)/layout.tsx",
+  "src/app/portal/(app)/messages/MessagesClient.tsx",
+  "src/app/portal/(app)/messages/page.tsx",
+  "src/app/portal/(app)/not-found.tsx",
+  "src/app/portal/(app)/onboarding/OnboardingClient.tsx",
+  "src/app/portal/(app)/onboarding/page.tsx",
+  "src/app/portal/(app)/orders/OrdersClient.tsx",
+  "src/app/portal/(app)/orders/page.tsx",
+  "src/app/portal/(app)/page.tsx",
+  "src/app/portal/(app)/pay/page.tsx",
+  "src/app/portal/(app)/people/PeopleClient.tsx",
+  "src/app/portal/(app)/people/page.tsx",
+  "src/app/portal/(app)/profile/PasswordForm.tsx",
+  "src/app/portal/(app)/profile/PreferencesForm.tsx",
+  "src/app/portal/(app)/profile/page.tsx",
+  "src/app/portal/(app)/protocols/ProtocolsClient.tsx",
+  "src/app/portal/(app)/protocols/page.tsx",
+  "src/app/portal/(app)/queue/QueueClient.tsx",
+  "src/app/portal/(app)/queue/page.tsx",
+  "src/app/portal/(app)/review/ReviewClient.tsx",
+  "src/app/portal/(app)/review/page.tsx",
+  "src/app/portal/(app)/status/StatusClient.tsx",
+  "src/app/portal/(app)/status/page.tsx",
+  "src/app/portal/(app)/tasks/TasksClient.tsx",
+  "src/app/portal/(app)/tasks/page.tsx",
+  "src/app/portal/(app)/techs/TechsClient.tsx",
+  "src/app/portal/(app)/techs/page.tsx",
+  "src/app/portal/(public)/login/LoginForm.tsx",
+  "src/app/portal/(public)/login/page.tsx",
+  "src/app/portal/(public)/set-password/SetPasswordForm.tsx",
+  "src/app/portal/(public)/set-password/page.tsx",
+  "src/app/portal/layout.tsx",
+  "src/components/portal/CoverageMap.tsx",
+  "src/components/portal/Dashboard.tsx",
+  "src/components/portal/Mispointed.tsx",
+  "src/components/portal/PortalChrome.tsx",
   "src/components/portal/design/Primitives.tsx",
-  "src/components/portal/design/Table.tsx",
   "src/components/portal/design/Record.tsx",
   "src/components/portal/design/RestrictedMode.tsx",
-
-  // Section 2 item 1: sign in, not found, and the restricted mode alert.
-  "src/app/portal/(public)/login/page.tsx",
-  "src/app/portal/(public)/login/LoginForm.tsx",
-  "src/app/portal/(app)/not-found.tsx",
-
-  // Section 2 item 2: the chrome every owner screen sits inside.
-  "src/app/portal/(app)/layout.tsx",
-  "src/components/portal/PortalChrome.tsx",
+  "src/components/portal/design/Table.tsx",
   "src/components/portal/surfaces.tsx",
 ];
+
+/**
+ * The one file the COLOUR rule does not govern, and why.
+ *
+ * CoverageMap draws a choropleth: five greys from "nobody covers this county"
+ * to "four or more technicians". That is a DATA ramp, not interface chrome, and
+ * the standards palette does not define one. Forcing five steps onto four navy
+ * tokens would make two of them indistinguishable, which in a map is not a
+ * style problem but a legibility one: telling the steps apart is the entire
+ * job of the thing.
+ *
+ * Exempted from the colour rule only. It still gets every other one: no
+ * gradient, no shadow, no off scale type, no CSS uppercase.
+ */
+const COLOUR_EXEMPT = ["src/components/portal/CoverageMap.tsx"];
 
 const portalFiles = allPortalFiles.filter((f) => PORTED.includes(f));
 const unported = allPortalFiles.filter((f) => !PORTED.includes(f));
@@ -224,11 +286,13 @@ const rawRadius = [];
 for (const file of portalFiles) {
   const code = codeOnly(file);
 
-  for (const m of code.matchAll(/#[0-9a-fA-F]{3,8}\b/g)) {
-    rawColour.push(`${file}: ${m[0]}`);
-  }
-  for (const m of code.matchAll(/\b(?:rgb|rgba|hsl|hsla|oklch)\(/g)) {
-    rawColour.push(`${file}: ${m[0]}`);
+  if (!COLOUR_EXEMPT.includes(file)) {
+    for (const m of code.matchAll(/#[0-9a-fA-F]{3,8}\b/g)) {
+      rawColour.push(`${file}: ${m[0]}`);
+    }
+    for (const m of code.matchAll(/\b(?:rgb|rgba|hsl|hsla|oklch)\(/g)) {
+      rawColour.push(`${file}: ${m[0]}`);
+    }
   }
   for (const m of code.matchAll(/text-\[([0-9.]+)px\]/g)) {
     if (!ALLOWED_FONT_PX.has(Number(m[1]))) rawFont.push(`${file}: ${m[0]}`);

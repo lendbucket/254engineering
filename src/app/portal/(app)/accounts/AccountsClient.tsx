@@ -79,34 +79,34 @@ export function AccountsClient({ rows }: { rows: Row[] }) {
         {rows.map((r) => (
           <li key={r.id} className="py-4">
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <span className="text-[14px] font-semibold text-slate">{r.clientName}</span>
+              <span className="text-[13.5px] font-semibold text-[var(--navy)]">{r.clientName}</span>
               <Chip
                 label={r.billingMode === "invoice" ? `invoiced, net ${r.netDays}` : "pays by card"}
                 tone="neutral"
               />
               {r.status !== "active" ? <Chip label={r.status} tone="bad" /> : null}
               {!r.canOrder && r.status === "active" ? <Chip label="cannot order" tone="bad" /> : null}
-              <span className="ml-auto text-[13px] text-slate-muted">
+              <span className="ml-auto text-[13.5px] text-[var(--secondary)]">
                 {r.orders} order{r.orders === 1 ? "" : "s"}, {r.ordersThisPeriod} this period
               </span>
             </div>
 
             {r.billingMode === "invoice" ? (
-              <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-[13px] text-slate-muted">
+              <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-[13.5px] text-[var(--secondary)]">
                 <span>
-                  Issued and unpaid <span className="font-semibold text-slate">{money(r.issuedUnpaidCents)}</span>
+                  Issued and unpaid <span className="font-semibold text-[var(--navy)]">{money(r.issuedUnpaidCents)}</span>
                 </span>
                 <span>
-                  Not yet billed <span className="font-semibold text-slate">{money(r.unbilledCents)}</span>
+                  Not yet billed <span className="font-semibold text-[var(--navy)]">{money(r.unbilledCents)}</span>
                 </span>
                 <span>
                   Limit{" "}
-                  <span className="font-semibold text-slate">
+                  <span className="font-semibold text-[var(--navy)]">
                     {r.creditLimitCents === null ? "none agreed" : money(r.creditLimitCents)}
                   </span>
                 </span>
                 {r.oldestUnpaidDays !== null ? (
-                  <span className="text-[#8a1f1f]">
+                  <span className="text-[var(--red)]">
                     Oldest unpaid {r.oldestUnpaidDays} day{r.oldestUnpaidDays === 1 ? "" : "s"} past due
                   </span>
                 ) : null}
@@ -114,7 +114,7 @@ export function AccountsClient({ rows }: { rows: Row[] }) {
             ) : null}
 
             {!r.canOrder && r.status === "active" ? (
-              <p className="mt-2 max-w-[76ch] rounded-[3px] bg-[#fdf3e0] px-3 py-2 text-[13px] leading-[1.55] text-[#7a4c05]">
+              <p className="mt-2 max-w-[76ch] rounded-[3px] bg-[var(--warn-bg)] px-3 py-2 text-[13.5px] leading-[1.55] text-[var(--warn-ink)]">
                 {r.blockedReason}
               </p>
             ) : null}
@@ -125,14 +125,14 @@ export function AccountsClient({ rows }: { rows: Row[] }) {
                   type="button"
                   disabled={busy !== null}
                   onClick={() => act({ action: "close-period", accountId: r.id }, `close-${r.id}`)}
-                  className="inline-flex min-h-[44px] items-center rounded-[3px] border border-limestone-line bg-white px-4 text-[13px] font-semibold text-slate disabled:opacity-45"
+                  className="inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] bg-white px-4 text-[13.5px] font-semibold text-[var(--navy)] disabled:opacity-45"
                 >
                   {busy === `close-${r.id}` ? "Closing" : "Close this period"}
                 </button>
 
                 {r.openStatement ? (
                   <>
-                    <span className="font-mono text-[12.5px] text-slate-muted">
+                    <span className="font-mono text-[12.5px] text-[var(--secondary)]">
                       {r.openStatement.reference} open, {money(r.openStatement.totalCents)}
                     </span>
                     <button
@@ -144,7 +144,7 @@ export function AccountsClient({ rows }: { rows: Row[] }) {
                           `issue-${r.id}`,
                         )
                       }
-                      className="inline-flex min-h-[44px] items-center rounded-[3px] bg-slate px-4 text-[13px] font-bold text-white disabled:opacity-45"
+                      className="inline-flex min-h-[44px] items-center rounded-[3px] bg-slate px-4 text-[13.5px] font-bold text-white disabled:opacity-45"
                     >
                       {busy === `issue-${r.id}` ? "Queueing" : "Issue it"}
                     </button>
@@ -157,12 +157,12 @@ export function AccountsClient({ rows }: { rows: Row[] }) {
       </ul>
 
       {error ? (
-        <p role="alert" className="mt-4 rounded-[3px] bg-[#fdecec] px-3 py-2 text-[13px] text-[#8a1f1f]">
+        <p role="alert" className="mt-4 rounded-[3px] bg-[var(--warn-bg)] px-3 py-2 text-[13.5px] text-[var(--red)]">
           {error}
         </p>
       ) : null}
       {note ? (
-        <p role="status" className="mt-4 rounded-[3px] bg-[#eef6ee] px-3 py-2 text-[13px] text-[#22551f]">
+        <p role="status" className="mt-4 rounded-[3px] bg-[var(--green-bg)] px-3 py-2 text-[13.5px] text-[var(--green)]">
           {note}
         </p>
       ) : null}

@@ -55,13 +55,13 @@ export function SetPasswordForm({ token, minLength }: { token: string; minLength
   }
 
   const field =
-    "mt-1.5 min-h-[48px] w-full rounded-[3px] border border-limestone-line bg-white px-3 text-[16px] text-slate outline-none focus:border-slate";
+    "mt-1.5 min-h-[48px] w-full rounded-[3px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--navy)] outline-none focus:border-slate";
 
   return (
     <form onSubmit={onSubmit} method="post" action="/api/portal/set-password" noValidate className="mt-6">
       <input type="hidden" name="token" value={token} />
 
-      <label htmlFor="password" className="block text-[13px] font-semibold text-slate">
+      <label htmlFor="password" className="block text-[13.5px] font-semibold text-[var(--navy)]">
         New password
       </label>
       <input
@@ -76,12 +76,12 @@ export function SetPasswordForm({ token, minLength }: { token: string; minLength
         aria-describedby="password-hint"
         className={field}
       />
-      <p id="password-hint" className={`mt-1.5 text-[12.5px] ${tooShort ? "text-[#8c1d18]" : "text-slate-muted"}`}>
+      <p id="password-hint" className={`mt-1.5 text-[12.5px] ${tooShort ? "text-[var(--red)]" : "text-[var(--secondary)]"}`}>
         At least {minLength} characters. Nobody at the firm can see it, including whoever created
         your account.
       </p>
 
-      <label htmlFor="confirm" className="mt-4 block text-[13px] font-semibold text-slate">
+      <label htmlFor="confirm" className="mt-4 block text-[13.5px] font-semibold text-[var(--navy)]">
         Type it again
       </label>
       <input
@@ -94,10 +94,10 @@ export function SetPasswordForm({ token, minLength }: { token: string; minLength
         onChange={(e) => setConfirm(e.target.value)}
         className={field}
       />
-      {mismatch ? <p className="mt-1.5 text-[12.5px] text-[#8c1d18]">Those two do not match yet.</p> : null}
+      {mismatch ? <p className="mt-1.5 text-[12.5px] text-[var(--red)]">Those two do not match yet.</p> : null}
 
       {error ? (
-        <p role="alert" className="mt-4 rounded-[3px] border border-[#f3c9c6] bg-[#fdeceb] px-3 py-2.5 text-[13.5px] leading-[1.5] text-[#8c1d18]">
+        <p role="alert" className="mt-4 rounded-[3px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-3 py-2.5 text-[13.5px] leading-[1.5] text-[var(--red)]">
           {error}
         </p>
       ) : null}

@@ -26,35 +26,35 @@ export default async function SetPasswordPage({
   const result = token ? await inspectToken(token) : ({ ok: false, reason: "invalid" } as const);
 
   return (
-    <main className="grid min-h-dvh place-items-center bg-gradient-to-b from-slate via-slate-deep to-slate-abyss px-4 py-10">
+    <main className="portal-surface grid min-h-dvh place-items-center px-4 py-10">
       <div className="w-full max-w-[420px]">
         <div className="mb-6 flex justify-center">
           <Wordmark onDark height={44} priority />
         </div>
 
-        <div className="rounded-[4px] border border-limestone-line bg-white p-6 sm:p-7">
+        <div className="rounded-[4px] border border-[var(--border)] bg-white p-6 sm:p-7">
           {result.ok ? (
             <>
-              <h1 className="font-display text-[22px] leading-[1.2] font-bold text-slate">
+              <h1 className="font-display text-[24px] leading-[1.2] font-bold text-[var(--navy)]">
                 Choose your password
               </h1>
-              <p className="mt-2 text-[14px] leading-[1.6] text-slate-muted">
+              <p className="mt-2 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
                 {result.profile.display_name}, your account is set up as{" "}
                 {ROLE_LABEL[result.profile.role]}. Your sign in address is{" "}
-                <span className="font-semibold break-all text-slate">{result.profile.email}</span>.
+                <span className="font-semibold break-all text-[var(--navy)]">{result.profile.email}</span>.
               </p>
               <SetPasswordForm token={token!} minLength={MIN_PASSWORD_LENGTH} />
             </>
           ) : (
             <>
-              <h1 className="font-display text-[22px] leading-[1.2] font-bold text-slate">
+              <h1 className="font-display text-[24px] leading-[1.2] font-bold text-[var(--navy)]">
                 {result.reason === "expired"
                   ? "That link has expired"
                   : result.reason === "used"
                     ? "That link has already been used"
                     : "That link is not valid"}
               </h1>
-              <p className="mt-3 text-[14px] leading-[1.6] text-slate-muted">
+              <p className="mt-3 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
                 {result.reason === "expired"
                   ? "Links last three days. An administrator can send a new one."
                   : result.reason === "used"
@@ -63,7 +63,7 @@ export default async function SetPasswordPage({
               </p>
               <Link
                 href="/portal/login"
-                className="mt-6 inline-flex min-h-[48px] w-full items-center justify-center rounded-[3px] border border-limestone-line px-4 text-[15px] font-bold text-slate hover:bg-limestone"
+                className="mt-6 inline-flex min-h-[48px] w-full items-center justify-center rounded-[3px] border border-[var(--border)] px-4 text-[15px] font-bold text-[var(--navy)] hover:bg-[var(--canvas)]"
               >
                 Go to sign in
               </Link>

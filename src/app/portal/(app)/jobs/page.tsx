@@ -67,7 +67,7 @@ export default async function JobsPage() {
       />
 
       <section aria-labelledby="live-offers">
-        <h2 id="live-offers" className="text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">
+        <h2 id="live-offers" className="portal-kicker text-[var(--gold-deep)]">
           Offers waiting on you
         </h2>
         <div className="mt-3">
@@ -81,22 +81,22 @@ export default async function JobsPage() {
               {live.map((o) => (
                 <li
                   key={o.id}
-                  className="rounded-[4px] border border-limestone-line bg-white p-4"
+                  className="rounded-[4px] border border-[var(--border)] bg-white p-4"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="font-display text-[19px] leading-[1.25] font-bold text-slate">
+                      <p className="font-display text-[17px] leading-[1.25] font-bold text-[var(--navy)]">
                         {money(o.offer_amount_cents)}
                       </p>
-                      <p className="mt-1 text-[14.5px] font-semibold text-slate">
+                      <p className="mt-1 text-[13.5px] font-semibold text-[var(--navy)]">
                         {o.file?.property_address}
                       </p>
-                      <p className="mt-0.5 text-[13.5px] text-slate-muted">
+                      <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">
                         {o.file?.city ? `${o.file.city}, ` : ""}
                         {o.file?.county} County
                         {o.distance_miles ? `, about ${Number(o.distance_miles)} miles out` : ""}
                       </p>
-                      <p className="mt-1.5 text-[13px] text-slate-muted">
+                      <p className="mt-1.5 text-[13.5px] text-[var(--secondary)]">
                         {serviceName(o.file?.service_slug ?? "")}
                         {when(o.file?.evidence_due_at ?? null)
                           ? `, evidence due ${when(o.file?.evidence_due_at ?? null)}`
@@ -115,7 +115,7 @@ export default async function JobsPage() {
       </section>
 
       <section aria-labelledby="accepted" className="mt-9">
-        <h2 id="accepted" className="text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">
+        <h2 id="accepted" className="portal-kicker text-[var(--gold-deep)]">
           Work you have accepted
         </h2>
         <div className="mt-3">
@@ -130,22 +130,22 @@ export default async function JobsPage() {
                 <li key={o.id}>
                   <Link
                     href={`/portal/jobs/${o.file_id}`}
-                    className="block rounded-[4px] border border-limestone-line bg-white p-4 transition-colors hover:border-slate"
+                    className="block rounded-[4px] border border-[var(--border)] bg-white p-4 transition-colors hover:border-slate"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="font-mono text-[12.5px] text-brass-ink">{o.file?.file_number}</p>
-                        <p className="mt-1 text-[15px] font-semibold text-slate">
+                        <p className="font-mono text-[12.5px] text-[var(--gold-deep)]">{o.file?.file_number}</p>
+                        <p className="mt-1 text-[15px] font-semibold text-[var(--navy)]">
                           {o.file?.property_address}
                         </p>
-                        <p className="mt-0.5 text-[13.5px] text-slate-muted">
+                        <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">
                           {o.file?.city ? `${o.file.city}, ` : ""}
                           {o.file?.county} County, {money(o.offer_amount_cents)}
                         </p>
                       </div>
                       <Chip label={STATUS_LABEL[o.file?.status as FileStatus] ?? o.file?.status ?? ""} tone="warn" />
                     </div>
-                    <p className="mt-3 text-[13.5px] font-semibold text-slate">Open the checklist</p>
+                    <p className="mt-3 text-[13.5px] font-semibold text-[var(--navy)]">Open the checklist</p>
                   </Link>
                 </li>
               ))}
@@ -156,15 +156,15 @@ export default async function JobsPage() {
 
       {past.length > 0 ? (
         <section aria-labelledby="past" className="mt-9">
-          <h2 id="past" className="text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">
+          <h2 id="past" className="portal-kicker text-[var(--gold-deep)]">
             Earlier
           </h2>
-          <ul className="mt-3 divide-y divide-limestone-line rounded-[4px] border border-limestone-line bg-white px-4">
+          <ul className="mt-3 divide-y divide-limestone-line rounded-[4px] border border-[var(--border)] bg-white px-4">
             {past.map((o) => (
               <li key={o.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                 <div className="min-w-0">
-                  <p className="text-[14px] font-semibold text-slate">{o.file?.property_address}</p>
-                  <p className="mt-0.5 text-[13px] text-slate-muted">
+                  <p className="text-[13.5px] font-semibold text-[var(--navy)]">{o.file?.property_address}</p>
+                  <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">
                     {o.file?.county} County, {money(o.offer_amount_cents)}
                   </p>
                 </div>

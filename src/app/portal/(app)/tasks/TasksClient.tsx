@@ -16,7 +16,7 @@ import { RECURRENCES, RECURRENCE_LABEL, type Recurrence, type TaskPriority } fro
  */
 
 const field =
-  "min-h-[48px] w-full rounded-[3px] border border-limestone-line bg-white px-3 text-[16px] text-slate outline-none focus:border-slate";
+  "min-h-[48px] w-full rounded-[3px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--navy)] outline-none focus:border-slate";
 
 async function post(payload: Record<string, unknown>) {
   const res = await fetch("/api/portal/comms", {
@@ -53,7 +53,7 @@ export function QuickAdd({
 
   return (
     <form
-      className="rounded-[4px] border border-limestone-line bg-white p-4"
+      className="rounded-[4px] border border-[var(--border)] bg-white p-4"
       onSubmit={async (e) => {
         e.preventDefault();
         if (!title.trim()) return;
@@ -105,7 +105,7 @@ export function QuickAdd({
       </div>
 
       {error ? (
-        <p role="alert" className="mt-2 text-[13.5px] font-semibold text-[#a3241c]">
+        <p role="alert" className="mt-2 text-[13.5px] font-semibold text-[var(--red)]">
           {error}
         </p>
       ) : null}
@@ -113,7 +113,7 @@ export function QuickAdd({
       <button
         type="button"
         onClick={() => setMore((v) => !v)}
-        className="mt-2 inline-flex min-h-[40px] items-center text-[13px] font-semibold text-slate-muted"
+        className="mt-2 inline-flex min-h-[40px] items-center text-[13.5px] font-semibold text-[var(--secondary)]"
       >
         {more ? "Less" : "Due date, assignee, repeat"}
       </button>
@@ -121,7 +121,7 @@ export function QuickAdd({
       {more ? (
         <div className="mt-2 grid gap-3 sm:grid-cols-2">
           <div>
-            <label htmlFor="task-due" className="block text-[13px] font-semibold text-slate">
+            <label htmlFor="task-due" className="block text-[13.5px] font-semibold text-[var(--navy)]">
               Due
             </label>
             <input
@@ -133,7 +133,7 @@ export function QuickAdd({
             />
           </div>
           <div>
-            <label htmlFor="task-priority" className="block text-[13px] font-semibold text-slate">
+            <label htmlFor="task-priority" className="block text-[13.5px] font-semibold text-[var(--navy)]">
               Priority
             </label>
             <select
@@ -151,7 +151,7 @@ export function QuickAdd({
           </div>
           {canAssign ? (
             <div>
-              <label htmlFor="task-assignee" className="block text-[13px] font-semibold text-slate">
+              <label htmlFor="task-assignee" className="block text-[13.5px] font-semibold text-[var(--navy)]">
                 Assign to
               </label>
               <select
@@ -173,7 +173,7 @@ export function QuickAdd({
             </div>
           ) : null}
           <div>
-            <label htmlFor="task-repeat" className="block text-[13px] font-semibold text-slate">
+            <label htmlFor="task-repeat" className="block text-[13.5px] font-semibold text-[var(--navy)]">
               Repeat
             </label>
             <select
@@ -191,7 +191,7 @@ export function QuickAdd({
             </select>
           </div>
           <div className="sm:col-span-2">
-            <label htmlFor="task-description" className="block text-[13px] font-semibold text-slate">
+            <label htmlFor="task-description" className="block text-[13.5px] font-semibold text-[var(--navy)]">
               Anything else
             </label>
             <input
@@ -215,7 +215,7 @@ export function SeedButton() {
 
   if (done) {
     return (
-      <p className="mt-3 text-[13.5px] leading-[1.55] text-slate">
+      <p className="mt-3 text-[13.5px] leading-[1.55] text-[var(--navy)]">
         {done.seeded} seeded, {done.alreadyThere} already there, and {done.derived} raised from
         credentials that are expiring.
       </p>
@@ -225,7 +225,7 @@ export function SeedButton() {
   return (
     <div className="mt-3">
       {error ? (
-        <p role="alert" className="mb-2 text-[13.5px] font-semibold text-[#a3241c]">
+        <p role="alert" className="mb-2 text-[13.5px] font-semibold text-[var(--red)]">
           {error}
         </p>
       ) : null}
@@ -249,7 +249,7 @@ export function SeedButton() {
       >
         {busy ? "Seeding" : "Seed the compliance tasks"}
       </button>
-      <p className="mt-2 text-[12.5px] leading-[1.5] text-slate-muted">
+      <p className="mt-2 text-[12.5px] leading-[1.5] text-[var(--secondary)]">
         Safe to press twice. Anything already there is left alone rather than duplicated, because a
         duplicated compliance task is one somebody closes without doing.
       </p>
@@ -295,13 +295,13 @@ export function TaskRowControls({
   }
 
   return (
-    <div className="mt-3 border-t border-limestone-line pt-3">
+    <div className="mt-3 border-t border-[var(--border)] pt-3">
       {error ? (
-        <p role="alert" className="mb-2 text-[13px] font-semibold text-[#a3241c]">
+        <p role="alert" className="mb-2 text-[13.5px] font-semibold text-[var(--red)]">
           {error}
         </p>
       ) : null}
-      {note ? <p className="mb-2 text-[13px] text-slate-muted">{note}</p> : null}
+      {note ? <p className="mb-2 text-[13.5px] text-[var(--secondary)]">{note}</p> : null}
 
       <div className="flex flex-wrap items-center gap-2">
         {status !== "done" ? (
@@ -309,7 +309,7 @@ export function TaskRowControls({
             type="button"
             disabled={busy}
             onClick={() => void move("done")}
-            className="inline-flex min-h-[44px] items-center rounded-[3px] bg-slate px-4 text-[13.5px] font-bold text-slate-fg disabled:opacity-50"
+            className="inline-flex min-h-[44px] items-center rounded-[3px] bg-slate px-4 text-[13.5px] font-bold text-[var(--navy)]-fg disabled:opacity-50"
           >
             {busy ? "Saving" : "Done"}
           </button>
@@ -318,7 +318,7 @@ export function TaskRowControls({
             type="button"
             disabled={busy}
             onClick={() => void move("open")}
-            className="inline-flex min-h-[44px] items-center rounded-[3px] border border-limestone-line px-4 text-[13.5px] font-semibold text-slate disabled:opacity-50"
+            className="inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] px-4 text-[13.5px] font-semibold text-[var(--navy)] disabled:opacity-50"
           >
             Reopen
           </button>
@@ -329,7 +329,7 @@ export function TaskRowControls({
             type="button"
             disabled={busy}
             onClick={() => void move("in_progress")}
-            className="inline-flex min-h-[44px] items-center rounded-[3px] border border-limestone-line px-3 text-[13px] font-semibold text-slate disabled:opacity-50"
+            className="inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] px-3 text-[13.5px] font-semibold text-[var(--navy)] disabled:opacity-50"
           >
             Start
           </button>
@@ -350,7 +350,7 @@ export function TaskRowControls({
                 setBusy(false);
               }
             }}
-            className="min-h-[44px] rounded-[3px] border border-limestone-line bg-white px-2 text-[13px] text-slate"
+            className="min-h-[44px] rounded-[3px] border border-[var(--border)] bg-white px-2 text-[13.5px] text-[var(--navy)]"
           >
             <option value="">Unassigned</option>
             {people.map((p) => (

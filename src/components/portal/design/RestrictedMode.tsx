@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { isPrelaunch } from "@/lib/launch";
 import { SystemAlert } from "./Primitives";
 
@@ -29,13 +30,29 @@ import { SystemAlert } from "./Primitives";
  * pending, and sealing and order intake ARE disabled by isPrelaunch. This is
  * the one product claim in the prototype that needed no correction.
  */
-export function RestrictedMode() {
+/**
+ * THE SHARED SENTENCE IS FIXED. A SCREEN MAY ADD, NEVER RESTATE.
+ *
+ * Three screens carried three different wordings of this one fact before the
+ * operator ruled on 2026-09-04: the dashboard, the files list and the review
+ * queue each described the gate in its own words, and one statement of the same
+ * fact in three forms is how three forms drift.
+ *
+ * The review queue's version carried something the others did not, and it is
+ * worth keeping: declining to seal stays available while sealing is blocked,
+ * deliberately, because a gate that stopped an engineer saying no while leaving
+ * yes open would be the wrong way round. So a screen with something ADDITIONAL
+ * and specific passes it as `also`, and the shared sentence above it is
+ * identical everywhere.
+ */
+export function RestrictedMode({ also }: { also?: ReactNode } = {}) {
   if (!isPrelaunch()) return null;
 
   return (
     <SystemAlert condition="Restricted mode.">
       Firm registration is pending with TBPELS. Sealing and order intake are disabled until an
       engineer of record is in responsible charge.
+      {also ? <span className="mt-1.5 block">{also}</span> : null}
     </SystemAlert>
   );
 }

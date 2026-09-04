@@ -72,7 +72,7 @@ export default async function OnboardingPage({
       <div className="grid gap-6 lg:grid-cols-[minmax(300px,380px)_1fr]">
         <div className={selected ? "hidden lg:block" : "block"}>
           <section aria-labelledby="applications">
-            <h2 id="applications" className="text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">
+            <h2 id="applications" className="portal-kicker text-[var(--gold-deep)]">
               Applications not yet invited
             </h2>
             <div className="mt-3">
@@ -84,14 +84,14 @@ export default async function OnboardingPage({
               ) : (
                 <ul className="flex flex-col gap-2">
                   {open.map((a) => (
-                    <li key={a.id} className="rounded-[4px] border border-limestone-line bg-white p-4">
-                      <p className="text-[14.5px] font-semibold text-slate">{a.name ?? "No name given"}</p>
-                      <p className="mt-0.5 text-[13px] text-slate-muted">
+                    <li key={a.id} className="rounded-[4px] border border-[var(--border)] bg-white p-4">
+                      <p className="text-[13.5px] font-semibold text-[var(--navy)]">{a.name ?? "No name given"}</p>
+                      <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">
                         {a.email}
                         {a.city ? `, ${a.city}` : ""}
                       </p>
                       {a.counties ? (
-                        <p className="mt-1 text-[13px] leading-[1.5] text-slate-muted">
+                        <p className="mt-1 text-[13.5px] leading-[1.5] text-[var(--secondary)]">
                           Says they cover: {a.counties}
                         </p>
                       ) : null}
@@ -104,7 +104,7 @@ export default async function OnboardingPage({
           </section>
 
           <section aria-labelledby="onboardings" className="mt-8">
-            <h2 id="onboardings" className="text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">
+            <h2 id="onboardings" className="portal-kicker text-[var(--gold-deep)]">
               In onboarding
             </h2>
             <div className="mt-3">
@@ -119,13 +119,13 @@ export default async function OnboardingPage({
                         className={`block rounded-[4px] border bg-white p-4 transition-colors hover:border-slate ${
                           selected?.onboarding.id === o.id
                             ? "border-slate"
-                            : "border-limestone-line"
+                            : "border-[var(--border)]"
                         }`}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <p className="text-[14.5px] font-semibold text-slate">{o.person_name}</p>
-                            <p className="mt-0.5 text-[13px] text-slate-muted">
+                            <p className="text-[13.5px] font-semibold text-[var(--navy)]">{o.person_name}</p>
+                            <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">
                               {o.role === "field_tech" ? "Field technician" : "Engineer"}, invited {when(o.invited_at)}
                             </p>
                           </div>
@@ -144,19 +144,19 @@ export default async function OnboardingPage({
           <div>
             <Link
               href="/portal/onboarding"
-              className="mb-4 inline-flex min-h-[44px] items-center text-[14px] font-semibold text-slate-muted lg:hidden"
+              className="mb-4 inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-[var(--secondary)] lg:hidden"
             >
               Back to the list
             </Link>
 
-            <div className="rounded-[4px] border border-limestone-line bg-white">
-              <div className="border-b border-limestone-line px-4 py-4 sm:px-5">
+            <div className="rounded-[4px] border border-[var(--border)] bg-white">
+              <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h2 className="font-display text-[20px] leading-[1.2] font-bold text-slate">
+                    <h2 className="font-display text-[17px] leading-[1.2] font-bold text-[var(--navy)]">
                       {selected.onboarding.person_name}
                     </h2>
-                    <p className="mt-1 text-[13.5px] text-slate-muted">
+                    <p className="mt-1 text-[13.5px] text-[var(--secondary)]">
                       {selected.onboarding.email}
                       {selected.onboarding.phone ? `, ${selected.onboarding.phone}` : ""}
                     </p>
@@ -169,14 +169,14 @@ export default async function OnboardingPage({
               </div>
 
               <div className="px-4 py-5 sm:px-5">
-                <p className="text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">Checklist</p>
+                <p className="portal-kicker text-[var(--gold-deep)]">Checklist</p>
                 <ul className="mt-3 divide-y divide-limestone-line">
                   {selected.items.map((item) => (
                     <li key={item.itemKey} className="py-3">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-[14px] font-semibold text-slate">{item.label}</p>
-                          <p className="mt-0.5 text-[13px] text-slate-muted">
+                          <p className="text-[13.5px] font-semibold text-[var(--navy)]">{item.label}</p>
+                          <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">
                             {item.actor === "admin" ? "Operator verified" : "Uploaded by the applicant"}
                             {item.credentialKind
                               ? `, becomes ${CREDENTIAL_LABEL[item.credentialKind as keyof typeof CREDENTIAL_LABEL] ?? item.credentialKind}`
@@ -221,7 +221,7 @@ export default async function OnboardingPage({
                 </ul>
 
                 {selected.onboarding.role === "field_tech" ? (
-                  <div className="mt-7 border-t border-limestone-line pt-5">
+                  <div className="mt-7 border-t border-[var(--border)] pt-5">
                     <CoverageForm
                       onboardingId={selected.onboarding.id}
                       counties={selected.onboarding.coverage_counties}
@@ -233,7 +233,7 @@ export default async function OnboardingPage({
                   </div>
                 ) : null}
 
-                <div className="mt-7 border-t border-limestone-line pt-5">
+                <div className="mt-7 border-t border-[var(--border)] pt-5">
                   <ActivatePanel
                     onboardingId={selected.onboarding.id}
                     ready={selected.readiness.ready}

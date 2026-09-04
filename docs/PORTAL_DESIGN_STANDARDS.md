@@ -180,6 +180,49 @@ the administrator role, surfaced by `DispatchPanel` on a file, not a person who
 signs in. The export's permissions matrix names four; it belongs to the unbuilt
 Settings screen and is not ported.
 
+## Two rulings made while porting, recorded so they do not read as omissions
+
+Operator, 2026-09-04, at gate 2A.
+
+### The restricted mode statement has one wording, and screens add to it
+
+Three screens carried three different descriptions of the compliance gate: the
+dashboard, the files list and the review queue each said it in their own words.
+All three were accurate. One statement of the same fact in three forms is how
+three forms drift, and only one of them was covered by an audit.
+
+There is now one component, `RestrictedMode`, and its sentence is fixed:
+
+> **Restricted mode.** Firm registration is pending with TBPELS. Sealing and
+> order intake are disabled until an engineer of record is in responsible charge.
+
+A screen with something ADDITIONAL and specific passes it as `also`, appended
+below the shared sentence. It may never restate the shared part in its own
+words. The review queue's addition is the one worth reading, and it is the
+reason the `also` prop exists rather than the copy simply being deleted:
+
+> Packages can still be reviewed, sent back and declined. Declining stays
+> available on purpose: a gate that stopped an engineer saying no, while
+> leaving yes open, would be the wrong way round.
+
+The component reads `isPrelaunch()` itself and returns null once the gate
+lifts, so callers render it unconditionally and there is nothing to remove on
+launch day.
+
+### The screen title stays in PageHead and is not repeated in the header
+
+The chrome rule above specifies a 58px header carrying the screen title. It is
+not implemented, deliberately.
+
+`PageHead` renders the title directly below the header, and it did so before
+this design existed. Putting it in both is the same word twice, forty pixels
+apart, on screens already dense with real information. The chrome rule was
+drawn against a prototype that had no PageHead; where the two disagree, the one
+that leaves the screen less repetitive wins.
+
+The header keeps what only it can carry: the data-as-of time, search, the bell,
+and the user menu.
+
 ## There is no 403, deliberately
 
 The export draws one. It is dropped, and the reason is recorded here so a later

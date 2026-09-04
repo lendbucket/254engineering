@@ -369,6 +369,62 @@ report("sentence case, not Title Case", titleCase, "including buttons and column
     /There is no 403, deliberately/.test(standards),
     "so a later reader does not restore it as a missing screen",
   );
+
+  /*
+   * The gate 2A rulings, and the code that has to keep matching them.
+   *
+   * Both are the kind of decision that reads as an omission to somebody who
+   * finds the standards file later and not the reasoning: a header with no
+   * title, and one alert where the prototype had three. Recorded there, and
+   * asserted here so the recording and the code cannot part company.
+   */
+  rec(
+    "the restricted mode wording ruling is recorded",
+    /The restricted mode statement has one wording/.test(standards),
+  );
+  rec(
+    "and the screen title ruling is recorded",
+    /The screen title stays in PageHead/.test(standards),
+  );
+
+  /*
+   * ONE WORDING MEANS ONE WORDING. No screen may describe the gate itself.
+   *
+   * Three did before the ruling, in three different sentences, and the one this
+   * catches is a fourth appearing later: somebody adding a screen, wanting to
+   * mention the gate, and writing it out rather than reaching for the
+   * component.
+   */
+  const gateProse = all.filter(
+    (h) =>
+      /compliance gate active/i.test(h.s) ||
+      (/sealing and order intake are disabled/i.test(h.s) &&
+        !h.file.includes("design/RestrictedMode")),
+  );
+  report(
+    "no screen states the compliance gate in its own words",
+    gateProse,
+    "RestrictedMode says it once, and a screen adds to it with `also` rather than restating it",
+  );
+
+  const restricted = "src/components/portal/design/RestrictedMode.tsx";
+  rec("the RestrictedMode component exists", existsSync(restricted));
+  if (existsSync(restricted)) {
+    const source = readFileSync(restricted, "utf8");
+    rec(
+      "and it reads the gate itself rather than taking a boolean",
+      /if \(!isPrelaunch\(\)\) return null;/.test(source),
+      "a prop can be forgotten, and the screen that forgets it says sealing is available",
+    );
+    rec(
+      "and it carries the shared sentence",
+      /Sealing and order intake are disabled until an/.test(source),
+    );
+    rec(
+      "and it lets a screen add without restating",
+      /also\?: ReactNode/.test(source),
+    );
+  }
 }
 
 // =========================================================================

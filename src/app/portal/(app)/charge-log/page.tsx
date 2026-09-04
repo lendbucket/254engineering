@@ -74,8 +74,8 @@ export default async function ChargeLogPage({
                 <a
                   key={p}
                   href={`/portal/charge-log?period=${p}`}
-                  className={`inline-flex min-h-[40px] items-center rounded-[3px] border px-3 text-[13px] font-semibold ${
-                    p === period ? "border-slate bg-slate text-slate-fg" : "border-limestone-line text-slate-muted"
+                  className={`inline-flex min-h-[40px] items-center rounded-[3px] border px-3 text-[13.5px] font-semibold ${
+                    p === period ? "border-slate bg-slate text-[var(--navy)]-fg" : "border-[var(--border)] text-[var(--secondary)]"
                   }`}
                 >
                   {p}
@@ -92,7 +92,7 @@ export default async function ChargeLogPage({
           ) : (
             <>
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <p className="text-[13.5px] text-slate-muted">
+                <p className="text-[13.5px] text-[var(--secondary)]">
                   {rows.length} review{rows.length === 1 ? "" : "s"} in {period}
                   {refusals.length > 0
                     ? `, ${refusals.length} of which you declined to seal`
@@ -109,14 +109,14 @@ export default async function ChargeLogPage({
                     key={r.id}
                     className={`rounded-[4px] border bg-white p-4 ${
                       r.refused
-                        ? "border-[#e8bdb8] border-l-[#a3241c]"
-                        : "border-limestone-line"
+                        ? "border-[var(--warn-border)] border-l-[var(--red)]"
+                        : "border-[var(--border)]"
                     }`}
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-[14.5px] font-semibold text-slate">{r.property_address}</p>
-                        <p className="mt-0.5 text-[13px] text-slate-muted">
+                        <p className="text-[13.5px] font-semibold text-[var(--navy)]">{r.property_address}</p>
+                        <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">
                           {r.county} County, {when(r.reviewed_at)}
                           {r.review_minutes !== null ? `, ${r.review_minutes} minutes` : ", time not measured"}
                           {r.revision_count > 0 ? `, ${r.revision_count} revision${r.revision_count === 1 ? "" : "s"}` : ""}
@@ -136,13 +136,13 @@ export default async function ChargeLogPage({
                     </div>
 
                     {r.refusal_reason ? (
-                      <p className="mt-2 max-w-[70ch] text-[13.5px] leading-[1.55] text-[#a3241c]">
+                      <p className="mt-2 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--red)]">
                         {r.refusal_reason}
                       </p>
                     ) : null}
 
                     {isBriskReview(r.review_minutes) ? (
-                      <p className="mt-2 text-[12.5px] leading-[1.5] text-slate-muted">
+                      <p className="mt-2 text-[12.5px] leading-[1.5] text-[var(--secondary)]">
                         Under three minutes. Flagged on your own record so you see it before anybody
                         asks, and never blocked: a minimum review time would only teach people to
                         leave the tab open.
@@ -161,7 +161,7 @@ export default async function ChargeLogPage({
             description="Paid on the completed review, not on the seal. A file you decline pays the same as one you seal, because paying for one conclusion and not the other is paying for the conclusion."
           >
             {forPeriod.length === 0 ? (
-              <p className="text-[13.5px] leading-[1.55] text-slate-muted">
+              <p className="text-[13.5px] leading-[1.55] text-[var(--secondary)]">
                 Nothing for {period}. An entry is written when you decide a file, if a production
                 rate exists for that service line.
               </p>
@@ -169,18 +169,18 @@ export default async function ChargeLogPage({
               <>
                 <dl className="mb-3 grid grid-cols-2 gap-3">
                   <div>
-                    <dt className="text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">
+                    <dt className="portal-kicker text-[var(--gold-deep)]">
                       This month
                     </dt>
-                    <dd className="mt-1 font-display text-[19px] font-bold text-slate">
+                    <dd className="mt-1 font-display text-[17px] font-bold text-[var(--navy)]">
                       {money(forPeriod.reduce((s, p) => s + p.amount_cents, 0))}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">
+                    <dt className="portal-kicker text-[var(--gold-deep)]">
                       Unpaid
                     </dt>
-                    <dd className="mt-1 font-display text-[19px] font-bold text-slate">
+                    <dd className="mt-1 font-display text-[17px] font-bold text-[var(--navy)]">
                       {money(pending.reduce((s, p) => s + p.amount_cents, 0))}
                     </dd>
                   </div>
@@ -188,8 +188,8 @@ export default async function ChargeLogPage({
                 <ul className="divide-y divide-limestone-line">
                   {forPeriod.slice(0, 20).map((p) => (
                     <li key={p.id} className="flex items-center justify-between gap-3 py-2.5">
-                      <span className="min-w-0 text-[13px] text-slate-muted">{p.note ?? "Review"}</span>
-                      <span className="shrink-0 text-[13.5px] font-semibold text-slate">
+                      <span className="min-w-0 text-[13.5px] text-[var(--secondary)]">{p.note ?? "Review"}</span>
+                      <span className="shrink-0 text-[13.5px] font-semibold text-[var(--navy)]">
                         {money(p.amount_cents)}
                       </span>
                     </li>
@@ -205,7 +205,7 @@ export default async function ChargeLogPage({
           >
             <TimeForm />
             {time.length === 0 ? (
-              <p className="mt-4 text-[13.5px] leading-[1.55] text-slate-muted">
+              <p className="mt-4 text-[13.5px] leading-[1.55] text-[var(--secondary)]">
                 Nothing logged by hand yet. Review time is recorded automatically and appears on the
                 left.
               </p>
@@ -214,16 +214,16 @@ export default async function ChargeLogPage({
                 {time.slice(0, 12).map((t) => (
                   <li key={t.id} className="py-2.5">
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-[13.5px] font-semibold text-slate">
+                      <span className="text-[13.5px] font-semibold text-[var(--navy)]">
                         {t.kind.replace(/_/g, " ")}
                       </span>
-                      <span className="text-[13.5px] text-slate-muted">
+                      <span className="text-[13.5px] text-[var(--secondary)]">
                         {t.minutes ?? 0} min
                         {t.entered_manually ? ", by hand" : ""}
                       </span>
                     </div>
                     {t.note ? (
-                      <p className="mt-0.5 text-[12.5px] leading-[1.5] text-slate-muted">{t.note}</p>
+                      <p className="mt-0.5 text-[12.5px] leading-[1.5] text-[var(--secondary)]">{t.note}</p>
                     ) : null}
                   </li>
                 ))}

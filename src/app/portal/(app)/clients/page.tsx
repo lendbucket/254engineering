@@ -68,8 +68,8 @@ export default async function ClientsPage() {
       head: "Client",
       cell: (c) => (
         <div>
-          <p className="font-semibold text-slate">{c.name}</p>
-          <p className="text-[12.5px] text-slate-muted">
+          <p className="font-semibold text-[var(--navy)]">{c.name}</p>
+          <p className="text-[12.5px] text-[var(--secondary)]">
             {c.kind === "organization" ? "Organization" : "Individual"}
             {c.client_type ? `, ${c.client_type.replace(/_/g, " ")}` : ""}
           </p>
@@ -80,7 +80,7 @@ export default async function ClientsPage() {
       key: "contact",
       head: "Contact",
       cell: (c) => (
-        <div className="text-[13px] text-slate-muted">
+        <div className="text-[13.5px] text-[var(--secondary)]">
           {c.email ? <p className="break-all">{c.email}</p> : null}
           {c.phone ? <p>{c.phone}</p> : null}
           {!c.email && !c.phone ? "none recorded" : null}
@@ -130,24 +130,24 @@ export default async function ClientsPage() {
           ) : (
             <ul className="flex flex-col gap-3">
               {leads.map((lead) => (
-                <li key={lead.id} className="rounded-[4px] border border-limestone-line bg-white p-4">
+                <li key={lead.id} className="rounded-[4px] border border-[var(--border)] bg-white p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-[14.5px] font-semibold text-slate">
+                      <p className="text-[13.5px] font-semibold text-[var(--navy)]">
                         {lead.company || lead.name || "Unnamed enquirer"}
                       </p>
-                      <p className="mt-0.5 text-[13px] break-all text-slate-muted">
+                      <p className="mt-0.5 text-[13.5px] break-all text-[var(--secondary)]">
                         {[lead.email, lead.phone, lead.city].filter(Boolean).join("  ")}
                       </p>
                       {lead.message ? (
-                        <p className="mt-2 max-w-[70ch] text-[13px] leading-[1.55] text-slate-muted">
+                        <p className="mt-2 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
                           {lead.message}
                         </p>
                       ) : null}
                     </div>
                     <div className="flex flex-col items-end gap-1.5">
                       <Chip label={lead.site} />
-                      <span className="text-[12px] text-slate-muted">{when(lead.created_at)}</span>
+                      <span className="text-[12px] text-[var(--secondary)]">{when(lead.created_at)}</span>
                     </div>
                   </div>
                   <div className="mt-3">
@@ -178,14 +178,14 @@ export default async function ClientsPage() {
             <div>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-[15px] font-semibold text-slate">{c.name}</p>
-                  <p className="mt-0.5 text-[13px] break-all text-slate-muted">
+                  <p className="text-[15px] font-semibold text-[var(--navy)]">{c.name}</p>
+                  <p className="mt-0.5 text-[13.5px] break-all text-[var(--secondary)]">
                     {c.email ?? c.phone ?? "no contact recorded"}
                   </p>
                 </div>
                 <Chip label={c.kind === "organization" ? "Org" : "Person"} />
               </div>
-              <p className="mt-2 text-[12.5px] text-slate-muted">
+              <p className="mt-2 text-[12.5px] text-[var(--secondary)]">
                 {c.city ? `${c.city}  ` : ""}
                 added {when(c.created_at)}
               </p>
@@ -194,7 +194,7 @@ export default async function ClientsPage() {
         />
       </Panel>
 
-      <p className="mt-6 text-[13px] leading-[1.6] text-slate-muted">
+      <p className="mt-6 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
         Files live on the{" "}
         <Link href="/portal/files" className="underline underline-offset-2">
           files screen

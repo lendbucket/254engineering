@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 const field =
-  "mt-1.5 min-h-[48px] w-full rounded-[3px] border border-limestone-line bg-white px-3 text-[16px] text-slate outline-none focus:border-slate";
-const label = "block text-[13px] font-semibold text-slate";
+  "mt-1.5 min-h-[48px] w-full rounded-[3px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--navy)] outline-none focus:border-slate";
+const label = "block text-[13.5px] font-semibold text-[var(--navy)]";
 
 export function NewClientForm() {
   const router = useRouter();
@@ -63,20 +63,34 @@ export function NewClientForm() {
       {open ? (
         <form
           onSubmit={onSubmit}
-          className="mt-4 rounded-[4px] border border-limestone-line bg-white p-4 sm:p-5"
+          className="mt-4 rounded-[4px] border border-[var(--border)] bg-white p-4 sm:p-5"
         >
           <fieldset>
             <legend className={label}>Kind</legend>
             <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-              {(["organization", "individual"] as const).map((k) => (
+              {/*
+                THE LABEL IS WRITTEN, NOT CAPITALIZED BY CSS.
+
+                These are the stored enum values, and `capitalize` was making
+                the screen say "Organization" while the DOM said "organization".
+                A screen reader and a copy and paste both get the DOM, so the
+                two were disagreeing about the same word. Written out, they
+                agree, and the stored value is untouched.
+              */}
+              {([
+                ["organization", "Organization"],
+                ["individual", "Individual"],
+              ] as const).map(([k, label]) => (
                 <label
                   key={k}
-                  className={`flex min-h-[48px] flex-1 cursor-pointer items-center gap-2 rounded-[3px] border px-3 text-[14px] font-semibold capitalize ${
-                    kind === k ? "border-slate bg-limestone text-slate" : "border-limestone-line text-slate-muted"
+                  className={`flex min-h-[var(--tap-target)] flex-1 cursor-pointer items-center gap-2 rounded-[var(--radius-control)] border px-3 text-[13.5px] font-semibold ${
+                    kind === k
+                      ? "border-[var(--navy)] bg-[var(--canvas)] text-[var(--navy)]"
+                      : "border-[var(--border)] text-[var(--secondary)]"
                   }`}
                 >
                   <input type="radio" name="kind" value={k} checked={kind === k} onChange={() => setKind(k)} className="h-4 w-4" />
-                  {k}
+                  {label}
                 </label>
               ))}
             </div>
@@ -122,7 +136,7 @@ export function NewClientForm() {
           </div>
 
           {error ? (
-            <p role="alert" className="mt-4 rounded-[3px] border border-[#f3c9c6] bg-[#fdeceb] px-3 py-2.5 text-[13.5px] text-[#8c1d18]">
+            <p role="alert" className="mt-4 rounded-[3px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-3 py-2.5 text-[13.5px] text-[var(--red)]">
               {error}
             </p>
           ) : null}
@@ -200,7 +214,7 @@ export function ConvertLead({
 
   if (done) {
     return (
-      <p className="text-[13px] text-[#14522f]">
+      <p className="text-[13.5px] text-[var(--green)]">
         Converted to file {done}.{" "}
         <a href="/portal/files" className="underline underline-offset-2">
           Open files
@@ -214,13 +228,13 @@ export function ConvertLead({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex min-h-[40px] items-center rounded-[3px] border border-limestone-line px-3 text-[13px] font-semibold text-slate hover:bg-limestone"
+        className="inline-flex min-h-[40px] items-center rounded-[3px] border border-[var(--border)] px-3 text-[13.5px] font-semibold text-[var(--navy)] hover:bg-[var(--canvas)]"
       >
         {open ? "Cancel" : "Convert to client and file"}
       </button>
 
       {open ? (
-        <form onSubmit={onSubmit} className="mt-3 rounded-[3px] border border-limestone-line bg-limestone p-3">
+        <form onSubmit={onSubmit} className="mt-3 rounded-[3px] border border-[var(--border)] bg-[var(--canvas)] p-3">
           <div className="grid gap-3 sm:grid-cols-3">
             <div>
               <label className={label} htmlFor={`svc-${lead.id}`}>Service line</label>
@@ -245,7 +259,7 @@ export function ConvertLead({
             </div>
           </div>
           {error ? (
-            <p role="alert" className="mt-3 rounded-[3px] border border-[#f3c9c6] bg-[#fdeceb] px-3 py-2 text-[13px] text-[#8c1d18]">
+            <p role="alert" className="mt-3 rounded-[3px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-3 py-2 text-[13.5px] text-[var(--red)]">
               {error}
             </p>
           ) : null}

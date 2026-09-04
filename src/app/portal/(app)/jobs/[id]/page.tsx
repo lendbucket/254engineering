@@ -42,7 +42,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
     <>
       <Link
         href="/portal/jobs"
-        className="mb-3 inline-flex min-h-[44px] items-center text-[14px] font-semibold text-slate-muted"
+        className="mb-3 inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-[var(--secondary)]"
       >
         Back to my jobs
       </Link>
@@ -67,18 +67,18 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
           href={`https://maps.google.com/?q=${mapQuery}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex min-h-[48px] items-center justify-center rounded-[3px] border border-limestone-line bg-white px-4 text-[15px] font-semibold text-slate"
+          className="inline-flex min-h-[48px] items-center justify-center rounded-[3px] border border-[var(--border)] bg-white px-4 text-[15px] font-semibold text-[var(--navy)]"
         >
           Directions
         </a>
       </div>
 
       {view.file.notes ? (
-        <div className="mb-6 rounded-[4px] border border-limestone-line bg-white px-4 py-3">
-          <p className="text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">
+        <div className="mb-6 rounded-[4px] border border-[var(--border)] bg-white px-4 py-3">
+          <p className="portal-kicker text-[var(--gold-deep)]">
             Notes on this file
           </p>
-          <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-[1.55] text-slate-muted">
+          <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
             {view.file.notes}
           </p>
         </div>
@@ -111,9 +111,9 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
           }))}
         />
       ) : (
-        <div className="rounded-[4px] border border-limestone-line bg-white px-4 py-4">
-          <p className="text-[14px] font-semibold text-slate">No protocol is attached to this file</p>
-          <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-[1.55] text-slate-muted">
+        <div className="rounded-[4px] border border-[var(--border)] bg-white px-4 py-4">
+          <p className="text-[13.5px] font-semibold text-[var(--navy)]">No protocol is attached to this file</p>
+          <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
             There is nothing to capture against yet, and nothing can be submitted. An engineer
             publishes the protocol for this service line, and it attaches itself here. Do not drive
             out until it does.

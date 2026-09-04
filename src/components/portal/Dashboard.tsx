@@ -44,11 +44,11 @@ export function CountTiles({ tiles }: { tiles: Tile[] }) {
           href={tile.href}
           className="block rounded-[var(--radius-card)] border border-[var(--border)] bg-white p-4 transition-colors hover:bg-[var(--row-hover)]"
         >
-          <p className={`font-display text-[28px] leading-none font-bold ${NUMBER_TONE[tile.tone]}`}>
+          <p className={`font-display text-[30px] leading-none font-bold ${NUMBER_TONE[tile.tone]}`}>
             {tile.count}
           </p>
-          <p className="mt-2 text-[13px] leading-[1.35] font-semibold text-slate">{tile.label}</p>
-          <p className="mt-1.5 text-[12px] leading-[1.45] text-slate-muted">{tile.note}</p>
+          <p className="mt-2 text-[13.5px] leading-[1.35] font-semibold text-[var(--navy)]">{tile.label}</p>
+          <p className="mt-1.5 text-[12px] leading-[1.45] text-[var(--secondary)]">{tile.note}</p>
         </Link>
       ))}
     </div>
@@ -69,17 +69,17 @@ export function MoneyTiles({ tiles }: { tiles: MoneyTile[] }) {
       {tiles.map((tile) => (
         <div
           key={tile.label}
-          className="rounded-[4px] border border-limestone-line bg-white p-4"
+          className="rounded-[4px] border border-[var(--border)] bg-white p-4"
         >
-          <p className="text-[13px] font-semibold text-slate">{tile.label}</p>
+          <p className="text-[13.5px] font-semibold text-[var(--navy)]">{tile.label}</p>
           <p
-            className={`mt-1.5 font-display text-[26px] leading-none font-bold ${
-              isKnown(tile.value) ? "text-slate" : "text-slate-muted"
+            className={`mt-1.5 font-display text-[24px] leading-none font-bold ${
+              isKnown(tile.value) ? "text-[var(--navy)]" : "text-[var(--secondary)]"
             }`}
           >
             {money(tile.value)}
           </p>
-          <p className="mt-2 max-w-[46ch] text-[12px] leading-[1.5] text-slate-muted">{tile.note}</p>
+          <p className="mt-2 max-w-[46ch] text-[12px] leading-[1.5] text-[var(--secondary)]">{tile.note}</p>
         </div>
       ))}
     </div>
@@ -89,9 +89,9 @@ export function MoneyTiles({ tiles }: { tiles: MoneyTile[] }) {
 export function AttentionList({ items }: { items: Attention[] }) {
   if (items.length === 0) {
     return (
-      <div className="rounded-[4px] border border-dashed border-limestone-line px-5 py-8 text-center">
-        <p className="text-[15px] font-semibold text-slate">Nothing needs you right now</p>
-        <p className="mx-auto mt-2 max-w-[52ch] text-[14px] leading-[1.6] text-slate-muted">
+      <div className="rounded-[4px] border border-dashed border-[var(--border)] px-5 py-8 text-center">
+        <p className="text-[15px] font-semibold text-[var(--navy)]">Nothing needs you right now</p>
+        <p className="mx-auto mt-2 max-w-[52ch] text-[13.5px] leading-[1.6] text-[var(--secondary)]">
           Overdue work, missing figures and expiring credentials appear here when they exist. An
           empty list means the checks ran and found nothing, not that nothing was checked.
         </p>
@@ -105,10 +105,10 @@ export function AttentionList({ items }: { items: Attention[] }) {
         <li key={item.label}>
           <Link
             href={item.href}
-            className="block rounded-[4px] border border-limestone-line bg-white px-4 py-3 transition-colors hover:bg-limestone/50"
+            className="block rounded-[4px] border border-[var(--border)] bg-white px-4 py-3 transition-colors hover:bg-[var(--canvas)]/50"
           >
-            <p className="text-[14px] font-semibold text-slate">{item.label}</p>
-            <p className="mt-1 max-w-[74ch] text-[13px] leading-[1.55] text-slate-muted">{item.detail}</p>
+            <p className="text-[13.5px] font-semibold text-[var(--navy)]">{item.label}</p>
+            <p className="mt-1 max-w-[74ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">{item.detail}</p>
           </Link>
         </li>
       ))}

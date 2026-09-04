@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RestrictedMode } from "@/components/portal/design";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
@@ -6,7 +7,6 @@ import { listFiles, getFile, listClients, fileTimeline, fileRegion } from "@/lib
 import { availableTransitions, STATUS_LABEL, STATUS_TONE, FILE_STATUSES } from "@/lib/ops-files";
 import { TEXAS_COUNTIES, twiaStatus } from "@/lib/ops-counties";
 import { services } from "@/content/services";
-import { isPrelaunch } from "@/lib/launch";
 import { Chip, EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
 import { dispatchContext, jobView } from "@/lib/ops-field";
 import { progressLabel } from "@/lib/ops-evidence";
@@ -89,8 +89,8 @@ export default async function FilesPage({
       <div className="mb-4 flex flex-wrap gap-2">
         <Link
           href={filterHref({ status: undefined })}
-          className={`inline-flex min-h-[36px] items-center rounded-[3px] border px-3 text-[13px] font-semibold ${
-            !params.status ? "border-slate bg-slate text-slate-fg" : "border-limestone-line text-slate-muted"
+          className={`inline-flex min-h-[36px] items-center rounded-[3px] border px-3 text-[13.5px] font-semibold ${
+            !params.status ? "border-slate bg-slate text-[var(--navy)]-fg" : "border-[var(--border)] text-[var(--secondary)]"
           }`}
         >
           All
@@ -99,8 +99,8 @@ export default async function FilesPage({
           <Link
             key={s}
             href={filterHref({ status: s })}
-            className={`inline-flex min-h-[36px] items-center rounded-[3px] border px-3 text-[13px] font-semibold ${
-              params.status === s ? "border-slate bg-slate text-slate-fg" : "border-limestone-line text-slate-muted"
+            className={`inline-flex min-h-[36px] items-center rounded-[3px] border px-3 text-[13.5px] font-semibold ${
+              params.status === s ? "border-slate bg-slate text-[var(--navy)]-fg" : "border-[var(--border)] text-[var(--secondary)]"
             }`}
           >
             {STATUS_LABEL[s]}
@@ -124,14 +124,14 @@ export default async function FilesPage({
               <Link
                 href={`/portal/files?id=${f.id}`}
                 className={`block rounded-[4px] border bg-white p-4 transition-colors hover:border-slate ${
-                  selected?.id === f.id ? "border-slate" : "border-limestone-line"
+                  selected?.id === f.id ? "border-slate" : "border-[var(--border)]"
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="font-mono text-[12.5px] text-brass-ink">{f.file_number}</p>
-                    <p className="mt-1 text-[14.5px] font-semibold text-slate">{f.property_address}</p>
-                    <p className="mt-0.5 text-[13px] text-slate-muted">
+                    <p className="font-mono text-[12.5px] text-[var(--gold-deep)]">{f.file_number}</p>
+                    <p className="mt-1 text-[13.5px] font-semibold text-[var(--navy)]">{f.property_address}</p>
+                    <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">
                       {f.county} County{f.twia_county ? ", windstorm" : ""}
                     </p>
                   </div>
@@ -149,20 +149,20 @@ export default async function FilesPage({
     <div>
       <Link
         href={filterHref({})}
-        className="mb-4 inline-flex min-h-[44px] items-center text-[14px] font-semibold text-slate-muted lg:hidden"
+        className="mb-4 inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-[var(--secondary)] lg:hidden"
       >
         Back to the list
       </Link>
 
-      <div className="rounded-[4px] border border-limestone-line bg-white">
-        <div className="border-b border-limestone-line px-4 py-4 sm:px-5">
+      <div className="rounded-[4px] border border-[var(--border)] bg-white">
+        <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="font-mono text-[12.5px] text-brass-ink">{selected.file_number}</p>
-              <h2 className="mt-1 font-display text-[20px] leading-[1.2] font-bold text-slate">
+              <p className="font-mono text-[12.5px] text-[var(--gold-deep)]">{selected.file_number}</p>
+              <h2 className="mt-1 font-display text-[17px] leading-[1.2] font-bold text-[var(--navy)]">
                 {selected.property_address}
               </h2>
-              <p className="mt-1 text-[13.5px] text-slate-muted">
+              <p className="mt-1 text-[13.5px] text-[var(--secondary)]">
                 {selected.city ? `${selected.city}, ` : ""}
                 {selected.county} County
                 {fileRegion(selected.county) ? ` (${fileRegion(selected.county)})` : ""}
@@ -176,7 +176,7 @@ export default async function FilesPage({
         </div>
 
         {dispatch ? (
-          <div className="border-b border-limestone-line px-4 py-4 sm:px-5">
+          <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5">
             <DispatchPanel
               fileId={selected.id}
               offers={dispatch.plan.offers}
@@ -194,7 +194,7 @@ export default async function FilesPage({
 
         <div className="grid gap-5 px-4 py-5 sm:px-5 lg:grid-cols-2">
           <div>
-            <p className="text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">Overview</p>
+            <p className="portal-kicker text-[var(--gold-deep)]">Overview</p>
             <dl className="mt-3 divide-y divide-limestone-line">
               {[
                 ["Service line", services.find((s) => s.slug === selected.service_slug)?.name ?? selected.service_slug],
@@ -204,15 +204,15 @@ export default async function FilesPage({
                 ["Windstorm", twiaStatus(selected.county) === "check" ? "Harris County: confirm whether the property is east of SH 146" : selected.twia_county ? "Inside the designated catastrophe area" : "Outside the designated area"],
               ].map(([k, v]) => (
                 <div key={k} className="grid gap-1 py-2.5 sm:grid-cols-[130px_1fr] sm:gap-3">
-                  <dt className="text-[13px] font-semibold text-slate">{k}</dt>
-                  <dd className="text-[13.5px] leading-[1.5] text-slate-muted">{v}</dd>
+                  <dt className="text-[13.5px] font-semibold text-[var(--navy)]">{k}</dt>
+                  <dd className="text-[13.5px] leading-[1.5] text-[var(--secondary)]">{v}</dd>
                 </div>
               ))}
             </dl>
 
             {can(actor, "pricing.read") ? (
               <>
-                <p className="mt-6 text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">Billing</p>
+                <p className="mt-6 portal-kicker text-[var(--gold-deep)]">Billing</p>
                 <dl className="mt-3 divide-y divide-limestone-line">
                   {[
                     ["Client price", money(selected.client_price_cents)],
@@ -230,12 +230,12 @@ export default async function FilesPage({
                     ],
                   ].map(([k, v]) => (
                     <div key={k} className="grid gap-1 py-2.5 sm:grid-cols-[130px_1fr] sm:gap-3">
-                      <dt className="text-[13px] font-semibold text-slate">{k}</dt>
-                      <dd className="text-[13.5px] text-slate-muted">{v}</dd>
+                      <dt className="text-[13.5px] font-semibold text-[var(--navy)]">{k}</dt>
+                      <dd className="text-[13.5px] text-[var(--secondary)]">{v}</dd>
                     </div>
                   ))}
                 </dl>
-                <p className="mt-2 text-[12.5px] leading-[1.5] text-slate-muted">
+                <p className="mt-2 text-[12.5px] leading-[1.5] text-[var(--secondary)]">
                   Invoicing arrives with Stripe in a later phase. The figures are here so margin is
                   visible from the start rather than reconstructed later.
                 </p>
@@ -252,20 +252,20 @@ export default async function FilesPage({
               })}
             />
 
-            <p className="mt-7 text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">Timeline</p>
+            <p className="mt-7 portal-kicker text-[var(--gold-deep)]">Timeline</p>
             {timeline.length === 0 ? (
-              <p className="mt-2 text-[13.5px] text-slate-muted">Nothing recorded yet.</p>
+              <p className="mt-2 text-[13.5px] text-[var(--secondary)]">Nothing recorded yet.</p>
             ) : (
               <ol className="mt-3 space-y-3">
                 {timeline.map((e) => (
-                  <li key={String(e.id)} className="border-l-2 border-limestone-line pl-3">
-                    <p className="text-[13.5px] font-semibold text-slate">
+                  <li key={String(e.id)} className="border-l-2 border-[var(--border)] pl-3">
+                    <p className="text-[13.5px] font-semibold text-[var(--navy)]">
                       {e.kind === "status" && e.to_status
                         ? `${e.from_status ? STATUS_LABEL[e.from_status as keyof typeof STATUS_LABEL] + " to " : ""}${STATUS_LABEL[e.to_status as keyof typeof STATUS_LABEL]}`
                         : e.kind}
                     </p>
-                    {e.body ? <p className="mt-0.5 text-[13px] leading-[1.5] text-slate-muted">{e.body}</p> : null}
-                    <p className="mt-0.5 text-[12px] text-slate-muted">
+                    {e.body ? <p className="mt-0.5 text-[13.5px] leading-[1.5] text-[var(--secondary)]">{e.body}</p> : null}
+                    <p className="mt-0.5 text-[12px] text-[var(--secondary)]">
                       {new Date(e.created_at as string).toLocaleString("en-US", {
                         month: "short",
                         day: "numeric",
@@ -280,19 +280,19 @@ export default async function FilesPage({
 
             {job?.protocol ? (
               <>
-                <p className="mt-7 text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">
+                <p className="mt-7 portal-kicker text-[var(--gold-deep)]">
                   Evidence
                 </p>
-                <p className="mt-2 text-[13.5px] font-semibold text-slate">
+                <p className="mt-2 text-[13.5px] font-semibold text-[var(--navy)]">
                   {progressLabel(job.state)}
                 </p>
-                <p className="mt-0.5 text-[13px] text-slate-muted">
+                <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">
                   Working to {job.protocol.name} v{job.protocol.version}.
                 </p>
                 {job.state.blockers.length > 0 ? (
                   <ul className="mt-2 flex flex-col gap-1">
                     {job.state.blockers.map((b) => (
-                      <li key={b} className="text-[13px] leading-[1.5] text-slate-muted">
+                      <li key={b} className="text-[13.5px] leading-[1.5] text-[var(--secondary)]">
                         {b}
                       </li>
                     ))}
@@ -300,16 +300,16 @@ export default async function FilesPage({
                 ) : null}
                 <Link
                   href={`/portal/jobs/${selected.id}`}
-                  className="mt-3 inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-slate underline underline-offset-4"
+                  className="mt-3 inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-[var(--navy)] underline underline-offset-4"
                 >
                   Open the checklist
                 </Link>
               </>
             ) : null}
 
-            <div className="mt-7 rounded-[4px] border border-dashed border-limestone-line px-4 py-4">
-              <p className="text-[13px] font-semibold text-slate">Documents, tasks, messages</p>
-              <p className="mt-1.5 text-[12.5px] leading-[1.55] text-slate-muted">
+            <div className="mt-7 rounded-[4px] border border-dashed border-[var(--border)] px-4 py-4">
+              <p className="text-[13.5px] font-semibold text-[var(--navy)]">Documents, tasks, messages</p>
+              <p className="mt-1.5 text-[12.5px] leading-[1.55] text-[var(--secondary)]">
                 Documents and sealing arrive with review, and tasks and messages after that. They are
                 empty because those phases have not shipped, not because this file is missing
                 anything.
@@ -333,18 +333,7 @@ export default async function FilesPage({
         lede="One file per deliverable request, from intake to delivered. The platform enforces the order."
       />
 
-      {isPrelaunch() ? (
-        <div className="mb-5 rounded-[4px] border border-[#f0d9a8] bg-[#fdf3e0] px-4 py-3">
-          <p className="text-[12px] font-bold tracking-[0.1em] text-[#7a4c05] uppercase">
-            Compliance gate active
-          </p>
-          <p className="mt-1 max-w-[75ch] text-[13px] leading-[1.55] text-[#7a4c05]">
-            Files can be created and prepared. None can reach sealed or delivered while firm
-            registration is pending and no Professional Engineer is in responsible charge. The rule
-            is in the state machine, not in these buttons.
-          </p>
-        </div>
-      ) : null}
+      <RestrictedMode also="Files can be created and prepared. The rule is in the state machine, not in these buttons." />
 
       {can(actor, "files.create") ? (
         <div className="mb-6">

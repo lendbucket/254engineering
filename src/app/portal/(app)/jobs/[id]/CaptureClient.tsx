@@ -260,18 +260,18 @@ export function Checklist({
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-        <p className="text-[12px] font-bold tracking-[0.1em] text-brass-ink uppercase">
+        <p className="portal-kicker text-[var(--gold-deep)]">
           {protocolName}
         </p>
-        <p className="text-[13px] font-semibold text-slate">{progressLabel(state)}</p>
+        <p className="text-[13.5px] font-semibold text-[var(--navy)]">{progressLabel(state)}</p>
       </div>
 
       {!online ? (
-        <div className="mb-4 rounded-[4px] border border-[#f0d9a8] bg-[#fdf3e0] px-4 py-3">
-          <p className="text-[13.5px] leading-[1.55] font-semibold text-[#7a4c05]">
+        <div className="mb-4 rounded-[4px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-4 py-3">
+          <p className="text-[13.5px] leading-[1.55] font-semibold text-[var(--warn-ink)]">
             No signal. Keep working.
           </p>
-          <p className="mt-1 text-[13px] leading-[1.55] text-[#7a4c05]">
+          <p className="mt-1 text-[13.5px] leading-[1.55] text-[var(--warn-ink)]">
             Everything you capture is held on this phone and uploads by itself when you are back in
             range. Do not close this tab until it has.
           </p>
@@ -279,22 +279,22 @@ export function Checklist({
       ) : null}
 
       {queued > 0 ? (
-        <div className="mb-4 rounded-[4px] border border-limestone-line bg-white px-4 py-3">
+        <div className="mb-4 rounded-[4px] border border-[var(--border)] bg-white px-4 py-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-[13.5px] font-semibold text-slate">
+            <p className="text-[13.5px] font-semibold text-[var(--navy)]">
               {queued} capture{queued === 1 ? "" : "s"} waiting to upload
             </p>
             <button
               type="button"
               onClick={() => void flush()}
               disabled={flushing || !online}
-              className="inline-flex min-h-[44px] items-center rounded-[3px] border border-limestone-line px-3 text-[13px] font-semibold text-slate disabled:opacity-50"
+              className="inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] px-3 text-[13.5px] font-semibold text-[var(--navy)] disabled:opacity-50"
             >
               {flushing ? "Uploading" : "Upload now"}
             </button>
           </div>
           {queue.find((q) => q.lastError) ? (
-            <p className="mt-1.5 text-[13px] leading-[1.5] text-slate-muted">
+            <p className="mt-1.5 text-[13.5px] leading-[1.5] text-[var(--secondary)]">
               Last attempt: {queue.find((q) => q.lastError)?.lastError}
             </p>
           ) : null}
@@ -315,24 +315,24 @@ export function Checklist({
               key={item.id}
               className={`rounded-[4px] border bg-white p-4 ${
                 status.satisfied
-                  ? "border-limestone-line border-l-[#2f6b45]"
+                  ? "border-[var(--border)] border-l-[var(--green)]"
                   : item.required
-                    ? "border-limestone-line"
-                    : "border-limestone-line"
+                    ? "border-[var(--border)]"
+                    : "border-[var(--border)]"
               }`}
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-[15px] leading-[1.35] font-semibold text-slate">
+                  <p className="text-[15px] leading-[1.35] font-semibold text-[var(--navy)]">
                     {index + 1}. {item.label}
                     {item.required ? "" : " (optional)"}
                   </p>
                   {item.instructions ? (
-                    <p className="mt-1 max-w-[65ch] text-[13.5px] leading-[1.55] text-slate-muted">
+                    <p className="mt-1 max-w-[65ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
                       {item.instructions}
                     </p>
                   ) : null}
-                  <p className="mt-1.5 text-[13px] font-semibold text-slate-muted">
+                  <p className="mt-1.5 text-[13.5px] font-semibold text-[var(--secondary)]">
                     {status.satisfied
                       ? item.kind === "photo" && needed > 1
                         ? `${status.captured} of ${needed} captured`
@@ -351,7 +351,7 @@ export function Checklist({
                         <img
                           src={previews.current.get(q.id)}
                           alt=""
-                          className="h-16 w-16 rounded-[3px] border border-limestone-line object-cover"
+                          className="h-16 w-16 rounded-[3px] border border-[var(--border)] object-cover"
                         />
                       </li>
                     ) : null,
@@ -367,9 +367,9 @@ export function Checklist({
         })}
       </ol>
 
-      <div className="mt-7 border-t border-limestone-line pt-6">
+      <div className="mt-7 border-t border-[var(--border)] pt-6">
         {error ? (
-          <p role="alert" className="mb-3 text-[14px] leading-[1.5] font-semibold text-[#a3241c]">
+          <p role="alert" className="mb-3 text-[13.5px] leading-[1.5] font-semibold text-[var(--red)]">
             {error}
           </p>
         ) : null}
@@ -377,7 +377,7 @@ export function Checklist({
         {blockers.length > 0 ? (
           <ul className="mb-3 flex flex-col gap-1">
             {blockers.map((b) => (
-              <li key={b} className="text-[13.5px] leading-[1.5] text-[#a3241c]">
+              <li key={b} className="text-[13.5px] leading-[1.5] text-[var(--red)]">
                 {b}
               </li>
             ))}
@@ -385,7 +385,7 @@ export function Checklist({
         ) : null}
 
         {readOnly ? (
-          <p className="text-[13.5px] leading-[1.55] text-slate-muted">
+          <p className="text-[13.5px] leading-[1.55] text-[var(--secondary)]">
             This package has been submitted. It is with the engineer now, and capture is closed on
             it. If something needs to change, they will send it back with a note saying what.
           </p>
@@ -393,12 +393,12 @@ export function Checklist({
           <>
             {!state.canSubmit && state.blockers.length > 0 ? (
               <div className="mb-4">
-                <p className="text-[13px] font-bold tracking-[0.1em] text-brass-ink uppercase">
+                <p className="portal-kicker text-[var(--gold-deep)]">
                   Still needed
                 </p>
                 <ul className="mt-2 flex flex-col gap-1">
                   {state.blockers.map((b) => (
-                    <li key={b} className="text-[13.5px] leading-[1.5] text-slate-muted">
+                    <li key={b} className="text-[13.5px] leading-[1.5] text-[var(--secondary)]">
                       {b}
                     </li>
                   ))}
@@ -407,7 +407,7 @@ export function Checklist({
             ) : null}
 
             {state.canSubmit && queued > 0 ? (
-              <p className="mb-3 text-[13.5px] leading-[1.55] text-slate-muted">
+              <p className="mb-3 text-[13.5px] leading-[1.55] text-[var(--secondary)]">
                 Everything is captured. {queued} item{queued === 1 ? " is" : "s are"} still uploading,
                 and the package can be submitted once they land.
               </p>
@@ -452,7 +452,7 @@ function CaptureControl({
       <div className="mt-3">
         <label
           htmlFor={inputId}
-          className="inline-flex min-h-[48px] w-full cursor-pointer items-center justify-center rounded-[3px] border border-slate bg-slate px-4 text-[15px] font-bold text-slate-fg sm:w-auto sm:px-6"
+          className="inline-flex min-h-[48px] w-full cursor-pointer items-center justify-center rounded-[3px] border border-slate bg-slate px-4 text-[15px] font-bold text-[var(--navy)]-fg sm:w-auto sm:px-6"
         >
           {KIND_VERB[item.kind]}
         </label>
@@ -484,7 +484,7 @@ function CaptureControl({
           onChange={(e) => setText(e.target.value)}
           rows={3}
           placeholder="What you saw"
-          className="w-full rounded-[3px] border border-limestone-line bg-white px-3 py-2.5 text-[16px] leading-[1.5] text-slate outline-none focus:border-slate"
+          className="w-full rounded-[3px] border border-[var(--border)] bg-white px-3 py-2.5 text-[16px] leading-[1.5] text-[var(--navy)] outline-none focus:border-slate"
         />
         <button
           type="button"
@@ -493,7 +493,7 @@ function CaptureControl({
             onCapture({ text: text.trim() });
             setText("");
           }}
-          className="mt-2 inline-flex min-h-[48px] w-full items-center justify-center rounded-[3px] border border-slate bg-slate px-4 text-[15px] font-bold text-slate-fg disabled:opacity-50 sm:w-auto sm:px-6"
+          className="mt-2 inline-flex min-h-[48px] w-full items-center justify-center rounded-[3px] border border-slate bg-slate px-4 text-[15px] font-bold text-[var(--navy)]-fg disabled:opacity-50 sm:w-auto sm:px-6"
         >
           Save this note
         </button>
@@ -504,7 +504,7 @@ function CaptureControl({
   return (
     <div className="mt-3 flex flex-wrap items-end gap-2">
       <div className="min-w-[140px] flex-1">
-        <label htmlFor={inputId} className="block text-[13px] font-semibold text-slate">
+        <label htmlFor={inputId} className="block text-[13.5px] font-semibold text-[var(--navy)]">
           {item.unit ? `Value in ${item.unit}` : "Value"}
           {item.minValue != null || item.maxValue != null
             ? `, expected ${item.minValue ?? "any"} to ${item.maxValue ?? "any"}`
@@ -517,7 +517,7 @@ function CaptureControl({
           inputMode="decimal"
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          className="mt-1.5 min-h-[48px] w-full rounded-[3px] border border-limestone-line bg-white px-3 text-[16px] text-slate outline-none focus:border-slate"
+          className="mt-1.5 min-h-[48px] w-full rounded-[3px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--navy)] outline-none focus:border-slate"
         />
       </div>
       <button
@@ -527,7 +527,7 @@ function CaptureControl({
           onCapture({ value: Number(value) });
           setValue("");
         }}
-        className="inline-flex min-h-[48px] items-center justify-center rounded-[3px] border border-slate bg-slate px-5 text-[15px] font-bold text-slate-fg disabled:opacity-50"
+        className="inline-flex min-h-[48px] items-center justify-center rounded-[3px] border border-slate bg-slate px-5 text-[15px] font-bold text-[var(--navy)]-fg disabled:opacity-50"
       >
         Record
       </button>

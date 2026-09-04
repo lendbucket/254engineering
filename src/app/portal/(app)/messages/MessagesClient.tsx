@@ -13,7 +13,7 @@ import { useRouter } from "next/navigation";
  */
 
 const field =
-  "min-h-[48px] w-full rounded-[3px] border border-limestone-line bg-white px-3 text-[16px] text-slate outline-none focus:border-slate";
+  "min-h-[48px] w-full rounded-[3px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--navy)] outline-none focus:border-slate";
 
 async function post(payload: Record<string, unknown>) {
   const res = await fetch("/api/portal/comms", {
@@ -75,10 +75,10 @@ export function Composer({
         onChange={(e) => setBody(e.target.value)}
         rows={3}
         placeholder="Write a message. Use @ and a first name to get somebody's attention."
-        className="w-full rounded-[3px] border border-limestone-line bg-white px-3 py-2.5 text-[16px] leading-[1.5] text-slate outline-none focus:border-slate"
+        className="w-full rounded-[3px] border border-[var(--border)] bg-white px-3 py-2.5 text-[16px] leading-[1.5] text-[var(--navy)] outline-none focus:border-slate"
       />
 
-      <p className="mt-1.5 text-[12.5px] leading-[1.5] text-slate-muted">
+      <p className="mt-1.5 text-[12.5px] leading-[1.5] text-[var(--secondary)]">
         {mentioned.length > 0
           ? `${mentioned.map((p) => p.name).join(" and ")} will be emailed, because you named them.`
           : `${participants.length - 1 > 0 ? participants.length - 1 : "No"} other ${
@@ -87,7 +87,7 @@ export function Composer({
       </p>
 
       {error ? (
-        <p role="alert" className="mt-2 text-[13.5px] font-semibold text-[#a3241c]">
+        <p role="alert" className="mt-2 text-[13.5px] font-semibold text-[var(--red)]">
           {error}
         </p>
       ) : null}
@@ -124,10 +124,10 @@ export function StartDirect({ people }: { people: { id: string; name: string; ro
   }
 
   return (
-    <div className="rounded-[4px] border border-limestone-line bg-white p-3">
-      <p className="text-[13px] font-semibold text-slate">Who</p>
+    <div className="rounded-[4px] border border-[var(--border)] bg-white p-3">
+      <p className="text-[13.5px] font-semibold text-[var(--navy)]">Who</p>
       {error ? (
-        <p role="alert" className="mt-1.5 text-[13px] font-semibold text-[#a3241c]">
+        <p role="alert" className="mt-1.5 text-[13.5px] font-semibold text-[var(--red)]">
           {error}
         </p>
       ) : null}
@@ -151,10 +151,10 @@ export function StartDirect({ people }: { people: { id: string; name: string; ro
                   setBusy(false);
                 }
               }}
-              className="flex min-h-[44px] w-full items-center justify-between rounded-[3px] border border-limestone-line px-3 text-left text-[14px] text-slate hover:border-slate disabled:opacity-50"
+              className="flex min-h-[44px] w-full items-center justify-between rounded-[3px] border border-[var(--border)] px-3 text-left text-[13.5px] text-[var(--navy)] hover:border-slate disabled:opacity-50"
             >
               <span>{p.name}</span>
-              <span className="text-[12px] text-slate-muted">{p.role.replace(/_/g, " ")}</span>
+              <span className="text-[12px] text-[var(--secondary)]">{p.role.replace(/_/g, " ")}</span>
             </button>
           </li>
         ))}
@@ -162,7 +162,7 @@ export function StartDirect({ people }: { people: { id: string; name: string; ro
       <button
         type="button"
         onClick={() => setOpen(false)}
-        className="mt-2 inline-flex min-h-[40px] items-center text-[13px] font-semibold text-slate-muted"
+        className="mt-2 inline-flex min-h-[40px] items-center text-[13.5px] font-semibold text-[var(--secondary)]"
       >
         Cancel
       </button>
@@ -183,7 +183,7 @@ export function NewChannel() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex min-h-[44px] items-center justify-center rounded-[3px] border border-limestone-line px-4 text-[14px] font-semibold text-slate hover:border-slate"
+        className="inline-flex min-h-[44px] items-center justify-center rounded-[3px] border border-[var(--border)] px-4 text-[13.5px] font-semibold text-[var(--navy)] hover:border-slate"
       >
         Open a channel
       </button>
@@ -192,7 +192,7 @@ export function NewChannel() {
 
   return (
     <form
-      className="rounded-[4px] border border-limestone-line bg-white p-3"
+      className="rounded-[4px] border border-[var(--border)] bg-white p-3"
       onSubmit={async (e) => {
         e.preventDefault();
         setBusy(true);
@@ -211,7 +211,7 @@ export function NewChannel() {
         }
       }}
     >
-      <label htmlFor="channel-name" className="block text-[13px] font-semibold text-slate">
+      <label htmlFor="channel-name" className="block text-[13.5px] font-semibold text-[var(--navy)]">
         Channel name
       </label>
       <input
@@ -224,34 +224,34 @@ export function NewChannel() {
       />
 
       <fieldset className="mt-3">
-        <legend className="text-[13px] font-semibold text-slate">Who can read it</legend>
+        <legend className="text-[13.5px] font-semibold text-[var(--navy)]">Who can read it</legend>
         <div className="mt-1.5 flex flex-col gap-1.5">
           {[
             ["admin", "Administrators"],
             ["engineer", "Engineers"],
             ["field_tech", "Field technicians"],
           ].map(([value, label]) => (
-            <label key={value} className="flex min-h-[44px] items-center gap-2.5 text-[14px] text-slate">
+            <label key={value} className="flex min-h-[44px] items-center gap-2.5 text-[13.5px] text-[var(--navy)]">
               <input
                 type="checkbox"
                 checked={roles.includes(value)}
                 onChange={(e) =>
                   setRoles((prev) => (e.target.checked ? [...prev, value] : prev.filter((r) => r !== value)))
                 }
-                className="h-5 w-5 accent-[#1d2a35]"
+                className="h-5 w-5 accent-[var(--navy)]"
               />
               {label}
             </label>
           ))}
         </div>
-        <p className="mt-1 text-[12.5px] leading-[1.5] text-slate-muted">
+        <p className="mt-1 text-[12.5px] leading-[1.5] text-[var(--secondary)]">
           Anybody with one of these roles can read the channel without being added to it. A channel
           with no roles is readable by nobody, so at least one is required.
         </p>
       </fieldset>
 
       {error ? (
-        <p role="alert" className="mt-2 text-[13px] font-semibold text-[#a3241c]">
+        <p role="alert" className="mt-2 text-[13.5px] font-semibold text-[var(--red)]">
           {error}
         </p>
       ) : null}
@@ -267,7 +267,7 @@ export function NewChannel() {
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="inline-flex min-h-[44px] items-center rounded-[3px] border border-limestone-line px-4 text-[14px] font-semibold text-slate"
+          className="inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] px-4 text-[13.5px] font-semibold text-[var(--navy)]"
         >
           Cancel
         </button>
