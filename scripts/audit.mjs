@@ -63,6 +63,16 @@ const PHASE_ZERO = [
     why: "every migration replays from nothing and produces the schema in use",
   },
   {
+    // Phase 8 added a second kind of person. This asks whether the two can be
+    // confused for each other, which is the failure that would look like a
+    // working site right up until a customer opened the review queue.
+    //
+    // Pure, and it needs --conditions=react-server because it imports the
+    // session modules, which are marked server-only.
+    name: "accounts-audit",
+    why: "a customer cannot become a member of staff",
+  },
+  {
     // Pure: the file state machine, the compliance gate, and county derivation.
     // No server, no database, no network.
     name: "files-audit",

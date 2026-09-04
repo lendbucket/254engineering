@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { OPS_COOKIE, readOpsSession } from "@/lib/ops-session";
+import { CUSTOMER_COOKIE, readCustomerSession } from "@/lib/customer-session";
 
 /**
  * The portal gate.
@@ -76,8 +77,52 @@ const OPEN_PATHS = new Set([
   "/api/portal/health",
 ]);
 
+/**
+ * Customer account surfaces, open to a signed out visitor.
+ *
+ * Kept as its own list rather than folded into OPEN_PATHS, because these are
+ * open on the CUSTOMER side of the boundary and OPEN_PATHS is about the staff
+ * side. One list holding both would be one edit away from a portal route
+ * inheriting a customer exemption.
+ */
+const CUSTOMER_OPEN_PATHS = new Set([
+  "/account/login",
+  "/account/set-password",
+  "/api/account/session",
+  "/api/account/set-password",
+]);
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  /*
+   * THE CUSTOMER SURFACE, GATED BY A DIFFERENT COOKIE ENTIRELY.
+   *
+   * Handled first and returned from, so nothing below can see an /account path.
+   * The two sessions are never consulted for the same route: a staff cookie
+   * opens no /account page and a customer cookie opens no /portal page, and
+   * that is true here because each branch reads only its own cookie.
+   *
+   * A customer session is NOT accepted as a fallback for a portal route, and a
+   * staff session is not accepted for an account route. An operator who wants
+   * to see what a customer sees signs in as that customer, which is a thing the
+   * audit trail records rather than a capability the cookie carries.
+   */
+  if (pathname.startsWith("/account") || pathname.startsWith("/api/account")) {
+    if (CUSTOMER_OPEN_PATHS.has(pathname)) return NextResponse.next();
+
+    const customer = readCustomerSession(request.cookies.get(CUSTOMER_COOKIE)?.value);
+    if (customer) return NextResponse.next();
+
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ ok: false, error: "Not signed in." }, { status: 401 });
+    }
+
+    const url = request.nextUrl.clone();
+    url.pathname = "/account/login";
+    url.search = `?next=${encodeURIComponent(pathname)}`;
+    return NextResponse.redirect(url);
+  }
 
   /*
    * The retired sign in surface. These no longer exist as files; the redirect is
@@ -121,5 +166,14 @@ export const config = {
    * mode of a clever matcher is a route that quietly is not covered, and that
    * failure is silent.
    */
-  matcher: ["/portal/:path*", "/api/portal/:path*", "/admin/:path*", "/api/admin/:path*"],
+  matcher: [
+    "/portal/:path*",
+    "/api/portal/:path*",
+    "/admin/:path*",
+    "/api/admin/:path*",
+    // The customer surface. Same reasoning: explicit prefixes, because the
+    // failure mode of a clever matcher is a route that is quietly uncovered.
+    "/account/:path*",
+    "/api/account/:path*",
+  ],
 };
