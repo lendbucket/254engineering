@@ -46,6 +46,9 @@ const rec = (name, ok, note = "") => out.push({ name, ok, note });
 /** Pages a signed out visitor must never see. */
 const ADMIN_PAGES = [
   "/portal",
+  // Phase 10 Section 1. The telephone call path: a client, a price and a
+  // dispatch, so it is as far from public as a portal page gets.
+  "/portal/intake",
   "/portal/people",
   "/portal/audit",
   "/portal/profile",

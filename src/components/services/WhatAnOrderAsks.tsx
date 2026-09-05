@@ -48,7 +48,7 @@ export function WhatAnOrderAsks({ serviceSlug }: { serviceSlug: string }) {
       <h2 className="font-display text-[1.35rem] leading-[1.25] font-bold text-slate">
         What an order asks for
       </h2>
-      <p className="mt-2.5 max-w-[62ch] text-[0.95rem] leading-[1.7] text-slate-fg-muted">
+      <p className="mt-2.5 max-w-[62ch] text-[0.95rem] leading-[1.7] text-slate-muted">
         Worth having to hand. Nothing here is unusual, and an order that arrives with
         it moves without anybody having to telephone back.
       </p>
