@@ -2162,3 +2162,32 @@ of them is a property an audit here measures.
 The first two are copy. The third is a decision about what a phone should show
 first on a list screen, and it should be taken deliberately rather than fixed in
 passing.
+
+### The eng-messages bucket exists on development only
+
+Recorded 2026-09-05, Phase 11 Section 3.
+
+Message attachments land in a private `eng-messages` bucket, created on the
+development project by a script. Production does not have it, so an attachment
+on production would fail at the point a signed upload url is asked for.
+
+`docs/production-cutover-plan.md` step 3 lists three buckets and now needs a
+fourth. Creating it is one call and it is not done here, because a bucket on
+production is a production change and those happen on the operator's word.
+
+The reasoning for a separate bucket rather than eng-evidence is in
+`docs/messaging-section-3.md` section 8.
+
+### Message attachments are not yet in the evidence binder
+
+Recorded 2026-09-05, Phase 11 Section 3, item 8 of that report.
+
+The bucket ruling says a file thread's attachments appear in the binder, so the
+firm can produce them and they are honestly described as sent in conversation
+rather than captured against a protocol item. The bucket and the attachments are
+built; the binder section is not.
+
+Until it is, a photograph on a file thread is visible to anybody who can see the
+file and is NOT in the assembled record. That is a smaller gap than it sounds,
+because the binder assembles fresh from rows and this is a section rather than a
+migration, but it is the half of the ruling that is not yet true.

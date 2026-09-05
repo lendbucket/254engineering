@@ -238,6 +238,10 @@ const PHASE_ONE = [
     why: "the portal behaves as an application at 390, not as a document that fits",
   },
   {
+    name: "messaging-audit",
+    why: "nothing in a conversation can be read by somebody it is not for",
+  },
+  {
     // Phase one for the same reason security-audit is, and this file already
     // warned about it: phase two audits start their own server by killing
     // whatever holds 3225, so an audit placed after them finds nothing to
