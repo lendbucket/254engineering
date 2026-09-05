@@ -65,11 +65,35 @@ mismatch here means the project, not the files.
 
 ### Step 3. Create the buckets
 
-`eng-evidence`, `eng-onboarding`, `eng-uploads`. All private. `eng-evidence`
-carries the size limit and mime types 0002 sets.
+`eng-evidence`, `eng-onboarding`, `eng-uploads`, `eng-messages`. All private.
+`eng-evidence` carries the size limit and mime types 0002 sets. `eng-messages`
+carries 20MB and the image and pdf types the composer accepts.
 
-**Verify:** three buckets, `public = false` on every one. A public evidence
-bucket would expose property photographs, so this is checked rather than assumed.
+**`eng-messages` is the fourth and was added 2026-09-05**, in Phase 11 Section 3.
+It holds attachments sent in a conversation, and it is deliberately NOT
+`eng-evidence`: the reasoning is in `docs/messaging-section-3.md` section 8, and
+it comes down to an engineer sealing a package never certifying a review of
+something that was never presented as an evidence item.
+
+**Verify:** four buckets, `public = false` on every one. A public evidence or
+messages bucket would expose property photographs, so this is checked rather
+than assumed. Check it two ways, because the column and the behaviour are
+different claims:
+
+    select name, public from storage.buckets where name like eng-%;
+
+    curl -o /dev/null -w "%{http_code}"       https://<ref>.supabase.co/storage/v1/object/public/eng-messages/probe.jpg
+
+The first must show four rows and no `true`. The second must not be 200, and it
+needs no credentials, which is what makes it worth running: it is the request an
+outsider would make.
+
+**And the round trip, which the column cannot tell you.**
+`scripts/bucket-roundtrip.mjs` uploads an object, confirms the public form
+refuses it, retrieves it through a signed url, checks the bytes match, watches a
+one second url work and then lapse, and deletes what it made. It carries
+`neverProduction`, so on the new project it runs before the cutover points
+anything at it, while that project is still the development target.
 
 **Rollback:** delete the project. Production is untouched.
 

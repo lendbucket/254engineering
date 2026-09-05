@@ -57,6 +57,30 @@ export type BinderDecision = {
   reason: string | null;
 };
 
+/**
+ * An attachment somebody sent in the file's conversation.
+ *
+ * IT IS IN THE BINDER AND IT IS NOT EVIDENCE, and the binder says so.
+ *
+ * The ruling is in docs/messaging-section-3.md section 8. A photograph of
+ * something unexpected in an attic answers nothing the protocol asked, because
+ * the protocol did not know to ask, so it is not an eng_evidence_items row and
+ * an engineer sealing the package is not certifying a review of it.
+ *
+ * But the firm would be asked to produce it, and a record that leaves it out is
+ * incomplete. So it is here, in its own section, labelled as what it is.
+ */
+export type BinderAttachment = {
+  name: string;
+  contentType: string;
+  byteSize: number;
+  storageKey: string;
+  sentAt: string;
+  sentBy: string;
+  /** The message it came with, which is usually what makes it legible. */
+  note: string | null;
+};
+
 export type Binder = {
   fileNumber: string;
   propertyAddress: string;
@@ -69,6 +93,8 @@ export type Binder = {
   technicianName: string | null;
   items: BinderItem[];
   decisions: BinderDecision[];
+  /** Sent in the file's conversation. Not evidence, and the binder says so. */
+  conversationAttachments: BinderAttachment[];
   /** Every required item captured. */
   complete: boolean;
   missingCount: number;
@@ -179,6 +205,38 @@ export function binderRows(binder: Binder): unknown[][] {
   }
 
   return rows;
+}
+
+/*
+ * The conversation attachments go on the CSV too, under a row that names them
+ * for what they are. An export that carried them silently among the evidence
+ * rows would be the thing the whole ruling exists to prevent, in the one format
+ * somebody opens in a spreadsheet and sorts.
+ */
+export function attachmentRows(binder: Binder): unknown[][] {
+  if (binder.conversationAttachments.length === 0) return [];
+  return [
+    [],
+    ["SENT IN THE CONVERSATION, NOT EVIDENCE", "", "", "", "", "", ""],
+    [
+      "No protocol item asked for these and no engineer accepted them as a capture.",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+    ],
+    ...binder.conversationAttachments.map((a) => [
+      "conversation",
+      a.name,
+      a.contentType,
+      "not required",
+      "SENT",
+      a.note ?? "",
+      a.storageKey,
+    ]),
+  ];
 }
 
 export const BINDER_HEADERS = [

@@ -208,6 +208,59 @@ export default async function BinderPage({ params }: { params: Promise<{ fileId:
           </section>
         ) : null}
 
+        {/* -------------------------------------- sent in the conversation */}
+        {binder.conversationAttachments.length > 0 ? (
+          <section className="mt-8">
+            <h2 className="portal-kicker text-[var(--gold-deep)]">Sent in the conversation</h2>
+            {/*
+              THE LABEL IS THE POINT, NOT THE LIST.
+
+              These are attachments somebody sent on the file's thread. They are
+              NOT evidence: no protocol item asked for them, no engineer
+              accepted them as a capture, and package completeness does not
+              count them. Saying that here is what stops a reader treating this
+              section as part of what was certified.
+
+              They are in the binder because the firm would be asked to produce
+              them and a record that left them out would be incomplete. The
+              ruling is in docs/messaging-section-3.md section 8.
+            */}
+            <p className="mt-2 max-w-[70ch] text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+              Photographs and documents sent on this file{"'"}s conversation. They were not captured
+              against a protocol item and no engineer accepted them as evidence, so they are not
+              part of what any decision above certifies. They are here because they are part of the
+              file{"'"}s record.
+            </p>
+
+            <ul className="mt-3 flex flex-col gap-2">
+              {binder.conversationAttachments.map((a) => (
+                <li
+                  key={a.storageKey}
+                  className="rounded-[3px] border border-[var(--border)] px-3 py-2.5"
+                >
+                  <p className="text-[13.5px] font-semibold text-[var(--navy)]">{a.name}</p>
+                  <p className="mt-0.5 text-[12.5px] text-[var(--secondary)]">
+                    {a.sentBy} · {WHEN(a.sentAt)} · {a.contentType} ·{" "}
+                    {Math.max(1, Math.round(a.byteSize / 1024))} KB
+                  </p>
+                  {a.note ? (
+                    <p className="mt-1 text-[13.5px] leading-[1.5] text-[var(--ink)]">{a.note}</p>
+                  ) : null}
+                  {/*
+                    The storage key rather than a link. This document is
+                    assembled for producing a record, and a signed url dies in
+                    an hour; a key is what somebody fetches the object by in a
+                    year.
+                  */}
+                  <p className="mt-1 font-mono text-[12px] break-all text-[var(--muted)]">
+                    {a.storageKey}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
         {/* ---------------------------------------------------- limitations */}
         <SheetRecordNote>
           <strong className="font-bold text-[var(--ink)]">What this document is not.</strong>{" "}

@@ -4,7 +4,7 @@ import { writeAudit } from "./ops-audit";
 import { can, type Actor } from "./ops-authz";
 import { jobView } from "./ops-field";
 import { services } from "@/content/services";
-import { BINDER_HEADERS, binderRows, limitationsFor, type Binder } from "./ops-binder";
+import { attachmentRows, BINDER_HEADERS, binderRows, limitationsFor, type Binder } from "./ops-binder";
 import { csv } from "./csv";
 import { marginOf, moneyCell, periodTotals, type Cents, type FileMoney } from "./ops-money";
 
@@ -128,6 +128,51 @@ export async function binderFor(actor: Actor | null, fileId: string): Promise<Bi
     ? await db.from("eng_profiles").select("display_name").eq("id", file.assigned_tech_id).maybeSingle()
     : { data: null };
 
+  /*
+   * ATTACHMENTS FROM THE FILE'S CONVERSATION.
+   *
+   * Read straight from the thread rather than through threadView, because this
+   * is the binder assembling a record and not a person reading a conversation:
+   * no signed urls, no read stamping, no pagination. The storage key is what
+   * goes on the document, and whoever produces the record fetches the objects
+   * by key.
+   *
+   * Only a FILE thread. A direct message between two people about the file is
+   * their conversation, not the file's record, and canReadThread already says
+   * an administrator cannot read one.
+   */
+  const { data: convoThread } = await db
+    .from("eng_threads")
+    .select("id")
+    .eq("kind", "file")
+    .eq("file_id", fileId)
+    .maybeSingle();
+
+  const { data: convoMessages } = convoThread
+    ? await db
+        .from("eng_messages")
+        .select("created_at, body, attachments, eng_profiles(display_name)")
+        .eq("thread_id", convoThread.id)
+        .order("created_at", { ascending: true })
+    : { data: [] };
+
+  const conversationAttachments = ((convoMessages ?? []) as unknown as {
+    created_at: string;
+    body: string;
+    attachments: { key: string; name: string; contentType: string; byteSize: number }[] | null;
+    eng_profiles: { display_name: string } | null;
+  }[]).flatMap((m) =>
+    (m.attachments ?? []).map((a) => ({
+      name: a.name,
+      contentType: a.contentType,
+      byteSize: a.byteSize,
+      storageKey: a.key,
+      sentAt: m.created_at,
+      sentBy: m.eng_profiles?.display_name ?? "Somebody who has left",
+      note: m.body?.trim() ? m.body.trim() : null,
+    })),
+  );
+
   const { data: sessions } = await db
     .from("eng_review_sessions")
     .select("id, decision, ended_at, minutes, engineer_id")
@@ -196,6 +241,7 @@ export async function binderFor(actor: Actor | null, fileId: string): Promise<Bi
     protocolVersion: view.protocol?.version ?? null,
     technicianName: (technician?.display_name as string | undefined) ?? null,
     items,
+    conversationAttachments,
     decisions: (sessions ?? []).map((s) => {
       const engineer = engineerById.get(s.engineer_id as string);
       return {
@@ -240,7 +286,7 @@ export function binderCsv(binder: Binder): string {
       ...binder.limitations.map((l, i) => [`Limitation ${i + 1}`, l] as [string, unknown]),
     ],
     headers: BINDER_HEADERS,
-    rows: binderRows(binder),
+    rows: [...binderRows(binder), ...attachmentRows(binder)],
   });
 }
 

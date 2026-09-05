@@ -322,6 +322,64 @@ if (admin?.cookie && engineer?.cookie && tech?.cookie && db) {
   );
 }
 
+// -------------------------------------------- item 8: the binder carries them
+{
+  /*
+   * THE HALF OF THE BUCKET RULING THAT WAS NOT YET TRUE.
+   *
+   * Section 8 of the messaging report says a conversational photograph is not
+   * evidence AND that the firm can still produce it. The first half was built
+   * with the bucket; this is the second, and without it the ruling was half a
+   * position: the photograph existed somewhere the record did not reach.
+   *
+   * Asserted on the SHAPE rather than by assembling a binder, because a binder
+   * needs a file with a protocol and captures that this audit does not create.
+   * What it can assert is that the section exists, that the CSV carries it, and
+   * that both say what these attachments are not.
+   */
+  const binder = codeOnly("src/lib/ops-binder.ts");
+  const docs = codeOnly("src/lib/ops-docs.ts");
+  const page = fs.readFileSync("src/app/portal/(app)/documents/binder/[fileId]/page.tsx", "utf8");
+
+  rec(
+    "the binder type carries conversation attachments",
+    binder.includes("conversationAttachments: BinderAttachment[]"),
+  );
+  rec(
+    "and the assembly reads them from the file thread only",
+    docs.includes('.eq("kind", "file")') && docs.includes("conversationAttachments"),
+    "a direct message about the file is not the file's record",
+  );
+  rec(
+    "the binder page renders the section",
+    page.includes("Sent in the conversation"),
+  );
+  /*
+   * NORMALISED BEFORE MATCHING. The sentence is split across JSX lines and the
+   * first version of this check tried to compensate inside the regex, which
+   * failed on prose that was actually present. Flattening the whitespace first
+   * is the honest way to ask whether a sentence is on the page.
+   */
+  const flat = page.replace(/\s+/g, " ");
+  rec(
+    "and says plainly that they are not evidence",
+    flat.includes("were not captured against a protocol item") &&
+      flat.includes("not part of what any decision above certifies"),
+    "a section without that sentence reads as part of what was certified",
+  );
+
+  rec(
+    "the CSV carries them under a row that names them",
+    binder.includes("SENT IN THE CONVERSATION, NOT EVIDENCE"),
+    "a spreadsheet somebody sorts must not mix them into the evidence rows",
+  );
+  rec(
+    "and the storage key is on the document rather than a signed url",
+    page.includes("a.storageKey"),
+    "a signed url dies in an hour; a key is what somebody fetches by in a year",
+  );
+}
+
 const swept = await destroyProbes("messaging-audit");
 rec("the probe accounts were removed", swept.ok, swept.note);
 

@@ -2163,7 +2163,37 @@ The first two are copy. The third is a decision about what a phone should show
 first on a list screen, and it should be taken deliberately rather than fixed in
 passing.
 
-### The eng-messages bucket exists on development only
+### The eng-messages round trip is verified on development, not on production
+
+Recorded 2026-09-05, Phase 11 Section 3, replacing the entry below which is now
+resolved: the production bucket was created 2026-09-05 and is private.
+
+**What IS verified on production**, directly and without credentials:
+
+- The bucket exists, `public = false`, 20MB limit, the five allowed mime types,
+  zero objects, and none of the four `eng-` buckets is public. Read from
+  `storage.buckets`, which writes nothing.
+- An unauthenticated GET on the public url form answers 400, and so does the
+  listing endpoint. That is the request an outsider would actually make and it
+  needs no key, which is why it is worth more than the column.
+
+**What is NOT verified on production:** the full round trip. Upload, signed
+retrieval, byte comparison and expiry all need either the service role key,
+which standing law keeps out of the working tree, or a signed in portal session
+which this session does not have.
+
+`scripts/bucket-roundtrip.mjs` performs all of it and passes 11 checks against
+development, including a one second url answering 200 and then 400 three seconds
+later. The mechanism is the same service and the same bucket configuration on
+both projects, so the development pass is evidence about production rather than
+about a different system, but it is not the same claim and this entry exists so
+nobody reads it as one.
+
+**The cheapest way to close it** is the operator opening a file thread on
+production, attaching a photograph, and seeing it render. That exercises exactly
+the path the script cannot reach from here.
+
+### RESOLVED: the eng-messages bucket exists on development only
 
 Recorded 2026-09-05, Phase 11 Section 3.
 
