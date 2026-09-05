@@ -2,7 +2,7 @@ import "server-only";
 import { supabaseAdmin } from "./supabase";
 import { deskPackageComplete, orderForFile, settleDecision } from "./ops-payments";
 import { writeAudit } from "./ops-audit";
-import { can, type Actor, holdsLicence } from "./ops-authz";
+import { can, type Actor, holdsLicence, licenceRefusal } from "./ops-authz";
 import { transitionFile } from "./ops-crm";
 import { jobView } from "./ops-field";
 import { raise } from "./ops-notify";
@@ -265,7 +265,7 @@ export async function openReview(
 ): Promise<{ ok: true; sessionId: string } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  if (!holdsLicence(actor, "review.queue")) return { ok: false, error: "Your role cannot review files." };
+  if (!holdsLicence(actor, "review.queue")) return { ok: false, error: licenceRefusal("Taking a file into review") };
 
   const { data: file } = await db.from("eng_files").select("id, status, file_number").eq("id", fileId).maybeSingle();
   if (!file) return { ok: false, error: "That file does not exist." };

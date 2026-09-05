@@ -47,6 +47,7 @@ import {
   keyProblem,
 } from "../src/lib/role-rules.ts";
 import { can, actionsFor, visibleFiles, canSeeFile, redactFile, ROLES, DEFAULT_ROLES, ALL_ACTIONS, LICENSED_ACTIONS, LICENSED_ROLE, holdsLicence } from "../src/lib/ops-authz.ts";
+import { canReview } from "../src/lib/ops-review.ts";
 
 const BASE = process.env.BASE_URL || "http://localhost:3225";
 
@@ -870,6 +871,219 @@ if (!db) {
     for (const probe of allowed) {
       const res = await fetch(`${BASE}${probe.path}`, { headers: { cookie: sessions[probe.role] }, redirect: "manual" });
       rec(`${probe.role} can open ${probe.path}`, res.status === 200, `HTTP ${res.status}`);
+    }
+
+    /*
+     * WHAT AN ENGINEER ACCOUNT CAN ACTUALLY REACH.
+     *
+     * Asked because a Professional Engineer is about to be given an account on
+     * production, and "the matrix says so" is not the same claim as "we signed
+     * in as one and looked". The matrix is what this file already checks
+     * elsewhere; this is the other question.
+     *
+     * EVERY PAGE ON DISK IS PROBED, and the expectation lists below must
+     * account for all of them. That is the property that makes this survive the
+     * next screen somebody adds: a new portal page with no ruling about whether
+     * an engineer sees it fails the coverage check rather than defaulting to
+     * whatever the page happens to do. It is the same shape as the perimeter
+     * coverage check in security-audit, which is what caught /api/portal/roles.
+     */
+    {
+      const dir = "src/app/portal/(app)";
+      const onDisk = fs
+        .readdirSync(dir, { withFileTypes: true })
+        .filter((e) => e.isDirectory() && !e.name.startsWith("[") && !e.name.startsWith("("))
+        .map((e) => "/portal/" + e.name)
+        .sort();
+
+      /*
+       * The two the licence is FOR. Both are licensed capabilities rather than
+       * grants, so an engineer reaches them and nobody else does.
+       */
+      const ENGINEER_REACHES = [
+        "/portal/protocols",
+        "/portal/review",
+        // Ordinary working surfaces an engineer holds by grant, not by licence.
+        "/portal/files",
+        "/portal/clients",
+        "/portal/documents",
+        "/portal/messages",
+        "/portal/tasks",
+        "/portal/profile",
+        "/portal/charge-log",
+        /*
+         * HIS OWN pay ledger, and the distinction is the whole point. The page
+         * is gated on ledger.read_own OR ledger.read_all, and payLedger scopes
+         * the query to tech_id = actor.id unless the caller holds read_all.
+         * An engineer holds only read_own, so this renders his own rows, which
+         * for a PE is an empty ledger. It is not a window onto what technicians
+         * are paid; that is read_all, and he does not have it.
+         *
+         * This was in the refused list on the first run of this check and the
+         * check was wrong, not the code.
+         */
+        "/portal/pay",
+      ];
+
+      /*
+       * And what a licence must NOT open. Money, people, the audit trail, the
+       * permission screen and the machine's own dials. An engineer is a
+       * licensed professional, not an administrator, and the licence is not a
+       * seniority ranking.
+       */
+      const ENGINEER_REFUSED = [
+        "/portal/people",
+        "/portal/roles",
+        "/portal/audit",
+        "/portal/billing",
+        "/portal/orders",
+        "/portal/accounts",
+        "/portal/queue",
+        "/portal/status",
+        "/portal/techs",
+        "/portal/intake",
+        "/portal/jobs",
+        "/portal/onboarding",
+        "/portal/certification",
+      ];
+
+      const claimed = [...ENGINEER_REACHES, ...ENGINEER_REFUSED].sort();
+      const unaccounted = onDisk.filter((p) => !claimed.includes(p));
+      rec(
+        "every portal page on disk has a ruling about the engineer role",
+        unaccounted.length === 0,
+        unaccounted.length ? "no ruling for: " + unaccounted.join(", ") : onDisk.length + " pages",
+      );
+
+      const missingPages = claimed.filter((p) => !onDisk.includes(p));
+      rec(
+        "and every page named in those lists still exists",
+        missingPages.length === 0,
+        missingPages.join(", ") || "a list naming a deleted page passes by asserting nothing",
+      );
+
+      let reachedCount = 0;
+      for (const path of ENGINEER_REACHES) {
+        const res = await fetch(BASE + path, {
+          headers: { cookie: sessions.engineer },
+          redirect: "manual",
+        });
+        rec("an engineer can open " + path, res.status === 200, "HTTP " + res.status);
+        if (res.status === 200) reachedCount += 1;
+      }
+
+      /*
+       * HOW A REFUSAL LOOKS, AND WHY THIS ACCEPTS TWO SHAPES.
+       *
+       * Twenty pages call notFound(). Three call redirect("/portal"):
+       * billing, orders and accounts. Both refuse; they refuse differently.
+       *
+       * The first draft of this check demanded 404 everywhere and failed those
+       * three, which would have been an audit asserting a rule nobody had made
+       * rather than the one the platform follows. The rule it actually follows
+       * is "a role that cannot open a page does not get that page", and both
+       * shapes satisfy it.
+       *
+       * It is not a leak, for the reason already recorded in BACKLOG.md against
+       * the sibling inconsistency: both are reachable only by a signed in user,
+       * the proxy sends a signed out client to the login screen before either
+       * renders, and the navigation is built from the same permission list so
+       * it never draws an item the role cannot open. security-audit's rule is
+       * about a signed out client and is unaffected.
+       *
+       * So the shape is PINNED rather than demanded. The count below is exact,
+       * and the three are named, which means a fourth page drifting to a
+       * redirect fails here and has to be a decision somebody made.
+       */
+      const redirectors = [];
+      for (const path of ENGINEER_REFUSED) {
+        const res = await fetch(BASE + path, {
+          headers: { cookie: sessions.engineer },
+          redirect: "manual",
+        });
+        const location = res.headers.get("location") ?? "";
+        const sentAway = res.status === 307 && /\/portal$/.test(location);
+        rec(
+          "an engineer does not get " + path,
+          res.status === 404 || sentAway,
+          "HTTP " + res.status + (location ? " to " + location : ""),
+        );
+        if (sentAway) redirectors.push(path);
+      }
+
+      const REDIRECTING = ["/portal/accounts", "/portal/billing", "/portal/orders"];
+      rec(
+        "the pages that send a refused role away rather than 404ing are the three known ones",
+        redirectors.sort().join(",") === REDIRECTING.join(","),
+        redirectors.length ? redirectors.join(", ") : "none, which means the inconsistency was fixed and this check should go",
+      );
+
+      console.log("");
+      console.log(
+        "  an engineer account reached " +
+          reachedCount +
+          " of " +
+          ENGINEER_REACHES.length +
+          " pages and was refused all " +
+          ENGINEER_REFUSED.length +
+          " others",
+      );
+      console.log("");
+
+
+      /*
+       * THE COMPLIANCE GATE STILL BLOCKS SEALING FOR HIM, and an engineer with
+       * an account is not a firm with a registration. Asserted with an ACTIVE
+       * ENGINEER as the actor, because the interesting case is not "an
+       * administrator cannot seal", it is "the one person who otherwise could
+       * still cannot, because the firm is not registered".
+       */
+      const engineerActor = {
+        id: "probe",
+        role: "engineer",
+        status: "active",
+        grants: new Set(actionsFor("engineer")),
+      };
+      const adminActor = {
+        id: "a",
+        role: "admin",
+        status: "active",
+        grants: new Set(actionsFor("admin")),
+      };
+      const underReview = {
+        status: "under_review",
+        packageComplete: true,
+        assignedEngineerId: "probe",
+      };
+      const REASON = "The framing is not adequate for the load path shown.";
+
+      const sealed = canReview(engineerActor, underReview, "seal", null, { prelaunch: true });
+      rec(
+        "an active engineer still cannot seal while the firm is prelaunch",
+        sealed.ok === false,
+        "an engineer with an account is not a firm with a registration",
+      );
+      rec(
+        "and the refusal names the registration rather than his role",
+        sealed.ok === false && /Texas Board of Professional Engineers/.test(sealed.reason ?? ""),
+      );
+      rec(
+        "but he can take a complete package and decline it",
+        canReview(engineerActor, underReview, "refuse", REASON, { prelaunch: true }).ok === true,
+        "refusing to certify is the one decision a pending registration must never block",
+      );
+
+      const adminRefused = canReview(adminActor, underReview, "refuse", REASON, { prelaunch: true });
+      rec(
+        "and nobody without the licence decides anything, even declining",
+        adminRefused.ok === false,
+      );
+      rec(
+        "and that refusal sends them to a Professional Engineer, not to the roles screen",
+        /Professional Engineer in responsible charge/.test(adminRefused.reason ?? "") &&
+          /no checkbox/.test(adminRefused.reason ?? ""),
+        "telling somebody their ROLE cannot do it sends them hunting for a setting that cannot exist",
+      );
     }
 
     // A suspended account loses access immediately, not when the cookie expires.

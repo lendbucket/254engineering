@@ -113,7 +113,18 @@ export default async function PortalLayout({ children }: { children: React.React
           </Link>
           <p className="portal-kicker mt-2 text-[var(--gold-bright)]">Operations</p>
         </div>
-        <div className="flex-1 overflow-y-auto px-3 py-4">
+        {/*
+          min-h-0 is load bearing. A flex child defaults to min-height:auto,
+          which refuses to shrink below its content, so flex-1 alone lets the
+          box grow past the rail and the overflow never becomes a scroll. It
+          happened to work here because the rail is inset-y-0 and the box was
+          already constrained, and that is exactly the kind of accident that
+          stops being true when somebody adds a second footer.
+
+          .portal-rail-scroll is what makes the scroll visible rather than
+          merely possible. The reasoning is written out beside the class.
+        */}
+        <div className="portal-rail-scroll min-h-0 flex-1 overflow-y-auto px-3 py-4">
           <SidebarNav items={items} />
         </div>
         <div className="border-t border-white/10 px-5 py-4">

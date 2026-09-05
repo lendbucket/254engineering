@@ -60,6 +60,24 @@ import type { FileStatus } from "./ops-files";
  * asymmetry is the right way round and is worth stating plainly: a gate that
  * blocked an engineer from declining to certify, while leaving certification
  * available, would be the exact inversion of what the gate is for.
+ *
+ * THE GATE AND THE LICENCE ARE TWO DIFFERENT DOORS, AND ONLY ONE IS ASYMMETRIC
+ * ---------------------------------------------------------------------------
+ * The asymmetry above is about the GATE, and it is easy to read it as saying an
+ * administrator can decline while nobody can seal. That is not what it says and
+ * was never true after Phase 10 Section 2.
+ *
+ * All four decisions need a licence, because all four are professional
+ * judgments about a package. Declining is not the safe residue of sealing that
+ * anybody may perform; refusing to certify is itself an engineering opinion,
+ * and it is the one that ends up in front of a board. So the gate lets an
+ * ENGINEER decline while the firm cannot seal, and the licence lets nobody else
+ * do either.
+ *
+ * The consequence is worth saying rather than discovering: while no
+ * Professional Engineer holds an account, this firm cannot review a file at
+ * all. That is the true state of a firm whose registration is pending, and the
+ * messages here read that way on purpose.
  */
 
 export type ReviewAction = "seal" | "revisions" | "site_visit" | "refuse";
@@ -159,12 +177,29 @@ export function canReview(
       reason:
         "The firm cannot seal work yet. Firm registration with the Texas Board of Professional " +
         "Engineers and Land Surveyors is pending and no Professional Engineer is in responsible " +
-        "charge. Declining to seal is still available, and deliberately so.",
+        "charge. Declining to seal is open to an engineer in responsible charge and is not " +
+        "blocked by the gate, which is deliberate.",
     };
   }
 
+  /*
+   * NOT "YOUR ROLE CANNOT". All four decisions are professional judgments about
+   * a package, so all four are licensed capabilities rather than permissions,
+   * and there is no checkbox anywhere that would grant one. Telling the reader
+   * their ROLE is the problem sends them to the roles screen to look for a
+   * setting that cannot exist, and the honest answer is the one that stops the
+   * search: until a Professional Engineer holds an account, the firm cannot
+   * review a file at all.
+   */
   if (!may(actor, ACTION_PERMISSION[action])) {
-    return { ok: false, reason: `Your role cannot ${ACTION_LABEL[action].toLowerCase()}.` };
+    return {
+      ok: false,
+      reason:
+        "Deciding a file needs a Professional Engineer in responsible charge. Sealing, declining, " +
+        "requesting revisions and sending for a site visit are all professional judgments about a " +
+        "package, so none of the four is a permission and there is no checkbox for them on the " +
+        "roles screen. While no Professional Engineer holds an account, the firm cannot review.",
+    };
   }
 
   /*

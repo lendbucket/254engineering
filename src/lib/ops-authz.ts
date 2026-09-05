@@ -479,6 +479,27 @@ export function holdsLicence(
   return actor.role === LICENSED_ROLE;
 }
 
+/**
+ * WHY A LICENCE REFUSAL DOES NOT SAY "YOUR ROLE CANNOT".
+ *
+ * Every other refusal in this platform says that, and for a grant it is exactly
+ * right: the reader now knows to ask somebody with the roles screen open. For
+ * one of the licensed five it is false in a way that sends the reader to a
+ * screen where the answer is not, and cannot be, present. They would find no
+ * checkbox, conclude something was misconfigured, and ask for it to be added.
+ *
+ * So the wording lives here, once, beside the rule it explains. It names the
+ * requirement rather than the reader's role, and it says the thing that would
+ * otherwise be discovered by hunting: there is no checkbox to look for.
+ */
+export function licenceRefusal(what: string): string {
+  return (
+    what +
+    " needs a Professional Engineer in responsible charge. It is not a permission " +
+    "and there is no checkbox for it on the roles screen."
+  );
+}
+
 /** Is this one of the capabilities a licence carries? */
 export function isLicensed(action: Action | LicensedAction): action is LicensedAction {
   return (LICENSED_ACTIONS as string[]).includes(action);

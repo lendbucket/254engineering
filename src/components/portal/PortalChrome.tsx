@@ -382,7 +382,7 @@ export function NotificationBell({
               Nothing yet. Job offers, review requests, and deadline reminders arrive here.
             </p>
           ) : (
-            <ul className="max-h-[60vh] divide-y divide-limestone-line overflow-y-auto">
+            <ul className="portal-panel-scroll max-h-[60vh] divide-y divide-limestone-line overflow-y-auto">
               {items.map((n) => (
                 <li key={n.id}>
                   <Link
@@ -468,7 +468,7 @@ export function CommandPalette({ items }: { items: NavItem[] }) {
               aria-label="Go to"
               className="w-full border-b border-[var(--border)] px-4 py-4 text-[16px] text-[var(--navy)] outline-none"
             />
-            <ul className="max-h-[50vh] overflow-y-auto py-1">
+            <ul className="portal-panel-scroll max-h-[50vh] overflow-y-auto py-1">
               {matches.map((item) => (
                 <li key={item.href}>
                   <button

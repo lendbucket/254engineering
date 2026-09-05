@@ -194,3 +194,90 @@
   text-transform: uppercase;
   color: var(--secondary);
 }
+
+/*
+ * THE RAIL SCROLLS, AND IT SAYS SO.
+ *
+ * The navigation rail is `fixed inset-y-0` with the nav in a `flex-1
+ * overflow-y-auto` box. Past about fourteen items the rest scroll out of sight,
+ * and on Windows and macOS the overlay scrollbar is invisible until somebody
+ * already scrolling reveals it. So the links were reachable and looked absent:
+ * at 1280 by 900 the list ended at Technicians and People, Audit and Roles were
+ * below the fold with nothing on screen suggesting a fold existed.
+ *
+ * WHY A SCROLLBAR AND NOT A FADE. A scrim at the bottom edge is the usual
+ * answer and it is ruled out here: the layout comment on this rail records that
+ * gradients were taken off it deliberately, and reintroducing one as an
+ * affordance would relitigate that by the back door. A scrollbar is also the
+ * more honest instrument, because its thumb says HOW MUCH is hidden, which a
+ * fade cannot.
+ *
+ * `scrollbar-width: thin` with an explicit `scrollbar-color` produces a
+ * persistent classic scrollbar rather than an overlay one in Firefox and in
+ * Chromium 121 and later. The WebKit block below covers the Chromium and Safari
+ * versions that do not implement the standard properties, and both are written
+ * because a rail whose affordance depends on the browser is the same defect
+ * wearing a different hat.
+ *
+ * The colours are on the navy rail and are decoration rather than content, so
+ * they are not text and carry no contrast requirement. The thumb is still well
+ * clear of the track at rest.
+ */
+.portal-rail-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 0.28) transparent;
+}
+
+.portal-rail-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.portal-rail-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.portal-rail-scroll::-webkit-scrollbar-thumb {
+  background-color: rgb(255 255 255 / 0.28);
+  border-radius: 999px;
+  /* Inset the thumb from the rail edge without changing the scroll width. */
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.portal-rail-scroll:hover::-webkit-scrollbar-thumb {
+  background-color: rgb(255 255 255 / 0.42);
+}
+
+/*
+ * The same instrument on a light surface: the notification list and the command
+ * palette both cap at a viewport fraction and scroll, and both were silent
+ * about it for the same reason the rail was.
+ *
+ * A separate class rather than a shared one with a colour variable, because the
+ * two surfaces want different weights: on navy the thumb is white at low alpha
+ * and on white it is the border token, and a single class parameterised by a
+ * variable would have to be set by every caller anyway.
+ */
+.portal-panel-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(15 34 64 / 0.28) transparent;
+}
+
+.portal-panel-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.portal-panel-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.portal-panel-scroll::-webkit-scrollbar-thumb {
+  background-color: rgb(15 34 64 / 0.28);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.portal-panel-scroll:hover::-webkit-scrollbar-thumb {
+  background-color: rgb(15 34 64 / 0.42);
+}

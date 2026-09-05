@@ -97,10 +97,29 @@ const GATED = { prelaunch: true };
 
   const sealGated = canReview(engineer, subject(), "seal", null, GATED);
   rec("while sealing in the same breath is refused", !sealGated.ok);
+  /*
+   * AND IT SAYS WHO DECLINING IS OPEN TO.
+   *
+   * The message used to read "Declining to seal is still available, and
+   * deliberately so", full stop. That sentence was true of an ENGINEER and
+   * false of everybody else, and after Phase 10 Section 2 everybody else is
+   * who usually reads it: all four decisions became licensed capabilities, so
+   * an administrator asking to seal was told the gate was the obstacle and
+   * that declining remained open to them. Neither half was true for them.
+   *
+   * Both halves are asserted here. The claim has to survive, because the
+   * asymmetry it describes is the point of the gate, and it has to name the
+   * engineer, because that is the part that was a quiet falsehood.
+   */
   rec(
     "and the refusal explains that declining is still open",
-    /declining to seal is still available/i.test(sealGated.reason ?? ""),
+    /declining to seal is open/i.test(sealGated.reason ?? ""),
     sealGated.reason,
+  );
+  rec(
+    "and says it is open to an engineer rather than to whoever is reading",
+    /open to an engineer in responsible charge/i.test(sealGated.reason ?? ""),
+    "an administrator reading this used to be told a door was open that was shut to them",
   );
 
   /*

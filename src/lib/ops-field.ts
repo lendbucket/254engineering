@@ -13,7 +13,7 @@ import {
   type PublicQuestion,
 } from "./ops-certification";
 import { writeAudit, diffOf, safeDiff } from "./ops-audit";
-import { can, type Actor, holdsLicence } from "./ops-authz";
+import { can, type Actor, holdsLicence, licenceRefusal } from "./ops-authz";
 import { transitionFile } from "./ops-crm";
 import {
   canRespondToOffer,
@@ -162,7 +162,7 @@ export async function createProtocol(
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  if (!holdsLicence(actor, "protocols.author")) return { ok: false, error: "Your role cannot author protocols." };
+  if (!holdsLicence(actor, "protocols.author")) return { ok: false, error: licenceRefusal("Authoring a protocol") };
 
   const serviceSlug = input.serviceSlug.trim();
   const name = input.name.trim();
@@ -246,7 +246,7 @@ export async function addProtocolItem(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  if (!holdsLicence(actor, "protocols.author")) return { ok: false, error: "Your role cannot author protocols." };
+  if (!holdsLicence(actor, "protocols.author")) return { ok: false, error: licenceRefusal("Authoring a protocol") };
 
   const template = await getProtocol(actor, templateId);
   if (!template) return { ok: false, error: "That protocol does not exist." };
@@ -303,7 +303,7 @@ export async function removeProtocolItem(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  if (!holdsLicence(actor, "protocols.author")) return { ok: false, error: "Your role cannot author protocols." };
+  if (!holdsLicence(actor, "protocols.author")) return { ok: false, error: licenceRefusal("Authoring a protocol") };
 
   const template = await getProtocol(actor, templateId);
   if (!template) return { ok: false, error: "That protocol does not exist." };
@@ -340,7 +340,7 @@ export async function publishProtocol(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  if (!holdsLicence(actor, "protocols.publish")) return { ok: false, error: "Your role cannot publish protocols." };
+  if (!holdsLicence(actor, "protocols.publish")) return { ok: false, error: licenceRefusal("Publishing a protocol") };
 
   const template = await getProtocol(actor, id);
   if (!template) return { ok: false, error: "That protocol does not exist." };
@@ -1532,7 +1532,7 @@ export async function addProtocolQuestion(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  if (!holdsLicence(actor, "protocols.author")) return { ok: false, error: "Your role cannot author protocols." };
+  if (!holdsLicence(actor, "protocols.author")) return { ok: false, error: licenceRefusal("Authoring a protocol") };
 
   const template = await getProtocol(actor, templateId);
   if (!template) return { ok: false, error: "That protocol does not exist." };
@@ -1592,7 +1592,7 @@ export async function removeProtocolQuestion(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  if (!holdsLicence(actor, "protocols.author")) return { ok: false, error: "Your role cannot author protocols." };
+  if (!holdsLicence(actor, "protocols.author")) return { ok: false, error: licenceRefusal("Authoring a protocol") };
   const template = await getProtocol(actor, templateId);
   if (!template) return { ok: false, error: "That protocol does not exist." };
   if (template.status !== "draft") {
