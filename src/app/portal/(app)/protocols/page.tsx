@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
-import { can } from "@/lib/ops-authz";
+import { can, holdsLicence } from "@/lib/ops-authz";
 import { getProtocol, listProtocols, protocolQuestions } from "@/lib/ops-field";
 import { services } from "@/content/services";
 import { Chip, EmptyState, PageHead } from "@/components/portal/surfaces";
@@ -42,7 +42,7 @@ export default async function ProtocolsPage({
   searchParams: Promise<{ id?: string }>;
 }) {
   const actor = await currentActor();
-  if (!can(actor, "protocols.author")) notFound();
+  if (!holdsLicence(actor, "protocols.author")) notFound();
   const params = await searchParams;
 
   const templates = await listProtocols(actor);

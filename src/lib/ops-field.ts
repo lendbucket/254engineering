@@ -13,7 +13,7 @@ import {
   type PublicQuestion,
 } from "./ops-certification";
 import { writeAudit, diffOf, safeDiff } from "./ops-audit";
-import { can, type Actor } from "./ops-authz";
+import { can, type Actor, holdsLicence } from "./ops-authz";
 import { transitionFile } from "./ops-crm";
 import {
   canRespondToOffer,
@@ -121,7 +121,7 @@ function toProtocolItem(row: ProtocolItemRow): ProtocolItem {
 
 export async function listProtocols(actor: Actor | null): Promise<ProtocolTemplateRow[]> {
   const db = supabaseAdmin();
-  if (!db || !can(actor, "protocols.author")) return [];
+  if (!db || !holdsLicence(actor, "protocols.author")) return [];
   const { data } = await db
     .from("eng_protocol_templates")
     .select(TEMPLATE_COLUMNS)
@@ -132,7 +132,7 @@ export async function listProtocols(actor: Actor | null): Promise<ProtocolTempla
 
 export async function getProtocol(actor: Actor | null, id: string): Promise<ProtocolWithItems | null> {
   const db = supabaseAdmin();
-  if (!db || !can(actor, "protocols.author")) return null;
+  if (!db || !holdsLicence(actor, "protocols.author")) return null;
   const { data } = await db.from("eng_protocol_templates").select(TEMPLATE_COLUMNS).eq("id", id).maybeSingle();
   if (!data) return null;
   const { data: items } = await db
@@ -162,7 +162,7 @@ export async function createProtocol(
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  if (!can(actor, "protocols.author")) return { ok: false, error: "Your role cannot author protocols." };
+  if (!holdsLicence(actor, "protocols.author")) return { ok: false, error: "Your role cannot author protocols." };
 
   const serviceSlug = input.serviceSlug.trim();
   const name = input.name.trim();
@@ -246,7 +246,7 @@ export async function addProtocolItem(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  if (!can(actor, "protocols.author")) return { ok: false, error: "Your role cannot author protocols." };
+  if (!holdsLicence(actor, "protocols.author")) return { ok: false, error: "Your role cannot author protocols." };
 
   const template = await getProtocol(actor, templateId);
   if (!template) return { ok: false, error: "That protocol does not exist." };
@@ -303,7 +303,7 @@ export async function removeProtocolItem(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  if (!can(actor, "protocols.author")) return { ok: false, error: "Your role cannot author protocols." };
+  if (!holdsLicence(actor, "protocols.author")) return { ok: false, error: "Your role cannot author protocols." };
 
   const template = await getProtocol(actor, templateId);
   if (!template) return { ok: false, error: "That protocol does not exist." };
@@ -340,7 +340,7 @@ export async function publishProtocol(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  if (!can(actor, "protocols.publish")) return { ok: false, error: "Your role cannot publish protocols." };
+  if (!holdsLicence(actor, "protocols.publish")) return { ok: false, error: "Your role cannot publish protocols." };
 
   const template = await getProtocol(actor, id);
   if (!template) return { ok: false, error: "That protocol does not exist." };
@@ -1520,7 +1520,7 @@ export async function protocolQuestions(
   actor: Actor | null,
   templateId: string,
 ): Promise<CheckQuestion[]> {
-  if (!can(actor, "protocols.author")) return [];
+  if (!holdsLicence(actor, "protocols.author")) return [];
   return questionsWithKey(templateId);
 }
 
@@ -1532,7 +1532,7 @@ export async function addProtocolQuestion(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  if (!can(actor, "protocols.author")) return { ok: false, error: "Your role cannot author protocols." };
+  if (!holdsLicence(actor, "protocols.author")) return { ok: false, error: "Your role cannot author protocols." };
 
   const template = await getProtocol(actor, templateId);
   if (!template) return { ok: false, error: "That protocol does not exist." };
@@ -1592,7 +1592,7 @@ export async function removeProtocolQuestion(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  if (!can(actor, "protocols.author")) return { ok: false, error: "Your role cannot author protocols." };
+  if (!holdsLicence(actor, "protocols.author")) return { ok: false, error: "Your role cannot author protocols." };
   const template = await getProtocol(actor, templateId);
   if (!template) return { ok: false, error: "That protocol does not exist." };
   if (template.status !== "draft") {
@@ -1783,7 +1783,7 @@ export async function revokeCertification(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  if (!can(actor, "protocols.publish")) {
+  if (!holdsLicence(actor, "protocols.publish")) {
     return { ok: false, error: "Only an engineer or an administrator can revoke a certification." };
   }
   if (!reason.trim()) {
@@ -1833,7 +1833,7 @@ export async function restoreCertification(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  if (!can(actor, "protocols.publish")) {
+  if (!holdsLicence(actor, "protocols.publish")) {
     return { ok: false, error: "Only an engineer or an administrator can restore a certification." };
   }
   const { error } = await db

@@ -1,5 +1,5 @@
 import { cell } from "./csv";
-import { can, type Actor } from "./ops-authz";
+import { can, type Actor, type Action, type LicensedAction, may } from "./ops-authz";
 import { isPrelaunch } from "./launch";
 import type { FileStatus } from "./ops-files";
 
@@ -90,7 +90,7 @@ export const ACTION_TARGET: Record<ReviewAction, FileStatus> = {
 };
 
 /** Which permission each action needs. */
-const ACTION_PERMISSION: Record<ReviewAction, Parameters<typeof can>[1]> = {
+const ACTION_PERMISSION: Record<ReviewAction, Action | LicensedAction> = {
   seal: "documents.seal",
   revisions: "review.decide",
   site_visit: "review.decide",
@@ -163,7 +163,7 @@ export function canReview(
     };
   }
 
-  if (!can(actor, ACTION_PERMISSION[action])) {
+  if (!may(actor, ACTION_PERMISSION[action])) {
     return { ok: false, reason: `Your role cannot ${ACTION_LABEL[action].toLowerCase()}.` };
   }
 

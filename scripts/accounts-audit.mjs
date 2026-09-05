@@ -482,10 +482,35 @@ withEnv({ CUSTOMER_SESSION_SECRET: CUS_SECRET }, () => {
 
 {
   const authz = codeOnly("src/lib/ops-authz.ts");
+  /*
+   * NAMES THE PRINCIPAL, NOT THE SUBSTRING.
+   *
+   * This was !/customer/i over the whole module, and Phase 10 Section 2 added a
+   * STAFF role called customer_service, which is a person who answers the
+   * telephone about the firm's own work. The check failed on a role name while
+   * the boundary it guards was untouched.
+   *
+   * Loosening it to allow "customer_service" specifically would have been the
+   * wrong repair: the next role with customer in its name breaks it again. What
+   * the rule actually forbids is ops-authz knowing about the CUSTOMER
+   * PRINCIPAL, so those are what it looks for.
+   */
+  const CUSTOMER_PRINCIPAL = [
+    "customer-session",
+    "customer_session",
+    "CustomerClaims",
+    "readCustomerSession",
+    "eng_customer_users",
+    "eng_customer_accounts",
+    "CUSTOMER_COOKIE",
+  ];
+  const leaked = CUSTOMER_PRINCIPAL.filter((needle) => authz.includes(needle));
   rec(
-    "ops-authz has no notion of a customer",
-    !/customer/i.test(authz),
-    "the module that grants capabilities must not know the type exists",
+    "ops-authz has no notion of the customer principal",
+    leaked.length === 0,
+    leaked.length
+      ? leaked.join(", ")
+      : "the module that grants staff capabilities must not know the type exists",
   );
 
   const custAuth = codeOnly("src/lib/customer-auth.ts");

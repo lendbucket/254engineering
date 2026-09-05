@@ -6,7 +6,7 @@ import { currentActor } from "@/lib/ops-auth";
 import { mispointing } from "@/lib/db-guard";
 import { MispointedDeployment } from "@/components/portal/Mispointed";
 import { listNotifications, unreadCount } from "@/lib/ops-notify";
-import { can, ROLE_LABEL } from "@/lib/ops-authz";
+import { can, ROLE_LABEL, may } from "@/lib/ops-authz";
 import { navFor, mobileTabsFor } from "@/components/portal/nav";
 import {
   CommandPalette,
@@ -71,7 +71,13 @@ export default async function PortalLayout({ children }: { children: React.React
     redirect("/portal/login?suspended=1");
   }
 
-  const items = navFor(actor.role, (action) => can(actor, action));
+  /*
+   * may() rather than can(), because two nav entries point at the engineer's
+   * screens and can() cannot be handed a licensed action. The menu now asks
+   * exactly what the screen behind it asks, so a link cannot appear for
+   * somebody the page would then refuse.
+   */
+  const items = navFor(actor.role, (action) => may(actor, action));
   const tabs = mobileTabsFor(items);
   const overflow = items.filter((i) => !tabs.some((t) => t.href === i.href));
 

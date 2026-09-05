@@ -49,8 +49,29 @@ export const ROLE_LABEL: Record<Role, string> = {
 /** The signed-in person, as every rule below sees them. */
 export type Actor = {
   id: string;
+  /**
+   * The role KEY. A row in eng_roles since Phase 10 Section 2, not a member of
+   * a union, so the owner can create roles this code has never heard of.
+   *
+   * It is still read directly for one thing and one thing only: holdsLicence
+   * compares it against LICENSED_ROLE. Everything else asks the grants.
+   */
   role: Role;
   status: "invited" | "active" | "suspended";
+  /**
+   * What this actor may do, loaded with the profile.
+   *
+   * WHY IT IS CARRIED RATHER THAN LOOKED UP
+   * ---------------------------------------
+   * can() is called 116 times, in server components, in route handlers, and in
+   * pure audits. Making it async to read a table would have turned every one of
+   * those into an await, and a permission check that can be forgotten to await
+   * returns a Promise, which is truthy.
+   *
+   * So currentActor loads the grants once per request alongside the profile it
+   * was already loading, and can() stays synchronous and total.
+   */
+  grants: ReadonlySet<Action>;
 };
 
 /**
@@ -60,6 +81,57 @@ export type Actor = {
  * an action here without adding it to MATRIX is a type error, which is the
  * point: a new capability cannot ship without somebody deciding who has it.
  */
+/**
+ * THE CAPABILITIES A LICENCE CARRIES, NOT A JOB TITLE.
+ *
+ * Sealing, the four review decisions, and authoring or publishing a protocol.
+ * A Texas Professional Engineer holds the licence the seal represents, and the
+ * firm's registration rests on that. The firm can hire a dispatcher tomorrow;
+ * it cannot grant one the ability to seal.
+ *
+ * WHY THESE ARE A SEPARATE TYPE AND NOT AN EXCLUDED SUBSET
+ * -------------------------------------------------------
+ * Operator ruling, 2026-09-04, and it is stronger than the design that preceded
+ * it. Grantable-but-excluded means the exclusion is a check somebody can
+ * delete: a future session tidying the permission screen removes the filter and
+ * the checkbox appears.
+ *
+ * Unrepresentable means there is nothing to delete. A role row cannot hold one,
+ * because Role.grants is Action[] and these are not Actions. There is no
+ * checkbox to hide and no runtime test to remember.
+ *
+ * scripts/proofs/licensed-actions-are-unrepresentable.ts compiles that claim,
+ * and it fails to compile the day somebody makes one of these grantable, so the
+ * guarantee cannot rot quietly.
+ *
+ * They are checked by holdsLicence, which asks whether the actor holds the
+ * engineer role, full stop. No grant is consulted because none exists.
+ */
+export type LicensedAction =
+  | "protocols.author"
+  | "protocols.publish"
+  | "review.queue"
+  | "review.decide"
+  | "documents.seal";
+
+export const LICENSED_ACTIONS: LicensedAction[] = [
+  "protocols.author",
+  "protocols.publish",
+  "review.queue",
+  "review.decide",
+  "documents.seal",
+];
+
+/**
+ * The role key that carries the licence.
+ *
+ * A literal in code rather than a column on eng_roles, deliberately. A column
+ * would make the licence grantable by editing a row, which is the thing the
+ * separation above exists to prevent. eng_roles marks this key as a system role
+ * so it cannot be renamed or deleted out from under this comparison.
+ */
+export const LICENSED_ROLE = "engineer";
+
 export type Action =
   // people
   | "profiles.list"
@@ -88,11 +160,6 @@ export type Action =
   | "evidence.submit"
   | "evidence.review"
   // engineering
-  | "protocols.author"
-  | "protocols.publish"
-  | "review.queue"
-  | "review.decide"
-  | "documents.seal"
   | "documents.deliver"
   | "documents.read"
   // money
@@ -154,8 +221,25 @@ const MATRIX: Record<Role, Action[]> = {
     "files.list", "files.create", "files.update", "files.assign", "files.transition", "files.cancel",
     "offers.dispatch", "offers.list_own", "offers.respond",
     "evidence.review", "evidence.start", "evidence.submit",
-    "protocols.author", "protocols.publish",
-    "review.queue", "review.decide", "documents.seal", "documents.deliver", "documents.read",
+    /*
+     * AN ADMINISTRATOR CANNOT SEAL, REVIEW, OR AUTHOR A PROTOCOL.
+     *
+     * This role held all five until Phase 10 Section 2, and losing them is the
+     * point rather than a side effect. A seal represents a Texas PE licence,
+     * and the operator holding administrator does not hold one. The four review
+     * decisions and the protocols rest on the same judgment.
+     *
+     * The consequence is real and worth knowing: until a PE is on staff, nobody
+     * can author a protocol, and eight of the nine service lines do not have
+     * one. Section A of docs/intake-completeness.md reached the same place from
+     * the other direction and marked those protocols as the engineer's to
+     * write. This makes the platform agree with that.
+     *
+     * documents.deliver stays. Handing a finished document to the customer is
+     * administration, not engineering, and the gate already stops anything
+     * reaching delivered while registration is pending.
+     */
+    "documents.deliver", "documents.read",
     "pricing.read", "billing.read", "ledger.read_own", "ledger.read_all", "ledger.approve",
     "payments.reconcile", "payments.charge", "payments.refund", "accounts.manage", "jobs.manage",
     "tasks.use", "messages.use",
@@ -167,8 +251,15 @@ const MATRIX: Record<Role, Action[]> = {
     "clients.list",
     "files.list", "files.update", "files.transition",
     "evidence.review", "evidence.start", "evidence.submit",
-    "protocols.author", "protocols.publish",
-    "review.queue", "review.decide", "documents.seal", "documents.deliver", "documents.read",
+    /*
+     * The engineer's five are NOT listed here, and their absence is the
+     * mechanism rather than an omission. They are not Actions, so this array
+     * cannot hold them; holdsLicence answers them from the role itself.
+     *
+     * An engineer loses nothing. What changes is where the answer comes from:
+     * a licence rather than a grant somebody could edit.
+     */
+    "documents.deliver", "documents.read",
     "tasks.use", "messages.use",
     "ledger.read_own", "time.log_own",
     "responsible_charge.read_own",
@@ -185,6 +276,141 @@ const MATRIX: Record<Role, Action[]> = {
     "ledger.read_own",
   ],
 };
+
+/**
+ * THE SEVEN ROLES THE PLATFORM SHIPS WITH.
+ *
+ * Phase 10 Section 2. Roles are ROWS now: the owner can create more, rename the
+ * ones that are not system roles, and change what any of them grants. This is
+ * the seed, and the only thing in code that decides a role's grants.
+ *
+ * The three that already existed take their grants FROM the matrix above rather
+ * than restating them, because the migration must not change what anybody can
+ * do on the day it runs. A retyped list would be a second chance to get it
+ * wrong, and the mistake would look like a decision.
+ *
+ * WHAT IS A SYSTEM ROLE
+ * ---------------------
+ * admin, engineer and field_tech cannot be deleted or rekeyed. The engineer key
+ * especially: holdsLicence compares against it, so renaming it would quietly
+ * detach the licence from the people holding it. The owner can still change
+ * what they GRANT, because that is a decision about the firm rather than about
+ * the platform.
+ */
+export type DefaultRole = {
+  key: string;
+  name: string;
+  /** Where somebody holding this role lands after signing in. NOT NULL on the row. */
+  landingPath: string;
+  /** Cannot be deleted or rekeyed. Grants are still editable. */
+  isSystem: boolean;
+  grants: Action[];
+};
+
+export const DEFAULT_ROLES: DefaultRole[] = [
+  {
+    key: "admin",
+    name: "Administrator",
+    landingPath: "/portal",
+    isSystem: true,
+    grants: [...MATRIX.admin],
+  },
+  {
+    key: "engineer",
+    name: "Professional Engineer",
+    landingPath: "/portal/review",
+    isSystem: true,
+    grants: [...MATRIX.engineer],
+  },
+  {
+    key: "field_tech",
+    name: "Field Technician",
+    landingPath: "/portal/jobs",
+    isSystem: true,
+    grants: [...MATRIX.field_tech],
+  },
+  {
+    /*
+     * Moves work to people. No money at all: a dispatcher deciding who goes to
+     * a job has no reason to know what the job is worth, and knowing would make
+     * the assignment a commercial decision instead of a scheduling one.
+     */
+    key: "dispatcher",
+    name: "Dispatcher",
+    landingPath: "/portal/files",
+    isSystem: false,
+    grants: [
+      "profiles.read_self", "profiles.update_self", "profiles.list",
+      "clients.list",
+      "files.list", "files.update", "files.assign", "files.transition",
+      "offers.dispatch", "offers.list_own",
+      "tasks.use", "messages.use",
+      "time.log_own",
+    ],
+  },
+  {
+    /*
+     * Brings work in and can open a job. Cannot see a cost or a margin, which
+     * is the load bearing exclusion: a salesperson who can see the spread
+     * between what the client pays and what the technician is paid is
+     * negotiating against the firm's own costs.
+     *
+     * No payments.charge either. Writing a job down and asking somebody to pay
+     * for it are different acts, decided in Section 1.
+     */
+    key: "sales",
+    name: "Sales",
+    landingPath: "/portal/clients",
+    isSystem: false,
+    grants: [
+      "profiles.read_self", "profiles.update_self",
+      "clients.list", "clients.create", "clients.update",
+      "files.list", "files.create",
+      "tasks.use", "messages.use",
+      "time.log_own",
+    ],
+  },
+  {
+    /*
+     * Answers the telephone about work that already exists. Can chase a
+     * customer for what a job is missing, which is the point of the role and is
+     * why messages.use is here: routing a chase for a gate code through an
+     * administrator defeats having somebody answer the telephone.
+     */
+    key: "customer_service",
+    name: "Customer Service",
+    landingPath: "/portal/files",
+    isSystem: false,
+    grants: [
+      "profiles.read_self", "profiles.update_self",
+      "clients.list",
+      "files.list",
+      "tasks.use", "messages.use",
+      "time.log_own",
+    ],
+  },
+  {
+    /*
+     * A buyer's accountant, an auditor, an operations manager in their first
+     * week. Reads, and nothing else. Deliberately includes billing.read and
+     * pricing.read: somebody evaluating the business has to see the money, and
+     * that is exactly the person this role is for.
+     */
+    key: "read_only",
+    name: "Read Only",
+    landingPath: "/portal",
+    isSystem: false,
+    grants: [
+      "profiles.read_self", "profiles.update_self", "profiles.list",
+      "clients.list",
+      "files.list",
+      "documents.read",
+      "pricing.read", "billing.read", "ledger.read_all",
+      "audit.read",
+      "responsible_charge.read_all",
+    ],
+  },
+];
 
 const ALLOWED = new Map<Role, Set<Action>>(
   (Object.keys(MATRIX) as Role[]).map((r) => [r, new Set(MATRIX[r])]),
@@ -210,18 +436,83 @@ const ALLOWED = new Map<Role, Set<Action>>(
  * can() reads role and status and never touched the id, so this costs nothing
  * and every existing Actor still satisfies it.
  */
-export type AuthzSubject = Pick<Actor, "role" | "status">;
+/**
+ * What can() actually needs: the grants and whether the account is live.
+ *
+ * Not the role. A check that read the role would be comparing against a row
+ * somebody can rename, and would start disagreeing with the grants the moment
+ * an owner edited one.
+ */
+export type AuthzSubject = Pick<Actor, "grants" | "status">;
+
+/**
+ * May this actor do something only a licensed engineer may do?
+ *
+ * Not can(). can() takes an Action and these are not Actions, so a caller
+ * cannot reach this by accident and cannot reach can() with one of these
+ * either. The two questions are asked with two functions because they are
+ * answered by two different things: a grant, and a licence.
+ *
+ * No permission is consulted. There is none to consult.
+ */
+export function holdsLicence(
+  actor: (Pick<Actor, "status"> & { role: string }) | null,
+  action: LicensedAction,
+): boolean {
+  void action;
+  if (!actor) return false;
+  if (actor.status !== "active") return false;
+  return actor.role === LICENSED_ROLE;
+}
+
+/** Is this one of the capabilities a licence carries? */
+export function isLicensed(action: Action | LicensedAction): action is LicensedAction {
+  return (LICENSED_ACTIONS as string[]).includes(action);
+}
+
+/**
+ * Ask the right question for whichever kind of capability this is.
+ *
+ * Some tables legitimately map to both kinds. A file moving to "sealed" needs a
+ * licence; the same table's move to "delivered" needs a grant. Making those
+ * tables choose between two functions at every entry would put the routing in
+ * the caller, and a caller that got it wrong would check the wrong thing.
+ *
+ * THIS IS NOT A HOLE IN THE SEPARATION. It dispatches a CHECK; it grants
+ * nothing. Role.grants is still Action[], a role still cannot hold a licensed
+ * action, and the proof in scripts/proofs asserts exactly that. What may() adds
+ * is one place that knows which question to ask, rather than every table
+ * knowing.
+ */
+export function may(
+  actor: (AuthzSubject & { role: string }) | null,
+  action: Action | LicensedAction,
+): boolean {
+  return isLicensed(action) ? holdsLicence(actor, action) : can(actor, action);
+}
 
 export function can(actor: AuthzSubject | null, action: Action): boolean {
   if (!actor) return false;
   if (actor.status !== "active") return false;
-  return ALLOWED.get(actor.role)?.has(action) ?? false;
+  return actor.grants.has(action);
 }
 
 /** Every action a role holds. Used by roles-audit and by the profile screen. */
-export function actionsFor(role: Role): Action[] {
-  return [...(ALLOWED.get(role) ?? [])];
+/**
+ * What a DEFAULT role grants, for describing one before anybody holds it.
+ *
+ * Not what a role grants TODAY: an owner may have edited it, and the answer to
+ * that question lives in eng_role_grants. This is the shipped default, which is
+ * what a seed and a "reset to default" need.
+ */
+export function actionsFor(role: string): Action[] {
+  return [...(DEFAULT_ROLES.find((r) => r.key === role)?.grants ?? [])];
 }
+
+/** Every grantable action, for enumerating a matrix. */
+export const ALL_ACTIONS: Action[] = [
+  ...new Set(DEFAULT_ROLES.flatMap((r) => r.grants)),
+].sort() as Action[];
 
 /** The subset of a file's fields a rule needs. Keeps this module free of the DB type. */
 export type FileSubject = {

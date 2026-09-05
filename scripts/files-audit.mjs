@@ -30,7 +30,7 @@ import {
   GATED_STATUSES as GATED_FROM_MODULE,
 } from "../src/lib/ops-files.ts";
 import { resolveCounty, canonicalCounty, twiaStatus, regionForCounty, TEXAS_COUNTIES } from "../src/lib/ops-counties.ts";
-import { ROLES, PRICING_FIELDS } from "../src/lib/ops-authz.ts";
+import { ROLES, PRICING_FIELDS, actionsFor } from "../src/lib/ops-authz.ts";
 
 /**
  * Source with comments removed, so a check never reads the prose that explains
@@ -48,7 +48,18 @@ function codeOnly(path) {
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
 
-const actor = (role) => ({ id: `${role}-1`, role, status: "active" });
+/*
+ * An actor carries its GRANTS since Phase 10 Section 2, because can() reads
+ * them rather than looking a role up in a compiled matrix. Built from
+ * actionsFor, which is the shipped default for that role, so this audit tests
+ * what the platform seeds rather than a set invented here.
+ */
+const actor = (role) => ({
+  id: `${role}-1`,
+  role,
+  status: "active",
+  grants: new Set(actionsFor(role)),
+});
 const admin = actor("admin");
 const engineer = actor("engineer");
 const tech = actor("field_tech");
@@ -106,7 +117,7 @@ const GATED = { prelaunch: true };
   }
 
   // And the refusal has to explain itself, or an operator will read it as a bug.
-  const refusal = canTransition(admin, "under_review", "sealed", GATED);
+  const refusal = canTransition(engineer, "under_review", "sealed", GATED);
   rec(
     "the gate's refusal names the registration rather than saying no",
     !refusal.ok && /registration/i.test(refusal.reason) && /Professional Engineer/i.test(refusal.reason),
@@ -114,8 +125,30 @@ const GATED = { prelaunch: true };
   );
 
   // The same move must work once the firm is registered, or the gate is just a wall.
-  const live = canTransition(admin, "under_review", "sealed", LIVE);
+  const live = canTransition(engineer, "under_review", "sealed", LIVE);
   rec("the same move is allowed once the gate is lifted", live.ok, live.ok ? "" : live.reason);
+
+  /*
+   * AND AN ADMINISTRATOR STILL CANNOT, GATE OR NO GATE.
+   *
+   * Phase 10 Section 2. This is the behaviour change that section exists to
+   * make: a seal represents a Texas PE licence and the operator holding
+   * administrator does not hold one. Asserted with the gate LIFTED, so it
+   * cannot pass because of the compliance gate and hide that the licence rule
+   * is doing nothing.
+   */
+  const adminSeal = canTransition(admin, "under_review", "sealed", LIVE);
+  rec(
+    "an administrator cannot seal even with the gate lifted",
+    !adminSeal.ok,
+    adminSeal.ok ? "IT ALLOWED IT" : adminSeal.reason.slice(0, 60),
+  );
+  const adminDecide = canTransition(admin, "under_review", "refused", LIVE);
+  rec(
+    "and cannot make a review decision either",
+    !adminDecide.ok,
+    adminDecide.ok ? "IT ALLOWED IT" : adminDecide.reason.slice(0, 60),
+  );
 }
 
 // =====================================================================
@@ -138,6 +171,11 @@ const GATED = { prelaunch: true };
     ["evidence_submitted", "under_review", true],
     ["evidence_submitted", "revisions_requested", true],
     ["evidence_submitted", "sealed", false],
+    /*
+     * These two are the ENGINEER's, and this table is walked as the engineer
+     * for exactly that reason since Phase 10 Section 2. An administrator is
+     * checked separately above and must be refused both.
+     */
     ["under_review", "sealed", true],
     ["under_review", "refused", true],
     ["under_review", "needs_dispatch", true],
@@ -169,9 +207,36 @@ const GATED = { prelaunch: true };
    */
   const GRAMMAR = { ...LIVE, assignedTech: true };
 
+  /*
+   * A PROBE, NOT A ROLE, AND THE DISTINCTION IS THE POINT.
+   *
+   * This table is about the STATE MACHINE: which moves are structurally legal,
+   * in what order, from where. It is not about who may make them.
+   *
+   * It used to walk as an administrator, because until Phase 10 Section 2 an
+   * administrator could make every move including sealing. That is no longer
+   * true, and it should not be: a seal needs a licence. Walking as an
+   * administrator now would report the grammar as broken when what changed was
+   * authorization.
+   *
+   * So the walk uses an actor built to pass every authorization check, which
+   * isolates the grammar. Nobody holds this combination and nobody can: it is
+   * assembled here from the administrator's grants and the engineer's role.
+   *
+   * WHO may make each move is asserted separately and harder, by the per role
+   * matrix below and by the two checks above proving an administrator can
+   * neither seal nor decide a review with the gate lifted.
+   */
+  const grammarProbe = {
+    id: "grammar-probe",
+    role: "engineer",
+    status: "active",
+    grants: new Set(actionsFor("admin")),
+  };
+
   let wrong = 0;
   for (const [from, to, expected] of EXPECTED) {
-    const actual = canTransition(admin, from, to, GRAMMAR).ok;
+    const actual = canTransition(grammarProbe, from, to, GRAMMAR).ok;
     if (actual !== expected) {
       wrong++;
       rec(`${from} to ${to}`, false, `expected ${expected}, machine says ${actual}`);
@@ -408,7 +473,7 @@ const GATED = { prelaunch: true };
    */
   rec(
     "a desk file may go from intake straight to evidence submitted",
-    canTransition({ role: "admin", status: "active" }, "intake", "evidence_submitted", {
+    canTransition(admin, "intake", "evidence_submitted", {
       prelaunch: false,
     }).ok,
     "the release path relies on this being permitted rather than on nobody checking",

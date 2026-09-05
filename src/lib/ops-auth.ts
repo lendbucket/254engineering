@@ -3,7 +3,7 @@ import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { cookies, headers } from "next/headers";
 import { supabaseAdmin, supabaseCredentialCheck } from "./supabase";
 import { OPS_COOKIE, readOpsSession } from "./ops-session";
-import type { Actor, Role } from "./ops-authz";
+import type { Action, Actor, Role } from "./ops-authz";
 
 /**
  * Everything that turns a request into an actor, and an admin's intent into an
@@ -97,7 +97,36 @@ export async function currentActor(): Promise<(Actor & ProfileRow) | null> {
 
   if (error || !data) return null;
   const profile = data as ProfileRow;
-  return { ...profile, id: profile.id, role: profile.role, status: profile.status };
+
+  /*
+   * The grants, read from eng_role_grants rather than compiled in.
+   *
+   * One query per request, alongside the profile this was already loading. A
+   * FAILED read produces an EMPTY set, which is a closed door: the person can
+   * sign in and do nothing, rather than inheriting whatever the last successful
+   * read happened to hold. A permissions table that is briefly unreachable must
+   * not become a permissions table that is briefly permissive.
+   */
+  const { data: grantRows, error: grantError } = await db
+    .from("eng_role_grants")
+    .select("action")
+    .eq("role_key", profile.role);
+
+  if (grantError) {
+    console.error(`[ops-auth] could not read grants for ${profile.role}: ${grantError.message}`);
+  }
+
+  const grants = new Set(
+    (grantRows ?? []).map((r) => r.action as Action),
+  );
+
+  return {
+    ...profile,
+    id: profile.id,
+    role: profile.role,
+    status: profile.status,
+    grants,
+  };
 }
 
 /** For route handlers: the actor, or null, without throwing. */

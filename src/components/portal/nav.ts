@@ -1,4 +1,4 @@
-import type { Action, Role } from "@/lib/ops-authz";
+import type { Action, LicensedAction, Role } from "@/lib/ops-authz";
 
 /**
  * The portal's navigation, derived from the authorization matrix.
@@ -20,7 +20,17 @@ export type NavItem = {
   label: string;
   /** Short label for the mobile tab bar, where space is real. */
   short: string;
-  action: Action;
+  /*
+   * Either kind, because a MENU needs to know which screens exist and two of
+   * them are the engineer's. Widening this does not widen a grant: a role's
+   * grants are Action[] and cannot hold a licensed action, which
+   * scripts/proofs/licensed-actions-are-unrepresentable.ts asserts at compile
+   * time including this exact case.
+   *
+   * navFor takes one predicate that answers for both, so the menu asks the same
+   * question the screen behind it asks.
+   */
+  action: Action | LicensedAction;
   /** Shown in the bottom tab bar on a phone. At most five, by design. */
   primary?: boolean;
   icon:
@@ -129,7 +139,10 @@ export const MOBILE_TAB_LIMIT = 5;
  * it was true. Sign in still lands each role on the surface they work in, via
  * homeFor. The dashboard is where they go to see everything at once.
  */
-export function navFor(_role: Role, allowed: (action: Action) => boolean): NavItem[] {
+export function navFor(
+  _role: Role,
+  allowed: (action: Action | LicensedAction) => boolean,
+): NavItem[] {
   return NAV.filter((item) => allowed(item.action));
 }
 

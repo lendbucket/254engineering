@@ -2,7 +2,7 @@ import Link from "next/link";
 import { RestrictedMode } from "@/components/portal/design";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
-import { can } from "@/lib/ops-authz";
+import { can, holdsLicence } from "@/lib/ops-authz";
 import { packageFor, reviewQueue } from "@/lib/ops-engineer";
 import { availableReviewActions, isBriskReview } from "@/lib/ops-review";
 import { STATUS_LABEL, STATUS_TONE, type FileStatus } from "@/lib/ops-files";
@@ -40,7 +40,7 @@ export default async function ReviewPage({
   searchParams: Promise<{ id?: string }>;
 }) {
   const actor = await currentActor();
-  if (!can(actor, "review.queue")) notFound();
+  if (!holdsLicence(actor, "review.queue")) notFound();
   const params = await searchParams;
 
   const queue = await reviewQueue(actor);

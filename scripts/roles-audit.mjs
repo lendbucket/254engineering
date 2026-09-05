@@ -39,7 +39,7 @@
  * neverProduction below rather than by remembering.
  */
 import { auditClient, describeTarget } from "./lib/db-target.mjs";
-import { can, actionsFor, visibleFiles, canSeeFile, redactFile, ROLES } from "../src/lib/ops-authz.ts";
+import { can, actionsFor, visibleFiles, canSeeFile, redactFile, ROLES, DEFAULT_ROLES, ALL_ACTIONS, LICENSED_ACTIONS, LICENSED_ROLE, holdsLicence } from "../src/lib/ops-authz.ts";
 
 const BASE = process.env.BASE_URL || "http://localhost:3225";
 
@@ -58,6 +58,19 @@ const rec = (name, ok, note = "") => out.push({ name, ok, note });
  *   engineers see files assigned to them and the review queue;
  *   techs see only jobs offered to or accepted by them, and nothing about other
  *   techs or pricing.
+ */
+/*
+ * THE LICENCE BOUND FIVE ARE NOT IN THIS TABLE, AND MUST NOT BE ADDED.
+ *
+ * protocols.author, protocols.publish, review.queue, review.decide and
+ * documents.seal were here until Phase 10 Section 2. They are no longer
+ * grantable actions at all: can() cannot be handed one, the type system refuses
+ * it, and scripts/proofs asserts that refusal at compile time.
+ *
+ * They are checked below instead, by asking holdsLicence of every role rather
+ * than of the two somebody would guess, and by asserting that no default role
+ * grants one. Putting them back here would be asking can() a question it no
+ * longer answers, and the answer would be a permanent false.
  */
 const EXPECTED = {
   "profiles.list":                { admin: true,  engineer: false, field_tech: false },
@@ -92,11 +105,6 @@ const EXPECTED = {
   "evidence.submit":              { admin: true,  engineer: true,  field_tech: true },
   "evidence.review":              { admin: true,  engineer: true,  field_tech: false },
 
-  "protocols.author":             { admin: true,  engineer: true,  field_tech: false },
-  "protocols.publish":            { admin: true,  engineer: true,  field_tech: false },
-  "review.queue":                 { admin: true,  engineer: true,  field_tech: false },
-  "review.decide":                { admin: true,  engineer: true,  field_tech: false },
-  "documents.seal":               { admin: true,  engineer: true,  field_tech: false },
   "documents.deliver":            { admin: true,  engineer: true,  field_tech: false },
 
   /*
@@ -181,7 +189,17 @@ const EXPECTED = {
   "responsible_charge.read_all":  { admin: true,  engineer: false, field_tech: false },
 };
 
-const active = (role) => ({ id: `${role}-1`, role, status: "active" });
+/*
+ * An actor carries its GRANTS since Phase 10 Section 2. Built from actionsFor,
+ * the shipped default for that role, so this audit tests what the platform
+ * seeds rather than a set invented here.
+ */
+const active = (role) => ({
+  id: `${role}-1`,
+  role,
+  status: "active",
+  grants: new Set(actionsFor(role)),
+});
 
 let matrixFailures = 0;
 for (const [action, expectations] of Object.entries(EXPECTED)) {
@@ -210,6 +228,196 @@ rec(
   missing.length === 0,
   missing.join(", "),
 );
+
+// =====================================================================
+// EVERY ROLE AGAINST EVERY ACTION, JUDGED BY POLICY RATHER THAN BY A COPY
+//
+// Phase 10 Section 2. Seven roles and 41 grantable actions is 287 pairs, and
+// the obvious audit is a 287 cell table of booleans. That table would be me
+// writing the same grants twice: DEFAULT_ROLES says what a role holds, and a
+// hand copied expectation of DEFAULT_ROLES agrees with it by construction,
+// including when both are wrong.
+//
+// So every pair is enumerated and each is judged against a RULE the firm
+// actually holds. A rule can be violated by a wrong grant, which a copy cannot.
+// The three original roles keep their hand written table above, because that
+// one was written independently and predates the grants it checks.
+// =====================================================================
+{
+  const ALL_ROLES = DEFAULT_ROLES.map((r) => r.key);
+  const grantsOf = (key) => new Set(DEFAULT_ROLES.find((r) => r.key === key)?.grants ?? []);
+
+  let pairs = 0;
+  const broken = [];
+
+  /**
+   * The rules, each one a sentence the operator would recognise.
+   *
+   * Returns a reason when the pair is wrong, null when it is fine.
+   */
+  const RULES = [
+    {
+      why: "only an administrator may move money",
+      check: (role, action) =>
+        /^payments\./.test(action) && role !== "admin"
+          ? "a role other than the administrator may charge, refund or reconcile"
+          : null,
+    },
+    {
+      why: "only an administrator may decide who owes the firm money",
+      check: (role, action) =>
+        action === "accounts.manage" && role !== "admin" ? "a role other than the administrator manages accounts" : null,
+    },
+    {
+      /*
+       * THE MARGIN RULE. A field technician is an independent contractor paid a
+       * flat rate, and one who can see the spread is a negotiation the firm did
+       * not intend. A salesperson seeing it is negotiating against the firm's
+       * own costs.
+       */
+      why: "costs and margin are for the operator, the engineer, and whoever is evaluating the business",
+      check: (role, action) =>
+        action === "pricing.read" && !["admin", "engineer", "read_only"].includes(role)
+          ? "a role that should not see cost or margin holds pricing.read"
+          : null,
+    },
+    {
+      why: "a technician sees their own work and nothing about anybody else's",
+      check: (role, action) =>
+        role === "field_tech" &&
+        /*
+         * The profiles alternation is ANCHORED with $. Unanchored, "update"
+         * matched "profiles.update_self", and the rule reported a technician
+         * updating their own profile as reaching beyond their own work. Caught
+         * by the rule firing on a grant that was correct, which is the useful
+         * direction for a rule to be wrong in.
+         */
+        /^(clients\.|accounts\.|audit\.|billing\.|payments\.|pricing\.|responsible_charge\.read_all|ledger\.read_all|profiles\.(list|create|update|suspend|force_reset)$)/.test(action)
+          ? "the technician role reaches beyond their own work"
+          : null,
+    },
+    {
+      why: "a read only role writes nothing",
+      check: (role, action) =>
+        role === "read_only" &&
+        /\.(create|update|suspend|force_reset|assign|transition|cancel|dispatch|respond|capture|start|submit|review|approve|charge|refund|reconcile|manage|use|deliver|log_own)$/.test(action) &&
+        action !== "profiles.update_self"
+          ? "the read only role holds something that writes"
+          : null,
+    },
+    {
+      why: "everybody can see and update their own profile",
+      check: (role, action) =>
+        ["profiles.read_self", "profiles.update_self"].includes(action) && !grantsOf(role).has(action)
+          ? "a role cannot see or update its own profile"
+          : null,
+    },
+    {
+      why: "nobody but the operator reads the whole audit trail, except somebody evaluating the business",
+      check: (role, action) =>
+        action === "audit.read" && !["admin", "read_only"].includes(role)
+          ? "a role other than the administrator or read only holds audit.read"
+          : null,
+    },
+  ];
+
+  for (const role of ALL_ROLES) {
+    const held = grantsOf(role);
+    for (const action of ALL_ACTIONS) {
+      pairs += 1;
+      const has = held.has(action);
+      for (const rule of RULES) {
+        /*
+         * A rule about what a role must NOT hold only fires when it holds it. A
+         * rule about what it MUST hold is written to fire on absence, and reads
+         * the grants itself, which is why both kinds are asked either way.
+         */
+        const complaint = rule.check(role, action);
+        if (!complaint) continue;
+        const isMustHave = /cannot see or update/.test(complaint);
+        if (isMustHave || has) broken.push(`${role}/${action}: ${complaint}`);
+      }
+    }
+  }
+
+  rec(
+    `every role was checked against every action (${ALL_ROLES.length} roles x ${ALL_ACTIONS.length} actions)`,
+    pairs === ALL_ROLES.length * ALL_ACTIONS.length,
+    `${pairs} pairs`,
+  );
+  rec(
+    "and no grant breaks a rule the firm holds",
+    broken.length === 0,
+    broken.length ? broken.slice(0, 4).join(" | ") : `${RULES.length} rules`,
+  );
+
+  /*
+   * THE LICENCE, ASSERTED FROM OUTSIDE THE TYPE SYSTEM.
+   *
+   * The compiler already makes a licensed action ungrantable, and
+   * scripts/proofs asserts that. This asks the same question of the DATA, in
+   * case a grant row ever arrives from somewhere the compiler did not see: a
+   * migration, a seed, an owner editing a role through the screen.
+   */
+  const licensedGranted = [];
+  for (const role of DEFAULT_ROLES) {
+    for (const action of role.grants) {
+      if (LICENSED_ACTIONS.includes(action)) licensedGranted.push(`${role.key}/${action}`);
+    }
+  }
+  rec(
+    "no default role grants a licence bound capability",
+    licensedGranted.length === 0,
+    licensedGranted.length ? licensedGranted.join(", ") : `${LICENSED_ACTIONS.length} are ungrantable`,
+  );
+
+  /*
+   * And holdsLicence answers for the engineer alone, asked of every role rather
+   * than of the two that would be guessed.
+   */
+  const wrongLicence = [];
+  for (const role of ALL_ROLES) {
+    for (const action of LICENSED_ACTIONS) {
+      const held = holdsLicence({ role, status: "active" }, action);
+      const shouldHold = role === "engineer";
+      if (held !== shouldHold) wrongLicence.push(`${role}/${action} ${held ? "held" : "refused"}`);
+    }
+  }
+  rec(
+    `the licence answers for the engineer alone (${ALL_ROLES.length} roles x ${LICENSED_ACTIONS.length})`,
+    wrongLicence.length === 0,
+    wrongLicence.length ? wrongLicence.join(", ") : "",
+  );
+
+  rec(
+    "a suspended engineer holds no licence",
+    LICENSED_ACTIONS.every((a) => !holdsLicence({ role: "engineer", status: "suspended" }, a)),
+    "suspension has to close the licence too, or suspending a PE is cosmetic",
+  );
+
+  /*
+   * Every role has somewhere to land, and it is a real portal route. NOT NULL
+   * in the schema; this is the other half, that the value means something.
+   */
+  const badLanding = DEFAULT_ROLES.filter((r) => !r.landingPath || !r.landingPath.startsWith("/portal"));
+  rec(
+    "every role lands somewhere inside the portal",
+    badLanding.length === 0,
+    badLanding.map((r) => `${r.key}: ${r.landingPath}`).join(", "),
+  );
+
+  const systemKeys = DEFAULT_ROLES.filter((r) => r.isSystem).map((r) => r.key).sort();
+  rec(
+    "the three original roles are system roles and cannot be deleted",
+    systemKeys.join(",") === "admin,engineer,field_tech",
+    systemKeys.join(", "),
+  );
+  rec(
+    "and the engineer key is one of them, because the licence compares against it",
+    DEFAULT_ROLES.find((r) => r.key === LICENSED_ROLE)?.isSystem === true,
+    "renaming it would quietly detach the licence from the people holding it",
+  );
+}
 
 // ---- suspended and signed out ----
 for (const role of ROLES) {

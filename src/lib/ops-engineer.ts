@@ -2,7 +2,7 @@ import "server-only";
 import { supabaseAdmin } from "./supabase";
 import { deskPackageComplete, orderForFile, settleDecision } from "./ops-payments";
 import { writeAudit } from "./ops-audit";
-import { can, type Actor } from "./ops-authz";
+import { can, type Actor, holdsLicence } from "./ops-authz";
 import { transitionFile } from "./ops-crm";
 import { jobView } from "./ops-field";
 import { raise } from "./ops-notify";
@@ -75,7 +75,7 @@ const QUEUE_COLUMNS =
  */
 export async function reviewQueue(actor: Actor | null): Promise<QueueRow[]> {
   const db = supabaseAdmin();
-  if (!db || !can(actor, "review.queue")) return [];
+  if (!db || !holdsLicence(actor, "review.queue")) return [];
   const { data } = await db
     .from("eng_files")
     .select(QUEUE_COLUMNS)
@@ -149,7 +149,7 @@ const SIGNED_URL_SECONDS = 60 * 60;
 
 export async function packageFor(actor: Actor | null, fileId: string): Promise<PackageView | null> {
   const db = supabaseAdmin();
-  if (!db || !can(actor, "review.queue")) return null;
+  if (!db || !holdsLicence(actor, "review.queue")) return null;
 
   const view = await jobView(actor, fileId);
   if (!view) return null;
@@ -265,7 +265,7 @@ export async function openReview(
 ): Promise<{ ok: true; sessionId: string } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  if (!can(actor, "review.queue")) return { ok: false, error: "Your role cannot review files." };
+  if (!holdsLicence(actor, "review.queue")) return { ok: false, error: "Your role cannot review files." };
 
   const { data: file } = await db.from("eng_files").select("id, status, file_number").eq("id", fileId).maybeSingle();
   if (!file) return { ok: false, error: "That file does not exist." };

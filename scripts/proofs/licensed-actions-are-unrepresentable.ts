@@ -1,99 +1,85 @@
 /**
- * Does the operator's design actually give a COMPILE TIME guarantee?
+ * THE LICENCE BOUND CAPABILITIES ARE UNREPRESENTABLE, PROVED BY THE COMPILER.
  *
- * The claim to test: if the licence bound five are not in the grantable Action
- * union at all, then a role row cannot be constructed holding one, and the
- * failure is at compile time rather than at runtime.
+ * Phase 10 Section 2. This file asserts nothing at runtime and is never
+ * imported. Its whole job is to fail to compile.
  *
- * Proved rather than asserted, because the whole design rests on it.
+ * Every @ts-expect-error below is an assertion: if the line it guards ever
+ * starts compiling, TypeScript reports TS2578 for the unused directive and the
+ * typecheck fails. So the guarantee cannot rot quietly. The day somebody makes
+ * a licensed action grantable, the build breaks and names the line.
+ *
+ * It imports the REAL types. An earlier draft copied a sketch of them, which
+ * would have kept passing while the actual module drifted.
  */
+import type { Action, LicensedAction } from "../../src/lib/ops-authz";
 
-// The grantable set. What a permission screen may offer.
-type Action =
-  | "files.list"
-  | "files.create"
-  | "clients.list"
-  | "payments.charge";
+/** What a role row holds. Grants are Action[] and nothing widens that. */
+type RoleGrants = { key: string; grants: Action[] };
 
-/*
- * The licence bound set. A SEPARATE type, not a subset of Action, so nothing
- * that takes an Action can ever be handed one of these.
- */
-type LicensedAction =
-  | "protocols.author"
-  | "protocols.publish"
-  | "review.queue"
-  | "review.decide"
-  | "documents.seal";
-
-type Role = { name: string; grants: Action[] };
-
-// ---------------------------------------------------------------- the proof
-
-/** An ordinary role. Compiles. */
-export const sales: Role = {
-  name: "Sales",
-  grants: ["files.list", "clients.list"],
+/** An ordinary role. Compiles, or the checks below would prove nothing. */
+export const sales: RoleGrants = {
+  key: "sales",
+  grants: ["clients.list", "clients.create", "files.list", "files.create"],
 };
 
-/**
- * A role granting a licensed action. MUST NOT COMPILE.
- *
- * ts-expect-error is itself the assertion: if this line ever starts compiling,
- * TypeScript reports the unused directive as an error, so the guarantee cannot
- * rot silently. The audit does not have to run anything.
- */
-export const forged: Role = {
-  name: "Forged",
-  // @ts-expect-error the licence bound actions are not grantable, by construction
+export const sealer: RoleGrants = {
+  key: "tries to seal",
+  // @ts-expect-error sealing is not grantable, by construction
   grants: ["files.list", "documents.seal"],
 };
 
-/** A typo in a grant is caught too, which is the other half of the ask. */
-export const typo: Role = {
-  name: "Typo",
-  // @ts-expect-error a misspelled action is not silently an empty grant
+export const reviewer: RoleGrants = {
+  key: "tries to review",
+  // @ts-expect-error the review decisions are not grantable, by construction
+  grants: ["review.decide"],
+};
+
+export const author: RoleGrants = {
+  key: "tries to author protocols",
+  // @ts-expect-error authoring a protocol is not grantable, by construction
+  grants: ["protocols.author"],
+};
+
+export const publisher: RoleGrants = {
+  key: "tries to publish protocols",
+  // @ts-expect-error publishing a protocol is not grantable, by construction
+  grants: ["protocols.publish"],
+};
+
+export const queuer: RoleGrants = {
+  key: "tries to reach the review queue",
+  // @ts-expect-error the review queue is not grantable, by construction
+  grants: ["review.queue"],
+};
+
+/** A typo is caught too, rather than silently granting nothing. */
+export const typo: RoleGrants = {
+  key: "typo",
+  // @ts-expect-error a misspelled action is not a silent empty grant
   grants: ["files.lst"],
 };
 
-// ------------------------------------------------- the two checking functions
-
-declare function can(actor: unknown, action: Action): boolean;
-declare function holdsLicence(actor: unknown, action: LicensedAction): boolean;
-
-export function ordinary(actor: unknown) {
-  return can(actor, "files.create");
-}
-
-export function licensed(actor: unknown) {
-  return holdsLicence(actor, "documents.seal");
-}
-
-/** can() cannot be handed a licensed action even by a caller who wants to. */
-export function mistake(actor: unknown) {
-  // @ts-expect-error sealing is not something can() decides
-  return can(actor, "documents.seal");
-}
+/*
+ * And the reverse direction: a licensed action cannot masquerade as an Action
+ * in a variable somebody passes to a grant.
+ */
+// @ts-expect-error documents.seal is not an Action
+export const smuggled: Action = "documents.seal";
 
 /*
- * And the nav wrinkle: NavItem.action is typed Action today, and two nav
- * entries point at licensed screens. A union at the call site is what lets one
- * list carry both without widening what a GRANT may hold.
+ * The nav widening does not widen the grant. NavItem takes either kind so a
+ * menu can point at the engineer's screens, and this is the case that proves
+ * doing so did not make them grantable.
  */
-type NavItem = { href: string; action: Action | LicensedAction };
-
-export const nav: NavItem[] = [
+type NavLike = { href: string; action: Action | LicensedAction };
+export const nav: NavLike[] = [
   { href: "/portal/files", action: "files.list" },
   { href: "/portal/review", action: "review.queue" },
 ];
 
-/*
- * The important half: widening the NAV does not widen the GRANT. A role still
- * cannot hold review.queue, because Role.grants is Action[] and nothing about
- * NavItem changed that.
- */
-export const stillImpossible: Role = {
-  name: "Tries again via nav",
+export const stillNotGrantable: RoleGrants = {
+  key: "tries again through the nav type",
   // @ts-expect-error still not grantable
   grants: ["review.queue"],
 };

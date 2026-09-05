@@ -1,7 +1,7 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase";
 import { writeAudit, diffOf, safeDiff } from "./ops-audit";
-import { canSeeFile, redactFile, visibleFiles, type Actor } from "./ops-authz";
+import { canSeeFile, redactFile, visibleFiles, type Actor, actionsFor } from "./ops-authz";
 import { canTransition, formatFileNumber, STATUS_TIMESTAMP, type FileStatus } from "./ops-files";
 import { resolveCounty, twiaStatus, regionForCounty } from "./ops-counties";
 
@@ -145,6 +145,19 @@ export const SYSTEM_AUTHOR = {
   role: "admin",
   status: "active",
   email: "order-engine@254engineering.com",
+  /*
+   * The administrator's DEFAULT grants, not whatever the owner has edited that
+   * role to today.
+   *
+   * The order engine is the platform acting on its own, and what it may do
+   * should not change because somebody adjusted a role for the people who hold
+   * it. If the owner narrows the administrator role, the order engine keeps
+   * releasing paid work; if they widen it, the order engine does not quietly
+   * gain the new capability.
+   *
+   * It still cannot seal, because the licensed five are not grants at all.
+   */
+  grants: new Set(actionsFor("admin")),
 } as const;
 
 export async function createClient(

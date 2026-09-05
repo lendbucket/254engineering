@@ -1,6 +1,6 @@
 import { isPrelaunch } from "./launch";
 import type { Actor } from "./ops-authz";
-import { can, type AuthzSubject } from "./ops-authz";
+import { can, type AuthzSubject, type Action, type LicensedAction, may } from "./ops-authz";
 
 /**
  * The file's state machine.
@@ -175,7 +175,7 @@ export const GATED_STATUSES: FileStatus[] = ["sealed", "delivered"];
  * also reach into a file already under review and pull it back out from under
  * the engineer holding it. The destination is the same status; the act is not.
  */
-function actionFor(from: FileStatus, to: FileStatus): Parameters<typeof can>[1] {
+function actionFor(from: FileStatus, to: FileStatus): Action | LicensedAction {
   if (to === "sealed") return "documents.seal";
   if (to === "delivered") return "documents.deliver";
   if (to === "cancelled") return "files.cancel";
@@ -224,7 +224,7 @@ export function canTransition(
    * as a person. The alternative was widening Actor.id to string | null
    * everywhere, which weakens every other signature to fix one caller.
    */
-  actor: AuthzSubject | null,
+  actor: (AuthzSubject & { role: string }) | null,
   from: FileStatus,
   to: FileStatus,
   now: { prelaunch?: boolean; assignedTech?: boolean } = {},
@@ -274,7 +274,7 @@ export function canTransition(
     };
   }
 
-  if (!can(actor, actionFor(from, to))) {
+  if (!may(actor, actionFor(from, to))) {
     return { ok: false, reason: `Your role cannot move a file to ${STATUS_LABEL[to].toLowerCase()}.` };
   }
 
