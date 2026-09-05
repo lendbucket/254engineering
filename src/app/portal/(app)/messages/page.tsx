@@ -4,7 +4,7 @@ import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { listThreads, messageablepeople, threadView } from "@/lib/ops-threads";
 import { Chip, EmptyState, PageHead } from "@/components/portal/surfaces";
-import { Composer, NewChannel, StartDirect } from "./MessagesClient";
+import { Composer, MessageSearch, NewChannel, StartDirect } from "./MessagesClient";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +44,12 @@ export default async function MessagesPage({
   searchParams: Promise<{ id?: string }>;
 }) {
   const actor = await currentActor();
-  if (!can(actor, "messages.use")) notFound();
+  /*
+   * can() narrows nothing for TypeScript, because it accepts a null actor and
+   * answers false. The explicit check is what tells the compiler, and it is not
+   * redundant: it is the same fact said in the language the compiler reads.
+   */
+  if (!actor || !can(actor, "messages.use")) notFound();
   const params = await searchParams;
 
   const threads = await listThreads(actor);
@@ -64,6 +69,17 @@ export default async function MessagesPage({
           <div className="flex flex-col gap-2">
             <StartDirect people={people} />
             {can(actor, "profiles.list") ? <NewChannel /> : null}
+          </div>
+
+          {/*
+            Search sits above the thread list rather than in the header,
+            because it searches THIS surface. A magnifying glass in the chrome
+            already opens the command palette, which goes to screens, and two
+            searches that mean different things behind one icon is how somebody
+            stops trusting either.
+          */}
+          <div className="mt-4">
+            <MessageSearch people={people.map((p) => ({ id: p.id, name: p.name }))} />
           </div>
 
           <div className="mt-4">
@@ -142,6 +158,19 @@ export default async function MessagesPage({
                   </p>
                 ) : (
                   <ol className="flex flex-col gap-4">
+                    {open.olderCount > 0 ? (
+                      <li className="pb-1 text-center text-[12.5px] text-[var(--secondary)]">
+                        {/*
+                          SAYS WHAT IT IS NOT SHOWING. The read was capped at
+                          500 silently before, taking the OLDEST 500, so a long
+                          thread showed its beginning and hid everything since.
+                          It now takes the newest hundred and says how many are
+                          behind them, which is the TableFooter rule applied to
+                          a conversation.
+                        */}
+                        {open.olderCount} older {open.olderCount === 1 ? "message is" : "messages are"} not shown.
+                      </li>
+                    ) : null}
                     {open.messages.map((m) => {
                       const mine = m.author_id === actor!.id;
                       return (
@@ -155,9 +184,52 @@ export default async function MessagesPage({
                               {mine ? "You" : m.author_name}
                               {m.author_role && !mine ? `, ${m.author_role.replace(/_/g, " ")}` : ""}
                             </p>
-                            <p className="mt-1 text-[13.5px] leading-[1.55] whitespace-pre-wrap text-[var(--navy)]">
-                              {m.body}
-                            </p>
+                            {m.body ? (
+                              <p className="mt-1 text-[13.5px] leading-[1.55] whitespace-pre-wrap text-[var(--navy)]">
+                                {m.body}
+                              </p>
+                            ) : null}
+
+                            {m.attachments.length > 0 ? (
+                              <ul className="mt-2 flex flex-wrap gap-2">
+                                {m.attachments.map((a) => (
+                                  <li key={a.key}>
+                                    {/*
+                                      A NULL URL IS SAID, NOT SHOWN AS A BROKEN
+                                      IMAGE. The bucket is private and every
+                                      view is a signed url; when the signing
+                                      call fails the screen says the attachment
+                                      could not be opened, because a broken
+                                      image icon reads as "this was deleted".
+                                    */}
+                                    {a.url === null ? (
+                                      <p className="rounded-[3px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-2.5 py-1.5 text-[12.5px] text-[var(--warn-ink)]">
+                                        {a.name} could not be opened just now.
+                                      </p>
+                                    ) : a.contentType.startsWith("image/") ? (
+                                      <a href={a.url} target="_blank" rel="noreferrer" className="block">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img
+                                          src={a.url}
+                                          alt={a.name}
+                                          className="h-28 w-28 rounded-[3px] border border-[var(--border)] object-cover"
+                                        />
+                                      </a>
+                                    ) : (
+                                      <a
+                                        href={a.url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="inline-flex min-h-[40px] items-center rounded-[3px] border border-[var(--border)] bg-white px-3 text-[13.5px] font-semibold text-[var(--navy)] active:bg-[var(--row-hover)]"
+                                      >
+                                        {a.name}
+                                      </a>
+                                    )}
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : null}
+
                             <p className="mt-1.5 text-[12px] text-[var(--secondary)]">{when(m.created_at)}</p>
                           </div>
                         </li>
@@ -166,9 +238,25 @@ export default async function MessagesPage({
                   </ol>
                 )}
 
+                {open.seenBy.length > 0 ? (
+                  <p className="mt-3 text-[12.5px] leading-[1.5] text-[var(--secondary)]">
+                    {/*
+                      FILE THREADS ONLY, and the narrowness is the decision.
+                      Whether the engineer saw the technician's question is
+                      operational. Whether somebody read a direct message is not
+                      the platform's business to broadcast.
+                    */}
+                    Read by {open.seenBy.map((p) => p.name).join(", ")}.
+                  </p>
+                ) : null}
+
                 {open.canPost ? (
                   <div className="mt-5 border-t border-[var(--border)] pt-4">
-                    <Composer threadId={open.thread.id} participants={open.thread.participants} />
+                    <Composer
+                      selfId={actor.id}
+                      threadId={open.thread.id}
+                      participants={open.thread.participants}
+                    />
                   </div>
                 ) : (
                   <p className="mt-5 border-t border-[var(--border)] pt-4 text-[13.5px] text-[var(--secondary)]">

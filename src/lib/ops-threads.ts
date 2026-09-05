@@ -35,6 +35,49 @@ export type ThreadRow = {
   created_at: string;
 };
 
+/**
+ * An attachment on a message.
+ *
+ * THE BUCKET IS eng-messages AND NOT eng-evidence, DELIBERATELY.
+ *
+ * The full reasoning is in docs/messaging-section-3.md section 8. In short:
+ * eng_evidence_items requires an item_key and points at a protocol item, every
+ * row answers something the protocol asked for, and each carries a review
+ * status that feeds package completeness. A photograph of something unexpected
+ * in an attic answers nothing the protocol asked, because the protocol did not
+ * know to ask.
+ *
+ * If it silently became evidence, an engineer sealing the package would be
+ * certifying a review of an item never presented to them as one.
+ *
+ * Same rules though: private bucket, service role only, signed URLs. And the
+ * evidence binder carries a file thread's attachments as its own section, so
+ * the firm can produce them and they are honestly described.
+ */
+export type Attachment = {
+  key: string;
+  name: string;
+  contentType: string;
+  byteSize: number;
+};
+
+export const MESSAGE_BUCKET = "eng-messages";
+
+/** One page of messages, and how many are not on it. */
+export const MESSAGE_PAGE = 100;
+export const SEARCH_LIMIT = 50;
+
+export type MessageHit = {
+  id: number;
+  created_at: string;
+  threadId: string;
+  threadTitle: string;
+  authorName: string;
+  body: string;
+  attachmentCount: number;
+};
+export const THREAD_PAGE = 100;
+
 export type ThreadListItem = ThreadRow & {
   participants: { id: string; name: string; role: Role }[];
   unread: number;
@@ -112,11 +155,19 @@ export async function listThreads(actor: Actor | null): Promise<ThreadListItem[]
   const db = supabaseAdmin();
   if (!db || !actor || actor.status !== "active") return [];
 
-  const { data } = await db
+  /*
+   * PAGINATED, AND THE COUNT IS ASKED FOR SEPARATELY.
+   *
+   * This read was capped at 200 with nothing saying so, which is the defect
+   * TableFooter exists to prevent sitting in the messaging code: a truncated
+   * list looks identical to a complete one and somebody decides on the
+   * difference. The cap is smaller now and the total comes back with it.
+   */
+  const { data, count } = await db
     .from("eng_threads")
-    .select(THREAD_COLUMNS)
+    .select(THREAD_COLUMNS, { count: "exact" })
     .order("last_message_at", { ascending: false, nullsFirst: false })
-    .limit(200);
+    .limit(THREAD_PAGE);
 
   const rows = (data ?? []) as ThreadRow[];
   const byThread = await participantsOf(rows.map((r) => r.id));
@@ -197,11 +248,20 @@ export type MessageRow = {
   author_role: Role | null;
   body: string;
   mentions: string[];
+  /** url is null when the signing call failed, which the screen says rather than showing a broken image. */
+  attachments: (Attachment & { url: string | null })[];
 };
+
+/** An hour, matching the evidence viewer. A private bucket signs everything. */
+const SIGNED_URL_SECONDS = 60 * 60;
 
 export type ThreadView = {
   thread: ThreadListItem;
   messages: MessageRow[];
+  /** How many older messages exist that this page is not showing. */
+  olderCount: number;
+  /** File threads only. Who has read up to the newest message, and when. */
+  seenBy: { name: string; at: string }[];
   canPost: boolean;
 };
 
@@ -213,21 +273,51 @@ export async function threadView(actor: Actor | null, threadId: string): Promise
   const thread = all.find((t) => t.id === threadId);
   if (!thread) return null;
 
-  const { data } = await db
+  /*
+   * THE MOST RECENT PAGE, NEWEST FIRST, THEN REVERSED FOR READING.
+   *
+   * The old read took the OLDEST 500 ascending, so a thread with more than that
+   * showed its beginning and hid everything since, silently. On a conversation
+   * that is the wrong end: what somebody needs is what was just said.
+   */
+  const { data, count } = await db
     .from("eng_messages")
-    .select("id, created_at, author_id, body, mentions, eng_profiles(display_name, role)")
+    .select("id, created_at, author_id, body, mentions, attachments, eng_profiles(display_name, role)", {
+      count: "exact",
+    })
     .eq("thread_id", threadId)
-    .order("created_at", { ascending: true })
-    .limit(500);
+    .order("created_at", { ascending: false })
+    .limit(MESSAGE_PAGE);
 
-  const messages = ((data ?? []) as unknown as {
+  const rows = ((data ?? []) as unknown as {
     id: number;
     created_at: string;
     author_id: string | null;
     body: string;
     mentions: string[];
+    attachments: Attachment[] | null;
     eng_profiles: { display_name: string; role: Role } | null;
-  }[]).map((m) => ({
+  }[])
+    // Read newest first for the cap, reversed here so a conversation reads down.
+    .reverse();
+
+  /*
+   * SIGNED IN ONE CALL, NOT ONE PER ATTACHMENT.
+   *
+   * The bucket is private, so nothing renders without a signed url. Signing
+   * per message would be one round trip per photograph on a screen that can
+   * hold a hundred of them.
+   */
+  const keys = rows.flatMap((m) => (m.attachments ?? []).map((a) => a.key));
+  const signed = new Map<string, string>();
+  if (keys.length) {
+    const { data: urls } = await db.storage
+      .from(MESSAGE_BUCKET)
+      .createSignedUrls(keys, SIGNED_URL_SECONDS);
+    for (const u of urls ?? []) if (u.path && u.signedUrl) signed.set(u.path, u.signedUrl);
+  }
+
+  const messages = rows.map((m) => ({
     id: m.id,
     created_at: m.created_at,
     author_id: m.author_id,
@@ -235,7 +325,17 @@ export async function threadView(actor: Actor | null, threadId: string): Promise
     author_role: m.eng_profiles?.role ?? null,
     body: m.body,
     mentions: m.mentions ?? [],
+    attachments: (m.attachments ?? []).map((a) => ({ ...a, url: signed.get(a.key) ?? null })),
   }));
+
+  const olderCount = Math.max(0, (count ?? messages.length) - messages.length);
+
+  /*
+   * READ BEFORE THE STAMP BELOW, and that order is load bearing. Marking this
+   * thread read first would put the actor's own timestamp into the set and make
+   * everybody look like they had seen the newest message.
+   */
+  const participantReads = await participantsOf([threadId]);
 
   // Reading it marks it read. Anything else needs a button nobody presses.
   await db
@@ -244,9 +344,29 @@ export async function threadView(actor: Actor | null, threadId: string): Promise
     .eq("thread_id", threadId)
     .eq("profile_id", actor.id);
 
+  /*
+   * WHO HAS SEEN IT, ON A FILE THREAD ONLY.
+   *
+   * Item 6 of the section 3 report, and the narrowness is the point: whether
+   * the engineer saw the technician's question is operational. Whether somebody
+   * read a direct message is not the platform's business to broadcast, and a
+   * channel with eight people would turn it into noise.
+   *
+   * last_read_at already holds it, so this is a read of something that was
+   * being written all along.
+   */
+  const seenBy =
+    thread.kind === "file"
+      ? (participantReads.get(threadId) ?? [])
+          .filter((p) => p.id !== actor.id && p.lastReadAt)
+          .map((p) => ({ name: p.name, at: p.lastReadAt as string }))
+      : [];
+
   return {
     thread,
     messages,
+    olderCount,
+    seenBy,
     canPost: canPostToThread(
       actor,
       {
@@ -406,12 +526,23 @@ export async function postMessage(
   threadId: string,
   body: string,
   context: Context = {},
+  attachments: Attachment[] = [],
 ): Promise<{ ok: true; id: number } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
 
   const text = body.trim();
-  if (!text) return { ok: false, error: "An empty message is not a message." };
+  /*
+   * A MESSAGE WITH ONLY A PHOTOGRAPH IS A MESSAGE.
+   *
+   * The old rule refused an empty body, which was right when a message was
+   * text. A technician on a roof sends the picture and nothing else, and making
+   * them type a word first is the kind of friction that sends the photograph to
+   * somebody's personal phone instead.
+   */
+  if (!text && attachments.length === 0) {
+    return { ok: false, error: "An empty message is not a message." };
+  }
   if (text.length > 5000) return { ok: false, error: "That is too long for a message. Attach it to the file instead." };
 
   const view = await threadView(actor, threadId);
@@ -422,7 +553,7 @@ export async function postMessage(
 
   const { data, error } = await db
     .from("eng_messages")
-    .insert({ thread_id: threadId, author_id: actor.id, body: text, mentions })
+    .insert({ thread_id: threadId, author_id: actor.id, body: text, mentions, attachments })
     .select("id")
     .single();
   if (error || !data) return { ok: false, error: error?.message ?? "Could not post that." };
@@ -457,7 +588,11 @@ export async function postMessage(
       title: mentioned
         ? `${actor.email.split("@")[0]} mentioned you in ${view.thread.title}`
         : `New message in ${view.thread.title}`,
-      body: text.length > 160 ? `${text.slice(0, 157)}...` : text,
+      body: text
+        ? text.length > 160
+          ? `${text.slice(0, 157)}...`
+          : text
+        : `${attachments.length} ${attachments.length === 1 ? "attachment" : "attachments"}`,
       href: `/portal/messages?id=${threadId}`,
       entityType: "thread",
       entityId: threadId,
@@ -482,4 +617,92 @@ export async function messageablepeople(actor: Actor | null): Promise<{ id: stri
     name: p.display_name as string,
     role: p.role as Role,
   }));
+}
+
+/**
+ * SEARCH ACROSS EVERY MESSAGE THE ACTOR MAY READ.
+ *
+ * WHY IT FILTERS BY THREAD AND NOT BY QUERY
+ * -----------------------------------------
+ * The obvious implementation searches eng_messages and then checks each hit.
+ * That leaks: an administrator searching a word would get a count, a timestamp
+ * or an author from a direct message they are not part of, and canReadThread
+ * exists precisely to stop that.
+ *
+ * So the readable set is resolved FIRST, through listThreads, which already
+ * applies canReadThread and the file visibility rules. The search then runs
+ * inside it. The section 3 report names this as the place the pricing
+ * constraint would bite, and this is the shape that holds it: search sees
+ * exactly what the thread list sees, never its own set.
+ *
+ * ilike rather than full text, deliberately. This firm has hundreds of messages
+ * and will have thousands. A tsvector column and a GIN index is the right
+ * answer at a scale this is not at, and it would be a migration against
+ * production for a query that returns in single digit milliseconds without one.
+ * Recorded rather than assumed, so the day it is slow somebody knows what to do.
+ */
+export async function searchMessages(
+  actor: Actor | null,
+  query: {
+    text?: string | null;
+    /** A participant id. Messages they wrote. */
+    authorId?: string | null;
+    fileId?: string | null;
+    since?: string | null;
+    until?: string | null;
+  },
+): Promise<{ results: MessageHit[]; searched: number; truncated: boolean }> {
+  const db = supabaseAdmin();
+  if (!db || !actor || actor.status !== "active") {
+    return { results: [], searched: 0, truncated: false };
+  }
+
+  const threads = await listThreads(actor);
+  const byId = new Map(threads.map((t) => [t.id, t]));
+  const ids = query.fileId
+    ? threads.filter((t) => t.file_id === query.fileId).map((t) => t.id)
+    : threads.map((t) => t.id);
+
+  if (ids.length === 0) return { results: [], searched: 0, truncated: false };
+
+  let q = db
+    .from("eng_messages")
+    .select("id, created_at, thread_id, author_id, body, attachments, eng_profiles(display_name, role)")
+    .in("thread_id", ids)
+    .order("created_at", { ascending: false })
+    .limit(SEARCH_LIMIT + 1);
+
+  const text = (query.text ?? "").trim();
+  if (text) q = q.ilike("body", `%${text}%`);
+  if (query.authorId) q = q.eq("author_id", query.authorId);
+  if (query.since) q = q.gte("created_at", query.since);
+  if (query.until) q = q.lte("created_at", query.until);
+
+  const { data } = await q;
+  const rows = (data ?? []) as unknown as {
+    id: number;
+    created_at: string;
+    thread_id: string;
+    author_id: string | null;
+    body: string;
+    attachments: Attachment[] | null;
+    eng_profiles: { display_name: string; role: Role } | null;
+  }[];
+
+  const truncated = rows.length > SEARCH_LIMIT;
+  const page = truncated ? rows.slice(0, SEARCH_LIMIT) : rows;
+
+  return {
+    results: page.map((m) => ({
+      id: m.id,
+      created_at: m.created_at,
+      threadId: m.thread_id,
+      threadTitle: byId.get(m.thread_id)?.title ?? "A conversation",
+      authorName: m.eng_profiles?.display_name ?? "Somebody who has left",
+      body: m.body,
+      attachmentCount: (m.attachments ?? []).length,
+    })),
+    searched: ids.length,
+    truncated,
+  };
 }

@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { KeyboardAwareComposer } from "@/components/portal/design";
+import type { Role } from "@/lib/ops-authz";
 
 /**
  * Writing, starting a conversation, and opening a channel.
@@ -29,77 +31,236 @@ async function post(payload: Record<string, unknown>) {
 export function Composer({
   threadId,
   participants,
+  selfId,
 }: {
   threadId: string;
-  participants: { id: string; name: string; role: string }[];
+  participants: { id: string; name: string; role: Role }[];
+  selfId: string;
 }) {
   const router = useRouter();
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState<
+    { key: string; name: string; contentType: string; byteSize: number; preview: string | null }[]
+  >([]);
+  const [uploading, setUploading] = useState(false);
+  const camera = useRef<HTMLInputElement | null>(null);
+  const library = useRef<HTMLInputElement | null>(null);
 
-  /*
-   * Who a mention would reach, computed the same way the server does: first
-   * names of the people already on this thread. Shown live so somebody typing
-   * "@rob" can see it landed before they send.
-   */
   const mentioned = participants.filter((p) => {
-    const first = p.name.trim().split(/\s+/)[0]?.toLowerCase();
+    if (p.id === selfId) return false;
+    const first = p.name.split(" ")[0]?.toLowerCase();
     return first && first.length > 1 && body.toLowerCase().includes(`@${first}`);
   });
 
+  /*
+   * THE UPLOAD GOES PHONE TO STORAGE, NEVER THROUGH THE SERVER.
+   *
+   * prepare_attachment returns a signed url and the key it will land at. A
+   * twelve megabyte photograph through a serverless function is a timeout
+   * waiting for a bad signal, which is the signal a technician on a roof has.
+   */
+  async function attach(fileList: FileList | null) {
+    const chosen = [...(fileList ?? [])];
+    if (chosen.length === 0) return;
+    setUploading(true);
+    setError(null);
+    try {
+      for (const file of chosen.slice(0, 6 - pending.length)) {
+        const prepared = (await post({
+          action: "prepare_attachment",
+          threadId,
+          contentType: file.type,
+          byteSize: file.size,
+        })) as { url: string; key: string };
+
+        const put = await fetch(prepared.url, {
+          method: "PUT",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
+        if (!put.ok) throw new Error("That upload did not finish. Try again.");
+
+        setPending((p) => [
+          ...p,
+          {
+            key: prepared.key,
+            name: file.name,
+            contentType: file.type,
+            byteSize: file.size,
+            preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : null,
+          },
+        ]);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "That attachment did not work.");
+    } finally {
+      setUploading(false);
+      if (camera.current) camera.current.value = "";
+      if (library.current) library.current.value = "";
+    }
+  }
+
+  const canSend = (body.trim().length > 0 || pending.length > 0) && !busy && !uploading;
+
   return (
-    <form
-      onSubmit={async (e) => {
-        e.preventDefault();
-        if (!body.trim()) return;
-        setBusy(true);
-        setError(null);
-        try {
-          await post({ action: "post_message", threadId, body });
-          setBody("");
-          router.refresh();
-        } catch (err) {
-          setError(err instanceof Error ? err.message : "That did not work.");
-        } finally {
-          setBusy(false);
-        }
-      }}
-    >
-      <label htmlFor="composer" className="sr-only">
-        Write a message
-      </label>
-      <textarea
-        id="composer"
-        value={body}
-        onChange={(e) => setBody(e.target.value)}
-        rows={3}
-        placeholder="Write a message. Use @ and a first name to get somebody's attention."
-        className="w-full rounded-[3px] border border-[var(--border)] bg-white px-3 py-2.5 text-[16px] leading-[1.5] text-[var(--navy)] outline-none focus:border-slate"
-      />
-
-      <p className="mt-1.5 text-[12.5px] leading-[1.5] text-[var(--secondary)]">
-        {mentioned.length > 0
-          ? `${mentioned.map((p) => p.name).join(" and ")} will be emailed, because you named them.`
-          : `${participants.length - 1 > 0 ? participants.length - 1 : "No"} other ${
-              participants.length - 1 === 1 ? "person" : "people"
-            } will see this in the portal. Nobody is emailed unless you name them.`}
-      </p>
-
-      {error ? (
-        <p role="alert" className="mt-2 text-[13.5px] font-semibold text-[var(--red)]">
-          {error}
-        </p>
-      ) : null}
-
-      <button
-        type="submit"
-        disabled={busy || !body.trim()}
-        className="mt-3 inline-flex min-h-[var(--tap-target)] items-center justify-center rounded-[var(--radius-control)] bg-[var(--navy)] px-6 text-[15px] font-bold text-white transition-colors hover:bg-[var(--navy-hover)] disabled:opacity-50"
+    <KeyboardAwareComposer>
+      <form
+        className="px-3 py-2"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          if (!canSend) return;
+          setBusy(true);
+          setError(null);
+          try {
+            await post({
+              action: "post_message",
+              threadId,
+              body,
+              attachments: pending.map(({ key, name, contentType, byteSize }) => ({
+                key,
+                name,
+                contentType,
+                byteSize,
+              })),
+            });
+            setBody("");
+            for (const p of pending) if (p.preview) URL.revokeObjectURL(p.preview);
+            setPending([]);
+            router.refresh();
+          } catch (err) {
+            setError(err instanceof Error ? err.message : "That did not work.");
+          } finally {
+            setBusy(false);
+          }
+        }}
       >
-        {busy ? "Sending" : "Send"}
-      </button>
-    </form>
+        {pending.length > 0 ? (
+          <ul className="mb-2 flex flex-wrap gap-2">
+            {pending.map((p) => (
+              <li
+                key={p.key}
+                className="flex items-center gap-2 rounded-[3px] border border-[var(--border)] bg-[var(--canvas)] py-1 pr-1 pl-2"
+              >
+                {p.preview ? (
+                  <img src={p.preview} alt="" className="h-8 w-8 rounded-[2px] object-cover" />
+                ) : null}
+                <span className="max-w-[12ch] truncate text-[12.5px] text-[var(--ink)]">{p.name}</span>
+                <button
+                  type="button"
+                  aria-label={`Remove ${p.name}`}
+                  onClick={() => {
+                    if (p.preview) URL.revokeObjectURL(p.preview);
+                    setPending((list) => list.filter((x) => x.key !== p.key));
+                  }}
+                  className="grid h-8 w-8 place-items-center rounded-[2px] text-[var(--secondary)] active:bg-[var(--row-hover)]"
+                >
+                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
+                    <path d="m6 6 12 12M18 6 6 18" />
+                  </svg>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
+        {/*
+          THE TEXTAREA GETS ITS OWN ROW, AND THE CONTROLS SIT BENEATH IT.
+
+          Three 44px targets and their gaps take 156px of a 390 screen, which
+          left the input 142px wide and wrapped its placeholder after two words
+          with the second line clipped. Tap targets are not negotiable and the
+          width is not available, so the row is what changes.
+
+          Two things were tried first: a shorter placeholder, which only moved
+          where it wrapped, and field-sizing content, which sizes the width as
+          well as the height and squeezed it further.
+        */}
+        <div className="flex flex-col gap-2">
+          <input
+            ref={camera}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="sr-only"
+            onChange={(e) => attach(e.target.files)}
+          />
+
+          <label htmlFor="composer" className="sr-only">
+            Write a message
+          </label>
+          <textarea
+            id="composer"
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            rows={1}
+            placeholder="Write a message"
+            /*
+              One row that grows to max-h, and no field-sizing. field-sizing
+              content was tried and sizes the WIDTH as well as the height, which
+              squeezed the box until the placeholder wrapped after two words.
+              The placeholder is short for the same reason: at 390 the camera,
+              attach and send buttons take 148px before this starts.
+            */
+            className="max-h-[120px] min-h-[44px] w-full resize-none rounded-[var(--radius-control)] border border-[var(--border)] bg-white px-3 py-2.5 text-[16px] leading-[1.4] text-[var(--navy)] outline-none focus:border-slate"
+          />
+
+          <div className="flex items-center gap-2">
+            <button
+            type="button"
+            aria-label="Take a photograph"
+            disabled={uploading || pending.length >= 6}
+            onClick={() => camera.current?.click()}
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-[var(--radius-control)] border border-[var(--border-strong)] text-[var(--navy)] active:bg-[var(--row-hover)] disabled:opacity-45 sm:hidden"
+          >
+            <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" />
+              <circle cx="12" cy="13" r="3.2" />
+            </svg>
+          </button>
+            <button
+            type="button"
+            aria-label="Attach a file"
+            disabled={uploading || pending.length >= 6}
+            onClick={() => library.current?.click()}
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-[var(--radius-control)] border border-[var(--border-strong)] text-[var(--navy)] active:bg-[var(--row-hover)] disabled:opacity-45"
+          >
+            <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M20 11.5 12.5 19a4.5 4.5 0 0 1-6.4-6.4l7.6-7.6a3 3 0 0 1 4.3 4.3l-7.6 7.6a1.5 1.5 0 0 1-2.2-2.2l7-7" />
+            </svg>
+          </button>
+            <span className="flex-1" />
+            <button
+            type="submit"
+            disabled={!canSend}
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-[var(--radius-control)] bg-[var(--navy)] text-white active:bg-[var(--ink-navy)] disabled:opacity-45"
+            aria-label={busy ? "Sending" : "Send"}
+          >
+            <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="m4 12 16-8-6 16-2.5-6z" />
+            </svg>
+          </button>
+          </div>
+        </div>
+
+        <p className="mt-1.5 text-[12.5px] leading-[1.5] text-[var(--secondary)]">
+          {uploading
+            ? "Uploading."
+            : mentioned.length > 0
+              ? `${mentioned.map((p) => p.name).join(" and ")} will be emailed, because you named them.`
+              : `${participants.length - 1 > 0 ? participants.length - 1 : "No"} other ${
+                  participants.length - 1 === 1 ? "person" : "people"
+                } will see this in the portal. Nobody is emailed unless you name them.`}
+        </p>
+
+        {error ? (
+          <p role="alert" className="mt-2 text-[13.5px] font-semibold text-[var(--red)]">
+            {error}
+          </p>
+        ) : null}
+      </form>
+    </KeyboardAwareComposer>
   );
 }
 
@@ -273,5 +434,139 @@ export function NewChannel() {
         </button>
       </div>
     </form>
+  );
+}
+
+/**
+ * SEARCH, AND WHY IT IS A CLIENT COMPONENT CALLING THE SAME API.
+ *
+ * The results come from searchMessages, which resolves the readable thread set
+ * FIRST and searches inside it. That is the property the section 3 report names
+ * as the place the pricing constraint would bite: search sees exactly what the
+ * thread list sees, never its own set, so it cannot surface a direct message an
+ * administrator is not part of.
+ */
+export function MessageSearch({ people }: { people: { id: string; name: string }[] }) {
+  const [text, setText] = useState("");
+  const [authorId, setAuthorId] = useState("");
+  const [since, setSince] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [found, setFound] = useState<{
+    results: { id: number; created_at: string; threadId: string; threadTitle: string; authorName: string; body: string; attachmentCount: number }[];
+    truncated: boolean;
+  } | null>(null);
+
+  const field =
+    "min-h-[44px] w-full rounded-[3px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--navy)] outline-none focus:border-slate";
+
+  return (
+    <div className="rounded-[var(--radius-card)] border border-[var(--border)] bg-white p-4">
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault();
+          setBusy(true);
+          setError(null);
+          try {
+            const r = (await post({
+              action: "search_messages",
+              text: text || null,
+              authorId: authorId || null,
+              since: since ? new Date(since).toISOString() : null,
+            })) as { results: typeof found extends null ? never : NonNullable<typeof found>["results"]; truncated: boolean };
+            setFound({ results: r.results, truncated: r.truncated });
+          } catch (err) {
+            setError(err instanceof Error ? err.message : "That search did not work.");
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        <label htmlFor="msg-q" className="block text-[13.5px] font-semibold text-[var(--navy)]">
+          Search every conversation you can read
+        </label>
+        <input
+          id="msg-q"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="A word, an address, a gate code"
+          className={`mt-1.5 ${field}`}
+        />
+
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          <div>
+            <label htmlFor="msg-who" className="block text-[12.5px] font-semibold text-[var(--secondary)]">
+              Written by
+            </label>
+            <select id="msg-who" value={authorId} onChange={(e) => setAuthorId(e.target.value)} className={`mt-1 ${field}`}>
+              <option value="">Anybody</option>
+              {people.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="msg-since" className="block text-[12.5px] font-semibold text-[var(--secondary)]">
+              Since
+            </label>
+            <input id="msg-since" type="date" value={since} onChange={(e) => setSince(e.target.value)} className={`mt-1 ${field}`} />
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          disabled={busy}
+          className="mt-3 inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-5 text-[15px] font-bold text-white active:bg-[var(--ink-navy)] disabled:opacity-50"
+        >
+          {busy ? "Searching" : "Search"}
+        </button>
+      </form>
+
+      {error ? (
+        <p role="alert" className="mt-3 text-[13.5px] font-semibold text-[var(--red)]">
+          {error}
+        </p>
+      ) : null}
+
+      {found ? (
+        found.results.length === 0 ? (
+          <p className="mt-3 text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+            Nothing matched, in any conversation you can read. A direct message you are not part of
+            is not searched and never will be.
+          </p>
+        ) : (
+          <>
+            <p className="mt-3 text-[12.5px] text-[var(--secondary)]">
+              {found.truncated
+                ? `The first ${found.results.length} matches, newest first. Narrow it to see the rest.`
+                : `${found.results.length} ${found.results.length === 1 ? "match" : "matches"}, newest first.`}
+            </p>
+            <ul className="mt-2 flex flex-col gap-2">
+              {found.results.map((r) => (
+                <li key={r.id}>
+                  <a
+                    href={`/portal/messages?id=${r.threadId}`}
+                    className="block rounded-[3px] border border-[var(--border)] p-3 hover:bg-[var(--canvas)] active:bg-[var(--row-hover)]"
+                  >
+                    <p className="text-[12.5px] font-semibold text-[var(--gold-deep)]">{r.threadTitle}</p>
+                    <p className="mt-1 text-[13.5px] leading-[1.5] text-[var(--navy)]">
+                      {r.body.length > 180 ? `${r.body.slice(0, 177)}...` : r.body}
+                      {r.attachmentCount > 0 && !r.body
+                        ? `${r.attachmentCount} ${r.attachmentCount === 1 ? "attachment" : "attachments"}`
+                        : ""}
+                    </p>
+                    <p className="mt-1 text-[12px] text-[var(--secondary)]">
+                      {r.authorName}, {new Date(r.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                    </p>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </>
+        )
+      ) : null}
+    </div>
   );
 }

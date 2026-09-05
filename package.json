@@ -23,6 +23,8 @@
     "asset-audit": "node scripts/asset-audit.mjs",
     "prenative-audit": "node scripts/preflight-audit.mjs",
     "native-audit": "node scripts/native-audit.mjs",
+    "premessaging-audit": "node scripts/preflight-audit.mjs",
+    "messaging-audit": "node scripts/messaging-audit.mjs",
     "preforms-audit": "node scripts/preflight-audit.mjs",
     "forms-audit": "node scripts/forms-audit.mjs",
     "preseo-audit": "node scripts/preflight-audit.mjs",

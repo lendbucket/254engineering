@@ -158,3 +158,67 @@ honest pagination and read receipts on file threads.
 Items 5, 7 and 8 are real and smaller; they are worth a second pass rather than
 padding the first. The three I would not build are argued above and I would
 rather be told I am wrong about them now than build them and find out.
+
+---
+
+## 8. The bucket ruling, decided deliberately
+
+Operator instruction: an attachment from a technician's camera on a file thread
+is evidence in everything but name, so decide where it lands and record why.
+
+**Ruling: a separate `eng-messages` bucket, beside `eng-evidence`, under exactly
+the same rules. Private, service role only, signed URLs, same retention. And the
+file thread's attachments appear in the evidence binder as their own section.**
+
+### Why not the evidence bucket
+
+The bucket is the smaller half of the question. The real question is whether a
+conversational photograph becomes an `eng_evidence_items` row, and it must not.
+
+1. **Evidence has a grammar it would have to break.** `eng_evidence_items`
+   requires `item_key` NOT NULL and points at a `protocol_item_id`. Every row
+   answers a specific thing the protocol asked for. A photograph of something
+   unexpected in an attic answers nothing the protocol asked, because the
+   protocol did not know to ask. Putting it there needs either an invented item
+   key or a null protocol item, and both are a lie about what the row is.
+
+2. **It carries a review status that feeds completeness.** Each evidence item is
+   `submitted`, `accepted` or `revision_requested`, and package completeness is
+   computed from them. A conversational photo entering that set changes whether
+   a package reads as complete, which is a decision the protocol is supposed to
+   make.
+
+3. **And this is the one that settles it.** If a message photograph silently
+   became evidence, an engineer sealing the package would be certifying they had
+   reviewed an item that was never presented to them as an evidence item. That
+   is the evidence hash finding again: a claim about a review that did not
+   happen in the form the claim implies.
+
+This is the same distinction the schema already draws between `eng_order_inputs`
+and `eng_file_inputs`, recorded at length in 0016: evidence that can be
+superseded is not evidence, which is why they are not one table.
+
+### Why it still reaches the engineer and the record
+
+Both halves of the operator's sentence have to hold. A photograph of something
+unexpected in an attic is exactly what an engineer needs, and exactly what the
+firm would be asked to produce.
+
+- **The engineer sees it** because a file thread follows the file, and an
+  engineer who can see the file can read the thread. It is on the same screen as
+  the work.
+- **The firm can produce it** because the binder assembles fresh from rows and
+  will carry a section for it, labelled as sent in conversation rather than
+  captured against a protocol item. Produced, and honestly described.
+
+### What is deliberately not built
+
+**No promotion path from a message attachment to an evidence item.** It is the
+obvious next feature and it is wrong here: promotion needs a protocol item to
+attach to, and the whole reason this photograph exists is that no protocol item
+covers it. A promote button would push somebody to pick the nearest item key,
+which is how a record acquires a small untruth.
+
+If the unexpected thing turns out to matter, the correct answer is that the
+engineer sends the file back for a site visit or the protocol gains an item, and
+both of those already exist.
