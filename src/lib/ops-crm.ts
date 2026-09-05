@@ -57,6 +57,8 @@ export type FileRow = {
   file_number: string;
   client_id: string;
   service_slug: string;
+  /** The catalog tier. Null on every file opened before Phase 10 Section 1. */
+  deliverable: string | null;
   property_address: string;
   city: string | null;
   county: string;
@@ -82,7 +84,12 @@ export type FileRow = {
 };
 
 const FILE_COLUMNS =
-  "id, file_number, client_id, service_slug, property_address, city, county, twia_county, latitude, longitude, urgency, status, due_at, assigned_tech_id, assigned_engineer_id, client_price_cents, tech_cost_cents, engineer_cost_cents, created_at, notes";
+  /*
+   * deliverable is read as well as written from Phase 10 Section 1. It existed
+   * unwritten from Phase 6, so nothing selected it, and the screens that now
+   * ask what a file is missing need to know which deliverable to ask about.
+   */
+  "id, file_number, client_id, service_slug, deliverable, property_address, city, county, twia_county, latitude, longitude, urgency, status, due_at, assigned_tech_id, assigned_engineer_id, client_price_cents, tech_cost_cents, engineer_cost_cents, created_at, notes";
 
 // ------------------------------------------------------------------ clients
 
@@ -279,6 +286,28 @@ export type CreateFileInput = {
   twiaOverride?: boolean;
   fromLeadId?: string | null;
   clientPriceCents?: number | null;
+
+  /*
+   * Phase 10 Section 1. Everything below was addable only because 0015 added
+   * the columns, EXCEPT deliverable, which has existed since Phase 6 and which
+   * nothing has ever written. A file could not say which of its service line's
+   * deliverables it was for, on either the operator path or the customer path.
+   */
+
+  /** The catalog tier. Optional because seven of nine lines sell exactly one. */
+  deliverable?: string | null;
+
+  intakeChannel?: import("./job-intake-rules").IntakeChannel;
+  /** When the call happened, which is not when the file was opened. */
+  intakeTakenAt?: string | null;
+
+  /** What the catalog said, kept beside the price that applies. */
+  catalogPriceCents?: number | null;
+  coastalSurchargeCents?: number | null;
+  priceOverrideReason?: string | null;
+
+  paymentIntent?: import("./job-intake-rules").PaymentIntent;
+  paymentNote?: string | null;
 };
 
 /**
@@ -312,14 +341,48 @@ export async function createFile(
   const twiaFlag = twia === "designated" ? true : twia === "check" ? Boolean(input.twiaOverride) : false;
 
   const year = new Date().getFullYear();
-  const { count } = await db
+  /*
+   * THE NEXT NUMBER COMES FROM THE HIGHEST ONE, NOT FROM A COUNT.
+   *
+   * It counted before, and a count is only the right answer while the numbers
+   * are a gapless run starting at one. Anything that breaks that assumption
+   * breaks file creation ENTIRELY rather than degrading: delete one file and
+   * the count points at a number already taken, the three retries hit the same
+   * wall, and every subsequent intake fails with "could not allocate a file
+   * number".
+   *
+   * Found on 2026-09-04 building the telephone intake. Development held files
+   * numbered 0007 to 0009 and a seeded block at 9001 to 9003, so the count was
+   * six, and NO FILE COULD BE CREATED AT ALL: not by this path, and not by the
+   * "Open a file" button that had been there since Phase 6. The failure was
+   * invisible until somebody tried, because nothing had created a file on
+   * development since the seed ran.
+   *
+   * Ordering by file_number as text is correct while the sequence is zero
+   * padded to a fixed width, which formatFileNumber does. If a year ever
+   * exceeds that width the padding changes and this ordering stops being right,
+   * which is worth knowing about rather than discovering.
+   */
+  const { data: highest } = await db
     .from("eng_files")
-    .select("id", { count: "exact", head: true })
-    .gte("created_at", `${year}-01-01T00:00:00Z`);
+    .select("file_number")
+    .like("file_number", `%-${year}-%`)
+    .order("file_number", { ascending: false })
+    .limit(1);
 
-  // Retry once on the unique collision two simultaneous intakes would cause.
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const fileNumber = formatFileNumber(year, (count ?? 0) + 1 + attempt);
+  const lastSequence = highest?.[0]?.file_number
+    ? Number(String(highest[0].file_number).split("-").pop())
+    : 0;
+  const nextSequence = Number.isFinite(lastSequence) ? lastSequence : 0;
+
+  /*
+   * Retries are for the collision two simultaneous intakes cause, which is a
+   * real race this does not remove: both read the same highest number. Five
+   * rather than three, because the seeded blocks that exposed the count bug
+   * also make a short run of taken numbers plausible.
+   */
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const fileNumber = formatFileNumber(year, nextSequence + 1 + attempt);
     const { data, error } = await db
       .from("eng_files")
       .insert({
@@ -335,6 +398,21 @@ export async function createFile(
         due_at: input.dueAt || null,
         notes: input.notes?.trim() || null,
         client_price_cents: input.clientPriceCents ?? null,
+        deliverable: input.deliverable || null,
+        intake_channel: input.intakeChannel ?? "web",
+        intake_taken_at: input.intakeTakenAt || null,
+        catalog_price_cents: input.catalogPriceCents ?? null,
+        coastal_surcharge_cents: input.coastalSurchargeCents ?? null,
+        price_override_reason: input.priceOverrideReason || null,
+        /*
+         * Stamped only when there IS an override, so an ordinary job carries no
+         * overridden_by and a screen can tell "nobody changed this" from
+         * "somebody changed it and we lost who".
+         */
+        price_overridden_by: input.priceOverrideReason ? actor.id : null,
+        price_overridden_at: input.priceOverrideReason ? new Date().toISOString() : null,
+        payment_intent: input.paymentIntent ?? "unset",
+        payment_note: input.paymentNote || null,
         converted_from_lead_id: input.fromLeadId || null,
         created_by: actor.id,
         status: "intake",
@@ -374,8 +452,36 @@ export async function createFile(
  * right timestamp, and write both records. It never contains a rule of its own,
  * because a rule here would be a rule the test suite does not see.
  */
+/**
+ * The file as the PLATFORM sees it, with no visibility scoping.
+ *
+ * Used only by transitionFile, and only when the actor is the platform itself
+ * rather than a person. It is not exported: an unscoped read is exactly the
+ * hole canSeeFile exists to close, and the way it stays closed is that nothing
+ * else can reach this.
+ *
+ * There is no redaction either, deliberately. Redaction hides a client price
+ * from a technician; the order engine releasing paid work needs the file's real
+ * status and assignment to decide anything at all.
+ */
+async function fileForSystem(id: string): Promise<FileRow | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
+  const { data } = await db.from("eng_files").select(FILE_COLUMNS).eq("id", id).maybeSingle();
+  return (data as FileRow) ?? null;
+}
+
 export async function transitionFile(
-  actor: Actor & { email: string },
+  /*
+   * Author rather than Actor, so the order engine can move a file it just took
+   * payment for. Before Phase 10 Section 1 ops-payments did that with a raw
+   * status update that never called canTransition, because this signature would
+   * not accept the only actor it had.
+   *
+   * A rule a caller cannot satisfy is a rule that caller routes around, and the
+   * grammar was silently not applying to the one path that mattered most.
+   */
+  actor: Author,
   id: string,
   to: FileStatus,
   note: string | null,
@@ -384,7 +490,12 @@ export async function transitionFile(
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
 
-  const current = await getFile(actor, id);
+  /*
+   * A person's read is scoped to what they may see; the platform's is not.
+   * Both then face the same canTransition below, which is the point: the
+   * system gets a wider VIEW and not a wider set of MOVES.
+   */
+  const current = actor.id === null ? await fileForSystem(id) : await getFile(actor, id);
   if (!current) return { ok: false, error: "That file does not exist, or is not yours to move." };
 
   const verdict = canTransition(actor, current.status, to, {

@@ -1,4 +1,5 @@
 import type { CatalogEntry, Qualifier } from "@data/catalog";
+import type { FileStatus } from "./ops-files";
 import { add, isKnown, money, type Cents } from "./ops-money";
 
 /**
@@ -454,7 +455,7 @@ export const convertibleToOrder = (status: QuoteStatus): boolean => status === "
  * desk order already has everything, so it goes straight into the review queue
  * and a dispatch it does not need is never created.
  */
-export function landingStatusFor(orderType: CatalogEntry["orderType"]): string | null {
+export function landingStatusFor(orderType: CatalogEntry["orderType"]): FileStatus | null {
   if (orderType === "field") return "needs_dispatch";
   if (orderType === "desk") return "evidence_submitted";
   return null;

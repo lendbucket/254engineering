@@ -518,6 +518,112 @@ export function portalInvite(input: {
   );
 }
 
+/**
+ * The payment link for a job the customer did not place themselves.
+ *
+ * Phase 10 Section 1 item 4. Somebody telephoned, the firm wrote the job down,
+ * and this is how they pay for it.
+ *
+ * UNEXERCISED UNTIL LAUNCH, and deliberately so: the compliance gate refuses
+ * every payment while registration is pending, so this template is composed,
+ * audited for voice and layout like every other, and has never been sent.
+ *
+ * The tone assumes a conversation already happened. Somebody agreed to this on
+ * a call, so the email confirms rather than sells, and the price is stated as
+ * the figure they were told rather than introduced as news.
+ */
+export function jobPaymentLink(input: {
+  customerName: string;
+  customerEmail: string;
+  reference: string;
+  propertyAddress: string;
+  deliverableName: string;
+  amount: string;
+  payUrl: string;
+  /** Who took the call, so the customer knows who to reply to. */
+  takenBy: string;
+}): RenderedEmail {
+  return compose(
+    "job.payment_link",
+    "human",
+    `Your ${input.deliverableName} for ${input.propertyAddress}`,
+    {
+      preheader: `Reference ${input.reference}. Nothing is charged until you complete the payment page.`,
+      signed: true,
+      blocks: [
+        { kind: "p", text: `${input.customerName},` },
+        {
+          kind: "p",
+          text: `This is the ${input.deliverableName} for ${input.propertyAddress} that you arranged with ${input.takenBy}. The reference is ${input.reference}.`,
+        },
+        { kind: "p", text: `The agreed price is ${input.amount}.` },
+        {
+          kind: "note",
+          text: "Card details are entered on the payment provider's page and never reach this firm. Nothing is charged until you complete it.",
+        },
+        {
+          kind: "p",
+          text: `If anything here is wrong, reply to this email before paying and it will be corrected.`,
+        },
+      ],
+      button: { label: "Pay for this job", url: input.payUrl },
+    },
+    { to: input.customerEmail },
+  );
+}
+
+/**
+ * Asking a customer for the things the job is still missing.
+ *
+ * Phase 10 Section 1.5 Section C item 4. Chasing by hand is the thing that
+ * exercise exists to prevent, and a chase that lists everything the firm will
+ * ever want is a chase nobody answers. This names exactly what is outstanding
+ * at the stage that is blocked, in the customer's own words from the
+ * definition, and says what it is holding up.
+ */
+export function outstandingInformation(input: {
+  customerName: string;
+  customerEmail: string;
+  fileNumber: string;
+  propertyAddress: string;
+  /**
+   * What is outstanding, each with when it is needed.
+   *
+   * The labels come from data/intake-fields.ts so the email and the screen say
+   * the same words, and the "when" is what turns a list into something a person
+   * can prioritise: a gate code before a visit is more urgent than an addressee
+   * before sealing, and a chase that flattens the two gets answered late.
+   */
+  items: { label: string; when: string }[];
+  /** What it is holding up, in a customer's terms. */
+  holdingUp: string;
+  supplyUrl: string;
+}): RenderedEmail {
+  return compose(
+    "job.outstanding_information",
+    "human",
+    `A few things needed for ${input.propertyAddress}`,
+    {
+      preheader: `${input.items.length} item${input.items.length === 1 ? "" : "s"} outstanding on ${input.fileNumber}.`,
+      signed: true,
+      blocks: [
+        { kind: "p", text: `${input.customerName},` },
+        {
+          kind: "p",
+          text: `The firm has ${input.fileNumber} for ${input.propertyAddress} open and needs a few things before ${input.holdingUp}.`,
+        },
+        { kind: "details", title: "What is outstanding", rows: input.items.map((i) => [i.label, i.when]) },
+        {
+          kind: "note",
+          text: "Nothing here is a delay on your side alone. The work carries on where it can, and this is what it needs from you to finish.",
+        },
+      ],
+      button: { label: "Send these to the firm", url: input.supplyUrl },
+    },
+    { to: input.customerEmail },
+  );
+}
+
 /** An administrator forcing a reset, or a person who has lost their password. */
 export function portalPasswordReset(input: {
   personName: string;
@@ -776,6 +882,28 @@ export function errorAlert(input: ErrorAlertInput): RenderedEmail {
 export function allTemplatesForAudit(): RenderedEmail[] {
 
   return [
+    outstandingInformation({
+      customerName: "Sample Customer",
+      customerEmail: "sample@example.com",
+      fileNumber: "254-2026-0001",
+      propertyAddress: "100 Sample Street, Corpus Christi",
+      items: [
+        { label: "Who should the document be addressed to", when: "Before it can be sealed" },
+        { label: "Gate or lockbox code", when: "Before a technician is sent" },
+      ],
+      holdingUp: "a technician can be sent",
+      supplyUrl: "https://254engineering.com/order/SAMPLE",
+    }),
+    jobPaymentLink({
+      customerName: "Sample Customer",
+      customerEmail: "sample@example.com",
+      reference: "254-O2026-ABCDEF",
+      propertyAddress: "100 Sample Street, Corpus Christi",
+      deliverableName: "WPI-8E windstorm evaluation",
+      amount: "$925.00",
+      payUrl: "https://254engineering.com/pay/sample",
+      takenBy: "the firm",
+    }),
     errorAlert({
       kind: "rate",
       fingerprint: "/api/order-flow | route | the payment provider refused the session",

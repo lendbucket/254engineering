@@ -22,12 +22,38 @@ import { business } from "@/config/business";
  * noindex; the two agree on purpose.
  */
 export default function robots(): MetadataRoute.Robots {
-  // /onboarding, /admin, and /portal are disallowed because none is public. None is
-  // PROTECTED by this line: an onboarding link needs a valid 43 character token
-  // and the admin needs a session. The disallow exists so a crawler does not
-  // waste requests on routes that answer 404 and redirect, and so all three
-  // signals, robots, the sitemap, and the page metadata, say the same thing.
-  const allowAll = { allow: "/", disallow: ["/api/", "/waitlist", "/onboarding", "/admin", "/portal"] };
+  /*
+   * /onboarding, /admin, and /portal are disallowed because none is public. None
+   * is PROTECTED by this line: an onboarding link needs a valid 43 character
+   * token and the admin needs a session. The disallow exists so a crawler does
+   * not waste requests on routes that answer 404 and redirect.
+   *
+   * /waitlist USED TO BE ON THIS LIST AND ITS REMOVAL IS THE POINT
+   * -------------------------------------------------------------
+   * Sitemap audit, 2026-09-04. Disallow and noindex do not stack; they cancel.
+   * A crawler obeying a disallow never fetches the page, so it never sees the
+   * noindex it is being asked to obey. The URL can still be indexed from links
+   * pointing at it, as a bare URL with no snippet, which is the worst of both:
+   * present in results, and unable to say it does not want to be.
+   *
+   * /waitlist is linked twice from the homepage, so it is discoverable. It is
+   * removed from this list SO THAT the noindex can be read and honoured, which
+   * is the only mechanism that actually keeps a linked page out of the index.
+   *
+   * WHY /onboarding KEEPS ITS DISALLOW, AND THIS IS NOT AN OVERSIGHT
+   * ----------------------------------------------------------------
+   * It is the identical pattern and it is harmless there, for one reason:
+   * /onboarding/[token] needs a valid 43 character token and is linked from
+   * nowhere. No crawler can discover the URL, so there is nothing for a bare
+   * URL listing to be made of, and the disallow costs nothing while saving the
+   * crawl budget it was added for.
+   *
+   * The difference is DISCOVERABILITY, not the directive. Do not "fix" the
+   * onboarding line to match this one: removing that disallow would invite
+   * crawlers to spend requests on a route that answers 404 without a token, and
+   * would gain nothing, because nothing links to it.
+   */
+  const allowAll = { allow: "/", disallow: ["/api/", "/onboarding", "/admin", "/portal"] };
 
   return {
     rules: [

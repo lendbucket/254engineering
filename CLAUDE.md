@@ -283,8 +283,12 @@ to production on 2026-09-04 when that branch merged. After 0011 (Phase 8 Section
 `7bf0d1553cf0169d366389eeae4b7497` across 765 columns and 53 tables**, with row
 level security on all 53, 31 triggers and 5 functions, none of them with an
 unpinned search_path. Applied to production on 2026-09-04 when that branch
-merged. A divergence while a feature branch is open is expected; a divergence
-after it merges is the defect.
+merged. After 0013 (Phase 9 Section 1, the partner program) and 0014 (Section
+2, attribution) **all three return `b1ad321300010129b5dbd0afc42a156b` across 850
+columns and 61 tables**, with row level security on all 61, 37 triggers and 6
+functions, none of them with an unpinned search_path. Applied to production on
+2026-09-04 when that branch merged. A divergence while a feature branch is open
+is expected; a divergence after it merges is the defect.
 
 0011 and 0012 add the first tables in this schema that are deliberately NOT
 append only. `eng_jobs`, `eng_cron_runs`, `eng_error_events` and

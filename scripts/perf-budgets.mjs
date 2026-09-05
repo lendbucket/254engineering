@@ -9,6 +9,37 @@
  * page legitimately needs more bytes, that is a real answer and it belongs in
  * the comment. "The audit was failing" is not.
  *
+ * A SINGLE SAMPLE IS NOT EVIDENCE
+ * -------------------------------
+ * Operator ruling, 2026-09-04, and it is the first thing to read here.
+ *
+ * Lighthouse on this site moves a route's LCP by up to 740ms between
+ * consecutive runs of the same build. One measurement therefore says almost
+ * nothing: it is a draw from a distribution roughly a third as wide as the
+ * budget itself. No number in this file may be set, raised, or defended on the
+ * strength of one run, and no red run may be dismissed as noise on the strength
+ * of one green one. Three samples, and the median.
+ *
+ * THE CEILINGS BELOW PREDATE THE STATISTIC NOW JUDGING THEM
+ * ---------------------------------------------------------
+ * This is a real caveat and not a footnote, so it sits above the numbers.
+ *
+ * Until 2026-09-04 perf-audit judged each route on the BEST of three runs. The
+ * ceilings below were calibrated against that, and were themselves derived from
+ * the worst observed run plus headroom, which made the gate forgiving twice
+ * over: a generous line, tested with an optimistic statistic.
+ *
+ * perf-audit now judges the MEDIAN of three, which is stricter. Every ceiling
+ * in this file was therefore set under a regime that is no longer in force, and
+ * a route sitting close to its ceiling may now fail where it always passed.
+ *
+ * WHEN THAT HAPPENS IT IS A FINDING, NOT A CALIBRATION ERROR. The route is
+ * genuinely slower than the line the firm drew for it, and it always was; the
+ * old statistic simply could not see it. The two honest answers are to make the
+ * route faster, or for the operator to re-derive the ceiling deliberately, with
+ * the reason and the date, under the rule at the top of this file. Quietly
+ * nudging a number so a red run goes green is neither.
+ *
  * WHERE THESE NUMBERS CAME FROM
  * -----------------------------
  * Measured on 2026-08-31 against the production build served locally, on the
@@ -92,10 +123,91 @@ export const METRIC_BUDGETS = {
  * because the templates are what change and a per route budget list would be
  * forty entries that nobody maintains.
  */
+/*
+ * THE HOMEPAGE CARRIES ITS OWN LCP CEILING, RE-DERIVED 2026-09-04
+ * ===============================================================
+ *
+ * Operator ruling, 2026-09-04. 3600ms, which is the page's measured steady
+ * state plus roughly 6%, matching the headroom this file's header says the
+ * original budgets were set with.
+ *
+ * THE CEILING WAS RE-DERIVED WHILE THE GATE WAS GREEN.
+ * ----------------------------------------------------
+ * This is the part that matters most, because the rule at the top of this file
+ * exists to stop the opposite. Nothing was failing when this number changed.
+ * The homepage was crossing 0 of 8 medians against the old 3400ms ceiling. It
+ * moved because 12ms of margin is not a gate: the page's own run to run range
+ * is 75ms, so any unrelated change costing five milliseconds would have turned
+ * the suite red for a reason having nothing to do with that change. A red that
+ * means nothing is how a suite stops being read.
+ *
+ * WHAT WAS TRIED FIRST, BEFORE ANY NUMBER MOVED
+ * ---------------------------------------------
+ * The homepage was crossing 2 of 4 medians at 3400. The investigation found:
+ *
+ *   The LCP element is NOT the map. It is the hero paragraph. The map sits at
+ *   y=721 on a 390 wide viewport, at the fold, and never paints as the largest
+ *   element. It was merely heavy.
+ *
+ *   The county geometry was carried TWICE in the document: 67,689 bytes as
+ *   rendered markup, and 66,336 of those bytes again inside the React flight
+ *   payload, which is how a server rendered tree ships.
+ *
+ * So the shared geometry is now emitted as ONE pre serialised string rather
+ * than 254 React elements, in TexasCountyMap. The rendered markup is BYTE
+ * IDENTICAL before and after, 56,974 bytes and 254 paths, verified by
+ * comparison rather than by eye. That mattered: the map is server rendered ON
+ * PURPOSE, because this page's claim is that the firm covers all 254 counties,
+ * and the counties have to be in the HTML for anything that does not run
+ * JavaScript. Rendering it client side would have saved more and removed the
+ * thing worth keeping.
+ *
+ * That change moved the homepage from 2 of 4 crossings to 0 of 8.
+ *
+ * The saving was only 991 gzipped bytes, about 5ms of transfer, which cannot
+ * explain a 146ms drop. The mechanism is most likely main thread rather than
+ * wire: 254 fewer element descriptors to parse and reconcile, under a 4x CPU
+ * slowdown that multiplies exactly that.
+ *
+ * THE EVIDENCE, EIGHT INDEPENDENT MEDIANS OF THREE
+ * ------------------------------------------------
+ *   3314, 3313, 3388, 3385, 3383, 3384, 3385, 3385
+ *   min 3313, median 3384.5, max 3388, range 75
+ *   steady state, runs 3 to 8: 3383 to 3388
+ *   crossings at 3400: 0 of 8, worst margin 12ms
+ *   crossings at 3600: 0 of 8, worst margin 212ms
+ *
+ * Runs 1 and 2 came in about 70ms faster and look like warm up. From run 3 the
+ * page lands inside a 5ms band, every time.
+ *
+ * WHY THIS IS PER ROUTE AND NOT THE GLOBAL CEILING
+ * ------------------------------------------------
+ * THE GLOBAL RAISE WAS CONSIDERED AND REJECTED, and it was the instruction as
+ * first given. It is recorded as rejected rather than simply not done, because
+ * the next reader finding one route with its own ceiling will reasonably wonder
+ * why the simpler thing was not done, and the answer is the whole point.
+ *
+ * METRIC_BUDGETS.local.lcp applies to all ten routes, and the other nine
+ * measure between 2866 and 3311. Raising the global number to 3600 would have
+ * handed those nine between 200 and 700ms of slack they have not earned, off
+ * the back of a decision that was about one page. That is loosening nine gates
+ * to fix one, and a gate loosened for a reason that does not apply to it is a
+ * gate that has stopped measuring anything.
+ *
+ * Operator ruling on being shown that, 2026-09-04: keep it per route. The
+ * global ceiling stays at 3400 and only the page that needed re-deriving
+ * carries its own.
+ *
+ * Option 2, reducing the coordinate precision of the geometry, was investigated
+ * and NOT done. It was conditional on the first change failing to clear, and it
+ * did not fail.
+ */
 export const ROUTE_BUDGETS = [
   {
     name: "homepage",
     path: "/",
+    /** Re-derived 2026-09-04. See the block immediately above this list. */
+    lcp: 3600,
     // Carries the county map once, shared with the hero, plus the lead form.
     // The heaviest document on the site by some distance.
     kb: 620,

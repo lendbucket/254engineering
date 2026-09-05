@@ -42,7 +42,7 @@ import {
 } from "../data/catalog.ts";
 import { isKnown, money } from "../src/lib/ops-money.ts";
 import { deploymentOrigin } from "../src/lib/site-url.ts";
-import { blockersOn, emptyState, firstIncomplete, stepsFor } from "../src/lib/order-flow.ts";
+import { blockersOn, emptyState, firstIncomplete, stepsFor, customerFieldsFor } from "../src/lib/order-flow.ts";
 import { judge } from "../src/lib/reconcile-rules.ts";
 import { attentionFor, CHECKOUT_SESSION_HOURS, worstLevel } from "../src/lib/order-attention.ts";
 import { creditDecision, outstandingOf } from "../src/lib/account-credit.ts";
@@ -822,19 +822,53 @@ const answerAll = (entry, pick = () => 0) =>
   const solar = catalogFor("solar-structural-letters");
   const noDocs = emptyState("standard");
   const need = blockersOn("requirements", solar, noDocs);
+  /*
+   * DERIVED FROM THE DEFINITION, NOT FROM entry.requiredInputs.
+   *
+   * Phase 10 Section 1.5 Section C moved the customer flow onto the shared
+   * definition in data/intake-fields.ts, so the requirements step now demands
+   * the universal order stage fields as well as the catalog's own. This check
+   * counted only the catalog's and failed the moment that landed, which is the
+   * audit working: a behaviour change it had not been told about.
+   *
+   * Counting against customerFieldsFor rather than restating the number means
+   * it cannot drift again when a field is added to either half.
+   */
+  const solarRequired = customerFieldsFor(solar, "order").filter((f) => f.required);
   rec(
-    "a desk deliverable demands its required documents",
-    need.length === solar.requiredInputs.filter((i) => i.required).length,
-    need.join(" | "),
+    "a desk deliverable demands everything the definition requires to order",
+    need.length === solarRequired.length,
+    `${need.length} demanded, ${solarRequired.length} required: ${need.join(" | ")}`,
   );
   rec(
     "and does not demand the optional ones",
     !need.some((n) => n === solar.requiredInputs.find((i) => !i.required)?.label),
   );
+  rec(
+    "and does not demand what is only needed before sealing",
+    !need.includes("Who should the document be addressed to"),
+    "refusing an order for a loan number the customer does not have is what the stages prevent",
+  );
 
+  /*
+   * Supplying everything required clears it. Built from the definition so the
+   * fixture cannot fall behind the fields: a hand written list here was what
+   * broke when the definition grew.
+   */
   const withDocs = emptyState("standard");
   withDocs.files = { layout: [{ name: "a.pdf", storageKey: "k", bucket: "b" }], mounting: [{ name: "b.pdf", storageKey: "k2", bucket: "b" }] };
-  rec("supplying them clears it", blockersOn("requirements", solar, withDocs).length === 0);
+  for (const f of solarRequired) {
+    if (f.kind === "file") {
+      withDocs.files[f.id] = [{ name: "x.pdf", storageKey: "k", bucket: "b" }];
+    } else {
+      withDocs.inputs[f.id] = f.kind === "select" ? (f.options?.[0] ?? "yes") : "answered";
+    }
+  }
+  rec(
+    "supplying them clears it",
+    blockersOn("requirements", solar, withDocs).length === 0,
+    blockersOn("requirements", solar, withDocs).join(" | "),
+  );
 
   // firstIncomplete sends somebody back to the right place, not to the start.
   const partial = emptyState("standard");

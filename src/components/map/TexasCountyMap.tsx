@@ -142,6 +142,37 @@ const TONES = {
  */
 export const COUNTY_GEOMETRY_ID = "tx-county-shapes";
 
+/**
+ * THE SHARED GEOMETRY, SERIALISED ONCE AT MODULE SCOPE.
+ *
+ * WHY THIS IS A STRING AND NOT 254 ELEMENTS
+ * -----------------------------------------
+ * Measured 2026-09-04, investigating the homepage LCP. The document was 316,806
+ * bytes raw and 74,009 gzipped, and 66,336 of those raw bytes were the county
+ * geometry written a SECOND time inside the React flight payload. That is not a
+ * bug in React: a server rendered tree ships as markup for the browser and
+ * again as a payload for hydration, and 254 path elements with their props are
+ * verbose in the second form.
+ *
+ * As one opaque string the payload carries the string once instead of 254
+ * element descriptors. The markup the browser and a crawler receive is
+ * unchanged, which is the whole point: this page's claim is that the firm
+ * covers all 254 counties, and the counties have to be IN the HTML for that to
+ * be readable by anything that does not run JavaScript. Rendering the map
+ * client side would have been a bigger saving and would have removed the thing
+ * worth keeping.
+ *
+ * The format below is not a guess. It was read off the served HTML before the
+ * change, and map-markup-audit asserts the rendered bytes still match.
+ *
+ * Only the "define" branch is pre serialised. The standalone branch fills each
+ * county conditionally on the active region, so it is genuinely dynamic and
+ * stays as elements.
+ */
+const SHARED_COUNTY_PATHS = countyShapes
+  .map((county) => `<path d="${county.d}" vector-effect="non-scaling-stroke"></path>`)
+  .join("");
+
 export function TexasCountyMap({
   /** When set, that region is filled and every other county stays pale. */
   activeRegion,
@@ -198,11 +229,18 @@ export function TexasCountyMap({
           <>
             {shared === "define" ? (
               <defs>
-                <g id={COUNTY_GEOMETRY_ID}>
-                  {countyShapes.map((county) => (
-                    <path key={county.fips} d={county.d} vectorEffect="non-scaling-stroke" />
-                  ))}
-                </g>
+                <g
+                  id={COUNTY_GEOMETRY_ID}
+                  /*
+                   * The geometry, injected as markup rather than built from
+                   * elements. See SHARED_COUNTY_PATHS above for why. The
+                   * content is generated from countyShapes in this file and
+                   * contains no external or user supplied input, so there is
+                   * nothing here for the name of this prop to be dangerous
+                   * about.
+                   */
+                  dangerouslySetInnerHTML={{ __html: SHARED_COUNTY_PATHS }}
+                />
               </defs>
             ) : null}
             {/* fill on the use element inherits down to every path inside the

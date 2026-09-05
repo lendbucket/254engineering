@@ -22,13 +22,30 @@
  * to 740ms of LCP between consecutive runs. A gate calibrated on a single run is
  * a coin toss that wakes somebody up at two in the morning.
  *
- * So each route is measured RUNS times and judged on its BEST run rather than
- * its worst or its mean. That is the right choice for a gate rather than for a
- * report: the best run is the closest thing available to "what this page is
- * capable of on this machine", and a genuine regression moves the floor, not
- * just the noise. A page that cannot hit the budget once in three attempts has
- * really regressed. The full spread is printed either way, so a page that is
- * merely getting noisier is visible before it starts failing.
+ * So each route is measured RUNS times and judged on its MEDIAN.
+ *
+ * IT USED TO BE JUDGED ON ITS BEST RUN, AND THAT WAS WRONG
+ * -------------------------------------------------------
+ * Operator ruling, 2026-09-04. The argument for the best run was that it is
+ * "what this page is capable of on this machine" and that a real regression
+ * moves the floor. Both halves are true and it is still the wrong statistic for
+ * a gate, because the minimum of three samples is decided by a single lucky
+ * run. That is the same thing as calibrating on one sample, which is the
+ * practice the paragraph above exists to reject, wearing a disguise.
+ *
+ * The median is representative. One fast sample cannot carry a route past its
+ * ceiling, and one slow sample cannot fail it either.
+ *
+ * THIS IS STRICTER, NOT MORE FORGIVING, AND THAT IS THE POINT
+ * -----------------------------------------------------------
+ * Best of three fails only when all three samples exceed the ceiling. The
+ * median fails when two of three do. Moving to the median therefore raises
+ * every measured number and can turn a route that has always passed into one
+ * that does not. A route that fails at the median is a real finding and is to
+ * be reported as one, never absorbed by moving the line it crossed.
+ *
+ * The full spread is printed either way, so a page that is merely getting
+ * noisier is visible before it starts failing.
  *
  * THE THROTTLING PROFILE IS WRITTEN OUT RATHER THAN INHERITED
  * -----------------------------------------------------------
@@ -112,39 +129,68 @@ for (const route of ROUTE_BUDGETS) {
     continue;
   }
 
-  // Best run per metric, and the spread, so noise is visible.
-  const best = {
-    lcp: Math.min(...ok.map((r) => r.lcp)),
-    cls: Math.min(...ok.map((r) => r.cls)),
-    tbt: Math.min(...ok.map((r) => r.tbt)),
-    bytes: Math.min(...ok.map((r) => r.bytes)),
+  /*
+   * MEDIAN per metric, and the spread, so noise is visible.
+   *
+   * Each metric is taken independently rather than picking one "median run" and
+   * reading every metric off it. A run can be fast to paint and heavy on the
+   * wire, so a single representative run would report a bytes figure that no
+   * ceiling was ever calibrated against. Per metric is what the budgets mean.
+   */
+  const medianOf = (values) => {
+    const sorted = [...values].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
   };
+
+  const median = {
+    lcp: medianOf(ok.map((r) => r.lcp)),
+    cls: medianOf(ok.map((r) => r.cls)),
+    tbt: medianOf(ok.map((r) => r.tbt)),
+    bytes: medianOf(ok.map((r) => r.bytes)),
+  };
+  /*
+   * Spread is the full observed RANGE, slowest minus fastest, which is what it
+   * always meant. It is deliberately not measured from the median: a spread
+   * reported relative to the median would understate the noise by about half,
+   * and this number exists to make noise visible.
+   */
   const spread = {
-    lcp: Math.max(...ok.map((r) => r.lcp)) - best.lcp,
-    bytes: Math.max(...ok.map((r) => r.bytes)) - best.bytes,
+    lcp: Math.max(...ok.map((r) => r.lcp)) - Math.min(...ok.map((r) => r.lcp)),
+    bytes: Math.max(...ok.map((r) => r.bytes)) - Math.min(...ok.map((r) => r.bytes)),
   };
   const summary = ok[0].summary;
 
-  rows.push({ ...route, best, spread, summary, runs: ok.length });
+  rows.push({ ...route, median, spread, summary, runs: ok.length });
+
+  /*
+   * A route may carry its OWN lcp ceiling, and one does. Everything else is
+   * judged against the shared one, so re-deriving a number for the page that
+   * needed it does not quietly loosen the other nine. The reasoning for the one
+   * override is in perf-budgets.mjs above ROUTE_BUDGETS.
+   */
+  const lcpCeiling = route.lcp ?? CEILINGS.lcp;
 
   rec(
-    `${route.name}: LCP ${Math.round(best.lcp)}ms within ${CEILINGS.lcp}ms`,
-    best.lcp <= CEILINGS.lcp,
-    `${route.path}, best of ${ok.length}, spread ${Math.round(spread.lcp)}ms`,
+    `${route.name}: LCP ${Math.round(median.lcp)}ms within ${lcpCeiling}ms`,
+    median.lcp <= lcpCeiling,
+    `${route.path}, median of ${ok.length}, spread ${Math.round(spread.lcp)}ms${
+      route.lcp ? ", its own ceiling" : ""
+    }`,
   );
   rec(
-    `${route.name}: CLS ${best.cls.toFixed(3)} within ${CEILINGS.cls}`,
-    best.cls <= CEILINGS.cls,
+    `${route.name}: CLS ${median.cls.toFixed(3)} within ${CEILINGS.cls}`,
+    median.cls <= CEILINGS.cls,
     route.path,
   );
   rec(
-    `${route.name}: TBT ${Math.round(best.tbt)}ms within ${CEILINGS.tbt}ms`,
-    best.tbt <= CEILINGS.tbt,
+    `${route.name}: TBT ${Math.round(median.tbt)}ms within ${CEILINGS.tbt}ms`,
+    median.tbt <= CEILINGS.tbt,
     route.path,
   );
   rec(
-    `${route.name}: ${kb(best.bytes)}KB within ${route.kb}KB budget`,
-    kb(best.bytes) <= route.kb,
+    `${route.name}: ${kb(median.bytes)}KB within ${route.kb}KB budget`,
+    kb(median.bytes) <= route.kb,
     route.path,
   );
   console.error(`  measured ${route.path}`);
@@ -157,10 +203,11 @@ try {
 }
 
 console.log("================ PERFORMANCE ================");
-console.log(`${BASE}, 4x CPU, 1.6Mbps, 150ms RTT, best of ${RUNS} runs`);
+console.log(`${BASE}, 4x CPU, 1.6Mbps, 150ms RTT, MEDIAN of ${RUNS} runs`);
 console.log(
   `ceilings: ${IS_LOCAL ? "local" : "remote"} profile, LCP ${CEILINGS.lcp}ms, CLS ${CEILINGS.cls}, TBT ${CEILINGS.tbt}ms\n`,
 );
+console.log("  median values. (spread) is the full observed range, slowest minus fastest.");
 console.log("  LCP ms  (spread)   CLS    TBT ms   total KB / budget   HTML   JS  font   img  route");
 for (const r of rows) {
   if (r.failed) {
@@ -169,9 +216,9 @@ for (const r of rows) {
   }
   const s = (k) => String(kb(r.summary[k] ?? 0)).padStart(4);
   console.log(
-    `  ${String(Math.round(r.best.lcp)).padStart(6)}  ${`(+${Math.round(r.spread.lcp)})`.padStart(8)}  ${r.best.cls
+    `  ${String(Math.round(r.median.lcp)).padStart(6)}  ${`(+${Math.round(r.spread.lcp)})`.padStart(8)}  ${r.median.cls
       .toFixed(3)
-      .padStart(5)}  ${String(Math.round(r.best.tbt)).padStart(6)}   ${String(kb(r.best.bytes)).padStart(
+      .padStart(5)}  ${String(Math.round(r.median.tbt)).padStart(6)}   ${String(kb(r.median.bytes)).padStart(
       8,
     )} / ${String(r.kb).padEnd(5)}  ${s("document")}  ${s("script")}  ${s("font")}  ${s("image")}  ${r.path}`,
   );

@@ -228,6 +228,9 @@ const PORTED = [
   "src/app/portal/(app)/files/DispatchPanel.tsx",
   "src/app/portal/(app)/files/FileClient.tsx",
   "src/app/portal/(app)/files/page.tsx",
+  // Phase 10 Section 1, the telephone call path.
+  "src/app/portal/(app)/intake/page.tsx",
+  "src/app/portal/(app)/intake/IntakeClient.tsx",
   "src/app/portal/(app)/jobs/JobsClient.tsx",
   "src/app/portal/(app)/jobs/[id]/CaptureClient.tsx",
   "src/app/portal/(app)/jobs/[id]/page.tsx",

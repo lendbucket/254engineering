@@ -26,11 +26,36 @@ export type NavItem = {
   icon:
     | "home" | "files" | "people" | "review" | "jobs" | "clients" | "audit"
     | "profile" | "protocols" | "techs" | "onboarding" | "certification" | "charge"
-    | "tasks" | "messages" | "documents" | "billing" | "orders" | "accounts" | "queue" | "status" | "pay";
+    | "tasks" | "messages" | "documents" | "billing" | "orders" | "accounts" | "queue" | "status" | "pay"
+    | "intake";
 };
 
 export const NAV: NavItem[] = [
   { href: "/portal", label: "Dashboard", short: "Home", action: "files.list", primary: true, icon: "home" },
+  {
+    /*
+     * THE TELEPHONE CALL PATH, and it sits second on purpose.
+     *
+     * Phase 10 Section 1. The firm's primary intake is somebody ringing up, and
+     * until this existed an administrator could open an unpriced file and
+     * nothing else. Putting it behind a menu would be the platform disagreeing
+     * with how the firm actually gets work.
+     *
+     * One NAV entry gives the sidebar, the mobile tab bar and the command
+     * palette, because all three are built from this list. The files screen
+     * links to it separately, since that is where somebody already looking at
+     * work would reach for it.
+     *
+     * files.create rather than a permission of its own: taking a job IS opening
+     * a file, and the difference is how much is known at the time.
+     */
+    href: "/portal/intake",
+    label: "New job",
+    short: "New",
+    action: "files.create",
+    primary: true,
+    icon: "intake",
+  },
   { href: "/portal/jobs", label: "My jobs", short: "Jobs", action: "offers.list_own", primary: true, icon: "jobs" },
   {
     // A technician's own gate status. Primary on a phone, because "why am I not

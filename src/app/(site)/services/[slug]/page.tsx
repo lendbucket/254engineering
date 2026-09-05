@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/Container";
+import { WhatAnOrderAsks } from "@/components/services/WhatAnOrderAsks";
 import { PageHeader } from "@/components/site/PageHeader";
 import { FaqBlock } from "@/components/site/FaqBlock";
 import { PrelaunchNotice } from "@/components/launch/PrelaunchNotice";
@@ -157,6 +158,17 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
               </div>
             </div>
         </div>
+      </Section>
+
+      <Section tone="white">
+        <Container>
+          {/*
+            Section D. Derived from the same definition the order form renders,
+            so a page telling somebody what to gather cannot say one thing while
+            the form asks another.
+          */}
+          <WhatAnOrderAsks serviceSlug={service.slug} />
+        </Container>
       </Section>
 
       {relevantRegions.length > 0 ? (

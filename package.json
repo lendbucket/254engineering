@@ -42,6 +42,7 @@
     "seed-field-demo": "tsx scripts/seed-field-demo.mjs",
     "db-guard-audit": "tsx scripts/db-guard-audit.mjs",
     "migration-audit": "tsx scripts/migration-audit.mjs",
+    "intake-audit": "tsx scripts/intake-audit.mjs",
     "partner-audit": "tsx scripts/partner-audit.mjs",
     "accounts-audit": "tsx --conditions=react-server scripts/accounts-audit.mjs",
     "jobs-audit": "tsx --conditions=react-server scripts/jobs-audit.mjs",

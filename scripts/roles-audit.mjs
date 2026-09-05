@@ -141,6 +141,18 @@ const EXPECTED = {
   "payments.refund":              { admin: true,  engineer: false, field_tech: false },
 
   /*
+   * Raising money against a job the customer did not place: a payment link, or
+   * an invoice to an account with terms. Admin only, like the two above.
+   *
+   * An engineer must never hold it. The refund rules exist so that no financial
+   * consequence bears on a sealing decision, and an engineer who could charge
+   * for the job they are reviewing would be the same conflict from the other
+   * side. A technician is an independent contractor and has no business
+   * touching what the client pays at all.
+   */
+  "payments.charge":              { admin: true,  engineer: false, field_tech: false },
+
+  /*
    * Customer ordering accounts: credit terms, closing a period, issuing a
    * statement. The firm deciding who may owe it money, which is the operator
    * alone. An engineer has no more business here than in the ledger.

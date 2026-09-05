@@ -17,6 +17,55 @@ import { STATUS_LABEL, type FileStatus } from "@/lib/ops-files";
  * The reason string comes from canTransition, so the screen cannot drift from
  * the rule: there is no second copy of the explanation here to go stale.
  */
+/**
+ * Ask the customer for what the job is missing.
+ *
+ * Beside the list rather than on a separate screen, because the moment somebody
+ * reads that a job is missing a gate code is the moment to ask for it.
+ */
+export function RequestInformation({ fileId }: { fileId: string }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [said, setSaid] = useState<string | null>(null);
+
+  async function send() {
+    if (busy) return;
+    setBusy(true);
+    setSaid(null);
+    try {
+      const res = await fetch("/api/portal/files", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "request_information", fileId }),
+      });
+      const body = await res.json().catch(() => null);
+      setSaid(
+        body?.ok
+          ? `Asked for ${body.asked.length} thing${body.asked.length === 1 ? "" : "s"}. It is on the file.`
+          : (body?.error ?? "That could not be sent."),
+      );
+      if (body?.ok) router.refresh();
+    } catch {
+      setSaid("The network dropped that. Nothing was sent.");
+    }
+    setBusy(false);
+  }
+
+  return (
+    <div className="mt-3">
+      <button
+        type="button"
+        onClick={send}
+        disabled={busy}
+        className="inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] border border-[var(--border)] bg-white px-4 text-[13.5px] font-bold text-[var(--navy)] hover:bg-[var(--canvas)] disabled:opacity-50"
+      >
+        {busy ? "Sending" : "Ask the customer for these"}
+      </button>
+      {said ? <p className="mt-2 text-[12.5px] leading-[1.5] text-[var(--secondary)]">{said}</p> : null}
+    </div>
+  );
+}
+
 export function TransitionControls({
   fileId,
   status,

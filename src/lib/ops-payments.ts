@@ -13,6 +13,7 @@ import {
   type ReviewOutcome,
 } from "./ops-orders";
 import { event, issueCustomerLink } from "./ops-intake";
+import { transitionFile, SYSTEM_AUTHOR } from "./ops-crm";
 import { isKnown, money } from "./ops-money";
 import { LIVE_KEY_FIX, LIVE_KEY_HEADLINE, liveKeyOffProduction } from "./db-guard";
 import { fakeProvider, type PaymentProvider } from "./payments";
@@ -476,14 +477,36 @@ export async function releaseForFulfilment(
    */
   const target = landingStatusFor(orderType as "field" | "desk" | "quote");
   if (target && fileId) {
-    await db.from("eng_files").update({ status: target }).eq("id", fileId);
+    /*
+     * THROUGH transitionFile, NOT A RAW UPDATE.
+     *
+     * This line used to be `db.from("eng_files").update({ status: target })`,
+     * which moved a file without asking canTransition and without writing the
+     * file event every other move writes. It was the only place in src/ that
+     * wrote eng_files.status outside ops-crm, and files-audit now asserts that
+     * it stays the only shape allowed.
+     *
+     * The actor is SYSTEM_AUTHOR, the same one that opened the file and placed
+     * the order. A payment releasing work is the platform acting on its own,
+     * and the trail should say so rather than name whichever person happened to
+     * be signed in somewhere else at the time.
+     */
+    const moved = await transitionFile(
+      SYSTEM_AUTHOR,
+      fileId,
+      target,
+      "Payment settled, so the work is released.",
+    );
+
     await event(
       orderId,
-      "work.released",
+      moved.ok ? "work.released" : "work.blocked",
       false,
-      target === "needs_dispatch"
-        ? "The file is released for dispatch."
-        : "The file is released into the review queue.",
+      moved.ok
+        ? target === "needs_dispatch"
+          ? "The file is released for dispatch."
+          : "The file is released into the review queue."
+        : `Paid, and the file could not be released: ${moved.error}`,
     );
   } else if (target && !fileId) {
     await event(

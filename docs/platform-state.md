@@ -579,6 +579,85 @@ Engineer is in responsible charge.** Everything below assumes both.
     correct, but from outside it looks like a working page that says accounts
     are not available. Nothing alerts on that.
 
+### The payment link and the invoice have never been sent
+
+Phase 10 Section 1 item 4, recorded 2026-09-04. Both paths are built, typechecked
+and audited, and **neither has ever run against a real payment, because neither
+can.** `orderBlockedReason` refuses every order while registration is pending,
+in those words, so `sendPaymentLink` and `invoiceAccount` in
+`src/lib/ops-job-billing.ts` return the gate's refusal before they reach a
+provider.
+
+That is the same shape as the sealing path, which also cannot be proven until
+the certificate arrives, and it is written down here for the same reason: the
+first real use should be a deliberate act with somebody watching rather than
+something discovered on a customer.
+
+**What is unexercised, precisely.** Creating an `eng_service_orders` row from an
+existing file rather than from a customer's checkout. Calling `startCheckout`
+against that order. Composing and queueing `jobPaymentLink`. Setting
+`payment_intent` to `link_sent` or `invoiced`. The audit rows all four write.
+
+**What IS exercised today.** The refusal. The gate's decision is asserted by
+`intake-audit` in both directions and by an end to end probe against the running
+app, so what has been proven is that the firm cannot take money yet, which is
+the property that matters before launch.
+
+18. **Send yourself a payment link before sending one to anybody else.** Take a
+    job by telephone on a real property you own, at a real price, choose "send a
+    payment link", and pay it with a real card. Then check, in this order: the
+    order row exists with a reference, `eng_order_payments` records the charge,
+    the file's `payment_intent` reads `paid`, the work released, and the email
+    that arrived reads like the firm wrote it.
+19. **Then invoice yourself.** Give a client of your own an account with
+    invoicing terms, take a second job, choose "invoice the account", and
+    confirm it lands on that account's next statement at the right figure. An
+    invoice that never reaches a statement is money the firm forgets to ask for.
+20. **Only then tell anybody the telephone path takes payment.** Until steps 18
+    and 19 are done, treat "open it unpaid" as the only route that has been
+    proven, because it is.
+
+### The order pages become indexable, and this is a separate step on purpose
+
+Operator ruling, 2026-09-04, recorded here rather than done then, because doing
+it now would submit a refusal to the index.
+
+**What is true today.** `/order/start/[slug]` serves
+`<meta name="robots" content="noindex, follow">` and is absent from the
+sitemap. That is correct while the gate is on: the page renders a refusal saying
+the firm's registration is pending, and a refusal is the worst possible thing to
+have ranking for the highest intent query on the site. Somebody searching "order
+a windstorm certificate" would find a page saying the firm cannot sell them one,
+and would leave with that as their impression of the firm.
+
+**What changes at launch.** These are the highest intent pages the site has and
+they should be indexable the moment they say yes instead of no.
+
+14. **Drop the noindex from the order flow.** Remove
+    `robots: { index: false, follow: true }` from
+    `src/app/(site)/order/start/[slug]/page.tsx`. Leave
+    `/order/[reference]` noindexed forever: it is one customer's order and has
+    no business in a search result.
+15. **Add the order routes to `src/app/sitemap.ts`**, one per orderable
+    catalog deliverable, at a priority at least matching the service page they
+    sell. Generate them from the catalog rather than listing them by hand, so a
+    deliverable added later is not silently missing.
+16. **Do NOT add them while any of them is unorderable.**
+    `orderBlockedReason` refuses a deliverable with no published price and one
+    with no inspection fee, and those refusals survive launch. A sitemap entry
+    for a page that still says no is the same mistake as today's, in a smaller
+    place. Submit the ones that can actually be bought.
+17. **Resubmit the sitemap in Search Console** and confirm the new URLs are
+    discovered before announcing anything.
+
+**The same decision is owed on the sister brands, and one of them is already
+wrong.** `sealedengineering.com/order` serves no robots directive at all and
+is crawlable, and it renders that brand's waitlist page with a title byte
+identical to `sealedengineering.com/waitlist`, which IS in its sitemap. That is
+two URLs serving one page on a site whose entire strategy depends on not looking
+like a doorway. It wants fixing before launch rather than at it. See section 2's
+note on the sitemap audit of 2026-09-04.
+
 ### After
 
 13. **Create the Google Business Profile**, following `docs/gbp-brief.md`. Not
