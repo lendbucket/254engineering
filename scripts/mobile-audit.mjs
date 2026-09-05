@@ -20,6 +20,8 @@
 import { chromium } from "playwright";
 import { startNextServer } from "./lib/dev-server.mjs";
 
+import { createProbe, cookieFor, destroyProbes } from "./lib/portal-probe.mjs";
+
 const WIDTHS = [320, 375, 390, 430];
 const HEIGHT = 844;
 const PORT = Number(process.env.MOBILE_PORT || 3223);
@@ -39,6 +41,46 @@ const PORT = Number(process.env.MOBILE_PORT || 3223);
  * the ones the criterion itself grants, implemented rather than assumed.
  */
 const MIN_TAP = 24;
+
+/*
+ * THE PORTAL, WHICH THIS AUDIT HAD NEVER MEASURED.
+ *
+ * Phase 11 gate 0: mobile-audit visited fourteen public marketing routes and no
+ * portal route, so WCAG 2.5.8 tap targets and the clipping check had never been
+ * applied to a single screen an operator uses. On a phone the portal IS the
+ * product, which makes this the wrong half of the site to have covered.
+ *
+ * The role decides what renders, so all three are walked.
+ */
+const PORTAL_TEMPLATES = [
+  { name: "portal: dashboard", path: "/portal", portal: "admin" },
+  { name: "portal: files", path: "/portal/files", portal: "admin" },
+  { name: "portal: clients", path: "/portal/clients", portal: "admin" },
+  { name: "portal: new job", path: "/portal/intake", portal: "admin" },
+  { name: "portal: people", path: "/portal/people", portal: "admin" },
+  { name: "portal: roles", path: "/portal/roles", portal: "admin" },
+  { name: "portal: audit trail", path: "/portal/audit", portal: "admin" },
+  { name: "portal: technicians", path: "/portal/techs", portal: "admin" },
+  { name: "portal: documents", path: "/portal/documents", portal: "admin" },
+  { name: "portal: orders", path: "/portal/orders", portal: "admin" },
+  { name: "portal: accounts", path: "/portal/accounts", portal: "admin" },
+  { name: "portal: billing", path: "/portal/billing", portal: "admin" },
+  { name: "portal: queue", path: "/portal/queue", portal: "admin" },
+  { name: "portal: status", path: "/portal/status", portal: "admin" },
+  { name: "portal: tasks", path: "/portal/tasks", portal: "admin" },
+  { name: "portal: messages", path: "/portal/messages", portal: "admin" },
+  { name: "portal: profile", path: "/portal/profile", portal: "admin" },
+  { name: "portal: charge log", path: "/portal/charge-log", portal: "admin" },
+  { name: "portal: pay", path: "/portal/pay", portal: "admin" },
+  { name: "portal: review queue", path: "/portal/review", portal: "engineer" },
+  { name: "portal: protocols", path: "/portal/protocols", portal: "engineer" },
+  { name: "portal: my jobs", path: "/portal/jobs", portal: "field_tech" },
+  { name: "portal: certification", path: "/portal/certification", portal: "field_tech" },
+  // Reachable without a session, and never measured here either.
+  { name: "portal: sign in", path: "/portal/login" },
+  { name: "portal: sign in, suspended", path: "/portal/login?suspended=1" },
+  { name: "portal: set password, dead link", path: "/portal/set-password" },
+];
 
 const TEMPLATES = [
   { name: "home", path: "/" },
@@ -65,11 +107,23 @@ function pad(s, n) {
   return String(s).length >= n ? String(s) : String(s) + " ".repeat(n - String(s).length);
 }
 
-async function measurePage(base, browser, path, width) {
+async function measurePage(base, browser, path, width, probe = null) {
   const context = await browser.newContext({ viewport: { width, height: HEIGHT } });
+  if (probe) await context.addCookies(cookieFor(probe, base));
   const page = await context.newPage();
   try {
     const res = await page.goto(base + path, { waitUntil: "networkidle", timeout: 90_000 });
+    /*
+     * A PORTAL PAGE MUST NOT HAVE BOUNCED TO SIGN IN.
+     *
+     * A rejected or expired cookie redirects to the login screen, which answers
+     * 200 and passes every check in this file. Twenty six portal templates
+     * would then report pass while measuring one page twenty six times, which
+     * is the exact shape of defect this repository keeps finding.
+     */
+    if (probe && new URL(page.url()).pathname.startsWith("/portal/login") && !path.startsWith("/portal/login")) {
+      return { hscroll: false, taps: false, clip: false, note: "bounced to sign in, not measured" };
+    }
     if (!res || res.status() >= 400) {
       return { hscroll: false, taps: false, clip: false, note: `HTTP ${res ? res.status() : "no response"}` };
     }
@@ -316,10 +370,25 @@ async function main() {
     const rows = [];
     const failures = [];
 
-    for (const t of TEMPLATES) {
+    const sessions = {};
+    for (const role of ["admin", "engineer", "field_tech"]) {
+      sessions[role] = await createProbe(base, role, "mobile-audit");
+    }
+
+    for (const t of [...TEMPLATES, ...PORTAL_TEMPLATES]) {
       const cells = {};
       for (const w of WIDTHS) {
-        const cell = await measurePage(base, browser, t.path, w);
+        /*
+         * A portal template with no session lands on the sign in screen, which
+         * passes every check here while measuring the wrong page. Reported as a
+         * failure rather than skipped.
+         */
+        if (t.portal && !sessions[t.portal]?.cookie) {
+          cells[w] = { hscroll: false, taps: false, clip: false, note: "no " + t.portal + " session" };
+          log("  " + pad(t.name, 18) + " @" + w + ": NOT MEASURED (no " + t.portal + " session)");
+          continue;
+        }
+        const cell = await measurePage(base, browser, t.path, w, t.portal ? sessions[t.portal] : null);
         cells[w] = cell;
         log(
           `  ${pad(t.name, 18)} @${w}: hscroll=${cell.hscroll ? "ok" : "FAIL"} taps=${cell.taps ? "ok" : "FAIL"} clip=${cell.clip ? "ok" : "FAIL"}${cell.note ? "  (" + cell.note + ")" : ""}`,
@@ -332,6 +401,10 @@ async function main() {
     log("\nChecking mobile menu (open / lock / close on navigate / back button) ...");
     const menu = await checkMenu(base, browser);
     await browser.close();
+
+    const swept = await destroyProbes("mobile-audit");
+    if (!swept.ok) failures.push("probe accounts left behind: " + swept.note);
+    log("  probe accounts removed: " + (swept.ok ? "yes" : "NO"));
 
     log("\n================ MOBILE AUDIT: template x width ================");
     const header = pad("template", 20) + WIDTHS.map((w) => pad(w, 10)).join("");

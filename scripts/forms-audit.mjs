@@ -102,6 +102,105 @@ async function openForm(path, endpoint) {
   return { page, posts };
 }
 
+// ---------- the two forms a person meets before they hold a session ----------
+
+/*
+ * THESE HAD NEVER BEEN EXERCISED BY ANYTHING.
+ *
+ * Phase 11 gate 0: forms-audit covered /contact and /api/lead, which are the
+ * marketing site's two forms. The sign in form and the set password form, whose
+ * failure is the most expensive failure in this product, were audited by
+ * nothing at all while this file's summary claimed "every input and state, no
+ * silent failures, no false success".
+ *
+ * No account is created for these. Both are reachable signed out, and both are
+ * exercised in their REFUSING states, which is the half that matters: a sign in
+ * that fails silently, or a dead link that says nothing useful, is how somebody
+ * decides the software is broken.
+ */
+async function portalAuthFormChecks() {
+  // ---- sign in
+  {
+    const { page } = await openForm("/portal/login", "/api/portal/session");
+    const submit = page.getByRole("button", { name: /sign in/i }).first();
+
+    rec("sign in: the form is on the page", (await submit.count()) > 0);
+
+    /*
+     * Empty submit. The browser's own required validation may take this, which
+     * is fine and is still a refusal the person can see; what must NOT happen
+     * is a silent nothing.
+     */
+    await submit.click({ timeout: 15_000 }).catch(() => {});
+    await page.waitForTimeout(900);
+    const stillOnLogin = new URL(page.url()).pathname.startsWith("/portal/login");
+    rec("sign in: an empty submit does not navigate anywhere", stillOnLogin, page.url());
+
+    // Wrong credentials must say so, and must not say which half was wrong.
+    await page.fill('input[type="email"], input[name="email"]', "nobody@example.invalid").catch(() => {});
+    await page.fill('input[type="password"], input[name="password"]', "not-the-password").catch(() => {});
+    await submit.click({ timeout: 15_000 }).catch(() => {});
+    await page.waitForTimeout(1800);
+
+    /*
+     * ASSERTED AS BEHAVIOUR, NOT AS A WORD LIST.
+     *
+     * The first version of this check matched a list of likely phrasings and
+     * failed on "Check the email and password.", which is the correct copy. It
+     * was the check that was wrong, and a check that fails on correct software
+     * teaches everybody to ignore it, which is worse than not having it.
+     *
+     * What actually matters is that a live region APPEARED with text in it. Any
+     * wording satisfies that; silence does not.
+     */
+    const alert = page.locator("[role=\"alert\"]");
+    const alertText = ((await alert.count()) ? await alert.first().textContent() : "") ?? "";
+    rec(
+      "sign in: a wrong credential produces a visible refusal",
+      alertText.trim().length > 0,
+      alertText.trim() || "nothing was announced; a form that does nothing on failure reads as broken software",
+    );
+
+    /*
+     * And it must not say WHICH half was wrong. A refusal that distinguishes a
+     * bad address from a bad password is an account enumeration oracle, and
+     * this is asserted on the alert rather than on the whole document so a
+     * word in unrelated page copy cannot fail it.
+     */
+    rec(
+      "sign in: and the refusal does not say which half was wrong",
+      !/no such (account|user)|unknown email|email not found|wrong password|password is incorrect/i.test(alertText),
+      alertText.trim(),
+    );
+    rec("sign in: no horizontal scroll in the error state", await noHScroll(page));
+    await page.close();
+  }
+
+  // ---- set password, dead link
+  {
+    const { page } = await openForm("/portal/set-password?token=not-a-real-token", "/api/portal/set-password");
+    const body = (await page.textContent("body")) ?? "";
+
+    /*
+     * The three kinds of dead are different facts with different answers, and
+     * the page already distinguishes them. Asserted so it keeps doing so.
+     */
+    rec(
+      "set password: a dead link says which kind of dead it is",
+      /expired|already been used|not valid/i.test(body),
+      "invalid link alone sends people to an administrator who cannot tell either",
+    );
+    rec(
+      "set password: and offers a way onward",
+      (await page.getByRole("link", { name: /sign in/i }).count()) > 0,
+      "a dead end with no next step is where somebody gives up",
+    );
+    rec("set password: no password field is offered on a dead link", (await page.locator('input[type="password"]').count()) === 0);
+    rec("set password: no horizontal scroll", await noHScroll(page));
+    await page.close();
+  }
+}
+
 // ---------- contact ----------
 
 async function contactChecks() {
@@ -456,6 +555,27 @@ try {
   await careersChecks(ctx, BASE, rec, recSkip);
   await apiGuardChecks();
   await roundTripChecks();
+
+  /*
+   * LAST, DELIBERATELY, AND THE REASON IS RECORDED RATHER THAN GUESSED.
+   *
+   * Placed before the marketing form checks, this block made careersChecks time
+   * out waiting for the application flow submit button. Isolated to one line:
+   * the deliberate wrong credential submit. With the whole block present but
+   * that single fill disabled, 89 of 89 pass. With it enabled and the block
+   * running first, careers fails.
+   *
+   * THE MECHANISM IS NOT ESTABLISHED. It is not the login rate limiter, which
+   * is keyed by address and identity and which /api/apply does not consult.
+   * Running these last removes the interference, and is the better order
+   * regardless, since the portal pre-session forms have nothing to do with the
+   * public intake forms.
+   *
+   * Recorded in BACKLOG rather than left here, because an unexplained
+   * interaction between two audits is something somebody has to look at rather
+   * than a fact about this file.
+   */
+  await portalAuthFormChecks();
 } finally {
   await browser.close();
 }

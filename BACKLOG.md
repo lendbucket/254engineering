@@ -2108,3 +2108,33 @@ honest three.
 declaration beside `DEFAULT_ROLES`, in the same way `data/intake-fields.ts`
 holds what a job can be asked. Then the form is generated from the definition
 and the select follows for free.
+
+### A failed portal sign in inside forms-audit breaks careersChecks, and nobody knows why
+
+Recorded 2026-09-05, Phase 11 Section 1, while bringing the portal inside
+forms-audit.
+
+**What happens.** `portalAuthFormChecks` submits a deliberately wrong credential
+to `/portal/login`, which is the point of the check: a sign in that fails
+silently is how somebody decides the software is broken. With that block running
+BEFORE the marketing form checks, `careersChecks` then times out waiting for the
+application flow submit button.
+
+**Isolated to one line.** With the whole block present and only that single fill
+disabled, 89 of 89 pass. With it enabled and the block first, careers fails.
+Without the block at all, 80 of 80 pass.
+
+**What it is not.** Not the login rate limiter: that is keyed by address and
+identity, `/api/apply` does not consult it, and one attempt against one address
+is not a lockout. Not a listener leak: `trackPosts` attaches to the page and
+both pages are closed. Not a shared cookie: the sign in failed.
+
+**What was done.** The block runs last, which removes the interference and is
+the better order anyway, since the portal pre-session forms have nothing to do
+with the public intake forms.
+
+**Why it is still recorded.** Ordering is a mitigation, not an explanation. Two
+audits interacting through a mechanism nobody has named is exactly the kind of
+thing that comes back as a flake somebody re-runs until it passes. The next
+session that touches forms-audit should find this written down rather than
+rediscover it.

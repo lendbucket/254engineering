@@ -28,8 +28,16 @@ export default async function SetPasswordPage({
   return (
     <main className="portal-surface grid min-h-dvh place-items-center px-4 py-10">
       <div className="w-full max-w-[420px]">
+        {/*
+          THE LIGHT LOCKUP, BECAUSE THIS SURFACE IS LIGHT.
+          .portal-surface is var(--canvas) #f4f5f7. The reverse lockup is white
+          artwork; it sat here for a phase at 1.02:1, so the first thing a new
+          Professional Engineer saw was a blank space with a gold slash in it.
+          scripts/asset-audit.mjs measures this pairing now rather than trusting
+          whoever edits this line next.
+        */}
         <div className="mb-6 flex justify-center">
-          <Wordmark onDark height={44} priority />
+          <Wordmark height={44} priority />
         </div>
 
         <div className="rounded-[4px] border border-[var(--border)] bg-white p-6 sm:p-7">
