@@ -327,7 +327,16 @@ export const DEFAULT_ROLES: DefaultRole[] = [
     name: "Administrator",
     landingPath: "/portal",
     isSystem: true,
-    grants: [...MATRIX.admin, "roles.manage"],
+    /*
+     * MATRIX.admin already carries roles.manage, so it is NOT re-added here.
+     *
+     * It was, and the spread produced the action twice. Nothing caught it: the
+     * seed check in roles-audit compared SETS, which is the right comparison
+     * for "are the same grants present" and blind to how many times each one
+     * appears. The generated migration carried the row twice and only survived
+     * on the ON CONFLICT clause.
+     */
+    grants: [...MATRIX.admin],
   },
   {
     key: "engineer",

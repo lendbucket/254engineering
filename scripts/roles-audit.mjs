@@ -494,7 +494,34 @@ rec(
     systemDrift.map((r) => r.key).join(", "),
   );
 
-  const want = new Set(DEFAULT_ROLES.flatMap((r) => r.grants.map((a) => r.key + ":" + a)));
+  /*
+   * COUNTED BEFORE THEY ARE SET, because a set cannot see a repeat.
+   *
+   * DEFAULT_ROLES.admin was [...MATRIX.admin, "roles.manage"] while
+   * MATRIX.admin already held roles.manage, so the generator emitted the row
+   * twice and the migration carried it twice. Every check here passed, because
+   * every check here compared sets, and a set of one is a set of two. Only the
+   * ON CONFLICT clause stopped it being an error.
+   *
+   * So duplicates are asserted on both sides: in the declaration, and in the
+   * file the declaration generates.
+   */
+  const declared = DEFAULT_ROLES.flatMap((r) => r.grants.map((a) => r.key + ":" + a));
+  const declaredTwice = declared.filter((g, i) => declared.indexOf(g) !== i);
+  rec(
+    "no role declares the same grant twice",
+    declaredTwice.length === 0,
+    [...new Set(declaredTwice)].join(", ") || declared.length + " grants declared",
+  );
+
+  const seededTwice = seededGrants.filter((g, i) => seededGrants.indexOf(g) !== i);
+  rec(
+    "and the migration inserts no row twice",
+    seededTwice.length === 0,
+    [...new Set(seededTwice)].join(", ") || seededGrants.length + " rows",
+  );
+
+  const want = new Set(declared);
   const got = new Set(seededGrants);
 
   const missing = [...want].filter((g) => !got.has(g)).sort();
