@@ -188,6 +188,19 @@ export type Action =
   // Customer ordering accounts: terms, credit, statements. Admin only, because
   // it is the firm deciding who may owe it money.
   | "accounts.manage"
+  /*
+   * Creating roles, editing what they grant, and moving somebody between them.
+   *
+   * Its own action rather than folding into profiles.update, because changing
+   * what a role MAY DO is a different act from changing who somebody is, and a
+   * firm may well want a coordinator who can invite people without being able
+   * to widen their own access.
+   *
+   * It is also the permission the lockout guard protects: an edit that would
+   * leave nobody active holding this is refused, because the firm would have no
+   * way back.
+   */
+  | "roles.manage"
   // The job queue: depth, failures, dead letters, and retrying one by hand. A
   // retry re-runs a side effect, so this is the operator alone.
   | "jobs.manage"
@@ -242,6 +255,7 @@ const MATRIX: Record<Role, Action[]> = {
     "documents.deliver", "documents.read",
     "pricing.read", "billing.read", "ledger.read_own", "ledger.read_all", "ledger.approve",
     "payments.reconcile", "payments.charge", "payments.refund", "accounts.manage", "jobs.manage",
+    "roles.manage",
     "tasks.use", "messages.use",
     "audit.read", "time.log_own",
     "responsible_charge.read_own", "responsible_charge.read_all",
@@ -313,7 +327,7 @@ export const DEFAULT_ROLES: DefaultRole[] = [
     name: "Administrator",
     landingPath: "/portal",
     isSystem: true,
-    grants: [...MATRIX.admin],
+    grants: [...MATRIX.admin, "roles.manage"],
   },
   {
     key: "engineer",

@@ -131,6 +131,7 @@ insert into eng_role_grants (role_key, action) values
   ('admin', 'profiles.update_self'),
   ('admin', 'responsible_charge.read_all'),
   ('admin', 'responsible_charge.read_own'),
+  ('admin', 'roles.manage'),
   ('admin', 'tasks.use'),
   ('admin', 'time.log_own'),
   ('engineer', 'clients.list'),

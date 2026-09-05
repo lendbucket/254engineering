@@ -37,7 +37,7 @@ export type NavItem = {
     | "home" | "files" | "people" | "review" | "jobs" | "clients" | "audit"
     | "profile" | "protocols" | "techs" | "onboarding" | "certification" | "charge"
     | "tasks" | "messages" | "documents" | "billing" | "orders" | "accounts" | "queue" | "status" | "pay"
-    | "intake";
+    | "intake" | "roles";
 };
 
 export const NAV: NavItem[] = [
@@ -113,6 +113,18 @@ export const NAV: NavItem[] = [
   { href: "/portal/queue", label: "Job queue", short: "Queue", action: "jobs.manage", icon: "queue" },
   { href: "/portal/status", label: "Platform status", short: "Status", action: "jobs.manage", icon: "status" },
   { href: "/portal/audit", label: "Audit trail", short: "Audit", action: "audit.read", icon: "audit" },
+  {
+    /*
+     * Who may do what. Below the audit trail because it is consulted rarely and
+     * changed rarely, and above the profile because it is the firm's rather
+     * than one person's.
+     */
+    href: "/portal/roles",
+    label: "Roles",
+    short: "Roles",
+    action: "roles.manage",
+    icon: "roles",
+  },
   { href: "/portal/profile", label: "Your profile", short: "You", action: "profiles.read_self", primary: true, icon: "profile" },
 ];
 

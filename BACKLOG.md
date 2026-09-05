@@ -2013,3 +2013,69 @@ system when it becomes real.
    is a credential question rather than a design one. A seal that any staff
    account can render onto a document is a seal that has left the engineer's
    control.
+
+### Nobody can decline to seal while no Professional Engineer is on staff
+
+Recorded 2026-09-05, Phase 10 Section 2, found by the suite rather than by
+reasoning: review-audit went red on "an administrator seals".
+
+**What changed.** The five licensed capabilities stopped being permissions. All
+four review decisions gate on them: sealing on `documents.seal`, and declining,
+requesting revisions and sending for a site visit on `review.decide`. Both come
+from holding the `engineer` role and are unrepresentable as grants, which is the
+operator ruling and is working exactly as specified.
+
+**The consequence, which is real and was not asked for.** Before this, an
+administrator could decline to seal. `canReview` refuses sealing under the
+compliance gate and says in its own words that "declining to seal is still
+available, and deliberately so". That sentence is now only true for an active
+engineer. Production holds one profile, an active administrator, so on
+production today a file that reached review could not be declined by anybody.
+
+**Why it is recorded rather than fixed.** The fix would be to make
+`review.decide` grantable, which is the thing the operator ruled against, or to
+special case declining, which is a check somebody can delete. Neither is a
+change to make without the operator's word.
+
+**What makes it moot.** A PE on staff, which is also what makes the review queue
+reachable at all. Until then nothing reaches `under_review` in the ordinary
+course, because nothing can be sealed and no engineer is taking files into
+review. The exposure is a file already sitting under review with no engineer
+account, and there is none.
+
+### The portal version footer says "production" on a machine pointed at development
+
+Recorded 2026-09-05, noticed while looking at the Section 2 screenshots at 1280.
+
+`ENVIRONMENT` in `src/lib/ops-observability.ts` is
+`VERCEL_ENV ?? NODE_ENV ?? "development"`, and the sidebar footer renders it
+beside the release. `vercel env pull` writes `VERCEL_ENV="production"` into
+`.env.local`, so a local server reading the DEVELOPMENT Supabase project
+displays "production" to whoever is looking at it.
+
+`src/lib/db-guard.ts` already says, at length and from an incident, that
+"VERCEL_ENV is not proof of anything" and that a guard trusting it alone was a
+defect. The same untrustworthy value is being shown to the operator as a fact
+about which system they are looking at, which is the confusion the preview
+pointing at production incident was made of.
+
+**Not fixed here because it is not Section 2 and it is not free.** `ENVIRONMENT`
+also tags every fault the error store records, so changing what it means changes
+how faults are grouped. The honest label is the one `db-target.mjs` and
+`db-guard.ts` already compute: the Supabase project the process is actually
+talking to. That is the shape to build, deliberately, rather than as a side
+effect of a permissions branch.
+
+### The portal sidebar clips its own navigation with no affordance
+
+Recorded 2026-09-05, seen in the Section 2 screenshot at 1280 by 900.
+
+The rail is `fixed inset-y-0` with `flex-1 overflow-y-auto` around the nav, so
+past about fourteen items the rest scroll out of sight with nothing on screen
+saying so. At 1280 by 900 the visible list ends at Technicians, and People,
+Audit, Roles and the rest are reachable only by scrolling inside the rail.
+
+Verified rather than assumed: the inner container reports `scrollHeight` 1036
+against `clientHeight` 684, so the links are reachable and this is not a
+navigation failure. It is a discoverability one, and it got worse with every
+screen this platform added. Not introduced by Section 2 and not fixed by it.

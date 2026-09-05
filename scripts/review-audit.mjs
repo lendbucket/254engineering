@@ -130,7 +130,21 @@ const GATED = { prelaunch: true };
     ["an engineer seals", engineer, "seal", true],
     ["an engineer declines", engineer, "refuse", true],
     ["an engineer requests revisions", engineer, "revisions", true],
-    ["an administrator seals", admin, "seal", true],
+    /*
+     * AN ADMINISTRATOR DECIDES NOTHING HERE, and that is the ruling rather
+     * than a regression. Phase 10 Section 2 made the five licensed
+     * capabilities unrepresentable as permissions: documents.seal and
+     * review.decide come from holding the Professional Engineer role, because
+     * a seal represents a Texas PE licence and not a job title.
+     *
+     * All four cases are asserted, not just sealing. Sealing is refused under
+     * the compliance gate anyway, so a check that only asked about sealing
+     * would pass whether or not the licence rule existed at all.
+     */
+    ["an administrator seals", admin, "seal", false],
+    ["an administrator declines", admin, "refuse", false],
+    ["an administrator requests revisions", admin, "revisions", false],
+    ["an administrator sends for a site visit", admin, "site_visit", false],
     ["a technician seals", tech, "seal", false],
     ["a technician declines", tech, "refuse", false],
     ["a technician requests revisions", tech, "revisions", false],

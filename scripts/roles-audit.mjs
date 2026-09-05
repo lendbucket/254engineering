@@ -38,7 +38,14 @@
  * probe events. Ruled development only on 2026-09-02, enforced by
  * neverProduction below rather than by remembering.
  */
+import fs from "node:fs";
 import { auditClient, describeTarget } from "./lib/db-target.mjs";
+import {
+  canSetGrants,
+  canSetUserRole,
+  canDeleteRole,
+  keyProblem,
+} from "../src/lib/role-rules.ts";
 import { can, actionsFor, visibleFiles, canSeeFile, redactFile, ROLES, DEFAULT_ROLES, ALL_ACTIONS, LICENSED_ACTIONS, LICENSED_ROLE, holdsLicence } from "../src/lib/ops-authz.ts";
 
 const BASE = process.env.BASE_URL || "http://localhost:3225";
@@ -165,6 +172,13 @@ const EXPECTED = {
    * statement. The firm deciding who may owe it money, which is the operator
    * alone. An engineer has no more business here than in the ledger.
    */
+  /*
+   * The permission that governs the permission screen. Administrator only by
+   * default, and the lockout guard counts whoever holds it rather than counting
+   * administrators, because the owner may create another role that has it.
+   */
+  "roles.manage":                 { admin: true,  engineer: false, field_tech: false },
+
   "accounts.manage":              { admin: true,  engineer: false, field_tech: false },
 
   /*
@@ -417,6 +431,257 @@ rec(
     DEFAULT_ROLES.find((r) => r.key === LICENSED_ROLE)?.isSystem === true,
     "renaming it would quietly detach the licence from the people holding it",
   );
+}
+
+/*
+ * THE MIGRATION SEEDS WHAT DEFAULT_ROLES SAYS, AND THAT IS DERIVED.
+ *
+ * This check exists because its absence cost the firm the permission screen.
+ * 0018 seeded the administrator role without roles.manage while DEFAULT_ROLES
+ * granted it, and development agreed with the TypeScript only because the row
+ * had been inserted there by hand. Applying the migration to production would
+ * have produced a firm that could not open the roles screen and could not
+ * grant itself the ability to, because granting it is what the screen does.
+ *
+ * Nothing compared the two, so nothing was red. The expectation below is
+ * COMPUTED from DEFAULT_ROLES rather than written out, because a hand copied
+ * list of forty grants is a second thing to keep in step and would have been
+ * copied from the migration in the first place.
+ */
+{
+  const sql = fs.readFileSync("supabase/migrations/0018_roles_as_data.sql", "utf8");
+
+  const between = (start, end) => {
+    const a = sql.indexOf(start);
+    const b = sql.indexOf(end, a);
+    return a < 0 || b < 0 ? "" : sql.slice(a + start.length, b);
+  };
+
+  const rolesBlock = between("insert into eng_roles (key, name, landing_path, is_system) values", "on conflict (key) do nothing;");
+  const grantsBlock = between("insert into eng_role_grants (role_key, action) values", "on conflict (role_key, action) do nothing;");
+
+  rec("the migration's seed blocks were found", rolesBlock.length > 0 && grantsBlock.length > 0);
+
+  const seededRoles = [...rolesBlock.matchAll(/\('([a-z_]+)',\s*'([^']+)',\s*'([^']+)',\s*(true|false)\)/g)].map(
+    (m) => ({ key: m[1], name: m[2], landingPath: m[3], isSystem: m[4] === "true" }),
+  );
+  const seededGrants = [...grantsBlock.matchAll(/\('([a-z_]+)',\s*'([^']+)'\)/g)].map((m) => m[1] + ":" + m[2]);
+
+  const wantRoles = DEFAULT_ROLES.map((r) => r.key).sort();
+  const gotRoles = seededRoles.map((r) => r.key).sort();
+  rec(
+    "the migration seeds exactly the roles DEFAULT_ROLES declares",
+    wantRoles.join(",") === gotRoles.join(","),
+    gotRoles.join(", "),
+  );
+
+  const landingDrift = DEFAULT_ROLES.filter(
+    (r) => seededRoles.find((s) => s.key === r.key)?.landingPath !== r.landingPath,
+  );
+  rec(
+    "and each lands where DEFAULT_ROLES says it lands",
+    landingDrift.length === 0,
+    landingDrift.map((r) => r.key).join(", "),
+  );
+
+  const systemDrift = DEFAULT_ROLES.filter(
+    (r) => seededRoles.find((s) => s.key === r.key)?.isSystem !== r.isSystem,
+  );
+  rec(
+    "and each is a system role exactly where DEFAULT_ROLES says",
+    systemDrift.length === 0,
+    systemDrift.map((r) => r.key).join(", "),
+  );
+
+  const want = new Set(DEFAULT_ROLES.flatMap((r) => r.grants.map((a) => r.key + ":" + a)));
+  const got = new Set(seededGrants);
+
+  const missing = [...want].filter((g) => !got.has(g)).sort();
+  const extra = [...got].filter((g) => !want.has(g)).sort();
+
+  rec(
+    "every grant DEFAULT_ROLES declares is in the migration",
+    missing.length === 0,
+    missing.length ? "missing from the migration: " + missing.join(", ") : want.size + " grants",
+  );
+  rec(
+    "and the migration grants nothing DEFAULT_ROLES does not",
+    extra.length === 0,
+    extra.length ? "in the migration only: " + extra.join(", ") : "",
+  );
+
+  /*
+   * NAMED SEPARATELY, because it is the one whose absence is unrecoverable.
+   * Every other missing grant can be added on the roles screen; this one is
+   * the roles screen.
+   */
+  rec(
+    "the administrator is seeded able to manage roles",
+    got.has("admin:roles.manage"),
+    "without it nobody can open the permission screen, and nobody can grant the permission that opens it",
+  );
+
+  /*
+   * And no seeded grant may be one of the licensed five. They are not Actions,
+   * so ops-authz cannot express one, but a migration is plain text and can.
+   */
+  const licensedInSeed = seededGrants.filter((g) => LICENSED_ACTIONS.includes(g.split(":")[1]));
+  rec(
+    "and the migration seeds none of the licensed capabilities",
+    licensedInSeed.length === 0,
+    licensedInSeed.join(", ") || "a seal is not a row",
+  );
+}
+
+// =====================================================================
+// THE FIRM CANNOT LOCK ITSELF OUT
+//
+// A permission screen is the one screen that can destroy the firm's access to
+// its own platform, and it does it by being used correctly: every individual
+// edit looks reasonable and the last one strands everybody.
+//
+// The rules are pure, in src/lib/role-rules.ts, so these exercise the RULE by
+// running it rather than checking that the screen looks careful.
+// =====================================================================
+{
+  const R = (key, grants, isSystem = false) => ({ key, isSystem, grants });
+  const H = (id, roleKey, status = "active") => ({ id, roleKey, status });
+
+  const managing = [R("admin", ["roles.manage", "files.list"], true), R("sales", ["files.list"])];
+
+  rec(
+    "an ordinary grant change is allowed",
+    canSetGrants(managing, [H("a", "admin")], "sales", ["files.list", "clients.list"]).ok,
+    "a guard that refuses everything is a wall, not a guard",
+  );
+
+  rec(
+    "removing the last ability to manage roles is refused",
+    !canSetGrants(managing, [H("a", "admin")], "admin", ["files.list"]).ok,
+  );
+  rec(
+    "and the refusal explains what would happen",
+    /nobody able to change permissions/.test(
+      canSetGrants(managing, [H("a", "admin")], "admin", ["files.list"]).because ?? "",
+    ),
+  );
+
+  rec(
+    "moving the last manager into a role that cannot manage is refused",
+    !canSetUserRole(managing, [H("a", "admin")], "a", "sales").ok,
+  );
+
+  /*
+   * INVITED DOES NOT COUNT. Somebody who has never signed in may never sign in,
+   * and counting them would let the firm strand itself and be told it had not.
+   */
+  rec(
+    "an invited administrator does not keep the door open",
+    !canSetUserRole(
+      managing,
+      [H("a", "admin"), H("b", "admin", "invited")],
+      "a",
+      "sales",
+    ).ok,
+    "somebody who has never signed in may never sign in",
+  );
+  rec(
+    "and neither does a suspended one",
+    !canSetUserRole(
+      managing,
+      [H("a", "admin"), H("b", "admin", "suspended")],
+      "a",
+      "sales",
+    ).ok,
+  );
+
+  /*
+   * And the guard is not a wall: a SECOND active manager makes the first
+   * removable, which is how an owner legitimately hands over.
+   */
+  rec(
+    "a second active manager makes the move allowed",
+    canSetUserRole(managing, [H("a", "admin"), H("b", "admin")], "a", "sales").ok,
+    "an owner has to be able to hand over, or the guard has replaced one trap with another",
+  );
+
+  /*
+   * The rule counts the PERMISSION, not the admin role. An owner may create
+   * another role that manages roles, and a rule naming admin would refuse a
+   * legitimate arrangement while missing the dangerous one.
+   */
+  /*
+   * NOBODY HOLDS ADMIN IN THIS FIXTURE, and that is the point.
+   *
+   * The first version had an active admin holder, so a rule that hardcoded
+   * "admin" as the managing role passed it. Only ops_lead holds anything here,
+   * so the check can only pass if the rule is counting the PERMISSION.
+   */
+  const twoManaging = [
+    R("admin", ["files.list"], true),
+    R("ops_lead", ["roles.manage"]),
+  ];
+  rec(
+    "a role other than admin can hold the door open",
+    canSetGrants(twoManaging, [H("b", "ops_lead")], "admin", []).ok,
+    "the rule counts the permission, not the name of a role",
+  );
+
+  // ---- deletion
+  /*
+   * DELETING A SYSTEM ROLE THAT GRANTS NOTHING AND HOLDS NOBODY.
+   *
+   * The first version deleted "admin", which would also have stranded the firm,
+   * so it passed under an injection that removed the isSystem rule entirely:
+   * the strand guard refused it for a different reason. This one can only be
+   * refused by the rule being tested.
+   */
+  const withEngineer = [
+    R("admin", ["roles.manage"], true),
+    R("engineer", ["files.list"], true),
+  ];
+  rec(
+    "a system role cannot be deleted",
+    !canDeleteRole(withEngineer, [H("a", "admin")], "engineer").ok,
+    "asked of one whose deletion would strand nobody, so only the system rule can refuse it",
+  );
+  rec(
+    "a role somebody holds cannot be deleted",
+    !canDeleteRole(managing, [H("a", "admin"), H("b", "sales")], "sales").ok,
+  );
+  rec(
+    "and one nobody holds can be",
+    canDeleteRole(managing, [H("a", "admin")], "sales").ok,
+  );
+
+  /*
+   * AND THE SERVER ACTUALLY ASKS. The rules above are pure and correct, and a
+   * write path that never called them would pass every one of them.
+   */
+  const opsRoles = fs.readFileSync("src/lib/ops-roles.ts", "utf8");
+  rec(
+    "the server refuses a grant change through the guard",
+    /const verdict = canSetGrants\([\s\S]{0,120}if \(!verdict\.ok\) return/.test(opsRoles),
+  );
+  rec(
+    "and a role move through the guard",
+    /const verdict = canSetUserRole\([\s\S]{0,120}if \(!verdict\.ok\) return/.test(opsRoles),
+  );
+  rec(
+    "and a deletion through the guard",
+    /const verdict = canDeleteRole\([\s\S]{0,120}if \(!verdict\.ok\) return/.test(opsRoles),
+  );
+  rec(
+    "and it asks BEFORE it writes",
+    opsRoles.indexOf("canSetGrants(") < opsRoles.indexOf('.from("eng_role_grants").delete()'),
+    "a guard applied after the write is a guard that has already lost",
+  );
+
+  // ---- keys
+  rec("a key with a space is refused", keyProblem("ops lead", []) !== null);
+  rec("a key starting with a digit is refused", keyProblem("2nd_line", []) !== null);
+  rec("a duplicate key is refused", keyProblem("sales", ["sales"]) !== null);
+  rec("a reasonable key is accepted", keyProblem("ops_lead", ["sales"]) === null);
 }
 
 // ---- suspended and signed out ----

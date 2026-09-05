@@ -72,9 +72,19 @@ const SLACK = 1;
  * only way to see these pages at all: an unauthenticated request is a redirect,
  * and a redirect never overflows anything.
  *
- * The probe is an ADMIN because an admin sees the most navigation. Five tab bar
- * items on a 360px screen is the densest the chrome ever gets, and it is the
- * layout most likely to overflow.
+ * The first probe is an ADMIN because an admin sees the most navigation. Five
+ * tab bar items on a 360px screen is the densest the chrome ever gets, and it
+ * is the layout most likely to overflow.
+ *
+ * THE SECOND PROBE EXISTS BECAUSE AN ADMINISTRATOR CANNOT SEE THE REVIEW QUEUE.
+ * review.queue is one of the five licensed capabilities, so it comes from
+ * holding the Professional Engineer role rather than from a permission, and
+ * /portal/review answers 404 to an administrator by design.
+ *
+ * Dropping the route would have been the easy repair and the wrong one. The
+ * note above says portal routes are listed here precisely because the sitemap
+ * does not carry them; removing the review queue would put the densest table in
+ * the portal back outside this check while the audit went green.
  */
 const PORTAL_ROUTES = [
   "/portal",
@@ -83,16 +93,20 @@ const PORTAL_ROUTES = [
   "/portal/clients",
   "/portal/audit",
   "/portal/profile",
-  "/portal/review",
+  "/portal/roles",
   "/portal/jobs",
   "/portal/login",
   "/portal/set-password",
 ];
 
+/** What only a licence holder can open. Walked by the engineer probe. */
+const LICENSED_ROUTES = ["/portal/review"];
+
 const PROBE_DOMAIN = "mobile-audit.invalid";
 let probe = null;
+let licensedProbe = null;
 
-async function createProbe() {
+async function createProbe(role = "admin") {
   const { auditClient } = await import("./lib/db-target.mjs");
   const db = auditClient("mobile-overflow-audit");
   if (!db) return null;
@@ -106,7 +120,7 @@ async function createProbe() {
     id: data.user.id,
     email,
     display_name: "Mobile Probe",
-    role: "admin",
+    role,
     status: "active",
   });
   if (pErr) {
@@ -124,10 +138,21 @@ async function createProbe() {
 }
 
 async function destroyProbe() {
-  if (!probe) return true;
-  await probe.db.from("eng_profiles").delete().eq("id", probe.id);
-  await probe.db.auth.admin.deleteUser(probe.id).catch(() => {});
-  const { data } = await probe.db.from("eng_profiles").select("email").like("email", `%@${PROBE_DOMAIN}`);
+  const all = [probe, licensedProbe].filter(Boolean);
+  if (!all.length) return true;
+  for (const p of all) {
+    await p.db.from("eng_profiles").delete().eq("id", p.id);
+    await p.db.auth.admin.deleteUser(p.id).catch(() => {});
+  }
+  /*
+   * The sweep is by DOMAIN, not by the ids just deleted, so a probe left behind
+   * by a crashed earlier run is still found. That is the forms-audit lesson: a
+   * delete which matched nothing returned no error.
+   */
+  const { data } = await all[0].db
+    .from("eng_profiles")
+    .select("email")
+    .like("email", `%@${PROBE_DOMAIN}`);
   return (data ?? []).length === 0;
 }
 
@@ -147,7 +172,8 @@ const checks = [];
 
 async function run() {
   const list = await routes();
-  probe = await createProbe();
+  probe = await createProbe("admin");
+  licensedProbe = await createProbe("engineer");
   if (!probe?.cookie) {
     // Reported as a failure, not skipped quietly. A portal that was never
     // measured is not a portal that passed.
@@ -162,126 +188,148 @@ async function run() {
     checks.push({ name: "portal routes measured with a signed in session", ok: true, detail: "" });
   }
 
+  checks.push({
+    name: "the licence bound routes measured with an engineer's session",
+    ok: Boolean(licensedProbe?.cookie),
+    detail: "an administrator gets 404 on the review queue, so only a PE can measure it",
+  });
+
   const browser = await chromium.launch();
 
-  for (const width of WIDTHS) {
+  const contextFor = async (width, cookie) => {
     const ctx = await browser.newContext({
       viewport: { width, height: 800 },
       isMobile: true,
       hasTouch: true,
       deviceScaleFactor: 2,
     });
-
-    if (probe?.cookie) {
+    if (cookie) {
       await ctx.addCookies([
-        {
-          name: "eng_ops",
-          value: probe.cookie,
-          url: BASE,
-          httpOnly: true,
-          sameSite: "Lax",
-        },
+        { name: "eng_ops", value: cookie, url: BASE, httpOnly: true, sameSite: "Lax" },
       ]);
     }
+    return ctx;
+  };
 
-    for (const route of list) {
-      const page = await ctx.newPage();
+  for (const width of WIDTHS) {
+    const ctx = await contextFor(width, probe?.cookie);
 
-      /*
-       * domcontentloaded plus a settle, not networkidle.
-       *
-       * networkidle waits for the network to go quiet, and a portal page never
-       * quite does: it timed out at thirty seconds on /portal and threw, which
-       * killed the whole audit. One route's timeout took a hundred and fifteen
-       * other checks with it and reported as an overflow failure, which it was
-       * not.
-       *
-       * Horizontal overflow is a layout property. domcontentloaded plus a short
-       * settle is what layout needs and is far more deterministic than waiting
-       * on a network that may have a long lived connection on it.
-       *
-       * The try/catch is the other half: a route that will not load is a
-       * FINDING, recorded against that route, not an exception that hides every
-       * route after it.
-       */
-      let res;
-      try {
-        res = await page.goto(BASE + route, { waitUntil: "domcontentloaded", timeout: 45000 });
-        await page.waitForTimeout(600);
-      } catch (err) {
-        findings.push(`${route} @${width}: did not load (${String(err.message).split("\n")[0]})`);
-        checks.push({ name: `${route} @${width}`, ok: false, detail: "did not load" });
-        await page.close();
-        continue;
-      }
+  /*
+   * ONE MEASUREMENT, TWO SESSIONS. Extracted rather than copied, because a
+   * second copy of a hundred lines of overflow measurement is a second
+   * place for the two to disagree about what counts as an overflow.
+   */
+  async function walk(ctx, routeList) {
+    for (const route of routeList) {
+        const page = await ctx.newPage();
 
-      if (!res || res.status() !== 200) {
-        findings.push(`${route} @${width}: HTTP ${res ? res.status() : "no response"}`);
-        checks.push({ name: `${route} @${width}`, ok: false, detail: "not 200" });
-        await page.close();
-        continue;
-      }
-
-      const measure = () =>
-        page.evaluate(() => ({
-          doc: document.documentElement.scrollWidth,
-          body: document.body.scrollWidth,
-          // The reference. See the note above on why innerWidth is not usable.
-          inner: document.documentElement.clientWidth,
-          reportedInner: window.innerWidth,
-        }));
-
-      const top = await measure();
-      await page.evaluate(async () => {
-        for (let y = 0; y < document.body.scrollHeight; y += window.innerHeight) {
-          window.scrollTo(0, y);
-          await new Promise((r) => setTimeout(r, 80));
+        /*
+         * domcontentloaded plus a settle, not networkidle.
+         *
+         * networkidle waits for the network to go quiet, and a portal page never
+         * quite does: it timed out at thirty seconds on /portal and threw, which
+         * killed the whole audit. One route's timeout took a hundred and fifteen
+         * other checks with it and reported as an overflow failure, which it was
+         * not.
+         *
+         * Horizontal overflow is a layout property. domcontentloaded plus a short
+         * settle is what layout needs and is far more deterministic than waiting
+         * on a network that may have a long lived connection on it.
+         *
+         * The try/catch is the other half: a route that will not load is a
+         * FINDING, recorded against that route, not an exception that hides every
+         * route after it.
+         */
+        let res;
+        try {
+          res = await page.goto(BASE + route, { waitUntil: "domcontentloaded", timeout: 45000 });
+          await page.waitForTimeout(600);
+        } catch (err) {
+          findings.push(`${route} @${width}: did not load (${String(err.message).split("\n")[0]})`);
+          checks.push({ name: `${route} @${width}`, ok: false, detail: "did not load" });
+          await page.close();
+          continue;
         }
-        window.scrollTo(0, document.body.scrollHeight);
-        await new Promise((r) => setTimeout(r, 200));
-      });
-      const bottom = await measure();
 
-      const worst = Math.max(top.doc, top.body, bottom.doc, bottom.body);
-      const over = worst - top.inner;
-      const ok = over <= SLACK;
+        if (!res || res.status() !== 200) {
+          findings.push(`${route} @${width}: HTTP ${res ? res.status() : "no response"}`);
+          checks.push({ name: `${route} @${width}`, ok: false, detail: "not 200" });
+          await page.close();
+          continue;
+        }
 
-      // The reference itself must be the width that was asked for. If emulation
-      // ever starts expanding clientWidth too, this check turns into the same
-      // tautology it used to be, and this line is what would say so.
-      if (top.inner !== width) {
-        findings.push(
-          `${route} @${width}: documentElement.clientWidth is ${top.inner}, not ${width}. The reference width moved, so this measurement cannot be trusted.`,
-        );
-      }
+        const measure = () =>
+          page.evaluate(() => ({
+            doc: document.documentElement.scrollWidth,
+            body: document.body.scrollWidth,
+            // The reference. See the note above on why innerWidth is not usable.
+            inner: document.documentElement.clientWidth,
+            reportedInner: window.innerWidth,
+          }));
 
-      let detail = `${worst} vs ${top.inner}`;
-      if (!ok) {
-        const culprits = await page.evaluate((inner) => {
-          const out = [];
-          for (const el of document.querySelectorAll("*")) {
-            const r = el.getBoundingClientRect();
-            const right = r.right + window.scrollX;
-            if (right > inner + 1 && r.width > 0) {
-              out.push(
-                `<${el.tagName.toLowerCase()}${el.id ? "#" + el.id : ""}> reaches ${Math.round(right)}px` +
-                  ` class="${(el.getAttribute("class") || "").slice(0, 60)}"`,
-              );
-            }
+        const top = await measure();
+        await page.evaluate(async () => {
+          for (let y = 0; y < document.body.scrollHeight; y += window.innerHeight) {
+            window.scrollTo(0, y);
+            await new Promise((r) => setTimeout(r, 80));
           }
-          return out.slice(0, 4);
-        }, top.inner);
-        detail = `${worst} vs ${top.inner} (+${over})`;
-        findings.push(
-          `${route} @${width}: document is ${over}px wider than the viewport. ${culprits.join(" | ") || "no element identified"}`,
-        );
-      }
+          window.scrollTo(0, document.body.scrollHeight);
+          await new Promise((r) => setTimeout(r, 200));
+        });
+        const bottom = await measure();
 
-      checks.push({ name: `${route} @${width}`, ok, detail });
-      await page.close();
+        const worst = Math.max(top.doc, top.body, bottom.doc, bottom.body);
+        const over = worst - top.inner;
+        const ok = over <= SLACK;
+
+        // The reference itself must be the width that was asked for. If emulation
+        // ever starts expanding clientWidth too, this check turns into the same
+        // tautology it used to be, and this line is what would say so.
+        if (top.inner !== width) {
+          findings.push(
+            `${route} @${width}: documentElement.clientWidth is ${top.inner}, not ${width}. The reference width moved, so this measurement cannot be trusted.`,
+          );
+        }
+
+        let detail = `${worst} vs ${top.inner}`;
+        if (!ok) {
+          const culprits = await page.evaluate((inner) => {
+            const out = [];
+            for (const el of document.querySelectorAll("*")) {
+              const r = el.getBoundingClientRect();
+              const right = r.right + window.scrollX;
+              if (right > inner + 1 && r.width > 0) {
+                out.push(
+                  `<${el.tagName.toLowerCase()}${el.id ? "#" + el.id : ""}> reaches ${Math.round(right)}px` +
+                    ` class="${(el.getAttribute("class") || "").slice(0, 60)}"`,
+                );
+              }
+            }
+            return out.slice(0, 4);
+          }, top.inner);
+          detail = `${worst} vs ${top.inner} (+${over})`;
+          findings.push(
+            `${route} @${width}: document is ${over}px wider than the viewport. ${culprits.join(" | ") || "no element identified"}`,
+          );
+        }
+
+        checks.push({ name: `${route} @${width}`, ok, detail });
+        await page.close();
     }
+  }
 
+    await walk(ctx, list);
     await ctx.close();
+
+    /*
+     * And the licence bound routes, with the engineer's session. If that probe
+     * could not be made, the routes are still walked signed out and will fail
+     * as a redirect rather than being skipped: a route nobody measured is not
+     * a route that passed.
+     */
+    const licensedCtx = await contextFor(width, licensedProbe?.cookie);
+    await walk(licensedCtx, LICENSED_ROUTES);
+    await licensedCtx.close();
   }
 
   await browser.close();
@@ -297,12 +345,12 @@ await run();
 checks.push({
   name: "the mobile probe account was removed",
   ok: await destroyProbe(),
-  detail: "a probe left behind is a live admin account nobody created on purpose",
+  detail: "a probe left behind is a live account nobody created on purpose",
 });
 
 console.log("================ MOBILE HORIZONTAL OVERFLOW ================");
 console.log(
-  `${BASE}, every sitemap route plus ${PORTAL_ROUTES.length} portal routes at ${WIDTHS.join(" and ")}\n`,
+  `${BASE}, every sitemap route plus ${PORTAL_ROUTES.length + LICENSED_ROUTES.length} portal routes at ${WIDTHS.join(" and ")}\n`,
 );
 const failed = checks.filter((c) => !c.ok);
 for (const c of failed) console.log(`  FAIL: ${c.name} (${c.detail})`);

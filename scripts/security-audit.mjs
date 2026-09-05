@@ -49,6 +49,13 @@ const ADMIN_PAGES = [
   // Phase 10 Section 1. The telephone call path: a client, a price and a
   // dispatch, so it is as far from public as a portal page gets.
   "/portal/intake",
+  // The permission screen. It names every member of staff, what each can do,
+  // and the controls that change it. An intruder reading it learns the shape
+  // of the whole organisation; an intruder writing to it owns the platform.
+  "/portal/roles",
+  // Phase 10 Section 2. Who may do what, and the only screen that can lock the
+  // firm out of its own platform.
+  "/portal/roles",
   "/portal/people",
   "/portal/audit",
   "/portal/profile",
@@ -118,6 +125,10 @@ const ADMIN_APIS = [
   // Silencing an alert is a decision to stop being told about a fault, which
   // is exactly the control an intruder would want.
   "/api/portal/status",
+  // Grants, role membership and role creation. This is the route that decides
+  // what every other route in this list will allow, so it is the one whose
+  // exposure would make the rest of the perimeter beside the point.
+  "/api/portal/roles",
 ];
 
 /**
