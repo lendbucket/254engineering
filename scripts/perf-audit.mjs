@@ -163,10 +163,20 @@ for (const route of ROUTE_BUDGETS) {
 
   rows.push({ ...route, median, spread, summary, runs: ok.length });
 
+  /*
+   * A route may carry its OWN lcp ceiling, and one does. Everything else is
+   * judged against the shared one, so re-deriving a number for the page that
+   * needed it does not quietly loosen the other nine. The reasoning for the one
+   * override is in perf-budgets.mjs above ROUTE_BUDGETS.
+   */
+  const lcpCeiling = route.lcp ?? CEILINGS.lcp;
+
   rec(
-    `${route.name}: LCP ${Math.round(median.lcp)}ms within ${CEILINGS.lcp}ms`,
-    median.lcp <= CEILINGS.lcp,
-    `${route.path}, median of ${ok.length}, spread ${Math.round(spread.lcp)}ms`,
+    `${route.name}: LCP ${Math.round(median.lcp)}ms within ${lcpCeiling}ms`,
+    median.lcp <= lcpCeiling,
+    `${route.path}, median of ${ok.length}, spread ${Math.round(spread.lcp)}ms${
+      route.lcp ? ", its own ceiling" : ""
+    }`,
   );
   rec(
     `${route.name}: CLS ${median.cls.toFixed(3)} within ${CEILINGS.cls}`,
