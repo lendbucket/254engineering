@@ -297,10 +297,42 @@ export function canSeeFile(actor: Actor | null, file: FileSubject): boolean {
  * not it renders it, and "it is not displayed" is not the same as "it was not
  * sent".
  */
+/**
+ * EVERY MONEY COLUMN ON eng_files, REDACTED FROM ANYBODY WITHOUT pricing.read.
+ *
+ * The rule this list implements: a field technician is an independent
+ * contractor paid a flat rate, and a contractor who can see the spread between
+ * what the client pays and what they are paid is a negotiation the firm did not
+ * intend to have.
+ *
+ * WHY IT IS ASSERTED AGAINST THE SCHEMA RATHER THAN MAINTAINED BY HAND
+ * -------------------------------------------------------------------
+ * Phase 10 Section 1 added catalog_price_cents and coastal_surcharge_cents to
+ * eng_files and this list did not grow with them. Nothing leaked, because
+ * FILE_COLUMNS did not select them, but that is an accident of what is READ
+ * rather than a protection: the same commit added deliverable to
+ * FILE_COLUMNS, which is exactly how a column starts being selected.
+ *
+ * files-audit now derives the expected set from the migrations and fails if any
+ * column on eng_files mentioning price, cost or surcharge is missing here. The
+ * next money column is caught rather than remembered.
+ *
+ * THE OVERRIDE METADATA IS IN THE LIST TOO, AND THAT IS DELIBERATE
+ * ---------------------------------------------------------------
+ * price_override_reason is free text a person wrote, and what they write is
+ * "agreed on the call against a volume commitment". That is client pricing
+ * reaching a technician by a different route, and the two timestamps and the
+ * actor id are only meaningful alongside it.
+ */
 export const PRICING_FIELDS = [
   "client_price_cents",
   "engineer_cost_cents",
   "tech_cost_cents",
+  "catalog_price_cents",
+  "coastal_surcharge_cents",
+  "price_override_reason",
+  "price_overridden_by",
+  "price_overridden_at",
 ] as const;
 
 export function redactFile<T extends Record<string, unknown>>(actor: Actor | null, file: T): T {

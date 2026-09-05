@@ -199,18 +199,68 @@ changes:
 - **No shared accounts.** Already true structurally: every session is one
   profile, and the audit trail names it.
 
-## The open question I am not deciding alone
+## The three questions, answered
 
-`Role` stops being a union, so `homeFor(role)` and `ROLE_LABEL` stop being
-exhaustive `Record<Role, ...>` maps and become lookups that can miss. The honest
-options are a default landing route for an unknown role, or a `landing_path`
-column on `eng_roles` so a new role must say where it lands.
+Operator rulings, 2026-09-04.
 
-I lean to the column: a role the owner created should not silently inherit
-somebody else's home screen, and a default would make that the quiet behaviour.
-It is one more field on the create-a-role form and it removes a class of
-"why does the dispatcher land on the technician's screen" question.
+### 1. The landing route is a required column, not a default
 
-Nothing is built. Say which way on the landing route, whether the
-`PRICING_FIELDS` gap is fixed first, and whether the seven defaults are the
-right seven.
+`landing_path` on `eng_roles`, **NOT NULL**, so creating a role without one is
+not possible rather than merely discouraged.
+
+The reasoning is the operator's and it is the right one: an owner created role
+silently inheriting somebody else's home screen is the kind of thing nobody
+notices until a salesperson lands on the review queue and wonders what it is. A
+default would make that the quiet behaviour, and quiet is the problem.
+
+`homeFor(role)` stops being a `Record<Role, string>` and reads the column.
+
+### 2. PRICING_FIELDS was closed first, before any of this
+
+Done, ahead of the rest of the section, because the protection was an accident
+of what `FILE_COLUMNS` happened to select rather than a decision.
+
+The list now carries all eight money columns on `eng_files`, including the three
+override columns. `price_override_reason` is in it because it is free text
+somebody wrote and what they write is "agreed against a volume commitment",
+which is client pricing reaching a technician by a different route.
+
+**The expectation is derived from the migrations, not restated.** `files-audit`
+parses every `eng_files` column out of `supabase/migrations`, filters to
+anything named price, cost or surcharge, and fails if one is missing from the
+list. A hand maintained list checked against a hand maintained list would agree
+with itself forever.
+
+It also asserts the reverse, that the list names no column that no longer
+exists, so it cannot accumulate names that protect nothing while looking
+careful. And it asserts the mechanism: that `redactFile` DELETES rather than
+blanks, because a key present with a null value still tells a technician the
+field exists, and that it is gated on `pricing.read` rather than a role name,
+which matters more once roles are rows somebody can rename.
+
+Six of six injections caught, including a new money column added to the schema
+with nobody updating the list.
+
+### 3. The seven defaults stand, with the chasing action on both front line roles
+
+Confirmed. One addition, and the reasoning is the operator's: customer service
+and sales will both be asked "where is my letter" by somebody on the telephone,
+and chasing a missing gate code is exactly their job.
+
+So `files.request_information` is granted to **sales and customer service**, not
+just to an administrator. Routing a chase through the operator defeats the point
+of having somebody answer the telephone.
+
+Both roles read a file's status and history without seeing money, which the
+`PRICING_FIELDS` work above is what makes true at the data layer rather than in
+a template.
+
+Note this action does not exist under that name yet. Today the request is gated
+on `messages.use`, which sales and customer service both hold, so the behaviour
+the ruling asks for is already correct. Whether it earns its own action name is
+a Section 2 build decision and is recorded here so it is not lost.
+
+## Nothing else is built
+
+The design above is agreed. The build has not started beyond the
+`PRICING_FIELDS` work, which was ruled to come first.

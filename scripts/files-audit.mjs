@@ -30,7 +30,20 @@ import {
   GATED_STATUSES as GATED_FROM_MODULE,
 } from "../src/lib/ops-files.ts";
 import { resolveCounty, canonicalCounty, twiaStatus, regionForCounty, TEXAS_COUNTIES } from "../src/lib/ops-counties.ts";
-import { ROLES } from "../src/lib/ops-authz.ts";
+import { ROLES, PRICING_FIELDS } from "../src/lib/ops-authz.ts";
+
+/**
+ * Source with comments removed, so a check never reads the prose that explains
+ * why the code does NOT do the thing being checked for. Same helper, same
+ * reason, as accounts-audit and intake-audit.
+ */
+function codeOnly(path) {
+  const withoutBlocks = fs.readFileSync(path, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+  return withoutBlocks
+    .split("\n")
+    .filter((line) => !/^\s*\/\//.test(line))
+    .join("\n");
+}
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -399,6 +412,104 @@ const GATED = { prelaunch: true };
       prelaunch: false,
     }).ok,
     "the release path relies on this being permitted rather than on nobody checking",
+  );
+}
+
+// =====================================================================
+// EVERY MONEY COLUMN ON eng_files IS REDACTED, DERIVED FROM THE SCHEMA
+//
+// Operator ruling, 2026-09-04. PRICING_FIELDS is what redactFile deletes before
+// a row reaches anybody without pricing.read, and it is the mechanism keeping
+// client pricing and firm margin away from a field technician, who is an
+// independent contractor paid a flat rate.
+//
+// It was maintained by hand and fell behind: Phase 10 Section 1 added
+// catalog_price_cents and coastal_surcharge_cents and the list did not grow.
+// Nothing leaked, because FILE_COLUMNS did not select them, but that is an
+// accident of what is READ rather than a protection, and the same commit added
+// another column to FILE_COLUMNS, which is exactly how that changes.
+//
+// So the expectation is DERIVED from the migrations rather than restated here.
+// A hand maintained list checked against a hand maintained list would agree
+// with itself forever.
+// =====================================================================
+{
+  const sql = fs
+    .readdirSync("supabase/migrations")
+    .filter((f) => f.endsWith(".sql"))
+    .map((f) => fs.readFileSync(`supabase/migrations/${f}`, "utf8"))
+    .join("\n");
+
+  /*
+   * Columns on eng_files, from both shapes a migration adds them in: inside the
+   * create table block, and as a later alter table. Comments are stripped
+   * first, so a column named in prose is not mistaken for one that exists.
+   */
+  const code = sql.replace(/--[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
+
+  const columns = new Set();
+
+  const createBlock = code.match(/create table if not exists eng_files \(([\s\S]*?)\n\);/);
+  if (createBlock) {
+    for (const line of createBlock[1].split("\n")) {
+      const m = line.match(/^\s+([a-z_]+)\s+\S/);
+      if (m) columns.add(m[1]);
+    }
+  }
+  for (const m of code.matchAll(/alter table eng_files\s+add column if not exists ([a-z_]+)/g)) {
+    columns.add(m[1]);
+  }
+
+  rec(
+    "the migrations were parsed for eng_files columns",
+    columns.size > 20,
+    `${columns.size} columns found`,
+  );
+
+  /*
+   * Money is anything whose NAME says so. Deliberately broad: price_override_reason
+   * is free text somebody wrote, and what they write is "agreed against a volume
+   * commitment", which is client pricing reaching a technician by another route.
+   */
+  const money = [...columns].filter((c) => /price|cost|surcharge/.test(c)).sort();
+
+  rec("eng_files has money columns to protect", money.length > 0, money.join(", "));
+
+  const listed = new Set(PRICING_FIELDS);
+  const unprotected = money.filter((c) => !listed.has(c));
+
+  rec(
+    "every money column on eng_files is in PRICING_FIELDS",
+    unprotected.length === 0,
+    unprotected.length ? `NOT REDACTED: ${unprotected.join(", ")}` : `${money.length} columns`,
+  );
+
+  /*
+   * And nothing in the list has been removed from the schema, so the list
+   * cannot quietly accumulate names that protect nothing while looking careful.
+   */
+  const stale = [...listed].filter((c) => !columns.has(c));
+  rec(
+    "and PRICING_FIELDS names no column that no longer exists",
+    stale.length === 0,
+    stale.length ? stale.join(", ") : "",
+  );
+
+  /*
+   * The mechanism itself, not just the list. redactFile has to actually delete
+   * them, and it has to be gated on pricing.read rather than on a role, because
+   * Phase 10 Section 2 makes roles data and a role name in here would become a
+   * string comparison against a row somebody can rename.
+   */
+  const authz = codeOnly("src/lib/ops-authz.ts");
+  rec(
+    "redactFile deletes them rather than blanking them",
+    /for \(const field of PRICING_FIELDS\) delete copy\[field\]/.test(authz),
+    "a key present with a null value still tells a technician the field exists",
+  );
+  rec(
+    "and is gated on the permission rather than on a role name",
+    /can\(actor, "pricing\.read"\)/.test(authz) && !/role === "field_tech"/.test(authz),
   );
 }
 
