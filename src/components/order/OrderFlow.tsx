@@ -6,6 +6,7 @@ import {
   blockersOn,
   emptyState,
   stepsFor,
+  customerFieldsFor,
   type FlowState,
   type StepId,
 } from "@/lib/order-flow";
@@ -361,14 +362,49 @@ export function OrderFlow({
 
         {step.id === "requirements" && entry ? (
           <div className="flex flex-col gap-6">
-            {entry.requiredInputs.map((input) => (
+            {/*
+              THE SHARED DEFINITION, NOT entry.requiredInputs.
+
+              Phase 10 Section 1.5 Section C. This flow and the operator intake
+              used to ask overlapping but different sets, so the firm had two
+              definitions of a complete job and the telephone path captured
+              less. Both now render what customerFieldsFor returns.
+
+              Everything up to the sealing stage is SHOWN, and only the order
+              stage is enforced by blockersOn. A customer who has their loan
+              number now should be able to give it now; one who does not should
+              still be able to buy.
+            */}
+            {customerFieldsFor(entry, "seal").map((input) => (
               <div key={input.id}>
                 <label className="text-[15px] font-semibold text-[var(--navy)]" htmlFor={input.id}>
                   {input.label}
                   {input.required ? "" : " (optional)"}
                 </label>
-                <p className="mt-1 text-[13.5px] leading-[1.55] text-[var(--secondary)]">{input.help}</p>
-                {input.kind === "file" ? (
+                {input.help ? (
+                  <p className="mt-1 text-[13.5px] leading-[1.55] text-[var(--secondary)]">{input.help}</p>
+                ) : null}
+                {input.kind === "select" || input.kind === "boolean" ? (
+                  <select
+                    id={input.id}
+                    value={state.inputs[input.id] ?? ""}
+                    onChange={(e) => set({ inputs: { ...state.inputs, [input.id]: e.target.value } })}
+                    className="mt-2.5 h-11 w-full rounded-[3px] border border-[var(--border)] px-3 text-[15px] text-[var(--navy)]"
+                  >
+                    <option value="">Choose one</option>
+                    {(input.kind === "boolean" ? ["Yes", "No"] : (input.options ?? [])).map((o) => (
+                      <option key={o} value={o}>{o}</option>
+                    ))}
+                  </select>
+                ) : input.kind === "date" || input.kind === "tel" ? (
+                  <input
+                    id={input.id}
+                    type={input.kind === "date" ? "date" : "tel"}
+                    value={state.inputs[input.id] ?? ""}
+                    onChange={(e) => set({ inputs: { ...state.inputs, [input.id]: e.target.value } })}
+                    className="mt-2.5 h-11 w-full rounded-[3px] border border-[var(--border)] px-3 text-[15px] text-[var(--navy)]"
+                  />
+                ) : input.kind === "file" ? (
                   <div className="mt-2.5">
                     <input
                       id={input.id}

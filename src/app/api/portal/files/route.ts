@@ -1,10 +1,11 @@
 import { takeJob, searchClients, type TakeJobInput } from "@/lib/ops-job-intake";
 import { sendPaymentLink, invoiceAccount } from "@/lib/ops-job-billing";
+import { requestOutstanding } from "@/lib/ops-file-inputs";
 import { dispatchContext } from "@/lib/ops-field";
 import { NextResponse, type NextRequest } from "next/server";
 import { currentActor, requestContext } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
-import { createFile, transitionFile, convertLead, createClient, getFile } from "@/lib/ops-crm";
+import { createFile, transitionFile, convertLead, createClient, getFile, getClient } from "@/lib/ops-crm";
 import type { FileStatus } from "@/lib/ops-files";
 
 /**
@@ -128,6 +129,37 @@ export async function POST(request: NextRequest) {
    * files screen renders from, so the two cannot disagree about who is
    * eligible.
    */
+  /*
+   * Ask the customer for what the job is missing. comms.send rather than
+   * files.update: it puts a message in front of a customer, and that is the
+   * permission that governs talking to them.
+   */
+  if (action === "request_information") {
+    if (!can(actor, "messages.use")) {
+      return NextResponse.json({ ok: false, error: "Not permitted." }, { status: 403 });
+    }
+    const file = await getFile(actor, String(body?.fileId ?? ""));
+    if (!file) return NextResponse.json({ ok: false, error: "No such file." }, { status: 404 });
+
+    const client = await getClient(actor, file.client_id);
+
+    const result = await requestOutstanding(actor, {
+      fileId: file.id,
+      fileNumber: file.file_number,
+      serviceSlug: file.service_slug,
+      deliverable: file.deliverable,
+      propertyAddress: file.property_address,
+      customerName: client?.name ?? "there",
+      customerEmail: client?.email ?? "",
+      stage: file.status === "needs_dispatch" || file.status === "intake" ? "dispatch" : "seal",
+      orderReference: null,
+    });
+
+    return result.ok
+      ? NextResponse.json(result)
+      : NextResponse.json({ ok: false, error: result.error }, { status: 400 });
+  }
+
   if (action === "dispatch_context") {
     if (!can(actor, "offers.dispatch")) {
       return NextResponse.json({ ok: false, error: "Not permitted." }, { status: 403 });

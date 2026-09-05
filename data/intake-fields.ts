@@ -384,6 +384,34 @@ export function fieldsFor(serviceSlug: string, tier: string): IntakeField[] {
 }
 
 /**
+ * THE SUBSET A PARTNER CAN REASONABLY KNOW.
+ *
+ * A partner refers somebody. They know who they referred, what the person needs
+ * and roughly why. They do not know the gate code, whether there is a dog, who
+ * the letter should be addressed to, or whether anybody lives there, because
+ * those are facts about somebody else's property and somebody else's lender.
+ *
+ * So a referral collects the ORDER stage customer fields and nothing further.
+ * That is enough to open the job; everything else is asked of the person who
+ * actually owns the problem, which is the customer.
+ *
+ * Expressed as a narrowing of the existing definition rather than a third
+ * audience value on every field. A partner surface asking a question the
+ * customer flow does not ask would be the third definition this module exists
+ * to prevent, and a partner audience flag would make that easy to add by
+ * accident.
+ *
+ * NOTHING RENDERS THIS YET. The partner portal is Phase 9 Section 4, which is
+ * suspended by operator decision, so there is no partner referral surface. This
+ * is here because the definition is the right place for the answer and building
+ * it with the rest keeps one module deciding who is asked what. When that
+ * surface arrives it renders this and defines nothing of its own.
+ */
+export function partnerFieldsFor(serviceSlug: string, tier: string): IntakeField[] {
+  return fieldsFor(serviceSlug, tier).filter((f) => f.audience === "customer" && f.stage === "order");
+}
+
+/**
  * What is still missing, and when it becomes a problem.
  *
  * Returns the fields whose stage has been reached and which have no answer, so

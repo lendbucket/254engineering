@@ -8,6 +8,7 @@ import { resolveCounty, twiaStatus } from "./ops-counties";
 import { isPrelaunch } from "./launch";
 import { isKnown } from "./ops-money";
 import { fieldsFor, missingFor } from "@data/intake-fields";
+import { defaultAnswersFor } from "./ops-file-inputs";
 import {
   blockers,
   decidePrice,
@@ -203,7 +204,17 @@ export async function takeJob(
    * checked here: a job is deliberately allowed to be opened incomplete, and
    * what is outstanding is recorded rather than refused.
    */
-  const answers = input.answers ?? {};
+  /*
+   * The account's standing answers fill the gaps, and the operator wins every
+   * collision. A default is what this client usually says, not what they said
+   * on this call, so anything typed on the screen overrides it.
+   *
+   * Read before the blockers are computed, so a field the account already
+   * answers does not stop a job being taken.
+   */
+  const defaults = await defaultAnswersFor(input.clientId ?? null);
+  const answers = { ...defaults, ...(input.answers ?? {}) };
+
   const missingToOrder = missingFor(input.serviceSlug, input.tier, answers, "order");
   if (missingToOrder.length) {
     return { ok: false, error: `${missingToOrder[0].label}.`, field: missingToOrder[0].id };
@@ -312,6 +323,13 @@ export async function takeJob(
    * matters when an access arrangement turns out to be wrong: what the customer
    * said and what the firm wrote down are different claims.
    */
+  /*
+   * Recorded with the source they actually came from. An answer that arrived
+   * from the account's standing preferences was not something the operator was
+   * told on this call, and labelling it "firm" would make a stored default look
+   * like a fresh confirmation.
+   */
+  const typed = input.answers ?? {};
   const supplied = Object.entries(answers).filter(([, v]) => typeof v === "string" && v.trim() !== "");
   if (supplied.length) {
     const known = new Set(fieldsFor(input.serviceSlug, input.tier).map((f) => f.id));
@@ -321,7 +339,7 @@ export async function takeJob(
         file_id: file.id,
         field_id,
         value_text: value_text.trim(),
-        source: "firm",
+        source: field_id in typed ? "firm" : "customer",
         recorded_by: actor.id,
       }));
 

@@ -57,6 +57,8 @@ export type FileRow = {
   file_number: string;
   client_id: string;
   service_slug: string;
+  /** The catalog tier. Null on every file opened before Phase 10 Section 1. */
+  deliverable: string | null;
   property_address: string;
   city: string | null;
   county: string;
@@ -82,7 +84,12 @@ export type FileRow = {
 };
 
 const FILE_COLUMNS =
-  "id, file_number, client_id, service_slug, property_address, city, county, twia_county, latitude, longitude, urgency, status, due_at, assigned_tech_id, assigned_engineer_id, client_price_cents, tech_cost_cents, engineer_cost_cents, created_at, notes";
+  /*
+   * deliverable is read as well as written from Phase 10 Section 1. It existed
+   * unwritten from Phase 6, so nothing selected it, and the screens that now
+   * ask what a file is missing need to know which deliverable to ask about.
+   */
+  "id, file_number, client_id, service_slug, deliverable, property_address, city, county, twia_county, latitude, longitude, urgency, status, due_at, assigned_tech_id, assigned_engineer_id, client_price_cents, tech_cost_cents, engineer_cost_cents, created_at, notes";
 
 // ------------------------------------------------------------------ clients
 

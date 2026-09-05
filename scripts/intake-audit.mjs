@@ -670,10 +670,22 @@ console.log("");
     /known\.has\(id\)/.test(intakeLib) && /fieldsFor\(input\.serviceSlug, input\.tier\)/.test(intakeLib),
     "a hand crafted request must not be able to write a field nobody defined",
   );
+  /*
+   * The source distinguishes what the OPERATOR typed on the call from what came
+   * out of the account's standing defaults. The first check here asserted the
+   * literal string "firm", which was right until account defaults arrived and
+   * then asserted the wrong thing: labelling a stored preference as something
+   * the firm was just told makes an old answer look like a fresh confirmation.
+   */
   rec(
-    "and records that the firm supplied them, not the customer",
-    /source: "firm"/.test(intakeLib),
-    "what the customer said and what the firm wrote down are different claims",
+    "the source distinguishes what was typed from what came from a default",
+    intakeLib.includes('field_id in typed ? "firm" : "customer"'),
+    "a stored preference is not something the operator was told on this call",
+  );
+  rec(
+    "and account defaults fill gaps without overriding the operator",
+    intakeLib.includes("{ ...defaults, ...(input.answers ?? {}) }"),
+    "a default is what this client usually says, not what they said just now",
   );
   rec(
     "the order stage questions block the job the way the property address does",

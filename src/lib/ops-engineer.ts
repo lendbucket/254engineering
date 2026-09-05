@@ -157,7 +157,7 @@ export async function packageFor(actor: Actor | null, fileId: string): Promise<P
   const { data: file } = await db
     .from("eng_files")
     .select(
-      "id, file_number, property_address, city, county, service_slug, status, twia_county, notes, revision_count, refusal_reason, assigned_tech_id",
+      "id, file_number, property_address, city, county, service_slug, deliverable, status, twia_county, notes, revision_count, refusal_reason, assigned_tech_id",
     )
     .eq("id", fileId)
     .maybeSingle();

@@ -6,11 +6,12 @@ import { can } from "@/lib/ops-authz";
 import { listFiles, getFile, listClients, fileTimeline, fileRegion } from "@/lib/ops-crm";
 import { availableTransitions, STATUS_LABEL, STATUS_TONE, FILE_STATUSES } from "@/lib/ops-files";
 import { TEXAS_COUNTIES, twiaStatus } from "@/lib/ops-counties";
+import { outstandingFor, answeredFor } from "@/lib/ops-file-inputs";
 import { services } from "@/content/services";
 import { Chip, EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
 import { dispatchContext, jobView } from "@/lib/ops-field";
 import { progressLabel } from "@/lib/ops-evidence";
-import { NewFileForm, TransitionControls } from "./FileClient";
+import { NewFileForm, TransitionControls, RequestInformation } from "./FileClient";
 import { DispatchPanel } from "./DispatchPanel";
 
 export const dynamic = "force-dynamic";
@@ -75,6 +76,29 @@ export default async function FilesPage({
     )
       ? await jobView(actor, selected.id)
       : null;
+  /*
+   * WHAT THIS FILE IS STILL MISSING.
+   *
+   * Phase 10 Section 1.5 Section C item 3. The stage asked about depends on
+   * where the file is: a file waiting for dispatch is asked what a technician
+   * needs, and a file at review is asked what an engineer needs to issue the
+   * document. The same function answers both, reading the same definition, so
+   * this screen and the review queue cannot disagree about whether a job is
+   * ready.
+   */
+  const outstanding = selected
+    ? await outstandingFor(
+        selected.id,
+        selected.service_slug,
+        selected.deliverable,
+        selected.status === "needs_dispatch" || selected.status === "intake" ? "dispatch" : "seal",
+      )
+    : null;
+
+  const answered = selected
+    ? await answeredFor(selected.id, selected.service_slug, selected.deliverable)
+    : [];
+
   const clients = can(actor, "files.create") ? await listClients(actor) : [];
 
   const filterHref = (patch: Record<string, string | undefined>) => {
@@ -175,6 +199,49 @@ export default async function FilesPage({
           </div>
         </div>
 
+        {outstanding && (outstanding.now.length > 0 || outstanding.later.length > 0) ? (
+          <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5">
+            <p className="portal-kicker">Outstanding information</p>
+            {outstanding.now.length > 0 ? (
+              <>
+                <p className="mt-1.5 text-[13.5px] leading-[1.55] text-[var(--ink)]">
+                  {selected.status === "needs_dispatch" || selected.status === "intake"
+                    ? "Needed before a technician is sent."
+                    : "Needed before this can be sealed."}
+                </p>
+                <ul className="mt-2 flex flex-col gap-1">
+                  {outstanding.now.map((f) => (
+                    <li key={f.id} className="text-[13.5px] leading-[1.5] text-[var(--danger)]">
+                      {f.label}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <p className="mt-1.5 text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+                Nothing is outstanding for this step.
+              </p>
+            )}
+
+            {outstanding.now.length > 0 && can(actor, "messages.use") ? (
+              <RequestInformation fileId={selected.id} />
+            ) : null}
+
+            {outstanding.later.length > 0 ? (
+              <>
+                <p className="mt-3 text-[12.5px] font-semibold text-[var(--navy)]">Needed later</p>
+                <ul className="mt-1.5 flex flex-col gap-1">
+                  {outstanding.later.map((f) => (
+                    <li key={f.id} className="text-[12.5px] leading-[1.5] text-[var(--secondary)]">
+                      {f.label}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
+          </div>
+        ) : null}
+
         {dispatch ? (
           <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5">
             <DispatchPanel
@@ -189,6 +256,20 @@ export default async function FilesPage({
                 dispatch.protocol ? `${dispatch.protocol.name} v${dispatch.protocol.version}` : null
               }
             />
+          </div>
+        ) : null}
+
+        {answered.length > 0 ? (
+          <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5">
+            <p className="portal-kicker">What the job was told</p>
+            <dl className="mt-2 flex flex-col gap-2">
+              {answered.map(({ field, value }) => (
+                <div key={field.id} className="flex flex-wrap items-baseline justify-between gap-3">
+                  <dt className="text-[12.5px] text-[var(--secondary)]">{field.label}</dt>
+                  <dd className="text-[13.5px] font-semibold text-[var(--navy)]">{value}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
         ) : null}
 

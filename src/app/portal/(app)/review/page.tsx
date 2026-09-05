@@ -9,6 +9,7 @@ import { STATUS_LABEL, STATUS_TONE, type FileStatus } from "@/lib/ops-files";
 import { isPrelaunch } from "@/lib/launch";
 import { services } from "@/content/services";
 import { Chip, EmptyState, PageHead } from "@/components/portal/surfaces";
+import { outstandingFor } from "@/lib/ops-file-inputs";
 import { DecisionPanel, OpenReviewButton } from "./ReviewClient";
 
 export const dynamic = "force-dynamic";
@@ -44,6 +45,27 @@ export default async function ReviewPage({
 
   const queue = await reviewQueue(actor);
   const selected = params.id ? await packageFor(actor, params.id) : null;
+
+  /*
+   * WHAT THE ENGINEER IS STILL MISSING, asked at the sealing stage.
+   *
+   * Phase 10 Section 1.5 Section C item 3. The same outstandingFor the file
+   * screen and the dispatch panel call, reading the same definition, so a job
+   * cannot look ready on one screen and incomplete on another.
+   *
+   * This is the ADMINISTRATIVE half only. What evidence an engineer needs
+   * before sealing is the protocol's business and eight of nine service lines
+   * do not have one yet; what a document needs in order to be issued to the
+   * right party is knowable now, and missing it is what causes a reissue.
+   */
+  const outstanding = selected
+    ? await outstandingFor(
+        selected.file.id,
+        selected.file.service_slug,
+        (selected.file as { deliverable?: string | null }).deliverable ?? null,
+        "seal",
+      )
+    : null;
   const serviceName = (slug: string) => services.find((s) => s.slug === slug)?.name ?? slug;
 
   const actions = selected
@@ -123,6 +145,25 @@ export default async function ReviewPage({
             >
               Back to the queue
             </Link>
+
+            {outstanding && outstanding.now.length > 0 ? (
+              <div className="mb-4 rounded-[4px] border border-[var(--gold)] bg-[var(--gold-wash)] px-4 py-3">
+                <p className="text-[13.5px] font-bold text-[var(--ink)]">
+                  This package is missing information the document needs
+                </p>
+                <ul className="mt-1.5 flex flex-col gap-1">
+                  {outstanding.now.map((f) => (
+                    <li key={f.id} className="text-[13.5px] leading-[1.5] text-[var(--ink)]">
+                      {f.label}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-2 text-[12.5px] leading-[1.5] text-[var(--ink)]">
+                  A sealed document addressed to the wrong party has to be reissued. Ask for these
+                  before deciding, not after.
+                </p>
+              </div>
+            ) : null}
 
             <div className="rounded-[4px] border border-[var(--border)] bg-white">
               <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5">

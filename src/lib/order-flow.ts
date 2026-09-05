@@ -1,3 +1,4 @@
+import { fieldsFor, type IntakeField, type FieldStage } from "@data/intake-fields";
 import type { CatalogEntry } from "@data/catalog";
 import type { QualifierAnswer } from "./ops-orders";
 
@@ -133,6 +134,25 @@ export function emptyState(tier: string | null = null): FlowState {
  * field rather than saying "please complete all fields", because a form that
  * will not say which box is wrong is a form people abandon.
  */
+/**
+ * The fields this deliverable asks a CUSTOMER, up to a stage.
+ *
+ * Exported because the flow renders it and blockersOn validates it, and those
+ * two disagreeing is the exact failure this section exists to fix.
+ *
+ * The stage argument is what lets the same list be rendered generously and
+ * validated narrowly: everything up to "seal" is shown, because a customer who
+ * has their loan number now should be able to give it now, and only "order"
+ * stops them proceeding.
+ */
+export function customerFieldsFor(entry: CatalogEntry, upTo: FieldStage): IntakeField[] {
+  const order: FieldStage[] = ["order", "dispatch", "seal"];
+  const limit = order.indexOf(upTo);
+  return fieldsFor(entry.serviceSlug, entry.tier).filter(
+    (f) => f.audience === "customer" && order.indexOf(f.stage) <= limit,
+  );
+}
+
 export function blockersOn(step: StepId, entry: CatalogEntry | null, state: FlowState): string[] {
   const missing: string[] = [];
 
@@ -164,12 +184,26 @@ export function blockersOn(step: StepId, entry: CatalogEntry | null, state: Flow
   }
 
   if (step === "requirements") {
-    for (const input of entry.requiredInputs) {
-      if (!input.required) continue;
-      if (input.kind === "file") {
-        if (!(state.files[input.id]?.length > 0)) missing.push(input.label);
-      } else if (!state.inputs[input.id]?.trim()) {
-        missing.push(input.label);
+    /*
+     * THE SHARED DEFINITION, NOT entry.requiredInputs.
+     *
+     * Phase 10 Section 1.5 Section C. This used to read the catalog's own
+     * inputs, which meant the customer flow and the operator intake asked
+     * overlapping but different sets, and the firm had two definitions of a
+     * complete job. fieldsFor returns the universal fields AND the catalog's,
+     * so both paths ask the same questions and neither carries a list of its
+     * own to drift.
+     *
+     * Only the customer answerable ones, and only the ones needed to ORDER. A
+     * customer cannot be asked what the firm gathers, and refusing an order for
+     * something needed before dispatch is what the stages exist to prevent.
+     */
+    for (const field of customerFieldsFor(entry, "order")) {
+      if (!field.required) continue;
+      if (field.kind === "file") {
+        if (!(state.files[field.id]?.length > 0)) missing.push(field.label);
+      } else if (!state.inputs[field.id]?.trim()) {
+        missing.push(field.label);
       }
     }
     return missing;
