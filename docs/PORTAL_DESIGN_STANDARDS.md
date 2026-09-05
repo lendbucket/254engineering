@@ -264,6 +264,157 @@ the page exists to somebody who should not know that, which is a regression
 against a rule the harness already enforces. The 403's visual treatment is
 carried into the 404 so nothing about the design is lost.
 
+## The native standard at 390
+
+Operator ruling, 2026-09-05, Phase 11 Section 2. Written down before anything
+was built against it, because it is the thing the operator has been unable to
+describe mechanically and the session will be held to it on every screen.
+
+**The distinction it exists to capture.** The audits already assert no
+horizontal overflow and no tap target under 44px. Both pass on every portal
+screen today, and neither is what the operator is describing. A document that
+scrolls as one page with a bar fixed to the bottom is a website that fits. An
+application has fixed chrome and a scrolling content region between it.
+
+Each of the nine points below is a check somebody can fail. Where the current
+state is already known it is recorded beside the rule, so the gap is visible
+rather than discovered.
+
+### 1. The page never scrolls; the content region does
+
+The header and the bottom tab bar are fixed. Only the region between them
+scrolls, and it scrolls to its own bounds rather than the document's.
+
+The test: at 390, `document.documentElement.scrollHeight` equals its
+`clientHeight` on every portal route, and a named scrolling element between the
+chrome has `scrollHeight` greater than its own `clientHeight` wherever the
+content is taller than the region.
+
+*Today:* the header is `sticky top-0`, not fixed, and `<main>` is in ordinary
+document flow with `pb-[calc(88px+env(safe-area-inset-bottom))]` to clear the
+tab bar. So the document is what scrolls, and the header rides along on
+stickiness. This is the single largest thing between the portal and feeling
+native, and it is the one point that touches every screen at once.
+
+### 2. Nothing scrolls sideways without saying so
+
+No horizontal scroll at document level or inside any container, unless the
+container is a deliberate horizontally scrolling component that shows its own
+affordance.
+
+Content clipped with no affordance is the defect this repository has now found
+three times: the rail clipping its own navigation, the notification list and
+command palette clipping theirs, and two data tables scrolling sideways with
+nothing to focus. An affordance is a visible scrollbar, a fade the component
+owns, or a control; it is not the reader discovering it by dragging.
+
+*Today:* `mobile-overflow-audit` already holds document level scroll at 360 and
+390 across every route, and it passes. Containers are the gap.
+
+### 3. Safe areas, top and bottom
+
+Nothing sits under the notch or the home indicator. Padding comes from
+`env(safe-area-inset-*)` rather than from a guessed constant.
+
+*Today:* the header carries `pt-[env(safe-area-inset-top)]` and the tab bar and
+main carry the bottom inset. This point is close to met and becomes a check
+rather than work.
+
+### 4. Tables become cards
+
+A table that scrolls sideways on a phone is a desktop table on a phone. Every
+operator screen with a table needs a card layout at 390 carrying the same
+information in reading order, which means the same facts, in the order somebody
+reads them, not a subset chosen by which columns fit.
+
+*Today, and smaller than it sounds:* most portal screens already render `ul` and
+`li` cards rather than tables. Exactly two use a raw `table`, the dashboard and
+billing, both at a `min-width` inside a horizontal scroller. There is also a
+`DataTable` primitive in the design system which is itself a sideways scrolling
+table at `min-width: 640px` and which **no screen uses**. It either becomes the
+card-and-table component this point requires, or it is deleted; leaving an unused
+primitive that violates the standard is how the standard gets broken later by
+somebody reaching for the obvious component.
+
+### 5. Modals and pickers are sheets
+
+They present from the bottom, sized to their content, dismissible by dragging,
+and never as centred desktop dialogs.
+
+The test is behavioural, not visual: the panel is anchored to the bottom edge, it
+does not exceed the content it holds, and a downward drag closes it.
+
+### 6. Every interaction has a pressed state, and nothing needs hover
+
+There is no hover on a touch screen. Any affordance that only becomes
+discoverable on hover is invisible to the person the portal is mainly for.
+
+*Today:* the entire portal contains **two** `active:` rules. Effectively nothing
+has a pressed state, so every tap gives no feedback until the page changes. This
+is the second largest gap after point 1, and it is the one most responsible for
+the interface feeling like a web page.
+
+### 7. The keyboard is handled
+
+A focused input is never covered by the keyboard. The composer and any
+bottom-anchored control move with it. Inputs are at least 16px so focusing one
+never zooms the viewport.
+
+*Today:* the 16px half is already met; no portal input is below it. The moving
+half is not built, and it matters most in the messaging composer, which is
+Section 3.
+
+### 8. Long lists are paginated or virtualised, and remember where they were
+
+A list that can grow renders a bounded number of rows, and its scroll position
+survives navigating away and back.
+
+*Today:* the files list renders everything it is given with no limit and no
+cursor. With the row counts the firm has now this is invisible; it is the kind
+of thing that is only ever noticed on the day it is a problem.
+
+### 9. Every desktop action is reachable on a phone
+
+The operator's requirement is that the firm can be run remotely. An action that
+exists only on a wide screen is a gap rather than a choice, and each one is
+either given a mobile equivalent or has its reason recorded here.
+
+The enumeration, taken from the code rather than from memory. Fourteen elements
+in the portal are hidden below `lg`:
+
+| Element | Where | Verdict |
+| --- | --- | --- |
+| The navigation rail | `layout.tsx` | Has an equivalent: the bottom tab bar plus the More sheet. |
+| The search button with its Ctrl K hint | `PortalChrome` | Has an equivalent: the search icon at `lg:hidden` opens the same palette. |
+| "Data as of" timestamp | `layout.tsx` | Informational, no action. Acceptable to omit, recorded here so it is a decision. |
+| Column labels and secondary columns | files, messages, onboarding, protocols, review, `surfaces.tsx` | These are the table and list headers that point 4 governs. Their information has to appear in the card, not disappear. |
+| `desktopOnly` columns | `DataTable` | Same, and the primitive is unused, so this resolves with point 4. |
+
+Nothing in that list is an action with no mobile route today. The risk this point
+guards is future work, so it becomes a standing check rather than a repair.
+
+### How this is audited
+
+`mobile-overflow-audit` already walks every portal route at 360 and 390 with a
+real session in three roles. Points 1, 2, 3 and 4 are assertable there or in a
+companion: document scroll height equals viewport height, a named scroll region
+exists and scrolls, computed padding reflects the safe area insets, and no
+`table` element is visible at 390.
+
+Points 5, 6, 7 and 8 are assertable but not by looking at a resting page: they
+need an interaction. Point 6 in particular is checkable statically as a floor
+(every interactive element declares a pressed state) and behaviourally as a
+ceiling (the state actually applies on touch), and the floor is worth having
+first because it is what fails today.
+
+Point 9 is a coverage check of the same shape as the perimeter list: every
+element hidden below `lg` is either in the table above or the audit fails, so a
+new desktop-only affordance cannot be added without a ruling.
+
+**What none of this asserts** is whether the result feels like an application.
+That is `docs/portal-screen-verdicts.md`, and Section 2 ends by filling in the
+twenty three blank rows.
+
 ## Build roadmap (for Claude Code)
 The prototype (`254 Portal v2.dc.html`) is the design source of truth. These need real backend behavior; UI hooks that already exist in the prototype are noted.
 
