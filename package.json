@@ -19,6 +19,8 @@
     "mobile-overflow-audit": "node scripts/mobile-overflow-audit.mjs",
     "precontrast-audit": "node scripts/preflight-harness.mjs",
     "contrast-audit": "node scripts/contrast-audit.mjs",
+    "preasset-audit": "node scripts/preflight-audit.mjs",
+    "asset-audit": "node scripts/asset-audit.mjs",
     "preforms-audit": "node scripts/preflight-audit.mjs",
     "forms-audit": "node scripts/forms-audit.mjs",
     "preseo-audit": "node scripts/preflight-audit.mjs",

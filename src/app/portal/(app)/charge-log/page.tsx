@@ -75,7 +75,7 @@ export default async function ChargeLogPage({
                   key={p}
                   href={`/portal/charge-log?period=${p}`}
                   className={`inline-flex min-h-[40px] items-center rounded-[3px] border px-3 text-[13.5px] font-semibold ${
-                    p === period ? "border-slate bg-slate text-[var(--navy)]-fg" : "border-[var(--border)] text-[var(--secondary)]"
+                    p === period ? "border-slate bg-slate text-[var(--on-navy)]" : "border-[var(--border)] text-[var(--secondary)]"
                   }`}
                 >
                   {p}

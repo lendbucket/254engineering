@@ -51,6 +51,9 @@ Visual reference: `254 Brand Standards.dc.html`. Canonical implementation: `254 
 --gold-bright: #E8B04A; /* progress fills on navy */
 --gold-deep: #8D610F;   /* warning text on light backgrounds */
 --gold-wash: #FDF6E7;   /* accent tint: the fill behind an explanation, not an alert */
+--on-navy: #FFFFFF;      /* text on navy */
+--on-navy-muted: #CFD7E3;/* body text on navy, 8.90:1 */
+--on-navy-dim: #9DAAC0;  /* labels and metadata on navy, 5.50:1 */
 --warn-bg: #FFF9EC;     /* alert background */
 --warn-border: #E8D9AE; /* alert border */
 --warn-ink: #5C4A12;    /* alert text */

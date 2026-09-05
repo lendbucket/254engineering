@@ -452,7 +452,7 @@ function CaptureControl({
       <div className="mt-3">
         <label
           htmlFor={inputId}
-          className="inline-flex min-h-[48px] w-full cursor-pointer items-center justify-center rounded-[3px] border border-slate bg-slate px-4 text-[15px] font-bold text-[var(--navy)]-fg sm:w-auto sm:px-6"
+          className="inline-flex min-h-[48px] w-full cursor-pointer items-center justify-center rounded-[3px] border border-slate bg-slate px-4 text-[15px] font-bold text-[var(--on-navy)] sm:w-auto sm:px-6"
         >
           {KIND_VERB[item.kind]}
         </label>
@@ -493,7 +493,7 @@ function CaptureControl({
             onCapture({ text: text.trim() });
             setText("");
           }}
-          className="mt-2 inline-flex min-h-[48px] w-full items-center justify-center rounded-[3px] border border-slate bg-slate px-4 text-[15px] font-bold text-[var(--navy)]-fg disabled:opacity-50 sm:w-auto sm:px-6"
+          className="mt-2 inline-flex min-h-[48px] w-full items-center justify-center rounded-[3px] border border-slate bg-slate px-4 text-[15px] font-bold text-[var(--on-navy)] disabled:opacity-50 sm:w-auto sm:px-6"
         >
           Save this note
         </button>
@@ -527,7 +527,7 @@ function CaptureControl({
           onCapture({ value: Number(value) });
           setValue("");
         }}
-        className="inline-flex min-h-[48px] items-center justify-center rounded-[3px] border border-slate bg-slate px-5 text-[15px] font-bold text-[var(--navy)]-fg disabled:opacity-50"
+        className="inline-flex min-h-[48px] items-center justify-center rounded-[3px] border border-slate bg-slate px-5 text-[15px] font-bold text-[var(--on-navy)] disabled:opacity-50"
       >
         Record
       </button>

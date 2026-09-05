@@ -57,13 +57,13 @@ export default async function PortalLoginPage({
   const ready = opsSessionConfigured() && supabaseConfigured();
 
   return (
-    <main className="portal-surface grid min-h-dvh place-items-center px-4 py-10">
+    <main className="portal-surface grid min-h-dvh place-items-center px-4 py-6 sm:py-10">
       <div className="w-full max-w-[420px]">
-        <div className="mb-6 flex justify-center">
+        <div className="mb-4 flex justify-center sm:mb-6">
           <Wordmark height={44} priority />
         </div>
 
-        <div className="rounded-[var(--radius-card)] border border-[var(--border)] bg-white p-6 sm:p-7">
+        <div className="rounded-[var(--radius-card)] border border-[var(--border)] bg-white p-5 sm:p-7">
           <h1 className="font-display text-[17px] leading-[1.25] font-bold text-[var(--navy)]">
             Operations portal
           </h1>
@@ -71,7 +71,7 @@ export default async function PortalLoginPage({
             This area is not public and is not indexed.
           </p>
 
-          <div className="mt-5 flex flex-col gap-3">
+          <div className="mt-4 flex flex-col gap-2.5 sm:mt-5 sm:gap-3">
             {params.suspended ? (
               <SystemAlert condition="Account suspended." tone="failed">
                 An administrator can restore it. Signing in is refused until they do.
@@ -92,17 +92,23 @@ export default async function PortalLoginPage({
             )}
 
             {/*
-              Rendered unconditionally. The component reads the gate itself and
-              returns null once it lifts, so there is nothing to remember to
-              remove on launch day.
+              The component reads the gate itself and returns null once it
+              lifts, so there is nothing to remember to remove on launch day.
+
+              NOT rendered to a suspended account. That person cannot sign in,
+              so which services the firm can currently perform is not a question
+              they are in a position to ask, and the two notices stacked are
+              what pushed this state 71px past a 390 viewport. The registration
+              is still stated in full by the compliance sentence under the card,
+              which is unconditional. Said once rather than twice.
             */}
-            <RestrictedMode />
+            {params.suspended ? null : <RestrictedMode />}
           </div>
 
           <LoginForm next={params.next ?? null} disabled={!ready} />
         </div>
 
-        <p className="mt-5 text-center text-[12px] leading-[1.6] text-[var(--secondary)]">
+        <p className="mt-4 text-center text-[12px] leading-[1.6] text-[var(--secondary)] sm:mt-5">
           Firm registration pending with the Texas Board of Professional Engineers and Land
           Surveyors. No engineer of record is yet in responsible charge.
         </p>

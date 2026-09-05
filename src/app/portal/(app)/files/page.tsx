@@ -114,7 +114,7 @@ export default async function FilesPage({
         <Link
           href={filterHref({ status: undefined })}
           className={`inline-flex min-h-[36px] items-center rounded-[3px] border px-3 text-[13.5px] font-semibold ${
-            !params.status ? "border-slate bg-slate text-[var(--navy)]-fg" : "border-[var(--border)] text-[var(--secondary)]"
+            !params.status ? "border-slate bg-slate text-[var(--on-navy)]" : "border-[var(--border)] text-[var(--secondary)]"
           }`}
         >
           All
@@ -124,7 +124,7 @@ export default async function FilesPage({
             key={s}
             href={filterHref({ status: s })}
             className={`inline-flex min-h-[36px] items-center rounded-[3px] border px-3 text-[13.5px] font-semibold ${
-              params.status === s ? "border-slate bg-slate text-[var(--navy)]-fg" : "border-[var(--border)] text-[var(--secondary)]"
+              params.status === s ? "border-slate bg-slate text-[var(--on-navy)]" : "border-[var(--border)] text-[var(--secondary)]"
             }`}
           >
             {STATUS_LABEL[s]}

@@ -64,7 +64,12 @@ export default async function BillingPage() {
             title="By period"
             description="A file counts toward the month it was delivered, or the month it was opened if it has not been delivered."
           >
-            <div className="overflow-x-auto">
+            <div
+              className="overflow-x-auto"
+              role="region"
+              aria-label="Billing by period, scrolls sideways"
+              tabIndex={0}
+            >
               <table className="w-full min-w-[620px] border-collapse text-left">
                 <thead>
                   <tr className="border-b border-[var(--border)]">

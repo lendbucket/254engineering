@@ -29,9 +29,56 @@ import { startNextServer } from "./lib/dev-server.mjs";
 const require = createRequire(import.meta.url);
 const axePath = require.resolve("axe-core/axe.min.js");
 
+import { createProbe, cookieFor, destroyProbes } from "./lib/portal-probe.mjs";
+
 const WIDTHS = [390, 1280];
 const HEIGHT = 900;
 const PORT = Number(process.env.CONTRAST_PORT || 3224);
+
+/*
+ * THE PORTAL, WHICH THIS AUDIT HAD NEVER MEASURED.
+ *
+ * Phase 11 gate 0: contrast-audit visited seventeen public marketing routes and
+ * no portal route, so its "ALL GREEN" line was about the website while the
+ * operations platform the firm runs on was never looked at. The same was true
+ * of mobile-audit and forms-audit.
+ *
+ * Every one of these needs a signed in session, which is what portal: true
+ * means. The pre-session screens are in the ordinary list below, because they
+ * are reachable without one and there is no reason to spend an account on them.
+ *
+ * The role is on the template because what a screen RENDERS depends on it: an
+ * administrator sees money columns a technician must never see, and auditing
+ * only the administrator's view would leave the redacted variants unmeasured.
+ */
+const PORTAL_TEMPLATES = [
+  { name: "portal: dashboard", path: "/portal", portal: "admin" },
+  { name: "portal: files", path: "/portal/files", portal: "admin" },
+  { name: "portal: clients", path: "/portal/clients", portal: "admin" },
+  { name: "portal: new job", path: "/portal/intake", portal: "admin" },
+  { name: "portal: people", path: "/portal/people", portal: "admin" },
+  { name: "portal: roles", path: "/portal/roles", portal: "admin" },
+  { name: "portal: audit trail", path: "/portal/audit", portal: "admin" },
+  { name: "portal: technicians", path: "/portal/techs", portal: "admin" },
+  { name: "portal: documents", path: "/portal/documents", portal: "admin" },
+  { name: "portal: orders", path: "/portal/orders", portal: "admin" },
+  { name: "portal: accounts", path: "/portal/accounts", portal: "admin" },
+  { name: "portal: billing", path: "/portal/billing", portal: "admin" },
+  { name: "portal: queue", path: "/portal/queue", portal: "admin" },
+  { name: "portal: status", path: "/portal/status", portal: "admin" },
+  { name: "portal: tasks", path: "/portal/tasks", portal: "admin" },
+  { name: "portal: messages", path: "/portal/messages", portal: "admin" },
+  { name: "portal: profile", path: "/portal/profile", portal: "admin" },
+  { name: "portal: onboarding", path: "/portal/onboarding", portal: "admin" },
+  { name: "portal: charge log", path: "/portal/charge-log", portal: "admin" },
+  { name: "portal: pay", path: "/portal/pay", portal: "admin" },
+  // The licence bound screens, which an administrator cannot open at all.
+  { name: "portal: review queue", path: "/portal/review", portal: "engineer" },
+  { name: "portal: protocols", path: "/portal/protocols", portal: "engineer" },
+  // A technician's view of the same platform, where the redaction lives.
+  { name: "portal: my jobs", path: "/portal/jobs", portal: "field_tech" },
+  { name: "portal: certification", path: "/portal/certification", portal: "field_tech" },
+];
 
 const TEMPLATES = [
   { name: "home", path: "/" },
@@ -51,6 +98,15 @@ const TEMPLATES = [
   { name: "privacy", path: "/privacy" },
   { name: "terms", path: "/terms" },
   { name: "404", path: "/this-route-does-not-exist", expectStatus: 404 },
+  /*
+   * The screens a person meets BEFORE they hold a session, which gate 0 found
+   * had never been measured by anything except horizontal scroll. The set
+   * password screen is the first thing a new engineer or technician ever sees.
+   */
+  { name: "portal: sign in", path: "/portal/login" },
+  { name: "portal: sign in, suspended", path: "/portal/login?suspended=1" },
+  { name: "portal: sign in, after reset", path: "/portal/login?reset=1" },
+  { name: "portal: set password, dead link", path: "/portal/set-password" },
   // The states a resting page never shows. See the note above.
   {
     name: "contact form errors",
@@ -78,8 +134,21 @@ function log(msg) {
   process.stdout.write(msg + "\n");
 }
 
-async function auditPage(browser, base, t, width) {
+async function auditPage(browser, base, t, width, sessions = {}) {
   const context = await browser.newContext({ viewport: { width, height: HEIGHT } });
+  /*
+   * A portal template without its session would redirect to the sign in screen
+   * and be audited as the sign in screen, which is the shape of check this
+   * repository keeps finding: green about the wrong page. The status assertion
+   * below does not catch it, because the redirect resolves to a 200.
+   */
+  if (t.portal) {
+    const probe = sessions[t.portal];
+    if (!probe?.cookie) {
+      return { error: `no ${t.portal} session, so this screen was not measured`, contrast: [], other: [] };
+    }
+    await context.addCookies(cookieFor(probe, base));
+  }
   const page = await context.newPage();
   try {
     const res = await page.goto(base + t.path, { waitUntil: "networkidle", timeout: 90_000 });
@@ -87,6 +156,15 @@ async function auditPage(browser, base, t, width) {
     const wanted = t.expectStatus ?? 200;
     if (status !== wanted) {
       return { error: `HTTP ${status}, expected ${wanted}`, contrast: [], other: [] };
+    }
+
+    /*
+     * A portal screen must not have bounced to sign in. Asserted rather than
+     * assumed: an expired or rejected cookie produces a 200 on the login page,
+     * and every contrast check would then pass while measuring nothing.
+     */
+    if (t.portal && new URL(page.url()).pathname.startsWith("/portal/login")) {
+      return { error: "bounced to the sign in screen, so this screen was not measured", contrast: [], other: [] };
     }
 
     if (t.submitEmpty) {
@@ -177,6 +255,19 @@ async function main() {
     }
     log(`Server ready at ${base}\n`);
 
+    /*
+     * One account per role, made once for the whole run rather than per
+     * template, because each sign in writes a permanent audit row.
+     */
+    const sessions = {};
+    for (const role of ["admin", "engineer", "field_tech"]) {
+      sessions[role] = await createProbe(base, role, "contrast-audit");
+    }
+    const missing = Object.entries(sessions).filter(([, p]) => !p?.cookie).map(([r]) => r);
+    if (missing.length) {
+      log(`  probe sign in failed for: ${missing.join(", ")}`);
+    }
+
     const browser = await chromium.launch();
     // Dedupe identical (template, target, colours) hits across widths so the
     // summary counts distinct problems rather than viewport repeats.
@@ -184,9 +275,9 @@ async function main() {
     const otherSeen = new Map();
     let pageErrors = 0;
 
-    for (const t of TEMPLATES) {
+    for (const t of [...TEMPLATES, ...PORTAL_TEMPLATES]) {
       for (const w of WIDTHS) {
-        const r = await auditPage(browser, base, t, w);
+        const r = await auditPage(browser, base, t, w, sessions);
         if (r.error) {
           log(`  ${t.name} @${w}: ${r.error}`);
           pageErrors++;
@@ -207,6 +298,15 @@ async function main() {
     }
     await browser.close();
 
+    /*
+     * The probes go before anything is reported, and the removal is VERIFIED.
+     * An audit that leaves a live staff account behind has done more harm than
+     * the violation it was looking for.
+     */
+    const swept = await destroyProbes("contrast-audit");
+    if (!swept.ok) pageErrors += 1;
+    log("  probe accounts removed: " + (swept.ok ? "yes" : "NO, " + swept.note));
+
     log("\n================ COLOR CONTRAST (WCAG AA) ================");
     if (contrastSeen.size === 0) {
       log("  PASS: no color-contrast violations on any template.");
@@ -224,7 +324,7 @@ async function main() {
     }
 
     log("\n================ RESULT ================");
-    log(`${TEMPLATES.length} templates at ${WIDTHS.join(" and ")}.`);
+    log(`${TEMPLATES.length} public and pre-session templates plus ${PORTAL_TEMPLATES.length} signed in portal screens, at ${WIDTHS.join(" and ")}.`);
     const total = contrastSeen.size + otherSeen.size;
     if (total === 0 && pageErrors === 0) {
       log("ALL GREEN. No WCAG A/AA violations across templates.");

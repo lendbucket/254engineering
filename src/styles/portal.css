@@ -65,6 +65,31 @@
    */
   --gold-wash: #fdf6e7;
 
+  /*
+   * THE PORTAL HAD NO ON DARK TOKENS AT ALL, WHICH IS WHY THIS KEPT HAPPENING.
+   *
+   * --navy above is a BACKGROUND. Every foreground token in this file is for a
+   * light surface: --ink, --secondary, --muted. So every portal surface that
+   * renders on navy, which is the rail, the header on a phone, and every
+   * bg-slate chip and button, had to improvise: text-white/40, text-white/55,
+   * and in fourteen places a class mangled into text-[var(--navy)]-fg, which
+   * Tailwind cannot resolve at all. That one fell back to the inherited --ink
+   * and put #333a45 on #14315d at 1.12:1.
+   *
+   * contrast-audit found 33 violations from exactly two colour pairs the day it
+   * was first pointed at the portal. Both were this.
+   *
+   * The values are NOT invented. DESIGN_SPEC.md section 2 already defines the
+   * on navy scale with its measured ratios, and globals.css has carried it for
+   * the public site since v5 shipped. This is the same scale, declared for the
+   * portal, so the rail composes from dark surface tokens instead of guessing
+   * at an alpha.
+   */
+  --on-navy: #ffffff;
+  --on-navy-muted: #cfd7e3;
+  --on-navy-dim: #9daac0;
+
+
   --warn-bg: #fff9ec;
   --warn-border: #e8d9ae;
   --warn-ink: #5c4a12;

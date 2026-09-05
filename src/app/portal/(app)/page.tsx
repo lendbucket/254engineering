@@ -118,7 +118,12 @@ export default async function PortalHome() {
             </ButtonLink>
           }
         >
-          <div className="overflow-x-auto">
+          <div
+            className="overflow-x-auto"
+            role="region"
+            aria-label="Files needing action, scrolls sideways"
+            tabIndex={0}
+          >
             <table className="w-full min-w-[560px] border-collapse text-left">
               <thead>
                 <tr className="border-b border-[var(--border)]">
