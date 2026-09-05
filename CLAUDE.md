@@ -287,8 +287,22 @@ merged. After 0013 (Phase 9 Section 1, the partner program) and 0014 (Section
 2, attribution) **all three return `b1ad321300010129b5dbd0afc42a156b` across 850
 columns and 61 tables**, with row level security on all 61, 37 triggers and 6
 functions, none of them with an unpinned search_path. Applied to production on
-2026-09-04 when that branch merged. A divergence while a feature branch is open
-is expected; a divergence after it merges is the defect.
+2026-09-04 when that branch merged. After 0015 (Phase 10 Section 1, the operator
+job intake), 0016 (Section 1.5, what a job was asked) and 0017 (standing answers
+on an account) **all three return `aca946e3c49d149d73685c4eb30d092e` across 868
+columns and 62 tables**, with row level security on all 62, 38 triggers, and no
+function with an unpinned search_path. Applied to production on 2026-09-04 when
+that branch merged. A divergence while a feature branch is open is expected; a
+divergence after it merges is the defect.
+
+0016 adds `eng_file_inputs`, which is the second table in this schema whose
+shape deliberately duplicates another. It is keyed on the FILE while
+`eng_order_inputs` is keyed on the ORDER, because a job taken over the telephone
+has no order until somebody pays and may never have one. The first is the job's
+working record, where answers arrive late and get corrected; the second is
+checkout evidence, written once. Evidence that can be edited is not evidence,
+which is why they are not one table. The same reasoning, written out at length,
+is in the migration.
 
 0011 and 0012 add the first tables in this schema that are deliberately NOT
 append only. `eng_jobs`, `eng_cron_runs`, `eng_error_events` and
