@@ -2079,3 +2079,32 @@ Verified rather than assumed: the inner container reports `scrollHeight` 1036
 against `clientHeight` 684, so the links are reachable and this is not a
 navigation failure. It is a discoverability one, and it got worse with every
 screen this platform added. Not introduced by Section 2 and not fixed by it.
+
+### The invite form still offers three roles, not seven
+
+Recorded 2026-09-05, found while checking how a Professional Engineer would be
+given an account after Phase 10 Section 2 shipped.
+
+Roles became data. The invite path did not. `src/app/api/portal/people/route.ts`
+validates the submitted role with `ROLES.includes(role)`, and `ROLES` in
+`ops-authz.ts` is still the literal `["admin", "engineer", "field_tech"]`. So an
+administrator can create an account only in one of the three original roles.
+
+**What still works.** Dispatcher, sales, customer service and read only are
+reachable, just not at creation: make the account in one of the three, then move
+the person on the roles screen, which reads `eng_roles` and offers all seven.
+The grants apply on their next request.
+
+**Why it was not fixed in the same breath.** The role list is not the only thing
+that form knows: it branches on the role to decide whether to ask for a licence
+number and a TDI appointment, or for coverage counties and a base city, and
+those branches are `role === "engineer"` and `role === "field_tech"` rather than
+anything data driven. Making the SELECT read `eng_roles` while the fields around
+it still key off three hardcoded strings would produce a form that offers a
+dispatcher and then silently asks nothing about them, which is worse than the
+honest three.
+
+**The shape of the fix.** The per role fields belong on the role row, or in a
+declaration beside `DEFAULT_ROLES`, in the same way `data/intake-fields.ts`
+holds what a job can be asked. Then the form is generated from the definition
+and the select follows for free.
