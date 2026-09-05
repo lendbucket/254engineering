@@ -2138,3 +2138,27 @@ audits interacting through a mechanism nobody has named is exactly the kind of
 thing that comes back as a flake somebody re-runs until it passes. The next
 session that touches forms-audit should find this written down rather than
 rediscover it.
+
+### Three small defects found by walking the portal at 390
+
+Recorded 2026-09-05, Phase 11 Section 2, from the walk that filled
+`docs/portal-screen-verdicts.md`. None was reported by any audit, because none
+of them is a property an audit here measures.
+
+1. **Platform status runs a sentence into a timestamp.** The dependency rows
+   read "STRIPE_SECRET_KEY is not set, so nothing can be ordered Read 0s ago."
+   The reading time is appended with no separator, so two sentences become one
+   that says neither thing.
+
+2. **The responsible charge log says "1 minutes".** A review that took a minute
+   is pluralised as though it took several.
+
+3. **Files fills a phone screen with filter chips before showing a file.**
+   Eleven status chips wrap into six rows at 390. Not a defect in the chrome,
+   which is correct on that screen, and not something any check can see: it is
+   a content ordering decision. Recorded as the one Weak verdict in the table.
+   The Tasks screen shows the pattern that works, three chips on one row.
+
+The first two are copy. The third is a decision about what a phone should show
+first on a list screen, and it should be taken deliberately rather than fixed in
+passing.

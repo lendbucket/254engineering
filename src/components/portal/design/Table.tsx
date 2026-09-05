@@ -25,7 +25,15 @@ export type Column<T> = {
   numeric?: boolean;
   /** Rendered per row. */
   cell: (row: T) => ReactNode;
-  /** Hidden below the tablet breakpoint. A phone gets the card list instead. */
+  /**
+   * Hidden below the tablet breakpoint, IN THE TABLE ONLY.
+   *
+   * The card list still carries it. That is the point of point 4 of the native
+   * standard: a card has to hold the same information in reading order, and a
+   * column dropped because it did not fit a width is information the phone
+   * simply never gets. This flag decides table density, not what a person is
+   * allowed to know.
+   */
   desktopOnly?: boolean;
 };
 
@@ -49,14 +57,81 @@ export function DataTable<T extends { id: string }>({
     return <div className="px-1 py-2">{empty}</div>;
   }
 
+  const primary = columns[0];
+  const rest = columns.slice(1);
+
   return (
     <div>
       {/*
-        Wide by nature, so it scrolls inside its own container rather than
-        widening the document. .scroll-x carries the momentum and containment
-        rules the site already defines.
+        POINT 4 OF THE NATIVE STANDARD: TABLES BECOME CARDS.
+
+        A table that scrolls sideways on a phone is a desktop table on a phone.
+        This component used to be exactly that, at min-width 640 inside a
+        horizontal scroller, and the desktopOnly flag hid columns to make it
+        fit, so a phone lost information rather than gaining a layout.
+
+        Below md there is no table at all. Each row is a card: the first column
+        is the heading, because it is the one every caller puts the identifying
+        fact in, and every other column follows as a labelled pair in the order
+        the columns were declared. Reading order, not fitting order.
+
+        The header row has no card equivalent and does not need one. A column
+        header answers "what is this value", and on a card the label is beside
+        the value where the question is actually asked.
       */}
-      <div className="scroll-x">
+      <ul className="flex flex-col gap-2 md:hidden">
+        {rows.map((row) => (
+          <li
+            key={row.id}
+            className="rounded-[var(--radius-card)] border border-[var(--border)] bg-white p-3"
+          >
+            <p className="text-[15px] leading-[1.35] font-bold text-[var(--navy)]">
+              {onRowHref ? (
+                <a href={onRowHref(row)} className="block">
+                  {primary.cell(row)}
+                </a>
+              ) : (
+                primary.cell(row)
+              )}
+            </p>
+
+            {rest.length > 0 ? (
+              <dl className="mt-2 flex flex-col gap-1.5">
+                {rest.map((c) => (
+                  <div key={c.key} className="flex items-baseline justify-between gap-3">
+                    <dt className="portal-column-header shrink-0">{c.header}</dt>
+                    <dd
+                      /*
+                        Numbers align right and prose does not. The first
+                        version had it backwards, so a long value like a
+                        coverage sentence wrapped ragged left against the card
+                        edge while the figures it sat under did not line up at
+                        all. justify-between already pushes a short value to
+                        the right, so prose only needs to be left aligned for
+                        the lines after the first.
+                      */
+                      className={`text-[13.5px] leading-[1.45] text-[var(--ink)] ${
+                        c.numeric ? "tabular-nums text-right" : ""
+                      }`}
+                    >
+                      {c.cell(row)}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+
+      {/*
+        The table, at md and up only. It keeps its min-width, which no longer
+        forces a sideways scroll because md is 768px and the table is 640.
+        .scroll-x stays as the backstop for a caller with more columns than
+        that, and it is a deliberate horizontally scrolling component with the
+        site's own affordance rules on it, which point 2 allows.
+      */}
+      <div className="scroll-x hidden md:block">
         <table className="w-full min-w-[640px] border-collapse text-left">
           <caption className="sr-only">{caption}</caption>
           <thead>

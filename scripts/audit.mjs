@@ -234,6 +234,10 @@ const PHASE_ONE = [
     why: "the brand mark is legible on the surface it actually sits on",
   },
   {
+    name: "native-audit",
+    why: "the portal behaves as an application at 390, not as a document that fits",
+  },
+  {
     // Phase one for the same reason security-audit is, and this file already
     // warned about it: phase two audits start their own server by killing
     // whatever holds 3225, so an audit placed after them finds nothing to

@@ -109,11 +109,30 @@ export default async function FilesPage({
   };
 
   const list = (
-    <div className={selected ? "hidden lg:block" : "block"}>
-      <div className="mb-4 flex flex-wrap gap-2">
+    /*
+      min-w-0 because this is the GRID ITEM. A grid item defaults to
+      min-width:auto and refuses to shrink below its content, so the scrolling
+      chip row inside it pushed this div to 1364px in a 358px column and the
+      shell clipped the result. Putting min-w-0 on the chip row itself did
+      nothing: the constraint that mattered was one level up.
+    */
+    <div className={selected ? "hidden min-w-0 lg:block" : "block min-w-0"}>
+      {/*
+        One row on a phone, wrapping at sm and up. See the note in
+        docs/PORTAL_DESIGN_STANDARDS.md point 2: a component may scroll
+        sideways when it says so, and this one says so with a visible
+        scrollbar and a focusable region rather than by waiting to be
+        discovered.
+      */}
+      <div
+        role="region"
+        aria-label="Filter files by status"
+        tabIndex={0}
+        className="scroll-x portal-panel-scroll mb-4 flex min-w-0 gap-2 pb-2 sm:flex-wrap sm:overflow-visible sm:pb-0"
+      >
         <Link
           href={filterHref({ status: undefined })}
-          className={`inline-flex min-h-[36px] items-center rounded-[3px] border px-3 text-[13.5px] font-semibold ${
+          className={`inline-flex min-h-[40px] shrink-0 items-center whitespace-nowrap rounded-[3px] border px-3 text-[13.5px] font-semibold ${
             !params.status ? "border-slate bg-slate text-[var(--on-navy)]" : "border-[var(--border)] text-[var(--secondary)]"
           }`}
         >
@@ -123,7 +142,7 @@ export default async function FilesPage({
           <Link
             key={s}
             href={filterHref({ status: s })}
-            className={`inline-flex min-h-[36px] items-center rounded-[3px] border px-3 text-[13.5px] font-semibold ${
+            className={`inline-flex min-h-[40px] shrink-0 items-center whitespace-nowrap rounded-[3px] border px-3 text-[13.5px] font-semibold ${
               params.status === s ? "border-slate bg-slate text-[var(--on-navy)]" : "border-[var(--border)] text-[var(--secondary)]"
             }`}
           >
