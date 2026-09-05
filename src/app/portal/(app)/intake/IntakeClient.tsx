@@ -16,6 +16,7 @@ import {
   type PaymentIntent,
 } from "@/lib/job-intake-rules";
 import type { CatalogEntry } from "@data/catalog";
+import { fieldsFor, missingFor, type IntakeField } from "@data/intake-fields";
 import { DispatchPanel } from "../files/DispatchPanel";
 /*
  * A type only import, which is erased at compile time. ops-field carries
@@ -44,7 +45,7 @@ type ClientMatch = {
 };
 
 const label = "block text-[13.5px] font-semibold text-[var(--navy)]";
-const field =
+const fieldClass =
   "mt-1.5 h-11 w-full rounded-[var(--radius-control)] border border-[var(--border)] bg-white px-3 text-[15px] text-[var(--ink)] focus:border-[var(--navy)] focus:outline-none focus:ring-2 focus:ring-[var(--navy)]/20";
 const hint = "mt-1.5 text-[12.5px] leading-[1.5] text-[var(--secondary)]";
 
@@ -100,6 +101,21 @@ export function IntakeClient({
   const [overridePrice, setOverridePrice] = useState("");
   const [overrideReason, setOverrideReason] = useState("");
   const [paymentIntent, setPaymentIntent] = useState<PaymentIntent>("released_unpaid");
+
+  /*
+   * THE CATALOG'S OWN QUESTIONS, WHICH THIS SCREEN DID NOT ASK.
+   *
+   * Reported in docs/intake-completeness.md and fixed here. A roof
+   * certification ordered on the website captured access notes; the same job
+   * taken by telephone captured neither that nor anything else the deliverable
+   * asks for, which failed Section 1.5's acceptance test on the path the firm
+   * says is primary.
+   *
+   * The list comes from fieldsFor, the single definition, so this screen cannot
+   * ask a question the catalog does not define and cannot miss one it does.
+   */
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const setAnswer = (id: string, value: string) => setAnswers((a) => ({ ...a, [id]: value }));
 
   // ------------------------------------------------------------ how it came
   const [channel, setChannel] = useState<IntakeChannel | "">("phone");
@@ -241,6 +257,37 @@ export function IntakeClient({
   const catalogCents = quote && isKnown(quote.totalCents) ? quote.totalCents : null;
   const enteredCents = overridePrice.trim() ? Math.round(Number(overridePrice) * 100) : null;
 
+  /*
+   * Everything this deliverable needs. Empty until a deliverable is chosen,
+   * because the questions are per deliverable and asking them before then would
+   * be asking about a job nobody has described yet.
+   */
+  const fields = useMemo(
+    () => (serviceSlug && tier ? fieldsFor(serviceSlug, tier) : []),
+    [serviceSlug, tier],
+  );
+
+  /*
+   * ORDER STAGE ONLY blocks submission. A field required before dispatch or
+   * before sealing is shown, plainly, and does not stop the job being taken:
+   * refusing a job because a customer does not have their loan number to hand
+   * is worse than taking it and asking later, which is the whole reason a
+   * field carries a stage.
+   */
+  const missingToOrder = useMemo(
+    () => (serviceSlug && tier ? missingFor(serviceSlug, tier, answers, "order") : []),
+    [serviceSlug, tier, answers],
+  );
+  const outstandingLater = useMemo(
+    () =>
+      serviceSlug && tier
+        ? missingFor(serviceSlug, tier, answers, "seal").filter(
+            (f) => !missingToOrder.some((m) => m.id === f.id),
+          )
+        : [],
+    [serviceSlug, tier, answers, missingToOrder],
+  );
+
   const priceDecision = useMemo(
     () =>
       decidePrice({
@@ -273,7 +320,7 @@ export function IntakeClient({
   });
 
   const priceError = "error" in priceDecision ? priceDecision.error : null;
-  const canSubmit = missing.length === 0 && !priceError && !busy;
+  const canSubmit = missing.length === 0 && missingToOrder.length === 0 && !priceError && !busy;
 
   async function submit() {
     if (!canSubmit) return;
@@ -306,6 +353,7 @@ export function IntakeClient({
           notes: notes || null,
           channel,
           takenAt: takenAt || null,
+          answers,
           priceCents: "overridden" in priceDecision && priceDecision.overridden ? priceDecision.cents : null,
           priceOverrideReason:
             "overridden" in priceDecision && priceDecision.overridden ? priceDecision.reason : null,
@@ -443,7 +491,7 @@ export function IntakeClient({
               id="clientQuery"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className={field}
+              className={fieldClass}
               placeholder="Start typing"
             />
             {searching ? <p className={hint}>Looking.</p> : null}
@@ -492,7 +540,7 @@ export function IntakeClient({
                     onChange={(e) =>
                       setNewClient({ ...newClient, kind: e.target.value as "individual" | "organization" })
                     }
-                    className={field}
+                    className={fieldClass}
                   >
                     <option value="individual">Individual</option>
                     <option value="organization">Organization</option>
@@ -504,7 +552,7 @@ export function IntakeClient({
                     id="ncName"
                     value={newClient.name}
                     onChange={(e) => setNewClient({ ...newClient, name: e.target.value })}
-                    className={field}
+                    className={fieldClass}
                   />
                 </div>
                 <div>
@@ -514,7 +562,7 @@ export function IntakeClient({
                     type="email"
                     value={newClient.email}
                     onChange={(e) => setNewClient({ ...newClient, email: e.target.value })}
-                    className={field}
+                    className={fieldClass}
                   />
                 </div>
                 <div>
@@ -523,7 +571,7 @@ export function IntakeClient({
                     id="ncPhone"
                     value={newClient.phone}
                     onChange={(e) => setNewClient({ ...newClient, phone: e.target.value })}
-                    className={field}
+                    className={fieldClass}
                   />
                 </div>
               </div>
@@ -547,7 +595,7 @@ export function IntakeClient({
                    for the operator saves a tap on every one of those calls. */
                 setTier(only.length === 1 ? only[0].tier : "");
               }}
-              className={field}
+              className={fieldClass}
             >
               <option value="">Choose one</option>
               {lines.map((l) => (
@@ -561,7 +609,7 @@ export function IntakeClient({
               id="tier"
               value={tier}
               onChange={(e) => setTier(e.target.value)}
-              className={field}
+              className={fieldClass}
               disabled={!serviceSlug}
             >
               <option value="">{serviceSlug ? "Choose one" : "Choose a service line first"}</option>
@@ -585,7 +633,7 @@ export function IntakeClient({
               id="urgency"
               value={urgency}
               onChange={(e) => setUrgency(e.target.value as typeof urgency)}
-              className={field}
+              className={fieldClass}
             >
               <option value="standard">Standard</option>
               <option value="expedited">Expedited</option>
@@ -599,7 +647,7 @@ export function IntakeClient({
               type="date"
               value={dueAt}
               onChange={(e) => setDueAt(e.target.value)}
-              className={field}
+              className={fieldClass}
             />
             <p className={hint}>Optional. If they named a closing or a permit date, put it here.</p>
           </div>
@@ -615,16 +663,16 @@ export function IntakeClient({
               id="propertyAddress"
               value={propertyAddress}
               onChange={(e) => setPropertyAddress(e.target.value)}
-              className={field}
+              className={fieldClass}
             />
           </div>
           <div>
             <label htmlFor="city" className={label}>City</label>
-            <input id="city" value={city} onChange={(e) => setCity(e.target.value)} className={field} />
+            <input id="city" value={city} onChange={(e) => setCity(e.target.value)} className={fieldClass} />
           </div>
           <div>
             <label htmlFor="county" className={label}>County</label>
-            <select id="county" value={county} onChange={(e) => setCounty(e.target.value)} className={field}>
+            <select id="county" value={county} onChange={(e) => setCounty(e.target.value)} className={fieldClass}>
               <option value="">Derive it from the city</option>
               {counties.map((c) => (
                 <option key={c} value={c}>{c}</option>
@@ -637,7 +685,7 @@ export function IntakeClient({
               id="postalCode"
               value={postalCode}
               onChange={(e) => setPostalCode(e.target.value)}
-              className={field}
+              className={fieldClass}
             />
           </div>
         </div>
@@ -658,6 +706,51 @@ export function IntakeClient({
           )}
         </div>
       </Section>
+
+      {/* ------------------------------------------------- what the job needs */}
+      {fields.length > 0 ? (
+        <Section
+          title="What the job needs"
+          note="From the catalog, so a job taken here carries what a job ordered on the site carries. Anything not needed to take the job is marked and can follow."
+        >
+          <div className="flex flex-col gap-5">
+            {(["document", "parties", "property", "access"] as const).map((group) => {
+              const inGroup = fields.filter((f) => f.group === group);
+              if (inGroup.length === 0) return null;
+              return (
+                <div key={group}>
+                  <p className="portal-kicker">{GROUP_LABEL[group]}</p>
+                  <div className="mt-2.5 grid gap-4 sm:grid-cols-2">
+                    {inGroup.map((f) => (
+                      <FieldInput
+                        key={f.id}
+                        field={f}
+                        value={answers[f.id] ?? ""}
+                        onChange={(v) => setAnswer(f.id, v)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {outstandingLater.length > 0 ? (
+            <div className="mt-5 rounded-[3px] border border-[var(--border)] bg-[var(--canvas)] px-3 py-2.5">
+              <p className="text-[13.5px] font-semibold text-[var(--navy)]">
+                Can follow, and the file will say so
+              </p>
+              <ul className="mt-1.5 flex flex-col gap-1">
+                {outstandingLater.map((f) => (
+                  <li key={f.id} className="text-[12.5px] leading-[1.5] text-[var(--secondary)]">
+                    {f.label}, needed before {f.stage === "dispatch" ? "a technician is sent" : "it can be sealed"}.
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </Section>
+      ) : null}
 
       {/* -------------------------------------------------------- the price */}
       <Section title="The price">
@@ -694,7 +787,7 @@ export function IntakeClient({
               inputMode="decimal"
               value={overridePrice}
               onChange={(e) => setOverridePrice(e.target.value)}
-              className={field}
+              className={fieldClass}
               placeholder={catalogCents === null ? "Set a price" : "Leave blank to use the catalog"}
             />
           </div>
@@ -704,7 +797,7 @@ export function IntakeClient({
               id="overrideReason"
               value={overrideReason}
               onChange={(e) => setOverrideReason(e.target.value)}
-              className={field}
+              className={fieldClass}
               placeholder={`At least ${MIN_OVERRIDE_REASON} characters`}
             />
           </div>
@@ -762,7 +855,7 @@ export function IntakeClient({
               id="channel"
               value={channel}
               onChange={(e) => setChannel(e.target.value as IntakeChannel)}
-              className={field}
+              className={fieldClass}
             >
               {CHANNELS.map((c) => (
                 <option key={c.value} value={c.value}>{c.label}</option>
@@ -776,25 +869,30 @@ export function IntakeClient({
               type="datetime-local"
               value={takenAt}
               onChange={(e) => setTakenAt(e.target.value)}
-              className={field}
+              className={fieldClass}
             />
             <p className={hint}>Optional. Only if it was not just now.</p>
           </div>
           <div className="sm:col-span-2">
             <label htmlFor="notes" className={label}>Notes</label>
-            <input id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} className={field} />
+            <input id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} className={fieldClass} />
           </div>
         </div>
       </Section>
 
       {/* --------------------------------------------------------- the tail */}
       <div className="rounded-[4px] border border-[var(--border)] bg-white p-4 sm:p-5">
-        {missing.length > 0 ? (
+        {missing.length > 0 || missingToOrder.length > 0 ? (
           <div className="mb-3">
             <p className="text-[13.5px] font-semibold text-[var(--navy)]">Still needed</p>
             <ul className="mt-1.5 flex flex-col gap-1">
               {missing.map((m) => (
                 <li key={m} className="text-[13.5px] leading-[1.5] text-[var(--secondary)]">{m}</li>
+              ))}
+              {missingToOrder.map((f) => (
+                <li key={f.id} className="text-[13.5px] leading-[1.5] text-[var(--secondary)]">
+                  {f.label}.
+                </li>
               ))}
             </ul>
           </div>
@@ -825,6 +923,76 @@ export function IntakeClient({
           {busy ? "Saving" : "Take the job"}
         </button>
       </div>
+    </div>
+  );
+}
+
+const GROUP_LABEL = {
+  document: "The document",
+  parties: "The people",
+  property: "The property",
+  access: "Getting in",
+} as const;
+
+/**
+ * One field from the definition, rendered as its kind.
+ *
+ * Every branch here exists because a field in the definition uses it. A kind
+ * with no branch would render nothing and look like a field nobody filled in,
+ * which is the failure this repository keeps finding, so the default is a text
+ * input rather than null.
+ */
+function FieldInput({
+  field,
+  value,
+  onChange,
+}: {
+  field: IntakeField;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const id = `f_${field.id}`;
+  return (
+    <div className={field.kind === "longtext" || field.kind === "file" ? "sm:col-span-2" : undefined}>
+      <label htmlFor={id} className={label}>
+        {field.label}
+        {field.required ? "" : " (optional)"}
+      </label>
+
+      {field.kind === "select" ? (
+        <select id={id} value={value} onChange={(e) => onChange(e.target.value)} className={fieldClass}>
+          <option value="">Choose one</option>
+          {(field.options ?? []).map((o) => (
+            <option key={o} value={o}>{o}</option>
+          ))}
+        </select>
+      ) : field.kind === "boolean" ? (
+        <select id={id} value={value} onChange={(e) => onChange(e.target.value)} className={fieldClass}>
+          <option value="">Not asked yet</option>
+          <option value="yes">Yes</option>
+          <option value="no">No</option>
+        </select>
+      ) : field.kind === "file" ? (
+        /*
+         * A file cannot be uploaded from a telephone call, and pretending
+         * otherwise would put an input on the screen that does nothing. What
+         * the operator can do is record that it is outstanding, which is what
+         * the outstanding list above is for.
+         */
+        <p className={hint}>
+          Cannot be attached on a call. It stays outstanding on the file and can be requested.
+        </p>
+      ) : (
+        <input
+          id={id}
+          type={field.kind === "date" ? "date" : field.kind === "tel" ? "tel" : "text"}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={fieldClass}
+        />
+      )}
+
+      {field.help ? <p className={hint}>{field.help}</p> : null}
     </div>
   );
 }

@@ -19,6 +19,8 @@
  */
 
 import { readFileSync } from "node:fs";
+import { fieldsFor, missingFor, INTAKE_FIELDS } from "../data/intake-fields.ts";
+import { CATALOG } from "../data/catalog.ts";
 import {
   blockers,
   decidePrice,
@@ -514,6 +516,168 @@ console.log("");
   rec(
     "and it is built by dispatchContext rather than a second query",
     /await dispatchContext\(actor, file\)/.test(route),
+  );
+}
+
+// ======================= ONE DEFINITION, RENDERED BY EVERY SURFACE
+
+/*
+ * Phase 10 Section 1.5. Three surfaces take work: the customer flow, an
+ * operator on the telephone, and a partner referral. If each asks its own set,
+ * the firm has three definitions of a complete job, and the telephoned ones
+ * stall because a person under time pressure asks fewer questions than a form.
+ *
+ * These assert the definition BY RUNNING IT, and then assert that the operator
+ * screen renders no field the definition does not return, which is the
+ * mechanical form of "none of the three defines its own list".
+ */
+{
+  /*
+   * Every deliverable resolves to a list. A deliverable returning nothing would
+   * be a job the platform asks nothing about, which is the state Section A
+   * found the telephone path in.
+   */
+  let empties = [];
+  for (const entry of CATALOG) {
+    const fields = fieldsFor(entry.serviceSlug, entry.tier);
+    if (fields.length === 0) empties.push(`${entry.serviceSlug}/${entry.tier}`);
+  }
+  rec(
+    "every deliverable in the catalog resolves to a field list",
+    empties.length === 0,
+    empties.length ? empties.join(", ") : `${CATALOG.length} deliverables`,
+  );
+
+  /*
+   * A deliverable that does not exist returns nothing rather than the universal
+   * fields. Returning the universal set for an unknown deliverable would let a
+   * typo produce a plausible looking form for a job the firm does not sell.
+   */
+  rec("an unknown deliverable resolves to nothing", fieldsFor("not-a-service", "nope").length === 0);
+
+  /*
+   * FIELD WORK IS ASKED ABOUT ACCESS AND DESK WORK IS NOT.
+   *
+   * Nobody drives to a desk job, and asking a customer ordering a beam sizing
+   * for a gate code is how a form gets abandoned.
+   */
+  const roof = fieldsFor("roof-inspections", "standard").map((f) => f.id);
+  const beam = fieldsFor("residential-light-commercial-design", "beam-header-sizing").map((f) => f.id);
+
+  for (const id of ["gate_code", "dog_on_site", "alarm_on_site", "site_contact_name", "occupancy"]) {
+    rec(`field work is asked about ${id}`, roof.includes(id));
+    rec(`and desk work is not`, !beam.includes(id), id);
+  }
+
+  /*
+   * ACCESS IS STRUCTURED, AND THE FREE TEXT NOTE SURVIVES BESIDE IT.
+   *
+   * Operator ruling: fields where the answer has a shape, with the note beside
+   * them rather than instead of them. Replacing access_notes would lose the
+   * thing about a particular property that no field anticipates.
+   */
+  rec(
+    "the free text access note is still asked on field work",
+    roof.includes("access_notes"),
+    "no set of fields anticipates the thing about a property that would waste a trip",
+  );
+
+  /*
+   * THE DOCUMENT FIELDS, WHICH ARE THE REISSUE CAUSE.
+   *
+   * Section A found one deliverable of eleven asked who the document was for,
+   * as free text, and nothing asked who it is addressed to.
+   */
+  for (const id of ["reason", "addressed_to", "requiring_party", "requiring_reference", "hard_deadline"]) {
+    rec(`every deliverable is asked ${id}`, roof.includes(id) && beam.includes(id));
+  }
+
+  /*
+   * THE STAGES DO SOMETHING. A field required before sealing must not block the
+   * job being taken, because refusing a job for a loan number the customer does
+   * not have to hand is worse than taking it and asking later.
+   */
+  const nothingAnswered = {};
+  const toOrder = missingFor("roof-inspections", "standard", nothingAnswered, "order").map((f) => f.id);
+  const toSeal = missingFor("roof-inspections", "standard", nothingAnswered, "seal").map((f) => f.id);
+
+  rec("the reason is needed to take the job", toOrder.includes("reason"));
+  rec(
+    "the addressee is not, and is needed before sealing",
+    !toOrder.includes("addressed_to") && toSeal.includes("addressed_to"),
+    "a job deliberately opened incomplete is the point of the stages",
+  );
+  rec(
+    "the site contact is needed before a technician is sent, not before the job is taken",
+    !toOrder.includes("site_contact_name") && toSeal.includes("site_contact_name"),
+  );
+  rec(
+    "an optional field is never missing",
+    !toSeal.includes("requiring_party") && !toSeal.includes("copy_to"),
+    "optional means optional, at every stage",
+  );
+  rec(
+    "answering a field removes it from what is missing",
+    !missingFor("roof-inspections", "standard", { reason: "A property sale" }, "order")
+      .map((f) => f.id)
+      .includes("reason"),
+  );
+  rec(
+    "and an empty string does not count as an answer",
+    missingFor("roof-inspections", "standard", { reason: "" }, "order")
+      .map((f) => f.id)
+      .includes("reason"),
+    "a field somebody tabbed through is not a field somebody answered",
+  );
+
+  /*
+   * THE OPERATOR SCREEN RENDERS THE DEFINITION AND NOT A LIST OF ITS OWN.
+   *
+   * This is the assertion the whole section is for. The screen must call
+   * fieldsFor, and it must not carry hardcoded field ids that the definition
+   * does not know about.
+   */
+  const screen = codeOnly("src/app/portal/(app)/intake/IntakeClient.tsx");
+  rec(
+    "the operator intake renders the shared definition",
+    /fieldsFor\(/.test(screen) && /missingFor\(/.test(screen),
+    "a telephoned job capturing less than a web job fails the acceptance test on the primary path",
+  );
+
+  const defined = new Set(INTAKE_FIELDS.map((f) => f.id));
+  for (const entry of CATALOG) for (const i of entry.requiredInputs) defined.add(i.id);
+
+  const invented = [...screen.matchAll(/answers\["([a-z_]+)"\]/g)]
+    .map((m) => m[1])
+    .filter((id) => !defined.has(id));
+  rec(
+    "and invents no field the definition does not define",
+    invented.length === 0,
+    invented.length ? invented.join(", ") : "nothing hardcoded",
+  );
+
+  /*
+   * The answers reach the database against the same ids, filtered by the
+   * definition, so a hand crafted request cannot write a field nobody defined.
+   */
+  const intakeLib = codeOnly("src/lib/ops-job-intake.ts");
+  rec(
+    "the server writes answers to eng_file_inputs",
+    /from\("eng_file_inputs"\)/.test(intakeLib),
+  );
+  rec(
+    "and only fields the definition knows",
+    /known\.has\(id\)/.test(intakeLib) && /fieldsFor\(input\.serviceSlug, input\.tier\)/.test(intakeLib),
+    "a hand crafted request must not be able to write a field nobody defined",
+  );
+  rec(
+    "and records that the firm supplied them, not the customer",
+    /source: "firm"/.test(intakeLib),
+    "what the customer said and what the firm wrote down are different claims",
+  );
+  rec(
+    "the order stage questions block the job the way the property address does",
+    /missingFor\(input\.serviceSlug, input\.tier, answers, "order"\)/.test(intakeLib),
   );
 }
 

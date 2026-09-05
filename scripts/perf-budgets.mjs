@@ -182,11 +182,21 @@ export const METRIC_BUDGETS = {
  *
  * WHY THIS IS PER ROUTE AND NOT THE GLOBAL CEILING
  * ------------------------------------------------
+ * THE GLOBAL RAISE WAS CONSIDERED AND REJECTED, and it was the instruction as
+ * first given. It is recorded as rejected rather than simply not done, because
+ * the next reader finding one route with its own ceiling will reasonably wonder
+ * why the simpler thing was not done, and the answer is the whole point.
+ *
  * METRIC_BUDGETS.local.lcp applies to all ten routes, and the other nine
- * measure between 2866 and 3311. Raising the global number would have handed
- * them 200 to 700ms of slack they have not earned, which is loosening nine
- * gates to fix one. The global ceiling stays at 3400 and only the page that
- * needed re-deriving carries its own.
+ * measure between 2866 and 3311. Raising the global number to 3600 would have
+ * handed those nine between 200 and 700ms of slack they have not earned, off
+ * the back of a decision that was about one page. That is loosening nine gates
+ * to fix one, and a gate loosened for a reason that does not apply to it is a
+ * gate that has stopped measuring anything.
+ *
+ * Operator ruling on being shown that, 2026-09-04: keep it per route. The
+ * global ceiling stays at 3400 and only the page that needed re-deriving
+ * carries its own.
  *
  * Option 2, reducing the coordinate precision of the geometry, was investigated
  * and NOT done. It was conditional on the first change failing to clear, and it

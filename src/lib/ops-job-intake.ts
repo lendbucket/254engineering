@@ -7,6 +7,7 @@ import { quoteFor } from "./ops-orders";
 import { resolveCounty, twiaStatus } from "./ops-counties";
 import { isPrelaunch } from "./launch";
 import { isKnown } from "./ops-money";
+import { fieldsFor, missingFor } from "@data/intake-fields";
 import {
   blockers,
   decidePrice,
@@ -81,6 +82,15 @@ export type TakeJobInput = {
 
   paymentIntent: PaymentIntent;
   paymentNote?: string | null;
+
+  /**
+   * The catalog's own questions, answered.
+   *
+   * Keyed by field id from data/intake-fields.ts. The screen renders whatever
+   * fieldsFor returns and posts it back here, so this module never has a list
+   * of its own to drift from the definition.
+   */
+  answers?: Record<string, string>;
 };
 
 export type TakeJobResult =
@@ -187,6 +197,18 @@ export async function takeJob(
     };
   }
 
+  /*
+   * The order stage questions are as blocking as the property address, because
+   * that is what the stage means. Dispatch and seal stage questions are not
+   * checked here: a job is deliberately allowed to be opened incomplete, and
+   * what is outstanding is recorded rather than refused.
+   */
+  const answers = input.answers ?? {};
+  const missingToOrder = missingFor(input.serviceSlug, input.tier, answers, "order");
+  if (missingToOrder.length) {
+    return { ok: false, error: `${missingToOrder[0].label}.`, field: missingToOrder[0].id };
+  }
+
   const missing = blockers({
     clientId: input.clientId ?? (input.newClient ? "pending" : null),
     serviceSlug: input.serviceSlug,
@@ -281,6 +303,41 @@ export async function takeJob(
     context,
   );
   if (!file.ok) return { ok: false, error: file.error };
+
+  /*
+   * The answers, written against the field ids the definition uses.
+   *
+   * source is "firm" because an operator typed them while somebody talked. The
+   * customer flow will write "customer" for the same fields, and the difference
+   * matters when an access arrangement turns out to be wrong: what the customer
+   * said and what the firm wrote down are different claims.
+   */
+  const supplied = Object.entries(answers).filter(([, v]) => typeof v === "string" && v.trim() !== "");
+  if (supplied.length) {
+    const known = new Set(fieldsFor(input.serviceSlug, input.tier).map((f) => f.id));
+    const rows = supplied
+      .filter(([id]) => known.has(id))
+      .map(([field_id, value_text]) => ({
+        file_id: file.id,
+        field_id,
+        value_text: value_text.trim(),
+        source: "firm",
+        recorded_by: actor.id,
+      }));
+
+    if (rows.length) {
+      const { error } = await db.from("eng_file_inputs").insert(rows);
+      /*
+       * A failed write here does NOT fail the job. The file exists, it is
+       * priced and it is about to be dispatched; losing the gate code is worth
+       * a log line and a chase, not throwing away a job somebody is on the
+       * telephone about.
+       */
+      if (error) {
+        console.error(`[intake] ${file.fileNumber}: answers not saved: ${error.message}`);
+      }
+    }
+  }
 
   // ------------------------------------------------------- where it lands
   const target = landsAt(entry.orderType);
