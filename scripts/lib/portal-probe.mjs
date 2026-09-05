@@ -97,10 +97,26 @@ export async function destroyProbes(label = "audit") {
   const d = client(label);
   if (!d) return { ok: true, left: 0, note: "no database client, nothing was created" };
 
-  for (const m of made) {
-    await d.from("eng_auth_tokens").delete().eq("profile_id", m.id);
-    await d.from("eng_profiles").delete().eq("id", m.id);
-    await d.auth.admin.deleteUser(m.id).catch(() => {});
+  /*
+   * EVERYTHING ON THE PROBE DOMAIN, not only what this run made.
+   *
+   * The first version deleted the ids in `made` and then verified by sweeping
+   * the domain. So a run that crashed before teardown left its accounts
+   * behind, and every later run reported them as a failure it was not
+   * deleting: the cleanup and the verification were looking at different sets.
+   * Deleting exactly what the verification looks for is the only version where
+   * they agree.
+   */
+  const { data: strays } = await d
+    .from("eng_profiles")
+    .select("id")
+    .like("email", `%@${PROBE_DOMAIN}`);
+
+  const ids = new Set([...made.map((m) => m.id), ...(strays ?? []).map((r) => r.id)]);
+  for (const id of ids) {
+    await d.from("eng_auth_tokens").delete().eq("profile_id", id);
+    await d.from("eng_profiles").delete().eq("id", id);
+    await d.auth.admin.deleteUser(id).catch(() => {});
   }
   made.length = 0;
 

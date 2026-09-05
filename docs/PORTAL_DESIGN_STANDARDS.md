@@ -349,10 +349,24 @@ does not exceed the content it holds, and a downward drag closes it.
 There is no hover on a touch screen. Any affordance that only becomes
 discoverable on hover is invisible to the person the portal is mainly for.
 
-*Today:* the entire portal contains **two** `active:` rules. Effectively nothing
-has a pressed state, so every tap gives no feedback until the page changes. This
-is the second largest gap after point 1, and it is the one most responsible for
-the interface feeling like a web page.
+*Today, and the first version of this line was wrong.* It said the portal
+contained two `active:` rules and that effectively nothing had a pressed state.
+That counted Tailwind `active:` utility classes in portal component files and
+missed the rule that actually provides the feedback: `globals.css` carries
+`-webkit-tap-highlight-color: transparent` plus `opacity: 0.72` on `:active`
+for every link, button, `[role=button]` and label, with a reduced motion
+variant, and it has done all along. The floor was already met.
+
+The correction is left visible rather than edited away, because the check built
+on the wrong claim was itself wrong in the same direction: it collected every
+`:active` selector, stripped the `:active`, and asked whether each control
+matched what remained. Since one rule declares the state for all of them,
+stripping left the bare selectors `a` and `button`, so every control passed and
+would have gone on passing if the rule were deleted.
+
+What is genuinely thin is the treatment on the primary controls, where a global
+opacity dim is weaker than a ground change, and anything tappable that is not an
+`a`, `button`, `[role=button]` or `label`.
 
 ### 7. The keyboard is handled
 

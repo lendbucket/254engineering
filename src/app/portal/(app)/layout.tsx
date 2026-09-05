@@ -98,7 +98,18 @@ export default async function PortalLayout({ children }: { children: React.React
   const unread = await unreadCount(actor.id);
 
   return (
-    <div className="portal-surface min-h-dvh">
+    <div className="portal-surface h-dvh overflow-hidden lg:h-auto lg:min-h-dvh lg:overflow-visible">
+      {/*
+        THE APP SHELL, AND WHY IT IS EXACTLY ONE VIEWPORT BELOW lg.
+
+        Point 1 of the native standard. h-dvh with overflow-hidden is what
+        stops the DOCUMENT from scrolling; min-h-dvh let it grow, so the page
+        scrolled and the header only appeared fixed because it was sticky and
+        riding along with it.
+
+        At lg and above this reverts to ordinary document flow, because the
+        rail is there and a desktop browser scrolls a page.
+      */}
       {/* Desktop sidebar. Fixed, dark, and the same navy the public site uses. */}
       {/*
         230px and flat. The standards file gives the width, and it forbids
@@ -148,7 +159,7 @@ export default async function PortalLayout({ children }: { children: React.React
         </div>
       </aside>
 
-      <div className="lg:pl-[var(--sidebar-width)]">
+      <div className="flex h-full flex-col lg:block lg:h-auto lg:pl-[var(--sidebar-width)]">
         {/*
           WHITE ON DESKTOP, NAVY ON A PHONE, AND THAT IS THE DESIGN.
 
@@ -157,7 +168,7 @@ export default async function PortalLayout({ children }: { children: React.React
           carries the logo; making it white there would leave the screen with no
           brand surface at all and a status bar that does not match the app.
         */}
-        <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--navy)] pt-[env(safe-area-inset-top)] lg:border-[var(--border)] lg:bg-white">
+        <header className="z-30 shrink-0 border-b border-[var(--border)] bg-[var(--navy)] pt-[env(safe-area-inset-top)] lg:sticky lg:top-0 lg:border-[var(--border)] lg:bg-white">
           <div className="flex min-h-[var(--header-height)] items-center gap-2 px-3 sm:px-5">
             <div className="lg:hidden">
               <Link href="/portal" aria-label="254 Engineering portal" className="block py-2">
@@ -195,13 +206,34 @@ export default async function PortalLayout({ children }: { children: React.React
           </div>
         </header>
 
-        {/* pb accounts for the fixed tab bar plus the home indicator. */}
-        <main className="mx-auto flex w-full max-w-[1280px] flex-col gap-[var(--section-gap)] px-[var(--page-gutter)] py-6 pb-[calc(88px+env(safe-area-inset-bottom))] lg:pb-10">
-          {children}
-        </main>
-      </div>
+        <div
+          id="portal-scroll"
+          data-portal-scroll
+          /*
+            Focusable, because it scrolls. axe scrollable-region-focusable,
+            serious, and it fired the moment point 1 turned this into the
+            scrolling region: a keyboard user had nothing to tab to and nothing
+            to press an arrow key against. The same violation was fixed on the
+            two data tables an hour earlier, and making the shell scroll
+            recreated it one level up.
+          */
+          tabIndex={0}
+          className="portal-panel-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain lg:min-h-[auto] lg:flex-none lg:overflow-visible"
+        >
+          <main className="mx-auto flex w-full max-w-[1280px] flex-col gap-[var(--section-gap)] px-[var(--page-gutter)] py-6 lg:pb-10">
+            {children}
+          </main>
+        </div>
 
-      <MobileTabs items={tabs} />
+        {/*
+          Inside the column, not a fixed overlay beside it. It used to be
+          position: fixed, which is how a bar stays put while a document
+          scrolls underneath it. In an app shell the column does not scroll, so
+          the bar stays put by being the last thing in the column, and the
+          scrolling region above already ends where it begins.
+        */}
+        <MobileTabs items={tabs} />
+      </div>
     </div>
   );
 }

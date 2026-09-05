@@ -43,7 +43,9 @@ const BUTTON_BASE =
  * press, which is the entire job of a primary button.
  */
 export function PrimaryButton({ children, className = "", href, ...rest }: ButtonProps) {
-  const cls = `${BUTTON_BASE} bg-[var(--navy)] text-white font-bold hover:bg-[var(--navy-hover)] ${className}`;
+  const cls =
+    `${BUTTON_BASE} bg-[var(--navy)] text-white font-bold hover:bg-[var(--navy-hover)] ` +
+    `active:bg-[var(--ink-navy)] active:scale-[0.98] ${className}`;
   return href ? (
     <a href={href} className={cls}>
       {children}
@@ -58,7 +60,8 @@ export function PrimaryButton({ children, className = "", href, ...rest }: Butto
 export function SecondaryButton({ children, className = "", href, ...rest }: ButtonProps) {
   const cls =
     `${BUTTON_BASE} bg-white text-[var(--navy)] font-semibold ` +
-    `border border-[var(--border-strong)] hover:bg-[var(--row-hover)] ${className}`;
+    `border border-[var(--border-strong)] hover:bg-[var(--row-hover)] ` +
+    `active:bg-[var(--canvas)] active:scale-[0.98] ${className}`;
   return href ? (
     <a href={href} className={cls}>
       {children}
@@ -82,7 +85,8 @@ export function ToolbarButton({ children, className = "", href, ...rest }: Butto
   const cls =
     "inline-flex items-center gap-1.5 rounded-[var(--radius-control)] border " +
     "border-[var(--border-strong)] bg-white px-3 py-1.5 text-[12.5px] font-semibold " +
-    `text-[var(--navy)] hover:bg-[var(--row-hover)] disabled:opacity-45 ${className}`;
+    `text-[var(--navy)] hover:bg-[var(--row-hover)] active:bg-[var(--canvas)] ` +
+    `disabled:opacity-45 ${className}`;
   return href ? (
     <a href={href} className={cls}>
       {children}

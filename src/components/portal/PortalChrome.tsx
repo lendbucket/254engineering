@@ -132,8 +132,8 @@ export function SidebarNav({ items }: { items: NavItem[] }) {
             aria-current={active ? "page" : undefined}
             className={`flex min-h-[var(--tap-target)] items-center gap-3 border-l-[var(--active-bar-width)] px-3 text-[13.5px] font-semibold transition-colors ${
               active
-                ? "border-l-[var(--gold)] bg-white/[0.08] text-white"
-                : "border-l-transparent text-white/70 hover:bg-white/[0.05] hover:text-white"
+                ? "border-l-[var(--gold)] bg-white/[0.08] text-white active:bg-white/[0.14]"
+                : "border-l-transparent text-white/70 hover:bg-white/[0.05] hover:text-white active:bg-white/[0.14]"
             }`}
           >
             <span className={active ? "text-[var(--gold-bright)]" : "text-white/55"}>
@@ -159,7 +159,8 @@ export function MobileTabs({ items }: { items: NavItem[] }) {
   return (
     <nav
       aria-label="Portal"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-white/12 bg-[var(--navy)] pb-[env(safe-area-inset-bottom)] lg:hidden"
+      data-portal-tabs
+      className="z-40 shrink-0 border-t border-white/12 bg-[var(--navy)] pb-[env(safe-area-inset-bottom)] lg:hidden"
     >
       <ul className="flex">
         {items.map((item) => {
@@ -181,8 +182,8 @@ export function MobileTabs({ items }: { items: NavItem[] }) {
                 aria-current={active ? "page" : undefined}
                 className={`flex min-h-[56px] flex-col items-center justify-center gap-1 border-t-[var(--active-bar-width)] px-1 py-2 text-[11px] font-semibold ${
                   active
-                    ? "border-t-[var(--gold)] text-[var(--gold-bright)]"
-                    : "border-t-transparent text-white/65"
+                    ? "border-t-[var(--gold)] text-[var(--gold-bright)] active:bg-white/[0.12]"
+                    : "border-t-transparent text-white/65 active:bg-white/[0.12]"
                 }`}
               >
                 <Icon name={item.icon} />
@@ -243,7 +244,7 @@ export function ProfileMenu({
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="menu"
-        className="flex min-h-[44px] min-w-[44px] items-center gap-2 rounded-[4px] px-2 text-[var(--on-navy)] hover:bg-white/[0.08] lg:text-[var(--navy)] lg:hover:bg-[var(--canvas)]"
+        className="flex min-h-[44px] min-w-[44px] items-center gap-2 rounded-[4px] px-2 text-[var(--on-navy)] hover:bg-white/[0.08] active:bg-white/[0.16] lg:text-[var(--navy)] lg:hover:bg-[var(--canvas)] lg:active:bg-[var(--row-hover)]"
       >
         {/*
           The avatar was a gold disc, which is gold as decoration and the one
@@ -344,7 +345,7 @@ export function NotificationBell({
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-label={unread ? `Notifications, ${unread} unread` : "Notifications"}
-        className="relative grid h-11 w-11 place-items-center rounded-[4px] text-[var(--on-navy)] hover:bg-white/[0.08] lg:text-[var(--navy)] lg:hover:bg-[var(--canvas)]"
+        className="relative grid h-11 w-11 place-items-center rounded-[4px] text-[var(--on-navy)] hover:bg-white/[0.08] active:bg-white/[0.16] lg:text-[var(--navy)] lg:hover:bg-[var(--canvas)] lg:active:bg-[var(--row-hover)]"
       >
         <Icon name="bell" />
         {/*
@@ -443,7 +444,7 @@ export function CommandPalette({ items }: { items: NavItem[] }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="hidden min-h-[40px] items-center gap-2 rounded-[4px] border border-[var(--border)] px-3 text-[13.5px] text-[var(--secondary)] hover:border-[var(--border-strong)] hover:text-[var(--navy)] lg:flex"
+        className="hidden min-h-[40px] items-center gap-2 rounded-[4px] border border-[var(--border)] px-3 text-[13.5px] text-[var(--secondary)] hover:border-[var(--border-strong)] hover:text-[var(--navy)] active:bg-[var(--row-hover)] lg:flex"
       >
         <Icon name="search" />
         <span>Search</span>
@@ -516,7 +517,7 @@ export function MobileMore({ items }: { items: NavItem[] }) {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="More"
-        className="grid h-11 w-11 place-items-center rounded-[4px] text-[var(--on-navy)] hover:bg-white/[0.08] lg:hidden"
+        className="grid h-11 w-11 place-items-center rounded-[4px] text-[var(--on-navy)] hover:bg-white/[0.08] active:bg-white/[0.16] lg:hidden"
       >
         <Icon name="menu" />
       </button>
