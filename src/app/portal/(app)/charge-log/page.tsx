@@ -118,7 +118,9 @@ export default async function ChargeLogPage({
                         <p className="text-[13.5px] font-semibold text-[var(--navy)]">{r.property_address}</p>
                         <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">
                           {r.county} County, {when(r.reviewed_at)}
-                          {r.review_minutes !== null ? `, ${r.review_minutes} minutes` : ", time not measured"}
+                          {r.review_minutes !== null
+                            ? `, ${r.review_minutes} ${r.review_minutes === 1 ? "minute" : "minutes"}`
+                            : ", time not measured"}
                           {r.revision_count > 0 ? `, ${r.revision_count} revision${r.revision_count === 1 ? "" : "s"}` : ""}
                           {r.site_visit ? ", site visit" : ""}
                         </p>

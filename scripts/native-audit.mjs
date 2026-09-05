@@ -26,6 +26,7 @@
  * nobody made.
  */
 
+import fs from "node:fs";
 import { chromium } from "playwright";
 import { createProbe, cookieFor, destroyProbes } from "./lib/portal-probe.mjs";
 
@@ -71,6 +72,110 @@ const rec = (name, ok, note = "") => out.push({ name, ok, note });
 console.log("");
 console.log("================ THE NATIVE STANDARD AT 390 ================");
 console.log(`${BASE}, ${SCREENS.length} signed in screens\n`);
+
+/*
+ * POINT 9. EVERY DESKTOP ACTION IS REACHABLE ON A PHONE.
+ *
+ * The operator's requirement is that the firm can be run remotely, so an
+ * affordance that exists only on a wide screen is a gap rather than a choice.
+ *
+ * This is a COVERAGE check of the same shape as the perimeter list in
+ * security-audit: every element hidden below lg is either accounted for in the
+ * table below, with a reason, or this fails. It cannot tell whether the reason
+ * is a good one. What it can do is make adding a desktop only affordance a
+ * decision somebody writes down rather than a thing that happens.
+ *
+ * Read from source rather than from a browser, because the question is which
+ * elements EXIST with that treatment, not which are painted on one route.
+ */
+{
+  const ACCOUNTED = {
+    "src/app/portal/(app)/layout.tsx": [
+      "the navigation rail, replaced on a phone by the bottom tab bar and the More sheet",
+      "the Data as of timestamp, which carries no action; omitting it on a phone is recorded as a decision",
+    ],
+    "src/components/portal/PortalChrome.tsx": [
+      "the search button with its Ctrl K hint, replaced by the search icon at lg:hidden opening the same palette",
+    ],
+    "src/app/portal/(app)/files/page.tsx": [
+      "list and detail columns, which a phone shows one at a time",
+      "list and detail columns, which a phone shows one at a time",
+    ],
+    "src/app/portal/(app)/messages/page.tsx": [
+      "list and detail columns, which a phone shows one at a time",
+      "list and detail columns, which a phone shows one at a time",
+    ],
+    "src/app/portal/(app)/onboarding/page.tsx": [
+      "list and detail columns, which a phone shows one at a time",
+      "list and detail columns, which a phone shows one at a time",
+    ],
+    "src/app/portal/(app)/protocols/page.tsx": [
+      "list and detail columns, which a phone shows one at a time",
+      "list and detail columns, which a phone shows one at a time",
+    ],
+    "src/app/portal/(app)/review/page.tsx": [
+      "list and detail columns, which a phone shows one at a time",
+      "list and detail columns, which a phone shows one at a time",
+    ],
+    "src/components/portal/surfaces.tsx": [
+      "a column label, whose information the card layout carries beside its value",
+      "a column that drops at xl, carried by the card layout below md",
+      "a column that drops at xl, carried by the card layout below md",
+    ],
+    /*
+     * design/Table.tsx is deliberately NOT here. It hides its table half at md
+     * rather than lg, which point 4 governs and this check does not see. The
+     * first version of this table listed it anyway, and the stale check caught
+     * that: a reason recorded for an element that does not exist is a reason
+     * nobody will ever question.
+     */
+  };
+
+  const files = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = dir + "/" + entry.name;
+      if (entry.isDirectory()) walk(full);
+      else if (/\.tsx$/.test(entry.name)) files.push(full);
+    }
+  };
+  walk("src/app/portal");
+  walk("src/components/portal");
+
+  const found = {};
+  for (const file of files) {
+    const code = fs.readFileSync(file, "utf8");
+    const hits = [...code.matchAll(/hidden[^"'`]*?\b(?:lg|xl):(?:flex|block|inline|inline-flex|grid|table|table-cell)/g)];
+    if (hits.length) found[file.split("\\").join("/")] = hits.length;
+  }
+
+  const unaccounted = [];
+  const stale = [];
+  for (const [file, count] of Object.entries(found)) {
+    const reasons = ACCOUNTED[file];
+    if (!reasons) {
+      unaccounted.push(`${file} (${count})`);
+      continue;
+    }
+    if (reasons.length !== count) {
+      unaccounted.push(`${file}: ${count} hidden below lg, ${reasons.length} accounted for`);
+    }
+  }
+  for (const file of Object.keys(ACCOUNTED)) {
+    if (!found[file]) stale.push(file);
+  }
+
+  rec(
+    "every element hidden below lg is accounted for",
+    unaccounted.length === 0,
+    unaccounted.join(" | ") || `${Object.values(found).reduce((a, b) => a + b, 0)} across ${Object.keys(found).length} files`,
+  );
+  rec(
+    "and nothing is accounted for that no longer exists",
+    stale.length === 0,
+    stale.join(", ") || "a reason for an element that is gone is a reason nobody will question",
+  );
+}
 
 const sessions = {};
 for (const role of ["admin", "engineer", "field_tech"]) {
@@ -178,6 +283,96 @@ for (const screen of SCREENS) {
     `header at ${m.headerTop}, tab bar ${m.tabsGap} from the bottom`,
   );
 
+/*
+   * POINT 2. Nothing scrolls sideways without saying so.
+   *
+   * CONFIRMED BY MEASURING, not assumed from the shell work. Point 1 stopped
+   * the DOCUMENT scrolling; it says nothing about a container inside it, and
+   * this repository has now found content clipped with no affordance three
+   * times: the navigation rail, the notification list and the command palette,
+   * and two data tables.
+   *
+   * Every element whose scrollWidth exceeds its clientWidth is collected. Each
+   * one is allowed only if it declares itself: .scroll-x or an explicit
+   * overflow-x of auto or scroll, AND a way for a keyboard to reach it, which
+   * is tabindex. A div that scrolls and takes no focus is content a keyboard
+   * user cannot reach at all, which is the axe rule this portal has already
+   * failed twice.
+   */
+  const sideways = await page.evaluate(() => {
+    const out = [];
+    for (const el of document.querySelectorAll("*")) {
+      if (el.scrollWidth <= el.clientWidth + 1) continue;
+      /*
+       * Visually hidden text clips BY DESIGN. The sr-only pattern is a 1px box
+       * with overflow hidden, so every screen reader label on the page reports
+       * an overflow. Skipping anything that occupies no visible space removes
+       * them without needing to know the class name.
+       */
+      if (el.clientWidth <= 1 || el.clientHeight <= 1) continue;
+      const st = getComputedStyle(el);
+      const declares = st.overflowX === "auto" || st.overflowX === "scroll";
+      const reachable = el.hasAttribute("tabindex");
+      if (declares && reachable) continue;
+      out.push(
+        `<${el.tagName.toLowerCase()}${el.id ? "#" + el.id : ""}> ` +
+          `class="${(el.getAttribute("class") || "").slice(0, 50)}" ` +
+          `${declares ? "declares but cannot be focused" : "clips with no affordance"}`,
+      );
+    }
+    return out.slice(0, 4);
+  });
+
+  rec(
+    `${screen.path}: nothing scrolls sideways without an affordance`,
+    sideways.length === 0,
+    sideways.join(" | "),
+  );
+
+  /*
+   * POINT 8. A list that can grow is bounded.
+   *
+   * Asserted on the ONE property that can be measured from outside: a screen
+   * does not render an unbounded number of rows. The cap is generous, because
+   * this is a check against a list that grew rather than a design opinion about
+   * page size, and a firm with three hundred files should see a red line rather
+   * than a slow phone.
+   *
+   * Scroll position surviving navigation is the other half of point 8 and is
+   * not asserted here. It needs a navigation and a return, which is a different
+   * shape of test, and claiming it from a resting page would be the kind of
+   * check this phase exists to remove.
+   */
+  const rowCount = await page.evaluate(() => {
+    const region = document.querySelector("[data-portal-scroll]");
+    if (!region) return 0;
+    /*
+     * TOP LEVEL ROWS ONLY. Counting every li counted the audit trail twice,
+     * because each event card holds a list of its own, and reported 400 rows on
+     * a page that caps at 200 and says so. A nested list is part of a row, not
+     * another row.
+     */
+    return [...region.querySelectorAll("li, tbody > tr")].filter((el) => {
+      /*
+       * VISIBLE rows only, and top level only.
+       *
+       * querySelectorAll matches the hidden half of a card and table pair, so a
+       * screen showing 200 cards at 390 reported 400 rows: the cards plus the
+       * table rows behind display:none. Point 8 is about what a phone actually
+       * renders, so that is what is counted.
+       */
+      const r = el.getBoundingClientRect();
+      if (r.width === 0 && r.height === 0) return false;
+      return !el.parentElement?.closest("li");
+    }).length;
+  });
+  rec(
+    `${screen.path}: the list is bounded`,
+    rowCount <= 250,
+    `${rowCount} row(s)`,
+  );
+
+
   /*
    * POINT 4. Tables become cards.
    *
@@ -207,6 +402,65 @@ for (const screen of SCREENS) {
     m.headerPadTop !== null && m.tabsPadBottom !== null,
     `top ${m.headerPadTop}, bottom ${m.tabsPadBottom}`,
   );
+
+  /*
+   * POINT 5. Modals and pickers present as sheets.
+   *
+   * OPENED AND MEASURED, on the one overlay every portal screen carries: the
+   * More menu in the header. A resting page has no dialog on it, so a check
+   * that only looked would pass by finding nothing.
+   *
+   * Three properties, and each is a way this goes wrong. It has to announce
+   * itself as a dialog, or a screen reader meets an unlabelled div. It has to
+   * sit against the bottom edge rather than floating in the middle, which is
+   * the difference the operator is describing. And it must not fill the screen,
+   * because a sheet sized to the viewport rather than its content is a page
+   * wearing a sheet's corners.
+   */
+  {
+    const trigger = await page.$('button[aria-label="More"]');
+    if (!trigger) {
+      rec(`${screen.path}: the More sheet is reachable`, false, "no More trigger in the header");
+    } else {
+      await trigger.click();
+      await page.waitForTimeout(400);
+      const sheet = await page.evaluate(() => {
+        const d = document.querySelector('[role="dialog"]');
+        if (!d) return null;
+        const r = d.getBoundingClientRect();
+        return {
+          bottomGap: Math.round(window.innerHeight - r.bottom),
+          height: Math.round(r.height),
+          viewport: window.innerHeight,
+          labelled: Boolean(d.getAttribute("aria-label") || d.getAttribute("aria-labelledby")),
+          modal: d.getAttribute("aria-modal") === "true",
+        };
+      });
+
+      rec(`${screen.path}: opening More presents a dialog`, sheet !== null, sheet ? "" : "nothing with role=dialog appeared");
+      if (sheet) {
+        rec(
+          `${screen.path}: and it is anchored to the bottom edge`,
+          sheet.bottomGap <= 1,
+          `${sheet.bottomGap}px from the bottom`,
+        );
+        rec(
+          `${screen.path}: and it is sized to its content, not the screen`,
+          sheet.height < sheet.viewport * 0.9,
+          `${sheet.height} of ${sheet.viewport}px`,
+        );
+        rec(
+          `${screen.path}: and it is a labelled modal`,
+          sheet.labelled && sheet.modal,
+          `labelled ${sheet.labelled}, aria-modal ${sheet.modal}`,
+        );
+      }
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(250);
+      const closed = await page.evaluate(() => !document.querySelector('[role="dialog"]'));
+      rec(`${screen.path}: and Escape closes it`, closed);
+    }
+  }
 
   /*
    * POINT 6. Every interaction has a pressed state.

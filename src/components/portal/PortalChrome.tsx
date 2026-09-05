@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { NavItem } from "./nav";
+import { Sheet } from "./design/Sheet";
 
 /**
  * The interactive parts of the shell: the mobile drawer, the profile menu, the
@@ -521,41 +522,23 @@ export function MobileMore({ items }: { items: NavItem[] }) {
       >
         <Icon name="menu" />
       </button>
-      {open ? (
-        <div className="fixed inset-0 z-[60] bg-slate-abyss/60 lg:hidden" onClick={() => setOpen(false)}>
-          <div
-            className="absolute inset-x-0 bottom-0 rounded-t-[8px] bg-white pb-[env(safe-area-inset-bottom)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
-              <p className="portal-kicker text-[var(--gold-deep)]">More</p>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                aria-label="Close"
-                className="grid h-11 w-11 place-items-center text-[var(--navy)]"
+      <Sheet open={open} onClose={() => setOpen(false)} title="More">
+        <ul className="flex flex-col gap-1 pb-2">
+          {items.map((item) => (
+            <li key={item.href}>
+              <Link
+                href={item.href}
+                className="flex min-h-[52px] items-center gap-3 rounded-[3px] px-3 text-[15px] font-semibold text-[var(--navy)] hover:bg-[var(--canvas)] active:bg-[var(--row-hover)]"
               >
-                <Icon name="close" />
-              </button>
-            </div>
-            <ul className="p-2">
-              {items.map((item) => (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className="flex min-h-[52px] items-center gap-3 rounded-[3px] px-3 text-[15px] font-semibold text-[var(--navy)] hover:bg-[var(--canvas)]"
-                  >
-                    <span className="text-[var(--gold-deep)]">
-                      <Icon name={item.icon} />
-                    </span>
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      ) : null}
+                <span className="text-[var(--secondary)]">
+                  <Icon name={item.icon} />
+                </span>
+                {item.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </Sheet>
     </>
   );
 }

@@ -425,6 +425,37 @@ Point 9 is a coverage check of the same shape as the perimeter list: every
 element hidden below `lg` is either in the table above or the audit fails, so a
 new desktop-only affordance cannot be added without a ruling.
 
+### What is built, and what each check does not cover
+
+Recorded 2026-09-05, after Section 2 built against this standard.
+
+| Point | State | Asserted by |
+| --- | --- | --- |
+| 1, the page never scrolls | Built | native-audit, 24 screens: zero document scroll, one named region, chrome outside it, anchored to both edges |
+| 2, nothing scrolls sideways silently | Built | native-audit: every element wider than itself must declare an overflow AND take focus |
+| 3, safe areas | Already met, now held | native-audit: both insets declared |
+| 4, tables become cards | Built | native-audit: no visible table element at 390 |
+| 5, modals are sheets | Built | native-audit: the More sheet is opened on every screen and measured |
+| 6, pressed states | Already met globally, treatment improved | native-audit: controls are pressed and compared |
+| 7, keyboard aware | HALF BUILT | nothing |
+| 8, bounded lists | Half asserted | native-audit: visible row count |
+| 9, desktop only affordances | Built | native-audit: coverage against a written table |
+
+Two of those need saying plainly rather than being read off a table.
+
+**Point 7 is half built and asserted by nothing.** The 16px half was already met.
+KeyboardAwareComposer exists, uses visualViewport because on iOS the software
+keyboard does not resize the layout viewport and a resize listener therefore
+never fires, and it is exported. No screen renders it yet, so it has never run
+in a browser and no check exercises it. It was built before Section 3 because
+the messaging centre needs it and building it there would mean building it in a
+hurry; that is a reason to have written it, not evidence that it works.
+
+**Point 8 is asserted on one of its two halves.** A visible row count catches a
+list that grew. Scroll position surviving navigation needs a navigation and a
+return, which is a different shape of test, and claiming it from a resting page
+would be the kind of check this phase exists to remove.
+
 **What none of this asserts** is whether the result feels like an application.
 That is `docs/portal-screen-verdicts.md`, and Section 2 ends by filling in the
 twenty three blank rows.

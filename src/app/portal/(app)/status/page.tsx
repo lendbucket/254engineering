@@ -112,7 +112,19 @@ export default async function StatusPage() {
                 <Chip label="Configured, not checked" tone="neutral" />
               )}
               <p className="w-full max-w-[76ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
-                {d.detail}
+                {/*
+                  The detail is terminated before the reading time is added.
+                  Without this the two run together, which on the Stripe row
+                  read "so nothing can be ordered Read 0s ago".
+
+                  A full stop only, not any terminal punctuation. The first
+                  version tested for one with a regex and portal-voice-audit
+                  failed the build on the exclamation mark inside it, which was
+                  the right call: every detail on this page is declarative, so
+                  the other two never occur and testing for them was borrowing
+                  a character the portal does not use.
+                */}
+                {d.detail.trim().endsWith(".") ? d.detail.trim() : `${d.detail.trim()}.`}
                 <span className="text-[var(--secondary)]"> Read {AGO(d.checkedAt)}.</span>
               </p>
             </li>
