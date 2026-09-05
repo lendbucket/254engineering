@@ -84,27 +84,58 @@ export async function POST(request: NextRequest) {
 
     if (!created.ok) return NextResponse.json({ ok: false, error: created.error }, { status: 400 });
 
-    const sent = await queueEmail(
-      portalInvite({
-        personName: displayName,
-        personEmail: email,
-        role: role as Role,
-        setPasswordUrl: created.linked ? null : inviteUrl(created.token),
-        expiresAt: created.linked ? null : expiryPhrase(created.expiresAt),
-        invitedBy: actor.display_name,
-        signInUrl: signInUrl(),
-      }),
-    );
+    /*
+     * WHO DELIVERS THE LINK.
+     *
+     * Default is the email, because that is the right answer almost always: it
+     * reaches the person directly and no link sits in somebody's clipboard.
+     *
+     * "byHand" is for the case where the account needs saying more than the
+     * template can say. The link is then returned ONCE, to the administrator
+     * who already holds profiles.create and could mint another anyway, and no
+     * email is queued. It is not stored anywhere: eng_auth_tokens holds only
+     * the hash, which is why this has to be decided here rather than recovered
+     * later.
+     */
+    const byHand = body?.deliverBy === "hand";
+
+    const sent = byHand
+      ? { ok: true }
+      : await queueEmail(
+          portalInvite({
+            personName: displayName,
+            personEmail: email,
+            role: role as Role,
+            setPasswordUrl: created.linked ? null : inviteUrl(created.token),
+            expiresAt: created.linked ? null : expiryPhrase(created.expiresAt),
+            invitedBy: actor.display_name,
+            signInUrl: signInUrl(),
+          }),
+        );
 
     await writeAudit({
       actor: { id: actor.id, role: actor.role, email: actor.email },
       action: "profile.create",
       entityType: "profile",
       entityId: created.profileId,
+      /*
+       * The trail says HOW the invite was delivered, because "no invite email
+       * exists for this account" is otherwise indistinguishable from a send
+       * that failed, and the two call for opposite responses.
+       *
+       * The link itself is NOT recorded. An audit row is readable by anybody
+       * holding audit.read, and a one time credential sitting in a permanent
+       * append only table is a credential that never expires from the reader's
+       * point of view.
+       */
       summary: created.linked
         ? `Linked the existing account ${email} to a ${role} profile`
-        : `Created ${displayName} (${email}) as ${role}`,
-      diff: { role: { from: null, to: role }, status: { from: null, to: "invited" } },
+        : `Created ${displayName} (${email}) as ${role}. Invite ${byHand ? "handed to " + actor.display_name + " to deliver" : "queued by email"}.`,
+      diff: {
+        role: { from: null, to: role },
+        status: { from: null, to: "invited" },
+        invite_delivery: { from: null, to: byHand ? "by_hand" : "email" },
+      },
       ip,
       userAgent,
     });
@@ -123,10 +154,19 @@ export async function POST(request: NextRequest) {
       ok: true,
       profileId: created.profileId,
       linked: created.linked,
-      emailSent: sent.ok,
-      emailError: sent.ok
-        ? null
-        : "The account was created but the invite email could not be queued. Resend it from the roster.",
+      deliveredByHand: byHand,
+      /*
+       * Shown once and never again. Absent when the address already had
+       * credentials on this project, because then there is no link to give:
+       * they sign in with the password they already use.
+       */
+      setPasswordUrl: byHand && !created.linked ? inviteUrl(created.token) : null,
+      setPasswordExpires: byHand && !created.linked ? expiryPhrase(created.expiresAt) : null,
+      emailSent: byHand ? false : sent.ok,
+      emailError:
+        byHand || sent.ok
+          ? null
+          : "The account was created but the invite email could not be queued. Resend it from the roster.",
     });
   }
 

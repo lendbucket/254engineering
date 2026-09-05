@@ -49,6 +49,22 @@
   --gold-bright: #e8b04a;
   --gold-deep: #8d610f;
 
+  /*
+   * THE CREAM FILL, WHICH FOUR SCREENS HAVE BEEN ASKING FOR AND NOT GETTING.
+   *
+   * DESIGN_SPEC.md section 2 calls it accent-tint #FDF6E7 and records
+   * --gold-deep on it at 4.90:1, which is the pairing the panels using it
+   * actually apply. The token was simply never declared: the intake screen,
+   * the review queue, the roles screen and now the people screen all set
+   * background: var(--gold-wash), an invalid value falls back to transparent,
+   * and on a pale page that reads as almost right.
+   *
+   * Which is why nobody caught it, including me, when I looked at a screenshot
+   * of the roles panel and saw what I expected to see. It was the page showing
+   * through.
+   */
+  --gold-wash: #fdf6e7;
+
   --warn-bg: #fff9ec;
   --warn-border: #e8d9ae;
   --warn-ink: #5c4a12;

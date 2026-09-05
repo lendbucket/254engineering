@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ROLE_LABEL, type Role } from "@/lib/ops-authz";
 
@@ -39,6 +39,37 @@ export function NewPersonForm({ counties }: { counties: string[] }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [byHand, setByHand] = useState(false);
+
+  /*
+   * SHOWN ONCE AND NEVER AGAIN.
+   *
+   * eng_auth_tokens stores a hash, so this string exists nowhere else the
+   * moment this component drops it. That is a property worth keeping rather
+   * than working around: a one time link that could be looked up later is not
+   * a one time link. It does mean the panel below has to say so plainly.
+   */
+  const [handedLink, setHandedLink] = useState<{ url: string; expires: string; name: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+  const linkPanel = useRef<HTMLDivElement | null>(null);
+
+  /*
+   * BRING THE PANEL TO THEM.
+   *
+   * Submitting closes the form, which shortens the page, and the panel renders
+   * where the form was: above wherever they are now. On a phone that put the
+   * one time link off the top of the screen and left them looking at the
+   * roster, which for a link shown exactly once is the difference between
+   * having it and not.
+   *
+   * Caught in a 390 screenshot, not by reasoning about it. Focus as well as
+   * scroll, so it is announced rather than merely visible.
+   */
+  useEffect(() => {
+    if (!handedLink) return;
+    linkPanel.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    linkPanel.current?.focus();
+  }, [handedLink]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -51,6 +82,7 @@ export function NewPersonForm({ counties }: { counties: string[] }) {
     const payload = {
       action: "create",
       role,
+      deliverBy: byHand ? "hand" : "email",
       displayName: form.get("displayName"),
       email: form.get("email"),
       phone: form.get("phone"),
@@ -68,7 +100,16 @@ export function NewPersonForm({ counties }: { counties: string[] }) {
         body: JSON.stringify(payload),
       });
       const body = (await res.json().catch(() => null)) as
-        | { ok: boolean; error?: string; emailSent?: boolean; emailError?: string | null }
+        | {
+            ok: boolean;
+            error?: string;
+            emailSent?: boolean;
+            emailError?: string | null;
+            deliveredByHand?: boolean;
+            setPasswordUrl?: string | null;
+            setPasswordExpires?: string | null;
+            linked?: boolean;
+          }
         | null;
 
       if (!res.ok || !body?.ok) {
@@ -77,9 +118,36 @@ export function NewPersonForm({ counties }: { counties: string[] }) {
         return;
       }
 
-      // The account exists whether or not the mail was queued. Say which
-      // happened, and say queued rather than sent, because that is what the
-      // route actually did.
+      /*
+       * The account exists whether or not the mail was queued. Say which
+       * happened, and say queued rather than sent, because that is what the
+       * route actually did.
+       */
+      if (body.deliveredByHand) {
+        if (body.setPasswordUrl) {
+          setHandedLink({
+            url: body.setPasswordUrl,
+            expires: body.setPasswordExpires ?? "",
+            name: String(form.get("displayName") ?? "them"),
+          });
+          setNotice(null);
+        } else {
+          /*
+           * LINKED, so there is no link to hand over. That address already had
+           * credentials on this shared project and keeps them. Saying "here is
+           * their link" with nothing to show would be the worse failure.
+           */
+          setNotice(
+            "Account created and linked to the password that address already uses on this project. " +
+              "There is no link to send: they sign in with the password they already have.",
+          );
+        }
+        setBusy(false);
+        setOpen(false);
+        router.refresh();
+        return;
+      }
+
       setNotice(
         body.emailSent
           ? "Account created and the invite is queued to send."
@@ -223,14 +291,82 @@ export function NewPersonForm({ counties }: { counties: string[] }) {
             nobody at the firm can see.
           </p>
 
+          {/*
+            WHO DELIVERS THE LINK.
+
+            Emailing is the default and stays the default. This exists for the
+            account that needs saying more than a template can say: the invite
+            email announces an account and a button, and there are hires where
+            the first thing the person needs is context the template has no
+            business guessing at.
+          */}
+          <label className="mt-4 flex min-h-[var(--tap-target)] items-start gap-3 text-[13.5px] leading-[1.55] text-[var(--navy)]">
+            <input
+              type="checkbox"
+              checked={byHand}
+              onChange={(e) => setByHand(e.target.checked)}
+              className="mt-[3px] h-[18px] w-[18px] shrink-0"
+            />
+            <span>
+              Give me the link instead of emailing it.
+              <span className="block text-[var(--secondary)]">
+                Nothing is sent to them. The link appears once on this screen and cannot be shown
+                again, because only its hash is stored.
+              </span>
+            </span>
+          </label>
+
           <button
             type="submit"
             disabled={busy}
             className="mt-4 min-h-[var(--tap-target)] w-full rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[15px] font-bold text-white hover:bg-[var(--navy-hover)] disabled:opacity-60 sm:w-auto sm:px-6"
           >
-            {busy ? "Creating..." : "Create and send the invite"}
+            {busy ? "Creating..." : byHand ? "Create and show me the link" : "Create and send the invite"}
           </button>
         </form>
+      ) : null}
+
+      {handedLink ? (
+        <div
+          ref={linkPanel}
+          role="status"
+          tabIndex={-1}
+          className="mt-4 rounded-[3px] border border-[var(--gold-deep)] bg-[var(--gold-wash)] p-4 outline-none"
+        >
+          <p className="portal-kicker text-[var(--gold-deep)]">Send this to {handedLink.name}</p>
+          <p className="mt-2 text-[13.5px] leading-[1.55] text-[var(--navy)]">
+            Nothing was emailed. This link works once{handedLink.expires ? ` and expires ${handedLink.expires}` : ""}.
+            It is not stored anywhere and will not be shown again. If you lose it, use Resend invite
+            on their row, which issues a new one.
+          </p>
+          <p className="mt-3 break-all rounded-[3px] border border-[var(--border)] bg-white px-3 py-2.5 font-mono text-[12.5px] leading-[1.5] text-[var(--navy)]">
+            {handedLink.url}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard
+                  ?.writeText(handedLink.url)
+                  .then(() => setCopied(true))
+                  .catch(() => setCopied(false));
+              }}
+              className="min-h-[var(--tap-target)] rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white hover:bg-[var(--navy-hover)]"
+            >
+              {copied ? "Copied" : "Copy the link"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setHandedLink(null);
+                setCopied(false);
+              }}
+              className="min-h-[var(--tap-target)] rounded-[var(--radius-control)] border border-[var(--border)] px-4 text-[13.5px] font-bold text-[var(--navy)]"
+            >
+              I have sent it
+            </button>
+          </div>
+        </div>
       ) : null}
     </div>
   );

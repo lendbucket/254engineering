@@ -50,6 +50,7 @@ Visual reference: `254 Brand Standards.dc.html`. Canonical implementation: `254 
 --gold: #D9A032;        /* warnings, pending, active-nav bar — never decoration */
 --gold-bright: #E8B04A; /* progress fills on navy */
 --gold-deep: #8D610F;   /* warning text on light backgrounds */
+--gold-wash: #FDF6E7;   /* accent tint: the fill behind an explanation, not an alert */
 --warn-bg: #FFF9EC;     /* alert background */
 --warn-border: #E8D9AE; /* alert border */
 --warn-ink: #5C4A12;    /* alert text */

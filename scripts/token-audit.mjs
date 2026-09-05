@@ -82,11 +82,18 @@ if (cssBlock) {
  * The exact set, not a count.
  *
  * A count passes when somebody deletes one token and adds another, which is
- * precisely the change worth catching. These nineteen names ARE the palette.
+ * precisely the change worth catching. These twenty names ARE the palette.
+ *
+ * --gold-wash was the twentieth, added 2026-09-05. It was not a new decision:
+ * DESIGN_SPEC.md section 2 already names accent-tint #FDF6E7 and records
+ * --gold-deep on it at 4.90:1. Four screens were already writing
+ * background: var(--gold-wash) against a token nothing declared, so the fill
+ * silently fell back to transparent and read as almost right on a pale page.
+ * Declaring it is what made this check fire, which is the check working.
  */
 const EXPECTED_COLOUR_TOKENS = [
   "--navy", "--navy-hover", "--ink-navy",
-  "--gold", "--gold-bright", "--gold-deep",
+  "--gold", "--gold-bright", "--gold-deep", "--gold-wash",
   "--warn-bg", "--warn-border", "--warn-ink",
   "--ink", "--secondary", "--muted",
   "--border", "--border-strong", "--row-rule", "--row-hover", "--canvas",
@@ -96,7 +103,7 @@ const EXPECTED_COLOUR_TOKENS = [
 const missingFromDoc = EXPECTED_COLOUR_TOKENS.filter((t) => !documented.has(t));
 const extraInDoc = [...documented.keys()].filter((t) => !EXPECTED_COLOUR_TOKENS.includes(t));
 rec(
-  "the document defines exactly the nineteen colours of the palette",
+  "the document defines exactly the twenty colours of the palette",
   missingFromDoc.length === 0 && extraInDoc.length === 0,
   [...missingFromDoc.map((t) => `missing ${t}`), ...extraInDoc.map((t) => `extra ${t}`)].join(", ") ||
     `${documented.size} tokens`,
