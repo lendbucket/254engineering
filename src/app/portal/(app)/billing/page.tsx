@@ -3,6 +3,9 @@ import { currentActor } from "@/lib/ops-auth";
 import { fileMargins, marginByPeriod } from "@/lib/ops-docs";
 import { canSeeBilling } from "@/lib/ops-dashboard";
 import { marginOf, money } from "@/lib/ops-money";
+import type { PeriodTotals } from "@/lib/ops-money";
+import type { Column } from "@/components/portal/design";
+import { DataTable } from "@/components/portal/design";
 import { STATUS_LABEL, type FileStatus } from "@/lib/ops-files";
 import { ButtonLink, Chip, EmptyState, PageHead, Panel, RecordTable } from "@/components/portal/surfaces";
 
@@ -28,6 +31,22 @@ export const dynamic = "force-dynamic";
  * produce a margin that is too high by exactly the amount nobody has entered,
  * every time, in the flattering direction.
  */
+type PeriodRow = PeriodTotals & { id: string };
+
+const PERIOD_COLUMNS: Column<PeriodRow>[] = [
+  { key: "period", header: "Period", cell: (p) => p.period },
+  { key: "files", header: "Files counted", cell: (p) => `${p.complete} of ${p.files}` },
+  { key: "revenue", header: "Revenue", numeric: true, cell: (p) => money(p.revenue) },
+  { key: "cost", header: "Cost", numeric: true, cell: (p) => money(p.cost) },
+  {
+    key: "margin",
+    header: "Margin",
+    numeric: true,
+    cell: (p) => `${money(p.margin)}${p.marginPercent === null ? "" : ` (${p.marginPercent}%)`}`,
+  },
+  { key: "coverage", header: "What it covers", cell: (p) => p.coverage },
+];
+
 export default async function BillingPage() {
   const actor = await currentActor();
   if (!actor) redirect("/portal/login");
@@ -64,47 +83,13 @@ export default async function BillingPage() {
             title="By period"
             description="A file counts toward the month it was delivered, or the month it was opened if it has not been delivered."
           >
-            <div
-              className="overflow-x-auto"
-              role="region"
-              aria-label="Billing by period, scrolls sideways"
-              tabIndex={0}
-            >
-              <table className="w-full min-w-[620px] border-collapse text-left">
-                <thead>
-                  <tr className="border-b border-[var(--border)]">
-                    {["Period", "Files counted", "Revenue", "Cost", "Margin", "What it covers"].map((h) => (
-                      <th
-                        key={h}
-                        scope="col"
-                        className="py-2 pr-4 portal-kicker text-[var(--secondary)]"
-                      >
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {periods.map((p) => (
-                    <tr key={p.period} className="border-b border-[var(--border)] last:border-0">
-                      <td className="py-2.5 pr-4 align-top text-[13.5px] font-semibold text-[var(--navy)]">{p.period}</td>
-                      <td className="py-2.5 pr-4 align-top text-[13.5px] text-[var(--navy)]">
-                        {p.complete} of {p.files}
-                      </td>
-                      <td className="py-2.5 pr-4 align-top text-[13.5px] text-[var(--navy)]">{money(p.revenue)}</td>
-                      <td className="py-2.5 pr-4 align-top text-[13.5px] text-[var(--navy)]">{money(p.cost)}</td>
-                      <td className="py-2.5 pr-4 align-top text-[13.5px] font-semibold text-[var(--navy)]">
-                        {money(p.margin)}
-                        {p.marginPercent === null ? "" : ` (${p.marginPercent}%)`}
-                      </td>
-                      <td className="max-w-[42ch] py-2.5 pr-4 align-top text-[12px] leading-[1.45] text-[var(--secondary)]">
-                        {p.coverage}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <DataTable
+            caption="Billing by period"
+            rows={periods.map((p) => ({ ...p, id: p.period }))}
+            total={periods.length}
+columns={PERIOD_COLUMNS}
+            empty={<EmptyState title="No periods yet" body="A period appears here once a file is opened in it." />}
+          />
           </Panel>
 
           {incomplete.length > 0 ? (

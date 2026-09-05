@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
-import { RestrictedMode } from "@/components/portal/design";
+import { DataTable, RestrictedMode } from "@/components/portal/design";
 import { currentActor } from "@/lib/ops-auth";
 import { can, ROLE_LABEL } from "@/lib/ops-authz";
 import { dashboardFor } from "@/lib/ops-dashboard";
 import { money } from "@/lib/ops-money";
+import type { PeriodTotals } from "@/lib/ops-money";
+import type { Column } from "@/components/portal/design";
 import { AttentionList, CountTiles, MoneyTiles } from "@/components/portal/Dashboard";
 import { ButtonLink, EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
 
@@ -31,6 +33,22 @@ export const dynamic = "force-dynamic";
  * renders as zero with a sentence saying what zero means. A money figure nobody
  * has entered renders as "not set", never as $0.00.
  */
+type PeriodRow = PeriodTotals & { id: string };
+
+const PERIOD_COLUMNS: Column<PeriodRow>[] = [
+  { key: "period", header: "Period", cell: (p) => p.period },
+  { key: "files", header: "Files", cell: (p) => `${p.complete} of ${p.files}` },
+  { key: "revenue", header: "Revenue", numeric: true, cell: (p) => money(p.revenue) },
+  { key: "cost", header: "Cost", numeric: true, cell: (p) => money(p.cost) },
+  {
+    key: "margin",
+    header: "Margin",
+    numeric: true,
+    cell: (p) => `${money(p.margin)}${p.marginPercent === null ? "" : ` (${p.marginPercent}%)`}`,
+  },
+  { key: "coverage", header: "Coverage", cell: (p) => p.coverage },
+];
+
 export default async function PortalHome() {
   const actor = await currentActor();
   if (!actor) redirect("/portal/login");
@@ -118,47 +136,13 @@ export default async function PortalHome() {
             </ButtonLink>
           }
         >
-          <div
-            className="overflow-x-auto"
-            role="region"
-            aria-label="Files needing action, scrolls sideways"
-            tabIndex={0}
-          >
-            <table className="w-full min-w-[560px] border-collapse text-left">
-              <thead>
-                <tr className="border-b border-[var(--border)]">
-                  {["Period", "Files", "Revenue", "Cost", "Margin", "Coverage"].map((h) => (
-                    <th
-                      key={h}
-                      scope="col"
-                      className="py-2 pr-4 portal-kicker text-[var(--secondary)]"
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {dashboard.periods.slice(0, 12).map((p) => (
-                  <tr key={p.period} className="border-b border-[var(--border)] last:border-0">
-                    <td className="py-2.5 pr-4 align-top text-[13.5px] font-semibold text-[var(--navy)]">{p.period}</td>
-                    <td className="py-2.5 pr-4 align-top text-[13.5px] text-[var(--navy)]">
-                      {p.complete} of {p.files}
-                    </td>
-                    <td className="py-2.5 pr-4 align-top text-[13.5px] text-[var(--navy)]">{money(p.revenue)}</td>
-                    <td className="py-2.5 pr-4 align-top text-[13.5px] text-[var(--navy)]">{money(p.cost)}</td>
-                    <td className="py-2.5 pr-4 align-top text-[13.5px] font-semibold text-[var(--navy)]">
-                      {money(p.margin)}
-                      {p.marginPercent === null ? "" : ` (${p.marginPercent}%)`}
-                    </td>
-                    <td className="py-2.5 pr-4 align-top text-[12px] leading-[1.45] text-[var(--secondary)]">
-                      {p.coverage}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            caption="Margin by period"
+            rows={dashboard.periods.slice(0, 12).map((p) => ({ ...p, id: p.period }))}
+            total={dashboard.periods.length}
+columns={PERIOD_COLUMNS}
+            empty={<EmptyState title="No periods yet" body="A period appears here once a file is opened in it." />}
+          />
         </Panel>
       ) : null}
 

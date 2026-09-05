@@ -179,6 +179,23 @@ for (const screen of SCREENS) {
   );
 
   /*
+   * POINT 4. Tables become cards.
+   *
+   * Asserted as absence: at 390 there is no visible table element anywhere in
+   * the portal. That is stronger than checking a table does not scroll
+   * sideways, because a table narrow enough to fit is still a table, with a
+   * header row a person has to hold in their head while reading across.
+   *
+   * DataTable renders the card list below md and the table at md and up, so
+   * the same component satisfies both this and the desk.
+   */
+  rec(
+    `${screen.path}: no table is rendered at 390`,
+    m.visibleTables === 0,
+    m.visibleTables === 0 ? "" : `${m.visibleTables} visible table element(s)`,
+  );
+
+  /*
    * POINT 3. Safe areas come from the environment rather than a constant.
    *
    * Asserted as "a padding is declared and it resolves", not as a pixel value:
