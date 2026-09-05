@@ -243,7 +243,7 @@ export function ProfileMenu({
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="menu"
-        className="flex min-h-[44px] min-w-[44px] items-center gap-2 rounded-[4px] px-2 text-[var(--navy)]-fg hover:bg-white/[0.08]"
+        className="flex min-h-[44px] min-w-[44px] items-center gap-2 rounded-[4px] px-2 text-[var(--on-navy)] hover:bg-white/[0.08] lg:text-[var(--navy)] lg:hover:bg-[var(--canvas)]"
       >
         {/*
           The avatar was a gold disc, which is gold as decoration and the one
@@ -255,7 +255,7 @@ export function ProfileMenu({
         </span>
         <span className="hidden text-left sm:block">
           <span className="block text-[13.5px] leading-tight font-semibold">{displayName}</span>
-          <span className="block text-[11px] leading-tight text-[var(--navy)]-fg/60">{roleLabel}</span>
+          <span className="block text-[11px] leading-tight text-[var(--on-navy-dim)] lg:text-[var(--secondary)]">{roleLabel}</span>
         </span>
       </button>
 
@@ -344,7 +344,7 @@ export function NotificationBell({
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-label={unread ? `Notifications, ${unread} unread` : "Notifications"}
-        className="relative grid h-11 w-11 place-items-center rounded-[4px] text-[var(--navy)]-fg hover:bg-white/[0.08]"
+        className="relative grid h-11 w-11 place-items-center rounded-[4px] text-[var(--on-navy)] hover:bg-white/[0.08] lg:text-[var(--navy)] lg:hover:bg-[var(--canvas)]"
       >
         <Icon name="bell" />
         {/*
@@ -443,7 +443,7 @@ export function CommandPalette({ items }: { items: NavItem[] }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="hidden min-h-[40px] items-center gap-2 rounded-[4px] border border-white/15 px-3 text-[13.5px] text-[var(--navy)]-fg/70 hover:border-white/30 hover:text-[var(--navy)]-fg lg:flex"
+        className="hidden min-h-[40px] items-center gap-2 rounded-[4px] border border-[var(--border)] px-3 text-[13.5px] text-[var(--secondary)] hover:border-[var(--border-strong)] hover:text-[var(--navy)] lg:flex"
       >
         <Icon name="search" />
         <span>Search</span>
@@ -516,7 +516,7 @@ export function MobileMore({ items }: { items: NavItem[] }) {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="More"
-        className="grid h-11 w-11 place-items-center rounded-[4px] text-[var(--navy)]-fg hover:bg-white/[0.08] lg:hidden"
+        className="grid h-11 w-11 place-items-center rounded-[4px] text-[var(--on-navy)] hover:bg-white/[0.08] lg:hidden"
       >
         <Icon name="menu" />
       </button>

@@ -82,7 +82,14 @@ if (cssBlock) {
  * The exact set, not a count.
  *
  * A count passes when somebody deletes one token and adds another, which is
- * precisely the change worth catching. These twenty names ARE the palette.
+ * precisely the change worth catching. These twenty three names ARE the palette.
+ *
+ * The three --on-navy values were added 2026-09-05 and were not a new decision
+ * either: DESIGN_SPEC.md section 2 has defined the on navy scale with measured
+ * ratios since v5, and globals.css has carried it for the public site all
+ * along. The PORTAL file simply never had it, so every surface rendering on
+ * navy improvised, and contrast-audit found 33 violations from two colour pairs
+ * the first day it was pointed at the portal.
  *
  * --gold-wash was the twentieth, added 2026-09-05. It was not a new decision:
  * DESIGN_SPEC.md section 2 already names accent-tint #FDF6E7 and records
@@ -94,6 +101,7 @@ if (cssBlock) {
 const EXPECTED_COLOUR_TOKENS = [
   "--navy", "--navy-hover", "--ink-navy",
   "--gold", "--gold-bright", "--gold-deep", "--gold-wash",
+  "--on-navy", "--on-navy-muted", "--on-navy-dim",
   "--warn-bg", "--warn-border", "--warn-ink",
   "--ink", "--secondary", "--muted",
   "--border", "--border-strong", "--row-rule", "--row-hover", "--canvas",
@@ -103,7 +111,7 @@ const EXPECTED_COLOUR_TOKENS = [
 const missingFromDoc = EXPECTED_COLOUR_TOKENS.filter((t) => !documented.has(t));
 const extraInDoc = [...documented.keys()].filter((t) => !EXPECTED_COLOUR_TOKENS.includes(t));
 rec(
-  "the document defines exactly the twenty colours of the palette",
+  "the document defines exactly the twenty three colours of the palette",
   missingFromDoc.length === 0 && extraInDoc.length === 0,
   [...missingFromDoc.map((t) => `missing ${t}`), ...extraInDoc.map((t) => `extra ${t}`)].join(", ") ||
     `${documented.size} tokens`,

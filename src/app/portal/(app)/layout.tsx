@@ -128,7 +128,7 @@ export default async function PortalLayout({ children }: { children: React.React
           <SidebarNav items={items} />
         </div>
         <div className="border-t border-white/10 px-5 py-4">
-          <p className="text-[12px] leading-[1.5] text-white/55">
+          <p className="text-[12px] leading-[1.5] text-[var(--on-navy-muted)]">
             Firm registration pending with TBPELS. No engineer of record is yet in responsible
             charge.
           </p>
@@ -142,7 +142,7 @@ export default async function PortalLayout({ children }: { children: React.React
             This is not the feature flag and environment banner system in the
             build roadmap. It is two facts that already exist, displayed.
           */}
-          <p className="mt-3 font-mono text-[12px] leading-[1.5] text-white/40">
+          <p className="mt-3 font-mono text-[12px] leading-[1.5] text-[var(--on-navy-dim)]">
             {RELEASE} · {ENVIRONMENT}
           </p>
         </div>

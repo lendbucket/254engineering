@@ -309,7 +309,7 @@ export function TaskRowControls({
             type="button"
             disabled={busy}
             onClick={() => void move("done")}
-            className="inline-flex min-h-[44px] items-center rounded-[3px] bg-slate px-4 text-[13.5px] font-bold text-[var(--navy)]-fg disabled:opacity-50"
+            className="inline-flex min-h-[44px] items-center rounded-[3px] bg-slate px-4 text-[13.5px] font-bold text-[var(--on-navy)] disabled:opacity-50"
           >
             {busy ? "Saving" : "Done"}
           </button>

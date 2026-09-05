@@ -179,7 +179,7 @@ export function DecisionPanel({
                   selected
                     ? isRefusal
                       ? "border-[var(--red)] bg-[var(--warn-bg)] text-[var(--red)]"
-                      : "border-slate bg-slate text-[var(--navy)]-fg"
+                      : "border-slate bg-slate text-[var(--on-navy)]"
                     : isRefusal
                       ? "border-[var(--red)] bg-white text-[var(--red)] hover:bg-[var(--warn-bg)]"
                       : "border-[var(--border)] bg-white text-[var(--navy)] hover:border-slate"

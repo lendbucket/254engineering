@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Wordmark } from "@/components/brand/Wordmark";
+import { RestrictedMode } from "@/components/portal/design";
 import { inspectToken, MIN_PASSWORD_LENGTH } from "@/lib/ops-auth";
 import { ROLE_LABEL } from "@/lib/ops-authz";
 import { SetPasswordForm } from "./SetPasswordForm";
@@ -26,7 +27,7 @@ export default async function SetPasswordPage({
   const result = token ? await inspectToken(token) : ({ ok: false, reason: "invalid" } as const);
 
   return (
-    <main className="portal-surface grid min-h-dvh place-items-center px-4 py-10">
+    <main className="portal-surface grid min-h-dvh place-items-center px-4 py-6 sm:py-10">
       <div className="w-full max-w-[420px]">
         {/*
           THE LIGHT LOCKUP, BECAUSE THIS SURFACE IS LIGHT.
@@ -36,11 +37,11 @@ export default async function SetPasswordPage({
           scripts/asset-audit.mjs measures this pairing now rather than trusting
           whoever edits this line next.
         */}
-        <div className="mb-6 flex justify-center">
+        <div className="mb-4 flex justify-center sm:mb-6">
           <Wordmark height={44} priority />
         </div>
 
-        <div className="rounded-[4px] border border-[var(--border)] bg-white p-6 sm:p-7">
+        <div className="rounded-[var(--radius-card)] border border-[var(--border)] bg-white p-5 sm:p-7">
           {result.ok ? (
             <>
               <h1 className="font-display text-[24px] leading-[1.2] font-bold text-[var(--navy)]">
@@ -51,6 +52,22 @@ export default async function SetPasswordPage({
                 {ROLE_LABEL[result.profile.role]}. Your sign in address is{" "}
                 <span className="font-semibold break-all text-[var(--navy)]">{result.profile.email}</span>.
               </p>
+              {/*
+                THE GATE, SAID ON THE FIRST SCREEN A NEW ENGINEER EVER SEES.
+                Sign in has carried this since it was ported and this screen
+                carried neither it nor the footer below, so somebody joining the
+                firm set their password having been told nothing about the
+                registration being pending. The gate is enforced in code either
+                way, which is why this was a gap rather than a breach, and it is
+                the one place where saying it matters most.
+
+                Rendered unconditionally: the component reads the gate itself
+                and returns null once it lifts.
+              */}
+              <div className="mt-5">
+                <RestrictedMode />
+              </div>
+
               <SetPasswordForm token={token!} minLength={MIN_PASSWORD_LENGTH} />
             </>
           ) : (
@@ -78,6 +95,11 @@ export default async function SetPasswordPage({
             </>
           )}
         </div>
+
+        <p className="mt-4 text-center text-[12px] leading-[1.6] text-[var(--secondary)] sm:mt-5">
+          Firm registration pending with the Texas Board of Professional Engineers and Land
+          Surveyors. No engineer of record is yet in responsible charge.
+        </p>
       </div>
     </main>
   );

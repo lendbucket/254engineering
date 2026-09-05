@@ -85,7 +85,7 @@ export default async function TasksPage({
             href={`/portal/tasks${value ? `?status=${value}` : ""}`}
             className={`inline-flex min-h-[40px] items-center rounded-[3px] border px-3 text-[13.5px] font-semibold ${
               (params.status ?? "") === value
-                ? "border-slate bg-slate text-[var(--navy)]-fg"
+                ? "border-slate bg-slate text-[var(--on-navy)]"
                 : "border-[var(--border)] text-[var(--secondary)]"
             }`}
           >
