@@ -11,6 +11,34 @@ Items are removed when they ship, not when they are attempted.
 Items owned by a sibling repo, recorded here because they were found here.
 Nothing in this section is actionable in this repository.
 
+### The regulatory pattern library has diverged from the two sibling repos
+
+Recorded 2026-09-05, Phase 9 Section 4. `scripts/lib/regulatory.mjs` is a
+synchronized file, copied verbatim into sealedengineering and stampmyplans,
+because all three brands are Texas engineering firms under the same board with
+the same regulated vocabulary and the same pending gates.
+
+**This repository's copy now has three things the other two do not.** A
+CONDITIONAL_GUARD, a pattern for a third person service claim naming the firm,
+and a pattern for "performs and seals".
+
+**Why they were added.** The library was written from the first person and the
+passive voice, and caught neither of the two forms that matter to a partner
+programme: a brand writing about itself by name. Phase 9 Section 4 put "254
+Engineering Services performs and seals every engagement referred through this
+programme" on three partner screens and nothing in the suite saw it.
+
+**And it immediately found a live one.** /government carried "254 Engineering
+Services delivers inspections, sealed engineering letters, certifications, and
+design", under a heading reading "what this firm is BUILT to deliver". It has
+been served that way to procurement officers while the registration is pending.
+Fixed here.
+
+**Why it is not done there.** Standing operator instruction: those repos are out
+of scope and are not to be touched. The divergence is real until somebody copies
+the file across, and both sites are currently unable to detect the exact claim
+that was found live on this one.
+
 ### sealedengineering /order must return 307 and never 308, and nothing asserts it
 
 Recorded 2026-09-04 during the three site sitemap audit. Operator ruling the
@@ -53,6 +81,40 @@ next build. The 307 assertion belongs beside that one.
 
 **Not a defect today.** `/order` currently returns 307 correctly. This is a
 guard against a plausible future edit, not a repair.
+
+## Before a partner can sign in on production
+
+### PARTNER_SESSION_SECRET is not set anywhere but development
+
+Recorded 2026-09-05, Phase 9 Section 4. `partnerSessionConfigured()` returns
+false without it, which closes the partner portal completely: the sign in screen
+renders, says it is not configured, and refuses every attempt.
+
+That is the correct failure direction and it is not a defect. It is recorded
+because the day a first partner is created on production, this is what will make
+their link not work, and the symptom will look like a broken account rather than
+a missing variable.
+
+**What to do.** Generate a value of at least 24 characters and set it in Vercel
+for production, and separately for preview, exactly as OPS_SESSION_SECRET and
+CUSTOMER_SESSION_SECRET are set. It is its own variable on purpose: rotating one
+session secret must not sign out the other two.
+
+Development has one, written to .env.local and never echoed.
+
+### The corrected /government copy has to be confirmed live on production
+
+Recorded 2026-09-05. Operator instruction the same day.
+
+The page said "254 Engineering Services delivers inspections, sealed engineering
+letters, certifications, and design" while the firm's registration is pending.
+It is corrected on this branch and production is still serving the claim until
+this merges and deploys.
+
+**Confirm it against the live domain after the deploy, not against the build.**
+/government is the one page whose audience actually reads this, because a
+procurement officer evaluating a firm is exactly the reader who checks whether a
+firm is registered to do what it says it does.
 
 ## Suspended by decision
 
