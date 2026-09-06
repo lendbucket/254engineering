@@ -375,6 +375,15 @@ export async function createFile(
    * padded to a fixed width, which formatFileNumber does. If a year ever
    * exceeds that width the padding changes and this ordering stops being right,
    * which is worth knowing about rather than discovering.
+   *
+   * AND THE DEMONSTRATION FILES ARE EXCLUDED BY THEIR SHAPE.
+   *
+   * They were numbered 9001 upward, which is higher than any real file and
+   * therefore became the sequence: on development the next real file would have
+   * been 254-2026-9004. They carry DEMO where the year goes now, so the filter
+   * below cannot see them at all and a reset cannot advance anything. The
+   * exclusion is structural rather than a rule somebody has to remember, which
+   * is the only kind that survives.
    */
   const { data: highest } = await db
     .from("eng_files")

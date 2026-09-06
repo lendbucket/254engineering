@@ -318,3 +318,34 @@ export const STATUS_TIMESTAMP: Partial<Record<FileStatus, string>> = {
 export function formatFileNumber(year: number, sequence: number): string {
   return `254-${year}-${String(sequence).padStart(4, "0")}`;
 }
+
+/**
+ * The word that goes where the year goes, on a file that is not real.
+ *
+ * WHY THE DEMO BLOCK IS NOT A NUMBER RANGE
+ * ----------------------------------------
+ * It used to be 9001 upward, on the reasoning that nobody would reach nine
+ * thousand files in a year. That reasoning was sound and the mechanism was
+ * wrong, because the next file number is derived from the HIGHEST number in the
+ * year and 9003 is higher than 0009. On development the next real file would
+ * have been 254-2026-9004: the demonstration block was not at risk of advancing
+ * the sequence, it WAS the sequence.
+ *
+ * A word cannot be the highest number. `254-DEMO-0001` does not match the
+ * `%-2026-%` filter that finds the year's files, so it is excluded by the shape
+ * of the thing rather than by a rule somebody has to remember, and no reset can
+ * advance anything.
+ *
+ * It also survives being read down a telephone, which is what file numbers are
+ * for. Nobody says "two five four, demo, one" about a real property.
+ */
+export const DEMO_FILE_SEGMENT = "DEMO";
+
+export function formatDemoFileNumber(sequence: number): string {
+  return `254-${DEMO_FILE_SEGMENT}-${String(sequence).padStart(4, "0")}`;
+}
+
+/** Is this a demonstration file rather than one somebody is paying for? */
+export function isDemoFileNumber(fileNumber: string): boolean {
+  return fileNumber.includes(`-${DEMO_FILE_SEGMENT}-`);
+}
