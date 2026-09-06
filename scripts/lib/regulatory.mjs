@@ -54,6 +54,20 @@
 export const NEGATION_GUARD = String.raw`(?<!\b(?:not|never|cannot|no|nor)\s)`;
 
 /**
+ * A conditional guard, for the same reason the negation guard exists.
+ *
+ * "A commission is earned when the firm delivers the work" is a statement about
+ * when something becomes true, not a claim that it is true now. So is "once the
+ * firm seals a package" and "until the firm performs the review". A check that
+ * cannot tell a subordinate clause from an assertion teaches whoever runs it to
+ * delete accurate sentences to get a green board.
+ *
+ * Deliberately narrow: only the words that introduce a condition or a sequence.
+ * "The firm delivers within five days" takes no guard and should not.
+ */
+export const CONDITIONAL_GUARD = String.raw`(?<!\b(?:when|once|if|until|unless|before|after|whenever|while)\s)`;
+
+/**
  * Claims no engineering firm may make, in any gate state, ever.
  *
  * Guaranteeing an approval or an opinion in advance is a professional conduct
@@ -87,6 +101,32 @@ export const NEVER_CLAIMS = [
  */
 export const PRESENT_TENSE_OFFER = [
   { pattern: /\bwe (?:offer|provide|perform|deliver|issue|seal|stamp|inspect|certify)\b/i, why: "first person service claim" },
+  /*
+   * THIRD PERSON, NAMING THE FIRM. Added 2026-09-05, and it was found the way
+   * the header of this file predicts.
+   *
+   * Phase 9 Section 4 put "254 Engineering Services performs and seals every
+   * engagement referred through this programme" on three partner screens. It is
+   * the same claim as "we seal", made by naming the firm instead of saying we,
+   * and not one pattern in this library matched it.
+   *
+   * The lists were written from the first person and the passive. A brand
+   * writing about itself in the third person is the obvious third voice, and it
+   * is the one a partner programme reaches for constantly, because the whole
+   * point of a partner surface is telling somebody else which firm does the
+   * work.
+   */
+  {
+    pattern: new RegExp(
+      `${CONDITIONAL_GUARD}\\b(?:254 Engineering Services|Sealed Engineering|StampMyPlans|the firm)\\s+(?:currently\\s+)?(?:performs|provides|delivers|issues|seals|stamps|inspects|certifies)\\b`,
+      "i",
+    ),
+    why: "third person service claim, naming the firm",
+  },
+  {
+    pattern: new RegExp(`${CONDITIONAL_GUARD}\\bperforms and seals\\b`, "i"),
+    why: "states the firm is performing and sealing now",
+  },
   { pattern: /\bour engineers\b/i, why: "plural engineer fiction" },
   { pattern: /\bour licensed (?:pe|professional engineer)/i, why: "claims a PE on staff" },
   { pattern: /\border (?:a|an|your)\b/i, why: "invites an order" },

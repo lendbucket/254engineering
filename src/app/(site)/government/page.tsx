@@ -59,9 +59,25 @@ export default function GovernmentPage() {
             </div>
             <div className="lg:col-span-8">
               <p className="text-[1.02rem] leading-[1.75] text-slate-muted">
-                {business.name} delivers inspections, sealed engineering letters, certifications, and
-                design for property and construction across the State of Texas. Field work is
-                performed to written protocols by certified technicians. {sealedDeliverableSentence()}
+                {/*
+                  WAS "{business.name} delivers inspections", WHICH IS A PRESENT TENSE
+                  SERVICE CLAIM AND SAT HERE THROUGH EVERY GATE AUDIT UNTIL 2026-09-05.
+
+                  The regulatory pattern library was written from the first
+                  person and the passive voice, so "we deliver" and "work is
+                  delivered by" were both caught and a sentence naming the firm
+                  in the third person was not. The heading above it said "what
+                  this firm is BUILT to deliver", which is the compliant form,
+                  and the sentence under it contradicted the heading.
+
+                  Found by the pattern added for the partner surfaces, which is
+                  the argument for one shared library rather than a check per
+                  surface.
+                */}
+                The firm is built to deliver inspections, sealed engineering letters,
+                certifications, and design for property and construction across the State of Texas.
+                Field work is specified to written protocols and carried out by certified
+                technicians. {sealedDeliverableSentence()}
               </p>
               <ul className="mt-8 grid gap-x-8 gap-y-0 sm:grid-cols-2">
                 {services.map((s) => (

@@ -21,7 +21,7 @@
  * It is pure. No server, no database, no network, so it runs in phase zero.
  */
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import {
   attribute,
   normaliseCode,
@@ -837,6 +837,169 @@ const terms = (over = {}) => ({
     "the margin reads the commission from the ledger",
     /partnerCostByFile\(/.test(docs) && !/partner_cost_cents/.test(docs),
     "a second copy of a figure is a figure that will one day disagree with itself",
+  );
+
+  // ============================================ the portal, Section 4
+  //
+  // WHAT A PARTNER MAY READ IS A LIST OF COLUMNS, AND A LIST OF COLUMNS SPREAD
+  // ACROSS SIX SCREENS IS A LIST NOBODY CAN CHECK.
+  //
+  // So every partner read goes through one module and this asserts what that
+  // module is allowed to name. Adding property_address to a query there fails
+  // the suite rather than shipping a leak. The reasoning for each exclusion is
+  // in docs/partner-portal.md.
+
+  const portal = codeOnly("src/lib/ops-partner-portal.ts");
+
+  const FORBIDDEN = [
+    ["property_address", "the property is the client's, and a partner knowing it does not make it theirs to be shown"],
+    ["client_id", "who the client is"],
+    ["customer_name", "who the client is"],
+    ["customer_email", "how to reach the client, which is how a referral becomes a poached client"],
+    ["file_number", "the firm's own record identifier for the engineering"],
+    ["evidence", "what a technician captured at a property"],
+    ["refusal_reason", "why an engineer would not certify, which is the engineer's judgment"],
+    ["sealed_at", "whether a document was sealed"],
+    ["engineer_cost_cents", "what the firm pays an engineer"],
+    ["tech_cost_cents", "what the firm pays a technician"],
+    ["client_price_cents", "what the firm charged, which is the firm's margin one subtraction away"],
+  ];
+
+  for (const [column, why] of FORBIDDEN) {
+    rec(
+      `a partner read never names ${column}`,
+      !new RegExp(`["'\\s,(]${column}\\b`).test(portal),
+      why,
+    );
+  }
+
+  /*
+   * And the check is not vacuous. It would pass on an empty file, so this
+   * asserts the module actually contains the reads it is being checked for.
+   */
+  rec(
+    "and there are reads in that module to check",
+    /from\("eng_service_orders"\)/.test(portal) && /from\("eng_partner_entries"\)/.test(portal),
+    "a forbidden column check against a file with no queries in it proves nothing",
+  );
+
+  /*
+   * THE PARTNER COMES FROM THE SESSION. Every exported read takes the whole
+   * principal rather than an id, so there is no signature a route could call
+   * with somebody else's partner.
+   */
+  const readsTakingAnId = [...portal.matchAll(/export async function (\w+)\(\s*(\w+): string/g)]
+    .map((m) => m[1])
+    .filter((name) => name !== "acceptAgreement");
+  rec(
+    "no partner read takes a bare partner id",
+    readsTakingAnId.length === 0,
+    readsTakingAnId.join(", ") || "every read takes the principal the session produced",
+  );
+
+  rec(
+    "a statement is looked up by partner AND reference",
+    /eq\("partner_id", principal\.partnerId\)[\s\S]{0,200}eq\("reference", reference\)/.test(portal),
+    "a reference is short enough to guess, and a lookup by reference alone hands one partner another's statement",
+  );
+
+  rec(
+    "an open statement is not shown to a partner",
+    /in\("status", \["issued", "paid"\]\)/.test(portal),
+    "an open statement is the firm's working total during a close, not a thing anybody has been told",
+  );
+
+  // -------------------------------------------------- the surface itself
+  const partnerFiles = [];
+  const walk = (dir) => {
+    if (!existsSync(dir)) return;
+    for (const entry of readdirSync(dir)) {
+      const full = `${dir}/${entry}`;
+      if (statSync(full).isDirectory()) walk(full);
+      else if (/\.tsx?$/.test(entry)) partnerFiles.push(full);
+    }
+  };
+  walk("src/app/partner");
+  walk("src/components/partner");
+  walk("src/app/api/partner");
+
+  rec("there are partner surfaces to check", partnerFiles.length >= 8, `${partnerFiles.length} files`);
+
+  /*
+   * A PARTNER IS NEVER IN THE STAFF AUTHORIZATION SYSTEM.
+   *
+   * ops-authz is where roles grant capabilities. A partner has no role and must
+   * never appear there, so no file on this surface may reach for it. That is
+   * the boundary that stops a partner nav being built from NavItem and a
+   * partner being handed an Actor to make it compile.
+   */
+  const reachesForAuthz = partnerFiles.filter((f) => /from "@\/lib\/ops-authz"/.test(codeOnly(f)));
+  rec(
+    "no partner surface imports the staff authorization matrix",
+    reachesForAuthz.length === 0,
+    reachesForAuthz.join(", ") || "a partner has no role and cannot be given one",
+  );
+
+  const layout = codeOnly("src/app/partner/(app)/layout.tsx");
+  rec(
+    "the partner layout is a lock as well as the proxy being a gate",
+    /currentPartner\(\)/.test(layout) && /redirect\("\/partner\/login"\)/.test(layout),
+    "a matcher is a pattern, and a pattern is one typo from leaving a route uncovered",
+  );
+  rec(
+    "and it checks the deployment is not mispointed before it reads anything",
+    layout.indexOf("mispointing()") < layout.indexOf("currentPartner()"),
+    "an unauthenticated visitor to a mispointed preview should meet an explanation, not a stack trace",
+  );
+
+  const sessionRoute = codeOnly("src/app/api/partner/session/route.ts");
+  rec(
+    "the partner sign in takes no next parameter",
+    /*
+     * The NAME, in a quoted string or as a destination, rather than the word.
+     * The first version matched \bnext\b and failed on the import of
+     * next/server at the top of the file, which is the check being wrong rather
+     * than the route.
+     */
+    !/["']next["']/.test(sessionRoute) && !/\bsafeNext\b/.test(sessionRoute),
+    "an open redirect out of a sign in page is a phishing primitive, and not accepting the parameter is the version with no validation to get wrong",
+  );
+  rec(
+    "and it is rate limited before anything is verified",
+    sessionRoute.indexOf("takeLoginAttempt(") < sessionRoute.indexOf("signInPartner("),
+    "a limiter that runs after the password check has not limited anything",
+  );
+
+  const agreementRoute = codeOnly("src/app/api/partner/agreement/route.ts");
+  rec(
+    "accepting an agreement takes the partner from the session, never the body",
+    /currentPartner\(\)/.test(agreementRoute) && !/partnerId.*body/.test(agreementRoute),
+    "acceptances are append only, so a false one is permanent and the firm would have to explain it",
+  );
+
+  const auth = codeOnly("src/lib/partner-auth.ts");
+  rec(
+    "a partner's password is hashed with scrypt and a per user salt",
+    /scryptSync\(/.test(auth) && /randomBytes\(16\)/.test(auth),
+  );
+  rec(
+    "a missing hash refuses before it compares anything",
+    /if \(!hash \|\| !salt\) return false;/.test(auth),
+    "comparing against an empty string is a short password away from matching",
+  );
+  rec(
+    "an unknown address still costs a hash, so it does not answer faster",
+    /absent-partner-timing-salt/.test(auth),
+  );
+  rec(
+    "the session is re-read against the database on every request",
+    /export async function currentPartner[\s\S]{0,900}loadPartnerPrincipal\(claims\.sub\)/.test(auth),
+    "a suspension applied five minutes ago has to take effect now, not when a fourteen day cookie expires",
+  );
+  rec(
+    "and the cookie's partner must still be the user's partner",
+    /principal\.partnerId !== claims\.partner/.test(auth),
+    "moving somebody between partner organisations would otherwise leave a cookie reading the old one's earnings",
   );
 }
 
