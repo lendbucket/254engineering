@@ -188,3 +188,111 @@ The real control is the agreement, the right to withdraw approval, and somebody
 looking at what partners publish. Withdrawing is why the asset bucket is
 private: a public bucket would mean every one pager the firm ever published
 stays retrievable by url forever, including the version it withdrew.
+
+---
+
+# Section 6: the operator's side
+
+Built 2026-09-06. The roster, the terms, the invitations, the statements and
+payouts, the corrections, and the screen that explains why an order went where
+it went.
+
+## 1. One capability, admin only
+
+`partners.manage`, added to the Action union and seeded to the administrator by
+0021. Behind it: who may use the firm's name to win work, what the firm owes
+somebody outside it, and the record that money left. None of those is a job
+somebody does on the firm's behalf without being the firm.
+
+One action rather than four. A coordinator who could approve partner marketing
+but not see what a partner earns sounds tidy and is not a role this firm has:
+the person who talks to partners is the person who pays them. Splitting it later
+is one action and one migration; splitting it now would be inventing a job to
+justify a permission.
+
+Since 0018 roles are data, so an owner can grant it to a role they create. What
+the seed decides is where it starts.
+
+## 2. The capability is asked where the write is
+
+Every exported function in `ops-partners-admin.ts` asks `can(actor,
+"partners.manage")`, and the route asks before the switch. Neither is redundant:
+the route answers the request, and the module check is what a second route added
+next month cannot skip. `partner-audit` derives the list of exported functions
+and requires every one of them to ask, so a function added later is covered by
+the check that already exists.
+
+## 3. What the dispute screen found
+
+0014's comment says the touch log keeps the losing touches because "a dispute is
+settled by showing the partner the touch that beat theirs, which is impossible
+if only the winner is kept."
+
+Building that screen found the join was missing. A touch is keyed by the visitor
+cookie, and the order never stored the key it was attributed under. The evidence
+was complete and unreachable from the record it explains.
+
+Typed codes were the exception, because those touches are written under a
+synthetic `order:<id>` key. That is why it went unnoticed for two sections: the
+dispute case anybody tests by hand is somebody typing a code, and that one
+worked.
+
+0022 adds the column and `attributeOrder` writes it. Orders attributed before it
+cannot be reconstructed, and the screen says so in those words rather than
+showing an empty list, because an empty list is the claim that there were no
+touches.
+
+## 4. Nothing on that screen changes an attribution
+
+It cannot: 0014 freezes the attribution columns on a paid order at the database.
+A dispute is settled by an adjustment on each partner's ledger, recorded with
+the reason written out, and both the original entry and the correction stand
+where the partner can read them.
+
+That is why `recordAdjustment` demands twenty characters of reason and is
+payable at once. An adjustment with no explanation is a figure a partner cannot
+check, and holding back a correction the firm made itself would mean a partner
+waiting thirty days for money the firm agrees it owes.
+
+## 5. What the roster made visible
+
+Eight partners reading "ZZ probe, safe to ignore", created on 2026-09-04 by an
+end to end script for Section 2 that is not in the tree any more. No audit had
+ever reported them; the check that found them was looking at the screen.
+
+**Seven of the eight cannot be deleted, and that is the rule working.** A touch
+refuses DELETE, and it references the partner with ON DELETE RESTRICT, so a
+partner who was ever touched is held by their own evidence. The sweep removes
+the ones with no touches, leaves the rest, and says which. The first version
+tried to delete the touches first; that delete matched nothing, returned no
+error, and the partner delete then failed on the constraint.
+
+This is the same standing as `eng_audit_events`. A probe row that cannot be
+erased is the price of a guarantee worth more than tidiness, and the alternative
+is weakening a trigger to tidy development.
+
+The roster puts ended partners behind a disclosure with a count, which is a
+better list for a real firm as well as a tidier one here: the roster answers who
+is sending work, and an ended relationship keeps its ledger and its statements.
+
+## 6. Two checks that were looking at the wrong thing
+
+Both found by injection, both in checks written the same afternoon.
+
+**The visitor key check matched the wrong line.** `visitor_key:
+input.visitorKey` appears twice in `ops-partners.ts`: once in `recordTouch`,
+where it has been since Section 2, and once in the order update 0022 added. The
+unscoped match found the first and passed while the injection had deleted the
+second. Scoped to `attributeOrder` now.
+
+**The permission check could only see three roles.** It matched MATRIX blocks
+with a regular expression, so it was blind to the five roles `DEFAULT_ROLES`
+declares with their own grant lists, and an injection that gave
+`partners.manage` to sales passed it. It asks the declaration now, which is what
+the migration is generated from and what roles-audit compares the database to.
+
+And one harness defect worth the same treatment: the injection that was supposed
+to delete the order's visitor key deleted the touch log's instead, because
+`String.replace` takes the first match. The byte count moved, so the harness
+believed the mutation had applied. It proved that a mutation happened, not that
+the right one did.

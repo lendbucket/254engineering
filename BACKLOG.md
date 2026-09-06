@@ -141,6 +141,64 @@ this merges and deploys.
 procurement officer evaluating a firm is exactly the reader who checks whether a
 firm is registered to do what it says it does.
 
+## Left by Phase 9
+
+### Eight probe partners on development cannot be deleted, and should not be
+
+Recorded 2026-09-06, found by building the operator roster in Section 6 and
+looking at it. Eight rows reading "ZZ probe, safe to ignore", created on
+2026-09-04 by an end to end script for Section 2 that is not in the tree.
+
+**Seven of the eight are held by their own evidence.** eng_partner_touches
+refuses DELETE by trigger, and it references the partner with ON DELETE
+RESTRICT, so a partner who was ever touched cannot be removed. That is 0014
+working exactly as written: a touch is what a dispute is settled from, and
+evidence that can be deleted after the decision is not evidence.
+
+**No action, and this entry exists so nobody takes one.** The obvious repair is
+to loosen the trigger, and it would be the wrong repair. Same standing as
+eng_audit_events. The sweep in probe-ledger.mjs removes what it can, leaves the
+rest, and reports the count; the roster puts ended partners behind a disclosure.
+
+Nothing in the committed suite creates them, so this is history rather than a
+leak. Production has no partner rows at all.
+
+### Orders attributed before 0022 cannot have their link touches shown
+
+Recorded 2026-09-06. Section 6 added the column that joins an order back to the
+touch log; orders attributed before it never stored the key.
+
+**No action is possible.** The key was a cookie value that was never written
+down, and it cannot be recovered. The dispute screen says so rather than showing
+an empty list, because an empty list is the claim that there were no touches.
+
+On production this costs nothing: no partner exists there, so no order has ever
+been attributed.
+
+### Phase 9 is complete, and what it deliberately does not do
+
+Recorded 2026-09-06. Sections 3 to 6 are built. What was ruled out along the
+way, so nobody reads an absence as an oversight:
+
+- **No white label.** Rejected at gate 0 with the reasoning in
+  docs/partner-program-decision.md, and it is not a configuration flag.
+- **No self signup.** A partner using the firm name is a decision the firm makes.
+- **No partner editing their own payout details.** A referrer who can change
+  where money is sent, from a session, is the shape of every payout fraud that
+  has ever worked.
+- **No dispute button in the partner portal.** A dispute is settled by an
+  operator recording a decision and a compensating entry. A button that filed
+  into a queue nobody watches would be worse than an email address.
+- **No tier uplift at close.** Tiers apply forward, which is the only reading
+  compatible with accruing at delivery and never editing an accrual.
+- **No partner logo.** eng_partners holds a name and no logo. The asset bucket
+  exists now, so this is a column and an upload rather than a design question.
+
+**And the fee splitting question is still unanswered.** Whether a percentage of
+an engineering fee may be paid to an unlicensed referrer is for TBPELS or a
+licensing attorney. All four models are configuration, so the answer changes a
+row rather than a code path, and it should arrive before a partner is paid.
+
 ## Suspended by decision
 
 ### RESUMED 2026-09-05. Phase 9 was suspended after Section 2, and Section 3 is now built

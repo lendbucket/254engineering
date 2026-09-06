@@ -67,6 +67,8 @@ const SCREENS = [
   { path: "/portal/onboarding", role: "admin" },
   { path: "/portal/charge-log", role: "admin" },
   { path: "/portal/pay", role: "admin" },
+  { path: "/portal/partners", role: "admin" },
+  { path: "/portal/partners/disputes", role: "admin" },
   { path: "/portal/review", role: "engineer" },
   { path: "/portal/protocols", role: "engineer" },
   { path: "/portal/jobs", role: "field_tech" },

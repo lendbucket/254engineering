@@ -2,6 +2,7 @@ import "server-only";
 import { supabaseAdmin } from "./supabase";
 import { writeAudit } from "./ops-audit";
 import { money, type Cents } from "./ops-money";
+import { can, type Actor } from "./ops-authz";
 import {
   commissionForDelivery,
   commissionForQualifiedLead,
@@ -395,6 +396,79 @@ export async function reverseForRefund(input: {
     reversed,
     note: notes.join(" ") || `${reversed} counter entr${reversed === 1 ? "y" : "ies"} written.`,
   };
+}
+
+// ----------------------------------------------------------- adjustments
+
+/**
+ * A correction, written beside what it corrects.
+ *
+ * THIS IS HOW AN ATTRIBUTION DISPUTE IS SETTLED, and it is the only how.
+ * 0014 freezes the attribution columns on a paid order, so the answer cannot be
+ * rewritten. The operator records a decision and a compensating entry, and both
+ * the original and the correction stand where a partner can read them.
+ *
+ * The reason is required and long enough to be a sentence. An adjustment with
+ * no explanation is a figure a partner cannot check, which is the one thing
+ * this ledger exists to prevent, and whoever needs the explanation most is
+ * whoever is asked about it in two years.
+ */
+export async function recordAdjustment(
+  actor: Actor & { email?: string },
+  input: {
+    partnerId: string;
+    amountCents: number;
+    reason: string;
+    orderId?: string | null;
+    reversesId?: string | null;
+  },
+): Promise<AccrualResult> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  if (!can(actor, "partners.manage")) {
+    return { ok: false, error: "You do not have permission to manage the referral programme." };
+  }
+
+  const reason = input.reason.trim();
+  if (reason.length < 20) {
+    return {
+      ok: false,
+      error:
+        "Say what is being corrected and why, in a sentence. It goes on the statement, and it is the only account of this anybody will have.",
+    };
+  }
+  if (!Number.isInteger(input.amountCents) || input.amountCents === 0) {
+    return { ok: false, error: "An adjustment is a whole number of cents, and not zero." };
+  }
+
+  const written = await insertEntry(db, {
+    partnerId: input.partnerId,
+    kind: "adjustment",
+    amountCents: input.amountCents,
+    status: "accrued",
+    explanation: `Recorded by the firm: ${reason}`,
+    orderId: input.orderId ?? null,
+    reversesId: input.reversesId ?? null,
+    occurredAt: new Date(),
+    /*
+     * Payable at once. An adjustment is the firm settling something it has
+     * already decided, and holding back a correction it made itself would mean
+     * a partner waiting thirty days for money the firm agrees it owes.
+     */
+    payableAtMs: Date.now(),
+  });
+
+  if (written.ok) {
+    await writeAudit({
+      actor,
+      action: "partner.adjustment",
+      entityType: "partner",
+      entityId: input.partnerId,
+      summary: `${money(input.amountCents)} adjustment: ${reason}`,
+    });
+  }
+
+  return written;
 }
 
 // ------------------------------------------------------------ the margin read

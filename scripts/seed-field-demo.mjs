@@ -315,7 +315,7 @@ if (!KEEP_EXISTING) {
   const swept = await sweepLegacyResidue("seed-field-demo");
   console.error(
     swept.ok
-      ? `  residue: removed ${swept.removed.files} probe file(s)`
+      ? `  residue: removed ${swept.removed.files} probe file(s), ${swept.removed.partners} probe partner(s)${swept.note ? `. ${swept.note}` : ""}`
       : `  residue: NOT CLEAR, ${swept.note}`,
   );
 

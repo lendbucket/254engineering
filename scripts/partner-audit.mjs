@@ -29,6 +29,7 @@ import {
   ATTRIBUTION_WINDOW_DAYS,
 } from "../src/lib/attribution-rules.ts";
 import { copyVerdict, performingFirmLine } from "../src/lib/partner-copy.ts";
+import { DEFAULT_ROLES } from "../src/lib/ops-authz.ts";
 import {
   applyBps,
   commissionForDelivery,
@@ -760,15 +761,28 @@ const terms = (over = {}) => ({
     return acc;
   };
 
+  /*
+   * THE CUSTOMER FACING SURFACES, WHICH IS WHAT THE RULE IS ABOUT.
+   *
+   * The first version walked the staff portal too and failed on the operator's
+   * own partner page, which renders the organisation name in its heading. That
+   * was the check being wider than the rule: non negotiable 4 is about who the
+   * CUSTOMER believes they are buying engineering from, and the firm looking at
+   * its own roster is not that.
+   *
+   * The staff portal is covered by non negotiable 3 instead, which is the one
+   * that matters there: no partner name may reach a deliverable, a binder or
+   * the responsible charge log.
+   */
   const elsewhere = [
     ...walkTsx("src/app/(site)"),
-    ...walkTsx("src/app/portal"),
     ...walkTsx("src/app/account"),
     ...walkTsx("src/components/home"),
+    ...walkTsx("src/components/order"),
   ].filter((f) => /partner\.organisation|partner_organisation/.test(codeOnly(f)));
 
   rec(
-    "no surface outside the partner portal renders a partner's name",
+    "no customer facing surface renders a partner's name",
     elsewhere.length === 0,
     elsewhere.join(", ") || "the customer never sees whose referral they arrived on",
   );
@@ -778,6 +792,199 @@ const terms = (over = {}) => ({
     "and inside it, the partner's name is the identity of the surface",
     /principal\.partner\.organisation/.test(partnerLayout),
     "the one place their branding is primary, and no customer sees it",
+  );
+}
+
+// =========================================================================
+// THE OPERATOR'S SIDE. Phase 9 Section 6.
+// =========================================================================
+{
+  const admin = codeOnly("src/lib/ops-partners-admin.ts");
+
+  /*
+   * THE CAPABILITY IS ASKED WHERE THE WRITE IS.
+   *
+   * Every exported function in that module either checks partners.manage or is
+   * a type. The route checks too, and neither is redundant: the route answers
+   * the request, and this one is what a second route added next month cannot
+   * skip. Derived by counting rather than listed, so a function added later is
+   * covered by the check that already exists.
+   */
+  const exported = [...admin.matchAll(/export async function (\w+)/g)].map((m) => m[1]);
+  const guarded = exported.filter((name) => {
+    const at = admin.indexOf(`export async function ${name}`);
+    const end = admin.indexOf("\nexport ", at + 1);
+    const body = admin.slice(at, end === -1 ? undefined : end);
+    return /can\(actor, "partners\.manage"\)/.test(body);
+  });
+  rec("there are operator functions to check", exported.length >= 5, exported.join(", "));
+  rec(
+    "every one of them asks for partners.manage",
+    guarded.length === exported.length,
+    exported.filter((n) => !guarded.includes(n)).join(", ") || `${guarded.length} function(s)`,
+  );
+
+  const route = codeOnly("src/app/api/portal/partners/[id]/route.ts");
+  rec(
+    "and the route asks before it reaches any of them",
+    route.indexOf('can(actor, "partners.manage")') < route.indexOf("switch (action)"),
+    "one door, resolved once, so every branch is past it by construction",
+  );
+
+  /*
+   * A partner code an operator can create but a customer cannot type is a
+   * partner who never gets credited, and it would show up as an attribution
+   * complaint months later rather than as a validation error now.
+   */
+  rec(
+    "a new partner's code goes through the same rule the capture endpoint uses",
+    /looksLikeCode\(code\)/.test(admin) && /normaliseCode\(input\.code\)/.test(admin),
+  );
+
+  rec(
+    "suspending a partner is recorded with a reason",
+    /reason\.trim\(\)\.length < 10/.test(admin),
+    "it stops their links earning, and somebody will ask when and why",
+  );
+
+  /*
+   * TERMS ARE A NEW ROW. A ledger entry snapshots the model and the rate it was
+   * computed under, so editing the terms row would leave the entry right and
+   * the terms it points at saying something else.
+   */
+  const termsAt = admin.indexOf("export async function setPartnerTerms");
+  const termsEnd = admin.indexOf("\nexport ", termsAt + 1);
+  const termsBody = termsAt === -1 ? "" : admin.slice(termsAt, termsEnd === -1 ? undefined : termsEnd);
+  rec("setting terms inserts rather than updates the rate", /\.insert\(\{/.test(termsBody));
+  rec(
+    "and closes the previous terms the day before",
+    /effective_to: dayBefore/.test(termsBody),
+    "so there is never a day with two answers or a day with none",
+  );
+  rec(
+    "and refuses a model with no figure to compute from",
+    /A percentage model needs a rate/.test(termsBody) && /A flat fee model needs an amount/.test(termsBody),
+    "terms that cannot produce a commission write a blocked entry on every delivery",
+  );
+
+  /*
+   * THE INVITE LINK IS NEVER WRITTEN TO THE AUDIT TRAIL. That table refuses
+   * deletes, so a one time credential in it is a one time credential forever.
+   */
+  const inviteAt = admin.indexOf("export async function invitePartnerUser");
+  const inviteEnd = admin.indexOf("\nexport ", inviteAt + 1);
+  const inviteBody = inviteAt === -1 ? "" : admin.slice(inviteAt, inviteEnd === -1 ? undefined : inviteEnd);
+  rec("an invite issues a one time link", /issuePartnerToken\(/.test(inviteBody));
+  rec(
+    "and the link never reaches the audit trail",
+    !/setPasswordUrl[\s\S]{0,200}writeAudit/.test(inviteBody) && !/token\.token[\s\S]{0,120}summary/.test(inviteBody),
+    "eng_audit_events refuses deletes, so a credential written there is permanent",
+  );
+  rec(
+    "and one address cannot sign in for two partners",
+    /already signs in for a different partner/.test(inviteBody),
+    "the session carries one partner id, so the person would see whichever the login resolved to",
+  );
+
+  // ------------------------------------------------------------- the dispute
+  const disputeAt = admin.indexOf("export async function disputeView");
+  const disputeEnd = admin.indexOf("\nexport ", disputeAt + 1);
+  const disputeBody = disputeAt === -1 ? "" : admin.slice(disputeAt, disputeEnd === -1 ? undefined : disputeEnd);
+
+  rec("there is a dispute view", disputeAt !== -1);
+  rec(
+    "it reads BOTH keys, the cookie and the synthetic order key",
+    /\.in\("visitor_key", keys\)/.test(disputeBody) && /order:\$\{order\.id/.test(disputeBody),
+    "reading one shows half the evidence, and half the evidence in a dispute is worse than none",
+  );
+  rec(
+    "and says when the link touches cannot be reconstructed",
+    /reconstructable/.test(disputeBody),
+    "an empty list would be the claim that there were no touches",
+  );
+
+  /*
+   * SCOPED TO attributeOrder, AND THE FIRST VERSION WAS NOT.
+   *
+   * `visitor_key: input.visitorKey` appears twice in that file: once in
+   * recordTouch, which has written it since Section 2, and once in the order
+   * update that 0022 added. An unscoped match found the first and passed while
+   * the injection had deleted the second.
+   *
+   * Caught by injection, which is the only reason it is written down here
+   * rather than shipped as a green check looking at the wrong line.
+   */
+  const orders = codeOnly("src/lib/ops-partners.ts");
+  const attributeAt = orders.indexOf("export async function attributeOrder");
+  const attributeEnd = orders.indexOf("\nexport ", attributeAt + 1);
+  const attributeBody =
+    attributeAt === -1 ? "" : orders.slice(attributeAt, attributeEnd === -1 ? undefined : attributeEnd);
+
+  rec("there is an attributeOrder to check", attributeAt !== -1);
+  rec(
+    "the order now keeps the visitor key its attribution was decided from",
+    /\.from\("eng_service_orders"\)[\s\S]{0,600}visitor_key: input\.visitorKey/.test(attributeBody),
+    "0014 kept every losing touch and 0022 made them findable from the order",
+  );
+
+  const disputeScreen = codeOnly("src/app/portal/(app)/partners/disputes/page.tsx");
+  rec(
+    "and the dispute screen changes no attribution",
+    !/attributeOrder|partner_id:/.test(disputeScreen),
+    "the columns are frozen on a paid order; a dispute is settled by an adjustment beside the entry",
+  );
+
+  // ---------------------------------------------------------- the adjustment
+  const comp = codeOnly("src/lib/ops-partner-comp.ts");
+  const adjustAt = comp.indexOf("export async function recordAdjustment");
+  const adjustEnd = comp.indexOf("\nexport ", adjustAt + 1);
+  const adjustBody = adjustAt === -1 ? "" : comp.slice(adjustAt, adjustEnd === -1 ? undefined : adjustEnd);
+
+  rec("an adjustment is its own entry kind", /kind: "adjustment"/.test(adjustBody));
+  rec(
+    "and needs a reason long enough to be a sentence",
+    /reason\.length < 20/.test(adjustBody),
+    "an adjustment with no explanation is a figure a partner cannot check",
+  );
+  rec(
+    "and is payable at once rather than held back",
+    /payableAtMs: Date\.now\(\)/.test(adjustBody),
+    "holding back a correction the firm made itself would make a partner wait for money the firm agrees it owes",
+  );
+  rec(
+    "and asks for partners.manage",
+    /can\(actor, "partners\.manage"\)/.test(adjustBody),
+  );
+
+  // ------------------------------------------------------ the capability itself
+  const authz = codeOnly("src/lib/ops-authz.ts");
+  rec("partners.manage is an action", /\| "partners\.manage"/.test(authz));
+
+  /*
+   * ASKED OF THE DECLARATION, NOT OF THE SOURCE TEXT.
+   *
+   * The first version matched MATRIX blocks with a regex, so it could see the
+   * three system roles and was blind to the five roles DEFAULT_ROLES declares
+   * with their own grant lists. An injection that gave partners.manage to sales
+   * passed it.
+   *
+   * DEFAULT_ROLES is what the migration is generated from and what roles-audit
+   * compares the database to, so it is the thing to ask.
+   */
+  const grantingRoles = DEFAULT_ROLES.filter((r) => r.grants.includes("partners.manage")).map(
+    (r) => r.key,
+  );
+  rec(
+    "and only the administrator is declared with it",
+    grantingRoles.length === 1 && grantingRoles[0] === "admin",
+    grantingRoles.join(", ") || "nobody, which would make the screen unreachable",
+  );
+
+  const seedSql = readFileSync("supabase/migrations/0021_partners_manage_grant.sql", "utf8");
+  rec(
+    "and a migration seeds it, because 0018 had already run",
+    /'admin', 'partners\.manage'/.test(seedSql) && /on conflict/.test(seedSql),
+    "a migration that changes after it has run is a migration nobody can reason about",
   );
 }
 
