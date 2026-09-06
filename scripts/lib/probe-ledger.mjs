@@ -179,12 +179,109 @@ export async function sweepLegacyResidue(label = "reset") {
     removed.files = 0;
   }
 
+  /*
+   * PROBE PARTNERS, ADDED 2026-09-06.
+   *
+   * Found by building the operator's roster screen in Phase 9 Section 6 and
+   * looking at it: nine rows reading "ZZ probe, safe to ignore" above the one
+   * real demonstration partner. They were created on 2026-09-04 by an end to
+   * end script for Section 2 that is not in the tree any more, which is the
+   * same class as the timestamped addresses above and the same cause: a script
+   * that held no ledger.
+   *
+   * Nothing in the committed suite creates them, so this is history rather than
+   * a leak. The signature is narrow and cannot match a real partner: the
+   * organisation name says what it is, and the contact address is on
+   * example.com.
+   *
+   * A partner with ledger entries CANNOT be deleted, by design in 0019. If one
+   * of these ever earned anything the delete fails and this reports it, because
+   * a probe partner with earnings is something a person has to look at rather
+   * than something a sweep should force through.
+   */
+  const { data: probePartners } = await db
+    .from("eng_partners")
+    .select("id")
+    .eq("organisation", "ZZ probe, safe to ignore")
+    .like("contact_email", "%@example.com");
+
+  const partnerIds = (probePartners ?? []).map((p) => p.id);
+
+  /*
+   * AND MOST OF THEM CANNOT BE REMOVED, WHICH IS THE RULE WORKING.
+   *
+   * A partner touch refuses DELETE at the database. 0014 put that trigger there
+   * because a touch is the evidence a dispute is settled from, and evidence
+   * that can be deleted after the decision is not evidence. eng_partner_touches
+   * references the partner with ON DELETE RESTRICT, so a partner who was ever
+   * touched cannot be deleted either.
+   *
+   * The first version of this sweep tried to delete the touches first. That
+   * delete matched nothing, returned no error, and the partner delete then
+   * failed on the constraint. It was written by somebody who had not read the
+   * trigger, which was me, and the check that caught it was looking at the
+   * screen afterwards.
+   *
+   * So: remove the ones with no touches, leave the rest, and say which. This is
+   * the same standing as eng_audit_events. A probe row that cannot be erased is
+   * the price of a guarantee worth more than tidiness, and pretending otherwise
+   * would mean weakening the trigger to clean up development.
+   */
+  let removable = [];
+  let untouchable = 0;
+
+  if (partnerIds.length) {
+    const { data: touched } = await db
+      .from("eng_partner_touches")
+      .select("partner_id")
+      .in("partner_id", partnerIds);
+    const hasTouch = new Set((touched ?? []).map((t) => t.partner_id));
+    removable = partnerIds.filter((id) => !hasTouch.has(id));
+    untouchable = partnerIds.length - removable.length;
+  }
+
+  if (removable.length) {
+    const { data: partnerUsers } = await db
+      .from("eng_partner_users")
+      .select("id")
+      .in("partner_id", removable);
+    const userIds = (partnerUsers ?? []).map((u) => u.id);
+    if (userIds.length) await db.from("eng_partner_tokens").delete().in("user_id", userIds);
+    await db.from("eng_partner_users").delete().in("partner_id", removable);
+    await db.from("eng_partner_terms").delete().in("partner_id", removable);
+    const { error } = await db.from("eng_partners").delete().in("id", removable);
+    removed.partners = error ? `FAILED: ${error.message}` : removable.length;
+  } else {
+    removed.partners = 0;
+  }
+  removed.partnersKeptForEvidence = untouchable;
+
   const { data: still } = await db.from("eng_files").select("property_address");
   const remaining = (still ?? []).filter((f) => /^\d{10,}/.test(String(f.property_address ?? "")));
 
+  /*
+   * The verdict counts only what SHOULD have gone. A probe partner held by its
+   * own touch log is not a failed sweep, and reporting it as one would train
+   * whoever runs this to ignore the line.
+   */
+  const { data: partnersLeft } = await db
+    .from("eng_partners")
+    .select("id")
+    .eq("organisation", "ZZ probe, safe to ignore")
+    .in("id", removable.length ? removable : ["00000000-0000-4000-8000-000000000000"]);
+
+  const stragglers = [
+    remaining.length ? `${remaining.length} probe file(s)` : "",
+    (partnersLeft ?? []).length ? `${(partnersLeft ?? []).length} probe partner(s)` : "",
+  ].filter(Boolean);
+
   return {
-    ok: remaining.length === 0,
+    ok: stragglers.length === 0,
     removed,
-    note: remaining.length ? `${remaining.length} probe file(s) still present` : "",
+    note: stragglers.length
+      ? `${stragglers.join(" and ")} still present`
+      : untouchable
+        ? `${untouchable} probe partner(s) kept, held by the touch log, which refuses deletion by design`
+        : "",
   };
 }

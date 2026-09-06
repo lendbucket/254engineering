@@ -98,7 +98,7 @@ columns={PERIOD_COLUMNS}
                 {incomplete.length} file{incomplete.length === 1 ? "" : "s"} left out of the totals
               </p>
               <p className="mt-1.5 max-w-[74ch] text-[13.5px] leading-[1.6] text-[var(--warn-ink)]">
-                Each is missing at least one of the three figures. They are excluded rather than
+                Each is missing at least one of the four figures. They are excluded rather than
                 counted as nothing, because adding up what is present would report a margin higher
                 than the truth by exactly the amount nobody has entered. The table below names what
                 is missing on each.
@@ -109,7 +109,7 @@ columns={PERIOD_COLUMNS}
           <Panel
             className="mt-4"
             title="By file"
-            description="Three figures per file. A blank one has not been entered, which is a different fact from a zero."
+            description="Four figures per file. A blank one has not been entered, which is a different fact from a zero."
           >
             <RecordTable
               rows={files}
@@ -130,6 +130,7 @@ columns={PERIOD_COLUMNS}
                 { key: "price", head: "Client price", cell: (f) => money(f.clientPriceCents) },
                 { key: "tech", head: "Technician", cell: (f) => money(f.techCostCents) },
                 { key: "eng", head: "Production", cell: (f) => money(f.engineerCostCents) },
+                { key: "partner", head: "Partner", cell: (f) => money(f.partnerCostCents) },
                 {
                   key: "margin",
                   head: "Margin",
@@ -178,6 +179,8 @@ columns={PERIOD_COLUMNS}
                       <dd className="text-right text-[var(--navy)]">{money(f.techCostCents)}</dd>
                       <dt className="text-[var(--secondary)]">Production</dt>
                       <dd className="text-right text-[var(--navy)]">{money(f.engineerCostCents)}</dd>
+                      <dt className="text-[var(--secondary)]">Partner</dt>
+                      <dd className="text-right text-[var(--navy)]">{money(f.partnerCostCents)}</dd>
                       <dt className="font-semibold text-[var(--navy)]">Margin</dt>
                       <dd className="text-right font-semibold text-[var(--navy)]">{money(m.margin)}</dd>
                     </dl>

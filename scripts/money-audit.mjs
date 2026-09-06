@@ -83,12 +83,22 @@ const rec = (name, ok, note = "") => out.push({ name, ok, note });
 // Margin on one file.
 // =====================================================================
 {
-  const complete = marginOf({ clientPriceCents: 45000, techCostCents: 18500, engineerCostCents: 9500 });
+  const complete = marginOf({
+    clientPriceCents: 45000,
+    techCostCents: 18500,
+    engineerCostCents: 9500,
+    partnerCostCents: 0,
+  });
   rec("a complete file has a margin", complete.margin === 17000);
   rec("and a percentage", complete.marginPercent === 37.8, String(complete.marginPercent));
   rec("and nothing missing", complete.missing.length === 0);
 
-  const noEngineer = marginOf({ clientPriceCents: 45000, techCostCents: 18500, engineerCostCents: null });
+  const noEngineer = marginOf({
+    clientPriceCents: 45000,
+    techCostCents: 18500,
+    engineerCostCents: null,
+    partnerCostCents: 0,
+  });
   rec("a file missing the engineer figure has NO margin", noEngineer.margin === null);
   rec("and no percentage", noEngineer.marginPercent === null);
   rec("and names what is missing", noEngineer.missing.includes("engineer production"));
@@ -103,27 +113,129 @@ const rec = (name, ok, note = "") => out.push({ name, ok, note });
    * A desk review with no site visit genuinely has no technician cost. That is a
    * cost of zero, not a missing figure, and its margin is knowable.
    */
-  const deskReview = marginOf({ clientPriceCents: 30000, techCostCents: 0, engineerCostCents: 9500 });
+  const deskReview = marginOf({
+    clientPriceCents: 30000,
+    techCostCents: 0,
+    engineerCostCents: 9500,
+    partnerCostCents: 0,
+  });
   rec("a genuine zero cost still produces a margin", deskReview.margin === 20500);
   rec("and is not reported as missing", deskReview.missing.length === 0);
 
-  const nothing = marginOf({ clientPriceCents: null, techCostCents: null, engineerCostCents: null });
-  rec("a file with no figures at all names all three", nothing.missing.length === 3);
+  const nothing = marginOf({
+    clientPriceCents: null,
+    techCostCents: null,
+    engineerCostCents: null,
+    partnerCostCents: null,
+  });
+  rec("a file with no figures at all names all four", nothing.missing.length === 4);
   rec("and has no margin", nothing.margin === null);
 
-  const free = marginOf({ clientPriceCents: 0, techCostCents: 0, engineerCostCents: 0 });
+  const free = marginOf({
+    clientPriceCents: 0,
+    techCostCents: 0,
+    engineerCostCents: 0,
+    partnerCostCents: 0,
+  });
   rec("a file priced at nothing has a margin of zero, which is a number", free.margin === 0);
   rec("and no percentage, because dividing by zero revenue is not a percentage", free.marginPercent === null);
+}
+
+// =====================================================================
+// THE FOURTH COST. Phase 9 Section 3.
+//
+// WHY THIS SECTION EXISTS AT ALL
+// ------------------------------
+// marginOf was correct for a year and is read as authoritative. The day the
+// partner program earns anything, every margin the firm reads is wrong by the
+// commission until this is in the arithmetic, and it is wrong in the direction
+// nobody questions: too high, on files that look completely ordinary.
+//
+// The decision document called this the highest risk change in the phase and
+// asked for its own injection test. This is it. The load bearing check is the
+// negative one: the margin must NOT equal what it was before the commission
+// existed. A version of marginOf that accepts the fourth cost and ignores it
+// passes every positive check in this file and fails that one.
+// =====================================================================
+{
+  const withPartner = marginOf({
+    clientPriceCents: 45000,
+    techCostCents: 18500,
+    engineerCostCents: 9500,
+    partnerCostCents: 2250,
+  });
+  rec("a partner commission is a cost of the file", withPartner.margin === 14750, String(withPartner.margin));
+  rec(
+    "and the margin is NOT the figure it was before the commission existed",
+    withPartner.margin !== 17000,
+    "this is the check that fails when the fourth cost is accepted and ignored",
+  );
+  rec("the cost side carries it too", withPartner.cost === 30250, String(withPartner.cost));
+  rec(
+    "and the percentage moves with it",
+    withPartner.marginPercent === 32.8,
+    String(withPartner.marginPercent),
+  );
+
+  /*
+   * A file with a partner and no accrual yet. The commission is coming and its
+   * size is not known, so the margin is UNKNOWN rather than optimistic. This is
+   * the same refusal the module already makes about an unentered technician
+   * cost, applied to the one cost that arrives late by design.
+   */
+  const awaiting = marginOf({
+    clientPriceCents: 45000,
+    techCostCents: 18500,
+    engineerCostCents: 9500,
+    partnerCostCents: null,
+  });
+  rec("a file whose commission is not yet known has NO margin", awaiting.margin === null);
+  rec("and names the partner commission as what is missing", awaiting.missing.includes("partner commission"));
+  rec(
+    "and does not report the flattering number in the meantime",
+    awaiting.margin !== 17000,
+    "a partnered file with no entry must not read as though the commission were nothing",
+  );
+
+  /*
+   * A file with no partner has a commission of zero, which is a real, knowable
+   * cost of nothing, exactly as a desk review has no technician cost. If this
+   * were treated as missing, every file the firm has ever delivered would drop
+   * out of every total the day the column was added.
+   */
+  const noPartner = marginOf({
+    clientPriceCents: 30000,
+    techCostCents: 0,
+    engineerCostCents: 9500,
+    partnerCostCents: 0,
+  });
+  rec("no partner is a commission of zero, not a missing figure", noPartner.missing.length === 0);
+  rec("and the file still has a margin", noPartner.margin === 20500);
+
+  const period = periodTotals("2026-09", [
+    { clientPriceCents: 45000, techCostCents: 18500, engineerCostCents: 9500, partnerCostCents: 2250 },
+    { clientPriceCents: 30000, techCostCents: 0, engineerCostCents: 9500, partnerCostCents: null },
+  ]);
+  rec("a period leaves out the file whose commission is unknown", period.complete === 1 && period.files === 2);
+  rec("and its total carries the commission on the file it does count", period.cost === 30250, String(period.cost));
+  rec("and the margin is the one with the commission taken off", period.margin === 14750, String(period.margin));
+
+  rec(
+    "the coverage sentence counts four figures rather than three",
+    /all four figures/.test(coverageSentence(2, 2)),
+    coverageSentence(2, 2),
+  );
 }
 
 // =====================================================================
 // Period rollups. The dangerous one.
 // =====================================================================
 {
-  const f = (price, tech, engineer) => ({
+  const f = (price, tech, engineer, partner = 0) => ({
     clientPriceCents: price,
     techCostCents: tech,
     engineerCostCents: engineer,
+    partnerCostCents: partner,
   });
 
   const allComplete = periodTotals("2026-09", [f(45000, 18500, 9500), f(30000, 0, 9500)]);

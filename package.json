@@ -45,7 +45,7 @@
     "comms-audit": "tsx scripts/comms-audit.mjs",
     "money-audit": "tsx scripts/money-audit.mjs",
     "order-audit": "tsx scripts/order-audit.mjs",
-    "seed-field-demo": "tsx scripts/seed-field-demo.mjs",
+    "seed-field-demo": "tsx --conditions=react-server scripts/seed-field-demo.mjs",
     "db-guard-audit": "tsx scripts/db-guard-audit.mjs",
     "migration-audit": "tsx scripts/migration-audit.mjs",
     "intake-audit": "tsx scripts/intake-audit.mjs",

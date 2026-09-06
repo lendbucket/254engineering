@@ -22,12 +22,14 @@
  * carries in roles-audit and seed-field-demo.
  */
 
+import { createHash, randomBytes } from "node:crypto";
 import { auditClient } from "./db-target.mjs";
 
 /** Obviously fake, and the domain is what teardown sweeps on. */
 export const PROBE_DOMAIN = "audit-probe.invalid";
 
 const made = [];
+const partnersMade = [];
 let db = null;
 
 function client(label) {
@@ -75,6 +77,143 @@ export async function createProbe(base, role, label = "audit") {
   const m = (res.headers.get("set-cookie") ?? "").match(/eng_ops=([^;]+)/);
 
   return { id: data.user.id, email, role, cookie: m ? m[1] : null };
+}
+
+/**
+ * A signed in PARTNER, which is a different principal and a different cookie.
+ *
+ * WHY IT GOES THROUGH THE REAL SET PASSWORD FLOW
+ * ----------------------------------------------
+ * A partner's password is scrypt hashed in the application, so an audit cannot
+ * write one directly without reimplementing the hashing, and an audit that
+ * reimplements the thing it is testing is measuring its own copy.
+ *
+ * So this writes a token row, which is a sha256 the audit CAN compute, and then
+ * posts it to /api/partner/set-password exactly as a person would. The account
+ * that comes out the other end was made the way real accounts are made, and the
+ * flow itself is exercised as a side effect.
+ *
+ * The partner code is obviously fake and the organisation says so, because a
+ * probe partner appearing in a list somewhere should read as a probe.
+ */
+export async function createPartnerProbe(base, label = "audit") {
+  const d = client(label);
+  if (!d) return null;
+
+  const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  const email = `probe-partner-${stamp}@${PROBE_DOMAIN}`;
+  const password = `probe-${stamp}-${label}-partner`;
+
+  const { data: partner, error: pErr } = await d
+    .from("eng_partners")
+    .insert({
+      organisation: "Audit Probe Partner",
+      contact_name: "Audit Probe",
+      contact_email: email,
+      code: `probe-${stamp}`,
+      status: "active",
+    })
+    .select("id")
+    .single();
+  if (pErr || !partner) return null;
+
+  const { data: user, error: uErr } = await d
+    .from("eng_partner_users")
+    .insert({
+      partner_id: partner.id,
+      email,
+      display_name: "Audit Probe",
+      status: "invited",
+    })
+    .select("id")
+    .single();
+  if (uErr || !user) {
+    await d.from("eng_partners").delete().eq("id", partner.id);
+    return null;
+  }
+
+  partnersMade.push({ partnerId: partner.id, userId: user.id, email });
+
+  const token = randomBytes(32).toString("base64url");
+  const { error: tErr } = await d.from("eng_partner_tokens").insert({
+    user_id: user.id,
+    purpose: "set_password",
+    token_hash: createHash("sha256").update(token, "utf8").digest("hex"),
+    expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+  });
+  if (tErr) return null;
+
+  const set = await fetch(`${base}/api/partner/set-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, password }),
+  });
+  if (!set.ok) return { partnerId: partner.id, userId: user.id, email, cookie: null };
+
+  const res = await fetch(`${base}/api/partner/session`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const m = (res.headers.get("set-cookie") ?? "").match(/eng_partner=([^;]+)/);
+
+  return { partnerId: partner.id, userId: user.id, email, cookie: m ? m[1] : null };
+}
+
+/** The partner cookie, shaped for a Playwright context. */
+export function partnerCookieFor(probe, base) {
+  if (!probe?.cookie) return [];
+  return [
+    { name: "eng_partner", value: probe.cookie, url: base, httpOnly: true, sameSite: "Lax" },
+  ];
+}
+
+/**
+ * Remove every probe partner, then VERIFY by sweeping the domain.
+ *
+ * Deliberately broader than this run, exactly as destroyProbes is, so a run
+ * that crashed before teardown is cleaned up by the next one rather than
+ * reported forever as a failure nobody is deleting.
+ *
+ * A partner that has EARNED something cannot be removed: eng_partner_entries
+ * references it with on delete restrict, by design, because a ledger entry
+ * outlives the relationship it came from. No audit creates entries for a probe
+ * partner, and if one ever does, this returns the refusal rather than swallowing
+ * it, because a probe partner with earnings is a thing somebody has to look at.
+ */
+export async function destroyPartnerProbes(label = "audit") {
+  const d = client(label);
+  if (!d) return { ok: true, left: 0, note: "no database client, nothing was created" };
+
+  const { data: strays } = await d
+    .from("eng_partners")
+    .select("id")
+    .like("contact_email", `%@${PROBE_DOMAIN}`);
+
+  const ids = new Set([...partnersMade.map((p) => p.partnerId), ...(strays ?? []).map((r) => r.id)]);
+  const refused = [];
+
+  for (const id of ids) {
+    const { data: users } = await d.from("eng_partner_users").select("id").eq("partner_id", id);
+    for (const u of users ?? []) {
+      await d.from("eng_partner_tokens").delete().eq("user_id", u.id);
+    }
+    await d.from("eng_partner_users").delete().eq("partner_id", id);
+    const { error } = await d.from("eng_partners").delete().eq("id", id);
+    if (error) refused.push(`${id}: ${error.message}`);
+  }
+  partnersMade.length = 0;
+
+  const { data } = await d
+    .from("eng_partners")
+    .select("id")
+    .like("contact_email", `%@${PROBE_DOMAIN}`);
+  const left = (data ?? []).length;
+  return {
+    ok: left === 0,
+    left,
+    note: left ? `${left} probe partner(s) left behind${refused.length ? `: ${refused.join(", ")}` : ""}` : "",
+  };
 }
 
 /** The cookie shaped the way Playwright wants it, for a context. */

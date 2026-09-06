@@ -11,6 +11,56 @@ Items are removed when they ship, not when they are attempted.
 Items owned by a sibling repo, recorded here because they were found here.
 Nothing in this section is actionable in this repository.
 
+**The first item below is not general debt. Operator ruling, 2026-09-05: it is
+the FIRST thing a session in either of those repositories should do, before
+anything else it was opened for.** Those two sites carry 55 and 9 pages written
+under the same regulatory gate as this one, and neither can currently detect the
+class of claim that was found live on this site the day the pattern was added.
+
+### FIRST TASK IN sealedengineering AND stampmyplans: copy the regulatory pattern library across
+
+Recorded 2026-09-05, Phase 9 Section 4. Operator ruling the same day: this is
+the first thing a session in either repo does, ahead of whatever it was opened
+for.
+
+**Why it outranks the work in front of it.** sealedengineering carries 55 pages
+and stampmyplans 9, all written under the same gate, and the detector on both
+sites is currently blind to a claim that this site was found making live. The
+question is not whether they have one. It is that nobody there can see it.
+
+**What to copy.** `scripts/lib/regulatory.mjs` from this repository, verbatim,
+which is how that file is meant to travel. Then run that repo's voice audit and
+launch audit and read what they say before changing any copy: a page that has
+been serving a claim for a month is a page whose fix belongs in a commit that
+says so.
+
+**What the three additions are.** CONDITIONAL_GUARD, a pattern for a third
+person service claim naming the firm, and a pattern for "performs and seals". `scripts/lib/regulatory.mjs` is a
+synchronized file, copied verbatim into sealedengineering and stampmyplans,
+because all three brands are Texas engineering firms under the same board with
+the same regulated vocabulary and the same pending gates.
+
+**This repository's copy now has three things the other two do not.** A
+CONDITIONAL_GUARD, a pattern for a third person service claim naming the firm,
+and a pattern for "performs and seals".
+
+**Why they were added.** The library was written from the first person and the
+passive voice, and caught neither of the two forms that matter to a partner
+programme: a brand writing about itself by name. Phase 9 Section 4 put "254
+Engineering Services performs and seals every engagement referred through this
+programme" on three partner screens and nothing in the suite saw it.
+
+**And it immediately found a live one.** /government carried "254 Engineering
+Services delivers inspections, sealed engineering letters, certifications, and
+design", under a heading reading "what this firm is BUILT to deliver". It has
+been served that way to procurement officers while the registration is pending.
+Fixed here.
+
+**Why it was not done from here.** Standing operator instruction: those repos
+are out of scope from this session and are not to be touched. The divergence is
+real until a session in each one copies the file across, and that is the first
+thing each should do.
+
 ### sealedengineering /order must return 307 and never 308, and nothing asserts it
 
 Recorded 2026-09-04 during the three site sitemap audit. Operator ruling the
@@ -54,9 +104,129 @@ next build. The 307 assertion belongs beside that one.
 **Not a defect today.** `/order` currently returns 307 correctly. This is a
 guard against a plausible future edit, not a repair.
 
+## Before a partner can sign in on production
+
+### PARTNER_SESSION_SECRET is the operator's to set, and is set aside for them
+
+Recorded 2026-09-05, Phase 9 Section 4. `partnerSessionConfigured()` returns
+false without it, which closes the partner portal completely: the sign in screen
+renders, says it is not configured, and refuses every attempt.
+
+That is the correct failure direction and it is not a defect. It is recorded
+because the day a first partner is created on production, this is what will make
+their link not work, and the symptom will look like a broken account rather than
+a missing variable.
+
+**Operator ruling, 2026-09-05: set aside, they will add it in Vercel.** It is
+not a blocker for anything being built, and no session should generate a
+production session secret and hand it over in a transcript.
+
+**What it needs to be.** At least 24 characters, set for Production and again
+for Preview, exactly as OPS_SESSION_SECRET and CUSTOMER_SESSION_SECRET are set. It is its own variable on purpose: rotating one
+session secret must not sign out the other two.
+
+Development has one, written to .env.local and never echoed.
+
+### The corrected /government copy has to be confirmed live on production
+
+Recorded 2026-09-05. Operator instruction the same day.
+
+The page said "254 Engineering Services delivers inspections, sealed engineering
+letters, certifications, and design" while the firm's registration is pending.
+It is corrected on this branch and production is still serving the claim until
+this merges and deploys.
+
+**Confirm it against the live domain after the deploy, not against the build.**
+/government is the one page whose audience actually reads this, because a
+procurement officer evaluating a firm is exactly the reader who checks whether a
+firm is registered to do what it says it does.
+
+## Left by Phase 9
+
+### Eight probe partners on development cannot be deleted, and should not be
+
+Recorded 2026-09-06, found by building the operator roster in Section 6 and
+looking at it. Eight rows reading "ZZ probe, safe to ignore", created on
+2026-09-04 by an end to end script for Section 2 that is not in the tree.
+
+**Seven of the eight are held by their own evidence.** eng_partner_touches
+refuses DELETE by trigger, and it references the partner with ON DELETE
+RESTRICT, so a partner who was ever touched cannot be removed. That is 0014
+working exactly as written: a touch is what a dispute is settled from, and
+evidence that can be deleted after the decision is not evidence.
+
+**No action, and this entry exists so nobody takes one.** The obvious repair is
+to loosen the trigger, and it would be the wrong repair. Same standing as
+eng_audit_events. The sweep in probe-ledger.mjs removes what it can, leaves the
+rest, and reports the count; the roster puts ended partners behind a disclosure.
+
+Nothing in the committed suite creates them, so this is history rather than a
+leak. Production has no partner rows at all.
+
+### Orders attributed before 0022 cannot have their link touches shown
+
+Recorded 2026-09-06. Section 6 added the column that joins an order back to the
+touch log; orders attributed before it never stored the key.
+
+**No action is possible.** The key was a cookie value that was never written
+down, and it cannot be recovered. The dispute screen says so rather than showing
+an empty list, because an empty list is the claim that there were no touches.
+
+On production this costs nothing: no partner exists there, so no order has ever
+been attributed.
+
+### Phase 9 is complete, and what it deliberately does not do
+
+Recorded 2026-09-06. Sections 3 to 6 are built. What was ruled out along the
+way, so nobody reads an absence as an oversight:
+
+- **No white label.** Rejected at gate 0 with the reasoning in
+  docs/partner-program-decision.md, and it is not a configuration flag.
+- **No self signup.** A partner using the firm name is a decision the firm makes.
+- **No partner editing their own payout details.** A referrer who can change
+  where money is sent, from a session, is the shape of every payout fraud that
+  has ever worked.
+- **No dispute button in the partner portal.** A dispute is settled by an
+  operator recording a decision and a compensating entry. A button that filed
+  into a queue nobody watches would be worse than an email address.
+- **No tier uplift at close.** Tiers apply forward, which is the only reading
+  compatible with accruing at delivery and never editing an accrual.
+- **No partner logo.** eng_partners holds a name and no logo. The asset bucket
+  exists now, so this is a column and an upload rather than a design question.
+
+**And the fee splitting question is still unanswered.** Whether a percentage of
+an engineering fee may be paid to an unlicensed referrer is for TBPELS or a
+licensing attorney. All four models are configuration, so the answer changes a
+row rather than a code path, and it should arrive before a partner is paid.
+
 ## Suspended by decision
 
-### Phase 9 is suspended after Section 2, by decision, with Sections 3 to 6 unbuilt
+### RESUMED 2026-09-05. Phase 9 was suspended after Section 2, and Section 3 is now built
+
+The entry below stands as written, because it explains a state that lasted a day
+short of a week and because the reason it gives for merging early is still the
+right reason. What has changed:
+
+**Section 3 is built.** `eng_partner_entries` is the ledger, accrual happens in
+`transitionFile` at delivery and in `convertLead` at qualification, reversal
+happens in all three paths that record a refund, and `marginOf` carries the
+fourth cost as a required property. The rulings are in
+`docs/partner-compensation.md`; the ones most likely to be argued with are that
+a qualified lead fee is never reversed by a refund, and that volume tiers apply
+forward rather than retroactively.
+
+**Sections 4, 5 and 6 remain**, in the order the phase defined them, and the
+paragraph below still describes them. Section 4, the partner portal, is now the
+one that makes the proxy branch load bearing, and it is to be built to the
+native standard from Phase 11 Section 2 rather than the pre standard portal.
+
+**Still true, and still the thing that makes this inert:** production has no
+partner rows, so nothing accrues there and nothing is owed to anybody. What is
+new is that the machinery to owe somebody something now exists, and the
+condition that makes it urgent is unchanged: a real partner agreement being
+signed.
+
+### The original entry: Phase 9 suspended after Section 2, with Sections 3 to 6 unbuilt
 
 Recorded 2026-09-04. Operator decision the same day: merge Phase 9 Section 2 and
 start Phase 10. This is a deliberate stop, not an abandonment and not an

@@ -26,6 +26,7 @@
  * Pure. No server, no database, no network, so it runs in phase zero.
  */
 
+import { findRegulatoryClaims } from "./lib/voice-blocklist.mjs";
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
@@ -64,6 +65,24 @@ const FILES = [
   ...walk("src/app/account"),
   ...walk("src/app/(site)/order"),
   ...walk("src/components/order"),
+  /*
+   * The partner surfaces, added with Phase 9 Section 4 and added because they
+   * caught me.
+   *
+   * The first version of the partner sign in, set password and app footer all
+   * carried "254 Engineering Services performs and seals every engagement
+   * referred through this programme". That is a present tense service claim
+   * about a firm whose registration is pending, written on three screens, and
+   * nothing in the suite would have seen it: voice-audit walks public routes
+   * and this audit did not know these files existed.
+   *
+   * It came from the right instinct. Non negotiable 1 of the partner programme
+   * requires the performing firm to be named near the offer. Naming it is
+   * required; claiming it is already doing the work is the thing the gate
+   * exists to prevent, and the two are one verb apart.
+   */
+  ...walk("src/app/partner"),
+  ...walk("src/components/partner"),
 ];
 rec("there are portal components to read", FILES.length > 0, `${FILES.length} files`);
 
@@ -346,6 +365,55 @@ report("sentence case, not Title Case", titleCase, "including buttons and column
       "the portal and the site share one list so they cannot disagree",
     );
   }
+}
+
+// =========================================================================
+// THE COMPLIANCE GATE APPLIES TO THE SIGNED IN SURFACES TOO
+//
+// voice-audit enforces this on the public routes by fetching them. It cannot
+// see a signed in screen, so until now the gate was enforced on the marketing
+// site and nowhere else, and the copy on an operational surface was held only
+// to the tone rules.
+//
+// A partner reading "the firm performs and seals this work" on the screen where
+// they are paid for referring it is being told the same false thing as a
+// visitor reading it on a service page, and the licence at risk is the same
+// licence.
+// =========================================================================
+
+{
+  const GATE_ACTIVE = (process.env.LAUNCH_MODE || "prelaunch").trim().toLowerCase() !== "live";
+
+  const claims = [];
+  for (const [file, strings] of COPY) {
+    for (const text of strings) {
+      for (const hit of findRegulatoryClaims(text)) {
+        claims.push(`${file}: "${hit.match}" (${hit.why})`);
+      }
+    }
+  }
+
+  rec(
+    GATE_ACTIVE
+      ? "no signed in surface makes a present tense service claim"
+      : "present tense service claims are allowed, the gate has lifted",
+    GATE_ACTIVE ? claims.length === 0 : true,
+    claims.slice(0, 5).join(" · ") || `${COPY.size} file(s) read`,
+  );
+
+  /*
+   * And the check is not vacuous. If the matcher stopped matching, the line
+   * above would pass on every file forever, so a known bad sentence is put
+   * through it here.
+   */
+  const canary = findRegulatoryClaims(
+    "254 Engineering Services performs and seals every engagement referred through this programme.",
+  );
+  rec(
+    "and the matcher still catches a claim when it sees one",
+    canary.length > 0,
+    canary.length ? canary[0].match : "the matcher found nothing in a sentence that is one",
+  );
 }
 
 // =========================================================================

@@ -296,8 +296,47 @@ that branch merged. After 0018 (Phase 10 Section 2, roles and grants become
 data) **all three return `eb4f97be87ef35c21b1cc8b3b4d6af23` across 878 columns
 and 64 tables**, with row level security on all 64 and zero policies on the two
 new ones, 39 triggers, and no function with an unpinned search_path. Applied to
-production on 2026-09-05. A divergence while a feature branch is open is
-expected; a divergence after it merges is the defect.
+production on 2026-09-05. After 0019 (Phase 9 Section 3, partner compensation)
+**development and the replay return `d8fa49515f2666bd7543c21aff831407` across
+902 columns and 65 tables**, with row level security on all 65, 42 triggers, and
+8 eng_ functions, none with an unpinned search_path. After 0020 (Phase 9 Section 5, the partner
+asset library), 0021 (Section 6, partners.manage becomes a grant) and 0022
+(Section 6, the order keeps its visitor key) **development and the replay return
+`330536b4b13cfc2f51ed1cb3b0c6edf1` across 941 columns and 68 tables**, with 46
+triggers, 9 eng_ functions none unpinned, and 111 role grants. **Production is
+still at 0018** because that branch has not merged, which is the expected
+divergence rather than the defect: a divergence while a feature branch is open
+is expected, and a divergence after it merges is the defect.
+
+0021 is one row, and it is the first migration since 0018 to seed a grant. That
+made roles-audit's seed comparison wrong rather than incomplete: it read
+0018_roles_as_data.sql directly, so a capability declared in DEFAULT_ROLES and
+seeded anywhere else read as missing from the migration. It reads the whole
+chain now, which is the shape it should always have had. Editing 0018 was never
+an option, because it has run against production and a migration that changes
+after it has run is a migration nobody can reason about.
+
+0022 is a repair. 0014 keeps every partner touch, including the ones that lost,
+so a dispute can be settled by showing a partner the touch that beat theirs; and
+the ORDER never stored the visitor key its attribution was decided under, so the
+evidence was complete and unreachable from the record it explains. Typed codes
+were always findable under the synthetic `order:<id>` key, which is exactly why
+nobody noticed: the dispute anybody tests by hand is a code somebody typed.
+Orders attributed before it cannot be reconstructed, and the screen says so
+rather than showing an empty list.
+
+0019 adds the second and third functions in this schema that refuse a change
+rather than touching a timestamp. `eng_freeze_partner_entry` guards every column
+of a partner ledger entry EXCEPT `statement_id`, which a statement close has to
+be able to write, and `eng_forbid_partner_entry_delete` refuses removal outright.
+The narrow shape is deliberate and follows 0014: forbidding UPDATE wholesale
+would have made the close impossible, which is how a table ends up with a
+"corrections" column that everything reads instead.
+
+That table is the second in this schema, after `eng_audit_events`, that a test
+run cannot clean up after itself. Its guarantees are therefore exercised inside
+`migration-audit`'s replayed database, which is thrown away, rather than by a
+live audit that would leave a probe partner's earnings on development forever.
 
 0018 also seeds ROWS, which is the first migration in this chain whose
 correctness is not captured by the fingerprint at all. The shape is 64 tables

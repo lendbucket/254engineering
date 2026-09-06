@@ -57,12 +57,16 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * mistake could have been applied to by hand, which is exactly how 0001 stayed
  * broken for a month. A constant has to be changed by a person who noticed.
  */
-const EXPECTED_FINGERPRINT = "eb4f97be87ef35c21b1cc8b3b4d6af23";
-const EXPECTED_COLUMNS = 878;
-const EXPECTED_TABLES = 64;
-const EXPECTED_TRIGGERS = 39;
-/** 0014 added eng_freeze_attribution, which is a trigger function like the rest. eng_claim_jobs is still the only one called directly. */
-const EXPECTED_FUNCTIONS = 6;
+const EXPECTED_FINGERPRINT = "330536b4b13cfc2f51ed1cb3b0c6edf1";
+const EXPECTED_COLUMNS = 941;
+const EXPECTED_TABLES = 68;
+const EXPECTED_TRIGGERS = 46;
+/**
+ * 0014 added eng_freeze_attribution and 0019 added two more, the partner
+ * entry freeze and its delete refusal, which are trigger functions like the
+ * rest. eng_claim_jobs is still the only one called directly.
+ */
+const EXPECTED_FUNCTIONS = 9;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -256,6 +260,197 @@ if (failedAt === null) {
     refusedDelete = true;
   }
   rec("and a DELETE", refusedDelete);
+
+  /*
+   * ===================================================================
+   * THE PARTNER LEDGER, EXERCISED HERE AND DELIBERATELY NOT ON A LIVE
+   * DATABASE.
+   *
+   * 0019 refuses a DELETE on eng_partner_entries, on purpose: a test run able
+   * to erase from the record of what a partner is owed is a worse property
+   * than the rows it would remove. That is the same ruling the audit trail
+   * carries, and it has the same consequence, which is that anything writing
+   * to this table cannot clean up after itself.
+   *
+   * So the guarantees are exercised HERE, in the replayed database that is
+   * thrown away when this audit ends, rather than in a live audit that would
+   * leave a probe partner's earnings on development forever.
+   * ===================================================================
+   */
+  await db.exec(`
+    insert into eng_partners (id, organisation, contact_name, contact_email, code)
+    values ('00000000-0000-4000-8000-0000000000aa', 'Probe Partner', 'Probe', 'probe@example.com', 'probe-ledger')
+  `);
+
+  const entry = async (over) => {
+    const cols = {
+      partner_id: "'00000000-0000-4000-8000-0000000000aa'",
+      kind: "'accrual'",
+      amount_cents: "1125",
+      status: "'accrued'",
+      explanation: "'written by migration-audit'",
+      payable_at: "now()",
+      ...over,
+    };
+    const keys = Object.keys(cols).join(", ");
+    const values = Object.values(cols).join(", ");
+    const { rows } = await db.query(
+      `insert into eng_partner_entries (${keys}) values (${values}) returning id`,
+    );
+    return rows[0].id;
+  };
+
+  const accrualId = await entry({});
+
+  let refusedAmountEdit = false;
+  try {
+    await db.exec(`update eng_partner_entries set amount_cents = 999999 where id = '${accrualId}'`);
+  } catch {
+    refusedAmountEdit = true;
+  }
+  rec(
+    "an accrual refuses to have its amount changed",
+    refusedAmountEdit,
+    "a figure that can move after the fact is a figure a partner cannot reconcile",
+  );
+
+  let refusedExplanationEdit = false;
+  try {
+    await db.exec(`update eng_partner_entries set explanation = 'something else' where id = '${accrualId}'`);
+  } catch {
+    refusedExplanationEdit = true;
+  }
+  rec("and refuses to have its reason rewritten", refusedExplanationEdit);
+
+  /*
+   * The one change that IS allowed, and it has to be, or a statement could
+   * never claim anything. A freeze that refused this would have been the
+   * simpler trigger and the wrong one.
+   */
+  await db.exec(`
+    insert into eng_partner_statements (id, partner_id, reference, period)
+    values ('00000000-0000-4000-8000-0000000000bb', '00000000-0000-4000-8000-0000000000aa', '254-P202609-PROBE', '2026-09')
+  `);
+  let claimed = false;
+  try {
+    await db.exec(
+      `update eng_partner_entries set statement_id = '00000000-0000-4000-8000-0000000000bb' where id = '${accrualId}'`,
+    );
+    claimed = true;
+  } catch {
+    claimed = false;
+  }
+  rec("but a statement may claim it, which is the one change a close makes", claimed);
+
+  /*
+   * On its OWN entry, not the one the rest of this section builds on. The
+   * first version deleted the accrual under test, so when the refusal was
+   * injected away the delete SUCCEEDED and the next insert failed on a foreign
+   * key to a row that was no longer there. The audit crashed instead of
+   * failing, which reads as "caught it" and is not the same thing.
+   */
+  const deletableId = await entry({});
+  let refusedEntryDelete = false;
+  try {
+    await db.exec(`delete from eng_partner_entries where id = '${deletableId}'`);
+  } catch {
+    refusedEntryDelete = true;
+  }
+  rec("an entry is never deleted", refusedEntryDelete, "a mistake is answered with an adjustment beside it");
+
+  /*
+   * A reversal is the counter entry, and it is a different row rather than a
+   * smaller accrual. Both stand and the two net.
+   */
+  const reversalId = await entry({
+    kind: "'reversal'",
+    amount_cents: "-1125",
+    reverses_id: `'${accrualId}'`,
+  });
+  rec("a reversal stands beside the accrual rather than replacing it", Boolean(reversalId));
+
+  let refusedPositiveReversal = false;
+  try {
+    await entry({ kind: "'reversal'", amount_cents: "500" });
+  } catch {
+    refusedPositiveReversal = true;
+  }
+  rec("a reversal cannot be positive", refusedPositiveReversal);
+
+  let refusedNegativeAccrual = false;
+  try {
+    await entry({ amount_cents: "-500" });
+  } catch {
+    refusedNegativeAccrual = true;
+  }
+  rec("and an accrual cannot be negative", refusedNegativeAccrual);
+
+  /*
+   * Blocked and having no figure are one fact. Either half without the other
+   * is refused, so nothing can sit in the ledger as a zero that was meant to
+   * be an absence.
+   */
+  let refusedBlockedWithAmount = false;
+  try {
+    await entry({ status: "'blocked'", amount_cents: "1000" });
+  } catch {
+    refusedBlockedWithAmount = true;
+  }
+  rec("an entry cannot be blocked and carry a figure", refusedBlockedWithAmount);
+
+  let refusedAmountlessAccrual = false;
+  try {
+    await entry({ amount_cents: "null" });
+  } catch {
+    refusedAmountlessAccrual = true;
+  }
+  rec("and cannot be accrued with no figure", refusedAmountlessAccrual);
+
+  const blockedId = await entry({ status: "'blocked'", amount_cents: "null" });
+  rec("a blocked entry with no figure is allowed, which is the point of it", Boolean(blockedId));
+
+  /*
+   * Idempotence, which is the guarantee that stops a retried delivery paying
+   * twice. Exercised on the file index, the one a retry actually hits.
+   */
+  await db.exec(`
+    insert into eng_clients (id, kind, name) values ('00000000-0000-4000-8000-0000000000dd', 'individual', 'Probe Client');
+  `);
+  await db.exec(`
+    insert into eng_files (id, client_id, file_number, property_address, county, service_slug)
+    values ('00000000-0000-4000-8000-0000000000cc', '00000000-0000-4000-8000-0000000000dd', '254-PROBE-0001', '1 Probe Street', 'Nueces', 'windstorm')
+  `);
+  await entry({ file_id: "'00000000-0000-4000-8000-0000000000cc'" });
+
+  let refusedSecondAccrual = false;
+  try {
+    await entry({ file_id: "'00000000-0000-4000-8000-0000000000cc'" });
+  } catch {
+    refusedSecondAccrual = true;
+  }
+  rec(
+    "one file cannot accrue twice",
+    refusedSecondAccrual,
+    "a retried job that pays twice is the failure nobody notices until the partner does",
+  );
+
+  /*
+   * And a reversal on the same file IS allowed, because the index is on
+   * accruals alone. An index that stopped this would have made a refund
+   * unrecordable, which is the mistake a narrower rule invites.
+   */
+  let reversalAllowedOnSameFile = false;
+  try {
+    await entry({
+      kind: "'reversal'",
+      amount_cents: "-1125",
+      file_id: "'00000000-0000-4000-8000-0000000000cc'",
+    });
+    reversalAllowedOnSameFile = true;
+  } catch {
+    reversalAllowedOnSameFile = false;
+  }
+  rec("while a reversal on that same file is allowed", reversalAllowedOnSameFile);
 }
 
 await db.close();

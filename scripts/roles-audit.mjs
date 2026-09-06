@@ -181,6 +181,12 @@ const EXPECTED = {
   "roles.manage":                 { admin: true,  engineer: false, field_tech: false },
 
   "accounts.manage":              { admin: true,  engineer: false, field_tech: false },
+  /*
+   * Who may use the firm name to win work, what the firm owes somebody outside
+   * it, and the record that money left. Admin alone, and an engineer holding a
+   * licence is not an administrator.
+   */
+  "partners.manage":              { admin: true,  engineer: false, field_tech: false },
 
   /*
    * The job queue. Retrying a dead job re-runs a side effect: it can send an
@@ -282,6 +288,13 @@ rec(
       why: "only an administrator may decide who owes the firm money",
       check: (role, action) =>
         action === "accounts.manage" && role !== "admin" ? "a role other than the administrator manages accounts" : null,
+    },
+    {
+      why: "only an administrator may run the referral programme",
+      check: (role, action) =>
+        action === "partners.manage" && role !== "admin"
+          ? "a role other than the administrator manages partners"
+          : null,
     },
     {
       /*
@@ -450,18 +463,56 @@ rec(
  * copied from the migration in the first place.
  */
 {
-  const sql = fs.readFileSync("supabase/migrations/0018_roles_as_data.sql", "utf8");
+  /*
+   * EVERY MIGRATION IN THE CHAIN, NOT 0018 ALONE.
+   *
+   * 0018 was the only file that seeded a role for one phase, so reading it
+   * directly was correct and stopped being correct the moment 0021 added
+   * partners.manage. Editing 0018 was never an option: it has run against
+   * production, and a migration that changes after it has run is a migration
+   * nobody can reason about.
+   *
+   * What the check is actually about is whether the DECLARATION is seeded
+   * somewhere in the chain, which is what this now reads. A grant added in a
+   * later migration is the ordinary way this schema grows.
+   */
+  const migrationFiles = fs
+    .readdirSync("supabase/migrations")
+    .filter((f) => /\.sql$/.test(f))
+    .sort();
 
-  const between = (start, end) => {
-    const a = sql.indexOf(start);
-    const b = sql.indexOf(end, a);
-    return a < 0 || b < 0 ? "" : sql.slice(a + start.length, b);
+  const sql = migrationFiles
+    .map((f) => fs.readFileSync(`supabase/migrations/${f}`, "utf8"))
+    .join("\n");
+
+  /*
+   * All of them, because a chain can seed in more than one place. The first
+   * version took the FIRST block and would have read 0018 and stopped, which
+   * is the same defect one level up.
+   */
+  const blocks = (start, end) => {
+    const out = [];
+    let from = 0;
+    for (;;) {
+      const a = sql.indexOf(start, from);
+      if (a < 0) break;
+      const b = sql.indexOf(end, a);
+      if (b < 0) break;
+      out.push(sql.slice(a + start.length, b));
+      from = b + end.length;
+    }
+    return out.join("\n");
   };
 
-  const rolesBlock = between("insert into eng_roles (key, name, landing_path, is_system) values", "on conflict (key) do nothing;");
-  const grantsBlock = between("insert into eng_role_grants (role_key, action) values", "on conflict (role_key, action) do nothing;");
+  const rolesBlock = blocks("insert into eng_roles (key, name, landing_path, is_system) values", "on conflict (key) do nothing;");
+  const grantsBlock = blocks("insert into eng_role_grants (role_key, action) values", "on conflict (role_key, action) do nothing;");
 
-  rec("the migration's seed blocks were found", rolesBlock.length > 0 && grantsBlock.length > 0);
+  rec("the migration chain's seed blocks were found", rolesBlock.length > 0 && grantsBlock.length > 0);
+  rec(
+    "and more than one migration seeds grants, which is why the chain is read",
+    (sql.match(/insert into eng_role_grants/g) ?? []).length >= 2,
+    "if this ever drops back to one, reading a single file would be correct again and this comment is why it is not",
+  );
 
   const seededRoles = [...rolesBlock.matchAll(/\('([a-z_]+)',\s*'([^']+)',\s*'([^']+)',\s*(true|false)\)/g)].map(
     (m) => ({ key: m[1], name: m[2], landingPath: m[3], isSystem: m[4] === "true" }),
@@ -965,6 +1016,7 @@ if (!db) {
         "/portal/billing",
         "/portal/orders",
         "/portal/accounts",
+        "/portal/partners",
         "/portal/queue",
         "/portal/status",
         "/portal/techs",

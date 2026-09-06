@@ -28,7 +28,14 @@
 
 import fs from "node:fs";
 import { chromium } from "playwright";
-import { createProbe, cookieFor, destroyProbes } from "./lib/portal-probe.mjs";
+import {
+  createProbe,
+  cookieFor,
+  destroyProbes,
+  createPartnerProbe,
+  partnerCookieFor,
+  destroyPartnerProbes,
+} from "./lib/portal-probe.mjs";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3225";
 const WIDTH = 390;
@@ -60,10 +67,31 @@ const SCREENS = [
   { path: "/portal/onboarding", role: "admin" },
   { path: "/portal/charge-log", role: "admin" },
   { path: "/portal/pay", role: "admin" },
+  { path: "/portal/partners", role: "admin" },
+  { path: "/portal/partners/disputes", role: "admin" },
   { path: "/portal/review", role: "engineer" },
   { path: "/portal/protocols", role: "engineer" },
   { path: "/portal/jobs", role: "field_tech" },
   { path: "/portal/certification", role: "field_tech" },
+
+  /*
+   * THE PARTNER PORTAL, WHICH IS THE SECOND SURFACE BUILT TO THIS STANDARD.
+   *
+   * Phase 9 Section 4. It shares the design system and the two data attributes
+   * this audit looks for, and shares nothing else with the staff shell: a
+   * partner has no role and must never appear in the authorization matrix the
+   * staff navigation is derived from.
+   *
+   * Bringing it inside this audit rather than writing a second one is the whole
+   * argument for having a standard. A second audit would be a second set of
+   * thresholds, and the day they disagreed the newer surface would be the one
+   * measured more kindly.
+   */
+  { path: "/partner", kind: "partner" },
+  { path: "/partner/referrals", kind: "partner" },
+  { path: "/partner/statements", kind: "partner" },
+  { path: "/partner/materials", kind: "partner" },
+  { path: "/partner/agreement", kind: "partner" },
 ];
 
 const out = [];
@@ -185,6 +213,15 @@ for (const role of Object.keys(sessions)) {
   rec(`a ${role} session was created`, Boolean(sessions[role]?.cookie));
 }
 
+/*
+ * The partner is a different principal with a different cookie, so it is a
+ * different probe rather than a fourth role. The probe goes through the real
+ * set password flow, because a partner's password is hashed in the application
+ * and an audit that reimplemented that hashing would be measuring its own copy.
+ */
+const partnerProbe = await createPartnerProbe(BASE, "native-audit");
+rec("a partner session was created", Boolean(partnerProbe?.cookie));
+
 const browser = await chromium.launch();
 
 let measured = 0;
@@ -192,7 +229,7 @@ let screensWithControls = 0;
 let totalControls = 0;
 
 for (const screen of SCREENS) {
-  const probe = sessions[screen.role];
+  const probe = screen.kind === "partner" ? partnerProbe : sessions[screen.role];
   if (!probe?.cookie) continue;
 
   const ctx = await browser.newContext({
@@ -201,7 +238,9 @@ for (const screen of SCREENS) {
     hasTouch: true,
     deviceScaleFactor: 2,
   });
-  await ctx.addCookies(cookieFor(probe, BASE));
+  await ctx.addCookies(
+    screen.kind === "partner" ? partnerCookieFor(probe, BASE) : cookieFor(probe, BASE),
+  );
   const page = await ctx.newPage();
 
   try {
@@ -420,7 +459,38 @@ for (const screen of SCREENS) {
   {
     const trigger = await page.$('button[aria-label="More"]');
     if (!trigger) {
-      rec(`${screen.path}: the More sheet is reachable`, false, "no More trigger in the header");
+      /*
+       * A SURFACE WITH NOTHING TO OVERFLOW HAS NOTHING TO PUT IN A SHEET, AND
+       * THAT IS NOT AN EXEMPTION.
+       *
+       * The staff portal has twenty destinations and five tab slots, so a More
+       * sheet is how the other fifteen are reachable. The partner portal has
+       * four destinations and four slots, so there is no overflow and no
+       * trigger, and demanding one would be demanding a menu with nothing in
+       * it.
+       *
+       * The check does not become "skip this screen". It becomes the question
+       * the More sheet exists to answer, which is point 9: is every destination
+       * reachable on a phone. Counting the tabs against the destinations the
+       * wide layout renders is a stronger form of that than opening a menu,
+       * because it fails if somebody adds a fifth nav entry and forgets it has
+       * nowhere to go.
+       */
+      const reach = await page.evaluate(() => {
+        const tabs = document.querySelectorAll("[data-portal-tabs] a").length;
+        const wide = document.querySelectorAll('nav[aria-label="Partner sections"] a').length;
+        return { tabs, wide };
+      });
+
+      if (reach.wide > 0) {
+        rec(
+          `${screen.path}: every destination is in the tab bar, so there is nothing to overflow`,
+          reach.tabs >= reach.wide,
+          `${reach.tabs} tab(s) against ${reach.wide} destination(s) on the wide layout`,
+        );
+      } else {
+        rec(`${screen.path}: the More sheet is reachable`, false, "no More trigger in the header");
+      }
     } else {
       await trigger.click();
       await page.waitForTimeout(400);
@@ -585,6 +655,18 @@ rec(
   screensWithControls >= 12,
   `${totalControls} control(s) across ${screensWithControls} of ${measured} screens; the rest render empty states because the probe accounts hold no data`,
 );
+
+/*
+ * BOTH SETS OF PROBES, AND THE PARTNER ONE IS THE ONE THAT CAN REFUSE.
+ *
+ * eng_partner_entries references a partner with on delete restrict, so a probe
+ * partner that had earned anything could not be removed. Nothing here creates
+ * an entry for one; if that ever changes, the sweep reports the refusal rather
+ * than swallowing it, because a probe partner with earnings on a database is
+ * something a person has to look at.
+ */
+const sweptPartners = await destroyPartnerProbes("native-audit");
+rec("the probe partner was removed", sweptPartners.ok, sweptPartners.note);
 
 const swept = await destroyProbes("native-audit");
 rec("the probe accounts were removed", swept.ok, swept.note);

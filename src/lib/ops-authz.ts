@@ -201,6 +201,22 @@ export type Action =
    * way back.
    */
   | "roles.manage"
+  /*
+   * The referral programme: the roster, terms, statements, payouts, and
+   * deciding a disputed attribution.
+   *
+   * ADMIN ONLY, and not because it is sensitive in the way pricing is. Three
+   * of the things behind it are the firm deciding who may use its name, what
+   * the firm owes somebody outside it, and recording that money left. None of
+   * those is a job somebody does on the firm's behalf without being the firm.
+   *
+   * One action rather than four. A coordinator who could approve a partner's
+   * marketing but not see what they earn sounds tidy and is not a role this
+   * firm has: the person who talks to partners is the person who pays them.
+   * Splitting it later is one action and one migration, and splitting it now
+   * would be inventing a job to justify a permission.
+   */
+  | "partners.manage"
   // The job queue: depth, failures, dead letters, and retrying one by hand. A
   // retry re-runs a side effect, so this is the operator alone.
   | "jobs.manage"
@@ -255,6 +271,7 @@ const MATRIX: Record<Role, Action[]> = {
     "documents.deliver", "documents.read",
     "pricing.read", "billing.read", "ledger.read_own", "ledger.read_all", "ledger.approve",
     "payments.reconcile", "payments.charge", "payments.refund", "accounts.manage", "jobs.manage",
+    "partners.manage",
     "roles.manage",
     "tasks.use", "messages.use",
     "audit.read", "time.log_own",

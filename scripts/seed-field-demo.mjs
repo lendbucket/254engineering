@@ -2,8 +2,13 @@
  * Populate the development project with enough to work the field flow end to
  * end: a protocol, a fee, a client, three technicians, and files at each stage.
  *
- *   npx tsx scripts/seed-field-demo.mjs
- *   npx tsx scripts/seed-field-demo.mjs --reset
+ *   npm run seed-field-demo
+ *
+ * Through npm rather than tsx directly, because the script imports the
+ * application's own password hashing and that module is marked server-only.
+ * The npm script passes --conditions=react-server, which is what makes the
+ * marker resolve to the no-op rather than the throw. Running it as
+ * "npx tsx scripts/seed-field-demo.mjs" fails on the first import.
  *
  * DEVELOPMENT ONLY, AND NO FLAG OPENS IT
  * --------------------------------------
@@ -40,6 +45,8 @@
  * data somebody eventually mistakes for real, and this repo has a standing rule
  * against fabricated people appearing anywhere they could be believed.
  */
+import { newPartnerPasswordRecord } from "../src/lib/partner-auth.ts";
+import { publishAsset } from "../src/lib/ops-partner-assets.ts";
 import { sweepLegacyResidue } from "./lib/probe-ledger.mjs";
 import { auditClient, describeTarget } from "./lib/db-target.mjs";
 
@@ -308,7 +315,7 @@ if (!KEEP_EXISTING) {
   const swept = await sweepLegacyResidue("seed-field-demo");
   console.error(
     swept.ok
-      ? `  residue: removed ${swept.removed.files} probe file(s)`
+      ? `  residue: removed ${swept.removed.files} probe file(s), ${swept.removed.partners} probe partner(s)${swept.note ? `. ${swept.note}` : ""}`
       : `  residue: NOT CLEAR, ${swept.note}`,
   );
 
@@ -861,6 +868,254 @@ console.error("");
   }
 }
 
+// --- a referral partner, and the honest state of the programme ---------------
+
+/*
+ * WHY THERE IS A PARTNER HERE AND NO EARNINGS.
+ *
+ * Phase 9 Section 4 built the partner portal, and a portal with nothing in it
+ * cannot be looked at. So the seed creates one partner, their terms, the
+ * agreement, and one order credited to them.
+ *
+ * IT DELIBERATELY WRITES NO LEDGER ENTRIES, and the reason is worth stating
+ * because "the demo has no earnings" looks like an omission.
+ *
+ * A commission accrues when a file reaches DELIVERED. GATED_STATUSES in
+ * ops-files.ts lists sealed and delivered, and canTransition refuses both while
+ * isPrelaunch() is true. So no file on this platform can reach delivered today,
+ * and therefore no accrual can be produced by the platform's own code while
+ * registration is pending.
+ *
+ * The alternative was writing ledger rows by hand so the screens had figures on
+ * them. That would have put money records into the firm's ledger that no rule
+ * produced, in the table whose entire purpose is that every figure came from a
+ * stated rule, and it would have made the demonstration disagree with the
+ * product. The empty states are the truth about this programme today, and they
+ * are what the operator should be looking at.
+ */
+{
+  const partnerCode = "demo-title";
+
+  const { data: existing } = await db
+    .from("eng_partners")
+    .select("id")
+    .eq("code", partnerCode)
+    .maybeSingle();
+
+  let partnerId = existing?.id ?? null;
+
+  if (!partnerId) {
+    const { data: made, error } = await db
+      .from("eng_partners")
+      .insert({
+        organisation: "Demo Title Partners",
+        contact_name: "Demo Partner Contact",
+        contact_email: "demo.partner@example.com",
+        code: partnerCode,
+        status: "active",
+        payout_method: "Cheque, posted",
+        payout_reference: "Demo, not a real payee",
+        notes: "Seeded by seed-field-demo. Not a real partner.",
+      })
+      .select("id")
+      .single();
+    if (error) throw new Error(`eng_partners: ${error.message}`);
+    partnerId = made.id;
+  }
+
+  /*
+   * Terms: a percentage, because it is the model that exercises the most of the
+   * rule, and the one whose legality is the open question the operator is
+   * getting answered. Nothing is paid on development either way.
+   */
+  const { data: terms } = await db
+    .from("eng_partner_terms")
+    .select("id")
+    .eq("partner_id", partnerId)
+    .limit(1)
+    .maybeSingle();
+  if (!terms) {
+    await mustInsert("eng_partner_terms", {
+      partner_id: partnerId,
+      model: "percent_of_order",
+      percent_bps: 250,
+      holdback_days: 30,
+      effective_from: "2026-01-01",
+      note: "Seeded. Two and a half percent of order value, thirty day holdback.",
+    });
+  }
+
+  /*
+   * Two agreement versions with the OLDER accepted, so the portal shows both
+   * states somebody has to be able to see: what an accepted agreement looks
+   * like, and what happens when the firm publishes a new one.
+   */
+  const agreements = [
+    {
+      version: "2026-01",
+      summary: "The original programme terms.",
+      body: [
+        "Demo Title Partners refers clients to 254 Engineering Services. 254 Engineering Services will perform and seal the work, contracts with the client, and is the firm of record on every engagement.",
+        "The partner may use approved marketing material carrying both marks. The partner may not describe itself as an engineering firm, offer engineering services, or hold itself out as performing engineering work.",
+        "Compensation is set out in the terms recorded on the partner's account and is paid on statements issued by the firm.",
+      ].join("\n\n"),
+      published_at: "2026-01-15T00:00:00.000Z",
+    },
+    {
+      version: "2026-09",
+      summary: "Adds the reversal and holdback language.",
+      body: [
+        "Demo Title Partners refers clients to 254 Engineering Services. 254 Engineering Services will perform and seal the work, contracts with the client, and is the firm of record on every engagement.",
+        "The partner may use approved marketing material carrying both marks. The partner may not describe itself as an engineering firm, offer engineering services, or hold itself out as performing engineering work.",
+        "A commission is earned when the firm delivers the referred work, not when an order is placed. Where money is returned to a client, the commission on the returned amount is reversed by a counter entry, and both entries remain visible on the partner's ledger.",
+        "A commission becomes payable after the holdback period recorded on the partner's account.",
+      ].join("\n\n"),
+      published_at: "2026-09-01T00:00:00.000Z",
+    },
+  ];
+
+  for (const agreement of agreements) {
+    const { data: found } = await db
+      .from("eng_partner_agreements")
+      .select("version")
+      .eq("version", agreement.version)
+      .maybeSingle();
+    if (!found) await mustInsert("eng_partner_agreements", agreement);
+  }
+
+  const { data: partnerRow } = await db
+    .from("eng_partners")
+    .select("agreement_version")
+    .eq("id", partnerId)
+    .maybeSingle();
+  if (!partnerRow?.agreement_version) {
+    await mustUpdate(
+      "eng_partners",
+      { agreement_version: "2026-01", agreement_accepted_at: "2026-01-20T00:00:00.000Z" },
+      "id",
+      partnerId,
+    );
+  }
+
+  /*
+   * One order credited to them, so the referrals screen has a row. Paid and in
+   * fulfilment, which is where a referral sits before anything can be
+   * delivered, and delivered is the thing the compliance gate refuses.
+   */
+  const orderReference = "254-DEMO-ORDER-1";
+  const { data: order } = await db
+    .from("eng_service_orders")
+    .select("id")
+    .eq("reference", orderReference)
+    .maybeSingle();
+
+  if (!order) {
+    await mustInsert("eng_service_orders", {
+      site: "254engineering",
+      reference: orderReference,
+      service_slug: "windstorm-inspection",
+      order_type: "field",
+      status: "in_fulfilment",
+      customer_name: "Demo Referred Client",
+      customer_email: "demo.client@example.com",
+      property_address: "1400 Example Bay Drive",
+      county: "Nueces",
+      total_cents: 45000,
+      partner_id: partnerId,
+      partner_code: partnerCode,
+      attributed_at: new Date(Date.now() - 5 * 86400000).toISOString(),
+      attribution_reason:
+        "Seeded. A link touch four days before the order, inside the thirty day window, with no earlier paid order for this customer.",
+      placed_at: new Date(Date.now() - 5 * 86400000).toISOString(),
+    });
+  }
+
+  /*
+   * The person who signs in, with the same known development password the demo
+   * technicians carry, hashed by the APPLICATION'S own function rather than by
+   * a copy of it here. A seed that reimplements the hashing is a seed that can
+   * drift from the thing it is seeding for, and the first symptom would be a
+   * correct password being refused.
+   */
+  const { data: partnerUser } = await db
+    .from("eng_partner_users")
+    .select("id")
+    .eq("email", "demo.partner@example.com")
+    .maybeSingle();
+
+  if (!partnerUser) {
+    const record = newPartnerPasswordRecord(DEMO_PASSWORD);
+    await mustInsert("eng_partner_users", {
+      partner_id: partnerId,
+      email: "demo.partner@example.com",
+      display_name: "Demo Partner Contact",
+      status: "active",
+      password_hash: record.hash,
+      password_salt: record.salt,
+    });
+  }
+
+  /*
+   * APPROVED MATERIAL, PUBLISHED THROUGH THE REAL PATH.
+   *
+   * publishAsset runs the same regulated and voice patterns the site's own
+   * audits use and refuses anything that fails, so seeding through it proves
+   * two things at once: the library has something in it, and the copy in this
+   * seed is copy the firm could actually publish.
+   *
+   * Writing the rows directly would have been three lines shorter and would
+   * have let a seeded paragraph carry a claim the product would have refused,
+   * which is the demonstration disagreeing with the thing being demonstrated.
+   */
+  const { data: seedAdmin } = await db
+    .from("eng_profiles")
+    .select("id, role")
+    .eq("email", "demo.admin@example.com")
+    .maybeSingle();
+
+  if (seedAdmin) {
+    const actor = {
+      id: seedAdmin.id,
+      role: seedAdmin.role,
+      status: "active",
+      grants: [],
+      email: "demo.admin@example.com",
+    };
+
+    const material = [
+      {
+        slug: "who-performs-the-work",
+        title: "Who performs the work",
+        kind: "copy_block",
+        summary: "For the page where a client first meets the programme.",
+        body:
+          "Engineering work referred through this programme will be carried out by 254 Engineering Services, " +
+          "a Texas firm serving all 254 counties. They contract with the client, hold the engagement, " +
+          "and are the firm of record on every deliverable. Firm registration is pending with the Texas " +
+          "Board of Professional Engineers and Land Surveyors.",
+      },
+      {
+        slug: "what-a-referral-is",
+        title: "What a referral is, in an email",
+        kind: "email_snippet",
+        summary: "For an introduction to a client who has asked who to use.",
+        body:
+          "I have sent your details to 254 Engineering Services, who will contact you directly. They " +
+          "handle the engagement and the engineering from here, and I am told what stage it reaches " +
+          "rather than what it finds.",
+      },
+    ];
+
+    for (const item of material) {
+      const result = await publishAsset(actor, item);
+      if (!result.ok) throw new Error(`seeded asset "${item.slug}" was refused: ${result.error}`);
+    }
+    console.error(`  materials: ${material.length} approved asset(s) published through the real check`);
+  }
+
+  console.error("  partner: Demo Title Partners, one referral, no earnings (delivery is gated)");
+}
+
 /*
  * THE STANDING LAW AT THE TOP OF THIS FILE, CHECKED AGAINST THE DATABASE.
  *
@@ -909,3 +1164,4 @@ console.error("example.com addresses, and streets that do not exist.");
 console.error("");
 console.error(`Sign in on development, administrator: demo.admin@example.com / ${DEMO_PASSWORD}`);
 console.error(`Sign in on development, technician:    ${TECHS[0].email} / ${DEMO_PASSWORD}`);
+console.error(`Sign in on development, partner:       demo.partner@example.com / ${DEMO_PASSWORD}`);

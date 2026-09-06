@@ -65,9 +65,10 @@ mismatch here means the project, not the files.
 
 ### Step 3. Create the buckets
 
-`eng-evidence`, `eng-onboarding`, `eng-uploads`, `eng-messages`. All private.
-`eng-evidence` carries the size limit and mime types 0002 sets. `eng-messages`
-carries 20MB and the image and pdf types the composer accepts.
+`eng-evidence`, `eng-onboarding`, `eng-uploads`, `eng-messages`,
+`eng-partner-assets`. All private. `eng-evidence` carries the size limit and
+mime types 0002 sets. `eng-messages` carries 20MB and the image and pdf types
+the composer accepts.
 
 **`eng-messages` is the fourth and was added 2026-09-05**, in Phase 11 Section 3.
 It holds attachments sent in a conversation, and it is deliberately NOT
@@ -75,7 +76,18 @@ It holds attachments sent in a conversation, and it is deliberately NOT
 it comes down to an engineer sealing a package never certifying a review of
 something that was never presented as an evidence item.
 
-**Verify:** four buckets, `public = false` on every one. A public evidence or
+**`eng-partner-assets` is the fifth and was added 2026-09-05**, in Phase 9
+Section 5. It holds the one pagers and artwork the firm publishes for partners
+to use.
+
+It is PRIVATE, and that is worth a sentence because it is the one bucket whose
+contents are meant to be handed out. A partner reaches a file through a ten
+minute signed url issued to their session, so the firm can withdraw an asset and
+have that mean something. A public bucket would mean every one pager the firm
+ever published stays retrievable by url forever, including the version it
+withdrew, which is the opposite of what withdrawing is for.
+
+**Verify:** five buckets, `public = false` on every one. A public evidence or
 messages bucket would expose property photographs, so this is checked rather
 than assumed. Check it two ways, because the column and the behaviour are
 different claims:
@@ -84,7 +96,7 @@ different claims:
 
     curl -o /dev/null -w "%{http_code}"       https://<ref>.supabase.co/storage/v1/object/public/eng-messages/probe.jpg
 
-The first must show four rows and no `true`. The second must not be 200, and it
+The first must show five rows and no `true`. The second must not be 200, and it
 needs no credentials, which is what makes it worth running: it is the request an
 outsider would make.
 

@@ -229,6 +229,20 @@ export async function attributeOrder(input: {
       partner_code: decision.attributed ? decision.code : null,
       attributed_at: new Date().toISOString(),
       attribution_reason: decision.because,
+      /*
+       * THE KEY THE DECISION WAS MADE FROM, KEPT. Added by 0022, and it is a
+       * repair rather than a feature.
+       *
+       * 0014 keeps every losing touch so a dispute can be settled by showing a
+       * partner the touch that beat theirs. That lookup is by visitor_key, and
+       * until now the order did not store the one it was decided under, so the
+       * evidence was complete and unreachable from the record it explains.
+       *
+       * Typed codes were always findable, under the synthetic order key below,
+       * which is exactly why nobody noticed: the dispute somebody tests by hand
+       * is a code somebody typed.
+       */
+      visitor_key: input.visitorKey,
     })
     .eq("id", input.orderId);
 

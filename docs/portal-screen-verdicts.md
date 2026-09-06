@@ -91,6 +91,34 @@ scrolling region between them, so the shell is not repeated in each verdict.
 
 ---
 
+## Signed in, referral partner
+
+Phase 9 Sections 4 and 5. A different principal on a different cookie, built to
+the same native standard and measured by the same audit. Walked as the seeded
+demonstration partner, screenshots at 390 and 1280 looked at.
+
+| Screen | Route | 390 | 1280 | Judged | Verdict |
+| --- | --- | --- | --- | --- | --- |
+| Sign in | `/partner/login` | yes | yes | 2026-09-05 | **Good.** The firm's wordmark, not the partner's, because nobody is signed in yet and the only honest answer to whose sign in page this is is the firm whose platform it is. Restricted mode notice, and the performing firm sentence under the card. |
+| Set password | `/partner/set-password` | yes | | 2026-09-05 | **Good.** Carries the restricted mode notice with an addition specific to a partner: they can be credited now, and nothing can be sealed yet, so what they refer today may take longer to become payable than it will later. |
+| Overview | `/partner` | yes | yes | 2026-09-05 | **Good.** The partner's name is the identity of the surface. Four figures, each labelled as what it is rather than as a balance: earned and not yet on a statement, held back, on an issued statement, referrals. The empty ledger says what puts an entry in it. |
+| Referrals | `/partner/referrals` | yes | yes | 2026-09-05 | **Good.** One card per order at 390 with the order reference as the heading. Order value reads "shown when it is earned" rather than a dash, which is the money module's rule applied to a screen. How credit is decided is on the same page, in four sentences. |
+| Statements | `/partner/statements` | yes | yes | 2026-09-05 | **Good.** Empty, honestly: nothing can be earned while delivery is gated, and the empty state says where the earned figure lives instead. |
+| Materials | `/partner/materials` | yes | yes | 2026-09-05 | **Good.** The performing firm line first, with a copy button, then the approved material, then the form for sending something in, then what approval does and does not do. The last panel is the one that matters and it says plainly that nothing here stops a partner writing what they like elsewhere. |
+| Agreement | `/partner/agreement` | yes | yes | 2026-09-05 | **Good.** Shows the accepted version and the date, the newer version, and what accepting records. The gold "this is a newer version" band is doing exactly what gold is for. |
+
+## Signed in, the operator's side of the programme
+
+Phase 9 Section 6.
+
+| Screen | Route | 390 | 1280 | Judged | Verdict |
+| --- | --- | --- | --- | --- | --- |
+| Partners | `/portal/partners` | yes | yes | 2026-09-06 | **Good.** The two questions an operator opens it with are answered on the list itself: who is sending work and who is owed money. The restricted mode notice carries the addition that matters here, that attribution is being recorded and nothing is being earned. Ended partners are behind a disclosure with a count, which is also where eight probe partners from a Section 2 script sit on development. |
+| A partner | `/portal/partners/[id]` | yes | yes | 2026-09-06 | **Good.** Long, and it should be: terms with their history, the people who sign in, statements, the ledger in full, the correction form, and the material they have sent. The ledger is the same rows the partner sees, which is the point of being able to talk to them about it. |
+| Why an order was attributed | `/portal/partners/disputes` | yes | yes | 2026-09-06 | **Good, and it is the screen that found a defect.** The stored reason reads back verbatim. For the seeded order it says plainly that the link touches cannot be reconstructed, because that order predates 0022, rather than showing an empty list that would claim there were none. |
+
+---
+
 ## What the blank rows already say
 
 **All twenty eight are judged.** The last two were the per record routes, a
@@ -120,3 +148,17 @@ is development data rather than a screen defect.
 Section 2 of Phase 11 ends with a walk of every portal route at 390 in every
 role, which is what fills the signed in sections in. This document is where
 those verdicts go.
+
+**Thirty eight screens are now judged, not twenty eight.** Phase 9 added ten
+after this table was finished: seven on the partner surface and three on the
+operator's side of the programme. The paragraph above is left as it was written
+because it was true of the portal at the time and the count it names is the one
+the argument was about; a table that quietly renumbered itself would be a table
+nobody could date.
+
+Every one of the ten was built to the native standard rather than judged against
+it afterwards, which is what the standard existing is for. None of them is Weak
+or Bad. The two things worth carrying out of the walk are on the operator's
+side: the roster made eight probe partners visible that no audit had reported,
+and the dispute screen was the reason anybody noticed that an order never stored
+the key its attribution was decided from.
