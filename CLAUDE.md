@@ -34,6 +34,28 @@ The firm's TBPELS registration is pending, and no licensed PE is on staff yet. U
 - "Engineer", "engineering", and "sealed" are regulated terms in Texas. Treat every sentence
   containing them as load bearing.
 
+**A SEALED DOCUMENT IS UPLOADED, NEVER GENERATED. Operator ruling, 2026-09-06,
+and it is standing law rather than a phase decision.**
+
+A seal carries a named Professional Engineer's own seal and signature. A platform
+that RENDERS one is a platform where any account holding the right permission can
+produce a sealed engineering document, and the seal has then left the engineer's
+control. No permission model fixes that, because the capability itself is the
+problem.
+
+So: the engineer produces a sealed deliverable in whatever they seal with, and
+this platform stores it, records who sealed it and when, and shows it. What it
+never does is compose one. There is no seal image in this repository, no
+signature block, and no letter generator, and none of the three is a gap waiting
+to be filled.
+
+Two decisions already point at this and neither is allowed to restate it. The
+sealed letter screen was not built during the portal design port for exactly this
+reason, and the evidence hash column was dropped from the responsible charge log
+for its neighbour: rendering a value the platform did not compute is a fabricated
+assurance on the firm's regulatory record. Both are in `BACKLOG.md` and both
+defer to this paragraph.
+
 The whole gate is one function, `isPrelaunch()` in `src/lib/launch.ts`, and one environment
 variable, `LAUNCH_MODE`. `scripts/launch-audit.mjs` runs the site in both modes and asserts what each
 must say, what each must not say, and the claims neither may ever make. Flipping the mode requires a
@@ -444,8 +466,18 @@ while writing nothing.
 - Judgment calls disclosed in the report, not buried.
 - **The confession rule: a completion report that is not true is the one unforgivable failure
   class.** If something did not work, or was skipped, or is uncertain, the report says so plainly.
-- `BACKLOG.md` carries every known and undone thing, with the reason and the incident that produced
-  it.
+- **`BACKLOG.md` is the INDEX of every known and undone thing.** An item may keep its full
+  reasoning in whatever document that reasoning belongs to, and several do: the messaging
+  capabilities in `docs/messaging-section-3.md`, the native standard's unasserted half in
+  `docs/PORTAL_DESIGN_STANDARDS.md`, the observability deferrals in `docs/platform-state.md`. What
+  an item may NOT do is exist only there. It gets a pointer entry in `BACKLOG.md` naming what it is,
+  why it is not built, and where the reasoning lives, and the pointer is not a second copy of the
+  reasoning, because two accounts of one decision are two accounts that will disagree.
+
+  This rule is written down because the file broke it. On 2026-09-06 seven items the operator could
+  name from memory were absent, and a sweep then found five of the eight documents carrying open
+  work were never named in it at all. `scripts/backlog-audit.mjs` enforces it now: a document under
+  `docs/` that carries open work and is not named in `BACKLOG.md` fails the suite.
 
 ## 8. Content engine
 

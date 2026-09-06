@@ -395,14 +395,30 @@ This section exists so nobody mistakes an absence for an oversight.
 
 ### Not built, and correctly so
 
+**SUPERSEDED, BOTH OF THEM, AND LEFT HERE RATHER THAN DELETED.** Phase 8
+Section 1 built customer accounts with their own credential store and session,
+and Phase 8 built statements with a close and issue split. Both entries below
+were true when written and are false now, and a reader finding this list in a
+year needs to know the difference between a decision that still holds and one
+that a later phase reversed. The two original entries follow.
+
 **Invoicing.** Billing reads margin from figures already on a file. It sends
 nothing, takes nothing, and talks to no accounting system. Building half of it
 during Phase 6 would have left two billing models to reconcile.
+
+*What changed:* `eng_statements`, `eng_statement_lines`, `closePeriod` and
+`issueStatement`. Payment against a statement runs through the existing Stripe
+path. There is still no dunning and no collections, on the operator's ruling,
+and that part of the entry stands.
 
 **A customer account system.** A customer orders one document, once. An account
 is a password they forget, a reset flow, a support burden, and one more
 credential this firm becomes responsible for. The signed link is the whole
 authentication story.
+
+*What changed:* `eng_customer_accounts` and `eng_customer_users`, for B2B
+buyers who order regularly rather than once. The signed link is still the whole
+story for a one time customer, which is why both exist.
 
 **Review or rating schema.** No `AggregateRating` anywhere, and none until real
 third party reviews exist. Fabricating one is the single fastest way to lose the

@@ -6,6 +6,164 @@ reason and, where one exists, the concrete incident that produced it.
 
 Items are removed when they ship, not when they are attempted.
 
+**THIS FILE IS THE INDEX, AND ON 2026-09-06 IT WAS NOT.**
+
+CLAUDE.md says this file carries every known and undone thing. Seven items the
+operator could name from memory were not in it: three messaging capabilities, the
+scroll position half of native standard point 8, the Sentry DSN, queue depth
+alerting, and metric charts. Every one was recorded honestly somewhere else.
+
+A sweep for open work markers across `docs/` then found the defect was
+systemic rather than seven oversights: **five of the eight documents carrying
+open work were never named here at all.**
+
+That is this repository's own recurring defect one level up. A check that passes
+while looking at the wrong thing, where the check is "read the backlog".
+
+**The rule now, and `scripts/backlog-audit.mjs` enforces it.** An item may keep
+its reasoning wherever that reasoning belongs. What it may not do is exist only
+there. Every document that carries open work is named in this file, and every
+item recorded elsewhere has a pointer entry here saying what it is, why it is not
+built, and where the full reasoning lives. A pointer entry is not a second copy:
+duplicating the reasoning is how two accounts of one decision start to disagree.
+
+## Recorded elsewhere, and now indexed here
+
+The seven the operator named, plus what the sweep found beside them. Each is
+open. Each carries its reasoning in the document named, and the sentence here is
+the index entry rather than a second version of it.
+
+### Messaging: everything addressed to you
+
+Item 5 of `docs/messaging-section-3.md`. Mentions already notify. There is no
+one place showing everything addressed to you across every thread, so a person
+returning after two days reads five threads to find the two that wanted them.
+
+**Not built because** Section 3 built items 1 to 4 and 6 on the operator's word
+and stopped there. It is the next thing in that document rather than a decision
+against it.
+
+### Messaging: edit and delete, blocked on the table
+
+Item 7 of `docs/messaging-section-3.md`. Operator ruling 2026-09-05: do not
+build until `eng_messages` can carry the record of a change.
+
+**Why it is blocked rather than deferred.** An edit that silently rewrites what
+somebody already read is worse than no edit at all, and this is the one surface
+where the firm's own people coordinate about regulated work. The precondition is
+a migration giving the table an edit history, not a feature flag.
+
+### Messaging: export and retention
+
+Item 8 of `docs/messaging-section-3.md`, half built. The binder carries a file
+thread's attachments as a labelled section since Phase 11; nothing exports a
+conversation and nothing expires one.
+
+**Operator ruling, 2026-09-06: build no retention deletion yet. Keep
+everything.** A firm with two staff and no customers deletes nothing at zero
+cost, and a retention rule written before there is volume is a rule written from
+nothing that can destroy evidence.
+
+**The shape it takes when it is written**, recorded now so the reasoning survives
+to the day the periods are chosen:
+
+- **File thread messages and their attachments follow the FILE's retention**,
+  because the binder now carries them and they are part of what the firm would
+  produce about that file.
+- **Direct messages and channels are operational** rather than part of any
+  file's record, and take their own period.
+- The actual periods are set when there is something to retain.
+
+### The scroll position half of native standard point 8
+
+`docs/PORTAL_DESIGN_STANDARDS.md`, point 8. A list that can grow renders a
+bounded number of rows, and its scroll position survives navigating away and
+back. The bounded half is asserted by `native-audit` through a visible row
+count. The scroll position half is asserted by nothing.
+
+**Not built because** it needs a navigation and a return, which is a different
+shape of test from measuring a resting page, and claiming it from a resting page
+would be the exact defect Phase 11 existed to remove.
+
+### Sentry is wired and has no DSN
+
+`docs/platform-state.md`. Release tagging, environment tagging and the scrubbing
+are in place and exercised. Nothing reaches Sentry until `SENTRY_DSN` is set in
+Vercel, and the status page says so plainly rather than letting it be forgotten.
+
+**Waiting on the operator**, and on wanting the grouping and release comparison
+Sentry does better than a table in Postgres. Alerting does not wait on it,
+because the alert rules read this firm's own fault store.
+
+### Alerting on queue depth
+
+`docs/platform-state.md`. A queue that is behind is visible on two screens and
+emails nobody. A dead letter is visible and emails nobody.
+
+**Not built because** a depth threshold picked before there is any traffic is a
+threshold picked from nothing. The rules already written for faults would extend
+to it.
+
+*The condition:* the first time somebody finds out about a stuck queue from a
+customer.
+
+### Metric charts
+
+`docs/platform-state.md`. `eng_metrics_daily` is populated daily and nothing
+draws it. The dashboard shows counts.
+
+**Not built because** a chart of a fortnight of a firm with no customers is
+decoration, and a chart is the surface most likely to be mistaken for evidence.
+
+### Uptime as a number
+
+`docs/platform-state.md`. The watcher detects an outage and emails. Nothing
+computes availability over a period, and there is no percentage anywhere.
+
+**Not built, and it is the strongest of these decisions.** Computing it from the
+watcher's own runs would produce a figure whose denominator is "times we happened
+to check", and a number like that on a page invites a promise the firm has not
+made.
+
+*The condition:* a customer or an insurer asking for one.
+
+### Retention for eng_error_events and eng_cron_runs
+
+`docs/platform-state.md`. The `eng_jobs` half of this has its own entry below
+with the three state rule. The other two telemetry tables grow forever on the
+same reasoning and need the same treatment when the queue one is written.
+
+### The prototype surfaces that were never built
+
+`docs/portal-design-port.md` carries the table. Seven things the approved
+prototype models and this platform does not have: the command palette search
+index, saved views on the files toolbar, bulk table actions, an SLA engine, a
+reports module, a settings screen, and per user notification channels.
+
+**Two screens port without an affordance and say so**, which is why this is a
+list rather than a set of hidden gaps: the dashboard action list is unranked
+because there is no SLA engine, and the files toolbar has no saved views.
+
+**Not built because** each is a system rather than a screen, and a presentation
+workstream that built one would have been shipping a feature inside a port. The
+403 in that same table is a decision rather than a gap and has its own entry.
+
+**Found by the index sweep on 2026-09-06.** `docs/platform-state.md` said these
+were "all recorded in BACKLOG" and not one of them was, which is the same defect
+that produced this whole section: a document pointing confidently at an index
+that did not carry the thing.
+
+### Quote pipeline surfaces
+
+`docs/platform-state.md`. A quote request can be taken and stored. Nothing in
+the portal scopes it, sends it, or converts it to an order, so every quote only
+service is a form that produces a row somebody has to find.
+
+**Not built because** quoting is a conversation before it is a screen, and the
+firm has not had the conversation yet.
+
+
+
 ## Cross repo
 
 Items owned by a sibling repo, recorded here because they were found here.
@@ -1410,6 +1568,9 @@ and the two operator verification steps all live there and would need to move.
 
 ### Nothing reads a document, so every date is typed
 
+The reasoning also lives in `docs/ops-platform-program.md`, Phase 3, and this is
+the index entry for it.
+
 Expiry dates come from the person holding the card or the operator verifying it.
 There is no OCR in this system and there will not be. The standing rule is that
 the firm needs the document and not the data off it, and a date extracted by a
@@ -2070,6 +2231,10 @@ written speculatively against a table with a few dozen rows in it.
 **The condition to watch:** the queue screen taking a noticeable moment to load,
 or `eng_jobs` passing about fifty thousand rows.
 
+`eng_error_events` and `eng_cron_runs` grow forever on the same reasoning and
+are indexed separately at the top of this file. When this rule is written, it is
+written for all three.
+
 ### The responsible charge log has no evidence hash, and should
 
 Recorded 2026-09-04, during the portal design port. Operator ruling the same
@@ -2086,6 +2251,12 @@ replays the table and asserts both refusals. There is no hash. Nothing computes
 one anywhere in the codebase, and every occurrence of "hash" in the schema is a
 credential: `invite_token_hash`, `token_hash`, `key_hash`, and the scrypt
 password hash on customer accounts.
+
+**And it is the same shape as the sealed letter ruling**, which is now standing
+law in CLAUDE.md section 1: this platform does not render an assurance it did not
+compute. The hash differs from the seal in one way that matters, and it is the
+reason this entry stays open rather than being closed by that law: the firm COULD
+compute a hash honestly, and does not yet.
 
 **Why it was dropped rather than stubbed.** A hash on that screen is a claim that
 the evidence behind a sealed document has not changed since a licensed engineer
@@ -2150,6 +2321,13 @@ for another reason and this coming along free with it.
 
 ### The sealed letter screen is not built, and cannot be honestly
 
+**Answered 2026-09-06.** A sealed document is UPLOADED, never generated, and that
+is standing law in CLAUDE.md section 1 rather than a decision belonging to this
+entry. What remains here is the reasoning that led to it and the two conditions
+that still gate showing one at all: the registration issuing, and a PE in
+responsible charge. Point 2 below, generated or uploaded, is decided; the screen
+that becomes real is a viewer.
+
 Recorded 2026-09-04, during the portal design port, Section 2 item 6.
 
 **What the design has.** A "Sealed letter" screen: a 760px document sheet with a
@@ -2210,6 +2388,13 @@ production today a file that reached review could not be declined by anybody.
 `review.decide` grantable, which is the thing the operator ruled against, or to
 special case declining, which is a check somebody can delete. Neither is a
 change to make without the operator's word.
+
+**OPERATOR RULING, 2026-09-06: it stays, and no workaround is built.** Aman holds
+an invited engineer account on production and the condition resolves when he sets
+a password, which is days rather than months. Building a special case for a state
+that expires that soon means leaving a check in the codebase forever to cover a
+fortnight, and that check is the one somebody deletes later without knowing what
+it was for.
 
 **What makes it moot.** A PE on staff, which is also what makes the review queue
 reachable at all. Until then nothing reaches `under_review` in the ordinary
@@ -2312,6 +2497,11 @@ audits interacting through a mechanism nobody has named is exactly the kind of
 thing that comes back as a flake somebody re-runs until it passes. The next
 session that touches forms-audit should find this written down rather than
 rediscover it.
+
+**OPERATOR RULING, 2026-09-06: the mitigation stands with the note.** Not worth a
+session while it is reordered and green. This entry is the whole point of the
+ruling: the next person to touch that file reads why the order matters before
+they change it.
 
 ### Three small defects found by walking the portal at 390
 
