@@ -51,7 +51,7 @@ export function moneyCell(value: Cents): string {
  *
  * If any part is unknown the sum is unknown. That is stricter than summing what
  * is present, and it is the right strictness for a margin: a margin computed
- * from two of its three inputs is not a smaller margin, it is a wrong one.
+ * from three of its four inputs is not a smaller margin, it is a wrong one.
  */
 export function add(...values: Cents[]): Cents {
   let total = 0;
@@ -74,10 +74,32 @@ export function subtract(from: Cents, ...values: Cents[]): Cents {
 
 // --------------------------------------------------------------- per file
 
+/**
+ * THE FOURTH COST, ADDED IN PHASE 9 SECTION 3, AND WHY IT IS REQUIRED
+ * -------------------------------------------------------------------
+ * A partner commission is a cost of the file in exactly the way the technician
+ * and the engineer are, and the day the partner program earns anything, every
+ * margin figure the firm reads is wrong by the commission until it is here.
+ *
+ * It is a required property rather than an optional one on purpose. Optional
+ * would have meant every existing caller kept compiling and kept reporting the
+ * old, too-high number, which is the failure this module exists to prevent:
+ * an error that always points the same way and looks completely plausible.
+ * Required means the compiler names every place that has to think about it.
+ *
+ * WHAT VALUE TO PASS, WHICH IS THE PART THAT IS EASY TO GET WRONG
+ * ---------------------------------------------------------------
+ *   No partner on the file            0. A real, knowable cost of nothing.
+ *   A partner, and the ledger is net  that net, including any reversal.
+ *   A partner and no entry yet        null. The commission is coming and its
+ *                                     figure is not knowable, so the file's
+ *                                     margin is unknown rather than optimistic.
+ */
 export type FileMoney = {
   clientPriceCents: Cents;
   techCostCents: Cents;
   engineerCostCents: Cents;
+  partnerCostCents: Cents;
 };
 
 export type Margin = {
@@ -87,7 +109,7 @@ export type Margin = {
   /** Percentage of revenue, when both are known and revenue is not zero. */
   marginPercent: number | null;
   /** Which inputs are missing, so a screen can say why rather than showing nothing. */
-  missing: ("client price" | "technician cost" | "engineer production")[];
+  missing: ("client price" | "technician cost" | "engineer production" | "partner commission")[];
 };
 
 /**
@@ -104,9 +126,10 @@ export function marginOf(file: FileMoney): Margin {
   if (!isKnown(file.clientPriceCents)) missing.push("client price");
   if (!isKnown(file.techCostCents)) missing.push("technician cost");
   if (!isKnown(file.engineerCostCents)) missing.push("engineer production");
+  if (!isKnown(file.partnerCostCents)) missing.push("partner commission");
 
   const revenue = file.clientPriceCents;
-  const cost = add(file.techCostCents, file.engineerCostCents);
+  const cost = add(file.techCostCents, file.engineerCostCents, file.partnerCostCents);
   const margin = subtract(revenue, cost);
 
   return {
@@ -157,7 +180,7 @@ export function periodTotals(period: string, files: FileMoney[]): PeriodTotals {
 
   const revenue = complete.length ? add(...complete.map((f) => f.clientPriceCents)) : null;
   const cost = complete.length
-    ? add(...complete.map((f) => add(f.techCostCents, f.engineerCostCents)))
+    ? add(...complete.map((f) => add(f.techCostCents, f.engineerCostCents, f.partnerCostCents)))
     : null;
   const margin = subtract(revenue, cost);
 
@@ -182,7 +205,7 @@ export function coverageSentence(complete: number, total: number): string {
     return `None of the ${total} file${total === 1 ? "" : "s"} in this period has every figure entered, so there is no total to show.`;
   }
   if (complete === total) {
-    return `Every one of the ${total} file${total === 1 ? "" : "s"} has all three figures, so this total is the whole period.`;
+    return `Every one of the ${total} file${total === 1 ? "" : "s"} has all four figures, so this total is the whole period.`;
   }
   return `Covers ${complete} of ${total} files. The other ${total - complete} ${
     total - complete === 1 ? "is" : "are"

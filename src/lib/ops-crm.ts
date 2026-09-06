@@ -3,6 +3,7 @@ import { supabaseAdmin } from "./supabase";
 import { writeAudit, diffOf, safeDiff } from "./ops-audit";
 import { canSeeFile, redactFile, visibleFiles, type Actor, actionsFor } from "./ops-authz";
 import { canTransition, formatFileNumber, STATUS_TIMESTAMP, type FileStatus } from "./ops-files";
+import { accrueForDelivery, accrueForQualifiedLead } from "./ops-partner-comp";
 import { resolveCounty, twiaStatus, regionForCounty } from "./ops-counties";
 
 /**
@@ -551,6 +552,35 @@ export async function transitionFile(
     ...context,
   });
 
+  /*
+   * DELIVERY IS WHERE A PARTNER EARNS, AND THIS IS THE ONLY DOOR TO IT.
+   *
+   * Operator ruling, Phase 9: accrue on delivery rather than on payment,
+   * because an order refunded after a declined seal would otherwise leave the
+   * firm having paid commission on money it gave back.
+   *
+   * It sits here rather than in a sweep for delivered files because this is the
+   * one function that can move a file to delivered. A sweep would have meant
+   * the ledger lagged the record by however long the sweep took, and a file
+   * with no entry is exactly the state that makes a margin read too high.
+   *
+   * A failure does not undo the delivery. The file IS delivered; that is a fact
+   * about the firm and the customer and it is not conditional on a commission
+   * being computable. So the problem is written to the file's own timeline
+   * where somebody will meet it, and the transition still returns ok.
+   */
+  if (to === "delivered") {
+    const accrued = await accrueForDelivery(id);
+    if (!accrued.ok) {
+      await db.from("eng_file_events").insert({
+        file_id: id,
+        actor_id: null,
+        kind: "note",
+        body: `The partner commission on this delivery could not be recorded: ${accrued.error}. The file is delivered; the commission is not written down yet.`,
+      });
+    }
+  }
+
   return { ok: true };
 }
 
@@ -632,6 +662,19 @@ export async function convertLead(
   if (!file.ok) return { ok: false, error: file.error };
 
   await db.from("eng_leads").update({ status: "converted" }).eq("id", leadId);
+
+  /*
+   * A QUALIFIED LEAD IS A LEAD SOMEBODY AT THE FIRM CONVERTED.
+   *
+   * That is the definition the compensation rule uses, and this is the act it
+   * names: a person looked at the lead and decided it was real work. Any
+   * definition that the partner controls, "they said it was qualified", is a
+   * definition that pays for volume rather than for business.
+   *
+   * Silent for every model except flat_per_qualified_lead, and idempotent by a
+   * unique index on the lead, so converting twice cannot pay twice.
+   */
+  await accrueForQualifiedLead(leadId);
 
   await writeAudit({
     actor,

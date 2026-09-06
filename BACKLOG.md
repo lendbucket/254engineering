@@ -56,7 +56,32 @@ guard against a plausible future edit, not a repair.
 
 ## Suspended by decision
 
-### Phase 9 is suspended after Section 2, by decision, with Sections 3 to 6 unbuilt
+### RESUMED 2026-09-05. Phase 9 was suspended after Section 2, and Section 3 is now built
+
+The entry below stands as written, because it explains a state that lasted a day
+short of a week and because the reason it gives for merging early is still the
+right reason. What has changed:
+
+**Section 3 is built.** `eng_partner_entries` is the ledger, accrual happens in
+`transitionFile` at delivery and in `convertLead` at qualification, reversal
+happens in all three paths that record a refund, and `marginOf` carries the
+fourth cost as a required property. The rulings are in
+`docs/partner-compensation.md`; the ones most likely to be argued with are that
+a qualified lead fee is never reversed by a refund, and that volume tiers apply
+forward rather than retroactively.
+
+**Sections 4, 5 and 6 remain**, in the order the phase defined them, and the
+paragraph below still describes them. Section 4, the partner portal, is now the
+one that makes the proxy branch load bearing, and it is to be built to the
+native standard from Phase 11 Section 2 rather than the pre standard portal.
+
+**Still true, and still the thing that makes this inert:** production has no
+partner rows, so nothing accrues there and nothing is owed to anybody. What is
+new is that the machinery to owe somebody something now exists, and the
+condition that makes it urgent is unchanged: a real partner agreement being
+signed.
+
+### The original entry: Phase 9 suspended after Section 2, with Sections 3 to 6 unbuilt
 
 Recorded 2026-09-04. Operator decision the same day: merge Phase 9 Section 2 and
 start Phase 10. This is a deliberate stop, not an abandonment and not an

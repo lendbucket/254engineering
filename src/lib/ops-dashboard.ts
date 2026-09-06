@@ -7,7 +7,7 @@ import { fileMargins, marginByPeriod, type FileMargin } from "./ops-docs";
 import { expiryState } from "./ops-credentials";
 import { periodOf } from "./ops-review";
 import { ordersNeedingAttention } from "./ops-reconcile";
-import type { Cents, PeriodTotals } from "./ops-money";
+import { marginOf, type Cents, type PeriodTotals } from "./ops-money";
 
 /**
  * The three dashboards.
@@ -299,9 +299,12 @@ async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
       href: "/portal/techs",
     });
   }
-  const incomplete = margins.filter(
-    (m) => m.clientPriceCents === null || m.techCostCents === null || m.engineerCostCents === null,
-  ).length;
+  /*
+   * Derived from marginOf rather than restated, so a fourth cost could not be
+   * added to the margin and quietly leave this count describing three of it.
+   * That is exactly what happened here: this line named the three it knew.
+   */
+  const incomplete = margins.filter((m) => marginOf(m).missing.length > 0).length;
   if (incomplete > 0) {
     attention.push({
       label: `${incomplete} file${incomplete === 1 ? "" : "s"} missing a money figure`,

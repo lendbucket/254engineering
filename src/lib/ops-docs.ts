@@ -7,6 +7,7 @@ import { services } from "@/content/services";
 import { attachmentRows, BINDER_HEADERS, binderRows, limitationsFor, type Binder } from "./ops-binder";
 import { csv } from "./csv";
 import { marginOf, moneyCell, periodTotals, type Cents, type FileMoney } from "./ops-money";
+import { partnerCostByFile } from "./ops-partner-comp";
 
 /**
  * Documents, billing, and the numbers the dashboards read.
@@ -320,10 +321,26 @@ export async function fileMargins(actor: Actor | null): Promise<FileMargin[]> {
   const { data } = await db
     .from("eng_files")
     .select(
-      "id, file_number, property_address, county, status, service_slug, client_price_cents, tech_cost_cents, engineer_cost_cents, delivered_at, created_at",
+      "id, file_number, property_address, county, status, service_slug, client_price_cents, tech_cost_cents, engineer_cost_cents, partner_id, delivered_at, created_at",
     )
     .order("created_at", { ascending: false })
     .limit(500);
+
+  /*
+   * THE FOURTH COST, READ FROM THE LEDGER RATHER THAN STORED ON THE FILE.
+   *
+   * A partner_cost_cents column beside the other three would have been one
+   * query instead of two, and it would have been a second copy of a figure the
+   * ledger already holds. The two would agree until the day a reversal landed
+   * and something forgot to update the file, and the margin would then be wrong
+   * with a plausible number in it, which is the failure this module exists for.
+   *
+   * One read, in a batch, keyed by file. Files with no partner never reach the
+   * database at all: their commission is a knowable zero.
+   */
+  const partnerCosts = await partnerCostByFile(
+    (data ?? []).map((f) => ({ id: f.id as string, partnerId: (f.partner_id as string | null) ?? null })),
+  );
 
   return (data ?? []).map((f) => ({
     id: f.id as string,
@@ -335,6 +352,7 @@ export async function fileMargins(actor: Actor | null): Promise<FileMargin[]> {
     clientPriceCents: num(f.client_price_cents as number | null),
     techCostCents: num(f.tech_cost_cents as number | null),
     engineerCostCents: num(f.engineer_cost_cents as number | null),
+    partnerCostCents: partnerCosts.get(f.id as string) ?? null,
     period: String((f.delivered_at as string | null) ?? (f.created_at as string)).slice(0, 7),
   }));
 }
@@ -369,6 +387,7 @@ export function marginCsv(files: FileMargin[]): string {
       "Client price",
       "Technician cost",
       "Engineer production",
+      "Partner commission",
       "Margin",
       "Margin percent",
       "Missing",
@@ -384,6 +403,7 @@ export function marginCsv(files: FileMargin[]): string {
         moneyCell(f.clientPriceCents),
         moneyCell(f.techCostCents),
         moneyCell(f.engineerCostCents),
+        moneyCell(f.partnerCostCents),
         moneyCell(m.margin),
         m.marginPercent === null ? "" : m.marginPercent,
         m.missing.join("; "),

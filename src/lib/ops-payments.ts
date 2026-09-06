@@ -1,6 +1,7 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase";
 import { deploymentOrigin } from "./site-url";
+import { reverseForRefund } from "./ops-partner-comp";
 import { writeAudit } from "./ops-audit";
 import { catalogFor } from "@data/catalog";
 import {
@@ -693,19 +694,37 @@ export async function recordExternalRefund(input: {
     return { ok: true, alreadyRecorded: true };
   }
 
-  const { error } = await db.from("eng_order_payments").insert({
-    order_id: charge.order_id,
-    kind: "refund",
-    amount_cents: delta,
-    provider: input.provider,
-    provider_ref: input.refundRef,
-    status: "succeeded",
-    refund_case: "issued_outside_the_platform",
-  });
+  const { data: refundRow, error } = await db
+    .from("eng_order_payments")
+    .insert({
+      order_id: charge.order_id,
+      kind: "refund",
+      amount_cents: delta,
+      provider: input.provider,
+      provider_ref: input.refundRef,
+      status: "succeeded",
+      refund_case: "issued_outside_the_platform",
+    })
+    .select("id")
+    .maybeSingle();
   if (error) {
     if (error.code === "23505") return { ok: true, alreadyRecorded: true };
     return { ok: false, error: error.message };
   }
+
+  /*
+   * A PARTNER'S COMMISSION FOLLOWS THE MONEY, EVEN WHEN THE MONEY MOVED
+   * SOMEWHERE ELSE.
+   *
+   * This path exists because somebody can refund in the Stripe dashboard, and a
+   * commission that only reversed on the platform's own refunds would quietly
+   * pay out on returned money exactly in the case nobody was watching.
+   */
+  await reverseForRefund({
+    orderId: charge.order_id,
+    paymentId: (refundRow?.id as string | undefined) ?? null,
+    refundedCents: delta,
+  });
 
   await event(
     charge.order_id as string,
@@ -868,17 +887,21 @@ export async function cancelAndRefund(input: {
    * ordering is the lesson from settleDecision, which used to tell a customer
    * they had been refunded whether or not the ledger agreed.
    */
-  const { error: payError } = await db.from("eng_order_payments").insert({
-    order_id: input.orderId,
-    kind: "refund",
-    amount_cents: result.amountCents,
-    currency: (order.currency as string) ?? "usd",
-    provider: provider.name,
-    provider_ref: result.ref,
-    status: result.status,
-    refund_case: FIRM_CANCELLATION_CASE,
-    failure_reason: result.failureReason ?? null,
-  });
+  const { data: cancelRefundRow, error: payError } = await db
+    .from("eng_order_payments")
+    .insert({
+      order_id: input.orderId,
+      kind: "refund",
+      amount_cents: result.amountCents,
+      currency: (order.currency as string) ?? "usd",
+      provider: provider.name,
+      provider_ref: result.ref,
+      status: result.status,
+      refund_case: FIRM_CANCELLATION_CASE,
+      failure_reason: result.failureReason ?? null,
+    })
+    .select("id")
+    .maybeSingle();
 
   if (result.status === "failed") {
     await event(input.orderId, "refund.failed", false, `The refund did not go through: ${result.failureReason}`);
@@ -902,6 +925,12 @@ export async function cancelAndRefund(input: {
     .from("eng_service_orders")
     .update({ status: "refunded", refunded_at: new Date().toISOString() })
     .eq("id", input.orderId);
+
+  await reverseForRefund({
+    orderId: input.orderId,
+    paymentId: (cancelRefundRow?.id as string | undefined) ?? null,
+    refundedCents: result.amountCents,
+  });
 
   await event(input.orderId, "order.cancelled_by_firm", true, decision.explanation, {
     reason,
@@ -1023,16 +1052,20 @@ export async function settleDecision(input: {
     reason: decision.caseName,
   });
 
-  const { error: rowError } = await db.from("eng_order_payments").insert({
-    order_id: input.orderId,
-    kind: "refund",
-    amount_cents: result.amountCents,
-    provider: provider.name,
-    provider_ref: result.ref,
-    status: result.status,
-    refund_case: decision.caseName,
-    failure_reason: result.failureReason ?? null,
-  });
+  const { data: decisionRefundRow, error: rowError } = await db
+    .from("eng_order_payments")
+    .insert({
+      order_id: input.orderId,
+      kind: "refund",
+      amount_cents: result.amountCents,
+      provider: provider.name,
+      provider_ref: result.ref,
+      status: result.status,
+      refund_case: decision.caseName,
+      failure_reason: result.failureReason ?? null,
+    })
+    .select("id")
+    .maybeSingle();
 
   if (result.status === "failed") {
     await event(
@@ -1077,6 +1110,24 @@ export async function settleDecision(input: {
       .update({ status: "refunded", refunded_at: new Date().toISOString() })
       .eq("id", input.orderId);
   }
+
+  /*
+   * THE COMMISSION FOLLOWS THE REFUND, AND THIS IS THE PATH THAT MATTERS MOST.
+   *
+   * Two of the four decline outcomes are a FULL refund, so this is the ordinary
+   * consequence of an engineer declining rather than a rare correction. The
+   * accrual is not edited: a counter entry is written beside it and the two net
+   * on the partner's statement.
+   *
+   * It runs after the refund is recorded, because a reversal of a refund that
+   * did not record would be the ledger disagreeing with the money in the other
+   * direction.
+   */
+  await reverseForRefund({
+    orderId: input.orderId,
+    paymentId: (decisionRefundRow?.id as string | undefined) ?? null,
+    refundedCents: decision.refundCents,
+  });
 
   await event(input.orderId, "refund.issued", true, decision.explanation, {
     refunded_cents: decision.refundCents,
