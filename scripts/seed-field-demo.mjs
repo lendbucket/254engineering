@@ -13,6 +13,26 @@
  * it produces cannot be deleted. `neverProduction` is checked before
  * ALLOW_PRODUCTION_DB is even looked at, the same standing as roles-audit.
  *
+ * NOTHING SEEDED IS EVER SEALED, AND THAT IS STANDING LAW
+ * -------------------------------------------------------
+ * Not this run's choice and not a thing the next session weighs again.
+ * Operator ruling, 2026-09-05.
+ *
+ * A seal is a licensed Professional Engineer stating that they examined a
+ * package and take responsibility for it. Seeding one writes that claim about a
+ * real address into the same tables a real seal goes in, where nothing
+ * downstream can tell the two apart, and it would be a false statement about a
+ * regulated act rather than a convenient fixture. The firm has no registration
+ * and no PE on staff, so it would also be a claim about a thing that has never
+ * happened.
+ *
+ * A declined decision carries the same weight, is available today, and is the
+ * more useful thing to show anyway. That is what 0001 is.
+ *
+ * Enforced at the end of this script rather than left to whoever edits it next:
+ * refuseAnySeal() looks at what was actually written and throws if any of it is
+ * sealed. A rule in a comment is a rule until somebody is in a hurry.
+ *
  * WHY THE NAMES ARE OBVIOUSLY FAKE
  * --------------------------------
  * Every seeded person is "Demo" something at an example.com address, and every
@@ -840,6 +860,49 @@ console.error("");
     }
   }
 }
+
+/*
+ * THE STANDING LAW AT THE TOP OF THIS FILE, CHECKED AGAINST THE DATABASE.
+ *
+ * Reads what was written rather than what was intended, for the same reason
+ * sweep() looks instead of trusting: this script has already once printed
+ * success over inserts the database rejected. If a future edit seeds a seal, or
+ * a document carrying sealing facts, the run fails here and says why.
+ */
+async function refuseAnySeal() {
+  const { data: files } = await db
+    .from("eng_files")
+    .select("id, file_number, status, sealed_at")
+    .like("file_number", "254-DEMO-%");
+
+  const sealedFiles = (files ?? []).filter((f) => f.status === "sealed" || f.sealed_at);
+  if (sealedFiles.length) {
+    throw new Error(
+      `seeded a sealed file (${sealedFiles.map((f) => f.file_number).join(", ")}). ` +
+        "Nothing seeded is ever sealed: it would be a claim that a Professional Engineer " +
+        "certified work at an address, written where a real one goes.",
+    );
+  }
+
+  const ids = (files ?? []).map((f) => f.id);
+  if (ids.length) {
+    const { data: docs } = await db
+      .from("eng_documents")
+      .select("id, title, sealed_at, sealed_by, seal_tier")
+      .in("file_id", ids);
+    const sealedDocs = (docs ?? []).filter((d) => d.sealed_at || d.sealed_by || d.seal_tier);
+    if (sealedDocs.length) {
+      throw new Error(
+        `seeded a document carrying sealing facts (${sealedDocs.map((d) => d.title).join(", ")}). ` +
+          "Nothing seeded is ever sealed.",
+      );
+    }
+  }
+
+  console.error(`  seals: none, across ${(files ?? []).length} seeded file(s). As required.`);
+}
+
+await refuseAnySeal();
 
 console.error("Seeded. Everything above is obviously fake by design: Demo names,");
 console.error("example.com addresses, and streets that do not exist.");

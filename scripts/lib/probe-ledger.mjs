@@ -23,12 +23,18 @@
  * naming convention, because a convention is a thing somebody forgets and this
  * is a list of ids the run actually holds.
  *
- * WHAT IS DELIBERATELY NOT SWEPT
- * ------------------------------
- * eng_audit_events. That table refuses deletes at the database level and should:
- * it is the firm's regulatory memory, and a test run being able to erase from it
- * would be a far worse property than a few thousand probe rows. Their presence
- * is the price of the guarantee, and it is the right trade.
+ * WHAT IS NEVER SWEPT, AND THIS IS STANDING LAW
+ * ---------------------------------------------
+ * eng_audit_events, and nothing a future session finds inconvenient changes it.
+ * Operator ruling, 2026-09-05: a test run able to erase the firm's regulatory
+ * memory is a far worse property than probe rows sitting in it. That table
+ * refuses deletes at the database level and should; the rows are the price of
+ * the guarantee, and the guarantee is worth more than tidiness.
+ *
+ * It is enforced rather than written down. NEVER_SWEEP below is checked when
+ * this module loads and again on every made() call, so putting the table into
+ * ORDER fails the import and takes the whole suite down with it rather than
+ * quietly granting a run the power to forget.
  *
  * NEVER PRODUCTION, for the obvious reason: this deletes things.
  */
@@ -52,6 +58,22 @@ const ORDER = [
   "eng_clients",
 ];
 
+/*
+ * The standing law above, in a form that cannot be edited out by accident.
+ * Adding one of these to ORDER throws at import, which is deliberate: a rule
+ * this important should break loudly at the top of a run rather than be
+ * discovered missing afterwards.
+ */
+const NEVER_SWEEP = ["eng_audit_events"];
+
+for (const table of NEVER_SWEEP) {
+  if (ORDER.includes(table)) {
+    throw new Error(
+      `${table} is in the sweep order. It is the firm's regulatory memory and no test run may erase from it.`,
+    );
+  }
+}
+
 export class ProbeLedger {
   constructor(label) {
     this.label = label;
@@ -63,6 +85,11 @@ export class ProbeLedger {
   /** Register a row this run created. Safe to call with a null id. */
   made(table, id) {
     if (!id) return id;
+    if (NEVER_SWEEP.includes(table)) {
+      throw new Error(
+        `${table} is never swept. It is the firm's regulatory memory, and a run that could erase from it is a worse defect than the rows it would remove.`,
+      );
+    }
     if (!ORDER.includes(table)) {
       throw new Error(
         `${table} is not in the sweep order, so registering it would promise a cleanup that never happens`,
