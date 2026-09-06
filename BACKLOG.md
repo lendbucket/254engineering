@@ -127,7 +127,7 @@ session secret must not sign out the other two.
 
 Development has one, written to .env.local and never echoed.
 
-### The corrected /government copy has to be confirmed live on production
+### DONE. The corrected /government copy is live and was confirmed on the domain
 
 Recorded 2026-09-05. Operator instruction the same day.
 
@@ -136,10 +136,14 @@ letters, certifications, and design" while the firm's registration is pending.
 It is corrected on this branch and production is still serving the claim until
 this merges and deploys.
 
-**Confirm it against the live domain after the deploy, not against the build.**
-/government is the one page whose audience actually reads this, because a
-procurement officer evaluating a firm is exactly the reader who checks whether a
-firm is registered to do what it says it does.
+**Confirmed 2026-09-06 against https://254engineering.com/government**, not
+against the build. The live page now reads "The firm is built to deliver
+inspections, sealed engineering letters, certifications, and design", and the
+string "delivers inspections" appears zero times in the served HTML.
+
+It took three polls across roughly a minute for the deploy to replace it, and
+the first two served the old claim. Recorded because it is the interval in which
+a deploy is reported as done and the old page is still being served.
 
 ## Left by Phase 9
 

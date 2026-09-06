@@ -302,11 +302,13 @@ production on 2026-09-05. After 0019 (Phase 9 Section 3, partner compensation)
 8 eng_ functions, none with an unpinned search_path. After 0020 (Phase 9 Section 5, the partner
 asset library), 0021 (Section 6, partners.manage becomes a grant) and 0022
 (Section 6, the order keeps its visitor key) **development and the replay return
-`330536b4b13cfc2f51ed1cb3b0c6edf1` across 941 columns and 68 tables**, with 46
-triggers, 9 eng_ functions none unpinned, and 111 role grants. **Production is
-still at 0018** because that branch has not merged, which is the expected
-divergence rather than the defect: a divergence while a feature branch is open
-is expected, and a divergence after it merges is the defect.
+**all three return `330536b4b13cfc2f51ed1cb3b0c6edf1` across 941 columns and 68
+tables**, with row level security on all 68, 46 triggers, 9 eng_ functions none
+with an unpinned search_path, and 111 role grants. Applied to production on
+2026-09-06 when Phase 9 merged, and verified against production rather than
+assumed: the fingerprint, the column and table counts, the trigger count, the
+grant count and the RLS count were all read back from
+`fsaryeciduszuahgjbly` and all match development exactly.
 
 0021 is one row, and it is the first migration since 0018 to seed a grant. That
 made roles-audit's seed comparison wrong rather than incomplete: it read
