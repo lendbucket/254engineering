@@ -11,9 +11,31 @@ Items are removed when they ship, not when they are attempted.
 Items owned by a sibling repo, recorded here because they were found here.
 Nothing in this section is actionable in this repository.
 
-### The regulatory pattern library has diverged from the two sibling repos
+**The first item below is not general debt. Operator ruling, 2026-09-05: it is
+the FIRST thing a session in either of those repositories should do, before
+anything else it was opened for.** Those two sites carry 55 and 9 pages written
+under the same regulatory gate as this one, and neither can currently detect the
+class of claim that was found live on this site the day the pattern was added.
 
-Recorded 2026-09-05, Phase 9 Section 4. `scripts/lib/regulatory.mjs` is a
+### FIRST TASK IN sealedengineering AND stampmyplans: copy the regulatory pattern library across
+
+Recorded 2026-09-05, Phase 9 Section 4. Operator ruling the same day: this is
+the first thing a session in either repo does, ahead of whatever it was opened
+for.
+
+**Why it outranks the work in front of it.** sealedengineering carries 55 pages
+and stampmyplans 9, all written under the same gate, and the detector on both
+sites is currently blind to a claim that this site was found making live. The
+question is not whether they have one. It is that nobody there can see it.
+
+**What to copy.** `scripts/lib/regulatory.mjs` from this repository, verbatim,
+which is how that file is meant to travel. Then run that repo's voice audit and
+launch audit and read what they say before changing any copy: a page that has
+been serving a claim for a month is a page whose fix belongs in a commit that
+says so.
+
+**What the three additions are.** CONDITIONAL_GUARD, a pattern for a third
+person service claim naming the firm, and a pattern for "performs and seals". `scripts/lib/regulatory.mjs` is a
 synchronized file, copied verbatim into sealedengineering and stampmyplans,
 because all three brands are Texas engineering firms under the same board with
 the same regulated vocabulary and the same pending gates.
@@ -34,10 +56,10 @@ design", under a heading reading "what this firm is BUILT to deliver". It has
 been served that way to procurement officers while the registration is pending.
 Fixed here.
 
-**Why it is not done there.** Standing operator instruction: those repos are out
-of scope and are not to be touched. The divergence is real until somebody copies
-the file across, and both sites are currently unable to detect the exact claim
-that was found live on this one.
+**Why it was not done from here.** Standing operator instruction: those repos
+are out of scope from this session and are not to be touched. The divergence is
+real until a session in each one copies the file across, and that is the first
+thing each should do.
 
 ### sealedengineering /order must return 307 and never 308, and nothing asserts it
 
@@ -84,7 +106,7 @@ guard against a plausible future edit, not a repair.
 
 ## Before a partner can sign in on production
 
-### PARTNER_SESSION_SECRET is not set anywhere but development
+### PARTNER_SESSION_SECRET is the operator's to set, and is set aside for them
 
 Recorded 2026-09-05, Phase 9 Section 4. `partnerSessionConfigured()` returns
 false without it, which closes the partner portal completely: the sign in screen
@@ -95,9 +117,12 @@ because the day a first partner is created on production, this is what will make
 their link not work, and the symptom will look like a broken account rather than
 a missing variable.
 
-**What to do.** Generate a value of at least 24 characters and set it in Vercel
-for production, and separately for preview, exactly as OPS_SESSION_SECRET and
-CUSTOMER_SESSION_SECRET are set. It is its own variable on purpose: rotating one
+**Operator ruling, 2026-09-05: set aside, they will add it in Vercel.** It is
+not a blocker for anything being built, and no session should generate a
+production session secret and hand it over in a transcript.
+
+**What it needs to be.** At least 24 characters, set for Production and again
+for Preview, exactly as OPS_SESSION_SECRET and CUSTOMER_SESSION_SECRET are set. It is its own variable on purpose: rotating one
 session secret must not sign out the other two.
 
 Development has one, written to .env.local and never echoed.

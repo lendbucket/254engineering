@@ -46,6 +46,7 @@
  * against fabricated people appearing anywhere they could be believed.
  */
 import { newPartnerPasswordRecord } from "../src/lib/partner-auth.ts";
+import { publishAsset } from "../src/lib/ops-partner-assets.ts";
 import { sweepLegacyResidue } from "./lib/probe-ledger.mjs";
 import { auditClient, describeTarget } from "./lib/db-target.mjs";
 
@@ -1052,6 +1053,64 @@ console.error("");
       password_hash: record.hash,
       password_salt: record.salt,
     });
+  }
+
+  /*
+   * APPROVED MATERIAL, PUBLISHED THROUGH THE REAL PATH.
+   *
+   * publishAsset runs the same regulated and voice patterns the site's own
+   * audits use and refuses anything that fails, so seeding through it proves
+   * two things at once: the library has something in it, and the copy in this
+   * seed is copy the firm could actually publish.
+   *
+   * Writing the rows directly would have been three lines shorter and would
+   * have let a seeded paragraph carry a claim the product would have refused,
+   * which is the demonstration disagreeing with the thing being demonstrated.
+   */
+  const { data: seedAdmin } = await db
+    .from("eng_profiles")
+    .select("id, role")
+    .eq("email", "demo.admin@example.com")
+    .maybeSingle();
+
+  if (seedAdmin) {
+    const actor = {
+      id: seedAdmin.id,
+      role: seedAdmin.role,
+      status: "active",
+      grants: [],
+      email: "demo.admin@example.com",
+    };
+
+    const material = [
+      {
+        slug: "who-performs-the-work",
+        title: "Who performs the work",
+        kind: "copy_block",
+        summary: "For the page where a client first meets the programme.",
+        body:
+          "Engineering work referred through this programme will be carried out by 254 Engineering Services, " +
+          "a Texas firm serving all 254 counties. They contract with the client, hold the engagement, " +
+          "and are the firm of record on every deliverable. Firm registration is pending with the Texas " +
+          "Board of Professional Engineers and Land Surveyors.",
+      },
+      {
+        slug: "what-a-referral-is",
+        title: "What a referral is, in an email",
+        kind: "email_snippet",
+        summary: "For an introduction to a client who has asked who to use.",
+        body:
+          "I have sent your details to 254 Engineering Services, who will contact you directly. They " +
+          "handle the engagement and the engineering from here, and I am told what stage it reaches " +
+          "rather than what it finds.",
+      },
+    ];
+
+    for (const item of material) {
+      const result = await publishAsset(actor, item);
+      if (!result.ok) throw new Error(`seeded asset "${item.slug}" was refused: ${result.error}`);
+    }
+    console.error(`  materials: ${material.length} approved asset(s) published through the real check`);
   }
 
   console.error("  partner: Demo Title Partners, one referral, no earnings (delivery is gated)");

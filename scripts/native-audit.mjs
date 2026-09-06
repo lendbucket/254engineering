@@ -88,6 +88,7 @@ const SCREENS = [
   { path: "/partner", kind: "partner" },
   { path: "/partner/referrals", kind: "partner" },
   { path: "/partner/statements", kind: "partner" },
+  { path: "/partner/materials", kind: "partner" },
   { path: "/partner/agreement", kind: "partner" },
 ];
 

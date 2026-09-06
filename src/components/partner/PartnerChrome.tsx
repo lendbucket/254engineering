@@ -28,10 +28,11 @@ export const PARTNER_NAV: PartnerNavItem[] = [
   { href: "/partner", label: "Overview", short: "Home", icon: "home" },
   { href: "/partner/referrals", label: "Referrals", short: "Referrals", icon: "referrals" },
   { href: "/partner/statements", label: "Statements", short: "Statements", icon: "statements" },
+  { href: "/partner/materials", label: "Materials", short: "Materials", icon: "materials" },
   { href: "/partner/agreement", label: "Agreement", short: "Agreement", icon: "agreement" },
 ];
 
-type IconName = "home" | "referrals" | "statements" | "agreement";
+type IconName = "home" | "referrals" | "statements" | "materials" | "agreement";
 
 function isActive(pathname: string, href: string): boolean {
   if (href === "/partner") return pathname === "/partner";
@@ -66,6 +67,15 @@ function Icon({ name }: { name: IconName }) {
       </svg>
     );
   }
+  if (name === "materials") {
+    return (
+      <svg {...common}>
+        <path d="M4 4.5h8v11H4Z" />
+        <path d="M7 3h9v11" />
+        <path d="M6.5 8h3M6.5 11h3" />
+      </svg>
+    );
+  }
   if (name === "statements") {
     return (
       <svg {...common}>
@@ -83,7 +93,16 @@ function Icon({ name }: { name: IconName }) {
   );
 }
 
-/** The bottom bar on a phone. Four destinations, and there will not be a fifth. */
+/**
+ * The bottom bar on a phone. Five destinations, which is the cap.
+ *
+ * The staff tab bar holds at most five and puts the rest behind a More sheet.
+ * This surface has exactly five, so there is nothing to overflow and no sheet.
+ * A sixth destination would mean building that sheet rather than squeezing a
+ * sixth 11px label into a 390px bar, and native-audit asserts the tab bar
+ * carries every destination the wide layout does, so it fails on the day
+ * somebody adds one and forgets.
+ */
 export function PartnerTabs() {
   const pathname = usePathname();
   return (
@@ -118,13 +137,13 @@ export function PartnerTabs() {
 }
 
 /**
- * The same four destinations across the top at lg, instead of a rail.
+ * The same five destinations across the top at lg, instead of a rail.
  *
  * The staff portal has a 230px fixed rail because it has twenty screens and
- * three roles. This surface has four screens and one kind of person, and a rail
- * carrying four links would be 230px of navy explaining that there is not much
- * here. Point 9 of the standard is satisfied trivially: both layouts render the
- * same four destinations, so nothing exists on one and not the other.
+ * three roles. This surface has five screens and one kind of person, and a rail
+ * carrying five links would be 230px of navy explaining that there is not much
+ * here. Point 9 of the standard is satisfied by construction: both layouts are
+ * built from PARTNER_NAV, so nothing can exist on one and not the other.
  */
 export function PartnerTopNav() {
   const pathname = usePathname();

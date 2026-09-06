@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { performingFirmLine } from "@/lib/partner-copy";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { currentPartner } from "@/lib/partner-auth";
 import { partnerSessionConfigured } from "@/lib/partner-session";
@@ -75,9 +76,7 @@ export default async function PartnerLoginPage({
         </div>
 
         <p className="mt-4 text-center text-[12px] leading-[1.6] text-[var(--secondary)] sm:mt-5">
-          254 Engineering Services is the firm of record for work referred through this
-          programme, and is the firm that will perform and seal it. Firm registration pending with the Texas Board of Professional Engineers and
-          Land Surveyors.
+          {performingFirmLine()}
         </p>
       </div>
     </main>

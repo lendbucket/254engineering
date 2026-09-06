@@ -28,6 +28,7 @@ import {
   looksLikeCode,
   ATTRIBUTION_WINDOW_DAYS,
 } from "../src/lib/attribution-rules.ts";
+import { copyVerdict, performingFirmLine } from "../src/lib/partner-copy.ts";
 import {
   applyBps,
   commissionForDelivery,
@@ -557,6 +558,226 @@ const terms = (over = {}) => ({
     "a blocked entry is not read as a zero",
     netOf([{ amountCents: null, status: "blocked" }]).counted === 0,
     "counting it would make a statement claim it covered a commission it could not compute",
+  );
+}
+
+// =========================================================================
+// THE FOUR NON NEGOTIABLES, MECHANICALLY. Phase 9 Section 5.
+//
+// docs/partner-program-decision.md set four rules about who the customer
+// believes they are buying engineering from. Until Section 5 they were
+// sentences in a document. Each one below is now something that fails.
+// =========================================================================
+
+// ---- NON NEGOTIABLE 2: no partner surface may say what the site could not ----
+{
+  /*
+   * Exercised by calling the checker, not by reading it. The claim that matters
+   * is that copy which would fail the site's own voice audit cannot be
+   * published into the partner library, and the only way to know that is to
+   * hand it a sentence.
+   */
+  const claim = copyVerdict(
+    "254 Engineering Services performs and seals every engagement referred through this programme.",
+  );
+  rec("a present tense service claim cannot be published to partners", claim.ok === false);
+  rec(
+    "and the refusal names the sentence rather than saying no",
+    claim.ok === false && /performs and seals/.test(claim.summary),
+    claim.summary.slice(0, 90),
+  );
+
+  const guarantee = copyVerdict("We guarantee approval, or your money back.");
+  rec("a guaranteed approval cannot be published either", guarantee.ok === false);
+  rec(
+    "and it is refused as a never claim rather than as a gate claim",
+    guarantee.findings.some((f) => f.kind === "never"),
+    "a guarantee stays forbidden after the registration issues, and a gate claim does not",
+  );
+
+  const dash = copyVerdict("Referrals are simple \u2014 send them and we do the rest.");
+  rec("an em dash cannot be published", dash.ok === false);
+
+  const fine = copyVerdict(
+    "Work referred through this programme will be carried out by 254 Engineering Services, the firm of record on every engagement.",
+  );
+  rec(
+    "and compliant copy passes, so the check is not simply refusing everything",
+    fine.ok === true,
+    fine.ok ? "" : fine.summary,
+  );
+
+  const assets = codeOnly("src/lib/ops-partner-assets.ts");
+  /*
+   * SCOPED TO THE FUNCTION, because the first version was not and it failed
+   * correctly: the earliest mention of eng_partner_asset_versions in the file
+   * is a READ in publishedAssets, two hundred lines above the publish path, so
+   * the comparison was between a check and an unrelated query.
+   *
+   * The same defect this audit already records for partnerForVisitor, made
+   * again in the same file.
+   */
+  const publishAt = assets.indexOf("export async function publishAsset");
+  const publishEnd = assets.indexOf("\nexport ", publishAt + 1);
+  const publishBody =
+    publishAt === -1 ? "" : assets.slice(publishAt, publishEnd === -1 ? undefined : publishEnd);
+
+  rec("there is a publish path at all", publishAt !== -1);
+  rec(
+    "publishing checks the copy BEFORE it writes anything",
+    publishBody.indexOf("copyVerdict(") !== -1 &&
+      publishBody.indexOf("copyVerdict(") < publishBody.indexOf('from("eng_partner_asset_versions")'),
+    "a check after the insert is a record of a claim the firm published",
+  );
+  rec(
+    "and the title and summary are checked as well as the body",
+    /\[input\.title, input\.summary \?\? "", input\.body \?\? ""\]/.test(assets),
+    "the title is the line that ends up in a list and gets pasted into an email",
+  );
+
+  /*
+   * AND THE OTHER DIRECTION, WHICH IS THE ONE THAT LOOKS LIKE A BUG.
+   *
+   * A submission is a partner asking whether something is allowed. It is
+   * accepted whatever it says, and the verdict comes back as advice. Refusing
+   * the form would mean the firm never sees the thing the partner was about to
+   * publish anyway.
+   */
+  const submitAt = assets.indexOf("export async function submitMaterial");
+  const submitEnd = assets.indexOf("\nexport ", submitAt + 1);
+  const submitBody = submitAt === -1 ? "" : assets.slice(submitAt, submitEnd === -1 ? undefined : submitEnd);
+  rec("a partner submission is accepted even when it fails the check", submitAt !== -1 && !/if \(!verdict\.ok\) return/.test(submitBody));
+  rec(
+    "and the verdict is kept with it as advice",
+    /decision_note: verdict\.ok \? null : verdict\.summary/.test(submitBody),
+  );
+
+  /*
+   * ONE LIST OF REGULATED PATTERNS, SHARED WITH THE AUDITS.
+   *
+   * The application imports scripts/lib/regulatory.mjs rather than carrying its
+   * own copy. That import direction is unusual and it is the point: two copies
+   * of this vocabulary disagreed within a day the last time they existed, and
+   * the stale one was the half that mattered.
+   */
+  const copyModule = codeOnly("src/lib/partner-copy.ts");
+  rec(
+    "the app checks copy against the same patterns the audits use",
+    /scripts\/lib\/regulatory\.mjs/.test(copyModule),
+    "a second copy of the regulated vocabulary is a second answer to the same question",
+  );
+  rec(
+    "and does not define regulated patterns of its own",
+    !/PRESENT_TENSE|sealed by|we seal/i.test(copyModule.replace(/import[^;]+;/g, "")),
+  );
+  rec(
+    "the regulated check is conditional on the gate and the never claims are not",
+    /if \(isPrelaunch\(\)\) check\(REGULATED/.test(copyModule) && /check\(NEVER, "never"\)/.test(copyModule),
+    "a service claim becomes true on registration day; a guaranteed approval never does",
+  );
+}
+
+// ---- NON NEGOTIABLE 1: the performing firm is named, in one wording --------
+{
+  rec(
+    "the performing firm sentence names the firm",
+    /254 Engineering Services/.test(performingFirmLine()),
+  );
+  rec(
+    "and states the registration is pending while the gate is down",
+    /registration is pending/i.test(performingFirmLine()),
+  );
+  rec(
+    "and it is not itself a claim the firm could not make",
+    copyVerdict(performingFirmLine()).ok,
+    copyVerdict(performingFirmLine()).summary,
+  );
+
+  /*
+   * ONE WORDING. Three partner surfaces carried a hand written copy of this
+   * sentence when Section 4 built them, which is the drift the function exists
+   * to prevent, in the same repository as the function.
+   */
+  const surfaces = [
+    "src/app/partner/(app)/layout.tsx",
+    "src/app/partner/(public)/login/page.tsx",
+    "src/app/partner/(public)/set-password/page.tsx",
+    "src/app/partner/(app)/materials/page.tsx",
+  ];
+  const handWritten = surfaces.filter((f) => /is the firm of record for work referred/.test(codeOnly(f)));
+  rec(
+    "no partner surface writes that sentence out by hand",
+    handWritten.length === 0,
+    handWritten.join(", ") || "every one calls performingFirmLine()",
+  );
+  const callers = surfaces.filter((f) => /performingFirmLine\(\)/.test(codeOnly(f)));
+  rec(
+    "and every one of them renders it",
+    callers.length === surfaces.length,
+    `${callers.length} of ${surfaces.length}`,
+  );
+}
+
+// ---- NON NEGOTIABLE 3: no partner name on a deliverable or the RC log ------
+{
+  const binder = codeOnly("src/lib/ops-binder.ts");
+  const docs = codeOnly("src/lib/ops-docs.ts");
+  const review = codeOnly("src/lib/ops-review.ts");
+
+  for (const [name, source] of [
+    ["the evidence binder", binder],
+    ["the document exports", docs],
+    ["the responsible charge log", review],
+  ]) {
+    rec(
+      `${name} never reads a partner`,
+      !/eng_partners|partner_code|organisation/.test(source),
+      "those are the engineer's record, and a referrer's name on one is a claim about who did the work",
+    );
+  }
+
+  /*
+   * partner_id on eng_files exists and ops-docs reads it, which is the one
+   * legitimate use: the margin needs to know whether a commission is owed. It
+   * reads the ID and never the NAME, so nothing a partner is called can reach a
+   * document.
+   */
+  rec(
+    "the margin may know a file has a partner and never which one",
+    /partner_id/.test(docs) && !/organisation/.test(docs),
+  );
+}
+
+// ---- NON NEGOTIABLE 4: partner branding is primary only in their portal ----
+{
+  const walkTsx = (dir, acc = []) => {
+    if (!existsSync(dir)) return acc;
+    for (const entry of readdirSync(dir)) {
+      const full = `${dir}/${entry}`;
+      if (statSync(full).isDirectory()) walkTsx(full, acc);
+      else if (/\.tsx$/.test(entry)) acc.push(full);
+    }
+    return acc;
+  };
+
+  const elsewhere = [
+    ...walkTsx("src/app/(site)"),
+    ...walkTsx("src/app/portal"),
+    ...walkTsx("src/app/account"),
+    ...walkTsx("src/components/home"),
+  ].filter((f) => /partner\.organisation|partner_organisation/.test(codeOnly(f)));
+
+  rec(
+    "no surface outside the partner portal renders a partner's name",
+    elsewhere.length === 0,
+    elsewhere.join(", ") || "the customer never sees whose referral they arrived on",
+  );
+
+  const partnerLayout = codeOnly("src/app/partner/(app)/layout.tsx");
+  rec(
+    "and inside it, the partner's name is the identity of the surface",
+    /principal\.partner\.organisation/.test(partnerLayout),
+    "the one place their branding is primary, and no customer sees it",
   );
 }
 

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { performingFirmLine } from "@/lib/partner-copy";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { RestrictedMode } from "@/components/portal/design";
 import { inspectPartnerToken, MIN_PARTNER_PASSWORD_LENGTH } from "@/lib/partner-auth";
@@ -97,9 +98,7 @@ export default async function PartnerSetPasswordPage({
         </div>
 
         <p className="mt-4 text-center text-[12px] leading-[1.6] text-[var(--secondary)] sm:mt-5">
-          254 Engineering Services is the firm of record for work referred through this
-          programme, and is the firm that will perform and seal it. Firm registration pending with the Texas Board of Professional Engineers and
-          Land Surveyors, and no engineer of record is yet in responsible charge.
+          {performingFirmLine()}
         </p>
       </div>
     </main>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { performingFirmLine } from "@/lib/partner-copy";
 import { redirect } from "next/navigation";
 import { currentPartner } from "@/lib/partner-auth";
 import { mispointing } from "@/lib/db-guard";
@@ -114,10 +115,7 @@ export default async function PartnerAppLayout({ children }: { children: React.R
             */}
             <footer className="border-t border-[var(--border)] pt-4">
               <p className="text-[12px] leading-[1.6] text-[var(--secondary)]">
-                254 Engineering Services is the firm of record for work referred through this
-          programme, and is the firm that will perform and seal it. Firm registration is pending with the Texas Board of Professional
-                Engineers and Land Surveyors, and no engineer of record is yet in responsible
-                charge.
+          {performingFirmLine()}
               </p>
               <div className="mt-3">
                 <Wordmark height={20} />

@@ -65,7 +65,7 @@ export const NEGATION_GUARD = String.raw`(?<!\b(?:not|never|cannot|no|nor)\s)`;
  * Deliberately narrow: only the words that introduce a condition or a sequence.
  * "The firm delivers within five days" takes no guard and should not.
  */
-export const CONDITIONAL_GUARD = String.raw`(?<!\b(?:when|once|if|until|unless|before|after|whenever|while)\s)`;
+export const CONDITIONAL_GUARD = String.raw`(?<!\b(?:when|once|if|until|unless|before|after|whenever|while)\s(?:the\s|a\s|an\s|its\s|their\s|this\s)?)`;
 
 /**
  * Claims no engineering firm may make, in any gate state, ever.
@@ -146,6 +146,46 @@ export const PRESENT_TENSE_OFFER = [
  * Read them as a checklist of ways to make a claim without a subject.
  */
 export const PRESENT_TENSE_SEALING = [
+  /*
+   * THE PASSIVE WITH THE WORK AS THE SUBJECT. Added 2026-09-05.
+   *
+   * Found by writing a sentence that passed. Seeding the partner asset library
+   * needed a paragraph explaining who performs referred work, and the first
+   * draft was "Engineering work referred through this programme is carried out
+   * by 254 Engineering Services". Every pattern in this file passed it, and it
+   * states that the firm is currently carrying out engineering work.
+   *
+   * "is reviewed and sealed by" was already here. "is carried out by" is the
+   * same shape with a different verb, which is what happens when patterns are
+   * written from the sentences somebody happened to write.
+   *
+   * The subject is named deliberately and narrowly. "Field work is carried out
+   * by certified technicians" is a statement about how a process is specified
+   * and is not the firm claiming to be performing engineering, so the subject
+   * has to be the engineering rather than any work at all.
+   */
+  /*
+   * THE AGENT MATTERS, AND THE FIRST VERSION IGNORED IT.
+   *
+   * That version failed on /terms, for "Field inspection work described on the
+   * careers pages is performed by independent contractors rather than
+   * employees". That sentence is about how the firm ENGAGES people, it names an
+   * agent who is explicitly not the firm, and it is not a claim that the firm is
+   * performing engineering.
+   *
+   * So the match requires either NO agent, which is the agentless passive this
+   * file's header warns about, or an agent that is the firm or its engineers.
+   * An explicit third party agent is not this claim.
+   *
+   * Read the lookahead as: not followed by "by somebody who is not us".
+   */
+  {
+    pattern: new RegExp(
+      `${CONDITIONAL_GUARD}\\b(?:engineering (?:work|services?)|inspections?|reviews?|sealed (?:work|deliverables?))[^.]{0,60}?\\b(?:is|are)\\s+(?:carried out|performed|undertaken|conducted|completed)\\b(?!\\s+by\\s+(?!254 Engineering Services|Sealed Engineering|StampMyPlans|the firm|our\\b|us\\b|a licensed|licensed|staff))`,
+      "i",
+    ),
+    why: "states the engineering is being carried out now, passive",
+  },
   { pattern: /\bis reviewed and sealed by\b/i, why: "states work is being sealed now" },
   { pattern: /\bare reviewed and sealed by\b/i, why: "states work is being sealed now" },
   { pattern: /\bis sealed by a\b/i, why: "states work is being sealed now" },
