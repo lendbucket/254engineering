@@ -72,7 +72,7 @@ scrolling region between them, so the shell is not repeated in each verdict.
 | Onboarding | `/portal/onboarding` | yes | | 2026-09-05 | **Good.** Two sections with honest empty copy, and the note that an application is never deleted because it is the origin record. |
 | Responsible charge | `/portal/charge-log` | yes | | 2026-09-05, re-judged | **Good.** The decision cards carry the reason in red where it was a refusal. "1 minutes" is fixed and the page now renders "1 minute". |
 | Your pay | `/portal/pay` | yes | | 2026-09-05 | **Good.** Owed and paid as separate figures with a sentence each, and every entry saying which of the two it is waiting on. |
-| Document binder | `/portal/documents/binder/[fileId]` | | | | Not walked. It is a per file route and the walk covers list screens. |
+| Document binder | `/portal/documents/binder/[fileId]` | yes | | 2026-09-05 | **Good.** Reached at last: it needed a file with evidence and a decision, which the reseeded example firm now has. Restricted mode notice, a CSV control, then the document sheet with its letterhead, property, county, service, protocol and technician. It reads as a document rather than a screen, which is what it is for. |
 
 ## Signed in, Professional Engineer
 
@@ -86,17 +86,22 @@ scrolling region between them, so the shell is not repeated in each verdict.
 | Screen | Route | 390 | 1280 | Judged | Verdict |
 | --- | --- | --- | --- | --- | --- |
 | My jobs | `/portal/jobs` | yes | | 2026-09-05 | **Good.** Two sections, offers and accepted, each with an empty state that explains how work reaches them. The tab bar changes to Home, Jobs, Certs, Tasks, Chat for this role, which is the navigation doing its job. |
-| A job | `/portal/jobs/[id]` | | | | Not walked. Per job route, and it needs an accepted job the probe does not have. |
+| A job | `/portal/jobs/[id]` | yes | | 2026-09-05 | **Good.** Reached at last: it needed an accepted assignment, which the reseeded firm now has. File number, address, two status chips and a capture count, Directions, the file's notes, then the protocol checklist numbered with its guidance and how many photographs each item needs. This is the screen a technician stands in front of a house holding, and it reads like it. |
 | Certification | `/portal/certification` | yes | | 2026-09-05 | **Good, and the best copy in the portal.** "This is stopping jobs reaching you" in red, then exactly which four documents are missing, then the promise that the site will never ask for a policy or social security number. |
 
 ---
 
 ## What the blank rows already say
 
-Twenty six of twenty eight are judged. The two that are not are per record
-routes, a document binder and a single job, which the walk does not reach
-because they need a file and an accepted job the probe accounts do not have.
-They are left blank rather than guessed at, which is the point of the column.
+**All twenty eight are judged.** The last two were the per record routes, a
+document binder and a single job, and they were blank because the walk could not
+reach them: they need a file with evidence and a decision, and an accepted
+assignment, which the example data did not contain.
+
+Phase 10 Section 3 built those into the seed, and both screens were reachable
+the same afternoon. That is the argument for the blank row made twice over:
+the column said what was missing, and what was missing turned out to be the
+example data rather than the screens.
 
 Of the twenty six, none is Weak or Bad. Three were, and all three came out of
 this table rather than out of an audit:

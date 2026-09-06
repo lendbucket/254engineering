@@ -2221,3 +2221,46 @@ Until it is, a photograph on a file thread is visible to anybody who can see the
 file and is NOT in the assembled record. That is a smaller gap than it sounds,
 because the binder assembles fresh from rows and this is a section rather than a
 migration, but it is the half of the ruling that is not yet true.
+
+### RESOLVED: probe residue, and the demo block that was the file sequence
+
+Recorded 2026-09-05, Phase 10 Section 3, operator ruling E.
+
+**The sequence defect, which was worse than reported.** The next file number is
+derived from the HIGHEST number in the year, and the demonstration block was
+9001 to 9003. So on development the next real file would have been
+254-2026-9004: the demo block was not at risk of advancing the sequence, it WAS
+the sequence. Demo files now carry `254-DEMO-NNNN`, which the `%-2026-%` filter
+cannot see, so the exclusion is structural rather than a rule to remember.
+
+**The cause, not the residue.** `scripts/lib/probe-ledger.mjs` records what a run
+creates and removes exactly that, the way `portal-probe.mjs` already did for
+accounts. Wired into messaging-audit, which was leaving a thread and several
+messages behind on every run.
+
+The residue itself came from throwaway screenshot scripts that held no ledger,
+not from the committed suite. That is worth knowing: the suite was mostly clean
+and the mess was mine.
+
+**What is deliberately still not swept:** `eng_audit_events`. That table refuses
+deletes at the database level and should, so three and a half thousand probe
+sign in rows remain on development. Their presence is the price of a guarantee
+that a test run cannot erase from the firm's regulatory memory, and it is the
+right trade.
+
+### The example data is a described firm, and nothing in it is sealed
+
+Recorded 2026-09-05.
+
+`seed-field-demo` resets every run now, sweeps legacy residue, and produces
+three files at three points in the process: one submitted, reviewed and
+declined with six evidence items and a conversation; one dispatched, accepted
+and mid capture; one waiting for dispatch.
+
+**Nothing is sealed and nothing will be.** `isPrelaunch` refuses it, and a
+seeded seal would be a claim that a Professional Engineer certified work at an
+address, written into the same tables a real one goes in. The declined decision
+is real, available today, and the more interesting thing to show.
+
+`KEEP_EXISTING=1` tops up instead of rebuilding, spelled the way
+`ALLOW_PRODUCTION_DB` is, for somebody mid demonstration.

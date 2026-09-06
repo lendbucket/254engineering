@@ -25,6 +25,7 @@
 import fs from "node:fs";
 import { createProbe, destroyProbes } from "./lib/portal-probe.mjs";
 import { auditClient } from "./lib/db-target.mjs";
+import { ProbeLedger } from "./lib/probe-ledger.mjs";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3225";
 
@@ -52,6 +53,16 @@ const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
 
 const db = auditClient("messaging-audit", { neverProduction: true });
+
+/*
+ * WHAT THIS RUN CREATES, SO IT CAN REMOVE IT.
+ *
+ * Before the ledger this audit left a thread and several messages behind on
+ * every run, and nothing removed them because nothing knew which were its own.
+ * Development held twenty four threads and forty two messages, most of them
+ * from runs of this file.
+ */
+const ledger = new ProbeLedger("messaging-audit");
 
 async function api(cookie, body) {
   const res = await fetch(`${BASE}/api/portal/comms`, {
@@ -82,7 +93,7 @@ if (admin?.cookie && engineer?.cookie && tech?.cookie && db) {
 
   // ---------------------------------------- a direct message between two others
   const opened = await api(engineer.cookie, { action: "open_direct", profileId: tech.id });
-  const threadId = opened.body?.id ?? opened.body?.threadId ?? null;
+  const threadId = ledger.made("eng_threads", opened.body?.id ?? opened.body?.threadId ?? null);
   rec("an engineer can open a direct thread with a technician", Boolean(threadId), `HTTP ${opened.status}`);
 
   if (threadId) {
@@ -107,7 +118,7 @@ if (admin?.cookie && engineer?.cookie && tech?.cookie && db) {
      * between the administrator and the other two people is the filter.
      */
     const ownThread = await api(admin.cookie, { action: "open_direct", profileId: engineer.id });
-    const ownId = ownThread.body?.id ?? ownThread.body?.threadId ?? null;
+    const ownId = ledger.made("eng_threads", ownThread.body?.id ?? ownThread.body?.threadId ?? null);
     if (ownId) {
       await api(admin.cookie, { action: "post_message", threadId: ownId, body: "A conversation of my own." });
     }
@@ -379,6 +390,27 @@ if (admin?.cookie && engineer?.cookie && tech?.cookie && db) {
     "a signed url dies in an hour; a key is what somebody fetches by in a year",
   );
 }
+
+/*
+ * THE ROWS FIRST, THEN THE ACCOUNTS.
+ *
+ * A message points at an author. Deleting the profile first would either fail
+ * on the constraint or orphan the row depending on how it is declared, and
+ * which of those happens is not a thing to leave to the constraint.
+ *
+ * Messages and participants go with the thread, because eng_messages and
+ * eng_thread_participants are declared ON DELETE CASCADE from eng_threads. The
+ * ledger holds the thread and the database removes what hangs off it, which is
+ * the one place a cascade is better than a list.
+ */
+const held = ledger.count();
+const rows = await ledger.sweep();
+rec("the rows this run created were removed", rows.ok, rows.note || `${held} row(s)`);
+rec(
+  "and it created some, so the sweep was not empty",
+  held > 0,
+  "a sweep with nothing to sweep proves nothing about the sweep",
+);
 
 const swept = await destroyProbes("messaging-audit");
 rec("the probe accounts were removed", swept.ok, swept.note);
