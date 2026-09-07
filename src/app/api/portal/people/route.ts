@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
     const created = await createAccount({
       email,
       displayName,
-      role: role as Role,
+      role,
       phone: body?.phone ? String(body.phone) : null,
       licenseNumber: body?.licenseNumber ? String(body.licenseNumber) : null,
       tdiAppointment: body?.tdiAppointment ? String(body.tdiAppointment) : null,
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
           portalInvite({
             personName: displayName,
             personEmail: email,
-            role: role as Role,
+            role,
             setPasswordUrl: created.linked ? null : inviteUrl(created.token),
             expiresAt: created.linked ? null : expiryPhrase(created.expiresAt),
             invitedBy: actor.display_name,
@@ -223,7 +223,7 @@ export async function POST(request: NextRequest) {
         ? portalInvite({
             personName: target.display_name as string,
             personEmail: target.email as string,
-            role: target.role as Role,
+            role: target.role,
             setPasswordUrl: inviteUrl(issued.token),
             expiresAt: expiryPhrase(issued.expiresAt),
             invitedBy: actor.display_name,

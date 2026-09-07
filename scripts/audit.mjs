@@ -103,6 +103,22 @@ const PHASE_ZERO = [
   },
   {
     /*
+     * A cast that switches off a total function check has to say why.
+     *
+     * Operator ruling, 2026-09-07, after a sweep found six live instances of
+     * one defect: a total function over the Phase 0 role union that stopped
+     * being total when 0018 made roles rows. In every one of them TypeScript
+     * had it right and somebody wrote `as Role`.
+     *
+     * Pure, no server. The allowlist starts EMPTY, because grandfathering the
+     * six that caused the sweep would have kept the mechanism that produced
+     * them.
+     */
+    name: "role-cast-audit",
+    why: "nothing switches off the role type without a stated reason",
+  },
+  {
+    /*
      * The closeout, 2026-09-06. The one audit in this suite whose subject is
      * this repository's own bookkeeping rather than the product.
      *

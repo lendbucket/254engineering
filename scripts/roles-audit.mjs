@@ -763,6 +763,57 @@ rec(
   rec("a reasonable key is accepted", keyProblem("ops_lead", ["sales"]) === null);
 }
 
+/* ---- EVERY SHIPPED ROLE GETS A REAL ANSWER FROM EVERY FUNCTION ----
+ *
+ * One assertion over a property, rather than six assertions about six
+ * functions. On 2026-09-07 a sweep found six live instances of a single defect,
+ * each a total function over the Phase 0 union that stopped being total when
+ * 0018 made roles rows: the label, the session reader, the account creation
+ * route, the landing path, the invitation email and the dashboard.
+ *
+ * They were found separately and fixed separately. This is the check that would
+ * have caught all six at once. The registry is scripts/lib/role-total-functions
+ * and adding a function that takes a role means adding it there, for the same
+ * reason the surface inventory exists: the denominator cannot be a memory.
+ */
+{
+  const { ROLE_TOTAL_FUNCTIONS } = await import("./lib/role-total-functions.mjs");
+
+  rec(
+    `there are role taking functions to check (${ROLE_TOTAL_FUNCTIONS.length})`,
+    ROLE_TOTAL_FUNCTIONS.length > 0,
+    "a check over an empty registry passes forever",
+  );
+
+  let pairs = 0;
+  const broken = [];
+
+  for (const fn of ROLE_TOTAL_FUNCTIONS) {
+    for (const role of DEFAULT_ROLES) {
+      pairs += 1;
+      let problem;
+      try {
+        problem = fn.real(fn.call(role), role);
+      } catch (err) {
+        problem = `it threw: ${err instanceof Error ? err.message : String(err)}`;
+      }
+      if (problem) broken.push(`${fn.name}(${role.key}): ${problem}`);
+    }
+  }
+
+  rec(
+    `every shipped role gets a real answer from every function that takes one (${pairs} pairs)`,
+    broken.length === 0,
+    broken.length ? broken.join(" | ") : `${ROLE_TOTAL_FUNCTIONS.length} functions x ${DEFAULT_ROLES.length} roles`,
+  );
+
+  rec(
+    "and the check covered every role and every function",
+    pairs === ROLE_TOTAL_FUNCTIONS.length * DEFAULT_ROLES.length,
+    `${pairs} of ${ROLE_TOTAL_FUNCTIONS.length * DEFAULT_ROLES.length}`,
+  );
+}
+
 /* ---- the session survives every role, and still refuses a forgery ----
  *
  * PURE, so it fails without a server. The live half below proves the same thing

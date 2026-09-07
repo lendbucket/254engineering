@@ -1,4 +1,4 @@
-import type { Action, LicensedAction, Role } from "@/lib/ops-authz";
+import type { Action, LicensedAction } from "@/lib/ops-authz";
 
 /**
  * The portal's navigation, derived from the authorization matrix.
@@ -164,10 +164,21 @@ export const MOBILE_TAB_LIMIT = 5;
  * it was true. Sign in still lands each role on the surface they work in, via
  * homeFor. The dashboard is where they go to see everything at once.
  */
-export function navFor(
-  _role: Role,
-  allowed: (action: Action | LicensedAction) => boolean,
-): NavItem[] {
+/**
+ * THE ROLE PARAMETER IS GONE, AND ITS ABSENCE IS THE POINT.
+ *
+ * It was `_role: Role`, unused, kept from when navigation was decided by role
+ * identity rather than by grants. Underscored, so nothing complained.
+ *
+ * An unused parameter is usually harmless. This one was not: it required every
+ * caller to hold a value of the Phase 0 union, and the portal layout holds a
+ * role KEY, so it was one of the pressures producing `as Role` casts across the
+ * tree. Six defects were found on 2026-09-07 that all had the same shape, and
+ * the casts are what let every one of them past the type checker.
+ *
+ * Removing it costs nothing and removes a reason to write one.
+ */
+export function navFor(allowed: (action: Action | LicensedAction) => boolean): NavItem[] {
   return NAV.filter((item) => allowed(item.action));
 }
 

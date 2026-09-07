@@ -27,6 +27,133 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
+## The Phase 0 role union: one defect, six instances, swept
+
+### RESOLVED: six total functions over three roles, in a platform that ships seven
+
+Swept 2026-09-07 on operator instruction, after the fourth instance turned up on
+its own. The instruction was the useful part: five was enough to call it a
+pattern and search for rather than keep discovering.
+
+**All six are the same shape.** A total function over `Role`, the union of the
+three roles that shipped in Phase 0, written when three was the whole set.
+Migration 0018 made roles rows and seven ship, so each of these silently stopped
+being total.
+
+| Where | What it did for the four newer roles |
+| --- | --- |
+| `ROLE_LABEL` | Rendered blank in the profile menu, the roster and the eyebrow |
+| `readOpsSession` | Signed them out on their own next request |
+| the account creation route | Refused to create them at all |
+| `homeFor` | Returned `undefined`, so they signed in and landed nowhere |
+| `portalInvite` | Told a dispatcher, in writing, that they were a Field Technician |
+| `dashboardFor` | Served four roles the field technician's dashboard |
+
+**Two of them are worth singling out.**
+
+`portalInvite` is the only one that reached somebody outside the firm. The
+route validates the role against `eng_roles`, correctly, all seven, and then
+wrote `role as Role` to pass it into a template whose ternary fell through to
+"Field Technician". The cast sat three lines below a comment explaining that
+this same route used to refuse those roles.
+
+`dashboardFor` had the widest reach and the smallest harm, and the difference
+matters: every query in `techDashboard` is scoped to `actor.id`, so what those
+four saw was an EMPTY technician dashboard rather than somebody else's data. A
+wrong screen, not a leak.
+
+**Why none of it ever surfaced.** The four newer roles could not hold a session
+at all, so nobody could reach any of these code paths. **Repairing the session
+on the same day is what made all of them reachable at once**, which is the
+honest shape of the morning: one stale list was hiding five more, and they only
+became findable when the first was fixed.
+
+**The enabling mechanism was the cast.** TypeScript had every one of these
+right. Six times somebody wrote `as Role` and switched it off. Every cast in
+the tree is now gone, and `role-cast-audit` fails on a new one outside an
+allowlist that starts EMPTY, because grandfathering the six that caused the
+sweep would have kept the mechanism that produced them.
+
+**And one assertion replaces six.** `roles-audit` now checks a property rather
+than a list of functions: every shipped role gets a real answer from every
+function that takes one, 5 functions by 7 roles, 35 pairs. The registry is
+`scripts/lib/role-total-functions.mjs` and adding a function that takes a role
+means adding it there, the same rule the surface inventory carries. Injection
+verified on two of the six, each naming the exact roles and expected values.
+
+**Two traps removed alongside them.** `ALLOWED`, a `Map<Role, Set<Action>>`
+that nothing read and that looked exactly like the authoritative permission
+lookup it used to be; and `navFor`'s unused role parameter, which forced every
+caller to hold a value of the narrow union and was one of the pressures
+producing casts.
+
+### There is no dashboard for four of the seven roles
+
+Recorded 2026-09-07, and it is the honest remainder of the fix above.
+
+`dashboardFor` used to fall through to the technician's dashboard for anything
+that was not an administrator or an engineer. It now routes by CAPABILITY rather
+than by role name, so a role an owner creates with review grants gets the
+engineer's dashboard without anybody editing that function.
+
+What it returns for a dispatcher, a salesperson or a customer service account is
+null, and the screen says plainly that no dashboard has been built for their
+role and that showing one built for a different job would be worse. That is
+true and it is not finished: those three roles work in this platform and have no
+overview of their own work.
+
+Building them is product work rather than a defect fix, so it is recorded here
+rather than folded into the sweep. What must not happen is a fourth generic
+dashboard that renders empty tiles, which is the same defect with a different
+shape.
+
+**Operator ruling, 2026-09-07: the null stays.** A wrong screen is worse than an
+honest absence, and the screen saying so is correct.
+
+**AND THE BUSINESS QUESTION, WHICH IS THE OPERATOR'S AND IS NEEDED BEFORE
+HIRING ANY OF THE THREE.** What each of these roles should see is not a design
+question with a defensible default. It is a question about what the job is, and
+getting it wrong produces exactly the empty tiles this entry warns against.
+
+What follows is not a proposal. It is the grants each role actually holds today,
+which is the constraint any answer has to fit, plus the question each one raises.
+
+**Dispatcher.** Holds `files.assign`, `files.transition`, `offers.dispatch`,
+`offers.list_own`, `clients.list`, `profiles.list`, `tasks.use`,
+`time.log_own`. This is the role with the most obvious dashboard of the three:
+work that needs assigning, offers nobody has accepted, and technicians who are
+free. The open question is the one the platform cannot answer:
+
+  Is a dispatcher measured on how fast work is placed, or on how well it is
+  placed? A screen built for the first is a queue with ages on it. A screen
+  built for the second is coverage and technician load. They are different
+  screens and the firm has never had to choose.
+
+**Sales.** Holds `clients.create`, `clients.update`, `clients.list`,
+`files.create`, `files.list`, `tasks.use`, `time.log_own`. Notably it does
+NOT hold `pricing.read`, by a deliberate ruling recorded in roles-audit: a
+salesperson seeing the fee schedule is negotiating against the firm. So:
+
+  What does a salesperson see about money, given they may not see prices? Their
+  own pipeline and their own conversions are answerable from rows the platform
+  already has. Anything about margin or value is not, and should not be.
+
+**Customer service.** Holds `clients.list`, `files.list`, `messages.use`,
+`tasks.use`, `time.log_own`, and nothing that changes a file. It is the
+narrowest of the three and the least obvious:
+
+  Is this role answering questions about work in progress, in which case the
+  dashboard is files by status with whatever a customer is likely to ring
+  about, or is it handling inbound that has not become work yet, in which case
+  it is the lead inbox? The grants suggest the first and the name suggests the
+  second.
+
+**One thing that is already decided and constrains all three.** None of them
+holds `ledger.read_all` or `billing.read`, so no dashboard for these roles
+carries a firm level money figure. That is not a gap to fill later; it is the
+permission model working, and a dashboard that needed one would be a sign the
+role is wrong rather than the screen.
+
 ## Found while starting Phase 12
 
 ### RESOLVED: four of the seven roles could sign in and were signed out by the next request

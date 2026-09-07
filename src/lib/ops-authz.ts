@@ -542,9 +542,20 @@ export function inviteFieldsFor(key: string): InviteField[] {
   return [...(DEFAULT_ROLES.find((r) => r.key === key)?.inviteFields ?? [])];
 }
 
-const ALLOWED = new Map<Role, Set<Action>>(
-  (Object.keys(MATRIX) as Role[]).map((r) => [r, new Set(MATRIX[r])]),
-);
+/*
+ * A `Map<Role, Set<Action>>` built from MATRIX used to sit here, and NOTHING
+ * READ IT. Deleted 2026-09-07.
+ *
+ * It was the permission lookup before Phase 10 Section 2 made grants rows, and
+ * `can()` has read `actor.grants` since. It stayed behind looking exactly like
+ * the authoritative structure it used to be: three roles, keyed by the Phase 0
+ * union, one grep away from anybody asking "where are the permissions".
+ *
+ * Dead code that looks authoritative is worse than dead code, because the next
+ * person to reach for it finds a three role answer and no sign it is inert.
+ * MATRIX itself stays: it is still read, to seed the three system roles in
+ * DEFAULT_ROLES, and that is a use with a reason.
+ */
 
 /**
  * May this actor perform this action at all?
@@ -821,13 +832,32 @@ export function canSeeProfile(actor: Actor | null, targetId: string): boolean {
 }
 
 /** The landing route for a role, used after sign in and by the shell. */
-export function homeFor(role: Role): string {
-  switch (role) {
-    case "admin":
-      return "/portal";
-    case "engineer":
-      return "/portal/review";
-    case "field_tech":
-      return "/portal/jobs";
-  }
+export function homeFor(role: RoleKey, given?: string | null): string {
+  /*
+   * WHERE A ROLE LANDS, FOR ALL SEVEN RATHER THAN THE ORIGINAL THREE.
+   *
+   * This was a switch over `Role`, the Phase 0 union, and it returned undefined
+   * for a dispatcher, a salesperson, a customer service account and a read only
+   * account. The type said that could not happen; the type was the thing being
+   * believed, exactly as it was for ROLE_LABEL and for the session cookie.
+   *
+   * It was invisible until 2026-09-07 because those four roles could not hold a
+   * session at all: readOpsSession refused their cookie on the next request, so
+   * nobody ever reached the redirect. FIXING THAT UNMASKED THIS. They signed in
+   * successfully and were sent to `undefined`.
+   *
+   * That is worth keeping written down, because it is the honest shape of the
+   * morning's work: one stale list was hiding another, and the second only
+   * became reachable when the first was repaired.
+   *
+   * The landing path is a COLUMN, NOT NULL since 0018, precisely so a role
+   * created on the permission screen cannot inherit somebody else's home
+   * screen. The row wins when the caller has one, DEFAULT_ROLES answers for the
+   * seven that ship, and anything else lands on /portal rather than nowhere.
+   * Same shape as roleLabel above, for the same reason.
+   */
+  if (given && given.startsWith("/portal")) return given;
+  const declared = DEFAULT_ROLES.find((r) => r.key === role);
+  if (declared) return declared.landingPath;
+  return "/portal";
 }

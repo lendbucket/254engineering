@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { currentActor, requestContext } from "@/lib/ops-auth";
-import type { Role } from "@/lib/ops-authz";
+import type { RoleKey } from "@/lib/ops-authz";
 import { assignTask, createTask, seedComplianceTasks, setTaskStatus } from "@/lib/ops-tasks";
 import {
   createChannel,
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (action === "create_channel") {
-    const roles = Array.isArray(body?.roles) ? (body.roles.map(String) as Role[]) : [];
+    const roles = Array.isArray(body?.roles) ? body.roles.map(String) : [];
     const result = await createChannel(actor, { name: String(body?.name ?? ""), roles }, context);
     return result.ok ? NextResponse.json({ ok: true, id: result.id }) : bad(result.error);
   }
