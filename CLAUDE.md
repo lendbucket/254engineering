@@ -273,10 +273,21 @@ care.
 | --- | --- | --- |
 | **Production** | `fsaryeciduszuahgjbly` | Real leads, applications, onboarding records, portal accounts. Shared with unrelated apps, which is why every table this firm owns is `eng_` prefixed. |
 | **Development** | `ythzaiqeoijlrdibnieo` | The same schema and nothing else. Created 2026-09-02. Every audit points here. |
+| **The new project, not yet in use** | `qmvcqvkywmkogxbyzsaz` | The schema at 0023 and five private buckets, and no data. Created 2026-09-04 for the cutover, replayed and verified 2026-09-07. **The cutover is deferred by operator decision, so nothing points here and nothing should.** |
 
 **Production credentials live only in Vercel.** `.env.local` carries the
 development project. The production service role key is not in the working tree
 and must not be put there.
+
+**The third row is a project waiting, not a target.** `PRODUCTION_REF` still
+names `fsaryeciduszuahgjbly` in both `src/lib/db-guard.ts` and
+`scripts/lib/db-target.mjs`, which is correct while the cutover is deferred and
+is exactly what step 9 changes when it is not. One consequence worth knowing
+before it bites: `neverProduction` compares against that constant, so the new
+project would today read as an ordinary development target to `roles-audit` and
+`seed-field-demo`. Nothing points at it, so nothing runs against it; the moment
+something does, those two constants move first. The full state of that project
+is in `docs/production-cutover-plan.md`, under the deferral notice at the top.
 
 **Why this exists.** Before the split, every audit run wrote to production:
 roles-audit created accounts there, mobile-overflow-audit signed a probe in
