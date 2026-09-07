@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { currentActor, MIN_PASSWORD_LENGTH } from "@/lib/ops-auth";
-import { actionsFor, can, ROLE_LABEL } from "@/lib/ops-authz";
+import { actionsFor, can, roleLabel } from "@/lib/ops-authz";
 import { PageHead, Panel } from "@/components/portal/surfaces";
 import { preferencesFor } from "@/lib/ops-notify";
 import { kindsForRole } from "@/lib/ops-comms";
@@ -17,7 +17,7 @@ export default async function ProfilePage() {
   const rows: [string, string][] = [
     ["Name", actor!.display_name],
     ["Email", actor!.email],
-    ["Role", ROLE_LABEL[actor!.role]],
+    ["Role", roleLabel(actor!.role)],
     ["Phone", actor!.phone ?? "Not recorded"],
   ];
 

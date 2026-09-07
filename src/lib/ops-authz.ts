@@ -38,13 +38,56 @@
 
 export type Role = "admin" | "engineer" | "field_tech";
 
+/**
+ * A role as the database holds it: a key on a row in eng_roles.
+ *
+ * It is `string` and that is the honest width. Role is the union of the three
+ * roles that shipped before Phase 10 Section 2 turned roles into rows, and it
+ * is still the right type for the three the code names on purpose, MATRIX and
+ * LICENSED_ROLE among them. It is the wrong type for a column, and typing the
+ * column with it is how ROLE_LABEL[actor.role] compiled while rendering nothing
+ * for four of the seven roles the platform ships.
+ *
+ * An alias rather than bare string, so a signature says which kind of string it
+ * wants.
+ */
+export type RoleKey = string;
+
 export const ROLES: Role[] = ["admin", "engineer", "field_tech"];
 
-export const ROLE_LABEL: Record<Role, string> = {
-  admin: "Administrator",
-  engineer: "Professional Engineer",
-  field_tech: "Field Technician",
-};
+/**
+ * What to call a role on a screen.
+ *
+ * WHY THIS IS A FUNCTION AND NOT THE MAP IT REPLACES
+ * ---------------------------------------------------
+ * ROLE_LABEL was `Record<Role, string>` with three keys, and Role is the union
+ * of the three roles that existed before roles became rows. Seven ship now, so
+ * `ROLE_LABEL[actor.role]` rendered NOTHING for a dispatcher, a salesperson,
+ * customer service or a read only account: a blank in the profile menu, a blank
+ * eyebrow on their dashboard, a blank cell in the roster, and a blank on the
+ * page where they set their password and are told what they are.
+ *
+ * Nothing failed. TypeScript was satisfied because the roster row was typed as
+ * Role, which is the type that stopped being true when the column started
+ * holding role keys. A type that is asserted rather than checked is a comment.
+ *
+ * The name comes from the database row when the caller has one, because a role
+ * created on the roles screen is named there and that name is the truth. When
+ * there is no row to hand, DEFAULT_ROLES answers for the seven the platform
+ * ships, and anything else is titled from its key rather than left blank: a
+ * reader seeing "Field Auditor" for field_auditor has learned something, and a
+ * reader seeing nothing has learned that the screen is broken.
+ */
+export function roleLabel(key: string, given?: string | null): string {
+  if (given && given.trim()) return given.trim();
+  const declared = DEFAULT_ROLES.find((r) => r.key === key);
+  if (declared) return declared.name;
+  return key
+    .split(/[_\s]+/)
+    .filter(Boolean)
+    .map((word) => word[0].toUpperCase() + word.slice(1))
+    .join(" ");
+}
 
 /** The signed-in person, as every rule below sees them. */
 export type Actor = {
@@ -55,8 +98,14 @@ export type Actor = {
    *
    * It is still read directly for one thing and one thing only: holdsLicence
    * compares it against LICENSED_ROLE. Everything else asks the grants.
+   *
+   * TYPED AS THE KEY IT IS, since 2026-09-06. It said Role, the union of the
+   * three roles that existed before Phase 10 Section 2, while the comment
+   * directly above said it was not one. The type was the one being believed:
+   * ROLE_LABEL[actor.role] compiled and rendered nothing for four of the seven
+   * roles the platform ships.
    */
-  role: Role;
+  role: RoleKey;
   status: "invited" | "active" | "suspended";
   /**
    * What this actor may do, loaded with the profile.
@@ -328,6 +377,33 @@ const MATRIX: Record<Role, Action[]> = {
  * what they GRANT, because that is a decision about the firm rather than about
  * the platform.
  */
+/**
+ * The extra questions creating an account has to ask for a particular role.
+ *
+ * WHY THIS IS A DECLARATION AND NOT AN if IN THE FORM
+ * ---------------------------------------------------
+ * The invite form asked `role === "engineer"` and `role === "field_tech"` in
+ * its markup, and offered exactly three roles, because that is what existed
+ * when it was written. Phase 10 Section 2 made roles ROWS and shipped seven,
+ * and the form went on offering three: four of the firm's own roles could not
+ * be given to anybody through the screen that exists to give them out.
+ *
+ * Putting the answer beside DEFAULT_ROLES rather than in the form means adding
+ * a role is one decision in one place, and the compiler asks the question:
+ * `inviteFields` is required, so a new role cannot be declared without saying
+ * what creating one has to ask for.
+ *
+ * A role created at RUNTIME on the roles screen has no entry here and gets no
+ * extra fields, which is right. The platform cannot know what a role somebody
+ * invented needs, and asking a dispatcher for a licence number would be worse
+ * than asking nothing.
+ */
+export type InviteField =
+  /** Texas PE licence number and TDI windstorm appointment. */
+  | "licence"
+  /** Base city, base county, and the counties dispatch may offer work in. */
+  | "coverage";
+
 export type DefaultRole = {
   key: string;
   name: string;
@@ -335,6 +411,8 @@ export type DefaultRole = {
   landingPath: string;
   /** Cannot be deleted or rekeyed. Grants are still editable. */
   isSystem: boolean;
+  /** What creating an account with this role has to ask for beyond name and email. */
+  inviteFields: InviteField[];
   grants: Action[];
 };
 
@@ -344,6 +422,7 @@ export const DEFAULT_ROLES: DefaultRole[] = [
     name: "Administrator",
     landingPath: "/portal",
     isSystem: true,
+    inviteFields: [],
     /*
      * MATRIX.admin already carries roles.manage, so it is NOT re-added here.
      *
@@ -360,6 +439,7 @@ export const DEFAULT_ROLES: DefaultRole[] = [
     name: "Professional Engineer",
     landingPath: "/portal/review",
     isSystem: true,
+    inviteFields: ["licence"],
     grants: [...MATRIX.engineer],
   },
   {
@@ -367,6 +447,7 @@ export const DEFAULT_ROLES: DefaultRole[] = [
     name: "Field Technician",
     landingPath: "/portal/jobs",
     isSystem: true,
+    inviteFields: ["coverage"],
     grants: [...MATRIX.field_tech],
   },
   {
@@ -379,6 +460,7 @@ export const DEFAULT_ROLES: DefaultRole[] = [
     name: "Dispatcher",
     landingPath: "/portal/files",
     isSystem: false,
+    inviteFields: [],
     grants: [
       "profiles.read_self", "profiles.update_self", "profiles.list",
       "clients.list",
@@ -402,6 +484,7 @@ export const DEFAULT_ROLES: DefaultRole[] = [
     name: "Sales",
     landingPath: "/portal/clients",
     isSystem: false,
+    inviteFields: [],
     grants: [
       "profiles.read_self", "profiles.update_self",
       "clients.list", "clients.create", "clients.update",
@@ -421,6 +504,7 @@ export const DEFAULT_ROLES: DefaultRole[] = [
     name: "Customer Service",
     landingPath: "/portal/files",
     isSystem: false,
+    inviteFields: [],
     grants: [
       "profiles.read_self", "profiles.update_self",
       "clients.list",
@@ -440,6 +524,7 @@ export const DEFAULT_ROLES: DefaultRole[] = [
     name: "Read Only",
     landingPath: "/portal",
     isSystem: false,
+    inviteFields: [],
     grants: [
       "profiles.read_self", "profiles.update_self", "profiles.list",
       "clients.list",
@@ -451,6 +536,11 @@ export const DEFAULT_ROLES: DefaultRole[] = [
     ],
   },
 ];
+
+/** What creating an account with this role has to ask for. Nothing, for a role invented on the roles screen. */
+export function inviteFieldsFor(key: string): InviteField[] {
+  return [...(DEFAULT_ROLES.find((r) => r.key === key)?.inviteFields ?? [])];
+}
 
 const ALLOWED = new Map<Role, Set<Action>>(
   (Object.keys(MATRIX) as Role[]).map((r) => [r, new Set(MATRIX[r])]),
@@ -602,16 +692,39 @@ export type FileScope =
 /** Statuses that make a file part of the shared review queue. */
 export const REVIEW_QUEUE_STATUSES = ["evidence_submitted", "under_review", "revisions_requested"];
 
+/**
+ * Which files this actor can see.
+ *
+ * THE THREE NAMED CASES ARE ABOUT IDENTITY, THE REST IS ABOUT THE GRANT
+ * ---------------------------------------------------------------------
+ * An engineer sees the shared review queue and their own work, and a technician
+ * sees the files they are on. Those two scopes are not "what may this person
+ * do", they are "which rows are about this person", so they are keyed on the
+ * role and have to be.
+ *
+ * Everybody else is answered by the grant. A dispatcher assigning work, a
+ * salesperson opening a job, customer service answering the telephone about one
+ * and a read only account reviewing the business all hold files.list, and all
+ * four of them need to see files to do the thing the grant permits.
+ *
+ * WHAT THIS REPLACES, AND IT WAS NOT A STYLE PROBLEM
+ * ---------------------------------------------------
+ * This was a switch on three role names with no default. TypeScript accepted it
+ * as exhaustive because actor.role was typed as the three role union, which
+ * stopped being true when roles became rows. A dispatcher reached the end of
+ * the function and got undefined, in a function whose every caller reads .kind.
+ *
+ * The type said the case could not happen. The database had been able to
+ * produce it since Phase 10 Section 2.
+ */
 export function visibleFiles(actor: Actor | null): FileScope {
   if (!actor || actor.status !== "active") return { kind: "none" };
-  switch (actor.role) {
-    case "admin":
-      return { kind: "all" };
-    case "engineer":
-      return { kind: "engineer", engineerId: actor.id, queueStatuses: REVIEW_QUEUE_STATUSES };
-    case "field_tech":
-      return { kind: "tech", techId: actor.id };
+  if (actor.role === "admin") return { kind: "all" };
+  if (actor.role === LICENSED_ROLE) {
+    return { kind: "engineer", engineerId: actor.id, queueStatuses: REVIEW_QUEUE_STATUSES };
   }
+  if (actor.role === "field_tech") return { kind: "tech", techId: actor.id };
+  return can(actor, "files.list") ? { kind: "all" } : { kind: "none" };
 }
 
 /**

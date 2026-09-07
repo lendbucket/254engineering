@@ -1,6 +1,6 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase";
-import type { Role } from "./ops-authz";
+import type { RoleKey } from "./ops-authz";
 import { enqueue } from "./ops-jobs";
 import {
   NOTIFICATION_KINDS,
@@ -39,7 +39,7 @@ import {
 
 export type RaiseInput = {
   profileId: string;
-  role: Role;
+  role: RoleKey;
   kind: NotificationKind;
   title: string;
   body?: string | null;
@@ -53,7 +53,7 @@ export type RaiseInput = {
 export type RaiseResult = { ok: boolean; channels: Channel[]; emailError?: string };
 
 /** One person's preferences, defaulted for anything they have never set. */
-export async function preferencesFor(profileId: string, role: Role): Promise<Preference[]> {
+export async function preferencesFor(profileId: string, role: RoleKey): Promise<Preference[]> {
   const db = supabaseAdmin();
   const applicable = kindsForRole(role);
   if (!db) return applicable.map((k) => defaultPreference(k.kind));

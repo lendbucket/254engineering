@@ -273,3 +273,29 @@ export function licensedCapabilities() {
       "grant one by mistake.",
   };
 }
+
+/**
+ * Every role somebody can be given, for a form that hands them out.
+ *
+ * WHY IT READS THE TABLE RATHER THAN DEFAULT_ROLES
+ * ------------------------------------------------
+ * DEFAULT_ROLES is the SEED. It says what the platform ships with, and it stops
+ * being the whole answer the moment the owner creates a role on the roles
+ * screen, which is the entire point of Phase 10 Section 2. A form built from
+ * the seed would offer seven roles forever and quietly refuse to hand out the
+ * eighth, which is the same defect it replaced: a screen that decides what
+ * exists instead of asking.
+ *
+ * Ordered the way the roles screen orders them, system roles first and then by
+ * key, so the two screens agree about what the list looks like.
+ */
+export async function assignableRoles(): Promise<{ key: string; name: string }[]> {
+  const db = supabaseAdmin();
+  if (!db) return [];
+  const { data } = await db
+    .from("eng_roles")
+    .select("key, name, is_system")
+    .order("is_system", { ascending: false })
+    .order("key");
+  return (data ?? []).map((r) => ({ key: r.key as string, name: r.name as string }));
+}

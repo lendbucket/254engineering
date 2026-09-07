@@ -7,7 +7,7 @@ import { currentActor } from "@/lib/ops-auth";
 import { environmentLabel, mispointing } from "@/lib/db-guard";
 import { MispointedDeployment } from "@/components/portal/Mispointed";
 import { listNotifications, unreadCount } from "@/lib/ops-notify";
-import { can, ROLE_LABEL, may } from "@/lib/ops-authz";
+import { can, roleLabel, may } from "@/lib/ops-authz";
 import { navFor, mobileTabsFor } from "@/components/portal/nav";
 import {
   CommandPalette,
@@ -209,7 +209,7 @@ export default async function PortalLayout({ children }: { children: React.React
               <MobileMore items={overflow} />
               <ProfileMenu
                 displayName={actor.display_name}
-                roleLabel={ROLE_LABEL[actor.role]}
+                roleLabel={roleLabel(actor.role)}
                 email={actor.email}
               />
             </div>

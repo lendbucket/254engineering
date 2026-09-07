@@ -1,4 +1,4 @@
-import type { Actor, Role } from "./ops-authz";
+import type { Actor, Role, RoleKey } from "./ops-authz";
 
 /**
  * Tasks, threads, and notifications: who sees what, and what reaches them
@@ -97,8 +97,17 @@ export function kindSpec(kind: NotificationKind): KindSpec | null {
 }
 
 /** Kinds a role can ever receive, for rendering a preferences screen. */
-export function kindsForRole(role: Role): KindSpec[] {
-  return NOTIFICATION_KINDS.filter((k) => k.roles.includes(role));
+/*
+ * RoleKey rather than Role, because the argument is whatever key the profile
+ * row holds. The DECLARATION above stays Role[]: which kinds a role receives is
+ * a decision somebody made about the three roles that existed, and widening the
+ * parameter does not silently give a dispatcher notifications nobody chose for
+ * them. What it does is stop the type from claiming a dispatcher cannot be
+ * asked. That the four newer roles currently receive nothing is recorded in
+ * BACKLOG as a decision waiting to be made, not fixed by a cast here.
+ */
+export function kindsForRole(role: RoleKey): KindSpec[] {
+  return NOTIFICATION_KINDS.filter((k) => (k.roles as readonly string[]).includes(role));
 }
 
 export type Preference = { kind: NotificationKind; in_app: boolean; email: boolean; sms: boolean };
@@ -122,12 +131,12 @@ export type Preference = { kind: NotificationKind; in_app: boolean; email: boole
  */
 export function channelsFor(
   kind: NotificationKind,
-  role: Role,
+  role: RoleKey,
   preference: Preference | null,
 ): Channel[] {
   const spec = kindSpec(kind);
   if (!spec) return [];
-  if (!spec.roles.includes(role)) return [];
+  if (!(spec.roles as readonly string[]).includes(role)) return [];
 
   const channels: Channel[] = ["in_app"];
 
@@ -170,7 +179,7 @@ export type ThreadSubject = {
   /** Everyone explicitly on the thread. */
   participantIds: string[];
   /** For a channel: which roles may read it. */
-  channelRoles?: Role[];
+  channelRoles?: RoleKey[];
 };
 
 /**
