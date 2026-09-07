@@ -157,12 +157,23 @@ run `setval`. So `--apply` prints the exact statements and **exits non-zero
 with the copy declared unfinished**, rather than returning success and leaving a
 destination whose sequence sits at 1 while its table holds 863 rows.
 
-**The queue stop condition is built, and it earned itself within the hour.** At
-the first measurement the queue held nothing pending or running, recorded then
-as a fact about that minute rather than a property of the plan. Forty minutes
-later it held job 863, kind `errors.alert`, pending: an alert about a fault
-that had not been sent yet, which is close to the worst row in that table to
-drop in silence.
+**The queue stop condition is built.** At the first measurement the queue held
+nothing pending or running; forty minutes later it held job 863, kind
+`errors.alert`, pending.
+
+**That job was reported as an alert about an unsent fault, and that was wrong**,
+inferred from its name rather than read from the database. Production holds zero
+error types and zero error events; `errors.alert` is a no-op sweep enqueued
+every five minutes by health-watch; the job ran 44 seconds after being enqueued
+and is `done`; and the worker is healthy, 120 of 120 minutely runs ok in the
+surrounding two hours with all 864 jobs done and none dead. The full correction
+is under step 5 of `docs/production-cutover-plan.md`.
+
+The stop condition still stands, on a forward looking argument rather than that
+false one: the two kinds in the queue today are periodic sweeps that come round
+again and are harmless to lose, and the jobs that will be there once the firm is
+taking orders, a customer email or a statement close, are not. A stop condition
+added once those exist is one added after the window it was for.
 
 **And the generalised fix, which is worth more than the three tables.** The
 script reads the table names out of `supabase/migrations/` on disk, asks the

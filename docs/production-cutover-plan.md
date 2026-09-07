@@ -231,13 +231,47 @@ that silently never runs, with no error and no gap in a sequence.
 The queue held zero pending and zero running rows when this was first measured,
 and that was recorded as **a fact about that minute rather than a property of
 the plan**. Forty minutes later it held one: job 863, kind `errors.alert`,
-pending. An alert about a fault that had not been sent yet, which is close to
-the worst row in the table to lose silently.
+pending.
 
-**So step 7 gains a stop condition, and it is built rather than written down.**
+**That job was reported here as an alert about a fault that had not been sent,
+and that was wrong.** It was inferred from the job's NAME rather than read from
+the database, which is the exact defect this repository hunts, committed inside
+a note about that defect. The correction, from production on 2026-09-07:
+
+- **Nothing had faulted.** `eng_error_types` and `eng_error_events` both hold
+  **zero rows**, and always have.
+- **`errors.alert` is a periodic no-op sweep**, enqueued unconditionally every
+  five minutes by the health-watch cron. It reads the error types and decides
+  whether to email; with none, it does nothing. The handler's own comment says
+  it plainly: putting it on the minutely worker "would write 1440 rows a day to
+  say nothing 1439 times".
+- **The job was not stuck.** Enqueued 16:35:24, started 16:36:08, finished
+  16:36:09, one attempt, no error. It is `done`.
+- **The worker is healthy.** In the two hours around that reading the `jobs`
+  cron ran 120 times, one a minute, 120 ok and none failed or unreported, and
+  all 864 jobs on production are `done` with none dead.
+
+What I had caught was the ordinary forty five second gap between a job being
+enqueued and the next minutely tick collecting it, which is what a working queue
+looks like at any given instant rather than a symptom of anything.
+
+**The stop condition stays, and its real justification is forward looking.**
+Production's queue today holds exactly two kinds, `errors.alert` and
+`metrics.rollup`, both periodic sweeps that reschedule themselves and both
+harmless to lose: the next tick does the work again. So dropping one today costs
+nothing, and that is a fact about how little this platform currently does rather
+than a property of the queue.
+
+The jobs that will be in it once the firm is taking orders are the ones that
+matter: an email to a customer, a statement close, a payment reconciliation.
+Those do not come round again five minutes later. **A stop condition that is
+only added once the expensive jobs exist is a stop condition added after the
+window it was needed for**, so it is built now, while the cost of it firing is
+a one minute wait.
+
 `copy-project.mjs` reads the queue before it writes anything, names the kinds
-it found, and refuses. The correct response to it firing is to wait a minute,
-never to force it.
+it found, and refuses. The correct response to it firing is to wait, never to
+force it.
 
 **FIXED 2026-09-07, on the operator's instruction**, rather than deferred with
 the cutover: a copy script that reports agreement while copying nothing will be
