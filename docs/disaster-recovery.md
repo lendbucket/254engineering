@@ -142,6 +142,198 @@ that would close the gap before the cutover does.
 
 ---
 
+## 5. The runbook
+
+Brief items 4 and 5. **Neither is blocked by the cutover**, which is worth
+saying plainly: the deferral stops the restore TEST, and it does not stop the
+firm writing down what to do when something breaks. This half of the section is
+deliverable today and is the half somebody reads at two in the morning.
+
+Every command below is one that can actually be run. Where the honest answer is
+that there is no command, it says so rather than describing a procedure that
+does not exist.
+
+### 5.1 The database is lost or corrupted
+
+**Today: there is no safe action, and this is the entry that the cutover
+changes.** Section 1 is why. Do not restore `fsaryeciduszuahgjbly`; it would
+rewind four other applications.
+
+What to do instead, in order:
+
+1. **Stop the writes before deciding anything.** The three cron paths are the
+   only unattended writers. Removing `CRON_SECRET` from the Vercel Production
+   scope makes all three refuse, because each compares against it and treats an
+   unset value as no match:
+
+       vercel env rm CRON_SECRET production
+
+   Then redeploy, because **a deployment's environment is snapshotted at
+   creation** and removing a variable changes nothing until something is built
+   against the new set.
+
+2. **Establish what is actually gone** before restoring anything. The
+   fingerprint query in CLAUDE.md section 6b answers "is the schema intact",
+   and per table counts answer "is the data". A schema that is intact with
+   empty tables is a different incident from a schema that is gone.
+
+3. **Assess by table, not by database.** `eng_audit_events` is the one that
+   cannot be reconstructed. Everything else in section 3 above can be rebuilt
+   by hand at today's volume.
+
+4. **Then ask the operator of the shared project**, knowing the cost to the
+   other four applications, and make that a decision somebody takes rather than
+   one this document pretends is routine.
+
+**After the cutover** this entry becomes: restore `qmvcqvkywmkogxbyzsaz` to a
+timestamp from the Supabase dashboard, then run the verification in section 4
+above. Nobody else is affected, which is the whole point of the cutover.
+
+### 5.2 A deployment is bad
+
+The fastest correct action is to promote the previous deployment, not to fix
+forward. Vercel keeps every build.
+
+    vercel rollback              # the previous production deployment
+    vercel ls                    # to pick a specific one instead
+
+**The CLI is not installed on the operator's machine** as of 2026-09-07, which
+makes the dashboard the real path: the project's Deployments tab, the previous
+production build, Promote to Production. Installing it is one command and worth
+doing before it is needed:
+
+    npm i -g vercel
+
+**A rollback does not roll back the database.** A migration applied by the bad
+deployment is still applied. If the deployment ran one, read 5.3 first, because
+promoting older code against a newer schema is its own incident.
+
+### 5.3 A migration goes wrong
+
+**The migrations in this repository are additive by construction**, which is
+what makes this recoverable at all: every one uses `create table if not
+exists`, `add column if not exists`, or `create or replace function`. None
+drops a column or a table. So the ordinary failure is a migration that did not
+finish, not one that destroyed something.
+
+1. **Read what actually landed** rather than what the file says:
+
+       select md5(string_agg(sig, '|' order by sig)), count(*)
+       from (select table_name||'.'||column_name||':'||data_type||':'||is_nullable as sig
+             from information_schema.columns
+             where table_schema='public' and table_name like 'eng\_%') t;
+
+   Compare with the chain in CLAUDE.md section 6b. The fingerprint says exactly
+   which migration the database is between.
+
+2. **Re run it.** Because every statement is idempotent, applying the same
+   migration twice is safe and is the first thing to try.
+
+3. **Never edit a migration that has run.** Standing law, and CLAUDE.md gives
+   the reason: a migration that changes after it has run is one nobody can
+   reason about. The fix is a new migration with a higher number.
+
+4. **A migration that must be undone gets its own forward migration**, which
+   the fingerprint then records. There is no down path in this repository and
+   that is deliberate.
+
+**`migration-audit` replays the whole chain into an in process Postgres on
+every suite run**, so a chain that cannot rebuild from nothing is caught before
+it reaches a database rather than by this runbook.
+
+### 5.4 A credential leaks
+
+**Rotate first, investigate second.** Every one of these lives in the Vercel
+Production scope and nowhere else in the tree.
+
+| Leaked | Rotate | What breaks while it is rotating | What the leak exposed |
+| --- | --- | --- | --- |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase dashboard, API settings | Everything. It is the only database credential. | **Total read and write on every table, past RLS.** Treat as full compromise. |
+| `STRIPE_SECRET_KEY` | Stripe dashboard, roll the key | Checkout and refunds | Charges, refunds, customer payment records |
+| `STRIPE_WEBHOOK_SECRET` | Stripe dashboard, per endpoint | Payment confirmation | Forged payment confirmations, so an unpaid order could be marked paid |
+| `RESEND_API_KEY` | Resend dashboard | Every outbound email | Sending as the firm's domain |
+| `OPS_SESSION_SECRET` | Generate a new one | **Signs every staff session out.** | Forged staff sessions, at any role |
+| `CUSTOMER_SESSION_SECRET` | Generate a new one | Signs every customer out | Forged customer sessions |
+| `PARTNER_SESSION_SECRET` | Generate a new one | Signs every partner out | Forged partner sessions |
+| `CRON_SECRET` | Generate a new one | The three cron paths refuse until redeployed | Anybody could trigger the job runner and the daily rollup |
+| `OPS_UNLOCK_TOKEN` | Generate a new one | The unlock path | Whatever that path opens |
+| `INTAKE_KEY_SEALED`, `INTAKE_KEY_STAMP` | Generate a new one, give it to that sister | That sister's leads until it is updated | A third party could post leads as that brand, and only as that brand |
+
+**The three session secrets are separate on purpose**, and the comment in
+`src/lib/customer-session.ts` says why: rotating one must not sign out the
+other two. Rotating the staff secret during an incident should not also throw
+every customer out mid order.
+
+**Rotation is not complete until a redeploy**, for the snapshot reason in 5.1.
+And a leaked service role key means the database was reachable for as long as
+the leak lasted, so rotating it ends the exposure and tells you nothing about
+what was done with it. `eng_audit_events` records what the APPLICATION did; a
+direct service role connection does not go through it and leaves no trace in it.
+**That is the honest limit of what the audit trail can answer after this
+particular incident**, and it is better learned here than during one.
+
+### 5.5 A third party is down
+
+| Down | What stops | What still works | What it needs |
+| --- | --- | --- | --- |
+| Supabase | Everything signed in, every form that writes | The static marketing pages, which are prerendered | Nothing. Wait, and watch the status page. |
+| Stripe | Checkout, refunds | The whole platform except taking money | The order flow already writes its row before the checkout call, so an order is not lost |
+| Resend | Every outbound email | Everything else | The intake API returns `emailed: false` on a 503, which is the flag that says a person does NOT have the enquiry |
+| Vercel | The site | Nothing | Nothing |
+| Sentry | Error capture to Sentry | **The database error log, which is the point of having both** | Nothing |
+
+**The Resend row is the one with a real decision behind it.** The sister intake
+API answers 503 with an explicit `emailed` flag precisely so a caller can tell
+"the row failed but a human has it" from "nothing left the building".
+`docs/sister-intake-api.md` carries what each state obliges a caller to do.
+
+---
+
+## 6. What is not recoverable, and this is the list to read before an incident
+
+Brief item 5. Stated as a list rather than a paragraph because each line is a
+different kind of loss.
+
+1. **Storage objects are not covered by a database restore.** Point in time
+   recovery restores Postgres. The buckets are a separate system, and rewinding
+   the database to yesterday leaves today's uploaded evidence photographs
+   exactly where they are, now referenced by rows that may no longer exist.
+   **A restore therefore desynchronises storage from the database**, and
+   nothing in this platform reconciles them. Two objects are at stake today;
+   after the firm opens, evidence photographs are.
+
+2. **Auth users are in a different schema and a different concern.** The two
+   accounts that matter here live in `auth.users`, which the cutover plan
+   copies by direct SQL insert precisely because no ordinary tool preserves the
+   uuid. A restore that missed them would leave every `eng_profiles` row
+   pointing at nothing, since that key is referenced by more than thirty
+   foreign keys.
+
+3. **Password hashes are not copied and are not meant to be.** The cutover
+   issues a fresh set password link instead. So a project level move is always
+   also a credential reset, by design, and anybody planning one should expect to
+   re issue links rather than discover it afterwards.
+
+4. **Anything living only in an environment variable is gone with the project.**
+   The eleven secrets in the table above exist in the Vercel Production scope
+   and in the operator's own records, and nowhere else in this repository by
+   standing law. **There is no export of them and there must not be.** If the
+   Vercel project is lost, every one is re issued from its vendor, and the three
+   session secrets are simply regenerated, which signs everybody out.
+
+5. **The audit trail cannot be partially reconstructed, which is the whole
+   point of it.** Its value is that each row was written at the moment the thing
+   happened and never touched again. A rebuilt approximation answers "we believe
+   this is what happened", which is exactly the sentence an append only table
+   exists so the firm never has to say.
+
+6. **What Sentry holds is not a backup of the error log, and the reverse.** The
+   two capture the same faults through different paths, and neither is
+   authoritative for the other. Losing the database loses `eng_error_events`
+   regardless of Sentry's retention.
+
+---
+
 ## 5. What this report deliberately does not claim
 
 - It does not claim the backups are absent. They exist; they are unusable by
