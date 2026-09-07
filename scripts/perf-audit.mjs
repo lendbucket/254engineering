@@ -87,7 +87,7 @@
 import lighthouse from "lighthouse";
 import * as chromeLauncher from "chrome-launcher";
 import { chromium } from "playwright";
-import { METRIC_BUDGETS, ROUTE_BUDGETS } from "./perf-budgets.mjs";
+import { METRIC_BUDGETS, ROUTE_BUDGETS, REMOTE_LCP_TARGET } from "./perf-budgets.mjs";
 /*
  * Pass, fail, and could not tell. In its own module so it can be exercised:
  * this file launches Chrome on load, so anything defined here is unreachable to
@@ -345,6 +345,40 @@ if (unstable.length) {
   console.log("");
   console.log("  BASE_URL=https://254engineering.com PERF_RUNS=5 npx tsx scripts/perf-audit.mjs");
   console.log("");
+}
+
+/*
+ * THE TARGET, REPORTED BESIDE THE GATE AND NEVER ENFORCED AS ONE.
+ *
+ * Operator ruling, 2026-09-07, when the two were separated: the gap between
+ * what the site does and what the operator wants it to do stays visible rather
+ * than being absorbed by a ceiling it can pass.
+ *
+ * This is the only place in the suite where a number is printed that cannot
+ * turn the board red, and that is deliberate. It is a target. Enforcing it from
+ * this measuring position is what produced eight COULD NOT TELL verdicts in a
+ * row, because the instrument's resolution is wider than the distance between
+ * the target and the pages.
+ */
+if (!IS_LOCAL && rows.some((r) => !r.failed)) {
+  const measured = rows.filter((r) => !r.failed);
+  const meeting = measured.filter((r) => r.median.lcp <= REMOTE_LCP_TARGET);
+
+  console.log("");
+  console.log(`AGAINST THE ${REMOTE_LCP_TARGET}ms TARGET, which is not a gate and cannot fail this run:`);
+  console.log("");
+  for (const r of measured) {
+    const over = Math.round(r.median.lcp) - REMOTE_LCP_TARGET;
+    console.log(
+      `  ${(over <= 0 ? "meets " : "over  ").padEnd(7)}${String(Math.round(r.median.lcp)).padStart(5)}ms  ${
+        over <= 0 ? `${String(-over).padStart(4)}ms under` : `${String(over).padStart(4)}ms over `
+      }  ${r.path}`,
+    );
+  }
+  console.log("");
+  console.log(
+    `  ${meeting.length} of ${measured.length} routes meet the target at the median. The gate is ${CEILINGS.lcp}ms and is a different number for a reason: see perf-budgets.mjs.`,
+  );
 }
 
 if (failed.length === 0) {
