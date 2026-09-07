@@ -1,4 +1,5 @@
 import { business } from "@/config/business";
+import { roleLabel as roleLabelFor, type RoleKey } from "./ops-authz";
 import { emailIdentity, fromHeader, type SenderPurpose } from "@/config/email-identity";
 import {
   OUTCOME_HEADLINE,
@@ -496,19 +497,37 @@ export function onboardingInvite(input: {
 export function portalInvite(input: {
   personName: string;
   personEmail: string;
-  role: "admin" | "engineer" | "field_tech";
+  /**
+   * The role KEY, and the label is looked up rather than branched on.
+   *
+   * This was the union of the three roles that shipped in Phase 0, and the
+   * label below was a ternary that FELL THROUGH to "Field Technician". So an
+   * invitation to a dispatcher, a salesperson, a customer service account or a
+   * read only account told them, in writing, that they were a field technician.
+   *
+   * The route that sends this validates the role against the database and then
+   * wrote `role as Role` to get past the type. The cast is the whole mechanism:
+   * TypeScript had this right until somebody switched it off, three lines below
+   * a comment explaining that this same route used to refuse those roles.
+   *
+   * Found 2026-09-07 in a sweep for this shape. It is the only one of the six
+   * that reached a person outside the firm.
+   */
+  role: RoleKey;
+  /** The role's own name, when the caller has the row. roleLabel prefers it. */
+  roleName?: string | null;
   /** Absent when the address already had credentials on this project. */
   setPasswordUrl: string | null;
   expiresAt: string | null;
   invitedBy: string;
   signInUrl: string;
 }): RenderedEmail {
-  const roleLabel =
-    input.role === "admin"
-      ? "Administrator"
-      : input.role === "engineer"
-        ? "Professional Engineer"
-        : "Field Technician";
+  /*
+   * Looked up rather than branched on. See the note on the role field above:
+   * this was a ternary that fell through to "Field Technician" for four of the
+   * seven roles the platform ships, in an email sent to a new hire.
+   */
+  const roleLabel = roleLabelFor(input.role, input.roleName);
 
   return compose(
     "portal.invite",

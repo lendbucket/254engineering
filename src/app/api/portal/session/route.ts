@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { verifyCredentials, requestContext } from "@/lib/ops-auth";
 import { issueOpsSession, opsCookieOptions, OPS_COOKIE, opsSessionConfigured } from "@/lib/ops-session";
+import { mfaRequirementFor, mfaStateFor } from "@/lib/ops-mfa";
 import { takeLoginAttempt, clearLoginAttempts, clientKey } from "@/lib/ops-rate-limit";
 import { writeAudit } from "@/lib/ops-audit";
 import { homeFor } from "@/lib/ops-authz";
@@ -131,7 +132,45 @@ export async function POST(request: NextRequest) {
 
   clearLoginAttempts(clientKey(request.headers), attempted);
 
-  const session = issueOpsSession(result.profile.id, result.profile.role);
+  /*
+   * THE SECOND FACTOR DECIDES WHICH KIND OF SESSION THIS IS.
+   *
+   * Phase 12 Section 1. Three outcomes, and the third is the one that makes the
+   * requirement enforceable rather than advisory:
+   *
+   *   enrolled                  a PENDING session, and the challenge screen
+   *   required but not enrolled a PENDING session, and the enrolment screen
+   *   otherwise                 a full session, as before
+   *
+   * A person whose role requires a factor they have not set up is not refused,
+   * because refusing them would mean an operator turning on the requirement
+   * locks out everybody who has not enrolled yet. They get a pending session
+   * that can reach enrolment and nothing else, which is the same boundary the
+   * challenge uses and inherits the same enforcement.
+   *
+   * mfaStateFor THROWS on a failed read rather than reporting "not enrolled",
+   * and that is deliberate: a database blip must not become a way past the
+   * requirement. A 503 here is correct and is the closed door.
+   */
+  let factor: "pending" | "full" = "full";
+  let mfaNext: string | null = null;
+  try {
+    const requirement = await mfaRequirementFor(result.profile.role);
+    const state = await mfaStateFor(result.profile.id);
+
+    if (state.enrolled) {
+      factor = "pending";
+      mfaNext = "/portal/mfa";
+    } else if (requirement === "required") {
+      factor = "pending";
+      mfaNext = "/portal/mfa/enrol";
+    }
+  } catch (err) {
+    console.error("[session] the second factor state could not be read:", err);
+    return fail(503, "Your account could not be checked just now. Try again in a moment.");
+  }
+
+  const session = issueOpsSession(result.profile.id, result.profile.role, factor);
   if (!session) return fail(503, "The portal is not configured.");
 
   const db = supabaseAdmin();
@@ -151,7 +190,14 @@ export async function POST(request: NextRequest) {
     userAgent,
   });
 
-  const safeNext = next.startsWith("/portal") && !next.startsWith("//") ? next : homeFor(result.profile.role);
+  /*
+   * A pending session goes to the second factor and nowhere else, whatever the
+   * caller asked for in `next`. Honouring a next that pointed at a portal
+   * screen would send somebody to a page their own cookie cannot open, which
+   * reads as the sign in having silently failed.
+   */
+  const safeNext =
+    mfaNext ?? (next.startsWith("/portal") && !next.startsWith("//") ? next : homeFor(result.profile.role));
 
   const res = isForm
     ? NextResponse.redirect(new URL(safeNext, request.url), { status: 303 })

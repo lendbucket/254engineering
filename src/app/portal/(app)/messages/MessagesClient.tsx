@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { KeyboardAwareComposer } from "@/components/portal/design";
-import type { Role } from "@/lib/ops-authz";
+import type { RoleKey } from "@/lib/ops-authz";
 
 /**
  * Writing, starting a conversation, and opening a channel.
@@ -34,7 +34,7 @@ export function Composer({
   selfId,
 }: {
   threadId: string;
-  participants: { id: string; name: string; role: Role }[];
+  participants: { id: string; name: string; role: RoleKey }[];
   selfId: string;
 }) {
   const router = useRouter();

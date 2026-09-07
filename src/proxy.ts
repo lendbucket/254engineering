@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { OPS_COOKIE, readOpsSession } from "@/lib/ops-session";
+import { OPS_COOKIE, readOpsSession, readPendingSession } from "@/lib/ops-session";
 import { CUSTOMER_COOKIE, readCustomerSession } from "@/lib/customer-session";
 import { PARTNER_COOKIE, readPartnerSession } from "@/lib/partner-session";
 
@@ -82,6 +82,19 @@ const OPEN_PATHS = new Set([
    */
   "/api/portal/health",
 ]);
+
+/**
+ * The three paths a PENDING session may reach, and no others.
+ *
+ * Deliberately separate from OPEN_PATHS: open means no session at all, and
+ * these need a valid half authenticated one. A signed out visitor is refused
+ * here exactly as everywhere else.
+ *
+ * Explicit rather than a prefix on /portal/mfa, because a prefix would admit
+ * every future route under it without anybody deciding to. mfa-audit asserts
+ * this set and fails on a fourth entry.
+ */
+const MFA_PATHS = new Set(["/portal/mfa", "/portal/mfa/enrol", "/api/portal/mfa"]);
 
 /**
  * Customer account surfaces, open to a signed out visitor.
@@ -208,6 +221,30 @@ export function proxy(request: NextRequest) {
 
   const claims = readOpsSession(request.cookies.get(OPS_COOKIE)?.value);
   if (claims) return NextResponse.next();
+
+  /*
+   * THE SECOND FACTOR ROUTES, AND THE ONLY PLACE A PENDING SESSION GETS PAST.
+   *
+   * Phase 12 Section 1. A pending session is not a session, so readOpsSession
+   * above returned null for it and everything below refuses it. These three
+   * paths are the exception, and they are exactly the ones somebody carrying a
+   * pending session has to reach: the challenge, the enrolment they are
+   * required to complete, and the endpoint both post to.
+   *
+   * THEY ARE NOT IN OPEN_PATHS, which is the distinction that matters. Open
+   * means no session at all. These need a VALID pending one, so a signed out
+   * visitor is refused here exactly as they are everywhere else, and only
+   * somebody who has already proved a password gets through.
+   *
+   * The list is explicit rather than a prefix match on /portal/mfa. A prefix
+   * would silently admit any future route under it, and the whole argument for
+   * this boundary is that it has no list to keep in step with anything.
+   * mfa-audit asserts these three and refuses a fourth.
+   */
+  if (MFA_PATHS.has(pathname)) {
+    const pending = readPendingSession(request.cookies.get(OPS_COOKIE)?.value);
+    if (pending) return NextResponse.next();
+  }
 
   if (pathname.startsWith("/api/")) {
     // JSON, never a redirect. A fetch that follows a redirect to an HTML sign in

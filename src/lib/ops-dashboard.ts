@@ -615,9 +615,46 @@ async function techDashboard(actor: Actor): Promise<TechDashboard> {
 /** The dashboard for whoever is asking. Role decides it, never a query parameter. */
 export async function dashboardFor(actor: Actor | null): Promise<Dashboard | null> {
   if (!actor || actor.status !== "active") return null;
-  if (actor.role === "admin") return adminDashboard(actor);
-  if (actor.role === "engineer") return engineerDashboard(actor);
-  return techDashboard(actor);
+
+  /*
+   * ROUTED BY CAPABILITY, NOT BY ROLE NAME, AND THE FALL THROUGH IS GONE.
+   *
+   * This was: admin, then engineer, then EVERYTHING ELSE gets techDashboard.
+   * Written when three roles existed. Since 0018 seven do, so a dispatcher, a
+   * salesperson, a customer service account and a read only account were all
+   * served the field technician's dashboard, labelled `role: "field_tech"`.
+   *
+   * Not a data leak, and that is worth being precise about rather than
+   * dramatic: every query in techDashboard is scoped to actor.id, so what those
+   * four saw was an EMPTY technician dashboard. Offers they have none of,
+   * deadlines they have none of, and pay they are not owed. A wrong screen
+   * rather than somebody else's data.
+   *
+   * It was unreachable until 2026-09-07 because those four roles could not hold
+   * a session. Repairing that made this reachable, which is the same sequence
+   * that unmasked homeFor.
+   *
+   * The two specialised dashboards are gated on the capability that defines
+   * them rather than on the name of a role, so a role an owner creates with
+   * review grants gets the engineer's dashboard without anybody editing this.
+   */
+  if (can(actor, "ledger.read_all") && can(actor, "billing.read")) return adminDashboard(actor);
+  if (can(actor, "evidence.review")) return engineerDashboard(actor);
+  if (can(actor, "offers.list_own")) return techDashboard(actor);
+
+  /*
+   * AND NOTHING FOR THE REST, WHICH IS HONEST RATHER THAN COMPLETE.
+   *
+   * A dispatcher, a salesperson and a customer service account have no
+   * dashboard built for them. Serving one of the three that exist would be the
+   * defect this block replaces, wearing a capability check instead of a role
+   * name, so they get null and the screen says plainly that there is no
+   * dashboard for their role yet.
+   *
+   * That gap is real and is recorded in BACKLOG.md rather than papered over
+   * with a page of tiles that happen to render empty.
+   */
+  return null;
 }
 
 /** Whether this actor may open the billing screen. */

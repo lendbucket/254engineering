@@ -3,7 +3,7 @@ import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { cookies, headers } from "next/headers";
 import { supabaseAdmin, supabaseCredentialCheck } from "./supabase";
 import { OPS_COOKIE, readOpsSession } from "./ops-session";
-import type { Action, Actor, Role } from "./ops-authz";
+import type { Action, Actor, Role, RoleKey } from "./ops-authz";
 
 /**
  * Everything that turns a request into an actor, and an admin's intent into an
@@ -36,7 +36,13 @@ export type ProfileRow = {
   email: string;
   display_name: string;
   phone: string | null;
-  role: Role;
+  /*
+   * The role KEY, not the Phase 0 union. Typing this as Role is what let
+   * homeFor(profile.role) compile while homeFor returned undefined for four of
+   * the seven roles the platform ships, and what made `as Role` look
+   * reasonable at the three call sites that wrote it.
+   */
+  role: RoleKey;
   status: "invited" | "active" | "suspended";
   license_number: string | null;
   tdi_appointment: string | null;
@@ -199,7 +205,16 @@ export async function verifyCredentials(email: string, password: string): Promis
 export type CreateAccountInput = {
   email: string;
   displayName: string;
-  role: Role;
+  /*
+   * The role KEY. This said Role, the Phase 0 union, so the route that creates
+   * an account had to write `role as Role` to pass a validated dispatcher
+   * through, and that cast is what let a falling through ternary in the
+   * invitation email tell four of the seven roles they were field technicians.
+   *
+   * The value is validated against eng_roles by the caller before it arrives,
+   * which is a stronger check than a union that stopped being true in 0018.
+   */
+  role: RoleKey;
   phone?: string | null;
   licenseNumber?: string | null;
   tdiAppointment?: string | null;

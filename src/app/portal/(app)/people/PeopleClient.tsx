@@ -2,13 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { inviteFieldsFor, roleLabel, type Role } from "@/lib/ops-authz";
+import { inviteFieldsFor, roleLabel, type RoleKey } from "@/lib/ops-authz";
 
 type Person = {
   id: string;
   email: string;
   display_name: string;
-  role: Role;
+  role: RoleKey;
   status: "invited" | "active" | "suspended";
   phone: string | null;
   license_number: string | null;

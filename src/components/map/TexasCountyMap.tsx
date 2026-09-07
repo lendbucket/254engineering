@@ -163,11 +163,53 @@ export const COUNTY_GEOMETRY_ID = "tx-county-shapes";
  * worth keeping.
  *
  * The format below is not a guess. It was read off the served HTML before the
- * change, and map-markup-audit asserts the rendered bytes still match.
+ * change, and scripts/map-markup-audit.mjs asserts the rendered bytes still
+ * match.
+ *
+ * THAT AUDIT DID NOT EXIST UNTIL 2026-09-07, AND THIS COMMENT SAID IT DID
+ * ----------------------------------------------------------------------
+ * The sentence above was written on 2026-09-04 naming a check that was never
+ * built. It appeared nowhere in the repository except in this comment, so the
+ * byte identity it promised was unguarded from the day it was claimed, and a
+ * second optimisation was very nearly built on top of it. It exists now, and
+ * its fixtures are the bytes the LIVE SITE served on 2026-09-07.
  *
  * Only the "define" branch is pre serialised. The standalone branch fills each
- * county conditionally on the active region, so it is genuinely dynamic and
- * stays as elements.
+ * county conditionally on the active region, so it stays as elements.
+ *
+ * PRE SERIALISING THE STANDALONE BRANCH WAS TRIED ON 2026-09-07 AND DROPPED
+ * -------------------------------------------------------------------------
+ * Operator approved the attempt and then the drop, on the measurement.
+ *
+ * The reasoning for trying it was that both coverage routes carry the geometry
+ * twice, once as markup and once in the React flight payload, which looked like
+ * the defect the homepage fix removed. It is not the same defect, and that is
+ * the useful part of the finding.
+ *
+ * The homepage fix removed a SECOND MAP: two maps on one page became one
+ * geometry and a use element. The coverage routes draw ONE map, and its
+ * geometry is in the markup once and in the flight payload once. That
+ * duplication is inherent to server rendering the map, and the only way to
+ * remove it is to stop server rendering the map, which is the thing worth
+ * keeping: this firm's claim is that it covers all 254 counties, and the
+ * counties have to be in the HTML for anything that does not run JavaScript.
+ *
+ * Pre serialising therefore removes only the per element descriptor overhead.
+ * Built, verified byte identical, and measured on the production build:
+ *
+ *   /coverage               31,167 -> 30,324 brotli bytes    843 saved
+ *   /coverage/coastal-bend  26,352 -> 25,378 brotli bytes    974 saved
+ *
+ * Under 1KB on the wire, about 4.5ms of transfer on the gate's 1.6Mbps
+ * profile, against a measurement whose spread on these routes is 400 to 750ms.
+ * Roughly seventy times below what the instrument can resolve, so deploying it
+ * would have returned "could not tell" by construction. Dropped rather than
+ * kept for a saving nothing can see, and recorded here rather than left for
+ * somebody to try again.
+ *
+ * The LCP element on both routes is the prelaunch compliance paragraph, not the
+ * map, asked of the browser through a PerformanceObserver. Coordinate precision
+ * is untouched for the same reason it was untouched in September.
  */
 const SHARED_COUNTY_PATHS = countyShapes
   .map((county) => `<path d="${county.d}" vector-effect="non-scaling-stroke"></path>`)

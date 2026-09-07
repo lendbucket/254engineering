@@ -48,6 +48,16 @@ export const OPS_COOKIE = "eng_ops";
 /** Twelve hours. Long enough for a working day in the field, short enough to matter. */
 const TTL_SECONDS = 12 * 60 * 60;
 
+/**
+ * Ten minutes for a half authenticated session.
+ *
+ * Long enough to open an authenticator app, or to scan a QR code and copy the
+ * recovery codes down, and short enough that a stolen password plus an
+ * abandoned browser tab is not most of the way in. It is not a working session
+ * and must not last like one.
+ */
+const PENDING_TTL_SECONDS = 10 * 60;
+
 const MIN_SECRET_LENGTH = 24;
 
 /**
@@ -71,15 +81,52 @@ const MIN_SECRET_LENGTH = 24;
  * right thing in the wrong list.
  *
  * What replaces the membership test is a SHAPE test, which is the question this
- * layer actually has: the cookie is `sub.role.exp.signature` split on the dot,
- * so the role segment has to be something that survives that. Which roles exist
- * is the database's question, and `currentActor` asks it on every request.
+ * layer actually has: the cookie is split on the dot, so the role segment has
+ * to be something that survives that. Which roles EXIST is the database's
+ * question, and `currentActor` asks it on every request.
  */
 export type SessionClaims = {
   sub: string;
   role: RoleKey;
   exp: number;
 };
+
+/**
+ * A SESSION THAT HAS NOT SATISFIED THE SECOND FACTOR IS NOT A SESSION.
+ *
+ * Phase 12 Section 1, and the brief's wording is implemented literally rather
+ * than approximately, because the approximate version is the one this
+ * repository keeps finding defects in.
+ *
+ * The cookie carries a FACTOR field. A password alone mints a PENDING session;
+ * a verified code mints a FULL one. Then `readOpsSession` returns a session only
+ * for a full one, and a pending cookie reads as null exactly like a forged or
+ * expired one. `readPendingSession` is separate, and the only callers are the
+ * challenge screen and the endpoint that verifies a code.
+ *
+ * WHY THAT SHAPE AND NOT A BOOLEAN ON THE ACTOR
+ * ---------------------------------------------
+ * Every existing caller of readOpsSession refuses a pending session with no
+ * change to itself: the proxy over every portal route, and currentActor behind
+ * every server action and route handler. There is no list of protected routes
+ * to keep in step with a list of MFA exempt ones, because there is no such
+ * list, and a route added tomorrow is covered by construction.
+ *
+ * A boolean each screen checks would work everywhere somebody remembered it and
+ * nowhere else, and the failure would be silent. That is the shape of the
+ * defect found in this very file on the same day: four of seven roles could not
+ * hold a session because one check carried a stale list.
+ *
+ * FOUR SEGMENTS BECOME FIVE, AND EVERY CURRENT SESSION ENDS
+ * ---------------------------------------------------------
+ * A four segment cookie is REFUSED rather than read as pre MFA and let through.
+ * Anything else would be a downgrade attack: strip the factor field and be
+ * treated as legacy. Everyone signs in again once, which is the correct price
+ * and is the same thing rotating the signing secret already does.
+ */
+export type Factor = "pending" | "full";
+
+export type PendingClaims = SessionClaims & { factor: "pending" };
 
 function signingKey(): Buffer | null {
   const secret = process.env.OPS_SESSION_SECRET;
@@ -119,13 +166,23 @@ function sign(payload: string, key: Buffer): string {
 export function issueOpsSession(
   sub: string,
   role: RoleKey,
+  factor: Factor = "full",
   now: number = Date.now(),
 ): { value: string; expiresAt: Date } | null {
   const key = signingKey();
   if (!key) return null;
   if (!wellFormedRoleKey(role)) return null;
-  const exp = Math.floor(now / 1000) + TTL_SECONDS;
-  const payload = `${sub}.${role}.${exp}`;
+  if (factor !== "pending" && factor !== "full") return null;
+
+  /*
+   * A pending session is short. It exists to carry somebody from a password to
+   * a code, or to an enrolment they are required to complete, and nothing else.
+   * Twelve hours of half authenticated session would be twelve hours in which a
+   * stolen password is most of the way in.
+   */
+  const ttl = factor === "pending" ? PENDING_TTL_SECONDS : TTL_SECONDS;
+  const exp = Math.floor(now / 1000) + ttl;
+  const payload = `${sub}.${role}.${factor}.${exp}`;
   return {
     value: `${payload}.${sign(payload, key)}`,
     expiresAt: new Date(exp * 1000),
@@ -141,16 +198,55 @@ export function issueOpsSession(
  * branch for a caller to get wrong.
  */
 export function readOpsSession(value: string | undefined | null, now: number = Date.now()): SessionClaims | null {
+  const claims = readAnyFactor(value, now);
+  /*
+   * A pending session is not a session. See the note on Factor: this is the one
+   * line that gives every caller in the codebase the enforcement without any of
+   * them knowing about it.
+   */
+  return claims && claims.factor === "full" ? { sub: claims.sub, role: claims.role, exp: claims.exp } : null;
+}
+
+/**
+ * The half authenticated session, for the two places that are allowed to see
+ * one: the challenge screen and the endpoint that verifies a code.
+ *
+ * Deliberately a different function rather than a flag on the one above, so
+ * reaching for it is a visible act in a diff. A parameter would let a caller
+ * opt into seeing pending sessions by adding one word, which is exactly how a
+ * boundary stops being one.
+ */
+export function readPendingSession(
+  value: string | undefined | null,
+  now: number = Date.now(),
+): PendingClaims | null {
+  const claims = readAnyFactor(value, now);
+  return claims && claims.factor === "pending"
+    ? { sub: claims.sub, role: claims.role, exp: claims.exp, factor: "pending" }
+    : null;
+}
+
+/** Verify and decode without judging the factor. Private on purpose. */
+function readAnyFactor(
+  value: string | undefined | null,
+  now: number,
+): (SessionClaims & { factor: Factor }) | null {
   if (!value) return null;
   const key = signingKey();
   if (!key) return null;
 
   const parts = value.split(".");
-  if (parts.length !== 4) return null;
-  const [sub, role, expRaw, provided] = parts;
-  if (!sub || !role || !expRaw || !provided) return null;
+  /*
+   * FIVE, and a four segment cookie is refused rather than read as pre MFA.
+   * Accepting the old shape would be a downgrade attack: strip the factor and
+   * be treated as fully authenticated.
+   */
+  if (parts.length !== 5) return null;
+  const [sub, role, factor, expRaw, provided] = parts;
+  if (!sub || !role || !factor || !expRaw || !provided) return null;
+  if (factor !== "pending" && factor !== "full") return null;
 
-  const expected = sign(`${sub}.${role}.${expRaw}`, key);
+  const expected = sign(`${sub}.${role}.${factor}.${expRaw}`, key);
   const a = Buffer.from(expected);
   const b = Buffer.from(provided);
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
@@ -168,7 +264,7 @@ export function readOpsSession(value: string | undefined | null, now: number = D
    */
   if (!wellFormedRoleKey(role)) return null;
 
-  return { sub, role, exp };
+  return { sub, role, exp, factor };
 }
 
 /**

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
-import { can, roleLabel, type Role } from "@/lib/ops-authz";
+import { can, roleLabel, type RoleKey } from "@/lib/ops-authz";
 import { assignableRoles } from "@/lib/ops-roles";
 import { supabaseAdmin } from "@/lib/supabase";
 import { regions } from "@/content/regions";
@@ -21,7 +21,7 @@ type Person = {
   id: string;
   email: string;
   display_name: string;
-  role: Role;
+  role: RoleKey;
   status: "invited" | "active" | "suspended";
   phone: string | null;
   license_number: string | null;

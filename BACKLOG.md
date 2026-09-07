@@ -27,6 +27,133 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
+## The Phase 0 role union: one defect, six instances, swept
+
+### RESOLVED: six total functions over three roles, in a platform that ships seven
+
+Swept 2026-09-07 on operator instruction, after the fourth instance turned up on
+its own. The instruction was the useful part: five was enough to call it a
+pattern and search for rather than keep discovering.
+
+**All six are the same shape.** A total function over `Role`, the union of the
+three roles that shipped in Phase 0, written when three was the whole set.
+Migration 0018 made roles rows and seven ship, so each of these silently stopped
+being total.
+
+| Where | What it did for the four newer roles |
+| --- | --- |
+| `ROLE_LABEL` | Rendered blank in the profile menu, the roster and the eyebrow |
+| `readOpsSession` | Signed them out on their own next request |
+| the account creation route | Refused to create them at all |
+| `homeFor` | Returned `undefined`, so they signed in and landed nowhere |
+| `portalInvite` | Told a dispatcher, in writing, that they were a Field Technician |
+| `dashboardFor` | Served four roles the field technician's dashboard |
+
+**Two of them are worth singling out.**
+
+`portalInvite` is the only one that reached somebody outside the firm. The
+route validates the role against `eng_roles`, correctly, all seven, and then
+wrote `role as Role` to pass it into a template whose ternary fell through to
+"Field Technician". The cast sat three lines below a comment explaining that
+this same route used to refuse those roles.
+
+`dashboardFor` had the widest reach and the smallest harm, and the difference
+matters: every query in `techDashboard` is scoped to `actor.id`, so what those
+four saw was an EMPTY technician dashboard rather than somebody else's data. A
+wrong screen, not a leak.
+
+**Why none of it ever surfaced.** The four newer roles could not hold a session
+at all, so nobody could reach any of these code paths. **Repairing the session
+on the same day is what made all of them reachable at once**, which is the
+honest shape of the morning: one stale list was hiding five more, and they only
+became findable when the first was fixed.
+
+**The enabling mechanism was the cast.** TypeScript had every one of these
+right. Six times somebody wrote `as Role` and switched it off. Every cast in
+the tree is now gone, and `role-cast-audit` fails on a new one outside an
+allowlist that starts EMPTY, because grandfathering the six that caused the
+sweep would have kept the mechanism that produced them.
+
+**And one assertion replaces six.** `roles-audit` now checks a property rather
+than a list of functions: every shipped role gets a real answer from every
+function that takes one, 5 functions by 7 roles, 35 pairs. The registry is
+`scripts/lib/role-total-functions.mjs` and adding a function that takes a role
+means adding it there, the same rule the surface inventory carries. Injection
+verified on two of the six, each naming the exact roles and expected values.
+
+**Two traps removed alongside them.** `ALLOWED`, a `Map<Role, Set<Action>>`
+that nothing read and that looked exactly like the authoritative permission
+lookup it used to be; and `navFor`'s unused role parameter, which forced every
+caller to hold a value of the narrow union and was one of the pressures
+producing casts.
+
+### There is no dashboard for four of the seven roles
+
+Recorded 2026-09-07, and it is the honest remainder of the fix above.
+
+`dashboardFor` used to fall through to the technician's dashboard for anything
+that was not an administrator or an engineer. It now routes by CAPABILITY rather
+than by role name, so a role an owner creates with review grants gets the
+engineer's dashboard without anybody editing that function.
+
+What it returns for a dispatcher, a salesperson or a customer service account is
+null, and the screen says plainly that no dashboard has been built for their
+role and that showing one built for a different job would be worse. That is
+true and it is not finished: those three roles work in this platform and have no
+overview of their own work.
+
+Building them is product work rather than a defect fix, so it is recorded here
+rather than folded into the sweep. What must not happen is a fourth generic
+dashboard that renders empty tiles, which is the same defect with a different
+shape.
+
+**Operator ruling, 2026-09-07: the null stays.** A wrong screen is worse than an
+honest absence, and the screen saying so is correct.
+
+**AND THE BUSINESS QUESTION, WHICH IS THE OPERATOR'S AND IS NEEDED BEFORE
+HIRING ANY OF THE THREE.** What each of these roles should see is not a design
+question with a defensible default. It is a question about what the job is, and
+getting it wrong produces exactly the empty tiles this entry warns against.
+
+What follows is not a proposal. It is the grants each role actually holds today,
+which is the constraint any answer has to fit, plus the question each one raises.
+
+**Dispatcher.** Holds `files.assign`, `files.transition`, `offers.dispatch`,
+`offers.list_own`, `clients.list`, `profiles.list`, `tasks.use`,
+`time.log_own`. This is the role with the most obvious dashboard of the three:
+work that needs assigning, offers nobody has accepted, and technicians who are
+free. The open question is the one the platform cannot answer:
+
+  Is a dispatcher measured on how fast work is placed, or on how well it is
+  placed? A screen built for the first is a queue with ages on it. A screen
+  built for the second is coverage and technician load. They are different
+  screens and the firm has never had to choose.
+
+**Sales.** Holds `clients.create`, `clients.update`, `clients.list`,
+`files.create`, `files.list`, `tasks.use`, `time.log_own`. Notably it does
+NOT hold `pricing.read`, by a deliberate ruling recorded in roles-audit: a
+salesperson seeing the fee schedule is negotiating against the firm. So:
+
+  What does a salesperson see about money, given they may not see prices? Their
+  own pipeline and their own conversions are answerable from rows the platform
+  already has. Anything about margin or value is not, and should not be.
+
+**Customer service.** Holds `clients.list`, `files.list`, `messages.use`,
+`tasks.use`, `time.log_own`, and nothing that changes a file. It is the
+narrowest of the three and the least obvious:
+
+  Is this role answering questions about work in progress, in which case the
+  dashboard is files by status with whatever a customer is likely to ring
+  about, or is it handling inbound that has not become work yet, in which case
+  it is the lead inbox? The grants suggest the first and the name suggests the
+  second.
+
+**One thing that is already decided and constrains all three.** None of them
+holds `ledger.read_all` or `billing.read`, so no dashboard for these roles
+carries a firm level money figure. That is not a gap to fill later; it is the
+permission model working, and a dashboard that needed one would be a sign the
+role is wrong rather than the screen.
+
 ## Found while starting Phase 12
 
 ### RESOLVED: four of the seven roles could sign in and were signed out by the next request
@@ -197,6 +324,133 @@ Its parts are verified, the bucket walk and the completeness check and the row
 counts, and the whole is not. The answer is not a key in the tree. It is the
 operator running the dry run in an environment that already holds both keys
 before the window opens, so the first `--apply` is the second time it has run.
+
+## The performance gate, measured on a deployment
+
+### The 2000ms remote ceiling has never been met and cannot currently be measured
+
+Recorded 2026-09-07. The full numbers are in this file under the perf entry
+above; this is the finding they produced.
+
+`perf-budgets.mjs` says of the two ceilings: **"REMOTE is the operator's
+specification and is the one that matters."** The suite has only ever measured
+localhost against the empirical 3400ms local ceiling. The 2000ms remote ceiling
+was set on 2026-08-31 on a day the same file records live LCP ranging from 1555
+to 2901ms, so it was a target rather than a measurement, and nothing has ever
+run it in anger.
+
+**The three state gate's answer, on the deployment: eight of ten routes COULD
+NOT TELL.** Only the homepage, which carries its own 3600ms ceiling, and
+`/careers/professional-engineer` produced supportable verdicts. The ceiling
+sits inside the run to run range of nearly every route on the site, which is a
+fact about where the number was put rather than about the pages.
+
+**The two state gate, on the same deployment an hour earlier, reported three
+failures and thirty seven passes with complete confidence.** Five of those
+confident passes are among the eight the new gate cannot support. The third
+verdict caught false PASSES, not only false failures, and that was not the
+outcome anybody predicted for it.
+
+**A limitation of the new rule, stated rather than left to be discovered.** It
+uses within run SPREAD as a proxy for whether the median can be trusted, and two
+independent runs show the proxy is pessimistic:
+
+| route | run 1 | run 2 | difference | spread |
+| --- | --- | --- | --- | --- |
+| `/coverage` | 2535ms | 2536ms | 1ms | 455 and 742ms |
+| `/structural-engineer` | 1850ms | 1851ms | 1ms | 382 and 235ms |
+| `/careers/professional-engineer` | 1851ms | 1850ms | 1ms | 161 and 153ms |
+| `/insights/texas-pe-license-lookup` | 2003ms | 2001ms | 2ms | 513 and 588ms |
+| `/windstorm` | 1704ms | 1707ms | 3ms | 439 and 437ms |
+
+Five routes whose medians reproduce to within 3ms while individual samples range
+over 400 to 750ms. That is a median doing exactly what a median is for, and the
+gate calls several of them unmeasurable. The rule is honest and conservative,
+and reading eight "could not tell" verdicts as eight problems would be reading
+it wrongly.
+
+The homepage ceiling re-derivation of 2026-09-04 did not use spread. It used
+eight independent medians of three and looked at their AGREEMENT, which is the
+better evidence and is the method the re-derivation below will use.
+
+**Open, in this order, by operator ruling 2026-09-07:** investigate
+`/coverage` and `/coverage/coastal-bend`, map first, reporting before
+anything changes; then re-derive the global remote ceiling from the seven routes
+not under investigation and not carrying their own; then decide whether the
+coverage routes need a fix or their own ceiling. Nothing loosens to accommodate
+a page nobody has looked at.
+
+## The county map on the coverage routes, investigated and left alone
+
+### RESOLVED: the map is as cheap as it can be while it is server rendered
+
+Investigated 2026-09-07 on operator instruction, map first, reporting before
+anything changed. The full reasoning now lives at the top of
+`src/components/map/TexasCountyMap.tsx`, beside the code it explains, and this
+is the pointer.
+
+**The LCP element is not the map.** Asked of the browser directly through a
+`PerformanceObserver` rather than inferred, the largest contentful paint on
+both `/coverage` and `/coverage/coastal-bend` is the prelaunch compliance
+paragraph. That is the homepage precedent repeating exactly: there it was the
+hero paragraph, and the map was merely heavy. **Coordinate precision was not
+touched**, for the same reason it was not touched in September, and no pixel
+comparison was needed because no geometry change was ever on the table.
+
+**The double carry is real and is not the defect the homepage fix removed.**
+That distinction is the useful part. The homepage fix removed a SECOND MAP: two
+maps on one page became one geometry and a `use` element. The coverage routes
+draw one map, whose geometry sits in the markup once and in the React flight
+payload once, and that duplication is inherent to server rendering it. Removing
+it means not server rendering the map, and the map is server rendered on purpose:
+the firm's claim is that it covers all 254 counties, so the counties have to be
+in the HTML for anything that does not run JavaScript.
+
+**Pre serialisation was built, verified byte identical, measured, and dropped.**
+It removes only the per element descriptor overhead:
+
+| | before | after | saved |
+| --- | --- | --- | --- |
+| `/coverage` | 31,167 | 30,324 | 843 brotli bytes |
+| `/coverage/coastal-bend` | 26,352 | 25,378 | 974 brotli bytes |
+
+Under 1KB on the wire, roughly 4.5ms of transfer on the gate's profile, against
+a measurement whose spread on these routes is 400 to 750ms. **Seventy times
+below what the instrument can resolve**, so deploying it would have returned
+"could not tell" by construction. Dropped on the operator's rule, and recorded
+so nobody tries it again expecting a different answer.
+
+**The estimate that led to trying it was wrong by fifty times**, and that is
+recorded rather than smoothed over: 50KB was read off the raw flight payload
+size and assumed to be removable, when almost all of it is the geometry that has
+to be there.
+
+**The 254 county text list on `/coverage` was not touched.** It is the
+authoritative coverage claim, `coverage-audit` checks it against an independent
+canonical list, and the change was confined to the map component, which never
+renders it.
+
+### RESOLVED: map-markup-audit was cited for three days before it existed
+
+Found 2026-09-07 while extending the treatment above.
+
+`TexasCountyMap.tsx` said, from 2026-09-04, that "map-markup-audit asserts the
+rendered bytes still match". **The name appeared nowhere in this repository
+except inside that comment.** So the byte identity the homepage optimisation
+promised was unguarded from the day it was claimed, and a second optimisation
+was very nearly built on top of it.
+
+A comment asserting a guarantee that nothing enforces is this repository's own
+defect class, applied to itself. `scripts/map-markup-audit.mjs` exists now and
+runs in the suite.
+
+Its fixtures are **the bytes the live site actually served on 2026-09-07**,
+captured before the change, which is a stronger baseline than whatever the
+component happens to produce today. It compares the standalone and activeRegion
+renders byte for byte, asserts the shared pair still emits the geometry once and
+references it once, and counts the 254 counties so a wrong fixture cannot agree
+with itself forever. Injection verified: one extra attribute per path fails both
+fixtures and names the byte offset.
 
 ## Disaster recovery
 
@@ -1101,17 +1355,32 @@ the same page on the same machine on the same day:
 | alone, after the suite | 3454ms | 1ms | fail |
 | alone again | 3454ms | 1ms | fail |
 | full suite, evening | 3378ms | 523ms | pass |
+| full suite, 2026-09-07 midday | **2934ms** | **3ms** | pass, 466ms under |
+| full suite, 2026-09-07 afternoon | 3454ms | 521ms | fail, 54ms over |
 
 The two isolated runs agreed to the millisecond, and that was reported here as
 "deterministic, not noise". It was true of those two runs and not of the page.
 The ceiling is 3400ms and the page sits within about two percent of it, which is
 smaller than the difference between one run and the next.
 
+**The two runs on 2026-09-07 settle it, and they settle it harder than the
+first four did.** They are the same page on the same machine about an hour
+apart, with nothing touching that route in between: one branch changed a copy
+script and some documents, the other a migration and a queue read. The route
+measured **2934ms with a spread of 3ms**, which is a tight and confident
+reading 466ms under the ceiling, and then **3454ms with a spread of 521ms**.
+
+A 520ms swing on a 3400ms ceiling, where the failing margin is 54ms. **The
+instrument's noise is ten times the thing it is being asked to measure.** This
+gate is not evidence for this route on this machine, in either direction, which
+is the same verdict the operator gave contrast-audit's networkidle timing on
+2026-09-06: an audit whose red and green both depend on how busy the machine is
+has stopped being evidence.
+
 **Not absorbed, and the budget has not moved.** perf-audit's own doctrine is
 written into its header: a route that fails at the median is a real finding and
-is never answered by moving the line it crossed. What is recorded here is that
-the local measurement cannot resolve a two percent margin, not that the page is
-fast enough.
+is never answered by moving the line it crossed. Nothing here widens a ceiling.
+What is recorded is that the local measurement cannot resolve this margin.
 
 **What is NOT the cause, checked rather than assumed.** Nothing that renders
 that page changed that day. The design token corrections were in portal and
@@ -1125,9 +1394,54 @@ after a session of continuous building and browser work, which the collapsed
 spread is consistent with. A dependency or font that now resolves differently.
 Or a real regression from something shared that has not been identified.
 
-**What to do with it.** Operator ruling, 2026-09-07: measure it on a deployment
-when the cutover lands, because that is where the number means anything and a
-laptop that has been running browser audits for an hour is not a clean room.
+**MEASURED ON THE DEPLOYMENT, 2026-09-07, AND THE PAGE IS FINE.**
+
+`254engineering.com`, the gate's own statistic, median of 5, twice:
+
+| | LCP | spread | ceiling | verdict |
+| --- | --- | --- | --- | --- |
+| run 1 | 1851ms | 161ms | 2000ms | pass |
+| run 2 | 1850ms | 153ms | 2000ms | pass, every sample under |
+
+**149ms under the STRICTER ceiling**, since the remote specification is 2000ms
+against the local empirical 3400ms. The medians reproduce to 1ms across two
+independent runs, and the spread is 153 to 161ms on the deployment against 521ms
+locally: the deployment is both the meaningful instrument and the quieter one.
+
+So the page was never the finding. The local profile was, which is what the
+operator's ruling of 2026-09-07 predicted, and the local number stays recorded
+above rather than deleted because the six measurements are the evidence for why
+the instrument changed.
+
+**The preview deployment was not usable and a production deployment was used
+instead.** Both the preview and the direct `*.vercel.app` deployment urls sit
+behind Vercel deployment protection and answer 302 unauthenticated. The apex is
+the reachable deployment, running main at `fae15f2`, and
+`/careers/professional-engineer` has not changed in any recent commit, so the
+page measured is the page in question. The substitution is recorded rather than
+passed off as what was asked for.
+
+**What to do with it. THE TRIGGER FOR THE STANDING RULING IS GONE.** Operator
+ruling, 2026-09-07: measure it on a deployment when the cutover lands, because
+that is where the number means anything and a laptop that has been running
+browser audits for an hour is not a clean room. **The cutover was deferred by
+decision later the same day**, so "when the cutover lands" no longer names a
+date, and the gate goes on flapping on main in the meantime.
+
+Two things follow, and neither is widening the ceiling.
+
+**A deployment measurement does not actually need the cutover.** A preview
+deployment is available at any time and runs the same build on the same
+platform; the cutover moves a database and has nothing to do with LCP. Measuring
+there is available now and was only ever tied to the cutover by coincidence of
+timing.
+
+**And the instrument is the other half.** A median of three with a 520ms spread
+is not a median anybody should gate on. More runs, or a percentile that reports
+its own confidence, would make the number mean something without touching the
+line it is compared against. That is improving the measurement rather than
+moving the target, and the two must not be confused: perf-audit's doctrine
+forbids the second and says nothing against the first.
 
 Two things to do there rather than here. Take the measurement on the deployed
 site, where the ceiling was calibrated to mean something. And decide whether a

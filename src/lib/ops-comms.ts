@@ -46,7 +46,7 @@ export type KindSpec = {
   kind: NotificationKind;
   label: string;
   /** Which roles ever receive this at all. */
-  roles: Role[];
+  roles: RoleKey[];
   /** Whether email is on unless the person turns it off. */
   emailByDefault: boolean;
   /**

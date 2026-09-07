@@ -2,6 +2,9 @@ import "server-only";
 import { supabaseAdmin } from "./supabase";
 import { fingerprintOf, scrubString, scrubValue } from "./observability-scrub";
 import { firstNonEmpty } from "./env-value";
+import { mfaConfigured, mfaStatus } from "./ops-mfa";
+import { breakGlassConfigured, breakGlassStatus } from "./ops-mfa-breakglass";
+import { partnerSessionConfigured, partnerSessionStatus } from "./partner-session";
 
 /**
  * Errors, cron runs, and the numbers behind the status page.
@@ -464,6 +467,64 @@ export async function dependencyStates(): Promise<DependencyState[]> {
     detail: process.env.CRON_SECRET
       ? "set, so the worker and the watcher can be triggered"
       : "not set, so every cron route answers 404 and NOTHING scheduled runs",
+    checkedAt,
+  });
+
+  /*
+   * THE SECOND FACTOR, AND WHY ITS ABSENCE IS NOT A QUIET ONE.
+   *
+   * Phase 12 Section 1. Without MFA_ENCRYPTION_KEY nothing can be enrolled and
+   * no code can be verified, and the failure lands on somebody who is holding a
+   * correct code from a working phone. The screens say which it is, but only a
+   * person already at that screen sees it, and by then they are stuck.
+   *
+   * It is on this surface so a deployment missing it says so before anybody
+   * discovers it at a sign in. Found the hard way on 2026-09-07: it was set on
+   * Production and Preview and absent from a local .env.local, and the symptom
+   * was an audit suite hanging for fifty one minutes.
+   */
+  out.push({
+    name: "Second factor (MFA_ENCRYPTION_KEY)",
+    configured: mfaConfigured(),
+    reachable: null,
+    detail: mfaStatus(),
+    checkedAt,
+  });
+
+  /*
+   * THE BREAK GLASS, WHICH SHOUTS WHILE IT IS SET.
+   *
+   * Operator ruling, 2026-09-07: the variable is a live bypass of the second
+   * factor for the one account it names, so leaving it set is the hazard rather
+   * than using it. This is the surface that makes that visible, and it reports
+   * a MALFORMED value too: a half typed break glass does nothing, which somebody
+   * would otherwise discover while locked out and relying on it.
+   */
+  const glass = breakGlassConfigured();
+  out.push({
+    name: "Break glass (MFA_BREAK_GLASS)",
+    /*
+     * `configured: false` when it is ABSENT, which is the healthy state, so the
+     * usual reading of this column is inverted here. The detail says which way
+     * round it is rather than leaving a green tick to be misread.
+     */
+    configured: !glass,
+    reachable: null,
+    detail: breakGlassStatus(),
+    checkedAt,
+  });
+
+  /*
+   * The partner session, set on 2026-09-07 and previously the one credential
+   * this platform needed and did not have. Its absence meant no partner could
+   * sign in at all, which is a whole principal unreachable rather than a
+   * degraded feature.
+   */
+  out.push({
+    name: "Partner sessions (PARTNER_SESSION_SECRET)",
+    configured: partnerSessionConfigured(),
+    reachable: null,
+    detail: partnerSessionStatus(),
     checkedAt,
   });
 

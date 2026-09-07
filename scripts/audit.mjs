@@ -64,6 +64,61 @@ const PHASE_ZERO = [
   },
   {
     /*
+     * MERGED AND APPLIED ARE DIFFERENT FACTS.
+     *
+     * Runs beside migration-audit and answers the question that one cannot:
+     * migration-audit proves the FILES rebuild the schema, and this proves
+     * somebody was asked whether PRODUCTION has each of them.
+     *
+     * It exists because 0023 merged on 2026-09-06 and was applied on
+     * 2026-09-07, found by hand. In between eng_alert_state did not exist on
+     * production, so the queue depth alerting from that same closeout could not
+     * read its cooldown, and the failure waiting to happen was an alert every
+     * five minutes about a stuck queue: exactly what the migration prevents.
+     *
+     * The fingerprint chain in CLAUDE.md said this must not happen and could
+     * not enforce it, because prose is a record rather than a check.
+     *
+     * Needs no server, no network and no credentials. It cannot see production;
+     * scripts/production-schema-check.mjs does that and is run by hand.
+     */
+    name: "schema-ledger-audit",
+    why: "no migration is on main that production has not been declared to have",
+  },
+  {
+    /*
+     * The county map renders the bytes it rendered before.
+     *
+     * Pure, no server, no network. TexasCountyMap.tsx claimed since 2026-09-04
+     * that an audit of this name asserted its byte identity; it did not exist
+     * anywhere but in that comment, so the guarantee was unguarded for three
+     * days while a second optimisation was built on top of it.
+     *
+     * The fixtures are the bytes the LIVE SITE served on 2026-09-07, before the
+     * coverage routes were pre serialised, which is a stronger baseline than
+     * whatever the component happens to produce today.
+     */
+    name: "map-markup-audit",
+    why: "the map still renders the markup a browser actually received",
+  },
+  {
+    /*
+     * A cast that switches off a total function check has to say why.
+     *
+     * Operator ruling, 2026-09-07, after a sweep found six live instances of
+     * one defect: a total function over the Phase 0 role union that stopped
+     * being total when 0018 made roles rows. In every one of them TypeScript
+     * had it right and somebody wrote `as Role`.
+     *
+     * Pure, no server. The allowlist starts EMPTY, because grandfathering the
+     * six that caused the sweep would have kept the mechanism that produced
+     * them.
+     */
+    name: "role-cast-audit",
+    why: "nothing switches off the role type without a stated reason",
+  },
+  {
+    /*
      * The closeout, 2026-09-06. The one audit in this suite whose subject is
      * this repository's own bookkeeping rather than the product.
      *
@@ -224,6 +279,26 @@ const PHASE_ONE = [
   { name: "cta-audit", why: "a conversion path on every route, honest under the gate" },
   { name: "seo-audit", why: "title and description budgets, uniqueness, schema, Lighthouse SEO 100" },
   { name: "forms-audit", why: "all four forms end to end, plus the server side guards" },
+  {
+    /*
+     * PHASE ONE, because the half that matters needs the server.
+     *
+     * The pure half asserts the cookie shape and that the two readers do not
+     * overlap. The NEGATIVE half is the one the brief asks for: a real pending
+     * cookie, signed with the deployment's own secret read from .env.local,
+     * attempted against every portal route the surface inventory declares, and
+     * refused by all of them.
+     *
+     * It reads .env.local for the same reason db-target.mjs does. An audit that
+     * minted a cookie with a different secret would have every route refuse it
+     * and would pass for entirely the wrong reason: a green board proving only
+     * that a forgery is rejected.
+     *
+     * react-server, because it imports ops-session, which is server only.
+     */
+    name: "mfa-audit",
+    why: "a half authenticated session opens nothing, on every declared route",
+  },
   {
     /*
      * PHASE ONE, because half of it is the live write path: a real key posting a

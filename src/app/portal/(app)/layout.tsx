@@ -78,7 +78,7 @@ export default async function PortalLayout({ children }: { children: React.React
    * exactly what the screen behind it asks, so a link cannot appear for
    * somebody the page would then refuse.
    */
-  const items = navFor(actor.role, (action) => may(actor, action));
+  const items = navFor((action) => may(actor, action));
   const tabs = mobileTabsFor(items);
   const overflow = items.filter((i) => !tabs.some((t) => t.href === i.href));
 

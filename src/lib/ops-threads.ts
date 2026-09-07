@@ -1,7 +1,7 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase";
 import { writeAudit } from "./ops-audit";
-import { can, canSeeFile, type Actor, type Role } from "./ops-authz";
+import { can, canSeeFile, type Actor, type RoleKey } from "./ops-authz";
 import { raise } from "./ops-notify";
 import { canPostToThread, canReadThread, mentionsIn, recipientsOf, type ThreadSubject } from "./ops-comms";
 
@@ -30,7 +30,7 @@ export type ThreadRow = {
   kind: "file" | "direct" | "channel";
   file_id: string | null;
   name: string | null;
-  channel_roles: Role[];
+  channel_roles: RoleKey[];
   last_message_at: string | null;
   created_at: string;
 };
@@ -79,7 +79,7 @@ export type MessageHit = {
 export const THREAD_PAGE = 100;
 
 export type ThreadListItem = ThreadRow & {
-  participants: { id: string; name: string; role: Role }[];
+  participants: { id: string; name: string; role: RoleKey }[];
   unread: number;
   preview: string | null;
   title: string;
@@ -89,7 +89,7 @@ const THREAD_COLUMNS = "id, kind, file_id, name, channel_roles, last_message_at,
 
 async function participantsOf(threadIds: string[]) {
   const db = supabaseAdmin();
-  const byThread = new Map<string, { id: string; name: string; role: Role; lastReadAt: string | null }[]>();
+  const byThread = new Map<string, { id: string; name: string; role: RoleKey; lastReadAt: string | null }[]>();
   if (!db || threadIds.length === 0) return byThread;
 
   const { data } = await db
@@ -101,7 +101,7 @@ async function participantsOf(threadIds: string[]) {
     thread_id: string;
     profile_id: string;
     last_read_at: string | null;
-    eng_profiles: { display_name: string; role: Role };
+    eng_profiles: { display_name: string; role: RoleKey };
   }[]) {
     byThread.set(row.thread_id, [
       ...(byThread.get(row.thread_id) ?? []),
@@ -245,7 +245,7 @@ export type MessageRow = {
   created_at: string;
   author_id: string | null;
   author_name: string;
-  author_role: Role | null;
+  author_role: RoleKey | null;
   body: string;
   mentions: string[];
   /** url is null when the signing call failed, which the screen says rather than showing a broken image. */
@@ -296,7 +296,7 @@ export async function threadView(actor: Actor | null, threadId: string): Promise
     body: string;
     mentions: string[];
     attachments: Attachment[] | null;
-    eng_profiles: { display_name: string; role: Role } | null;
+    eng_profiles: { display_name: string; role: RoleKey } | null;
   }[])
     // Read newest first for the cap, reversed here so a conversation reads down.
     .reverse();
@@ -482,7 +482,7 @@ export async function directThread(
 /** Create a role scoped channel. Administrators only. */
 export async function createChannel(
   actor: Actor & { email: string },
-  input: { name: string; roles: Role[] },
+  input: { name: string; roles: RoleKey[] },
   context: Context = {},
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   const db = supabaseAdmin();
@@ -603,7 +603,9 @@ export async function postMessage(
 }
 
 /** People this actor may start a direct conversation with. */
-export async function messageablepeople(actor: Actor | null): Promise<{ id: string; name: string; role: Role }[]> {
+export async function messageablepeople(
+  actor: Actor | null,
+): Promise<{ id: string; name: string; role: RoleKey }[]> {
   const db = supabaseAdmin();
   if (!db || !actor || actor.status !== "active") return [];
   const { data } = await db
@@ -615,7 +617,7 @@ export async function messageablepeople(actor: Actor | null): Promise<{ id: stri
   return (data ?? []).map((p) => ({
     id: p.id as string,
     name: p.display_name as string,
-    role: p.role as Role,
+    role: p.role,
   }));
 }
 
@@ -686,7 +688,7 @@ export async function searchMessages(
     author_id: string | null;
     body: string;
     attachments: Attachment[] | null;
-    eng_profiles: { display_name: string; role: Role } | null;
+    eng_profiles: { display_name: string; role: RoleKey } | null;
   }[];
 
   const truncated = rows.length > SEARCH_LIMIT;

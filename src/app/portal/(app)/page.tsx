@@ -57,12 +57,26 @@ export default async function PortalHome() {
   const dashboard = await dashboardFor(actor);
 
   if (!dashboard) {
+    /*
+     * TWO REASONS FOR NO DASHBOARD, AND THEY ARE NOT THE SAME SENTENCE.
+     *
+     * This said "this account is not active" for both, which was true while the
+     * only way to get null was a suspended account. Since 2026-09-07 a role
+     * with no dashboard built for it also lands here, and telling an active
+     * dispatcher their account is not active would send them to an
+     * administrator to fix something that is not wrong.
+     */
+    const inactive = actor.status !== "active";
     return (
       <>
         <PageHead eyebrow="Operations" title="Dashboard" />
         <EmptyState
-          title="Your dashboard is not available"
-          body="This account is not active, so nothing is being read on your behalf. Ask an administrator to look at it."
+          title={inactive ? "Your dashboard is not available" : "There is no dashboard for your role yet"}
+          body={
+            inactive
+              ? "This account is not active, so nothing is being read on your behalf. Ask an administrator to look at it."
+              : "Your account is fine and everything you have access to is in the menu. A dashboard for this role has not been built, and showing you one built for a different job would be worse than showing you none."
+          }
         />
       </>
     );

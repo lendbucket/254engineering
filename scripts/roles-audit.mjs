@@ -48,6 +48,7 @@ import {
 } from "../src/lib/role-rules.ts";
 import { can, actionsFor, visibleFiles, canSeeFile, redactFile, ROLES, DEFAULT_ROLES, ALL_ACTIONS, LICENSED_ACTIONS, LICENSED_ROLE, holdsLicence, roleLabel, inviteFieldsFor } from "../src/lib/ops-authz.ts";
 import { canReview } from "../src/lib/ops-review.ts";
+import { signInFully } from "./lib/probe-mfa.mjs";
 
 const BASE = process.env.BASE_URL || "http://localhost:3225";
 
@@ -763,6 +764,57 @@ rec(
   rec("a reasonable key is accepted", keyProblem("ops_lead", ["sales"]) === null);
 }
 
+/* ---- EVERY SHIPPED ROLE GETS A REAL ANSWER FROM EVERY FUNCTION ----
+ *
+ * One assertion over a property, rather than six assertions about six
+ * functions. On 2026-09-07 a sweep found six live instances of a single defect,
+ * each a total function over the Phase 0 union that stopped being total when
+ * 0018 made roles rows: the label, the session reader, the account creation
+ * route, the landing path, the invitation email and the dashboard.
+ *
+ * They were found separately and fixed separately. This is the check that would
+ * have caught all six at once. The registry is scripts/lib/role-total-functions
+ * and adding a function that takes a role means adding it there, for the same
+ * reason the surface inventory exists: the denominator cannot be a memory.
+ */
+{
+  const { ROLE_TOTAL_FUNCTIONS } = await import("./lib/role-total-functions.mjs");
+
+  rec(
+    `there are role taking functions to check (${ROLE_TOTAL_FUNCTIONS.length})`,
+    ROLE_TOTAL_FUNCTIONS.length > 0,
+    "a check over an empty registry passes forever",
+  );
+
+  let pairs = 0;
+  const broken = [];
+
+  for (const fn of ROLE_TOTAL_FUNCTIONS) {
+    for (const role of DEFAULT_ROLES) {
+      pairs += 1;
+      let problem;
+      try {
+        problem = fn.real(fn.call(role), role);
+      } catch (err) {
+        problem = `it threw: ${err instanceof Error ? err.message : String(err)}`;
+      }
+      if (problem) broken.push(`${fn.name}(${role.key}): ${problem}`);
+    }
+  }
+
+  rec(
+    `every shipped role gets a real answer from every function that takes one (${pairs} pairs)`,
+    broken.length === 0,
+    broken.length ? broken.join(" | ") : `${ROLE_TOTAL_FUNCTIONS.length} functions x ${DEFAULT_ROLES.length} roles`,
+  );
+
+  rec(
+    "and the check covered every role and every function",
+    pairs === ROLE_TOTAL_FUNCTIONS.length * DEFAULT_ROLES.length,
+    `${pairs} of ${ROLE_TOTAL_FUNCTIONS.length * DEFAULT_ROLES.length}`,
+  );
+}
+
 /* ---- the session survives every role, and still refuses a forgery ----
  *
  * PURE, so it fails without a server. The live half below proves the same thing
@@ -778,7 +830,7 @@ rec(
   const HAD_SECRET = process.env.OPS_SESSION_SECRET;
   process.env.OPS_SESSION_SECRET = "roles-audit-fixture-secret-long-enough-to-pass";
 
-  const { issueOpsSession, readOpsSession } = await import("../src/lib/ops-session.ts");
+  const { issueOpsSession, readOpsSession, readPendingSession } = await import("../src/lib/ops-session.ts");
   const SUB = "00000000-0000-0000-0000-000000000001";
 
   let survived = 0;
@@ -809,16 +861,63 @@ rec(
   rec("nor one that is too short", issueOpsSession(SUB, "aa") === null);
   rec("but an owner created key still works", issueOpsSession(SUB, "field_auditor") !== null);
 
+  /*
+   * The cookie is sub.role.factor.exp.signature since Phase 12 Section 1, five
+   * segments rather than four. These forgeries are rebuilt around the new shape
+   * rather than deleted, because what they prove has not changed: editing any
+   * claim invalidates the signature.
+   */
   const fixture = issueOpsSession(SUB, "dispatcher");
   const parts = (fixture?.value ?? "").split(".");
+  rec("a minted cookie carries five segments", parts.length === 5, `${parts.length}`);
+
+  const forge = (role) => `${parts[0]}.${role}.${parts[2]}.${parts[3]}.${parts[4]}`;
   rec(
     "a role edited in the cookie is refused, signature and all",
-    readOpsSession(`${parts[0]}.admin.${parts[2]}.${parts[3]}`) === null,
+    readOpsSession(forge("admin")) === null,
     "widening the role check must not widen the door",
   );
   rec(
     "and so is a well formed role nobody signed",
-    readOpsSession(`${parts[0]}.field_auditor.${parts[2]}.${parts[3]}`) === null,
+    readOpsSession(forge("field_auditor")) === null,
+  );
+
+  /*
+   * THE DOWNGRADE, WHICH IS THE NEW ONE WORTH HAVING.
+   *
+   * A four segment cookie is the pre MFA shape. Reading it as a session would
+   * mean an attacker could strip the factor field and be treated as fully
+   * authenticated, so it is refused outright rather than assumed to be legacy.
+   */
+  rec(
+    "a pre MFA four segment cookie is refused rather than trusted",
+    readOpsSession(`${parts[0]}.${parts[1]}.${parts[3]}.${parts[4]}`) === null,
+    "stripping the factor must not be a way past it",
+  );
+
+  /*
+   * AND A PENDING SESSION IS NOT A SESSION, which is the whole boundary.
+   */
+  const pending = issueOpsSession(SUB, "admin", "pending");
+  rec("a pending session can be minted", pending !== null);
+  rec(
+    "but readOpsSession refuses it, exactly like a forgery",
+    pending ? readOpsSession(pending.value) === null : false,
+    "every existing caller inherits the enforcement without knowing about it",
+  );
+  rec(
+    "and readPendingSession is the only thing that sees it",
+    pending ? readPendingSession(pending.value)?.factor === "pending" : false,
+  );
+  const full = issueOpsSession(SUB, "admin", "full");
+  rec(
+    "while readPendingSession refuses a full one",
+    full ? readPendingSession(full.value) === null : false,
+    "the two readers do not overlap",
+  );
+  rec(
+    "a factor nobody signed is refused",
+    readOpsSession(`${parts[0]}.${parts[1]}.elevated.${parts[3]}.${parts[4]}`) === null,
   );
 
   if (HAD_SECRET === undefined) delete process.env.OPS_SESSION_SECRET;
@@ -901,15 +1000,27 @@ async function makeProbe(db, role) {
   return { id: data.user.id, email, password };
 }
 
+/*
+ * SIGN IN, AND COMPLETE A SECOND FACTOR IF THE ROLE DEMANDS ONE.
+ *
+ * This was a bare POST to the session endpoint, which was enough until 0024
+ * seeded admin and engineer as requiring a factor. From that point those two
+ * probes received a PENDING session and every later check in this file failed
+ * with "the cookie was minted and then refused", which is precisely what the
+ * boundary is supposed to do and precisely what this helper has to get past
+ * the way a person does.
+ *
+ * signInFully is shared with the browser probes so the two sign in paths in
+ * this repository cannot disagree about what a session is.
+ */
 async function signIn(email, password) {
-  const res = await fetch(`${BASE}/api/portal/session`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
-  const cookie = res.headers.get("set-cookie") ?? "";
-  const match = cookie.match(/eng_ops=([^;]+)/);
-  return { ok: res.ok, cookie: match ? `eng_ops=${match[1]}` : null };
+  const result = await signInFully(BASE, email, password);
+  return {
+    ok: result.ok,
+    cookie: result.cookie ? `eng_ops=${result.cookie}` : null,
+    enrolled: result.enrolled,
+    error: result.error,
+  };
 }
 
 /*
@@ -948,8 +1059,27 @@ if (!db) {
     for (const role of LIVE_ROLES) {
       const probe = await makeProbe(db, role);
       const signedIn = await signIn(probe.email, probe.password);
-      rec(`probe ${role} can sign in through the real endpoint`, signedIn.ok && Boolean(signedIn.cookie));
+      rec(
+        `probe ${role} can sign in through the real endpoint`,
+        signedIn.ok && Boolean(signedIn.cookie),
+        signedIn.error ?? "",
+      );
       sessions[role] = signedIn.cookie;
+
+      /*
+       * The two roles 0024 seeds as requiring a factor must have gone through a
+       * REAL enrolment to be here. If either arrived without enrolling, the
+       * requirement is not in force and this file would be reporting on a
+       * portal that no longer matches the migration.
+       */
+      const mustEnrol = role === "admin" || role === "engineer";
+      rec(
+        `and ${role} ${mustEnrol ? "completed a real second factor enrolment" : "needed no second factor"}`,
+        mustEnrol ? signedIn.enrolled === true : true,
+        mustEnrol && !signedIn.enrolled
+          ? "0024 requires one for this role, so arriving without enrolling means the requirement is not in force"
+          : "",
+      );
 
       /*
        * AND THE SESSION SURVIVES THE NEXT REQUEST, WHICH IS A SEPARATE CLAIM.

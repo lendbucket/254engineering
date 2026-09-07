@@ -181,6 +181,25 @@ const ADMIN_APIS = [
   // what every other route in this list will allow, so it is the one whose
   // exposure would make the rest of the perimeter beside the point.
   "/api/portal/roles",
+  /*
+   * The second factor: the challenge, the enrolment, and the break glass.
+   *
+   * The ONE route in this list that a half authenticated session may reach, and
+   * it has to be: it is how somebody stops being half authenticated. Everything
+   * else here refuses a pending session outright, which mfa-audit asserts over
+   * every declared portal route.
+   *
+   * It is in the perimeter rather than open because it still requires a valid
+   * session of some kind. A signed out request gets nothing from it, so being
+   * reachable with a pending cookie and being open are different things, in the
+   * same way /api/portal/unlock is reachable and not open.
+   *
+   * The break glass action inside it removes a second factor from an account,
+   * which is the single most valuable thing an intruder could ask this route
+   * for. It is refused unless MFA_BREAK_GLASS names that exact account, and
+   * every attempt, matched or not, writes the audit trail.
+   */
+  "/api/portal/mfa",
 ];
 
 /**
