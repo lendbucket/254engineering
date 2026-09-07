@@ -5,6 +5,7 @@ import { outageAlert } from "@/lib/email-templates";
 import { notify } from "@/lib/notify";
 import { enqueue } from "@/lib/ops-jobs";
 import { cronStarted, cronFinished } from "@/lib/ops-observability";
+import { watchQueue } from "@/lib/queue-watch";
 import {
   HEALTH_PROBE_PATH,
   HEALTH_WATCH_EVERY_MINUTES,
@@ -60,6 +61,17 @@ export const dynamic = "force-dynamic";
  *
  * jobs-audit asserts this route still calls notify directly, so a later pass
  * tidying "the last unqueued send" cannot quietly remove the exception.
+ *
+ * WHY IT ALSO WATCHES THE QUEUE
+ * -----------------------------
+ * Added in the closeout. The outage watcher cannot see a stopped worker: the
+ * site answers 200 the whole time, because the site is fine and only the work
+ * is not happening. Nothing else looked, so a queue that stopped draining was
+ * visible only to somebody who already suspected it and opened the status page.
+ *
+ * It rides here rather than on the minutely worker for the obvious reason: a
+ * check on whether the worker is running cannot be a job the worker runs. Same
+ * schedule, same direct send, same argument.
  *
  * WHY IT REFUSES WITHOUT CRON_SECRET
  * ----------------------------------
@@ -148,14 +160,26 @@ export async function GET(request: NextRequest) {
    */
   const outcome: ProbeOutcome = classifyProbe(status, detail);
 
+  /*
+   * THE QUEUE IS CHECKED WHETHER OR NOT THE SITE IS ANSWERING, and before the
+   * early return below, which is where the first version put it and where it
+   * would have run on exactly the runs that found nothing wrong.
+   *
+   * If the database is unreachable, queueHealth returns null and this reports
+   * that it could not look, which is a different sentence from "the queue is
+   * fine" and the whole reason that function returns null rather than zeros.
+   */
+  const queue = await watchQueue();
+  if (queue.sent) console.warn(`[queue-watch] alerted: ${queue.note}`);
+
   if (!shouldAlert(outcome)) {
     /*
      * Deliberately silent. A watcher that emails on success trains the operator
      * to ignore its emails, and the one that matters then looks like the rest.
      */
     console.log(`[health-watch] ok ${host}${HEALTH_PROBE_PATH} ${status}`);
-    await cronFinished(runId, true, `healthy, ${status}`);
-    return NextResponse.json({ ok: true, outcome, host, status, checkedAt });
+    await cronFinished(runId, true, `healthy, ${status}; queue: ${queue.note}`);
+    return NextResponse.json({ ok: true, outcome, host, status, checkedAt, queue });
   }
 
   console.error(
@@ -171,7 +195,7 @@ export async function GET(request: NextRequest) {
    * successfully detected, and an operator would then distrust the one signal
    * that was working.
    */
-  await cronFinished(runId, true, `${outcome}, status ${status ?? "none"}`);
+  await cronFinished(runId, true, `${outcome}, status ${status ?? "none"}; queue: ${queue.note}`);
 
   const result = await notify(
     outageAlert({
@@ -198,5 +222,6 @@ export async function GET(request: NextRequest) {
     checkedAt,
     alerted: result.sent,
     alertOutcome: result.outcome,
+    queue,
   });
 }

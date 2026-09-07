@@ -484,13 +484,33 @@ outage and emails; nothing computes availability over a period.
 watcher's runs would produce a figure whose denominator is "times we happened to
 check", and a number like that on a page invites a promise the firm has not made.
 
-**Alerting on queue depth.** A queue that is behind is visible on two screens and
-emails nobody. A dead letter is visible and emails nobody.
+**Alerting on queue depth. BUILT 2026-09-06, in the closeout, on the operator's
+instruction rather than on the condition below.** A queue that was behind was
+visible on two screens and emailed nobody. A dead letter was visible and emailed
+nobody.
 
-*The condition:* the first time somebody finds out about a stuck queue from a
-customer. The rules are already written for faults and would extend; the reason
-to wait is that a depth threshold picked before there is any traffic is a
-threshold picked from nothing.
+*The condition that was written here:* the first time somebody finds out about a
+stuck queue from a customer. The reason to wait was that a depth threshold
+picked before there is any traffic is a threshold picked from nothing.
+
+*That concern was right, and it decided the shape of what was built.* The rule
+carrying the weight is not a depth threshold at all: it is the AGE of the oldest
+job that should already have run. Fifteen minutes is calibrated against the
+worker's own cadence, which is every minute, so it needs no traffic to justify,
+and it says the thing that actually matters, which is that nothing is draining.
+A dead job is the second rule and needs no threshold either: the platform gave
+up on a piece of work.
+
+The depth threshold, fifty overdue at once, is the guessy one. It is therefore
+ranked last, worded as "deeper than usual" rather than as an emergency, and it
+is the one to revisit when there is traffic to calibrate against.
+
+*Where it lives:* `src/lib/queue-alert.ts` decides, purely, and
+`src/lib/queue-watch.ts` looks and sends. It rides on the outage watcher's five
+minute schedule, because a check on whether the worker is running cannot be a
+job the worker runs, and its email is sent directly rather than queued for the
+same reason. One email an hour at most, remembered in `eng_alert_state`, which
+is what migration 0023 adds.
 
 ### Not built, and it should be
 

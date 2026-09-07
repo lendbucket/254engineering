@@ -886,6 +886,97 @@ export function errorAlert(input: ErrorAlertInput): RenderedEmail {
   );
 }
 
+export type QueueAlertInput = {
+  /** Which of the three things is wrong. They are looked into differently. */
+  reason: "stalled" | "dead" | "deep";
+  /** The one line version, decided by the rule rather than written here. */
+  headline: string;
+  /** Why the rule fired, in the rule's own words. */
+  because: string;
+  pending: number;
+  overdue: number;
+  dead: number;
+  oldestOverdueMinutes: number;
+  /** The kinds carrying the backlog, largest first, already trimmed by the caller. */
+  worst: { kind: string; pending: number; dead: number }[];
+  checkedAt: string;
+  cooldownMinutes: number;
+  statusUrl: string;
+  environment: string;
+};
+
+const QUEUE_MEANING: Record<QueueAlertInput["reason"], string> = {
+  stalled:
+    "Jobs that should have run are sitting unclaimed, which means the worker is not draining the queue. Everything this platform sends goes through it: a customer who paid twenty minutes ago has had no receipt, an invited technician has had no link, and a fault sweep has not run. The first thing to check is whether the scheduled job is firing at all.",
+  dead:
+    "A job has been retried until the platform gave up on it. The queue itself is moving, so this is one piece of work that is never going to happen unless somebody looks at it. What it was and what it failed with are on the status page.",
+  deep:
+    "A large number of jobs are overdue but none of them is old, which usually means a burst the worker is still working through rather than a worker that has stopped. It is worth knowing about and it is not an emergency.",
+};
+
+/**
+ * The queue is behind.
+ *
+ * WHY THIS IS NOT A FAULT ALERT
+ * -----------------------------
+ * A fault is an event with a fingerprint and a stack. A queue is a state, and
+ * the state that matters is "nothing has run for a quarter of an hour", which
+ * no exception was ever thrown about. The error store had nothing to say about
+ * it because nothing went wrong; work simply stopped happening.
+ *
+ * WHY IT IS SENT DIRECTLY RATHER THAN QUEUED
+ * ------------------------------------------
+ * Every other outbound email on this platform is enqueued, and the outage alert
+ * is the one deliberate exception. This is the second, for the same class of
+ * reason and a sharper version of it: an alert about a queue that is not
+ * draining, placed in that queue, is an alert that goes out when the problem
+ * fixes itself.
+ */
+export function queueAlert(input: QueueAlertInput): RenderedEmail {
+  return compose(
+    "ops.queue_alert",
+    "operator",
+    `${input.headline} on ${input.environment}`,
+    {
+      preheader: `${input.because}. Checked at ${input.checkedAt}.`,
+      blocks: [
+        { kind: "p", text: QUEUE_MEANING[input.reason] },
+        {
+          kind: "details",
+          title: "What the check saw",
+          rows: rows([
+            ["Why this was sent", input.because],
+            ["Overdue", String(input.overdue)],
+            ["Waiting in total", String(input.pending)],
+            ["Given up on", String(input.dead)],
+            [
+              "Oldest overdue job",
+              input.oldestOverdueMinutes > 0
+                ? `${input.oldestOverdueMinutes} minutes`
+                : "under a minute",
+            ],
+            ...input.worst.map(
+              (w) =>
+                [`Kind: ${w.kind}`, `${w.pending} waiting, ${w.dead} given up on`] as [string, string],
+            ),
+            ["Checked at", input.checkedAt],
+            ["Environment", input.environment],
+          ]),
+        },
+        {
+          kind: "p",
+          text: `The status page carries the queue, the last run of every scheduled job and the recent faults: ${input.statusUrl}`,
+        },
+        {
+          kind: "note",
+          text: `One email about the queue every ${input.cooldownMinutes} minutes at most, so a backlog that takes an afternoon to clear does not send an afternoon of email. Silence after this one means either the queue recovered or the hour has not passed, and the status page tells you which.`,
+        },
+      ],
+    },
+    { replyTo: business.email },
+  );
+}
+
 export function allTemplatesForAudit(): RenderedEmail[] {
 
   return [
@@ -910,6 +1001,20 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       amount: "$925.00",
       payUrl: "https://254engineering.com/pay/sample",
       takenBy: "the firm",
+    }),
+    queueAlert({
+      reason: "stalled",
+      headline: "The job queue is not draining",
+      because: "the oldest overdue job has been waiting 22 minutes",
+      pending: 34,
+      overdue: 31,
+      dead: 1,
+      oldestOverdueMinutes: 22,
+      worst: [{ kind: "email.send", pending: 28, dead: 1 }],
+      checkedAt: "2026-09-06T21:00:00.000Z",
+      cooldownMinutes: 60,
+      statusUrl: "https://254engineering.com/portal/status",
+      environment: "production",
     }),
     errorAlert({
       kind: "rate",

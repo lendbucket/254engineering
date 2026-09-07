@@ -45,6 +45,12 @@ import {
 import { cronVerdict, WATCHED_CRONS } from "../src/lib/ops-observability.ts";
 import { beforeSend, beforeBreadcrumb, sentryOptions, release, environment } from "../src/lib/sentry-config.ts";
 import { firstNonEmpty } from "../src/lib/env-value.ts";
+import {
+  QUEUE_COOLDOWN_MINUTES,
+  QUEUE_DEEP,
+  QUEUE_STALLED_MINUTES,
+  decideQueueAlert,
+} from "../src/lib/queue-alert.ts";
 import { RELEASE } from "../src/lib/ops-observability.ts";
 
 function codeOnly(path) {
@@ -881,6 +887,124 @@ const base = {
   rec(
     "an unset CRON_SECRET is reported as nothing scheduled running",
     /NOTHING scheduled runs/.test(deps),
+  );
+}
+
+/*
+ * =====================================================================
+ * WHEN A QUEUE THAT IS BEHIND IS WORTH AN EMAIL.
+ *
+ * The rules are pure, so they are asserted here rather than by arranging a real
+ * backlog: making the worker stop, waiting fifteen minutes and watching for an
+ * email is a test nobody runs twice.
+ *
+ * Every case below is a case about NOT sending, except three. That ratio is the
+ * design: the failure this is shaped against is four hundred emails and a
+ * filter rule, not a missed alert.
+ * =====================================================================
+ */
+{
+  const NOW = Date.UTC(2026, 8, 6, 12, 0, 0);
+  const minutesAgo = (m) => NOW - m * 60_000;
+  const quiet = {
+    pending: 0,
+    overdue: 0,
+    dead: 0,
+    oldestOverdueSeconds: null,
+    lastAlertedAtMs: null,
+  };
+
+  rec(
+    "an empty queue says nothing",
+    decideQueueAlert(quiet, NOW).send === false,
+    decideQueueAlert(quiet, NOW).because,
+  );
+
+  const busy = { ...quiet, pending: 12, overdue: 4, oldestOverdueSeconds: 90 };
+  rec(
+    "and a queue with work in it that is keeping up says nothing either",
+    decideQueueAlert(busy, NOW).send === false,
+    "the commonest state of a healthy queue is jobs waiting their turn",
+  );
+
+  const stalled = {
+    ...quiet,
+    pending: 30,
+    overdue: 30,
+    oldestOverdueSeconds: (QUEUE_STALLED_MINUTES + 2) * 60,
+  };
+  const stalledDecision = decideQueueAlert(stalled, NOW);
+  rec(
+    "a worker that has not drained anything for a quarter of an hour does",
+    stalledDecision.send === true && stalledDecision.reason === "stalled",
+    stalledDecision.because,
+  );
+
+  rec(
+    "and one minute under the threshold does not",
+    decideQueueAlert(
+      { ...stalled, oldestOverdueSeconds: (QUEUE_STALLED_MINUTES - 1) * 60 },
+      NOW,
+    ).send === false,
+    "a threshold that fires at both sides of itself is not a threshold",
+  );
+
+  const dead = { ...quiet, pending: 2, overdue: 0, dead: 1, oldestOverdueSeconds: 10 };
+  const deadDecision = decideQueueAlert(dead, NOW);
+  rec(
+    "a job the platform gave up on is worth saying, even with the queue moving",
+    deadDecision.send === true && deadDecision.reason === "dead",
+    deadDecision.because,
+  );
+
+  const deep = { ...quiet, pending: QUEUE_DEEP + 5, overdue: QUEUE_DEEP, oldestOverdueSeconds: 30 };
+  const deepDecision = decideQueueAlert(deep, NOW);
+  rec(
+    "and a large young backlog is worth saying last",
+    deepDecision.send === true && deepDecision.reason === "deep",
+    deepDecision.because,
+  );
+
+  /*
+   * THE ORDER MATTERS, because the three are looked into differently and the
+   * email says which one to go and look at. A stalled worker that also has a
+   * dead job is a stalled worker.
+   */
+  rec(
+    "a stalled worker outranks everything else it is also true of",
+    decideQueueAlert({ ...stalled, dead: 3, overdue: QUEUE_DEEP + 10 }, NOW).reason === "stalled",
+    "everything is downstream of the worker running",
+  );
+
+  rec(
+    "the cooldown holds a second email inside the hour",
+    decideQueueAlert(
+      { ...stalled, lastAlertedAtMs: minutesAgo(QUEUE_COOLDOWN_MINUTES - 5) },
+      NOW,
+    ).send === false,
+    "a backlog that takes an afternoon to clear must not send an afternoon of email",
+  );
+
+  rec(
+    "and lets one through after it",
+    decideQueueAlert(
+      { ...stalled, lastAlertedAtMs: minutesAgo(QUEUE_COOLDOWN_MINUTES + 5) },
+      NOW,
+    ).send === true,
+    "a queue still stalled an hour later is news again",
+  );
+
+  /*
+   * AND THE HELD EMAIL SAYS WHAT IS WRONG, not merely that it is holding. A run
+   * that found a stalled worker and stayed quiet has to be readable as that,
+   * or the log of a bad hour reads like a log of a quiet one.
+   */
+  rec(
+    "a held alert still names what it found",
+    /waiting/.test(
+      decideQueueAlert({ ...stalled, lastAlertedAtMs: minutesAgo(5) }, NOW).because,
+    ),
+    decideQueueAlert({ ...stalled, lastAlertedAtMs: minutesAgo(5) }, NOW).because,
   );
 }
 
