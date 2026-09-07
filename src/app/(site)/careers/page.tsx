@@ -7,7 +7,7 @@ import { CardGrid, cardCell, Rule, SectionHeading } from "@/components/ui/primit
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema, faqSchema, jobPostingSchema } from "@/lib/schema";
 import { isPrelaunch } from "@/lib/launch";
-import { openPositions, positionDescription } from "@data/positions";
+import { openPositions, positionDescription, schemaPositions } from "@data/positions";
 import {
   careersFaqs,
   engagementModels,
@@ -45,7 +45,16 @@ export default function CareersPage() {
         action waiting to happen, which is why both consumers read one source.
       */}
       <JsonLd data={faqSchema(faqs)} />
-      {open.map((position) => (
+      {/*
+        THE MARKUP COMES FROM schemaPositions, NOT FROM THE LIST ABOVE.
+
+        The visible sections describe the seats and carry no expiry. The
+        JobPosting nodes carry a date, and a date that has passed is a claim
+        this site should stop making even if nobody has got round to closing the
+        role. So the two lists differ by exactly one thing: whether validThrough
+        is still in the future.
+      */}
+      {schemaPositions().map((position) => (
         <JsonLd
           key={position.slug}
           data={jobPostingSchema({

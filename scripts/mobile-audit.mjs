@@ -112,7 +112,44 @@ async function measurePage(base, browser, path, width, probe = null) {
   if (probe) await context.addCookies(cookieFor(probe, base));
   const page = await context.newPage();
   try {
-    const res = await page.goto(base + path, { waitUntil: "networkidle", timeout: 90_000 });
+    /*
+     * NETWORKIDLE ON A PUBLIC PAGE, AND NOT ON A PORTAL ONE.
+     *
+     * A signed in portal page renders a navigation of twenty five links, every
+     * one of them a force-dynamic route, and Next prefetches the ones in view.
+     * Each prefetch is a server render with database reads behind it, so the
+     * network keeps going long after the page is laid out and "no requests for
+     * 500ms" can take longer than the timeout to arrive. On 2026-09-06 that
+     * produced ninety second timeouts on the billing screen in one run and the
+     * dashboard in the next, on a build where both answer in half a second.
+     *
+     * The timeouts were reported as three failing checks per width, on pages
+     * that are correct, which is the direction of wrong that gets a check
+     * deleted rather than believed.
+     *
+     * WHAT THIS AUDIT ACTUALLY NEEDS is a laid out page: no horizontal scroll,
+     * tap targets at size, nothing clipped. None of that depends on the network
+     * going quiet, and native-audit has measured the same screens for a phase
+     * using domcontentloaded plus a settle. So portal routes wait for the DOM
+     * and then for the shell to exist, which is a POSITIVE signal that the page
+     * rendered rather than an absence of traffic.
+     *
+     * Public pages keep networkidle: they carry photographs, they do not
+     * prefetch a signed in navigation, and a late loading image is exactly the
+     * thing that moves a layout after measurement.
+     */
+    const res = await page.goto(base + path, {
+      waitUntil: probe ? "domcontentloaded" : "networkidle",
+      timeout: 90_000,
+    });
+    if (probe) {
+      await page
+        .locator("[data-portal-scroll], [data-partner-scroll], main")
+        .first()
+        .waitFor({ state: "attached", timeout: 20_000 })
+        .catch(() => {});
+      await page.waitForTimeout(900);
+    }
     /*
      * A PORTAL PAGE MUST NOT HAVE BOUNCED TO SIGN IN.
      *

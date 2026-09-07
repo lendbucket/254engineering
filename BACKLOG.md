@@ -68,15 +68,41 @@ The seven the operator named, plus what the sweep found beside them. Each is
 open. Each carries its reasoning in the document named, and the sentence here is
 the index entry rather than a second version of it.
 
-### Messaging: everything addressed to you
+### RESOLVED 2026-09-06: messaging, everything addressed to you
 
-Item 5 of `docs/messaging-section-3.md`. Mentions already notify. There is no
+Item 5 of `docs/messaging-section-3.md`. Mentions already notify. There was no
 one place showing everything addressed to you across every thread, so a person
-returning after two days reads five threads to find the two that wanted them.
+returning after two days read five threads to find the two that wanted them.
 
-**Not built because** Section 3 built items 1 to 4 and 6 on the operator's word
-and stopped there. It is the next thing in that document rather than a decision
-against it.
+**Not built at the time because** Section 3 built items 1 to 4 and 6 on the
+operator's word and stopped there. It was the next thing in that document
+rather than a decision against it.
+
+**Built in the closeout.** A switch above the thread list, carrying the count of
+mentions written since you last read that conversation, and a list of what was
+said with a link into the thread. Unread means "since you last read that
+thread" rather than a second read state of its own: a mention you have already
+seen in the conversation is not still waiting for you, and a per mention
+acknowledgement would be a third thing to clear.
+
+**The load bearing decision** is that it is scoped through `listThreads`, the
+one function that asks `canReadThread`, rather than by querying for messages
+whose mentions column contains you. That query is the obvious one and it is the
+one that leaks: the mention is written into the row when the message is posted,
+and what somebody may READ is decided later and elsewhere, so it would carry
+message bodies out of a channel for a role they no longer hold, a file thread
+for a file that was reassigned, or a direct thread they were removed from.
+`searchMessages` is scoped the same way, deliberately: two ways of deciding
+what a person may read is one too many, and the second one is the one that
+would be wrong.
+
+It inherits that function's cap of 100 conversations, which is recorded here
+rather than papered over. Not reachable at this firm's scale; the day it is,
+both surfaces need the same fix.
+
+**Asserted** by `messaging-audit`, which reads the screen as three people: the
+person named sees the message, a participant who was not named does not, and an
+administrator who cannot read the thread does not.
 
 ### Messaging: edit and delete, blocked on the table
 
@@ -144,17 +170,35 @@ Vercel, and the status page says so plainly rather than letting it be forgotten.
 Sentry does better than a table in Postgres. Alerting does not wait on it,
 because the alert rules read this firm's own fault store.
 
-### Alerting on queue depth
+### RESOLVED 2026-09-06: alerting on queue depth
 
-`docs/platform-state.md`. A queue that is behind is visible on two screens and
-emails nobody. A dead letter is visible and emails nobody.
+`docs/platform-state.md`. A queue that was behind was visible on two screens and
+emailed nobody. A dead letter was visible and emailed nobody.
 
-**Not built because** a depth threshold picked before there is any traffic is a
-threshold picked from nothing. The rules already written for faults would extend
-to it.
+**Not built at the time because** a depth threshold picked before there is any
+traffic is a threshold picked from nothing. The condition recorded was the first
+time somebody found out about a stuck queue from a customer.
 
-*The condition:* the first time somebody finds out about a stuck queue from a
-customer.
+**Built in the closeout on the operator's instruction, and the old concern
+shaped it.** The rule carrying the weight is not a depth threshold: it is the
+AGE of the oldest job that should already have run, fifteen minutes, calibrated
+against the worker's cadence of one minute rather than against traffic nobody
+has yet. It says the thing that matters, which is that nothing is draining. A
+dead job is the second rule and needs no threshold at all. The depth threshold
+is the guessy one, is ranked last, is worded as deeper than usual rather than as
+an emergency, and is the one to revisit when there is traffic.
+
+**Two things it must not do, and both are structural rather than remembered.**
+It cannot run as a queued job, because a check on whether the worker is running
+would be waiting in the queue it is checking, so it rides on the outage
+watcher's schedule. And its email cannot be queued, for the same reason, which
+makes it the second deliberate exception to the rule that all mail goes through
+the queue. `jobs-audit` asserts both by name.
+
+Migration 0023 adds `eng_alert_state`, one row per thing that can alert,
+holding when it last did, so a backlog that takes an afternoon to clear does not
+send an afternoon of email. The three cheaper alternatives are argued and
+rejected at the top of that migration.
 
 ### Metric charts
 
@@ -733,11 +777,61 @@ mark, the favicon set, the OG card, and the Organization `logo` property all wai
 on it. Vector source is worth more than a raster: the header needs the lockup
 crisp at 390 and the favicon needs the 254 mark cropped clean.
 
-### JobPosting validThrough needs refreshing
+### RESOLVED 2026-09-06: JobPosting validThrough needs refreshing
 
 Both positions carry `validThrough: 2026-11-30` in `data/positions.ts`. Nothing
 renews it automatically, deliberately: an auto extending posting is one that
 outlives the job. Refresh it or set `open: false` before it lapses.
+
+**The date is unchanged, and that is the point.** Extending it would have been
+the platform deciding the firm is still hiring in December, which is the
+operator's decision and exactly what the file says must not be automatic. What
+was missing was not a new date, it was anything watching the old one: "OWNER
+VERIFICATION: refresh or close before it lapses" is a reminder addressed to
+whoever happens to open the file.
+
+**Two mechanisms, neither of which extends anything.** `postingState` and
+`schemaPositions` in `data/positions.ts` mean a lapsed posting stops being
+emitted as JobPosting at the next build, while the page prose describing the
+seat stays, because a page describing a seat is not the same claim as a machine
+readable posting with an expiry on it. And `seo-audit` now reads the JSON-LD
+actually served from /careers and fails while a posting is within thirty days
+of lapsing, which is BEFORE it lapses: the board goes red while the answer is
+still "yes, still hiring" or "no, close it".
+
+The window is read out of `data/positions.ts` rather than restated in the
+audit, because a second copy of the number is a second thing to change and the
+one that gets missed is the audit's, which then passes for a month it should
+have failed. As things stand it fails from 2026-10-31.
+
+**And a duplicate was deleted while doing it.** `src/content/openings.ts` held
+the same two roles with the same dates and was imported by nothing;
+`src/lib/schema.tsx` cited it in a comment as though it were the source. Two
+files holding one fact is a drift waiting to happen and the one nobody reads is
+the one that gets edited, so it is gone and the comment names the real file.
+
+### Two audits that use probe accounts must never run at the same time
+
+Recorded 2026-09-06, after invalidating a mobile-audit run twice in one hour.
+
+`destroyProbes` in `scripts/lib/portal-probe.mjs` deletes EVERY account on the
+probe domain rather than the ones its own run created, and that is deliberate
+and correct: a run that crashed before teardown used to leave accounts behind
+that every later run reported as a failure it was not cleaning up, because the
+cleanup and the verification were looking at different sets.
+
+The consequence is that any second script using probes tears down the first
+one's sessions mid-run. mobile-audit reported six portal screens as "bounced to
+sign in, not measured", which it counts as failures, and the cause was a
+screenshot script of mine finishing at the wrong moment. It reads exactly like a
+portal auth defect and is not one.
+
+**Not fixed, and the fix is not obvious.** Scoping teardown to a label
+reintroduces the stray accounts problem. A lock file would work and is a
+mechanism to maintain. The rule for now is the one CLAUDE.md already implies for
+sessions and this makes explicit for processes: one probe using script at a
+time, and a run that reports bounces should be re-run alone before it is
+believed.
 
 ## Insights corpus
 
@@ -2588,7 +2682,7 @@ against `clientHeight` 684, so the links are reachable and this is not a
 navigation failure. It is a discoverability one, and it got worse with every
 screen this platform added. Not introduced by Section 2 and not fixed by it.
 
-### The invite form still offers three roles, not seven
+### RESOLVED 2026-09-06: the invite form still offers three roles, not seven
 
 Recorded 2026-09-05, found while checking how a Professional Engineer would be
 given an account after Phase 10 Section 2 shipped.
@@ -2616,6 +2710,52 @@ honest three.
 declaration beside `DEFAULT_ROLES`, in the same way `data/intake-fields.ts`
 holds what a job can be asked. Then the form is generated from the definition
 and the select follows for free.
+
+**Built that way.** `inviteFields` is a required member of `DefaultRole`, so a
+role cannot be declared without saying what creating one has to ask for, and
+`inviteFieldsFor()` answers for a role invented on the roles screen with an
+empty list rather than a guess. The form maps the roles the page hands it, read
+from `eng_roles`, and names no role anywhere in its code. The endpoint asks the
+table whether the key is a role instead of comparing against a literal, and
+still refuses a key nobody created.
+
+Asserted in `roles-audit`, including live: an administrator creates a
+dispatcher through the real endpoint, the row comes back carrying that role, an
+invented key is still refused with a 400, and the account is torn down by the
+verified teardown. Injected four ways, each failing its own check and only its
+own, plus a fifth against the built server with the three role list put back.
+
+**Two more of the same defect were found while doing it, and both are fixed.**
+
+`ROLE_LABEL` was `Record<Role, string>` with three keys, so a dispatcher, a
+salesperson, customer service or a read only account rendered a BLANK where
+their role should be: in the profile menu, as the eyebrow on their own
+dashboard, in the roster, on the profile screen, and on the page where they set
+their password and are told what they are. Nothing failed, because the roster
+row was typed as `Role` and that type stopped being true when roles became
+rows. It is now `roleLabel(key, nameFromTheRow)`, and `roles-audit` asserts
+that no surface indexes a fixed map.
+
+`visibleFiles` switched on the three role names with NO DEFAULT, and TypeScript
+accepted it as exhaustive for the same reason. A dispatcher reached the end of
+the function and got `undefined`, in a function whose every caller reads
+`.kind`. The two identity scopes stay keyed on the role, because an engineer's
+queue and a technician's own jobs are facts about who somebody is, and
+everything else is answered by `files.list`.
+
+**And one that is NOT fixed, recorded rather than swept.** Several modules still
+gate on a role NAME rather than on a grant: `ops-tasks`, `ops-field`,
+`ops-engineer`, `ops-dispatch`, `ops-comms` and `ops-dashboard` all compare
+`actor.role === "admin"` in places where the question is really a permission.
+The four newer roles therefore behave in those places as though they were
+nobody: a dispatcher holds `offers.dispatch` and `ops-dispatch` still asks
+whether their role is field_tech or admin. Nothing is unsafe, because the
+comparisons all fail CLOSED, and none of it is reachable today because nobody
+holds those roles yet. It is a day of careful work with real behavioural risk,
+each comparison has to be read to decide which grant it meant, and doing it
+inside a closeout queue item about a form would be the wrong place. The
+platform's own rule is written in `ops-authz`: everything except the two
+identity scopes asks the grants.
 
 ### A failed portal sign in inside forms-audit breaks careersChecks, and nobody knows why
 

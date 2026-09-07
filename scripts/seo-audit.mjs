@@ -11,6 +11,7 @@
 //      explicit assertion rather than a proxy.
 //
 //   BASE_URL=http://localhost:3225 node scripts/seo-audit.mjs
+import fs from "node:fs";
 import { chromium } from "playwright";
 import * as chromeLauncher from "chrome-launcher";
 import lighthouse from "lighthouse";
@@ -188,6 +189,119 @@ for (const route of routes) {
     if (!descriptions.has(description)) descriptions.set(description, []);
     descriptions.get(description).push(route);
   }
+}
+
+/*
+ * ==========================================================================
+ * THE ONE CLAIM ON THIS SITE THAT EXPIRES.
+ *
+ * JobPosting carries validThrough, Google shows it in a jobs surface, and a
+ * posting whose date has passed is a stale claim in a place people act on. The
+ * data file has said "OWNER VERIFICATION: refresh or close before it lapses"
+ * since it was written, which is a reminder addressed to whoever happens to
+ * open the file. Nothing was watching the date.
+ *
+ * This is what watches it, and it deliberately fails EARLY: while the posting
+ * is still valid, inside the warning window, so the decision is made while the
+ * answer is "yes, still hiring" or "no, close it" rather than after the listing
+ * has quietly stopped being emitted.
+ *
+ * THE WINDOW IS READ FROM THE DATA FILE, NOT RESTATED HERE.
+ * A second copy of the number is a second thing to change, and the one that
+ * gets missed is the one in the audit, which then passes for a fortnight it
+ * should have failed.
+ * ==========================================================================
+ */
+{
+  const source = fs.readFileSync("data/positions.ts", "utf8");
+  const declared = source.match(/POSTING_WARNING_DAYS = (\d+)/);
+  if (!declared) {
+    problems.push(
+      "positions: POSTING_WARNING_DAYS is not declared in data/positions.ts, so the lapse window cannot be checked",
+    );
+  }
+  const windowDays = declared ? Number(declared[1]) : 30;
+
+  const today = new Date();
+  const warnFrom = new Date(today.getTime() + windowDays * 86_400_000).toISOString().slice(0, 10);
+
+  const postings = [];
+  for (const row of rows) {
+    if (!row.route.startsWith("/careers")) continue;
+    const res = await fetch(`${BASE}${row.route}`);
+    const html = await res.text();
+    for (const match of html.matchAll(
+      /<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g,
+    )) {
+      let node;
+      try {
+        node = JSON.parse(match[1]);
+      } catch {
+        continue;
+      }
+      if (node?.["@type"] === "JobPosting") postings.push({ route: row.route, node });
+    }
+  }
+
+  /*
+   * NOT VACUOUS. If every posting lapsed, the pages would emit none and every
+   * check below would pass over an empty list, which is the failure this
+   * repository keeps finding. An empty jobs surface while the firm is hiring is
+   * itself the thing to go and look at.
+   */
+  if (postings.length === 0) {
+    problems.push(
+      "careers: no JobPosting markup was served at all. Either every posting has lapsed, or the pages stopped emitting it.",
+    );
+  }
+
+  for (const { route, node } of postings) {
+    const validThrough = String(node.validThrough ?? "");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(validThrough)) {
+      problems.push(`${route}: JobPosting validThrough is "${validThrough}", which is not a date`);
+      continue;
+    }
+    const day = today.toISOString().slice(0, 10);
+    if (validThrough < day) {
+      problems.push(
+        `${route}: JobPosting validThrough ${validThrough} has PASSED and is still being served. Refresh the date or close the role in data/positions.ts.`,
+      );
+    } else if (validThrough <= warnFrom) {
+      problems.push(
+        `${route}: JobPosting validThrough ${validThrough} is inside ${windowDays} days. Refresh it or set open: false in data/positions.ts before it lapses.`,
+      );
+    }
+    if (!node.datePosted || node.datePosted >= validThrough) {
+      problems.push(
+        `${route}: JobPosting datePosted ${node.datePosted} is not before validThrough ${validThrough}`,
+      );
+    }
+  }
+
+  /*
+   * AND THE MARKUP IS EMITTED FROM THE FILTERED LIST, by inspection, because
+   * everything above is true of a page that happens to have no lapsed posting
+   * today and would go on being true the day one lapses.
+   */
+  const hub = fs.readFileSync("src/app/(site)/careers/page.tsx", "utf8");
+  if (!/schemaPositions\(\)\.map/.test(hub)) {
+    problems.push(
+      "careers hub: JobPosting is not emitted from schemaPositions, so a lapsed posting would still be claimed",
+    );
+  }
+  const detail = fs.readFileSync("src/app/(site)/careers/[slug]/page.tsx", "utf8");
+  if (!/postingState\(position\) !== "lapsed"/.test(detail)) {
+    problems.push(
+      "careers detail: JobPosting is emitted without checking whether the posting has lapsed",
+    );
+  }
+
+  console.log("");
+  console.log("=== JOB POSTINGS ===");
+  for (const { route, node } of postings) {
+    console.log(`${route}: valid through ${node.validThrough} (posted ${node.datePosted})`);
+  }
+  console.log(`warning window: ${windowDays} days, so anything on or before ${warnFrom} fails`);
 }
 
 for (const [title, where] of titles) {
