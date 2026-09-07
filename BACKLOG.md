@@ -268,6 +268,33 @@ anything else it was opened for.** Those two sites carry 55 and 9 pages written
 under the same regulatory gate as this one, and neither can currently detect the
 class of claim that was found live on this site the day the pattern was added.
 
+### The two sibling briefs are written and are the entry point for those repos
+
+Written 2026-09-07, closeout Section 2. `docs/brief-sealedengineering.md` and
+`docs/brief-stampmyplans.md`.
+
+Each is written for a session opening cold in that repository, with every file
+to copy named by path, every check named by command, and the reasoning included
+rather than referenced. Neither repository was read or touched from here, which
+is the standing instruction, so where a step depends on what is actually in that
+tree the brief says what to verify rather than asserting what is true.
+
+**What each one carries.** The regulatory library sync first, ahead of whatever
+the session was opened for, with the four additions explained and an injection
+to run before the green is believed. Then, for sealedengineering, the `/order`
+307 assertion and the order flow; for stampmyplans, the order flow first because
+the brand cannot take an order at all, and then what it would take for nine
+indexable pages to become a corpus rather than a brochure.
+
+**Both state the environment variable position plainly**, because both
+deployments write `eng_leads` and `eng_orders` in the shared production project
+and 254's portal reads that inbox with no site filter. If 254 cuts over alone,
+the sisters keep writing to the old project while the only screen anybody opens
+reads the new one, and it surfaces as a customer who was never called back.
+
+**Both are wrong the day the intake API ships**, and both say so and point here.
+That is the entry that follows.
+
 ### FIRST TASK IN sealedengineering AND stampmyplans: copy the regulatory pattern library across
 
 Recorded 2026-09-05, Phase 9 Section 4. Operator ruling the same day: this is
