@@ -1,6 +1,54 @@
 # The production database cutover, step by step
 
-Written 2026-09-03. **Nothing in this document has been executed.**
+Written 2026-09-03.
+
+---
+
+## DEFERRED BY DECISION, 2026-09-07. NOT BLOCKED.
+
+**Operator ruling.** The cutover stops here and does not resume until the
+operator says so. The reason is not a technical obstacle:
+
+> The sibling repositories and their deployments are not to be touched right
+> now, and step 8b cannot be done honestly without them.
+
+That is worth carrying in the operator's terms rather than paraphrasing into a
+risk, because deferred and blocked are different states and only one of them
+asks the next session to go looking for a way through. **Nothing here is waiting
+on a discovery.** Step 8b is a decision about two other businesses, and the plan
+already says of it: ask, do not assume.
+
+**What the new project holds today.** This is a correction rather than a
+restatement, because the ruling described the project as empty and it is empty
+of DATA rather than of schema:
+
+| | State |
+| --- | --- |
+| Ref | `qmvcqvkywmkogxbyzsaz`, `us-east-1`, healthy |
+| Schema | **Migrations 0000 through 0023, all applied and verified.** Step 2 is done. |
+| Buckets | **All five, all private.** Step 3's configuration half is done. |
+| Rows | Zero in every `eng_` table except the 7 roles and 111 grants 0018 and 0021 seed. |
+| Storage objects | Zero. |
+| Cost | Ten dollars a month, which is the price of holding the option open. |
+
+Steps 2 and 3 ran on 2026-09-07, in the session that received the deferral, and
+the ruling arrived after they had completed. They are recorded as done because
+they are done and verified, and because a future session redoing them would be
+replaying twenty four migrations to reach the state it is already in.
+
+**Neither step touched production.** Every step at or below the line in section
+3 that writes anything remains unexecuted: no rows were copied, no forms were
+frozen, no environment variable was changed, and production is serving exactly
+what it served before.
+
+**What resuming looks like.** Step 4 onward, in order, with step 8b answered
+first. Read the two defects recorded under step 5 and step 8 before running
+`copy-project.mjs`, because both of them let that script report success without
+having done anything.
+
+---
+
+**Nothing below this notice has been executed except steps 1, 2 and 3.**
 
 Operator ruling of 2026-09-03: migrate, `us-east-1`, rehearse first, preserve the
 `eng_profiles` uuid by direct insert, and stop before touching production.
@@ -155,6 +203,104 @@ Operator, in the dashboard, on the new project. Not available to this session.
 Run the copy script in read only mode against both projects. It reports the row
 count per table it would move and the storage objects it would move.
 
+**A read only dry run was done on 2026-09-07 over MCP rather than with the
+script**, because the script needs both service role keys in the environment and
+neither belongs in a session transcript. It read production directly. What it
+found is below, and both findings are the same shape: a list that was correct
+when it was written, and that a later change moved the target of.
+
+**FINDING 1. Three tables with rows on production are in no copy list at all.**
+
+| Table | Rows on production | In `TABLES`? |
+| --- | --- | --- |
+| `eng_jobs` | 853 | No |
+| `eng_cron_runs` | 5,101 | No |
+| `eng_metrics_daily` | 39 | No |
+
+`copy-project.mjs`'s `TABLES` list was written for the eleven tables that
+existed when this plan was. All three of these arrived in 0011 and 0012, after
+it, and nothing noticed the list had stopped describing the database.
+
+Two of them are the telemetry class CLAUDE.md section 6b already names as
+deliberately not append only and meant to be pruned, so losing their history at
+a cutover is defensible. **What is not defensible is that it would happen
+without anybody deciding it**, and `eng_jobs` is not in that class while it
+holds live work: a pending or running row at the copy moment is scheduled work
+that silently never runs, with no error and no gap in a sequence.
+
+The queue held zero pending and zero running rows when this was first measured,
+and that was recorded as **a fact about that minute rather than a property of
+the plan**. Forty minutes later it held one: job 863, kind `errors.alert`,
+pending.
+
+**That job was reported here as an alert about a fault that had not been sent,
+and that was wrong.** It was inferred from the job's NAME rather than read from
+the database, which is the exact defect this repository hunts, committed inside
+a note about that defect. The correction, from production on 2026-09-07:
+
+- **Nothing had faulted.** `eng_error_types` and `eng_error_events` both hold
+  **zero rows**, and always have.
+- **`errors.alert` is a periodic no-op sweep**, enqueued unconditionally every
+  five minutes by the health-watch cron. It reads the error types and decides
+  whether to email; with none, it does nothing. The handler's own comment says
+  it plainly: putting it on the minutely worker "would write 1440 rows a day to
+  say nothing 1439 times".
+- **The job was not stuck.** Enqueued 16:35:24, started 16:36:08, finished
+  16:36:09, one attempt, no error. It is `done`.
+- **The worker is healthy.** In the two hours around that reading the `jobs`
+  cron ran 120 times, one a minute, 120 ok and none failed or unreported, and
+  all 864 jobs on production are `done` with none dead.
+
+What I had caught was the ordinary forty five second gap between a job being
+enqueued and the next minutely tick collecting it, which is what a working queue
+looks like at any given instant rather than a symptom of anything.
+
+**The stop condition stays, and its real justification is forward looking.**
+Production's queue today holds exactly two kinds, `errors.alert` and
+`metrics.rollup`, both periodic sweeps that reschedule themselves and both
+harmless to lose: the next tick does the work again. So dropping one today costs
+nothing, and that is a fact about how little this platform currently does rather
+than a property of the queue.
+
+The jobs that will be in it once the firm is taking orders are the ones that
+matter: an email to a customer, a statement close, a payment reconciliation.
+Those do not come round again five minutes later. **A stop condition that is
+only added once the expensive jobs exist is a stop condition added after the
+window it was needed for**, so it is built now, while the cost of it firing is
+a one minute wait.
+
+`copy-project.mjs` reads the queue before it writes anything, names the kinds
+it found, and refuses. The correct response to it firing is to wait, never to
+force it.
+
+**FIXED 2026-09-07, on the operator's instruction**, rather than deferred with
+the cutover: a copy script that reports agreement while copying nothing will be
+trusted the day it runs for real.
+
+All three are now copied. **One correction to the first report of this
+finding**, because the tidy sentence in it was wrong: it said all three are
+`bigserial` keyed. `eng_metrics_daily` is not. Its primary key is
+`(day, metric)`, which makes it naturally idempotent and needs no sequence at
+all. Only `eng_jobs` and `eng_cron_runs` carry one, verified against
+`pg_get_serial_sequence` rather than read off the migration.
+
+**The sequences are the part the script cannot finish.** PostgREST cannot run
+`setval`, so `--apply` prints the exact statements and **exits non-zero** with
+the copy declared unfinished. That is deliberate: a destination whose sequence
+sits at 1 while its table holds 863 rows fails on the first job written after
+the cutover, and a script that returned success here would have made that
+somebody else's surprise at step 10.
+
+**And the generalised fix, which is worth more than the three tables.** The
+script now runs a completeness check before it writes anything. It reads the
+table names out of `supabase/migrations/` **on disk**, asks the source which of
+them hold rows, and requires every one to be either in the copy list or named in
+a `NOT_COPIED` map with a stated reason. A table added by a future migration is
+a candidate the moment it exists rather than when somebody remembers this file.
+
+Today that check declares 16 tables and probes the other 53. All 53 are empty on
+production, so it passes, and it stops the run the moment any of them is not.
+
 **Verify:** the counts are read from the source AT COPY TIME and compared to what
 the copy would write. They are not compared to a figure recorded earlier.
 
@@ -205,10 +351,95 @@ every read is a `select`.
 The 2 objects in `eng-uploads`. Download from the old, upload to the new, at the
 same keys.
 
+**FINDING 2, and it is the worse of the two: the script cannot see either
+object, and reports agreement anyway.**
+
+`copy-project.mjs` enumerates a bucket with `list("", { limit: 1000 })`.
+Supabase's list is **not recursive**: it returns the entries at that prefix, and
+a nested object appears only as its top folder, which arrives with `id: null`.
+The script's very next line is `.filter((f) => f.id !== null)`, which removes it.
+
+Production's two objects sit at `254/<uuid>/resume-*.pdf`, three levels down. So
+the enumeration finds zero files, `--apply` copies nothing, and the verification
+then compares zero against zero and prints **agree**. Step 8's green would mean
+the resumes stayed behind.
+
+**Proven rather than reasoned**, on development on 2026-09-07, by uploading one
+object at production's exact nesting, making the same call the script makes, and
+reading what came back:
+
+    list("") returned 1 entries:
+        "254" id = null (a folder)
+    after the script's .filter(f => f.id !== null): 0 file(s) to copy
+
+The probe object was removed and its removal verified.
+
+**Two smaller things in the same list.** `BUCKETS` names three of the five, so
+`eng-messages` and `eng-partner-assets` are absent; both are empty on production
+today, which makes this the same defect with nothing behind it yet. And
+`limit: 1000` has no pagination behind it, which truncates in silence.
+
+**FIXED 2026-09-07, on the operator's instruction.**
+
+The walk now lives in `scripts/lib/bucket-walk.mjs` rather than inside this
+script, for a reason the defect itself demonstrates: a function a whole step
+depends on, buried in a script that cannot be imported because it exits on load,
+is a function nothing can test. It descends into folders and it paginates, and
+the old six lines are kept beside it as `walkBucketTheOldWay` so a test can
+show the difference rather than describe it.
+
+**Proven on development**, with four objects at production's exact nesting:
+
+    THE OLD ENUMERATION
+      found none of the nested objects (it returned 1 entry, and none of the 3 nested keys)
+      but did find the one at the root
+    THE NEW WALK
+      finds all three, three levels down
+      and still finds the one at the root
+      sees strictly more than the old one (4 against 1)
+
+Running both over the same bucket in the same run is the point. Asserting only
+the new behaviour would prove the new behaviour and say nothing about whether
+the old one was actually broken.
+
+**The count comparison is gone as the primary evidence.** Every object is
+downloaded from both sides and compared byte for byte, because a count
+comparison was what printed "agree" while nothing had been copied: both sides of
+it came from the same blind instrument. There are two objects today; when there
+are thousands this becomes a sample, and the plan says so rather than letting it
+change quietly.
+
+**And a canary.** A walk that finds nothing in any bucket says so out loud
+instead of reading as agreement, which is exactly the state the old code
+produced.
+
+`eng-messages` and `eng-partner-assets` are in the bucket list now.
+
 **Verify:** object count and byte size match per bucket, and one object is
-downloaded from the new project and compared byte for byte.
+downloaded from the new project and compared byte for byte. **Read the count
+from `storage.objects`, not from what `list` returned**, or the check is the
+same instrument twice.
 
 **Rollback:** delete the objects and repeat.
+
+### Step 8c. The copy script has never been executed, against anything
+
+**Recorded 2026-09-07 and not resolved, because it cannot be resolved from a
+session.** `copy-project.mjs` takes two projects explicitly and refuses to run
+when they are the same one. The only service role key in the working tree is
+development's, and both of the others, production's and the new project's, live
+in Vercel and in the operator's records by standing law.
+
+So no session can exercise this script end to end, and none has. Its parts are
+verified: the bucket walk against development with production's nesting, the
+completeness check's migration parsing against the files on disk, and the row
+counts read directly from production over a read only connection. **The whole
+has never run.**
+
+That is not an argument for putting a key in the tree. It is an argument for the
+operator running the dry run themselves, in an environment that already holds
+both keys, before the window opens, and for treating the first `--apply` as the
+second time the script has run rather than the first.
 
 ### Step 8b. Resolve the sister brands. THIS BLOCKS STEP 9.
 

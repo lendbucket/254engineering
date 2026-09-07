@@ -83,6 +83,154 @@ role: that the session survives the NEXT request. Signing in and being signed in
 are different facts, and the sign in check answered 200 with a Set-Cookie for
 all seven roles while four of them were already dead.
 
+## The cutover, deferred by decision, and two defects the dry run found
+
+### The database cutover is deferred. Not blocked.
+
+Operator ruling, 2026-09-07. The full record is in
+`docs/production-cutover-plan.md`, under a notice at the top of the file.
+
+The reason is a decision rather than an obstacle: the sibling repositories and
+their deployments are not to be touched right now, and step 8b cannot be done
+honestly without them. Deferred and blocked are different states and only one of
+them asks the next session to look for a way through.
+
+**Steps 1, 2 and 3 are done.** The new project `qmvcqvkywmkogxbyzsaz` holds
+migrations 0000 through 0023, verified against every checkpoint in CLAUDE.md
+section 6b, and all five buckets, all private. It holds no rows and no storage
+objects. Production was not touched by any of it and is serving exactly what it
+served before. Ten dollars a month is the cost of holding the option open.
+
+### RESOLVED: copy-project.mjs could not see the objects it was meant to copy, and reported agreement
+
+Found 2026-09-07 in the step 5 dry run. Full reasoning under step 8 of
+`docs/production-cutover-plan.md`.
+
+The script enumerates a bucket with `list("")`, which is not recursive, so
+production's two objects at `254/<uuid>/resume-*.pdf` appear only as the folder
+`254`, arriving with `id: null`, which the script's own filter then drops. It
+finds zero files, copies nothing, compares zero against zero and prints
+**agree**.
+
+**Fixed 2026-09-07 on the operator's instruction**, rather than deferred with
+the cutover: a copy script that reports agreement while copying nothing will be
+trusted the day it runs for real.
+
+The walk moved to `scripts/lib/bucket-walk.mjs`, because a function a whole
+step depends on, buried in a script that cannot be imported since it exits on
+load, is a function nothing can test. The old six lines sit beside it as
+`walkBucketTheOldWay` so a test can show the difference rather than describe
+it, and both were run over the same development bucket with four objects at
+production's exact nesting: the old one found 1 entry and none of the 3 nested
+keys, the new one found all 4.
+
+The count comparison is no longer the evidence. Every object is downloaded from
+both sides and compared byte for byte, because a count comparison is what
+printed agreement when both sides came from the same blind instrument. A walk
+that finds nothing in any bucket now says so instead of reading as agreement.
+
+`BUCKETS` names all five now, and the walk paginates.
+
+### RESOLVED: three tables with rows on production were in no copy list
+
+Found 2026-09-07 in the same dry run. Full reasoning under step 5 of
+`docs/production-cutover-plan.md`.
+
+`eng_jobs` (853 rows), `eng_cron_runs` (5,101) and `eng_metrics_daily` (39)
+all arrived in 0011 and 0012, after `copy-project.mjs`'s table list was written,
+and nothing noticed the list had stopped describing the database.
+
+Two are the telemetry class CLAUDE.md already names as prunable, so losing their
+history is defensible; what is not defensible is it happening without anybody
+deciding it. `eng_jobs` is different while it holds live work, and the plan
+gains a stop condition for that: the queue is checked for pending and running
+rows immediately before the copy.
+
+**Fixed 2026-09-07, and one thing in the first account of it was wrong.** It
+said all three are `bigserial` keyed. `eng_metrics_daily` is not: its primary
+key is `(day, metric)`, so it is naturally idempotent and carries no sequence.
+Checked against `pg_get_serial_sequence` rather than read off the migration.
+Only `eng_jobs` and `eng_cron_runs` have one.
+
+The sequences are the part the script cannot finish, because PostgREST cannot
+run `setval`. So `--apply` prints the exact statements and **exits non-zero
+with the copy declared unfinished**, rather than returning success and leaving a
+destination whose sequence sits at 1 while its table holds 863 rows.
+
+**The queue stop condition is built.** At the first measurement the queue held
+nothing pending or running; forty minutes later it held job 863, kind
+`errors.alert`, pending.
+
+**That job was reported as an alert about an unsent fault, and that was wrong**,
+inferred from its name rather than read from the database. Production holds zero
+error types and zero error events; `errors.alert` is a no-op sweep enqueued
+every five minutes by health-watch; the job ran 44 seconds after being enqueued
+and is `done`; and the worker is healthy, 120 of 120 minutely runs ok in the
+surrounding two hours with all 864 jobs done and none dead. The full correction
+is under step 5 of `docs/production-cutover-plan.md`.
+
+The stop condition still stands, on a forward looking argument rather than that
+false one: the two kinds in the queue today are periodic sweeps that come round
+again and are harmless to lose, and the jobs that will be there once the firm is
+taking orders, a customer email or a statement close, are not. A stop condition
+added once those exist is one added after the window it was for.
+
+**And the generalised fix, which is worth more than the three tables.** The
+script reads the table names out of `supabase/migrations/` on disk, asks the
+source which hold rows, and requires each to be in the copy list or in a
+`NOT_COPIED` map with a stated reason. Today it declares 16 and probes the
+other 53, all empty; it stops the run the moment one is not. A table added by a
+future migration is a candidate the moment it exists rather than when somebody
+remembers that file.
+
+### The copy script has never been executed, against anything
+
+Recorded 2026-09-07. Reasoning under step 8c of
+`docs/production-cutover-plan.md`.
+
+`copy-project.mjs` takes two projects explicitly and refuses when they are the
+same one. The only service role key in the working tree is development's; both
+others live in Vercel by standing law. **No session can run this script end to
+end, and none has.**
+
+Its parts are verified, the bucket walk and the completeness check and the row
+counts, and the whole is not. The answer is not a key in the tree. It is the
+operator running the dry run in an environment that already holds both keys
+before the window opens, so the first `--apply` is the second time it has run.
+
+## Disaster recovery
+
+### The firm has no usable restore path, and cannot get one until the cutover
+
+Phase 12 Section 5, recorded 2026-09-07. The report is
+`docs/disaster-recovery.md` and this is the pointer, not a second copy of it.
+
+Operator ruling the same day: Section 5 is a report rather than a test until the
+cutover happens, because point in time recovery rewinds a whole project and
+production is still shared with four other applications. Testing the restore
+would mean rewinding them too.
+
+The mechanism exists and the firm must not use it, which is a different fault
+from not having one and is stated as one. What makes it urgent rather than
+academic is `eng_audit_events`: 468 rows of regulatory memory that cannot be
+reconstructed from anywhere, and that a project level rewind does not route
+through the append only trigger protecting them.
+
+The volume at risk today is one afternoon of manual reconstruction. That is the
+argument for the deferral being affordable, not for the gap being acceptable.
+
+### A scheduled export outside the shared project would close it before the cutover does
+
+Recorded 2026-09-07 alongside the report above, and deliberately not built.
+
+Nothing exports this firm's rows anywhere. There is no backup script in
+`scripts/` and no export among the three registered crons, which was checked
+rather than assumed. An export to storage outside `fsaryeciduszuahgjbly` would
+give the firm something it controls today without touching a neighbour.
+
+It is out of scope of Section 5 as the operator defined it, and it is the one
+action that would close the gap while the cutover stays deferred.
+
 ## Found while building the closeout
 
 ### The build guard reads a command line, so a command that MENTIONS the build directory looks like a server
