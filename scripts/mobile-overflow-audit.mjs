@@ -54,6 +54,13 @@
  * on.
  */
 import { chromium } from "playwright";
+import { allPages } from "./lib/surfaces.mjs";
+import {
+  createPartnerProbe,
+  createCustomerProbe,
+  destroyPartnerProbes,
+  destroyCustomerProbes,
+} from "./lib/portal-probe.mjs";
 
 const BASE = process.env.BASE_URL || "http://localhost:3225";
 const WIDTHS = [360, 390];
@@ -86,21 +93,28 @@ const SLACK = 1;
  * does not carry them; removing the review queue would put the densest table in
  * the portal back outside this check while the audit went green.
  */
-const PORTAL_ROUTES = [
-  "/portal",
-  "/portal/people",
-  "/portal/files",
-  "/portal/clients",
-  "/portal/audit",
-  "/portal/profile",
-  "/portal/roles",
-  "/portal/jobs",
-  "/portal/login",
-  "/portal/set-password",
-];
+/*
+ * The eleven portal routes this file used to carry are gone rather than kept as
+ * a dead array. What they were is not the useful part; that they were a hand
+ * written list with no partner or account route in it is, and that is recorded
+ * in the comment below and in BACKLOG.
+ */
 
-/** What only a licence holder can open. Walked by the engineer probe. */
-const LICENSED_ROUTES = ["/portal/review"];
+/**
+ * THE SIGNED IN ROUTES ARE DERIVED, AS OF 2026-09-07.
+ *
+ * PORTAL_ROUTES above is kept only as the record of what this file used to
+ * measure, and nothing reads it any more: eleven portal routes, hand written,
+ * and no partner or account route at all. The partner portal shipped in Phase 9
+ * Section 4 and never entered this list, so five signed in pages and two
+ * credential screens were never measured for sideways scroll. Nobody decided
+ * that; the list was a memory.
+ *
+ * scripts/lib/surfaces.mjs is the declaration now, surface-audit fails when a
+ * surface is not in it, and this file walks whatever it is given.
+ */
+const INVENTORY_PAGES = allPages();
+
 
 const PROBE_DOMAIN = "mobile-audit.invalid";
 let probe = null;
@@ -138,21 +152,44 @@ async function createProbe(role = "admin") {
 }
 
 async function destroyProbe() {
-  const all = [probe, licensedProbe].filter(Boolean);
-  if (!all.length) return true;
-  for (const p of all) {
-    await p.db.from("eng_profiles").delete().eq("id", p.id);
-    await p.db.auth.admin.deleteUser(p.id).catch(() => {});
-  }
   /*
-   * The sweep is by DOMAIN, not by the ids just deleted, so a probe left behind
-   * by a crashed earlier run is still found. That is the forms-audit lesson: a
-   * delete which matched nothing returned no error.
+   * Every staff probe this file makes, and the technician one was missed when it
+   * was added: the sweep by domain caught it on the same run and reported a
+   * probe left behind, which is the teardown check doing its job.
    */
-  const { data } = await all[0].db
+  const all = [probe, licensedProbe, techProbe].filter(Boolean);
+  if (!all.length) return true;
+
+  /*
+   * DELETE WHAT THE VERIFICATION LOOKS FOR, which is everything on the probe
+   * domain rather than the ids this run happens to hold.
+   *
+   * The earlier version deleted its own ids and then verified by sweeping the
+   * domain, so the two were looking at different sets: a probe left behind by a
+   * crashed run, or by a run that made one more probe than its teardown knew
+   * about, was reported as a failure this teardown was not fixing. It happened
+   * on 2026-09-07, the first run after a technician probe was added, and the
+   * report was correct both times: there was an account left behind, and this
+   * function was never going to remove it.
+   *
+   * portal-probe.mjs made the same repair for the same reason. The two are
+   * deliberately separate probe domains, so neither run can tear down the
+   * other's accounts, and that separation is only worth having if each one
+   * cleans its own domain completely.
+   */
+  const db = all[0].db;
+  const { data: strays } = await db
     .from("eng_profiles")
-    .select("email")
+    .select("id")
     .like("email", `%@${PROBE_DOMAIN}`);
+
+  const ids = new Set([...all.map((p) => p.id), ...(strays ?? []).map((r) => r.id)]);
+  for (const id of ids) {
+    await db.from("eng_profiles").delete().eq("id", id);
+    await db.auth.admin.deleteUser(id).catch(() => {});
+  }
+
+  const { data } = await db.from("eng_profiles").select("email").like("email", `%@${PROBE_DOMAIN}`);
   return (data ?? []).length === 0;
 }
 
@@ -164,16 +201,70 @@ async function routes() {
   // The homepage and the waitlist are reachable and indexable; whether they are
   // in the sitemap is a separate question from whether they overflow.
   for (const extra of ["/", "/waitlist"]) if (!found.includes(extra)) found.push(extra);
-  return [...found, ...PORTAL_ROUTES];
+
+  /*
+   * The sitemap is the public list and the inventory is everything else. Pages
+   * that need no session are walked signed out with the rest; the ones that do
+   * are grouped by principal below, because a page opened without its session is
+   * the sign in screen measured under another name.
+   */
+  const open = INVENTORY_PAGES.filter((p) => p.session === "none").map((p) => p.path);
+  return [...new Set([...found, ...open])];
+}
+
+/** The signed in pages, grouped by which principal opens them. */
+function byPrincipal() {
+  const groups = new Map();
+  for (const page of INVENTORY_PAGES) {
+    if (page.session === "none") continue;
+    const key = page.session === "staff" ? `staff:${page.role ?? "admin"}` : page.session;
+    groups.set(key, [...(groups.get(key) ?? []), page.path]);
+  }
+  return groups;
 }
 
 const findings = [];
 const checks = [];
 
+/*
+ * The other two principals, from the shared probe module rather than from a
+ * third copy of account creation in this file. The staff probe above predates
+ * that module and is left alone deliberately: it uses its own probe domain, so
+ * a run of this audit and a run of another cannot tear down each other's
+ * accounts, which is a hazard recorded in BACKLOG and worth keeping here.
+ */
+let techProbe = null;
+let partnerProbe = null;
+let customerProbe = null;
+
 async function run() {
   const list = await routes();
   probe = await createProbe("admin");
   licensedProbe = await createProbe("engineer");
+  techProbe = await createProbe("field_tech");
+  partnerProbe = await createPartnerProbe(BASE, "mobile-overflow-audit");
+  customerProbe = await createCustomerProbe(BASE, "mobile-overflow-audit");
+
+  /*
+   * A principal whose probe could not be made is a FAILURE, not a skip. The
+   * pages it opens are the pages nobody has ever measured, so reporting them as
+   * unmeasured is the whole point of bringing them in.
+   */
+  checks.push({
+    name: "the partner surface measured with a partner session",
+    ok: Boolean(partnerProbe?.cookie),
+    detail: "five signed in pages that no audit opened before 2026-09-07",
+  });
+  checks.push({
+    name: "the account surface measured with a customer session",
+    ok: Boolean(customerProbe?.cookie),
+    detail: "the customer's own screens, opened by a customer",
+  });
+  checks.push({
+    name: "the technician screens measured with a technician session",
+    ok: Boolean(techProbe?.cookie),
+    detail: "an administrator gets a different screen, or none",
+  });
   if (!probe?.cookie) {
     // Reported as a failure, not skipped quietly. A portal that was never
     // measured is not a portal that passed.
@@ -196,7 +287,17 @@ async function run() {
 
   const browser = await chromium.launch();
 
-  const contextFor = async (width, cookie) => {
+  /*
+   * THREE COOKIES, THREE PRINCIPALS, AND THE NAME MATTERS.
+   *
+   * eng_ops, eng_partner and eng_customer are separate credential stores with
+   * separate HMAC labels, which accounts-audit asserts cannot be read as each
+   * other. A context handed the wrong one lands on a sign in screen, which
+   * answers 200 and would be measured as the page it is not.
+   */
+  const COOKIE_NAME = { staff: "eng_ops", partner: "eng_partner", customer: "eng_customer" };
+
+  const contextFor = async (width, cookie, kind = "staff") => {
     const ctx = await browser.newContext({
       viewport: { width, height: 800 },
       isMobile: true,
@@ -205,7 +306,7 @@ async function run() {
     });
     if (cookie) {
       await ctx.addCookies([
-        { name: "eng_ops", value: cookie, url: BASE, httpOnly: true, sameSite: "Lax" },
+        { name: COOKIE_NAME[kind], value: cookie, url: BASE, httpOnly: true, sameSite: "Lax" },
       ]);
     }
     return ctx;
@@ -254,6 +355,31 @@ async function run() {
         if (!res || res.status() !== 200) {
           findings.push(`${route} @${width}: HTTP ${res ? res.status() : "no response"}`);
           checks.push({ name: `${route} @${width}`, ok: false, detail: "not 200" });
+          await page.close();
+          continue;
+        }
+
+        /*
+         * A SIGNED IN ROUTE THAT LANDED ON A SIGN IN SCREEN WAS NOT MEASURED.
+         *
+         * A rejected cookie redirects, the redirect is followed, and the sign in
+         * page answers 200 and has no overflow. So every portal, partner and
+         * account route would report a pass while measuring one small page over
+         * and over. mobile-audit has had this guard since Phase 11; this file
+         * did not, and on 2026-09-07 it produced a clean run that had measured
+         * nothing behind any door: two probe using audits were running at once,
+         * one tore down the other's accounts mid run, and the output was a
+         * confident green.
+         *
+         * The failure it hid was real and is in this run's output.
+         */
+        const landed = new URL(page.url()).pathname;
+        const isSignIn = /\/(portal|partner|account)\/login$/.test(landed);
+        if (isSignIn && !/\/login$/.test(route)) {
+          findings.push(
+            `${route} @${width}: bounced to ${landed}, so it was not measured. The session was rejected.`,
+          );
+          checks.push({ name: `${route} @${width}`, ok: false, detail: "bounced to sign in, not measured" });
           await page.close();
           continue;
         }
@@ -376,14 +502,25 @@ async function run() {
     await ctx.close();
 
     /*
-     * And the licence bound routes, with the engineer's session. If that probe
-     * could not be made, the routes are still walked signed out and will fail
-     * as a redirect rather than being skipped: a route nobody measured is not
-     * a route that passed.
+     * Then every signed in group, each with the session that opens it. A probe
+     * that could not be made walks its routes signed out rather than skipping
+     * them: a route nobody measured is not a route that passed, and it fails as
+     * a redirect, which is loud.
      */
-    const licensedCtx = await contextFor(width, licensedProbe?.cookie);
-    await walk(licensedCtx, LICENSED_ROUTES);
-    await licensedCtx.close();
+    const cookieFor = {
+      "staff:admin": [probe?.cookie, "staff"],
+      "staff:engineer": [licensedProbe?.cookie, "staff"],
+      "staff:field_tech": [techProbe?.cookie, "staff"],
+      partner: [partnerProbe?.cookie, "partner"],
+      customer: [customerProbe?.cookie, "customer"],
+    };
+
+    for (const [group, routeList] of byPrincipal()) {
+      const [cookie, kind] = cookieFor[group] ?? [null, "staff"];
+      const groupCtx = await contextFor(width, cookie, kind);
+      await walk(groupCtx, routeList);
+      await groupCtx.close();
+    }
   }
 
   await browser.close();
@@ -402,10 +539,33 @@ checks.push({
   detail: "a probe left behind is a live account nobody created on purpose",
 });
 
+const sweptPartners = await destroyPartnerProbes("mobile-overflow-audit");
+checks.push({
+  name: "the partner probe was removed",
+  ok: sweptPartners.ok,
+  detail: sweptPartners.note,
+});
+
+const sweptCustomers = await destroyCustomerProbes("mobile-overflow-audit");
+checks.push({
+  name: "the customer probe was removed",
+  ok: sweptCustomers.ok,
+  detail: sweptCustomers.note,
+});
+
 console.log("================ MOBILE HORIZONTAL OVERFLOW ================");
 console.log(
-  `${BASE}, every sitemap route plus ${PORTAL_ROUTES.length + LICENSED_ROUTES.length} portal routes at ${WIDTHS.join(" and ")}\n`,
+  `${BASE}, every sitemap route plus ${INVENTORY_PAGES.length} pages from the surface inventory at ${WIDTHS.join(" and ")}\n`,
 );
+/*
+ * Every check, on demand. Failures print always; this prints the whole list,
+ * which is how a route that was never measured is told apart from a route that
+ * passed. They look identical in a summary count.
+ */
+if (process.env.OVERFLOW_SHOW_ALL === "1") {
+  for (const c of checks) console.log(`  ${c.ok ? "ok  " : "FAIL"} ${c.name}${c.detail ? ` (${c.detail})` : ""}`);
+}
+
 const failed = checks.filter((c) => !c.ok);
 for (const c of failed) console.log(`  FAIL: ${c.name} (${c.detail})`);
 console.log("");

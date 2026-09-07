@@ -44,6 +44,7 @@
     "review-audit": "tsx scripts/review-audit.mjs",
     "comms-audit": "tsx scripts/comms-audit.mjs",
     "backlog-audit": "tsx scripts/backlog-audit.mjs",
+    "surface-audit": "tsx scripts/surface-audit.mjs",
     "money-audit": "tsx scripts/money-audit.mjs",
     "order-audit": "tsx scripts/order-audit.mjs",
     "seed-field-demo": "tsx --conditions=react-server scripts/seed-field-demo.mjs",

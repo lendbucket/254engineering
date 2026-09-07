@@ -59,7 +59,7 @@ Visual reference: `254 Brand Standards.dc.html`. Canonical implementation: `254 
 --warn-ink: #5C4A12;    /* alert text */
 --ink: #333A45;         /* body text */
 --secondary: #555E6B;   /* labels, metadata, column headers */
---muted: #8A93A0;       /* footnotes, inert status dots */
+--muted: #8A93A0;       /* inert status dots ONLY. 3.1:1 on white, so never text. */
 --border: #DDE0E4;      /* card borders */
 --border-strong: #C3C9D1; /* input/button borders */
 --row-rule: #EDF1F7;    /* table row rules, tinted fills */
@@ -68,6 +68,14 @@ Visual reference: `254 Brand Standards.dc.html`. Canonical implementation: `254 
 --green: #3E7A4E;       /* good status dots ONLY (bg #EEF4EF, border #CBDDCE) */
 --red: #B4232A;         /* failures and required-field asterisks, sparingly */
 ```
+**--muted is not a text colour, and it was being used as one.** It measures
+3.1:1 on white, which fails AA for text at any size this system uses. It was on
+the absent data chip, the binder key line and two footnotes, and contrast-audit
+never saw it because none of those rendered on a measured screen until the
+partner portal entered the audit on 2026-09-07. All four now use --secondary,
+which is 7.0:1. The token stays for inert status dots, which are not text and
+carry no contrast requirement, and the comment beside it says so.
+
 Rules: gold appears only in the logo, warnings, pending states, and the active-nav bar.
 Green only on status dots. Never gradients. New tints via oklch near these anchors.
 

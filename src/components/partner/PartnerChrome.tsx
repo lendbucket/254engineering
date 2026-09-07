@@ -226,7 +226,7 @@ export function PartnerIdentity({
           />
           <div
             role="menu"
-            className="absolute right-0 z-50 mt-1 w-[min(88vw,280px)] rounded-[var(--radius-card)] border border-[var(--border)] bg-white p-3 shadow-[var(--shadow-panel)]"
+            className="absolute right-0 z-50 mt-1 w-[min(88vw,280px)] rounded-[var(--radius-card)] border border-[var(--border)] bg-white p-3 shadow-[var(--shadow-menu)]"
           >
             <p className="text-[13.5px] font-bold text-[var(--navy)]">{organisation}</p>
             <p className="mt-0.5 text-[12.5px] leading-[1.5] text-[var(--secondary)]">{email}</p>

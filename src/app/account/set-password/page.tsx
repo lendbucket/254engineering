@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { inspectCustomerToken, MIN_CUSTOMER_PASSWORD_LENGTH } from "@/lib/customer-auth";
 import { AccountSetPasswordForm } from "./SetPasswordForm";
@@ -56,6 +57,21 @@ export default async function AccountSetPasswordPage({
                     ? "If that was not you, tell the firm."
                     : "Check the link came through whole. The firm can send a new one."}
               </p>
+              {/*
+                A DEAD END WITH NO NEXT STEP IS WHERE SOMEBODY GIVES UP.
+
+                The portal and the partner surface both offer this and the
+                customer one did not. Found on 2026-09-07, the first time
+                forms-audit exercised a credential form outside the portal: a
+                customer whose invite had expired reached a sentence and
+                nothing to press.
+              */}
+              <Link
+                href="/account/login"
+                className="mt-6 inline-flex min-h-[var(--tap-target)] w-full items-center justify-center rounded-[var(--radius-control)] border border-[var(--border-strong)] px-4 text-[15px] font-bold text-[var(--navy)] active:bg-[var(--canvas)]"
+              >
+                Go to sign in
+              </Link>
             </>
           )}
         </div>

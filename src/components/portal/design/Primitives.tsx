@@ -221,7 +221,7 @@ export function SystemAlert({
  */
 export function AbsentChip({ children = "not set" }: { children?: ReactNode }) {
   return (
-    <span className="inline-block rounded-[var(--radius-chip)] border border-dashed border-[var(--border-strong)] px-1.5 py-px text-[12px] italic text-[var(--muted)]">
+    <span className="inline-block rounded-[var(--radius-chip)] border border-dashed border-[var(--border-strong)] px-1.5 py-px text-[12px] italic text-[var(--secondary)]">
       {children}
     </span>
   );
@@ -242,7 +242,7 @@ export function MoneyFigure({ value, className = "" }: { value: Cents; className
 export function ExclusionNote({ excluded, of }: { excluded: number; of: string }) {
   if (excluded === 0) return null;
   return (
-    <p className="mt-2 text-[12px] leading-[1.5] text-[var(--muted)]">
+    <p className="mt-2 text-[12px] leading-[1.5] text-[var(--secondary)]">
       {excluded} {excluded === 1 ? "record has" : "records have"} no {of} recorded and{" "}
       {excluded === 1 ? "is" : "are"} excluded from this total.
     </p>

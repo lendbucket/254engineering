@@ -29,7 +29,18 @@ import { startNextServer } from "./lib/dev-server.mjs";
 const require = createRequire(import.meta.url);
 const axePath = require.resolve("axe-core/axe.min.js");
 
-import { createProbe, cookieFor, destroyProbes } from "./lib/portal-probe.mjs";
+import {
+  createProbe,
+  cookieFor,
+  createPartnerProbe,
+  partnerCookieFor,
+  createCustomerProbe,
+  customerCookieFor,
+  destroyProbes,
+  destroyPartnerProbes,
+  destroyCustomerProbes,
+} from "./lib/portal-probe.mjs";
+import { allPages } from "./lib/surfaces.mjs";
 
 const WIDTHS = [390, 1280];
 const HEIGHT = 900;
@@ -51,34 +62,34 @@ const PORT = Number(process.env.CONTRAST_PORT || 3224);
  * administrator sees money columns a technician must never see, and auditing
  * only the administrator's view would leave the redacted variants unmeasured.
  */
-const PORTAL_TEMPLATES = [
-  { name: "portal: dashboard", path: "/portal", portal: "admin" },
-  { name: "portal: files", path: "/portal/files", portal: "admin" },
-  { name: "portal: clients", path: "/portal/clients", portal: "admin" },
-  { name: "portal: new job", path: "/portal/intake", portal: "admin" },
-  { name: "portal: people", path: "/portal/people", portal: "admin" },
-  { name: "portal: roles", path: "/portal/roles", portal: "admin" },
-  { name: "portal: audit trail", path: "/portal/audit", portal: "admin" },
-  { name: "portal: technicians", path: "/portal/techs", portal: "admin" },
-  { name: "portal: documents", path: "/portal/documents", portal: "admin" },
-  { name: "portal: orders", path: "/portal/orders", portal: "admin" },
-  { name: "portal: accounts", path: "/portal/accounts", portal: "admin" },
-  { name: "portal: billing", path: "/portal/billing", portal: "admin" },
-  { name: "portal: queue", path: "/portal/queue", portal: "admin" },
-  { name: "portal: status", path: "/portal/status", portal: "admin" },
-  { name: "portal: tasks", path: "/portal/tasks", portal: "admin" },
-  { name: "portal: messages", path: "/portal/messages", portal: "admin" },
-  { name: "portal: profile", path: "/portal/profile", portal: "admin" },
-  { name: "portal: onboarding", path: "/portal/onboarding", portal: "admin" },
-  { name: "portal: charge log", path: "/portal/charge-log", portal: "admin" },
-  { name: "portal: pay", path: "/portal/pay", portal: "admin" },
-  // The licence bound screens, which an administrator cannot open at all.
-  { name: "portal: review queue", path: "/portal/review", portal: "engineer" },
-  { name: "portal: protocols", path: "/portal/protocols", portal: "engineer" },
-  // A technician's view of the same platform, where the redaction lives.
-  { name: "portal: my jobs", path: "/portal/jobs", portal: "field_tech" },
-  { name: "portal: certification", path: "/portal/certification", portal: "field_tech" },
-];
+/**
+ * DERIVED FROM THE SURFACE INVENTORY, AS OF 2026-09-07.
+ *
+ * This was twenty four hand written portal templates. It carried no partner
+ * screen and no account screen, so the partner portal, which shipped in Phase 9
+ * Section 4, and the customer account surface, which shipped a phase before it,
+ * had never been checked for contrast at all. Nobody decided that; the list was
+ * written when the portal was the only signed in surface and nothing asked it
+ * to grow.
+ *
+ * The role still travels with the screen, because what a screen RENDERS depends
+ * on it: an administrator sees money columns a technician must never see, and
+ * auditing only the administrator's view would leave the redacted variants
+ * unmeasured. The inventory carries that per route.
+ */
+const PORTAL_TEMPLATES = allPages()
+  .filter((p) => p.session !== "none")
+  .map((p) => ({
+    name: p.name,
+    path: p.path,
+    session: p.session,
+    portal: p.session === "staff" ? p.role ?? "admin" : p.session,
+  }));
+
+/** The pages behind no door, which need no probe and are audited as they are. */
+const OPEN_TEMPLATES = allPages()
+  .filter((p) => p.session === "none")
+  .map((p) => ({ name: p.name, path: p.path }));
 
 const TEMPLATES = [
   { name: "home", path: "/" },
@@ -147,15 +158,71 @@ async function auditPage(browser, base, t, width, sessions = {}) {
     if (!probe?.cookie) {
       return { error: `no ${t.portal} session, so this screen was not measured`, contrast: [], other: [] };
     }
-    await context.addCookies(cookieFor(probe, base));
+    /*
+     * THREE PRINCIPALS, THREE COOKIE SHAPES. A partner handed a staff cookie
+     * lands on the partner sign in screen, which answers 200 and would be
+     * audited as the screen it is not.
+     */
+    const cookies =
+      t.session === "partner"
+        ? partnerCookieFor(probe, base)
+        : t.session === "customer"
+          ? customerCookieFor(probe, base)
+          : cookieFor(probe, base);
+    await context.addCookies(cookies);
   }
   const page = await context.newPage();
   try {
-    const res = await page.goto(base + t.path, { waitUntil: "networkidle", timeout: 90_000 });
+    /*
+     * NETWORKIDLE ON A PUBLIC PAGE, AND NOT ON A SIGNED IN ONE.
+     *
+     * Operator ruling, 2026-09-07: an audit whose red and green both depend on
+     * how busy the machine is has stopped being evidence in either direction.
+     *
+     * A signed in shell renders a navigation of twenty five links, every one of
+     * them a force-dynamic route that Next prefetches, so the network keeps
+     * going long after the page is laid out and "no requests for 500ms" can
+     * take longer than the timeout to arrive. On this machine it produced four
+     * page errors on the dashboard and the billing screen, at both widths, on a
+     * build where both answer in half a second. Those four screens were not
+     * measured, and the same run an hour earlier had been green.
+     *
+     * axe reads the DOM, not the network. What it needs is a rendered page, so
+     * a signed in route waits for the DOM and then for the shell to exist,
+     * which is a positive signal that the page rendered rather than an absence
+     * of traffic. Public pages keep networkidle: they carry photographs, and a
+     * late loading image is exactly the thing that changes a contrast result.
+     */
+    const res = await page.goto(base + t.path, {
+      waitUntil: t.portal ? "domcontentloaded" : "networkidle",
+      timeout: 90_000,
+    });
+    if (t.portal) {
+      await page
+        .locator("[data-portal-scroll], main")
+        .first()
+        .waitFor({ state: "attached", timeout: 20_000 })
+        .catch(() => {});
+      await page.waitForTimeout(900);
+    }
     const status = res ? res.status() : 0;
     const wanted = t.expectStatus ?? 200;
     if (status !== wanted) {
       return { error: `HTTP ${status}, expected ${wanted}`, contrast: [], other: [] };
+    }
+
+    /*
+     * And it is the screen that was asked for. A rejected cookie redirects to a
+     * sign in page which answers 200, and auditing it as the screen behind the
+     * door is the defect this file's own header describes.
+     */
+    const landed = new URL(page.url()).pathname;
+    if (t.portal && /\/(portal|partner|account)\/login$/.test(landed)) {
+      return {
+        error: `bounced to ${landed}, so this screen was not measured`,
+        contrast: [],
+        other: [],
+      };
     }
 
     /*
@@ -263,6 +330,14 @@ async function main() {
     for (const role of ["admin", "engineer", "field_tech"]) {
       sessions[role] = await createProbe(base, role, "contrast-audit");
     }
+    /*
+     * Keyed by what the template asks for, which for the other two principals is
+     * the session name rather than a role: a partner has no role and must never
+     * appear in the staff authorization matrix.
+     */
+    sessions.partner = await createPartnerProbe(base, "contrast-audit");
+    sessions.customer = await createCustomerProbe(base, "contrast-audit");
+
     const missing = Object.entries(sessions).filter(([, p]) => !p?.cookie).map(([r]) => r);
     if (missing.length) {
       log(`  probe sign in failed for: ${missing.join(", ")}`);
@@ -275,7 +350,7 @@ async function main() {
     const otherSeen = new Map();
     let pageErrors = 0;
 
-    for (const t of [...TEMPLATES, ...PORTAL_TEMPLATES]) {
+    for (const t of [...TEMPLATES, ...OPEN_TEMPLATES, ...PORTAL_TEMPLATES]) {
       for (const w of WIDTHS) {
         const r = await auditPage(browser, base, t, w, sessions);
         if (r.error) {
@@ -307,6 +382,15 @@ async function main() {
     if (!swept.ok) pageErrors += 1;
     log("  probe accounts removed: " + (swept.ok ? "yes" : "NO, " + swept.note));
 
+    /* The other two principals, each verified the same way. */
+    const sweptPartners = await destroyPartnerProbes("contrast-audit");
+    if (!sweptPartners.ok) pageErrors += 1;
+    log("  partner probe removed: " + (sweptPartners.ok ? "yes" : "NO, " + sweptPartners.note));
+
+    const sweptCustomers = await destroyCustomerProbes("contrast-audit");
+    if (!sweptCustomers.ok) pageErrors += 1;
+    log("  customer probe removed: " + (sweptCustomers.ok ? "yes" : "NO, " + sweptCustomers.note));
+
     log("\n================ COLOR CONTRAST (WCAG AA) ================");
     if (contrastSeen.size === 0) {
       log("  PASS: no color-contrast violations on any template.");
@@ -324,7 +408,11 @@ async function main() {
     }
 
     log("\n================ RESULT ================");
-    log(`${TEMPLATES.length} public and pre-session templates plus ${PORTAL_TEMPLATES.length} signed in portal screens, at ${WIDTHS.join(" and ")}.`);
+    log(
+      `${TEMPLATES.length + OPEN_TEMPLATES.length} public and pre-session templates plus ` +
+        `${PORTAL_TEMPLATES.length} signed in screens across ` +
+        `${new Set(PORTAL_TEMPLATES.map((t) => t.session)).size} principals, at ${WIDTHS.join(" and ")}.`,
+    );
     const total = contrastSeen.size + otherSeen.size;
     if (total === 0 && pageErrors === 0) {
       log("ALL GREEN. No WCAG A/AA violations across templates.");

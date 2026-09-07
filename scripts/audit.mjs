@@ -78,6 +78,18 @@ const PHASE_ZERO = [
     why: "every document carrying open work is named in the file that claims to index all of it",
   },
   {
+    /*
+     * Third, and beside the other two for the same reason: it is a filesystem
+     * read, it takes no server, and what it answers is whether the rest of this
+     * list is measuring everything it should. A harness that does not know what
+     * surfaces exist measures the ones somebody remembered.
+     *
+     * Pure.
+     */
+    name: "surface-audit",
+    why: "every surface is declared, and every browser audit derives its list from that declaration",
+  },
+  {
     // Phase 8 added a second kind of person. This asks whether the two can be
     // confused for each other, which is the failure that would look like a
     // working site right up until a customer opened the review queue.

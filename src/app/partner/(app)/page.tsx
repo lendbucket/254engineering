@@ -56,7 +56,7 @@ export default async function PartnerHome() {
       ) : null}
 
       <div>
-        <h1 className="font-display text-[20px] leading-[1.2] font-bold text-[var(--navy)]">
+        <h1 className="font-display text-[24px] leading-[1.2] font-bold text-[var(--navy)]">
           {principal.partner.organisation}
         </h1>
         <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-[1.6] text-[var(--secondary)]">

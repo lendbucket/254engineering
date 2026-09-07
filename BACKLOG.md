@@ -837,6 +837,119 @@ the same two roles with the same dates and was imported by nothing;
 files holding one fact is a drift waiting to happen and the one nobody reads is
 the one that gets edited, so it is gone and the comment names the real file.
 
+### OPEN: /careers/professional-engineer is 54ms over its LCP ceiling
+
+Found 2026-09-07 by the full suite, and reproduced twice on a quiet machine.
+
+**The numbers.** LCP 3454ms against a 3400ms ceiling, median of three, spread
+1ms. Earlier the same day, on the same machine and before any of that day's
+work, the same page measured 3310ms with a spread of 76ms. So it moved by about
+144ms and became deterministic.
+
+**Not absorbed, and the budget has not moved.** perf-audit's own doctrine is
+written into its header: a route that fails at the median is a real finding and
+is never answered by moving the line it crossed. It is recorded here instead.
+
+**What is NOT the cause, checked rather than assumed.** Nothing that renders
+that page changed that day. The design token corrections were in portal and
+partner components, the card fix was in the portal's shared table, and the
+account change was a link on a customer screen. The careers detail page's own
+last change was the JobPosting expiry guard, which was in the suite run that
+measured 3310ms and passed.
+
+**What it might be, in order of likelihood.** A machine baseline that moved
+after a session of continuous building and browser work, which the collapsed
+spread is consistent with. A dependency or font that now resolves differently.
+Or a real regression from something shared that has not been identified.
+
+**What to do with it.** Measure it on a deployment rather than on this laptop,
+which is where the number matters, and compare with the other nine templates
+that pass on the same machine with the same profile. The gap is 1.6 percent of
+the ceiling: it is either noise the local profile cannot see through, or a small
+real regression, and a deployment measurement separates them. Do not widen the
+ceiling to make it green.
+
+### RESOLVED 2026-09-07: the harness had no list of what surfaces exist
+
+Operator ruling the same day, after the sweep found the overflow blindness twice
+and a third instance in a different form. The generalized fix, and it was worth
+more than the eight individual corrections it made possible.
+
+**What was wrong.** Every browser audit carried its own hand written list of
+what to measure and nothing carried a list of what EXISTS. So a surface entered
+the harness only where somebody remembered. The partner portal shipped in Phase
+9 Section 4 and reached two audits out of eight; the customer account surface,
+a phase earlier, reached fewer. Nobody decided that.
+
+**What was built.** `scripts/lib/surfaces.mjs` declares every surface with its
+prefix, whether opening it needs a session, and which probe makes one. Routes
+are DERIVED by walking the directories each surface names, because a route list
+in the declaration would be the same memory problem one level down. Every
+consumer calls a function that refuses to return an empty list, which is the
+canary: an inventory that quietly matched nothing would turn every audit
+deriving from it into an audit measuring nothing.
+
+`scripts/surface-audit.mjs` makes it binding. It walks src/app for anything
+that renders a page or answers a request and fails when one belongs to no
+declared surface, checks that each exemption names an audit that actually
+references the path it claims, checks that the probe each surface names exists,
+and checks that all seven browser audits still import the inventory. Injected
+both ways: an undeclared /vendor surface failed it twice, and an inventory
+forced empty took the audit down with an error rather than passing.
+
+**A customer probe had to exist first.** No audit could open the account surface
+because nothing could make a customer session. `createCustomerProbe` writes the
+four rows the schema actually requires, sets the password through the real
+endpoint rather than reimplementing the hashing, and has a verified teardown.
+
+**What entered the audits, and what that found.** Nine findings, every one on a
+surface that had never been measured for that property:
+
+- `--muted` (#8A93A0, 3.1:1 on white) was being used as a TEXT colour on the
+  absent data chip, a binder key line and two footnotes. It fails AA at every
+  size this system uses. contrast-audit had never seen it because none of those
+  rendered on a measured screen until the partner portal entered. All four now
+  use `--secondary` at 7.0:1; the token stays for inert status dots, which are
+  not text, and the standards file says so beside it.
+- The partner surface used `shadow-[var(--shadow-panel)]`, a token that DOES
+  NOT EXIST. That dropdown had been rendering with no shadow at all.
+- The partner surface set its page headings at `text-[20px]`, a size the type
+  scale does not have, in six files.
+- Thirty five off scale font sizes on the partner admin screens and the
+  applications screen, none of which had ever been held to the design system.
+- `/portal/applications` overflowed its scrolling region by 11px at 360,
+  because a card cell will not shrink below an unbroken string and an email
+  address has no spaces in it. Fixed on the shared card rather than that screen:
+  every table in the portal renders through it.
+- `/portal/partners` had a 20px high link, under WCAG 2.5.8, on the one list a
+  partner is opened from on a phone.
+- The customer's set password dead link offered NO way onward. The portal and
+  the partner surface both offer one. A customer whose invite expired reached a
+  sentence and nothing to press.
+- security-audit's perimeter did not know the partner or account surfaces
+  existed: nine pages and nine route handlers outside the set it reported on.
+  Nothing was open, which was verified by removing the proxy's partner prefixes
+  and probing signed out, but the check was missing.
+- security-audit asserted every guarded page redirects to `/portal/login`,
+  which was true while the portal was the only guarded surface. It now asserts
+  each surface redirects to ITS OWN sign in screen, which is the stronger claim:
+  sending a partner to the staff door invites them to try staff credentials.
+
+**And two defects in the audits themselves, found by using them.**
+mobile-overflow-audit had no bounce guard, so a portal page that landed on a
+sign in screen read as a pass. It demonstrated itself: two probe using audits
+ran at once, one tore down the other's accounts mid run, and the output was a
+confident green over a real overflow. Its teardown also deleted its own ids and
+then verified by sweeping the domain, so a probe left behind by any other run
+was reported as a failure it was never going to fix.
+
+**contrast-audit's networkidle dependency is gone.** Operator ruling: an audit
+whose red and green both depend on how busy the machine is has stopped being
+evidence in either direction. It waited for the network to go quiet on signed in
+screens, which prefetch twenty five dynamic routes, and produced four page
+errors on the dashboard and the billing screen on a build where both answer in
+half a second. Signed in routes now wait for the DOM and the shell.
+
 ### RESOLVED 2026-09-06: both overflow audits were blind on every portal screen
 
 Found by injecting a 2000px wide box into a portal page to verify an unrelated

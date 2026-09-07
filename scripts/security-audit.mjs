@@ -28,7 +28,8 @@
  * This file is the unauthenticated perimeter and stays runnable without either.
  */
 import { chromium } from "playwright";
-import { readFileSync, readdirSync, existsSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { apisOf, guardedSurfaces, routesOf } from "./lib/surfaces.mjs";
 import {
   HEALTH_PROBE_PATH,
   HEALTH_WATCH_CRON,
@@ -36,7 +37,6 @@ import {
   classifyProbe,
   shouldAlert,
 } from "../src/lib/health-watch.ts";
-import { join } from "node:path";
 
 const BASE = process.env.BASE_URL || "http://localhost:3225";
 
@@ -45,6 +45,33 @@ const rec = (name, ok, note = "") => out.push({ name, ok, note });
 
 /** Pages a signed out visitor must never see. */
 const ADMIN_PAGES = [
+  /*
+   * THE OTHER TWO SIGNED IN SURFACES, ADDED 2026-09-07 WHEN DISCOVERY STARTED
+   * DERIVING FROM THE SURFACE INVENTORY.
+   *
+   * Neither was ever open. The partner layout and the account layout each check
+   * their own session, and every handler behind them does too, which was
+   * verified by removing the proxy's partner prefixes, rebuilding, and probing
+   * signed out: pages answered 307 and APIs answered 401.
+   *
+   * What was missing was this audit's knowledge that they exist. Its green line
+   * said the perimeter was closed while nine pages and nine route handlers were
+   * outside the set it checked.
+   *
+   * A partner's own money is behind these: what they are owed, what was
+   * reversed, and the agreement they accepted. A customer's is behind the
+   * account pages: their orders, their statements and their card.
+   */
+  "/partner",
+  "/partner/agreement",
+  "/partner/materials",
+  "/partner/referrals",
+  "/partner/statements",
+  "/account",
+  "/account/order",
+  "/account/settings",
+  "/account/statements",
+
   "/portal",
   // Phase 10 Section 1. The telephone call path: a client, a price and a
   // dispatch, so it is as far from public as a portal page gets.
@@ -108,6 +135,17 @@ const ADMIN_PAGES = [
 
 /** API paths a signed out client must never reach. */
 const ADMIN_APIS = [
+  /*
+   * The partner and account handlers, added with their pages. The two sign in
+   * and set password routes of each are open by design and are named in
+   * OPEN_BY_DESIGN below, exactly as the portal's are.
+   */
+  "/api/partner/agreement",
+  "/api/partner/materials",
+  "/api/account/bulk",
+  "/api/account/settings",
+  "/api/account/statements",
+
   "/api/portal/people",
   "/api/portal/password",
   // Never listed since Phase 1 shipped it. Found by the coverage check below on
@@ -173,28 +211,33 @@ const ADMIN_APIS = [
  * It now walks the whole tree. The cost is that deep routes must be listed by
  * their full path, which is the point.
  */
+/**
+ * DISCOVERY IS THE INVENTORY'S JOB NOW, AS OF 2026-09-07.
+ *
+ * This function walked two directories: src/app/portal/(app) and
+ * src/app/api/portal. Everything else behind a session was outside the
+ * perimeter it reports on. The partner portal, which shipped in Phase 9 Section
+ * 4, was five signed in pages and four route handlers this audit had never
+ * heard of, and the account surface was covered only by four paths written out
+ * by hand further down.
+ *
+ * Nothing was open: the partner layout and every partner handler check their
+ * own session, verified by removing the proxy's partner prefixes and probing.
+ * What was missing was the check. The comment above this function already
+ * records the last time a route was invisible here, which is the argument for
+ * deriving rather than remembering.
+ */
 function discoverRoutes() {
   const root = process.cwd();
   const pages = [];
   const apis = [];
 
-  function walk(dir, prefix, marker, into) {
-    if (!existsSync(dir)) return;
-    if (existsSync(join(dir, marker)) && prefix) into.push(prefix);
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      if (!entry.isDirectory()) continue;
-      // Dynamic segments cannot be probed without inventing an id, and route
-      // groups are not path segments at all.
-      if (entry.name.startsWith("[")) continue;
-      const segment = entry.name.startsWith("(") ? "" : `/${entry.name}`;
-      walk(join(dir, entry.name), `${prefix}${segment}`, marker, into);
-    }
+  for (const surface of guardedSurfaces()) {
+    for (const path of routesOf(surface, { root, include: "signed-in" })) pages.push(path);
+    for (const path of apisOf(surface, { root })) apis.push(path);
   }
 
-  walk(join(root, "src", "app", "portal", "(app)"), "/portal", "page.tsx", pages);
-  walk(join(root, "src", "app", "api", "portal"), "/api/portal", "route.ts", apis);
-
-  return { pages, apis };
+  return { pages: [...new Set(pages)].sort(), apis: [...new Set(apis)].sort() };
 }
 
 /**
@@ -215,6 +258,18 @@ const OPEN_BY_DESIGN = new Set([
   // Clears the sign in rate limiter, so it cannot be behind the sign in it
   // exists to unblock. Guarded by a token instead, and tested below.
   "/api/portal/unlock",
+
+  /*
+   * The other two principals' front doors. Each is the same pair as the
+   * portal's: a session route that takes an email and a password, and a set
+   * password route that takes a token. Both must be reachable by somebody who
+   * has no session, which is the definition of a front door, and both are
+   * exercised below and by partner-audit and accounts-audit.
+   */
+  "/api/partner/session",
+  "/api/partner/set-password",
+  "/api/account/session",
+  "/api/account/set-password",
 ]);
 
 /**
@@ -416,9 +471,25 @@ async function run() {
       res.status === 307 || res.status === 302 || res.status === 303,
       `HTTP ${res.status}`,
     );
+    /*
+     * TO ITS OWN SIGN IN SCREEN, which is a stronger claim than "to a sign in
+     * screen". Three principals with three credential stores: a partner page
+     * that sent somebody to the staff sign in would be inviting a partner to
+     * try staff credentials, and the person would read the refusal as their
+     * account being broken.
+     *
+     * This read /portal/login for every path, which was true while the portal
+     * was the only guarded surface and became wrong the moment the other two
+     * entered the list on 2026-09-07.
+     */
+    const owner = path.startsWith("/partner")
+      ? "/partner/login"
+      : path.startsWith("/account")
+        ? "/account/login"
+        : "/portal/login";
     rec(
-      `signed out: ${path} redirects to the login screen`,
-      location.includes("/portal/login"),
+      `signed out: ${path} redirects to its own sign in screen`,
+      location.includes(owner),
       location || "no location header",
     );
 

@@ -165,7 +165,7 @@ export function SheetLetterhead({ children }: { children: ReactNode }) {
  */
 export function SheetRecordNote({ children }: { children: ReactNode }) {
   return (
-    <p className="mt-8 border-t border-[var(--border)] pt-4 text-[12px] leading-[1.6] text-[var(--muted)]">
+    <p className="mt-8 border-t border-[var(--border)] pt-4 text-[12px] leading-[1.6] text-[var(--secondary)]">
       {children}
     </p>
   );

@@ -210,7 +210,7 @@ export function TermsForm({ partnerId }: { partnerId: string }) {
       </div>
 
       {isTiered ? (
-        <p className="mt-3 rounded-[var(--radius-control)] border border-[var(--warn-border)] bg-[var(--gold-wash)] px-3 py-2.5 text-[13px] leading-[1.55] text-[var(--warn-ink)]">
+        <p className="mt-3 rounded-[var(--radius-control)] border border-[var(--warn-border)] bg-[var(--gold-wash)] px-3 py-2.5 text-[13.5px] leading-[1.55] text-[var(--warn-ink)]">
           A volume ladder is set from here with a default of 2.5 percent from the first delivery and 3
           percent from the tenth. Tiers apply forward: reaching a step improves the rate on what comes
           next and does not reprice what came before.
@@ -299,7 +299,7 @@ export function InviteForm({ partnerId }: { partnerId: string }) {
 
       {result?.ok && result.setPasswordUrl ? (
         <div className="mt-3 rounded-[var(--radius-control)] border border-[var(--green-border)] bg-[var(--green-bg)] p-3">
-          <p className="text-[13px] font-semibold text-[var(--green)]">
+          <p className="text-[13.5px] font-semibold text-[var(--green)]">
             Copy this now. It is shown once and it is not written to the audit trail.
           </p>
           <p className="mt-2 break-all font-mono text-[12.5px] leading-[1.5] text-[var(--ink)]">

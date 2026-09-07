@@ -241,6 +241,25 @@ BASE_URL=https://254engineering.com npx tsx scripts/security-audit.mjs
 **Every audit is verified by injecting a violation and watching it fail before its green is
 trusted.** An audit that has never failed has never been tested.
 
+**THE HARNESS MEASURES WHAT `scripts/lib/surfaces.mjs` SAYS EXISTS.** Operator ruling,
+2026-09-07. That file is the one declaration of this platform's surfaces: the public site, the
+order flow, the staff portal, the partner portal and the customer account surface, each with its
+prefix, whether opening it needs a session, and which probe makes one. Routes are derived by
+walking the directories it names rather than listed, because a list is the memory problem one
+level down.
+
+Every browser audit derives its subject from it. `scripts/surface-audit.mjs` fails when a
+directory that renders pages belongs to no declared surface, when an exemption names an audit
+that does not reference it, when a declared probe does not exist, or when one of those audits
+stops importing the inventory. Adding a surface without declaring it is a red board.
+
+It was written because the opposite happened. Every audit had carried its own hand written list
+and nothing had carried a list of what exists, so the partner portal shipped in Phase 9 Section 4
+and reached two audits out of eight: its screens were measured for contrast by nothing, for tap
+targets by nothing, for overflow by nothing, for form behaviour by nothing, and for the perimeter
+by nothing. Bringing all five surfaces into all seven audits produced nine findings on the first
+run, including a colour token used as text at 3.1:1 and a shadow token that did not exist.
+
 The build race guard (`prebuild`, and the `pre` hook on every audit) refuses to build under a live
 server and performs a BUILD_ID handshake so an audit can never score a stale artifact.
 

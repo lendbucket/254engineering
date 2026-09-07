@@ -139,7 +139,7 @@ export default async function PortalApplicationsPage() {
                   {d.label}
                 </a>
               ) : (
-                <span key={d.label} className="text-[13px] text-[var(--secondary)]">
+                <span key={d.label} className="text-[13.5px] text-[var(--secondary)]">
                   {d.label} unavailable
                 </span>
               ),

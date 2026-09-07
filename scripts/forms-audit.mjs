@@ -23,6 +23,7 @@
 import { chromium } from "playwright";
 import { auditClient } from "./lib/db-target.mjs";
 import { careersChecks } from "./lib/careers-audit.mjs";
+import { guardedSurfaces } from "./lib/surfaces.mjs";
 import { intakeAnswer } from "../src/lib/intake.ts";
 
 /*
@@ -173,13 +174,33 @@ async function openForm(path, endpoint) {
  * that fails silently, or a dead link that says nothing useful, is how somebody
  * decides the software is broken.
  */
-async function portalAuthFormChecks() {
+/**
+ * THE CREDENTIAL FORMS OF EVERY GUARDED SURFACE, DERIVED, AS OF 2026-09-07.
+ *
+ * This function checked the portal's two and nothing else, so the partner's
+ * sign in and set password screens and the customer's had never been exercised
+ * by the audit whose remit is every input and state, no silent failures and no
+ * false success. Three principals, three credential stores, and only one of
+ * them had its front door measured.
+ *
+ * The checks themselves are unchanged in substance. What changed is that the
+ * surface, its paths and its endpoints come from scripts/lib/surfaces.mjs
+ * rather than being written here, so a fourth principal cannot ship with an
+ * unexercised sign in screen.
+ */
+async function credentialFormChecks(surface) {
+  const label = surface.key;
+  const loginPath = `${surface.prefix}/login`;
+  const setPasswordPath = `${surface.prefix}/set-password`;
+  const sessionApi = `/api${surface.prefix}/session`;
+  const setPasswordApi = `/api${surface.prefix}/set-password`;
+
   // ---- sign in
   {
-    const { page } = await openForm("/portal/login", "/api/portal/session");
+    const { page } = await openForm(loginPath, sessionApi);
     const submit = page.getByRole("button", { name: /sign in/i }).first();
 
-    rec("sign in: the form is on the page", (await submit.count()) > 0);
+    rec(`${label} sign in: the form is on the page`, (await submit.count()) > 0);
 
     /*
      * Empty submit. The browser's own required validation may take this, which
@@ -188,8 +209,8 @@ async function portalAuthFormChecks() {
      */
     await submit.click({ timeout: 15_000 }).catch(() => {});
     await page.waitForTimeout(900);
-    const stillOnLogin = new URL(page.url()).pathname.startsWith("/portal/login");
-    rec("sign in: an empty submit does not navigate anywhere", stillOnLogin, page.url());
+    const stillOnLogin = new URL(page.url()).pathname.startsWith(loginPath);
+    rec(`${label} sign in: an empty submit does not navigate anywhere`, stillOnLogin, page.url());
 
     // Wrong credentials must say so, and must not say which half was wrong.
     await page.fill('input[type="email"], input[name="email"]', "nobody@example.invalid").catch(() => {});
@@ -211,7 +232,7 @@ async function portalAuthFormChecks() {
     const alert = page.locator("[role=\"alert\"]");
     const alertText = ((await alert.count()) ? await alert.first().textContent() : "") ?? "";
     rec(
-      "sign in: a wrong credential produces a visible refusal",
+      `${label} sign in: a wrong credential produces a visible refusal`,
       alertText.trim().length > 0,
       alertText.trim() || "nothing was announced; a form that does nothing on failure reads as broken software",
     );
@@ -223,17 +244,17 @@ async function portalAuthFormChecks() {
      * word in unrelated page copy cannot fail it.
      */
     rec(
-      "sign in: and the refusal does not say which half was wrong",
+      `${label} sign in: and the refusal does not say which half was wrong`,
       !/no such (account|user)|unknown email|email not found|wrong password|password is incorrect/i.test(alertText),
       alertText.trim(),
     );
-    rec("sign in: no horizontal scroll in the error state", await noHScroll(page));
+    rec(`${label} sign in: no horizontal scroll in the error state`, await noHScroll(page));
     await page.close();
   }
 
   // ---- set password, dead link
   {
-    const { page } = await openForm("/portal/set-password?token=not-a-real-token", "/api/portal/set-password");
+    const { page } = await openForm(`${setPasswordPath}?token=not-a-real-token`, setPasswordApi);
     const body = (await page.textContent("body")) ?? "";
 
     /*
@@ -241,17 +262,20 @@ async function portalAuthFormChecks() {
      * the page already distinguishes them. Asserted so it keeps doing so.
      */
     rec(
-      "set password: a dead link says which kind of dead it is",
+      `${label} set password: a dead link says which kind of dead it is`,
       /expired|already been used|not valid/i.test(body),
       "invalid link alone sends people to an administrator who cannot tell either",
     );
     rec(
-      "set password: and offers a way onward",
+      `${label} set password: and offers a way onward`,
       (await page.getByRole("link", { name: /sign in/i }).count()) > 0,
       "a dead end with no next step is where somebody gives up",
     );
-    rec("set password: no password field is offered on a dead link", (await page.locator('input[type="password"]').count()) === 0);
-    rec("set password: no horizontal scroll", await noHScroll(page));
+    rec(
+      `${label} set password: no password field is offered on a dead link`,
+      (await page.locator('input[type="password"]').count()) === 0,
+    );
+    rec(`${label} set password: no horizontal scroll`, await noHScroll(page));
     await page.close();
   }
 }
@@ -630,7 +654,14 @@ try {
    * interaction between two audits is something somebody has to look at rather
    * than a fact about this file.
    */
-  await portalAuthFormChecks();
+  /*
+   * Every guarded surface, not just the portal. A surface whose sign in screen
+   * cannot be found is a FAILURE rather than a skip: it means the inventory and
+   * the routes disagree, which is the thing the inventory exists to prevent.
+   */
+  for (const surface of guardedSurfaces()) {
+    await credentialFormChecks(surface);
+  }
 } finally {
   await browser.close();
 }

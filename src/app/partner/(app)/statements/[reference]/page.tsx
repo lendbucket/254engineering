@@ -48,7 +48,7 @@ export default async function PartnerStatementPage({
           Statements
         </Link>
         <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <h1 className="font-display text-[20px] leading-[1.2] font-bold text-[var(--navy)]">
+          <h1 className="font-display text-[24px] leading-[1.2] font-bold text-[var(--navy)]">
             <span className="font-mono">{statement.reference}</span>
           </h1>
           <StatusPill tone={statement.status === "paid" ? "good" : "in-motion"}>

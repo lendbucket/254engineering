@@ -80,15 +80,15 @@ export default async function DisputesPage({
             <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
               <div>
                 <dt className="portal-column-header">Reference</dt>
-                <dd className="mt-1 font-mono text-[14px] text-[var(--navy)]">{view.order.reference}</dd>
+                <dd className="mt-1 font-mono text-[13.5px] text-[var(--navy)]">{view.order.reference}</dd>
               </div>
               <div>
                 <dt className="portal-column-header">Value</dt>
-                <dd className="mt-1 text-[14px] tabular-nums text-[var(--navy)]">{money(view.order.totalCents)}</dd>
+                <dd className="mt-1 text-[13.5px] tabular-nums text-[var(--navy)]">{money(view.order.totalCents)}</dd>
               </div>
               <div>
                 <dt className="portal-column-header">Placed</dt>
-                <dd className="mt-1 text-[14px] text-[var(--ink)]">
+                <dd className="mt-1 text-[13.5px] text-[var(--ink)]">
                   {view.order.placedAt
                     ? new Date(view.order.placedAt).toLocaleDateString("en-US", {
                         year: "numeric",
@@ -100,7 +100,7 @@ export default async function DisputesPage({
               </div>
               <div>
                 <dt className="portal-column-header">Paid</dt>
-                <dd className="mt-1 text-[14px] text-[var(--ink)]">
+                <dd className="mt-1 text-[13.5px] text-[var(--ink)]">
                   {view.order.paidAt ? "yes, so the attribution is frozen" : "not yet"}
                 </dd>
               </div>
@@ -109,11 +109,11 @@ export default async function DisputesPage({
 
           <Panel title="What the rule decided, in its own words">
             {view.attributed.code ? (
-              <p className="text-[14.5px] font-semibold text-[var(--navy)]">
+              <p className="text-[15px] font-semibold text-[var(--navy)]">
                 Credited to <span className="font-mono">{view.attributed.code}</span>
               </p>
             ) : (
-              <p className="text-[14.5px] font-semibold text-[var(--navy)]">Credited to nobody</p>
+              <p className="text-[15px] font-semibold text-[var(--navy)]">Credited to nobody</p>
             )}
             <p className="mt-2 max-w-[74ch] text-[13.5px] leading-[1.6] text-[var(--ink)]">
               {view.attributed.reason ?? "No reason was recorded, which means this order predates attribution."}
@@ -147,8 +147,8 @@ export default async function DisputesPage({
                 {view.touches.map((t, index) => (
                   <li key={t.id} className="rounded-[var(--radius-card)] border border-[var(--border)] p-3">
                     <div className="flex flex-wrap items-baseline justify-between gap-2">
-                      <p className="text-[14.5px] font-semibold text-[var(--navy)]">
-                        {t.organisation} <span className="font-mono text-[13px]">{t.code}</span>
+                      <p className="text-[15px] font-semibold text-[var(--navy)]">
+                        {t.organisation} <span className="font-mono text-[13.5px]">{t.code}</span>
                       </p>
                       <div className="flex items-center gap-2">
                         <StatusPill tone={t.kind === "code" ? "good" : "inert"}>

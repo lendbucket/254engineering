@@ -28,6 +28,7 @@
 
 import fs from "node:fs";
 import { chromium } from "playwright";
+import { allPages } from "./lib/surfaces.mjs";
 import {
   createProbe,
   cookieFor,
@@ -46,53 +47,28 @@ const HEIGHT = 844;
  * part of the route: an administrator gets 404 on the review queue, and a
  * technician sees a different dashboard.
  */
-const SCREENS = [
-  { path: "/portal", role: "admin" },
-  { path: "/portal/files", role: "admin" },
-  { path: "/portal/clients", role: "admin" },
-  { path: "/portal/intake", role: "admin" },
-  { path: "/portal/people", role: "admin" },
-  { path: "/portal/roles", role: "admin" },
-  { path: "/portal/audit", role: "admin" },
-  { path: "/portal/techs", role: "admin" },
-  { path: "/portal/documents", role: "admin" },
-  { path: "/portal/orders", role: "admin" },
-  { path: "/portal/accounts", role: "admin" },
-  { path: "/portal/billing", role: "admin" },
-  { path: "/portal/queue", role: "admin" },
-  { path: "/portal/status", role: "admin" },
-  { path: "/portal/tasks", role: "admin" },
-  { path: "/portal/messages", role: "admin" },
-  { path: "/portal/profile", role: "admin" },
-  { path: "/portal/onboarding", role: "admin" },
-  { path: "/portal/charge-log", role: "admin" },
-  { path: "/portal/pay", role: "admin" },
-  { path: "/portal/partners", role: "admin" },
-  { path: "/portal/partners/disputes", role: "admin" },
-  { path: "/portal/review", role: "engineer" },
-  { path: "/portal/protocols", role: "engineer" },
-  { path: "/portal/jobs", role: "field_tech" },
-  { path: "/portal/certification", role: "field_tech" },
-
-  /*
-   * THE PARTNER PORTAL, WHICH IS THE SECOND SURFACE BUILT TO THIS STANDARD.
-   *
-   * Phase 9 Section 4. It shares the design system and the two data attributes
-   * this audit looks for, and shares nothing else with the staff shell: a
-   * partner has no role and must never appear in the authorization matrix the
-   * staff navigation is derived from.
-   *
-   * Bringing it inside this audit rather than writing a second one is the whole
-   * argument for having a standard. A second audit would be a second set of
-   * thresholds, and the day they disagreed the newer surface would be the one
-   * measured more kindly.
-   */
-  { path: "/partner", kind: "partner" },
-  { path: "/partner/referrals", kind: "partner" },
-  { path: "/partner/statements", kind: "partner" },
-  { path: "/partner/materials", kind: "partner" },
-  { path: "/partner/agreement", kind: "partner" },
-];
+/**
+ * DERIVED FROM THE SURFACE INVENTORY, AS OF 2026-09-07.
+ *
+ * This list was right where it looked: it was the only audit that carried the
+ * partner portal, because the session that built the partner portal added it.
+ * It was still a hand written list, so it was one forgotten line away from the
+ * gap every other audit had, and it had already drifted: /portal/applications,
+ * /portal/onboarding and /portal/partners/disputes were built after it and
+ * never joined it.
+ *
+ * The native standard applies to the surfaces built as an app shell, which the
+ * inventory declares. The account surface is deliberately NOT one: it is an
+ * ordinary scrolling document for a customer who visits twice a year, and
+ * holding it to point 1 would be asserting a rule nobody made.
+ */
+const SCREENS = allPages()
+  .filter((p) => p.session !== "none" && p.shell)
+  .map((p) => ({
+    path: p.path,
+    role: p.session === "staff" ? p.role ?? "admin" : undefined,
+    kind: p.session === "partner" ? "partner" : "staff",
+  }));
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });

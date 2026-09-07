@@ -54,6 +54,7 @@
 
 import { readFileSync, existsSync } from "node:fs";
 import { chromium } from "playwright";
+import { guardedSurfaces, routesOf } from "./lib/surfaces.mjs";
 import { PNG } from "pngjs";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3225";
@@ -67,16 +68,32 @@ const BASE = process.env.BASE_URL ?? "http://localhost:3225";
  * session machinery; duplicating a probe account for a check about artwork
  * would put a second account creation into the suite for no coverage.
  */
+/*
+ * THE PRE SESSION SCREENS COME FROM THE INVENTORY, AS OF 2026-09-07.
+ *
+ * The list named the portal's two and nothing else, so the partner's sign in
+ * and set password screens and the customer's were never looked at, and each of
+ * them renders the firm's wordmark on a coloured ground. That is exactly the
+ * defect this file exists for: a mark that is illegible on the surface it sits
+ * on, on a screen somebody meets before they have an account.
+ *
+ * The states with query strings stay written out, because "the suspended
+ * message" and "a dead token" are states rather than routes and no walk can
+ * know them.
+ */
+const PUBLIC_DOORS = guardedSurfaces().flatMap((surface) =>
+  routesOf(surface, { include: "public" }),
+);
+
 const SURFACES = [
   "/",
   "/about",
   "/contact",
   "/waitlist",
   "/careers",
-  "/portal/login",
+  ...PUBLIC_DOORS,
   "/portal/login?suspended=1",
   "/portal/login?reset=1",
-  "/portal/set-password",
   "/portal/set-password?token=not-a-real-token",
 ];
 

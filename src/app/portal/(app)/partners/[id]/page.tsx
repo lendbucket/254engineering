@@ -119,7 +119,7 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
       <Panel title="Compensation terms" description="Effective dated. A change is a new row, never an edit.">
         {current ? (
           <div className="mb-5 rounded-[var(--radius-card)] border border-[var(--border)] p-3">
-            <p className="text-[14.5px] font-bold text-[var(--navy)]">
+            <p className="text-[15px] font-bold text-[var(--navy)]">
               {MODEL_LABEL[current.model] ?? current.model}
             </p>
             <p className="mt-1 text-[13.5px] leading-[1.55] text-[var(--ink)]">
@@ -148,7 +148,7 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
             </summary>
             <ul className="mt-2 flex flex-col gap-2">
               {terms.slice(1).map((t) => (
-                <li key={t.id} className="text-[13px] leading-[1.55] text-[var(--secondary)]">
+                <li key={t.id} className="text-[13.5px] leading-[1.55] text-[var(--secondary)]">
                   {MODEL_LABEL[t.model] ?? t.model}, from {t.effectiveFrom}
                   {t.effectiveTo ? ` to ${t.effectiveTo}` : ""}
                 </li>
@@ -176,7 +176,7 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
                 className="flex flex-wrap items-baseline justify-between gap-2 rounded-[var(--radius-card)] border border-[var(--border)] p-3"
               >
                 <div>
-                  <p className="text-[14.5px] font-semibold text-[var(--navy)]">{u.displayName}</p>
+                  <p className="text-[15px] font-semibold text-[var(--navy)]">{u.displayName}</p>
                   <p className="text-[12.5px] text-[var(--secondary)]">{u.email}</p>
                 </div>
                 <StatusPill tone={u.status === "active" ? "good" : u.status === "invited" ? "pending" : "failed"}>
@@ -205,7 +205,7 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
                 className="flex flex-wrap items-baseline justify-between gap-2 rounded-[var(--radius-card)] border border-[var(--border)] p-3"
               >
                 <div>
-                  <p className="font-mono text-[14px] font-semibold text-[var(--navy)]">{s.reference}</p>
+                  <p className="font-mono text-[13.5px] font-semibold text-[var(--navy)]">{s.reference}</p>
                   <p className="text-[12.5px] text-[var(--secondary)]">
                     {s.period}
                     {s.paidAt
@@ -214,7 +214,7 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
                   </p>
                 </div>
                 <div className="flex items-baseline gap-3">
-                  <span className="text-[14px] font-semibold tabular-nums text-[var(--navy)]">
+                  <span className="text-[13.5px] font-semibold tabular-nums text-[var(--navy)]">
                     {money(s.totalCents)}
                   </span>
                   <StatusPill tone={s.status === "paid" ? "good" : s.status === "issued" ? "in-motion" : "pending"}>
@@ -247,7 +247,7 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
               <li key={e.id} className="rounded-[var(--radius-card)] border border-[var(--border)] p-3">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <p
-                    className={`text-[14.5px] font-bold tabular-nums ${
+                    className={`text-[15px] font-bold tabular-nums ${
                       e.kind === "reversal" ? "text-[var(--red)]" : "text-[var(--navy)]"
                     }`}
                   >
@@ -259,7 +259,7 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
                     {e.kind}
                   </StatusPill>
                 </div>
-                <p className="mt-1.5 text-[13px] leading-[1.55] text-[var(--ink)]">{e.explanation}</p>
+                <p className="mt-1.5 text-[13.5px] leading-[1.55] text-[var(--ink)]">{e.explanation}</p>
                 <p className="mt-1.5 text-[12px] text-[var(--secondary)]">
                   {new Date(e.occurredAt).toLocaleDateString("en-US", {
                     year: "numeric",
@@ -289,7 +289,7 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
             {(submissions ?? []).map((s) => (
               <li key={s.id as string} className="rounded-[var(--radius-card)] border border-[var(--border)] p-3">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <p className="text-[14.5px] font-bold text-[var(--navy)]">{s.title as string}</p>
+                  <p className="text-[15px] font-bold text-[var(--navy)]">{s.title as string}</p>
                   <StatusPill
                     tone={
                       s.status === "approved" ? "good" : s.status === "changes_requested" ? "failed" : "pending"
@@ -305,7 +305,7 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
                   </p>
                 ) : null}
                 {s.link ? (
-                  <p className="mt-2 break-all text-[13px] text-[var(--secondary)]">{s.link as string}</p>
+                  <p className="mt-2 break-all text-[13.5px] text-[var(--secondary)]">{s.link as string}</p>
                 ) : null}
 
                 {/*
@@ -317,13 +317,13 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
                   this one.
                 */}
                 {!s.decided_at && s.decision_note ? (
-                  <p className="mt-2 rounded-[var(--radius-control)] border border-[var(--warn-border)] bg-[var(--gold-wash)] px-3 py-2 text-[13px] leading-[1.55] text-[var(--warn-ink)]">
+                  <p className="mt-2 rounded-[var(--radius-control)] border border-[var(--warn-border)] bg-[var(--gold-wash)] px-3 py-2 text-[13.5px] leading-[1.55] text-[var(--warn-ink)]">
                     Before anybody read it: {s.decision_note as string}
                   </p>
                 ) : null}
 
                 {s.decided_at ? (
-                  <p className="mt-2 text-[13px] leading-[1.55] text-[var(--ink)]">
+                  <p className="mt-2 text-[13.5px] leading-[1.55] text-[var(--ink)]">
                     {(s.decision_note as string) ?? ""}
                   </p>
                 ) : (

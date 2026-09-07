@@ -110,7 +110,7 @@ export default async function PartnerReferrals() {
       <RestrictedMode />
 
       <div>
-        <h1 className="font-display text-[20px] leading-[1.2] font-bold text-[var(--navy)]">Referrals</h1>
+        <h1 className="font-display text-[24px] leading-[1.2] font-bold text-[var(--navy)]">Referrals</h1>
         <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-[1.6] text-[var(--secondary)]">
           Every order credited to your code. A commission is earned when the firm delivers the work,
           not when the order is placed, so an order here can be underway and have earned nothing

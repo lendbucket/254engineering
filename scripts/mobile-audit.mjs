@@ -20,7 +20,18 @@
 import { chromium } from "playwright";
 import { startNextServer } from "./lib/dev-server.mjs";
 
-import { createProbe, cookieFor, destroyProbes } from "./lib/portal-probe.mjs";
+import {
+  createProbe,
+  cookieFor,
+  createPartnerProbe,
+  partnerCookieFor,
+  createCustomerProbe,
+  customerCookieFor,
+  destroyProbes,
+  destroyPartnerProbes,
+  destroyCustomerProbes,
+} from "./lib/portal-probe.mjs";
+import { allPages } from "./lib/surfaces.mjs";
 
 const WIDTHS = [320, 375, 390, 430];
 const HEIGHT = 844;
@@ -52,35 +63,28 @@ const MIN_TAP = 24;
  *
  * The role decides what renders, so all three are walked.
  */
-const PORTAL_TEMPLATES = [
-  { name: "portal: dashboard", path: "/portal", portal: "admin" },
-  { name: "portal: files", path: "/portal/files", portal: "admin" },
-  { name: "portal: clients", path: "/portal/clients", portal: "admin" },
-  { name: "portal: new job", path: "/portal/intake", portal: "admin" },
-  { name: "portal: people", path: "/portal/people", portal: "admin" },
-  { name: "portal: roles", path: "/portal/roles", portal: "admin" },
-  { name: "portal: audit trail", path: "/portal/audit", portal: "admin" },
-  { name: "portal: technicians", path: "/portal/techs", portal: "admin" },
-  { name: "portal: documents", path: "/portal/documents", portal: "admin" },
-  { name: "portal: orders", path: "/portal/orders", portal: "admin" },
-  { name: "portal: accounts", path: "/portal/accounts", portal: "admin" },
-  { name: "portal: billing", path: "/portal/billing", portal: "admin" },
-  { name: "portal: queue", path: "/portal/queue", portal: "admin" },
-  { name: "portal: status", path: "/portal/status", portal: "admin" },
-  { name: "portal: tasks", path: "/portal/tasks", portal: "admin" },
-  { name: "portal: messages", path: "/portal/messages", portal: "admin" },
-  { name: "portal: profile", path: "/portal/profile", portal: "admin" },
-  { name: "portal: charge log", path: "/portal/charge-log", portal: "admin" },
-  { name: "portal: pay", path: "/portal/pay", portal: "admin" },
-  { name: "portal: review queue", path: "/portal/review", portal: "engineer" },
-  { name: "portal: protocols", path: "/portal/protocols", portal: "engineer" },
-  { name: "portal: my jobs", path: "/portal/jobs", portal: "field_tech" },
-  { name: "portal: certification", path: "/portal/certification", portal: "field_tech" },
-  // Reachable without a session, and never measured here either.
-  { name: "portal: sign in", path: "/portal/login" },
-  { name: "portal: sign in, suspended", path: "/portal/login?suspended=1" },
-  { name: "portal: set password, dead link", path: "/portal/set-password" },
-];
+/**
+ * DERIVED FROM THE SURFACE INVENTORY, AS OF 2026-09-07.
+ *
+ * This was twenty six hand written portal screens and nothing else. The partner
+ * portal and the customer account surface had never had a tap target measured
+ * on them, which on a phone is most of what "does this work" means. The list
+ * was written when the portal was the only signed in surface, and nothing asked
+ * it to grow when two more shipped.
+ */
+const PORTAL_TEMPLATES = allPages()
+  .filter((p) => p.session !== "none")
+  .map((p) => ({
+    name: p.name,
+    path: p.path,
+    session: p.session,
+    portal: p.session === "staff" ? p.role ?? "admin" : p.session,
+  }));
+
+/** Pages behind no door, measured without a probe. */
+const OPEN_TEMPLATES = allPages()
+  .filter((p) => p.session === "none")
+  .map((p) => ({ name: p.name, path: p.path }));
 
 const TEMPLATES = [
   { name: "home", path: "/" },
@@ -107,9 +111,22 @@ function pad(s, n) {
   return String(s).length >= n ? String(s) : String(s) + " ".repeat(n - String(s).length);
 }
 
-async function measurePage(base, browser, path, width, probe = null) {
+async function measurePage(base, browser, path, width, probe = null, session = "staff") {
   const context = await browser.newContext({ viewport: { width, height: HEIGHT } });
-  if (probe) await context.addCookies(cookieFor(probe, base));
+  /*
+   * Three principals, three cookie names. A partner handed a staff cookie lands
+   * on the partner sign in screen, which answers 200 and passes every check in
+   * this file while measuring the wrong page.
+   */
+  if (probe) {
+    await context.addCookies(
+      session === "partner"
+        ? partnerCookieFor(probe, base)
+        : session === "customer"
+          ? customerCookieFor(probe, base)
+          : cookieFor(probe, base),
+    );
+  }
   const page = await context.newPage();
   try {
     /*
@@ -158,7 +175,11 @@ async function measurePage(base, browser, path, width, probe = null) {
      * would then report pass while measuring one page twenty six times, which
      * is the exact shape of defect this repository keeps finding.
      */
-    if (probe && new URL(page.url()).pathname.startsWith("/portal/login") && !path.startsWith("/portal/login")) {
+    if (
+      probe &&
+      /^\/(portal|partner|account)\/login$/.test(new URL(page.url()).pathname) &&
+      !/\/login$/.test(path)
+    ) {
       return { hscroll: false, taps: false, clip: false, note: "bounced to sign in, not measured" };
     }
     if (!res || res.status() >= 400) {
@@ -443,8 +464,10 @@ async function main() {
     for (const role of ["admin", "engineer", "field_tech"]) {
       sessions[role] = await createProbe(base, role, "mobile-audit");
     }
+    sessions.partner = await createPartnerProbe(base, "mobile-audit");
+    sessions.customer = await createCustomerProbe(base, "mobile-audit");
 
-    for (const t of [...TEMPLATES, ...PORTAL_TEMPLATES]) {
+    for (const t of [...TEMPLATES, ...OPEN_TEMPLATES, ...PORTAL_TEMPLATES]) {
       const cells = {};
       for (const w of WIDTHS) {
         /*
@@ -457,7 +480,14 @@ async function main() {
           log("  " + pad(t.name, 18) + " @" + w + ": NOT MEASURED (no " + t.portal + " session)");
           continue;
         }
-        const cell = await measurePage(base, browser, t.path, w, t.portal ? sessions[t.portal] : null);
+        const cell = await measurePage(
+          base,
+          browser,
+          t.path,
+          w,
+          t.portal ? sessions[t.portal] : null,
+          t.session ?? "staff",
+        );
         cells[w] = cell;
         log(
           `  ${pad(t.name, 18)} @${w}: hscroll=${cell.hscroll ? "ok" : "FAIL"} taps=${cell.taps ? "ok" : "FAIL"} clip=${cell.clip ? "ok" : "FAIL"}${cell.note ? "  (" + cell.note + ")" : ""}`,
@@ -474,6 +504,14 @@ async function main() {
     const swept = await destroyProbes("mobile-audit");
     if (!swept.ok) failures.push("probe accounts left behind: " + swept.note);
     log("  probe accounts removed: " + (swept.ok ? "yes" : "NO"));
+
+    const sweptPartners = await destroyPartnerProbes("mobile-audit");
+    if (!sweptPartners.ok) failures.push("partner probe left behind: " + sweptPartners.note);
+    log("  partner probe removed: " + (sweptPartners.ok ? "yes" : "NO"));
+
+    const sweptCustomers = await destroyCustomerProbes("mobile-audit");
+    if (!sweptCustomers.ok) failures.push("customer probe left behind: " + sweptCustomers.note);
+    log("  customer probe removed: " + (sweptCustomers.ok ? "yes" : "NO"));
 
     log("\n================ MOBILE AUDIT: template x width ================");
     const header = pad("template", 20) + WIDTHS.map((w) => pad(w, 10)).join("");

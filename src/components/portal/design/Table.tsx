@@ -87,7 +87,19 @@ export function DataTable<T extends { id: string }>({
           >
             <p className="text-[15px] leading-[1.35] font-bold text-[var(--navy)]">
               {onRowHref ? (
-                <a href={onRowHref(row)} className="block">
+                /*
+                  A ROW LINK IS THE TARGET FOR THE WHOLE ROW ON A PHONE, and it
+                  was the height of its text. 20px, under the 24px WCAG 2.5.8
+                  floor, on every table in the portal that gives its rows a
+                  destination. It surfaced on the partners screen because two
+                  such links sit close enough together for the spacing
+                  exception not to apply, which is the exception doing its job
+                  and is not a reason to fix only that screen.
+                */
+                <a
+                  href={onRowHref(row)}
+                  className="flex min-h-[var(--tap-target)] items-center"
+                >
                   {primary.cell(row)}
                 </a>
               ) : (
@@ -110,7 +122,21 @@ export function DataTable<T extends { id: string }>({
                         the right, so prose only needs to be left aligned for
                         the lines after the first.
                       */
-                      className={`text-[13.5px] leading-[1.45] text-[var(--ink)] ${
+                      /*
+                        min-w-0 and a break, because a card row is a flex
+                        child and a flex child will not shrink below its
+                        content by default. An email address has no space in
+                        it, so one long one pushed the whole scrolling region
+                        11px wider than the phone on the applications screen,
+                        found on 2026-09-07 the first time an audit measured
+                        that region rather than the document.
+
+                        Fixed on the shared card rather than on that screen:
+                        every table in the portal renders through here, and a
+                        reference, an address or an email in any of them would
+                        have done the same thing.
+                      */
+                      className={`min-w-0 break-words text-[13.5px] leading-[1.45] text-[var(--ink)] ${
                         c.numeric ? "tabular-nums text-right" : ""
                       }`}
                     >

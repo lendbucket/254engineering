@@ -160,6 +160,160 @@ export async function createPartnerProbe(base, label = "audit") {
   return { partnerId: partner.id, userId: user.id, email, cookie: m ? m[1] : null };
 }
 
+const customersMade = [];
+
+/**
+ * A customer who can open the account surface.
+ *
+ * WHY THIS EXISTS NOW
+ * -------------------
+ * The account surface shipped in Phase 8 Section 1 and no browser audit had ever
+ * opened it: contrast, mobile, overflow and forms all measured the portal and
+ * the public site and nothing else. The reason was not a decision, it was that
+ * opening it needed a session and no probe made one, so it sat outside every
+ * list. The surface inventory this now feeds exists to stop that happening
+ * again; this is the piece that makes the account half of it reachable.
+ *
+ * FOUR ROWS, BECAUSE THE SCHEMA MEANS IT
+ * --------------------------------------
+ * A customer user belongs to an account, an account belongs to a client, and a
+ * client is the firm's record of an organisation. Short circuiting any of that
+ * would be inventing a shape the product does not have.
+ *
+ * The password is set through the REAL set password endpoint rather than by
+ * writing a hash here, for the same reason the partner probe does it: a probe
+ * that reimplements hashing is a probe measuring its own copy of the thing it
+ * is testing.
+ */
+export async function createCustomerProbe(base, label = "audit") {
+  const d = client(label);
+  if (!d) return null;
+
+  const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  const email = `probe-customer-${stamp}@${PROBE_DOMAIN}`;
+  const password = `probe-${stamp}-${label}-customer`;
+
+  const { data: clientRow, error: cErr } = await d
+    .from("eng_clients")
+    .insert({ kind: "organization", name: "Audit Probe Company", email, status: "active" })
+    .select("id")
+    .single();
+  if (cErr || !clientRow) return null;
+
+  const { data: account, error: aErr } = await d
+    .from("eng_customer_accounts")
+    .insert({ site: "254", client_id: clientRow.id, status: "active", billing_mode: "card" })
+    .select("id")
+    .single();
+  if (aErr || !account) {
+    await d.from("eng_clients").delete().eq("id", clientRow.id);
+    return null;
+  }
+
+  const { data: user, error: uErr } = await d
+    .from("eng_customer_users")
+    .insert({
+      account_id: account.id,
+      email,
+      display_name: "Audit Probe Customer",
+      status: "invited",
+      account_role: "owner",
+    })
+    .select("id")
+    .single();
+  if (uErr || !user) {
+    await d.from("eng_customer_accounts").delete().eq("id", account.id);
+    await d.from("eng_clients").delete().eq("id", clientRow.id);
+    return null;
+  }
+
+  customersMade.push({ clientId: clientRow.id, accountId: account.id, userId: user.id, email });
+
+  const token = randomBytes(32).toString("base64url");
+  const { error: tErr } = await d.from("eng_customer_auth_tokens").insert({
+    customer_user_id: user.id,
+    purpose: "set_password",
+    token_hash: createHash("sha256").update(token, "utf8").digest("hex"),
+    expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+  });
+  if (tErr) return { accountId: account.id, userId: user.id, email, cookie: null };
+
+  const set = await fetch(`${base}/api/account/set-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, password }),
+  });
+  if (!set.ok) return { accountId: account.id, userId: user.id, email, cookie: null };
+
+  const res = await fetch(`${base}/api/account/session`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const m = (res.headers.get("set-cookie") ?? "").match(/eng_customer=([^;]+)/);
+
+  return { accountId: account.id, userId: user.id, email, cookie: m ? m[1] : null };
+}
+
+/** The customer cookie, shaped for a Playwright context. */
+export function customerCookieFor(probe, base) {
+  if (!probe?.cookie) return [];
+  const url = new URL(base);
+  return [
+    {
+      name: "eng_customer",
+      value: probe.cookie,
+      domain: url.hostname,
+      path: "/",
+      httpOnly: true,
+      secure: url.protocol === "https:",
+      sameSite: "Lax",
+    },
+  ];
+}
+
+/**
+ * Remove every customer probe, and verify.
+ *
+ * Ordered by the foreign keys rather than by hope: users cascade from the
+ * account, the account restricts the client, so the client goes last. A failed
+ * delete is reported rather than swallowed, because an account left behind on
+ * development is one the operator's own screens will show them.
+ */
+export async function destroyCustomerProbes(label = "audit") {
+  const d = client(label);
+  if (!d) return { ok: true, left: 0, note: "no database client, nothing was created" };
+
+  const { data: strays } = await d
+    .from("eng_customer_users")
+    .select("id, account_id")
+    .like("email", `%@${PROBE_DOMAIN}`);
+
+  const accounts = new Set([
+    ...customersMade.map((c) => c.accountId),
+    ...(strays ?? []).map((r) => r.account_id),
+  ]);
+
+  for (const id of accounts) {
+    const { data: account } = await d
+      .from("eng_customer_accounts")
+      .select("client_id")
+      .eq("id", id)
+      .maybeSingle();
+    await d.from("eng_customer_users").delete().eq("account_id", id);
+    await d.from("eng_customer_accounts").delete().eq("id", id);
+    if (account?.client_id) await d.from("eng_clients").delete().eq("id", account.client_id);
+  }
+  customersMade.length = 0;
+
+  const { data } = await d
+    .from("eng_customer_users")
+    .select("email")
+    .like("email", `%@${PROBE_DOMAIN}`);
+  const left = (data ?? []).length;
+  return { ok: left === 0, left, note: left ? `${left} customer probe(s) left behind` : "" };
+}
+
 /** The partner cookie, shaped for a Playwright context. */
 export function partnerCookieFor(probe, base) {
   if (!probe?.cookie) return [];

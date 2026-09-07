@@ -114,9 +114,14 @@ export default async function PartnersPage() {
           <ul className="flex flex-col gap-2">
             {queue.map((s) => (
               <li key={s.id as string} className="rounded-[var(--radius-card)] border border-[var(--border)] p-3">
+                {/*
+                  The submission title is the link that opens the partner who
+                  sent it, and at 20px high it was under WCAG 2.5.8. Same defect
+                  as the ended partner list below and found in the same run.
+                */}
                 <Link
                   href={`/portal/partners/${s.partner_id}`}
-                  className="text-[14.5px] font-semibold text-[var(--navy)] underline"
+                  className="inline-flex min-h-[var(--tap-target)] items-center text-[15px] font-semibold text-[var(--navy)] underline"
                 >
                   {s.title as string}
                 </Link>
@@ -172,7 +177,17 @@ export default async function PartnersPage() {
             <ul className="mt-3 flex flex-col gap-2">
               {ended.map((p) => (
                 <li key={p.id} className="flex flex-wrap items-baseline justify-between gap-2">
-                  <Link href={`/portal/partners/${p.id}`} className="text-[13.5px] font-semibold text-[var(--navy)] underline">
+                  {/*
+                    A 20px high link is under WCAG 2.5.8 and this list is the one
+                    place a partner is opened from on a phone. Found on
+                    2026-09-07, the first time this screen was measured: it was
+                    not in mobile-audit's hand written list and joined it with
+                    the surface inventory.
+                  */}
+                  <Link
+                    href={`/portal/partners/${p.id}`}
+                    className="inline-flex min-h-[var(--tap-target)] items-center text-[13.5px] font-semibold text-[var(--navy)] underline"
+                  >
                     {p.organisation}
                   </Link>
                   <span className="font-mono text-[12.5px] text-[var(--secondary)]">{p.code}</span>

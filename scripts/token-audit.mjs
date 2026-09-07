@@ -28,6 +28,7 @@
  */
 
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
+import { measurableSurfaces, sourceDirsOf } from "./lib/surfaces.mjs";
 import { join } from "node:path";
 
 const out = [];
@@ -175,13 +176,21 @@ function walk(dir, acc = []) {
  * the same product a customer meets, and leaving them on the old styling would
  * mean the design stops at the staff door, which is not where a brand stops.
  */
-const PORTAL_DIRS = [
-  "src/app/portal",
-  "src/components/portal",
-  "src/app/account",
-  "src/app/(site)/order",
-  "src/components/order",
-];
+/**
+ * DERIVED FROM THE SURFACE INVENTORY, AS OF 2026-09-07.
+ *
+ * This was five hand written directories, and it omitted the partner portal
+ * entirely: src/app/partner and src/components/partner were held to no part of
+ * the design system, so a partner screen could use any colour, any type size
+ * and any spacing value and this audit would have reported the design intact.
+ * Nobody decided that. The list was written before the partner portal existed
+ * and nothing asked it to grow.
+ *
+ * scripts/lib/surfaces.mjs is what knows the surfaces now. The site is excluded
+ * because the public pages are the brand's own visual system rather than the
+ * portal design system, which is the distinction this audit was built around.
+ */
+const PORTAL_DIRS = sourceDirsOf(measurableSurfaces());
 const allPortalFiles = PORTAL_DIRS.flatMap((d) => walk(d)).filter((f) => f !== TOKENS);
 
 /**
@@ -210,6 +219,35 @@ const allPortalFiles = PORTAL_DIRS.flatMap((d) => walk(d)).filter((f) => f !== T
  *   stalling.
  */
 const PORTED = [
+  // Brought in 2026-09-07 with the surface inventory. The partner surface had
+  // never been held to the design system at all, and seven portal screens built
+  // since the list was last touched had quietly fallen outside it.
+  "src/app/portal/(app)/applications/page.tsx",
+  "src/app/portal/(app)/partners/disputes/LookupForm.tsx",
+  "src/app/portal/(app)/partners/disputes/page.tsx",
+  "src/app/portal/(app)/partners/NewPartner.tsx",
+  "src/app/portal/(app)/partners/page.tsx",
+  "src/app/portal/(app)/partners/[id]/page.tsx",
+  "src/app/portal/(app)/partners/[id]/PartnerActions.tsx",
+  "src/components/portal/design/Composer.tsx",
+  "src/components/portal/design/Sheet.tsx",
+  "src/components/portal/ScrollMemory.tsx",
+  "src/app/partner/(app)/agreement/AcceptForm.tsx",
+  "src/app/partner/(app)/agreement/page.tsx",
+  "src/app/partner/(app)/layout.tsx",
+  "src/app/partner/(app)/materials/CopyBlock.tsx",
+  "src/app/partner/(app)/materials/page.tsx",
+  "src/app/partner/(app)/materials/SubmitForm.tsx",
+  "src/app/partner/(app)/page.tsx",
+  "src/app/partner/(app)/referrals/page.tsx",
+  "src/app/partner/(app)/statements/page.tsx",
+  "src/app/partner/(app)/statements/[reference]/page.tsx",
+  "src/app/partner/(public)/login/page.tsx",
+  "src/app/partner/(public)/login/PartnerLoginForm.tsx",
+  "src/app/partner/(public)/set-password/page.tsx",
+  "src/app/partner/(public)/set-password/PartnerSetPasswordForm.tsx",
+  "src/app/partner/layout.tsx",
+  "src/components/partner/PartnerChrome.tsx",
   // Every portal and customer surface. The list existed so the audit could be
   // real while the port was partial; it now names everything.
   "src/app/(site)/order/[reference]/page.tsx",
@@ -315,6 +353,25 @@ const portalFiles = allPortalFiles.filter((f) => PORTED.includes(f));
 const unported = allPortalFiles.filter((f) => !PORTED.includes(f));
 
 rec("there are portal components to check", allPortalFiles.length > 0, `${allPortalFiles.length} files total`);
+
+/*
+ * AND THE DERIVED DIRECTORY LIST STILL COVERS EVERY SURFACE IT SHOULD.
+ *
+ * The list above is derived, which removes the memory problem and introduces a
+ * quieter one: a surface whose dirs are misdeclared contributes no files and
+ * this audit goes on passing over a smaller set. So each surface is asked for
+ * its own files by name.
+ */
+for (const surface of measurableSurfaces()) {
+  const mine = allPortalFiles.filter((f) =>
+    (surface.sourceDirs ?? []).some((d) => f.startsWith(d)),
+  );
+  rec(
+    `the ${surface.key} surface contributes files to the design check`,
+    mine.length > 0,
+    `${mine.length} file(s)`,
+  );
+}
 rec(
   "every file named as ported actually exists",
   PORTED.every((f) => allPortalFiles.includes(f)),

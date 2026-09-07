@@ -68,7 +68,7 @@ export default async function PartnerStatements() {
       <RestrictedMode />
 
       <div>
-        <h1 className="font-display text-[20px] leading-[1.2] font-bold text-[var(--navy)]">Statements</h1>
+        <h1 className="font-display text-[24px] leading-[1.2] font-bold text-[var(--navy)]">Statements</h1>
         <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-[1.6] text-[var(--secondary)]">
           A statement gathers everything that became payable in a period. An entry earned late in a
           month with a holdback window on it belongs to the period the window ends in, not the one

@@ -55,7 +55,7 @@ export default async function PartnerMaterials() {
       <RestrictedMode />
 
       <div>
-        <h1 className="font-display text-[20px] leading-[1.2] font-bold text-[var(--navy)]">Materials</h1>
+        <h1 className="font-display text-[24px] leading-[1.2] font-bold text-[var(--navy)]">Materials</h1>
         <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-[1.6] text-[var(--secondary)]">
           Wording and artwork the firm has approved for you to use as written. Anything you write
           yourself can be sent here to be looked at before you publish it.
@@ -95,7 +95,7 @@ export default async function PartnerMaterials() {
                   <StatusPill tone="inert">{KIND_LABEL[asset.kind] ?? asset.kind}</StatusPill>
                 </div>
                 {asset.summary ? (
-                  <p className="mt-1 text-[13px] leading-[1.55] text-[var(--secondary)]">{asset.summary}</p>
+                  <p className="mt-1 text-[13.5px] leading-[1.55] text-[var(--secondary)]">{asset.summary}</p>
                 ) : null}
 
                 <div className="mt-3">
@@ -109,7 +109,7 @@ export default async function PartnerMaterials() {
                         Download
                       </a>
                     ) : (
-                      <p className="text-[13px] leading-[1.55] text-[var(--secondary)]">
+                      <p className="text-[13.5px] leading-[1.55] text-[var(--secondary)]">
                         This file could not be prepared for download just now. Reload the page, and
                         tell the firm if it keeps happening.
                       </p>
@@ -172,7 +172,7 @@ export default async function PartnerMaterials() {
                 </div>
 
                 {s.advice ? (
-                  <p className="mt-2 rounded-[var(--radius-control)] border border-[var(--warn-border)] bg-[var(--gold-wash)] px-3 py-2 text-[13px] leading-[1.55] text-[var(--warn-ink)]">
+                  <p className="mt-2 rounded-[var(--radius-control)] border border-[var(--warn-border)] bg-[var(--gold-wash)] px-3 py-2 text-[13.5px] leading-[1.55] text-[var(--warn-ink)]">
                     Before anybody has read it: {s.advice}
                   </p>
                 ) : null}
