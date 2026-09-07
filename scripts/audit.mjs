@@ -64,6 +64,29 @@ const PHASE_ZERO = [
   },
   {
     /*
+     * MERGED AND APPLIED ARE DIFFERENT FACTS.
+     *
+     * Runs beside migration-audit and answers the question that one cannot:
+     * migration-audit proves the FILES rebuild the schema, and this proves
+     * somebody was asked whether PRODUCTION has each of them.
+     *
+     * It exists because 0023 merged on 2026-09-06 and was applied on
+     * 2026-09-07, found by hand. In between eng_alert_state did not exist on
+     * production, so the queue depth alerting from that same closeout could not
+     * read its cooldown, and the failure waiting to happen was an alert every
+     * five minutes about a stuck queue: exactly what the migration prevents.
+     *
+     * The fingerprint chain in CLAUDE.md said this must not happen and could
+     * not enforce it, because prose is a record rather than a check.
+     *
+     * Needs no server, no network and no credentials. It cannot see production;
+     * scripts/production-schema-check.mjs does that and is run by hand.
+     */
+    name: "schema-ledger-audit",
+    why: "no migration is on main that production has not been declared to have",
+  },
+  {
+    /*
      * The closeout, 2026-09-06. The one audit in this suite whose subject is
      * this repository's own bookkeeping rather than the product.
      *

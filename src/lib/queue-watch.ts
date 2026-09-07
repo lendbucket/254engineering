@@ -66,11 +66,48 @@ export async function watchQueue(now: number = Date.now()): Promise<QueueWatchRe
    */
   if (!health) return { looked: false, decision: null, sent: false, note: "the queue could not be read" };
 
-  const { data: state } = await db
+  /*
+   * THE COOLDOWN READ IS CHECKED, AND THIS FILE ALREADY KNEW WHY.
+   *
+   * Six lines above, queueHealth's failure is handled with the comment "A
+   * failed read is NOT an empty queue". This read then discarded its error and
+   * let a missing row and a broken table produce the same answer: no cooldown,
+   * which is the PERMISSIVE direction. The module stated the principle for one
+   * read and violated it for the next.
+   *
+   * It was not hypothetical. Migration 0023 created eng_alert_state and was
+   * never applied to production after its branch merged, so on production this
+   * select fails on a table that does not exist, every five minutes, silently.
+   * The consequence was latent rather than absent: the first time the queue
+   * went deep enough to alert, the cooldown would have read as "never alerted",
+   * the upsert that records the send would have failed on the same missing
+   * table, and the operator would have been emailed every five minutes about a
+   * stuck queue. That is the exact failure 0023 was written to prevent, caused
+   * by 0023 being missing and nothing saying so.
+   *
+   * Neither direction is safe as a default here. Treating a failed read as
+   * "never alerted" spams; treating it as "recently alerted" silences a real
+   * outage. So it does what this function already does when it cannot see the
+   * queue: it reports that it could not look, which is a state somebody can
+   * find, rather than an answer it has no basis for.
+   */
+  const { data: state, error: stateError } = await db
     .from("eng_alert_state")
     .select("last_alerted_at")
     .eq("key", KEY)
     .maybeSingle();
+
+  if (stateError) {
+    console.error(
+      `[queue-watch] the alert cooldown could not be read, so no decision was made: ${stateError.message}`,
+    );
+    return {
+      looked: false,
+      decision: null,
+      sent: false,
+      note: `the alert cooldown could not be read: ${stateError.message}`,
+    };
+  }
 
   const decision = decideQueueAlert(
     {
@@ -120,7 +157,7 @@ export async function watchQueue(now: number = Date.now()): Promise<QueueWatchRe
    * again.
    */
   if (result.sent) {
-    await db.from("eng_alert_state").upsert(
+    const { error: stampError } = await db.from("eng_alert_state").upsert(
       {
         key: KEY,
         last_alerted_at: new Date(now).toISOString(),
@@ -129,6 +166,18 @@ export async function watchQueue(now: number = Date.now()): Promise<QueueWatchRe
       },
       { onConflict: "key" },
     );
+
+    /*
+     * A stamp that did not land means the next run has no cooldown to find, so
+     * the operator gets this same alert again in five minutes and every five
+     * minutes after. That is the failure this table exists to prevent, and an
+     * unchecked upsert is how it would happen without anybody being told.
+     */
+    if (stampError) {
+      console.error(
+        `[queue-watch] the alert was SENT but the cooldown was not recorded, so it will send again: ${stampError.message}`,
+      );
+    }
   } else {
     console.error(`[queue-watch] could not send the queue alert: ${result.outcome}`);
   }

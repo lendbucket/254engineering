@@ -362,13 +362,30 @@ assumed: the fingerprint, the column and table counts, the trigger count, the
 grant count and the RLS count were all read back from
 `fsaryeciduszuahgjbly` and all match development exactly.
 
-After 0023 (the closeout, what an alert remembers) **development and the
-replay return `b2c841480f983ec50e36e72a11e9072a` across 945 columns and 69
-tables**, with row level security on all 69, 46 triggers, 9 eng_ functions none
-with an unpinned search_path, and 111 role grants. **Production is still at
-0022** while that branch is open, which is the expected divergence rather than
-the defect: a divergence while a feature branch is open is expected, and a
-divergence after it merges is the defect.
+After 0023 (the closeout, what an alert remembers) **all three return
+`b2c841480f983ec50e36e72a11e9072a` across 945 columns and 69 tables**, with row
+level security on all 69, 46 triggers, 9 eng_ functions none with an unpinned
+search_path, and 111 role grants.
+
+**0023 is the reason this section is no longer only prose.** It merged to main
+on 2026-09-06 and was applied to production on 2026-09-07, a day late, and it
+was found by hand while somebody was comparing fingerprints for an unrelated
+reason. In between, `eng_alert_state` did not exist on production, so the queue
+depth alerting that shipped in the same closeout could not read its cooldown.
+The failure was latent rather than absent: the first time the queue went deep
+enough to alert, the cooldown would have read as never alerted, the upsert
+recording the send would have failed on the same missing table, and the operator
+would have been emailed every five minutes about a stuck queue. That is the
+exact failure 0023 was written to prevent, caused by 0023 being missing.
+
+The paragraph above already said a divergence after a merge is the defect. It
+said so and could not enforce it, because **a record is not a check**.
+
+After 0024 (Phase 12 Section 1, a second factor) **development and the replay
+return `0e8ff33c7106ce05ec2cf81a1c66cd35` across 960 columns and 71 tables**,
+with row level security on all 71 and 47 triggers. **Production does not have
+it** while that branch is open, which is the expected divergence, and
+`schema-ledger-audit` fails the moment it is on main and still undeclared.
 
 0023 adds `eng_alert_state`, which is the fifth table in this schema that is
 deliberately NOT append only, and it belongs to the same class as the four in
@@ -440,6 +457,41 @@ financial fact, they are meant to be pruned on a schedule, and the append only
 trigger would make a retention job impossible while protecting nothing anybody
 could be asked to produce. That is worth stating plainly, because "every table
 in this schema refuses deletes" would otherwise read as the rule.
+
+**MERGED AND APPLIED ARE DIFFERENT FACTS, AND THE SECOND ONE IS DECLARED.**
+`supabase/applied.mjs` is the ledger: one entry per migration saying whether
+production has it, the fingerprint after it, and what it uniquely puts in the
+schema. It is the same declared inventory idiom as `scripts/lib/surfaces.mjs`
+and it exists for the same reason, which is that a list nothing reads is a list
+that stops being true without telling anybody.
+
+Two checks read it, and they answer different questions:
+
+| | Asks | Needs |
+| --- | --- | --- |
+| `schema-ledger-audit` | Was somebody ASKED whether production has this? | Nothing. It runs in the suite. |
+| `production-schema-check` | Does production HAVE it? | The production key, so it is run by hand. |
+
+The first is the one that catches what actually happened, because the September
+failure was not a wrong answer, it was a question nobody was made to answer. It
+fails when a migration has no ledger entry, when an entry names no real file,
+when a pending entry gives no reason, when a ledger fingerprint disagrees with a
+real replay, and above all **when a migration is reachable from `main` and the
+ledger says production does not have it.** A migration on a feature branch may
+be pending; a migration on main may not be, because merging is the moment the
+decision stops being deferrable.
+
+The second cannot recompute the fingerprint, because PostgREST does not expose
+`information_schema`, and it does not pretend to. Instead every entry declares
+what its migration uniquely adds, a table, a column, or a row, and it asks the
+database about all of them. That catches a MISSING migration and names which
+one; it would not catch a column altered by hand, and it says so and prints the
+manual query rather than implying otherwise. **Run it after any merge carrying a
+migration:**
+
+```
+ALLOW_PRODUCTION_DB=1 npx tsx scripts/production-schema-check.mjs
+```
 
 **The fingerprint is now also checked without either database.**
 `scripts/migration-audit.mjs` replays every migration into an in process Postgres

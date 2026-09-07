@@ -1101,17 +1101,32 @@ the same page on the same machine on the same day:
 | alone, after the suite | 3454ms | 1ms | fail |
 | alone again | 3454ms | 1ms | fail |
 | full suite, evening | 3378ms | 523ms | pass |
+| full suite, 2026-09-07 midday | **2934ms** | **3ms** | pass, 466ms under |
+| full suite, 2026-09-07 afternoon | 3454ms | 521ms | fail, 54ms over |
 
 The two isolated runs agreed to the millisecond, and that was reported here as
 "deterministic, not noise". It was true of those two runs and not of the page.
 The ceiling is 3400ms and the page sits within about two percent of it, which is
 smaller than the difference between one run and the next.
 
+**The two runs on 2026-09-07 settle it, and they settle it harder than the
+first four did.** They are the same page on the same machine about an hour
+apart, with nothing touching that route in between: one branch changed a copy
+script and some documents, the other a migration and a queue read. The route
+measured **2934ms with a spread of 3ms**, which is a tight and confident
+reading 466ms under the ceiling, and then **3454ms with a spread of 521ms**.
+
+A 520ms swing on a 3400ms ceiling, where the failing margin is 54ms. **The
+instrument's noise is ten times the thing it is being asked to measure.** This
+gate is not evidence for this route on this machine, in either direction, which
+is the same verdict the operator gave contrast-audit's networkidle timing on
+2026-09-06: an audit whose red and green both depend on how busy the machine is
+has stopped being evidence.
+
 **Not absorbed, and the budget has not moved.** perf-audit's own doctrine is
 written into its header: a route that fails at the median is a real finding and
-is never answered by moving the line it crossed. What is recorded here is that
-the local measurement cannot resolve a two percent margin, not that the page is
-fast enough.
+is never answered by moving the line it crossed. Nothing here widens a ceiling.
+What is recorded is that the local measurement cannot resolve this margin.
 
 **What is NOT the cause, checked rather than assumed.** Nothing that renders
 that page changed that day. The design token corrections were in portal and
@@ -1125,9 +1140,27 @@ after a session of continuous building and browser work, which the collapsed
 spread is consistent with. A dependency or font that now resolves differently.
 Or a real regression from something shared that has not been identified.
 
-**What to do with it.** Operator ruling, 2026-09-07: measure it on a deployment
-when the cutover lands, because that is where the number means anything and a
-laptop that has been running browser audits for an hour is not a clean room.
+**What to do with it. THE TRIGGER FOR THE STANDING RULING IS GONE.** Operator
+ruling, 2026-09-07: measure it on a deployment when the cutover lands, because
+that is where the number means anything and a laptop that has been running
+browser audits for an hour is not a clean room. **The cutover was deferred by
+decision later the same day**, so "when the cutover lands" no longer names a
+date, and the gate goes on flapping on main in the meantime.
+
+Two things follow, and neither is widening the ceiling.
+
+**A deployment measurement does not actually need the cutover.** A preview
+deployment is available at any time and runs the same build on the same
+platform; the cutover moves a database and has nothing to do with LCP. Measuring
+there is available now and was only ever tied to the cutover by coincidence of
+timing.
+
+**And the instrument is the other half.** A median of three with a 520ms spread
+is not a median anybody should gate on. More runs, or a percentile that reports
+its own confidence, would make the number mean something without touching the
+line it is compared against. That is improving the measurement rather than
+moving the target, and the two must not be confused: perf-audit's doctrine
+forbids the second and says nothing against the first.
 
 Two things to do there rather than here. Take the measurement on the deployed
 site, where the ceiling was calibrated to mean something. And decide whether a

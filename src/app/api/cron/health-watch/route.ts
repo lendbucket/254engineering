@@ -172,6 +172,14 @@ export async function GET(request: NextRequest) {
   const queue = await watchQueue();
   if (queue.sent) console.warn(`[queue-watch] alerted: ${queue.note}`);
 
+  /*
+   * A watch that could not look is not a watch that found nothing, and until
+   * 2026-09-07 only `sent` was reported here, so both read as silence. The
+   * queue watcher exists because a worker that stops is silent; a watcher that
+   * cannot see and says nothing about it inherits the same fault one level up.
+   */
+  if (!queue.looked) console.error(`[queue-watch] DID NOT LOOK: ${queue.note}`);
+
   if (!shouldAlert(outcome)) {
     /*
      * Deliberately silent. A watcher that emails on success trains the operator
