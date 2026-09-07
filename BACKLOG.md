@@ -83,6 +83,97 @@ role: that the session survives the NEXT request. Signing in and being signed in
 are different facts, and the sign in check answered 200 with a Set-Cookie for
 all seven roles while four of them were already dead.
 
+## The cutover, deferred by decision, and two defects the dry run found
+
+### The database cutover is deferred. Not blocked.
+
+Operator ruling, 2026-09-07. The full record is in
+`docs/production-cutover-plan.md`, under a notice at the top of the file.
+
+The reason is a decision rather than an obstacle: the sibling repositories and
+their deployments are not to be touched right now, and step 8b cannot be done
+honestly without them. Deferred and blocked are different states and only one of
+them asks the next session to look for a way through.
+
+**Steps 1, 2 and 3 are done.** The new project `qmvcqvkywmkogxbyzsaz` holds
+migrations 0000 through 0023, verified against every checkpoint in CLAUDE.md
+section 6b, and all five buckets, all private. It holds no rows and no storage
+objects. Production was not touched by any of it and is serving exactly what it
+served before. Ten dollars a month is the cost of holding the option open.
+
+### copy-project.mjs cannot see the objects it is meant to copy, and reports agreement
+
+Found 2026-09-07 in the step 5 dry run. Full reasoning under step 8 of
+`docs/production-cutover-plan.md`.
+
+The script enumerates a bucket with `list("")`, which is not recursive, so
+production's two objects at `254/<uuid>/resume-*.pdf` appear only as the folder
+`254`, arriving with `id: null`, which the script's own filter then drops. It
+finds zero files, copies nothing, compares zero against zero and prints
+**agree**.
+
+Proven on development by uploading one object at production's exact nesting and
+reading back what `list("")` returned, then removing it and verifying the
+removal. Not fixed, because the cutover is deferred; recorded so nobody runs the
+script trusting its green.
+
+Two smaller things in the same place: `BUCKETS` names three of the five, and
+`limit: 1000` has no pagination behind it.
+
+### Three tables with rows on production are in no copy list, and the decision on them is the operator's
+
+Found 2026-09-07 in the same dry run. Full reasoning under step 5 of
+`docs/production-cutover-plan.md`.
+
+`eng_jobs` (853 rows), `eng_cron_runs` (5,101) and `eng_metrics_daily` (39)
+all arrived in 0011 and 0012, after `copy-project.mjs`'s table list was written,
+and nothing noticed the list had stopped describing the database.
+
+Two are the telemetry class CLAUDE.md already names as prunable, so losing their
+history is defensible; what is not defensible is it happening without anybody
+deciding it. `eng_jobs` is different while it holds live work, and the plan
+gains a stop condition for that: the queue is checked for pending and running
+rows immediately before the copy.
+
+**The decision is open.** All three are `bigserial` keyed while every table the
+script copies today is uuid keyed, so copying them means carrying their
+sequences; an explicit id insert without a `setval` leaves the destination
+sequence at 1 and the next insert collides. That is what makes this a design
+decision rather than three lines added to an array.
+
+## Disaster recovery
+
+### The firm has no usable restore path, and cannot get one until the cutover
+
+Phase 12 Section 5, recorded 2026-09-07. The report is
+`docs/disaster-recovery.md` and this is the pointer, not a second copy of it.
+
+Operator ruling the same day: Section 5 is a report rather than a test until the
+cutover happens, because point in time recovery rewinds a whole project and
+production is still shared with four other applications. Testing the restore
+would mean rewinding them too.
+
+The mechanism exists and the firm must not use it, which is a different fault
+from not having one and is stated as one. What makes it urgent rather than
+academic is `eng_audit_events`: 468 rows of regulatory memory that cannot be
+reconstructed from anywhere, and that a project level rewind does not route
+through the append only trigger protecting them.
+
+The volume at risk today is one afternoon of manual reconstruction. That is the
+argument for the deferral being affordable, not for the gap being acceptable.
+
+### A scheduled export outside the shared project would close it before the cutover does
+
+Recorded 2026-09-07 alongside the report above, and deliberately not built.
+
+Nothing exports this firm's rows anywhere. There is no backup script in
+`scripts/` and no export among the three registered crons, which was checked
+rather than assumed. An export to storage outside `fsaryeciduszuahgjbly` would
+give the firm something it controls today without touching a neighbour.
+
+It is out of scope of Section 5 as the operator defined it, and it is the one
+action that would close the gap while the cutover stays deferred.
+
 ## Found while building the closeout
 
 ### The build guard reads a command line, so a command that MENTIONS the build directory looks like a server
