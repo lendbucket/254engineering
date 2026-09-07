@@ -127,6 +127,20 @@ function rows(lines: Line[]): [string, string][] {
 
 export type LeadEmailInput = {
   form: "contact" | "waitlist";
+  /**
+   * WHICH BRAND THE ENQUIRY CAME FROM.
+   *
+   * The operator's inbox is shared by all three sites and the portal reads all
+   * three brands' leads with no site filter, so an enquiry that does not say
+   * whose it is arrives looking like this firm's. It has always been that way
+   * for the sisters' own mail; this endpoint is where the answer became
+   * available, so it is carried.
+   *
+   * Optional, and absent means this site: every existing caller is 254's own
+   * form and adding a required field would have made the omission a type error
+   * rather than a decision.
+   */
+  brand?: string;
   name: string;
   email: string;
   phone?: string;
@@ -137,25 +151,34 @@ export type LeadEmailInput = {
   referrer?: string;
 };
 
+const BRAND_NAME: Record<string, string> = {
+  "254": "254 Engineering Services",
+  sealed: "Sealed Engineering",
+  stamp: "StampMyPlans",
+};
+
 export function leadNotification(input: LeadEmailInput): RenderedEmail {
   const isWaitlist = input.form === "waitlist";
   const where = input.service ? ` (${input.service})` : "";
+  const brand = BRAND_NAME[input.brand ?? "254"] ?? input.brand ?? BRAND_NAME["254"];
+  const elsewhere = (input.brand ?? "254") !== "254";
 
   return compose(
     isWaitlist ? "lead.waitlist" : "lead.contact",
     "operator",
-    `${isWaitlist ? "Waitlist" : "Contact"}: ${input.name}${where}`,
+    `${elsewhere ? `${brand}, ` : ""}${isWaitlist ? "Waitlist" : "Contact"}: ${input.name}${where}`,
     {
-      preheader: `${isWaitlist ? "Waitlist" : "Contact"} enquiry from ${input.name}${input.city ? " in " + input.city : ""}.`,
+      preheader: `${isWaitlist ? "Waitlist" : "Contact"} enquiry from ${input.name}${input.city ? " in " + input.city : ""}, on ${brand}.`,
       blocks: [
         {
           kind: "p",
-          text: `${input.name} submitted the ${isWaitlist ? "waitlist" : "contact"} form.`,
+          text: `${input.name} submitted the ${isWaitlist ? "waitlist" : "contact"} form on ${brand}.`,
         },
         {
           kind: "details",
           title: isWaitlist ? "Waitlist enquiry" : "Contact enquiry",
           rows: rows([
+            ["Brand", brand],
             ["Name", input.name],
             ["Email", input.email],
             ["Phone", input.phone],

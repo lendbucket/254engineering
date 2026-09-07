@@ -284,6 +284,19 @@ const OPEN_BY_DESIGN = new Set([
 const CRON_ROUTE = "/api/cron/health-watch";
 
 /**
+ * The sister brands' intake endpoint.
+ *
+ * Not a portal route, so route discovery does not see it, and it is checked
+ * explicitly here for the same reason the cron routes are: it writes rows on
+ * behalf of another business and it authenticates itself with a key rather than
+ * a session. An anonymous caller must reach nothing.
+ *
+ * Its own behaviour is sister-intake-audit's subject. What belongs HERE is the
+ * perimeter question: signed out, with no key, this must refuse.
+ */
+const SISTER_INTAKE_ROUTE = "/api/intake/lead";
+
+/**
  * Every scheduled route, because they all take the same secret and they all do
  * something an anonymous caller must not be able to trigger.
  *
@@ -792,6 +805,32 @@ async function run() {
   // on demand, and about the schedule agreeing with what the email promises.
   // =======================================================================
   {
+    /*
+     * THE SISTER INTAKE ENDPOINT, which is the other route that authenticates
+     * itself rather than being gated by the proxy.
+     *
+     * Whatever it is configured with, an anonymous POST must not write a lead.
+     * Unconfigured it is a 404, configured it is a 401, and both are refusals;
+     * a 200 or a 500 here would mean a stranger reached the write path.
+     */
+    const intakeAnon = await fetch(`${BASE}${SISTER_INTAKE_ROUTE}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ form: "contact", email: "stranger@example.invalid" }),
+    });
+    rec(
+      "the sister intake endpoint refuses a caller with no key",
+      intakeAnon.status === 401 || intakeAnon.status === 404,
+      `HTTP ${intakeAnon.status}`,
+    );
+
+    const intakeBody = await intakeAnon.text();
+    rec(
+      "and tells them nothing about which brands it knows",
+      !/sealed|stamp|INTAKE_KEY/i.test(intakeBody),
+      intakeBody.slice(0, 120),
+    );
+
     const noAuth = await fetch(`${BASE}${CRON_ROUTE}`, { redirect: "manual" });
     rec(
       "the outage watcher refuses an unauthenticated caller",

@@ -112,6 +112,7 @@ const PAGES_MEASURED_ELSEWHERE = {};
 const APIS_MEASURED_ELSEWHERE = {
   apply: ["scripts/lib/careers-audit.mjs", "the careers application flow"],
   cron: ["scripts/security-audit.mjs", "every scheduled route, refused without CRON_SECRET"],
+  intake: ["scripts/sister-intake-audit.mjs", "the door the sister brands post a lead through"],
   lead: ["scripts/forms-audit.mjs", "the marketing intake"],
   onboarding: ["scripts/jobs-audit.mjs", "the invite and reminder mail the flow queues"],
   "order-flow": ["scripts/security-audit.mjs", "the one write path a visitor can reach, checked for what it refuses"],

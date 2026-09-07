@@ -225,6 +225,21 @@ const PHASE_ONE = [
   { name: "seo-audit", why: "title and description budgets, uniqueness, schema, Lighthouse SEO 100" },
   { name: "forms-audit", why: "all four forms end to end, plus the server side guards" },
   {
+    /*
+     * PHASE ONE, because half of it is the live write path: a real key posting a
+     * real lead through the shared server on 3225, read back out of the
+     * database, retried, and then removed with the removal verified.
+     *
+     * It was briefly in phase zero, which was wrong in the way this file exists
+     * to prevent: phase zero has no server, so the live half would have measured
+     * a refused connection and reported whatever that produced.
+     *
+     * react-server, because it imports the intake module, which is server-only.
+     */
+    name: "sister-intake-audit",
+    why: "a sister brand can post a lead, and only its own",
+  },
+  {
     // Phase one, not phase two, because it measures the PRODUCTION build through
     // the shared server on 3225. Phase two audits each start their own next dev,
     // and mobile-audit's does so by killing whatever is on that port, which left

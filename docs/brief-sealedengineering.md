@@ -271,6 +271,35 @@ this paragraph.**
 
 ---
 
+---
+
+## The intake API exists now, and it changes the paragraph above
+
+**Built 2026-09-07.** `docs/sister-intake-api.md` in the 254engineering
+repository is the reference: the endpoint, the body, every status it answers,
+and what to do with each. Read it before changing anything here.
+
+The short version:
+
+1. POST leads to `https://254engineering.com/api/intake/lead` with an
+   `x-intake-key` header instead of writing `eng_leads`.
+2. Ask the operator for this brand's key. It is set on the 254 deployment as
+   `INTAKE_KEY_SEALED` and given to this one.
+3. When the posts are landing, **delete `SUPABASE_URL` and
+   `SUPABASE_SERVICE_ROLE_KEY` from this deployment.** That is the point: this
+   site should not hold a master credential for somebody else's database.
+4. Keep the failure states honest. A 503 carrying `emailed: true` means a person
+   has the enquiry even though no row was written, and a 503 carrying
+   `emailed: false` means nothing left: retry, and if it keeps failing put the
+   enquiry in front of a human rather than telling the visitor it was received.
+
+**Once that is done, this repository is out of the cutover window entirely.** It
+writes nothing to the shared project, so 254 can move databases without
+coordinating with sealedengineering. Until it is done, the two variables move in the same
+window as 254's cutover, which is what the paragraph above describes.
+
+---
+
 ## What not to do
 
 - Do not edit `scripts/lib/regulatory.mjs` or `data/catalog.ts` locally. They

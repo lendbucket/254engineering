@@ -268,6 +268,53 @@ anything else it was opened for.** Those two sites carry 55 and 9 pages written
 under the same regulatory gate as this one, and neither can currently detect the
 class of claim that was found live on this site the day the pattern was added.
 
+### RESOLVED 2026-09-07: the sisters have somewhere to post a lead
+
+Closeout, ahead of Section 3 on the operator's ordering. `/api/intake/lead`,
+with `docs/sister-intake-api.md` as the reference both briefs now point at.
+
+**What it is for.** sealedengineering and stampmyplans each hold a Supabase
+service role key for the shared production project and write `eng_leads`
+directly. That is what made the cutover a coordination problem rather than a
+deploy: move 254 alone and the sisters keep writing to the old project while the
+only screen anybody opens reads the new one, and it surfaces as a customer who
+was never called back. This is option three from step 8b of the cutover plan,
+chosen by the operator, and it removes the coupling permanently.
+
+**The security model in one sentence.** The brand is read off the key and there
+is no field in which a caller could name one. The audit sends a body claiming
+`site: "254"` with the sealed key and asserts the row comes back as sealed.
+
+**Keys are environment variables, not rows**, one per sister, at least 24
+characters, compared in constant time over a hash. Nothing configured is a 404
+rather than a 401, so an unconfigured endpoint and a missing one look the same
+to somebody probing. Production and Preview are the operator's to set;
+development has its own so the audit can exercise the real write path.
+
+**A retry is not a second lead.** Ten minutes, fingerprinted on brand, form,
+address, telephone and message. A person who genuinely writes twice inside ten
+minutes is recorded once, which is a smaller harm than the operator ringing them
+twice, and it is stated rather than discovered.
+
+**A failed write is answered honestly**, which is the opposite of what this
+platform's own forms do for a person, and the reason is that the caller is a
+server: a person told "we have it" is reassured, a server told that stops
+retrying. The response carries whether the notification email left, so the
+sister knows whether to retry or whether a person already has it. That send is
+the third deliberate exception to "all mail goes through the queue", after the
+outage alert and the queue alert, and for the same reason: the queue is a table
+in the same Postgres.
+
+**Injected.** A route that trusted the body over the key was refused by the type
+system first, and when forced through with a cast it was caught by the check
+that reads the row. The same injection showed the response check being fooled,
+because the endpoint answered "sealed" while writing "254", so there is now a
+check that what it answers and what it wrote agree.
+
+**What is left for the sisters**, and it is in both briefs: post instead of
+writing, then delete their Supabase credentials. Until they do, their two
+variables still move in the cutover window.
+
 ### The two sibling briefs are written and are the entry point for those repos
 
 Written 2026-09-07, closeout Section 2. `docs/brief-sealedengineering.md` and
