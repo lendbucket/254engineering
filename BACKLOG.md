@@ -109,16 +109,30 @@ to the day the periods are chosen:
   file's record, and take their own period.
 - The actual periods are set when there is something to retain.
 
-### The scroll position half of native standard point 8
+### RESOLVED 2026-09-06: the scroll position half of native standard point 8
 
 `docs/PORTAL_DESIGN_STANDARDS.md`, point 8. A list that can grow renders a
 bounded number of rows, and its scroll position survives navigating away and
-back. The bounded half is asserted by `native-audit` through a visible row
-count. The scroll position half is asserted by nothing.
+back. The bounded half was asserted by `native-audit` through a visible row
+count. The scroll position half was asserted by nothing, and it turned out it
+was implemented by nothing either: the check and the behaviour were missing
+together, which is why no board was ever red about it.
 
-**Not built because** it needs a navigation and a return, which is a different
-shape of test from measuring a resting page, and claiming it from a resting page
-would be the exact defect Phase 11 existed to remove.
+**Built as** `src/components/portal/ScrollMemory.tsx`, in the staff shell and
+the partner shell, and asserted by `native-audit` on three properties: the
+screen it tests with is actually scrollable, a forward navigation opens at the
+top, and a return restores the position. Both halves of the behaviour were
+injected and each failed its own check and only its own.
+
+**Worth carrying forward.** The first implementation saved the outgoing
+position in the effect that notices the pathname changed, and recorded 24px for
+a screen sitting at 400px. Next's own scroll handler runs during commit and
+calls scrollIntoView on the incoming segment, whose nearest scrollable ancestor
+is that region, so a passive effect always reads a position the router has
+already destroyed. It loses every time rather than sometimes. The position is
+now read when a navigation is asked for, on a capture phase click and on
+popstate. This repository's recurring defect class, one more time, in the
+product rather than in a check.
 
 ### Sentry is wired and has no DSN
 

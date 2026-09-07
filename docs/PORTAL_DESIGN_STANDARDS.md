@@ -387,6 +387,12 @@ survives navigating away and back.
 cursor. With the row counts the firm has now this is invisible; it is the kind
 of thing that is only ever noticed on the day it is a problem.
 
+*The remembering half is built and asserted*, as of 2026-09-06.
+`src/components/portal/ScrollMemory.tsx` is in both shells: a forward navigation
+opens a screen at the top, and back or forward restores what that screen had.
+`native-audit` presses a tab, goes back and reads the position, on a screen it
+has measured as scrollable first.
+
 ### 9. Every desktop action is reachable on a phone
 
 The operator's requirement is that the firm can be run remotely. An action that
@@ -451,10 +457,14 @@ in a browser and no check exercises it. It was built before Section 3 because
 the messaging centre needs it and building it there would mean building it in a
 hurry; that is a reason to have written it, not evidence that it works.
 
-**Point 8 is asserted on one of its two halves.** A visible row count catches a
-list that grew. Scroll position surviving navigation needs a navigation and a
-return, which is a different shape of test, and claiming it from a resting page
-would be the kind of check this phase exists to remove.
+**Point 8 was asserted on one of its two halves, and now on both.** A visible
+row count catches a list that grew. Scroll position surviving navigation needed
+a navigation and a return, which is a different shape of test, and claiming it
+from a resting page would have been the kind of check this phase exists to
+remove. It was built and asserted in the closeout on 2026-09-06: the audit
+scrolls a screen it has measured as scrollable, presses a tab the way a person
+does, and comes back. The bounded half is still true of the row count only, and
+the files list still has no cursor.
 
 **What none of this asserts** is whether the result feels like an application.
 That is `docs/portal-screen-verdicts.md`, and Section 2 ends by filling in the

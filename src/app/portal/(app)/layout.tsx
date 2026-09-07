@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ScrollMemory } from "@/components/portal/ScrollMemory";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { RELEASE, ENVIRONMENT } from "@/lib/ops-observability";
@@ -220,6 +221,7 @@ export default async function PortalLayout({ children }: { children: React.React
           tabIndex={0}
           className="portal-panel-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain lg:min-h-[auto] lg:flex-none lg:overflow-visible"
         >
+          <ScrollMemory />
           <main className="mx-auto flex w-full max-w-[1280px] flex-col gap-[var(--section-gap)] px-[var(--page-gutter)] py-6 lg:pb-10">
             {children}
           </main>
