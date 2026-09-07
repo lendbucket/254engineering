@@ -45,21 +45,52 @@ identity, which is the uuid preservation, and that was tested exactly.
 Every step names what to do if it goes wrong. Steps 1 to 6 are reversible by
 doing nothing, because production is untouched throughout.
 
-### Step 1. Create the project
+### Step 1. Create the project. DONE.
 
 Create `254engineering-prod` in `us-east-1`. $10 per month, on the Pro
 organisation.
+
+**Done 2026-09-04. The ref is `qmvcqvkywmkogxbyzsaz`**, us-east-1, healthy.
+
+**Verified empty before step 2 rather than assumed**, on 2026-09-07: zero tables
+in `public`, zero storage buckets, zero rows in `auth.users`. That check is
+worth running rather than trusting the creation date, because a half replayed
+schema from an abandoned attempt is the one starting state that would make every
+verification below ambiguous.
 
 **Rollback:** delete the project. Production is untouched.
 
 ### Step 2. Replay the migrations
 
-Apply `0000` through `0008` in order.
+Apply **`0000` through `0023`** in order. Twenty four files.
 
-**Verify:** fingerprint equals `eac11d782d44bd11cb893637f67d2ee1`, 607 columns,
-39 tables, 4 functions all with `search_path` pinned, 24 triggers, RLS on 39.
-`migration-audit` asserts the same numbers against a scratch database, so a
-mismatch here means the project, not the files.
+**This is the number that has moved most since the plan was written.** It said
+`0000` through `0008` and a fingerprint from Phase 7, which was true on
+2026-09-03 and has been overtaken by fifteen migrations: the B2B accounts, the
+job queue, observability, the partner programme and its compensation ledger, the
+operator intake, roles as data, the partner asset library, and what an alert
+remembers. A session working the plan as written would have built a schema three
+phases behind the code and found out at step 10.
+
+**Verify:** fingerprint equals `b2c841480f983ec50e36e72a11e9072a` across **945
+columns and 69 tables**, with row level security on all 69, 46 triggers, 9
+`eng_` functions and none with an unpinned `search_path`, and **111 role
+grants** seeded by 0018 and 0021.
+
+The grant count is checked separately and deliberately: it is a row count rather
+than a shape, so the fingerprint cannot see it. 0018's first version seeded a
+role without the permission that opens the permission screen, and the fingerprint
+was identical either way.
+
+`migration-audit` asserts the same figures against a scratch database on every
+suite run, so a mismatch here means the project rather than the files.
+
+**The query, which is the same one CLAUDE.md section 6b carries:**
+
+    select md5(string_agg(sig, '|' order by sig)), count(*)
+    from (select table_name||'.'||column_name||':'||data_type||':'||is_nullable as sig
+          from information_schema.columns
+          where table_schema='public' and table_name like 'eng\_%') t;
 
 **Rollback:** delete the project and start again. Production is untouched.
 
@@ -86,6 +117,10 @@ minute signed url issued to their session, so the firm can withdraw an asset and
 have that mean something. A public bucket would mean every one pager the firm
 ever published stays retrievable by url forever, including the version it
 withdrew, which is the opposite of what withdrawing is for.
+
+**All five are needed before step 9**, and the count is part of the
+verification rather than a note: a bucket that does not exist fails at the
+moment somebody uploads to it, which is long after this window closes.
 
 **Verify:** five buckets, `public = false` on every one. A public evidence or
 messages bucket would expose property photographs, so this is checked rather
@@ -207,7 +242,29 @@ notice, and it surfaces as a customer who was never called back.
 `site = '254'`. The sisters have written zero rows to date. There is no data to
 move, only future writes to redirect.
 
-**The options, for the operator:**
+**ANSWERED 2026-09-07, and the answer is option three.** Operator ruling: the
+sisters post to an intake API rather than writing Supabase. It is built,
+`/api/intake/lead`, documented in `docs/sister-intake-api.md`, asserted by
+`sister-intake-audit` in the suite, and both sibling briefs carry what each
+repository has to do.
+
+That changes what this step blocks on. It is no longer "move three deployments
+in one window". It is:
+
+  **For each sister, one of two states must be true before step 9.** Either it
+  has moved to the intake API and deleted its Supabase credentials, in which case
+  it is not part of this window at all, or it has not, in which case its
+  `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` move with 254's in the same
+  window and it is redeployed.
+
+  **Ask, do not assume.** Each sister's deployed values live in its own Vercel
+  project and were not readable from here. The state to confirm is what that
+  deployment is actually pointed at, not what its `.env.local` says.
+
+The original options are kept below, because the reasoning for rejecting the
+other two is what makes the third one right rather than merely chosen.
+
+**The options, as they were put to the operator:**
 
 1. **Move all three in the same window.** Recommended. The sisters have no
    portal, no auth, no storage and no rows; each is two environment variables

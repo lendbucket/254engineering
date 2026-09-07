@@ -888,14 +888,26 @@ the one that gets edited, so it is gone and the comment names the real file.
 
 Found 2026-09-07 by the full suite, and reproduced twice on a quiet machine.
 
-**The numbers.** LCP 3454ms against a 3400ms ceiling, median of three, spread
-1ms. Earlier the same day, on the same machine and before any of that day's
-work, the same page measured 3310ms with a spread of 76ms. So it moved by about
-144ms and became deterministic.
+**The numbers, and the first reading of them was wrong.** Four measurements of
+the same page on the same machine on the same day:
+
+| | LCP | spread of three | verdict |
+| --- | --- | --- | --- |
+| full suite, morning | 3310ms | 76ms | pass |
+| alone, after the suite | 3454ms | 1ms | fail |
+| alone again | 3454ms | 1ms | fail |
+| full suite, evening | 3378ms | 523ms | pass |
+
+The two isolated runs agreed to the millisecond, and that was reported here as
+"deterministic, not noise". It was true of those two runs and not of the page.
+The ceiling is 3400ms and the page sits within about two percent of it, which is
+smaller than the difference between one run and the next.
 
 **Not absorbed, and the budget has not moved.** perf-audit's own doctrine is
 written into its header: a route that fails at the median is a real finding and
-is never answered by moving the line it crossed. It is recorded here instead.
+is never answered by moving the line it crossed. What is recorded here is that
+the local measurement cannot resolve a two percent margin, not that the page is
+fast enough.
 
 **What is NOT the cause, checked rather than assumed.** Nothing that renders
 that page changed that day. The design token corrections were in portal and
@@ -909,12 +921,18 @@ after a session of continuous building and browser work, which the collapsed
 spread is consistent with. A dependency or font that now resolves differently.
 Or a real regression from something shared that has not been identified.
 
-**What to do with it.** Measure it on a deployment rather than on this laptop,
-which is where the number matters, and compare with the other nine templates
-that pass on the same machine with the same profile. The gap is 1.6 percent of
-the ceiling: it is either noise the local profile cannot see through, or a small
-real regression, and a deployment measurement separates them. Do not widen the
-ceiling to make it green.
+**What to do with it.** Operator ruling, 2026-09-07: measure it on a deployment
+when the cutover lands, because that is where the number means anything and a
+laptop that has been running browser audits for an hour is not a clean room.
+
+Two things to do there rather than here. Take the measurement on the deployed
+site, where the ceiling was calibrated to mean something. And decide whether a
+ceiling this close to a template's real number is a useful gate at all: a
+threshold two percent above the measurement will flip on machine state forever,
+which makes it the same shape as the contrast timing defect ruled on the same
+day. Do not widen the ceiling to make it green; either the deployment says the
+page is over, or the gate needs a margin that reflects what the instrument can
+actually resolve.
 
 ### RESOLVED 2026-09-07: the harness had no list of what surfaces exist
 
