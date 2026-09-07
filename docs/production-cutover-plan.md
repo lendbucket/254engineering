@@ -228,18 +228,44 @@ without anybody deciding it**, and `eng_jobs` is not in that class while it
 holds live work: a pending or running row at the copy moment is scheduled work
 that silently never runs, with no error and no gap in a sequence.
 
-The queue held zero pending and zero running rows when this was measured, which
-is a fact about that minute rather than a property of the plan. **So step 7
-gains a stop condition: the queue is checked for pending and running rows
-immediately before the copy, and a queue that is not empty stops the sequence.**
+The queue held zero pending and zero running rows when this was first measured,
+and that was recorded as **a fact about that minute rather than a property of
+the plan**. Forty minutes later it held one: job 863, kind `errors.alert`,
+pending. An alert about a fault that had not been sent yet, which is close to
+the worst row in the table to lose silently.
 
-The decision on the three tables is the operator's and is recorded in
-`BACKLOG.md` rather than settled here. One note for whoever takes it: all three
-are `bigserial` keyed and every table the script copies today is uuid keyed, so
-copying them means carrying their sequences too. Inserting explicit ids without
-a `setval` leaves the destination's sequence at 1 and the next insert collides.
-That is what makes this a design decision rather than three lines added to an
-array.
+**So step 7 gains a stop condition, and it is built rather than written down.**
+`copy-project.mjs` reads the queue before it writes anything, names the kinds
+it found, and refuses. The correct response to it firing is to wait a minute,
+never to force it.
+
+**FIXED 2026-09-07, on the operator's instruction**, rather than deferred with
+the cutover: a copy script that reports agreement while copying nothing will be
+trusted the day it runs for real.
+
+All three are now copied. **One correction to the first report of this
+finding**, because the tidy sentence in it was wrong: it said all three are
+`bigserial` keyed. `eng_metrics_daily` is not. Its primary key is
+`(day, metric)`, which makes it naturally idempotent and needs no sequence at
+all. Only `eng_jobs` and `eng_cron_runs` carry one, verified against
+`pg_get_serial_sequence` rather than read off the migration.
+
+**The sequences are the part the script cannot finish.** PostgREST cannot run
+`setval`, so `--apply` prints the exact statements and **exits non-zero** with
+the copy declared unfinished. That is deliberate: a destination whose sequence
+sits at 1 while its table holds 863 rows fails on the first job written after
+the cutover, and a script that returned success here would have made that
+somebody else's surprise at step 10.
+
+**And the generalised fix, which is worth more than the three tables.** The
+script now runs a completeness check before it writes anything. It reads the
+table names out of `supabase/migrations/` **on disk**, asks the source which of
+them hold rows, and requires every one to be either in the copy list or named in
+a `NOT_COPIED` map with a stated reason. A table added by a future migration is
+a candidate the moment it exists rather than when somebody remembers this file.
+
+Today that check declares 16 tables and probes the other 53. All 53 are empty on
+production, so it passes, and it stops the run the moment any of them is not.
 
 **Verify:** the counts are read from the source AT COPY TIME and compared to what
 the copy would write. They are not compared to a figure recorded earlier.
@@ -319,10 +345,41 @@ The probe object was removed and its removal verified.
 today, which makes this the same defect with nothing behind it yet. And
 `limit: 1000` has no pagination behind it, which truncates in silence.
 
-**None of this is fixed.** It is recorded because the cutover is deferred and the
-next session must not run that script trusting its green. The fix is a recursive
-walk plus a per bucket object count read from `storage.objects`, which is the
-figure the verification should have been comparing against all along.
+**FIXED 2026-09-07, on the operator's instruction.**
+
+The walk now lives in `scripts/lib/bucket-walk.mjs` rather than inside this
+script, for a reason the defect itself demonstrates: a function a whole step
+depends on, buried in a script that cannot be imported because it exits on load,
+is a function nothing can test. It descends into folders and it paginates, and
+the old six lines are kept beside it as `walkBucketTheOldWay` so a test can
+show the difference rather than describe it.
+
+**Proven on development**, with four objects at production's exact nesting:
+
+    THE OLD ENUMERATION
+      found none of the nested objects (it returned 1 entry, and none of the 3 nested keys)
+      but did find the one at the root
+    THE NEW WALK
+      finds all three, three levels down
+      and still finds the one at the root
+      sees strictly more than the old one (4 against 1)
+
+Running both over the same bucket in the same run is the point. Asserting only
+the new behaviour would prove the new behaviour and say nothing about whether
+the old one was actually broken.
+
+**The count comparison is gone as the primary evidence.** Every object is
+downloaded from both sides and compared byte for byte, because a count
+comparison was what printed "agree" while nothing had been copied: both sides of
+it came from the same blind instrument. There are two objects today; when there
+are thousands this becomes a sample, and the plan says so rather than letting it
+change quietly.
+
+**And a canary.** A walk that finds nothing in any bucket says so out loud
+instead of reading as agreement, which is exactly the state the old code
+produced.
+
+`eng-messages` and `eng-partner-assets` are in the bucket list now.
 
 **Verify:** object count and byte size match per bucket, and one object is
 downloaded from the new project and compared byte for byte. **Read the count
@@ -330,6 +387,25 @@ from `storage.objects`, not from what `list` returned**, or the check is the
 same instrument twice.
 
 **Rollback:** delete the objects and repeat.
+
+### Step 8c. The copy script has never been executed, against anything
+
+**Recorded 2026-09-07 and not resolved, because it cannot be resolved from a
+session.** `copy-project.mjs` takes two projects explicitly and refuses to run
+when they are the same one. The only service role key in the working tree is
+development's, and both of the others, production's and the new project's, live
+in Vercel and in the operator's records by standing law.
+
+So no session can exercise this script end to end, and none has. Its parts are
+verified: the bucket walk against development with production's nesting, the
+completeness check's migration parsing against the files on disk, and the row
+counts read directly from production over a read only connection. **The whole
+has never run.**
+
+That is not an argument for putting a key in the tree. It is an argument for the
+operator running the dry run themselves, in an environment that already holds
+both keys, before the window opens, and for treating the first `--apply` as the
+second time the script has run rather than the first.
 
 ### Step 8b. Resolve the sister brands. THIS BLOCKS STEP 9.
 

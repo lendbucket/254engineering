@@ -101,7 +101,7 @@ section 6b, and all five buckets, all private. It holds no rows and no storage
 objects. Production was not touched by any of it and is serving exactly what it
 served before. Ten dollars a month is the cost of holding the option open.
 
-### copy-project.mjs cannot see the objects it is meant to copy, and reports agreement
+### RESOLVED: copy-project.mjs could not see the objects it was meant to copy, and reported agreement
 
 Found 2026-09-07 in the step 5 dry run. Full reasoning under step 8 of
 `docs/production-cutover-plan.md`.
@@ -112,15 +112,26 @@ production's two objects at `254/<uuid>/resume-*.pdf` appear only as the folder
 finds zero files, copies nothing, compares zero against zero and prints
 **agree**.
 
-Proven on development by uploading one object at production's exact nesting and
-reading back what `list("")` returned, then removing it and verifying the
-removal. Not fixed, because the cutover is deferred; recorded so nobody runs the
-script trusting its green.
+**Fixed 2026-09-07 on the operator's instruction**, rather than deferred with
+the cutover: a copy script that reports agreement while copying nothing will be
+trusted the day it runs for real.
 
-Two smaller things in the same place: `BUCKETS` names three of the five, and
-`limit: 1000` has no pagination behind it.
+The walk moved to `scripts/lib/bucket-walk.mjs`, because a function a whole
+step depends on, buried in a script that cannot be imported since it exits on
+load, is a function nothing can test. The old six lines sit beside it as
+`walkBucketTheOldWay` so a test can show the difference rather than describe
+it, and both were run over the same development bucket with four objects at
+production's exact nesting: the old one found 1 entry and none of the 3 nested
+keys, the new one found all 4.
 
-### Three tables with rows on production are in no copy list, and the decision on them is the operator's
+The count comparison is no longer the evidence. Every object is downloaded from
+both sides and compared byte for byte, because a count comparison is what
+printed agreement when both sides came from the same blind instrument. A walk
+that finds nothing in any bucket now says so instead of reading as agreement.
+
+`BUCKETS` names all five now, and the walk paginates.
+
+### RESOLVED: three tables with rows on production were in no copy list
 
 Found 2026-09-07 in the same dry run. Full reasoning under step 5 of
 `docs/production-cutover-plan.md`.
@@ -135,11 +146,46 @@ deciding it. `eng_jobs` is different while it holds live work, and the plan
 gains a stop condition for that: the queue is checked for pending and running
 rows immediately before the copy.
 
-**The decision is open.** All three are `bigserial` keyed while every table the
-script copies today is uuid keyed, so copying them means carrying their
-sequences; an explicit id insert without a `setval` leaves the destination
-sequence at 1 and the next insert collides. That is what makes this a design
-decision rather than three lines added to an array.
+**Fixed 2026-09-07, and one thing in the first account of it was wrong.** It
+said all three are `bigserial` keyed. `eng_metrics_daily` is not: its primary
+key is `(day, metric)`, so it is naturally idempotent and carries no sequence.
+Checked against `pg_get_serial_sequence` rather than read off the migration.
+Only `eng_jobs` and `eng_cron_runs` have one.
+
+The sequences are the part the script cannot finish, because PostgREST cannot
+run `setval`. So `--apply` prints the exact statements and **exits non-zero
+with the copy declared unfinished**, rather than returning success and leaving a
+destination whose sequence sits at 1 while its table holds 863 rows.
+
+**The queue stop condition is built, and it earned itself within the hour.** At
+the first measurement the queue held nothing pending or running, recorded then
+as a fact about that minute rather than a property of the plan. Forty minutes
+later it held job 863, kind `errors.alert`, pending: an alert about a fault
+that had not been sent yet, which is close to the worst row in that table to
+drop in silence.
+
+**And the generalised fix, which is worth more than the three tables.** The
+script reads the table names out of `supabase/migrations/` on disk, asks the
+source which hold rows, and requires each to be in the copy list or in a
+`NOT_COPIED` map with a stated reason. Today it declares 16 and probes the
+other 53, all empty; it stops the run the moment one is not. A table added by a
+future migration is a candidate the moment it exists rather than when somebody
+remembers that file.
+
+### The copy script has never been executed, against anything
+
+Recorded 2026-09-07. Reasoning under step 8c of
+`docs/production-cutover-plan.md`.
+
+`copy-project.mjs` takes two projects explicitly and refuses when they are the
+same one. The only service role key in the working tree is development's; both
+others live in Vercel by standing law. **No session can run this script end to
+end, and none has.**
+
+Its parts are verified, the bucket walk and the completeness check and the row
+counts, and the whole is not. The answer is not a key in the tree. It is the
+operator running the dry run in an environment that already holds both keys
+before the window opens, so the first `--apply` is the second time it has run.
 
 ## Disaster recovery
 
