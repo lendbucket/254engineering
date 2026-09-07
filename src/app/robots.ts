@@ -53,7 +53,14 @@ export default function robots(): MetadataRoute.Robots {
    * crawlers to spend requests on a route that answers 404 without a token, and
    * would gain nothing, because nothing links to it.
    */
-  const allowAll = { allow: "/", disallow: ["/api/", "/onboarding", "/admin", "/portal"] };
+  /*
+   * /admin is kept in the disallow list after the screens were deleted on
+   * 2026-09-06. The prefix still resolves, because the proxy redirects it to
+   * the portal sign in for the sake of old bookmarks and older emails, and a
+   * crawler following one should be told not to rather than being redirected
+   * into a sign in page it will then index.
+   */
+  const allowAll = { allow: "/", disallow: ["/api/", "/onboarding", "/admin", "/portal", "/partner"] };
 
   return {
     rules: [

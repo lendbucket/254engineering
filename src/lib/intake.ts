@@ -44,6 +44,49 @@ export type LeadRow = {
   partnerCode?: string | null;
 };
 
+/**
+ * WHAT AN INTAKE SUBMISSION IS ANSWERED WITH, GIVEN WHAT ACTUALLY LANDED.
+ *
+ * Pure, and extracted from the route so it can be exercised by calling it. The
+ * route used to decide this inline and always chose success, which is the
+ * defect: a submission that reached nothing was answered exactly like one that
+ * reached the database.
+ *
+ * THE THREE CASES, AND WHY THE MIDDLE ONE IS NOT A LIE
+ * ----------------------------------------------------
+ *   written              200. The record exists.
+ *   not written, sent    200. The record does not exist and a person will read
+ *                        the enquiry in their mail, which is what the sender
+ *                        was actually asking for. Loud in the logs.
+ *   neither              503, naming the address to write to instead.
+ *
+ * The middle case is the one worth defending. "We received it" is a claim about
+ * whether the firm has the enquiry, not about which table it is in, and a
+ * direct send that landed means somebody has it. What would be a lie is
+ * answering that when nothing left the process at all.
+ *
+ * WHY THERE IS NO FOURTH CASE FOR THE QUEUE
+ * ------------------------------------------
+ * The durable queue is a table in the same Postgres. When the database is
+ * unreachable the write fails and the enqueue fails for the same reason, so the
+ * queue cannot be the second path for this. The direct send is, because it is
+ * the only route to a person that does not pass through the database.
+ */
+export type IntakeAnswer = { status: number; ok: boolean; message?: string };
+
+export function intakeAnswer(
+  landed: { written: boolean; sent: boolean },
+  contactAddress: string,
+): IntakeAnswer {
+  if (landed.written) return { status: 200, ok: true };
+  if (landed.sent) return { status: 200, ok: true };
+  return {
+    status: 503,
+    ok: false,
+    message: `This did not reach us. Nothing was saved, so please email ${contactAddress} rather than trying again.`,
+  };
+}
+
 export async function insertLead(row: LeadRow): Promise<WriteResult> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "Supabase is not configured" };

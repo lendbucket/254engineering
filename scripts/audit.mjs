@@ -63,6 +63,21 @@ const PHASE_ZERO = [
     why: "every migration replays from nothing and produces the schema in use",
   },
   {
+    /*
+     * The closeout, 2026-09-06. The one audit in this suite whose subject is
+     * this repository's own bookkeeping rather than the product.
+     *
+     * It runs second, straight after the database guard and before anything
+     * that takes a minute, because it is a two hundred millisecond read of two
+     * markdown files and because an index that has stopped being an index is a
+     * thing to learn at the start of a run rather than the end.
+     *
+     * Pure. No server, no database, no network, no condition.
+     */
+    name: "backlog-audit",
+    why: "every document carrying open work is named in the file that claims to index all of it",
+  },
+  {
     // Phase 8 added a second kind of person. This asks whether the two can be
     // confused for each other, which is the failure that would look like a
     // working site right up until a customer opened the review queue.

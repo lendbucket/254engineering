@@ -1011,6 +1011,12 @@ if (!db) {
        */
       const ENGINEER_REFUSED = [
         "/portal/people",
+        /*
+         * Applications carry a candidate's resume and licence behind signed
+         * links. An engineer holds a licence, not a hiring role, and the screen
+         * gates on profiles.create for exactly that reason.
+         */
+        "/portal/applications",
         "/portal/roles",
         "/portal/audit",
         "/portal/billing",

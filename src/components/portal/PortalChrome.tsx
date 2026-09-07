@@ -38,6 +38,9 @@ function Icon({ name, className = "" }: { name: NavItem["icon"] | "bell" | "sear
   switch (name) {
     case "home":
       return <svg {...common}><path d="M3 10.5 12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" /></svg>;
+    case "applications":
+      /* A person and a page. Somebody applying for a job. */
+      return <svg {...common}><path d="M8 3h8a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" /><circle cx="12" cy="10" r="2.2" /><path d="M8.8 16.5a3.4 3.4 0 0 1 6.4 0" /></svg>;
     case "partners":
       /* A handshake, roughly. Somebody outside the firm sending work in. */
       return <svg {...common}><path d="M3 12.5 7 9l4 3.5" /><path d="M13 12.5 17 9l4 3.5" /><path d="M7 9V6.5h4l1 1.5 1-1.5h4V9" /><path d="M9 16.5h6" /></svg>;

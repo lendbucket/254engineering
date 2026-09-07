@@ -44,11 +44,16 @@ import { PARTNER_COOKIE, readPartnerSession } from "@/lib/partner-session";
  * and session endpoints with them, so there is no second way in left to
  * re-enable by accident.
  *
- * The leads, applications, and onboarding screens still answer under /admin and
- * are now gated by the same session as the portal, admin role only. They are
- * real work the operator does today and Phase 1 and Phase 3 absorb them into
- * the portal properly. Removing them now to make the retirement look complete
- * would have deleted capability and replaced it with nothing.
+ * AND NOW THE SCREENS ARE GONE TOO. Operator ruling, 2026-09-06: duplicate
+ * capability behind weaker auth is a liability, and the portal absorbed all
+ * three. Leads went to the clients screen, onboarding to the portal's own, and
+ * applications were ported in the same commit that deleted this, because that
+ * one had NOT been absorbed and deleting it first would have removed the firm's
+ * only view of its hiring pipeline.
+ *
+ * The prefixes stay in the matcher below and the redirect stays above, so a
+ * bookmark or an old email link lands on the portal sign in rather than a 404
+ * that reads like an outage.
  */
 
 const OPEN_PATHS = new Set([
@@ -172,11 +177,27 @@ export function proxy(request: NextRequest) {
   }
 
   /*
-   * The retired sign in surface. These no longer exist as files; the redirect is
-   * here so a bookmark lands on the real sign in rather than a 404 that looks
-   * like an outage.
+   * THE WHOLE RETIRED SURFACE, not only its sign in.
+   *
+   * Every /admin path now lands on the portal sign in. The screens were deleted
+   * on 2026-09-06 and the operator has had the onboarding button in their inbox
+   * pointing at /admin/onboarding/<id> since Phase 3, so a redirect that only
+   * covered the login page would have turned every one of those emails into a
+   * 404 on the day the screens went.
    */
-  if (pathname === "/admin/login" || pathname === "/api/admin/session" || pathname === "/admin/logout") {
+  /*
+   * PAGES ONLY. An API is deliberately NOT redirected here.
+   *
+   * security-audit's rule, which it applies to every other API on this
+   * platform, is that a signed out client gets JSON and a status rather than a
+   * redirect to a sign in page it cannot use. Sending /api/admin/* to
+   * /portal/login would have broken that rule for the sake of bookmarks, and a
+   * bookmark is a page.
+   *
+   * The admin APIs are deleted, so they now answer 404, which is a refusal and
+   * is the truth: the endpoint does not exist.
+   */
+  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
     const url = request.nextUrl.clone();
     url.pathname = "/portal/login";
     url.search = "";
@@ -217,7 +238,6 @@ export const config = {
     "/portal/:path*",
     "/api/portal/:path*",
     "/admin/:path*",
-    "/api/admin/:path*",
     // The customer surface. Same reasoning: explicit prefixes, because the
     // failure mode of a clever matcher is a route that is quietly uncovered.
     "/account/:path*",
