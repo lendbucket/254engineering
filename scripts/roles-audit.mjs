@@ -778,7 +778,7 @@ rec(
   const HAD_SECRET = process.env.OPS_SESSION_SECRET;
   process.env.OPS_SESSION_SECRET = "roles-audit-fixture-secret-long-enough-to-pass";
 
-  const { issueOpsSession, readOpsSession } = await import("../src/lib/ops-session.ts");
+  const { issueOpsSession, readOpsSession, readPendingSession } = await import("../src/lib/ops-session.ts");
   const SUB = "00000000-0000-0000-0000-000000000001";
 
   let survived = 0;
@@ -809,16 +809,63 @@ rec(
   rec("nor one that is too short", issueOpsSession(SUB, "aa") === null);
   rec("but an owner created key still works", issueOpsSession(SUB, "field_auditor") !== null);
 
+  /*
+   * The cookie is sub.role.factor.exp.signature since Phase 12 Section 1, five
+   * segments rather than four. These forgeries are rebuilt around the new shape
+   * rather than deleted, because what they prove has not changed: editing any
+   * claim invalidates the signature.
+   */
   const fixture = issueOpsSession(SUB, "dispatcher");
   const parts = (fixture?.value ?? "").split(".");
+  rec("a minted cookie carries five segments", parts.length === 5, `${parts.length}`);
+
+  const forge = (role) => `${parts[0]}.${role}.${parts[2]}.${parts[3]}.${parts[4]}`;
   rec(
     "a role edited in the cookie is refused, signature and all",
-    readOpsSession(`${parts[0]}.admin.${parts[2]}.${parts[3]}`) === null,
+    readOpsSession(forge("admin")) === null,
     "widening the role check must not widen the door",
   );
   rec(
     "and so is a well formed role nobody signed",
-    readOpsSession(`${parts[0]}.field_auditor.${parts[2]}.${parts[3]}`) === null,
+    readOpsSession(forge("field_auditor")) === null,
+  );
+
+  /*
+   * THE DOWNGRADE, WHICH IS THE NEW ONE WORTH HAVING.
+   *
+   * A four segment cookie is the pre MFA shape. Reading it as a session would
+   * mean an attacker could strip the factor field and be treated as fully
+   * authenticated, so it is refused outright rather than assumed to be legacy.
+   */
+  rec(
+    "a pre MFA four segment cookie is refused rather than trusted",
+    readOpsSession(`${parts[0]}.${parts[1]}.${parts[3]}.${parts[4]}`) === null,
+    "stripping the factor must not be a way past it",
+  );
+
+  /*
+   * AND A PENDING SESSION IS NOT A SESSION, which is the whole boundary.
+   */
+  const pending = issueOpsSession(SUB, "admin", "pending");
+  rec("a pending session can be minted", pending !== null);
+  rec(
+    "but readOpsSession refuses it, exactly like a forgery",
+    pending ? readOpsSession(pending.value) === null : false,
+    "every existing caller inherits the enforcement without knowing about it",
+  );
+  rec(
+    "and readPendingSession is the only thing that sees it",
+    pending ? readPendingSession(pending.value)?.factor === "pending" : false,
+  );
+  const full = issueOpsSession(SUB, "admin", "full");
+  rec(
+    "while readPendingSession refuses a full one",
+    full ? readPendingSession(full.value) === null : false,
+    "the two readers do not overlap",
+  );
+  rec(
+    "a factor nobody signed is refused",
+    readOpsSession(`${parts[0]}.${parts[1]}.elevated.${parts[3]}.${parts[4]}`) === null,
   );
 
   if (HAD_SECRET === undefined) delete process.env.OPS_SESSION_SECRET;
