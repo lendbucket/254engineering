@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
-import { listThreads, messageablepeople, threadView } from "@/lib/ops-threads";
+import { listThreads, MENTION_PAGE, mentionsFor, messageablepeople, threadView } from "@/lib/ops-threads";
+import { roleLabel } from "@/lib/ops-authz";
 import { Chip, EmptyState, PageHead } from "@/components/portal/surfaces";
 import { Composer, MessageSearch, NewChannel, StartDirect } from "./MessagesClient";
 
@@ -41,7 +42,7 @@ const when = (value: string | null) =>
 export default async function MessagesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ id?: string }>;
+  searchParams: Promise<{ id?: string; view?: string }>;
 }) {
   const actor = await currentActor();
   /*
@@ -55,6 +56,20 @@ export default async function MessagesPage({
   const threads = await listThreads(actor);
   const open = params.id ? await threadView(actor, params.id) : null;
   const people = await messageablepeople(actor);
+
+  /*
+   * EVERYTHING THAT NAMED YOU, item 5 of docs/messaging-section-3.md.
+   *
+   * Loaded on every render rather than only when the view is open, because the
+   * count is the point: a collected view nobody knows about is a page nobody
+   * opens, and the number beside the switch is what makes writing a mention
+   * worth doing.
+   *
+   * The threads this page already has are handed over, so this costs one query
+   * rather than repeating the readable set.
+   */
+  const mentions = await mentionsFor(actor, threads);
+  const showing = params.view === "mentions" ? "mentions" : "threads";
 
   return (
     <>
@@ -72,6 +87,48 @@ export default async function MessagesPage({
           </div>
 
           {/*
+            TWO VIEWS OF THE SAME COLUMN, AND NOT A TAB BAR ELSEWHERE.
+
+            The conversations and the things that named you are the same kind of
+            answer to the same question, so they share the column and the thread
+            beside it. A separate route would put a second inbox on the
+            navigation, and the point of this view is to be the thing you check
+            INSTEAD of reading five threads, not a sixth place to look.
+
+            Two links rather than a client toggle: the server renders what is
+            asked for, so the state survives a reload and can be linked to.
+            It comes before the search, because it decides what this column IS
+            and the search is a tool inside one of the two. Below it on a phone,
+            the search box was the third thing between the header and the
+            answer.
+          */}
+          <div className="mt-4 flex gap-2" role="group" aria-label="What this column shows">
+            <Link
+              href="/portal/messages"
+              aria-current={showing === "threads" ? "true" : undefined}
+              className={`flex min-h-[44px] flex-1 items-center justify-center rounded-[3px] border px-3 text-[13.5px] font-semibold ${
+                showing === "threads"
+                  ? "border-slate bg-[var(--canvas)] text-[var(--navy)]"
+                  : "border-[var(--border)] text-[var(--secondary)]"
+              }`}
+            >
+              Conversations
+            </Link>
+            <Link
+              href="/portal/messages?view=mentions"
+              aria-current={showing === "mentions" ? "true" : undefined}
+              className={`flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-[3px] border px-3 text-[13.5px] font-semibold ${
+                showing === "mentions"
+                  ? "border-slate bg-[var(--canvas)] text-[var(--navy)]"
+                  : "border-[var(--border)] text-[var(--secondary)]"
+              }`}
+            >
+              Addressed to you
+              {mentions.unread > 0 ? <Chip label={String(mentions.unread)} tone="warn" /> : null}
+            </Link>
+          </div>
+
+          {/*
             Search sits above the thread list rather than in the header,
             because it searches THIS surface. A magnifying glass in the chrome
             already opens the command palette, which goes to screens, and two
@@ -82,6 +139,55 @@ export default async function MessagesPage({
             <MessageSearch people={people.map((p) => ({ id: p.id, name: p.name }))} />
           </div>
 
+          {showing === "mentions" ? (
+            <div className="mt-4">
+              {mentions.items.length === 0 ? (
+                <EmptyState
+                  title="Nothing has named you"
+                  body="Somebody writes @ and your name in a message and it appears here, with what they said. An empty list is a result rather than a gap: nothing is waiting on you."
+                />
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {mentions.items.map((m) => (
+                    <li key={m.messageId}>
+                      <Link
+                        href={`/portal/messages?id=${m.threadId}`}
+                        className="block rounded-[4px] border border-[var(--border)] bg-white p-4 transition-colors hover:border-slate"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            {/*
+                              A DIRECT THREAD IS TITLED WITH THE OTHER PERSON,
+                              so "Devon Probe in Devon Probe" is what the
+                              obvious line renders. Seen in a screenshot at 390
+                              before this was written any other way.
+                            */}
+                            <p className="text-[13.5px] font-semibold text-[var(--navy)]">
+                              {m.kind === "direct" ? m.authorName : `${m.authorName} in ${m.threadTitle}`}
+                            </p>
+                            <p className="mt-1 line-clamp-3 text-[13.5px] leading-[1.5] text-[var(--secondary)]">
+                              {m.body}
+                            </p>
+                            <p className="mt-1 text-[12px] text-[var(--secondary)]">
+                              {KIND_LABEL[m.kind]}
+                              {`, ${when(m.createdAt)}`}
+                            </p>
+                          </div>
+                          {m.unread ? <Chip label="new" tone="warn" /> : null}
+                        </div>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {mentions.truncated ? (
+                <p className="mt-3 text-[12.5px] leading-[1.5] text-[var(--secondary)]">
+                  The {MENTION_PAGE} most recent are shown. Older ones are still in their
+                  conversations, and search finds them.
+                </p>
+              ) : null}
+            </div>
+          ) : (
           <div className="mt-4">
             {threads.length === 0 ? (
               <EmptyState
@@ -123,6 +229,7 @@ export default async function MessagesPage({
               </ul>
             )}
           </div>
+          )}
         </div>
 
         {open ? (
@@ -182,7 +289,7 @@ export default async function MessagesPage({
                           >
                             <p className="text-[12.5px] font-semibold text-[var(--gold-deep)]">
                               {mine ? "You" : m.author_name}
-                              {m.author_role && !mine ? `, ${m.author_role.replace(/_/g, " ")}` : ""}
+                              {m.author_role && !mine ? `, ${roleLabel(m.author_role)}` : ""}
                             </p>
                             {m.body ? (
                               <p className="mt-1 text-[13.5px] leading-[1.55] whitespace-pre-wrap text-[var(--navy)]">

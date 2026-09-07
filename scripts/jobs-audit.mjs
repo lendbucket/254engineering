@@ -681,6 +681,41 @@ rec(
   );
 
   /*
+   * THE SECOND EXCEPTION, ADDED IN THE CLOSEOUT, AND IT IS THE SHARPER ONE.
+   *
+   * The queue depth alert says the worker is not draining the queue. Handed to
+   * that queue, it would be delivered when the problem went away on its own,
+   * which is a feature that works in every case except the one it exists for.
+   *
+   * Asserted the same way as the outage alert, and for the same reason: a later
+   * pass tidying "the last unqueued send" must not be able to remove it
+   * quietly. The check is scoped to the queue alert rather than forbidding the
+   * watcher module from touching the queue at all, because that is the mistake
+   * the outage check already made once and had to be narrowed out of.
+   */
+  const queueWatch = codeOnly("src/lib/queue-watch.ts");
+  rec(
+    "the queue alert sends directly, not through the queue it is about",
+    /await notify\(\s*\n\s*queueAlert\(/.test(queueWatch),
+    "an alert about a stuck queue, placed in that queue, arrives when the problem fixes itself",
+  );
+  rec(
+    "and it is never queued instead",
+    !/queueEmail\(\s*\n?\s*queueAlert\(|enqueue\(/.test(queueWatch),
+  );
+  rec(
+    "the watcher runs it on the cron rather than as a job",
+    /watchQueue\(\)/.test(codeOnly("src/app/api/cron/health-watch/route.ts")) &&
+      !/watchQueue/.test(codeOnly("src/lib/job-handlers.ts")),
+    "a check on whether the worker is running cannot be work the worker does",
+  );
+  rec(
+    "and the cooldown is stamped only when the email actually left",
+    /if \(result\.sent\) \{[\s\S]{0,200}eng_alert_state/.test(queueWatch),
+    "stamping first buys an hour of silence with a send that failed",
+  );
+
+  /*
    * The binder DOWNLOAD must not be queued. A queued CSV is a CSV nobody
    * receives, and the person clicking it is the definition of somebody waiting.
    */

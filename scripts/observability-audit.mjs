@@ -43,7 +43,15 @@ import {
   MAX_ALERTS_PER_SWEEP,
 } from "../src/lib/alert-rules.ts";
 import { cronVerdict, WATCHED_CRONS } from "../src/lib/ops-observability.ts";
-import { beforeSend, beforeBreadcrumb, sentryOptions, release } from "../src/lib/sentry-config.ts";
+import { beforeSend, beforeBreadcrumb, sentryOptions, release, environment } from "../src/lib/sentry-config.ts";
+import { firstNonEmpty } from "../src/lib/env-value.ts";
+import {
+  QUEUE_COOLDOWN_MINUTES,
+  QUEUE_DEEP,
+  QUEUE_STALLED_MINUTES,
+  decideQueueAlert,
+} from "../src/lib/queue-alert.ts";
+import { RELEASE } from "../src/lib/ops-observability.ts";
 
 function codeOnly(path) {
   const withoutBlocks = readFileSync(path, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
@@ -294,6 +302,26 @@ function leaks(text) {
         "and it carries the release, so a stack trace can be matched to code",
         new RegExp(`"release":"${release()}"`).test(captured),
         release(),
+      );
+
+      /*
+       * AND IT IS A VALUE, WHICH THE CHECK ABOVE CANNOT SEE.
+       *
+       * That check has release() on both sides, so it holds just as well when
+       * release() is the empty string: it would be comparing "release":"" to
+       * itself and passing. It was passing, off a developer machine, for
+       * exactly that reason.
+       *
+       * `vercel env pull` writes VERCEL_GIT_COMMIT_SHA with nothing after it. An
+       * empty string is neither null nor undefined, so a ?? chain keeps it and
+       * every fallback behind it is dead code. The same line produced a portal
+       * footer that rendered a bare separator, which is how it was found: in a
+       * screenshot, on 2026-09-06, not by any check.
+       */
+      rec(
+        "and the release tag is a value rather than an empty string",
+        release().length > 0,
+        JSON.stringify(release()),
       );
 
       rec(
@@ -860,6 +888,194 @@ const base = {
     "an unset CRON_SECRET is reported as nothing scheduled running",
     /NOTHING scheduled runs/.test(deps),
   );
+}
+
+/*
+ * =====================================================================
+ * WHEN A QUEUE THAT IS BEHIND IS WORTH AN EMAIL.
+ *
+ * The rules are pure, so they are asserted here rather than by arranging a real
+ * backlog: making the worker stop, waiting fifteen minutes and watching for an
+ * email is a test nobody runs twice.
+ *
+ * Every case below is a case about NOT sending, except three. That ratio is the
+ * design: the failure this is shaped against is four hundred emails and a
+ * filter rule, not a missed alert.
+ * =====================================================================
+ */
+{
+  const NOW = Date.UTC(2026, 8, 6, 12, 0, 0);
+  const minutesAgo = (m) => NOW - m * 60_000;
+  const quiet = {
+    pending: 0,
+    overdue: 0,
+    dead: 0,
+    oldestOverdueSeconds: null,
+    lastAlertedAtMs: null,
+  };
+
+  rec(
+    "an empty queue says nothing",
+    decideQueueAlert(quiet, NOW).send === false,
+    decideQueueAlert(quiet, NOW).because,
+  );
+
+  const busy = { ...quiet, pending: 12, overdue: 4, oldestOverdueSeconds: 90 };
+  rec(
+    "and a queue with work in it that is keeping up says nothing either",
+    decideQueueAlert(busy, NOW).send === false,
+    "the commonest state of a healthy queue is jobs waiting their turn",
+  );
+
+  const stalled = {
+    ...quiet,
+    pending: 30,
+    overdue: 30,
+    oldestOverdueSeconds: (QUEUE_STALLED_MINUTES + 2) * 60,
+  };
+  const stalledDecision = decideQueueAlert(stalled, NOW);
+  rec(
+    "a worker that has not drained anything for a quarter of an hour does",
+    stalledDecision.send === true && stalledDecision.reason === "stalled",
+    stalledDecision.because,
+  );
+
+  rec(
+    "and one minute under the threshold does not",
+    decideQueueAlert(
+      { ...stalled, oldestOverdueSeconds: (QUEUE_STALLED_MINUTES - 1) * 60 },
+      NOW,
+    ).send === false,
+    "a threshold that fires at both sides of itself is not a threshold",
+  );
+
+  const dead = { ...quiet, pending: 2, overdue: 0, dead: 1, oldestOverdueSeconds: 10 };
+  const deadDecision = decideQueueAlert(dead, NOW);
+  rec(
+    "a job the platform gave up on is worth saying, even with the queue moving",
+    deadDecision.send === true && deadDecision.reason === "dead",
+    deadDecision.because,
+  );
+
+  const deep = { ...quiet, pending: QUEUE_DEEP + 5, overdue: QUEUE_DEEP, oldestOverdueSeconds: 30 };
+  const deepDecision = decideQueueAlert(deep, NOW);
+  rec(
+    "and a large young backlog is worth saying last",
+    deepDecision.send === true && deepDecision.reason === "deep",
+    deepDecision.because,
+  );
+
+  /*
+   * THE ORDER MATTERS, because the three are looked into differently and the
+   * email says which one to go and look at. A stalled worker that also has a
+   * dead job is a stalled worker.
+   */
+  rec(
+    "a stalled worker outranks everything else it is also true of",
+    decideQueueAlert({ ...stalled, dead: 3, overdue: QUEUE_DEEP + 10 }, NOW).reason === "stalled",
+    "everything is downstream of the worker running",
+  );
+
+  rec(
+    "the cooldown holds a second email inside the hour",
+    decideQueueAlert(
+      { ...stalled, lastAlertedAtMs: minutesAgo(QUEUE_COOLDOWN_MINUTES - 5) },
+      NOW,
+    ).send === false,
+    "a backlog that takes an afternoon to clear must not send an afternoon of email",
+  );
+
+  rec(
+    "and lets one through after it",
+    decideQueueAlert(
+      { ...stalled, lastAlertedAtMs: minutesAgo(QUEUE_COOLDOWN_MINUTES + 5) },
+      NOW,
+    ).send === true,
+    "a queue still stalled an hour later is news again",
+  );
+
+  /*
+   * AND THE HELD EMAIL SAYS WHAT IS WRONG, not merely that it is holding. A run
+   * that found a stalled worker and stayed quiet has to be readable as that,
+   * or the log of a bad hour reads like a log of a quiet one.
+   */
+  rec(
+    "a held alert still names what it found",
+    /waiting/.test(
+      decideQueueAlert({ ...stalled, lastAlertedAtMs: minutesAgo(5) }, NOW).because,
+    ),
+    decideQueueAlert({ ...stalled, lastAlertedAtMs: minutesAgo(5) }, NOW).because,
+  );
+}
+
+/*
+ * =====================================================================
+ * A SET AND EMPTY VARIABLE IS NOT A VALUE.
+ *
+ * The fallback logic is asserted directly rather than through the two functions
+ * that use it, because those read process.env.NEXT_PUBLIC_* literally so the
+ * build can substitute them, and a function that took an env object would break
+ * the browser half to make itself testable. So the logic is a function, and
+ * this is that function, and the two callers are checked by inspection below.
+ * =====================================================================
+ */
+{
+  rec(
+    "an empty variable falls through to the next one",
+    firstNonEmpty("", "second") === "second",
+    "?? keeps an empty string, which is what broke the release tag",
+  );
+  rec(
+    "a whitespace only variable falls through as well",
+    firstNonEmpty("   ", "second") === "second",
+    "a trailing space in a dashboard is not a commit sha",
+  );
+  rec("a real value is kept", firstNonEmpty("abc123", "second") === "abc123");
+  rec("an undefined variable falls through", firstNonEmpty(undefined, "second") === "second");
+  rec(
+    "and nothing at all is an empty string rather than undefined",
+    firstNonEmpty(undefined, "") === "",
+    "callers name things for people; a thrown or undefined label is a worse footer than a blank one",
+  );
+
+  /*
+   * These two read THIS process, so what they can see depends on what this
+   * machine has set. An audit run with VERCEL_GIT_COMMIT_SHA unset never sees
+   * the empty string at all: undefined falls through the old ?? chain to
+   * "local" just as it does through firstNonEmpty, and the defect that produced
+   * a bare separator in the footer is invisible from here. That is why the
+   * coupling checks below exist and why the unit checks above are the ones
+   * doing the work. Recorded rather than left to be discovered, because a check
+   * whose green depends on the machine is a check somebody will one day trust
+   * for more than it says.
+   */
+  rec(
+    "the release constant the portal renders is a value",
+    typeof RELEASE === "string" && RELEASE.length > 0,
+    JSON.stringify(RELEASE),
+  );
+  rec(
+    "and so is the environment the browser half tags with",
+    environment().length > 0,
+    JSON.stringify(environment()),
+  );
+
+  /*
+   * THE COUPLING, because the checks above pass just as well if somebody puts
+   * the ?? chain back. Both readers have to go through the function.
+   */
+  for (const [file, what] of [
+    ["src/lib/ops-observability.ts", "the release the portal and the fault store use"],
+    ["src/lib/sentry-config.ts", "the release and environment Sentry is tagged with"],
+  ]) {
+    const source = readFileSync(file, "utf8");
+    rec(
+      `${what} reads its variables through firstNonEmpty`,
+      /firstNonEmpty\(/.test(source) &&
+        !/VERCEL_GIT_COMMIT_SHA\?\.slice\(0, 12\) \?\?/.test(source),
+      file,
+    );
+  }
 }
 
 // =========================================================================

@@ -46,7 +46,7 @@ import {
   canDeleteRole,
   keyProblem,
 } from "../src/lib/role-rules.ts";
-import { can, actionsFor, visibleFiles, canSeeFile, redactFile, ROLES, DEFAULT_ROLES, ALL_ACTIONS, LICENSED_ACTIONS, LICENSED_ROLE, holdsLicence } from "../src/lib/ops-authz.ts";
+import { can, actionsFor, visibleFiles, canSeeFile, redactFile, ROLES, DEFAULT_ROLES, ALL_ACTIONS, LICENSED_ACTIONS, LICENSED_ROLE, holdsLicence, roleLabel, inviteFieldsFor } from "../src/lib/ops-authz.ts";
 import { canReview } from "../src/lib/ops-review.ts";
 
 const BASE = process.env.BASE_URL || "http://localhost:3225";
@@ -922,6 +922,68 @@ if (!db) {
       rec(attempt.label, res.status === attempt.expect, `HTTP ${res.status}, expected ${attempt.expect}`);
     }
 
+    /*
+     * AND A ROLE THAT IS NOT ONE OF THE THREE CAN ACTUALLY BE HANDED OUT.
+     *
+     * Over HTTP, through the endpoint the form posts to, because the pure
+     * checks above prove a declaration and prove nothing about the path. This
+     * refused every role but three until the closeout: four of the firm's own
+     * roles existed, appeared on the roles screen, held grants, and could not be
+     * given to a person by any means the platform offered.
+     *
+     * The account it creates is added to the same teardown as the probes, which
+     * is verified rather than assumed.
+     */
+    {
+      const email = `dispatcher-${STAMP}@${PROBE_DOMAIN}`;
+      const res = await fetch(`${BASE}/api/portal/people`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", cookie: sessions.admin },
+        body: JSON.stringify({
+          action: "create",
+          role: "dispatcher",
+          displayName: "Probe Dispatcher",
+          email,
+          deliverBy: "hand",
+        }),
+      });
+      const body = await res.json().catch(() => null);
+      rec(
+        "an administrator can create an account with a role that is not one of the original three",
+        res.status === 200 && body?.ok === true,
+        `HTTP ${res.status}${body?.error ? `: ${body.error}` : ""}`,
+      );
+
+      const { data: row } = await db
+        .from("eng_profiles")
+        .select("id, role")
+        .eq("email", email)
+        .maybeSingle();
+      rec(
+        "and the row it wrote carries that role",
+        row?.role === "dispatcher",
+        String(row?.role ?? "no row"),
+      );
+      if (row?.id) created.push({ id: row.id, email, role: "dispatcher" });
+
+      const invented = await fetch(`${BASE}/api/portal/people`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", cookie: sessions.admin },
+        body: JSON.stringify({
+          action: "create",
+          role: "not_a_role_anybody_made",
+          displayName: "Probe Nobody",
+          email: `nobody-${STAMP}@${PROBE_DOMAIN}`,
+          deliverBy: "hand",
+        }),
+      });
+      rec(
+        "and a role nobody created is still refused",
+        invented.status === 400,
+        `HTTP ${invented.status}; asking the table is not the same as accepting anything`,
+      );
+    }
+
     // Pages a role must not reach return 404, not a 403 that confirms the route.
     const pageProbes = [
       { role: "field_tech", path: "/portal/people" },
@@ -1216,6 +1278,178 @@ if (!db) {
       survivors?.length ? `${survivors.length} left behind: ${survivors.map((s) => s.email).join(", ")}` : "",
     );
   }
+}
+
+/*
+ * =====================================================================
+ * SEVEN ROLES EXIST. DOES THE PLATFORM ACT LIKE IT.
+ *
+ * Phase 10 Section 2 made roles rows and shipped seven of them. The screens
+ * were written when there were three, and four of the seven were second class
+ * everywhere it mattered without a single check going red:
+ *
+ *   the invite form offered three, so four roles could not be given to anybody
+ *   the API behind it refused any other key, so posting by hand failed too
+ *   ROLE_LABEL was a three key map, so a dispatcher's role rendered as nothing
+ *     in the profile menu, on their dashboard, in the roster and on the page
+ *     where they set their password
+ *   visibleFiles switched on three role names with no default, and TypeScript
+ *     accepted it as exhaustive because the actor's role was typed as the union
+ *     of the three roles that used to exist
+ *
+ * Every one of those is the same defect: a type or a list asserting something
+ * that stopped being true, in a place where nothing looks again.
+ * =====================================================================
+ */
+{
+  /*
+   * SOURCE WITH THE PROSE TAKEN OUT, and the first run of this section needed
+   * it. Two checks below failed against the comments that explain the very
+   * defect they look for: this file's own history paragraph says
+   * `role === "engineer"`, and ops-authz explains at length what a three key
+   * label map used to do. A check that reads prose is a check looking at the
+   * wrong thing, which is the failure this whole audit exists to catch, one
+   * level up.
+   */
+  const codeOnly = (path) =>
+    fs
+      .readFileSync(path, "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .split("\n")
+      .filter((line) => !/^\s*\/\//.test(line))
+      .join("\n");
+
+  const KNOWN_FIELDS = ["licence", "coverage"];
+
+  for (const role of DEFAULT_ROLES) {
+    rec(
+      `${role.key} declares what creating one has to ask for`,
+      Array.isArray(role.inviteFields) &&
+        role.inviteFields.every((f) => KNOWN_FIELDS.includes(f)),
+      JSON.stringify(role.inviteFields),
+    );
+    rec(`${role.key} has a name to show a person`, roleLabel(role.key) === role.name, roleLabel(role.key));
+  }
+
+  rec(
+    "the two roles that need more than a name and an email are the ones that ask",
+    inviteFieldsFor("engineer").includes("licence") &&
+      inviteFieldsFor("field_tech").includes("coverage") &&
+      inviteFieldsFor("dispatcher").length === 0,
+    "a dispatcher asked for a licence number would be a form nobody trusts",
+  );
+
+  rec(
+    "a role invented on the roles screen asks for nothing extra",
+    inviteFieldsFor("something_the_owner_made_up").length === 0,
+    "the platform cannot know what a role it has never heard of needs",
+  );
+
+  rec(
+    "and it is still named rather than left blank",
+    roleLabel("something_the_owner_made_up") === "Something The Owner Made Up",
+    roleLabel("something_the_owner_made_up"),
+  );
+
+  rec(
+    "a name from the database wins over the seed",
+    roleLabel("dispatcher", "Scheduling") === "Scheduling",
+    "a role renamed on the roles screen is named that everywhere",
+  );
+
+  /*
+   * THE SCREENS, BY INSPECTION. The declarations being right is worth nothing
+   * if the form still writes the list out.
+   */
+  const form = codeOnly("src/app/portal/(app)/people/PeopleClient.tsx");
+  /*
+   * THE PROPERTY IS THAT THE FORM NAMES NO ROLE AT ALL, rather than that one
+   * particular literal is absent.
+   *
+   * The first version of this check looked for ["admin", "engineer",
+   * "field_tech"] exactly. Injecting a hardcoded list of role OBJECTS walked
+   * straight past it: a check that catches the defect that already happened and
+   * not the one somebody would write next.
+   */
+  rec(
+    "the invite form names no role and offers the ones it is handed",
+    /roles\.map\(/.test(form) && !/"admin"|"engineer"|"field_tech"/.test(form),
+    "it offered three of seven and would never have offered an eighth",
+  );
+  rec(
+    "and it decides its extra fields from the declaration rather than by naming a role",
+    /inviteFieldsFor\(/.test(form) && !/role === "engineer"|role === "field_tech"/.test(form),
+    "src/app/portal/(app)/people/PeopleClient.tsx",
+  );
+
+  const api = codeOnly("src/app/api/portal/people/route.ts");
+  rec(
+    "the endpoint behind it asks the roles table rather than a list in the file",
+    /from\("eng_roles"\)/.test(api) &&
+      !/const ROLES: Role\[\] = \["admin", "engineer", "field_tech"\]/.test(api),
+    "src/app/api/portal/people/route.ts",
+  );
+
+  /*
+   * AND NOTHING INDEXES A THREE KEY LABEL MAP ANY MORE. This is the regression
+   * guard: the map is gone, and a screen that reintroduced one would render a
+   * blank for the same four roles all over again.
+   */
+  const screens = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = `${dir}/${entry.name}`;
+      if (entry.isDirectory()) walk(full);
+      else if (/\.tsx?$/.test(entry.name)) screens.push(full);
+    }
+  };
+  walk("src/app");
+  walk("src/lib");
+  walk("src/components");
+  const indexers = screens.filter((f) => /ROLE_LABEL\[/.test(codeOnly(f)));
+  rec(
+    "no surface reads a role's name out of a fixed map",
+    /*
+     * The applications screen has one of its own for the two POSITIONS somebody
+     * applies for, which are not portal roles and are not rows anywhere. It is
+     * allowed by name rather than by pattern, so a second one has to be argued
+     * for here.
+     */
+    indexers.every((f) => f.endsWith("src/app/portal/(app)/applications/page.tsx")),
+    indexers.join(", ") || "every screen asks roleLabel",
+  );
+
+  /*
+   * VISIBLE FILES, FOR THE ROLES THAT USED TO FALL OFF THE END.
+   */
+  const actorWith = (role, grants) => ({
+    id: "00000000-0000-0000-0000-000000000001",
+    role,
+    status: "active",
+    grants: new Set(grants),
+  });
+
+  const dispatcher = visibleFiles(actorWith("dispatcher", ["files.list"]));
+  rec(
+    "a dispatcher can see the files they are asked to dispatch",
+    dispatcher?.kind === "all",
+    String(dispatcher?.kind),
+  );
+
+  const stranger = visibleFiles(actorWith("something_new", []));
+  rec(
+    "and a role with no files grant sees none, rather than undefined",
+    stranger?.kind === "none",
+    String(stranger?.kind),
+  );
+
+  rec(
+    "the three scopes that are about identity are unchanged",
+    visibleFiles(actorWith("admin", ["files.list"])).kind === "all" &&
+      visibleFiles(actorWith(LICENSED_ROLE, ["files.list"])).kind === "engineer" &&
+      visibleFiles(actorWith("field_tech", ["files.list"])).kind === "tech",
+    "an engineer sees the queue and a technician sees their own work, whatever their grants say",
+  );
 }
 
 // ===========================================================================

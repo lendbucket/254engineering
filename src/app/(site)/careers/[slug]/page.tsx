@@ -9,7 +9,13 @@ import { Section, SectionHead } from "@/components/ui/section";
 import { StickyApply } from "@/components/careers/StickyApply";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema, jobPostingSchema } from "@/lib/schema";
-import { openPositions, positionBySlug, positionDescription, positions } from "@data/positions";
+import {
+  openPositions,
+  positionBySlug,
+  positionDescription,
+  positions,
+  postingState,
+} from "@data/positions";
 import { isPrelaunch } from "@/lib/launch";
 
 /**
@@ -59,7 +65,12 @@ export default async function PositionPage({ params }: { params: Promise<{ slug:
   return (
     <>
       <JsonLd data={breadcrumbSchema(crumbs)} />
-      {position.open ? (
+      {/*
+        Open AND not lapsed, the same pair the hub applies. The page below still
+        describes the seat; what stops is the machine readable claim with a date
+        on it.
+      */}
+      {position.open && postingState(position) !== "lapsed" ? (
         <JsonLd
           data={jobPostingSchema({
             title: position.title,

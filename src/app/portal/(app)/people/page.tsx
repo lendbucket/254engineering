@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
-import { can, ROLE_LABEL, type Role } from "@/lib/ops-authz";
+import { can, roleLabel, type Role } from "@/lib/ops-authz";
+import { assignableRoles } from "@/lib/ops-roles";
 import { supabaseAdmin } from "@/lib/supabase";
 import { regions } from "@/content/regions";
 import {
@@ -63,6 +64,17 @@ export default async function PeoplePage() {
 
   const people = (data ?? []) as Person[];
 
+  /*
+   * The roles that exist, read from the table rather than listed here.
+   *
+   * The form used to offer admin, engineer and field technician, which were the
+   * three that existed before roles became rows. Four of the firm's own roles
+   * could not be handed out at all, and a person already holding one showed a
+   * blank in the Role column, because the label was a three key map.
+   */
+  const roles = await assignableRoles();
+  const roleName = new Map(roles.map((r) => [r.key, r.name]));
+
   // The 254 counties, from the same region data the public coverage pages use.
   const counties = [...new Set(regions.flatMap((r) => r.counties))].sort();
 
@@ -77,7 +89,7 @@ export default async function PeoplePage() {
         </div>
       ),
     },
-    { key: "role", head: "Role", cell: (p) => ROLE_LABEL[p.role] },
+    { key: "role", head: "Role", cell: (p) => roleLabel(p.role, roleName.get(p.role)) },
     { key: "status", head: "Status", cell: (p) => <Chip label={p.status} tone={STATUS_TONE[p.status]} /> },
     {
       key: "detail",
@@ -109,7 +121,7 @@ export default async function PeoplePage() {
       />
 
       <div className="mb-6">
-        <NewPersonForm counties={counties} />
+        <NewPersonForm counties={counties} roles={roles} />
       </div>
 
       {error ? (
@@ -138,7 +150,7 @@ export default async function PeoplePage() {
                   <Chip label={p.status} tone={STATUS_TONE[p.status]} />
                 </div>
                 <p className="mt-2 portal-kicker text-[var(--gold-deep)]">
-                  {ROLE_LABEL[p.role]}
+                  {roleLabel(p.role, roleName.get(p.role))}
                 </p>
                 <p className="mt-1 text-[13.5px] text-[var(--secondary)]">Last sign in {when(p.last_sign_in_at)}</p>
                 <div className="mt-3">

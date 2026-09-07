@@ -112,7 +112,44 @@ async function measurePage(base, browser, path, width, probe = null) {
   if (probe) await context.addCookies(cookieFor(probe, base));
   const page = await context.newPage();
   try {
-    const res = await page.goto(base + path, { waitUntil: "networkidle", timeout: 90_000 });
+    /*
+     * NETWORKIDLE ON A PUBLIC PAGE, AND NOT ON A PORTAL ONE.
+     *
+     * A signed in portal page renders a navigation of twenty five links, every
+     * one of them a force-dynamic route, and Next prefetches the ones in view.
+     * Each prefetch is a server render with database reads behind it, so the
+     * network keeps going long after the page is laid out and "no requests for
+     * 500ms" can take longer than the timeout to arrive. On 2026-09-06 that
+     * produced ninety second timeouts on the billing screen in one run and the
+     * dashboard in the next, on a build where both answer in half a second.
+     *
+     * The timeouts were reported as three failing checks per width, on pages
+     * that are correct, which is the direction of wrong that gets a check
+     * deleted rather than believed.
+     *
+     * WHAT THIS AUDIT ACTUALLY NEEDS is a laid out page: no horizontal scroll,
+     * tap targets at size, nothing clipped. None of that depends on the network
+     * going quiet, and native-audit has measured the same screens for a phase
+     * using domcontentloaded plus a settle. So portal routes wait for the DOM
+     * and then for the shell to exist, which is a POSITIVE signal that the page
+     * rendered rather than an absence of traffic.
+     *
+     * Public pages keep networkidle: they carry photographs, they do not
+     * prefetch a signed in navigation, and a late loading image is exactly the
+     * thing that moves a layout after measurement.
+     */
+    const res = await page.goto(base + path, {
+      waitUntil: probe ? "domcontentloaded" : "networkidle",
+      timeout: 90_000,
+    });
+    if (probe) {
+      await page
+        .locator("[data-portal-scroll], [data-partner-scroll], main")
+        .first()
+        .waitFor({ state: "attached", timeout: 20_000 })
+        .catch(() => {});
+      await page.waitForTimeout(900);
+    }
     /*
      * A PORTAL PAGE MUST NOT HAVE BOUNCED TO SIGN IN.
      *
@@ -139,19 +176,51 @@ async function measurePage(base, browser, path, width, probe = null) {
     const m = await page.evaluate((minTap) => {
       const de = document.documentElement;
 
+      /*
+       * WHATEVER IS ACTUALLY SCROLLING, WHICH ON A PORTAL SCREEN IS NOT THE
+       * DOCUMENT.
+       *
+       * This measured document.documentElement and nothing else, which was the
+       * whole truth until Phase 11. Point 1 of the native standard then made
+       * the document stop scrolling and gave the job to one element between the
+       * fixed chrome, so a portal page that overflows sideways overflows THAT
+       * element while the document stays exactly the width of the viewport.
+       *
+       * Found on 2026-09-06 by injecting a 2000px wide box into a portal screen
+       * and watching this audit report pass at all four widths. The region was
+       * 2016px wide inside a 390px viewport. Every portal row in this table had
+       * been green for a phase on a measurement that could not see the thing it
+       * claims to measure, which is this repository's recurring defect with the
+       * audit on the wrong side of it.
+       *
+       * Both are checked now. A portal screen can still overflow the document,
+       * and the failure names which of the two it was.
+       */
+      const region = document.querySelector("[data-portal-scroll], [data-partner-scroll]");
+      const scrollers = [
+        { what: "document", el: de, scrollW: de.scrollWidth, clientW: de.clientWidth },
+        ...(region
+          ? [{ what: "the scrolling region", el: region, scrollW: region.scrollWidth, clientW: region.clientWidth }]
+          : []),
+      ];
+      const over = scrollers.find((sc) => sc.scrollW > sc.clientW);
+
       // The widest element that actually exceeds the viewport, so a failure
       // names the offender rather than only the number. Finding this by hand
       // afterward is most of the cost of a horizontal scroll bug.
       let widest = null;
-      if (de.scrollWidth > de.clientWidth) {
-        for (const el of Array.from(document.querySelectorAll("body *"))) {
+      if (over) {
+        const limit = over.clientW;
+        const origin = over.el === de ? 0 : over.el.getBoundingClientRect().left;
+        for (const el of Array.from((over.el === de ? document.body : over.el).querySelectorAll("*"))) {
           const rect = el.getBoundingClientRect();
-          if (rect.right > de.clientWidth + 1 || rect.left < -1) {
+          if (rect.right > origin + limit + 1 || rect.left < origin - 1) {
             const desc = `${el.tagName.toLowerCase()}${el.className && typeof el.className === "string" ? "." + el.className.split(/\s+/).slice(0, 2).join(".") : ""}`;
-            widest = `${desc} spans ${Math.round(rect.left)} to ${Math.round(rect.right)}`;
+            widest = `in ${over.what}: ${desc} spans ${Math.round(rect.left)} to ${Math.round(rect.right)}`;
             break;
           }
         }
+        if (!widest) widest = `in ${over.what}, offender not identified`;
       }
 
       /*
@@ -265,8 +334,8 @@ async function measurePage(base, browser, path, width, probe = null) {
         );
       }
       return {
-        scrollWidth: de.scrollWidth,
-        clientWidth: de.clientWidth,
+        scrollWidth: over ? over.scrollW : de.scrollWidth,
+        clientWidth: over ? over.clientW : de.clientWidth,
         widest,
         small: small.slice(0, 5),
         smallCount: small.length,

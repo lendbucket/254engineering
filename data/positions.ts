@@ -20,6 +20,27 @@
  * deliberately, because an auto extending posting is a posting that outlives the
  * job. OWNER VERIFICATION: refresh or close before it lapses.
  *
+ * AND SINCE 2026-09-06 IT CANNOT LAPSE QUIETLY.
+ *
+ * "Refresh it before it lapses" was a note addressed to whoever happened to
+ * read this file, which is a reminder rather than a mechanism. Nothing was
+ * watching the date, and the failure it guards against is the one nobody sees:
+ * markup that stays in a jobs surface after the posting stopped being true,
+ * on a site that is statically built and might not be rebuilt for weeks.
+ *
+ * Two things now hold it, and neither of them extends anything:
+ *
+ *   `postingState` says whether a posting is live, lapsing or lapsed, and
+ *   `schemaPositions` is what the pages emit markup from. A lapsed posting
+ *   stops being claimed structurally the moment a build happens, while the
+ *   page prose stays, because a page that describes a seat is not the same
+ *   claim as a machine readable posting with a date on it.
+ *
+ *   seo-audit fails while a posting is inside the warning window, which is
+ *   BEFORE it lapses, so the operator is asked to decide while the answer is
+ *   still "yes, still hiring" or "no, close it" rather than after the listing
+ *   has gone quiet.
+ *
  * WHAT IS ABSENT
  * --------------
  * No `baseSalary` anywhere. Compensation for the engineer seat is not set, and
@@ -239,6 +260,51 @@ export const positions: Position[] = [
 ];
 
 export const openPositions = (): Position[] => positions.filter((p) => p.open);
+
+/**
+ * How long before a posting lapses that somebody has to decide.
+ *
+ * Thirty days. Long enough that the decision is not urgent and short enough
+ * that it is about this posting rather than a date somebody will forget again.
+ * The audit that reads this fails the build, so the number is also how much
+ * warning a red board gives before the claim would have expired anyway.
+ */
+export const POSTING_WARNING_DAYS = 30;
+
+export type PostingState = "live" | "lapsing" | "lapsed";
+
+/**
+ * Whether this posting can still be claimed, and whether somebody has to look.
+ *
+ * Dates are compared as ISO strings at day granularity rather than as
+ * timestamps, deliberately: `validThrough` is a day the operator chose, and
+ * turning it into an instant makes the answer depend on the time of day and on
+ * which timezone the build machine is in.
+ */
+export function postingState(
+  position: Pick<Position, "validThrough">,
+  today: Date = new Date(),
+): PostingState {
+  const day = today.toISOString().slice(0, 10);
+  if (position.validThrough < day) return "lapsed";
+
+  const warnFrom = new Date(today.getTime() + POSTING_WARNING_DAYS * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  return position.validThrough <= warnFrom ? "lapsing" : "live";
+}
+
+/**
+ * The positions that may carry JobPosting markup.
+ *
+ * Open AND not lapsed. `open` is the operator's switch and the date is the
+ * operator's claim, and a posting needs both to be true: a role that is still
+ * open with a date that has passed is a posting whose stated expiry has
+ * arrived, and the honest thing is to stop making the machine readable claim
+ * until somebody sets a new date.
+ */
+export const schemaPositions = (today: Date = new Date()): Position[] =>
+  openPositions().filter((p) => postingState(p, today) !== "lapsed");
 
 export const positionBySlug = (slug: string): Position | undefined =>
   positions.find((p) => p.slug === slug);

@@ -165,8 +165,14 @@ export function serviceSchema(params: { name: string; description: string; path:
  *
  * The playbook is explicit that this markup is permitted only where the opening
  * is real and `validThrough` is a real date, because a jobs surface is a place
- * people act on rather than read. Both roles in src/content/openings.ts are open;
- * the dates there are the operator's and are not computed.
+ * people act on rather than read. The roles live in data/positions.ts, the dates
+ * there are the operator's and are not computed, and a posting inside thirty
+ * days of lapsing fails seo-audit rather than expiring quietly.
+ *
+ * This comment used to name src/content/openings.ts, which was a second copy of
+ * the same two roles that nothing imported. It was deleted on 2026-09-06 rather
+ * than corrected on both sides: two files holding one fact is a drift waiting to
+ * happen, and the one nobody reads is the one that would have been edited.
  *
  * TWO THINGS DELIBERATELY OMITTED
  * -------------------------------

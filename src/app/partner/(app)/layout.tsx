@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ScrollMemory } from "@/components/portal/ScrollMemory";
 import { performingFirmLine } from "@/lib/partner-copy";
 import { redirect } from "next/navigation";
 import { currentPartner } from "@/lib/partner-auth";
@@ -100,6 +101,7 @@ export default async function PartnerAppLayout({ children }: { children: React.R
           tabIndex={0}
           className="portal-panel-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain lg:min-h-[auto] lg:flex-none lg:overflow-visible"
         >
+          <ScrollMemory />
           <main className="mx-auto flex w-full max-w-[1100px] flex-col gap-[var(--section-gap)] px-[var(--page-gutter)] py-6 lg:pb-10">
             {children}
 

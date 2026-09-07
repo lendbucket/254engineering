@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { DataTable, RestrictedMode } from "@/components/portal/design";
 import { currentActor } from "@/lib/ops-auth";
-import { can, ROLE_LABEL } from "@/lib/ops-authz";
+import { can, roleLabel } from "@/lib/ops-authz";
 import { dashboardFor } from "@/lib/ops-dashboard";
 import { money } from "@/lib/ops-money";
 import type { PeriodTotals } from "@/lib/ops-money";
@@ -91,7 +91,7 @@ export default async function PortalHome() {
         name on this screen ever answered.
       */}
       <PageHead
-        eyebrow={ROLE_LABEL[actor.role]}
+        eyebrow={roleLabel(actor.role)}
         title="Dashboard"
         lede={lede}
         actions={

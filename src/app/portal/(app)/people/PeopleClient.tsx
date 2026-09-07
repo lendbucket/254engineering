@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ROLE_LABEL, type Role } from "@/lib/ops-authz";
+import { inviteFieldsFor, roleLabel, type Role } from "@/lib/ops-authz";
 
 type Person = {
   id: string;
@@ -29,17 +29,48 @@ const label = "block text-[13.5px] font-semibold text-[var(--navy)]";
  * and a technician has counties, and showing both to everybody is how a form
  * teaches people to ignore it.
  *
+ * EVERY ROLE THAT EXISTS, AND WHICH FIELDS EACH ONE NEEDS, COME FROM OUTSIDE
+ * --------------------------------------------------------------------------
+ * The list was three names written here, and the extra fields were two
+ * `role === "engineer"` branches in the markup. Seven roles ship, and the owner
+ * can create more, so this form could not hand out four of the firm's own roles
+ * and would never have been able to hand out an eighth.
+ *
+ * The list now comes from the table, through the page. Which fields a role
+ * needs comes from the declaration beside DEFAULT_ROLES, where adding a role
+ * forces the decision. A role invented on the roles screen gets name, email and
+ * telephone, which is everything the platform can honestly say it needs.
+ *
  * There is no password field here and there never will be. See the note in
  * src/lib/ops-auth.ts: the person chooses their own behind a one time link.
  */
-export function NewPersonForm({ counties }: { counties: string[] }) {
+export function NewPersonForm({
+  counties,
+  roles,
+}: {
+  counties: string[];
+  roles: { key: string; name: string }[];
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [role, setRole] = useState<Role>("field_tech");
+  /*
+   * The first role in the list rather than a hardcoded default. The order is
+   * the roles screen's order, system roles first, so this lands on
+   * administrator; what matters is that it lands on a role that EXISTS, which
+   * a written default stops being the day somebody deletes it.
+   */
+  const [role, setRole] = useState<string>(roles[0]?.key ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [byHand, setByHand] = useState(false);
+
+  /*
+   * What this role has to be asked, declared beside DEFAULT_ROLES. The fields
+   * below read this rather than naming a role, so a role that needs a licence
+   * number is one line in a declaration and not an edit to this markup.
+   */
+  const asks = inviteFieldsFor(role);
 
   /*
    * SHOWN ONCE AND NEVER AGAIN.
@@ -186,23 +217,29 @@ export function NewPersonForm({ counties }: { counties: string[] }) {
         >
           <fieldset>
             <legend className={label}>Role</legend>
-            <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-              {(["admin", "engineer", "field_tech"] as Role[]).map((r) => (
+            {/*
+              A GRID RATHER THAN A ROW. Three fitted across a wide screen and
+              stacked on a phone. Seven in a row gives each one a word and a
+              half; two columns on a phone and three above it keeps every label
+              readable and every target over the 48px minimum.
+            */}
+            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {roles.map((r) => (
                 <label
-                  key={r}
-                  className={`flex min-h-[48px] flex-1 cursor-pointer items-center gap-2 rounded-[3px] border px-3 text-[13.5px] font-semibold ${
-                    role === r ? "border-slate bg-[var(--canvas)] text-[var(--navy)]" : "border-[var(--border)] text-[var(--secondary)]"
+                  key={r.key}
+                  className={`flex min-h-[48px] cursor-pointer items-center gap-2 rounded-[3px] border px-3 text-[13.5px] font-semibold ${
+                    role === r.key ? "border-slate bg-[var(--canvas)] text-[var(--navy)]" : "border-[var(--border)] text-[var(--secondary)]"
                   }`}
                 >
                   <input
                     type="radio"
                     name="role"
-                    value={r}
-                    checked={role === r}
-                    onChange={() => setRole(r)}
-                    className="h-4 w-4"
+                    value={r.key}
+                    checked={role === r.key}
+                    onChange={() => setRole(r.key)}
+                    className="h-4 w-4 shrink-0"
                   />
-                  {ROLE_LABEL[r]}
+                  <span className="min-w-0">{roleLabel(r.key, r.name)}</span>
                 </label>
               ))}
             </div>
@@ -223,7 +260,7 @@ export function NewPersonForm({ counties }: { counties: string[] }) {
             </div>
           </div>
 
-          {role === "engineer" ? (
+          {asks.includes("licence") ? (
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div>
                 <label htmlFor="licenseNumber" className={label}>Texas PE licence number</label>
@@ -240,7 +277,7 @@ export function NewPersonForm({ counties }: { counties: string[] }) {
             </div>
           ) : null}
 
-          {role === "field_tech" ? (
+          {asks.includes("coverage") ? (
             <div className="mt-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>

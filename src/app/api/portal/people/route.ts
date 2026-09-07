@@ -24,7 +24,30 @@ import { business } from "@/config/business";
 
 export const dynamic = "force-dynamic";
 
-const ROLES: Role[] = ["admin", "engineer", "field_tech"];
+/**
+ * IS THIS A ROLE, ASKED OF THE TABLE THAT HOLDS THEM.
+ *
+ * This was `["admin", "engineer", "field_tech"]`, written here and again in the
+ * form. Roles became rows in Phase 10 Section 2 and seven ship, so this refused
+ * to create a dispatcher, a salesperson, customer service or a read only
+ * account, and would refuse any role the owner creates. The form offering three
+ * hid it: the only way to see this refusal was to post by hand.
+ *
+ * Asked of the database rather than of DEFAULT_ROLES for the same reason the
+ * form asks: the seed says what shipped, the table says what exists.
+ *
+ * The check is still a check. An unknown key is refused rather than written to
+ * a column with a foreign key that would refuse it less legibly, and the
+ * refusal names what is wrong.
+ */
+async function roleExists(
+  db: ReturnType<typeof supabaseAdmin>,
+  key: string,
+): Promise<boolean> {
+  if (!db || !key) return false;
+  const { data } = await db.from("eng_roles").select("key").eq("key", key).maybeSingle();
+  return Boolean(data);
+}
 
 function inviteUrl(token: string): string {
   const base = process.env.NEXT_PUBLIC_SITE_URL || business.url;
@@ -57,8 +80,11 @@ export async function POST(request: NextRequest) {
     }
 
     const role = String(body?.role ?? "");
-    if (!ROLES.includes(role as Role)) {
-      return NextResponse.json({ ok: false, error: "Choose a role." }, { status: 400 });
+    if (!(await roleExists(db, role))) {
+      return NextResponse.json(
+        { ok: false, error: role ? "That is not a role." : "Choose a role." },
+        { status: 400 },
+      );
     }
     const displayName = String(body?.displayName ?? "").trim();
     const email = String(body?.email ?? "").trim();

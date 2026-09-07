@@ -68,15 +68,41 @@ The seven the operator named, plus what the sweep found beside them. Each is
 open. Each carries its reasoning in the document named, and the sentence here is
 the index entry rather than a second version of it.
 
-### Messaging: everything addressed to you
+### RESOLVED 2026-09-06: messaging, everything addressed to you
 
-Item 5 of `docs/messaging-section-3.md`. Mentions already notify. There is no
+Item 5 of `docs/messaging-section-3.md`. Mentions already notify. There was no
 one place showing everything addressed to you across every thread, so a person
-returning after two days reads five threads to find the two that wanted them.
+returning after two days read five threads to find the two that wanted them.
 
-**Not built because** Section 3 built items 1 to 4 and 6 on the operator's word
-and stopped there. It is the next thing in that document rather than a decision
-against it.
+**Not built at the time because** Section 3 built items 1 to 4 and 6 on the
+operator's word and stopped there. It was the next thing in that document
+rather than a decision against it.
+
+**Built in the closeout.** A switch above the thread list, carrying the count of
+mentions written since you last read that conversation, and a list of what was
+said with a link into the thread. Unread means "since you last read that
+thread" rather than a second read state of its own: a mention you have already
+seen in the conversation is not still waiting for you, and a per mention
+acknowledgement would be a third thing to clear.
+
+**The load bearing decision** is that it is scoped through `listThreads`, the
+one function that asks `canReadThread`, rather than by querying for messages
+whose mentions column contains you. That query is the obvious one and it is the
+one that leaks: the mention is written into the row when the message is posted,
+and what somebody may READ is decided later and elsewhere, so it would carry
+message bodies out of a channel for a role they no longer hold, a file thread
+for a file that was reassigned, or a direct thread they were removed from.
+`searchMessages` is scoped the same way, deliberately: two ways of deciding
+what a person may read is one too many, and the second one is the one that
+would be wrong.
+
+It inherits that function's cap of 100 conversations, which is recorded here
+rather than papered over. Not reachable at this firm's scale; the day it is,
+both surfaces need the same fix.
+
+**Asserted** by `messaging-audit`, which reads the screen as three people: the
+person named sees the message, a participant who was not named does not, and an
+administrator who cannot read the thread does not.
 
 ### Messaging: edit and delete, blocked on the table
 
@@ -109,16 +135,30 @@ to the day the periods are chosen:
   file's record, and take their own period.
 - The actual periods are set when there is something to retain.
 
-### The scroll position half of native standard point 8
+### RESOLVED 2026-09-06: the scroll position half of native standard point 8
 
 `docs/PORTAL_DESIGN_STANDARDS.md`, point 8. A list that can grow renders a
 bounded number of rows, and its scroll position survives navigating away and
-back. The bounded half is asserted by `native-audit` through a visible row
-count. The scroll position half is asserted by nothing.
+back. The bounded half was asserted by `native-audit` through a visible row
+count. The scroll position half was asserted by nothing, and it turned out it
+was implemented by nothing either: the check and the behaviour were missing
+together, which is why no board was ever red about it.
 
-**Not built because** it needs a navigation and a return, which is a different
-shape of test from measuring a resting page, and claiming it from a resting page
-would be the exact defect Phase 11 existed to remove.
+**Built as** `src/components/portal/ScrollMemory.tsx`, in the staff shell and
+the partner shell, and asserted by `native-audit` on three properties: the
+screen it tests with is actually scrollable, a forward navigation opens at the
+top, and a return restores the position. Both halves of the behaviour were
+injected and each failed its own check and only its own.
+
+**Worth carrying forward.** The first implementation saved the outgoing
+position in the effect that notices the pathname changed, and recorded 24px for
+a screen sitting at 400px. Next's own scroll handler runs during commit and
+calls scrollIntoView on the incoming segment, whose nearest scrollable ancestor
+is that region, so a passive effect always reads a position the router has
+already destroyed. It loses every time rather than sometimes. The position is
+now read when a navigation is asked for, on a capture phase click and on
+popstate. This repository's recurring defect class, one more time, in the
+product rather than in a check.
 
 ### Sentry is wired and has no DSN
 
@@ -130,17 +170,35 @@ Vercel, and the status page says so plainly rather than letting it be forgotten.
 Sentry does better than a table in Postgres. Alerting does not wait on it,
 because the alert rules read this firm's own fault store.
 
-### Alerting on queue depth
+### RESOLVED 2026-09-06: alerting on queue depth
 
-`docs/platform-state.md`. A queue that is behind is visible on two screens and
-emails nobody. A dead letter is visible and emails nobody.
+`docs/platform-state.md`. A queue that was behind was visible on two screens and
+emailed nobody. A dead letter was visible and emailed nobody.
 
-**Not built because** a depth threshold picked before there is any traffic is a
-threshold picked from nothing. The rules already written for faults would extend
-to it.
+**Not built at the time because** a depth threshold picked before there is any
+traffic is a threshold picked from nothing. The condition recorded was the first
+time somebody found out about a stuck queue from a customer.
 
-*The condition:* the first time somebody finds out about a stuck queue from a
-customer.
+**Built in the closeout on the operator's instruction, and the old concern
+shaped it.** The rule carrying the weight is not a depth threshold: it is the
+AGE of the oldest job that should already have run, fifteen minutes, calibrated
+against the worker's cadence of one minute rather than against traffic nobody
+has yet. It says the thing that matters, which is that nothing is draining. A
+dead job is the second rule and needs no threshold at all. The depth threshold
+is the guessy one, is ranked last, is worded as deeper than usual rather than as
+an emergency, and is the one to revisit when there is traffic.
+
+**Two things it must not do, and both are structural rather than remembered.**
+It cannot run as a queued job, because a check on whether the worker is running
+would be waiting in the queue it is checking, so it rides on the outage
+watcher's schedule. And its email cannot be queued, for the same reason, which
+makes it the second deliberate exception to the rule that all mail goes through
+the queue. `jobs-audit` asserts both by name.
+
+Migration 0023 adds `eng_alert_state`, one row per thing that can alert,
+holding when it last did, so a backlog that takes an afternoon to clear does not
+send an afternoon of email. The three cheaper alternatives are argued and
+rejected at the top of that migration.
 
 ### Metric charts
 
@@ -719,11 +777,88 @@ mark, the favicon set, the OG card, and the Organization `logo` property all wai
 on it. Vector source is worth more than a raster: the header needs the lockup
 crisp at 390 and the favicon needs the 254 mark cropped clean.
 
-### JobPosting validThrough needs refreshing
+### RESOLVED 2026-09-06: JobPosting validThrough needs refreshing
 
 Both positions carry `validThrough: 2026-11-30` in `data/positions.ts`. Nothing
 renews it automatically, deliberately: an auto extending posting is one that
 outlives the job. Refresh it or set `open: false` before it lapses.
+
+**The date is unchanged, and that is the point.** Extending it would have been
+the platform deciding the firm is still hiring in December, which is the
+operator's decision and exactly what the file says must not be automatic. What
+was missing was not a new date, it was anything watching the old one: "OWNER
+VERIFICATION: refresh or close before it lapses" is a reminder addressed to
+whoever happens to open the file.
+
+**Two mechanisms, neither of which extends anything.** `postingState` and
+`schemaPositions` in `data/positions.ts` mean a lapsed posting stops being
+emitted as JobPosting at the next build, while the page prose describing the
+seat stays, because a page describing a seat is not the same claim as a machine
+readable posting with an expiry on it. And `seo-audit` now reads the JSON-LD
+actually served from /careers and fails while a posting is within thirty days
+of lapsing, which is BEFORE it lapses: the board goes red while the answer is
+still "yes, still hiring" or "no, close it".
+
+The window is read out of `data/positions.ts` rather than restated in the
+audit, because a second copy of the number is a second thing to change and the
+one that gets missed is the audit's, which then passes for a month it should
+have failed. As things stand it fails from 2026-10-31.
+
+**And a duplicate was deleted while doing it.** `src/content/openings.ts` held
+the same two roles with the same dates and was imported by nothing;
+`src/lib/schema.tsx` cited it in a comment as though it were the source. Two
+files holding one fact is a drift waiting to happen and the one nobody reads is
+the one that gets edited, so it is gone and the comment names the real file.
+
+### RESOLVED 2026-09-06: both overflow audits were blind on every portal screen
+
+Found by injecting a 2000px wide box into a portal page to verify an unrelated
+change to mobile-audit, and watching both audits report pass at every width. The
+region measured 2016px inside a 390px viewport.
+
+Point 1 of the native standard, in Phase 11, put `overflow-hidden` on the portal
+shell and gave the scrolling to one element between the fixed chrome. Both
+audits measured `document.documentElement.scrollWidth` against its client width,
+which on a portal screen is a comparison that cannot fail: the document is
+pinned to the viewport whatever the content does.
+
+So from Phase 11 until now, every portal row in both tables was green on a
+measurement that could not see the thing it claims to measure. Nothing was
+found to be actually overflowing once they were fixed, which is the good
+outcome and is not the point: the green had stopped meaning anything.
+
+Both now measure whatever is actually scrolling, name which box overflowed, and
+were verified by injection in both directions. mobile-overflow-audit's summary
+line no longer says "document scroll", because it no longer only means that.
+
+**Worth carrying forward.** The audits were not wrong when they were written.
+They were made wrong by a change to the product they were watching, and neither
+of them had any way to notice. That is a second order version of the defect
+class this repository hunts, and the only defence found so far is the one that
+caught it: inject a violation of the property, not of the implementation.
+
+### Two audits that use probe accounts must never run at the same time
+
+Recorded 2026-09-06, after invalidating a mobile-audit run twice in one hour.
+
+`destroyProbes` in `scripts/lib/portal-probe.mjs` deletes EVERY account on the
+probe domain rather than the ones its own run created, and that is deliberate
+and correct: a run that crashed before teardown used to leave accounts behind
+that every later run reported as a failure it was not cleaning up, because the
+cleanup and the verification were looking at different sets.
+
+The consequence is that any second script using probes tears down the first
+one's sessions mid-run. mobile-audit reported six portal screens as "bounced to
+sign in, not measured", which it counts as failures, and the cause was a
+screenshot script of mine finishing at the wrong moment. It reads exactly like a
+portal auth defect and is not one.
+
+**Not fixed, and the fix is not obvious.** Scoping teardown to a label
+reintroduces the stray accounts problem. A lock file would work and is a
+mechanism to maintain. The rule for now is the one CLAUDE.md already implies for
+sessions and this makes explicit for processes: one probe using script at a
+time, and a run that reports bounces should be re-run alone before it is
+believed.
 
 ## Insights corpus
 
@@ -2502,7 +2637,7 @@ course, because nothing can be sealed and no engineer is taking files into
 review. The exposure is a file already sitting under review with no engineer
 account, and there is none.
 
-### The portal version footer says "production" on a machine pointed at development
+### RESOLVED 2026-09-06: the portal version footer says "production" on a machine pointed at development
 
 Recorded 2026-09-05, noticed while looking at the Section 2 screenshots at 1280.
 
@@ -2518,12 +2653,47 @@ defect. The same untrustworthy value is being shown to the operator as a fact
 about which system they are looking at, which is the confusion the preview
 pointing at production incident was made of.
 
-**Not fixed here because it is not Section 2 and it is not free.** `ENVIRONMENT`
-also tags every fault the error store records, so changing what it means changes
-how faults are grouped. The honest label is the one `db-target.mjs` and
-`db-guard.ts` already compute: the Supabase project the process is actually
-talking to. That is the shape to build, deliberately, rather than as a side
-effect of a permissions branch.
+**Not fixed when it was found, because it was not that section's work and it
+was not free.** `ENVIRONMENT` also tags every fault the error store records, so
+changing what it means changes how faults are grouped. The honest label is the
+one `db-target.mjs` and `db-guard.ts` already compute: the Supabase project the
+process is actually talking to. That is the shape to build, deliberately,
+rather than as a side effect of a permissions branch.
+
+**Built that way, in the closeout.** `environmentLabel()` in
+`src/lib/db-guard.ts` answers the question a person reading a footer actually
+has, which is which records are on the screen: "local on the development
+database", "production on the production database", "an unrecognised database
+(ref)" when it is a project nobody named, "no database" when there is none.
+Where it runs is decided by `onAVercelDeployment`, the same test the production
+guard makes and for the same reason, so a laptop holding a deployment's
+variables says local. The portal footer and the status page both render it.
+
+`ENVIRONMENT` is untouched and still tags faults, with the reasoning written
+beside it. `db-guard-audit` asserts the label on every case including the one
+that started this, and asserts by inspection that both screens render the label
+rather than the build mode, because the functions being right is worth nothing
+if a revert puts `{ENVIRONMENT}` back in the footer.
+
+**And the other half of that line was empty, which nobody had noticed.**
+The footer renders `RELEASE · <label>`, and on a local machine it rendered
+" · local on the development database" with nothing where the commit belongs.
+`vercel env pull` writes `VERCEL_GIT_COMMIT_SHA=` with nothing after it, an
+empty string is neither null nor undefined, so `?.slice()` produced "" and the
+`??` chain kept it. Every fallback behind it was dead. `sentry-config`'s
+`release()` and `environment()` had the same shape, so a fault raised from a
+machine in that state would have been tagged with an empty release, which
+groups worse than no tag because it looks like a value.
+
+`firstNonEmpty` in `src/lib/env-value.ts` is now what reads them, and
+`observability-audit` asserts the fallback behaviour directly and asserts that
+both readers go through it. The value checks in that audit are honest about
+what they cannot see: on a machine where the variable is unset rather than
+empty, the old code and the new code agree, so the coupling check is the one
+doing the work.
+
+Found in a screenshot, on the day the label beside it was being fixed. Not by
+any check.
 
 ### The portal sidebar clips its own navigation with no affordance
 
@@ -2539,7 +2709,7 @@ against `clientHeight` 684, so the links are reachable and this is not a
 navigation failure. It is a discoverability one, and it got worse with every
 screen this platform added. Not introduced by Section 2 and not fixed by it.
 
-### The invite form still offers three roles, not seven
+### RESOLVED 2026-09-06: the invite form still offers three roles, not seven
 
 Recorded 2026-09-05, found while checking how a Professional Engineer would be
 given an account after Phase 10 Section 2 shipped.
@@ -2567,6 +2737,52 @@ honest three.
 declaration beside `DEFAULT_ROLES`, in the same way `data/intake-fields.ts`
 holds what a job can be asked. Then the form is generated from the definition
 and the select follows for free.
+
+**Built that way.** `inviteFields` is a required member of `DefaultRole`, so a
+role cannot be declared without saying what creating one has to ask for, and
+`inviteFieldsFor()` answers for a role invented on the roles screen with an
+empty list rather than a guess. The form maps the roles the page hands it, read
+from `eng_roles`, and names no role anywhere in its code. The endpoint asks the
+table whether the key is a role instead of comparing against a literal, and
+still refuses a key nobody created.
+
+Asserted in `roles-audit`, including live: an administrator creates a
+dispatcher through the real endpoint, the row comes back carrying that role, an
+invented key is still refused with a 400, and the account is torn down by the
+verified teardown. Injected four ways, each failing its own check and only its
+own, plus a fifth against the built server with the three role list put back.
+
+**Two more of the same defect were found while doing it, and both are fixed.**
+
+`ROLE_LABEL` was `Record<Role, string>` with three keys, so a dispatcher, a
+salesperson, customer service or a read only account rendered a BLANK where
+their role should be: in the profile menu, as the eyebrow on their own
+dashboard, in the roster, on the profile screen, and on the page where they set
+their password and are told what they are. Nothing failed, because the roster
+row was typed as `Role` and that type stopped being true when roles became
+rows. It is now `roleLabel(key, nameFromTheRow)`, and `roles-audit` asserts
+that no surface indexes a fixed map.
+
+`visibleFiles` switched on the three role names with NO DEFAULT, and TypeScript
+accepted it as exhaustive for the same reason. A dispatcher reached the end of
+the function and got `undefined`, in a function whose every caller reads
+`.kind`. The two identity scopes stay keyed on the role, because an engineer's
+queue and a technician's own jobs are facts about who somebody is, and
+everything else is answered by `files.list`.
+
+**And one that is NOT fixed, recorded rather than swept.** Several modules still
+gate on a role NAME rather than on a grant: `ops-tasks`, `ops-field`,
+`ops-engineer`, `ops-dispatch`, `ops-comms` and `ops-dashboard` all compare
+`actor.role === "admin"` in places where the question is really a permission.
+The four newer roles therefore behave in those places as though they were
+nobody: a dispatcher holds `offers.dispatch` and `ops-dispatch` still asks
+whether their role is field_tech or admin. Nothing is unsafe, because the
+comparisons all fail CLOSED, and none of it is reachable today because nobody
+holds those roles yet. It is a day of careful work with real behavioural risk,
+each comparison has to be read to decide which grant it meant, and doing it
+inside a closeout queue item about a form would be the wrong place. The
+platform's own rule is written in `ops-authz`: everything except the two
+identity scopes asks the grants.
 
 ### A failed portal sign in inside forms-audit breaks careersChecks, and nobody knows why
 

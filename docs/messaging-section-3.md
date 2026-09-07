@@ -105,6 +105,16 @@ know what each other are doing needs different things from one for six hundred.
 5. **Everything addressed to you.** Mentions already notify; there is no view
    that collects them. Small, and it is what makes a mention worth writing.
 
+   *Built 2026-09-06, in the closeout.* A switch above the thread list, with the
+   number of mentions written since you last read that conversation. It is
+   scoped through `listThreads`, which is the one function that asks
+   `canReadThread`, rather than by querying the mentions column: a mention is
+   written into the row when it is posted and what somebody may read is decided
+   later and elsewhere, so the direct query is the one that leaks a channel for
+   a role they no longer hold. `messaging-audit` reads the screen as three
+   people and asserts that the person named sees it, a participant who was not
+   named does not, and somebody who cannot read the thread does not.
+
 6. **Read receipts on file threads only.** Whether the engineer saw the
    technician's question is operational. `last_read_at` already holds it.
 
@@ -158,6 +168,10 @@ honest pagination and read receipts on file threads.
 Items 5, 7 and 8 are real and smaller; they are worth a second pass rather than
 padding the first. The three I would not build are argued above and I would
 rather be told I am wrong about them now than build them and find out.
+
+*Item 5 was built in the closeout on 2026-09-06 and is recorded above. 7 remains
+blocked on the table by operator ruling, and 8 waits on retention periods
+nobody has set.*
 
 ---
 

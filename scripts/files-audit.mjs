@@ -572,9 +572,39 @@ const GATED = { prelaunch: true };
     /for \(const field of PRICING_FIELDS\) delete copy\[field\]/.test(authz),
     "a key present with a null value still tells a technician the field exists",
   );
+  /*
+   * SCOPED TO redactFile'S OWN BODY, AND IT HAD TO BE.
+   *
+   * This read the WHOLE of ops-authz for `role === "field_tech"`, which was a
+   * fair proxy while nothing else in the file compared a role name. On
+   * 2026-09-06 visibleFiles started comparing one, legitimately: a technician's
+   * scope is the files they are on, which is a fact about identity rather than
+   * about permission, and there is no grant that means "these rows are about
+   * you".
+   *
+   * So the file-wide test would have failed a correct change, which is the
+   * worse direction of wrong: it teaches whoever hits it to weaken the check.
+   * The property was always about redactFile, and now it is asked of
+   * redactFile. This is the same narrowing partner-audit needed for the same
+   * reason, and it is the recurring defect in a check rather than in code: it
+   * was looking at the right file and the wrong scope.
+   */
+  const redactBody = (() => {
+    const start = authz.indexOf("export function redactFile");
+    if (start === -1) return "";
+    const rest = authz.slice(start);
+    const end = rest.indexOf("\n}\n");
+    return end === -1 ? rest : rest.slice(0, end);
+  })();
+
+  rec(
+    "redactFile was found to read",
+    redactBody.length > 0,
+    "a check over an empty string passes forever",
+  );
   rec(
     "and is gated on the permission rather than on a role name",
-    /can\(actor, "pricing\.read"\)/.test(authz) && !/role === "field_tech"/.test(authz),
+    /can\(actor, "pricing\.read"\)/.test(redactBody) && !/role === "/.test(redactBody),
   );
 }
 

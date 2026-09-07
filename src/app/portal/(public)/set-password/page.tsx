@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { RestrictedMode } from "@/components/portal/design";
 import { inspectToken, MIN_PASSWORD_LENGTH } from "@/lib/ops-auth";
-import { ROLE_LABEL } from "@/lib/ops-authz";
+import { roleLabel } from "@/lib/ops-authz";
 import { SetPasswordForm } from "./SetPasswordForm";
 
 export const dynamic = "force-dynamic";
@@ -49,7 +49,7 @@ export default async function SetPasswordPage({
               </h1>
               <p className="mt-2 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
                 {result.profile.display_name}, your account is set up as{" "}
-                {ROLE_LABEL[result.profile.role]}. Your sign in address is{" "}
+                {roleLabel(result.profile.role)}. Your sign in address is{" "}
                 <span className="font-semibold break-all text-[var(--navy)]">{result.profile.email}</span>.
               </p>
               {/*

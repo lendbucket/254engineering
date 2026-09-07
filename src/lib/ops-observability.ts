@@ -1,6 +1,7 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase";
 import { fingerprintOf, scrubString, scrubValue } from "./observability-scrub";
+import { firstNonEmpty } from "./env-value";
 
 /**
  * Errors, cron runs, and the numbers behind the status page.
@@ -39,9 +40,32 @@ export type ErrorContext = {
   extra?: Record<string, unknown>;
 };
 
-export const RELEASE =
-  process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 12) ?? process.env.SENTRY_RELEASE ?? "local";
+/*
+ * firstNonEmpty rather than ??, and the reasoning is written out in env-value.
+ * `vercel env pull` writes VERCEL_GIT_COMMIT_SHA with nothing after it, an
+ * empty string is neither null nor undefined, and this constant was therefore
+ * "" on every local run: the portal footer rendered a bare separator and every
+ * fault recorded there carried an empty release.
+ */
+export const RELEASE = firstNonEmpty(
+  process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 12),
+  process.env.SENTRY_RELEASE,
+  "local",
+);
 
+/*
+ * DELIBERATELY UNCHANGED, including the ??.
+ *
+ * This is the key faults are grouped by, and it has grouped every fault this
+ * platform has recorded. Rewriting it to fix a footer would silently regroup
+ * history, and the footer was the wrong reader for it anyway: what somebody
+ * standing in front of a screen needs to know is which records they are looking
+ * at, which is environmentLabel() in db-guard, not which build mode this is.
+ *
+ * Vercel always sets VERCEL_ENV to a non empty value on a deployment and
+ * .env.local carries one for local work, so the empty string case that broke
+ * RELEASE is not reachable here.
+ */
 export const ENVIRONMENT = process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? "development";
 
 /**

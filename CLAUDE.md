@@ -332,6 +332,24 @@ assumed: the fingerprint, the column and table counts, the trigger count, the
 grant count and the RLS count were all read back from
 `fsaryeciduszuahgjbly` and all match development exactly.
 
+After 0023 (the closeout, what an alert remembers) **development and the
+replay return `b2c841480f983ec50e36e72a11e9072a` across 945 columns and 69
+tables**, with row level security on all 69, 46 triggers, 9 eng_ functions none
+with an unpinned search_path, and 111 role grants. **Production is still at
+0022** while that branch is open, which is the expected divergence rather than
+the defect: a divergence while a feature branch is open is expected, and a
+divergence after it merges is the defect.
+
+0023 adds `eng_alert_state`, which is the fifth table in this schema that is
+deliberately NOT append only, and it belongs to the same class as the four in
+0011 and 0012: telemetry about the machine rather than a regulatory or financial
+fact. It holds one row per thing that can alert and the last time it did, so a
+queue that stays behind for an afternoon sends one email an hour rather than one
+every five minutes. Three cheaper alternatives were considered and each was
+worse; the argument is written at the top of the migration, and the sharpest of
+them is that recording it as a fault would have put the alert about a stuck
+queue into the stuck queue.
+
 0021 is one row, and it is the first migration since 0018 to seed a grant. That
 made roles-audit's seed comparison wrong rather than incomplete: it read
 0018_roles_as_data.sql directly, so a capability declared in DEFAULT_ROLES and

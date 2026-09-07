@@ -258,14 +258,38 @@ async function run() {
           continue;
         }
 
+        /*
+         * THE DOCUMENT, AND THE ELEMENT THAT SCROLLS INSTEAD OF IT.
+         *
+         * Portal routes are in the list above and their document CANNOT scroll
+         * sideways: point 1 of the native standard put overflow-hidden on the
+         * shell and gave the scrolling to one element between the fixed chrome.
+         * So every portal row here was passing a measurement it could not fail,
+         * which is the shape of defect this repository keeps finding, and this
+         * time the audit was the one making it.
+         *
+         * Found on 2026-09-06 by injecting a 2000px box into a portal screen:
+         * mobile-audit reported pass at four widths while the region measured
+         * 2016px inside a 390px viewport. Both audits read the document and
+         * neither read the region.
+         *
+         * The region's width is compared to the region's own client width
+         * rather than to the viewport, because the shell is narrower than the
+         * viewport at lg where a rail takes 230px of it.
+         */
         const measure = () =>
-          page.evaluate(() => ({
-            doc: document.documentElement.scrollWidth,
-            body: document.body.scrollWidth,
-            // The reference. See the note above on why innerWidth is not usable.
-            inner: document.documentElement.clientWidth,
-            reportedInner: window.innerWidth,
-          }));
+          page.evaluate(() => {
+            const region = document.querySelector("[data-portal-scroll], [data-partner-scroll]");
+            return {
+              doc: document.documentElement.scrollWidth,
+              body: document.body.scrollWidth,
+              // The reference. See the note above on why innerWidth is not usable.
+              inner: document.documentElement.clientWidth,
+              reportedInner: window.innerWidth,
+              regionScroll: region ? region.scrollWidth : null,
+              regionClient: region ? region.clientWidth : null,
+            };
+          });
 
         const top = await measure();
         await page.evaluate(async () => {
@@ -280,7 +304,16 @@ async function run() {
 
         const worst = Math.max(top.doc, top.body, bottom.doc, bottom.body);
         const over = worst - top.inner;
-        const ok = over <= SLACK;
+
+        /*
+         * The region is judged against ITSELF, with the same one pixel of slack
+         * the document gets and for the same reason: sub pixel layout rounding.
+         */
+        const regionOver = Math.max(
+          top.regionScroll !== null ? top.regionScroll - top.regionClient : 0,
+          bottom.regionScroll !== null ? bottom.regionScroll - bottom.regionClient : 0,
+        );
+        const ok = over <= SLACK && regionOver <= SLACK;
 
         // The reference itself must be the width that was asked for. If emulation
         // ever starts expanding clientWidth too, this check turns into the same
@@ -291,7 +324,10 @@ async function run() {
           );
         }
 
-        let detail = `${worst} vs ${top.inner}`;
+        let detail =
+          regionOver > SLACK
+            ? `the scrolling region is ${Math.max(top.regionScroll ?? 0, bottom.regionScroll ?? 0)} wide inside ${top.regionClient}`
+            : `${worst} vs ${top.inner}`;
         if (!ok) {
           const culprits = await page.evaluate((inner) => {
             const out = [];
@@ -306,11 +342,29 @@ async function run() {
               }
             }
             return out.slice(0, 4);
-          }, top.inner);
-          detail = `${worst} vs ${top.inner} (+${over})`;
-          findings.push(
-            `${route} @${width}: document is ${over}px wider than the viewport. ${culprits.join(" | ") || "no element identified"}`,
-          );
+          }, regionOver > SLACK ? top.regionClient : top.inner);
+
+          /*
+           * The message has to name WHICH box overflowed. The first version of
+           * the region check reused the document sentence, so a region failure
+           * read "document is 0px wider than the viewport", which is a finding
+           * that reads as a non-finding and would send whoever hit it looking
+           * at the wrong element.
+           */
+          if (regionOver > SLACK) {
+            const widest = Math.max(top.regionScroll ?? 0, bottom.regionScroll ?? 0);
+            detail = `region ${widest} vs ${top.regionClient} (+${regionOver})`;
+            findings.push(
+              `${route} @${width}: the scrolling region is ${regionOver}px wider than itself at ${top.regionClient}px. ` +
+                `The document does not scroll on this screen, so this is the overflow a person would feel. ` +
+                `${culprits.join(" | ") || "no element identified"}`,
+            );
+          } else {
+            detail = `${worst} vs ${top.inner} (+${over})`;
+            findings.push(
+              `${route} @${width}: document is ${over}px wider than the viewport. ${culprits.join(" | ") || "no element identified"}`,
+            );
+          }
         }
 
         checks.push({ name: `${route} @${width}`, ok, detail });
@@ -367,7 +421,7 @@ console.log("");
  * leftover and passed anyway.
  */
 if (findings.length === 0 && failed.length === 0) {
-  console.log(`PASS: ${checks.length} route and width combinations, zero horizontal document scroll.`);
+  console.log(`PASS: ${checks.length} route and width combinations, nothing scrolls sideways, document or region.`);
   process.exitCode = 0;
 } else {
   for (const f of findings) console.log(`  - ${f}`);

@@ -377,10 +377,9 @@ for (const screen of SCREENS) {
    * page size, and a firm with three hundred files should see a red line rather
    * than a slow phone.
    *
-   * Scroll position surviving navigation is the other half of point 8 and is
-   * not asserted here. It needs a navigation and a return, which is a different
-   * shape of test, and claiming it from a resting page would be the kind of
-   * check this phase exists to remove.
+   * Scroll position surviving navigation is the other half of point 8. It
+   * needs a navigation and a return, which cannot be claimed from a resting
+   * page, so it is asserted once at the end of this file rather than here.
    */
   const rowCount = await page.evaluate(() => {
     const region = document.querySelector("[data-portal-scroll]");
@@ -647,6 +646,138 @@ for (const screen of SCREENS) {
   await ctx.close();
 }
 
+/*
+ * =====================================================================
+ * POINT 8, THE OTHER HALF. THE SCROLL POSITION SURVIVES A RETURN.
+ *
+ * "A list that can grow renders a bounded number of rows, AND ITS SCROLL
+ * POSITION SURVIVES NAVIGATING AWAY AND BACK." The first half has been asserted
+ * per screen since Phase 11. The second half was asserted by nothing from Phase
+ * 11 until this closeout, and was implemented by nothing either, which is the
+ * point: the check and the feature were missing together, so nothing was red.
+ *
+ * Asserted by doing it, because nothing about it is visible on a resting page.
+ *
+ * THE NAVIGATION HAS TO BE A CLICK, NOT A goto.
+ * page.goto is a document load, and a document load takes a new React tree, a
+ * fresh popstate history entry and none of the client routing this feature
+ * lives in. A check written that way would fail against a correct
+ * implementation, which is the worse direction of wrong. So it presses a link
+ * in the tab bar the way a person on a phone does.
+ *
+ * THREE PROPERTIES, AND TWO OF THEM ARE THE WAYS THIS GOES WRONG:
+ *
+ *   the region is ACTUALLY SCROLLABLE, so the check cannot pass by measuring
+ *     zero against zero
+ *   a FORWARD navigation starts at the top, rather than inheriting the last
+ *     screen's offset, which is the default when one element does the
+ *     scrolling for every route
+ *   and a RETURN restores where the screen was
+ * =====================================================================
+ */
+{
+  const probe = sessions.admin;
+  if (!probe?.cookie) {
+    rec("the scroll memory check had a session", false, "no admin probe");
+  } else {
+    /*
+     * A screen tall enough to scroll, found by measuring rather than named.
+     *
+     * The probe account holds no data, so most screens are empty states, and
+     * naming one would make this check a hostage to whichever screen still had
+     * content. These are the surfaces whose length comes from the firm's own
+     * configuration rather than from work: the roles screen renders every grant,
+     * the audit trail renders the probe sign ins this suite itself produced.
+     */
+    const CANDIDATES = ["/portal/roles", "/portal/audit", "/portal/status", "/portal"];
+    const AWAY = "/portal/tasks";
+    const TARGET = 400;
+
+    const ctx = await browser.newContext({
+      viewport: { width: WIDTH, height: HEIGHT },
+      isMobile: true,
+      hasTouch: true,
+      deviceScaleFactor: 2,
+    });
+    await ctx.addCookies(cookieFor(probe, BASE));
+    const page = await ctx.newPage();
+
+    const reachOf = () =>
+      page.evaluate(() => {
+        const region = document.querySelector("[data-portal-scroll]");
+        return region ? region.scrollHeight - region.clientHeight : 0;
+      });
+    const topOf = () =>
+      page.evaluate(() => document.querySelector("[data-portal-scroll]")?.scrollTop ?? -1);
+
+    let chosen = null;
+    let reach = 0;
+
+    try {
+      for (const path of CANDIDATES) {
+        await page.goto(BASE + path, { waitUntil: "domcontentloaded", timeout: 45000 });
+        await page.waitForTimeout(700);
+        reach = await reachOf();
+        if (reach > TARGET + 100) {
+          chosen = path;
+          break;
+        }
+      }
+
+      rec(
+        "a portal screen long enough to scroll was found to test with",
+        Boolean(chosen),
+        chosen
+          ? `${chosen}, ${reach}px of travel`
+          : `nothing over ${TARGET + 100}px; a scroll memory check on a screen that cannot scroll proves nothing`,
+      );
+
+      if (chosen) {
+        await page.evaluate((to) => {
+          const region = document.querySelector("[data-portal-scroll]");
+          if (region) region.scrollTop = to;
+        }, TARGET);
+        await page.waitForTimeout(250);
+        const before = await topOf();
+
+        /*
+         * The tab bar, which is how this navigation happens on a phone. Pressed
+         * rather than followed, so Next's client router handles it and the
+         * layout, the region and the component that remembers all survive.
+         */
+        const tab = page.locator(`[data-portal-tabs] a[href="${AWAY}"]`);
+        await tab.click({ timeout: 15000 });
+        await page.waitForURL(`**${AWAY}`, { timeout: 20000 });
+        await page.waitForTimeout(900);
+
+        const onArrival = await topOf();
+        rec(
+          "a screen opened by a forward navigation starts at the top",
+          onArrival === 0,
+          `${AWAY} opened at ${onArrival}px; one element scrolls every route, so without this a new screen inherits the last one's offset`,
+        );
+
+        await page.goBack({ timeout: 20000 });
+        await page.waitForTimeout(1200);
+
+        const back = new URL(page.url()).pathname;
+        rec("and back returns to the screen it left", back === chosen, `${back}`);
+
+        const after = await topOf();
+        rec(
+          "and the scroll position it was left at comes back with it",
+          Math.abs(after - before) < 40,
+          `left ${chosen} at ${before}px, returned to ${after}px`,
+        );
+      }
+    } catch (err) {
+      rec("the scroll memory check ran", false, String(err.message).split("\n")[0]);
+    }
+
+    await ctx.close();
+  }
+}
+
 await browser.close();
 
 rec("screens were actually measured", measured > 0, `${measured} of ${SCREENS.length}`);
@@ -665,6 +796,7 @@ rec(
  * than swallowing it, because a probe partner with earnings on a database is
  * something a person has to look at.
  */
+
 const sweptPartners = await destroyPartnerProbes("native-audit");
 rec("the probe partner was removed", sweptPartners.ok, sweptPartners.note);
 
