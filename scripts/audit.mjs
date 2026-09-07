@@ -281,6 +281,26 @@ const PHASE_ONE = [
   { name: "forms-audit", why: "all four forms end to end, plus the server side guards" },
   {
     /*
+     * PHASE ONE, because the half that matters needs the server.
+     *
+     * The pure half asserts the cookie shape and that the two readers do not
+     * overlap. The NEGATIVE half is the one the brief asks for: a real pending
+     * cookie, signed with the deployment's own secret read from .env.local,
+     * attempted against every portal route the surface inventory declares, and
+     * refused by all of them.
+     *
+     * It reads .env.local for the same reason db-target.mjs does. An audit that
+     * minted a cookie with a different secret would have every route refuse it
+     * and would pass for entirely the wrong reason: a green board proving only
+     * that a forgery is rejected.
+     *
+     * react-server, because it imports ops-session, which is server only.
+     */
+    name: "mfa-audit",
+    why: "a half authenticated session opens nothing, on every declared route",
+  },
+  {
+    /*
      * PHASE ONE, because half of it is the live write path: a real key posting a
      * real lead through the shared server on 3225, read back out of the
      * database, retried, and then removed with the removal verified.

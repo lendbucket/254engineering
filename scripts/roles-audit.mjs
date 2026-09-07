@@ -48,6 +48,7 @@ import {
 } from "../src/lib/role-rules.ts";
 import { can, actionsFor, visibleFiles, canSeeFile, redactFile, ROLES, DEFAULT_ROLES, ALL_ACTIONS, LICENSED_ACTIONS, LICENSED_ROLE, holdsLicence, roleLabel, inviteFieldsFor } from "../src/lib/ops-authz.ts";
 import { canReview } from "../src/lib/ops-review.ts";
+import { signInFully } from "./lib/probe-mfa.mjs";
 
 const BASE = process.env.BASE_URL || "http://localhost:3225";
 
@@ -999,15 +1000,27 @@ async function makeProbe(db, role) {
   return { id: data.user.id, email, password };
 }
 
+/*
+ * SIGN IN, AND COMPLETE A SECOND FACTOR IF THE ROLE DEMANDS ONE.
+ *
+ * This was a bare POST to the session endpoint, which was enough until 0024
+ * seeded admin and engineer as requiring a factor. From that point those two
+ * probes received a PENDING session and every later check in this file failed
+ * with "the cookie was minted and then refused", which is precisely what the
+ * boundary is supposed to do and precisely what this helper has to get past
+ * the way a person does.
+ *
+ * signInFully is shared with the browser probes so the two sign in paths in
+ * this repository cannot disagree about what a session is.
+ */
 async function signIn(email, password) {
-  const res = await fetch(`${BASE}/api/portal/session`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
-  const cookie = res.headers.get("set-cookie") ?? "";
-  const match = cookie.match(/eng_ops=([^;]+)/);
-  return { ok: res.ok, cookie: match ? `eng_ops=${match[1]}` : null };
+  const result = await signInFully(BASE, email, password);
+  return {
+    ok: result.ok,
+    cookie: result.cookie ? `eng_ops=${result.cookie}` : null,
+    enrolled: result.enrolled,
+    error: result.error,
+  };
 }
 
 /*
@@ -1046,8 +1059,27 @@ if (!db) {
     for (const role of LIVE_ROLES) {
       const probe = await makeProbe(db, role);
       const signedIn = await signIn(probe.email, probe.password);
-      rec(`probe ${role} can sign in through the real endpoint`, signedIn.ok && Boolean(signedIn.cookie));
+      rec(
+        `probe ${role} can sign in through the real endpoint`,
+        signedIn.ok && Boolean(signedIn.cookie),
+        signedIn.error ?? "",
+      );
       sessions[role] = signedIn.cookie;
+
+      /*
+       * The two roles 0024 seeds as requiring a factor must have gone through a
+       * REAL enrolment to be here. If either arrived without enrolling, the
+       * requirement is not in force and this file would be reporting on a
+       * portal that no longer matches the migration.
+       */
+      const mustEnrol = role === "admin" || role === "engineer";
+      rec(
+        `and ${role} ${mustEnrol ? "completed a real second factor enrolment" : "needed no second factor"}`,
+        mustEnrol ? signedIn.enrolled === true : true,
+        mustEnrol && !signedIn.enrolled
+          ? "0024 requires one for this role, so arriving without enrolling means the requirement is not in force"
+          : "",
+      );
 
       /*
        * AND THE SESSION SURVIVES THE NEXT REQUEST, WHICH IS A SEPARATE CLAIM.

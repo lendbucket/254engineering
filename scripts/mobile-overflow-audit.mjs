@@ -61,6 +61,7 @@ import {
   destroyPartnerProbes,
   destroyCustomerProbes,
 } from "./lib/portal-probe.mjs";
+import { signInFully } from "./lib/probe-mfa.mjs";
 
 const BASE = process.env.BASE_URL || "http://localhost:3225";
 const WIDTHS = [360, 390];
@@ -142,13 +143,30 @@ async function createProbe(role = "admin") {
     return null;
   }
 
-  const res = await fetch(`${BASE}/api/portal/session`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
-  const m = (res.headers.get("set-cookie") ?? "").match(/eng_ops=([^;]+)/);
-  return { db, id: data.user.id, email, cookie: m ? m[1] : null };
+  /*
+   * SIGN IN THROUGH THE SHARED HELPER, NOT A BARE POST.
+   *
+   * This file kept its own copy of the sign in, and on 2026-09-07 that copy was
+   * the only one that did not learn about the second factor. Migration 0024
+   * made admin and engineer require one, the shared helper in
+   * scripts/lib/probe-mfa.mjs was taught to complete a real enrolment, and this
+   * duplicate was not, so both probes here received a PENDING session and every
+   * one of the fifty portal measurements bounced to the sign in screen.
+   *
+   * The bounce guard caught it and said so plainly rather than reporting fifty
+   * passes, which is the whole reason that guard exists. What it could not do
+   * is stop the duplicate existing.
+   *
+   * mfa-audit now fails on a third sign in path, so this cannot happen again by
+   * somebody writing a fourth.
+   */
+  const signedIn = await signInFully(BASE, email, password);
+  if (!signedIn.cookie) {
+    console.error(
+      "[mobile-overflow-audit] probe " + role + " has no session: " + (signedIn.error ?? "no cookie"),
+    );
+  }
+  return { db, id: data.user.id, email, cookie: signedIn.cookie };
 }
 
 async function destroyProbe() {

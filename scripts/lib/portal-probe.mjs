@@ -24,6 +24,7 @@
 
 import { createHash, randomBytes } from "node:crypto";
 import { auditClient } from "./db-target.mjs";
+import { signInFully } from "./probe-mfa.mjs";
 
 /** Obviously fake, and the domain is what teardown sweeps on. */
 export const PROBE_DOMAIN = "audit-probe.invalid";
@@ -69,14 +70,43 @@ export async function createProbe(base, role, label = "audit") {
 
   made.push({ id: data.user.id, email });
 
-  const res = await fetch(`${base}/api/portal/session`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
-  const m = (res.headers.get("set-cookie") ?? "").match(/eng_ops=([^;]+)/);
+  /*
+   * SIGN IN AND FINISH WHATEVER THE ACCOUNT NEEDS.
+   *
+   * Since 0024 the admin and engineer roles require a second factor, so a plain
+   * sign in for those returns a PENDING session that opens nothing. signInFully
+   * completes the real enrolment against the real endpoint and hands back a
+   * full cookie.
+   *
+   * Enrolling rather than exempting is deliberate and is argued at the top of
+   * scripts/lib/probe-mfa.mjs: an audit that avoids the requirement it made
+   * true is measuring a system that no longer exists.
+   */
+  const signedIn = await signInFully(base, email, password);
 
-  return { id: data.user.id, email, role, cookie: m ? m[1] : null };
+  /*
+   * A PROBE WITHOUT A COOKIE IS A PROBE THAT HANGS SOMEBODY ELSE.
+   *
+   * Returning cookie: null let every browser audit downstream navigate a portal
+   * route signed out, land on the login screen, and wait for a selector that
+   * never appears. The first run after the second factor landed did exactly
+   * that and sat for fifty one minutes before anybody looked at it.
+   *
+   * The cause was mundane, MFA_ENCRYPTION_KEY absent from .env.local, and the
+   * symptom was a HANG rather than a failure, which is the worse of the two: a
+   * failure names itself in seconds and a hang looks like slow work.
+   *
+   * So the reason is printed once, here, where it is known. The null still goes
+   * back for the caller to handle, because inventing a cookie would be worse
+   * than either.
+   */
+  if (!signedIn.cookie) {
+    console.error(
+      "[portal-probe] " + role + " could not reach a full session: " + (signedIn.error ?? "no cookie"),
+    );
+  }
+
+  return { id: data.user.id, email, role, cookie: signedIn.cookie };
 }
 
 /**
