@@ -27,6 +27,62 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
+## Found while starting Phase 12
+
+### RESOLVED: four of the seven roles could sign in and were signed out by the next request
+
+Found 2026-09-07, opening Phase 12 Section 1, because MFA is enforced at the
+session boundary and the boundary had to be read before anything was added to
+it. Fixed in the same commit that found it.
+
+**What was true.** `readOpsSession` validated the cookie's role against a
+literal list of the three roles that shipped in Phase 0. Phase 10 Section 2 made
+roles rows and the platform ships seven. So a dispatcher, a salesperson, a
+customer service account and a read only account could sign in completely
+successfully: the password verified, the audit row written, `last_sign_in_at`
+updated, the cookie minted and set. The very next request read that cookie,
+failed the membership test, and returned null. They arrived back at the sign in
+screen with no error, because nothing had gone wrong from the platform's side.
+
+A success indistinguishable from nothing happening, which is the defect class
+this repository exists to hunt, in the authentication path.
+
+**Why nothing caught it.** `roles-audit`'s live half iterated `ROLES`, the
+same three, while its pure half iterated `DEFAULT_ROLES`, all seven. Seven
+roles were being reasoned about and three were being signed in. The audit was
+looking at the right thing in the wrong list, which is now the fourth instance
+of that shape found in this repository and the first that was a live product
+defect rather than a blind audit.
+
+**Not reachable on production today**, and that is luck rather than design:
+production holds two profiles, one admin and one engineer, both in the three
+that worked. Any of the four newer roles being granted to a real person would
+have made it immediately visible and completely mysterious.
+
+**What replaced it.** A shape test rather than a membership test, because the
+shape is the question this layer actually has: the cookie is
+`sub.role.exp.signature` split on the dot, so the role segment has to survive
+that. Which roles exist is the database's question and `currentActor` asks it
+on every request. `ROLE_KEY_PATTERN` and `wellFormedRoleKey` now live in
+`role-rules.ts` and are used by both the roles screen and the session layer,
+so the two ends cannot drift apart again.
+
+`issueOpsSession` also refuses to mint for a key it could not sign, rather
+than issuing a cookie the reader will reject. Failing at sign in is harsher and
+is the correct direction: an operator sees a role that cannot be used, instead
+of a person who signs in successfully and is not signed in.
+
+**Verified both ways.** The audit fails on exactly those four roles when the
+membership test is put back, and the widening was checked against escalation: a
+role edited in the cookie is still refused, a tampered signature is still
+refused, and a well formed role nobody signed is still refused.
+
+**And the audit blindness is fixed, not just the defect.** The live half now
+probes every role in `DEFAULT_ROLES` and makes a second, separate claim per
+role: that the session survives the NEXT request. Signing in and being signed in
+are different facts, and the sign in check answered 200 with a Set-Cookie for
+all seven roles while four of them were already dead.
+
 ## Found while building the closeout
 
 ### The build guard reads a command line, so a command that MENTIONS the build directory looks like a server

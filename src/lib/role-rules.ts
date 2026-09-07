@@ -150,17 +150,45 @@ export function canDeleteRole(roles: RoleShape[], holders: Holder[], roleKey: st
 }
 
 /**
+ * The shape of a role key, in one place.
+ *
+ * Lower case, letters, digits and underscores, starting with a letter. It is
+ * compared against in code in exactly one place, LICENSED_ROLE, and appears in
+ * URLs and audit rows, so a key with a space or a capital in it would be a
+ * small permanent nuisance.
+ *
+ * IT IS EXPORTED BECAUSE TWO PLACES NEED THE SAME ANSWER, AND ONE OF THEM
+ * LEARNED THAT THE HARD WAY
+ * ----------------------------------------------------------------------
+ * The session cookie is `sub.role.exp.signature`, split on the dot. That makes
+ * the role segment's shape a correctness property of the session layer rather
+ * than a nicety of the roles screen: a key containing a dot would produce a
+ * cookie nobody could parse.
+ *
+ * ops-session.ts used to answer this question with a list of the three roles
+ * that existed in Phase 0, which is not the same question and stopped being a
+ * correct answer to it when Phase 10 Section 2 made roles rows. Four of the
+ * seven roles the platform ships could sign in and were signed out by the very
+ * next request. One declaration, both callers, so the two cannot drift again.
+ */
+export const ROLE_KEY_PATTERN = /^[a-z][a-z0-9_]*$/;
+
+/** Whether a string could be a role key at all. Shape, never membership. */
+export function wellFormedRoleKey(key: string): boolean {
+  return key.length >= 3 && key.length <= 32 && ROLE_KEY_PATTERN.test(key);
+}
+
+/**
  * A new role's key, checked before it reaches the database.
  *
- * Lower case, letters, digits and underscores. It is compared against in code
- * in exactly one place, LICENSED_ROLE, and appears in URLs and audit rows, so a
- * key with a space or a capital in it would be a small permanent nuisance.
+ * Says which rule was broken, because "invalid" on a form is not a correction
+ * anybody can act on.
  */
 export function keyProblem(key: string, existing: string[]): string | null {
   const k = key.trim();
   if (k.length < 3) return "A key needs at least three characters.";
   if (k.length > 32) return "A key cannot be longer than thirty two characters.";
-  if (!/^[a-z][a-z0-9_]*$/.test(k)) {
+  if (!ROLE_KEY_PATTERN.test(k)) {
     return "A key is lower case letters, digits and underscores, starting with a letter.";
   }
   if (existing.includes(k)) return "There is already a role with that key.";
