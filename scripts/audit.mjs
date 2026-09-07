@@ -87,6 +87,22 @@ const PHASE_ZERO = [
   },
   {
     /*
+     * The county map renders the bytes it rendered before.
+     *
+     * Pure, no server, no network. TexasCountyMap.tsx claimed since 2026-09-04
+     * that an audit of this name asserted its byte identity; it did not exist
+     * anywhere but in that comment, so the guarantee was unguarded for three
+     * days while a second optimisation was built on top of it.
+     *
+     * The fixtures are the bytes the LIVE SITE served on 2026-09-07, before the
+     * coverage routes were pre serialised, which is a stronger baseline than
+     * whatever the component happens to produce today.
+     */
+    name: "map-markup-audit",
+    why: "the map still renders the markup a browser actually received",
+  },
+  {
+    /*
      * The closeout, 2026-09-06. The one audit in this suite whose subject is
      * this repository's own bookkeeping rather than the product.
      *

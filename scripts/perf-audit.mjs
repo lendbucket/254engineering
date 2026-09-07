@@ -47,6 +47,37 @@
  * The full spread is printed either way, so a page that is merely getting
  * noisier is visible before it starts failing.
  *
+ * AND THERE IS A THIRD VERDICT, BECAUSE TWO WERE NOT ENOUGH
+ * ---------------------------------------------------------
+ * Operator ruling, 2026-09-07. The paragraph above says a page getting noisier
+ * is visible before it starts failing, and that turned out to be optimistic:
+ * the noise arrived and the failure arrived with it, in the same run.
+ *
+ * /careers/professional-engineer measured 2934ms with a 3ms spread on one suite
+ * run and 3454ms with a 521ms spread an hour later, same machine, nothing
+ * touching that route in between. The ceiling is 3400ms, so the failing margin
+ * was 54ms against noise ten times its size. Both readings were reported with
+ * complete confidence and neither was worth having.
+ *
+ * So LCP can now come back COULD NOT TELL: neither a pass nor a failure, when
+ * the ceiling falls inside the observed range and that range is wider than a
+ * stated fraction of the ceiling. The rule and the reasoning are in
+ * scripts/lib/perf-verdict.mjs, which is a separate module precisely so it can
+ * be exercised, since this file launches Chrome the moment it is imported.
+ *
+ * THE CEILING DOES NOT MOVE, AND UNSTABLE IS NOT A HIDING PLACE
+ * -------------------------------------------------------------
+ * Both halves of that are load bearing. Nothing here widens a budget: the
+ * doctrine three paragraphs up still holds, and a route that fails at a
+ * trustworthy median is still a real finding. And a genuinely slow page cannot
+ * shelter in the new verdict, because a route whose FASTEST sample is over the
+ * ceiling fails outright and never reaches it. What lands in COULD NOT TELL is
+ * only the genuinely ambiguous case.
+ *
+ * A route that keeps landing there is telling you this profile cannot resolve
+ * it. That is a finding about the instrument, and it is answered by measuring
+ * on a deployment rather than by moving the line.
+ *
  * THE THROTTLING PROFILE IS WRITTEN OUT RATHER THAN INHERITED
  * -----------------------------------------------------------
  * 4x CPU, 1.6Mbps, 150ms RTT, stated explicitly. Lighthouse's mobile default is
@@ -57,6 +88,14 @@ import lighthouse from "lighthouse";
 import * as chromeLauncher from "chrome-launcher";
 import { chromium } from "playwright";
 import { METRIC_BUDGETS, ROUTE_BUDGETS } from "./perf-budgets.mjs";
+/*
+ * Pass, fail, and could not tell. In its own module so it can be exercised:
+ * this file launches Chrome on load, so anything defined here is unreachable to
+ * a test. See the header of scripts/lib/perf-verdict.mjs, and the bucket walk,
+ * which taught the same lesson the same week.
+ */
+import { verdictFor, stabilityLimit } from "./lib/perf-verdict.mjs";
+import { checkVerdictLogic } from "./proofs/perf-verdict-fires-where-it-should.mjs";
 
 const BASE = process.env.BASE_URL || "http://localhost:3225";
 const RUNS = Number(process.env.PERF_RUNS || 3);
@@ -85,8 +124,32 @@ const SETTINGS = {
   },
 };
 
+/*
+ * THE GATE CHECKS ITS OWN DECISION RULE BEFORE IT MEASURES ANYTHING.
+ *
+ * Fourteen cases, pure, in under a second, run on every invocation rather than
+ * on the day somebody remembers the proof file exists. If the rule that decides
+ * pass, fail and could not tell is broken, every number below it is worthless,
+ * so this aborts rather than reporting a board nobody should read.
+ */
+{
+  const { failed, total } = checkVerdictLogic(false);
+  if (failed.length) {
+    console.log("");
+    console.log(`THE VERDICT RULE IS BROKEN: ${failed.length} of ${total} cases fail.`);
+    for (const f of failed) console.log(`  ${f}`);
+    console.log("");
+    console.log("Nothing was measured. A gate whose decision rule is wrong reports nothing useful.");
+    console.log("  node scripts/proofs/perf-verdict-fires-where-it-should.mjs");
+    process.exit(1);
+  }
+}
+
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
+
+/** Recorded like a check, and counted separately: it is not a pass. */
+const recUnstable = (name, note) => out.push({ name, ok: true, unstable: true, note });
 const kb = (bytes) => Math.round(bytes / 1024);
 
 const chrome = await chromeLauncher.launch({
@@ -171,13 +234,37 @@ for (const route of ROUTE_BUDGETS) {
    */
   const lcpCeiling = route.lcp ?? CEILINGS.lcp;
 
-  rec(
-    `${route.name}: LCP ${Math.round(median.lcp)}ms within ${lcpCeiling}ms`,
-    median.lcp <= lcpCeiling,
-    `${route.path}, median of ${ok.length}, spread ${Math.round(spread.lcp)}ms${
-      route.lcp ? ", its own ceiling" : ""
-    }`,
-  );
+  /*
+   * LCP is the only metric that gets the three state verdict, because it is the
+   * only one whose noise has ever been comparable to its margin. CLS and TBT
+   * measure in the single digits against ceilings of 0.05 and 200ms, and bytes
+   * do not vary between runs of the same build at all. Giving them a stability
+   * rule they cannot exercise would be a check that never fires.
+   */
+  const lcpSamples = ok.map((r) => r.lcp);
+  const lcpVerdict = verdictFor(lcpSamples, lcpCeiling);
+  const lcpNote = `${route.path}, median of ${ok.length}, spread ${Math.round(spread.lcp)}ms${
+    route.lcp ? ", its own ceiling" : ""
+  }`;
+
+  if (lcpVerdict === "unstable") {
+    recUnstable(
+      `${route.name}: LCP ${Math.round(median.lcp)}ms against ${lcpCeiling}ms, NOT STABLE ENOUGH TO GATE ON`,
+      `${lcpNote}. The range ${Math.round(Math.min(...lcpSamples))} to ${Math.round(
+        Math.max(...lcpSamples),
+      )}ms straddles the ceiling and is wider than ${Math.round(
+        stabilityLimit(lcpCeiling),
+      )}ms, so this run cannot say. Measure on a deployment.`,
+    );
+  } else {
+    rec(
+      `${route.name}: LCP ${Math.round(median.lcp)}ms within ${lcpCeiling}ms`,
+      lcpVerdict === "pass",
+      lcpVerdict === "fail" && Math.min(...lcpSamples) > lcpCeiling
+        ? `${lcpNote}. Every sample was over, so this is not noise.`
+        : lcpNote,
+    );
+  }
   rec(
     `${route.name}: CLS ${median.cls.toFixed(3)} within ${CEILINGS.cls}`,
     median.cls <= CEILINGS.cls,
@@ -225,11 +312,48 @@ for (const r of rows) {
 }
 
 console.log("\n=== RESULT ===");
-for (const r of out) console.log(`  ${r.ok ? "PASS" : "FAIL"}: ${r.name}${r.note ? ` (${r.note})` : ""}`);
+for (const r of out) {
+  const label = r.unstable ? "COULD NOT TELL" : r.ok ? "PASS" : "FAIL";
+  console.log(`  ${label}: ${r.name}${r.note ? ` (${r.note})` : ""}`);
+}
+
 const failed = out.filter((r) => !r.ok);
+const unstable = out.filter((r) => r.unstable);
 console.log("");
+
+/*
+ * UNSTABLE IS REPORTED LOUDLY AND DOES NOT FAIL THE RUN.
+ *
+ * That is the ruling and it is the right trade, but it has one edge worth
+ * naming rather than discovering: a page that is genuinely slow AND always
+ * noisy would report this forever and never fail. It cannot hide here, because
+ * a route whose FASTEST sample is over the ceiling fails outright and never
+ * reaches this state. What lands here is only the genuinely ambiguous case,
+ * where the ceiling sits inside the observed range.
+ *
+ * A route that keeps landing here is telling you the local profile cannot
+ * resolve it, which is a finding about the instrument and is answered by
+ * measuring on a deployment, not by widening the ceiling.
+ */
+if (unstable.length) {
+  console.log(`${unstable.length} measurement(s) were too unstable to gate on:`);
+  for (const r of unstable) console.log(`  ${r.name}`);
+  console.log("");
+  console.log("These are neither passes nor failures. The ceiling has not moved and the page");
+  console.log("has not been absolved. This machine could not resolve the margin, which is a");
+  console.log("fact about the measurement. Measure on a deployment:");
+  console.log("");
+  console.log("  BASE_URL=https://254engineering.com PERF_RUNS=5 npx tsx scripts/perf-audit.mjs");
+  console.log("");
+}
+
 if (failed.length === 0) {
-  console.log(`PASS: ${out.length} checks across ${rows.length} templates.`);
+  const solid = out.length - unstable.length;
+  console.log(
+    `PASS: ${solid} checks across ${rows.length} templates${
+      unstable.length ? `, and ${unstable.length} that could not be decided` : ""
+    }.`,
+  );
   process.exitCode = 0;
 } else {
   console.log(`FAIL: ${failed.length} of ${out.length} checks.`);

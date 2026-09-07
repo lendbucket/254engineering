@@ -198,6 +198,133 @@ counts, and the whole is not. The answer is not a key in the tree. It is the
 operator running the dry run in an environment that already holds both keys
 before the window opens, so the first `--apply` is the second time it has run.
 
+## The performance gate, measured on a deployment
+
+### The 2000ms remote ceiling has never been met and cannot currently be measured
+
+Recorded 2026-09-07. The full numbers are in this file under the perf entry
+above; this is the finding they produced.
+
+`perf-budgets.mjs` says of the two ceilings: **"REMOTE is the operator's
+specification and is the one that matters."** The suite has only ever measured
+localhost against the empirical 3400ms local ceiling. The 2000ms remote ceiling
+was set on 2026-08-31 on a day the same file records live LCP ranging from 1555
+to 2901ms, so it was a target rather than a measurement, and nothing has ever
+run it in anger.
+
+**The three state gate's answer, on the deployment: eight of ten routes COULD
+NOT TELL.** Only the homepage, which carries its own 3600ms ceiling, and
+`/careers/professional-engineer` produced supportable verdicts. The ceiling
+sits inside the run to run range of nearly every route on the site, which is a
+fact about where the number was put rather than about the pages.
+
+**The two state gate, on the same deployment an hour earlier, reported three
+failures and thirty seven passes with complete confidence.** Five of those
+confident passes are among the eight the new gate cannot support. The third
+verdict caught false PASSES, not only false failures, and that was not the
+outcome anybody predicted for it.
+
+**A limitation of the new rule, stated rather than left to be discovered.** It
+uses within run SPREAD as a proxy for whether the median can be trusted, and two
+independent runs show the proxy is pessimistic:
+
+| route | run 1 | run 2 | difference | spread |
+| --- | --- | --- | --- | --- |
+| `/coverage` | 2535ms | 2536ms | 1ms | 455 and 742ms |
+| `/structural-engineer` | 1850ms | 1851ms | 1ms | 382 and 235ms |
+| `/careers/professional-engineer` | 1851ms | 1850ms | 1ms | 161 and 153ms |
+| `/insights/texas-pe-license-lookup` | 2003ms | 2001ms | 2ms | 513 and 588ms |
+| `/windstorm` | 1704ms | 1707ms | 3ms | 439 and 437ms |
+
+Five routes whose medians reproduce to within 3ms while individual samples range
+over 400 to 750ms. That is a median doing exactly what a median is for, and the
+gate calls several of them unmeasurable. The rule is honest and conservative,
+and reading eight "could not tell" verdicts as eight problems would be reading
+it wrongly.
+
+The homepage ceiling re-derivation of 2026-09-04 did not use spread. It used
+eight independent medians of three and looked at their AGREEMENT, which is the
+better evidence and is the method the re-derivation below will use.
+
+**Open, in this order, by operator ruling 2026-09-07:** investigate
+`/coverage` and `/coverage/coastal-bend`, map first, reporting before
+anything changes; then re-derive the global remote ceiling from the seven routes
+not under investigation and not carrying their own; then decide whether the
+coverage routes need a fix or their own ceiling. Nothing loosens to accommodate
+a page nobody has looked at.
+
+## The county map on the coverage routes, investigated and left alone
+
+### RESOLVED: the map is as cheap as it can be while it is server rendered
+
+Investigated 2026-09-07 on operator instruction, map first, reporting before
+anything changed. The full reasoning now lives at the top of
+`src/components/map/TexasCountyMap.tsx`, beside the code it explains, and this
+is the pointer.
+
+**The LCP element is not the map.** Asked of the browser directly through a
+`PerformanceObserver` rather than inferred, the largest contentful paint on
+both `/coverage` and `/coverage/coastal-bend` is the prelaunch compliance
+paragraph. That is the homepage precedent repeating exactly: there it was the
+hero paragraph, and the map was merely heavy. **Coordinate precision was not
+touched**, for the same reason it was not touched in September, and no pixel
+comparison was needed because no geometry change was ever on the table.
+
+**The double carry is real and is not the defect the homepage fix removed.**
+That distinction is the useful part. The homepage fix removed a SECOND MAP: two
+maps on one page became one geometry and a `use` element. The coverage routes
+draw one map, whose geometry sits in the markup once and in the React flight
+payload once, and that duplication is inherent to server rendering it. Removing
+it means not server rendering the map, and the map is server rendered on purpose:
+the firm's claim is that it covers all 254 counties, so the counties have to be
+in the HTML for anything that does not run JavaScript.
+
+**Pre serialisation was built, verified byte identical, measured, and dropped.**
+It removes only the per element descriptor overhead:
+
+| | before | after | saved |
+| --- | --- | --- | --- |
+| `/coverage` | 31,167 | 30,324 | 843 brotli bytes |
+| `/coverage/coastal-bend` | 26,352 | 25,378 | 974 brotli bytes |
+
+Under 1KB on the wire, roughly 4.5ms of transfer on the gate's profile, against
+a measurement whose spread on these routes is 400 to 750ms. **Seventy times
+below what the instrument can resolve**, so deploying it would have returned
+"could not tell" by construction. Dropped on the operator's rule, and recorded
+so nobody tries it again expecting a different answer.
+
+**The estimate that led to trying it was wrong by fifty times**, and that is
+recorded rather than smoothed over: 50KB was read off the raw flight payload
+size and assumed to be removable, when almost all of it is the geometry that has
+to be there.
+
+**The 254 county text list on `/coverage` was not touched.** It is the
+authoritative coverage claim, `coverage-audit` checks it against an independent
+canonical list, and the change was confined to the map component, which never
+renders it.
+
+### RESOLVED: map-markup-audit was cited for three days before it existed
+
+Found 2026-09-07 while extending the treatment above.
+
+`TexasCountyMap.tsx` said, from 2026-09-04, that "map-markup-audit asserts the
+rendered bytes still match". **The name appeared nowhere in this repository
+except inside that comment.** So the byte identity the homepage optimisation
+promised was unguarded from the day it was claimed, and a second optimisation
+was very nearly built on top of it.
+
+A comment asserting a guarantee that nothing enforces is this repository's own
+defect class, applied to itself. `scripts/map-markup-audit.mjs` exists now and
+runs in the suite.
+
+Its fixtures are **the bytes the live site actually served on 2026-09-07**,
+captured before the change, which is a stronger baseline than whatever the
+component happens to produce today. It compares the standalone and activeRegion
+renders byte for byte, asserts the shared pair still emits the geometry once and
+references it once, and counts the 254 counties so a wrong fixture cannot agree
+with itself forever. Injection verified: one extra attribute per path fails both
+fixtures and names the byte offset.
+
 ## Disaster recovery
 
 ### The firm has no usable restore path, and cannot get one until the cutover
@@ -1139,6 +1266,33 @@ measured 3310ms and passed.
 after a session of continuous building and browser work, which the collapsed
 spread is consistent with. A dependency or font that now resolves differently.
 Or a real regression from something shared that has not been identified.
+
+**MEASURED ON THE DEPLOYMENT, 2026-09-07, AND THE PAGE IS FINE.**
+
+`254engineering.com`, the gate's own statistic, median of 5, twice:
+
+| | LCP | spread | ceiling | verdict |
+| --- | --- | --- | --- | --- |
+| run 1 | 1851ms | 161ms | 2000ms | pass |
+| run 2 | 1850ms | 153ms | 2000ms | pass, every sample under |
+
+**149ms under the STRICTER ceiling**, since the remote specification is 2000ms
+against the local empirical 3400ms. The medians reproduce to 1ms across two
+independent runs, and the spread is 153 to 161ms on the deployment against 521ms
+locally: the deployment is both the meaningful instrument and the quieter one.
+
+So the page was never the finding. The local profile was, which is what the
+operator's ruling of 2026-09-07 predicted, and the local number stays recorded
+above rather than deleted because the six measurements are the evidence for why
+the instrument changed.
+
+**The preview deployment was not usable and a production deployment was used
+instead.** Both the preview and the direct `*.vercel.app` deployment urls sit
+behind Vercel deployment protection and answer 302 unauthenticated. The apex is
+the reachable deployment, running main at `fae15f2`, and
+`/careers/professional-engineer` has not changed in any recent commit, so the
+page measured is the page in question. The substitution is recorded rather than
+passed off as what was asked for.
 
 **What to do with it. THE TRIGGER FOR THE STANDING RULING IS GONE.** Operator
 ruling, 2026-09-07: measure it on a deployment when the cutover lands, because

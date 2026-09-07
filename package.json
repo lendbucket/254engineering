@@ -50,6 +50,7 @@
     "order-audit": "tsx scripts/order-audit.mjs",
     "seed-field-demo": "tsx --conditions=react-server scripts/seed-field-demo.mjs",
     "db-guard-audit": "tsx scripts/db-guard-audit.mjs",
+    "map-markup-audit": "tsx scripts/map-markup-audit.mjs",
     "migration-audit": "tsx scripts/migration-audit.mjs",
     "schema-ledger-audit": "tsx scripts/schema-ledger-audit.mjs",
     "production-schema-check": "tsx scripts/production-schema-check.mjs",
