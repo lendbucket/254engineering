@@ -176,19 +176,51 @@ async function measurePage(base, browser, path, width, probe = null) {
     const m = await page.evaluate((minTap) => {
       const de = document.documentElement;
 
+      /*
+       * WHATEVER IS ACTUALLY SCROLLING, WHICH ON A PORTAL SCREEN IS NOT THE
+       * DOCUMENT.
+       *
+       * This measured document.documentElement and nothing else, which was the
+       * whole truth until Phase 11. Point 1 of the native standard then made
+       * the document stop scrolling and gave the job to one element between the
+       * fixed chrome, so a portal page that overflows sideways overflows THAT
+       * element while the document stays exactly the width of the viewport.
+       *
+       * Found on 2026-09-06 by injecting a 2000px wide box into a portal screen
+       * and watching this audit report pass at all four widths. The region was
+       * 2016px wide inside a 390px viewport. Every portal row in this table had
+       * been green for a phase on a measurement that could not see the thing it
+       * claims to measure, which is this repository's recurring defect with the
+       * audit on the wrong side of it.
+       *
+       * Both are checked now. A portal screen can still overflow the document,
+       * and the failure names which of the two it was.
+       */
+      const region = document.querySelector("[data-portal-scroll], [data-partner-scroll]");
+      const scrollers = [
+        { what: "document", el: de, scrollW: de.scrollWidth, clientW: de.clientWidth },
+        ...(region
+          ? [{ what: "the scrolling region", el: region, scrollW: region.scrollWidth, clientW: region.clientWidth }]
+          : []),
+      ];
+      const over = scrollers.find((sc) => sc.scrollW > sc.clientW);
+
       // The widest element that actually exceeds the viewport, so a failure
       // names the offender rather than only the number. Finding this by hand
       // afterward is most of the cost of a horizontal scroll bug.
       let widest = null;
-      if (de.scrollWidth > de.clientWidth) {
-        for (const el of Array.from(document.querySelectorAll("body *"))) {
+      if (over) {
+        const limit = over.clientW;
+        const origin = over.el === de ? 0 : over.el.getBoundingClientRect().left;
+        for (const el of Array.from((over.el === de ? document.body : over.el).querySelectorAll("*"))) {
           const rect = el.getBoundingClientRect();
-          if (rect.right > de.clientWidth + 1 || rect.left < -1) {
+          if (rect.right > origin + limit + 1 || rect.left < origin - 1) {
             const desc = `${el.tagName.toLowerCase()}${el.className && typeof el.className === "string" ? "." + el.className.split(/\s+/).slice(0, 2).join(".") : ""}`;
-            widest = `${desc} spans ${Math.round(rect.left)} to ${Math.round(rect.right)}`;
+            widest = `in ${over.what}: ${desc} spans ${Math.round(rect.left)} to ${Math.round(rect.right)}`;
             break;
           }
         }
+        if (!widest) widest = `in ${over.what}, offender not identified`;
       }
 
       /*
@@ -302,8 +334,8 @@ async function measurePage(base, browser, path, width, probe = null) {
         );
       }
       return {
-        scrollWidth: de.scrollWidth,
-        clientWidth: de.clientWidth,
+        scrollWidth: over ? over.scrollW : de.scrollWidth,
+        clientWidth: over ? over.clientW : de.clientWidth,
         widest,
         small: small.slice(0, 5),
         smallCount: small.length,

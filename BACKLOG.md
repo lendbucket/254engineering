@@ -810,6 +810,33 @@ the same two roles with the same dates and was imported by nothing;
 files holding one fact is a drift waiting to happen and the one nobody reads is
 the one that gets edited, so it is gone and the comment names the real file.
 
+### RESOLVED 2026-09-06: both overflow audits were blind on every portal screen
+
+Found by injecting a 2000px wide box into a portal page to verify an unrelated
+change to mobile-audit, and watching both audits report pass at every width. The
+region measured 2016px inside a 390px viewport.
+
+Point 1 of the native standard, in Phase 11, put `overflow-hidden` on the portal
+shell and gave the scrolling to one element between the fixed chrome. Both
+audits measured `document.documentElement.scrollWidth` against its client width,
+which on a portal screen is a comparison that cannot fail: the document is
+pinned to the viewport whatever the content does.
+
+So from Phase 11 until now, every portal row in both tables was green on a
+measurement that could not see the thing it claims to measure. Nothing was
+found to be actually overflowing once they were fixed, which is the good
+outcome and is not the point: the green had stopped meaning anything.
+
+Both now measure whatever is actually scrolling, name which box overflowed, and
+were verified by injection in both directions. mobile-overflow-audit's summary
+line no longer says "document scroll", because it no longer only means that.
+
+**Worth carrying forward.** The audits were not wrong when they were written.
+They were made wrong by a change to the product they were watching, and neither
+of them had any way to notice. That is a second order version of the defect
+class this repository hunts, and the only defence found so far is the one that
+caught it: inject a violation of the property, not of the implementation.
+
 ### Two audits that use probe accounts must never run at the same time
 
 Recorded 2026-09-06, after invalidating a mobile-audit run twice in one hour.
