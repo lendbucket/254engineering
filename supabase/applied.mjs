@@ -110,9 +110,9 @@ export const APPLIED = [
     file: "0024_mfa.sql",
     fingerprint: "0e8ff33c7106ce05ec2cf81a1c66cd35",
     proves: { table: "eng_mfa_enrolments" },
-    production: null,
-    because:
-      "Phase 12 Section 1, open on the phase-12-mfa branch. Applied to development on 2026-09-07. It goes to production when that branch merges, and schema-ledger-audit fails the moment it is on main and this still says null.",
+    production: "2026-09-07",
+    note:
+      "Applied to production BEFORE the merge, deliberately. The code reads eng_mfa_enrolments on every sign in, so shipping it first would have meant nobody could sign in at all, which is the same class of failure 0023 caused and the reason this ledger exists.",
   },
 ];
 
