@@ -79,6 +79,8 @@ const ADMIN_PAGES = [
   "/portal/accounts",
   "/portal/partners",
   "/portal/partners/disputes",
+  // The hiring pipeline, with signed links to a candidate's resume and licence.
+  "/portal/applications",
   // Names every failed job and its error, which can carry a customer address.
   "/portal/queue",
   // Names every fault this deployment has recorded, which credential is set,
@@ -87,6 +89,16 @@ const ADMIN_PAGES = [
   // A technician's own earnings. Their pay is nobody else's business and it is
   // certainly not a signed out client's.
   "/portal/pay",
+  /*
+   * The retired /admin surface. The FILES are gone as of 2026-09-06 and these
+   * stay in the list deliberately: the proxy still redirects the whole prefix to
+   * the portal sign in, for the sake of bookmarks and of onboarding emails sent
+   * before the move, and "a signed out client is refused" is exactly as true of
+   * a redirect as of a route that never existed.
+   *
+   * If the redirect is ever removed these become 404s, which also refuse, and
+   * the check keeps passing for a different correct reason.
+   */
   "/admin",
   "/admin/leads",
   "/admin/applications",
@@ -96,7 +108,6 @@ const ADMIN_PAGES = [
 
 /** API paths a signed out client must never reach. */
 const ADMIN_APIS = [
-  "/api/admin/onboarding",
   "/api/portal/people",
   "/api/portal/password",
   // Never listed since Phase 1 shipped it. Found by the coverage check below on

@@ -27,6 +27,41 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
+## Found while building the closeout
+
+### The build guard reads a command line, so a command that MENTIONS the build directory looks like a server
+
+Recorded 2026-09-06, hit while deleting the legacy admin surface.
+
+`scripts/preflight-build.mjs` refuses to build when a process is holding the
+build directory or an audit port, which is right and has saved a torn artifact
+before. It identifies those processes by matching their command line.
+
+**What happened.** The build was run as `rm -rf .next/dev && npm run build`.
+The shell wrapper's own command line therefore contained the build directory's
+name, the guard matched it, and it reported TWO next servers running out of this
+repo, both of which were the invoking command itself. The same build had run a
+minute earlier without the `rm`, and passed.
+
+**Why it is worth writing down rather than shrugging at.** It is this
+repository's own recurring defect inside the guard that exists to prevent a
+different instance of it: a check deciding what is true by looking at something
+other than the thing it claims to measure. A command line is evidence about a
+process; it is not the process.
+
+**The workaround, which is what was used.** Put the command in a script file so
+the process's own command line carries none of the markers.
+
+**The fix, when somebody touches that file.** Match on what the process is
+actually doing rather than what its arguments say: a listening socket on the
+audit ports, or a lock on the build directory, both of which the guard already
+has access to. Failing that, exclude the guard's own process tree, which is
+narrower and would have been enough here.
+
+**Not fixed now** because it fires in the safe direction. A guard that refuses a
+build that should have run costs a minute; the failure it prevents costs a
+green suite scoring a stale artifact.
+
 ## Recorded elsewhere, and now indexed here
 
 The seven the operator named, plus what the sweep found beside them. Each is
@@ -545,6 +580,31 @@ nothing extra is needed, but it does mean the firm cannot be moved from pending
 to open by restarting a process. See the note in `src/lib/launch.ts`.
 
 ## Engineering
+
+### RESOLVED 2026-09-06. A failed database write is no longer answered with success
+
+Operator ruling, 2026-09-06: intake moves onto the queue, because a failed write
+answered with success is the exact defect class this repo hunts, sitting in the
+two paths a customer touches first.
+
+**Two corrections to the entry below, both found by reading the routes rather
+than the entry.**
+
+**It was one route, not two.** `/api/apply` already answered an honest 500 with
+the answers still on the page. Only `/api/lead` returned 200 whatever happened.
+
+**And the queue could not have fixed it.** The durable queue is a table in the
+same Postgres, so when the database is unreachable the write fails and the
+enqueue fails for the same reason. The notification already went onto the queue;
+moving the ROW there would have added a step and closed nothing.
+
+**What actually closed it.** `intakeAnswer` in `src/lib/intake.ts`, pure and
+exercised by forms-audit across all three cases: written, carried by a direct
+send that bypasses the database, and reached nothing. The last answers 503 and
+names the address to write to, because a person who believes they made contact
+and did not is worse for the firm than an enquiry it knows it lost.
+
+The original entry follows.
 
 ### A failed database write is answered with success
 
@@ -1554,6 +1614,46 @@ rather than reading the code.
 
 Onboarding joined to dispatch, credential expiry as a hard gate, and the
 protocol certification check. What follows is what it does not do.
+
+### RESOLVED 2026-09-06. The legacy /admin surface is deleted
+
+Operator ruling: duplicate capability behind weaker auth is a liability, and the
+portal absorbed all three surfaces.
+
+**Two thirds of that was true, and the third was found by checking rather than
+by trusting the ruling.** Leads went to the clients screen and onboarding to the
+portal's own. **Applications had never been absorbed.** The portal's onboarding
+screen lists applications not yet invited, and `APPLICATION_COLUMNS` in
+`ops-onboarding.ts` does not include `payload`, so a candidate's resume,
+licence and certifications were visible nowhere in the portal at all. Deleting
+`/admin` first would have removed the firm's only view of its hiring pipeline
+and nobody would have noticed until somebody went looking for a CV.
+
+**What shipped.** `/portal/applications`, ported rather than rewritten: same
+query, same render time signed links, portal chrome, gated on
+`profiles.create` because the person who reads an application is the person who
+invites the successful one. Then `src/app/admin`, `src/components/admin` and
+`src/app/api/admin` were deleted, `admin-data.ts` was trimmed to what the new
+screen uses, the proxy redirects the whole `/admin` prefix to the portal sign in
+rather than only its login page, and the onboarding email button was repointed
+at `/portal/onboarding?id=`.
+
+**The redirect covers the prefix on purpose.** The operator has had onboarding
+emails in their inbox pointing at `/admin/onboarding/<id>` since Phase 3, and a
+redirect that only covered the login page would have turned every one of them
+into a 404 on the day the screens went.
+
+**One capability genuinely went away, and it is the right one.** The deleted
+admin route emailed an onboarding invite. The portal's replacement returns the
+one time link to the operator to hand over, which is the pattern staff accounts
+and partner accounts already use and the one the operator asked for by name.
+`jobs-audit` no longer asserts a queued send for it, and says why.
+
+Verified against a running build rather than the source: every `/admin` path
+answers 307 to `/portal/login`, `/portal/applications` renders 200 for an
+administrator, and the documents column is on it.
+
+The original entry follows.
 
 ### The legacy /admin/onboarding screens now overlap this and are not deleted
 

@@ -37,7 +37,7 @@ export type NavItem = {
     | "home" | "files" | "people" | "review" | "jobs" | "clients" | "audit"
     | "profile" | "protocols" | "techs" | "onboarding" | "certification" | "charge"
     | "tasks" | "messages" | "documents" | "billing" | "orders" | "accounts" | "queue" | "status" | "pay"
-    | "intake" | "roles" | "partners";
+    | "intake" | "roles" | "partners" | "applications";
 };
 
 export const NAV: NavItem[] = [
@@ -110,6 +110,18 @@ export const NAV: NavItem[] = [
   { href: "/portal/protocols", label: "Protocols", short: "Specs", action: "protocols.author", icon: "protocols" },
   { href: "/portal/techs", label: "Technicians", short: "Techs", action: "profiles.list", icon: "techs" },
   { href: "/portal/onboarding", label: "Onboarding", short: "Onboard", action: "profiles.create", icon: "onboarding" },
+  {
+    /*
+     * The hiring pipeline, moved here from /admin when that surface was deleted.
+     * Gated on profiles.create, because the person who reads an application is
+     * the person who invites the successful one.
+     */
+    href: "/portal/applications",
+    label: "Applications",
+    short: "Apps",
+    action: "profiles.create",
+    icon: "applications",
+  },
   { href: "/portal/people", label: "People", short: "People", action: "profiles.list", primary: true, icon: "people" },
   { href: "/portal/queue", label: "Job queue", short: "Queue", action: "jobs.manage", icon: "queue" },
   { href: "/portal/status", label: "Platform status", short: "Status", action: "jobs.manage", icon: "status" },

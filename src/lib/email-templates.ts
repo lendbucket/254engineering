@@ -380,11 +380,18 @@ export function onboardingSubmitted(input: {
           text: "Documents are not attached and no link in this message opens one. Sign in to the admin portal and open them there, where each link lasts ten minutes.",
         },
       ],
-      // The button goes to the portal, not to a document. See the note above on
-      // why a signed URL never travels in an email.
+      /*
+       * The button goes to the portal, not to a document. See the note above on
+       * why a signed URL never travels in an email.
+       *
+       * The path changed on 2026-09-06 when /admin was deleted. The portal's
+       * onboarding screen selects a record with ?id= rather than a path
+       * segment, and the proxy redirects the old prefix, so emails already sent
+       * still land somewhere sensible rather than on a 404.
+       */
       button: {
-        label: "Open in the admin portal",
-        url: `${business.url}/admin/onboarding/${input.onboardingId}`,
+        label: "Open in the portal",
+        url: `${business.url}/portal/onboarding?id=${input.onboardingId}`,
       },
     },
     { replyTo: input.personEmail },

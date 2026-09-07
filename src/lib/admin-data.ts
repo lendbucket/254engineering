@@ -4,7 +4,7 @@ import { currentActor } from "./ops-auth";
 import { can } from "./ops-authz";
 
 /**
- * Reads for the admin portal.
+ * Applications, read by the portal.
  *
  * EVERY FUNCTION HERE CHECKS THE SESSION ITSELF
  * ---------------------------------------------
@@ -24,11 +24,17 @@ import { can } from "./ops-authz";
  * behind the same Supabase backed accounts as the rest of the platform and
  * require the admin role specifically.
  *
- * The screens themselves are unchanged and are deliberately still here. Leads,
- * applications, and onboarding are real work the operator does today, and Phase
- * 1 and Phase 3 absorb them into the portal properly. Deleting them now to make
- * a retirement look tidy would have taken away working capability and given
- * nothing back.
+ * AND NOW THE SCREENS ARE GONE. Operator ruling, 2026-09-06. /admin was deleted
+ * once the portal covered all three surfaces, which it did not until the same
+ * commit ported applications across.
+ *
+ * What is left in this file is what that screen needs. countsBySite and
+ * listLeads went with the dashboard and the leads table that were their only
+ * callers: the portal's clients screen reads eng_leads itself, with the
+ * conversion inbox built around it.
+ *
+ * The file keeps its name because renaming it would be churn in a diff that is
+ * already a deletion, and because "admin" is still what these rows are for.
  *
  * READS ARE SERVICE ROLE, WHICH IS WHY THEY LIVE BEHIND server-only
  * -----------------------------------------------------------------
@@ -44,86 +50,6 @@ export async function requireAdmin(): Promise<void> {
   if (!can(actor, "profiles.list")) {
     throw new Error("Not signed in.");
   }
-}
-
-export type Counts = {
-  site: string;
-  leads: number;
-  applications: number;
-  onboardings: number;
-};
-
-/**
- * Counts across all three brands.
- *
- * The tables carry a `site` column precisely so one Supabase project can hold
- * all three, and the dashboard is the one place that fact is useful rather than
- * incidental. Sites are read from the data rather than from a hardcoded list, so
- * a fourth brand appears here without an edit.
- *
- * `head: true` with an exact count fetches no rows at all, which matters on the
- * page the operator opens most.
- */
-export async function countsBySite(): Promise<Counts[]> {
-  await requireAdmin();
-  const db = supabaseAdmin();
-  if (!db) return [];
-  const sites = new Set<string>();
-  const tally = new Map<string, Counts>();
-
-  const tables = [
-    ["eng_leads", "leads"],
-    ["eng_applications", "applications"],
-    ["eng_onboardings", "onboardings"],
-  ] as const;
-
-  // One pass to learn which sites exist, because the count query is per site.
-  for (const [table] of tables) {
-    const { data } = await db.from(table).select("site");
-    for (const row of data ?? []) if (row.site) sites.add(row.site as string);
-  }
-
-  for (const site of sites) {
-    tally.set(site, { site, leads: 0, applications: 0, onboardings: 0 });
-  }
-
-  for (const [table, key] of tables) {
-    for (const site of sites) {
-      const { count } = await db
-        .from(table)
-        .select("id", { count: "exact", head: true })
-        .eq("site", site);
-      const row = tally.get(site);
-      if (row) row[key] = count ?? 0;
-    }
-  }
-
-  return [...tally.values()].sort((a, b) => a.site.localeCompare(b.site));
-}
-
-export type LeadRow = {
-  id: string;
-  created_at: string;
-  site: string;
-  form: string;
-  name: string;
-  email: string;
-  phone: string | null;
-  city: string | null;
-  service: string | null;
-  message: string | null;
-};
-
-export async function listLeads(limit = 200): Promise<LeadRow[]> {
-  await requireAdmin();
-  const db = supabaseAdmin();
-  if (!db) return [];
-  const { data } = await db
-    .from("eng_leads")
-    .select("id, created_at, site, form, name, email, phone, city, service, message")
-    .order("created_at", { ascending: false })
-    .limit(limit);
-  return (data ?? []) as LeadRow[];
 }
 
 export type ApplicationRow = {

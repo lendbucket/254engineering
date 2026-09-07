@@ -23,6 +23,7 @@
 import { chromium } from "playwright";
 import { auditClient } from "./lib/db-target.mjs";
 import { careersChecks } from "./lib/careers-audit.mjs";
+import { intakeAnswer } from "../src/lib/intake.ts";
 
 /*
  * The audit reads the same env file the server does, and this is not a
@@ -66,6 +67,60 @@ const MARKER = "Zzq Formsaudit";
  * different sentences and only one of them is safe to print in green.
  */
 let submissionsSucceeded = false;
+
+/*
+ * ===================================================================
+ * WHAT A SUBMISSION IS ANSWERED WITH WHEN IT REACHED NOTHING.
+ *
+ * Exercised by calling the decision, before any browser starts, because the
+ * only other way to reach these branches is to take the database away from a
+ * running server mid audit.
+ *
+ * The defect this closes was live until 2026-09-06: /api/lead returned 200
+ * whatever happened, so a database outage answered a person exactly as a
+ * successful write did. This audit's own charter is "no silent failures, no
+ * false success", and it had no check for the one route that did both.
+ * ===================================================================
+ */
+{
+  const ADDRESS = "info@example.com";
+
+  const written = intakeAnswer({ written: true, sent: false }, ADDRESS);
+  rec("a written enquiry answers 200", written.ok === true && written.status === 200);
+  rec(
+    "and says nothing else, because there is nothing to explain",
+    written.message === undefined,
+  );
+
+  /*
+   * The one worth arguing about. The row did not land and a person has the
+   * enquiry in their mail, which is what the sender was asking for.
+   */
+  const carried = intakeAnswer({ written: false, sent: true }, ADDRESS);
+  rec("an enquiry the direct send carried still answers 200", carried.ok === true);
+
+  const lost = intakeAnswer({ written: false, sent: false }, ADDRESS);
+  rec(
+    "an enquiry that reached NOTHING is not answered with success",
+    lost.ok === false && lost.status === 503,
+    "this is the defect: a submission that reached nothing answered exactly like one that landed",
+  );
+  rec(
+    "and it says plainly that nothing was saved",
+    /nothing was saved/i.test(lost.message ?? ""),
+    "trying again against a database that is down loses the enquiry a second time",
+  );
+  rec(
+    "and gives an address that is not a form",
+    (lost.message ?? "").includes(ADDRESS),
+    "the fallback has to be a route that does not pass through the thing that just failed",
+  );
+  rec(
+    "and the address is the caller's, not one this module invented",
+    !/254engineering/.test(lost.message ?? ""),
+    "a hardcoded address here would be a second place the firm's contact address lives",
+  );
+}
 
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });

@@ -572,7 +572,13 @@ rec(
     ["src/app/api/lead/route.ts", /queueEmail\(/, "the lead notification"],
     ["src/app/api/apply/route.ts", /queueEmail\(/, "the application emails"],
     ["src/app/api/onboarding/route.ts", /queueEmail\(/, "the onboarding submission email"],
-    ["src/app/api/admin/onboarding/route.ts", /queueEmail\(/, "the onboarding invite"],
+    /*
+     * The onboarding invite was here and is not any more. /admin was deleted on
+     * 2026-09-06 and the portal's replacement does not send an email at all: it
+     * returns the one time link to the operator, who hands it over, which is
+     * the pattern staff accounts and partner accounts already use and the one
+     * the operator asked for by name. There is no queued send to assert.
+     */
     ["src/app/api/portal/people/route.ts", /queueEmail\(/, "the portal invite and reset links"],
     ["src/app/api/portal/accounts/route.ts", /enqueue\("statement\.issue"/, "statement issuance"],
     ["src/app/api/portal/orders/reconcile/route.ts", /enqueue\("orders\.reconcile"/, "the applying sweep"],
@@ -586,14 +592,46 @@ rec(
   /*
    * And the mail those routes no longer send directly. A route that queues an
    * email AND still calls notify is a route sending it twice.
+   *
+   * REFINED 2026-09-06, BECAUSE THE FIRST VERSION WOULD HAVE FORBIDDEN A FIX.
+   *
+   * /api/lead now calls notify in ONE place: after the database write failed,
+   * where the queue is unreachable because the queue is a table in the same
+   * database. Read as "never call notify", this check forbids the only second
+   * path a submission has during an outage, which is the defect the operator
+   * ruled on that day.
+   *
+   * So the property is not absence, it is POSITION: a direct send may not sit
+   * on the path a successful write takes. Everything before the success return
+   * is that path. A route with no early return is held to the old rule, because
+   * for it every line is the success path.
    */
   for (const [path, , what] of moved.filter(([, p]) => String(p).includes("queueEmail"))) {
+    const source = codeOnly(path);
+    const directAt = source.indexOf("await notify(");
+    const successReturn = source.indexOf("if (write.ok) return");
+
     rec(
-      `${what}: nothing sends directly as well`,
-      !/await notify\(/.test(codeOnly(path)),
-      path,
+      `${what}: nothing sends directly on the path a successful write takes`,
+      directAt === -1 || (successReturn !== -1 && directAt > successReturn),
+      directAt === -1
+        ? path
+        : successReturn === -1
+          ? `${path}: notify with no success return above it`
+          : `${path}: the direct send is the fallback, after the success return`,
     );
   }
+
+  /*
+   * AND THE FALLBACK EXISTS, which is the other half and the one that would rot
+   * silently. A refinement that only permits something is a refinement that
+   * passes just as well when somebody deletes the thing it was permitting.
+   */
+  rec(
+    "the lead route keeps a send that does not pass through the database",
+    /await notify\(/.test(codeOnly("src/app/api/lead/route.ts")),
+    "the queue is a table in the same Postgres, so during an outage it is not a second path",
+  );
 
   /*
    * THE ONE EXCEPTION, AND IT IS LOAD BEARING.

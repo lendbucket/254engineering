@@ -26,7 +26,7 @@
     "premessaging-audit": "node scripts/preflight-audit.mjs",
     "messaging-audit": "node scripts/messaging-audit.mjs",
     "preforms-audit": "node scripts/preflight-audit.mjs",
-    "forms-audit": "node scripts/forms-audit.mjs",
+    "forms-audit": "tsx --conditions=react-server scripts/forms-audit.mjs",
     "preseo-audit": "node scripts/preflight-audit.mjs",
     "seo-audit": "node scripts/seo-audit.mjs",
     "preplaceholder-audit": "node scripts/preflight-audit.mjs",
