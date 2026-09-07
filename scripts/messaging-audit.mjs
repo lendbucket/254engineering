@@ -73,6 +73,23 @@ async function api(cookie, body) {
   return { status: res.status, body: await res.json().catch(() => null) };
 }
 
+/**
+ * A SCREEN, not an endpoint.
+ *
+ * The collected mentions view is a server component with no API behind it, and
+ * giving it one so an audit could reach it would be adding product surface to
+ * make a test convenient. So this reads the page the person reads, which is
+ * also the stronger claim: it fails if the function is right and the screen
+ * forgets to render it.
+ */
+async function screen(cookie, path) {
+  const res = await fetch(`${BASE}${path}`, {
+    headers: { cookie: `eng_ops=${cookie}` },
+    redirect: "manual",
+  });
+  return { status: res.status, html: await res.text().catch(() => "") };
+}
+
 console.log("");
 console.log("================ THE MESSAGING CENTRE ================");
 console.log(`${BASE}\n`);
@@ -153,6 +170,75 @@ if (admin?.cookie && engineer?.cookie && tech?.cookie && db) {
       "but a participant finds it",
       (own.body?.results ?? []).length === 1,
       `${(own.body?.results ?? []).length} hit(s); without this the check above passes when search is simply broken`,
+    );
+  }
+
+  /*
+   * ============================================================
+   * EVERYTHING ADDRESSED TO YOU, item 5 of docs/messaging-section-3.md.
+   *
+   * Read off the screen, for three people, because the interesting property is
+   * not that a mention appears. It is WHO it appears for:
+   *
+   *   the person named sees it
+   *   a participant who was NOT named does not, or the view is the conversation
+   *     again with extra steps
+   *   somebody who cannot read the thread at all does not, which is the leak
+   *     this feature could most easily introduce: the mention is written into
+   *     the message row when it is posted, and what somebody may READ is
+   *     decided later and elsewhere
+   * ============================================================
+   */
+  if (threadId) {
+    /*
+     * Every probe is called "Audit Probe <role>", and a mention matches on the
+     * FIRST name, so @audit would name all three and the discrimination below
+     * would prove nothing. The technician is renamed to something no other row
+     * shares.
+     */
+    const NAME = `Zqxtech${Date.now()}`;
+    await db.from("eng_profiles").update({ display_name: `${NAME} Probe` }).eq("id", tech.id);
+
+    const NAMED = `zqx${Date.now()}named`;
+    const said = await api(engineer.cookie, {
+      action: "post_message",
+      threadId,
+      body: `@${NAME.toLowerCase()} the gate code is ${NAMED}.`,
+    });
+    rec("a message can name somebody on the thread", said.body?.ok === true, said.body?.error ?? "");
+
+    const mine = await screen(tech.cookie, "/portal/messages?view=mentions");
+    rec(
+      "the person who was named sees it collected in one place",
+      mine.status === 200 && mine.html.includes(NAMED),
+      `HTTP ${mine.status}${mine.html.includes(NAMED) ? "" : ", the message is not on the page"}`,
+    );
+
+    const author = await screen(engineer.cookie, "/portal/messages?view=mentions");
+    rec(
+      "and a participant who was not named does not, so the view is not the thread again",
+      author.status === 200 && !author.html.includes(NAMED),
+      author.html.includes(NAMED) ? "the author's own message came back as addressed to them" : "",
+    );
+
+    const outsider = await screen(admin.cookie, "/portal/messages?view=mentions");
+    rec(
+      "and somebody who cannot read the thread does not, mention or no mention",
+      outsider.status === 200 && !outsider.html.includes(NAMED),
+      outsider.html.includes(NAMED)
+        ? "LEAKED: a mention carried a direct message body to an administrator"
+        : "the readable set decides it, not the mentions column",
+    );
+
+    /*
+     * AND IT IS FINDABLE. A collected view nobody knows about is a page nobody
+     * opens, so the switch has to be on the conversations view too.
+     */
+    const conversations = await screen(tech.cookie, "/portal/messages");
+    rec(
+      "the switch to it sits on the conversations view as well",
+      conversations.html.includes("Addressed to you"),
+      "a view reachable only by typing a query string is not reachable",
     );
   }
 

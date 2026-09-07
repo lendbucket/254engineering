@@ -706,3 +706,113 @@ export async function searchMessages(
     truncated,
   };
 }
+
+// ============================================================ addressed to you
+
+/** One page of mentions. Small, because this view is a prompt to act rather than an archive. */
+export const MENTION_PAGE = 50;
+
+export type Mention = {
+  messageId: number;
+  threadId: string;
+  threadTitle: string;
+  kind: string;
+  authorName: string;
+  createdAt: string;
+  body: string;
+  /** Written since this person last read that thread. */
+  unread: boolean;
+};
+
+/**
+ * Everything that named you, in one place.
+ *
+ * Item 5 of docs/messaging-section-3.md. A mention already produces a
+ * notification, and a notification is a thing you clear. What was missing is
+ * the place you go when you come back after two days and want to know what
+ * asked for you, without reading five threads to find the two that did.
+ *
+ * WHY IT IS SCOPED THROUGH listThreads RATHER THAN QUERYING MESSAGES DIRECTLY
+ * ---------------------------------------------------------------------------
+ * The obvious query is "every message whose mentions array contains me". It is
+ * also the one that leaks. A mention is written into the row at the time it is
+ * posted, and what somebody may READ is decided later and elsewhere: a channel
+ * for a role they no longer hold, a file thread for a file that was reassigned,
+ * a direct thread they were removed from. A mention would carry the message
+ * body out of every one of those.
+ *
+ * So the readable set is established first, by the one function that asks
+ * canReadThread, and the mention query is scoped to it. This is the same shape
+ * searchMessages uses, deliberately: two ways of deciding what somebody may
+ * read is one way too many, and the second one is the one that would be wrong.
+ *
+ * It inherits that function's cap of THREAD_PAGE conversations, which is the
+ * honest limitation to record rather than paper over. At this firm's scale it
+ * is not reachable; the day it is, both surfaces need the same fix.
+ *
+ * WHAT "UNREAD" MEANS HERE
+ * ------------------------
+ * Written after you last read that thread. Not a second read state of its own:
+ * a mention you have already seen in the conversation is not still waiting for
+ * you, and a per mention acknowledgement would be a third thing to clear on a
+ * platform whose whole complaint was that things needed clearing twice.
+ */
+export async function mentionsFor(
+  actor: Actor | null,
+  /**
+   * The readable conversations, when the caller already has them.
+   *
+   * The messages screen loads them to render the list and would otherwise make
+   * this function load them again, which is several queries for an answer it is
+   * holding. It MUST be a list from listThreads: this is the scope that decides
+   * what a mention may show, and a hand assembled list would be a second
+   * permission model with no canReadThread in it.
+   */
+  known?: ThreadListItem[],
+): Promise<{ items: Mention[]; unread: number; truncated: boolean }> {
+  const db = supabaseAdmin();
+  if (!db || !actor || actor.status !== "active") {
+    return { items: [], unread: 0, truncated: false };
+  }
+
+  const threads = known ?? (await listThreads(actor));
+  if (threads.length === 0) return { items: [], unread: 0, truncated: false };
+
+  const byId = new Map(threads.map((t) => [t.id, t]));
+  const lastRead = await participantsOf(threads.map((t) => t.id));
+
+  const { data } = await db
+    .from("eng_messages")
+    .select("id, created_at, thread_id, body, eng_profiles(display_name)")
+    .in("thread_id", threads.map((t) => t.id))
+    .contains("mentions", [actor.id])
+    .order("created_at", { ascending: false })
+    .limit(MENTION_PAGE + 1);
+
+  const rows = (data ?? []) as unknown as {
+    id: number;
+    created_at: string;
+    thread_id: string;
+    body: string;
+    eng_profiles: { display_name: string } | null;
+  }[];
+
+  const truncated = rows.length > MENTION_PAGE;
+  const page = truncated ? rows.slice(0, MENTION_PAGE) : rows;
+
+  const items = page.map((m) => {
+    const mine = (lastRead.get(m.thread_id) ?? []).find((p) => p.id === actor.id);
+    return {
+      messageId: m.id,
+      threadId: m.thread_id,
+      threadTitle: byId.get(m.thread_id)?.title ?? "A conversation",
+      kind: byId.get(m.thread_id)?.kind ?? "channel",
+      authorName: m.eng_profiles?.display_name ?? "Somebody who has left",
+      createdAt: m.created_at,
+      body: m.body,
+      unread: !mine?.lastReadAt || m.created_at > mine.lastReadAt,
+    };
+  });
+
+  return { items, unread: items.filter((i) => i.unread).length, truncated };
+}
