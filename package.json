@@ -59,7 +59,7 @@
     "token-audit": "tsx scripts/token-audit.mjs",
     "portal-voice-audit": "tsx scripts/portal-voice-audit.mjs",
     "preroles-audit": "node scripts/preflight-audit.mjs",
-    "roles-audit": "tsx scripts/roles-audit.mjs",
+    "roles-audit": "tsx --conditions=react-server scripts/roles-audit.mjs",
     "registry-audit": "tsx scripts/registry-audit.mjs",
     "prevoice-audit": "node scripts/preflight-audit.mjs",
     "voice-audit": "node scripts/voice-audit.mjs",

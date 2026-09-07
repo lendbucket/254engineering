@@ -1,6 +1,7 @@
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
-import type { Role } from "./ops-authz";
+import type { RoleKey } from "./ops-authz";
+import { wellFormedRoleKey } from "./role-rules";
 
 /**
  * The portal session cookie.
@@ -49,9 +50,34 @@ const TTL_SECONDS = 12 * 60 * 60;
 
 const MIN_SECRET_LENGTH = 24;
 
+/**
+ * THE ROLE FIELD IS A KEY, NOT A MEMBER OF A UNION, AND IT WAS BOTH FOR A WHILE
+ * ----------------------------------------------------------------------------
+ * This said `Role`, the union of the three roles that shipped in Phase 0, and
+ * `readOpsSession` enforced it with a literal comparison against those three.
+ * Phase 10 Section 2 made roles rows and the platform now ships seven.
+ *
+ * The effect, found on 2026-09-07 and reproduced before it was fixed: a
+ * dispatcher, a salesperson, a customer service account and a read only account
+ * could sign in completely successfully, with the password verified, the audit
+ * row written, `last_sign_in_at` updated and the cookie set, and then the very
+ * next request read that cookie, failed the membership test, and returned null.
+ * They landed back on the sign in screen with no error, because from the
+ * platform's point of view nothing had gone wrong. A success indistinguishable
+ * from nothing happening, which is the defect class this repository hunts.
+ *
+ * It survived because `roles-audit`'s live half iterated `ROLES`, the same
+ * three, while its pure half iterated all seven. The audit was looking at the
+ * right thing in the wrong list.
+ *
+ * What replaces the membership test is a SHAPE test, which is the question this
+ * layer actually has: the cookie is `sub.role.exp.signature` split on the dot,
+ * so the role segment has to be something that survives that. Which roles exist
+ * is the database's question, and `currentActor` asks it on every request.
+ */
 export type SessionClaims = {
   sub: string;
-  role: Role;
+  role: RoleKey;
   exp: number;
 };
 
@@ -81,14 +107,23 @@ function sign(payload: string, key: Buffer): string {
   return createHmac("sha256", key).update(payload).digest("base64url");
 }
 
-/** Mint a cookie value for a verified user. Returns null when unconfigured. */
+/**
+ * Mint a cookie value for a verified user.
+ *
+ * Returns null when unconfigured, and null for a role key that would not
+ * survive the round trip. Refusing to mint is deliberately harsher than
+ * minting something the reader will reject: the caller sees a 503 at sign in
+ * and the operator sees a role that cannot be used, rather than a person who
+ * signs in successfully and is not signed in.
+ */
 export function issueOpsSession(
   sub: string,
-  role: Role,
+  role: RoleKey,
   now: number = Date.now(),
 ): { value: string; expiresAt: Date } | null {
   const key = signingKey();
   if (!key) return null;
+  if (!wellFormedRoleKey(role)) return null;
   const exp = Math.floor(now / 1000) + TTL_SECONDS;
   const payload = `${sub}.${role}.${exp}`;
   return {
@@ -122,7 +157,16 @@ export function readOpsSession(value: string | undefined | null, now: number = D
 
   const exp = Number(expRaw);
   if (!Number.isFinite(exp) || exp * 1000 <= now) return null;
-  if (role !== "admin" && role !== "engineer" && role !== "field_tech") return null;
+
+  /*
+   * Shape, not membership. See the note on SessionClaims: asking "is this one
+   * of the three roles I know about" is how four of seven roles were signed out
+   * by their own first request. Whether the role still EXISTS, and what it may
+   * do, are answered by currentActor against the database on every request,
+   * which is where they belong and where a role deleted five minutes ago takes
+   * effect immediately.
+   */
+  if (!wellFormedRoleKey(role)) return null;
 
   return { sub, role, exp };
 }

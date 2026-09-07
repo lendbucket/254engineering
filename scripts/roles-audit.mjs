@@ -763,6 +763,68 @@ rec(
   rec("a reasonable key is accepted", keyProblem("ops_lead", ["sales"]) === null);
 }
 
+/* ---- the session survives every role, and still refuses a forgery ----
+ *
+ * PURE, so it fails without a server. The live half below proves the same thing
+ * end to end and only when one is running, and on 2026-09-07 there was a whole
+ * class of role for which neither half was looking.
+ *
+ * The claim is a round trip: what issueOpsSession mints, readOpsSession reads.
+ * Those are the two ends of the sign in, and they disagreed for four of the
+ * seven roles the platform ships, which is not a thing a matrix of permissions
+ * can see. Somebody who cannot hold a session has no permissions to check.
+ */
+{
+  const HAD_SECRET = process.env.OPS_SESSION_SECRET;
+  process.env.OPS_SESSION_SECRET = "roles-audit-fixture-secret-long-enough-to-pass";
+
+  const { issueOpsSession, readOpsSession } = await import("../src/lib/ops-session.ts");
+  const SUB = "00000000-0000-0000-0000-000000000001";
+
+  let survived = 0;
+  for (const role of DEFAULT_ROLES) {
+    const minted = issueOpsSession(SUB, role.key);
+    const read = minted ? readOpsSession(minted.value) : null;
+    if (read && read.role === role.key) survived += 1;
+    rec(
+      `a ${role.key} session survives its own round trip`,
+      Boolean(read) && read?.role === role.key,
+      minted ? "" : "it could not even be minted",
+    );
+  }
+  rec(
+    `every shipped role can hold a session (${survived} of ${DEFAULT_ROLES.length})`,
+    survived === DEFAULT_ROLES.length,
+    "a role that cannot hold a session signs in successfully and is signed out by the next request",
+  );
+
+  /*
+   * And the other direction, because a check that only ever says yes is not
+   * measuring anything. The cookie is sub.role.exp.signature split on the dot,
+   * so a role segment carrying one would produce a cookie nobody can parse:
+   * minting refuses it rather than issuing something the reader will reject.
+   */
+  rec("a role key with a dot is never minted", issueOpsSession(SUB, "ad.min") === null);
+  rec("nor is one with a capital", issueOpsSession(SUB, "Admin") === null);
+  rec("nor one that is too short", issueOpsSession(SUB, "aa") === null);
+  rec("but an owner created key still works", issueOpsSession(SUB, "field_auditor") !== null);
+
+  const fixture = issueOpsSession(SUB, "dispatcher");
+  const parts = (fixture?.value ?? "").split(".");
+  rec(
+    "a role edited in the cookie is refused, signature and all",
+    readOpsSession(`${parts[0]}.admin.${parts[2]}.${parts[3]}`) === null,
+    "widening the role check must not widen the door",
+  );
+  rec(
+    "and so is a well formed role nobody signed",
+    readOpsSession(`${parts[0]}.field_auditor.${parts[2]}.${parts[3]}`) === null,
+  );
+
+  if (HAD_SECRET === undefined) delete process.env.OPS_SESSION_SECRET;
+  else process.env.OPS_SESSION_SECRET = HAD_SECRET;
+}
+
 // ---- suspended and signed out ----
 for (const role of ROLES) {
   const suspended = { id: "x", role, status: "suspended" };
@@ -862,11 +924,54 @@ if (!db) {
 } else {
   let sessions = {};
   try {
-    for (const role of ROLES) {
+    /*
+     * EVERY ROLE THE PLATFORM SHIPS, NOT THE THREE IT SHIPPED IN PHASE 0.
+     *
+     * This loop read ROLES until 2026-09-07, while the pure half of this same
+     * file read DEFAULT_ROLES. Seven roles were being reasoned about and three
+     * were being signed in, and the four in the gap were exactly the four that
+     * could not hold a session: ops-session.ts validated the cookie's role
+     * against the same stale union, so a dispatcher, a salesperson, a customer
+     * service account and a read only account signed in successfully and were
+     * signed out by their own next request.
+     *
+     * The audit was looking at the right thing in the wrong list, which is the
+     * defect this repository keeps finding one level up from wherever it looks.
+     */
+    const LIVE_ROLES = DEFAULT_ROLES.map((r) => r.key);
+    rec(
+      `the live probes cover every role the platform ships (${LIVE_ROLES.length})`,
+      LIVE_ROLES.length === DEFAULT_ROLES.length && LIVE_ROLES.length > ROLES.length,
+      "a live half narrower than the pure half is how four roles went unmeasured",
+    );
+
+    for (const role of LIVE_ROLES) {
       const probe = await makeProbe(db, role);
       const signedIn = await signIn(probe.email, probe.password);
       rec(`probe ${role} can sign in through the real endpoint`, signedIn.ok && Boolean(signedIn.cookie));
       sessions[role] = signedIn.cookie;
+
+      /*
+       * AND THE SESSION SURVIVES THE NEXT REQUEST, WHICH IS A SEPARATE CLAIM.
+       *
+       * Signing in mints and sets a cookie. Whether anything later ACCEPTS that
+       * cookie is a different question, and it is the one that was false: the
+       * sign in above answered 200 with a Set-Cookie for all seven roles even
+       * while four of them were already dead.
+       *
+       * A 401 from the proxy means the session was not read. Anything else,
+       * including a 403 for a role that legitimately may not do this, means it
+       * was, which is the whole claim being made here.
+       */
+      const next = await fetch(`${BASE}/api/portal/people`, {
+        headers: { cookie: signedIn.cookie ?? "" },
+        redirect: "manual",
+      });
+      rec(
+        `and ${role} is still signed in on the very next request`,
+        next.status !== 401,
+        next.status === 401 ? "401 from the proxy: the cookie was minted and then refused" : `status ${next.status}`,
+      );
     }
 
     // The forbidden matrix, over HTTP. Each of these must be refused.
