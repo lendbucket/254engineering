@@ -7,8 +7,15 @@ import {
   dependencyStates,
   recentErrors,
   RELEASE,
-  ENVIRONMENT,
 } from "@/lib/ops-observability";
+/*
+ * The label rather than ENVIRONMENT, and the reasoning is in db-guard beside
+ * the function. ENVIRONMENT answers which build this is, which is the right
+ * axis for grouping a fault and the wrong answer to "whose records am I looking
+ * at". This screen is read during an incident, which is exactly when the
+ * difference matters.
+ */
+import { environmentLabel } from "@/lib/db-guard";
 import { metricsSince, METRICS } from "@/lib/ops-metrics";
 import { RATE_WINDOW_MINUTES, RATE_THRESHOLD } from "@/lib/alert-rules";
 import { Chip, EmptyState, ErrorState, PageHead, Panel } from "@/components/portal/surfaces";
@@ -90,7 +97,7 @@ export default async function StatusPage() {
       <PageHead
         eyebrow="Operations"
         title="Platform status"
-        lede={`What this deployment can reach, what has run, and what has been failing. Release ${RELEASE} on ${ENVIRONMENT}. Every figure carries the time it was read, because a number with no timestamp cannot be told from a number that stopped updating.`}
+        lede={`What this deployment can reach, what has run, and what has been failing. Release ${RELEASE}, running ${environmentLabel()}. Every figure carries the time it was read, because a number with no timestamp cannot be told from a number that stopped updating.`}
       />
 
       {/* ------------------------------------------------------ dependencies */}

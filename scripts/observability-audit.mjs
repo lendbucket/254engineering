@@ -43,7 +43,9 @@ import {
   MAX_ALERTS_PER_SWEEP,
 } from "../src/lib/alert-rules.ts";
 import { cronVerdict, WATCHED_CRONS } from "../src/lib/ops-observability.ts";
-import { beforeSend, beforeBreadcrumb, sentryOptions, release } from "../src/lib/sentry-config.ts";
+import { beforeSend, beforeBreadcrumb, sentryOptions, release, environment } from "../src/lib/sentry-config.ts";
+import { firstNonEmpty } from "../src/lib/env-value.ts";
+import { RELEASE } from "../src/lib/ops-observability.ts";
 
 function codeOnly(path) {
   const withoutBlocks = readFileSync(path, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
@@ -294,6 +296,26 @@ function leaks(text) {
         "and it carries the release, so a stack trace can be matched to code",
         new RegExp(`"release":"${release()}"`).test(captured),
         release(),
+      );
+
+      /*
+       * AND IT IS A VALUE, WHICH THE CHECK ABOVE CANNOT SEE.
+       *
+       * That check has release() on both sides, so it holds just as well when
+       * release() is the empty string: it would be comparing "release":"" to
+       * itself and passing. It was passing, off a developer machine, for
+       * exactly that reason.
+       *
+       * `vercel env pull` writes VERCEL_GIT_COMMIT_SHA with nothing after it. An
+       * empty string is neither null nor undefined, so a ?? chain keeps it and
+       * every fallback behind it is dead code. The same line produced a portal
+       * footer that rendered a bare separator, which is how it was found: in a
+       * screenshot, on 2026-09-06, not by any check.
+       */
+      rec(
+        "and the release tag is a value rather than an empty string",
+        release().length > 0,
+        JSON.stringify(release()),
       );
 
       rec(
@@ -860,6 +882,76 @@ const base = {
     "an unset CRON_SECRET is reported as nothing scheduled running",
     /NOTHING scheduled runs/.test(deps),
   );
+}
+
+/*
+ * =====================================================================
+ * A SET AND EMPTY VARIABLE IS NOT A VALUE.
+ *
+ * The fallback logic is asserted directly rather than through the two functions
+ * that use it, because those read process.env.NEXT_PUBLIC_* literally so the
+ * build can substitute them, and a function that took an env object would break
+ * the browser half to make itself testable. So the logic is a function, and
+ * this is that function, and the two callers are checked by inspection below.
+ * =====================================================================
+ */
+{
+  rec(
+    "an empty variable falls through to the next one",
+    firstNonEmpty("", "second") === "second",
+    "?? keeps an empty string, which is what broke the release tag",
+  );
+  rec(
+    "a whitespace only variable falls through as well",
+    firstNonEmpty("   ", "second") === "second",
+    "a trailing space in a dashboard is not a commit sha",
+  );
+  rec("a real value is kept", firstNonEmpty("abc123", "second") === "abc123");
+  rec("an undefined variable falls through", firstNonEmpty(undefined, "second") === "second");
+  rec(
+    "and nothing at all is an empty string rather than undefined",
+    firstNonEmpty(undefined, "") === "",
+    "callers name things for people; a thrown or undefined label is a worse footer than a blank one",
+  );
+
+  /*
+   * These two read THIS process, so what they can see depends on what this
+   * machine has set. An audit run with VERCEL_GIT_COMMIT_SHA unset never sees
+   * the empty string at all: undefined falls through the old ?? chain to
+   * "local" just as it does through firstNonEmpty, and the defect that produced
+   * a bare separator in the footer is invisible from here. That is why the
+   * coupling checks below exist and why the unit checks above are the ones
+   * doing the work. Recorded rather than left to be discovered, because a check
+   * whose green depends on the machine is a check somebody will one day trust
+   * for more than it says.
+   */
+  rec(
+    "the release constant the portal renders is a value",
+    typeof RELEASE === "string" && RELEASE.length > 0,
+    JSON.stringify(RELEASE),
+  );
+  rec(
+    "and so is the environment the browser half tags with",
+    environment().length > 0,
+    JSON.stringify(environment()),
+  );
+
+  /*
+   * THE COUPLING, because the checks above pass just as well if somebody puts
+   * the ?? chain back. Both readers have to go through the function.
+   */
+  for (const [file, what] of [
+    ["src/lib/ops-observability.ts", "the release the portal and the fault store use"],
+    ["src/lib/sentry-config.ts", "the release and environment Sentry is tagged with"],
+  ]) {
+    const source = readFileSync(file, "utf8");
+    rec(
+      `${what} reads its variables through firstNonEmpty`,
+      /firstNonEmpty\(/.test(source) &&
+        !/VERCEL_GIT_COMMIT_SHA\?\.slice\(0, 12\) \?\?/.test(source),
+      file,
+    );
+  }
 }
 
 // =========================================================================

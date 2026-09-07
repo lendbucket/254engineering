@@ -2516,7 +2516,7 @@ course, because nothing can be sealed and no engineer is taking files into
 review. The exposure is a file already sitting under review with no engineer
 account, and there is none.
 
-### The portal version footer says "production" on a machine pointed at development
+### RESOLVED 2026-09-06: the portal version footer says "production" on a machine pointed at development
 
 Recorded 2026-09-05, noticed while looking at the Section 2 screenshots at 1280.
 
@@ -2532,12 +2532,47 @@ defect. The same untrustworthy value is being shown to the operator as a fact
 about which system they are looking at, which is the confusion the preview
 pointing at production incident was made of.
 
-**Not fixed here because it is not Section 2 and it is not free.** `ENVIRONMENT`
-also tags every fault the error store records, so changing what it means changes
-how faults are grouped. The honest label is the one `db-target.mjs` and
-`db-guard.ts` already compute: the Supabase project the process is actually
-talking to. That is the shape to build, deliberately, rather than as a side
-effect of a permissions branch.
+**Not fixed when it was found, because it was not that section's work and it
+was not free.** `ENVIRONMENT` also tags every fault the error store records, so
+changing what it means changes how faults are grouped. The honest label is the
+one `db-target.mjs` and `db-guard.ts` already compute: the Supabase project the
+process is actually talking to. That is the shape to build, deliberately,
+rather than as a side effect of a permissions branch.
+
+**Built that way, in the closeout.** `environmentLabel()` in
+`src/lib/db-guard.ts` answers the question a person reading a footer actually
+has, which is which records are on the screen: "local on the development
+database", "production on the production database", "an unrecognised database
+(ref)" when it is a project nobody named, "no database" when there is none.
+Where it runs is decided by `onAVercelDeployment`, the same test the production
+guard makes and for the same reason, so a laptop holding a deployment's
+variables says local. The portal footer and the status page both render it.
+
+`ENVIRONMENT` is untouched and still tags faults, with the reasoning written
+beside it. `db-guard-audit` asserts the label on every case including the one
+that started this, and asserts by inspection that both screens render the label
+rather than the build mode, because the functions being right is worth nothing
+if a revert puts `{ENVIRONMENT}` back in the footer.
+
+**And the other half of that line was empty, which nobody had noticed.**
+The footer renders `RELEASE · <label>`, and on a local machine it rendered
+" · local on the development database" with nothing where the commit belongs.
+`vercel env pull` writes `VERCEL_GIT_COMMIT_SHA=` with nothing after it, an
+empty string is neither null nor undefined, so `?.slice()` produced "" and the
+`??` chain kept it. Every fallback behind it was dead. `sentry-config`'s
+`release()` and `environment()` had the same shape, so a fault raised from a
+machine in that state would have been tagged with an empty release, which
+groups worse than no tag because it looks like a value.
+
+`firstNonEmpty` in `src/lib/env-value.ts` is now what reads them, and
+`observability-audit` asserts the fallback behaviour directly and asserts that
+both readers go through it. The value checks in that audit are honest about
+what they cannot see: on a machine where the variable is unset rather than
+empty, the old code and the new code agree, so the coupling check is the one
+doing the work.
+
+Found in a screenshot, on the day the label beside it was being fixed. Not by
+any check.
 
 ### The portal sidebar clips its own navigation with no affordance
 

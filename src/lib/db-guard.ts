@@ -319,3 +319,77 @@ export function mispointing(env: GuardEnv = process.env as GuardEnv): Mispointin
 export function guardError(fault: Mispointing = PREVIEW_ON_PRODUCTION): Error {
   return new Error(`${fault.headline}. ${fault.explanation} ${fault.fix}`);
 }
+
+// ===================================================== what this thing IS
+
+/**
+ * The label the portal footer wears, and why it is not ENVIRONMENT.
+ *
+ * WHAT WAS WRONG
+ * --------------
+ * The footer read `RELEASE · ENVIRONMENT`, and ENVIRONMENT is
+ * `VERCEL_ENV ?? NODE_ENV`. On the operator's own machine, pointed at the
+ * development database, it said PRODUCTION. Two reasons, either of them enough:
+ * `vercel env pull` writes VERCEL_ENV="production" into .env.local, and
+ * `next start` sets NODE_ENV=production because a built server is a production
+ * build.
+ *
+ * Neither is a lie about what it measures. VERCEL_ENV is the environment the
+ * variables came from and NODE_ENV is the build mode, and for grouping faults
+ * that is the right axis: a fault in a production build behaves like a
+ * production fault wherever it ran. ENVIRONMENT is therefore left exactly as it
+ * is, and nothing here changes what a fault is tagged with.
+ *
+ * What the footer is for is a different question, and it is the question
+ * somebody standing in front of a screen actually has: WHICH RECORDS AM I
+ * LOOKING AT. That is answered by the Supabase project this process is
+ * connected to and by whether this is a real deployment, so it is answered
+ * here, beside the guard that already knows both.
+ *
+ * WHY THIS IS MORE THAN COSMETIC
+ * ------------------------------
+ * Every incident this file records began with somebody being confident about
+ * which database they were touching. A footer that says "production" over the
+ * development database trains the reader to ignore the footer, and the day it
+ * says something true is the day it is ignored.
+ */
+
+/** Where this process is running, as opposed to where its variables came from. */
+export function whereRunning(env: GuardEnv = process.env as GuardEnv): string {
+  /*
+   * A laptop holding a deployment's variables is not that deployment. The
+   * reasoning, and the incident behind it, is written out at onAVercelDeployment
+   * above: this is the same distinction the production guard makes, asked for a
+   * different purpose, and it is the same function so the two cannot drift.
+   */
+  if (!onAVercelDeployment(env)) return "local";
+  const where = env.VERCEL_ENV;
+  if (where === "production" || where === "preview" || where === "development") return where;
+  return "a deployment";
+}
+
+/** Which records this process can see, named by the project it is connected to. */
+export function databaseInUse(env: GuardEnv = process.env as GuardEnv): string {
+  const ref = refOf(env.SUPABASE_URL);
+  if (ref === null) return "no database";
+  if (ref === PRODUCTION_REF) return "the production database";
+  if (ref === DEVELOPMENT_REF) return "the development database";
+  /*
+   * Named rather than called unknown. A third project is either a mistake or a
+   * migration, and both are things the reader needs the ref for.
+   */
+  return `an unrecognised database (${ref})`;
+}
+
+/**
+ * The two facts in one line, for the portal footer and the status page.
+ *
+ * Deliberately says both halves even when they agree. "production on the
+ * production database" is redundant on the day everything is right, and it is
+ * the only phrasing that makes "production on the development database" read as
+ * the alarm it is: a reader who has learned the shape notices the second half
+ * changed.
+ */
+export function environmentLabel(env: GuardEnv = process.env as GuardEnv): string {
+  return `${whereRunning(env)} on ${databaseInUse(env)}`;
+}

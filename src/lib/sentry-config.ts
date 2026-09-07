@@ -1,4 +1,5 @@
 import { scrubEvent, type ScrubbableEvent } from "./observability-scrub";
+import { firstNonEmpty } from "./env-value";
 
 /**
  * The one Sentry configuration, shared by every runtime.
@@ -41,16 +42,26 @@ export function sentryConfigured(): boolean {
  * the point, because a release tag read at runtime could name a different build
  * from the one that is running.
  */
+/*
+ * THE READS STAY LITERAL, AND THAT IS NOT AN OVERSIGHT.
+ *
+ * NEXT_PUBLIC_ variables are substituted into the bundle at build time, and the
+ * substitution only finds `process.env.NEXT_PUBLIC_X` written out. Taking an
+ * env object as a parameter, which would have made these directly testable,
+ * would leave the browser half reading undefined at runtime. So the fallback
+ * logic is a function that IS tested, and these two read their variables in the
+ * one shape the compiler recognises.
+ */
 export function release(): string {
-  return (
-    process.env.NEXT_PUBLIC_SENTRY_RELEASE ??
-    process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 12) ??
-    "local"
+  return firstNonEmpty(
+    process.env.NEXT_PUBLIC_SENTRY_RELEASE,
+    process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 12),
+    "local",
   );
 }
 
 export function environment(): string {
-  return process.env.NEXT_PUBLIC_VERCEL_ENV ?? process.env.VERCEL_ENV ?? "development";
+  return firstNonEmpty(process.env.NEXT_PUBLIC_VERCEL_ENV, process.env.VERCEL_ENV, "development");
 }
 
 /**

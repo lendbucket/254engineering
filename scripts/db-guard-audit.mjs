@@ -33,6 +33,9 @@ import {
   liveKeyOffProduction,
   PRODUCTION_GUARD_FIX,
   PRODUCTION_GUARD_HEADLINE,
+  databaseInUse,
+  environmentLabel,
+  whereRunning,
   mispointing,
   previewPointingAtProduction,
   productionPointingElsewhere,
@@ -488,6 +491,112 @@ rec(
   rec(
     "and it throws rather than returning null, so a caller cannot treat the wrong database as unconfigured",
     /throw guardError\(fault\)/.test(supabaseSource),
+  );
+}
+
+/*
+ * =====================================================================
+ * AND WHAT THE PORTAL TELLS THE PERSON READING IT.
+ *
+ * The footer said "production" on the operator's machine, over the development
+ * database, because ENVIRONMENT is VERCEL_ENV or NODE_ENV and both say
+ * production there: `vercel env pull` writes VERCEL_ENV=production into
+ * .env.local, and a built server sets NODE_ENV=production.
+ *
+ * That is the same class as every incident this file guards. Each one began
+ * with somebody being confident about which database they were touching, and a
+ * footer that is wrong in the reassuring direction is worse than no footer,
+ * because it is a check that passes while looking at the wrong thing and the
+ * reader is the one running it.
+ *
+ * The cases below are the ones that actually occur, and the first is the defect.
+ * =====================================================================
+ */
+{
+  const LAPTOP = { VERCEL_ENV: "production", SUPABASE_URL: DEV_URL };
+
+  rec(
+    "the label refuses to say production on a laptop pointed at development",
+    environmentLabel(LAPTOP) === "local on the development database",
+    environmentLabel(LAPTOP),
+  );
+
+  rec(
+    "a real production deployment says production, and says which database",
+    environmentLabel({ ...DEPLOY, VERCEL_ENV: "production", SUPABASE_URL: PROD_URL }) ===
+      "production on the production database",
+    environmentLabel({ ...DEPLOY, VERCEL_ENV: "production", SUPABASE_URL: PROD_URL }),
+  );
+
+  rec(
+    "a preview on development says both halves",
+    environmentLabel({ ...DEPLOY, VERCEL_ENV: "preview", SUPABASE_URL: DEV_URL }) ===
+      "preview on the development database",
+    environmentLabel({ ...DEPLOY, VERCEL_ENV: "preview", SUPABASE_URL: DEV_URL }),
+  );
+
+  /*
+   * The alarm case. It is also the one the mispointing guard refuses outright,
+   * so this string should never reach a footer; it is asserted because a label
+   * that could not express the fault would be a label nobody could trust to
+   * report it.
+   */
+  rec(
+    "and production over development is sayable, so the reader would see it",
+    environmentLabel({ ...DEPLOY, VERCEL_ENV: "production", SUPABASE_URL: DEV_URL }) ===
+      "production on the development database",
+    environmentLabel({ ...DEPLOY, VERCEL_ENV: "production", SUPABASE_URL: DEV_URL }),
+  );
+
+  const third = "https://qqqqqqqqqqqq.supabase.co";
+  rec(
+    "an unrecognised project is named rather than called unknown",
+    databaseInUse({ SUPABASE_URL: third }) === "an unrecognised database (qqqqqqqqqqqq)",
+    databaseInUse({ SUPABASE_URL: third }),
+  );
+  rec(
+    "and no database is said plainly rather than guessed at",
+    databaseInUse({}) === "no database",
+    databaseInUse({}),
+  );
+
+  rec(
+    "where it runs is decided by the deployment id, not by a variable a laptop can hold",
+    whereRunning({ VERCEL_ENV: "production" }) === "local" &&
+      whereRunning({ ...DEPLOY, VERCEL_ENV: "production" }) === "production",
+    "vercel env pull writes VERCEL_ENV into .env.local, which is why this is the same test the production guard makes",
+  );
+
+  /*
+   * AND THE SCREENS USE IT.
+   *
+   * The functions above being right is worth nothing if the footer still
+   * renders ENVIRONMENT. This is the coupling check, and it is the one that
+   * would catch a revert: both surfaces call the label, and neither prints
+   * ENVIRONMENT any more.
+   */
+  for (const [file, what] of [
+    ["src/app/portal/(app)/layout.tsx", "the portal footer"],
+    ["src/app/portal/(app)/status/page.tsx", "the status page"],
+  ]) {
+    const source = fs.readFileSync(path.join(process.cwd(), ...file.split("/")), "utf8");
+    rec(
+      `${what} shows the label rather than the build mode`,
+      /environmentLabel\(\)/.test(source) && !/\{ENVIRONMENT\}|\$\{ENVIRONMENT\}/.test(source),
+      file,
+    );
+  }
+
+  /*
+   * And ENVIRONMENT itself is left alone, because faults are grouped by it and
+   * regrouping every historic fault to fix a footer would be the wrong trade.
+   */
+  const obs = fs.readFileSync(path.join(process.cwd(), "src", "lib", "ops-observability.ts"), "utf8");
+  rec(
+    "and fault grouping still uses the build mode it always did",
+    /export const ENVIRONMENT = process\.env\.VERCEL_ENV \?\? process\.env\.NODE_ENV/.test(obs) &&
+      /environment: ENVIRONMENT/.test(obs),
+    "a label for a reader and a key for grouping are different jobs",
   );
 }
 

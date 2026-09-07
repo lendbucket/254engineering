@@ -2,9 +2,9 @@ import Link from "next/link";
 import { ScrollMemory } from "@/components/portal/ScrollMemory";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
-import { RELEASE, ENVIRONMENT } from "@/lib/ops-observability";
+import { RELEASE } from "@/lib/ops-observability";
 import { currentActor } from "@/lib/ops-auth";
-import { mispointing } from "@/lib/db-guard";
+import { environmentLabel, mispointing } from "@/lib/db-guard";
 import { MispointedDeployment } from "@/components/portal/Mispointed";
 import { listNotifications, unreadCount } from "@/lib/ops-notify";
 import { can, ROLE_LABEL, may } from "@/lib/ops-authz";
@@ -147,15 +147,24 @@ export default async function PortalLayout({ children }: { children: React.React
           {/*
             The version footer the standards file asks for, carrying values the
             platform actually has: the commit this deployment was built from and
-            which environment it is. Both come from the environment Vercel sets,
-            and RELEASE is the same string the error store tags every fault with,
-            so a fault report and a screenshot can be matched to each other.
+            WHICH RECORDS THIS SCREEN IS SHOWING. RELEASE is the same string the
+            error store tags every fault with, so a fault report and a
+            screenshot can be matched to each other.
+
+            The second half used to be ENVIRONMENT, which is VERCEL_ENV or
+            NODE_ENV, and it said "production" on the operator's own machine
+            over the development database: `vercel env pull` writes
+            VERCEL_ENV=production into .env.local and a built server sets
+            NODE_ENV=production. Neither is wrong about what it measures, and
+            faults are still grouped by ENVIRONMENT for exactly that reason.
+            They are the wrong answer to the question somebody reading a footer
+            is asking, which is whose records are on the screen.
 
             This is not the feature flag and environment banner system in the
             build roadmap. It is two facts that already exist, displayed.
           */}
           <p className="mt-3 font-mono text-[12px] leading-[1.5] text-[var(--on-navy-dim)]">
-            {RELEASE} · {ENVIRONMENT}
+            {RELEASE} · {environmentLabel()}
           </p>
         </div>
       </aside>
