@@ -340,6 +340,44 @@ shape.
 **Operator ruling, 2026-09-07: the null stays.** A wrong screen is worse than an
 honest absence, and the screen saying so is correct.
 
+**RULED 2026-09-08, AND THE QUESTION IS CLOSED.** Phase 12 Section 2 answers
+all three, and each answer is a choice between the two screens this entry said
+the firm had never had to choose between. They are recorded here beside the
+question rather than only in the section brief, because the question is here.
+
+**Dispatcher: both, and the queue leads.** Unassigned jobs by county and age,
+technicians available by certification and county, jobs past their capture
+window, and offers outstanding with their expiry. The question was whether a
+dispatcher is measured on how FAST work is placed or how WELL. The answer is
+that the screen carries both and puts the ageing queue first: coverage and
+technician load are on it, so placing work well is visible, but what a person
+opens the screen to do is place the thing that has been waiting longest.
+
+**Sales: their own pipeline, and no money the firm makes.** Leads by source
+and stage, quotes unpaid with age, partner attribution for the period, and B2B
+accounts by last order date. The ruling holds the line this entry drew: sales
+does not hold `pricing.read` and nothing here needs it. Every figure is about
+flow and age, not about margin or value, so the screen is complete without a
+grant this role is deliberately denied.
+
+**Customer service: work in progress, not the lead inbox.** Orders awaiting
+something from the customer with what is awaited, open message threads by age
+of last inbound, refunds in flight with their case, and unsubscribe requests
+received by telephone. The grants suggested work in progress and the name
+suggested the inbox; the grants win, because they are what the role can
+actually act on.
+
+That last item is new and is not a dashboard tile. The marketing suppression
+list built in the email port has no operator screen, so somebody who asks to
+be removed by telephone cannot be recorded without SQL. It is built here, as a
+list with add and remove, audited.
+
+**The constraint this entry named still holds and was not relaxed to make any
+of the three complete.** None of these roles holds `ledger.read_all` or
+`billing.read`, and no dashboard for them carries a firm level money figure.
+Where a dashboard would need a figure the grants do not cover, that is
+reported rather than fixed by widening a grant.
+
 **AND THE BUSINESS QUESTION, WHICH IS THE OPERATOR'S AND IS NEEDED BEFORE
 HIRING ANY OF THE THREE.** What each of these roles should see is not a design
 question with a defensible default. It is a question about what the job is, and
@@ -1179,6 +1217,37 @@ rest, and reports the count; the roster puts ended partners behind a disclosure.
 
 Nothing in the committed suite creates them, so this is history rather than a
 leak. Production has no partner rows at all.
+
+**CLOSED 2026-09-08 by 0028, without touching the trigger.** Deletion was only
+ever a proxy for the thing that actually mattered, which is telling a probe
+apart from a partner. `is_demo` does that directly, so all eight are marked and
+none of them can reach a figure on any report. They still cannot be deleted and
+they still should not be.
+
+They were found again on the way there, which is the part worth keeping. 0027's
+backfill matched demonstrations by NAME, so it caught the records whoever wrote
+it could remember and missed these plus three "Stripe Probe" clients and one
+client written by a script that is not in the tree either. demo-audit's detector
+was extended from orders to profiles, partners and clients, named all twelve on
+its first run, and 0028 marks them by the address rule in
+`src/lib/ops-files.ts` rather than by a name. **0028 is applied to development
+and to production**, and on production it marked nothing, because production
+holds two profiles, one application and no partners, clients, orders or files.
+
+### One development client was written by a script nobody can name
+
+Recorded 2026-09-08, found by the same sweep. `eng_clients` on development holds
+"Demo Solar Installers LLC" at `orders@example.com`. What can be said about it:
+the name appears nowhere in this repository, no committed script creates a
+client with that name or that address, and it is the same shape as the eight "ZZ
+probe" partners and the three "Stripe Probe" clients, all of which came from end
+to end scripts written during earlier sections and never committed.
+
+**No action, and none is possible.** There is no script to fix. 0028 marked it,
+so it reaches no figure on any report, and demo-audit's detector now sweeps
+`eng_profiles`, `eng_partners` and `eng_clients` on every board run, so the next
+one is named on the day it is written rather than in the next inventory.
+Production holds no client rows at all.
 
 ### Orders attributed before 0022 cannot have their link touches shown
 

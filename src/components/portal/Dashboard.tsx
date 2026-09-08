@@ -44,9 +44,22 @@ export function CountTiles({ tiles }: { tiles: Tile[] }) {
           href={tile.href}
           className="block rounded-[var(--radius-card)] border border-[var(--border)] bg-white p-4 transition-colors hover:bg-[var(--row-hover)]"
         >
-          <p className={`font-display text-[30px] leading-none font-bold ${NUMBER_TONE[tile.tone]}`}>
-            {tile.count}
-          </p>
+          {/*
+            A count that is not known says so, in the same shape MoneyFigure
+            uses for an absent figure. Rendering `null` here would print nothing
+            at all and read as a tile that had not loaded, which is the failure
+            ops-money.ts:36 names: an empty space is the one thing somebody will
+            eventually decide means zero.
+          */}
+          {tile.count === null ? (
+            <p className="font-display text-[30px] leading-none font-bold text-[var(--muted)] italic">
+              not known
+            </p>
+          ) : (
+            <p className={`font-display text-[30px] leading-none font-bold ${NUMBER_TONE[tile.tone]}`}>
+              {tile.count}
+            </p>
+          )}
           <p className="mt-2 text-[13.5px] leading-[1.35] font-semibold text-[var(--navy)]">{tile.label}</p>
           <p className="mt-1.5 text-[12px] leading-[1.45] text-[var(--secondary)]">{tile.note}</p>
         </Link>

@@ -181,6 +181,45 @@ export const LICENSED_ACTIONS: LicensedAction[] = [
  */
 export const LICENSED_ROLE = "engineer";
 
+/**
+ * A FIGURE THAT ONLY SOMEBODY IN RESPONSIBLE CHARGE MAY SEE.
+ *
+ * Phase 12 Section 2. The same construction as LicensedAction above and for the
+ * same reason: not a filter somebody remembers, but a type that cannot be put
+ * into a role row. Role.grants is Action[] and these are not Actions, so there
+ * is no checkbox to hide on the permission screen and no runtime test to
+ * forget. Unrepresentable rather than filtered.
+ *
+ * WHAT MAKES A FIGURE LICENSED. It is derived from the responsible charge log,
+ * which is the firm's regulatory record of who took responsible charge of what
+ * and when. A count of sealed documents attributed to a named Professional
+ * Engineer is not an operations metric, it is a statement about a licence, and
+ * a role that cannot hold responsible charge has no business reading it
+ * whatever an owner ticks on the roles screen.
+ *
+ * The production REPORT is grantable, because a firm has to be able to let an
+ * administrator see what it pays. The figures below are the ones inside it that
+ * are about the LICENCE rather than about the money, and holdsLicence gates
+ * them.
+ *
+ * scripts/proofs/licensed-actions-are-unrepresentable.ts compiles this claim
+ * beside the actions, and fails to compile the day somebody makes one
+ * grantable.
+ */
+export type LicensedFigure =
+  | "charge_log.entries"
+  | "charge_log.sealed_by_engineer"
+  | "charge_log.declined_by_engineer"
+  | "charge_log.review_minutes";
+
+export const LICENSED_FIGURES: LicensedFigure[] = [
+  "charge_log.entries",
+  "charge_log.sealed_by_engineer",
+  "charge_log.declined_by_engineer",
+  "charge_log.review_minutes",
+];
+
+
 export type Action =
   // people
   | "profiles.list"
@@ -276,7 +315,14 @@ export type Action =
   | "audit.read"
   | "time.log_own"
   | "responsible_charge.read_own"
-  | "responsible_charge.read_all";
+  | "responsible_charge.read_all"
+  // reports. A report is a claim the firm makes about itself, so reading one is
+  // a grant like any other. Seeded by 0027 to admin, and reports.production
+  // additionally to the engineer, whose own work it describes.
+  | "reports.revenue"
+  | "reports.production"
+  | "reports.pipeline"
+  | "reports.partner";
 
 /**
  * The matrix. Read it as: this role may perform these actions.
@@ -325,6 +371,10 @@ const MATRIX: Record<Role, Action[]> = {
     "tasks.use", "messages.use",
     "audit.read", "time.log_own",
     "responsible_charge.read_own", "responsible_charge.read_all",
+    /* All four reports. Seeded by 0027 and declared here, because roles-audit
+     * compares this array to the migration chain and a grant in one and not the
+     * other is a permission nobody decided. */
+    "reports.revenue", "reports.production", "reports.pipeline", "reports.partner",
   ],
   engineer: [
     "profiles.read_self", "profiles.update_self",
@@ -342,6 +392,10 @@ const MATRIX: Record<Role, Action[]> = {
     "documents.deliver", "documents.read",
     "tasks.use", "messages.use",
     "ledger.read_own", "time.log_own",
+    /* The production report and nothing else: it describes their own work.
+     * No revenue, no pipeline, no partner. A licence is not a reason to see
+     * what the firm earns. */
+    "reports.production",
     "responsible_charge.read_own",
     // An engineer sees what a file is worth, because they are paid production on
     // it and a tier they cannot see is a number they cannot check.

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
+import { isKnown, money, type Cents } from "@/lib/ops-money";
 import { can } from "@/lib/ops-authz";
 import { chargeLog, chargeLogPeriods, productionLedger, timeLog } from "@/lib/ops-engineer";
 import { isBriskReview, outcomeLabel, periodOf } from "@/lib/ops-review";
@@ -30,7 +31,11 @@ export const dynamic = "force-dynamic";
  * a defensible professional record.
  */
 
-const money = (cents: number) => `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
+/* ops-money, for the reason recorded on the techs screen. */
+const sumKnown = (rows: { amount_cents: number | null }[]): Cents =>
+  rows.some((r) => !isKnown(r.amount_cents))
+    ? null
+    : rows.reduce((s, r) => s + (r.amount_cents as number), 0);
 
 const when = (value: string) =>
   new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -175,7 +180,7 @@ export default async function ChargeLogPage({
                       This month
                     </dt>
                     <dd className="mt-1 font-display text-[17px] font-bold text-[var(--navy)]">
-                      {money(forPeriod.reduce((s, p) => s + p.amount_cents, 0))}
+                      {money(sumKnown(forPeriod))}
                     </dd>
                   </div>
                   <div>
@@ -183,7 +188,7 @@ export default async function ChargeLogPage({
                       Unpaid
                     </dt>
                     <dd className="mt-1 font-display text-[17px] font-bold text-[var(--navy)]">
-                      {money(pending.reduce((s, p) => s + p.amount_cents, 0))}
+                      {money(sumKnown(pending))}
                     </dd>
                   </div>
                 </dl>
@@ -220,7 +225,7 @@ export default async function ChargeLogPage({
                         {t.kind.replace(/_/g, " ")}
                       </span>
                       <span className="text-[13.5px] text-[var(--secondary)]">
-                        {t.minutes ?? 0} min
+                        {t.minutes === null ? "time not measured" : `${t.minutes} min`}
                         {t.entered_manually ? ", by hand" : ""}
                       </span>
                     </div>

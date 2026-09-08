@@ -55,3 +55,4 @@ screenshots/
 # one is a duplicate of everything beside it and the other is a preview image.
 design-reference/portal/Design form workflow.zip
 design-reference/portal/.thumbnail
+.tmp-*

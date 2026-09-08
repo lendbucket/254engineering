@@ -12,7 +12,7 @@
  * It imports the REAL types. An earlier draft copied a sketch of them, which
  * would have kept passing while the actual module drifted.
  */
-import type { Action, LicensedAction } from "../../src/lib/ops-authz";
+import type { Action, LicensedAction, LicensedFigure } from "../../src/lib/ops-authz";
 
 /** What a role row holds. Grants are Action[] and nothing widens that. */
 type RoleGrants = { key: string; grants: Action[] };
@@ -82,4 +82,67 @@ export const stillNotGrantable: RoleGrants = {
   key: "tries again through the nav type",
   // @ts-expect-error still not grantable
   grants: ["review.queue"],
+};
+
+/* ======================================================================== */
+/* PHASE 12 SECTION 2: LICENSED FIGURES, THE SAME WAY.                      */
+/*                                                                          */
+/* Extended here rather than copied into a second proof file, on the        */
+/* operator's instruction. Two files making the same claim is two files     */
+/* that can disagree, and the one nobody runs is the one that rots.         */
+/*                                                                          */
+/* The report ACTIONS are ordinary and grantable, because a firm has to be  */
+/* able to let an administrator read a report. The FIGURES derived from the */
+/* responsible charge log are not, because they are statements about a      */
+/* licence rather than about operations.                                    */
+/* ======================================================================== */
+
+/** The report actions ARE grantable. If this stopped compiling, 0027 could not seed them. */
+export const reader: RoleGrants = {
+  key: "reads the reports",
+  grants: ["reports.revenue", "reports.production", "reports.pipeline", "reports.partner"],
+};
+
+export const chargeLogCounter: RoleGrants = {
+  key: "tries to grant a charge log count",
+  // @ts-expect-error a figure derived from the responsible charge log is not grantable
+  grants: ["charge_log.entries"],
+};
+
+export const sealCounter: RoleGrants = {
+  key: "tries to grant sealed-by-engineer",
+  // @ts-expect-error still not grantable
+  grants: ["charge_log.sealed_by_engineer"],
+};
+
+export const declineCounter: RoleGrants = {
+  key: "tries to grant declined-by-engineer",
+  // @ts-expect-error still not grantable
+  grants: ["charge_log.declined_by_engineer"],
+};
+
+export const minuteCounter: RoleGrants = {
+  key: "tries to grant review minutes",
+  // @ts-expect-error still not grantable
+  grants: ["charge_log.review_minutes"],
+};
+
+/* And the reverse: a licensed figure cannot masquerade as an Action. */
+// @ts-expect-error charge_log.entries is not an Action
+export const smuggledFigure: Action = "charge_log.entries";
+
+/*
+ * A report can name both kinds, the way the nav can, and that widening must not
+ * make a figure grantable either. Same case as NavLike above, one layer along.
+ */
+type ReportSection = { report: Action; figures: (Action | LicensedFigure)[] };
+export const production: ReportSection = {
+  report: "reports.production",
+  figures: ["charge_log.sealed_by_engineer", "charge_log.review_minutes"],
+};
+
+export const stillNotGrantableFigure: RoleGrants = {
+  key: "tries again through the report type",
+  // @ts-expect-error still not grantable
+  grants: ["charge_log.sealed_by_engineer"],
 };

@@ -216,6 +216,13 @@ const EXPECTED = {
   "time.log_own":                 { admin: true,  engineer: true,  field_tech: false },
   "responsible_charge.read_own":  { admin: true,  engineer: true,  field_tech: false },
   "responsible_charge.read_all":  { admin: true,  engineer: false, field_tech: false },
+
+  /* Reports. The engineer reads the one about their own work and nothing else:
+   * a licence is not a reason to see what the firm earns. */
+  "reports.revenue":              { admin: true,  engineer: false, field_tech: false },
+  "reports.production":           { admin: true,  engineer: true,  field_tech: false },
+  "reports.pipeline":             { admin: true,  engineer: false, field_tech: false },
+  "reports.partner":              { admin: true,  engineer: false, field_tech: false },
 };
 
 /*
@@ -1283,6 +1290,10 @@ if (!db) {
        * grants, so an engineer reaches them and nobody else does.
        */
       const ENGINEER_REACHES = [
+        /* The production report describes their own reviews and their own pay.
+         * The screen shows only the reports their grants name, so an engineer
+         * opening it sees production and not revenue. */
+        "/portal/reports",
         "/portal/protocols",
         "/portal/review",
         // Ordinary working surfaces an engineer holds by grant, not by licence.

@@ -1,6 +1,7 @@
 import "server-only";
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { supabaseAdmin, SITE_KEY } from "./supabase";
+import { referenceForCustomer } from "./ops-files";
 import { writeAudit } from "./ops-audit";
 import { createClient, createFile, SYSTEM_AUTHOR } from "./ops-crm";
 import { resolveCounty, twiaStatus } from "./ops-counties";
@@ -59,11 +60,20 @@ import { isKnown } from "./ops-money";
  */
 const ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 
-function referenceFor(kind: "O" | "Q"): string {
+/**
+ * A PROBE GETS A DEMO REFERENCE, AND THAT IS WHAT MAKES IT EXCLUDABLE.
+ *
+ * Operator ruling, 2026-09-08. Five probe orders on development carried
+ * ordinary references, so nothing marked them and every revenue figure counted
+ * $3,290 of money that was never real. The reference is where the fix belongs:
+ * the database check ties is_demo to it, so a probe is excluded by the shape of
+ * its own record rather than by fifty queries remembering an email pattern.
+ */
+function referenceFor(kind: "O" | "Q", customerEmail?: string | null): string {
   const bytes = randomBytes(6);
   let suffix = "";
   for (const byte of bytes) suffix += ALPHABET[byte % ALPHABET.length];
-  return `${SITE_KEY}-${kind}${new Date().getFullYear()}-${suffix}`;
+  return referenceForCustomer(`${SITE_KEY}-${kind}${new Date().getFullYear()}`, suffix, customerEmail);
 }
 
 // ------------------------------------------------------------- caller auth
@@ -286,7 +296,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
   }
 
   const disclosure = refundDisclosure(entry).join("\n\n");
-  const reference = referenceFor("O");
+  const reference = referenceFor("O", input.customer.email);
 
   const { data: order, error: orderError } = await db
     .from("eng_service_orders")
@@ -598,7 +608,7 @@ export async function requestQuote(input: RequestQuoteInput): Promise<RequestQuo
 
   const resolved = resolveCounty({ city: input.property?.city, county: input.property?.county });
   const county = resolved.valid ? resolved.county : null;
-  const reference = referenceFor("Q");
+  const reference = referenceFor("Q", input.customer.email);
 
   const { data: quote, error } = await db
     .from("eng_quote_requests")

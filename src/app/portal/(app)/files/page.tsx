@@ -10,6 +10,8 @@ import { outstandingFor, answeredFor } from "@/lib/ops-file-inputs";
 import { services } from "@/content/services";
 import { Chip, EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
 import { dispatchContext, jobView } from "@/lib/ops-field";
+import { marginOf, money } from "@/lib/ops-money";
+import { partnerCostByFile } from "@/lib/ops-partner-comp";
 import { progressLabel } from "@/lib/ops-evidence";
 import { NewFileForm, TransitionControls, RequestInformation } from "./FileClient";
 import { DispatchPanel } from "./DispatchPanel";
@@ -35,11 +37,6 @@ function when(value: string | null): string {
   return new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-function money(cents: number | null | undefined): string {
-  if (cents === null || cents === undefined) return "not set";
-  return `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
-}
-
 export default async function FilesPage({
   searchParams,
 }: {
@@ -56,6 +53,26 @@ export default async function FilesPage({
   });
   const selected = params.id ? await getFile(actor, params.id) : null;
   const timeline = selected ? await fileTimeline(selected.id) : [];
+
+  /*
+   * The margin, from the one function that knows what a margin is.
+   *
+   * partnerCostByFile returns a knowable ZERO for a file with no partner and
+   * null for one whose commission has not been worked out yet, which is the
+   * distinction that makes marginOf able to say it does not know.
+   */
+  const partnerCosts = selected
+    ? await partnerCostByFile([{ id: selected.id, partnerId: selected.partner_id ?? null }])
+    : null;
+  const selectedMargin = {
+    partnerCostCents: selected ? (partnerCosts?.get(selected.id) ?? null) : null,
+    ...marginOf({
+      clientPriceCents: selected?.client_price_cents ?? null,
+      techCostCents: selected?.tech_cost_cents ?? null,
+      engineerCostCents: selected?.engineer_cost_cents ?? null,
+      partnerCostCents: selected ? (partnerCosts?.get(selected.id) ?? null) : null,
+    }),
+  };
 
   /*
    * Dispatch is loaded only when the file is actually waiting for one. Planning
@@ -315,19 +332,29 @@ export default async function FilesPage({
                 <p className="mt-6 portal-kicker text-[var(--gold-deep)]">Billing</p>
                 <dl className="mt-3 divide-y divide-limestone-line">
                   {[
-                    ["Client price", money(selected.client_price_cents)],
-                    ["Technician cost", money(selected.tech_cost_cents)],
-                    ["Engineer production", money(selected.engineer_cost_cents)],
-                    [
-                      "Margin",
-                      selected.client_price_cents
-                        ? money(
-                            selected.client_price_cents -
-                              (selected.tech_cost_cents ?? 0) -
-                              (selected.engineer_cost_cents ?? 0),
-                          )
-                        : "not set",
-                    ],
+                    ["Client price", money(selected.client_price_cents ?? null)],
+                    ["Technician cost", money(selected.tech_cost_cents ?? null)],
+                    ["Engineer production", money(selected.engineer_cost_cents ?? null)],
+                    ["Partner commission", money(selectedMargin.partnerCostCents)],
+                    /*
+                     * THIS WAS COMPUTED HERE AND IT WAS WRONG TWICE.
+                     *
+                     * It read `price - (tech ?? 0) - (engineer ?? 0)`, so an
+                     * unpriced cost counted as nothing and an unfinished file
+                     * showed a margin equal to its full revenue: wrong, in the
+                     * flattering direction, with a plausible number in it. That
+                     * is the exact failure ops-money.ts was written to prevent,
+                     * on the operator's own per file screen.
+                     *
+                     * And it omitted the partner commission entirely, so this
+                     * page and /portal/billing disagreed about the same file
+                     * whenever a partner was attributed to it.
+                     *
+                     * marginOf counts all four costs and propagates absence, so
+                     * a missing figure makes the margin unknown rather than
+                     * flattering. The `missing` list below names which.
+                     */
+                    ["Margin", money(selectedMargin.margin)],
                   ].map(([k, v]) => (
                     <div key={k} className="grid gap-1 py-2.5 sm:grid-cols-[130px_1fr] sm:gap-3">
                       <dt className="text-[13.5px] font-semibold text-[var(--navy)]">{k}</dt>

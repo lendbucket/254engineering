@@ -149,6 +149,32 @@ export const APPLIED = [
     note:
       "Applied to production on merge and read back rather than assumed: fingerprint 2f76de7be0fb4ed93459db4d72d80237 across 964 columns and 72 eng_ tables, identical to development and to the replay. PRODUCTION IS STILL THE SHARED PROJECT fsaryeciduszuahgjbly: the same query counts 125 tables in public, so 53 belong to unrelated apps and this table sits beside them. That is why every table this firm owns is eng_ prefixed, and it is what the cutover has to carry across.",
   },
+
+  /*
+   * Reporting foundations. Three rules that all had to exist before a single
+   * figure was rendered, because each decides what a figure MEANS.
+   */
+  {
+    file: "0027_reporting_foundations.sql",
+    fingerprint: "9bbcca2c9cd3c65503c923d7c32ea769",
+    proves: { table: "eng_role_grants", match: { role_key: "engineer", action: "reports.production" } },
+    production: "2026-09-08",
+    note:
+      "Applied and read back rather than assumed: fingerprint 9bbcca2c9cd3c65503c923d7c32ea769 across 970 columns and 72 eng_ tables, identical to development and the replay, with 5 report grants and 116 grants in total. Production holds ZERO demo records, so the backfill marked nothing there and the two directional check was added over clean data. Production is still the shared project fsaryeciduszuahgjbly.",
+  },
+
+  /*
+   * The records 0027's backfill could not name. Data only: no DDL, so the
+   * fingerprint is unchanged from 0027.
+   */
+  {
+    file: "0028_probe_records_are_demonstrations.sql",
+    fingerprint: "9bbcca2c9cd3c65503c923d7c32ea769",
+    proves: { table: "eng_partners", match: { organisation: "ZZ probe, safe to ignore", is_demo: true } },
+    production: "2026-09-08",
+    note:
+      "Applied to development and to production on 2026-09-08 through the Supabase MCP, the same mechanism 0027 went through, and read back rather than assumed. Fingerprint unchanged at 9bbcca2c9cd3c65503c923d7c32ea769 across 970 columns and 72 eng_ tables, which is what a backfill with no DDL in it should do. ON PRODUCTION IT MARKED NOTHING, AND THAT IS THE MEASURED ANSWER RATHER THAN AN ASSUMPTION: production holds 2 profiles, 1 application, and zero partners, clients, orders and files, none of them on an unroutable address, and the same sweep re-run afterwards found nothing left unmarked. On development it marked twelve: eight probe partners, three Stripe probe clients and one client written by a script that is not in the tree. It retires the BACKLOG entry 'Eight probe partners on development cannot be deleted, and should not be'; they still cannot be deleted, and they no longer need to be, because a record that cannot be removed can still be told apart. A FIRST DRAFT OF THIS ENTRY DECLARED IT PENDING AND SAID PRODUCTION WAS UNREADABLE FROM HERE. That was wrong and is recorded rather than quietly fixed: one execute_sql call had been refused, and the session generalised a single refusal into a closed door without trying apply_migration, which is the tool 0027 went through and which worked first time.",
+  },
 ];
 
 /** The canary. An empty ledger must never read as a ledger with nothing to say. */

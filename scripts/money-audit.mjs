@@ -20,6 +20,8 @@
  * to one module rather than being copied into each one.
  */
 import fs from "node:fs";
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
 import {
   add,
   coverageSentence,
@@ -440,12 +442,40 @@ const rec = (name, ok, note = "") => out.push({ name, ok, note });
 {
   const read = (p) => (fs.existsSync(p) ? fs.readFileSync(p, "utf8") : null);
 
-  const surfaces = [
-    "src/app/portal/(app)/page.tsx",
-    "src/app/portal/(app)/billing/page.tsx",
-    "src/app/portal/(app)/documents/page.tsx",
-    "src/components/portal/Dashboard.tsx",
-  ];
+  /*
+   * EVERY FILE ON THE THREE SIGNED IN SURFACES, NOT FOUR NAMED ONES.
+   *
+   * Operator ruling, 2026-09-08. This list was four files, and the regex below
+   * would have caught every hand rolled money formatter in the codebase on the
+   * day it was written. It caught none of them, because it was pointed at four
+   * files that did not have the problem.
+   *
+   * The Phase 12 Section 2 figure inventory found eight: techs, charge-log,
+   * jobs, files, status, DispatchPanel, ReviewClient and OrderFlow. Four of
+   * them printed $0.00 for an absent figure on tables that /portal/pay reads
+   * correctly, and one of them showed a margin inflated by every cost nobody
+   * had entered yet.
+   *
+   * A list of files to check is the same defect as a list of templates to
+   * render, and it failed the same way. The denominator is now the directory.
+   */
+  const surfaces = [];
+  const walkSurfaces = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name).split("\\").join("/");
+      if (entry.isDirectory()) walkSurfaces(full);
+      else if (/\.tsx?$/.test(entry.name)) surfaces.push(full);
+    }
+  };
+  for (const root of ["src/app/portal", "src/app/partner", "src/app/account", "src/components/portal"]) {
+    walkSurfaces(root);
+  }
+
+  rec(
+    `there are surface files to scan (${surfaces.length})`,
+    surfaces.length > 40,
+    "a scan over a handful of files is how this check missed eight formatters",
+  );
 
   for (const p of surfaces) {
     const src = read(p);
@@ -457,9 +487,25 @@ const rec = (name, ok, note = "") => out.push({ name, ok, note });
      * a second implementation, and the second one is the one that has not
      * thought about null.
      */
+    /*
+     * MONEY, NOT DATES, AND THE DIFFERENCE COST THIS CHECK ITS CREDIBILITY.
+     *
+     * The rule was `no toLocaleString("en-US") anywhere`, which was safe while
+     * it looked at four files and became unusable the moment it looked at all
+     * of them: eleven files failed and eight were formatting DATES, which is
+     * the correct way to format a date and has nothing to do with absent
+     * figures. A check with eight false positives is a check somebody turns off.
+     *
+     * So the pattern is money specifically: a division by 100 that is then
+     * formatted. That is what money() exists to do and what a second
+     * implementation of it always forgets to think about null in.
+     */
+    const HAND_ROLLED_MONEY =
+      /\/\s*100\s*\)?\s*\.toFixed|(?:cents|Cents|amount|total|price|value)\s*\/\s*100\s*\)?\s*\.toLocaleString/;
+
     rec(
       `${p} does not format cents itself`,
-      !/\/\s*100\s*\)?\s*\.toFixed/.test(src) && !/toLocaleString\(["']en-US["']/.test(src),
+      !HAND_ROLLED_MONEY.test(src),
       "use money() or moneyCell()",
     );
   }

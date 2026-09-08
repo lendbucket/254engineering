@@ -1,5 +1,6 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase";
+import type { Cents } from "./ops-money";
 import { recordTechnicianVisit } from "./ops-payments";
 import { credentialBlockersFor } from "./ops-onboarding";
 import { raise } from "./ops-notify";
@@ -1281,8 +1282,9 @@ export type RosterRow = {
   certifications: { service_slug: string; status: string }[];
   openJobs: number;
   completedJobs: number;
-  pendingCents: number;
-  paidCents: number;
+  /** Null when a ledger entry has no figure; never a silent zero. */
+  pendingCents: Cents;
+  paidCents: Cents;
   expiringCredentials: { kind: string; expires_on: string }[];
 };
 
@@ -1294,6 +1296,12 @@ export type RosterRow = {
  * because it is the first sort key. And money owed, because a person who has not
  * been paid for three jobs is a person who stops answering the phone.
  */
+/** Total pay rows, or null when any row has no figure. */
+const sumKnownPay = (rows: { amount_cents: unknown }[]): Cents =>
+  rows.some((r) => r.amount_cents === null || r.amount_cents === undefined)
+    ? null
+    : rows.reduce((sum, r) => sum + Number(r.amount_cents), 0);
+
 export async function techRoster(actor: Actor | null): Promise<RosterRow[]> {
   const db = supabaseAdmin();
   if (!db || !can(actor, "profiles.list")) return [];
@@ -1343,10 +1351,14 @@ export async function techRoster(actor: Actor | null): Promise<RosterRow[]> {
         .map((c) => ({ service_slug: c.service_slug as string, status: c.status as string })),
       openJobs: mine.filter((f) => OPEN.includes(f.status as string)).length,
       completedJobs: mine.filter((f) => DONE.includes(f.status as string)).length,
-      pendingCents: pay
-        .filter((l) => l.status === "pending" || l.status === "approved")
-        .reduce((sum, l) => sum + Number(l.amount_cents), 0),
-      paidCents: pay.filter((l) => l.status === "paid").reduce((sum, l) => sum + Number(l.amount_cents), 0),
+      /*
+       * A ledger entry with no figure is excluded rather than counted as zero,
+       * and if any is excluded the total says it is not known. Same rule
+       * /portal/pay applies to the same table; this screen was reading it as if
+       * an unpriced entry were worth nothing.
+       */
+      pendingCents: sumKnownPay(pay.filter((l) => l.status === "pending" || l.status === "approved")),
+      paidCents: sumKnownPay(pay.filter((l) => l.status === "paid")),
       expiringCredentials: (creds ?? [])
         .filter((c) => c.profile_id === id)
         .map((c) => ({ kind: c.kind as string, expires_on: c.expires_on as string })),

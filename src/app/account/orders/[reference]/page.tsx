@@ -91,7 +91,7 @@ export default async function BatchPage({
               </span>
               <span className="text-[13.5px] text-[var(--navy)]">{o.property_address as string}</span>
               <span className="ml-auto text-[13.5px] text-[var(--secondary)]">
-                {o.batch_share_cents === null ? "" : money(Number(o.batch_share_cents))}
+                {money(o.batch_share_cents === null ? null : Number(o.batch_share_cents))}
               </span>
             </div>
             <p className="mt-1 text-[13.5px] leading-[1.55] text-[var(--secondary)]">

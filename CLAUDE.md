@@ -189,6 +189,25 @@ Three of those four are about money or about whether somebody was told
 something, which is why the rule is worded the way it is. A design cannot be
 wrong about a colour in a way that costs a refund.
 
+**THE EXCEPTION, AND IT MATTERS: THE RULE IS NOT "THE DESIGN IS ALWAYS
+WRONG".** Recorded 2026-09-08, from the reporting port. The prototype's
+reports module got absent versus zero RIGHT, and this platform's own file
+screen got it wrong.
+
+Its margin card is annotated "2 of 3 closed files; gaps excluded", which is
+the coverage disclosure `periodTotals` already implements. Meanwhile
+`/portal/files` was computing `price - (tech ?? 0) - (engineer ?? 0)`, showing
+a margin inflated by every cost nobody had entered yet and omitting the
+partner commission entirely.
+
+So the reconciliation runs in BOTH directions. A design can be right about a
+rule the code has drifted from, and a designer who has thought about absent
+data deserves to have that noticed rather than overruled by a session assuming
+designs are wrong about money. What the rule says is that a claim is
+UNVERIFIED until it is read against the code. It does not say the claim is
+false, and reading it as though it did produces the opposite failure: shipping
+the platform's mistake over the design's correction.
+
 The order is therefore fixed. **Inventory and reconcile first**: list what the
 platform actually does, give every drawn artifact a verdict against it, and
 get a ruling on the ones that describe something the firm does not do or
@@ -473,6 +492,49 @@ return `0e8ff33c7106ce05ec2cf81a1c66cd35` across 960 columns and 71 tables**,
 with row level security on all 71 and 47 triggers. **Production does not have
 it** while that branch is open, which is the expected divergence, and
 `schema-ledger-audit` fails the moment it is on main and still undeclared.
+
+**From 0025 the chain lives in `supabase/applied.mjs` and not in this
+paragraph.** After 0025 (MFA optional by default) the figure is
+`0e8ff33c7106ce05ec2cf81a1c66cd35` unchanged, because it seeds a row rather than
+altering a shape; after 0026 (marketing suppressions)
+`2f76de7be0fb4ed93459db4d72d80237` across 964 columns and 72 tables; after 0027
+(Phase 12 Section 2, reporting foundations) `9bbcca2c9cd3c65503c923d7c32ea769`
+across 970 columns and 72 tables, with 5 report grants and 116 grants in total;
+and 0028 leaves that figure untouched because it is a backfill with no DDL in
+it.
+
+The reason the prose stops carrying the full account is the one this section
+already makes about 0023: **a record is not a check.** The ledger is read by two
+checks, this file is read by nobody, and two accounts of one chain are two
+accounts that will disagree. Every fingerprint above is in the ledger with the
+count it was read back at; what belongs here is the pointer and the reasoning,
+not a second copy of the numbers.
+
+**A MIGRATION REACHES PRODUCTION THROUGH THE SUPABASE MCP, AND ONE REFUSED CALL
+IS NOT A CLOSED DOOR.** Recorded 2026-09-08. The production service role key is
+not in the working tree and must not be, so nothing in `scripts/` can reach
+production without `ALLOW_PRODUCTION_DB=1` and a key somebody supplies. The MCP
+is the other path, and it is how 0026, 0027 and 0028 were applied and read back:
+`apply_migration` against `fsaryeciduszuahgjbly`, then `execute_sql` for the
+fingerprint and the row counts.
+
+This is written down because a session got it wrong in the direction that costs
+the most. One `execute_sql` call was refused, and the session concluded the
+production path was closed, wrote a PENDING ledger entry saying so, and told the
+operator the count was unknowable. `apply_migration` had not been tried, and it
+worked first time. **A refusal is a refusal of one call. Try the tool that
+actually applied the last migration before declaring anything unreachable, and
+never let "I could not measure it" stand in a ledger when it means "I did not
+try the other tool".**
+
+**The provider's migration list is not the record. `supabase/applied.mjs` is.**
+Production's `list_migrations` shows 0026 and 0027 and does not show 0025, while
+production unmistakably HAS 0025: `eng_roles` reads `optional` for admin and
+engineer, which is the only thing that migration does. It was applied by
+`execute_sql` rather than `apply_migration`, so it changed the database without
+leaving a row in the provider's history. That is exactly why the ledger exists
+and why `production-schema-check` asks the database about the objects rather
+than reading a list.
 
 0023 adds `eng_alert_state`, which is the fifth table in this schema that is
 deliberately NOT append only, and it belongs to the same class as the four in

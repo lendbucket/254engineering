@@ -349,3 +349,44 @@ export function formatDemoFileNumber(sequence: number): string {
 export function isDemoFileNumber(fileNumber: string): boolean {
   return fileNumber.includes(`-${DEMO_FILE_SEGMENT}-`);
 }
+
+/**
+ * An address nobody can receive mail at, which is what makes a record a probe.
+ *
+ * RFC 2606 reserves example.com, and .invalid, precisely so they can be used in
+ * documentation and testing without ever reaching a person. A customer address
+ * in one of them is therefore not a customer: it is a walkthrough, a payment
+ * probe or an audit.
+ *
+ * WHY THE RULE IS THE ADDRESS RATHER THAN THE ENVIRONMENT.
+ *
+ * The obvious version asks whether this is the development database, and it is
+ * worse in both directions: a probe run against production would mint an
+ * ordinary reference, which is the case that actually matters, and a real order
+ * on development would be renamed for no reason. The address is a property of
+ * the record, travels with it, and is the same answer wherever it is read.
+ *
+ * Operator ruling, 2026-09-08, after five probe orders on development carried
+ * ordinary references and counted $3,290 into every revenue figure.
+ */
+const UNROUTABLE = [/@example\.(com|org|net)$/i, /@example$/i, /\.invalid$/i, /@test$/i];
+
+export function isProbeAddress(email: string | null | undefined): boolean {
+  if (!email) return false;
+  return UNROUTABLE.some((re) => re.test(email.trim()));
+}
+
+/**
+ * The reference a record should carry, given who it is for.
+ *
+ * A probe gets the DEMO segment, so the database check that ties is_demo to the
+ * reference covers it and no report has to know anything about email patterns.
+ * Everything else gets the suffix it was given.
+ */
+export function referenceForCustomer(
+  base: string,
+  suffix: string,
+  customerEmail: string | null | undefined,
+): string {
+  return isProbeAddress(customerEmail) ? `${base}-${DEMO_FILE_SEGMENT}-${suffix}` : `${base}-${suffix}`;
+}

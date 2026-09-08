@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
+/* Aliased: the metric descriptor already has a boolean field called money. */
+import { money as asMoney } from "@/lib/ops-money";
 import { can } from "@/lib/ops-authz";
 import { queueHealth } from "@/lib/ops-jobs";
 import {
@@ -306,7 +308,7 @@ export default async function StatusPage() {
                       {value === null
                         ? "not computed"
                         : money
-                          ? `$${(value / 100).toLocaleString("en-US", { minimumFractionDigits: 2 })}`
+                          ? asMoney(value)
                           : value.toLocaleString("en-US")}
                     </p>
                   </li>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
+import { isKnown, money, type Cents } from "@/lib/ops-money";
 import { can } from "@/lib/ops-authz";
 import { payLedger, techRoster } from "@/lib/ops-field";
 import { canonicalCounty } from "@/lib/ops-counties";
@@ -28,8 +29,15 @@ export const dynamic = "force-dynamic";
  * head, and the white areas are where a job would be offered to nobody.
  */
 
-const money = (cents: number) =>
-  `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
+/*
+ * Money comes from ops-money now. The private one here was typed
+ * (cents: number) with no null branch, so an absent figure printed $0.00 on
+ * the same eng_tech_pay_ledger that /portal/pay reads correctly.
+ */
+const sumKnown = (rows: { amount_cents: number | null }[]): Cents =>
+  rows.some((r) => !isKnown(r.amount_cents))
+    ? null
+    : rows.reduce((s, r) => s + (r.amount_cents as number), 0);
 
 export default async function TechsPage() {
   const actor = await currentActor();
@@ -191,7 +199,7 @@ export default async function TechsPage() {
                       Awaiting approval
                     </dt>
                     <dd className="mt-1 font-display text-[17px] font-bold text-[var(--navy)]">
-                      {money(pending.reduce((s, l) => s + l.amount_cents, 0))}
+                      {money(sumKnown(pending))}
                     </dd>
                   </div>
                   <div>
@@ -199,7 +207,7 @@ export default async function TechsPage() {
                       Approved, unpaid
                     </dt>
                     <dd className="mt-1 font-display text-[17px] font-bold text-[var(--navy)]">
-                      {money(approved.reduce((s, l) => s + l.amount_cents, 0))}
+                      {money(sumKnown(approved))}
                     </dd>
                   </div>
                 </dl>

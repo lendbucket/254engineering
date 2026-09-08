@@ -29,10 +29,18 @@ import { marginOf, type Cents, type PeriodTotals } from "./ops-money";
  * up displayed the way an empty queue is.
  */
 
+/**
+ * A count that may not be known.
+ *
+ * Same distinction Cents draws for money: zero is an answer, null is the
+ * absence of one. Named separately so a signature says which it is.
+ */
+export type Count = number | null;
+
 export type Tile = {
   label: string;
-  /** A real count. Zero means zero. */
-  count: number;
+  /** A real count. Zero means zero, null means the query could not be run. */
+  count: Count;
   /** What the number means, and what to do about it. */
   note: string;
   href: string;
@@ -81,10 +89,28 @@ const TECH_OPEN_STATUSES = ["dispatched", "evidence_in_progress", "revisions_req
 
 type Db = NonNullable<ReturnType<typeof supabaseAdmin>>;
 
-async function countRows(build: (db: Db) => unknown): Promise<number> {
+/**
+ * Count rows, and say so when the count is not known.
+ *
+ * A FAILED READ IS NOT AN EMPTY QUEUE, AND THIS RETURNED ZERO FOR BOTH.
+ *
+ * Found in the Phase 12 Section 2 figure inventory. It destructured `count`
+ * and ignored `error`, so roughly twenty tiles across three dashboards showed
+ * a confident zero during an outage, several of them with a green note saying
+ * nothing was waiting. The engineer would have been told the review queue was
+ * empty by a screen that had failed to ask.
+ *
+ * sumCents, ten lines below, already got this right and explains the same
+ * distinction for money. Counts had no such treatment; they do now.
+ */
+async function countRows(build: (db: Db) => unknown): Promise<Count> {
   const db = supabaseAdmin();
-  if (!db) return 0;
-  const { count } = (await build(db)) as { count: number | null };
+  if (!db) return null;
+  const { count, error } = (await build(db)) as { count: number | null; error: unknown };
+  if (error) {
+    console.error("[dashboard] a count could not be read:", error);
+    return null;
+  }
   return count ?? 0;
 }
 
@@ -167,9 +193,14 @@ async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
     {
       label: "Waiting on an engineer",
       count: inQueue,
-      note: inQueue === 0 ? "Nothing is sitting in the review queue." : "Evidence is in and no decision is recorded.",
+      note:
+        inQueue === null
+          ? "This could not be read, so it is not a count of zero."
+          : inQueue === 0
+            ? "Nothing is sitting in the review queue."
+            : "Evidence is in and no decision is recorded.",
       href: "/portal/review",
-      tone: inQueue === 0 ? "good" : inQueue > 5 ? "warn" : "neutral",
+      tone: inQueue === null ? "neutral" : inQueue === 0 ? "good" : inQueue > 5 ? "warn" : "neutral",
     },
     {
       label: "Evidence past due",
@@ -285,7 +316,7 @@ async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
     });
   }
 
-  if (overdueEvidence > 0) {
+  if (overdueEvidence !== null && overdueEvidence > 0) {
     attention.push({
       label: `${overdueEvidence} file${overdueEvidence === 1 ? "" : "s"} past the evidence deadline`,
       detail: "Nothing chases these automatically. Somebody has to call the technician.",
@@ -399,9 +430,14 @@ async function engineerDashboard(actor: Actor): Promise<EngineerDashboard> {
     {
       label: "Waiting for review",
       count: queue,
-      note: queue === 0 ? "The queue is empty." : "Evidence submitted and nobody has opened it.",
+      note:
+        queue === null
+          ? "This could not be read, so it is not an empty queue."
+          : queue === 0
+            ? "The queue is empty."
+            : "Evidence submitted and nobody has opened it.",
       href: "/portal/review",
-      tone: queue === 0 ? "good" : queue > 5 ? "warn" : "neutral",
+      tone: queue === null ? "neutral" : queue === 0 ? "good" : queue > 5 ? "warn" : "neutral",
     },
     {
       label: "Open in review",
@@ -457,7 +493,7 @@ async function engineerDashboard(actor: Actor): Promise<EngineerDashboard> {
   ];
 
   const attention: Attention[] = [];
-  if (queue > 0) {
+  if (queue !== null && queue > 0) {
     attention.push({
       label: `${queue} package${queue === 1 ? "" : "s"} waiting`,
       detail: "Evidence is in and no engineer has opened it.",
@@ -594,14 +630,14 @@ async function techDashboard(actor: Actor): Promise<TechDashboard> {
   ];
 
   const attention: Attention[] = [];
-  if (offers > 0) {
+  if (offers !== null && offers > 0) {
     attention.push({
       label: `${offers} offer${offers === 1 ? "" : "s"} waiting`,
       detail: "An offer that expires goes to somebody else.",
       href: "/portal/offers",
     });
   }
-  if (overdue > 0) {
+  if (overdue !== null && overdue > 0) {
     attention.push({
       label: `${overdue} job${overdue === 1 ? "" : "s"} past due`,
       detail: "Submit what you have, or say what is blocking it on the file thread.",
