@@ -222,6 +222,12 @@ const PORTED = [
   // Brought in 2026-09-07 with the surface inventory. The partner surface had
   // never been held to the design system at all, and seven portal screens built
   // since the list was last touched had quietly fallen outside it.
+  // Brought in 2026-09-09 with Phase 12 Sections 2 and 3. New screens join the
+  // list on the day they are built: a screen written today has no excuse for
+  // being outside the design system, and the list may only grow.
+  "src/app/portal/(app)/reports/page.tsx",
+  "src/app/portal/(app)/suppressions/page.tsx",
+  "src/app/portal/(app)/suppressions/SuppressionsClient.tsx",
   "src/app/portal/(app)/applications/page.tsx",
   "src/app/portal/(app)/partners/disputes/LookupForm.tsx",
   "src/app/portal/(app)/partners/disputes/page.tsx",

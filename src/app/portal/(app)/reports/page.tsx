@@ -93,7 +93,7 @@ function FigureCell({
         differently on purpose: it must never be mistaken for a figure.
       */}
       <p
-        className={`mt-1 font-display text-[26px] leading-none font-bold ${
+        className={`mt-1 font-display text-[24px] leading-none font-bold ${
           absent ? "text-[var(--muted)] italic" : "text-[var(--navy)]"
         }`}
       >

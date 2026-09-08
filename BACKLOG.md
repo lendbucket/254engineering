@@ -372,11 +372,78 @@ list built in the email port has no operator screen, so somebody who asks to
 be removed by telephone cannot be recorded without SQL. It is built here, as a
 list with add and remove, audited.
 
+**BUILT 2026-09-09 at `/portal/suppressions`, and "remove" is a CORRECTION
+rather than a resubscribe.** 0026 is why, and it is not a technicality:
+resubscribing is CONSENT, consent is a new fact with its own date rather than
+the absence of an old one, and it gets its own table, its own migration and its
+own ruling when somebody asks for it. So a row carrying a `token_hash` can never
+be removed, whatever permission the caller holds, because that row exists
+because a person clicked the unsubscribe link in their own email. The refusal is
+checked against the ROW in `marketing-suppression.ts` rather than trusted to the
+screen, and the screen does not render the control at all for such a row.
+
+What can be removed is a row an operator typed wrong: a mistyped address quietly
+stops a customer who never asked for anything from hearing from the firm, and
+that row records no decision anybody made. Both verbs write an audit event, and
+`eng_audit_events` refuses deletes, so the act stays answerable.
+
+`suppressions.manage` is seeded by 0029 to admin and customer service. Sales
+holds nothing here: somebody paid to grow a list should not be the one who can
+quietly shorten it, and the request does not arrive there anyway.
+
+**If a resubscribe is ever wanted, it is not this screen.** It is a new table
+recording who gave consent and when, its own migration, and a ruling. Nothing
+here should be widened to do it.
+
 **The constraint this entry named still holds and was not relaxed to make any
 of the three complete.** None of these roles holds `ledger.read_all` or
 `billing.read`, and no dashboard for them carries a firm level money figure.
 Where a dashboard would need a figure the grants do not cover, that is
 reported rather than fixed by widening a grant.
+
+**BUILT 2026-09-09, AND A DEFECT THIS ENTRY DENIED WAS FOUND WHILE BUILDING
+IT.** All three dashboards exist, and the constraint is now carried by the TYPE:
+`DispatcherDashboard`, `SalesDashboard` and `CustomerServiceDashboard` have no
+`money` field, so a firm figure on one of them does not compile.
+
+The defect: **a dispatcher was already being served the field technician's
+dashboard.** `dashboardFor` routes on capability, a dispatcher holds
+`offers.list_own`, and that was the technician's branch. Every tile was scoped
+to `actor.id`, so every one read none and every money figure read zero. The
+comment directly beneath that ladder asserted a dispatcher gets null and that no
+dashboard exists for them, and this entry repeated it. Both had been wrong since
+the day they were written. It is exactly the "fourth generic dashboard that
+renders empty tiles" named three paragraphs above, except it was a real
+dashboard belonging to somebody else. `dashboards-audit` builds an actor from
+every entry in `DEFAULT_ROLES` and walks the ladder on every board run.
+
+**Three ruled figures do not exist as facts, and are reported rather than
+faked.** The ruling above says a figure the grants do not cover is reported
+rather than fixed by widening a grant; the same holds when it is the SCHEMA that
+does not carry it, and all three are on the screen in a "What could not be
+counted" panel:
+
+- **"Jobs past their capture window"** (dispatcher). There is no capture window
+  column. `eng_files` has `evidence_due_at` and `due_at`, and
+  `eng_assignments.expires_at` is an OFFER expiry. Evidence past due is counted
+  and the tile says which column it counted.
+- **"Orders awaiting something from the customer, with what is awaited"**
+  (customer service). The only awaiting status in the whole schema is
+  `awaiting_payment`, nothing names what is awaited, and outstanding intake
+  answers are missing ROWS computed by `missingFor` rather than anything a query
+  can count. Orders awaiting payment plus files with a payment link sent are
+  shown instead.
+- **"Open message threads by age of last inbound"** (customer service).
+  `eng_messages` records an author and no direction, and there is no customer
+  facing conversation table at all, so every thread is staff to staff and
+  nothing in one is inbound. Threads by how long they have been quiet are shown
+  instead, from `eng_threads.last_message_at`.
+
+**`read_only` gets the administrator's dashboard, including firm money.** That
+follows from its grants rather than from an accident: the role is given
+`ledger.read_all` and `billing.read` on purpose, for a buyer's accountant or an
+auditor. Recorded because it surprised the session that found it, and it will
+surprise the next one.
 
 **AND THE BUSINESS QUESTION, WHICH IS THE OPERATOR'S AND IS NEEDED BEFORE
 HIRING ANY OF THE THREE.** What each of these roles should see is not a design

@@ -55,7 +55,7 @@ export function AddSuppression() {
   return (
     <form onSubmit={submit} className="flex flex-col gap-3">
       <div>
-        <label htmlFor="sup-email" className="mb-1 block text-[13px] font-semibold text-[var(--navy)]">
+        <label htmlFor="sup-email" className="mb-1 block text-[13.5px] font-semibold text-[var(--navy)]">
           Email address
         </label>
         <input
@@ -70,7 +70,7 @@ export function AddSuppression() {
       </div>
 
       <div>
-        <label htmlFor="sup-because" className="mb-1 block text-[13px] font-semibold text-[var(--navy)]">
+        <label htmlFor="sup-because" className="mb-1 block text-[13.5px] font-semibold text-[var(--navy)]">
           How the request arrived
         </label>
         <input
@@ -90,12 +90,12 @@ export function AddSuppression() {
       </div>
 
       {error ? (
-        <p role="alert" className="text-[13px] font-semibold text-[var(--bad)]">
+        <p role="alert" className="text-[13.5px] font-semibold text-[var(--bad)]">
           {error}
         </p>
       ) : null}
       {done ? (
-        <p role="status" className="text-[13px] font-semibold text-[var(--good)]">
+        <p role="status" className="text-[13.5px] font-semibold text-[var(--good)]">
           {done}
         </p>
       ) : null}

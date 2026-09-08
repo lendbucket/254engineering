@@ -84,7 +84,7 @@ export default async function SuppressionsPage() {
                   className="flex flex-wrap items-start justify-between gap-3 rounded-[4px] border border-[var(--border)] bg-white p-3"
                 >
                   <div className="min-w-0">
-                    <p className="text-[14px] font-semibold break-words text-[var(--navy)]">{row.email}</p>
+                    <p className="text-[13.5px] font-semibold break-words text-[var(--navy)]">{row.email}</p>
                     <p className="mt-0.5 text-[12.5px] text-[var(--secondary)]">{row.because}</p>
                     <p className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-[var(--secondary)]">
                       <Chip

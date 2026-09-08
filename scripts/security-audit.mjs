@@ -168,6 +168,11 @@ const ADMIN_APIS = [
   // check below is what made sure they were listed here on the day they shipped.
   "/api/portal/exports",
   "/api/portal/documents",
+  // Records that somebody asked the firm to stop writing to them, and removes a
+  // row an operator typed wrong. Reachable signed out, its POST would let
+  // anybody silence the firm's marketing to any address they chose, and its
+  // DELETE would let them undo somebody else's request.
+  "/api/portal/suppressions",
   // Asks Stripe what became of an order and can record that money moved. The
   // first route nested two deep, which is what exposed the one level discovery
   // above as a hole rather than a simplification.

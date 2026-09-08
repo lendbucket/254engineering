@@ -173,7 +173,7 @@ export function BreakdownList({ breakdown }: { breakdown: Breakdown }) {
             </Link>
             <span className="shrink-0 font-display text-[15px] font-bold tabular-nums text-[var(--navy)]">
               {row.count === null ? (
-                <span className="text-[13px] font-normal text-[var(--muted)] italic">not known</span>
+                <span className="text-[13.5px] font-normal text-[var(--muted)] italic">not known</span>
               ) : (
                 row.count
               )}
