@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { OPS_COOKIE, readOpsSession, readPendingSession } from "@/lib/ops-session";
 import { mfaConfigured, mfaRequirementFor, mfaStatus } from "@/lib/ops-mfa";
+import { homeFor } from "@/lib/ops-authz";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { SystemAlert } from "@/components/portal/design";
 import { EnrolForm } from "./EnrolForm";
@@ -60,6 +61,27 @@ export default async function MfaEnrolPage() {
     required = false;
   }
 
+  /*
+   * WHERE "NOT NOW" GOES, AND WHY ONLY A FULL SESSION GETS ONE.
+   *
+   * Operator ruling, 2026-09-07: an optional role is offered enrolment and can
+   * decline into the portal. The offer is reached with a FULL session, so
+   * declining is a plain link to the place they would have landed anyway and
+   * nothing is promoted. There is deliberately no endpoint that turns a pending
+   * cookie into a full one; the reasoning is at the sign in path.
+   *
+   * A pending session therefore never sees this link, and that is the whole
+   * enforcement: somebody whose role requires a factor arrives here half
+   * authenticated with nowhere else to go, exactly as before. If this were
+   * offered to them it would BE the bypass endpoint, spelled as a link.
+   *
+   * A failed requirement read above falls back to required=false, so the link
+   * is decided by the session rather than by that fallback. A pending session
+   * is proof the sign in path withheld the cookie, which it only does when the
+   * role required a factor or one is already enrolled.
+   */
+  const declineTo = full ? homeFor(role) : null;
+
   return (
     <main className="portal-surface grid min-h-dvh place-items-center px-4 py-6 sm:py-10">
       <div className="w-full max-w-[460px]">
@@ -80,7 +102,7 @@ export default async function MfaEnrolPage() {
             </div>
           )}
 
-          {ready ? <EnrolForm required={required} /> : null}
+          {ready ? <EnrolForm required={required} declineTo={declineTo} /> : null}
         </div>
 
         <p className="mt-4 text-center text-[13px] text-[var(--secondary)]">

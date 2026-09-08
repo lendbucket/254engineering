@@ -29,6 +29,41 @@ duplicating the reasoning is how two accounts of one decision start to disagree.
 
 ## Phase 12 Section 1 is on production and enrolled against
 
+### The second factor is offered rather than demanded, and the requirement is still there
+
+Recorded 2026-09-07, hours after the requirement shipped and was enrolled against. **Operator ruling:**
+the default is optional, a person with no factor is offered enrolment and can
+decline into the portal, and the per role requirement stays in the code and
+stays enforceable. Migration 0025 moves `admin` and `engineer` to optional.
+The reasoning is in `docs/mfa-design.md` section 5 and in the migration.
+
+**0024 was not edited**, because it had already run against production and a
+migration that changes after it has run is a migration nobody can reason about.
+0024 keeps saying what it did and carries a pointer to 0025; nothing but that
+comment was added to it.
+
+**What is still true after this.** Anybody already enrolled is still challenged
+for a code at every sign in, whatever their role now says, because the sign in
+path reads enrolment before it reads the requirement. Nobody was un-enrolled.
+Setting a role back to `required` is one update and turns on the same
+enforcement that shipped in 0024, which `mfa-audit` proves on every run by
+creating a role that requires a factor and requiring the portal to refuse it.
+
+**The open item this leaves.** Voluntary enrolment from the profile screen is
+still not built, so somebody who declines is offered again at their next sign in
+and has no other way in. The enrolment copy says exactly that rather than
+pointing at an account screen that does not exist. It is the natural home for
+this and is not urgent while the offer repeats.
+
+**The judgment call, disclosed.** An optional role gets a FULL session and is
+merely sent to the enrolment screen, rather than a pending session plus a button
+that promotes it. The second shape needs an endpoint whose whole job is
+upgrading a half authenticated cookie, which would be the most attackable thing
+in this flow and would put every still-required role behind it. Nothing is
+withheld from somebody whose role does not require a factor, so nothing has to
+be handed back.
+
+
 ### The second factor is live, and the first enrolment was a real one
 
 Recorded 2026-09-07. The design and both operator rulings are in

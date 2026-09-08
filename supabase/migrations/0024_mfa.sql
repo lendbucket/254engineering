@@ -1,3 +1,15 @@
+-- SUPERSEDED IN PART BY 0025, AND THIS NOTE IS THE ONLY THING ADDED SINCE THIS
+-- MIGRATION RAN. No SQL below has been touched, because it has applied to
+-- development and to production and a migration that changes after it has run
+-- is a migration nobody can reason about.
+--
+-- What 0025 changes: the last statement in this file seeds the administrator
+-- and the engineer as required, and on 2026-09-07 the operator ruled them
+-- optional instead. The section headed "DEFAULT optional AND THE TWO THAT
+-- ARE NOT" is therefore the argument that was made and then reconsidered,
+-- rather than the state of the system. The reconsideration is written out in
+-- 0025_mfa_optional_default.sql. Everything else here still stands.
+--
 -- ===========================================================================
 -- 0024: a second factor, and what a role requires of it.
 --

@@ -1,0 +1,52 @@
+-- ===========================================================================
+-- 0025: the second factor is offered rather than demanded.
+--
+-- Operator ruling, 2026-09-07, one day after 0024 seeded the opposite. This
+-- migration exists BECAUSE 0024 has already run, on development and on
+-- production, and a migration that changes after it has run is a migration
+-- nobody can reason about. So 0024 keeps saying what it did, and this file
+-- says what changed and why. The argument at the top of 0024 is still the
+-- argument that was made; it was weighed again and it lost, and both halves of
+-- that are worth being able to read.
+--
+-- WHAT CHANGES AND WHAT DOES NOT
+-- -------------------------------
+-- Two rows. `admin` and `engineer` go from 'required' to 'optional'. The
+-- column, its default, its check constraint and the other five roles are
+-- untouched, and so is every enrolment that already exists.
+--
+-- The REQUIREMENT ITSELF IS NOT REMOVED, and that is the point of doing this
+-- as a data change rather than by deleting the mechanism. Setting either role
+-- back to 'required' is one update, and the enforcement it turns on is the
+-- same enforcement that shipped in 0024 and is asserted by mfa-audit on every
+-- run. The firm will want it before it holds real client data, and rebuilding
+-- it then would mean rebuilding it under pressure.
+--
+-- WHY THE REASONING IN 0024 DID NOT SURVIVE CONTACT
+-- -------------------------------------------------
+-- 0024 argued that the administrator moves money and the engineer carries the
+-- licence, and neither of those facts changed. What changed is the recognition
+-- of what 'required' costs while the firm is one person: a required factor on
+-- both privileged roles means the first thing a new administrator or a newly
+-- hired PE meets, before they have done anything, is a wall. Nobody is holding
+-- client data yet, so the wall is being paid for in full and protecting an
+-- empty room.
+--
+-- An offer that can be declined gets most of the protection at none of the
+-- cost, because the people who would have enrolled under compulsion mostly
+-- still enrol when asked. The requirement is what this turns back on when the
+-- room is no longer empty.
+--
+-- WHAT THIS DOES NOT TOUCH, EXPLICITLY
+-- -------------------------------------
+-- eng_mfa_enrolments and eng_mfa_recovery_codes. Nothing here reads or writes
+-- either. Everybody who has a factor keeps it, keeps their recovery codes, and
+-- is still challenged for a code at every sign in, because the sign in path
+-- checks whether somebody IS enrolled before it looks at what their role
+-- requires. Making a role optional stops the portal demanding enrolment of
+-- people who have none. It does not stop it demanding a code from people who
+-- do, and it must not, or this would be a way to switch off a factor by
+-- editing a role.
+-- ===========================================================================
+
+update eng_roles set mfa_requirement = 'optional' where key in ('admin', 'engineer');
