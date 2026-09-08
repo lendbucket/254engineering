@@ -39,6 +39,35 @@ console.log("");
 console.log("========== THE SECOND FACTOR AT THE SESSION BOUNDARY ==========");
 console.log("");
 
+/* ------------------------------- the qr the enrolment screen hands over */
+
+/*
+ * THE ENCODER IS CHECKED ON EVERY RUN, NOT WHEN SOMEBODY REMEMBERS.
+ *
+ * Operator instruction, 2026-09-07, and the reason is the encoder's own
+ * history: five bugs on the way in, four of which produced a QR that rendered
+ * perfectly and decoded to nothing, while versions 5 and 6 worked throughout.
+ * Short payloads were fine and a real otpauth URI was not, which is the failure
+ * shape that ships.
+ *
+ * It belongs here rather than in its own audit because the QR is part of the
+ * enrolment this file already covers, and because nothing else in the platform
+ * draws one. Pure, no server, under a second.
+ */
+{
+  const { checkQrEncoder } = await import("./proofs/qr-decodes-to-what-it-encoded.mjs");
+  const { failed, total } = checkQrEncoder(false);
+  rec(
+    `the qr encoder round trips through an independent decoder (${total} cases)`,
+    failed.length === 0 && total > 5,
+    failed.length
+      ? `${failed.join(" | ")}. A QR that scans to the wrong secret strands somebody mid enrolment.`
+      : total > 5
+        ? ""
+        : `only ${total} cases ran, which is too few to mean anything`,
+  );
+}
+
 /* ----------------------------------------------------- the pure half */
 
 const {

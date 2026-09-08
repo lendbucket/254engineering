@@ -30,11 +30,29 @@ import jsQR from "jsqr";
 import { qrMatrix, qrSvg } from "../../src/lib/qr.ts";
 import { otpauthUri, newTotpSecret } from "../../src/lib/totp.ts";
 
-let fails = 0;
-const rec = (name, ok, note = "") => {
-  if (!ok) fails += 1;
-  console.log(`  ${ok ? "PASS" : "FAIL"}: ${name}${note ? ` (${note})` : ""}`);
-};
+/**
+ * Runs the cases and reports what happened.
+ *
+ * mfa-audit calls this on every suite run rather than leaving it to be
+ * remembered, on the operator's instruction of 2026-09-07: a proof that just
+ * found five bugs should run every time. Four of those five produced a QR that
+ * rendered perfectly and decoded to nothing, and versions 5 and 6 worked
+ * throughout, so nothing short of decoding would have caught them.
+ *
+ * @param {boolean} loud  Print every case. False when the audit calls it.
+ * @returns {{failed: string[], total: number}}
+ */
+export function checkQrEncoder(loud = false) {
+  const failed = [];
+  let total = 0;
+  const say = (line) => {
+    if (loud) console.log(line);
+  };
+  const rec = (name, ok, note = "") => {
+    total += 1;
+    if (!ok) failed.push(name);
+    say(`  ${ok ? "PASS" : "FAIL"}: ${name}${note ? ` (${note})` : ""}`);
+  };
 
 /** The matrix as the RGBA bitmap jsQR reads, scaled so it has pixels to work with. */
 function bitmap(matrix, scale = 4, quiet = 4) {
@@ -59,16 +77,16 @@ function bitmap(matrix, scale = 4, quiet = 4) {
   return { data, width: size, height: size };
 }
 
-const roundTrip = (text) => {
+  const roundTrip = (text) => {
   const img = bitmap(qrMatrix(text));
   const decoded = jsQR(img.data, img.width, img.height);
   return decoded ? decoded.data : null;
 };
 
-console.log("");
-console.log("========== A QR SCANS TO WHAT WENT INTO IT ==========");
+  say("");
+  say("========== A QR SCANS TO WHAT WENT INTO IT ==========");
 
-console.log("\nTHE THING THIS IS ACTUALLY FOR");
+  say("\nTHE THING THIS IS ACTUALLY FOR");
 {
   const uri = otpauthUri(
     "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ",
@@ -79,7 +97,7 @@ console.log("\nTHE THING THIS IS ACTUALLY FOR");
   rec("an otpauth uri decodes back byte for byte", got === uri, got === null ? "it did not decode at all" : got === uri ? `${uri.length} characters` : `got ${JSON.stringify(got)}`);
 }
 
-console.log("\nA REAL SECRET, NOT A FIXTURE");
+  say("\nA REAL SECRET, NOT A FIXTURE");
 {
   /* A fresh secret every run, so a code that only works for one hardcoded
    * string cannot pass this. */
@@ -92,7 +110,7 @@ console.log("\nA REAL SECRET, NOT A FIXTURE");
   rec("five freshly generated secrets each survive the round trip", ok === 5, `${ok} of 5`);
 }
 
-console.log("\nTHE EDGES OF WHAT IT CLAIMS TO HANDLE");
+  say("\nTHE EDGES OF WHAT IT CLAIMS TO HANDLE");
 {
   /* Short, and long enough to push into a higher version. */
   const short = "otpauth://totp/A:b?secret=GEZDGNBVGY3TQOJQ&issuer=A";
@@ -118,7 +136,7 @@ console.log("\nTHE EDGES OF WHAT IT CLAIMS TO HANDLE");
   rec("something too long throws rather than encoding wrongly", threw, "a wrong character count header would produce a scannable code carrying nonsense");
 }
 
-console.log("\nAND THE SVG IS THE SAME MATRIX");
+  say("\nAND THE SVG IS THE SAME MATRIX");
 {
   const uri = otpauthUri("GEZDGNBVGY3TQOJQ", "x@y.com", "254 Engineering Services");
   const svg = qrSvg(uri);
@@ -139,9 +157,19 @@ console.log("\nAND THE SVG IS THE SAME MATRIX");
   );
 }
 
-console.log("");
-if (fails) {
-  console.log(`FAIL: ${fails} case(s). The QR does not carry what it was given, which would strand somebody mid enrolment.`);
-  process.exit(1);
+  say("");
+  return { failed, total };
 }
-console.log("PASS: encoded here, decoded by an independent implementation, byte for byte identical.");
+
+/* Run directly: print everything and set an exit code. */
+const invokedDirectly =
+  process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, "/").split("/").pop());
+
+if (invokedDirectly) {
+  const { failed, total } = checkQrEncoder(true);
+  if (failed.length) {
+    console.log(`FAIL: ${failed.length} of ${total} cases. The QR does not carry what it was given, which would strand somebody mid enrolment.`);
+    process.exit(1);
+  }
+  console.log(`PASS: ${total} cases, encoded here and decoded by an independent implementation, byte for byte identical.`);
+}
