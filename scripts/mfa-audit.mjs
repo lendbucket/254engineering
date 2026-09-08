@@ -475,20 +475,21 @@ else process.env.OPS_SESSION_SECRET = HAD;
 
         /* Sign a fresh account in and report what came back, without enrolling it. */
         const makeProbe = async (roleKey, tag) => {
-          if (!db) return { cookie: null, redirect: null };
+          if (!db) return { cookie: null, redirect: null, id: null };
           const email = `mfaprobe-${tag}-${stamp}@mobile-audit.invalid`;
           const password = `mfaprobe-${tag}-${stamp}-enrolment-screen`;
           const made = await db.auth.admin.createUser({ email, password, email_confirm: true });
-          if (!made.data?.user) return { cookie: null, redirect: null };
-          probeIds.push(made.data.user.id);
+          if (!made.data?.user) return { cookie: null, redirect: null, id: null };
+          const id = made.data.user.id;
+          probeIds.push(id);
           const inserted = await db.from("eng_profiles").insert({
-            id: made.data.user.id,
+            id,
             email,
             display_name: `MFA Probe ${tag}`,
             role: roleKey,
             status: "active",
           });
-          if (inserted.error) return { cookie: null, redirect: null };
+          if (inserted.error) return { cookie: null, redirect: null, id };
           const res = await fetch(`${BASE}/api/portal/session`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -498,6 +499,7 @@ else process.env.OPS_SESSION_SECRET = HAD;
           return {
             cookie: (res.headers.get("set-cookie") ?? "").match(/eng_ops=([^;]+)/)?.[1] ?? null,
             redirect: typeof body?.redirect === "string" ? body.redirect : null,
+            id,
           };
         };
 
@@ -515,6 +517,33 @@ else process.env.OPS_SESSION_SECRET = HAD;
             roleMade,
             roleMade ? REQUIRED_ROLE : (inserted.error?.message ?? "insert failed"),
           );
+
+          /*
+           * AND IT NEEDS A GRANT, OR THE REFUSAL BELOW PROVES NOTHING.
+           *
+           * The first version of this check created a role with no grants, and
+           * /portal redirects any actor without files.list or offers.list_own
+           * to the profile screen before it looks at anything else. So the
+           * portal answered 307 for that role whatever its session was, and
+           * "a required role cannot decline into the portal" passed while
+           * measuring the role's permissions rather than its second factor.
+           *
+           * It passed on a green board and went red only under injection, in
+           * the half of the injection it was not supposed to be watching. That
+           * is the recurring defect in this repository: a check looking at the
+           * right thing for the wrong reason. The grant fixes the cause and the
+           * control below makes it unable to come back.
+           */
+          if (roleMade) {
+            const granted = await db
+              .from("eng_role_grants")
+              .insert({ role_key: REQUIRED_ROLE, action: "files.list" });
+            rec(
+              "and it can open the portal at all, so a refusal means the factor",
+              !granted.error,
+              granted.error?.message ?? "",
+            );
+          }
         }
 
         const optional = await makeProbe("admin", "optional");
@@ -580,16 +609,50 @@ else process.env.OPS_SESSION_SECRET = HAD;
         );
 
         if (required.cookie) {
+          /*
+           * THE CONTROL, AND IT COMES FIRST.
+           *
+           * A FULL session on the very same account and role must open the
+           * portal. If it does not, then the refusal below is being produced by
+           * something other than the second factor, the assertion is measuring
+           * the wrong thing, and it says so instead of passing.
+           *
+           * This is the shape the check should have had from the start, and it
+           * is the same idiom as "the pending cookie opens the challenge
+           * screen" above: prove the instrument reads before trusting what it
+           * reads.
+           */
+          const control = required.id ? issueOpsSession(required.id, REQUIRED_ROLE, "full") : null;
+          let controlOk = false;
+          if (control) {
+            const open = await fetch(`${BASE}${portalPath}`, {
+              headers: { cookie: `eng_ops=${control.value}` },
+              redirect: "manual",
+            });
+            controlOk = open.status === 200;
+            rec(
+              `the same role with a FULL session DOES open the portal (${portalPath})`,
+              controlOk,
+              controlOk
+                ? ""
+                : `status ${open.status}. The refusal below would then prove nothing about the second factor.`,
+            );
+          } else {
+            rec("the same role with a FULL session DOES open the portal", false, "no control cookie could be minted");
+          }
+
           const shut = await fetch(`${BASE}${portalPath}`, {
             headers: { cookie: `eng_ops=${required.cookie}` },
             redirect: "manual",
           });
           rec(
             `and CANNOT decline into the portal (${portalPath})`,
-            shut.status !== 200,
+            shut.status !== 200 && controlOk,
             shut.status === 200
               ? "a required role reached a portal screen without a factor, which is the requirement not existing"
-              : `refused with ${shut.status}`,
+              : controlOk
+                ? `refused with ${shut.status}`
+                : `refused with ${shut.status}, but the control failed, so this refusal is not evidence`,
           );
 
           /*
@@ -701,6 +764,8 @@ else process.env.OPS_SESSION_SECRET = HAD;
               await db.auth.admin.deleteUser(id).catch(() => {});
             }
             if (roleMade) {
+              /* Grants reference the role too, so they go before it. */
+              await db.from("eng_role_grants").delete().eq("role_key", REQUIRED_ROLE);
               const removed = await db.from("eng_roles").delete().eq("key", REQUIRED_ROLE);
               rec(
                 "the throwaway required role was cleaned up",
