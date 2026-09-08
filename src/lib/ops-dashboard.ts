@@ -1136,7 +1136,29 @@ async function salesDashboard(): Promise<SalesDashboard> {
 
   const { data: accountsRaw, error: accErr } = await db
     .from("eng_customer_accounts")
-    .select("id, status, created_at, eng_clients!inner(name), eng_service_orders(placed_at)");
+    /*
+     * SCOPED THROUGH THE CLIENT, FOR THE REASON A PAYMENT IS SCOPED THROUGH ITS
+     * ORDER.
+     *
+     * eng_customer_accounts carries no is_demo and should not: an account is a
+     * demonstration exactly when the organisation it belongs to is, and a
+     * second column would be a second answer that can disagree with the first.
+     *
+     * Found by looking at the screenshot rather than at the code. The tile read
+     * "Accounts on the books: 1" on a development database whose only account
+     * belongs to a seeded client, which is the plausible-and-slightly-wrong
+     * number the whole of Section 2 exists to prevent, on a screen nobody had
+     * thought to apply the rule to because it is a dashboard rather than a
+     * report.
+     *
+     * The other sets on this screen are NOT scoped, and that is not an
+     * oversight: eng_leads and eng_quote_requests have no is_demo column,
+     * deliberately, because nothing seeds either of them. A filter on a column
+     * that does not exist is an error, and a column that is always false is a
+     * question nobody can answer.
+     */
+    .select("id, status, created_at, eng_clients!inner(name, is_demo), eng_service_orders(placed_at)")
+    .eq("eng_clients.is_demo", false);
   if (accErr) console.error("[dashboard] accounts could not be read:", accErr.message);
   const accounts = accErr ? null : (accountsRaw ?? []);
 

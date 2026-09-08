@@ -177,6 +177,60 @@ const { dashboardFor } = await import("../src/lib/ops-dashboard.ts");
   );
 }
 
+// ----------------------------- a dashboard tile counts no demonstration either
+
+{
+  /*
+   * THE RULE IS NOT ONLY ABOUT REPORTS, AND A TILE PROVED IT.
+   *
+   * Section 2's law is that a figure never counts a demonstration record, and
+   * every check written for it pointed at the four reports. The sales dashboard
+   * is not a report, so nothing was looking, and its "Accounts on the books"
+   * tile read 1 on a development database whose only account belongs to a
+   * seeded client. Found by looking at a screenshot.
+   *
+   * The count is recomputed here from an INDEPENDENT query rather than read
+   * back from the module, which is the distinction CLAUDE.md section 6 draws:
+   * comparing the dashboard's answer to the dashboard's own query would compare
+   * a value to itself and pass on the day the scope goes missing.
+   */
+  const { auditClient } = await import("./lib/db-target.mjs");
+  const db = auditClient("dashboards-audit", { neverProduction: true });
+
+  if (!db) {
+    console.log("  COULD NOT TELL: no database, so the accounts tile was not checked against one.");
+  } else {
+    const { count: real } = await db
+      .from("eng_customer_accounts")
+      .select("id, eng_clients!inner(is_demo)", { count: "exact", head: true })
+      .eq("eng_clients.is_demo", false);
+    const { count: everything } = await db
+      .from("eng_customer_accounts")
+      .select("id", { count: "exact", head: true });
+
+    const sales = await dashboardFor({
+      id: "00000000-0000-4000-8000-000000000000",
+      role: "sales",
+      status: "active",
+      grants: new Set(DEFAULT_ROLES.find((r) => r.key === "sales").grants),
+    });
+    const tile = sales?.tiles.find((t) => t.label === "Accounts on the books");
+
+    rec(
+      `the accounts tile can be told apart from an unscoped count (${real} real of ${everything})`,
+      real !== everything,
+      real === everything
+        ? "every account on this database is real, so a tile that counted demonstrations would look identical and this check proves nothing today"
+        : `${everything - real} account(s) belong to a demonstration client`,
+    );
+    rec(
+      "and the sales dashboard counts only the real ones",
+      tile?.count === real,
+      `tile says ${tile?.count}, an independent query says ${real}. A dashboard is not a report, which is exactly why nothing was looking at this one.`,
+    );
+  }
+}
+
 // -------------------------------- what could not be counted is on the screen
 
 {
