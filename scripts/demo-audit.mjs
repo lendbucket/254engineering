@@ -345,7 +345,7 @@ if (!db) {
           },
         };
       },
-      control: (figures) => figures.find((f) => f.label === "As the platform pays"),
+      control: (figures) => figures.find((f) => f.label.startsWith("Unsigned amendment")),
     },
     {
       report: "partner",

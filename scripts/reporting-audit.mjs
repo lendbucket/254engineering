@@ -32,7 +32,7 @@
 process.loadEnvFile?.(".env.local");
 
 import { readFileSync } from "node:fs";
-import { REPORTS, formatFigure, periodOf } from "../src/lib/ops-reports.ts";
+import { REPORTS, ROWS_PER_PAGE, formatFigure, pageOfRows, periodOf } from "../src/lib/ops-reports.ts";
 import { LICENSED_FIGURES } from "../src/lib/ops-authz.ts";
 
 const out = [];
@@ -169,8 +169,73 @@ console.log("");
   const screen = readFileSync("src/app/portal/(app)/reports/page.tsx", "utf8");
   rec(
     "the screen renders the rows rather than linking to a screen that might have them",
-    /figure\.rows\.map\(/.test(screen) && !/href=\{figure\.rows\}/.test(screen),
+    /window\.shown\.map\(/.test(screen) && !/href=\{figure\.rows\}/.test(screen),
     "an href cannot be added up, and /portal/orders is not a list of orders",
+  );
+
+  /*
+   * THE PAGE IS A WINDOW AND THE SUM IS NOT.
+   *
+   * Every row a figure was computed from stays in the figure, because that is
+   * what makes the total checkable and what demo-audit sweeps for a
+   * demonstration record. What must not happen is all of them reaching the
+   * HTML: the pipeline figures carry one row per order that has EVER existed,
+   * since "orders in this state right now" is a standing count rather than a
+   * count for the period, and that set only grows.
+   *
+   * So the screen renders ROWS_PER_PAGE at a time. The two things that could
+   * go wrong are both checked here: the sum quietly becoming the sum of the
+   * visible page, and the invisible remainder never being mentioned.
+   */
+  rec(
+    `the screen renders a window rather than every row (${ROWS_PER_PAGE} at a time)`,
+    /pageOfRows\(/.test(screen) && ROWS_PER_PAGE > 0,
+    "a figure over a busy month carries one row per payment, and pipeline carries one per order ever",
+  );
+  rec(
+    "and says how many rows it is not showing",
+    /the\s*\n?\s*sum of all \{figure\.rows\.length\}/.test(screen) || /sum of all \{figure\.rows\.length\}/.test(screen),
+    "a table that silently stops is a reader counting 25 rows under a figure that says 400",
+  );
+
+  /*
+   * PAGING IS ASSERTED AGAINST A SET BUILT HERE, NOT AGAINST THE DATABASE.
+   *
+   * The obvious version filters the live figures for one that exceeds a page
+   * and checks that one. On this database no figure does, so that check would
+   * report a pass over an empty list every run until the day the data grew, and
+   * then it would be exercised for the first time in production. A check that
+   * has never had a subject is a check nobody has tested.
+   *
+   * So the window is exercised over a set constructed to be bigger than a page,
+   * which makes the assertion true or false today and every day.
+   */
+  const wide = Array.from({ length: ROWS_PER_PAGE * 2 + 3 }, (_, i) => ({
+    label: `row-${i}`,
+    detail: "",
+    value: 100,
+  }));
+  const whole = sumOf(wide);
+  const first = pageOfRows(wide, 1);
+  const last = pageOfRows(wide, 999);
+  const rejoined = [
+    ...pageOfRows(wide, 1).shown,
+    ...pageOfRows(wide, 2).shown,
+    ...pageOfRows(wide, 3).shown,
+  ];
+
+  rec(
+    `a window shows one page and the pages cover the whole set (${wide.length} rows, ${first.pages} pages of ${ROWS_PER_PAGE})`,
+    first.shown.length === ROWS_PER_PAGE &&
+      first.pages === 3 &&
+      rejoined.length === wide.length &&
+      sumOf(rejoined) === whole,
+    "if the pages did not rejoin into the set, rows would be unreachable and the total unverifiable",
+  );
+  rec(
+    "and a page number past the end clamps rather than rendering an empty table",
+    last.page === last.pages && last.shown.length > 0 && pageOfRows(wide, 0).page === 1,
+    "an empty table under a figure reading a number is the defect this whole section is about",
   );
 
   /*

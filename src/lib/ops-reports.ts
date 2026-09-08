@@ -73,6 +73,43 @@ export type Figure = {
 
 export type ReportSection = { title: string; figures: Figure[] };
 
+/**
+ * HOW MANY ROWS OF AN EXPANSION REACH THE PAGE AT ONCE.
+ *
+ * A figure carries every row it was computed from, because that is what makes
+ * the total checkable. What it must not do is put every row into the HTML: a
+ * revenue figure over a busy month carries one row per payment, and the
+ * pipeline figures carry one row per order that has EVER existed, because
+ * "orders in this state right now" is deliberately a standing count rather
+ * than a count for the period.
+ *
+ * So the sum stays over the full set, server side, and the page renders a
+ * window onto it. Twenty five rows is roughly seven hundred pixels at the row
+ * height this table uses, which is one scrolling region at 390 rather than a
+ * screen the reader has to swipe through to reach the next figure.
+ *
+ * The remainder is STATED rather than dropped. A table that silently stops at
+ * twenty five is a reader counting twenty five rows under a figure that says
+ * four hundred, which is the same defect as an expansion pointing at the wrong
+ * set: it invites somebody to trust an arithmetic that does not add up.
+ */
+export const ROWS_PER_PAGE = 25;
+
+/** A window onto one figure's rows, plus what the window is not showing. */
+export function pageOfRows(rows: FigureRow[], page: number): {
+  shown: FigureRow[];
+  page: number;
+  pages: number;
+  from: number;
+  to: number;
+} {
+  const pages = Math.max(1, Math.ceil(rows.length / ROWS_PER_PAGE));
+  const current = Math.min(Math.max(1, Math.floor(page) || 1), pages);
+  const from = (current - 1) * ROWS_PER_PAGE;
+  const to = Math.min(from + ROWS_PER_PAGE, rows.length);
+  return { shown: rows.slice(from, to), page: current, pages, from, to };
+}
+
 export type Report = {
   key: "revenue" | "production" | "pipeline" | "partner";
   title: string;
@@ -426,27 +463,27 @@ export async function productionReport(period = periodOf(), scope: FigureScope =
     unavailable,
     sections: [
       {
-        title: "What the firm owes for this period",
+        title: "What the firm owes for this period: the executed agreement beside the unsigned amendment",
         figures: [
           {
-            label: "As the platform pays",
-            value: sumRows(priced.map(rowOf)),
-            kind: "money",
-            note: "Every completed review, whatever the engineer decided. This is what the ledger holds and what will be paid.",
-            rows: priced.map(rowOf),
-          },
-          {
-            label: "As section 3.2 reads today",
+            label: "Executed agreement, section 3.2",
             value: sumRows(sealed.map(rowOf)),
             kind: "money",
-            note: "Seals only. The signed agreement as the operator describes it, which is narrower than what the software does.",
+            note: "SIGNED. Seals only, which is section 3.2 as the operator describes it. The agreement itself is not in this repository and nothing here quotes it.",
             rows: sealed.map(rowOf),
           },
           {
-            label: "The gap the amendment would paper",
+            label: "Unsigned amendment, which is what the platform already pays",
+            value: sumRows(priced.map(rowOf)),
+            kind: "money",
+            note: "UNSIGNED, AND NOT YET DRAFTED. Every completed review, whatever the engineer decided. This is the larger of the two and it is the one the ledger holds and the one that will be paid.",
+            rows: priced.map(rowOf),
+          },
+          {
+            label: "The gap between them",
             value: sumRows(unsealed.map(rowOf)),
             kind: "money",
-            note: "Paid under a term the executed contract does not yet contain. UNSIGNED: the amendment has not been drafted.",
+            note: "Paid under a term the executed contract does not contain. This is the firm's exposure, computed from the ledger's own decisions rather than estimated.",
             rows: unsealed.map(rowOf),
           },
         ],

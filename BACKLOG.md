@@ -1231,10 +1231,23 @@ client written by a script that is not in the tree either. demo-audit's detector
 was extended from orders to profiles, partners and clients, named all twelve on
 its first run, and 0028 marks them by the address rule in
 `src/lib/ops-files.ts` rather than by a name. **0028 is applied to development
-and is PENDING on production**, with the reason in `supabase/applied.mjs`: the
-production key is not in the working tree, so the session that wrote it could
-not run the same sweep against production and would not claim a count it had not
-read.
+and to production**, and on production it marked nothing, because production
+holds two profiles, one application and no partners, clients, orders or files.
+
+### One development client was written by a script nobody can name
+
+Recorded 2026-09-08, found by the same sweep. `eng_clients` on development holds
+"Demo Solar Installers LLC" at `orders@example.com`. What can be said about it:
+the name appears nowhere in this repository, no committed script creates a
+client with that name or that address, and it is the same shape as the eight "ZZ
+probe" partners and the three "Stripe Probe" clients, all of which came from end
+to end scripts written during earlier sections and never committed.
+
+**No action, and none is possible.** There is no script to fix. 0028 marked it,
+so it reaches no figure on any report, and demo-audit's detector now sweeps
+`eng_profiles`, `eng_partners` and `eng_clients` on every board run, so the next
+one is named on the day it is written rather than in the next inventory.
+Production holds no client rows at all.
 
 ### Orders attributed before 0022 cannot have their link touches shown
 

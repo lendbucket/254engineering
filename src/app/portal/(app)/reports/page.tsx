@@ -3,7 +3,7 @@ import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { PageHead, Panel, EmptyState } from "@/components/portal/surfaces";
 import { SystemAlert } from "@/components/portal/design";
-import { REPORTS, formatFigure, periodOf, type Figure } from "@/lib/ops-reports";
+import { REPORTS, ROWS_PER_PAGE, formatFigure, pageOfRows, periodOf, type Figure } from "@/lib/ops-reports";
 import { isKnown, money } from "@/lib/ops-money";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +43,18 @@ export const dynamic = "force-dynamic";
  * absent-versus-zero rule one level down: the rows under a state count have no
  * value to give, and a 0 beside each would read as an amount somebody could add.
  */
+/**
+ * A stable id for one figure, so a pager link can name which expansion it is
+ * paging and the browser can return the reader to it.
+ *
+ * Built from the report key, the section and the label rather than an index,
+ * because an index changes the moment a section gains a figure and a bookmarked
+ * link would then open a different one.
+ */
+function figureKeyOf(report: string, section: string, label: string): string {
+  return `${report}-${section}-${label}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
 function rowValue(figure: Figure, value: number | null): string {
   if (!isKnown(value)) return "";
   if (figure.kind === "money") return money(value);
@@ -50,11 +62,29 @@ function rowValue(figure: Figure, value: number | null): string {
   return String(value);
 }
 
-function FigureCell({ figure }: { figure: Figure }) {
+function FigureCell({
+  figure,
+  figureKey,
+  period,
+  open,
+  page,
+}: {
+  figure: Figure;
+  figureKey: string;
+  period: string;
+  open: boolean;
+  page: number;
+}) {
   const absent = figure.value === null;
+  const window = figure.rows ? pageOfRows(figure.rows, open ? page : 1) : null;
+  const link = (n: number) =>
+    `/portal/reports?period=${period}&open=${encodeURIComponent(figureKey)}&page=${n}#${figureKey}`;
 
   return (
-    <div className="rounded-[var(--radius-card)] border border-[var(--border)] bg-white p-4">
+    <div
+      id={figureKey}
+      className="rounded-[var(--radius-card)] border border-[var(--border)] bg-white p-4"
+    >
       <p className="portal-kicker text-[var(--secondary)]">{figure.label}</p>
 
       {/*
@@ -78,8 +108,8 @@ function FigureCell({ figure }: { figure: Figure }) {
         with nothing under it. The one figure with no expansion at all is an
         absent one, where there is no set because the query did not run.
       */}
-      {figure.rows ? (
-        <details className="mt-2">
+      {figure.rows && window ? (
+        <details className="mt-2" open={open}>
           <summary className="inline-flex min-h-[var(--tap-target)] cursor-pointer items-center text-[12.5px] font-semibold text-[var(--navy)] underline">
             {figure.rows.length === 0
               ? "The set is empty"
@@ -94,7 +124,7 @@ function FigureCell({ figure }: { figure: Figure }) {
             <div className="mt-2 overflow-x-auto">
               <table className="w-full border-collapse text-[12px]">
                 <tbody>
-                  {figure.rows.map((row, i) => (
+                  {window.shown.map((row, i) => (
                     <tr key={`${row.label}-${i}`} className="border-t border-[var(--border)]">
                       <td className="py-1 pr-2 align-top font-semibold text-[var(--navy)]">{row.label}</td>
                       <td className="py-1 pr-2 align-top text-[var(--secondary)]">{row.detail}</td>
@@ -107,6 +137,40 @@ function FigureCell({ figure }: { figure: Figure }) {
               </table>
             </div>
           )}
+
+          {/*
+            THE REMAINDER IS STATED, NOT DROPPED.
+
+            A table that silently stops at twenty five is a reader counting
+            twenty five rows under a figure that says four hundred, which
+            invites exactly the distrust the expansion exists to remove. The
+            figure above is the sum of ALL of them; this says so in words and
+            then offers the rest a page at a time.
+          */}
+          {window.pages > 1 ? (
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px] text-[var(--secondary)]">
+              <span>
+                Rows {window.from + 1} to {window.to} of {figure.rows.length}. The figure above is the
+                sum of all {figure.rows.length}.
+              </span>
+              {window.page > 1 ? (
+                <a
+                  className="inline-flex min-h-[var(--tap-target)] items-center font-semibold text-[var(--navy)] underline"
+                  href={link(window.page - 1)}
+                >
+                  Previous {ROWS_PER_PAGE}
+                </a>
+              ) : null}
+              {window.page < window.pages ? (
+                <a
+                  className="inline-flex min-h-[var(--tap-target)] items-center font-semibold text-[var(--navy)] underline"
+                  href={link(window.page + 1)}
+                >
+                  Next {ROWS_PER_PAGE}
+                </a>
+              ) : null}
+            </div>
+          ) : null}
         </details>
       ) : null}
     </div>
@@ -116,14 +180,15 @@ function FigureCell({ figure }: { figure: Figure }) {
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string }>;
+  searchParams: Promise<{ period?: string; open?: string; page?: string }>;
 }) {
   const actor = await currentActor();
   const allowed = REPORTS.filter((r) => can(actor, r.action));
   if (allowed.length === 0) notFound();
 
-  const { period: asked } = await searchParams;
+  const { period: asked, open, page: askedPage } = await searchParams;
   const period = /^\d{4}-\d{2}$/.test(asked ?? "") ? (asked as string) : periodOf();
+  const page = Number.parseInt(askedPage ?? "1", 10) || 1;
 
   const built = await Promise.all(allowed.map((r) => r.build(period)));
 
@@ -165,9 +230,19 @@ export default async function ReportsPage({
               <div key={section.title} className="mb-5 last:mb-0">
                 <p className="portal-kicker mb-2 text-[var(--secondary)]">{section.title}</p>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {section.figures.map((f) => (
-                    <FigureCell key={`${section.title}-${f.label}`} figure={f} />
-                  ))}
+                  {section.figures.map((f) => {
+                    const key = figureKeyOf(report.key, section.title, f.label);
+                    return (
+                      <FigureCell
+                        key={key}
+                        figureKey={key}
+                        figure={f}
+                        period={period}
+                        open={open === key}
+                        page={page}
+                      />
+                    );
+                  })}
                 </div>
               </div>
             ))

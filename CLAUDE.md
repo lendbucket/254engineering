@@ -510,14 +510,31 @@ accounts that will disagree. Every fingerprint above is in the ledger with the
 count it was read back at; what belongs here is the pointer and the reasoning,
 not a second copy of the numbers.
 
-**0028 is the first entry in that ledger to be PENDING for a reason that is not
-"the branch is still open".** It marks probe records as demonstrations by the
-RFC 2606 address rule, it is applied to development, and whether production
-holds any such record is UNKNOWN, because the production service role key lives
-only in Vercel and the session that wrote it could not run the sweep to find
-out. It says so in the ledger rather than guessing a count, and
-`schema-ledger-audit` will fail the board the moment it reaches main still
-pending.
+**A MIGRATION REACHES PRODUCTION THROUGH THE SUPABASE MCP, AND ONE REFUSED CALL
+IS NOT A CLOSED DOOR.** Recorded 2026-09-08. The production service role key is
+not in the working tree and must not be, so nothing in `scripts/` can reach
+production without `ALLOW_PRODUCTION_DB=1` and a key somebody supplies. The MCP
+is the other path, and it is how 0026, 0027 and 0028 were applied and read back:
+`apply_migration` against `fsaryeciduszuahgjbly`, then `execute_sql` for the
+fingerprint and the row counts.
+
+This is written down because a session got it wrong in the direction that costs
+the most. One `execute_sql` call was refused, and the session concluded the
+production path was closed, wrote a PENDING ledger entry saying so, and told the
+operator the count was unknowable. `apply_migration` had not been tried, and it
+worked first time. **A refusal is a refusal of one call. Try the tool that
+actually applied the last migration before declaring anything unreachable, and
+never let "I could not measure it" stand in a ledger when it means "I did not
+try the other tool".**
+
+**The provider's migration list is not the record. `supabase/applied.mjs` is.**
+Production's `list_migrations` shows 0026 and 0027 and does not show 0025, while
+production unmistakably HAS 0025: `eng_roles` reads `optional` for admin and
+engineer, which is the only thing that migration does. It was applied by
+`execute_sql` rather than `apply_migration`, so it changed the database without
+leaving a row in the provider's history. That is exactly why the ledger exists
+and why `production-schema-check` asks the database about the objects rather
+than reading a list.
 
 0023 adds `eng_alert_state`, which is the fifth table in this schema that is
 deliberately NOT append only, and it belongs to the same class as the four in
