@@ -392,6 +392,19 @@ const PHASE_ONE = [
     name: "demo-audit",
     why: "a demonstration moves no figure on any report",
   },
+  {
+    /*
+     * Phase 12 Section 2. Builds an actor from every entry in DEFAULT_ROLES and
+     * runs dashboardFor's capability ladder, because nothing else could catch
+     * what it was written for: a dispatcher holds offers.list_own, which was the
+     * technician's branch, so every dispatcher was being served the field
+     * technician's dashboard with every tile scoped to somebody else's id and
+     * therefore reading none. The comment directly beneath that ladder asserted
+     * it could not happen.
+     */
+    name: "dashboards-audit",
+    why: "every role lands on its own dashboard, and three of them cannot hold a firm money figure",
+  },
 ];
 
 const PHASE_TWO = [

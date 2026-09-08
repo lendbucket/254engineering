@@ -120,6 +120,17 @@ export const NAV: NavItem[] = [
    * this one, so the intersection cannot silently stop being one.
    */
   { href: "/portal/reports", label: "Reports", short: "Reports", action: "reports.production", icon: "billing" },
+  /*
+   * The marketing suppression list. Reachable for customer service, which is
+   * the role the request actually arrives at, and for an administrator.
+   *
+   * It is in the menu rather than buried on a settings screen because the whole
+   * reason it exists is that somebody on a telephone call needs to record what
+   * they were just told, while the person is still on the line. A screen that
+   * takes three clicks to find is a screen where the request gets written on
+   * paper instead.
+   */
+  { href: "/portal/suppressions", label: "Do not contact", short: "Do not", action: "suppressions.manage", icon: "messages" },
   { href: "/portal/clients", label: "Clients", short: "Clients", action: "clients.list", icon: "clients" },
   { href: "/portal/protocols", label: "Protocols", short: "Specs", action: "protocols.author", icon: "protocols" },
   { href: "/portal/techs", label: "Technicians", short: "Techs", action: "profiles.list", icon: "techs" },

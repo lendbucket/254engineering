@@ -194,6 +194,21 @@ export const APPLIED = [
     note:
       "Applied to development and to production on 2026-09-08 through the Supabase MCP, the same mechanism 0027 went through, and read back rather than assumed. Fingerprint unchanged at 9bbcca2c9cd3c65503c923d7c32ea769 across 970 columns and 72 eng_ tables, which is what a backfill with no DDL in it should do. ON PRODUCTION IT MARKED NOTHING, AND THAT IS THE MEASURED ANSWER RATHER THAN AN ASSUMPTION: production holds 2 profiles, 1 application, and zero partners, clients, orders and files, none of them on an unroutable address, and the same sweep re-run afterwards found nothing left unmarked. On development it marked twelve: eight probe partners, three Stripe probe clients and one client written by a script that is not in the tree. It retires the BACKLOG entry 'Eight probe partners on development cannot be deleted, and should not be'; they still cannot be deleted, and they no longer need to be, because a record that cannot be removed can still be told apart. A FIRST DRAFT OF THIS ENTRY DECLARED IT PENDING AND SAID PRODUCTION WAS UNREADABLE FROM HERE. That was wrong and is recorded rather than quietly fixed: one execute_sql call had been refused, and the session generalised a single refusal into a closed door without trying apply_migration, which is the tool 0027 went through and which worked first time.",
   },
+
+  /*
+   * Taking somebody off the marketing list becomes a grant. Two rows, no DDL,
+   * so the fingerprint is unchanged for the same reason 0021 and 0025 are.
+   */
+  {
+    file: "0029_suppressions_manage_grant.sql", appliedBy: "apply_migration",
+    fingerprint: "9bbcca2c9cd3c65503c923d7c32ea769",
+    proves: { table: "eng_role_grants", match: { role_key: "customer_service", action: "suppressions.manage" } },
+    production: null,
+    because:
+      "ON A FEATURE BRANCH, WHICH IS THE ONE REASON A PENDING ENTRY IS ORDINARY. It goes to production through apply_migration when Phase 12 Section 2 merges, and schema-ledger-audit fails the board the moment it is reachable from main and still says null. Applied to development 2026-09-09. The lesson from 0027 is why it is NOT being applied to production early: doing that leaves the board red on 'nothing is applied to production that is not on main' for the whole life of the branch, which trains everybody to read one red check as normal.",
+    note:
+      "Seeds suppressions.manage to admin and to customer service. No DDL, so the fingerprint stays 9bbcca2c9cd3c65503c923d7c32ea769 across 970 columns and 72 eng_ tables. Sales holds nothing here on purpose: somebody paid to grow a list should not be the one who can quietly shorten it, and the request does not arrive there anyway.",
+  },
 ];
 
 /** The canary. An empty ledger must never read as a ledger with nothing to say. */
