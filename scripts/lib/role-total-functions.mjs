@@ -26,6 +26,29 @@
  * undefined" would have passed portalInvite, which returned a confident and
  * wrong "Field Technician".
  *
+ * THE ONE ON THAT LIST THAT IS NOT REGISTERED BELOW, AND WHAT IT COST
+ * --------------------------------------------------------------------
+ * `dashboardFor` is named four lines up as one of the six, and it is not in the
+ * array. It could not be: the other five are pure functions of a role key, and
+ * `dashboardFor` is async, takes an ACTOR rather than a role, and runs a dozen
+ * queries. Registering it here would have meant a database in this module.
+ *
+ * The gap was not free. On 2026-09-09, Phase 12 Section 2 found `dashboardFor`
+ * had regressed to a seventh instance of the same defect: a dispatcher holds
+ * `offers.list_own`, which was the field technician's branch, so every
+ * dispatcher was being served the technician's dashboard with every tile scoped
+ * to somebody else's id and therefore reading none. The comment beneath that
+ * ladder asserted it returned null for a dispatcher. This file's own docstring
+ * named the function and the list did not contain it, which is this
+ * repository's recurring defect wearing a declaration.
+ *
+ * It is covered now, by `scripts/dashboards-audit.mjs`, which builds an actor
+ * from every entry in DEFAULT_ROLES, walks the ladder, and compares against a
+ * mapping written out as a literal rather than read back from the module. That
+ * is the same property this file asserts, checked where a database is allowed.
+ * Named here so the next reader of the list above does not conclude the
+ * function is unchecked, and does not conclude it is checked HERE.
+ *
  * ADDING A FUNCTION THAT TAKES A ROLE MEANS ADDING IT HERE
  * --------------------------------------------------------
  * That is the same rule the surface inventory carries, for the same reason: the
