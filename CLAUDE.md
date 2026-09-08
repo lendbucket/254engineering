@@ -189,6 +189,25 @@ Three of those four are about money or about whether somebody was told
 something, which is why the rule is worded the way it is. A design cannot be
 wrong about a colour in a way that costs a refund.
 
+**THE EXCEPTION, AND IT MATTERS: THE RULE IS NOT "THE DESIGN IS ALWAYS
+WRONG".** Recorded 2026-09-08, from the reporting port. The prototype's
+reports module got absent versus zero RIGHT, and this platform's own file
+screen got it wrong.
+
+Its margin card is annotated "2 of 3 closed files; gaps excluded", which is
+the coverage disclosure `periodTotals` already implements. Meanwhile
+`/portal/files` was computing `price - (tech ?? 0) - (engineer ?? 0)`, showing
+a margin inflated by every cost nobody had entered yet and omitting the
+partner commission entirely.
+
+So the reconciliation runs in BOTH directions. A design can be right about a
+rule the code has drifted from, and a designer who has thought about absent
+data deserves to have that noticed rather than overruled by a session assuming
+designs are wrong about money. What the rule says is that a claim is
+UNVERIFIED until it is read against the code. It does not say the claim is
+false, and reading it as though it did produces the opposite failure: shipping
+the platform's mistake over the design's correction.
+
 The order is therefore fixed. **Inventory and reconcile first**: list what the
 platform actually does, give every drawn artifact a verdict against it, and
 get a ruling on the ones that describe something the firm does not do or

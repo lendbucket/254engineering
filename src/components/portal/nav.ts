@@ -106,6 +106,20 @@ export const NAV: NavItem[] = [
   { href: "/portal/accounts", label: "Accounts", short: "Accts", action: "accounts.manage", icon: "accounts" },
   { href: "/portal/partners", label: "Partners", short: "Partners", action: "partners.manage", icon: "partners" },
   { href: "/portal/billing", label: "Billing", short: "Money", action: "billing.read", icon: "billing" },
+  /*
+   * Reports, gated on reports.production rather than reports.revenue.
+   *
+   * A nav item carries ONE action and the screen behind it allows any of four,
+   * so the item has to name the one every report reading role holds. Admin
+   * holds all four and the engineer holds production alone, so production is
+   * the intersection. Naming revenue here would have hidden the link from the
+   * engineer while leaving the page reachable by URL, which is the shape of a
+   * screen somebody finds by accident.
+   *
+   * reporting-audit fails if a role ever holds a report grant without holding
+   * this one, so the intersection cannot silently stop being one.
+   */
+  { href: "/portal/reports", label: "Reports", short: "Reports", action: "reports.production", icon: "billing" },
   { href: "/portal/clients", label: "Clients", short: "Clients", action: "clients.list", icon: "clients" },
   { href: "/portal/protocols", label: "Protocols", short: "Specs", action: "protocols.author", icon: "protocols" },
   { href: "/portal/techs", label: "Technicians", short: "Techs", action: "profiles.list", icon: "techs" },

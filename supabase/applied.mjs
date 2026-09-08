@@ -149,6 +149,19 @@ export const APPLIED = [
     note:
       "Applied to production on merge and read back rather than assumed: fingerprint 2f76de7be0fb4ed93459db4d72d80237 across 964 columns and 72 eng_ tables, identical to development and to the replay. PRODUCTION IS STILL THE SHARED PROJECT fsaryeciduszuahgjbly: the same query counts 125 tables in public, so 53 belong to unrelated apps and this table sits beside them. That is why every table this firm owns is eng_ prefixed, and it is what the cutover has to carry across.",
   },
+
+  /*
+   * Reporting foundations. Three rules that all had to exist before a single
+   * figure was rendered, because each decides what a figure MEANS.
+   */
+  {
+    file: "0027_reporting_foundations.sql",
+    fingerprint: "9bbcca2c9cd3c65503c923d7c32ea769",
+    proves: { table: "eng_role_grants", match: { role_key: "engineer", action: "reports.production" } },
+    production: "2026-09-08",
+    note:
+      "Applied and read back rather than assumed: fingerprint 9bbcca2c9cd3c65503c923d7c32ea769 across 970 columns and 72 eng_ tables, identical to development and the replay, with 5 report grants and 116 grants in total. Production holds ZERO demo records, so the backfill marked nothing there and the two directional check was added over clean data. Production is still the shared project fsaryeciduszuahgjbly.",
+  },
 ];
 
 /** The canary. An empty ledger must never read as a ledger with nothing to say. */

@@ -371,6 +371,10 @@ const MATRIX: Record<Role, Action[]> = {
     "tasks.use", "messages.use",
     "audit.read", "time.log_own",
     "responsible_charge.read_own", "responsible_charge.read_all",
+    /* All four reports. Seeded by 0027 and declared here, because roles-audit
+     * compares this array to the migration chain and a grant in one and not the
+     * other is a permission nobody decided. */
+    "reports.revenue", "reports.production", "reports.pipeline", "reports.partner",
   ],
   engineer: [
     "profiles.read_self", "profiles.update_self",
@@ -388,6 +392,10 @@ const MATRIX: Record<Role, Action[]> = {
     "documents.deliver", "documents.read",
     "tasks.use", "messages.use",
     "ledger.read_own", "time.log_own",
+    /* The production report and nothing else: it describes their own work.
+     * No revenue, no pipeline, no partner. A licence is not a reason to see
+     * what the firm earns. */
+    "reports.production",
     "responsible_charge.read_own",
     // An engineer sees what a file is worth, because they are paid production on
     // it and a tier they cannot see is a number they cannot check.

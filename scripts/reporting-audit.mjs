@@ -153,6 +153,43 @@ console.log("");
   );
 }
 
+// ------------------------------------- the nav reaches everybody who may read
+
+{
+  /*
+   * A NAV ITEM CARRIES ONE ACTION AND THE SCREEN ALLOWS FOUR.
+   *
+   * So the item has to name an action every report reading role holds. If a
+   * role is ever granted one report and not the nav's, the link disappears for
+   * them while the page stays reachable by URL, which is how a screen becomes
+   * something people find by accident rather than something they are given.
+   *
+   * Derived from DEFAULT_ROLES rather than from a list here, so a role added on
+   * the permission screen is covered without anybody remembering.
+   */
+  const { DEFAULT_ROLES } = await import("../src/lib/ops-authz.ts");
+  const { NAV } = await import("../src/components/portal/nav.ts");
+
+  const item = NAV.find((n) => n.href === "/portal/reports");
+  rec("the reports screen is in the navigation", Boolean(item), item ? item.action : "no nav item points at it");
+
+  if (item) {
+    const reportActions = REPORTS.map((r) => r.action);
+    const stranded = DEFAULT_ROLES.filter((role) => {
+      const holds = role.grants.filter((g) => reportActions.includes(g));
+      return holds.length > 0 && !role.grants.includes(item.action);
+    }).map((r) => r.key);
+
+    rec(
+      `every role that may read a report can see the link (${item.action})`,
+      stranded.length === 0,
+      stranded.length
+        ? `${stranded.join(", ")} hold a report grant and not ${item.action}, so the page is reachable only by URL for them`
+        : "",
+    );
+  }
+}
+
 // ---------------------------------------- licensed figures are not grantable
 
 {
