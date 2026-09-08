@@ -1083,7 +1083,10 @@ export function outageAlert(input: OutageAlertInput): RenderedEmail {
     },
     // A reply reaches the firm mailbox rather than the send-only notifications
     // address. Replying to a machine alert is unlikely and a dead end is worse.
-    { replyTo: business.email },
+    /* No reply-to override: the three machine alerts reply to the firm address
+     * like everything else. Operator ruling, 2026-09-08. info@ is not a
+     * confirmed mailbox and an alert that invites a reply nobody reads is worse
+     * than one that invites none. */
   );
 }
 
@@ -1178,7 +1181,10 @@ export function errorAlert(input: ErrorAlertInput): RenderedEmail {
         },
       ],
     },
-    { replyTo: business.email },
+    /* No reply-to override: the three machine alerts reply to the firm address
+     * like everything else. Operator ruling, 2026-09-08. info@ is not a
+     * confirmed mailbox and an alert that invites a reply nobody reads is worse
+     * than one that invites none. */
   );
 }
 
@@ -1269,7 +1275,10 @@ export function queueAlert(input: QueueAlertInput): RenderedEmail {
         },
       ],
     },
-    { replyTo: business.email },
+    /* No reply-to override: the three machine alerts reply to the firm address
+     * like everything else. Operator ruling, 2026-09-08. info@ is not a
+     * confirmed mailbox and an alert that invites a reply nobody reads is worse
+     * than one that invites none. */
   );
 }
 

@@ -258,6 +258,29 @@ BASE_URL=https://254engineering.com npx tsx scripts/security-audit.mjs
 **Every audit is verified by injecting a violation and watching it fail before its green is
 trusted.** An audit that has never failed has never been tested.
 
+**AN AUDIT NEVER IMPORTS ITS EXPECTATION FROM THE THING IT AUDITS.** Operator
+ruling, 2026-09-08, and it is the companion to the declared inventory idiom
+below. An audit that reads its expected value from the module under test
+compares a value to itself and cannot disagree with anything.
+
+It was caught the only way it can be. A new check asserted that every email
+template was FROM the ruled display name, comparing against the constant the
+templates are built from. The injection test changed that constant back to the
+old personal name, and the check reported, in its own words, `PASS: every template is FROM "Robert Reyna, 254 Engineering Services"`.
+Only a hardcoded literal in the same file caught anything.
+
+So a ruled value is written out in the audit as a literal, and the config is
+asserted separately to still state it, which names a drifted constant as a
+drifted constant. The duplication IS the mechanism: two places somebody has to
+edit on purpose.
+
+The distinction that makes this workable rather than merely duplicative:
+deriving from a DECLARATION is the idiom, and importing from the
+IMPLEMENTATION is the defect. roles-audit derives from DEFAULT_ROLES and
+email-audit derives its template list by parsing compose() calls, both of
+which are declarations of intent. Reading the rendered output's own constant
+back and comparing it to itself is not.
+
 **THE HARNESS MEASURES WHAT `scripts/lib/surfaces.mjs` SAYS EXISTS.** Operator ruling,
 2026-09-07. That file is the one declaration of this platform's surfaces: the public site, the
 order flow, the staff portal, the partner portal and the customer account surface, each with its

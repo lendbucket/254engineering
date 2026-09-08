@@ -95,6 +95,26 @@ stays in `design-reference/emails/` so the design is not lost.
 
 The customer half of the email port is therefore three templates, not four.
 
+## The email design port does not merge until support@ is proven to receive
+
+Merge gate, operator ruling 2026-09-08. Every template except four now replies
+to support@254engineering.com. The operator has confirmed the mailbox exists and
+is monitored; what is NOT yet proven is that a reply to a message this firm
+actually sent lands there.
+
+The gate: the operator replies to a preview send from their phone, and that
+reply is confirmed to arrive. Until then the port does not merge.
+
+Stated as a gate rather than assumed because a reply-to that does not receive is
+silent in exactly one direction. Nothing bounces to the firm, nothing appears in
+any log here, and the only symptom is a customer who says they replied and heard
+nothing back. It is not a thing an audit can check from this side.
+
+Related and still open: **info@254engineering.com is not a confirmed mailbox**
+and it is the mailto in the footer of every email this firm sends, as
+`business.email`. That address is used across the website too, so changing it is
+wider than the email port and is not done here.
+
 ## Where a customer email links, and the ruling that was revised
 
 Recorded 2026-09-08. **Every customer facing email links to

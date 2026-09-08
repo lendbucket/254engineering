@@ -72,9 +72,13 @@ export const REPLY_TO_EXCEPTIONS: Record<string, string> = {
     "replies to the applicant, so the operator can answer a candidate from the notification itself.",
   "onboarding.submitted":
     "replies to the person who submitted, so a question about their paperwork reaches them.",
-  "ops.outage": "replies to the firm's own address. Machine to firm; support is not the audience.",
-  "ops.error_alert": "replies to the firm's own address, for the same reason as ops.outage.",
-  "ops.queue_alert": "replies to the firm's own address, for the same reason as ops.outage.",
+  /*
+   * The three machine alerts USED to be here, replying to info@. Operator
+   * ruling, 2026-09-08: they collapse to the firm address like everything else.
+   * One firm address for anything a human might reply to, and info@ is not a
+   * confirmed mailbox, so an alert inviting a reply to it invites one nobody
+   * reads. They are checked by the rule now rather than exempt from it.
+   */
 };
 
 export const emailIdentity = {
