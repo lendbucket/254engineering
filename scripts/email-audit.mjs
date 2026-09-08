@@ -41,7 +41,7 @@ const MAX_SUBJECT = 78;
 
 import { readFileSync } from "node:fs";
 import { chromium } from "playwright";
-import { emailIdentity, fromHeader, signatureLines } from "../src/config/email-identity.ts";
+import { emailIdentity, fromHeader, signatureLines, FROM_DISPLAY_NAME, REPLY_TO, REPLY_TO_EXCEPTIONS } from "../src/config/email-identity.ts";
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -134,6 +134,93 @@ if (templates.length === 0) {
     .filter((t) => !marketing.has(t.id))
     .filter((t) => /unsubscribe|opt.?out|manage (your )?preferences/i.test(`${t.text}\n${t.html ?? ""}`))
     .map((t) => t.id);
+
+  /*
+   * ONE FIRM, ONE NAME, ONE MAILBOX TO REPLY TO.
+   *
+   * Operator ruling, 2026-09-08. Every message is FROM "254 Engineering" and
+   * replies to the firm's support mailbox. The From name takes no exceptions at
+   * all; Reply-To takes the seven declared in email-identity.ts, each carrying
+   * its reason, and a template that quietly adds itself to that behaviour fails
+   * here.
+   *
+   * ceo@36west.org is checked separately and over the whole message rather than
+   * just the headers. It was the human sender's reply-to until this ruling, it
+   * is a mailbox on a domain this firm does not own, and the way it would come
+   * back is somebody hardcoding it into a body rather than into a header.
+   */
+  /*
+   * THE EXPECTED HEADERS ARE WRITTEN OUT HERE, NOT IMPORTED, AND THAT IS THE
+   * WHOLE POINT.
+   *
+   * The first version of this check compared every template's From against
+   * FROM_DISPLAY_NAME, the same constant the templates are built from. It
+   * compared a value to itself and could not disagree with anything: the
+   * injection test changed the constant to the old personal name and the check
+   * reported PASS on the new wrong value, in its own words.
+   *
+   * An audit that imports its expectation from the thing it is auditing is not
+   * an audit. So the ruled values are stated here as literals, this file
+   * disagrees with the config when the config changes, and somebody editing
+   * either has to come and edit the other on purpose. That duplication is the
+   * mechanism, not an oversight; roles-audit derives its expectations
+   * independently for the same reason.
+   */
+  const EXPECTED_FROM = "254 Engineering <notifications@254engineering.com>";
+  const EXPECTED_REPLY_TO = "support@254engineering.com";
+
+  /* And the config still has to agree with the ruling, said separately so a
+   * drifted constant is named as a drifted constant. */
+  rec(
+    "the sender config states the ruled name and mailbox",
+    `${FROM_DISPLAY_NAME} <notifications@${business.domain}>` === EXPECTED_FROM &&
+      REPLY_TO === EXPECTED_REPLY_TO,
+    `config says ${FROM_DISPLAY_NAME} / ${REPLY_TO}`,
+  );
+
+  const wrongFrom = templates
+    .filter((t) => t.from !== EXPECTED_FROM)
+    .map((t) => `${t.id} (${t.from})`);
+
+  rec(
+    `every template is FROM ${EXPECTED_FROM} (${templates.length} checked)`,
+    wrongFrom.length === 0,
+    wrongFrom.length ? wrongFrom.join(", ") : "",
+  );
+
+  const wrongReplyTo = templates
+    .filter((t) => !(t.id in REPLY_TO_EXCEPTIONS))
+    .filter((t) => t.replyTo !== EXPECTED_REPLY_TO)
+    .map((t) => `${t.id} replies to ${t.replyTo ?? "(nothing)"}`);
+
+  rec(
+    `every template replies to ${EXPECTED_REPLY_TO} unless it says why (${Object.keys(REPLY_TO_EXCEPTIONS).length} exceptions)`,
+    wrongReplyTo.length === 0,
+    wrongReplyTo.length ? wrongReplyTo.join(", ") : "",
+  );
+
+  /* An exception naming a template that no longer exists is an exemption
+   * outliving the thing it exempted, which is how an allowlist rots. */
+  const staleExceptions = Object.keys(REPLY_TO_EXCEPTIONS).filter((id) => !measured.has(id));
+  rec(
+    "and every declared reply-to exception names a real template",
+    staleExceptions.length === 0,
+    staleExceptions.length ? `no such template: ${staleExceptions.join(", ")}` : "",
+  );
+
+  const leakedOwner = templates
+    .filter((t) =>
+      `${t.from}\n${t.replyTo ?? ""}\n${t.to ?? ""}\n${t.subject}\n${t.text}\n${t.html ?? ""}`.includes(
+        "ceo@36west.org",
+      ),
+    )
+    .map((t) => t.id);
+
+  rec(
+    "no template carries ceo@36west.org anywhere",
+    leakedOwner.length === 0,
+    leakedOwner.length ? `${leakedOwner.join(", ")}, and it is not a 254 address` : "",
+  );
 
   rec(
     `no transactional template offers an unsubscribe (${templates.length - marketing.size} checked)`,
