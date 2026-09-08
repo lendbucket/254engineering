@@ -99,6 +99,10 @@ const ADMIN_PAGES = [
   "/portal/messages",
   "/portal/documents",
   "/portal/billing",
+  // What the firm earned, what it owes its engineers, and where its work is.
+  // Behind the perimeter for the same reason billing is: a signed out visitor
+  // reaching it would read the firm's position straight off the page.
+  "/portal/reports",
   // Names customers, properties and amounts, and carries the controls that ask
   // Stripe about a payment and give one back. Admin only behind the perimeter.
   "/portal/orders",
