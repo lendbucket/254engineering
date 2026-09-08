@@ -115,6 +115,26 @@ export type Report = {
   title: string;
   /** The period the figures cover, as a label. */
   period: string;
+  /**
+   * WHAT THE FIGURES WERE COMPUTED OVER, CARRIED BY THE REPORT ITSELF.
+   *
+   * This was a parameter to the exporter, and that was wrong in a way only a
+   * real file showed. `reportCsv(built, by)` defaulted the scope to "real", so
+   * a report built including demonstrations produced a file whose manifest
+   * said, in words, "Real records only. Seeded and demonstration records are
+   * excluded by the query." The document stated a scope the document did not
+   * have.
+   *
+   * That is the exact defect this section exists to prevent, one level up: a
+   * claim in a file that the file does not support. Nothing shipped could reach
+   * it, because the route always asks for real, but an API that lets a caller
+   * describe a document wrongly is one somebody eventually will.
+   *
+   * So the scope is set by the builder that applied it and read by everything
+   * downstream. The manifest cannot disagree with the query, because there is
+   * no second place to say it.
+   */
+  scope: FigureScope;
   sections: ReportSection[];
   /** Anything the report could not compute, and why. Never silently omitted. */
   unavailable: string[];
@@ -181,6 +201,7 @@ export async function revenueReport(period = periodOf(), scope: FigureScope = "r
       key: "revenue",
       title: "Revenue",
       period,
+      scope,
       sections: [],
       unavailable: ["The database is not configured, so no revenue figure could be computed."],
     };
@@ -202,6 +223,7 @@ export async function revenueReport(period = periodOf(), scope: FigureScope = "r
       key: "revenue",
       title: "Revenue",
       period,
+      scope,
       sections: [],
       unavailable: [`Payments could not be read: ${error.message}`],
     };
@@ -292,6 +314,7 @@ export async function revenueReport(period = periodOf(), scope: FigureScope = "r
     key: "revenue",
     title: "Revenue",
     period,
+    scope,
     unavailable,
     sections: [
       {
@@ -375,6 +398,7 @@ export async function productionReport(period = periodOf(), scope: FigureScope =
       key: "production",
       title: "Production",
       period,
+      scope,
       sections: [],
       unavailable: ["The database is not configured, so no production figure could be computed."],
     };
@@ -400,6 +424,7 @@ export async function productionReport(period = periodOf(), scope: FigureScope =
       key: "production",
       title: "Production",
       period,
+      scope,
       sections: [],
       unavailable: [`The production ledger could not be read: ${error.message}`],
     };
@@ -460,6 +485,7 @@ export async function productionReport(period = periodOf(), scope: FigureScope =
     key: "production",
     title: "Production",
     period,
+    scope,
     unavailable,
     sections: [
       {
@@ -542,6 +568,7 @@ export async function pipelineReport(period = periodOf(), scope: FigureScope = "
       key: "pipeline",
       title: "Pipeline",
       period,
+      scope,
       sections: [],
       unavailable: ["The database is not configured, so no pipeline figure could be computed."],
     };
@@ -558,6 +585,7 @@ export async function pipelineReport(period = periodOf(), scope: FigureScope = "
       key: "pipeline",
       title: "Pipeline",
       period,
+      scope,
       sections: [],
       unavailable: [`Orders could not be read: ${error.message}`],
     };
@@ -724,6 +752,7 @@ export async function pipelineReport(period = periodOf(), scope: FigureScope = "
     key: "pipeline",
     title: "Pipeline",
     period,
+    scope,
     unavailable,
     sections: [
       { title: "Orders by state", figures: byState },
@@ -764,6 +793,7 @@ export async function partnerReport(period = periodOf(), scope: FigureScope = "r
       key: "partner",
       title: "Partner",
       period,
+      scope,
       sections: [],
       unavailable: ["The database is not configured, so no partner figure could be computed."],
     };
@@ -784,6 +814,7 @@ export async function partnerReport(period = periodOf(), scope: FigureScope = "r
       key: "partner",
       title: "Partner",
       period,
+      scope,
       sections: [],
       unavailable: [`Partner statements could not be read: ${error.message}`],
     };
@@ -814,6 +845,7 @@ export async function partnerReport(period = periodOf(), scope: FigureScope = "r
     key: "partner",
     title: "Partner",
     period,
+    scope,
     unavailable,
     sections: [
       {

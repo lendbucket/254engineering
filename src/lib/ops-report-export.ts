@@ -1,7 +1,8 @@
 import "server-only";
 import { csv } from "./csv";
-import { formatFigure, type Report } from "./ops-reports";
-import { type FigureScope } from "./reporting-scope";
+import { formatFigure, type Figure, type Report } from "./ops-reports";
+import { moneyCell } from "./ops-money";
+
 
 /**
  * A REPORT AS A FILE, AND THE MANIFEST THAT SAYS WHAT THE FILE IS.
@@ -66,12 +67,36 @@ export function exportRowCount(report: Report): number {
   );
 }
 
+/**
+ * A row's contribution, in the units a person reading the file expects.
+ *
+ * Money in DOLLARS, through moneyCell, which ops-money already provides for
+ * exactly this and which renders an absent amount as an empty cell rather than
+ * as 0.00. The first version wrote raw cents, so a $675.00 refund appeared in
+ * an accountant's spreadsheet as 67500, and it was found by reading a real file
+ * rather than by a check.
+ *
+ * Counts and durations are written as the integers they are, because a count of
+ * three is three and not 0.03.
+ */
+function cellFor(kind: Figure["kind"], value: number | null): string {
+  if (value === null) return "";
+  return kind === "money" ? moneyCell(value) : String(value);
+}
+
 export function reportCsv(
   report: Report,
   by: { email: string; role: string },
-  scope: FigureScope = "real",
   on = new Date(),
 ): string {
+  /*
+   * READ OFF THE REPORT, NEVER PASSED IN. The parameter that used to be here
+   * defaulted to "real", so a report built including demonstrations produced a
+   * file stating in words that demonstrations were excluded. See the comment on
+   * Report.scope: a document that describes itself wrongly is the defect this
+   * whole section is about, one level up.
+   */
+  const scope = report.scope;
   const figures = report.sections.flatMap((s) =>
     s.figures.map((f) => ({ section: s.title, figure: f })),
   );
@@ -115,7 +140,7 @@ export function reportCsv(
   const rows: unknown[][] = [];
   for (const { section, figure } of figures) {
     for (const row of figure.rows ?? []) {
-      rows.push([section, figure.label, figure.kind, row.label, row.detail, row.value ?? ""]);
+      rows.push([section, figure.label, figure.kind, row.label, row.detail, cellFor(figure.kind, row.value)]);
     }
   }
 

@@ -362,6 +362,37 @@ console.log("");
       : `${measured.reduce((n, f) => n + exportRowCount(f.built), 0)} rows across ${measured.length} files`,
   );
 
+  /*
+   * THE FILE STATES THE SCOPE IT WAS ACTUALLY COMPUTED UNDER.
+   *
+   * Found by reading a real file rather than by a check. The scope used to be a
+   * PARAMETER to the exporter with a default of "real", so a report built
+   * including demonstrations produced a document whose manifest said, in words,
+   * that demonstrations were excluded. A document describing itself wrongly is
+   * this section's defect one level up, and nothing was looking.
+   *
+   * Both scopes are exercised, because a check over "real" alone would pass on
+   * the exact bug: the wrong answer and the right answer agree there.
+   */
+  const scoped = [
+    ...files.map((f) => ({ ...f, want: "real" })),
+    ...measured.filter((f) => f.key.includes("demonstrations")).map((f) => ({ ...f, want: "demonstrations" })),
+  ];
+  const lying = scoped.filter((f) => {
+    const line = f.body.match(/^"Scope","([^"]*)"/m);
+    if (!line) return true;
+    return f.want === "real"
+      ? !/^Real records only/.test(line[1])
+      : !/^INCLUDING DEMONSTRATIONS/.test(line[1]);
+  });
+  rec(
+    `every file states the scope it was computed under (${scoped.length} files, both scopes)`,
+    lying.length === 0,
+    lying.length
+      ? `${lying.map((f) => f.key).join(", ")}: the manifest names a scope the figures were not computed under`
+      : "read off the report rather than passed in, so there is no second place to say it",
+  );
+
   /* And it says what it could not compute, rather than leaving a gap. */
   const silent = files.filter((f) => !/"Not computed/.test(f.body));
   rec(
