@@ -81,6 +81,7 @@ const DEMO_PASSWORD = "demo-field-2026-dev-only";
 const TECHS = [
   {
     email: "demo.tech.coastal@example.com",
+    is_demo: true,
     name: "Demo Tech, Coastal Bend",
     counties: ["Nueces", "San Patricio", "Aransas", "Kleberg", "Refugio", "Bee"],
     baseCity: "Corpus Christi",
@@ -92,6 +93,7 @@ const TECHS = [
   },
   {
     email: "demo.tech.valley@example.com",
+    is_demo: true,
     name: "Demo Tech, Rio Grande Valley",
     counties: ["Cameron", "Hidalgo", "Willacy", "Nueces"],
     baseCity: "Harlingen",
@@ -106,6 +108,7 @@ const TECHS = [
     // dispatch screen has something real in its ineligible list, which is the
     // half of that screen most likely to be built wrong and never noticed.
     email: "demo.tech.uncertified@example.com",
+    is_demo: true,
     name: "Demo Tech, Not Yet Certified",
     counties: ["Nueces", "Jim Wells"],
     baseCity: "Robstown",
@@ -177,6 +180,7 @@ const PROTOCOL_ITEMS = [
 const FILES = [
   {
     file_number: "254-DEMO-0001",
+    is_demo: true,
     property_address: "1400 Demo Bayfront Lane",
     city: "Corpus Christi",
     county: "Nueces",
@@ -194,6 +198,7 @@ const FILES = [
   },
   {
     file_number: "254-DEMO-0002",
+    is_demo: true,
     property_address: "88 Demo Windward Court",
     city: "Port Aransas",
     county: "Nueces",
@@ -222,6 +227,7 @@ const FILES = [
     // A third, so there is always one sitting at needs_dispatch after the other
     // two have been worked through a demonstration.
     file_number: "254-DEMO-0003",
+    is_demo: true,
     property_address: "312 Demo Harbour Row",
     city: "Rockport",
     county: "Aransas",
@@ -487,6 +493,7 @@ const clientId = await idOf(
   {
     kind: "organization",
     name: "Demo Coastal Roofing (seeded)",
+    is_demo: true,
     client_type: "roofer",
     city: "Corpus Christi",
     county: "Nueces",
@@ -1013,6 +1020,7 @@ console.error("");
     await mustInsert("eng_service_orders", {
       site: "254engineering",
       reference: orderReference,
+      is_demo: true,
       service_slug: "windstorm-inspection",
       order_type: "field",
       status: "in_fulfilment",

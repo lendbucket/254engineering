@@ -8,6 +8,7 @@ import { jobPaymentLink } from "./email-templates";
 import { money } from "./ops-money";
 import { isPrelaunch } from "./launch";
 import { catalogFor, orderBlockedReason } from "@data/catalog";
+import { referenceForCustomer } from "./ops-files";
 import { paymentOptions } from "./job-intake-rules";
 import { refundDisclosure } from "./ops-orders";
 import type { Author } from "./ops-crm";
@@ -48,10 +49,11 @@ const ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
  * engine's, because a customer reading one down a telephone should not be able
  * to tell which door their job came through.
  */
-function referenceFor(): string {
+/* A probe gets a DEMO reference here too; see ops-intake for the reasoning. */
+function referenceFor(customerEmail?: string | null): string {
   let suffix = "";
   for (const byte of randomBytes(6)) suffix += ALPHABET[byte % ALPHABET.length];
-  return `${SITE_KEY}-O${new Date().getFullYear()}-${suffix}`;
+  return referenceForCustomer(`${SITE_KEY}-O${new Date().getFullYear()}`, suffix, customerEmail);
 }
 
 /** What the customer was told they were buying, in the catalog's words. */
@@ -157,7 +159,7 @@ async function createOrderForFile(
   }
   const disclosure = refundDisclosure(entry).join("\n\n");
 
-  const reference = referenceFor();
+  const reference = referenceFor(client.email);
 
   const { data, error } = await db
     .from("eng_service_orders")
