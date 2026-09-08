@@ -1,5 +1,6 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase";
+import { business } from "@/config/business";
 import { catalogFor } from "@data/catalog";
 import { orderForCustomerToken } from "./ops-intake";
 import { CUSTOMER_STATUS, type OrderStatus } from "./ops-orders";
@@ -43,6 +44,46 @@ export type CustomerView = {
 };
 
 const cents = (v: unknown): Cents => (v === null || v === undefined ? null : Number(v));
+
+/**
+ * The customer's way back in, built in one place.
+ *
+ * Every email that carries this link and the page that answers it agree by
+ * construction rather than by two string templates that happen to match today.
+ * The reference is in the path because it is what a customer quotes on the
+ * phone and what makes the entry recognisable in their history; the token is
+ * the query, and the reference alone opens nothing.
+ */
+export function customerStatusUrl(reference: string, token: string): string {
+  return `${business.url}/order/${encodeURIComponent(reference)}?token=${encodeURIComponent(token)}`;
+}
+
+/**
+ * A timestamp a customer can read.
+ *
+ * Templates in this repository take dates already formatted, because a template
+ * is a pure function with no locale and no opinion about the reader. The order
+ * row carries an ISO string, and putting that in front of a customer
+ * ("2026-09-03T11:42:07.318Z") reads as a bug in the email rather than as a
+ * time. This is the one place that turns one into the other.
+ *
+ * Written out in the same shape the alert templates already use, so the two
+ * halves of this firm's outbound mail state a time the same way.
+ */
+export function customerWhen(iso: string | null): string | null {
+  if (!iso) return null;
+  const at = new Date(iso);
+  if (Number.isNaN(at.getTime())) return null;
+  return at.toLocaleString("en-US", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "America/Chicago",
+  });
+}
 
 /**
  * Resolve a customer's token to their order.

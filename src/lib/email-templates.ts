@@ -673,6 +673,231 @@ export function outstandingInformation(input: {
   );
 }
 
+/* ===================================================================== */
+/* THE THREE A PAYING CUSTOMER GETS, AND UNTIL NOW DID NOT.              */
+/*                                                                       */
+/* The order status page at /order/<reference>?token= has existed since   */
+/* Phase 7 and says of itself that the link "is signed, emailed to them,  */
+/* and that is the whole authentication story". Nothing emailed it.       */
+/* releaseForFulfilment minted the token, wrote customer_link.issued into */
+/* the order's timeline, and dropped it on the floor. A customer paid and */
+/* then heard nothing until they rang to ask, which is the support cost   */
+/* that page was built to prevent.                                        */
+/*                                                                       */
+/* All three carry that link and no other, because it is the only route   */
+/* a one off customer can open: they have no account and, by the order    */
+/* table's own comment, they never get one.                               */
+/* ===================================================================== */
+
+/**
+ * Payment received, work released.
+ *
+ * WHY THE REFUND SENTENCE IS PASSED IN RATHER THAN WRITTEN HERE
+ * -------------------------------------------------------------
+ * The approved design writes it as a constant: "everything except the disclosed
+ * $175 inspection fee is refunded". That is wrong three ways. A decline where
+ * nobody attended the property is a FULL refund; the retained figure is the fee
+ * disclosed for that service, which seven of the eleven services do not have at
+ * all; and $175 is four of eleven rather than a rule.
+ *
+ * eng_service_orders.refund_disclosure holds what this customer was actually
+ * told before they paid, which is the only sentence this firm can stand behind
+ * afterwards. It is passed through verbatim, and when it is absent the email
+ * says nothing about refunds rather than inventing the common case.
+ */
+export function orderConfirmed(input: {
+  customerName: string;
+  customerEmail: string;
+  reference: string;
+  serviceName: string;
+  propertyAddress: string;
+  placedAt: string;
+  /** Priced lines as the customer agreed them. A null amount is not on record. */
+  lines: { label: string; amount: string | null }[];
+  total: string | null;
+  /** Verbatim from the order. Null when none was captured. */
+  refundDisclosure: string | null;
+  /** What they receive at the end, from the catalog they bought from. */
+  receives: string[];
+  statusUrl: string;
+}): RenderedEmail {
+  const blocks: EmailBlock[] = [
+    { kind: "p", text: `${input.customerName},` },
+    {
+      kind: "p",
+      text: `Your payment has gone through and the firm is arranging the work. Nothing else is needed from you now.`,
+    },
+    {
+      kind: "details",
+      rows: [
+        ["Property", input.propertyAddress],
+        ["Service", input.serviceName],
+        ["Placed", input.placedAt],
+      ],
+    },
+    /*
+     * `lines` arrives in customerView's shape, which names the figure `amount`,
+     * and is mapped here rather than the caller reshaping it. The order page and
+     * this email then read the same rows from the same place, which is the only
+     * way the two can be relied on to agree.
+     */
+    {
+      kind: "money",
+      rows: input.lines.map((l) => ({ label: l.label, value: l.amount })),
+      total: { label: "Total", value: input.total },
+    },
+  ];
+
+  /*
+   * A list rather than a sentence. The catalog's entries are full sentences of
+   * their own, and joining two with a comma produced copy that read as a typo.
+   */
+  if (input.receives.length > 0) {
+    blocks.push({ kind: "list", title: "What you receive", items: input.receives });
+  }
+
+  if (input.refundDisclosure) {
+    blocks.push({ kind: "note", text: input.refundDisclosure });
+  }
+
+  blocks.push({
+    kind: "p",
+    text: "The link below shows where the work has got to. It is yours alone, so treat it like a receipt rather than something to forward.",
+  });
+
+  return compose(
+    "order.confirmed",
+    "human",
+    `Order confirmed: ${input.reference}`,
+    {
+      preheader: `${input.serviceName} for ${input.propertyAddress}. The firm is arranging the work.`,
+      status: { reference: `Order ${input.reference}`, state: "Confirmed" },
+      signed: true,
+      blocks,
+      button: { label: "Track this order", url: input.statusUrl },
+    },
+    { to: input.customerEmail },
+  );
+}
+
+/**
+ * The engineer sealed it.
+ *
+ * THE BUTTON GOES TO THE STATUS PAGE AND THERE IS NO LETTER ROUTE.
+ *
+ * The approved design points this at /files/<ref>/letter. No such screen exists
+ * and none will: a sealed document is uploaded, never generated, and a platform
+ * that renders one is a platform where the seal has left the engineer's
+ * control. Operator ruling, and it is standing law rather than a preference.
+ *
+ * So this says the document is ready and where to get it, and the status page
+ * hands over the artefact the engineer actually uploaded.
+ */
+export function orderSealed(input: {
+  customerName: string;
+  customerEmail: string;
+  reference: string;
+  propertyAddress: string;
+  sealedAt: string;
+  statusUrl: string;
+}): RenderedEmail {
+  return compose(
+    "order.sealed",
+    "human",
+    `Sealed: ${input.reference}`,
+    {
+      preheader: `The engineer has sealed the document for ${input.propertyAddress}.`,
+      status: { reference: `Order ${input.reference}`, state: "Sealed" },
+      signed: true,
+      blocks: [
+        { kind: "p", text: `${input.customerName},` },
+        {
+          kind: "p",
+          text: `The engineer has sealed the document for ${input.propertyAddress}. It is ready to download.`,
+        },
+        {
+          kind: "details",
+          rows: [
+            ["Property", input.propertyAddress],
+            ["Sealed", input.sealedAt],
+          ],
+        },
+        {
+          kind: "p",
+          text: "Keep your own copy. The link below stays open for a while but it is not an archive, and the document is yours rather than something held here on your behalf.",
+        },
+      ],
+      button: { label: "Download the document", url: input.statusUrl },
+    },
+    { to: input.customerEmail },
+  );
+}
+
+/**
+ * The engineer could not seal it, and what happens to the money.
+ *
+ * EVERY FIGURE COMES FROM refundFor, WHICH IS THE ONLY THING THAT KNOWS.
+ *
+ * There are four outcomes and the email must not flatten them: a refusal with
+ * no site visit is refunded in full; after a visit the firm keeps exactly the
+ * fee that was disclosed; and where that fee is not on record refundFor refuses
+ * to compute rather than guessing, so this says the amount is being worked out
+ * rather than printing a number nobody can stand behind.
+ *
+ * The explanation sentence is refundFor's own, for the same reason the
+ * confirmation uses the stored disclosure: one place decides what the customer
+ * is told about their money.
+ */
+export function orderDeclined(input: {
+  customerName: string;
+  customerEmail: string;
+  reference: string;
+  propertyAddress: string;
+  /** refundFor's own sentence. Never rewritten here. */
+  explanation: string;
+  refunded: string | null;
+  retained: string | null;
+  statusUrl: string;
+}): RenderedEmail {
+  const blocks: EmailBlock[] = [
+    { kind: "p", text: `${input.customerName},` },
+    {
+      kind: "p",
+      text: `The engineer could not seal the document for ${input.propertyAddress}. The reasoning is on your order page, and you receive what they found either way.`,
+    },
+    { kind: "p", text: input.explanation },
+  ];
+
+  /*
+   * Shown only when there is something to show. A refund that has not been
+   * worked out yet gets the sentence above and no table, because a money block
+   * of two "not recorded" rows reads as a system that has lost the money.
+   */
+  if (input.refunded !== null || input.retained !== null) {
+    blocks.push({
+      kind: "money",
+      rows: [
+        { label: "Refunded to your card", value: input.refunded },
+        { label: "Retained for the inspection", value: input.retained },
+      ],
+    });
+  }
+
+  return compose(
+    "order.declined",
+    "human",
+    `Not sealed: ${input.reference}`,
+    {
+      preheader: `The engineer could not seal ${input.propertyAddress}. What happens to the money is inside.`,
+      status: { reference: `Order ${input.reference}`, state: "Not sealed" },
+      signed: true,
+      blocks,
+      button: { label: "See the findings", url: input.statusUrl },
+    },
+    { to: input.customerEmail },
+  );
+}
+
 /** An administrator forcing a reset, or a person who has lost their password. */
 export function portalPasswordReset(input: {
   personName: string;
@@ -1022,6 +1247,51 @@ export function queueAlert(input: QueueAlertInput): RenderedEmail {
 export function allTemplatesForAudit(): RenderedEmail[] {
 
   return [
+    /*
+     * The three a paying customer gets. The sample figures are deliberately
+     * obvious, like every other fixture here, and the null lines are not
+     * decoration: they exercise the money block's absent value, which is the
+     * one path where a bug prints $0.00 to somebody who paid.
+     */
+    orderConfirmed({
+      customerName: "Sample Customer",
+      customerEmail: "sample@example.com",
+      reference: "254-O2026-ABCDEF",
+      serviceName: "Sample windstorm evaluation",
+      propertyAddress: "100 Sample Street, Corpus Christi",
+      placedAt: "3 September 2026 at 11:42",
+      lines: [
+        { label: "Sample windstorm evaluation", amount: "$925.00" },
+        { label: "Coastal county", amount: null },
+      ],
+      total: "$925.00",
+      refundDisclosure:
+        "If the engineer cannot seal this and nobody has attended the property, the full amount is refunded.",
+      receives: [
+        "A sealed engineering opinion on the condition of the sample property",
+        "The photographic record the opinion rests on, keyed to where each photograph was taken",
+      ],
+      statusUrl: "https://254engineering.com/order/254-O2026-ABCDEF?token=sample",
+    }),
+    orderSealed({
+      customerName: "Sample Customer",
+      customerEmail: "sample@example.com",
+      reference: "254-O2026-ABCDEF",
+      propertyAddress: "100 Sample Street, Corpus Christi",
+      sealedAt: "5 September 2026 at 16:20",
+      statusUrl: "https://254engineering.com/order/254-O2026-ABCDEF?token=sample",
+    }),
+    orderDeclined({
+      customerName: "Sample Customer",
+      customerEmail: "sample@example.com",
+      reference: "254-O2026-ABCDEF",
+      propertyAddress: "100 Sample Street, Corpus Christi",
+      explanation:
+        "The engineer could not seal this and nobody attended the property, so the full amount is refunded. You keep what the engineer found.",
+      refunded: "$925.00",
+      retained: null,
+      statusUrl: "https://254engineering.com/order/254-O2026-ABCDEF?token=sample",
+    }),
     outstandingInformation({
       customerName: "Sample Customer",
       customerEmail: "sample@example.com",

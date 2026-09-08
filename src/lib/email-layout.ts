@@ -133,6 +133,18 @@ export type EmailBlock =
   | { kind: "heading"; text: string }
   | { kind: "details"; title?: string; rows: [string, string][] }
   | { kind: "money"; rows: MoneyRow[]; total?: MoneyRow }
+  /**
+   * A plain list.
+   *
+   * Added beyond the approved design, which has none, because the data that
+   * needed it is a list and the alternative was worse. The catalog's "what you
+   * receive" entries are full sentences, and joining two of them with a comma
+   * produced "A sealed engineering opinion on the condition of the roof..., The
+   * photographic record...", which reads as a mistake. A list of sentences is a
+   * list, and pretending otherwise in the copy is how a template ends up
+   * fighting its own inputs.
+   */
+  | { kind: "list"; title?: string; items: string[] }
   | { kind: "note"; text: string };
 
 /**
@@ -215,6 +227,51 @@ const note = (text: string) =>
   ';">' +
   esc(text) +
   "</td></tr></table>";
+
+/**
+ * A list, as a table rather than a ul.
+ *
+ * Outlook's Word engine gives a ul margins nobody asked for and Gmail's
+ * clipping interacts badly with list markers, so the bullet is a cell and the
+ * text is a cell, which is the same reason everything else here is a table.
+ */
+function list(title: string | undefined, items: string[]): string {
+  const head = title
+    ? '<p style="margin:0 0 8px;font-family:' +
+      SANS +
+      ";font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:" +
+      SECONDARY +
+      ';">' +
+      esc(title) +
+      "</p>"
+    : "";
+  const rows = items
+    .map(
+      (it) =>
+        "<tr>" +
+        '<td width="16" style="padding:3px 0 3px 0;font-family:' +
+        SANS +
+        ";font-size:14px;line-height:1.6;color:" +
+        SECONDARY +
+        ';vertical-align:top;">&bull;</td>' +
+        '<td style="padding:3px 0;font-family:' +
+        SANS +
+        ";font-size:14px;line-height:1.6;" +
+        WRAP +
+        "color:" +
+        INK +
+        ';">' +
+        esc(it) +
+        "</td></tr>",
+    )
+    .join("");
+  return (
+    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 18px;">' +
+    (head ? '<tr><td colspan="2">' + head + "</td></tr>" : "") +
+    rows +
+    "</table>"
+  );
+}
 
 /**
  * The status strip, in the two tone navy masthead.
@@ -493,6 +550,7 @@ export function renderEmailHtml(input: LayoutInput): string {
       if (b.kind === "heading") return heading(b.text);
       if (b.kind === "note") return note(b.text);
       if (b.kind === "money") return money(b.rows, b.total);
+      if (b.kind === "list") return list(b.title, b.items);
       return details(b.title, b.rows);
     })
     .join("");
@@ -575,6 +633,10 @@ export function renderEmailText(input: LayoutInput): string {
     else if (b.kind === "money") {
       for (const r of b.rows) out.push(r.label + ": " + (r.value ?? "not recorded"));
       if (b.total) out.push(b.total.label + ": " + (b.total.value ?? "not recorded"));
+      out.push("");
+    } else if (b.kind === "list") {
+      if (b.title) out.push(b.title.toUpperCase());
+      for (const it of b.items) out.push("- " + it);
       out.push("");
     } else {
       if (b.title) out.push(b.title.toUpperCase());
