@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { PageHead, Panel, EmptyState } from "@/components/portal/surfaces";
 import { SystemAlert } from "@/components/portal/design";
 import { REPORTS, formatFigure, periodOf, type Figure } from "@/lib/ops-reports";
+import { isKnown, money } from "@/lib/ops-money";
 
 export const dynamic = "force-dynamic";
 
@@ -20,13 +20,35 @@ export const dynamic = "force-dynamic";
  * nothing else is an invitation to ask why, and the answer would be that they
  * are not allowed, which the page should not be saying out loud.
  *
- * EVERY FIGURE LINKS TO ITS ROWS.
+ * EVERY FIGURE OPENS ONTO THE ROWS IT WAS COMPUTED FROM.
  *
  * A total nobody can expand is a number somebody has to trust. The brief calls
  * an unexpandable total the defect class, and it is: the arithmetic here is
  * simple enough that the only way it goes wrong is by counting the wrong set,
  * which is exactly what looking at the set would show.
+ *
+ * The expansion is the figure's own rows rather than a link to a screen. The
+ * first version linked, and most of those links pointed at /portal/orders,
+ * which is not a list of orders: that screen deliberately shows only orders
+ * that have stopped moving. "See the rows" would have opened a set that did not
+ * contain the rows, usually an empty one sitting under a figure reading
+ * thousands of dollars. Carrying the rows means there is no second query left
+ * to disagree with the first.
  */
+
+/**
+ * A row's own contribution, rendered in the figure's units.
+ *
+ * A row with no amount renders as nothing rather than as a zero, which is the
+ * absent-versus-zero rule one level down: the rows under a state count have no
+ * value to give, and a 0 beside each would read as an amount somebody could add.
+ */
+function rowValue(figure: Figure, value: number | null): string {
+  if (!isKnown(value)) return "";
+  if (figure.kind === "money") return money(value);
+  if (figure.kind === "duration") return `${value} ${figure.label.startsWith("oldest") ? "days" : "hours"}`;
+  return String(value);
+}
 
 function FigureCell({ figure }: { figure: Figure }) {
   const absent = figure.value === null;
@@ -50,13 +72,42 @@ function FigureCell({ figure }: { figure: Figure }) {
 
       <p className="mt-2 text-[12px] leading-[1.45] text-[var(--secondary)]">{figure.note}</p>
 
+      {/*
+        Rendered even when the set is empty, because "none, and here is the
+        empty set" is a different and more trustworthy statement than a figure
+        with nothing under it. The one figure with no expansion at all is an
+        absent one, where there is no set because the query did not run.
+      */}
       {figure.rows ? (
-        <Link
-          href={figure.rows}
-          className="mt-2 inline-flex min-h-[var(--tap-target)] items-center text-[12.5px] font-semibold text-[var(--navy)] underline"
-        >
-          See the rows
-        </Link>
+        <details className="mt-2">
+          <summary className="inline-flex min-h-[var(--tap-target)] cursor-pointer items-center text-[12.5px] font-semibold text-[var(--navy)] underline">
+            {figure.rows.length === 0
+              ? "The set is empty"
+              : `See the ${figure.rows.length} row${figure.rows.length === 1 ? "" : "s"}`}
+          </summary>
+
+          {figure.rows.length === 0 ? (
+            <p className="mt-2 text-[12px] leading-[1.45] text-[var(--secondary)]">
+              The query ran and matched no record. This figure is that fact rather than a missing one.
+            </p>
+          ) : (
+            <div className="mt-2 overflow-x-auto">
+              <table className="w-full border-collapse text-[12px]">
+                <tbody>
+                  {figure.rows.map((row, i) => (
+                    <tr key={`${row.label}-${i}`} className="border-t border-[var(--border)]">
+                      <td className="py-1 pr-2 align-top font-semibold text-[var(--navy)]">{row.label}</td>
+                      <td className="py-1 pr-2 align-top text-[var(--secondary)]">{row.detail}</td>
+                      <td className="py-1 text-right align-top tabular-nums text-[var(--navy)]">
+                        {rowValue(figure, row.value)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </details>
       ) : null}
     </div>
   );

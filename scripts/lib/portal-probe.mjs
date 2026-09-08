@@ -62,6 +62,16 @@ export async function createProbe(base, role, label = "audit") {
     display_name: `Audit Probe ${role}`,
     role,
     status: "active",
+    /*
+     * AN AUDIT PROBE IS A DEMONSTRATION RECORD, AND SAYS SO IN THE DATABASE.
+     *
+     * Marked at creation rather than relied on to be cleaned up. destroyProbes
+     * sweeps the whole domain precisely because a run that crashes leaves
+     * accounts behind, and a leftover probe engineer with is_demo false would
+     * appear by name on the production report's per-engineer breakdown with a
+     * dollar figure beside it. Phase 12 Section 2.
+     */
+    is_demo: true,
   });
   if (pErr) {
     await d.auth.admin.deleteUser(data.user.id).catch(() => {});
@@ -142,6 +152,8 @@ export async function createPartnerProbe(base, label = "audit") {
       contact_email: email,
       code: `probe-${stamp}`,
       status: "active",
+      /* For the reason recorded on the staff probe above. */
+      is_demo: true,
     })
     .select("id")
     .single();
@@ -225,7 +237,7 @@ export async function createCustomerProbe(base, label = "audit") {
 
   const { data: clientRow, error: cErr } = await d
     .from("eng_clients")
-    .insert({ kind: "organization", name: "Audit Probe Company", email, status: "active" })
+    .insert({ kind: "organization", name: "Audit Probe Company", email, status: "active", is_demo: true })
     .select("id")
     .single();
   if (cErr || !clientRow) return null;

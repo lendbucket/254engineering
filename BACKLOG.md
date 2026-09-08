@@ -1218,6 +1218,24 @@ rest, and reports the count; the roster puts ended partners behind a disclosure.
 Nothing in the committed suite creates them, so this is history rather than a
 leak. Production has no partner rows at all.
 
+**CLOSED 2026-09-08 by 0028, without touching the trigger.** Deletion was only
+ever a proxy for the thing that actually mattered, which is telling a probe
+apart from a partner. `is_demo` does that directly, so all eight are marked and
+none of them can reach a figure on any report. They still cannot be deleted and
+they still should not be.
+
+They were found again on the way there, which is the part worth keeping. 0027's
+backfill matched demonstrations by NAME, so it caught the records whoever wrote
+it could remember and missed these plus three "Stripe Probe" clients and one
+client written by a script that is not in the tree either. demo-audit's detector
+was extended from orders to profiles, partners and clients, named all twelve on
+its first run, and 0028 marks them by the address rule in
+`src/lib/ops-files.ts` rather than by a name. **0028 is applied to development
+and is PENDING on production**, with the reason in `supabase/applied.mjs`: the
+production key is not in the working tree, so the session that wrote it could
+not run the same sweep against production and would not claim a count it had not
+read.
+
 ### Orders attributed before 0022 cannot have their link touches shown
 
 Recorded 2026-09-06. Section 6 added the column that joins an order back to the

@@ -126,6 +126,54 @@ console.log("");
   );
 
   /*
+   * AND THE EXPANSION ADDS UP TO THE FIGURE ABOVE IT.
+   *
+   * This is the check the previous shape could not support. A figure used to
+   * carry an href, and an href cannot be added up: the screen it pointed at ran
+   * its own query, so "See the rows" could open a set that had nothing to do
+   * with the total, and most of them did. Every one pointed at /portal/orders,
+   * which is not a list of orders at all but the screen for orders that have
+   * stopped moving, so the ordinary case was an empty table under a figure
+   * reading thousands of dollars.
+   *
+   * Now the rows ARE the set the total was summed over, which makes the
+   * arithmetic assertable. A count must have as many rows as it counts, and a
+   * money figure must equal the sum of its rows.
+   */
+  const countsWrong = figures.filter(
+    (f) => f.kind === "count" && f.value !== null && f.rows !== null && f.rows.length !== f.value,
+  );
+  rec(
+    "a count has exactly as many rows as it counts",
+    countsWrong.length === 0,
+    countsWrong.length
+      ? countsWrong.map((f) => `${f.report}/${f.label}: says ${f.value}, expands to ${f.rows.length}`).join(", ")
+      : "",
+  );
+
+  const sumOf = (rows) => rows.reduce((n, r) => n + (typeof r.value === "number" ? r.value : 0), 0);
+  const moneyWrong = figures.filter(
+    (f) => f.kind === "money" && f.value !== null && f.rows !== null && sumOf(f.rows) !== f.value,
+  );
+  rec(
+    "a money figure equals the sum of the rows under it",
+    moneyWrong.length === 0,
+    moneyWrong.length
+      ? moneyWrong.map((f) => `${f.report}/${f.label}: says ${f.value}, rows add to ${sumOf(f.rows)}`).join(", ")
+      : `${figures.filter((f) => f.kind === "money").length} money figures reconcile with their expansion`,
+  );
+
+  /* The screen has to render the expansion rather than link away to a screen
+   * that would run a second query. Asserted on the source for the same reason
+   * the grant filter is. */
+  const screen = readFileSync("src/app/portal/(app)/reports/page.tsx", "utf8");
+  rec(
+    "the screen renders the rows rather than linking to a screen that might have them",
+    /figure\.rows\.map\(/.test(screen) && !/href=\{figure\.rows\}/.test(screen),
+    "an href cannot be added up, and /portal/orders is not a list of orders",
+  );
+
+  /*
    * THE THIRD STATE IS RENDERED AS WORDS, NEVER AS A NUMBER.
    *
    * The one thing that must never happen is an absent figure rendering as 0 or
@@ -151,6 +199,60 @@ console.log("");
     numericAbsent.length === 0,
     numericAbsent.map((f) => `${f.report}/${f.label}`).join(", "),
   );
+}
+
+// ------------------------------------------- the coastal figure shows its work
+
+{
+  /*
+   * TWIA IS THE ONE FIGURE ON THESE REPORTS WITH TWO SOURCES.
+   *
+   * An order carries a `twia_county` boolean written at intake and a county
+   * name a rule can be applied to, and they can disagree. Development already
+   * holds such a row: a seeded Nueces order with the flag false. A report that
+   * showed one number would be picking a winner, and the county name cannot
+   * even answer for Harris, where the designated area is the part east of State
+   * Highway 146.
+   *
+   * So the pipeline report has to carry a figure for every answer the
+   * derivation can give, and the answers are taken from the derivation itself
+   * rather than from a list here, which is the same reason the report list is
+   * derived from the registry.
+   */
+  const { twiaStatus } = await import("../src/lib/ops-counties.ts");
+  const answers = [...new Set(["Nueces", "Harris", "Bexar"].map((c) => twiaStatus(c)))];
+
+  const pipeline = await (await import("../src/lib/ops-reports.ts")).pipelineReport(periodOf());
+  const section = pipeline.sections.find((s) => /derived/i.test(s.title));
+
+  rec(
+    `the derivation has more than one answer to show (${answers.join(", ")})`,
+    answers.length === 3,
+    "a check over a derivation that only ever says one thing proves nothing",
+  );
+  rec(
+    "the pipeline report shows how the coastal figure was derived",
+    Boolean(section),
+    section ? section.title : "no section on the pipeline report explains the derivation",
+  );
+
+  if (section) {
+    const labels = section.figures.map((f) => f.label).join(" | ");
+    const missing = [
+      ["designated", /says designated/],
+      ["check", /cannot answer/],
+      ["the flag itself", /order records/],
+      ["the disagreement", /disagree/],
+    ]
+      .filter(([, re]) => !re.test(labels))
+      .map(([name]) => name);
+
+    rec(
+      "and shows what the name says, what the order records, and where they differ",
+      missing.length === 0,
+      missing.length ? `no figure for: ${missing.join(", ")}` : labels,
+    );
+  }
 }
 
 // ------------------------------------- the nav reaches everybody who may read

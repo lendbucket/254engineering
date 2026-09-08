@@ -162,6 +162,21 @@ export const APPLIED = [
     note:
       "Applied and read back rather than assumed: fingerprint 9bbcca2c9cd3c65503c923d7c32ea769 across 970 columns and 72 eng_ tables, identical to development and the replay, with 5 report grants and 116 grants in total. Production holds ZERO demo records, so the backfill marked nothing there and the two directional check was added over clean data. Production is still the shared project fsaryeciduszuahgjbly.",
   },
+
+  /*
+   * The records 0027's backfill could not name. Data only: no DDL, so the
+   * fingerprint is unchanged from 0027.
+   */
+  {
+    file: "0028_probe_records_are_demonstrations.sql",
+    fingerprint: "9bbcca2c9cd3c65503c923d7c32ea769",
+    proves: { table: "eng_partners", match: { organisation: "ZZ probe, safe to ignore", is_demo: true } },
+    production: null,
+    because:
+      "NEEDS THE OPERATOR'S WORD, AND THE SESSION THAT WROTE IT COULD NOT READ PRODUCTION TO ASK THE QUESTION ITSELF. 0027 marked demonstrations by NAME pattern; this marks them by the ADDRESS rule in src/lib/ops-files.ts, which is RFC 2606, and on development it caught twelve records 0027 had missed: eight probe partners, three Stripe probe clients and one client written by a script that is not in the tree. It cannot reach a real record, because it fires only on addresses reserved so they can never receive mail. The production count is nevertheless UNKNOWN from here: the production service role key lives only in Vercel, so this session could not run the same sweep against fsaryeciduszuahgjbly and will not claim a number it did not read. 0027's own entry records that production held zero demo records under the narrower NAME anchor, which is a different question and does not answer this one. schema-ledger-audit will fail the board the moment this reaches main still pending, which is the ledger doing its job rather than a defect to work around.",
+    note:
+      "Applied to development 2026-09-08 and verified by re-running demo-audit, whose extended detector went from naming twelve records to naming none. Data only, so the fingerprint stays 9bbcca2c9cd3c65503c923d7c32ea769 across 970 columns and 72 eng_ tables. It retires the BACKLOG entry 'Eight probe partners on development cannot be deleted, and should not be': they still cannot be deleted, and they no longer need to be, because a record that cannot be removed can still be told apart.",
+  },
 ];
 
 /** The canary. An empty ledger must never read as a ledger with nothing to say. */

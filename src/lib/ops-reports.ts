@@ -2,6 +2,8 @@ import "server-only";
 import { supabaseAdmin } from "./supabase";
 import { isKnown, money, type Cents } from "./ops-money";
 import { type FigureScope } from "./reporting-scope";
+import { twiaStatus } from "./ops-counties";
+import { FIRST_TIER_COASTAL } from "@/content/windstorm";
 
 /**
  * THE FOUR OWNER REPORTS, AND WHAT A FIGURE ON ONE IS ALLOWED TO BE.
@@ -17,23 +19,47 @@ import { type FigureScope } from "./reporting-scope";
  * of those is enforced at the QUERY, by is_demo, rather than at the render:
  * a figure filtered on the way out has already been computed wrong.
  *
- * WHY EVERY FIGURE CARRIES ITS OWN ROWS
- * -------------------------------------
- * A total nobody can expand is a number somebody has to trust. Each Figure
- * below carries the filter that produced it, so the screen can link to the
- * record set and the reader can check the arithmetic against the rows. A
- * report that cannot be checked is a report that will eventually be wrong
- * without anybody noticing.
+ * A FIGURE CARRIES ITS ROWS, IT DOES NOT LINK TO A SCREEN THAT MIGHT HAVE THEM
+ * ---------------------------------------------------------------------------
+ * The first version of this module gave every figure an href, and most of them
+ * pointed at /portal/orders. That screen is not a list of orders. Its own
+ * comment says so in as many words: it deliberately shows only orders that have
+ * stopped moving, because "a list of everything would be a list nobody reads".
+ * So the expansion under a revenue figure would have opened a screen that did
+ * not contain the rows the figure was computed from, and in the ordinary case
+ * would have been empty while the figure said thousands of dollars.
+ *
+ * That is the recurring defect of this repository wearing a link: a thing that
+ * looks like a check and is looking at a different set. So a Figure now carries
+ * the rows themselves, taken from the same result the total was summed over.
+ * They cannot disagree, because there is no second query to disagree with.
+ *
+ * It also makes the expansion checkable. reporting-audit adds up the rows under
+ * every count and money figure and requires the total to match, which is an
+ * assertion no href could ever have supported.
  */
 
 /** A count that may not be known. Same distinction Cents draws for money. */
 export type Count = number | null;
 
 /**
+ * One row behind a figure.
+ *
+ * `value` is the row's own contribution to the total, so the expansion can be
+ * added up and compared to the figure above it. Null where the row genuinely
+ * has no amount, which is why a row's absence and a row's zero stay different.
+ */
+export type FigureRow = {
+  label: string;
+  detail: string;
+  value: Cents | Count;
+};
+
+/**
  * One figure on a report.
  *
- * `value` null means the query could not run. `rows` is where the figure came
- * from, as a portal href, so a reader can open the set and count it themselves.
+ * `value` null means the query could not run. `rows` is what it was computed
+ * from, and is null only in that same case.
  */
 export type Figure = {
   label: string;
@@ -41,8 +67,8 @@ export type Figure = {
   kind: "money" | "count" | "duration";
   /** What zero means here, in words, so an honest zero is not read as a fault. */
   note: string;
-  /** The record set behind it. Null only where no screen lists that set yet. */
-  rows: string | null;
+  /** The records the figure was computed from. Null only when the query failed. */
+  rows: FigureRow[] | null;
 };
 
 export type ReportSection = { title: string; figures: Figure[] };
@@ -72,159 +98,157 @@ function boundsOf(period: string): { from: string; to: string } {
   return { from: from.toISOString(), to: to.toISOString() };
 }
 
-/**
- * Sum a money column over real records only.
- *
- * Returns null when the read failed, which is the one case that must never be
- * confused with a period in which nothing traded. A row whose amount is null is
- * EXCLUDED and counted separately by the caller, never treated as zero.
- */
-async function sumReal(
-  table: string,
-  amountColumn: string,
-  dateColumn: string,
-  period: string,
-  scope: FigureScope,
-  extra?: (q: never) => never,
-): Promise<{ total: Cents; excluded: number }> {
-  const client = db();
-  if (!client) return { total: null, excluded: 0 };
-  const { from, to } = boundsOf(period);
+const day = (value: string | null): string =>
+  value ? new Date(value).toISOString().slice(0, 10) : "no date recorded";
 
-  /*
-   * A PAYMENT IS NOT A DEMONSTRATION; ITS ORDER IS.
-   *
-   * eng_order_payments carries no is_demo column and should not: a payment is
-   * a demonstration exactly when the order it belongs to is, and a second
-   * column would be a second answer that can disagree with the first. So the
-   * scope is applied through the parent with an inner join.
-   *
-   * Found by running this report rather than by reading it. The first version
-   * filtered on a column this table does not have, which PostgREST answered
-   * with an error, so gross reported "not computed" instead of a wrong number.
-   * The refunds query below had no filter at all and counted $2,025 of probe
-   * refunds, which is the contamination this whole section exists to stop.
-   */
-  let q = client
-    .from(table)
-    .select(`${amountColumn}, eng_service_orders!inner(is_demo)`)
-    .gte(dateColumn, from)
-    .lt(dateColumn, to);
-  if (scope !== "including_demonstrations") q = q.eq("eng_service_orders.is_demo", false);
-  void extra;
-
-  const { data, error } = await q;
-  if (error) {
-    console.error(`[reports] ${table}.${amountColumn} could not be read:`, error.message);
-    return { total: null, excluded: 0 };
-  }
-
-  const rows = data ?? [];
-  const known = rows.filter((r) => isKnown(r[amountColumn as keyof typeof r] as number | null));
-  return {
-    total: known.reduce((n, r) => n + Number(r[amountColumn as keyof typeof r]), 0),
-    excluded: rows.length - known.length,
-  };
-}
-
-/** Count real records in a period. Null on a failed read, never zero. */
-async function countReal(
-  table: string,
-  dateColumn: string,
-  period: string,
-  scope: FigureScope,
-  match?: Record<string, unknown>,
-): Promise<Count> {
-  const client = db();
-  if (!client) return null;
-  const { from, to } = boundsOf(period);
-
-  let q = client.from(table).select("id", { count: "exact", head: true }).gte(dateColumn, from).lt(dateColumn, to);
-  if (scope !== "including_demonstrations") q = q.eq("is_demo", false);
-  for (const [k, v] of Object.entries(match ?? {})) q = q.eq(k, v);
-
-  const { count, error } = await q;
-  if (error) {
-    console.error(`[reports] ${table} could not be counted:`, error.message);
-    return null;
-  }
-  return count ?? 0;
-}
+/** Sum the rows an expansion holds, so a figure and its expansion cannot drift. */
+const sumRows = (rows: FigureRow[]): Cents =>
+  rows.reduce((n, r) => n + (isKnown(r.value) ? (r.value as number) : 0), 0);
 
 // ------------------------------------------------------------------ revenue
 
 /**
- * What the firm took, and what it gave back.
+ * What the firm took, what it gave back, and which service lines it came from.
  *
- * TEST MODE MONEY IS NOT A FIGURE, IT IS AN ABSENCE WITH A REASON.
+ * A CHARGE THAT DID NOT SUCCEED IS NOT REVENUE, AND IS NOT HIDDEN EITHER.
  *
- * Operator ruling. A Stripe test transaction is not revenue, and rendering it
- * as revenue is the same class of error as counting a seeded order. The
- * provider is recorded on every payment row, so a period whose payments are all
- * test mode reports no revenue AND says why, rather than reporting a number
- * nobody should act on.
+ * eng_order_payments records attempts, not only settlements: `status` carries
+ * pending, succeeded, failed and cancelled. Gross counts succeeded rows only,
+ * because a failed charge counted as revenue is exactly the plausible-and-wrong
+ * number this section exists to prevent.
+ *
+ * Everything the filter removes is shown as its own figure rather than dropped,
+ * so the two numbers sit beside each other and nobody has to know the rule to
+ * see what it did. A silent exclusion and a silent inclusion are the same
+ * defect from opposite sides.
+ *
+ * A PAYMENT IS NOT A DEMONSTRATION; ITS ORDER IS.
+ *
+ * eng_order_payments carries no is_demo column and should not: a payment is a
+ * demonstration exactly when the order it belongs to is, and a second column
+ * would be a second answer that can disagree with the first. So the scope is
+ * applied through the parent with an inner join.
+ *
+ * Found by running this report rather than by reading it. The first version
+ * filtered on a column this table does not have, which PostgREST answered with
+ * an error, so gross reported "not computed" instead of a wrong number. The
+ * refunds query had no filter at all and counted $2,025 of probe refunds, which
+ * is the contamination this whole section exists to stop.
  */
 export async function revenueReport(period = periodOf(), scope: FigureScope = "real"): Promise<Report> {
   const unavailable: string[] = [];
   const client = db();
 
-  const charges = await sumReal("eng_order_payments", "amount_cents", "created_at", period, scope);
-  const refunds = { total: null as Cents, excluded: 0 };
+  if (!client) {
+    return {
+      key: "revenue",
+      title: "Revenue",
+      period,
+      sections: [],
+      unavailable: ["The database is not configured, so no revenue figure could be computed."],
+    };
+  }
+
+  const { from, to } = boundsOf(period);
+  let q = client
+    .from("eng_order_payments")
+    .select(
+      "amount_cents, kind, status, provider, refund_case, created_at, eng_service_orders!inner(reference, service_slug, is_demo)",
+    )
+    .gte("created_at", from)
+    .lt("created_at", to);
+  if (scope !== "including_demonstrations") q = q.eq("eng_service_orders.is_demo", false);
+
+  const { data, error } = await q;
+  if (error) {
+    return {
+      key: "revenue",
+      title: "Revenue",
+      period,
+      sections: [],
+      unavailable: [`Payments could not be read: ${error.message}`],
+    };
+  }
+
+  type Row = {
+    amount_cents: number | null;
+    kind: string;
+    status: string;
+    provider: string;
+    refund_case: string | null;
+    created_at: string;
+    eng_service_orders: { reference: string; service_slug: string; is_demo: boolean };
+  };
+  const all = (data ?? []) as unknown as Row[];
+
+  const unpriced = all.filter((r) => !isKnown(r.amount_cents));
+  if (unpriced.length > 0) {
+    unavailable.push(
+      `${unpriced.length} payment row${unpriced.length === 1 ? "" : "s"} carried no amount and ${unpriced.length === 1 ? "was" : "were"} excluded from every figure here.`,
+    );
+  }
+
+  const priced = all.filter((r) => isKnown(r.amount_cents));
+  const rowOf = (r: Row, sign = 1): FigureRow => ({
+    label: r.eng_service_orders.reference,
+    detail: `${r.eng_service_orders.service_slug}, ${day(r.created_at)}`,
+    value: sign * (r.amount_cents as number),
+  });
+
+  const settled = priced.filter((r) => r.status === "succeeded");
+  const charges = settled.filter((r) => r.kind === "charge");
+  const refunds = settled.filter((r) => r.kind === "refund");
+  const attempted = priced.filter((r) => r.status !== "succeeded");
+
+  const chargeRows = charges.map((r) => rowOf(r));
+  const refundRows = refunds.map((r) => rowOf(r));
+  const netRows = [...chargeRows, ...refunds.map((r) => rowOf(r, -1))];
+
+  /* By service line. Derived from the slugs present rather than from the
+   * catalogue, because a line that took no money in the period is not a zero
+   * this report has any business inventing. */
+  const lines = [...new Set(charges.map((r) => r.eng_service_orders.service_slug))].sort();
+  const byLine: Figure[] = lines.map((slug) => {
+    const rows = charges.filter((r) => r.eng_service_orders.service_slug === slug).map((r) => rowOf(r));
+    return {
+      label: slug.replace(/-/g, " "),
+      value: sumRows(rows),
+      kind: "money" as const,
+      note: "Charged against orders on this service line in the period, before refunds.",
+      rows,
+    };
+  });
+  if (byLine.length === 0) {
+    byLine.push({
+      label: "No line took money",
+      value: 0,
+      kind: "money",
+      note: "The query ran and found no settled charge in the period, which is a real zero.",
+      rows: [],
+    });
+  }
 
   /* Refunds by case, because the three cases are different facts and a net
    * figure hides which one happened. */
-  const byCase: Figure[] = [];
-  if (client) {
-    const { from, to } = boundsOf(period);
-    /* Scoped through the order, like gross. This query had NO filter and
-     * reported $2,025 of probe refunds on its first run. */
-    let rq = client
-      .from("eng_order_payments")
-      .select("amount_cents, kind, refund_case, provider, eng_service_orders!inner(is_demo)")
-      .gte("created_at", from)
-      .lt("created_at", to)
-      .eq("kind", "refund");
-    if (scope !== "including_demonstrations") rq = rq.eq("eng_service_orders.is_demo", false);
-    const { data, error } = await rq;
-
-    if (error) {
-      unavailable.push(`Refunds could not be read: ${error.message}`);
-    } else {
-      const rows = data ?? [];
-      const cases = [...new Set(rows.map((r) => (r.refund_case as string) ?? "not recorded"))];
-      refunds.total = rows
-        .filter((r) => isKnown(r.amount_cents as number | null))
-        .reduce((n, r) => n + Number(r.amount_cents), 0);
-      for (const c of cases) {
-        const forCase = rows.filter((r) => ((r.refund_case as string) ?? "not recorded") === c);
-        byCase.push({
-          label: c,
-          value: forCase.reduce((n, r) => n + Number(r.amount_cents ?? 0), 0),
-          kind: "money",
-          note: "Refunded under this case in the period.",
-          rows: "/portal/orders",
-        });
-      }
-      if (cases.length === 0) {
-        byCase.push({
-          label: "No refunds",
-          value: 0,
-          kind: "money",
-          note: "The query ran and found none, which is a real zero.",
-          rows: "/portal/orders",
-        });
-      }
-    }
-  } else {
-    unavailable.push("The database is not configured, so no revenue figure could be computed.");
-  }
-
-  const net = isKnown(charges.total) && isKnown(refunds.total) ? charges.total - refunds.total : null;
-
-  if (charges.excluded > 0) {
-    unavailable.push(
-      `${charges.excluded} payment row${charges.excluded === 1 ? "" : "s"} carried no amount and ${charges.excluded === 1 ? "was" : "were"} excluded from gross.`,
-    );
+  const cases = [...new Set(refunds.map((r) => r.refund_case ?? "not recorded"))].sort();
+  const byCase: Figure[] = cases.map((c) => {
+    const rows = refunds.filter((r) => (r.refund_case ?? "not recorded") === c).map((r) => rowOf(r));
+    return {
+      label: c,
+      value: sumRows(rows),
+      kind: "money" as const,
+      note: "Refunded under this case in the period.",
+      rows,
+    };
+  });
+  if (byCase.length === 0) {
+    byCase.push({
+      label: "No refunds",
+      value: 0,
+      kind: "money",
+      note: "The query ran and found none, which is a real zero.",
+      rows: [],
+    });
   }
 
   return {
@@ -238,27 +262,39 @@ export async function revenueReport(period = periodOf(), scope: FigureScope = "r
         figures: [
           {
             label: "Gross",
-            value: charges.total,
+            value: sumRows(chargeRows),
             kind: "money",
-            note: "Everything charged in the period, before refunds. Zero means nothing was charged.",
-            rows: "/portal/orders",
+            note: "Settled charges in the period, before refunds. Zero means nothing was charged.",
+            rows: chargeRows,
           },
           {
             label: "Refunded",
-            value: refunds.total,
+            value: sumRows(refundRows),
             kind: "money",
             note: "Everything given back in the period, whatever the case.",
-            rows: "/portal/orders",
+            rows: refundRows,
           },
           {
             label: "Net",
-            value: net,
+            value: sumRows(netRows),
             kind: "money",
-            note: "Gross less refunds. Absent when either half is not known, rather than assuming the missing half is nothing.",
-            rows: "/portal/orders",
+            note: "Gross less refunds. The expansion holds both halves, refunds negative, so the arithmetic is visible.",
+            rows: netRows,
+          },
+          {
+            label: "Attempted and not settled",
+            value: sumRows(attempted.map((r) => rowOf(r))),
+            kind: "money",
+            note: "Pending, failed or cancelled, and therefore in no figure above. Shown so the exclusion is not silent.",
+            rows: attempted.map((r) => ({
+              label: r.eng_service_orders.reference,
+              detail: `${r.status}, ${day(r.created_at)}`,
+              value: r.amount_cents,
+            })),
           },
         ],
       },
+      { title: "By service line", figures: byLine },
       { title: "Refunds by case", figures: byCase },
     ],
   };
@@ -307,10 +343,20 @@ export async function productionReport(period = periodOf(), scope: FigureScope =
     };
   }
 
-  const { data, error } = await client
+  /*
+   * THE LEDGER HAS NO is_demo AND SHOULD NOT.
+   *
+   * An entry is a demonstration exactly when the ENGINEER on it is, for the
+   * same reason a payment is one exactly when its order is. eng_profiles
+   * carries the column, so the scope is applied through the engineer.
+   */
+  let q = client
     .from("eng_production_ledger")
-    .select("engineer_id, decision, amount_cents, status, period")
+    .select("engineer_id, decision, amount_cents, status, period, eng_profiles!inner(display_name, is_demo)")
     .eq("period", period);
+  if (scope !== "including_demonstrations") q = q.eq("eng_profiles.is_demo", false);
+
+  const { data, error } = await q;
 
   if (error) {
     return {
@@ -322,18 +368,56 @@ export async function productionReport(period = periodOf(), scope: FigureScope =
     };
   }
 
-  const rows = data ?? [];
-  const priced = rows.filter((r) => isKnown(r.amount_cents as number | null));
+  type Row = {
+    engineer_id: string;
+    decision: string | null;
+    amount_cents: number | null;
+    status: string;
+    eng_profiles: { display_name: string; is_demo: boolean };
+  };
+  const rows = (data ?? []) as unknown as Row[];
+
+  const priced = rows.filter((r) => isKnown(r.amount_cents));
   const unpriced = rows.length - priced.length;
   if (unpriced > 0) {
     unavailable.push(
-      `${unpriced} ledger entr${unpriced === 1 ? "y" : "ies"} carried no amount and ${unpriced === 1 ? "was" : "were"} excluded from both figures.`,
+      `${unpriced} ledger entr${unpriced === 1 ? "y" : "ies"} carried no amount and ${unpriced === 1 ? "was" : "were"} excluded from every money figure here.`,
     );
   }
 
+  const rowOf = (r: Row): FigureRow => ({
+    label: r.eng_profiles.display_name,
+    detail: `${r.decision ?? "no decision recorded"}, ${r.status}`,
+    value: r.amount_cents,
+  });
+
   const sealed = priced.filter((r) => r.decision === "seal");
-  const asWritten = sealed.reduce((n, r) => n + Number(r.amount_cents), 0);
-  const asPaid = priced.reduce((n, r) => n + Number(r.amount_cents), 0);
+  const unsealed = priced.filter((r) => r.decision !== "seal");
+
+  /* By engineer. Names come from the joined profile, so a figure never shows a
+   * bare uuid and never invents a name for one it could not resolve. */
+  const engineers = [...new Set(priced.map((r) => r.engineer_id))];
+  const byEngineer: Figure[] = engineers
+    .map((id) => {
+      const mine = priced.filter((r) => r.engineer_id === id);
+      return {
+        label: mine[0].eng_profiles.display_name,
+        value: sumRows(mine.map(rowOf)),
+        kind: "money" as const,
+        note: "Everything this engineer's completed reviews earned in the period, as the platform pays.",
+        rows: mine.map(rowOf),
+      };
+    })
+    .sort((a, b) => a.label.localeCompare(b.label));
+  if (byEngineer.length === 0) {
+    byEngineer.push({
+      label: "No engineer earned in this period",
+      value: 0,
+      kind: "money",
+      note: "The ledger was read and holds no priced entry for the period, which is a real zero.",
+      rows: [],
+    });
+  }
 
   return {
     key: "production",
@@ -346,36 +430,40 @@ export async function productionReport(period = periodOf(), scope: FigureScope =
         figures: [
           {
             label: "As the platform pays",
-            value: asPaid,
+            value: sumRows(priced.map(rowOf)),
             kind: "money",
             note: "Every completed review, whatever the engineer decided. This is what the ledger holds and what will be paid.",
-            rows: "/portal/charge-log",
+            rows: priced.map(rowOf),
           },
           {
             label: "As section 3.2 reads today",
-            value: asWritten,
+            value: sumRows(sealed.map(rowOf)),
             kind: "money",
             note: "Seals only. The signed agreement as the operator describes it, which is narrower than what the software does.",
-            rows: "/portal/charge-log",
+            rows: sealed.map(rowOf),
           },
           {
             label: "The gap the amendment would paper",
-            value: asPaid - asWritten,
+            value: sumRows(unsealed.map(rowOf)),
             kind: "money",
             note: "Paid under a term the executed contract does not yet contain. UNSIGNED: the amendment has not been drafted.",
-            rows: "/portal/charge-log",
+            rows: unsealed.map(rowOf),
           },
         ],
       },
+      { title: "By engineer", figures: byEngineer },
       {
         title: "Decisions in the period",
-        figures: (["seal", "revisions", "site_visit", "refuse"] as const).map((d) => ({
-          label: d === "refuse" ? "declined to seal" : d.replace("_", " "),
-          value: rows.filter((r) => r.decision === d).length,
-          kind: "count" as const,
-          note: "Completed reviews recorded with this decision.",
-          rows: "/portal/charge-log",
-        })),
+        figures: (["seal", "revisions", "site_visit", "refuse"] as const).map((d) => {
+          const mine = rows.filter((r) => r.decision === d);
+          return {
+            label: d === "refuse" ? "declined to seal" : d.replace("_", " "),
+            value: mine.length,
+            kind: "count" as const,
+            note: "Completed reviews recorded with this decision.",
+            rows: mine.map(rowOf),
+          };
+        }),
       },
     ],
   };
@@ -384,16 +472,29 @@ export async function productionReport(period = periodOf(), scope: FigureScope =
 // ----------------------------------------------------------------- pipeline
 
 /**
- * Where the work is, and how long it has been there.
+ * Where the work is, how long it has been there, and how the coastal figure
+ * was arrived at.
+ *
+ * AGE IN STATE IS DERIVED FROM THE COLUMN THAT RECORDS THE STATE, NOT updated_at
+ * ----------------------------------------------------------------------------
+ * `updated_at` moves whenever anything on the row is written, so an order that
+ * has sat untouched for a month reads as fresh the moment somebody corrects a
+ * postcode. The state machine writes its own timestamps and those are used:
+ * placed_at for an order awaiting payment, paid_at for one in fulfilment,
+ * created_at for a draft. An order in one of those states with no such
+ * timestamp is EXCLUDED and named, rather than aged from a column that means
+ * something else.
+ *
+ * Terminal states get no age figure at all. "How long has this order been
+ * complete" is not a question anybody is asking, and answering it would be
+ * three more figures nobody reads sitting next to the three that matter.
  *
  * Cycle time is the one figure here with a history. It had no query at all when
  * this section began, so it was an absence with the reason "not computed" until
  * it got one. It has one now: the state machine's own timestamps, an order's
- * paid_at to its file's sealed_at, sealed files only.
- *
- * It will be absent in every period until the certificate issues, because
- * nothing can be sealed before then. That is a true absence rather than a
- * missing feature, and the note says which.
+ * paid_at to its file's sealed_at, sealed files only. It will be absent in
+ * every period until the certificate issues, because nothing can be sealed
+ * before then. That is a true absence rather than a missing feature.
  */
 export async function pipelineReport(period = periodOf(), scope: FigureScope = "real"): Promise<Report> {
   const unavailable: string[] = [];
@@ -409,7 +510,9 @@ export async function pipelineReport(period = periodOf(), scope: FigureScope = "
     };
   }
 
-  let q = client.from("eng_service_orders").select("status, placed_at, paid_at, is_demo, file_id");
+  let q = client
+    .from("eng_service_orders")
+    .select("reference, status, county, twia_county, created_at, placed_at, paid_at, is_demo, file_id");
   if (scope !== "including_demonstrations") q = q.eq("is_demo", false);
   const { data: orders, error } = await q;
 
@@ -423,50 +526,158 @@ export async function pipelineReport(period = periodOf(), scope: FigureScope = "
     };
   }
 
-  const STATES = [
-    "draft",
-    "awaiting_payment",
-    "in_fulfilment",
-    "complete",
-    "refunded",
-    "cancelled",
-  ] as const;
+  type Order = {
+    reference: string;
+    status: string;
+    county: string;
+    twia_county: boolean;
+    created_at: string;
+    placed_at: string | null;
+    paid_at: string | null;
+    file_id: string | null;
+  };
+  const all = (orders ?? []) as unknown as Order[];
 
-  const byState: Figure[] = STATES.map((s) => ({
-    label: s.replace("_", " "),
-    value: (orders ?? []).filter((o) => o.status === s).length,
-    kind: "count" as const,
-    note: "Orders sitting in this state right now.",
-    rows: "/portal/orders",
-  }));
+  const STATES = ["draft", "awaiting_payment", "in_fulfilment", "complete", "refunded", "cancelled"] as const;
 
-  /* Cycle time, from the state machine's own timestamps. */
-  let cycle: Cents | Count = null;
+  const byState: Figure[] = STATES.map((s) => {
+    const mine = all.filter((o) => o.status === s);
+    return {
+      label: s.replace("_", " "),
+      value: mine.length,
+      kind: "count" as const,
+      note: "Orders sitting in this state right now. This is a standing count, not a count for the period.",
+      rows: mine.map((o) => ({ label: o.reference, detail: o.county, value: null })),
+    };
+  });
+
+  // ------------------------------------------------------------ age in state
+
+  const ENTERED: Record<string, { column: keyof Order; label: string }> = {
+    draft: { column: "created_at", label: "created_at" },
+    awaiting_payment: { column: "placed_at", label: "placed_at" },
+    in_fulfilment: { column: "paid_at", label: "paid_at" },
+  };
+  const now = Date.now();
+
+  const ageFigures: Figure[] = Object.entries(ENTERED).map(([state, source]) => {
+    const mine = all.filter((o) => o.status === state);
+    const dated = mine.filter((o) => typeof o[source.column] === "string");
+    const undated = mine.length - dated.length;
+    if (undated > 0) {
+      unavailable.push(
+        `${undated} order${undated === 1 ? "" : "s"} in ${state.replace("_", " ")} carr${undated === 1 ? "ies" : "y"} no ${source.label}, so ${undated === 1 ? "it is" : "they are"} not aged.`,
+      );
+    }
+
+    const rows: FigureRow[] = dated
+      .map((o) => ({
+        label: o.reference,
+        detail: `${source.label} ${day(o[source.column] as string)}`,
+        value: Math.floor((now - Date.parse(o[source.column] as string)) / 86_400_000),
+      }))
+      .sort((a, b) => (b.value as number) - (a.value as number));
+
+    return {
+      label: `oldest in ${state.replace("_", " ")}`,
+      value: rows.length > 0 ? (rows[0].value as number) : 0,
+      kind: "duration" as const,
+      note: `Days since ${source.label} for the oldest order in this state. Zero means nothing is waiting, which is a real zero. The expansion lists every order in the state, oldest first.`,
+      rows,
+    };
+  });
+
+  // ------------------------------- the designated area, and how it was derived
+
+  /*
+   * TWO SOURCES DISAGREE HERE AND THE REPORT SHOWS BOTH RATHER THAN PICKING ONE.
+   *
+   * An order carries `twia_county`, a boolean written at intake, and it also
+   * carries the county name, from which twiaStatus() derives an answer. A
+   * report that showed one number would be asserting that one of them is the
+   * truth, and neither is: the flag can be stale or wrong, and the NAME cannot
+   * answer at all for Harris, because the designated area is fourteen whole
+   * counties plus the part of Harris east of State Highway 146.
+   *
+   * So the derivation is on the report. Three figures for what the name says,
+   * one for what the order records, and one for the orders where the two do not
+   * agree, which is the only one anybody has to act on. Development already
+   * holds such a row: a seeded Nueces order with twia_county false.
+   */
+  const derived = (o: Order) => twiaStatus(o.county);
+  const twiaFigures: Figure[] = [
+    {
+      label: "the county name says designated",
+      value: all.filter((o) => derived(o) === "designated").length,
+      kind: "count",
+      note: `The county is one of the ${FIRST_TIER_COASTAL.length} first tier coastal counties. Derived from the name on the order, not from the flag.`,
+      rows: all
+        .filter((o) => derived(o) === "designated")
+        .map((o) => ({ label: o.reference, detail: o.county, value: null })),
+    },
+    {
+      label: "the county name cannot answer",
+      value: all.filter((o) => derived(o) === "check").length,
+      kind: "count",
+      note: "Harris County. The designated area is the part east of State Highway 146, which a county name cannot resolve, so intake asks. None means no Harris order, which is a real zero.",
+      rows: all
+        .filter((o) => derived(o) === "check")
+        .map((o) => ({ label: o.reference, detail: o.county, value: null })),
+    },
+    {
+      label: "the order records TWIA",
+      value: all.filter((o) => o.twia_county).length,
+      kind: "count",
+      note: "The boolean written on the order at intake, whatever the county name says.",
+      rows: all.filter((o) => o.twia_county).map((o) => ({ label: o.reference, detail: o.county, value: null })),
+    },
+    {
+      label: "the two disagree",
+      value: all.filter((o) => derived(o) !== "check" && (derived(o) === "designated") !== o.twia_county).length,
+      kind: "count",
+      note: "The flag on the order and the answer the county name gives are different. Harris is excluded because the name has no answer to disagree with. Anything here is a row somebody has to look at.",
+      rows: all
+        .filter((o) => derived(o) !== "check" && (derived(o) === "designated") !== o.twia_county)
+        .map((o) => ({
+          label: o.reference,
+          detail: `${o.county}: name says ${derived(o) === "designated" ? "designated" : "not designated"}, order records ${o.twia_county ? "TWIA" : "not TWIA"}`,
+          value: null,
+        })),
+    },
+  ];
+
+  // ------------------------------------------------------------- cycle time
+
+  let cycle: Count = null;
+  let cycleRows: FigureRow[] = [];
   let cycleNote =
     "Sealed orders only, from payment to seal. Nothing has been sealed, which is expected until the registration is active.";
 
-  const sealedIds = (orders ?? []).filter((o) => o.file_id && o.paid_at).map((o) => o.file_id as string);
-  if (sealedIds.length > 0) {
+  const withFiles = all.filter((o) => o.file_id && o.paid_at);
+  if (withFiles.length > 0) {
     const { data: files, error: fErr } = await client
       .from("eng_files")
       .select("id, sealed_at")
-      .in("id", sealedIds)
+      .in("id", withFiles.map((o) => o.file_id as string))
       .not("sealed_at", "is", null);
 
     if (fErr) {
       unavailable.push(`Cycle time could not be computed: ${fErr.message}`);
     } else {
       const sealedAt = new Map((files ?? []).map((f) => [f.id as string, f.sealed_at as string]));
-      const spans = (orders ?? [])
-        .filter((o) => o.file_id && o.paid_at && sealedAt.has(o.file_id as string))
-        .map(
-          (o) =>
-            Date.parse(sealedAt.get(o.file_id as string)!) - Date.parse(o.paid_at as string),
-        )
-        .filter((ms) => Number.isFinite(ms) && ms >= 0);
+      const spans = withFiles
+        .filter((o) => sealedAt.has(o.file_id as string))
+        .map((o) => ({
+          reference: o.reference,
+          hours: Math.round(
+            (Date.parse(sealedAt.get(o.file_id as string)!) - Date.parse(o.paid_at as string)) / 3_600_000,
+          ),
+        }))
+        .filter((s) => Number.isFinite(s.hours) && s.hours >= 0);
 
       if (spans.length > 0) {
-        cycle = Math.round(spans.reduce((n, v) => n + v, 0) / spans.length / 3_600_000);
+        cycle = Math.round(spans.reduce((n, s) => n + s.hours, 0) / spans.length);
+        cycleRows = spans.map((s) => ({ label: s.reference, detail: "payment to seal", value: s.hours }));
         cycleNote = `Mean hours from payment to seal across ${spans.length} sealed order${spans.length === 1 ? "" : "s"}.`;
       }
     }
@@ -479,6 +690,8 @@ export async function pipelineReport(period = periodOf(), scope: FigureScope = "
     unavailable,
     sections: [
       { title: "Orders by state", figures: byState },
+      { title: "Age in state", figures: ageFigures },
+      { title: "The designated area, and how it was derived", figures: twiaFigures },
       {
         title: "Cycle time",
         figures: [
@@ -487,7 +700,7 @@ export async function pipelineReport(period = periodOf(), scope: FigureScope = "
             value: cycle,
             kind: "duration",
             note: cycleNote,
-            rows: "/portal/orders",
+            rows: cycle === null ? [] : cycleRows,
           },
         ],
       },
@@ -519,10 +732,15 @@ export async function partnerReport(period = periodOf(), scope: FigureScope = "r
     };
   }
 
-  const { data, error } = await client
+  /* Scoped through the partner, for the reason recorded on the production
+   * ledger: a statement is a demonstration exactly when its partner is. */
+  let q = client
     .from("eng_partner_statements")
-    .select("total_cents, status, period")
+    .select("reference, total_cents, status, period, eng_partners!inner(organisation, is_demo)")
     .eq("period", period);
+  if (scope !== "including_demonstrations") q = q.eq("eng_partners.is_demo", false);
+
+  const { data, error } = await q;
 
   if (error) {
     return {
@@ -534,17 +752,26 @@ export async function partnerReport(period = periodOf(), scope: FigureScope = "r
     };
   }
 
-  const rows = data ?? [];
-  const priced = rows.filter((r) => isKnown(r.total_cents as number | null));
+  type Row = {
+    reference: string;
+    total_cents: number | null;
+    status: string;
+    eng_partners: { organisation: string; is_demo: boolean };
+  };
+  const rows = (data ?? []) as unknown as Row[];
+
+  const priced = rows.filter((r) => isKnown(r.total_cents));
   const missing = rows.length - priced.length;
   if (missing > 0) {
     unavailable.push(
-      `${missing} statement${missing === 1 ? "" : "s"} carried no total and ${missing === 1 ? "was" : "were"} excluded.`,
+      `${missing} statement${missing === 1 ? "" : "s"} carried no total and ${missing === 1 ? "was" : "were"} excluded from the money figures.`,
     );
   }
 
-  const totalFor = (status: string) =>
-    priced.filter((r) => r.status === status).reduce((n, r) => n + Number(r.total_cents), 0);
+  const rowsFor = (status: string): FigureRow[] =>
+    priced
+      .filter((r) => r.status === status)
+      .map((r) => ({ label: r.reference, detail: r.eng_partners.organisation, value: r.total_cents }));
 
   return {
     key: "partner",
@@ -557,24 +784,28 @@ export async function partnerReport(period = periodOf(), scope: FigureScope = "r
         figures: [
           {
             label: "Issued",
-            value: totalFor("issued"),
+            value: sumRows(rowsFor("issued")),
             kind: "money",
             note: "Told to a partner and not yet recorded as paid.",
-            rows: "/portal/partners",
+            rows: rowsFor("issued"),
           },
           {
             label: "Paid",
-            value: totalFor("paid"),
+            value: sumRows(rowsFor("paid")),
             kind: "money",
             note: "Recorded as settled.",
-            rows: "/portal/partners",
+            rows: rowsFor("paid"),
           },
           {
             label: "Statements",
             value: rows.length,
             kind: "count",
-            note: "How many statements cover this period.",
-            rows: "/portal/partners",
+            note: "How many statements cover this period, priced or not.",
+            rows: rows.map((r) => ({
+              label: r.reference,
+              detail: `${r.eng_partners.organisation}, ${r.status}`,
+              value: r.total_cents,
+            })),
           },
         ],
       },
@@ -599,6 +830,6 @@ export const REPORTS = [
 export function formatFigure(f: Figure): string {
   if (f.value === null) return "not computed";
   if (f.kind === "money") return money(f.value as Cents);
-  if (f.kind === "duration") return `${f.value} hours`;
+  if (f.kind === "duration") return `${f.value} ${f.label.startsWith("oldest") ? "days" : "hours"}`;
   return f.value === 0 ? "none" : String(f.value);
 }
