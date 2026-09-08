@@ -130,9 +130,7 @@ export const APPLIED = [
     file: "0025_mfa_optional_default.sql",
     fingerprint: "0e8ff33c7106ce05ec2cf81a1c66cd35",
     proves: { table: "eng_roles", match: { key: "admin", mfa_requirement: "optional" } },
-    production: null,
-    because:
-      "The branch is open. Production currently reads admin=required and engineer=required, seeded by 0024, and this is applied in the merge sequence rather than before it because nothing breaks while the two disagree: a required role that nobody has to be is a stricter state, not a broken one.",
+    production: "2026-09-07",
     note:
       "Same fingerprint as 0024 on purpose, for the reason 0021 carries: it changes two ROWS and the schema is unchanged. What it changes is checked by the row match above rather than by the fingerprint.",
   },
