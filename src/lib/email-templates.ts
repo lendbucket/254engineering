@@ -44,6 +44,39 @@ import {
  * footer reaching every message this firm sends.
  */
 
+/**
+ * WHICH EMAILS CARRY AN UNSUBSCRIBE, DECLARED IN ONE PLACE.
+ *
+ * Operator ruling: a one click unsubscribe is honoured by every marketing
+ * shaped send, and a receipt is not marketing. The split is standing law rather
+ * than a preference, so it is written down once and asserted rather than
+ * remembered per template.
+ *
+ * The line is not "does the reader like it". It is whether the message is about
+ * a transaction that reader entered into. Somebody who paid for a sealed
+ * document is owed the confirmation, the outcome and the refund arithmetic
+ * whatever their marketing preference says, and a footer inviting them to
+ * switch those off would be offering something this firm must not honour.
+ *
+ * MARKETING is the short list, and it stays short. Anything not named here is
+ * transactional, so a template added without thinking about this lands on the
+ * safe side: it carries no unsubscribe, and email-audit fails if it does.
+ */
+export const MARKETING_TEMPLATES: readonly string[] = [
+  /*
+   * The launch announcement, and for now the only entry. It is the one send
+   * this firm has that goes to a LIST rather than to a person about their own
+   * record. The waitlist welcome would join it if it is ever built; it is
+   * recorded in BACKLOG rather than assumed.
+   */
+  "marketing.launch",
+];
+
+/** Whether a template id is marketing shaped, and therefore carries an unsubscribe. */
+export function isMarketing(id: string): boolean {
+  return MARKETING_TEMPLATES.includes(id);
+}
+
 export type RenderedEmail = {
   /** A stable identifier, used by the audit to name a failure. */
   id: string;
@@ -673,6 +706,458 @@ export function outstandingInformation(input: {
   );
 }
 
+/* ===================================================================== */
+/* THE THREE A PAYING CUSTOMER GETS, AND UNTIL NOW DID NOT.              */
+/*                                                                       */
+/* The order status page at /order/<reference>?token= has existed since   */
+/* Phase 7 and says of itself that the link "is signed, emailed to them,  */
+/* and that is the whole authentication story". Nothing emailed it.       */
+/* releaseForFulfilment minted the token, wrote customer_link.issued into */
+/* the order's timeline, and dropped it on the floor. A customer paid and */
+/* then heard nothing until they rang to ask, which is the support cost   */
+/* that page was built to prevent.                                        */
+/*                                                                       */
+/* All three carry that link and no other, because it is the only route   */
+/* a one off customer can open: they have no account and, by the order    */
+/* table's own comment, they never get one.                               */
+/* ===================================================================== */
+
+/**
+ * Payment received, work released.
+ *
+ * WHY THE REFUND SENTENCE IS PASSED IN RATHER THAN WRITTEN HERE
+ * -------------------------------------------------------------
+ * The approved design writes it as a constant: "everything except the disclosed
+ * $175 inspection fee is refunded". That is wrong three ways. A decline where
+ * nobody attended the property is a FULL refund; the retained figure is the fee
+ * disclosed for that service, which seven of the eleven services do not have at
+ * all; and $175 is four of eleven rather than a rule.
+ *
+ * eng_service_orders.refund_disclosure holds what this customer was actually
+ * told before they paid, which is the only sentence this firm can stand behind
+ * afterwards. It is passed through verbatim, and when it is absent the email
+ * says nothing about refunds rather than inventing the common case.
+ */
+export function orderConfirmed(input: {
+  customerName: string;
+  customerEmail: string;
+  reference: string;
+  serviceName: string;
+  propertyAddress: string;
+  placedAt: string;
+  /** Priced lines as the customer agreed them. A null amount is not on record. */
+  lines: { label: string; amount: string | null }[];
+  total: string | null;
+  /** Verbatim from the order. Null when none was captured. */
+  refundDisclosure: string | null;
+  /** What they receive at the end, from the catalog they bought from. */
+  receives: string[];
+  statusUrl: string;
+}): RenderedEmail {
+  const blocks: EmailBlock[] = [
+    { kind: "p", text: `${input.customerName},` },
+    {
+      kind: "p",
+      text: `Your payment has gone through and the firm is arranging the work. Nothing else is needed from you now.`,
+    },
+    {
+      kind: "details",
+      rows: [
+        ["Property", input.propertyAddress],
+        ["Service", input.serviceName],
+        ["Placed", input.placedAt],
+      ],
+    },
+    /*
+     * `lines` arrives in customerView's shape, which names the figure `amount`,
+     * and is mapped here rather than the caller reshaping it. The order page and
+     * this email then read the same rows from the same place, which is the only
+     * way the two can be relied on to agree.
+     */
+    {
+      kind: "money",
+      rows: input.lines.map((l) => ({ label: l.label, value: l.amount })),
+      total: { label: "Total", value: input.total },
+    },
+  ];
+
+  /*
+   * A list rather than a sentence. The catalog's entries are full sentences of
+   * their own, and joining two with a comma produced copy that read as a typo.
+   */
+  if (input.receives.length > 0) {
+    blocks.push({ kind: "list", title: "What you receive", items: input.receives });
+  }
+
+  if (input.refundDisclosure) {
+    blocks.push({ kind: "note", text: input.refundDisclosure });
+  }
+
+  blocks.push({
+    kind: "p",
+    text: "The link below shows where the work has got to. It is yours alone, so treat it like a receipt rather than something to forward.",
+  });
+
+  return compose(
+    "order.confirmed",
+    "human",
+    `Order confirmed: ${input.reference}`,
+    {
+      preheader: `${input.serviceName} for ${input.propertyAddress}. The firm is arranging the work.`,
+      status: { reference: `Order ${input.reference}`, state: "Confirmed" },
+      signed: true,
+      blocks,
+      button: { label: "Track this order", url: input.statusUrl },
+    },
+    { to: input.customerEmail },
+  );
+}
+
+/**
+ * The engineer sealed it.
+ *
+ * THE BUTTON GOES TO THE STATUS PAGE AND THERE IS NO LETTER ROUTE.
+ *
+ * The approved design points this at /files/<ref>/letter. No such screen exists
+ * and none will: a sealed document is uploaded, never generated, and a platform
+ * that renders one is a platform where the seal has left the engineer's
+ * control. Operator ruling, and it is standing law rather than a preference.
+ *
+ * So this says the document is ready and where to get it, and the status page
+ * hands over the artefact the engineer actually uploaded.
+ */
+export function orderSealed(input: {
+  customerName: string;
+  customerEmail: string;
+  reference: string;
+  propertyAddress: string;
+  sealedAt: string;
+  statusUrl: string;
+}): RenderedEmail {
+  return compose(
+    "order.sealed",
+    "human",
+    `Sealed: ${input.reference}`,
+    {
+      preheader: `The engineer has sealed the document for ${input.propertyAddress}.`,
+      status: { reference: `Order ${input.reference}`, state: "Sealed" },
+      signed: true,
+      blocks: [
+        { kind: "p", text: `${input.customerName},` },
+        {
+          kind: "p",
+          text: `The engineer has sealed the document for ${input.propertyAddress}. It is ready to download.`,
+        },
+        {
+          kind: "details",
+          rows: [
+            ["Property", input.propertyAddress],
+            ["Sealed", input.sealedAt],
+          ],
+        },
+        {
+          kind: "p",
+          text: "Keep your own copy. The link below stays open for a while but it is not an archive, and the document is yours rather than something held here on your behalf.",
+        },
+      ],
+      button: { label: "Download the document", url: input.statusUrl },
+    },
+    { to: input.customerEmail },
+  );
+}
+
+/**
+ * The engineer could not seal it, and what happens to the money.
+ *
+ * EVERY FIGURE COMES FROM refundFor, WHICH IS THE ONLY THING THAT KNOWS.
+ *
+ * There are four outcomes and the email must not flatten them: a refusal with
+ * no site visit is refunded in full; after a visit the firm keeps exactly the
+ * fee that was disclosed; and where that fee is not on record refundFor refuses
+ * to compute rather than guessing, so this says the amount is being worked out
+ * rather than printing a number nobody can stand behind.
+ *
+ * The explanation sentence is refundFor's own, for the same reason the
+ * confirmation uses the stored disclosure: one place decides what the customer
+ * is told about their money.
+ */
+export function orderDeclined(input: {
+  customerName: string;
+  customerEmail: string;
+  reference: string;
+  propertyAddress: string;
+  /** refundFor's own sentence. Never rewritten here. */
+  explanation: string;
+  refunded: string | null;
+  retained: string | null;
+  statusUrl: string;
+}): RenderedEmail {
+  const blocks: EmailBlock[] = [
+    { kind: "p", text: `${input.customerName},` },
+    {
+      kind: "p",
+      text: `The engineer could not seal the document for ${input.propertyAddress}. The reasoning is on your order page, and you receive what they found either way.`,
+    },
+    { kind: "p", text: input.explanation },
+  ];
+
+  /*
+   * Shown only when there is something to show. A refund that has not been
+   * worked out yet gets the sentence above and no table, because a money block
+   * of two "not recorded" rows reads as a system that has lost the money.
+   */
+  if (input.refunded !== null || input.retained !== null) {
+    blocks.push({
+      kind: "money",
+      rows: [
+        { label: "Refunded to your card", value: input.refunded },
+        { label: "Retained for the inspection", value: input.retained },
+      ],
+    });
+  }
+
+  return compose(
+    "order.declined",
+    "human",
+    `Not sealed: ${input.reference}`,
+    {
+      preheader: `The engineer could not seal ${input.propertyAddress}. What happens to the money is inside.`,
+      status: { reference: `Order ${input.reference}`, state: "Not sealed" },
+      signed: true,
+      blocks,
+      button: { label: "See the findings", url: input.statusUrl },
+    },
+    { to: input.customerEmail },
+  );
+}
+
+/**
+ * A refund the provider would not carry out.
+ *
+ * THIS GOES TO THE FIRM AND NEVER TO THE CUSTOMER, AND THAT IS A RULING RATHER
+ * THAN A DEFAULT.
+ *
+ * The approved design drew this addressed to the customer: "Your $450 refund
+ * failed at the card network. Update your payment method to receive it." It is
+ * wrong twice. ops-payments already argued the first half, at the point it
+ * writes the event: the money may well have moved at the provider by then, and
+ * telling somebody a refund failed when it has already reached them is its own
+ * wrong answer. The second half is mechanical, a card refund returns to the card
+ * that was charged, so there is no payment method for a customer to update and
+ * the instruction could not be followed if they tried.
+ *
+ * So the event stays internal and this is the email for it. A failed refund is
+ * the firm's to chase with the provider, and what the firm needs is the
+ * reference, the case that produced the refund, what the provider said, and a
+ * way into the payment record. The customer needs nothing until it is fixed.
+ *
+ * THE LINK IS AN OPS LINK. Never a customer status link: this is not something
+ * to hand a customer a view of, and the one screen that matters is the order in
+ * the portal where somebody can see the payments against it.
+ */
+export function refundFailed(input: {
+  reference: string;
+  propertyAddress: string;
+  /** refundFor's case name, so the alert says which rule produced the refund. */
+  refundCase: string;
+  amount: string;
+  /** Verbatim from the provider. Not rewritten, because it is the evidence. */
+  because: string;
+  provider: string;
+  /** Where the payments against this order can be seen. */
+  opsUrl: string;
+}): RenderedEmail {
+  return compose(
+    "ops.refund_failed",
+    "operator",
+    `Refund failed: ${input.reference}`,
+    {
+      preheader: `${input.amount} could not be refunded on ${input.reference}. It has to be done by hand.`,
+      status: { reference: `Order ${input.reference}`, state: "Action required" },
+      blocks: [
+        {
+          kind: "p",
+          text: `A refund of ${input.amount} on ${input.reference} was refused by ${input.provider}. The customer has not been told, and should not be until this is settled.`,
+        },
+        {
+          kind: "details",
+          rows: [
+            ["Order", input.reference],
+            ["Property", input.propertyAddress],
+            ["Refund case", input.refundCase],
+            ["Amount", input.amount],
+            ["Provider", input.provider],
+            ["What it said", input.because],
+          ],
+        },
+        {
+          kind: "note",
+          text: "Check the provider before doing anything else. A refund can fail here and still have moved there, and issuing a second one is the expensive mistake.",
+        },
+      ],
+      button: { label: "Open the order", url: input.opsUrl },
+    },
+    /* No `to`: this falls to the firm's own notification address, like every
+     * other operator alert. There is deliberately no customer address anywhere
+     * in this template's inputs, so it cannot be sent to one by mistake. */
+  );
+}
+
+/**
+ * A job offered to a technician.
+ *
+ * WHY THIS IS ITS OWN TEMPLATE AND NOT A RESTYLED ops.notification.
+ *
+ * Operator ruling, 2026-09-08. The generic notification carries a title, a
+ * sentence and a link, which is the right shape for the other nine kinds and
+ * cannot render this one: an offer is a county, a protocol, a window that
+ * closes, and a rate. Squeezing those into one sentence is what produced
+ * "1400 Sample Street, flat rate $185.00" and left the expiry out of the email
+ * entirely, so the one fact that decides whether a technician acts today was
+ * only visible by opening the portal.
+ *
+ * ops.notification keeps the other nine. This is not a better generic; it is
+ * specific to the thing it was drawn for, and the design's value is that
+ * specificity.
+ *
+ * NOTHING HERE STATES A FIGURE THE DISPATCH RECORD DOES NOT HOLD.
+ *
+ * `rate` is null when eng_job_offers.offer_amount_cents is null, which happens
+ * whenever no scheduled rate covers the work, and it renders as "not set"
+ * rather than as a number. A technician who accepts on a rate this email
+ * invented would be owed it, and the record would not agree. Same for the
+ * window: no expiry on the offer means the email says the offer does not expire,
+ * because inventing a deadline to create urgency is how a firm loses people.
+ */
+export function techOffer(input: {
+  techName: string;
+  techEmail: string;
+  fileNumber: string;
+  propertyAddress: string;
+  county: string;
+  /** The deliverable, in the catalog's words. */
+  work: string;
+  /** The protocol version the capture is governed by, or null if none attached. */
+  protocol: string | null;
+  /** Formatted money, or null when the offer carries no scheduled rate. */
+  rate: string | null;
+  /** When the offer closes, already formatted, or null when it does not. */
+  closesAt: string | null;
+  /** Miles from the technician's base, or null when it could not be worked out. */
+  distance: string | null;
+  jobUrl: string;
+}): RenderedEmail {
+  return compose(
+    "field.offer",
+    "operator",
+    `Job offered: ${input.county} County, ${input.propertyAddress}`,
+    {
+      preheader: `${input.work} in ${input.county} County${input.closesAt ? `, offer closes ${input.closesAt}` : ""}.`,
+      status: { reference: `Job ${input.fileNumber}`, state: "Offered" },
+      blocks: [
+        { kind: "p", text: `${input.techName},` },
+        {
+          kind: "p",
+          text: `A job in ${input.county} County is offered to you. It goes to the first technician who accepts it.`,
+        },
+        {
+          kind: "details",
+          rows: [
+            ["Property", input.propertyAddress],
+            ["County", input.county],
+            ["Work", input.work],
+            ["Protocol", input.protocol ?? "none attached"],
+            ["Distance", input.distance ?? "not worked out"],
+          ],
+        },
+        {
+          kind: "money",
+          rows: [{ label: "Flat rate on submission", value: input.rate }],
+        },
+        {
+          kind: "note",
+          text: input.closesAt
+            ? `This offer closes ${input.closesAt}. After that it goes to somebody else, and accepting it is how you hold it.`
+            : "This offer does not expire, and it is still first come. Somebody else accepting it closes it.",
+        },
+        {
+          kind: "p",
+          text: "You are paid the flat rate when the evidence is submitted, whatever the engineer decides afterwards.",
+        },
+      ],
+      button: { label: "Open the job", url: input.jobUrl },
+    },
+    { to: input.techEmail },
+  );
+}
+
+/**
+ * The opening email to the waitlist, on the day the firm can take orders.
+ *
+ * THE ONLY SEND IN THIS BUILD THAT GOES TO A LIST, AND THE ONLY ONE THAT
+ * CARRIES AN UNSUBSCRIBE.
+ *
+ * Everything else this firm sends is about one person's own record. This is
+ * addressed to people who put their name down and have no order, no account and
+ * no relationship beyond that, which is exactly what makes it marketing and what
+ * makes the one click link non negotiable.
+ *
+ * IT CANNOT BE SENT IN PRELAUNCH, AND THE REFUSAL IS IN THE SEND PATH RATHER
+ * THAN HERE.
+ *
+ * This function composes the message. `sendLaunchAnnouncement` refuses to
+ * enqueue it while LAUNCH_MODE is prelaunch, and launch-audit proves the
+ * refusal by attempting it. The split matters: a template that refused to
+ * RENDER could not be checked for voice, layout or regulated copy under the
+ * gate, which is precisely when somebody would be writing it.
+ *
+ * THE COPY IS HELD TO THE PARTNER ASSET LIBRARY'S REGULATED CHECKS.
+ * Same copyVerdict the partner assets pass through, so an announcement cannot
+ * say something a partner would be refused for saying. Under the gate that
+ * includes the present tense service claims; on the day this actually sends the
+ * gate is off, and the NEVER and voice checks still apply.
+ */
+export function launchAnnouncement(input: {
+  /** The person on the waitlist. */
+  name: string;
+  email: string;
+  /** Their one click link. Never null: the send path refuses without one. */
+  unsubscribeUrl: string;
+  orderUrl: string;
+}): RenderedEmail {
+  return compose(
+    "marketing.launch",
+    "human",
+    "254 Engineering is open for orders",
+    {
+      preheader: "The firm's registration is active and the order desk is open.",
+      signed: true,
+      blocks: [
+        { kind: "p", text: `${input.name},` },
+        {
+          kind: "p",
+          text: "You asked to be told when 254 Engineering could take work. The firm's registration with the Texas Board of Professional Engineers and Land Surveyors is now active, and the order desk is open.",
+        },
+        {
+          kind: "p",
+          text: "Nothing else about the firm has changed. The same counties, the same services, and a licensed Professional Engineer reviewing every file.",
+        },
+        {
+          kind: "note",
+          text: "Paying does not buy a seal. It buys the review, and the engineer's conclusion is theirs. If they cannot seal it, what happens to your money is stated before you pay.",
+        },
+        {
+          kind: "p",
+          text: "If you no longer want to hear from the firm, the link at the bottom takes you off this list. It does not affect anything you order.",
+        },
+      ],
+      button: { label: "See what the firm can do", url: input.orderUrl },
+      unsubscribeUrl: input.unsubscribeUrl,
+    },
+    { to: input.email },
+  );
+}
+
 /** An administrator forcing a reset, or a person who has lost their password. */
 export function portalPasswordReset(input: {
   personName: string;
@@ -829,7 +1314,10 @@ export function outageAlert(input: OutageAlertInput): RenderedEmail {
     },
     // A reply reaches the firm mailbox rather than the send-only notifications
     // address. Replying to a machine alert is unlikely and a dead end is worse.
-    { replyTo: business.email },
+    /* No reply-to override: the three machine alerts reply to the firm address
+     * like everything else. Operator ruling, 2026-09-08. info@ is not a
+     * confirmed mailbox and an alert that invites a reply nobody reads is worse
+     * than one that invites none. */
   );
 }
 
@@ -924,7 +1412,10 @@ export function errorAlert(input: ErrorAlertInput): RenderedEmail {
         },
       ],
     },
-    { replyTo: business.email },
+    /* No reply-to override: the three machine alerts reply to the firm address
+     * like everything else. Operator ruling, 2026-09-08. info@ is not a
+     * confirmed mailbox and an alert that invites a reply nobody reads is worse
+     * than one that invites none. */
   );
 }
 
@@ -1015,13 +1506,96 @@ export function queueAlert(input: QueueAlertInput): RenderedEmail {
         },
       ],
     },
-    { replyTo: business.email },
+    /* No reply-to override: the three machine alerts reply to the firm address
+     * like everything else. Operator ruling, 2026-09-08. info@ is not a
+     * confirmed mailbox and an alert that invites a reply nobody reads is worse
+     * than one that invites none. */
   );
 }
 
 export function allTemplatesForAudit(): RenderedEmail[] {
 
   return [
+    /*
+     * The three a paying customer gets. The sample figures are deliberately
+     * obvious, like every other fixture here, and the null lines are not
+     * decoration: they exercise the money block's absent value, which is the
+     * one path where a bug prints $0.00 to somebody who paid.
+     */
+    orderConfirmed({
+      customerName: "Sample Customer",
+      customerEmail: "sample@example.com",
+      reference: "254-O2026-ABCDEF",
+      serviceName: "Sample windstorm evaluation",
+      propertyAddress: "100 Sample Street, Corpus Christi",
+      placedAt: "3 September 2026 at 11:42",
+      lines: [
+        { label: "Sample windstorm evaluation", amount: "$925.00" },
+        { label: "Coastal county", amount: null },
+      ],
+      total: "$925.00",
+      refundDisclosure:
+        "If the engineer cannot seal this and nobody has attended the property, the full amount is refunded.",
+      receives: [
+        "A sealed engineering opinion on the condition of the sample property",
+        "The photographic record the opinion rests on, keyed to where each photograph was taken",
+      ],
+      statusUrl: "https://254engineering.com/order/254-O2026-ABCDEF?token=sample",
+    }),
+    orderSealed({
+      customerName: "Sample Customer",
+      customerEmail: "sample@example.com",
+      reference: "254-O2026-ABCDEF",
+      propertyAddress: "100 Sample Street, Corpus Christi",
+      sealedAt: "5 September 2026 at 16:20",
+      statusUrl: "https://254engineering.com/order/254-O2026-ABCDEF?token=sample",
+    }),
+    refundFailed({
+      reference: "254-O2026-ABCDEF",
+      propertyAddress: "100 Sample Street, Corpus Christi",
+      refundCase: "Declined after a site visit",
+      amount: "$750.00",
+      because: "the card issuer declined the refund",
+      provider: "sample-provider",
+      opsUrl: "https://254engineering.com/portal/orders?id=sample",
+    }),
+    techOffer({
+      techName: "Sample Technician",
+      techEmail: "sample.tech@254engineering.com",
+      fileNumber: "254-F2026-SAMPLE",
+      propertyAddress: "100 Sample Street, Corpus Christi",
+      county: "Nueces",
+      work: "Sample windstorm evidence capture",
+      protocol: "Sample windstorm protocol v3",
+      rate: "$185.00",
+      closesAt: "today at 15:42 CT",
+      distance: "12 miles",
+      jobUrl: "https://254engineering.com/portal/jobs/sample",
+    }),
+    /*
+     * The announcement renders under the gate even though it cannot be SENT
+     * under it, which is the whole reason the refusal lives in the send path.
+     * A template that refused to render could not be held to the voice, layout
+     * and regulated copy checks at exactly the time somebody would be writing
+     * it.
+     */
+    launchAnnouncement({
+      name: "Sample Person",
+      email: "sample@example.com",
+      unsubscribeUrl: "https://254engineering.com/unsubscribe?e=sample%40example.com&t=sample",
+      orderUrl: "https://254engineering.com/services",
+    }),
+    orderDeclined({
+      customerName: "Sample Customer",
+      customerEmail: "sample@example.com",
+      reference: "254-O2026-ABCDEF",
+      propertyAddress: "100 Sample Street, Corpus Christi",
+      explanation:
+        "The engineer could not seal this and nobody attended the property, so the full amount is refunded. You keep what the engineer found.",
+      refunded: "$925.00",
+      retained: null,
+      statusUrl: "https://254engineering.com/order/254-O2026-ABCDEF?token=sample",
+    }),
     outstandingInformation({
       customerName: "Sample Customer",
       customerEmail: "sample@example.com",

@@ -27,6 +27,164 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
+## A customer link cannot be revoked, and lives 120 days
+
+Recorded 2026-09-08. Accepted by the operator as the code behaves, and not being
+fixed now.
+
+Each customer email mints its own status token: `issueCustomerLink` only
+INSERTs, and nothing anywhere in the codebase sets `revoked_at` on
+`eng_customer_access`. The upside is the one that was asked about and it holds:
+every token stays valid to its own expiry, so an older email in a customer inbox
+is never silently killed by a newer one.
+
+The cost is the other half of the same fact. **A link that is forwarded, leaked,
+posted in a support ticket or left in an inherited mailbox works for 120 days
+and there is no way to stop it.** The column exists and is read on every
+resolve, so the reader honours a revocation; nothing can write one. The order
+status page is deliberately narrow, it shows no file number, no technician and
+no internal event, so the exposure is one property address, one price and one
+timeline. That is the reason this is a recorded risk rather than an urgent one.
+
+What closing it needs: something that writes `revoked_at`, a reason to write it
+from, and a decision about whether issuing a new link should revoke the previous
+one, which would reintroduce exactly the silent death that was rejected.
+
+## A phone in job reaches payment with no refund disclosure
+
+Found 2026-09-08 while porting the email design, and it is a CHECKOUT defect
+rather than an email one. Operator ruling: it belongs at the top.
+
+There are two ways an order is created. `ops-intake.ts` builds one from the
+catalog and writes `refund_disclosure` in the same insert that sets
+`awaiting_payment`, so a customer ordering online is always told what happens to
+their money before they pay. `ops-job-billing.ts` raises one against a file for
+a job taken over the telephone, and writes no disclosure at all. It also writes
+no `inspection_fee_cents` and no `catalog_snapshot`.
+
+**What that costs, concretely.** The customer is emailed a payment link and pays
+without ever being told the refund terms, while the online customer is. And
+because the inspection fee is absent, `refundFor` reaches its "refuses to
+compute" branch the moment a technician has attended and the engineer declines,
+so the refund cannot be worked out at all and has to be settled by hand.
+
+**Why the email does not paper over it.** `order.confirmed` carries the stored
+disclosure verbatim and says nothing when there is none, which is correct: an
+email must not invent the terms somebody was never given. That correctness is
+what makes the gap visible rather than what fixes it.
+
+Not fixed here because the fix is a decision about what a phoned in job
+discloses and when, which is the operator's and touches money.
+
+## onboarding-welcome, waiting on self service accounts
+
+Recorded 2026-09-08. One of the thirteen templates in the approved email design,
+classified as describing a real event and then found to have no event to hang
+off.
+
+The design shows a customer account welcome: track files, download sealed
+letters, manage billing. The surface exists at `/account`, `issueCustomerToken`
+exists, and `/account/set-password` exists. **Nothing creates a customer user.**
+`issueCustomerToken` has zero callers, so there is no moment at which this email
+could be sent.
+
+It belongs to Phase 13 self service accounts, which is the work that would make
+the event. Building the email first would mean inventing an account creation
+flow to justify a template, which is the wrong way round. The reference file
+stays in `design-reference/emails/` so the design is not lost.
+
+The customer half of the email port is therefore three templates, not four.
+
+## Audits that still fail red when run standalone with no server
+
+Recorded 2026-09-08. Operator ruling: unreachable is not failed, and an audit
+whose live half cannot run reports COULD NOT TELL and exits zero.
+sister-intake-audit carries that verdict now. These do not, and each records a
+FAIL when nothing is answering on BASE_URL:
+
+  asset-audit, bucket-roundtrip, coverage-audit, cta-audit, forms-audit,
+  link-map, messaging-audit, placeholder-audit, preflight-audit,
+  preflight-harness, registry-audit, seo-audit, shots, voice-audit
+
+The reason this is recorded rather than urgent: inside `npm run audit` it does
+not arise. The runner starts its own server, re-checks it between phases, and
+prints THE SUITE DID NOT RUN TO COMPLETION rather than a list of content
+failures, which is the same protection at the suite level. The gap is a
+STANDALONE run, which is how any of these is usually run while working on it,
+and the cost is a red mark that means nothing and teaches somebody to skim past
+reds.
+
+## Two self comparing checks left as recorded
+
+From the audit survey of 2026-09-08, which went through all 47 audit and proof
+scripts hunting checks whose expected value is imported from the module under
+test. Seven were closed in the email design branch. These two stay, on the
+operator ruling that both are mitigated, both are documented where they sit, and
+neither is on a money or security path.
+
+**scripts/jobs-audit.mjs:265.** The retry backoff floor is asserted as
+`backoffMs(n) >= BASE_DELAY_MS / 2`, both from src/lib/job-rules.ts. It is a
+ratio invariant, jitter never eats more than half the base, which is a real
+property and holds equally if the base becomes one millisecond. The same file
+already gets the ceiling right and explains why: line 243 compares against a
+literal ONE_HOUR_MS rather than MAX_DELAY_MS.
+
+**scripts/db-guard-audit.mjs:332.** `PRODUCTION_GUARD_FIX.includes(PRODUCTION_EXPECTED_REF)`,
+both from src/lib/db-guard.ts. Mitigated eighteen lines later at 350, which
+cross checks PRODUCTION_EXPECTED_REF against scripts/lib/db-target.mjs, an
+independent source. Every other use of those constants in that file asserts a
+hand written property.
+
+Also from the same survey and NOT a finding, recorded because it looks like one:
+`scripts/lib/role-total-functions.mjs` compares roleLabel, homeFor and
+actionsFor to fields of DEFAULT_ROLES, and those functions are DEFAULT_ROLES
+lookups. It was tested rather than read: breaking the lookup so it always misses
+fails the check and names four of the seven roles. DEFAULT_ROLES is a
+DECLARATION, agreeing with it is the assertion, and that is the distinction now
+recorded in CLAUDE.md.
+
+## The email design port does not merge until support@ is proven to receive
+
+Merge gate, operator ruling 2026-09-08. Every template except four now replies
+to support@254engineering.com. The operator has confirmed the mailbox exists and
+is monitored; what is NOT yet proven is that a reply to a message this firm
+actually sent lands there.
+
+The gate: the operator replies to a preview send from their phone, and that
+reply is confirmed to arrive. Until then the port does not merge.
+
+Stated as a gate rather than assumed because a reply-to that does not receive is
+silent in exactly one direction. Nothing bounces to the firm, nothing appears in
+any log here, and the only symptom is a customer who says they replied and heard
+nothing back. It is not a thing an audit can check from this side.
+
+Related and still open: **info@254engineering.com is not a confirmed mailbox**
+and it is the mailto in the footer of every email this firm sends, as
+`business.email`. That address is used across the website too, so changing it is
+wider than the email port and is not done here.
+
+## Where a customer email links, and the ruling that was revised
+
+Recorded 2026-09-08. **Every customer facing email links to
+`/order/<reference>?token=`, and nothing else.**
+
+The operator first ruled these at `/account/orders/<reference>`. That was
+revised on the evidence rather than on preference: `/account` is the B2B account
+surface, `/account/orders/[reference]` renders a bulk BATCH scoped to
+`me.accountId` and behind a login, and `eng_service_orders` says in its own
+comment that a customer "is not a portal account: they never get one". The
+ruled link would have sent one off customers to a login they can never pass.
+
+The right destination already existed and predates both readings. The order
+status page has been there since Phase 7 and states its own contract at the top:
+the link is signed, emailed to them, and that is the whole authentication story.
+Nothing had ever emailed it. `releaseForFulfilment` minted the token, wrote
+`customer_link.issued`, and dropped it.
+
+**There is no letter route and there will not be one**, so the sealed email
+points at the status page where the uploaded document hangs. That defers to the
+standing law in CLAUDE.md rather than restating it.
+
 ## Phase 12 Section 1 is on production and enrolled against
 
 ### The second factor is offered rather than demanded, and the requirement is still there

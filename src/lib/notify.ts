@@ -30,7 +30,24 @@ import type { RenderedEmail } from "./email-templates";
  * caller.
  */
 export type NotifyOutcome = "ok" | "skipped" | "error" | "no content";
-type NotifyResult = { sent: boolean; outcome: NotifyOutcome; reason?: string };
+type NotifyResult = {
+  sent: boolean;
+  outcome: NotifyOutcome;
+  reason?: string;
+  /**
+   * The provider's id for an accepted message.
+   *
+   * Carried so a caller can write down WHICH message was accepted rather than
+   * that one was. A timeline entry saying "emailed" is a claim. One saying
+   * "emailed, and Resend called it 3f2c..." is a claim somebody can check
+   * against the provider months later, when a customer says they never got it
+   * and the firm has to know whether it left.
+   *
+   * Acceptance is still not delivery. It is the last fact this side of the
+   * wire, and the honest thing to record is exactly that much.
+   */
+  messageId?: string;
+};
 
 let resend: Resend | null = null;
 
@@ -75,7 +92,7 @@ export async function notify(email: RenderedEmail): Promise<NotifyResult> {
   }
 
   try {
-    const { error } = await mailer.emails.send({
+    const { data, error } = await mailer.emails.send({
       from: email.from,
       to: email.to ?? business.notificationEmail,
       subject: email.subject,
@@ -87,7 +104,7 @@ export async function notify(email: RenderedEmail): Promise<NotifyResult> {
       html: email.html,
     });
     if (error) return log(email, { sent: false, outcome: "error", reason: error.message });
-    return log(email, { sent: true, outcome: "ok" });
+    return log(email, { sent: true, outcome: "ok", messageId: data?.id });
   } catch (err) {
     return log(email, {
       sent: false,

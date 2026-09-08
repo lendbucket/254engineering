@@ -149,6 +149,53 @@ recorded in `DESIGN_SPEC.md` section 2, and AA wins wherever the two disagree.
 That is the operator's standing ruling, reaffirmed when the deviations were
 approved.
 
+## 2c. Importing a design: read it against the code before you style anything
+
+**A design is drawn against a DESCRIPTION of the platform, and every claim it
+makes about money, contact or capability is wrong until it has been read
+against the code.** Operator ruling, 2026-09-08, after the email suite port.
+That sentence is standing law for every future design import, and the
+reconciliation comes before any styling.
+
+The email port is the worked example. Thirteen templates arrived, beautifully
+drawn and internally consistent, and the reconciliation pass found four things
+that no amount of looking at them would have shown:
+
+**The link that was never sent.** The customer order status page had existed
+since Phase 7 and said of itself that the link is signed and emailed. Nothing
+emailed it. `releaseForFulfilment` minted the token, wrote
+`customer_link.issued` into the order's own timeline, and dropped it. A paying
+customer heard nothing until they rang to ask, which is the support cost that
+page was built to prevent.
+
+**The refund rule stated as a constant.** The design wrote "everything except
+the disclosed $175 inspection fee is refunded". A decline where nobody
+attended is a FULL refund; the retained figure is the fee disclosed for that
+service, which seven of the eleven do not have; and $175 is four of eleven
+rather than a rule. The portal design made the same claim and was corrected
+the same way, which is the point: it is not a mistake somebody made once.
+
+**The door that took money without stating terms.** Reconciling the design's
+refund copy against the code found that a job taken over the telephone reached
+payment with no `refund_disclosure` and no `inspection_fee_cents`, while the
+web door refused exactly that. Nothing in the design pointed at it; reading
+the design against the code did.
+
+**The timeline entry that claimed contact.** `customer_link.issued` read like
+evidence that a customer had been written to and was evidence of a database
+write. That is the recurring defect class sitting inside the audit trail.
+
+Three of those four are about money or about whether somebody was told
+something, which is why the rule is worded the way it is. A design cannot be
+wrong about a colour in a way that costs a refund.
+
+The order is therefore fixed. **Inventory and reconcile first**: list what the
+platform actually does, give every drawn artifact a verdict against it, and
+get a ruling on the ones that describe something the firm does not do or
+should not send. Only then style anything. The verdicts and the rulings are
+recorded, and the artifacts that were refused stay in `design-reference/` with
+their verdict beside them so nobody rebuilds them by accident.
+
 ## 3. Style laws on every rendered string
 
 - **No em dashes and no en dashes.** Anywhere: copy, metadata, schema, alt text, rendered comments.
@@ -216,6 +263,23 @@ The runner re-checks the server between phase zero and phase one, refuses to
 start if the build fails, and prints `THE SUITE DID NOT RUN TO COMPLETION`
 rather than a list of failures when it could not measure anything.
 
+**REACHING THE DEPLOYMENT NEEDS A BROWSER, NOT curl, AND THERE IS NO BYPASS
+HEADER.** Recorded 2026-09-08 after an operator and a session both assumed
+otherwise. `254engineering.com` sits behind Vercel's bot checkpoint, which
+answers curl with **403 and a JavaScript challenge page**, not with the route
+you asked for. Chromium executes the challenge and gets 200, which is why the
+browser audits reach production and a shell one liner does not.
+
+There is **no protection bypass secret** in this repository, in `.env.local`, or
+sent by any script. Do not go looking for one and do not add one to make curl
+work: the harness already has the mechanism, and it is Playwright.
+
+The trap underneath it, found while verifying an emailed link: the order status
+page answers **200 while saying the link does not open an order**, and the
+reference appears in the page text even on that failure page. So a check that
+asks for a 200, or asks whether the page names the order, passes on a dead
+link. Read the page for the failure sentence first.
+
 **`BASE_URL` means "use this server, do not manage one".** That is how a run
 against production works, and with it set the suite refuses outright if the host
 is not answering:
@@ -240,6 +304,29 @@ BASE_URL=https://254engineering.com npx tsx scripts/security-audit.mjs
 
 **Every audit is verified by injecting a violation and watching it fail before its green is
 trusted.** An audit that has never failed has never been tested.
+
+**AN AUDIT NEVER IMPORTS ITS EXPECTATION FROM THE THING IT AUDITS.** Operator
+ruling, 2026-09-08, and it is the companion to the declared inventory idiom
+below. An audit that reads its expected value from the module under test
+compares a value to itself and cannot disagree with anything.
+
+It was caught the only way it can be. A new check asserted that every email
+template was FROM the ruled display name, comparing against the constant the
+templates are built from. The injection test changed that constant back to the
+old personal name, and the check reported, in its own words, `PASS: every template is FROM "Robert Reyna, 254 Engineering Services"`.
+Only a hardcoded literal in the same file caught anything.
+
+So a ruled value is written out in the audit as a literal, and the config is
+asserted separately to still state it, which names a drifted constant as a
+drifted constant. The duplication IS the mechanism: two places somebody has to
+edit on purpose.
+
+The distinction that makes this workable rather than merely duplicative:
+deriving from a DECLARATION is the idiom, and importing from the
+IMPLEMENTATION is the defect. roles-audit derives from DEFAULT_ROLES and
+email-audit derives its template list by parsing compose() calls, both of
+which are declarations of intent. Reading the rendered output's own constant
+back and comparing it to itself is not.
 
 **THE HARNESS MEASURES WHAT `scripts/lib/surfaces.mjs` SAYS EXISTS.** Operator ruling,
 2026-09-07. That file is the one declaration of this platform's surfaces: the public site, the
@@ -555,6 +642,46 @@ recorded this defect once already: an audit that decides what the database can d
 by reading its own environment, while the server it is testing reads
 `.env.local`, is an audit measuring a different system, and it passed every run
 while writing nothing.
+
+## 6c. Business rulings that live in two places, on purpose
+
+Four constants are decisions the operator made rather than numbers somebody
+tuned. Each is stated in the code AND pinned as a literal in the audit that
+covers it, so changing one costs two edits made deliberately. If you are here
+because an audit just failed on one of these, the audit is not wrong: it is
+asking whether you meant it.
+
+| Ruling | Value | Declared in | Pinned in |
+| --- | --- | --- | --- |
+| Checkout session window | **24 hours** | `src/lib/order-attention.ts` | `scripts/order-audit.mjs` |
+| Partner attribution window | **90 days** | `src/lib/attribution-rules.ts` | `scripts/partner-audit.mjs` |
+| Alerts per sweep | **3** | `src/lib/alert-rules.ts` | `scripts/observability-audit.mjs` |
+| Sister intake rate | **20 a minute** | `src/lib/sister-intake.ts` | `scripts/sister-intake-audit.mjs` |
+| TOTP digits and period | **6 digits, 30 seconds** | `src/lib/totp.ts` | `scripts/proofs/totp-matches-the-rfc.mjs` |
+
+They were pinned on 2026-09-08 after a survey of all 47 audit and proof
+scripts found each of them written in terms of its own constant on both sides
+of the assertion. Every one proved its edge was sharp and none could see the
+edge move: the partner window could have gone from ninety days to a hundred
+and eighty, changing what the firm pays partners, with the board green
+throughout. The TOTP pair was the sharpest, because advertising eight digits
+in the QR while the generator emits six locks out every already enrolled
+account at their next sign in, on a phone that is working perfectly.
+
+**UNREACHABLE IS NOT FAILED.** Operator ruling, 2026-09-08. An audit whose
+live half cannot run because no server is answering reports a third verdict,
+`COULD NOT TELL`, and exits zero. It is the same three way answer the perf
+gate uses, and for the same reason: a red mark everyone learns to ignore is
+where the next real failure hides.
+
+It still says loudly that the live half did not run, because a green board
+over a half that never happened is the other way to lie.
+
+Inside `npm run audit` this rarely arises: the runner starts its own server and
+prints `THE SUITE DID NOT RUN TO COMPLETION` rather than a list of content
+failures. The verdict matters for a STANDALONE run, which is how these are
+usually run while working on one of them. `sister-intake-audit` carries it;
+the audits that still fail red standalone are listed in `BACKLOG.md`.
 
 ## 7. Session mechanics
 

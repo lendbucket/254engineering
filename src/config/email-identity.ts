@@ -31,6 +31,56 @@ import { business } from "./business";
 
 export type SenderPurpose = "operator" | "human";
 
+/**
+ * THE FROM NAME AND THE REPLY-TO, DEFINED ONCE.
+ *
+ * Operator ruling, 2026-09-08. Every email this firm sends is FROM "254
+ * Engineering" and replies to the firm's own support mailbox. Two constants
+ * rather than a value per sender, because the previous shape let the two
+ * purposes drift into two identities, and a customer who gets a confirmation
+ * from one name and an alert from another is looking at two firms.
+ *
+ * WHAT THIS REPLACES, AND WHY IT WAS ALWAYS TEMPORARY.
+ * The human sender used to reply to ceo@36west.org, a mailbox on another
+ * domain, and the note beside it said in plain terms: replace with the firm
+ * address the moment one exists, nothing else has to change. That moment is
+ * now, and nothing else had to change.
+ *
+ * ceo@36west.org must not appear on any 254 email, and email-audit asserts it
+ * over every template rather than trusting this file.
+ */
+export const FROM_DISPLAY_NAME = "254 Engineering";
+export const REPLY_TO = `support@${business.domain}`;
+
+/**
+ * THE TEMPLATES THAT REPLY SOMEWHERE ELSE, AND WHY EACH ONE DOES.
+ *
+ * The From name has no exceptions and takes none. Reply-To has six, and they
+ * are declared here with reasons rather than left as whatever each template
+ * happened to do, because an exception nobody wrote down is indistinguishable
+ * from a mistake. Same idiom as the cast allowlist and the sign in allowlist:
+ * the rule is enforced, and getting out of it costs a sentence.
+ *
+ * Anything not named here replies to the firm's support mailbox, and
+ * email-audit fails on any template that quietly adds itself.
+ */
+export const REPLY_TO_EXCEPTIONS: Record<string, string> = {
+  "lead.contact":
+    "replies to the enquirer. An operator reading this on a phone answers a new enquiry by pressing reply, and that is the whole workflow.",
+  "lead.waitlist": "replies to the enquirer, for the same reason as lead.contact.",
+  "apply.notification":
+    "replies to the applicant, so the operator can answer a candidate from the notification itself.",
+  "onboarding.submitted":
+    "replies to the person who submitted, so a question about their paperwork reaches them.",
+  /*
+   * The three machine alerts USED to be here, replying to info@. Operator
+   * ruling, 2026-09-08: they collapse to the firm address like everything else.
+   * One firm address for anything a human might reply to, and info@ is not a
+   * confirmed mailbox, so an alert inviting a reply to it invites one nobody
+   * reads. They are checked by the rule now rather than exempt from it.
+   */
+};
+
 export const emailIdentity = {
   /** The person who signs anything a candidate or client receives. */
   signer: {
@@ -41,26 +91,24 @@ export const emailIdentity = {
   senders: {
     /**
      * Machine to operator: form notifications, submissions, internal packages.
-     * No personal name, because nobody signs a notification to themselves.
+     * Unsigned in the body, which is where the two purposes still differ. The
+     * headers no longer do.
      */
     operator: {
-      displayName: business.name,
+      displayName: FROM_DISPLAY_NAME,
       address: `notifications@${business.domain}`,
+      replyTo: REPLY_TO,
     },
     /**
-     * Anything a person outside the firm reads. Named, because an application
-     * confirmation from a no-reply address is how a firm tells somebody their
-     * application went into a queue rather than to a person.
+     * Anything a person outside the firm reads. The signature block in the body
+     * is what makes this one personal now, rather than the From header: a named
+     * From that replies to a mailbox nobody watches is worse than a firm From
+     * that replies to one somebody does.
      */
     human: {
-      displayName: `Robert Reyna, ${business.name}`,
+      displayName: FROM_DISPLAY_NAME,
       address: `notifications@${business.domain}`,
-      /**
-       * OWNER VERIFICATION: this is a mailbox on another domain, used because it
-       * is read today and a firm mailbox is not yet provisioned. Replace with
-       * the firm address the moment one exists; nothing else has to change.
-       */
-      replyTo: business.notificationEmail,
+      replyTo: REPLY_TO,
     },
   },
 } as const;

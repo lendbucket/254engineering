@@ -1,3 +1,10 @@
+// @runtime react-server
+//
+// Declared because this audit reaches a module carrying `server-only`, so it
+// cannot run under plain node or under tsx without the react-server condition.
+// scripts/lib/audit-runtime.mjs works the requirement out from the imports and
+// the board refuses to start when package.json disagrees, so this line and the
+// invocation cannot drift apart.
 /**
  * THE DOOR THE SISTER BRANDS POST THROUGH.
  *
@@ -33,6 +40,9 @@ const BASE = process.env.BASE_URL ?? "http://localhost:3225";
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
 
+/* Checks that could not be attempted, as distinct from checks that failed. */
+const unmeasured = [];
+
 console.log("");
 console.log("================ THE SISTER INTAKE API ================");
 console.log("");
@@ -58,6 +68,24 @@ console.log("");
   );
   rec("an unknown key resolves to nothing", siteForKey("not-a-key-at-all-but-long", env) === null);
   rec("an empty key resolves to nothing", siteForKey("", env) === null);
+
+  /*
+   * THE RATE LIMIT, ASSERTED RATHER THAN MERELY IMPORTED.
+   *
+   * SISTER_RATE_PER_MINUTE was imported at the top of this file and used
+   * nowhere, so the limit on how fast a sister site may post leads into this
+   * firm's database was checked by nothing at all. An unused import of a rate
+   * limit is a rate limit asserted nowhere, and it reads like coverage.
+   *
+   * Pinned to a literal, because it is a decision about how much traffic a
+   * partner brand may push at this endpoint before it is refused, and moving it
+   * should cost two edits on purpose.
+   */
+  rec(
+    "the sister rate limit is still the ruled 20 a minute",
+    SISTER_RATE_PER_MINUTE === 20,
+    `the module says ${SISTER_RATE_PER_MINUTE}`,
+  );
 
   /*
    * A SHORT KEY IS NOT A KEY, and this matters more than it looks: an
@@ -177,8 +205,22 @@ console.log("");
       `HTTP ${res.status}; a 404 here means the server does not have this route, which is not the same as refusing it`,
     );
   } catch (err) {
+    /*
+     * UNREACHABLE IS NOT FAILED, AND THE DIFFERENCE IS THE WHOLE POINT.
+     *
+     * Operator ruling, 2026-09-08. This used to record a FAIL when no server
+     * was running, so anybody running this audit on its own saw a red mark that
+     * meant nothing and learned to ignore it. A red everyone ignores is where
+     * the next real failure hides.
+     *
+     * Same three verdicts the perf gate uses: the endpoint answered and was
+     * right, it answered and was wrong, or it could not be reached and this
+     * audit could not tell. Only the middle one is a failure. The run still
+     * says loudly that the live half did not happen, because a green board over
+     * a half that never ran is the other way to lie.
+     */
     reachable = false;
-    rec("the endpoint was reachable", false, String(err.message).split("\n")[0]);
+    unmeasured.push(`the endpoint at ${BASE} could not be reached: ${String(err.message).split("\n")[0]}`);
   }
 
   if (reachable) {
@@ -372,6 +414,14 @@ console.log("");
 // =========================================================================
 
 const failed = out.filter((o) => !o.ok);
+
+if (unmeasured.length) {
+  console.log("");
+  for (const u of unmeasured) console.log(`  COULD NOT TELL: ${u}`);
+  console.log("");
+  console.log("  The live half did not run. That is not a pass and it is not a failure;");
+  console.log("  start the server, or run this through npm run audit, to measure it.");
+}
 for (const o of out) console.log(`  ${o.ok ? "PASS" : "FAIL"}: ${o.name}${o.note ? ` (${o.note})` : ""}`);
 console.log("");
 

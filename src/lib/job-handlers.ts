@@ -4,6 +4,7 @@ import { registerJob, enqueue, queueEmail } from "./ops-jobs";
 import type { JobOutcome } from "./job-rules";
 import { supabaseAdmin } from "./supabase";
 import { notify } from "./notify";
+import { event as orderEvent } from "./ops-intake";
 import { opsNotification } from "./email-templates";
 import { issueStatement } from "./ops-statements";
 import { reconcileAll } from "./ops-reconcile";
@@ -97,7 +98,36 @@ registerJob("email.send", {
       html: (p.html as string) ?? "",
     });
 
-    if (result.outcome === "ok") return { kind: "done" };
+    if (result.outcome === "ok") {
+      /*
+       * THE ONLY PLACE CONTACT IS RECORDED, AND IT IS RECORDED HERE BECAUSE
+       * THIS IS THE ONLY PLACE THAT KNOWS.
+       *
+       * The order timeline used to carry customer_link.issued and nothing else,
+       * so a link minted and never sent read exactly like a link the customer
+       * received. That is the defect class this repository keeps finding, and
+       * it was sitting inside the audit trail: an entry that looks like
+       * evidence of contact and is evidence of a database write.
+       *
+       * Issuance and contact are now two events. This one is written only when
+       * the provider has accepted the message, and it carries the id it
+       * accepted it as. Acceptance is still not delivery, and the summary says
+       * so rather than implying the customer read anything.
+       */
+      const orderId = typeof p.orderId === "string" ? p.orderId : null;
+      if (orderId) {
+        await orderEvent(
+          orderId,
+          "customer_link.emailed",
+          /* Customer visible: they should be able to see that the firm sent it,
+           * and to which address, so a wrong address is theirs to spot. */
+          true,
+          `Sent to ${to}.`,
+          { message_id: result.messageId ?? null, template: (p.id as string) ?? null },
+        );
+      }
+      return { kind: "done" };
+    }
 
     /*
      * An unset key or an empty body will not fix itself, so those are fatal

@@ -7,8 +7,9 @@ import { queueEmail } from "./ops-jobs";
 import { jobPaymentLink } from "./email-templates";
 import { money } from "./ops-money";
 import { isPrelaunch } from "./launch";
-import { catalogFor } from "@data/catalog";
+import { catalogFor, orderBlockedReason } from "@data/catalog";
 import { paymentOptions } from "./job-intake-rules";
+import { refundDisclosure } from "./ops-orders";
 import type { Author } from "./ops-crm";
 
 /**
@@ -130,6 +131,32 @@ async function createOrderForFile(
   }
 
   const entry = file.deliverable ? catalogFor(file.service_slug, file.deliverable) : undefined;
+
+  /*
+   * THE TERMS ARE RECORDED ON THE ORDER, FROM THE SAME SOURCE THE WEB USES.
+   *
+   * refundDisclosure(entry) is the function the customer flow calls, so a job
+   * taken by telephone stores the identical sentences a job taken online does,
+   * and the operator reads the customer the thing the order will afterwards say
+   * they were read. Two doors, one set of terms.
+   *
+   * inspection_fee_cents rides along because refundFor cannot work out a refund
+   * after a site visit without it, and an order that cannot compute its own
+   * refund is the defect this whole guard exists to prevent. Null is correct for
+   * a desk service, which has no visit and therefore no fee: termsGap above has
+   * already refused the field services where null would matter.
+   *
+   * The price is still NOT re-derived; see the note on this function. What is
+   * derived here is the terms, which are not the operator's to override.
+   */
+  if (!entry) {
+    return {
+      ok: false,
+      error: "That deliverable is not in the order catalog, so its refund terms cannot be stated.",
+    };
+  }
+  const disclosure = refundDisclosure(entry).join("\n\n");
+
   const reference = referenceFor();
 
   const { data, error } = await db
@@ -148,6 +175,8 @@ async function createOrderForFile(
       county: file.county,
       postal_code: file.postal_code,
       total_cents: file.client_price_cents,
+      inspection_fee_cents: entry.inspectionFeeCents,
+      refund_disclosure: disclosure,
       status: "awaiting_payment",
       billing_mode: billingMode,
       client_id: file.client_id,
@@ -167,6 +196,49 @@ async function createOrderForFile(
   });
 
   return { ok: true, orderId: data.id, reference };
+}
+
+/**
+ * THE TERMS MUST EXIST BEFORE THE MONEY DOES.
+ *
+ * Operator ruling, 2026-09-08. No payment link and no invoice is ever raised for
+ * an order that cannot state its refund terms, and it holds on BOTH creation
+ * paths rather than only on the customer's.
+ *
+ * WHAT WAS WRONG. The web door refuses a field service whose inspection fee is
+ * unpublished, in `orderBlockedReason`, in these words: "the refund rule cannot
+ * be stated without it". This door asked a different question. `refusedBecause`
+ * consults the compliance gate and whether a price exists, and nothing else, so
+ * a job typed in over the telephone could be charged for while the firm had no
+ * published terms to refund under. `createOrderForFile` then wrote neither the
+ * disclosure nor the fee, so the order carried no record of what the customer
+ * had been told, because nothing had been said.
+ *
+ * The consequence is the one this build has been avoiding since Phase 7: take
+ * the money, decline to seal after a visit, and then be unable to compute what
+ * to give back. refundFor refuses to guess, correctly, which turns a refund into
+ * something an operator settles by hand against a customer who was never told
+ * the rule.
+ *
+ * WHY IT IS THE SAME FUNCTION AND NOT A SECOND RULE. Asking
+ * `orderBlockedReason` means the two doors cannot drift. A service that becomes
+ * orderable online becomes billable by telephone in the same commit, and a
+ * service whose fee is withdrawn stops being both.
+ *
+ * The prelaunch clause is skipped deliberately. `refusedBecause` already applies
+ * the gate through paymentOptions, in the words the screen uses, and asking it
+ * twice would replace that message with a less specific one.
+ */
+function termsGap(file: FileForBilling): string | null {
+  const entry = file.deliverable ? catalogFor(file.service_slug, file.deliverable) : undefined;
+  if (!entry) {
+    return "That deliverable is not in the order catalog, so its refund terms cannot be stated and it cannot be billed.";
+  }
+  /* `false` for prelaunch: the gate is refusedBecause's to report, not this
+   * function's, and passing true here would mask the fee problem behind it. */
+  const blocked = orderBlockedReason(entry, false);
+  if (blocked) return `${blocked} It cannot be billed by telephone either.`;
+  return null;
 }
 
 /**
@@ -192,6 +264,10 @@ export async function sendPaymentLink(actor: Author, fileId: string): Promise<Bi
   if (!file) return { ok: false, error: "That file does not exist." };
 
   const refusal = refusedBecause("link_sent", false, file.client_price_cents !== null);
+
+  /* The terms before the money, on both doors. */
+  const gap = termsGap(file);
+  if (gap) return { ok: false, error: gap };
   if (refusal) return { ok: false, error: refusal };
 
   const client = await loadClient(file.client_id);
@@ -275,6 +351,10 @@ export async function invoiceAccount(actor: Author, fileId: string): Promise<Bil
 
   const canInvoice = Boolean(account && account.status === "active" && account.billing_mode === "invoice");
   const refusal = refusedBecause("invoiced", canInvoice, file.client_price_cents !== null);
+
+  /* The terms before the money, on both doors. */
+  const gap = termsGap(file);
+  if (gap) return { ok: false, error: gap };
   if (refusal) return { ok: false, error: refusal };
 
   const client = await loadClient(file.client_id);

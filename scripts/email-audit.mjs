@@ -27,7 +27,7 @@
 //   375px render    NOT APPLICABLE and reported as such. These templates have no
 //                   HTML part by design, and a width check on plain text would
 //                   be a green light for a measurement that never happened.
-import { allTemplatesForAudit } from "../src/lib/email-templates.ts";
+import { allTemplatesForAudit, MARKETING_TEMPLATES } from "../src/lib/email-templates.ts";
 import { business } from "../src/config/business.ts";
 import { context, findBannedPhrases } from "./lib/voice-blocklist.mjs";
 
@@ -39,9 +39,10 @@ const PRODUCTION_ORIGIN = "https://254engineering.com";
 /** Subject lines get truncated in a phone notification well before this. */
 const MAX_SUBJECT = 78;
 
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import { chromium } from "playwright";
-import { emailIdentity, fromHeader, signatureLines } from "../src/config/email-identity.ts";
+import { emailIdentity, fromHeader, signatureLines, FROM_DISPLAY_NAME, REPLY_TO, REPLY_TO_EXCEPTIONS } from "../src/config/email-identity.ts";
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -51,6 +52,239 @@ const templates = allTemplatesForAudit();
 if (templates.length === 0) {
   console.error("email-audit: no templates returned; refusing to report a pass on zero templates.");
   process.exitCode = 1;
+}
+
+/* ------------------------------------------------------------------------ */
+/* THE INVENTORY IS DERIVED, NOT LISTED.                                     */
+/*                                                                          */
+/* allTemplatesForAudit() is a list somebody maintains by hand, and a list   */
+/* somebody maintains by hand stops describing the system the first time     */
+/* somebody forgets. That already happened: three customer templates were    */
+/* written, wired and shipped while this audit's count sat at 352, and the   */
+/* only symptom was a number that did not move. Nothing failed, because      */
+/* nothing was looking.                                                      */
+/*                                                                          */
+/* So the set of templates that EXIST is read from the source, the same way  */
+/* surface-audit reads scripts/lib/surfaces.mjs, and a template that exists  */
+/* and is not rendered here is a failure rather than a discovery.            */
+/*                                                                          */
+/* Every id is the first argument to compose(), which is the one function    */
+/* every template goes through. Read as an expression rather than a literal, */
+/* because leadNotification picks its id with a ternary and a regex for a    */
+/* bare string would silently miss both halves of it.                        */
+/* ------------------------------------------------------------------------ */
+{
+  const source = readFileSync("src/lib/email-templates.ts", "utf8");
+  const declared = new Set();
+
+  for (let i = source.indexOf("compose("); i !== -1; i = source.indexOf("compose(", i + 1)) {
+    /* Walk to the comma that ends the first argument, tracking depth so a
+     * nested call or object does not end it early. */
+    let depth = 1;
+    let j = i + "compose(".length;
+    let firstArg = "";
+    for (; j < source.length && depth > 0; j += 1) {
+      const c = source[j];
+      if (c === "(" || c === "{" || c === "[") depth += 1;
+      else if (c === ")" || c === "}" || c === "]") depth -= 1;
+      if (depth === 1 && c === ",") break;
+      if (depth > 0) firstArg += c;
+    }
+    for (const m of firstArg.matchAll(/"([a-z0-9_]+\.[a-z0-9_]+)"/g)) declared.add(m[1]);
+  }
+
+  const measured = new Set(templates.map((t) => t.id));
+  const unmeasured = [...declared].filter((d) => !measured.has(d)).sort();
+  const phantom = [...measured].filter((m) => !declared.has(m)).sort();
+
+  rec(
+    `the template inventory was derived from the source (${declared.size} found)`,
+    declared.size >= measured.size && declared.size > 5,
+    declared.size <= 5 ? "parsing found almost nothing, so the check below is measuring nothing" : "",
+  );
+
+  rec(
+    "every template that exists is rendered by this audit",
+    unmeasured.length === 0,
+    unmeasured.length
+      ? `NOT MEASURED: ${unmeasured.join(", ")}. Add them to allTemplatesForAudit.`
+      : `${measured.size} of ${declared.size}`,
+  );
+
+  rec(
+    "and this audit renders nothing that does not exist",
+    phantom.length === 0,
+    phantom.length ? `fixture with no template: ${phantom.join(", ")}` : "",
+  );
+
+  /*
+   * NO TRANSACTIONAL EMAIL CARRIES AN UNSUBSCRIBE.
+   *
+   * Operator ruling, and it is standing law rather than a style preference. A
+   * receipt is not marketing: somebody who paid for a sealed document is owed
+   * the confirmation, the outcome and the refund arithmetic whatever their
+   * marketing preference says. A footer offering to switch those off would be
+   * offering something this firm must not honour, and the first person to click
+   * it would stop receiving news about their own money.
+   *
+   * The split is declared in email-templates.ts rather than here, so the
+   * application and the audit cannot disagree about which is which.
+   */
+  const marketing = new Set(MARKETING_TEMPLATES);
+  const leaked = templates
+    .filter((t) => !marketing.has(t.id))
+    .filter((t) => /unsubscribe|opt.?out|manage (your )?preferences/i.test(`${t.text}\n${t.html ?? ""}`))
+    .map((t) => t.id);
+
+  /*
+   * ONE FIRM, ONE NAME, ONE MAILBOX TO REPLY TO.
+   *
+   * Operator ruling, 2026-09-08. Every message is FROM "254 Engineering" and
+   * replies to the firm's support mailbox. The From name takes no exceptions at
+   * all; Reply-To takes the seven declared in email-identity.ts, each carrying
+   * its reason, and a template that quietly adds itself to that behaviour fails
+   * here.
+   *
+   * ceo@36west.org is checked separately and over the whole message rather than
+   * just the headers. It was the human sender's reply-to until this ruling, it
+   * is a mailbox on a domain this firm does not own, and the way it would come
+   * back is somebody hardcoding it into a body rather than into a header.
+   */
+  /*
+   * THE EXPECTED HEADERS ARE WRITTEN OUT HERE, NOT IMPORTED, AND THAT IS THE
+   * WHOLE POINT.
+   *
+   * The first version of this check compared every template's From against
+   * FROM_DISPLAY_NAME, the same constant the templates are built from. It
+   * compared a value to itself and could not disagree with anything: the
+   * injection test changed the constant to the old personal name and the check
+   * reported PASS on the new wrong value, in its own words.
+   *
+   * An audit that imports its expectation from the thing it is auditing is not
+   * an audit. So the ruled values are stated here as literals, this file
+   * disagrees with the config when the config changes, and somebody editing
+   * either has to come and edit the other on purpose. That duplication is the
+   * mechanism, not an oversight; roles-audit derives its expectations
+   * independently for the same reason.
+   */
+  const EXPECTED_FROM = "254 Engineering <notifications@254engineering.com>";
+  const EXPECTED_REPLY_TO = "support@254engineering.com";
+
+  /* And the config still has to agree with the ruling, said separately so a
+   * drifted constant is named as a drifted constant. */
+  rec(
+    "the sender config states the ruled name and mailbox",
+    `${FROM_DISPLAY_NAME} <notifications@${business.domain}>` === EXPECTED_FROM &&
+      REPLY_TO === EXPECTED_REPLY_TO,
+    `config says ${FROM_DISPLAY_NAME} / ${REPLY_TO}`,
+  );
+
+  const wrongFrom = templates
+    .filter((t) => t.from !== EXPECTED_FROM)
+    .map((t) => `${t.id} (${t.from})`);
+
+  rec(
+    `every template is FROM ${EXPECTED_FROM} (${templates.length} checked)`,
+    wrongFrom.length === 0,
+    wrongFrom.length ? wrongFrom.join(", ") : "",
+  );
+
+  const wrongReplyTo = templates
+    .filter((t) => !(t.id in REPLY_TO_EXCEPTIONS))
+    .filter((t) => t.replyTo !== EXPECTED_REPLY_TO)
+    .map((t) => `${t.id} replies to ${t.replyTo ?? "(nothing)"}`);
+
+  rec(
+    `every template replies to ${EXPECTED_REPLY_TO} unless it says why (${Object.keys(REPLY_TO_EXCEPTIONS).length} exceptions)`,
+    wrongReplyTo.length === 0,
+    wrongReplyTo.length ? wrongReplyTo.join(", ") : "",
+  );
+
+  /* An exception naming a template that no longer exists is an exemption
+   * outliving the thing it exempted, which is how an allowlist rots. */
+  const staleExceptions = Object.keys(REPLY_TO_EXCEPTIONS).filter((id) => !measured.has(id));
+  rec(
+    "and every declared reply-to exception names a real template",
+    staleExceptions.length === 0,
+    staleExceptions.length ? `no such template: ${staleExceptions.join(", ")}` : "",
+  );
+
+  const leakedOwner = templates
+    .filter((t) =>
+      `${t.from}\n${t.replyTo ?? ""}\n${t.to ?? ""}\n${t.subject}\n${t.text}\n${t.html ?? ""}`.includes(
+        "ceo@36west.org",
+      ),
+    )
+    .map((t) => t.id);
+
+  rec(
+    "no template carries ceo@36west.org anywhere",
+    leakedOwner.length === 0,
+    leakedOwner.length ? `${leakedOwner.join(", ")}, and it is not a 254 address` : "",
+  );
+
+  /*
+   * A SUPPRESSED ADDRESS STILL GETS ITS RECEIPT.
+   *
+   * Operator ruling, and it is the defect the whole marketing split exists to
+   * prevent: a customer unsubscribes from announcements, then pays for a sealed
+   * document and never hears what happened to it or to their money.
+   *
+   * Asserted on the SOURCE rather than by sending, because the claim is an
+   * absence. There is no call to make that would prove a transactional path
+   * does not consult the suppression list; what proves it is that no
+   * transactional module imports the module that would answer. The one
+   * legitimate reader is the announcement path.
+   *
+   * The same shape as mfa-audit's caller allowlist and for the same reason: the
+   * question "who is allowed to ask this" is answerable from the imports and
+   * nowhere else.
+   */
+  const SUPPRESSION_READERS = ["src/lib/ops-announce.ts", "src/app/(site)/unsubscribe/page.tsx"];
+
+  const readers = [];
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name).split("\\").join("/");
+      if (entry.isDirectory()) walk(full);
+      else if (/\.(ts|tsx)$/.test(entry.name)) {
+        const src = readFileSync(full, "utf8");
+        if (/from "[^"]*marketing-suppression"/.test(src)) readers.push(full);
+      }
+    }
+  };
+  walk("src");
+
+  const unexpected = readers.filter((r) => !SUPPRESSION_READERS.includes(r)).sort();
+
+  rec(
+    `only the announcement path reads the suppression list (${readers.length} readers)`,
+    unexpected.length === 0 && readers.length >= 2,
+    unexpected.length
+      ? `${unexpected.join(", ")} reads it. A transactional send must never consult it: somebody who unsubscribed from announcements is still owed their receipt.`
+      : "",
+  );
+
+  /*
+   * And the positive half, because "nothing imports it" would also be true if
+   * the module were deleted. The two named readers must actually be there.
+   */
+  const missingReaders = SUPPRESSION_READERS.filter((r) => !readers.includes(r));
+  rec(
+    "and the paths that should read it do",
+    missingReaders.length === 0,
+    missingReaders.length ? `not reading it: ${missingReaders.join(", ")}` : "",
+  );
+
+  rec(
+    `no transactional template offers an unsubscribe (${templates.length - marketing.size} checked)`,
+    leaked.length === 0,
+    leaked.length
+      ? `${leaked.join(", ")} carries one, and a receipt is not marketing`
+      : marketing.size === 0
+        ? "no marketing templates exist yet, so every template was checked"
+        : `${marketing.size} marketing template(s) exempt`,
+  );
 }
 
 for (const t of templates) {
@@ -142,13 +376,22 @@ for (const t of templates) {
   rec(`${label}: 600px maximum width`, t.html.includes("max-width:600px"));
   rec(`${label}: inline styles rather than a style block`, !/<style[\s>]/i.test(t.html));
 
-  // Identity. The From display name and the signature both come from
-  // src/config/email-identity.ts, so a template cannot invent its own.
-  rec(`${label}: From matches the identity config`, t.from === fromHeader(t.purpose), t.from);
-  const sender = emailIdentity.senders[t.purpose];
+  /*
+   * Identity, checked against literals rather than against the config the
+   * templates are built from.
+   *
+   * These two lines used to read `t.from === fromHeader(t.purpose)` and
+   * `t.from.startsWith(sender.displayName + " <")`. Both compared a value to
+   * itself and were harmless only because a separate check above pins every
+   * template's From to a literal; delete that one line and these silently stopped
+   * meaning anything. The rule is recorded in CLAUDE.md: an audit never imports
+   * its expectation from the thing it audits.
+   */
+  rec(`${label}: From is the ruled sender`, t.from === "254 Engineering <notifications@254engineering.com>", t.from);
   rec(
     `${label}: From carries a display name, not a bare address`,
-    t.from.startsWith(sender.displayName + " <"),
+    /^[^<]+ <[^>]+@[^>]+>$/.test(t.from),
+    t.from,
   );
 
   /*
@@ -182,9 +425,30 @@ for (const t of templates) {
     );
   }
 
+  /*
+   * THE EMPTY STRING HOLE, WHICH THIS FILE HAS ALREADY BEEN BITTEN BY ONCE.
+   *
+   * `includes(business.email)` is unconditionally true when business.email is
+   * the empty string, so a config that lost its contact address would produce a
+   * footer with no address and a green board. observability-audit records the
+   * identical trap for release(): it was passing off a developer machine by
+   * comparing "" to "".
+   *
+   * So the value is asserted non-empty BEFORE anything is matched against it,
+   * and the address is separately pinned to a literal, because which mailbox
+   * appears in the footer of every email this firm sends is a decision rather
+   * than a detail.
+   */
+  rec(
+    `${label}: the contact address is a real value before it is searched for`,
+    typeof business.email === "string" && business.email.trim().length > 0,
+    business.email,
+  );
   rec(
     `${label}: footer carries the contact address and the site`,
-    t.html.includes(business.email) && t.html.includes(PRODUCTION_ORIGIN),
+    business.email.trim().length > 0 &&
+      t.html.includes(business.email) &&
+      t.html.includes(PRODUCTION_ORIGIN),
   );
 }
 

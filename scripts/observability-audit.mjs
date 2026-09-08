@@ -1,3 +1,10 @@
+// @runtime react-server
+//
+// Declared because this audit reaches a module carrying `server-only`, so it
+// cannot run under plain node or under tsx without the react-server condition.
+// scripts/lib/audit-runtime.mjs works the requirement out from the imports and
+// the board refuses to start when package.json disagrees, so this line and the
+// invocation cannot drift apart.
 /**
  * What leaves this process when something goes wrong, and whether a stalled
  * cron reads as stalled.
@@ -588,8 +595,19 @@ const base = {
     inWindow: RATE_THRESHOLD + i,
   }));
   const { chosen: picked, suppressed } = selectAlerts(many, NOW);
-  rec("a sweep sends at most three alerts", picked.length === MAX_ALERTS_PER_SWEEP, `${picked.length}`);
-  rec("and reports how many it held back", suppressed === 20 - MAX_ALERTS_PER_SWEEP, `${suppressed}`);
+  /*
+   * THREE, WRITTEN OUT, BECAUSE THE CHECK'S OWN NAME SAYS THREE.
+   *
+   * Both lines read MAX_ALERTS_PER_SWEEP on the expected side, so raising the
+   * cap to fifty would have kept them green while the check went on calling
+   * itself "a sweep sends at most three alerts". A check whose name is a lie is
+   * worse than no check, because somebody reads the name.
+   */
+  const ALERT_CAP = 3;
+
+  rec("the alert cap is still the ruled three", MAX_ALERTS_PER_SWEEP === ALERT_CAP, `${MAX_ALERTS_PER_SWEEP}`);
+  rec("a sweep sends at most three alerts", picked.length === ALERT_CAP, `${picked.length}`);
+  rec("and reports how many it held back", suppressed === 20 - ALERT_CAP, `${suppressed}`);
   rec(
     "and keeps the loudest rather than the first",
     picked[0].type.inWindow === RATE_THRESHOLD + 19,

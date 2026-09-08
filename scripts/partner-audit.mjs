@@ -140,13 +140,32 @@ console.log("");
  * boundary, which is exactly the dispute nobody can reproduce.
  */
 {
+  /*
+   * NINETY DAYS, AS A LITERAL. IT IS WHAT A PARTNER IS OWED.
+   *
+   * These two lines used to be written in terms of ATTRIBUTION_WINDOW_DAYS on
+   * both sides, which proved the edge was sharp and inclusive and could not see
+   * the window move. Ninety to a hundred and eighty is a change to what the firm
+   * pays partners, and it would have passed this audit in silence.
+   *
+   * Operator ruling, 2026-09-08: a commission window is a decision made twice on
+   * purpose, once in the rule and once here.
+   */
+  const WINDOW_DAYS = 90;
+
   rec(
-    `a touch ${ATTRIBUTION_WINDOW_DAYS} days old is still inside the window`,
-    call([link(ALPHA, "bayside", ATTRIBUTION_WINDOW_DAYS)]).attributed === true,
+    "the attribution window is still the ruled 90 days",
+    ATTRIBUTION_WINDOW_DAYS === WINDOW_DAYS,
+    `the module says ${ATTRIBUTION_WINDOW_DAYS}`,
+  );
+
+  rec(
+    `a touch ${WINDOW_DAYS} days old is still inside the window`,
+    call([link(ALPHA, "bayside", WINDOW_DAYS)]).attributed === true,
   );
   rec(
-    `a touch ${ATTRIBUTION_WINDOW_DAYS + 1} days old is outside it`,
-    call([link(ALPHA, "bayside", ATTRIBUTION_WINDOW_DAYS + 1)]).attributed === false,
+    `a touch ${WINDOW_DAYS + 1} days old is outside it`,
+    call([link(ALPHA, "bayside", WINDOW_DAYS + 1)]).attributed === false,
   );
   const r = call([link(ALPHA, "bayside", 200)]);
   rec(

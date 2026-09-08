@@ -1,3 +1,10 @@
+// @runtime react-server
+//
+// Declared because this audit reaches a module carrying `server-only`, so it
+// cannot run under plain node or under tsx without the react-server condition.
+// scripts/lib/audit-runtime.mjs works the requirement out from the imports and
+// the board refuses to start when package.json disagrees, so this line and the
+// invocation cannot drift apart.
 // Compliance gate audit. The most important check in this suite.
 //
 //   node scripts/launch-audit.mjs
@@ -336,6 +343,79 @@ async function run() {
       "the forensic page states the engineer's obligation runs to the facts rather than to the paying party",
       /obligation runs to the facts/i.test(pre.get("/services/forensic-engineering").text),
     );
+  }
+}
+
+/*
+ * THE LAUNCH ANNOUNCEMENT REFUSES TO SEND UNDER THE GATE, PROVEN BY ATTEMPTING
+ * IT RATHER THAN BY READING THE CODE.
+ *
+ * Operator ruling, 2026-09-08. This is the only send in the build that goes to
+ * a LIST, its subject is "254 Engineering is open for orders", and under the
+ * gate that is a present tense service claim made to everybody who ever put
+ * their name down. It is the single most damaging thing this platform could do
+ * on the wrong day, and it is the one send that cannot be recalled.
+ *
+ * So the refusal is exercised: the module is loaded with LAUNCH_MODE set to
+ * prelaunch and asked to send to a real shaped recipient, and it must refuse
+ * AND say why. A check that only asserted a boolean would pass against a
+ * function that returns the reason and sends anyway.
+ *
+ * The template still RENDERS under the gate, and that is deliberate rather than
+ * an oversight: email-audit holds its voice, its layout and its regulated copy
+ * to the same standard as everything else, which is exactly what is needed
+ * while somebody is writing it and it cannot yet go out.
+ */
+{
+  const had = process.env.LAUNCH_MODE;
+  process.env.LAUNCH_MODE = "prelaunch";
+
+  try {
+    /*
+     * No cache busting query on this import, and that is deliberate rather than
+     * an omission. An earlier version appended ?gate=<now> to force a fresh
+     * module, and it broke the module's own relative imports: tsx could not
+     * resolve ./launch from a specifier carrying a query string, so this check
+     * reported "the announcement module could be exercised: Cannot find module
+     * src/lib/launch" inside the suite while passing standalone.
+     *
+     * It is not needed. launchMode() reads process.env.LAUNCH_MODE at CALL time
+     * rather than at module load, so setting the variable above is enough and a
+     * cached module still answers correctly.
+     */
+    const { sendLaunchAnnouncement, announcementBlockedReason } = await import(
+      "../src/lib/ops-announce.ts"
+    );
+
+    const why = announcementBlockedReason();
+    rec(
+      "the announcement says it is blocked in prelaunch",
+      typeof why === "string" && /registration/i.test(why),
+      why ?? "it reported nothing blocking it",
+    );
+
+    const attempted = await sendLaunchAnnouncement([
+      { name: "Audit Recipient", email: "audit@example.invalid" },
+    ]);
+
+    rec(
+      "and attempting the send in prelaunch is refused",
+      attempted.ok === false,
+      attempted.ok
+        ? `IT SENT. queued ${attempted.queued}, skipped ${attempted.skipped}. This is the one send that cannot be taken back.`
+        : attempted.error.slice(0, 90),
+    );
+
+    rec(
+      "and the refusal names the registration rather than failing vaguely",
+      attempted.ok === false && /registration/i.test(attempted.error),
+      attempted.ok ? "" : attempted.error.slice(0, 90),
+    );
+  } catch (err) {
+    rec("the announcement module could be exercised", false, String(err?.message ?? err).slice(0, 120));
+  } finally {
+    if (had === undefined) delete process.env.LAUNCH_MODE;
+    else process.env.LAUNCH_MODE = had;
   }
 }
 

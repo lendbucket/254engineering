@@ -1074,10 +1074,37 @@ const answerAll = (entry, pick = () => 0) =>
    */
   rec("a checkout opened minutes ago is not a fault", attentionFor(order({ placedAt: ago(0.3) }), now).level === "none");
   rec("nor one at 23 hours", attentionFor(order({ placedAt: ago(23) }), now).level === "none");
+  /*
+   * TWENTY FOUR HOURS, AS A LITERAL, BECAUSE IT IS A RULING RATHER THAN TUNING.
+   *
+   * This used to read `ago(CHECKOUT_SESSION_HOURS + 0.1)` against a boundary
+   * derived from the same constant, so it proved the edge was sharp and could
+   * not see the edge MOVE. The window could have gone from a day to a week with
+   * this check green throughout.
+   *
+   * How long a customer's unpaid checkout stays live before the firm chases it
+   * is a decision the operator makes, so changing it costs two edits on purpose:
+   * the constant, and this line. Operator ruling, 2026-09-08.
+   */
+  const CHECKOUT_WINDOW_HOURS = 24;
+
+  rec(
+    "the checkout window is still the ruled 24 hours",
+    CHECKOUT_SESSION_HOURS === CHECKOUT_WINDOW_HOURS,
+    `the module says ${CHECKOUT_SESSION_HOURS}`,
+  );
+
   rec(
     "and the boundary is the checkout session own life",
-    attentionFor(order({ placedAt: ago(CHECKOUT_SESSION_HOURS + 0.1) }), now).level === "act",
-    CHECKOUT_SESSION_HOURS + " hours",
+    attentionFor(order({ placedAt: ago(CHECKOUT_WINDOW_HOURS + 0.1) }), now).level === "act",
+    CHECKOUT_WINDOW_HOURS + " hours",
+  );
+
+  /* The other side of the same edge, so the window is bracketed rather than
+   * only bounded from above. */
+  rec(
+    "and an order inside the window is not chased yet",
+    attentionFor(order({ placedAt: ago(CHECKOUT_WINDOW_HOURS - 1) }), now).level !== "act",
   );
 
   // A paid order is never reported as stuck, whatever else is true of it.

@@ -1,5 +1,6 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase";
+import { business } from "@/config/business";
 import { deploymentOrigin } from "./site-url";
 import { reverseForRefund } from "./ops-partner-comp";
 import { writeAudit } from "./ops-audit";
@@ -14,6 +15,9 @@ import {
   type ReviewOutcome,
 } from "./ops-orders";
 import { event, issueCustomerLink } from "./ops-intake";
+import { customerStatusUrl, customerView, customerWhen } from "./ops-customer";
+import { queueEmail } from "./ops-jobs";
+import { orderConfirmed, orderDeclined, orderSealed, refundFailed } from "./email-templates";
 import { transitionFile, SYSTEM_AUTHOR } from "./ops-crm";
 import { isKnown, money } from "./ops-money";
 import { LIVE_KEY_FIX, LIVE_KEY_HEADLINE, liveKeyOffProduction } from "./db-guard";
@@ -525,8 +529,80 @@ export async function releaseForFulfilment(
    */
   const link = await issueCustomerLink({ orderId });
   if (link) {
-    await event(orderId, "customer_link.issued", false, "A status link was issued for the customer.");
+    await event(orderId, "customer_link.issued", false, "A status link was minted. Nothing has been sent yet.");
+    await sendOrderConfirmation(orderId, link.token);
   }
+}
+
+/**
+ * The confirmation, carrying the link that was just minted.
+ *
+ * WHY IT IS HERE AND NOT AT PLACEMENT.
+ *
+ * For the same reason the link is issued here: an abandoned checkout must not
+ * produce a receipt for an order nobody paid for. This runs once the work is
+ * released, which is the moment the firm has actually taken the job on.
+ *
+ * WHY A FAILURE HERE DOES NOT FAIL THE PAYMENT.
+ *
+ * The money has moved and the work is released. An email that cannot be queued
+ * is worth an event on the order so somebody can see it and send it by hand; it
+ * is not worth unwinding a paid order, and throwing here would leave the caller
+ * believing the payment failed when it did not.
+ */
+async function sendOrderConfirmation(orderId: string, token: string): Promise<void> {
+  const db = supabaseAdmin();
+  if (!db) return;
+
+  const view = await customerView(token);
+  if (!view) {
+    await event(orderId, "email.not_sent", false, "The confirmation could not be built: the status link did not resolve.");
+    return;
+  }
+
+  const { data: order } = await db
+    .from("eng_service_orders")
+    .select("customer_name, customer_email")
+    .eq("id", orderId)
+    .maybeSingle();
+
+  if (!order?.customer_email) {
+    await event(orderId, "email.not_sent", false, "The confirmation could not be sent: no customer email on the order.");
+    return;
+  }
+
+  const queued = await queueEmail(
+    orderConfirmed({
+      customerName: order.customer_name as string,
+      customerEmail: order.customer_email as string,
+      reference: view.reference,
+      serviceName: view.serviceName,
+      propertyAddress: view.propertyAddress,
+      placedAt: customerWhen(view.placedAt) ?? "not recorded",
+      lines: view.lines,
+      total: view.total,
+      refundDisclosure: view.refundDisclosure,
+      receives: view.receives,
+      statusUrl: customerStatusUrl(view.reference, token),
+    }),
+    { orderId },
+  );
+
+  await event(
+    orderId,
+    queued.ok ? "email.sent" : "email.not_sent",
+    /*
+     * The success is customer visible and the failure is not. They should see
+     * that a confirmation went to their address, so they know where to look and
+     * can say if it is the wrong one. They should not see the queue's reasons
+     * for not sending it; that is the firm's problem to fix, and it appears on
+     * the order for whoever is looking at it internally.
+     */
+    queued.ok,
+    queued.ok
+      ? `The order confirmation was sent to ${order.customer_email}.`
+      : `The order confirmation could not be queued: ${queued.error}. It has to go out by hand.`,
+  );
 }
 
 /**
@@ -1027,6 +1103,21 @@ export async function settleDecision(input: {
 
   if (decision.refundCents === 0) {
     await event(input.orderId, "refund.none", true, decision.explanation);
+
+    /*
+     * THE SEAL IS TOLD TO THE CUSTOMER HERE, AND ONLY FOR A SEAL.
+     *
+     * This branch is reached by two different decisions: a seal, where there was
+     * never anything to refund, and a decline after a visit where the disclosed
+     * fee happened to equal what was paid. They are the same arithmetic and
+     * opposite news, so the outcome is checked rather than the figure.
+     *
+     * It lives inside settleDecision for the reason that function exists: one
+     * place knows what a decision does to a customer, and a caller that had to
+     * remember to send this is a caller that will one day forget.
+     */
+    if (input.outcome === "seal") await sendOrderSealed(input.orderId);
+
     return {
       ok: true,
       refundedCents: 0,
@@ -1074,6 +1165,20 @@ export async function settleDecision(input: {
       false,
       `The refund of ${money(decision.refundCents)} failed: ${result.failureReason ?? "no reason given"}. It has to be done by hand.`,
     );
+
+    /*
+     * The firm is told, and only the firm. The event above is already marked
+     * not customer visible for the reason argued below at refund.unrecorded,
+     * and this email carries the same restraint: it takes no customer address
+     * and links to the ops screen rather than to a status page.
+     */
+    await alertRefundFailed(input.orderId, {
+      refundCase: decision.caseName,
+      amountCents: decision.refundCents,
+      because: result.failureReason ?? "no reason given",
+      provider: provider.name,
+    });
+
     return { ok: false, error: result.failureReason ?? "The refund failed." };
   }
 
@@ -1135,6 +1240,8 @@ export async function settleDecision(input: {
     case: decision.caseName,
   });
 
+  await sendOrderDeclined(input.orderId, decision);
+
   await writeAudit({
     actor: input.actorId
       ? { id: input.actorId, role: "engineer" }
@@ -1151,6 +1258,179 @@ export async function settleDecision(input: {
     retainedCents: decision.retainedCents,
     caseName: decision.caseName,
   };
+}
+
+/**
+ * A fresh status link for an order, as a URL.
+ *
+ * WHY EVERY EMAIL MINTS ITS OWN RATHER THAN REUSING THE FIRST.
+ *
+ * eng_customer_access stores the SHA-256 of the token and nothing else, which is
+ * correct: a table of live access tokens in the clear is a table of passwords.
+ * The consequence is that a token cannot be read back, only issued, so an email
+ * sent later cannot carry the link the confirmation carried.
+ *
+ * Issuing a second is the right answer rather than a workaround. Each row is an
+ * independent grant with its own expiry, revoking one does not strand the
+ * others, and the alternative, storing the token so it can be re-sent, would
+ * trade a real security property for a tidier table.
+ */
+async function statusUrlFor(orderId: string, reference: string): Promise<string | null> {
+  const link = await issueCustomerLink({ orderId });
+  return link ? customerStatusUrl(reference, link.token) : null;
+}
+
+/**
+ * Tell the firm a refund did not go through.
+ *
+ * Its own function because both failure sites need it and because the one thing
+ * that must never happen here is a customer address finding its way in. There
+ * is nowhere to put one: refundFailed takes none, and the message falls to the
+ * firm's notification address like every other operator alert.
+ *
+ * A send failure is swallowed to a console line. The refund has already failed
+ * and the event is already on the order; making the alert fatal would turn one
+ * problem into two and lose the return value the caller needs.
+ */
+async function alertRefundFailed(
+  orderId: string,
+  detail: { refundCase: string; amountCents: number; because: string; provider: string },
+): Promise<void> {
+  const db = supabaseAdmin();
+  if (!db) return;
+
+  const { data: order } = await db
+    .from("eng_service_orders")
+    .select("reference, property_address")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (!order) return;
+
+  const queued = await queueEmail(
+    refundFailed({
+      reference: order.reference as string,
+      propertyAddress: order.property_address as string,
+      refundCase: detail.refundCase,
+      amount: money(detail.amountCents),
+      because: detail.because,
+      provider: detail.provider,
+      opsUrl: `${business.url}/portal/orders?id=${orderId}`,
+    }),
+    { orderId },
+  );
+
+  if (!queued.ok) {
+    console.error(`[payments] the refund failure alert could not be queued: ${queued.error}`);
+  }
+}
+
+/**
+ * The document is sealed and ready.
+ *
+ * The one piece of good news this firm sends, and the only email in the set
+ * whose button leads to something the customer collects rather than reads. It
+ * goes to the order status page because that is where the uploaded artefact
+ * hangs, and there is no letter route: a sealed document is uploaded, never
+ * generated, so there is no screen that composes one and there will not be.
+ */
+async function sendOrderSealed(orderId: string): Promise<void> {
+  const db = supabaseAdmin();
+  if (!db) return;
+
+  const { data: order } = await db
+    .from("eng_service_orders")
+    .select("reference, customer_name, customer_email, property_address")
+    .eq("id", orderId)
+    .maybeSingle();
+
+  if (!order?.customer_email) {
+    await event(orderId, "email.not_sent", false, "The seal notice could not be sent: no customer email on the order.");
+    return;
+  }
+
+  const statusUrl = await statusUrlFor(orderId, order.reference as string);
+  if (!statusUrl) {
+    await event(orderId, "email.not_sent", false, "The seal notice could not be sent: a status link could not be issued.");
+    return;
+  }
+
+  const queued = await queueEmail(
+    orderSealed({
+      customerName: order.customer_name as string,
+      customerEmail: order.customer_email as string,
+      reference: order.reference as string,
+      propertyAddress: order.property_address as string,
+      sealedAt: customerWhen(new Date().toISOString()) ?? "just now",
+      statusUrl,
+    }),
+    { orderId },
+  );
+
+  await event(
+    orderId,
+    queued.ok ? "email.sent" : "email.not_sent",
+    queued.ok,
+    queued.ok
+      ? `The sealed document notice was sent to ${order.customer_email}.`
+      : `The sealed document notice could not be queued: ${queued.error}. It has to go out by hand.`,
+  );
+}
+
+/**
+ * The engineer could not seal it, and what happened to the money.
+ *
+ * Every figure is refundFor's, including the sentence: this module carries the
+ * decision out and writes it down, it does not restate it. A refund that could
+ * not be computed arrives here with nulls, and the template drops the money
+ * table rather than printing two "not recorded" rows, which would read as a firm
+ * that has lost track of the payment.
+ */
+async function sendOrderDeclined(
+  orderId: string,
+  decision: { explanation: string; refundCents: number | null; retainedCents: number | null },
+): Promise<void> {
+  const db = supabaseAdmin();
+  if (!db) return;
+
+  const { data: order } = await db
+    .from("eng_service_orders")
+    .select("reference, customer_name, customer_email, property_address")
+    .eq("id", orderId)
+    .maybeSingle();
+
+  if (!order?.customer_email) {
+    await event(orderId, "email.not_sent", false, "The decline notice could not be sent: no customer email on the order.");
+    return;
+  }
+
+  const statusUrl = await statusUrlFor(orderId, order.reference as string);
+  if (!statusUrl) {
+    await event(orderId, "email.not_sent", false, "The decline notice could not be sent: a status link could not be issued.");
+    return;
+  }
+
+  const queued = await queueEmail(
+    orderDeclined({
+      customerName: order.customer_name as string,
+      customerEmail: order.customer_email as string,
+      reference: order.reference as string,
+      propertyAddress: order.property_address as string,
+      explanation: decision.explanation,
+      refunded: isKnown(decision.refundCents) ? money(decision.refundCents) : null,
+      retained: isKnown(decision.retainedCents) ? money(decision.retainedCents) : null,
+      statusUrl,
+    }),
+    { orderId },
+  );
+
+  await event(
+    orderId,
+    queued.ok ? "email.sent" : "email.not_sent",
+    queued.ok,
+    queued.ok
+      ? `The decision was sent to ${order.customer_email}.`
+      : `The decision could not be queued: ${queued.error}. It has to go out by hand.`,
+  );
 }
 
 /** Mark that somebody actually attended. The refund rule turns on this alone. */

@@ -128,8 +128,47 @@ console.log("\nTHE URI AN AUTHENTICATOR APP SCANS");
   rec("carries the issuer in the label", uri.includes("254%20Engineering%20Services%3Asomeone%40example.com"));
   rec("and again as a parameter", /[?&]issuer=254\+Engineering\+Services/.test(uri), "apps use the parameter, and the label is what a person reads");
   rec("declares the algorithm rather than leaving it to a default", uri.includes("algorithm=SHA1"));
-  rec(`declares ${TOTP_DIGITS} digits`, uri.includes(`digits=${TOTP_DIGITS}`));
-  rec(`declares the ${TOTP_PERIOD_SECONDS} second period`, uri.includes(`period=${TOTP_PERIOD_SECONDS}`));
+  /*
+   * THE LITERALS ARE THE POINT, AND THIS IS A LOCKOUT RATHER THAN A TIDINESS
+   * ISSUE.
+   *
+   * These two lines used to read `digits=${TOTP_DIGITS}` against a uri built by
+   * otpauthUri from the same TOTP_DIGITS. They compared a value to itself, so
+   * changing the constant to 8 would have kept both green while the QR told
+   * every authenticator app to expect eight digits and codeForStep went on
+   * emitting six.
+   *
+   * Nobody would notice at enrolment, because confirmEnrolment checks the code
+   * with the same generator. It surfaces at the NEXT sign in, on a phone that is
+   * working perfectly, for every account already enrolled. There is no recovery
+   * from that except the recovery codes.
+   *
+   * So 6 and 30 are written out. They are also what the RFC vectors above
+   * already assume: those vectors are 8 digit values sliced to the last 6 at a
+   * 30 second step, so a change to either constant has to come here and argue
+   * with this file rather than pass through it.
+   */
+  rec("declares 6 digits, as a literal", uri.includes("digits=6"));
+  rec("declares the 30 second period, as a literal", uri.includes("period=30"));
+
+  /* And the two constants still have to agree with the literals above, so a
+   * drifted constant is reported as a drifted constant rather than as a broken
+   * uri somewhere downstream. */
+  rec(
+    "and the module's own constants still say 6 and 30",
+    TOTP_DIGITS === 6 && TOTP_PERIOD_SECONDS === 30,
+    `TOTP_DIGITS=${TOTP_DIGITS}, TOTP_PERIOD_SECONDS=${TOTP_PERIOD_SECONDS}`,
+  );
+
+  /*
+   * The generator and the advertisement, compared to each other. This is the
+   * pairing that actually fails when the two drift, independent of what either
+   * constant says.
+   */
+  rec(
+    "and the generator emits exactly as many digits as the uri advertises",
+    codeForStep(newTotpSecret().bytes, 1).length === 6,
+  );
 }
 
 console.log("");
