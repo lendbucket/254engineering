@@ -3,6 +3,8 @@ import { currentActor, requestContext } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { csvHeaders } from "@/lib/csv";
 import { binderCsv, binderFor, fileMargins, marginCsv, periodCsv } from "@/lib/ops-docs";
+import { REPORTS, periodOf } from "@/lib/ops-reports";
+import { exportFilename, exportRowCount, reportCsv } from "@/lib/ops-report-export";
 import { enqueue } from "@/lib/ops-jobs";
 import { writeAudit } from "@/lib/ops-audit";
 
@@ -108,6 +110,66 @@ export async function GET(request: NextRequest) {
     return new NextResponse(body, {
       headers: csvHeaders(`${report === "margin" ? "margin-by-file" : "margin-by-period"}-${stamp()}.csv`),
     });
+  }
+
+  /*
+   * THE FOUR OWNER REPORTS, AS FILES.
+   *
+   * Phase 12 Section 3. The report is chosen from the REGISTRY rather than from
+   * a list here, which is the same reason reporting-audit derives from it: a
+   * fifth report added to ops-reports.ts is exportable the day it exists, and
+   * cannot ship with an export nobody wrote a permission check for, because the
+   * check reads the action off the registry entry.
+   *
+   * The grant asked for is the report's OWN action, so somebody granted the
+   * pipeline can export the pipeline and gets a 403 on revenue. The screen
+   * makes the same test against the same field, so a button that appears is a
+   * button that works.
+   */
+  const entry = REPORTS.find((r) => r.key === report);
+  if (entry) {
+    if (!can(actor, entry.action)) return bad(`Your role cannot read the ${entry.title.toLowerCase()} report.`, 403);
+
+    const asked = request.nextUrl.searchParams.get("period") ?? "";
+    const period = /^\d{4}-\d{2}$/.test(asked) ? asked : periodOf();
+
+    const built = await entry.build(period);
+    const body = reportCsv(built, { email: actor.email, role: actor.role });
+
+    await writeAudit({
+      actor,
+      action: `export.report.${entry.key}`,
+      entityType: "report",
+      entityId: `${entry.key}:${period}`,
+      summary: `Exported the ${entry.title.toLowerCase()} report for ${period}, ${exportRowCount(built)} row(s)${
+        built.unavailable.length ? `, with ${built.unavailable.length} figure(s) the report could not compute` : ""
+      }`,
+      ...context,
+    });
+
+    /*
+     * The record goes on the queue, the file does not. Same decision as the
+     * binder above and for the same reason: the person who clicked Export is
+     * standing in front of the response, and a queued CSV is a CSV nobody
+     * receives. What the job writes is what the FILE said, taken from the
+     * manifest, so a later reader can tell what was handed over rather than
+     * what the screen shows today.
+     */
+    const recorded = await enqueue("report.export", {
+      report: entry.key,
+      period,
+      scope: "real",
+      at: stamp(),
+      figures: built.sections.reduce((n, s) => n + s.figures.length, 0),
+      rows: exportRowCount(built),
+      notComputed: built.unavailable.length,
+      actorId: actor.id,
+      actorEmail: actor.email,
+      actorRole: actor.role,
+    });
+    if (!recorded.ok) console.error(`[exports] report export not queued: ${recorded.error}`);
+
+    return new NextResponse(body, { headers: csvHeaders(exportFilename(built)) });
   }
 
   return bad("That is not a report this platform produces.");

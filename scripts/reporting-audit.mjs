@@ -266,6 +266,129 @@ console.log("");
   );
 }
 
+// ------------------------------- every report leaves as a file that says what it is
+
+{
+  /*
+   * Phase 12 Section 3. A report on a screen is read by the person who opened
+   * it, with the notes beside it. A file is read later, by somebody else, with
+   * none of that. So the export carries a MANIFEST, and the manifest is what
+   * these checks are about.
+   *
+   * The one thing a CSV can prove about itself is that it is not truncated, and
+   * it can only prove that if it states its own size. So the manifest's row
+   * count is compared against the rows actually written, on every report.
+   */
+  const { reportCsv, exportRowCount, exportFilename } = await import("../src/lib/ops-report-export.ts");
+  const period = periodOf();
+  const by = { email: "audit@254engineering.com", role: "admin" };
+
+  const files = [];
+  for (const r of REPORTS) {
+    const built = await r.build(period);
+    files.push({ key: r.key, built, body: reportCsv(built, by), name: exportFilename(built) });
+  }
+
+  rec(
+    `every report can be exported as a file (${files.length})`,
+    files.length === REPORTS.length && files.every((f) => f.body.length > 0),
+    "a report nobody can hand to an accountant is a report that gets retyped into a spreadsheet",
+  );
+
+  /* The manifest names every figure, including the ones that could not be
+   * computed, because a blank in a file is read as a zero. */
+  const unlisted = [];
+  for (const f of files) {
+    for (const section of f.built.sections) {
+      for (const figure of section.figures) {
+        if (!f.body.includes(`${section.title} / ${figure.label}`)) {
+          unlisted.push(`${f.key}/${figure.label}`);
+        }
+      }
+    }
+  }
+  rec(
+    "and the manifest names every figure on it",
+    unlisted.length === 0,
+    unlisted.length
+      ? `${unlisted.join(", ")} is in the report and not in the file's manifest`
+      : "including the absent ones, which a blank cell would otherwise read as zero",
+  );
+
+  /*
+   * THE SIZE THE MANIFEST CLAIMS IS THE SIZE THE FILE CARRIES.
+   *
+   * Checked over the DEMONSTRATION scope as well as the real one, and the
+   * reason is the operator's ruling of 2026-09-09: a check that filters live
+   * data for a subject that does not exist yet is vacuous, so build the
+   * subject. Production and development both hold no real orders or payments,
+   * so the real scope exports four files of zero rows, and a manifest that
+   * claimed the wrong count would agree with an empty body every time.
+   *
+   * The demonstration scope has rows today, which is what makes this assertion
+   * capable of failing. It is the same data demo-audit proves never reaches a
+   * real figure, used here for the one thing it is good for.
+   */
+  const measured = [...files];
+  for (const r of REPORTS) {
+    const built = await r.build(period, "including_demonstrations");
+    measured.push({ key: `${r.key} (demonstrations)`, built, body: reportCsv(built, by) });
+  }
+
+  const withRows = measured.filter((f) => exportRowCount(f.built) > 0);
+  const countOf = (body) => {
+    const lines = body.split("\r\n");
+    const header = lines.findIndex((l) => l.startsWith('"Section"'));
+    return header === -1 ? -1 : lines.length - header - 1;
+  };
+
+  const wrong = measured.filter((f) => {
+    const claimed = f.body.match(/^"Rows","(\d+)"/m);
+    return !claimed || Number(claimed[1]) !== countOf(f.body);
+  });
+
+  rec(
+    `the manifest's row count is checkable against a file that has rows (${withRows.length} of ${measured.length})`,
+    withRows.length > 0,
+    withRows.length === 0
+      ? "every export is empty in both scopes, so the check below would pass over nothing"
+      : `${withRows.map((f) => `${f.key}: ${exportRowCount(f.built)}`).join(", ")}`,
+  );
+  rec(
+    "and the row count in the manifest is the number of rows in the file",
+    wrong.length === 0,
+    wrong.length
+      ? `${wrong.map((f) => f.key).join(", ")}: the manifest and the body disagree, which is what a truncated file looks like`
+      : `${measured.reduce((n, f) => n + exportRowCount(f.built), 0)} rows across ${measured.length} files`,
+  );
+
+  /* And it says what it could not compute, rather than leaving a gap. */
+  const silent = files.filter((f) => !/"Not computed/.test(f.body));
+  rec(
+    "and every file says what the report could not compute",
+    silent.length === 0,
+    silent.length
+      ? `${silent.map((f) => f.key).join(", ")} carries no Not computed line at all, so a reader cannot tell an absent figure from a zero`
+      : "",
+  );
+
+  /* The export is gated by the report's own action, read from the registry. */
+  const route = readFileSync("src/app/api/portal/exports/route.ts", "utf8");
+  rec(
+    "the export route asks the grant the registry names",
+    /can\(actor, entry\.action\)/.test(route) && /REPORTS\.find/.test(route),
+    "a fixed list here would be a second list to keep in step, and the third entry is where somebody forgets the check",
+  );
+
+  /* The record goes on the queue and the file does not, which is the standing
+   * rule in docs/platform-state.md. */
+  rec(
+    "the record of an export is queued and the file is not",
+    /enqueue\("report\.export"/.test(route) && !/enqueue\([^)]*body/.test(route),
+    "a queued CSV is a CSV nobody receives: nothing here delivers a file to somebody who has walked away",
+  );
+}
+
 // ------------------------------------------- the coastal figure shows its work
 
 {

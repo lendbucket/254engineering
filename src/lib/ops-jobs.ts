@@ -32,7 +32,15 @@ export type JobKind =
   | "statement.issue"
   | "orders.reconcile"
   | "metrics.rollup"
-  | "errors.alert";
+  | "errors.alert"
+  /*
+   * Phase 12 Section 3. NOT the export itself: the RECORD that one was
+   * assembled. docs/platform-state.md states the rule this follows, and
+   * document.binder above is the precedent. A queued CSV is a CSV nobody
+   * receives, because nothing in this platform delivers a file somebody is not
+   * standing in front of.
+   */
+  | "report.export";
 
 export type JobPayload = Record<string, unknown>;
 

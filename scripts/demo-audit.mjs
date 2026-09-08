@@ -258,6 +258,58 @@ if (!db) {
     );
   }
 
+  // ------------------------------ and no demonstration reaches an export file
+
+  /*
+   * Phase 12 Section 3. A screen is looked at; a file is SENT. If a
+   * demonstration ever leaks into an export, it leaves the building inside a
+   * document somebody hands to an accountant, and no amount of fixing the
+   * screen afterwards catches it back.
+   *
+   * The file is checked as TEXT rather than by re-reading the figures, because
+   * what matters here is the bytes that leave. A filter that worked on the
+   * report and a serialiser that reached back to the database would pass every
+   * check above and still write a demonstration into the CSV.
+   */
+  {
+    const { reportCsv } = await import("../src/lib/ops-report-export.ts");
+    const by = { email: "demo-audit@254engineering.com", role: "admin" };
+
+    const leaked = [];
+    let realBytes = 0;
+    for (const r of REPORTS) {
+      const body = reportCsv(await r.build(PERIOD, "real"), by);
+      realBytes += body.length;
+      for (const line of body.split("\r\n")) {
+        if (/-DEMO-/i.test(line)) leaked.push(`${r.key}: ${line.slice(0, 80)}`);
+      }
+    }
+
+    rec(
+      `every report was exported to a file to search (${realBytes} bytes)`,
+      realBytes > 0,
+      "a search through no bytes finds nothing, every time",
+    );
+    rec(
+      "no demonstration record appears anywhere in an export file",
+      leaked.length === 0,
+      leaked.length ? leaked.join(" | ") : "checked as text, because what leaves the building is bytes",
+    );
+
+    const visible = [];
+    for (const r of REPORTS) {
+      const body = reportCsv(await r.build(PERIOD, "including_demonstrations"), by);
+      for (const line of body.split("\r\n")) if (/-DEMO-/i.test(line)) visible.push(r.key);
+    }
+    rec(
+      "and the same search DOES find them when demonstrations are included",
+      visible.length > 0,
+      visible.length
+        ? `${new Set(visible).size} report(s) write them when asked, so the search above was looking at something`
+        : "no export names a demonstration in either scope, so the check above proves nothing",
+    );
+  }
+
   // -------------------------------------------- one injection per report
 
   /**
