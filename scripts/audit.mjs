@@ -33,6 +33,8 @@
 // first failure hides how much else is broken, which turns one fix into five
 // round trips.
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { runtimeFor, DECLARATION } from "./lib/audit-runtime.mjs";
 import { assertClearToBuild } from "./lib/build-guard.mjs";
 import { startNextServer } from "./lib/dev-server.mjs";
 
@@ -477,10 +479,75 @@ async function waitUntilHealthy(base, timeoutMs = 120_000) {
  * build is a suite measuring the wrong artifact, which is the same class of
  * problem as measuring nothing and harder to notice.
  */
+/**
+ * EVERY AUDIT IS RUN THE WAY IT DECLARES IT MUST BE, AND THE BOARD REFUSES
+ * OTHERWISE.
+ *
+ * Operator ruling, 2026-09-08. launch-audit gained a check importing a module
+ * that carries `server-only`. It was green every time it was tested, because it
+ * was tested with `npx tsx --conditions=react-server`, and red on the board,
+ * because the board ran `node scripts/launch-audit.mjs`. An audit that passes
+ * the way its author runs it and fails the way the board runs it is the worst
+ * shape a check can have: the author has evidence, and the board disagrees.
+ *
+ * scripts/lib/audit-runtime.mjs works out what an audit NEEDS by following its
+ * imports, and this refuses to start when package.json disagrees with that or
+ * when the file has not declared it. Both the board and a person run
+ * `npm run <audit>`, so there is one invocation and it is verified against the
+ * file rather than remembered.
+ *
+ * It runs before the build, because finding this after a four minute build and
+ * twenty minutes of browser audits is finding it too late to be useful.
+ */
+function assertInvocationsMatchDeclarations() {
+  const pkg = JSON.parse(readFileSync("package.json", "utf8"));
+  const wrong = [];
+
+  for (const [name, cmd] of Object.entries(pkg.scripts)) {
+    if (!/audit/.test(name)) continue;
+    const match = cmd.match(/scripts\/[\w./-]+\.mjs/);
+    if (!match) continue;
+
+    const { needsReactServer, declares, reason } = runtimeFor(match[0]);
+    const invoked = /--conditions=react-server/.test(cmd);
+
+    if (needsReactServer && !invoked) {
+      wrong.push(
+        `  ${name}: imports ${reason}, which is server-only, and runs as "${cmd}".\n` +
+          `      It cannot load that module. Add --conditions=react-server.`,
+      );
+    } else if (needsReactServer && !declares) {
+      wrong.push(
+        `  ${name}: needs react-server because of ${reason} and does not declare "${DECLARATION}" at the top of the file.`,
+      );
+    } else if (!needsReactServer && invoked && declares) {
+      wrong.push(
+        `  ${name}: declares "${DECLARATION}" and imports nothing server-only. Remove the declaration or the flag.`,
+      );
+    }
+  }
+
+  if (wrong.length) {
+    console.log("");
+    console.log("=== THE BOARD REFUSES TO RUN: AN AUDIT WOULD BE RUN THE WRONG WAY ===");
+    console.log("");
+    console.log(wrong.join("\n"));
+    console.log("");
+    console.log("An audit run one way by hand and another way by the board is a check whose");
+    console.log("green means nothing. Fix the invocation before anything else runs.");
+    console.log("");
+    process.exit(1);
+  }
+
+  console.log(`  invocation: every audit runs the way its imports require.`);
+}
+
 async function bringUpServer() {
   console.log(`${"=".repeat(72)}`);
   console.log("SETUP: the suite starts its own server.");
   console.log("=".repeat(72));
+
+  assertInvocationsMatchDeclarations();
 
   // The runner owns the audit ports, so it clears them rather than refusing.
   // Anything holding one is a leftover from an earlier run.

@@ -1,3 +1,10 @@
+// @runtime react-server
+//
+// Declared because this audit reaches a module carrying `server-only`, so it
+// cannot run under plain node or under tsx without the react-server condition.
+// scripts/lib/audit-runtime.mjs works the requirement out from the imports and
+// the board refuses to start when package.json disagrees, so this line and the
+// invocation cannot drift apart.
 /**
  * What leaves this process when something goes wrong, and whether a stalled
  * cron reads as stalled.
