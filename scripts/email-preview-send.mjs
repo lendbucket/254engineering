@@ -121,12 +121,41 @@ function asPreview(email) {
   const inert = inertLinks(email);
   if (inert.length === 0) return email;
 
+  /*
+   * THE BUTTON MUST NOT LOOK LIVE.
+   *
+   * Operator ruling, and it is the defect class this repository keeps finding
+   * rather than a presentation quibble: a control that looks exactly like the
+   * working one and does nothing when pressed is worse than no control. The
+   * first version of this replaced the href and left the label alone, so the
+   * preview carried a "Track this order" button that was indistinguishable from
+   * the real thing until you pressed it.
+   *
+   * So the label is replaced too, and the button says what it is.
+   */
   const NOTICE = "#preview-this-link-is-not-live";
   let html = email.html ?? "";
   let text = email.text;
   for (const link of inert) {
     html = html.split(link).join(NOTICE);
     text = text.split(link).join("(preview: this link is not live)");
+  }
+
+  /*
+   * The label sits in the one anchor the layout draws for a button. Matched on
+   * the notice href that was just written in, so nothing else in the message is
+   * touched, and asserted rather than assumed: a silent no-op here would ship
+   * the very button this is removing.
+   */
+  const anchor = new RegExp(`(<a href="${NOTICE}"[^>]*>)([^<]*)(</a>)`);
+  if (email.html) {
+    if (!anchor.test(html)) {
+      throw new Error(
+        "The preview button could not be relabelled: no anchor carried the notice href. " +
+          "Refusing to send a preview with a button that looks live.",
+      );
+    }
+    html = html.replace(anchor, "$1PREVIEW, NOT LIVE$3");
   }
 
   return {

@@ -216,6 +216,23 @@ The runner re-checks the server between phase zero and phase one, refuses to
 start if the build fails, and prints `THE SUITE DID NOT RUN TO COMPLETION`
 rather than a list of failures when it could not measure anything.
 
+**REACHING THE DEPLOYMENT NEEDS A BROWSER, NOT curl, AND THERE IS NO BYPASS
+HEADER.** Recorded 2026-09-08 after an operator and a session both assumed
+otherwise. `254engineering.com` sits behind Vercel's bot checkpoint, which
+answers curl with **403 and a JavaScript challenge page**, not with the route
+you asked for. Chromium executes the challenge and gets 200, which is why the
+browser audits reach production and a shell one liner does not.
+
+There is **no protection bypass secret** in this repository, in `.env.local`, or
+sent by any script. Do not go looking for one and do not add one to make curl
+work: the harness already has the mechanism, and it is Playwright.
+
+The trap underneath it, found while verifying an emailed link: the order status
+page answers **200 while saying the link does not open an order**, and the
+reference appears in the page text even on that failure page. So a check that
+asks for a 200, or asks whether the page names the order, passes on a dead
+link. Read the page for the failure sentence first.
+
 **`BASE_URL` means "use this server, do not manage one".** That is how a run
 against production works, and with it set the suite refuses outright if the host
 is not answering:
