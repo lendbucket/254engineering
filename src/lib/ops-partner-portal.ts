@@ -1,9 +1,9 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase";
+import type { Cents } from "./ops-money";
 import { writeAudit } from "./ops-audit";
 import { netOf } from "./partner-comp";
 import { partnerBalance, partnerLedger, type LedgerRow } from "./ops-partner-comp";
-import type { Cents } from "./ops-money";
 import type { PartnerPrincipal } from "./partner-auth";
 
 /**
@@ -40,9 +40,12 @@ import type { PartnerPrincipal } from "./partner-auth";
 // ------------------------------------------------------------------ overview
 
 export type PartnerOverview = {
-  payableCents: number;
-  heldCents: number;
-  issuedCents: number;
+  /* Cents, not number: partnerBalance returns null when the ledger could not
+   * be read, and a partner is told the figure is not known rather than that
+   * they earned nothing. */
+  payableCents: Cents;
+  heldCents: Cents;
+  issuedCents: Cents;
   blocked: number;
   referrals: number;
   delivered: number;

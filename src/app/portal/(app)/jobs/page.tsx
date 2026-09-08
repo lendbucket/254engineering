@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
+import { money } from "@/lib/ops-money";
 import { can } from "@/lib/ops-authz";
 import { listOffers } from "@/lib/ops-field";
 import { services } from "@/content/services";
@@ -28,8 +29,11 @@ export const dynamic = "force-dynamic";
  * and the platform would deserve the reputation that produces.
  */
 
-const money = (cents: number | null) =>
-  cents === null ? "no rate set" : `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
+/*
+ * money() from ops-money, rather than a private one saying "no rate set".
+ * Three phrases for one state, "no rate set", "not set" and "not recorded",
+ * is three things a reader has to learn mean the same thing.
+ */
 
 const when = (value: string | null) =>
   value

@@ -1,4 +1,5 @@
 "use client";
+import { money } from "@/lib/ops-money";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -95,7 +96,7 @@ export function DispatchPanel({
           Working to {protocolName}. Technician rate{" "}
           {feeCents === null
             ? "is not in the schedule for this service line, so the offer carries no figure"
-            : `$${(feeCents / 100).toFixed(2)}`}
+            : money(feeCents)}
           .
         </p>
       ) : (

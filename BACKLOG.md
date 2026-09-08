@@ -340,6 +340,44 @@ shape.
 **Operator ruling, 2026-09-07: the null stays.** A wrong screen is worse than an
 honest absence, and the screen saying so is correct.
 
+**RULED 2026-09-08, AND THE QUESTION IS CLOSED.** Phase 12 Section 2 answers
+all three, and each answer is a choice between the two screens this entry said
+the firm had never had to choose between. They are recorded here beside the
+question rather than only in the section brief, because the question is here.
+
+**Dispatcher: both, and the queue leads.** Unassigned jobs by county and age,
+technicians available by certification and county, jobs past their capture
+window, and offers outstanding with their expiry. The question was whether a
+dispatcher is measured on how FAST work is placed or how WELL. The answer is
+that the screen carries both and puts the ageing queue first: coverage and
+technician load are on it, so placing work well is visible, but what a person
+opens the screen to do is place the thing that has been waiting longest.
+
+**Sales: their own pipeline, and no money the firm makes.** Leads by source
+and stage, quotes unpaid with age, partner attribution for the period, and B2B
+accounts by last order date. The ruling holds the line this entry drew: sales
+does not hold `pricing.read` and nothing here needs it. Every figure is about
+flow and age, not about margin or value, so the screen is complete without a
+grant this role is deliberately denied.
+
+**Customer service: work in progress, not the lead inbox.** Orders awaiting
+something from the customer with what is awaited, open message threads by age
+of last inbound, refunds in flight with their case, and unsubscribe requests
+received by telephone. The grants suggested work in progress and the name
+suggested the inbox; the grants win, because they are what the role can
+actually act on.
+
+That last item is new and is not a dashboard tile. The marketing suppression
+list built in the email port has no operator screen, so somebody who asks to
+be removed by telephone cannot be recorded without SQL. It is built here, as a
+list with add and remove, audited.
+
+**The constraint this entry named still holds and was not relaxed to make any
+of the three complete.** None of these roles holds `ledger.read_all` or
+`billing.read`, and no dashboard for them carries a firm level money figure.
+Where a dashboard would need a figure the grants do not cover, that is
+reported rather than fixed by widening a grant.
+
 **AND THE BUSINESS QUESTION, WHICH IS THE OPERATOR'S AND IS NEEDED BEFORE
 HIRING ANY OF THE THREE.** What each of these roles should see is not a design
 question with a defensible default. It is a question about what the job is, and

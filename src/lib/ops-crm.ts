@@ -80,6 +80,16 @@ export type FileRow = {
   client_price_cents?: number | null;
   tech_cost_cents?: number | null;
   engineer_cost_cents?: number | null;
+  /**
+   * The partner attributed to this file, or null.
+   *
+   * Selected because the margin needs it. It is not a cost itself: the fourth
+   * cost lives in eng_partner_entries and is read through partnerCostByFile,
+   * for the reason ops-docs.ts states at length. What this column answers is
+   * whether there IS a commission to look for, which is the difference between
+   * a knowable zero and an unknown figure.
+   */
+  partner_id?: string | null;
   created_at: string;
   notes: string | null;
 };
@@ -90,7 +100,7 @@ const FILE_COLUMNS =
    * unwritten from Phase 6, so nothing selected it, and the screens that now
    * ask what a file is missing need to know which deliverable to ask about.
    */
-  "id, file_number, client_id, service_slug, deliverable, property_address, city, county, twia_county, latitude, longitude, urgency, status, due_at, assigned_tech_id, assigned_engineer_id, client_price_cents, tech_cost_cents, engineer_cost_cents, created_at, notes";
+  "id, file_number, client_id, service_slug, deliverable, property_address, city, county, twia_county, latitude, longitude, urgency, status, due_at, assigned_tech_id, assigned_engineer_id, client_price_cents, tech_cost_cents, engineer_cost_cents, partner_id, created_at, notes";
 
 // ------------------------------------------------------------------ clients
 

@@ -1,7 +1,7 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase";
 import { writeAudit } from "./ops-audit";
-import { money, type Cents } from "./ops-money";
+import { isKnown, money, type Cents } from "./ops-money";
 import { can, type Actor } from "./ops-authz";
 import {
   commissionForDelivery,
@@ -872,14 +872,58 @@ export async function partnerLedger(
 }
 
 /** What a partner is owed and has not been paid, and what is still on hold. */
-export async function partnerBalance(partnerId: string, now: Date = new Date()) {
-  const db = supabaseAdmin();
-  if (!db) return { payableCents: 0, heldCents: 0, blocked: 0, issuedCents: 0 };
+/**
+ * What a partner is owed, and null when it could not be worked out.
+ *
+ * THIS USED TO RETURN ZEROS ON A FAILED READ, AND IT TOLD AN OUTSIDER THEY HAD
+ * EARNED NOTHING.
+ *
+ * Found in the Phase 12 Section 2 figure inventory. An unconfigured database
+ * returned `{ payableCents: 0, ... }` and neither query inspected `error`, so a
+ * partner opening their own portal during an outage saw four confident figures
+ * reading $0.00. Every other absent value in this codebase says it does not
+ * know; this one asserted the answer was nothing, to somebody outside the firm,
+ * about their own money.
+ *
+ * The blocked entry handling below was already right, which is exactly what
+ * made this easy to miss: the function looked careful because in one respect it
+ * was.
+ *
+ * Null now propagates to the screen, which renders "not set" through the same
+ * money() every other figure uses, and the count of blocked entries is still
+ * reported separately so a partner can see that something is owed even when the
+ * figure is not yet known.
+ */
+export type PartnerBalance = {
+  payableCents: Cents;
+  heldCents: Cents;
+  blocked: number;
+  issuedCents: Cents;
+};
 
-  const { data } = await db
+export async function partnerBalance(
+  partnerId: string,
+  now: Date = new Date(),
+): Promise<PartnerBalance> {
+  const unknown: PartnerBalance = {
+    payableCents: null,
+    heldCents: null,
+    blocked: 0,
+    issuedCents: null,
+  };
+
+  const db = supabaseAdmin();
+  if (!db) return unknown;
+
+  const { data, error } = await db
     .from("eng_partner_entries")
     .select("amount_cents, status, payable_at, statement_id")
     .eq("partner_id", partnerId);
+
+  if (error) {
+    console.error("[partner] the ledger could not be read:", error.message);
+    return unknown;
+  }
 
   let payable = 0;
   let held = 0;
@@ -895,17 +939,36 @@ export async function partnerBalance(partnerId: string, now: Date = new Date()) 
     else held += amount;
   }
 
-  const { data: issued } = await db
+  const { data: issued, error: issuedError } = await db
     .from("eng_partner_statements")
     .select("total_cents")
     .eq("partner_id", partnerId)
     .eq("status", "issued");
 
+  if (issuedError) {
+    console.error("[partner] the issued statements could not be read:", issuedError.message);
+    /*
+     * The ledger read succeeded, so payable and held are real. Only the issued
+     * total is unknown, and it says so rather than dragging the two figures
+     * that ARE known down with it.
+     */
+    return { payableCents: payable, heldCents: held, blocked, issuedCents: null };
+  }
+
+  /*
+   * A statement with no total is excluded rather than counted as zero, the same
+   * way a blocked entry is. `sum` stays null if every statement is missing its
+   * figure, which is the honest answer to "what has been issued".
+   */
+  const totals = (issued ?? [])
+    .map((s) => (s.total_cents === null ? null : Number(s.total_cents)))
+    .filter((v): v is number => isKnown(v));
+
   return {
     payableCents: payable,
     heldCents: held,
     blocked,
-    issuedCents: (issued ?? []).reduce((n, s) => n + Number(s.total_cents ?? 0), 0),
+    issuedCents: (issued ?? []).length > 0 && totals.length === 0 ? null : totals.reduce((n, v) => n + v, 0),
   };
 }
 

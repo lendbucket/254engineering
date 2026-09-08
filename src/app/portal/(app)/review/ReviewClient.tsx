@@ -1,4 +1,5 @@
 "use client";
+import { money } from "@/lib/ops-money";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -118,7 +119,7 @@ export function DecisionPanel({
           {done.minutes} minute{done.minutes === 1 ? "" : "s"} of review time is on your responsible
           charge record.
           {done.paidCents !== null
-            ? ` Production of $${(done.paidCents / 100).toFixed(2)} is on the ledger, pending approval.`
+            ? ` Production of ${money(done.paidCents)} is on the ledger, pending approval.`
             : " No production rate is set for this service line, so nothing was written to the ledger."}
         </p>
         <a
