@@ -241,6 +241,7 @@ export function EnrolForm({ required }: { required: boolean }) {
           if (data) {
             setSecret(data.secret as string);
             setUri((data.uri as string) ?? null);
+            setQr((data.qr as string) ?? null);
           }
         }}
         className="min-h-[var(--tap-target)] rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[14px] font-semibold text-white disabled:opacity-60"

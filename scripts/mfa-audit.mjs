@@ -26,6 +26,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { routesOf, apisOf, surfacesWhere } from "./lib/surfaces.mjs";
+import { auditClient } from "./lib/db-target.mjs";
 
 const BASE = process.env.BASE_URL || "http://localhost:3225";
 
@@ -235,6 +236,8 @@ else process.env.OPS_SESSION_SECRET = HAD;
    * has to argue for itself.
    */
   const ALLOWED_TO_POST = {
+    "scripts/mfa-audit.mjs":
+      "it needs an account that has deliberately NOT enrolled, in order to walk the enrolment screen. signInFully exists to complete an enrolment, which is the one thing this check must not do.",
     "scripts/security-audit.mjs":
       "it attacks the sign in endpoint rather than using it: empty bodies, wrong passwords, the rate limiter and the enumeration answer.",
   };
@@ -411,6 +414,136 @@ else process.env.OPS_SESSION_SECRET = HAD;
          * thing this entire section exists to make impossible.
          */
         if (res.status === 200) admitted.push(`${path} (200)`);
+      }
+
+      /*
+       * AND THE QR ACTUALLY REACHES THE SCREEN.
+       *
+       * Everything above this verifies the encoder. On 2026-09-07 the encoder
+       * was correct, byte identical to a reference across five versions and
+       * proven against an independent decoder, and the enrolment screen showed
+       * NO QR AT ALL: the client declared `setQr` and never called it, so the
+       * value was thrown away between an endpoint that returned it and a branch
+       * that rendered nothing.
+       *
+       * Typecheck passed, because a destructured array element that is never
+       * used is not an unused variable. Eight proof cases passed, because they
+       * test the encoder and not the wiring. The operator found it by looking
+       * at the page.
+       *
+       * So this walks the real screen in a real browser and requires an image.
+       * It is the only check here that would have caught it, and the flow it
+       * covers is the one with no second chance: somebody enrolling a second
+       * factor, once, with recovery codes shown once.
+       */
+      {
+        /*
+         * A REAL, DELIBERATELY UN-ENROLLED ACCOUNT.
+         *
+         * The synthetic cookie above is signed correctly and names a uuid with
+         * no profile behind it, so the screen renders and the endpoint answers
+         * 401. That is right of the endpoint and useless for this check, which
+         * has to get as far as a QR.
+         *
+         * It signs in with a bare POST rather than through signInFully, and
+         * that is the one place in this repository where doing so is correct:
+         * signInFully COMPLETES an enrolment, and what this needs is an account
+         * that has not. mfa-audit is in that helper's allowlist for this reason.
+         */
+        const db = auditClient("mfa-audit", { neverProduction: true });
+        const stamp = Date.now();
+        const probeEmail = `qrprobe-${stamp}@mobile-audit.invalid`;
+        const probePassword = `qrprobe-${stamp}-enrolment-screen`;
+        let probeId = null;
+        let probeCookie = null;
+
+        if (db) {
+          const made = await db.auth.admin.createUser({
+            email: probeEmail,
+            password: probePassword,
+            email_confirm: true,
+          });
+          if (made.data?.user) {
+            probeId = made.data.user.id;
+            await db.from("eng_profiles").insert({
+              id: probeId,
+              email: probeEmail,
+              display_name: "QR Probe",
+              role: "admin",
+              status: "active",
+            });
+            const signIn = await fetch(`${BASE}/api/portal/session`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email: probeEmail, password: probePassword }),
+            });
+            probeCookie = (signIn.headers.get("set-cookie") ?? "").match(/eng_ops=([^;]+)/)?.[1] ?? null;
+          }
+        }
+
+        rec(
+          "an un-enrolled probe reached a pending session",
+          Boolean(probeCookie),
+          probeCookie ? "" : "without one the enrolment screen cannot be walked at all",
+        );
+
+        const { chromium } = await import("playwright");
+        const browser = probeCookie ? await chromium.launch() : null;
+        try {
+          if (!browser) throw new Error("no browser");
+          const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+          await ctx.addCookies([
+            { name: "eng_ops", value: probeCookie, domain: "localhost", path: "/" },
+          ]);
+          const page = await ctx.newPage();
+          await page.goto(`${BASE}/portal/mfa/enrol`, { waitUntil: "domcontentloaded" });
+
+          const started = page.getByRole("button", { name: /set up a second factor/i });
+          const reachable = (await started.count()) > 0;
+          rec("the enrolment screen offers to start", reachable, page.url());
+
+          if (reachable) {
+            await started.click();
+            await page.waitForTimeout(3000);
+
+            const qr = page.locator("svg[role='img']").first();
+            const drawn = (await page.locator("svg[role='img']").count()) > 0;
+            rec(
+              "and a QR is on the page once it does",
+              drawn,
+              drawn ? "" : "the encoder can be perfect and the screen still show nothing, which is exactly what shipped",
+            );
+
+            if (drawn) {
+              const box = await qr.boundingBox();
+              rec(
+                "the QR is big enough to scan",
+                Boolean(box) && box.width >= 150 && box.height >= 150,
+                box ? `${Math.round(box.width)}x${Math.round(box.height)}` : "no box",
+              );
+              /* A QR is roughly a third to a half dark. An empty or nearly
+               * empty box would satisfy every check above and scan as nothing. */
+              const modules = await qr.locator("path").count();
+              rec("and it has geometry rather than being an empty box", modules > 0);
+            }
+
+            /* The typed fallback has to survive beside it, because a desktop
+             * authenticator has no camera pointed at this screen. */
+            rec(
+              "the typed secret is still available as a fallback",
+              (await page.getByText(/Cannot scan it/i).count()) > 0,
+            );
+          }
+        } catch {
+          /* Reported by the checks above rather than thrown; a probe that could
+           * not be made has already failed its own assertion. */
+        } finally {
+          if (browser) await browser.close();
+          if (db && probeId) {
+            await db.from("eng_profiles").delete().eq("id", probeId);
+            await db.auth.admin.deleteUser(probeId).catch(() => {});
+          }
+        }
       }
 
       rec(
