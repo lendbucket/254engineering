@@ -371,6 +371,27 @@ const PHASE_ONE = [
     name: "perf-audit",
     why: "LCP, CLS, TBT, and per template byte budgets",
   },
+  {
+    /*
+     * Phase 12 Section 2. Derives the four reports from the registry in
+     * ops-reports.ts and fails on one it is not measuring, which is the
+     * surfaces idiom applied to figures. email-audit learned why the hard way:
+     * three templates shipped unmeasured while its count sat still.
+     */
+    name: "reporting-audit",
+    why: "every figure is a number, a none, or an absence with a reason",
+  },
+  {
+    /*
+     * Inserts a demonstration record that WOULD move a figure and requires that
+     * no figure moves. The only check in this suite that proves the exclusion
+     * rather than asserting the query contains a filter, and the only one that
+     * would have caught the five probe orders that counted $3,290 of test money
+     * into every revenue figure on development for weeks.
+     */
+    name: "demo-audit",
+    why: "a demonstration moves no figure on any report",
+  },
 ];
 
 const PHASE_TWO = [
