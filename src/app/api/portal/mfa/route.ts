@@ -12,6 +12,7 @@ import { answerChallenge, beginEnrolment, confirmEnrolment, mfaStateFor } from "
 import { breakGlassMatches, breakGlassConfigured } from "@/lib/ops-mfa-breakglass";
 import { clearEnrolment } from "@/lib/ops-mfa";
 import { writeAudit } from "@/lib/ops-audit";
+import { qrSvg } from "@/lib/qr";
 import { takeLoginAttempt, clientKey } from "@/lib/ops-rate-limit";
 import { supabaseAdmin } from "@/lib/supabase";
 import { homeFor } from "@/lib/ops-authz";
@@ -95,7 +96,17 @@ export async function POST(request: NextRequest) {
      * row is written when it COMPLETES, which is the moment the account's
      * security actually changed.
      */
-    return NextResponse.json({ ok: true, secret: started.secret, uri: started.uri });
+    /*
+     * The QR is rendered HERE, on the server, from the otpauth uri. Nothing
+     * about the secret reaches a third party, and the browser receives inert
+     * markup rather than a library and a string to encode itself.
+     */
+    return NextResponse.json({
+      ok: true,
+      secret: started.secret,
+      uri: started.uri,
+      qr: qrSvg(started.uri, { size: 200, label: "Scan this with your authenticator app" }),
+    });
   }
 
   /* ----------------------------------------------------------- confirm */

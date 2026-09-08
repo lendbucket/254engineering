@@ -19,16 +19,27 @@ import { useState } from "react";
  * in one call and the codes are shown once, here, with the continue button
  * behind an acknowledgement.
  *
- * NO QR IMAGE, AND THAT IS A STATED LIMITATION RATHER THAN AN OVERSIGHT
- * ---------------------------------------------------------------------
- * Rendering one needs a QR encoder, which is a dependency in the authentication
- * path for a convenience. Every authenticator app accepts a typed secret, and
- * the otpauth link below opens one directly on the device it is read on, which
- * is the case a camera cannot help with anyway. Recorded in BACKLOG.
+ * THE QR IS THE PRIMARY PATH, AND THE TYPED SECRET IS THE FALLBACK
+ * ----------------------------------------------------------------
+ * This screen shipped without a QR, on the reasoning that an encoder is a
+ * dependency in the authentication path for a convenience. Operator ruling,
+ * 2026-09-07, overruled it and was right: the QR is what people expect, and it
+ * removes a transcription error from the one step in this flow that has no
+ * second chance. A mistyped secret produces codes that never verify, from a
+ * phone that is working perfectly, which is the least debuggable position this
+ * platform can put somebody in.
+ *
+ * The dependency concern was answered rather than dismissed. src/lib/qr.ts is
+ * written here, so nothing is added to the runtime at all, and it is verified
+ * by decoding its output with an independent decoder that ships with nothing.
+ * The SVG is rendered SERVER SIDE and arrives as inert markup, so no third
+ * party ever sees the secret and the browser is handed no encoder.
  */
 export function EnrolForm({ required }: { required: boolean }) {
   const [secret, setSecret] = useState<string | null>(null);
   const [uri, setUri] = useState<string | null>(null);
+  /* The SVG, rendered by the server. This component never sees the encoder. */
+  const [qr, setQr] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [codes, setCodes] = useState<string[] | null>(null);
   const [saved, setSaved] = useState(false);
@@ -115,21 +126,45 @@ export function EnrolForm({ required }: { required: boolean }) {
         }}
       >
         <p className="text-[13.5px] leading-[1.6] text-[var(--navy)]">
-          Add this secret to your authenticator app, then enter the six digit code it shows.
+          Scan this with your authenticator app, then enter the six digit code it shows.
         </p>
 
-        <div className="rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface-muted,#f7f8f9)] p-3">
-          <p className="font-mono text-[15px] leading-[1.5] break-all text-[var(--navy)]">{secret}</p>
-        </div>
+        {/*
+          THE QR IS THE PRIMARY PATH AND THE TYPED SECRET IS THE FALLBACK.
+          Operator instruction, 2026-09-07: scanning removes a transcription
+          error from the one step with no second chance. A mistyped secret
+          produces codes that never verify, from a phone that is working
+          perfectly, which is the least debuggable position this flow has.
 
-        {uri ? (
-          <a
-            href={uri}
-            className="min-h-[var(--tap-target)] inline-flex items-center text-[13px] font-semibold text-[var(--navy)] underline"
-          >
-            Open in an authenticator app on this device
-          </a>
+          Rendered server side from the otpauth uri, by src/lib/qr.ts, so
+          nothing about the secret reaches a third party. The markup arrives as
+          a string of SVG and is inert: no script, nothing fetched.
+        */}
+        {qr ? (
+          <div
+            className="mx-auto rounded-[var(--radius-control)] border border-[var(--border)] bg-white p-3"
+            dangerouslySetInnerHTML={{ __html: qr }}
+          />
         ) : null}
+
+        <details className="rounded-[var(--radius-control)] border border-[var(--border)]">
+          <summary className="min-h-[var(--tap-target)] flex cursor-pointer items-center px-3 text-[13px] font-semibold text-[var(--navy)]">
+            Cannot scan it? Type it instead
+          </summary>
+          <div className="border-t border-[var(--border)] p-3">
+            <p className="font-mono text-[15px] leading-[1.6] break-all text-[var(--navy)]">
+              {secret}
+            </p>
+            {uri ? (
+              <a
+                href={uri}
+                className="min-h-[var(--tap-target)] mt-2 inline-flex items-center text-[13px] font-semibold text-[var(--navy)] underline"
+              >
+                Or open an authenticator app on this device
+              </a>
+            ) : null}
+          </div>
+        </details>
 
         <label className="flex flex-col gap-1.5">
           <span className="text-[13px] font-semibold text-[var(--navy)]">
