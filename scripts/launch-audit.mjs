@@ -364,8 +364,20 @@ async function run() {
   process.env.LAUNCH_MODE = "prelaunch";
 
   try {
+    /*
+     * No cache busting query on this import, and that is deliberate rather than
+     * an omission. An earlier version appended ?gate=<now> to force a fresh
+     * module, and it broke the module's own relative imports: tsx could not
+     * resolve ./launch from a specifier carrying a query string, so this check
+     * reported "the announcement module could be exercised: Cannot find module
+     * src/lib/launch" inside the suite while passing standalone.
+     *
+     * It is not needed. launchMode() reads process.env.LAUNCH_MODE at CALL time
+     * rather than at module load, so setting the variable above is enough and a
+     * cached module still answers correctly.
+     */
     const { sendLaunchAnnouncement, announcementBlockedReason } = await import(
-      `../src/lib/ops-announce.ts?gate=${Date.now()}`
+      "../src/lib/ops-announce.ts"
     );
 
     const why = announcementBlockedReason();
