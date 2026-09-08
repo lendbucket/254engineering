@@ -493,6 +493,32 @@ with row level security on all 71 and 47 triggers. **Production does not have
 it** while that branch is open, which is the expected divergence, and
 `schema-ledger-audit` fails the moment it is on main and still undeclared.
 
+**From 0025 the chain lives in `supabase/applied.mjs` and not in this
+paragraph.** After 0025 (MFA optional by default) the figure is
+`0e8ff33c7106ce05ec2cf81a1c66cd35` unchanged, because it seeds a row rather than
+altering a shape; after 0026 (marketing suppressions)
+`2f76de7be0fb4ed93459db4d72d80237` across 964 columns and 72 tables; after 0027
+(Phase 12 Section 2, reporting foundations) `9bbcca2c9cd3c65503c923d7c32ea769`
+across 970 columns and 72 tables, with 5 report grants and 116 grants in total;
+and 0028 leaves that figure untouched because it is a backfill with no DDL in
+it.
+
+The reason the prose stops carrying the full account is the one this section
+already makes about 0023: **a record is not a check.** The ledger is read by two
+checks, this file is read by nobody, and two accounts of one chain are two
+accounts that will disagree. Every fingerprint above is in the ledger with the
+count it was read back at; what belongs here is the pointer and the reasoning,
+not a second copy of the numbers.
+
+**0028 is the first entry in that ledger to be PENDING for a reason that is not
+"the branch is still open".** It marks probe records as demonstrations by the
+RFC 2606 address rule, it is applied to development, and whether production
+holds any such record is UNKNOWN, because the production service role key lives
+only in Vercel and the session that wrote it could not run the sweep to find
+out. It says so in the ledger rather than guessing a count, and
+`schema-ledger-audit` will fail the board the moment it reaches main still
+pending.
+
 0023 adds `eng_alert_state`, which is the fifth table in this schema that is
 deliberately NOT append only, and it belongs to the same class as the four in
 0011 and 0012: telemetry about the machine rather than a regulatory or financial
