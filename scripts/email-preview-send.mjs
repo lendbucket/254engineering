@@ -100,9 +100,54 @@ function inertLinks(email) {
   return links.filter((l) => FIXTURE_MARKERS.some((re) => re.test(l)));
 }
 
+/**
+ * Turn a fixture render into something that cannot be mistaken for a real one.
+ *
+ * WHICH OF THE TWO OPTIONS THIS IS, AND WHY.
+ *
+ * The operator offered two: mint a real token against a demo order on
+ * development and point the link at the dev host, or stamp PREVIEW and replace
+ * the link. This is the second, and the first was rejected on a practical
+ * ground rather than a principled one: a link to a development host is not
+ * reachable from the mail client the operator actually reads on, so it would
+ * swap a link that fails for a link that fails differently, while looking more
+ * legitimate. A dead link that announces itself is safer than one that does not.
+ *
+ * The subject carries it because the subject is what is visible before anything
+ * is opened, and the href is replaced with a fragment so the button stays where
+ * the design puts it, keeps its label, and goes nowhere when pressed.
+ */
+function asPreview(email) {
+  const inert = inertLinks(email);
+  if (inert.length === 0) return email;
+
+  const NOTICE = "#preview-this-link-is-not-live";
+  let html = email.html ?? "";
+  let text = email.text;
+  for (const link of inert) {
+    html = html.split(link).join(NOTICE);
+    text = text.split(link).join("(preview: this link is not live)");
+  }
+
+  return {
+    ...email,
+    subject: `[PREVIEW] ${email.subject}`,
+    html,
+    text,
+  };
+}
+
+/** Order links that are NOT fixtures, and therefore have to actually work. */
+function liveLinks(email) {
+  const body = `${email.text}\n${email.html ?? ""}`;
+  const links = [...new Set([...body.matchAll(/https:\/\/[^\s"<)]+/g)].map((m) => m[0]))];
+  return links.filter((l) => /\/order\/[^?]+\?token=/.test(l) && !FIXTURE_MARKERS.some((re) => re.test(l)));
+}
+
 let sent = 0;
 const failed = [];
 const fixtures = [];
+const toVerify = [];
 
 for (const template of chosen) {
   /*
@@ -110,16 +155,20 @@ for (const template of chosen) {
    * work equally well here and would be a trap for whatever calls this next.
    */
   const inert = inertLinks(template);
+  const outgoing = asPreview(template);
 
-  const result = await notify({ ...template, to: RECIPIENT });
+  const result = await notify({ ...outgoing, to: RECIPIENT });
   if (result.sent) {
     sent += 1;
-    console.log(`  SENT   ${template.id}  ${template.subject}`);
+    console.log(`  SENT   ${template.id}  ${outgoing.subject}`);
     if (result.messageId) console.log(`         resend id ${result.messageId}`);
     if (inert.length) {
       fixtures.push(template.id);
-      for (const l of inert) console.log(`         INERT LINK, goes nowhere: ${l}`);
+      console.log(`         STAMPED PREVIEW, ${inert.length} dead link(s) replaced in the message`);
     }
+    /* A link that survived the preview transform is a real one, and a real one
+     * has to resolve. Verified in a browser rather than with curl; see below. */
+    for (const link of liveLinks(outgoing)) toVerify.push({ id: template.id, link });
   } else {
     failed.push(`${template.id}: ${result.reason ?? result.outcome}`);
     console.log(`  FAILED ${template.id}  ${result.reason ?? result.outcome}`);
@@ -143,6 +192,61 @@ if (fixtures.length) {
   console.log("  whether the links work is a separate question these cannot answer,");
   console.log("  because a fixture has no order behind it to link to.");
   console.log("");
+}
+
+/*
+ * THE LINK IS OPENED, NOT ASSUMED.
+ *
+ * Operator ruling: if the link in the email is wrong, the email is wrong,
+ * whatever it renders like. Done in Chromium and NOT with curl, and the reason
+ * is specific rather than a preference: 254engineering.com sits behind Vercel's
+ * bot checkpoint, which answers curl with 403 and a JavaScript challenge page.
+ * A browser executes the challenge and gets 200. There is no protection bypass
+ * secret in this repository or in .env.local, and no script sends such a
+ * header, so the browser is the mechanism rather than a workaround for a
+ * missing one.
+ *
+ * The assertion is that the page shows THAT ORDER. A 200 is not enough: the
+ * status page answers 200 while saying "This link does not open an order",
+ * which is exactly what a dead token produces.
+ */
+if (toVerify.length) {
+  console.log(`Opening ${toVerify.length} live link(s) in a browser.`);
+  const { chromium } = await import("playwright");
+  const browser = await chromium.launch();
+  for (const { id, link } of toVerify) {
+    const page = await browser.newPage();
+    let verdict = "";
+    try {
+      await page.goto(link, { waitUntil: "domcontentloaded", timeout: 45000 });
+      await page.waitForTimeout(6000);
+      const body = await page.locator("body").innerText().catch(() => "");
+      const reference = link.match(/\/order\/([^?]+)/)?.[1] ?? "";
+      const dead = /does not open an order/i.test(body);
+      const shows = reference && body.includes(decodeURIComponent(reference));
+      verdict = dead
+        ? "the page says the link does not open an order"
+        : shows
+          ? ""
+          : "the page loaded and does not name the order";
+    } catch (err) {
+      verdict = err instanceof Error ? err.message : "the page could not be opened";
+    }
+    await page.close();
+    if (verdict) {
+      failed.push(`${id}: ${verdict} (${link})`);
+      console.log(`  LINK FAILED ${id}  ${verdict}`);
+    } else {
+      console.log(`  LINK OK     ${id}  opens its order`);
+    }
+  }
+  await browser.close();
+  console.log("");
+  if (failed.length) {
+    for (const f of failed) console.log(`  ${f}`);
+    console.log("");
+    process.exit(1);
+  }
 }
 
 console.log("A send is not a verification, and acceptance by Resend is not delivery.");
