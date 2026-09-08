@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#F4F5F7;} a{color:#14315D;} a:hover{color:#0E2347;}</style>
+</helmet>
+<div style="padding:36px 40px;font-family:'Open Sans',sans-serif;">
+  <div style="font-family:Archivo,sans-serif;font-size:30px;font-weight:800;color:#14315D;margin-bottom:4px;">254 email suite</div>
+  <div style="font-size:13.5px;color:#555E6B;margin-bottom:32px;">13 send-ready HTML emails &middot; table-based, inline-styled, email-client safe &middot; open any file in <span style="font-family:monospace;">emails/</span> to copy its source</div>
+  <sc-for list="{{ groups }}" as="g" hint-placeholder-count="4">
+    <div style="margin-bottom:36px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#555E6B;margin-bottom:14px;">{{ g.label }}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start;">
+        <sc-for list="{{ g.emails }}" as="e" hint-placeholder-count="3">
+          <div style="width:632px;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
+              <div style="font-size:13.5px;font-weight:700;color:#14315D;">{{ e.name }}</div>
+              <a href="{{ e.path }}" target="_blank" style="font-size:12px;color:#555E6B;">{{ e.file }}</a>
+            </div>
+            <iframe src="{{ e.path }}" title="{{ e.name }}" onLoad="{{ sizeFrame }}" style="width:632px;border:1px solid #DDE0E4;border-radius:4px;background:#F4F5F7;height:{{ e.h }};" scrolling="no"></iframe>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const E = (name, file, h) => ({ name, file, path: "emails/" + file, h: h + "px" });
+    const sizeFrame = (ev) => {
+      const f = ev.target;
+      try { f.style.height = (f.contentDocument.documentElement.scrollHeight + 4) + "px"; } catch (e) {}
+    };
+    return { sizeFrame, groups: [
+      { label: "Clients & partners", emails: [
+        E("Order confirmation", "order-confirmation.html", 760),
+        E("File sealed", "status-sealed.html", 690),
+        E("Declined + refund", "status-declined-refund.html", 730),
+        E("Billing exception", "billing-exception.html", 700),
+        E("Account onboarding", "onboarding-welcome.html", 560),
+      ]},
+      { label: "Prelaunch & marketing", emails: [
+        E("Waitlist welcome", "waitlist-welcome.html", 660),
+        E("Launch announcement", "launch-announcement.html", 700),
+        E("Franchise inquiry", "franchise-inquiry.html", 650),
+      ]},
+      { label: "Technicians", emails: [
+        E("Capture offer", "tech-dispatch.html", 700),
+        E("Payout issued", "tech-payout.html", 620),
+      ]},
+      { label: "Internal & security", emails: [
+        E("SLA escalation", "sla-alert.html", 680),
+        E("Weekly digest", "weekly-digest.html", 800),
+        E("Password reset", "password-reset.html", 540),
+      ]},
+    ]};
+  }
+}
+</script>
+</body>
+</html>

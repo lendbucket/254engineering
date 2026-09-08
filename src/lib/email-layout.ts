@@ -41,14 +41,48 @@ import { registrationLine } from "./launch";
  * turns black on black. Nothing here relies on an inherited colour.
  */
 
+/*
+ * THE TOKENS, AND WHERE EACH ONE CAME FROM.
+ *
+ * The approved email design was drawn against 254-brand-standards.md, and every
+ * value below is that document's unless the comment says otherwise. Two of them
+ * are corrections: BORDER and SECONDARY were near misses in this file before the
+ * port, off by a shade from the named token, which is how a palette stops being
+ * one.
+ */
 const NAVY = "#14315d";
 const NAVY_DEEP = "#0e2347";
 const INK = "#333a45";
-const INK_QUIET = "#5f6877";
+
+/* Was #5f6877 here, which is not a token. The standards call this --secondary. */
+const SECONDARY = "#555e6b";
+
+/*
+ * The muted tone ON a navy band, which the standards do not name.
+ *
+ * --muted (#8a93a0) is the light surface equivalent and fails against navy. The
+ * design uses #a9b8ce for the right hand side of the status strip and for the
+ * footer address, and it is recorded here as an ADDITION rather than folded in
+ * silently: a colour that is in the emails and in no palette is how the next
+ * surface ends up with a seventh grey.
+ */
+const MUTED_ON_NAVY = "#a9b8ce";
+
 const GOLD = "#d9a032";
 const GOLD_INK = "#8d610f";
+
+/* The standards' alert trio. Unused before this port; see note(). */
+const WARN_BG = "#fff9ec";
+const WARN_BORDER = "#e8d9ae";
+const WARN_INK = "#5c4a12";
+
 const LIMESTONE = "#f4f5f7";
-const LINE = "#dfe3ea";
+
+/* Was #dfe3ea here. The standards call this --border. */
+const BORDER = "#dde0e4";
+
+/* --row-rule. Lighter than BORDER, and the design uses it for every table rule. */
+const ROW_RULE = "#edf1f7";
 
 const SANS =
   "'Open Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif";
@@ -81,15 +115,41 @@ const LOGO_H = Math.round((LOGO_W * 1147) / 2262);
 
 export type EmailButton = { label: string; url: string };
 
+/**
+ * A money row. The value is null when the figure is not on record.
+ *
+ * THE ABSENT DATA RULE REACHES EMAIL TOO.
+ *
+ * The standards forbid rendering a missing figure as 0 or $0.00, and an email is
+ * the worst place to break that: the reader cannot hover a tooltip or open the
+ * record, they just see a number and believe it. A null renders as "not
+ * recorded" and the caller leaves it out of the total, because this layout
+ * formats money rather than computing it and must not invent a sum.
+ */
+export type MoneyRow = { label: string; value: string | null };
+
 export type EmailBlock =
   | { kind: "p"; text: string }
   | { kind: "heading"; text: string }
   | { kind: "details"; title?: string; rows: [string, string][] }
+  | { kind: "money"; rows: MoneyRow[]; total?: MoneyRow }
   | { kind: "note"; text: string };
+
+/**
+ * The status strip: what this email is about, and what state it is in.
+ *
+ * The single best idea in the approved design. Every email answers "which record
+ * is this" and "what happened to it" in one band before any prose, which is the
+ * same question the portal's record header answers and the same order it answers
+ * it in. It is optional because three of the alert templates are about the
+ * machine rather than a record and have no reference to put in it.
+ */
+export type EmailStatus = { reference: string; state: string };
 
 export type LayoutInput = {
   /** The inbox preview line, written rather than inherited from the logo alt. */
   preheader: string;
+  status?: EmailStatus;
   blocks: EmailBlock[];
   button?: EmailButton;
   /** Human facing mail is signed. Operator notifications are not. */
@@ -123,21 +183,129 @@ const heading = (text: string) =>
   esc(text) +
   "</p>";
 
+/**
+ * A warning, as a full tinted box.
+ *
+ * THIS IS THE ONE PLACE THE PORT OVERRULES BOTH SOURCES, AND IT FOLLOWS THE
+ * STANDARDS AGAINST BOTH.
+ *
+ * This file used to draw a note as a limestone panel with a 4px gold bar down
+ * the left. The standards forbid exactly that ("No accent borders (top/left) on
+ * cards") and define an alert as a full tinted box: --warn-bg, --warn-border,
+ * --warn-ink. The approved design settles nothing here because it contains no
+ * alert box at all; it carries urgency in the status strip instead, so there was
+ * no drawn treatment to port.
+ *
+ * So the standards win by default rather than by argument, and the trio they
+ * name is used for the first time. Gold survives as the border tone, which keeps
+ * the rule that gold means warning or pending and nothing else.
+ */
 const note = (text: string) =>
   '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 18px;"><tr>' +
-  '<td style="border-left:4px solid ' +
-  GOLD +
-  ";background:" +
-  LIMESTONE +
-  ";padding:14px 16px;font-family:" +
+  '<td style="background:' +
+  WARN_BG +
+  ";border:1px solid " +
+  WARN_BORDER +
+  ";border-radius:3px;padding:14px 16px;font-family:" +
   SANS +
   ";font-size:14.5px;line-height:1.6;" +
   WRAP +
   "color:" +
-  INK +
+  WARN_INK +
   ';">' +
   esc(text) +
   "</td></tr></table>";
+
+/**
+ * The status strip, in the two tone navy masthead.
+ *
+ * Deeper navy than the header above it so the two read as separate bands rather
+ * than one tall block. The design puts both on #14315D against a white header,
+ * which it can because its header is white; this one keeps the navy header for
+ * the dark mode reason recorded at the top of this file, so the strip has to
+ * separate itself some other way.
+ */
+function statusStrip(s: EmailStatus): string {
+  const cell =
+    "font-family:" +
+    SANS +
+    ";font-size:11.5px;font-weight:700;letter-spacing:2px;text-transform:uppercase;";
+  return (
+    '<tr><td style="background:' +
+    NAVY_DEEP +
+    ';padding:11px 28px;">' +
+    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr>' +
+    '<td style="' +
+    cell +
+    "color:#ffffff;" +
+    WRAP +
+    '">' +
+    esc(s.reference) +
+    "</td>" +
+    '<td align="right" style="' +
+    cell +
+    "color:" +
+    MUTED_ON_NAVY +
+    ';">' +
+    esc(s.state) +
+    "</td>" +
+    "</tr></table></td></tr>"
+  );
+}
+
+/**
+ * Money, with the total set apart.
+ *
+ * Right aligned figures on their own rule, then a heavier navy total with no
+ * rule under it, which is the design's treatment and the portal's. A row whose
+ * value is null says so in words; see MoneyRow.
+ */
+function money(rows: MoneyRow[], total?: MoneyRow): string {
+  const line = "padding:7px 0;border-bottom:1px solid " + ROW_RULE + ";font-family:" + SANS + ";";
+  const body = rows
+    .map(
+      (r) =>
+        "<tr>" +
+        '<td style="' +
+        line +
+        "font-size:13.5px;color:" +
+        INK +
+        ';">' +
+        esc(r.label) +
+        "</td>" +
+        '<td align="right" style="' +
+        line +
+        "font-size:13.5px;" +
+        (r.value === null ? "font-style:italic;color:" + SECONDARY : "color:" + INK) +
+        ';">' +
+        esc(r.value ?? "not recorded") +
+        "</td></tr>",
+    )
+    .join("");
+  const foot = total
+    ? "<tr>" +
+      '<td style="padding:9px 0;font-family:' +
+      SANS +
+      ";font-size:14px;font-weight:700;color:" +
+      NAVY +
+      ';">' +
+      esc(total.label) +
+      "</td>" +
+      '<td align="right" style="padding:9px 0;font-family:' +
+      SANS +
+      ";font-size:15px;font-weight:700;" +
+      (total.value === null ? "font-style:italic;color:" + SECONDARY : "color:" + NAVY) +
+      ';">' +
+      esc(total.value ?? "not recorded") +
+      "</td></tr>"
+    : "";
+  return (
+    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 16px;">' +
+    body +
+    foot +
+    "</table>"
+  );
+}
 
 function details(title: string | undefined, rows: [string, string][]): string {
   const head = title
@@ -149,26 +317,33 @@ function details(title: string | undefined, rows: [string, string][]): string {
       esc(title) +
       "</td></tr>"
     : "";
+  /*
+   * The label is an 11px uppercase kicker, which is the standards' column header
+   * and the design's detail label, and it is the change that makes these tables
+   * read as this firm's rather than as a generic two column list. The fixed 180px
+   * label column is the design's; it keeps the values aligned down the email
+   * instead of the column resizing per row.
+   */
   const body = rows
     .map(
       ([k, v]) =>
         "<tr>" +
-        '<td style="padding:8px 12px 8px 0;border-bottom:1px solid ' +
-        LINE +
+        '<td width="180" style="padding:7px 0;border-bottom:1px solid ' +
+        ROW_RULE +
         ";font-family:" +
         SANS +
-        ";font-size:14px;line-height:1.5;" +
+        ";font-size:11px;line-height:1.5;font-weight:700;letter-spacing:1px;text-transform:uppercase;" +
         WRAP +
         "color:" +
-        INK_QUIET +
+        SECONDARY +
         ';vertical-align:top;">' +
         esc(k) +
         "</td>" +
-        '<td style="padding:8px 0;border-bottom:1px solid ' +
-        LINE +
+        '<td style="padding:7px 0;border-bottom:1px solid ' +
+        ROW_RULE +
         ";font-family:" +
         SANS +
-        ";font-size:14px;line-height:1.5;" +
+        ";font-size:13.5px;line-height:1.5;" +
         WRAP +
         "color:" +
         INK +
@@ -190,20 +365,36 @@ function details(title: string | undefined, rows: [string, string][]): string {
  *
  * A table with a background colour rather than a styled anchor, because Outlook
  * ignores padding on an inline element and would render a bare blue link where
- * the button should be. Navy text on gold is the site's primary control and the
- * pairing clears AA.
+ * the button should be.
+ *
+ * NAVY WITH WHITE TEXT, WHICH IS A CORRECTION.
+ *
+ * This button used to be navy text on gold. Three sources disagree with that and
+ * none agreed with it: the standards say "Primary button: navy bg, white text,
+ * 700 weight", the approved email design draws it navy, and the portal's own
+ * primary control is navy with white text. A gold button in the email was the
+ * only place in the whole system where the primary action was gold, and gold is
+ * reserved for warning and pending, which is precisely what a primary action is
+ * not.
+ *
+ * The old note claimed the gold pairing cleared AA, and it did. So does this
+ * one, by a wider margin, and it no longer spends the warning colour on a
+ * button.
+ *
+ * `display:block` with the padding on the anchor, so the whole rectangle is the
+ * hit target rather than the text inside it.
  */
 function button(b: EmailButton): string {
   return (
     '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:6px 0 22px;"><tr>' +
     '<td align="center" bgcolor="' +
-    GOLD +
-    '" style="border-radius:3px;">' +
+    NAVY +
+    '" style="border-radius:3px;mso-line-height-rule:exactly;">' +
     '<a href="' +
     esc(b.url) +
-    '" style="display:inline-block;padding:14px 28px;font-family:' +
+    '" style="display:block;padding:14px 28px;font-family:' +
     DISPLAY +
-    ';font-size:16px;font-weight:700;color:#14213a;text-decoration:none;border-radius:3px;">' +
+    ';font-size:16px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:3px;">' +
     esc(b.label) +
     "</a></td></tr></table>"
   );
@@ -213,7 +404,7 @@ function signature(): string {
   const [name, title, firm, url] = signatureLines();
   return (
     '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:26px 0 0;border-top:1px solid ' +
-    LINE +
+    BORDER +
     ';"><tr><td style="padding:18px 0 0;">' +
     '<p style="margin:0;font-family:' +
     DISPLAY +
@@ -225,7 +416,7 @@ function signature(): string {
     '<p style="margin:2px 0 0;font-family:' +
     SANS +
     ";font-size:14px;color:" +
-    INK_QUIET +
+    SECONDARY +
     ';">' +
     esc(title) +
     ", " +
@@ -301,6 +492,7 @@ export function renderEmailHtml(input: LayoutInput): string {
       if (b.kind === "p") return p(b.text);
       if (b.kind === "heading") return heading(b.text);
       if (b.kind === "note") return note(b.text);
+      if (b.kind === "money") return money(b.rows, b.total);
       return details(b.title, b.rows);
     })
     .join("");
@@ -345,6 +537,8 @@ export function renderEmailHtml(input: LayoutInput): string {
       LOGO_H +
       'px;border:0;outline:none;text-decoration:none;">',
     "</td></tr>",
+    // The record and its state, before any prose.
+    input.status ? statusStrip(input.status) : "",
     // Body.
     '<tr><td style="padding:28px;">',
     blocks,
@@ -367,10 +561,22 @@ export function renderEmailHtml(input: LayoutInput): string {
  */
 export function renderEmailText(input: LayoutInput): string {
   const out: string[] = [];
+
+  /*
+   * The strip is a line of text here, not a band. It leads for the same reason
+   * it leads in the HTML: the reader should know which record this is before
+   * they read a sentence about it.
+   */
+  if (input.status) out.push(input.status.reference + " | " + input.status.state, "");
+
   for (const b of input.blocks) {
     if (b.kind === "p" || b.kind === "note") out.push(b.text, "");
     else if (b.kind === "heading") out.push(b.text.toUpperCase(), "");
-    else {
+    else if (b.kind === "money") {
+      for (const r of b.rows) out.push(r.label + ": " + (r.value ?? "not recorded"));
+      if (b.total) out.push(b.total.label + ": " + (b.total.value ?? "not recorded"));
+      out.push("");
+    } else {
       if (b.title) out.push(b.title.toUpperCase());
       for (const [k, v] of b.rows) out.push(k + ": " + v);
       out.push("");
