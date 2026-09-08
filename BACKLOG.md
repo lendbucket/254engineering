@@ -95,6 +95,35 @@ stays in `design-reference/emails/` so the design is not lost.
 
 The customer half of the email port is therefore three templates, not four.
 
+## Two self comparing checks left as recorded
+
+From the audit survey of 2026-09-08, which went through all 47 audit and proof
+scripts hunting checks whose expected value is imported from the module under
+test. Seven were closed in the email design branch. These two stay, on the
+operator ruling that both are mitigated, both are documented where they sit, and
+neither is on a money or security path.
+
+**scripts/jobs-audit.mjs:265.** The retry backoff floor is asserted as
+`backoffMs(n) >= BASE_DELAY_MS / 2`, both from src/lib/job-rules.ts. It is a
+ratio invariant, jitter never eats more than half the base, which is a real
+property and holds equally if the base becomes one millisecond. The same file
+already gets the ceiling right and explains why: line 243 compares against a
+literal ONE_HOUR_MS rather than MAX_DELAY_MS.
+
+**scripts/db-guard-audit.mjs:332.** `PRODUCTION_GUARD_FIX.includes(PRODUCTION_EXPECTED_REF)`,
+both from src/lib/db-guard.ts. Mitigated eighteen lines later at 350, which
+cross checks PRODUCTION_EXPECTED_REF against scripts/lib/db-target.mjs, an
+independent source. Every other use of those constants in that file asserts a
+hand written property.
+
+Also from the same survey and NOT a finding, recorded because it looks like one:
+`scripts/lib/role-total-functions.mjs` compares roleLabel, homeFor and
+actionsFor to fields of DEFAULT_ROLES, and those functions are DEFAULT_ROLES
+lookups. It was tested rather than read: breaking the lookup so it always misses
+fails the check and names four of the seven roles. DEFAULT_ROLES is a
+DECLARATION, agreeing with it is the assertion, and that is the distinction now
+recorded in CLAUDE.md.
+
 ## The email design port does not merge until support@ is proven to receive
 
 Merge gate, operator ruling 2026-09-08. Every template except four now replies

@@ -60,6 +60,24 @@ console.log("");
   rec("an empty key resolves to nothing", siteForKey("", env) === null);
 
   /*
+   * THE RATE LIMIT, ASSERTED RATHER THAN MERELY IMPORTED.
+   *
+   * SISTER_RATE_PER_MINUTE was imported at the top of this file and used
+   * nowhere, so the limit on how fast a sister site may post leads into this
+   * firm's database was checked by nothing at all. An unused import of a rate
+   * limit is a rate limit asserted nowhere, and it reads like coverage.
+   *
+   * Pinned to a literal, because it is a decision about how much traffic a
+   * partner brand may push at this endpoint before it is refused, and moving it
+   * should cost two edits on purpose.
+   */
+  rec(
+    "the sister rate limit is still the ruled 20 a minute",
+    SISTER_RATE_PER_MINUTE === 20,
+    `the module says ${SISTER_RATE_PER_MINUTE}`,
+  );
+
+  /*
    * A SHORT KEY IS NOT A KEY, and this matters more than it looks: an
    * environment variable set to an empty string, or to a placeholder somebody
    * typed while wiring it up, must not authenticate anybody. Below twenty four

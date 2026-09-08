@@ -322,13 +322,22 @@ for (const t of templates) {
   rec(`${label}: 600px maximum width`, t.html.includes("max-width:600px"));
   rec(`${label}: inline styles rather than a style block`, !/<style[\s>]/i.test(t.html));
 
-  // Identity. The From display name and the signature both come from
-  // src/config/email-identity.ts, so a template cannot invent its own.
-  rec(`${label}: From matches the identity config`, t.from === fromHeader(t.purpose), t.from);
-  const sender = emailIdentity.senders[t.purpose];
+  /*
+   * Identity, checked against literals rather than against the config the
+   * templates are built from.
+   *
+   * These two lines used to read `t.from === fromHeader(t.purpose)` and
+   * `t.from.startsWith(sender.displayName + " <")`. Both compared a value to
+   * itself and were harmless only because a separate check above pins every
+   * template's From to a literal; delete that one line and these silently stopped
+   * meaning anything. The rule is recorded in CLAUDE.md: an audit never imports
+   * its expectation from the thing it audits.
+   */
+  rec(`${label}: From is the ruled sender`, t.from === "254 Engineering <notifications@254engineering.com>", t.from);
   rec(
     `${label}: From carries a display name, not a bare address`,
-    t.from.startsWith(sender.displayName + " <"),
+    /^[^<]+ <[^>]+@[^>]+>$/.test(t.from),
+    t.from,
   );
 
   /*
@@ -362,9 +371,30 @@ for (const t of templates) {
     );
   }
 
+  /*
+   * THE EMPTY STRING HOLE, WHICH THIS FILE HAS ALREADY BEEN BITTEN BY ONCE.
+   *
+   * `includes(business.email)` is unconditionally true when business.email is
+   * the empty string, so a config that lost its contact address would produce a
+   * footer with no address and a green board. observability-audit records the
+   * identical trap for release(): it was passing off a developer machine by
+   * comparing "" to "".
+   *
+   * So the value is asserted non-empty BEFORE anything is matched against it,
+   * and the address is separately pinned to a literal, because which mailbox
+   * appears in the footer of every email this firm sends is a decision rather
+   * than a detail.
+   */
+  rec(
+    `${label}: the contact address is a real value before it is searched for`,
+    typeof business.email === "string" && business.email.trim().length > 0,
+    business.email,
+  );
   rec(
     `${label}: footer carries the contact address and the site`,
-    t.html.includes(business.email) && t.html.includes(PRODUCTION_ORIGIN),
+    business.email.trim().length > 0 &&
+      t.html.includes(business.email) &&
+      t.html.includes(PRODUCTION_ORIGIN),
   );
 }
 
