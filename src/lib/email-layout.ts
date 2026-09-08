@@ -166,6 +166,16 @@ export type LayoutInput = {
   button?: EmailButton;
   /** Human facing mail is signed. Operator notifications are not. */
   signed?: boolean;
+  /**
+   * The one click link, for marketing sends only.
+   *
+   * Absent on every transactional message, and that absence is asserted rather
+   * than assumed: email-audit fails any template carrying unsubscribe wording
+   * that is not on the declared marketing list. A receipt is not marketing, and
+   * a footer offering to switch off news about somebody's own order would be
+   * offering something this firm must not honour.
+   */
+  unsubscribeUrl?: string;
 };
 
 const esc = (s: string) =>
@@ -492,7 +502,7 @@ function signature(): string {
   );
 }
 
-function footer(): string {
+function footer(unsubscribeUrl?: string): string {
   const address = mailingAddressLine();
   const rows = [
     '<p style="margin:0 0 6px;font-family:' +
@@ -531,6 +541,29 @@ function footer(): string {
         "</p>",
     );
   }
+  /*
+   * The one click line, on marketing only.
+   *
+   * Last, under the registration line, because it is the least important thing
+   * in the footer and the most legally required. Written plainly rather than as
+   * "manage your preferences": there is one preference and this is it.
+   */
+  if (unsubscribeUrl) {
+    rows.push(
+      '<p style="margin:10px 0 0;font-family:' +
+        SANS +
+        ';font-size:12px;line-height:1.6;color:' +
+        MUTED_ON_NAVY +
+        ';">' +
+        'You are receiving this because you asked to be told when the firm could take work. ' +
+        '<a href="' +
+        esc(unsubscribeUrl) +
+        '" style="color:#e8b04a;text-decoration:underline;">Unsubscribe</a>' +
+        ". This does not affect email about anything you have ordered." +
+        "</p>",
+    );
+  }
+
   return (
     '<tr><td style="background:' +
     NAVY_DEEP +
@@ -603,7 +636,7 @@ export function renderEmailHtml(input: LayoutInput): string {
     input.button ? button(input.button) : "",
     input.signed ? signature() : "",
     "</td></tr>",
-    footer(),
+    footer(input.unsubscribeUrl),
     "</table>",
     "</td></tr></table>",
     "</body></html>",
@@ -647,6 +680,7 @@ export function renderEmailText(input: LayoutInput): string {
   if (input.button) out.push(input.button.label + ": " + input.button.url, "");
   if (input.signed) out.push(...signatureLines(), "");
   out.push(business.legalName, business.email, business.url, registrationLine());
+  if (input.unsubscribeUrl) out.push("Unsubscribe from announcements: " + input.unsubscribeUrl);
   const address = mailingAddressLine();
   if (address) out.push(address);
   return out.join("\n").replace(/\n{3,}/g, "\n\n").trim();

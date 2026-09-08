@@ -134,6 +134,21 @@ export const APPLIED = [
     note:
       "Same fingerprint as 0024 on purpose, for the reason 0021 carries: it changes two ROWS and the schema is unchanged. What it changes is checked by the row match above rather than by the fingerprint.",
   },
+
+  /*
+   * The marketing suppression list. Its own table rather than a column on a
+   * profile, because the people it is about have no profile: a waitlist signup
+   * is an address and a name, and keying consent to an account would mean the
+   * only people who can unsubscribe are staff.
+   */
+  {
+    file: "0026_marketing_suppressions.sql",
+    fingerprint: "2f76de7be0fb4ed93459db4d72d80237",
+    proves: { table: "eng_marketing_suppressions" },
+    production: null,
+    because:
+      "The branch is open. Nothing reads or writes this table except the launch announcement, which the compliance gate refuses to send while registration is pending, so production not having it changes no behaviour today. It applies with the merge.",
+  },
 ];
 
 /** The canary. An empty ledger must never read as a ledger with nothing to say. */

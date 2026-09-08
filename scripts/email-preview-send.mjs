@@ -92,7 +92,22 @@ console.log("");
  * thing being judged. What is not acceptable is sending one WITHOUT SAYING SO,
  * so every message is classified and the inert links are named before the send.
  */
-const FIXTURE_MARKERS = [/token=sample/i, /\bSAMPLE\b/, /sample@example\.com/i, /254-O2026-ABCDEF/];
+/*
+ * CASE INSENSITIVE, AND THE ENCODED FORMS TOO.
+ *
+ * The first version of this list was /\bSAMPLE\b/ and /sample@example\.com/i,
+ * and it missed three templates on their first real send. The offer's link ends
+ * /portal/jobs/sample in lower case, and the announcement's carries the address
+ * as sample%40example.com because it is a query parameter. All three went to
+ * the operator's inbox looking like genuine mail with dead links, which is
+ * exactly what the PREVIEW stamp exists to prevent.
+ *
+ * A marker list that has to be kept in step with how a link happens to be
+ * spelled is the wrong shape, so this matches the whole family: any occurrence
+ * of the word sample in a link, in any case and however encoded, and the
+ * fixture reference.
+ */
+const FIXTURE_MARKERS = [/sample/i, /%40example\.com/i, /254-O2026-ABCDEF/i, /254-F2026-/i];
 
 function inertLinks(email) {
   const body = `${email.text}\n${email.html ?? ""}`;

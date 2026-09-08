@@ -39,7 +39,8 @@ const PRODUCTION_ORIGIN = "https://254engineering.com";
 /** Subject lines get truncated in a phone notification well before this. */
 const MAX_SUBJECT = 78;
 
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import { chromium } from "playwright";
 import { emailIdentity, fromHeader, signatureLines, FROM_DISPLAY_NAME, REPLY_TO, REPLY_TO_EXCEPTIONS } from "../src/config/email-identity.ts";
 
@@ -220,6 +221,59 @@ if (templates.length === 0) {
     "no template carries ceo@36west.org anywhere",
     leakedOwner.length === 0,
     leakedOwner.length ? `${leakedOwner.join(", ")}, and it is not a 254 address` : "",
+  );
+
+  /*
+   * A SUPPRESSED ADDRESS STILL GETS ITS RECEIPT.
+   *
+   * Operator ruling, and it is the defect the whole marketing split exists to
+   * prevent: a customer unsubscribes from announcements, then pays for a sealed
+   * document and never hears what happened to it or to their money.
+   *
+   * Asserted on the SOURCE rather than by sending, because the claim is an
+   * absence. There is no call to make that would prove a transactional path
+   * does not consult the suppression list; what proves it is that no
+   * transactional module imports the module that would answer. The one
+   * legitimate reader is the announcement path.
+   *
+   * The same shape as mfa-audit's caller allowlist and for the same reason: the
+   * question "who is allowed to ask this" is answerable from the imports and
+   * nowhere else.
+   */
+  const SUPPRESSION_READERS = ["src/lib/ops-announce.ts", "src/app/(site)/unsubscribe/page.tsx"];
+
+  const readers = [];
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name).split("\\").join("/");
+      if (entry.isDirectory()) walk(full);
+      else if (/\.(ts|tsx)$/.test(entry.name)) {
+        const src = readFileSync(full, "utf8");
+        if (/from "[^"]*marketing-suppression"/.test(src)) readers.push(full);
+      }
+    }
+  };
+  walk("src");
+
+  const unexpected = readers.filter((r) => !SUPPRESSION_READERS.includes(r)).sort();
+
+  rec(
+    `only the announcement path reads the suppression list (${readers.length} readers)`,
+    unexpected.length === 0 && readers.length >= 2,
+    unexpected.length
+      ? `${unexpected.join(", ")} reads it. A transactional send must never consult it: somebody who unsubscribed from announcements is still owed their receipt.`
+      : "",
+  );
+
+  /*
+   * And the positive half, because "nothing imports it" would also be true if
+   * the module were deleted. The two named readers must actually be there.
+   */
+  const missingReaders = SUPPRESSION_READERS.filter((r) => !readers.includes(r));
+  rec(
+    "and the paths that should read it do",
+    missingReaders.length === 0,
+    missingReaders.length ? `not reading it: ${missingReaders.join(", ")}` : "",
   );
 
   rec(

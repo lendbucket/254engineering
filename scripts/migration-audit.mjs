@@ -57,9 +57,9 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * mistake could have been applied to by hand, which is exactly how 0001 stayed
  * broken for a month. A constant has to be changed by a person who noticed.
  */
-const EXPECTED_FINGERPRINT = "0e8ff33c7106ce05ec2cf81a1c66cd35";
-const EXPECTED_COLUMNS = 960;
-const EXPECTED_TABLES = 71;
+const EXPECTED_FINGERPRINT = "2f76de7be0fb4ed93459db4d72d80237";
+const EXPECTED_COLUMNS = 964;
+const EXPECTED_TABLES = 72;
 const EXPECTED_TRIGGERS = 47;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner

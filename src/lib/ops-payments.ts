@@ -1,5 +1,6 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase";
+import { business } from "@/config/business";
 import { deploymentOrigin } from "./site-url";
 import { reverseForRefund } from "./ops-partner-comp";
 import { writeAudit } from "./ops-audit";
@@ -16,7 +17,7 @@ import {
 import { event, issueCustomerLink } from "./ops-intake";
 import { customerStatusUrl, customerView, customerWhen } from "./ops-customer";
 import { queueEmail } from "./ops-jobs";
-import { orderConfirmed, orderDeclined, orderSealed } from "./email-templates";
+import { orderConfirmed, orderDeclined, orderSealed, refundFailed } from "./email-templates";
 import { transitionFile, SYSTEM_AUTHOR } from "./ops-crm";
 import { isKnown, money } from "./ops-money";
 import { LIVE_KEY_FIX, LIVE_KEY_HEADLINE, liveKeyOffProduction } from "./db-guard";
@@ -1164,6 +1165,20 @@ export async function settleDecision(input: {
       false,
       `The refund of ${money(decision.refundCents)} failed: ${result.failureReason ?? "no reason given"}. It has to be done by hand.`,
     );
+
+    /*
+     * The firm is told, and only the firm. The event above is already marked
+     * not customer visible for the reason argued below at refund.unrecorded,
+     * and this email carries the same restraint: it takes no customer address
+     * and links to the ops screen rather than to a status page.
+     */
+    await alertRefundFailed(input.orderId, {
+      refundCase: decision.caseName,
+      amountCents: decision.refundCents,
+      because: result.failureReason ?? "no reason given",
+      provider: provider.name,
+    });
+
     return { ok: false, error: result.failureReason ?? "The refund failed." };
   }
 
@@ -1263,6 +1278,50 @@ export async function settleDecision(input: {
 async function statusUrlFor(orderId: string, reference: string): Promise<string | null> {
   const link = await issueCustomerLink({ orderId });
   return link ? customerStatusUrl(reference, link.token) : null;
+}
+
+/**
+ * Tell the firm a refund did not go through.
+ *
+ * Its own function because both failure sites need it and because the one thing
+ * that must never happen here is a customer address finding its way in. There
+ * is nowhere to put one: refundFailed takes none, and the message falls to the
+ * firm's notification address like every other operator alert.
+ *
+ * A send failure is swallowed to a console line. The refund has already failed
+ * and the event is already on the order; making the alert fatal would turn one
+ * problem into two and lose the return value the caller needs.
+ */
+async function alertRefundFailed(
+  orderId: string,
+  detail: { refundCase: string; amountCents: number; because: string; provider: string },
+): Promise<void> {
+  const db = supabaseAdmin();
+  if (!db) return;
+
+  const { data: order } = await db
+    .from("eng_service_orders")
+    .select("reference, property_address")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (!order) return;
+
+  const queued = await queueEmail(
+    refundFailed({
+      reference: order.reference as string,
+      propertyAddress: order.property_address as string,
+      refundCase: detail.refundCase,
+      amount: money(detail.amountCents),
+      because: detail.because,
+      provider: detail.provider,
+      opsUrl: `${business.url}/portal/orders?id=${orderId}`,
+    }),
+    { orderId },
+  );
+
+  if (!queued.ok) {
+    console.error(`[payments] the refund failure alert could not be queued: ${queued.error}`);
+  }
 }
 
 /**
