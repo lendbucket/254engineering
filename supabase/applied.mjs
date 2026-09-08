@@ -114,6 +114,28 @@ export const APPLIED = [
     note:
       "Applied to production BEFORE the merge, deliberately. The code reads eng_mfa_enrolments on every sign in, so shipping it first would have meant nobody could sign in at all, which is the same class of failure 0023 caused and the reason this ledger exists.",
   },
+
+  /*
+   * A ROW CHANGE, WHICH IS THE KIND THIS LEDGER IS WORST AT AND MOST NEEDED FOR.
+   *
+   * The fingerprint cannot see it, exactly as with 0021: admin and engineer
+   * move from 'required' to 'optional' and the schema is identical either way.
+   * So `proves` asks the database about the ROW, and it is the only thing
+   * standing between a merged decision and a production that never heard it.
+   *
+   * It exists as its own migration rather than as an edit to 0024's seed
+   * because 0024 has run. The reasoning is at the top of both files.
+   */
+  {
+    file: "0025_mfa_optional_default.sql",
+    fingerprint: "0e8ff33c7106ce05ec2cf81a1c66cd35",
+    proves: { table: "eng_roles", match: { key: "admin", mfa_requirement: "optional" } },
+    production: null,
+    because:
+      "The branch is open. Production currently reads admin=required and engineer=required, seeded by 0024, and this is applied in the merge sequence rather than before it because nothing breaks while the two disagree: a required role that nobody has to be is a stricter state, not a broken one.",
+    note:
+      "Same fingerprint as 0024 on purpose, for the reason 0021 carries: it changes two ROWS and the schema is unchanged. What it changes is checked by the row match above rather than by the fingerprint.",
+  },
 ];
 
 /** The canary. An empty ledger must never read as a ledger with nothing to say. */

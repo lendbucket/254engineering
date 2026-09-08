@@ -135,12 +135,14 @@ export async function POST(request: NextRequest) {
   /*
    * THE SECOND FACTOR DECIDES WHICH KIND OF SESSION THIS IS.
    *
-   * Phase 12 Section 1. Three outcomes, and the third is the one that makes the
-   * requirement enforceable rather than advisory:
+   * Phase 12 Section 1, amended by the operator on 2026-09-07 when the default
+   * became an offer rather than a demand. Four outcomes now:
    *
    *   enrolled                  a PENDING session, and the challenge screen
    *   required but not enrolled a PENDING session, and the enrolment screen
-   *   otherwise                 a full session, as before
+   *   optional and not enrolled a FULL session, and the enrolment screen with
+   *                             a way to decline
+   *   off, or already handled   a full session, straight to their own home
    *
    * A person whose role requires a factor they have not set up is not refused,
    * because refusing them would mean an operator turning on the requirement
@@ -148,12 +150,35 @@ export async function POST(request: NextRequest) {
    * that can reach enrolment and nothing else, which is the same boundary the
    * challenge uses and inherits the same enforcement.
    *
+   * WHY THE OPTIONAL OFFER GETS A FULL SESSION AND NOT A PENDING ONE
+   * ----------------------------------------------------------------
+   * The obvious build is to hand everybody without a factor a pending session,
+   * land them on enrolment, and put a "Not now" button there. That button then
+   * needs an endpoint whose entire job is promoting a half authenticated cookie
+   * to a full one, and that endpoint is the single most attractive thing in
+   * this flow to attack: get it to skip its own checks and the requirement is
+   * gone for everybody, including the roles that still have one.
+   *
+   * There is nothing to withhold from somebody whose role does not require a
+   * factor, so nothing is withheld. They are issued the session they are
+   * entitled to and merely SENT somewhere first. Declining is then a link, not
+   * a privilege change, and no code exists that can turn a pending cookie into
+   * a full one. Operator ruling, 2026-09-07.
+   *
+   * ENROLLED IS CHECKED BEFORE THE REQUIREMENT, AND THE ORDER IS LOAD BEARING.
+   * Somebody who HAS a factor is challenged for it whatever their role now
+   * says. If the requirement were consulted first, moving a role to optional
+   * would silently stop challenging people who are already enrolled, which
+   * would make editing a role a way to switch off somebody else's second
+   * factor.
+   *
    * mfaStateFor THROWS on a failed read rather than reporting "not enrolled",
    * and that is deliberate: a database blip must not become a way past the
    * requirement. A 503 here is correct and is the closed door.
    */
   let factor: "pending" | "full" = "full";
   let mfaNext: string | null = null;
+  let mfaOffer: string | null = null;
   try {
     const requirement = await mfaRequirementFor(result.profile.role);
     const state = await mfaStateFor(result.profile.id);
@@ -164,6 +189,13 @@ export async function POST(request: NextRequest) {
     } else if (requirement === "required") {
       factor = "pending";
       mfaNext = "/portal/mfa/enrol";
+    } else if (requirement === "optional") {
+      /*
+       * A full session, and the offer. Kept separate from mfaNext because an
+       * offer must not override a destination the person actually asked for;
+       * see where safeNext is worked out.
+       */
+      mfaOffer = "/portal/mfa/enrol";
     }
   } catch (err) {
     console.error("[session] the second factor state could not be read:", err);
@@ -195,9 +227,16 @@ export async function POST(request: NextRequest) {
    * caller asked for in `next`. Honouring a next that pointed at a portal
    * screen would send somebody to a page their own cookie cannot open, which
    * reads as the sign in having silently failed.
+   *
+   * The optional OFFER is weaker than that on purpose, and sits where the
+   * default landing would be rather than in front of `next`. Somebody who
+   * followed a link into a specific screen and signed in to reach it is going
+   * there; interrupting that with an offer they can decline anyway would trade
+   * a working deep link for a prompt. They get the offer the next time they
+   * sign in without one, which is most times.
    */
-  const safeNext =
-    mfaNext ?? (next.startsWith("/portal") && !next.startsWith("//") ? next : homeFor(result.profile.role));
+  const asked = next.startsWith("/portal") && !next.startsWith("//") ? next : null;
+  const safeNext = mfaNext ?? asked ?? mfaOffer ?? homeFor(result.profile.role);
 
   const res = isForm
     ? NextResponse.redirect(new URL(safeNext, request.url), { status: 303 })

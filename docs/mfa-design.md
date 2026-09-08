@@ -11,7 +11,7 @@ asks for both rather than letting a session decide them:
 
 | Question | Ruling, 2026-09-07 |
 | --- | --- |
-| Is MFA required on the engineer role? | **Required.** |
+| Is MFA required on the engineer role? | **Required**, superseded the same day. Section 5. |
 | What is the break glass path? | **A one time environment variable reset.** |
 
 Both are argued in sections 5 and 6 below, including what they cost.
@@ -157,9 +157,36 @@ and counted so a person can see how many remain.
 
 | Role | Requirement | Why |
 | --- | --- | --- |
-| `admin` | **required** | The brief settles this. That role moves money and changes permissions. |
-| `engineer` | **required** | **Operator ruling, 2026-09-07.** |
+| `admin` | optional | Required in 0024. **Operator ruling, 2026-09-07**, applied by 0025. |
+| `engineer` | optional | Required in 0024. The same ruling and the same migration. |
 | everything else | optional | Enrolment is offered, not compelled. |
+
+**THE DEFAULT IS AN OFFER AND THE REQUIREMENT IS STILL THERE.** The ruling
+argued below was made and then reconsidered within the day, and both halves are
+kept for the reason CLAUDE.md keeps the Newsreader ruling: a decision that
+vanishes without a trace looks like a decision nobody made.
+
+What changed is which roles are set, not what the setting does. A role moved
+back to `required` gets exactly the enforcement argued for below, and
+`mfa-audit` proves that on every run by creating a role that requires a factor,
+signing an account in under it, and requiring the portal to refuse it. The firm
+will want this on before it holds real client data, and the point of doing this
+as two rows rather than by deleting the mechanism is that turning it back on is
+one update rather than a rebuild under pressure.
+
+What somebody on an optional role meets instead: the enrolment screen, reached
+with a FULL session and carrying a Not now link, so the offer is in front of
+them every time they sign in without a factor and never blocks them. The full
+session is deliberate. The alternative, a pending session plus a button that
+promotes it, would mean building the one endpoint in this flow worth attacking:
+an endpoint whose whole job is upgrading a half authenticated cookie. Nothing
+is withheld from somebody whose role does not require a factor, so declining is
+navigation rather than a privilege change.
+
+**Somebody who already has a factor is still challenged for it**, whatever
+their role now says. The sign in path checks enrolment before it reads the
+requirement, and that order is load bearing: reversed, editing a role would
+become a way to switch off somebody else's second factor.
 
 **The engineer ruling, and what it costs.** That role carries the licence.
 `holdsLicence` compares against it, and its holder is the person whose seal and
@@ -171,7 +198,10 @@ The cost is real and is stated rather than minimised. **A PE cannot review
 anything until they have an authenticator app and their recovery codes.** That is
 friction at exactly the moment somebody is trying to start work, and it falls on
 the one person the firm most needs to be able to work. The operator weighed that
-and chose required.
+and chose required, then weighed the same cost against an empty room and chose
+the offer. Nobody holds client data yet, so the wall was being paid for in full
+and protecting nothing. That calculation reverses the moment the first real
+client record lands, and the reversal is one update.
 
 **A role set to required affects people who have not enrolled**, so the
 requirement cannot simply lock them out. A person in that position signs in with

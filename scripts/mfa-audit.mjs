@@ -438,54 +438,179 @@ else process.env.OPS_SESSION_SECRET = HAD;
        */
       {
         /*
-         * A REAL, DELIBERATELY UN-ENROLLED ACCOUNT.
+         * TWO REAL, DELIBERATELY UN-ENROLLED ACCOUNTS: ONE OPTIONAL, ONE REQUIRED.
          *
          * The synthetic cookie above is signed correctly and names a uuid with
          * no profile behind it, so the screen renders and the endpoint answers
-         * 401. That is right of the endpoint and useless for this check, which
-         * has to get as far as a QR.
+         * 401. That is right of the endpoint and useless for these checks,
+         * which have to get as far as a QR and as far as a portal screen.
          *
-         * It signs in with a bare POST rather than through signInFully, and
-         * that is the one place in this repository where doing so is correct:
-         * signInFully COMPLETES an enrolment, and what this needs is an account
-         * that has not. mfa-audit is in that helper's allowlist for this reason.
+         * They sign in with a bare POST rather than through signInFully, and
+         * this is the one place in this repository where doing so is correct:
+         * signInFully COMPLETES an enrolment, and what these need is accounts
+         * that have not. mfa-audit is in that helper's allowlist for this
+         * reason.
+         *
+         * WHY THE REQUIRED PROBE BRINGS ITS OWN ROLE.
+         * After 0025 no shipped role requires a factor, so an assertion that a
+         * required role is still refused has nothing to stand on unless it
+         * makes one. Roles are rows since 0018, so it inserts one, uses it, and
+         * deletes it. Checked before this was built rather than assumed: no
+         * audit anywhere reads eng_roles from the database, roles-audit
+         * compares the migration chain to DEFAULT_ROLES in the TypeScript, and
+         * nothing asserts a live role count. The profiles foreign key added in
+         * 0018 also enforces the teardown order, so the role cannot be removed
+         * while its probe still exists.
+         *
+         * That assertion is the one that matters most here. Making the default
+         * an offer is only safe if the requirement it replaces still bites when
+         * a role asks for it, and "still bites" is a claim, not a fact, until
+         * something signs in under it and is refused.
          */
         const db = auditClient("mfa-audit", { neverProduction: true });
         const stamp = Date.now();
-        const probeEmail = `qrprobe-${stamp}@mobile-audit.invalid`;
-        const probePassword = `qrprobe-${stamp}-enrolment-screen`;
-        let probeId = null;
-        let probeCookie = null;
+        const REQUIRED_ROLE = `mfa_probe_required_${stamp}`;
+        const probeIds = [];
+        let roleMade = false;
+
+        /* Sign a fresh account in and report what came back, without enrolling it. */
+        const makeProbe = async (roleKey, tag) => {
+          if (!db) return { cookie: null, redirect: null };
+          const email = `mfaprobe-${tag}-${stamp}@mobile-audit.invalid`;
+          const password = `mfaprobe-${tag}-${stamp}-enrolment-screen`;
+          const made = await db.auth.admin.createUser({ email, password, email_confirm: true });
+          if (!made.data?.user) return { cookie: null, redirect: null };
+          probeIds.push(made.data.user.id);
+          const inserted = await db.from("eng_profiles").insert({
+            id: made.data.user.id,
+            email,
+            display_name: `MFA Probe ${tag}`,
+            role: roleKey,
+            status: "active",
+          });
+          if (inserted.error) return { cookie: null, redirect: null };
+          const res = await fetch(`${BASE}/api/portal/session`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password }),
+          });
+          const body = await res.json().catch(() => null);
+          return {
+            cookie: (res.headers.get("set-cookie") ?? "").match(/eng_ops=([^;]+)/)?.[1] ?? null,
+            redirect: typeof body?.redirect === "string" ? body.redirect : null,
+          };
+        };
 
         if (db) {
-          const made = await db.auth.admin.createUser({
-            email: probeEmail,
-            password: probePassword,
-            email_confirm: true,
+          const inserted = await db.from("eng_roles").insert({
+            key: REQUIRED_ROLE,
+            name: "MFA probe, required",
+            landing_path: "/portal",
+            is_system: false,
+            mfa_requirement: "required",
           });
-          if (made.data?.user) {
-            probeId = made.data.user.id;
-            await db.from("eng_profiles").insert({
-              id: probeId,
-              email: probeEmail,
-              display_name: "QR Probe",
-              role: "admin",
-              status: "active",
-            });
-            const signIn = await fetch(`${BASE}/api/portal/session`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ email: probeEmail, password: probePassword }),
-            });
-            probeCookie = (signIn.headers.get("set-cookie") ?? "").match(/eng_ops=([^;]+)/)?.[1] ?? null;
-          }
+          roleMade = !inserted.error;
+          rec(
+            "a role requiring a second factor could be created to test against",
+            roleMade,
+            roleMade ? REQUIRED_ROLE : (inserted.error?.message ?? "insert failed"),
+          );
         }
 
+        const optional = await makeProbe("admin", "optional");
+        const required = roleMade ? await makeProbe(REQUIRED_ROLE, "required") : { cookie: null, redirect: null };
+
+        const probeCookie = optional.cookie;
+
         rec(
-          "an un-enrolled probe reached a pending session",
+          "an un-enrolled probe on an optional role signed in",
           Boolean(probeCookie),
           probeCookie ? "" : "without one the enrolment screen cannot be walked at all",
         );
+
+        /*
+         * ------------------------------------------------------------------
+         * AN OPTIONAL ROLE IS OFFERED ENROLMENT AND CAN DECLINE INTO THE PORTAL.
+         *
+         * Operator ruling, 2026-09-07. Two halves, and both are needed: being
+         * sent to enrolment is the offer, and the portal opening is the
+         * decline. A build that did the first and not the second would be the
+         * old behaviour with softer wording.
+         *
+         * The portal check is done with the cookie itself rather than by
+         * reading a factor out of it, because what is being claimed is that
+         * the portal opens, and that is a thing the server decides.
+         */
+        rec(
+          "an optional role with no factor is OFFERED enrolment",
+          optional.redirect === "/portal/mfa/enrol",
+          optional.redirect ?? "no redirect came back",
+        );
+
+        const portalPath = all.includes("/portal") ? "/portal" : (pages[0] ?? "/portal");
+
+        if (probeCookie) {
+          const opened = await fetch(`${BASE}${portalPath}`, {
+            headers: { cookie: `eng_ops=${probeCookie}` },
+            redirect: "manual",
+          });
+          rec(
+            `and can DECLINE into the portal (${portalPath})`,
+            opened.status === 200,
+            opened.status === 200
+              ? ""
+              : `status ${opened.status}. The offer was made and the portal was still shut, which is the behaviour this ruling replaced.`,
+          );
+        } else {
+          rec("and can DECLINE into the portal", false, "no optional probe to try it with");
+        }
+
+        /*
+         * ------------------------------------------------------------------
+         * A REQUIRED ROLE STILL CANNOT.
+         *
+         * The other half of the same ruling, and the reason the requirement is
+         * still worth having in the code. Same sign in, same screen, and the
+         * portal must refuse.
+         */
+        rec(
+          "a required role with no factor is sent to enrolment",
+          required.redirect === "/portal/mfa/enrol",
+          required.redirect ?? (roleMade ? "no redirect came back" : "no required role was created"),
+        );
+
+        if (required.cookie) {
+          const shut = await fetch(`${BASE}${portalPath}`, {
+            headers: { cookie: `eng_ops=${required.cookie}` },
+            redirect: "manual",
+          });
+          rec(
+            `and CANNOT decline into the portal (${portalPath})`,
+            shut.status !== 200,
+            shut.status === 200
+              ? "a required role reached a portal screen without a factor, which is the requirement not existing"
+              : `refused with ${shut.status}`,
+          );
+
+          /*
+           * And the decline is not merely ineffective for them, it is not
+           * offered. A link that appears and then fails is a worse screen than
+           * one that never offered, and the server decides this from the
+           * session rather than from the requirement read.
+           */
+          const shown = await fetch(`${BASE}/portal/mfa/enrol`, {
+            headers: { cookie: `eng_ops=${required.cookie}` },
+          });
+          const html = shown.ok ? await shown.text() : "";
+          rec(
+            "and is not shown a way out of it",
+            shown.ok && !/Not now/i.test(html),
+            shown.ok ? (/Not now/i.test(html) ? "the decline was rendered for a required role" : "") : `enrol screen answered ${shown.status}`,
+          );
+        } else {
+          rec("and CANNOT decline into the portal", false, "no required probe to try it with");
+          rec("and is not shown a way out of it", false, "no required probe to try it with");
+        }
 
         const { chromium } = await import("playwright");
         const browser = probeCookie ? await chromium.launch() : null;
@@ -534,14 +659,57 @@ else process.env.OPS_SESSION_SECRET = HAD;
               (await page.getByText(/Cannot scan it/i).count()) > 0,
             );
           }
+
+          /*
+           * THE DECLINE IS A LINK SOMEBODY CAN ACTUALLY FOLLOW.
+           *
+           * Asserted in the browser rather than by finding the words in the
+           * HTML, for the reason the QR check above exists: markup that is
+           * present and markup that works are different claims, and this file
+           * has already been wrong about that once. This one goes back to the
+           * start of the screen, finds the link, and follows it.
+           */
+          await page.goto(`${BASE}/portal/mfa/enrol`, { waitUntil: "domcontentloaded" });
+          const notNow = page.getByRole("link", { name: /not now/i });
+          const offered = (await notNow.count()) > 0;
+          rec("the optional probe is shown a way to decline", offered);
+
+          if (offered) {
+            await notNow.first().click();
+            await page.waitForLoadState("domcontentloaded");
+            const landed = page.url();
+            rec(
+              "and following it lands inside the portal rather than back at the sign in",
+              !/\/portal\/login/.test(landed) && !/\/portal\/mfa/.test(landed),
+              landed,
+            );
+          }
         } catch {
           /* Reported by the checks above rather than thrown; a probe that could
            * not be made has already failed its own assertion. */
         } finally {
           if (browser) await browser.close();
-          if (db && probeId) {
-            await db.from("eng_profiles").delete().eq("id", probeId);
-            await db.auth.admin.deleteUser(probeId).catch(() => {});
+          /*
+           * PROFILES FIRST, THEN THE ROLE. eng_profiles.role is a foreign key
+           * to eng_roles(key) since 0018, so removing the role while a probe
+           * still references it fails and leaves both behind. The order is not
+           * a preference.
+           */
+          if (db) {
+            for (const id of probeIds) {
+              await db.from("eng_profiles").delete().eq("id", id);
+              await db.auth.admin.deleteUser(id).catch(() => {});
+            }
+            if (roleMade) {
+              const removed = await db.from("eng_roles").delete().eq("key", REQUIRED_ROLE);
+              rec(
+                "the throwaway required role was cleaned up",
+                !removed.error,
+                removed.error
+                  ? `${REQUIRED_ROLE} is still on development: ${removed.error.message}`
+                  : "",
+              );
+            }
           }
         }
       }

@@ -29,13 +29,34 @@ import { useState } from "react";
  * phone that is working perfectly, which is the least debuggable position this
  * platform can put somebody in.
  *
+ * AND IT CAN BE DECLINED, UNLESS THE ROLE SAYS OTHERWISE
+ * -------------------------------------------------------
+ * Operator ruling, 2026-09-07, the same day and after the QR: the default is an
+ * offer rather than a demand. `declineTo` carries where "Not now" goes, and it
+ * is null for anybody who arrived here without a full session, which is exactly
+ * the people whose role requires a factor. So the decline is not hidden from
+ * them by a flag that could be wrong; there is nowhere for it to go, because
+ * the sign in path did not hand them a session to go there with.
+ *
  * The dependency concern was answered rather than dismissed. src/lib/qr.ts is
  * written here, so nothing is added to the runtime at all, and it is verified
  * by decoding its output with an independent decoder that ships with nothing.
  * The SVG is rendered SERVER SIDE and arrives as inert markup, so no third
  * party ever sees the secret and the browser is handed no encoder.
  */
-export function EnrolForm({ required }: { required: boolean }) {
+export function EnrolForm({
+  required,
+  declineTo,
+}: {
+  required: boolean;
+  /**
+   * Where "Not now" goes, or null when there is nowhere to decline to. Decided
+   * by the server from the session, never from a prop the client could invent:
+   * only a full session gets a destination, and a full session is one the sign
+   * in path already handed over. Declining is navigation, not a promotion.
+   */
+  declineTo: string | null;
+}) {
   const [secret, setSecret] = useState<string | null>(null);
   const [uri, setUri] = useState<string | null>(null);
   /* The SVG, rendered by the server. This component never sees the encoder. */
@@ -248,6 +269,34 @@ export function EnrolForm({ required }: { required: boolean }) {
       >
         {busy ? "Starting" : "Set up a second factor"}
       </button>
+
+      {/*
+        The decline. Present only when the server decided there is somewhere to
+        decline to, which is only when the session is already a full one.
+        Written as a link rather than a button because that is exactly what it
+        is: no request, no state change, nothing to get wrong on the server.
+      */}
+      {declineTo ? (
+        <a
+          href={declineTo}
+          className="min-h-[var(--tap-target)] flex items-center justify-center text-[13.5px] font-semibold text-[var(--navy)] underline"
+        >
+          Not now
+        </a>
+      ) : null}
+
+      {/*
+        WHAT THIS SENTENCE MAY NOT SAY.
+        Not "you can set this up later from your account". Voluntary enrolment
+        on the profile screen is not built, so that would be an instruction to
+        visit a page that does not exist. What is true is that this offer comes
+        back at the next sign in, so that is what it says.
+      */}
+      {declineTo ? (
+        <p className="text-[13px] leading-[1.55] text-[var(--secondary)]">
+          Your role does not require this. You will be offered it again the next time you sign in.
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -3,12 +3,19 @@
  *
  * WHY PROBES ENROL RATHER THAN BEING EXEMPTED
  * -------------------------------------------
- * Migration 0024 seeds `admin` and `engineer` as `required`, on the operator's
- * ruling. From that moment a probe signing in as either gets a PENDING session
- * and every portal route refuses it, which is exactly what mfa-audit asserts
+ * Migration 0024 seeded `admin` and `engineer` as `required`, on the operator's
+ * ruling. From that moment a probe signing in as either got a PENDING session
+ * and every portal route refused it, which is exactly what mfa-audit asserts
  * must happen. Thirty eight roles-audit checks went red on the first suite run
  * after it, and the line that named the cause was the one added that same
  * morning: "the cookie was minted and then refused".
+ *
+ * 0025 then made both roles optional and this helper did not have to change,
+ * which is worth knowing rather than discovering. A probe on an optional role
+ * is now handed a FULL session and sent to the enrolment OFFER, so the same
+ * redirect still arrives and the same enrolment still runs. The probes keep
+ * exercising the flow end to end, and the argument below stands whether the
+ * requirement is on or off.
  *
  * There were two ways out. Exempt the probes, by giving them roles where MFA is
  * optional or by turning the requirement off during audits. Or make them enrol.
@@ -105,10 +112,13 @@ export async function signInFully(base, email, password) {
   const body = await res.json().catch(() => null);
 
   /*
-   * The redirect says which kind of session came back, and it is read rather
-   * than the cookie being parsed: the audit should learn this the way a browser
-   * does. /portal/mfa/enrol means the role requires a factor this account does
-   * not have, which is the only case a probe has to act on.
+   * The redirect says what the account still needs, and it is read rather than
+   * the cookie being parsed: the audit should learn this the way a browser
+   * does. /portal/mfa/enrol means this account has no factor, whether its role
+   * requires one or is merely offering, and either way a probe finishes the
+   * enrolment. Deliberately not distinguishing the two: a probe that only
+   * enrolled when compelled would stop exercising this path the moment the
+   * last required role became optional, which is what 0025 did.
    */
   const needsEnrolment = typeof body?.redirect === "string" && body.redirect.startsWith("/portal/mfa/enrol");
 
