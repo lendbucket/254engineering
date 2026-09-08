@@ -77,18 +77,49 @@ console.log(`  templates: ${chosen.length} of ${all.length}`);
 console.log(`  gate:      LAUNCH_MODE=${process.env.LAUNCH_MODE ?? "(unset, so prelaunch)"}`);
 console.log("");
 
+/*
+ * A LINK THAT DOES NOT RESOLVE MAKES THE EMAIL WRONG, WHATEVER IT LOOKS LIKE.
+ *
+ * Operator ruling, and it was earned the hard way: the first real send of the
+ * three customer templates went out carrying ?token=sample, because the audit
+ * fixtures are the only rendered copies that exist without a live order. They
+ * looked perfect and every link in them was inert. Somebody clicking "Track
+ * this order" would have got the page that says the order cannot be found,
+ * which is exactly the impression a firm cannot afford to give the person who
+ * just paid it.
+ *
+ * A preview of a fixture is still worth sending, because the render is the
+ * thing being judged. What is not acceptable is sending one WITHOUT SAYING SO,
+ * so every message is classified and the inert links are named before the send.
+ */
+const FIXTURE_MARKERS = [/token=sample/i, /\bSAMPLE\b/, /sample@example\.com/i, /254-O2026-ABCDEF/];
+
+function inertLinks(email) {
+  const body = `${email.text}\n${email.html ?? ""}`;
+  const links = [...new Set([...body.matchAll(/https:\/\/[^\s"<)]+/g)].map((m) => m[0]))];
+  return links.filter((l) => FIXTURE_MARKERS.some((re) => re.test(l)));
+}
+
 let sent = 0;
 const failed = [];
+const fixtures = [];
 
 for (const template of chosen) {
   /*
    * The recipient is replaced on a COPY. Mutating the rendered message would
    * work equally well here and would be a trap for whatever calls this next.
    */
+  const inert = inertLinks(template);
+
   const result = await notify({ ...template, to: RECIPIENT });
   if (result.sent) {
     sent += 1;
     console.log(`  SENT   ${template.id}  ${template.subject}`);
+    if (result.messageId) console.log(`         resend id ${result.messageId}`);
+    if (inert.length) {
+      fixtures.push(template.id);
+      for (const l of inert) console.log(`         INERT LINK, goes nowhere: ${l}`);
+    }
   } else {
     failed.push(`${template.id}: ${result.reason ?? result.outcome}`);
     console.log(`  FAILED ${template.id}  ${result.reason ?? result.outcome}`);
@@ -105,6 +136,16 @@ if (failed.length) {
 
 console.log(`${sent} sent to ${RECIPIENT}.`);
 console.log("");
-console.log("A send is not a verification. Open each one and look at it: the logo,");
-console.log("the navy bands, the button, and what dark mode does to all three.");
+
+if (fixtures.length) {
+  console.log(`  ${fixtures.length} of these are FIXTURE renders: ${fixtures.join(", ")}`);
+  console.log("  Their links go nowhere. Judge the design from them and nothing else;");
+  console.log("  whether the links work is a separate question these cannot answer,");
+  console.log("  because a fixture has no order behind it to link to.");
+  console.log("");
+}
+
+console.log("A send is not a verification, and acceptance by Resend is not delivery.");
+console.log("Open each one and look at it: the logo, the navy bands, the button, and");
+console.log("what dark mode does to all three.");
 console.log("");

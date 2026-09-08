@@ -74,7 +74,16 @@ export function customerWhen(iso: string | null): string | null {
   if (!iso) return null;
   const at = new Date(iso);
   if (Number.isNaN(at.getTime())) return null;
-  return at.toLocaleString("en-US", {
+  /*
+   * THE ZONE IS PART OF THE TIME.
+   *
+   * "September 3, 2026 at 11:42" is a guess presented as a fact: the reader
+   * assumes their own zone and this firm's records are Central. Operator
+   * ruling. Written as CT rather than CDT or CST because the abbreviation
+   * changes twice a year and the reader does not care which side of the
+   * changeover a timestamp fell on.
+   */
+  const when = at.toLocaleString("en-US", {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -83,6 +92,7 @@ export function customerWhen(iso: string | null): string | null {
     hour12: false,
     timeZone: "America/Chicago",
   });
+  return `${when} CT`;
 }
 
 /**

@@ -27,6 +27,73 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
+## A phone in job reaches payment with no refund disclosure
+
+Found 2026-09-08 while porting the email design, and it is a CHECKOUT defect
+rather than an email one. Operator ruling: it belongs at the top.
+
+There are two ways an order is created. `ops-intake.ts` builds one from the
+catalog and writes `refund_disclosure` in the same insert that sets
+`awaiting_payment`, so a customer ordering online is always told what happens to
+their money before they pay. `ops-job-billing.ts` raises one against a file for
+a job taken over the telephone, and writes no disclosure at all. It also writes
+no `inspection_fee_cents` and no `catalog_snapshot`.
+
+**What that costs, concretely.** The customer is emailed a payment link and pays
+without ever being told the refund terms, while the online customer is. And
+because the inspection fee is absent, `refundFor` reaches its "refuses to
+compute" branch the moment a technician has attended and the engineer declines,
+so the refund cannot be worked out at all and has to be settled by hand.
+
+**Why the email does not paper over it.** `order.confirmed` carries the stored
+disclosure verbatim and says nothing when there is none, which is correct: an
+email must not invent the terms somebody was never given. That correctness is
+what makes the gap visible rather than what fixes it.
+
+Not fixed here because the fix is a decision about what a phoned in job
+discloses and when, which is the operator's and touches money.
+
+## onboarding-welcome, waiting on self service accounts
+
+Recorded 2026-09-08. One of the thirteen templates in the approved email design,
+classified as describing a real event and then found to have no event to hang
+off.
+
+The design shows a customer account welcome: track files, download sealed
+letters, manage billing. The surface exists at `/account`, `issueCustomerToken`
+exists, and `/account/set-password` exists. **Nothing creates a customer user.**
+`issueCustomerToken` has zero callers, so there is no moment at which this email
+could be sent.
+
+It belongs to Phase 13 self service accounts, which is the work that would make
+the event. Building the email first would mean inventing an account creation
+flow to justify a template, which is the wrong way round. The reference file
+stays in `design-reference/emails/` so the design is not lost.
+
+The customer half of the email port is therefore three templates, not four.
+
+## Where a customer email links, and the ruling that was revised
+
+Recorded 2026-09-08. **Every customer facing email links to
+`/order/<reference>?token=`, and nothing else.**
+
+The operator first ruled these at `/account/orders/<reference>`. That was
+revised on the evidence rather than on preference: `/account` is the B2B account
+surface, `/account/orders/[reference]` renders a bulk BATCH scoped to
+`me.accountId` and behind a login, and `eng_service_orders` says in its own
+comment that a customer "is not a portal account: they never get one". The
+ruled link would have sent one off customers to a login they can never pass.
+
+The right destination already existed and predates both readings. The order
+status page has been there since Phase 7 and states its own contract at the top:
+the link is signed, emailed to them, and that is the whole authentication story.
+Nothing had ever emailed it. `releaseForFulfilment` minted the token, wrote
+`customer_link.issued`, and dropped it.
+
+**There is no letter route and there will not be one**, so the sealed email
+points at the status page where the uploaded document hangs. That defers to the
+standing law in CLAUDE.md rather than restating it.
+
 ## Phase 12 Section 1 is on production and enrolled against
 
 ### The second factor is offered rather than demanded, and the requirement is still there

@@ -430,7 +430,22 @@ export async function retryDeadJob(
  * job is written, so the payload always names the actual recipient and the
  * idempotency key is computed over it.
  */
-export async function queueEmail(email: RenderedEmail): Promise<EnqueueResult> {
+export async function queueEmail(
+  email: RenderedEmail,
+  /**
+   * The order this message is about, when it is about one.
+   *
+   * Carried so the handler can write the ACCEPTANCE back to that order's
+   * timeline, with the provider's message id, at the only moment anybody knows
+   * it left. Enqueuing is not sending: a queued email may sit, retry, or dead
+   * letter, and a timeline that recorded contact at enqueue time would be
+   * claiming something that had not happened yet.
+   *
+   * Absent for every operator alert, which is about the machine and has no
+   * order to write to.
+   */
+  about?: { orderId: string },
+): Promise<EnqueueResult> {
   return enqueue("email.send", {
     id: email.id,
     purpose: email.purpose,
@@ -440,5 +455,6 @@ export async function queueEmail(email: RenderedEmail): Promise<EnqueueResult> {
     replyTo: email.replyTo ?? null,
     text: email.text,
     html: email.html ?? "",
+    orderId: about?.orderId ?? null,
   });
 }

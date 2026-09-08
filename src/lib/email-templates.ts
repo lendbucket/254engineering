@@ -44,6 +44,35 @@ import {
  * footer reaching every message this firm sends.
  */
 
+/**
+ * WHICH EMAILS CARRY AN UNSUBSCRIBE, DECLARED IN ONE PLACE.
+ *
+ * Operator ruling: a one click unsubscribe is honoured by every marketing
+ * shaped send, and a receipt is not marketing. The split is standing law rather
+ * than a preference, so it is written down once and asserted rather than
+ * remembered per template.
+ *
+ * The line is not "does the reader like it". It is whether the message is about
+ * a transaction that reader entered into. Somebody who paid for a sealed
+ * document is owed the confirmation, the outcome and the refund arithmetic
+ * whatever their marketing preference says, and a footer inviting them to
+ * switch those off would be offering something this firm must not honour.
+ *
+ * MARKETING is the short list, and it stays short. Anything not named here is
+ * transactional, so a template added without thinking about this lands on the
+ * safe side: it carries no unsubscribe, and email-audit fails if it does.
+ */
+export const MARKETING_TEMPLATES: readonly string[] = [
+  /* Filled by the launch announcement and the waitlist welcome, which are the
+   * only two sends this firm has that go to a list rather than to a person
+   * about their own record. Neither is built yet; the ruling predates them. */
+];
+
+/** Whether a template id is marketing shaped, and therefore carries an unsubscribe. */
+export function isMarketing(id: string): boolean {
+  return MARKETING_TEMPLATES.includes(id);
+}
+
 export type RenderedEmail = {
   /** A stable identifier, used by the audit to name a failure. */
   id: string;

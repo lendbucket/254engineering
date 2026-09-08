@@ -528,7 +528,7 @@ export async function releaseForFulfilment(
    */
   const link = await issueCustomerLink({ orderId });
   if (link) {
-    await event(orderId, "customer_link.issued", false, "A status link was issued for the customer.");
+    await event(orderId, "customer_link.issued", false, "A status link was minted. Nothing has been sent yet.");
     await sendOrderConfirmation(orderId, link.token);
   }
 }
@@ -584,6 +584,7 @@ async function sendOrderConfirmation(orderId: string, token: string): Promise<vo
       receives: view.receives,
       statusUrl: customerStatusUrl(view.reference, token),
     }),
+    { orderId },
   );
 
   await event(
@@ -1303,6 +1304,7 @@ async function sendOrderSealed(orderId: string): Promise<void> {
       sealedAt: customerWhen(new Date().toISOString()) ?? "just now",
       statusUrl,
     }),
+    { orderId },
   );
 
   await event(
@@ -1359,6 +1361,7 @@ async function sendOrderDeclined(
       retained: isKnown(decision.retainedCents) ? money(decision.retainedCents) : null,
       statusUrl,
     }),
+    { orderId },
   );
 
   await event(

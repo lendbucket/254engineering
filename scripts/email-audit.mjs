@@ -27,7 +27,7 @@
 //   375px render    NOT APPLICABLE and reported as such. These templates have no
 //                   HTML part by design, and a width check on plain text would
 //                   be a green light for a measurement that never happened.
-import { allTemplatesForAudit } from "../src/lib/email-templates.ts";
+import { allTemplatesForAudit, MARKETING_TEMPLATES } from "../src/lib/email-templates.ts";
 import { business } from "../src/config/business.ts";
 import { context, findBannedPhrases } from "./lib/voice-blocklist.mjs";
 
@@ -51,6 +51,99 @@ const templates = allTemplatesForAudit();
 if (templates.length === 0) {
   console.error("email-audit: no templates returned; refusing to report a pass on zero templates.");
   process.exitCode = 1;
+}
+
+/* ------------------------------------------------------------------------ */
+/* THE INVENTORY IS DERIVED, NOT LISTED.                                     */
+/*                                                                          */
+/* allTemplatesForAudit() is a list somebody maintains by hand, and a list   */
+/* somebody maintains by hand stops describing the system the first time     */
+/* somebody forgets. That already happened: three customer templates were    */
+/* written, wired and shipped while this audit's count sat at 352, and the   */
+/* only symptom was a number that did not move. Nothing failed, because      */
+/* nothing was looking.                                                      */
+/*                                                                          */
+/* So the set of templates that EXIST is read from the source, the same way  */
+/* surface-audit reads scripts/lib/surfaces.mjs, and a template that exists  */
+/* and is not rendered here is a failure rather than a discovery.            */
+/*                                                                          */
+/* Every id is the first argument to compose(), which is the one function    */
+/* every template goes through. Read as an expression rather than a literal, */
+/* because leadNotification picks its id with a ternary and a regex for a    */
+/* bare string would silently miss both halves of it.                        */
+/* ------------------------------------------------------------------------ */
+{
+  const source = readFileSync("src/lib/email-templates.ts", "utf8");
+  const declared = new Set();
+
+  for (let i = source.indexOf("compose("); i !== -1; i = source.indexOf("compose(", i + 1)) {
+    /* Walk to the comma that ends the first argument, tracking depth so a
+     * nested call or object does not end it early. */
+    let depth = 1;
+    let j = i + "compose(".length;
+    let firstArg = "";
+    for (; j < source.length && depth > 0; j += 1) {
+      const c = source[j];
+      if (c === "(" || c === "{" || c === "[") depth += 1;
+      else if (c === ")" || c === "}" || c === "]") depth -= 1;
+      if (depth === 1 && c === ",") break;
+      if (depth > 0) firstArg += c;
+    }
+    for (const m of firstArg.matchAll(/"([a-z0-9_]+\.[a-z0-9_]+)"/g)) declared.add(m[1]);
+  }
+
+  const measured = new Set(templates.map((t) => t.id));
+  const unmeasured = [...declared].filter((d) => !measured.has(d)).sort();
+  const phantom = [...measured].filter((m) => !declared.has(m)).sort();
+
+  rec(
+    `the template inventory was derived from the source (${declared.size} found)`,
+    declared.size >= measured.size && declared.size > 5,
+    declared.size <= 5 ? "parsing found almost nothing, so the check below is measuring nothing" : "",
+  );
+
+  rec(
+    "every template that exists is rendered by this audit",
+    unmeasured.length === 0,
+    unmeasured.length
+      ? `NOT MEASURED: ${unmeasured.join(", ")}. Add them to allTemplatesForAudit.`
+      : `${measured.size} of ${declared.size}`,
+  );
+
+  rec(
+    "and this audit renders nothing that does not exist",
+    phantom.length === 0,
+    phantom.length ? `fixture with no template: ${phantom.join(", ")}` : "",
+  );
+
+  /*
+   * NO TRANSACTIONAL EMAIL CARRIES AN UNSUBSCRIBE.
+   *
+   * Operator ruling, and it is standing law rather than a style preference. A
+   * receipt is not marketing: somebody who paid for a sealed document is owed
+   * the confirmation, the outcome and the refund arithmetic whatever their
+   * marketing preference says. A footer offering to switch those off would be
+   * offering something this firm must not honour, and the first person to click
+   * it would stop receiving news about their own money.
+   *
+   * The split is declared in email-templates.ts rather than here, so the
+   * application and the audit cannot disagree about which is which.
+   */
+  const marketing = new Set(MARKETING_TEMPLATES);
+  const leaked = templates
+    .filter((t) => !marketing.has(t.id))
+    .filter((t) => /unsubscribe|opt.?out|manage (your )?preferences/i.test(`${t.text}\n${t.html ?? ""}`))
+    .map((t) => t.id);
+
+  rec(
+    `no transactional template offers an unsubscribe (${templates.length - marketing.size} checked)`,
+    leaked.length === 0,
+    leaked.length
+      ? `${leaked.join(", ")} carries one, and a receipt is not marketing`
+      : marketing.size === 0
+        ? "no marketing templates exist yet, so every template was checked"
+        : `${marketing.size} marketing template(s) exempt`,
+  );
 }
 
 for (const t of templates) {
