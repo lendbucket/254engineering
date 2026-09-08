@@ -27,6 +27,29 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
+## A customer link cannot be revoked, and lives 120 days
+
+Recorded 2026-09-08. Accepted by the operator as the code behaves, and not being
+fixed now.
+
+Each customer email mints its own status token: `issueCustomerLink` only
+INSERTs, and nothing anywhere in the codebase sets `revoked_at` on
+`eng_customer_access`. The upside is the one that was asked about and it holds:
+every token stays valid to its own expiry, so an older email in a customer inbox
+is never silently killed by a newer one.
+
+The cost is the other half of the same fact. **A link that is forwarded, leaked,
+posted in a support ticket or left in an inherited mailbox works for 120 days
+and there is no way to stop it.** The column exists and is read on every
+resolve, so the reader honours a revocation; nothing can write one. The order
+status page is deliberately narrow, it shows no file number, no technician and
+no internal event, so the exposure is one property address, one price and one
+timeline. That is the reason this is a recorded risk rather than an urgent one.
+
+What closing it needs: something that writes `revoked_at`, a reason to write it
+from, and a decision about whether issuing a new link should revoke the previous
+one, which would reintroduce exactly the silent death that was rejected.
+
 ## A phone in job reaches payment with no refund disclosure
 
 Found 2026-09-08 while porting the email design, and it is a CHECKOUT defect
