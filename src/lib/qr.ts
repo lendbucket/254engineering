@@ -30,6 +30,18 @@
  * verify, so nobody is let in. That is the right direction and it is not a
  * reason to skip the check.
  *
+ * AND IT HAS BEEN SCANNED BY A REAL CAMERA, WHICH DECODING COULD NOT SETTLE
+ * -------------------------------------------------------------------------
+ * 2026-09-07: the operator enrolled on production with Google Authenticator and
+ * the camera acquired it on the first try.
+ *
+ * That was the one claim the proof beside this file cannot make. Decoding a
+ * clean bitmap in software and acquiring a code off a lit screen at an angle
+ * are different problems: module size, contrast and the quiet zone decide the
+ * second and are invisible to the first. Both are now answered, and the check
+ * that runs every time is still the decoding one, because it is the half that
+ * can regress silently.
+ *
  * WHAT IS DELIBERATELY NOT HERE
  * -----------------------------
  * Numeric and alphanumeric modes, kanji, and versions above 10. An otpauth URI

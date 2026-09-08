@@ -27,6 +27,43 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
+## Phase 12 Section 1 is on production and enrolled against
+
+### The second factor is live, and the first enrolment was a real one
+
+Recorded 2026-09-07. The design and both operator rulings are in
+`docs/mfa-design.md`; this is what actually happened.
+
+**Enrolled on production**, by the operator, with Google Authenticator. The
+camera acquired the QR on the first try, the code was accepted, the recovery
+codes were saved, and the portal opened. Migration 0024 is applied and verified
+against the replay, and the ledger says so.
+
+**What that closes.** Every claim about this flow up to that moment was made by
+a proof or an audit. Three of them could not be settled that way and now are:
+
+  that a real authenticator accepts codes from this TOTP implementation, rather
+  than only that it agrees with RFC 6238's published vectors;
+
+  that a real camera acquires a QR from this encoder, rather than only that an
+  independent decoder reads a clean bitmap of it, which is a different problem
+  decided by module size, contrast and quiet zone;
+
+  and that the enrolment ordering behaves for a person rather than a probe.
+
+**What is still only proven by machine**, and is worth knowing: the challenge on
+a SECOND sign in, the recovery codes actually working, and the break glass. The
+audits exercise all three and no person has. The recovery codes in particular
+are the ones nobody finds out about until they need them.
+
+### The three roles with no dashboard, still open
+
+Unchanged by the above and recorded separately under the role sweep: a
+dispatcher, a salesperson and a customer service account get an honest empty
+state rather than a screen built for a different job. The business question,
+what each should see, is the operator's and is written out with each role's
+grants beside it.
+
 ## The Phase 0 role union: one defect, six instances, swept
 
 ### RESOLVED: six total functions over three roles, in a platform that ships seven
