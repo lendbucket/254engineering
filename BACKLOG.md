@@ -95,6 +95,25 @@ stays in `design-reference/emails/` so the design is not lost.
 
 The customer half of the email port is therefore three templates, not four.
 
+## Audits that still fail red when run standalone with no server
+
+Recorded 2026-09-08. Operator ruling: unreachable is not failed, and an audit
+whose live half cannot run reports COULD NOT TELL and exits zero.
+sister-intake-audit carries that verdict now. These do not, and each records a
+FAIL when nothing is answering on BASE_URL:
+
+  asset-audit, bucket-roundtrip, coverage-audit, cta-audit, forms-audit,
+  link-map, messaging-audit, placeholder-audit, preflight-audit,
+  preflight-harness, registry-audit, seo-audit, shots, voice-audit
+
+The reason this is recorded rather than urgent: inside `npm run audit` it does
+not arise. The runner starts its own server, re-checks it between phases, and
+prints THE SUITE DID NOT RUN TO COMPLETION rather than a list of content
+failures, which is the same protection at the suite level. The gap is a
+STANDALONE run, which is how any of these is usually run while working on it,
+and the cost is a red mark that means nothing and teaches somebody to skim past
+reds.
+
 ## Two self comparing checks left as recorded
 
 From the audit survey of 2026-09-08, which went through all 47 audit and proof

@@ -33,6 +33,9 @@ const BASE = process.env.BASE_URL ?? "http://localhost:3225";
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
 
+/* Checks that could not be attempted, as distinct from checks that failed. */
+const unmeasured = [];
+
 console.log("");
 console.log("================ THE SISTER INTAKE API ================");
 console.log("");
@@ -195,8 +198,22 @@ console.log("");
       `HTTP ${res.status}; a 404 here means the server does not have this route, which is not the same as refusing it`,
     );
   } catch (err) {
+    /*
+     * UNREACHABLE IS NOT FAILED, AND THE DIFFERENCE IS THE WHOLE POINT.
+     *
+     * Operator ruling, 2026-09-08. This used to record a FAIL when no server
+     * was running, so anybody running this audit on its own saw a red mark that
+     * meant nothing and learned to ignore it. A red everyone ignores is where
+     * the next real failure hides.
+     *
+     * Same three verdicts the perf gate uses: the endpoint answered and was
+     * right, it answered and was wrong, or it could not be reached and this
+     * audit could not tell. Only the middle one is a failure. The run still
+     * says loudly that the live half did not happen, because a green board over
+     * a half that never ran is the other way to lie.
+     */
     reachable = false;
-    rec("the endpoint was reachable", false, String(err.message).split("\n")[0]);
+    unmeasured.push(`the endpoint at ${BASE} could not be reached: ${String(err.message).split("\n")[0]}`);
   }
 
   if (reachable) {
@@ -390,6 +407,14 @@ console.log("");
 // =========================================================================
 
 const failed = out.filter((o) => !o.ok);
+
+if (unmeasured.length) {
+  console.log("");
+  for (const u of unmeasured) console.log(`  COULD NOT TELL: ${u}`);
+  console.log("");
+  console.log("  The live half did not run. That is not a pass and it is not a failure;");
+  console.log("  start the server, or run this through npm run audit, to measure it.");
+}
 for (const o of out) console.log(`  ${o.ok ? "PASS" : "FAIL"}: ${o.name}${o.note ? ` (${o.note})` : ""}`);
 console.log("");
 

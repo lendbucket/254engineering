@@ -596,6 +596,46 @@ by reading its own environment, while the server it is testing reads
 `.env.local`, is an audit measuring a different system, and it passed every run
 while writing nothing.
 
+## 6c. Business rulings that live in two places, on purpose
+
+Four constants are decisions the operator made rather than numbers somebody
+tuned. Each is stated in the code AND pinned as a literal in the audit that
+covers it, so changing one costs two edits made deliberately. If you are here
+because an audit just failed on one of these, the audit is not wrong: it is
+asking whether you meant it.
+
+| Ruling | Value | Declared in | Pinned in |
+| --- | --- | --- | --- |
+| Checkout session window | **24 hours** | `src/lib/order-attention.ts` | `scripts/order-audit.mjs` |
+| Partner attribution window | **90 days** | `src/lib/attribution-rules.ts` | `scripts/partner-audit.mjs` |
+| Alerts per sweep | **3** | `src/lib/alert-rules.ts` | `scripts/observability-audit.mjs` |
+| Sister intake rate | **20 a minute** | `src/lib/sister-intake.ts` | `scripts/sister-intake-audit.mjs` |
+| TOTP digits and period | **6 digits, 30 seconds** | `src/lib/totp.ts` | `scripts/proofs/totp-matches-the-rfc.mjs` |
+
+They were pinned on 2026-09-08 after a survey of all 47 audit and proof
+scripts found each of them written in terms of its own constant on both sides
+of the assertion. Every one proved its edge was sharp and none could see the
+edge move: the partner window could have gone from ninety days to a hundred
+and eighty, changing what the firm pays partners, with the board green
+throughout. The TOTP pair was the sharpest, because advertising eight digits
+in the QR while the generator emits six locks out every already enrolled
+account at their next sign in, on a phone that is working perfectly.
+
+**UNREACHABLE IS NOT FAILED.** Operator ruling, 2026-09-08. An audit whose
+live half cannot run because no server is answering reports a third verdict,
+`COULD NOT TELL`, and exits zero. It is the same three way answer the perf
+gate uses, and for the same reason: a red mark everyone learns to ignore is
+where the next real failure hides.
+
+It still says loudly that the live half did not run, because a green board
+over a half that never happened is the other way to lie.
+
+Inside `npm run audit` this rarely arises: the runner starts its own server and
+prints `THE SUITE DID NOT RUN TO COMPLETION` rather than a list of content
+failures. The verdict matters for a STANDALONE run, which is how these are
+usually run while working on one of them. `sister-intake-audit` carries it;
+the audits that still fail red standalone are listed in `BACKLOG.md`.
+
 ## 7. Session mechanics
 
 - Feature branches. No force pushes to main. Merges only on the operator's word.
