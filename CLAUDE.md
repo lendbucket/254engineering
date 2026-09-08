@@ -149,6 +149,53 @@ recorded in `DESIGN_SPEC.md` section 2, and AA wins wherever the two disagree.
 That is the operator's standing ruling, reaffirmed when the deviations were
 approved.
 
+## 2c. Importing a design: read it against the code before you style anything
+
+**A design is drawn against a DESCRIPTION of the platform, and every claim it
+makes about money, contact or capability is wrong until it has been read
+against the code.** Operator ruling, 2026-09-08, after the email suite port.
+That sentence is standing law for every future design import, and the
+reconciliation comes before any styling.
+
+The email port is the worked example. Thirteen templates arrived, beautifully
+drawn and internally consistent, and the reconciliation pass found four things
+that no amount of looking at them would have shown:
+
+**The link that was never sent.** The customer order status page had existed
+since Phase 7 and said of itself that the link is signed and emailed. Nothing
+emailed it. `releaseForFulfilment` minted the token, wrote
+`customer_link.issued` into the order's own timeline, and dropped it. A paying
+customer heard nothing until they rang to ask, which is the support cost that
+page was built to prevent.
+
+**The refund rule stated as a constant.** The design wrote "everything except
+the disclosed $175 inspection fee is refunded". A decline where nobody
+attended is a FULL refund; the retained figure is the fee disclosed for that
+service, which seven of the eleven do not have; and $175 is four of eleven
+rather than a rule. The portal design made the same claim and was corrected
+the same way, which is the point: it is not a mistake somebody made once.
+
+**The door that took money without stating terms.** Reconciling the design's
+refund copy against the code found that a job taken over the telephone reached
+payment with no `refund_disclosure` and no `inspection_fee_cents`, while the
+web door refused exactly that. Nothing in the design pointed at it; reading
+the design against the code did.
+
+**The timeline entry that claimed contact.** `customer_link.issued` read like
+evidence that a customer had been written to and was evidence of a database
+write. That is the recurring defect class sitting inside the audit trail.
+
+Three of those four are about money or about whether somebody was told
+something, which is why the rule is worded the way it is. A design cannot be
+wrong about a colour in a way that costs a refund.
+
+The order is therefore fixed. **Inventory and reconcile first**: list what the
+platform actually does, give every drawn artifact a verdict against it, and
+get a ruling on the ones that describe something the firm does not do or
+should not send. Only then style anything. The verdicts and the rulings are
+recorded, and the artifacts that were refused stay in `design-reference/` with
+their verdict beside them so nobody rebuilds them by accident.
+
 ## 3. Style laws on every rendered string
 
 - **No em dashes and no en dashes.** Anywhere: copy, metadata, schema, alt text, rendered comments.

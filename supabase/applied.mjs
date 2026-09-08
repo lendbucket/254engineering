@@ -145,9 +145,9 @@ export const APPLIED = [
     file: "0026_marketing_suppressions.sql",
     fingerprint: "2f76de7be0fb4ed93459db4d72d80237",
     proves: { table: "eng_marketing_suppressions" },
-    production: null,
-    because:
-      "The branch is open. Nothing reads or writes this table except the launch announcement, which the compliance gate refuses to send while registration is pending, so production not having it changes no behaviour today. It applies with the merge.",
+    production: "2026-09-08",
+    note:
+      "Applied to production on merge and read back rather than assumed: fingerprint 2f76de7be0fb4ed93459db4d72d80237 across 964 columns and 72 eng_ tables, identical to development and to the replay. PRODUCTION IS STILL THE SHARED PROJECT fsaryeciduszuahgjbly: the same query counts 125 tables in public, so 53 belong to unrelated apps and this table sits beside them. That is why every table this firm owns is eng_ prefixed, and it is what the cutover has to carry across.",
   },
 ];
 
