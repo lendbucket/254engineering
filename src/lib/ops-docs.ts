@@ -314,7 +314,7 @@ const num = (v: number | string | null | undefined): Cents =>
  * belongs to the month the work was handed over rather than the month somebody
  * first typed the address, and a file still in flight has no delivery month yet.
  */
-export async function fileMargins(actor: Actor | null): Promise<FileMargin[]> {
+export async function fileMargins(actor: Actor | null): Promise<FileMargin[] | null> {
   const db = supabaseAdmin();
   if (!db || !can(actor, "billing.read")) return [];
 
@@ -337,7 +337,7 @@ export async function fileMargins(actor: Actor | null): Promise<FileMargin[]> {
    * by period table, the billing screen and two of the three CSV exports, so
    * the exclusion belongs here rather than at any of the four.
    */
-  const { data } = await db
+  const { data, error } = await db
     .from("eng_files")
     .select(
       "id, file_number, property_address, county, status, service_slug, client_price_cents, tech_cost_cents, engineer_cost_cents, partner_id, delivered_at, created_at",
@@ -345,6 +345,20 @@ export async function fileMargins(actor: Actor | null): Promise<FileMargin[]> {
     .eq("is_demo", false)
     .order("created_at", { ascending: false })
     .limit(500);
+
+  /*
+   * A FAILED READ AND A FIRM WITH NO FILES ARE DIFFERENT FACTS.
+   *
+   * This returned [] for both, and the administrator dashboard rendered the
+   * second as an absence and could not tell it from the first at all. Operator
+   * ruling, 2026-09-09: a query that ran and found nothing is a ZERO, and "not
+   * set" is reserved for a figure whose input is missing or a read that failed.
+   * A caller cannot honour that unless this says which happened.
+   */
+  if (error) {
+    console.error("[docs] file margins could not be read:", error.message);
+    return null;
+  }
 
   /*
    * THE FOURTH COST, READ FROM THE LEDGER RATHER THAN STORED ON THE FILE.

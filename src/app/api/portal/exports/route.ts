@@ -96,7 +96,15 @@ export async function GET(request: NextRequest) {
   if (report === "margin" || report === "period") {
     if (!can(actor, "billing.read")) return bad("Your role cannot read the firm's billing.", 403);
 
+    /*
+     * A failed read is not an empty firm, and an export is the worst place to
+     * confuse them: a CSV of nothing, headed as a margin report, handed to an
+     * accountant, is a statement that the firm delivered no work.
+     */
     const files = await fileMargins(actor);
+    if (files === null) {
+      return bad("The margin figures could not be read. Nothing was exported, because an empty file would say the firm delivered nothing.", 503);
+    }
     const body = report === "margin" ? marginCsv(files) : periodCsv(files);
 
     await writeAudit({

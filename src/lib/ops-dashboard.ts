@@ -291,8 +291,31 @@ async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
   const needsAction = stuckOrders.filter((o) => o.attention.level === "act");
   const watching = stuckOrders.filter((o) => o.attention.level === "watch");
 
-  const periods = marginByPeriod(margins);
+  /*
+   * A FIRM THAT HAS DELIVERED NOTHING HAS REVENUE OF NOTHING, IN NUMBERS.
+   *
+   * Operator ruling, 2026-09-09. With demonstrations excluded and no real files,
+   * these tiles read "not set", and that is the absent-versus-zero rule applied
+   * the flattering way round: the query RAN and found nothing, which is a zero.
+   * "Not set" is reserved for a figure whose input is missing, a file with no
+   * price, or a read that failed.
+   *
+   * The three cases now come apart, which they could not before because
+   * fileMargins returned [] for a failure and for an empty firm alike:
+   *
+   *   margins === null      the read failed. Absent, and the note says so.
+   *   no period row         the read ran and no file belongs to this month.
+   *                         $0.00 over 0 files.
+   *   a period row          whatever periodTotals says, including null where
+   *                         files exist and carry no price, which IS a missing
+   *                         input rather than a zero.
+   */
+  const readFailed = margins === null;
+  const periods = marginByPeriod(margins ?? []);
   const thisPeriod = periods.find((p) => p.period === periodOf(new Date())) ?? null;
+
+  /** The zero a period with no files should show, rather than an absence. */
+  const EMPTY_PERIOD = { revenue: 0 as Cents, margin: 0 as Cents, complete: 0, files: 0 };
 
   const tiles: Tile[] = [
     {
@@ -387,15 +410,21 @@ async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
   const money: MoneyTile[] = [
     {
       label: "Margin this period",
-      value: thisPeriod?.margin ?? null,
-      note: thisPeriod ? thisPeriod.coverage : "No file carries a period of this month yet.",
+      value: readFailed ? null : (thisPeriod?.margin ?? EMPTY_PERIOD.margin),
+      note: readFailed
+        ? "The files could not be read, so this is not a zero. Tell an administrator."
+        : thisPeriod
+          ? thisPeriod.coverage
+          : "No file carries a period of this month, so the margin over them is nothing.",
     },
     {
       label: "Revenue this period",
-      value: thisPeriod?.revenue ?? null,
-      note: thisPeriod
-        ? `From the ${thisPeriod.complete} file${thisPeriod.complete === 1 ? "" : "s"} with every figure entered.`
-        : "No file carries a period of this month yet.",
+      value: readFailed ? null : (thisPeriod?.revenue ?? EMPTY_PERIOD.revenue),
+      note: readFailed
+        ? "The files could not be read, so this is not a zero. Tell an administrator."
+        : thisPeriod
+          ? `From the ${thisPeriod.complete} file${thisPeriod.complete === 1 ? "" : "s"} with every figure entered.`
+          : "No file carries a period of this month, so revenue over them is nothing.",
     },
   ];
 
@@ -440,7 +469,7 @@ async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
    * added to the margin and quietly leave this count describing three of it.
    * That is exactly what happened here: this line named the three it knew.
    */
-  const incomplete = margins.filter((m) => marginOf(m).missing.length > 0).length;
+  const incomplete = (margins ?? []).filter((m) => marginOf(m).missing.length > 0).length;
   if (incomplete > 0) {
     attention.push({
       label: `${incomplete} file${incomplete === 1 ? "" : "s"} missing a money figure`,

@@ -324,6 +324,24 @@ BASE_URL=https://254engineering.com npx tsx scripts/security-audit.mjs
 **Every audit is verified by injecting a violation and watching it fail before its green is
 trusted.** An audit that has never failed has never been tested.
 
+**A FIXTURE ONLY CATCHES WHAT IT CAN REACH. EVERY INJECTION FIXTURE CARRIES A
+VALUE IN EVERY COLUMN A FIGURE CAN SUM.** Operator ruling, 2026-09-09, and it
+sits beside the declared inventory idiom because it is the same failure one
+level in: the inventory decides WHICH surfaces are swept, and the fixture
+decides which FIGURES on them can move.
+
+Both were wrong in the same afternoon. The demo sweep was widened from the four
+reports to all eleven figure surfaces, which was necessary and was not
+sufficient: the demonstration file it inserted carried no price, so it could not
+move a margin however wrong the filter was. The administrator's dashboard went
+on reporting $175.00 of margin and $450.00 of revenue from three seeded files,
+past a check that had just been widened to look straight at it. It was found by
+reading a screenshot.
+
+So a fixture is priced, dated and complete: every column any figure could sum,
+count or age. The test of a fixture is not whether it inserts a row, it is
+whether removing the filter makes a number move.
+
 **A CHECK THAT FILTERS LIVE DATA FOR A SUBJECT THAT DOES NOT EXIST YET IS
 VACUOUS. BUILD THE SUBJECT.** Operator ruling, 2026-09-09, from the reporting
 paging work. The obvious way to check that a paged expansion still sums the

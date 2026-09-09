@@ -407,6 +407,79 @@ console.log("");
   }
 }
 
+// ------------- a firm that has delivered nothing has revenue of nothing
+
+{
+  /*
+   * OPERATOR RULING, 2026-09-09. "With demonstrations excluded and zero real
+   * files, the query ran and found nothing. That is zero, not absent. Revenue
+   * this period is $0.00 over 0 files. 'Not set' is reserved for a figure whose
+   * input is missing, a file with no price, a read that failed."
+   *
+   * The three cases could not be told apart before, because fileMargins
+   * returned [] for a failed read and for an empty firm alike. It returns null
+   * on failure now, which is what makes this assertable at all.
+   *
+   * Both directions are checked. A fix that made every empty figure a zero
+   * would satisfy the first half and destroy the distinction the whole of
+   * Section 2 exists for.
+   */
+  const { fileMargins } = await import("../src/lib/ops-docs.ts");
+  const { DEFAULT_ROLES: ROLES } = await import("../src/lib/ops-authz.ts");
+
+  const adminActor = {
+    id: "00000000-0000-4000-8000-000000000000",
+    role: "admin",
+    status: "active",
+    grants: new Set(ROLES.find((r) => r.key === "admin").grants),
+  };
+
+  const files = await fileMargins(adminActor);
+  const dashboard = await dashboardFor(adminActor);
+  const moneyBy = (label) => dashboard?.money.find((m) => m.label === label);
+
+  rec(
+    `fileMargins can say "no files" and "could not read" apart (${files === null ? "read failed" : `${files.length} files`})`,
+    files !== null,
+    files === null
+      ? "the read failed on this run, so the zero assertion below is not the one being exercised"
+      : "null means the read failed, an empty array means the firm has no real files",
+  );
+
+  if (files !== null && files.length === 0) {
+    const revenue = moneyBy("Revenue this period");
+    const margin = moneyBy("Margin this period");
+    rec(
+      "with no real files, revenue and margin are zero rather than absent",
+      revenue?.value === 0 && margin?.value === 0,
+      `revenue ${JSON.stringify(revenue?.value)}, margin ${JSON.stringify(margin?.value)}. A firm that has delivered nothing has revenue of nothing, and it should say so in numbers.`,
+    );
+  } else {
+    console.log("  COULD NOT TELL: this database has real files, so the empty firm case was not exercised.");
+  }
+
+  /*
+   * AND THE OTHER DIRECTION, which is the half a careless fix breaks: a figure
+   * whose INPUT is missing stays absent. Checked on periodTotals directly,
+   * because it is the function that draws the line and it needs no database.
+   */
+  const { periodTotals } = await import("../src/lib/ops-money.ts");
+  const noPrice = periodTotals("2026-09", [
+    {
+      id: "x",
+      clientPriceCents: null,
+      techCostCents: 100,
+      engineerCostCents: 100,
+      partnerCostCents: 0,
+    },
+  ]);
+  rec(
+    "and a file with no price still makes the figure absent, not zero",
+    noPrice.revenue === null && noPrice.margin === null,
+    `revenue ${JSON.stringify(noPrice.revenue)}, margin ${JSON.stringify(noPrice.margin)}. Turning a missing input into a zero is the same lie the other way round.`,
+  );
+}
+
 // -------------------------------- what could not be counted is on the screen
 
 {

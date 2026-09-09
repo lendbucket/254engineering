@@ -7,7 +7,7 @@ import type { PeriodTotals } from "@/lib/ops-money";
 import type { Column } from "@/components/portal/design";
 import { DataTable } from "@/components/portal/design";
 import { STATUS_LABEL, type FileStatus } from "@/lib/ops-files";
-import { ButtonLink, Chip, EmptyState, PageHead, Panel, RecordTable } from "@/components/portal/surfaces";
+import { ButtonLink, Chip, EmptyState, ErrorState, PageHead, Panel, RecordTable } from "@/components/portal/surfaces";
 
 export const dynamic = "force-dynamic";
 
@@ -52,7 +52,25 @@ export default async function BillingPage() {
   if (!actor) redirect("/portal/login");
   if (!canSeeBilling(actor)) redirect("/portal");
 
-  const files = await fileMargins(actor);
+  /*
+   * Null is a read that failed and it is not a firm with no files. Rendering
+   * the second as the first would tell somebody the firm has delivered nothing,
+   * on the screen whose whole subject is what the firm has earned.
+   */
+  const read = await fileMargins(actor);
+  if (read === null) {
+    return (
+      <>
+        <PageHead eyebrow="Money" title="Billing" />
+        <ErrorState
+          title="The margin figures could not be read"
+          body="This is not the same as the firm having no files. Nothing here is a zero until it loads. Tell an administrator."
+        />
+      </>
+    );
+  }
+
+  const files = read;
   const periods = marginByPeriod(files);
   const incomplete = files.filter((f) => marginOf(f).missing.length > 0);
 
