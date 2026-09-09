@@ -148,6 +148,54 @@ console.log("");
   );
 }
 
+// ------------- a role sees firm money only if its grants already say it may
+
+{
+  /*
+   * OPERATOR RULING, 2026-09-09, ON read_only SEEING THE FIRM'S MONEY.
+   *
+   * "Accepted only if read_only's existing grants already include the money
+   * permission. If they do, the grants decide. If the dashboard is showing
+   * read_only a figure its grants do not name, that is a widened grant and it
+   * is refused."
+   *
+   * They do. `read_only` holds `billing.read`, `ledger.read_all` and
+   * `pricing.read` in DEFAULT_ROLES, `can()` returns true for all three, and
+   * 0018 seeds ('read_only', 'billing.read') and ('read_only', 'ledger.read_all')
+   * into eng_role_grants, so it is true in the database and not only in the
+   * TypeScript. The dashboard widens nothing: it shows a role the money its
+   * grants already name, which is the role's whole purpose, a buyer's
+   * accountant or an auditor evaluating the business.
+   *
+   * This is the check that keeps that true. It reads the ADMINISTRATOR's
+   * dashboard specifically, because that is the one carrying FIRM figures.
+   * The engineer's and the technician's also have money and it is their OWN
+   * pay, which no firm level grant governs and which the ruling above scopes
+   * separately.
+   */
+  const { DASHBOARD_FOR_ROLE } = await import("./lib/role-total-functions.mjs");
+
+  const onFirmMoney = DEFAULT_ROLES.filter((r) => DASHBOARD_FOR_ROLE[r.key] === "admin");
+  const FIRM_MONEY_GRANTS = ["ledger.read_all", "billing.read"];
+
+  const widened = onFirmMoney
+    .filter((r) => !FIRM_MONEY_GRANTS.every((g) => can({ id: "x", role: r.key, status: "active", grants: new Set(r.grants) }, g)))
+    .map((r) => r.key);
+
+  rec(
+    `more than one role is served the firm's money dashboard (${onFirmMoney.map((r) => r.key).join(", ")})`,
+    onFirmMoney.length > 1,
+    "if only the administrator reached it, this check would pass over the one role nobody worried about",
+  );
+  rec(
+    "and every one of them already holds the grants that name that money",
+    widened.length === 0,
+    widened.length
+      ? `${widened.join(", ")} is served firm level money by a dashboard and does not hold ${FIRM_MONEY_GRANTS.join(" and ")}. That is a widened grant, which the operator refused.`
+      : `${FIRM_MONEY_GRANTS.join(", ")}, seeded by 0018 rather than only declared in TypeScript`,
+  );
+}
+
 // ----------------------------- a dashboard tile counts no demonstration either
 
 {
@@ -199,6 +247,163 @@ console.log("");
       tile?.count === real,
       `tile says ${tile?.count}, an independent query says ${real}. A dashboard is not a report, which is exactly why nothing was looking at this one.`,
     );
+  }
+}
+
+// ------------- a personal dashboard shows demonstration WORK and never its MONEY
+
+{
+  /*
+   * THE SPLIT, ASSERTED PER FIGURE RATHER THAN PER DASHBOARD.
+   *
+   * Operator ruling, 2026-09-09: "work lists may show demonstration work when a
+   * person is being walked through the platform; that is what the seed is for.
+   * Money never does. A technician shown a figure they will not be paid is the
+   * defect class with a person attached."
+   *
+   * So this builds a real fixture rather than reading the source: a
+   * demonstration engineer, a demonstration file, and a priced ledger entry
+   * joining them. The engineer's own dashboard must then show the work and not
+   * the money, and BOTH halves are checked, because a scope that removed the
+   * job as well would satisfy a check that only looked at the dollar figure and
+   * would break the walkthrough the seed exists for.
+   *
+   * The control is the same ledger read WITHOUT the scope. If that cannot see
+   * the entry either, the fixture never landed where the tile looks and the
+   * assertion proves nothing.
+   */
+  const { auditClient } = await import("./lib/db-target.mjs");
+  const db = auditClient("dashboards-audit", { neverProduction: true });
+  const { periodOf } = await import("../src/lib/ops-review.ts");
+
+  if (!db) {
+    console.log("  COULD NOT TELL: no database, so the money split was not exercised.");
+  } else {
+    const stamp = Date.now();
+    const tail = String(stamp).slice(-6);
+    const period = periodOf(new Date());
+    let made = null;
+
+    try {
+      const { data: user, error: uErr } = await db.auth.admin.createUser({
+        email: `demo.split.${stamp}@demo-audit.invalid`,
+        password: `demo-${stamp}-Aa1!longenough`,
+        email_confirm: true,
+      });
+      if (uErr || !user?.user) throw new Error(`auth user: ${uErr?.message}`);
+
+      const { error: pErr } = await db.from("eng_profiles").insert({
+        id: user.user.id,
+        email: `demo.split.${stamp}@demo-audit.invalid`,
+        display_name: `Demo Split ${tail}`,
+        role: "engineer",
+        status: "active",
+        tdi_appointment: "none",
+        is_demo: true,
+      });
+      if (pErr) throw new Error(`profile: ${pErr.message}`);
+
+      const { data: client } = await db
+        .from("eng_clients")
+        .insert({
+          kind: "organization",
+          name: `Demo Split Client ${tail}`,
+          email: `demo.split.client.${stamp}@example.com`,
+          status: "active",
+          is_demo: true,
+        })
+        .select("id")
+        .maybeSingle();
+
+      const { data: file, error: fErr } = await db
+        .from("eng_files")
+        .insert({
+          file_number: `254-DEMO-SPL${tail}`,
+          client_id: client.id,
+          service_slug: "windstorm-wpi-8",
+          property_address: "3 Audit Way",
+          county: "Nueces",
+          status: "under_review",
+          is_demo: true,
+        })
+        .select("id")
+        .maybeSingle();
+      if (fErr) throw new Error(`file: ${fErr.message}`);
+
+      const { data: entry, error: lErr } = await db
+        .from("eng_production_ledger")
+        .insert({
+          engineer_id: user.user.id,
+          file_id: file.id,
+          amount_cents: 888_00,
+          period,
+          status: "pending",
+          decision: "seal",
+        })
+        .select("id")
+        .maybeSingle();
+      if (lErr) throw new Error(`ledger: ${lErr.message}`);
+
+      made = { userId: user.user.id, clientId: client.id, fileId: file.id, entryId: entry.id };
+
+      /* The control: unscoped, the entry is plainly there. */
+      const { data: unscoped } = await db
+        .from("eng_production_ledger")
+        .select("amount_cents")
+        .eq("engineer_id", user.user.id)
+        .eq("period", period);
+      const wouldBe = (unscoped ?? []).reduce((n, r) => n + Number(r.amount_cents ?? 0), 0);
+
+      rec(
+        `an unscoped read of this engineer's ledger CAN see the demonstration entry (${wouldBe})`,
+        wouldBe > 0,
+        "without this the money assertion below passes over a fixture that never landed",
+      );
+
+      const dashboard = await dashboardFor({
+        id: user.user.id,
+        role: "engineer",
+        status: "active",
+        grants: new Set(DEFAULT_ROLES.find((r) => r.key === "engineer").grants),
+      });
+
+      const moneyOn = (dashboard?.money ?? []).map((m) => m.value ?? 0);
+      rec(
+        `no money figure on a personal dashboard counts demonstration work (${moneyOn.length} figures)`,
+        moneyOn.length > 0 && moneyOn.every((v) => v === 0),
+        moneyOn.length === 0
+          ? "the engineer dashboard produced no money figure, so this checked nothing"
+          : `figures read ${moneyOn.join(", ")} against an unscoped ${wouldBe}. A person shown money they will not be paid is the defect class with a person attached.`,
+      );
+
+      /*
+       * AND THE WORK IS STILL THERE. Half the ruling, and the half a careless
+       * fix would break: scoping the whole dashboard would pass the check above
+       * and empty the walkthrough the seeded records exist for.
+       */
+      /* The fixture file is under_review, so "Open in review" is the tile that
+       * should have moved. Both review tiles are firm wide rather than scoped to
+       * actor.id, which is correct: the review queue is shared and any engineer
+       * may take a file from it, so it is a work list in the ruling's sense. */
+      const queue = (dashboard?.tiles ?? []).find((t) => t.label === "Open in review");
+      rec(
+        "and the work list still shows the demonstration file",
+        typeof queue?.count === "number" && queue.count > 0,
+        queue
+          ? `${queue.label} = ${queue.count}. A walkthrough where the jobs do not appear is not a walkthrough.`
+          : "no review queue tile was found to check",
+      );
+    } catch (err) {
+      rec("the money split fixture could be built", false, String(err.message));
+    } finally {
+      if (made) {
+        await db.from("eng_production_ledger").delete().eq("id", made.entryId);
+        await db.from("eng_files").delete().eq("id", made.fileId);
+        await db.from("eng_clients").delete().eq("id", made.clientId);
+        await db.from("eng_profiles").delete().eq("id", made.userId);
+        await db.auth.admin.deleteUser(made.userId).catch(() => {});
+      }
+    }
   }
 }
 

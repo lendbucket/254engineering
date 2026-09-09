@@ -518,11 +518,38 @@ async function engineerDashboard(actor: Actor): Promise<EngineerDashboard> {
    * same number a second way would eventually disagree with it, and the
    * engineer would have two answers to a question that has one.
    */
-  const { data: ledger } = await db
+  /*
+   * MONEY EXCLUDES DEMONSTRATIONS EVEN THOUGH THE WORK LIST DOES NOT.
+   *
+   * Operator ruling, 2026-09-09, overruling the line this file drew a few hours
+   * earlier. A work list may show demonstration work, because that is what the
+   * seed is for and a walkthrough where the jobs do not appear is not a
+   * walkthrough. **Money never does.** A technician or an engineer shown a
+   * figure they will not be paid is the defect class with a person attached,
+   * and the cost this file previously described as acceptable is not.
+   *
+   * The scope is through the FILE rather than through the engineer, which is
+   * the distinction that makes the split possible: the entry is a demonstration
+   * when the work it is about is, not when the person is. A real engineer
+   * walking somebody through a seeded file must not see its money in their own
+   * pay.
+   *
+   * An entry with NO file is counted, and that is deliberate rather than an
+   * oversight. file_id is nullable, an inner join would silently drop those
+   * rows and quietly reduce somebody's pay, and a row not attached to a
+   * demonstration is not a demonstration. Only an entry whose file is EXPLICITLY
+   * marked is removed.
+   */
+  const { data: ledgerRaw } = await db
     .from("eng_production_ledger")
-    .select("amount_cents, status")
+    .select("amount_cents, status, eng_files(is_demo)")
     .eq("engineer_id", actor.id)
     .eq("period", period);
+
+  const ledger =
+    ledgerRaw === null
+      ? null
+      : ledgerRaw.filter((r) => (r.eng_files as { is_demo?: boolean } | null)?.is_demo !== true);
 
   /*
    * Kept nullable deliberately. A read that failed and a period with no entries
@@ -661,8 +688,25 @@ async function techDashboard(actor: Actor): Promise<TechDashboard> {
     unreadCount(actor.id),
   ]);
 
-  const { data: pay } = await db.from("eng_tech_pay_ledger").select("amount_cents, status").eq("tech_id", actor.id);
-  const rows = pay as { amount_cents?: unknown; status?: unknown }[] | null;
+  /*
+   * Scoped through the FILE, for the reason written out on the engineer's
+   * ledger above. The jobs list may show a demonstration; "Owed to you" may
+   * not. A technician shown money they will not be paid is the defect class
+   * with a person attached.
+   *
+   * An entry with no file is kept, because file_id is nullable and an inner
+   * join would quietly reduce somebody's pay.
+   */
+  const { data: pay } = await db
+    .from("eng_tech_pay_ledger")
+    .select("amount_cents, status, eng_files(is_demo)")
+    .eq("tech_id", actor.id);
+  const rows =
+    pay === null
+      ? null
+      : (pay as { amount_cents?: unknown; status?: unknown; eng_files?: { is_demo?: boolean } | null }[]).filter(
+          (r) => r.eng_files?.is_demo !== true,
+        );
   const outstanding = rows === null ? null : rows.filter((r) => r.status !== "paid");
   const paid = rows === null ? null : rows.filter((r) => r.status === "paid");
 

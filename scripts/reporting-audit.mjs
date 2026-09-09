@@ -467,6 +467,33 @@ console.log("");
     /enqueue\("report\.export"/.test(route) && !/enqueue\([^)]*body/.test(route),
     "a queued CSV is a CSV nobody receives: nothing here delivers a file to somebody who has walked away",
   );
+
+  /*
+   * THE RECORD IS QUEUED AFTER THE FILE EXISTS, NOT BEFORE.
+   *
+   * Operator ruling, 2026-09-09: "If the job records completion before the file
+   * exists and its hash matches, that is the defect; if it is only naming,
+   * leave it."
+   *
+   * It is only naming, and this is what keeps it so. The job writes an audit
+   * row saying a report WAS assembled, with the figure and row counts taken
+   * from the same built object the body was rendered from. It claims no hash
+   * and it claims no delivery, so there is nothing for a file to fail to match.
+   *
+   * What would make it a lie is reordering: enqueue first, assemble second, and
+   * the record then describes a file that may never have been produced. So the
+   * ORDER is asserted rather than trusted, which is the whole content of the
+   * ruling's condition.
+   */
+  const assembledAt = route.indexOf("reportCsv(built");
+  const queuedAt = route.indexOf('enqueue("report.export"');
+  rec(
+    "and it is queued after the file has been assembled, never before",
+    assembledAt > 0 && queuedAt > assembledAt,
+    assembledAt < 0
+      ? "the assembly could not be found in the route at all"
+      : "a record enqueued before the assembly describes a file that may never have been produced",
+  );
 }
 
 // ------------------------------------------- the coastal figure shows its work

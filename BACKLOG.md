@@ -1301,6 +1301,41 @@ its first run, and 0028 marks them by the address rule in
 and to production**, and on production it marked nothing, because production
 holds two profiles, one application and no partners, clients, orders or files.
 
+### A report export queues the record, not the file, and what the other way needs
+
+Recorded 2026-09-09, on the operator's ruling asking what "through the job
+queue" actually means here.
+
+**What it means in one sentence.** The CSV is assembled inside the request and
+handed straight back, because the person who clicked Export is standing in front
+of the response; what goes on the queue is an audit row saying a report of that
+period was assembled with that many figures over that many rows.
+
+**It is naming, not a completion claim, and that was the ruling's condition.**
+The enqueue happens after `reportCsv` has produced the body, from the same built
+object, so nothing records a file that was never made. It asserts no hash and no
+delivery, so there is nothing for a file to fail to match.
+`reporting-audit` asserts that ordering rather than trusting it, because
+reversing the two lines is all it would take to turn the row into a claim about
+a document that may not exist.
+
+**What making the FILE the queued artefact would need**, none of which exists:
+
+- Somewhere to put it. A private bucket, with a retention rule, because these
+  files name properties, people and amounts.
+- A way to hand it over afterwards. An email carrying a signed link, or a
+  downloads screen somebody comes back to. Without one this is the rule
+  `docs/platform-state.md` already states: a queued CSV is a CSV nobody
+  receives.
+- The record written AFTER the object is stored and keyed on its HASH, so a
+  retry cannot record a file that was never written, and so the row and the
+  bytes can be checked against each other later.
+
+**No action.** It is worth building the day an export is too large to assemble
+in a request, or the day somebody wants a scheduled monthly export sent rather
+than fetched. Neither is true, and building storage and delivery to solve
+neither would be three new failure modes for no gain.
+
 ### One development client was written by a script nobody can name
 
 Recorded 2026-09-08, found by the same sweep. `eng_clients` on development holds
