@@ -57,16 +57,18 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * mistake could have been applied to by hand, which is exactly how 0001 stayed
  * broken for a month. A constant has to be changed by a person who noticed.
  */
-const EXPECTED_FINGERPRINT = "9bbcca2c9cd3c65503c923d7c32ea769";
-const EXPECTED_COLUMNS = 970;
-const EXPECTED_TABLES = 72;
-const EXPECTED_TRIGGERS = 47;
+const EXPECTED_FINGERPRINT = "d4f266b0d595c9c2922b68971b9cec2a";
+const EXPECTED_COLUMNS = 994;
+const EXPECTED_TABLES = 73;
+const EXPECTED_TRIGGERS = 48;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the
- * rest. eng_claim_jobs is still the only one called directly.
+ * rest. 0031 adds eng_forbid_retention_run_delete, which refuses DELETE on the
+ * retention manifest: a run that can erase its own record is a run with no
+ * record. eng_claim_jobs is still the only one called directly.
  */
-const EXPECTED_FUNCTIONS = 9;
+const EXPECTED_FUNCTIONS = 10;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });

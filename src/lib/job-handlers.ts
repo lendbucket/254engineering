@@ -622,15 +622,31 @@ registerJob("retention.sweep", {
      * difference and says what it means, and the audit trail row below is what
      * somebody reads.
      */
+    /*
+     * THE TRAIL NAMES WHO AUTHORISED IT, AND IT DID NOT AT FIRST.
+     *
+     * actor_id was null here while the manifest beside it named somebody, which
+     * is backwards for the one action in this platform that destroys a record:
+     * the regulatory memory is the place that most needs the name. Found by
+     * reading eng_audit_events next to eng_retention_runs rather than by any
+     * check. The actor comes off the MANIFEST rather than out of this payload,
+     * for the same reason everything else here does.
+     */
     const { error } = await (db()?.from("eng_audit_events").insert({
-      actor_id: null,
+      actor_id: r.actorId,
+      actor_email: r.actorEmail,
+      actor_role: r.actorRole,
       action: r.mode === "execute" ? "retention.executed" : "retention.dry_run",
       entity_type: "retention_run",
       entity_id: r.manifestId,
       summary:
         `Retention ${r.mode === "execute" ? "deleted" : "would have deleted"} ${r.affected} row(s) ` +
-        `from ${r.table}, having intended ${r.intended}. ${r.reconciled ? "Reconciled." : "DID NOT RECONCILE."}`,
-      diff: { table: r.table, mode: r.mode, intended: r.intended, affected: r.affected, reconciled: r.reconciled },
+        `from ${r.table}, having intended ${r.intended}. ${r.reconciled ? "Reconciled." : "DID NOT RECONCILE."} ` +
+        `Authorised by ${r.actorRole ?? "nobody the manifest names"}.`,
+      diff: {
+        table: r.table, mode: r.mode, intended: r.intended, affected: r.affected,
+        reconciled: r.reconciled, actorRole: r.actorRole,
+      },
     }) ?? { error: null });
 
     if (error) return { kind: "retry", error: `The sweep finished and its audit row did not write: ${error.message}` };

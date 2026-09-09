@@ -95,6 +95,27 @@ development does not queue email at all. The second is probably right, and it is
 a bigger change than it sounds, because "does the email path work" is a thing
 several audits ask.
 
+### The audit writes manifests it cannot clean up, and that is by construction
+
+Recorded 2026-09-09, found by reading `eng_retention_runs` rather than by any
+check. Development holds 128 manifests after one day of building this, every one
+a dry run, none of them deletable, because the table refuses DELETE and is
+declared kept forever for reasons that are correct.
+
+Roughly four are written per board run: `retention-audit` plans three refusals
+and two live plans, and `retention-dry-run` writes one per table. That is about
+1,500 rows a year of board runs on development, which is small in absolute terms
+and is the wrong shape regardless: an audit that cannot clean up after itself is
+a thing this repository has recorded twice before, for `eng_audit_events` and
+for `eng_partner_entries`, and the resolution for the second was to exercise it
+inside `migration-audit`'s throwaway database.
+
+It is not urgent. What it needs is a decision between exercising the plan path
+against a replayed database the way partner entries are, and accepting the rows
+on the grounds that a manifest is small and a development database is not a
+record of anything. Every manifest names its origin in `actor_role`, so the two
+are at least tellable apart.
+
 ### An execute run has never happened anywhere
 
 Every run so far, on development and in the audit, has been a dry run. The

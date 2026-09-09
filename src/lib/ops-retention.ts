@@ -154,6 +154,9 @@ export type Manifest = {
   affectedCount: number;
   lastId: string | null;
   reconciled: boolean | null;
+  actorId: string | null;
+  actorEmail: string | null;
+  actorRole: string | null;
   plannedAtCt: string;
   note: string | null;
 };
@@ -384,6 +387,9 @@ function toManifest(r: Row): Manifest {
     affectedCount: Number(r.affected_count),
     lastId: r.last_id === null ? null : String(r.last_id),
     reconciled: r.reconciled === null ? null : Boolean(r.reconciled),
+    actorId: r.actor_id === null || r.actor_id === undefined ? null : String(r.actor_id),
+    actorEmail: r.actor_email === null || r.actor_email === undefined ? null : String(r.actor_email),
+    actorRole: r.actor_role === null || r.actor_role === undefined ? null : String(r.actor_role),
     plannedAtCt: String(r.planned_at_ct),
     note: r.note === null ? null : String(r.note),
   };
@@ -418,6 +424,18 @@ export type RunReport = {
   reconciled: boolean;
   finished: boolean;
   note: string;
+  /*
+   * WHO AUTHORISED IT, CARRIED THROUGH TO THE AUDIT TRAIL.
+   *
+   * The manifest knew this and the trail row did not, which is backwards: for
+   * the one action in this platform that destroys a record, the regulatory
+   * memory is the place that most needs the name. Found by reading
+   * eng_audit_events beside eng_retention_runs and noticing the trail said
+   * actor_id null while the manifest beside it named somebody.
+   */
+  actorId: string | null;
+  actorEmail: string | null;
+  actorRole: string | null;
 };
 
 export type RunResult = { ok: true; report: RunReport } | { ok: false; because: string; retryable: boolean };
@@ -459,6 +477,7 @@ export async function runRetention(manifestId: string): Promise<RunResult> {
         manifestId, table: manifest.table, mode: manifest.mode,
         intended: manifest.intendedCount, affected: manifest.affectedCount,
         reconciled: manifest.reconciled === true, finished: true,
+        actorId: manifest.actorId, actorEmail: manifest.actorEmail, actorRole: manifest.actorRole,
         note: "Already complete. A second attempt at a finished run is a no operation rather than a second sweep.",
       },
     };
@@ -579,6 +598,7 @@ export async function runRetention(manifestId: string): Promise<RunResult> {
     report: {
       manifestId, table: manifest.table, mode: manifest.mode,
       intended: manifest.intendedCount, affected, reconciled, finished: true, note,
+      actorId: manifest.actorId, actorEmail: manifest.actorEmail, actorRole: manifest.actorRole,
     },
   };
 }

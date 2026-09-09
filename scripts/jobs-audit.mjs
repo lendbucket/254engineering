@@ -156,6 +156,12 @@ const PROBE_A = {
   period: "2026-08",
   at: "2026-09-04",
   actorId: "actor-a",
+  /* Phase 12 Section 3 added retention.sweep, keyed on the manifest alone,
+   * because the manifest IS the identity of a run: everything else about it
+   * lives in eng_retention_runs rather than in the payload. This audit went red
+   * on the first board run after it shipped, for the third time and for the
+   * same reason, and the field was added here rather than the check loosened. */
+  manifestId: "manifest-a",
 };
 const PROBE_B = {
   id: "b",
@@ -172,6 +178,7 @@ const PROBE_B = {
   period: "2026-09",
   at: "2026-09-05",
   actorId: "actor-b",
+  manifestId: "manifest-b",
 };
 
 /*

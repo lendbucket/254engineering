@@ -67,7 +67,19 @@ for (const table of tables) {
   const before = await db.from(table).select("*", { count: "exact", head: true });
   console.log(`  rows in the table right now: ${n(before.count)}`);
 
-  const plan = await planRetention(table, { kind: "dry_run", askedBy: null });
+  /*
+   * EVERY MANIFEST NAMES WHAT WROTE IT.
+   *
+   * askedBy was null here at first, and reading eng_retention_runs afterwards
+   * showed a table of runs whose actor_role was empty: a person opening it
+   * could not tell a run somebody asked for from one a board produced. A
+   * script cannot mint an execute authority and should not pretend to have a
+   * person behind it, so it names ITSELF.
+   */
+  const plan = await planRetention(table, {
+    kind: "dry_run",
+    askedBy: { id: null, email: null, role: "script:retention-dry-run" },
+  });
   if (!plan.ok) {
     console.log("");
     console.log("  REFUSED, and nothing was written:");
@@ -91,7 +103,7 @@ for (const table of tables) {
   for (const d of m.rollupDays) {
     console.log(`      ${d.day}  planned ${d.planned}  rollup ${n(d.rollup)}  ${d.planned === d.rollup ? "reconciles" : "DOES NOT RECONCILE"}`);
   }
-  console.log(`    actor            no actor: a script cannot mint one, and an execute run needs one`);
+  console.log(`    asked by         script:retention-dry-run (a script cannot mint the authority to delete)`);
   console.log(`    planned at (CT)  ${m.plannedAtCt}`);
   console.log(`    status           ${m.status}`);
 

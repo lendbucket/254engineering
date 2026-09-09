@@ -57,6 +57,22 @@ import { METRICS } from "../src/lib/ops-metrics.ts";
 import { DEFAULT_ROLES } from "../src/lib/ops-authz.ts";
 import { registeredKinds, handlerFor, loadHandlers } from "../src/lib/ops-jobs.ts";
 
+/*
+ * WHAT WROTE THE MANIFEST, ON THE MANIFEST.
+ *
+ * Every plan below leaves a row in eng_retention_runs that CANNOT BE DELETED,
+ * because that table refuses DELETE by design. Development already holds 128 of
+ * them. They were anonymous at first, and reading the table afterwards is what
+ * showed it: a person opening eng_retention_runs could not tell a run somebody
+ * asked for from one a board produced.
+ *
+ * An audit has no actor and must not borrow one, so it names itself. The row it
+ * leaves is then permanent AND identifiable, which is the best of the two
+ * available outcomes. BACKLOG.md carries the open question of whether these
+ * should be written against a replayed database instead.
+ */
+const AUDIT_ASKED = { id: null, email: null, role: "audit:retention-audit" };
+
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
 
@@ -402,21 +418,21 @@ const cleanup = async () => {
 try {
   // ------------------------------------------------ a plan refuses what it must
 
-  const forever = await planRetention("eng_audit_events", { kind: "dry_run", askedBy: null });
+  const forever = await planRetention("eng_audit_events", { kind: "dry_run", askedBy: AUDIT_ASKED });
   rec(
     "planning against a kept-forever table is refused and says so",
     forever.ok === false && /kept_forever/.test(forever.because),
     forever.ok ? "IT PLANNED ONE" : forever.because.slice(0, 90),
   );
 
-  const unknown = await planRetention("eng_not_a_real_table", { kind: "dry_run", askedBy: null });
+  const unknown = await planRetention("eng_not_a_real_table", { kind: "dry_run", askedBy: AUDIT_ASKED });
   rec(
     "planning against a table the declaration does not name is refused",
     unknown.ok === false && /not named in retention-policy/.test(unknown.because),
     unknown.ok ? "IT PLANNED ONE" : "refused before it reads a row",
   );
 
-  const counsel = await planRetention("eng_files", { kind: "dry_run", askedBy: null });
+  const counsel = await planRetention("eng_files", { kind: "dry_run", askedBy: AUDIT_ASKED });
   rec(
     "and so is a table waiting on counsel",
     counsel.ok === false && /kept_pending_counsel/.test(counsel.because),
@@ -445,7 +461,7 @@ try {
   if (insErr) throw new Error(`could not construct the fixture: ${insErr.message}`);
   madeCron.push(...inserted.map((r) => r.id));
 
-  const noRollup = await planRetention("eng_cron_runs", { kind: "dry_run", askedBy: null });
+  const noRollup = await planRetention("eng_cron_runs", { kind: "dry_run", askedBy: AUDIT_ASKED });
   rec(
     "a day with no rollup is refused, and the day is named",
     noRollup.ok === false && new RegExp(`${DAY}[123]`).test(noRollup.because) && /does not exist yet/.test(noRollup.because),
@@ -459,7 +475,7 @@ try {
   );
   madeMetrics.push(`${DAY}1`);
 
-  const wrongRollup = await planRetention("eng_cron_runs", { kind: "dry_run", askedBy: null });
+  const wrongRollup = await planRetention("eng_cron_runs", { kind: "dry_run", askedBy: AUDIT_ASKED });
   rec(
     "a rollup that disagrees with its source is refused, with both numbers",
     wrongRollup.ok === false && /does not reconcile/.test(wrongRollup.because) && /99/.test(wrongRollup.because),
@@ -527,6 +543,55 @@ try {
       "a dry run that recorded nothing proves nothing about the run it rehearses",
     );
 
+    // ------------------------------- the handler, and the trail row it writes
+
+    /*
+     * THE ONLY CHECK HERE THAT GOES THROUGH THE REGISTERED HANDLER.
+     *
+     * Everything above calls runRetention directly, which is right for testing
+     * the sweep and leaves one thing unexercised: the handler is what writes the
+     * regulatory trail row, so nothing on the board was reading it. That gap had
+     * already cost something. The trail row was written with actor_id null while
+     * the manifest beside it named somebody, and it was found by reading
+     * eng_audit_events next to eng_retention_runs rather than by any check.
+     *
+     * For the one action in this platform that destroys a record, "who authorised
+     * it" belongs in the regulatory memory first and the working record second.
+     */
+    {
+      const handler = handlerFor("retention.sweep");
+      const trailPlan = await planRetention("eng_cron_runs", { kind: "dry_run", askedBy: AUDIT_ASKED });
+
+      if (!handler || !trailPlan.ok) {
+        rec("the sweep handler writes a trail row naming who authorised it", false, "could not plan the fixture for it");
+      } else {
+        const outcome = await handler.run({ manifestId: trailPlan.manifest.id }, {
+          id: 0, kind: "retention.sweep", payload: {}, attempts: 1, maxAttempts: 5,
+        });
+
+        const { data: trail } = await db
+          .from("eng_audit_events")
+          .select("action, actor_role, summary, entity_id")
+          .eq("entity_id", trailPlan.manifest.id)
+          .maybeSingle();
+
+        rec(
+          "the sweep handler writes a trail row naming who authorised it",
+          outcome.kind === "done" &&
+            trail?.action === "retention.dry_run" &&
+            trail?.actor_role === AUDIT_ASKED.role &&
+            /Authorised by/.test(trail?.summary ?? ""),
+          trail ? `${trail.action} authorised by ${trail.actor_role ?? "NOBODY"}` : "no trail row was written",
+        );
+
+        rec(
+          "and it says execute or dry run in the action itself",
+          trail?.action === "retention.dry_run",
+          "a reader scanning the trail for deletions must not have to open the diff to find one",
+        );
+      }
+    }
+
     // ------------------------------------------ the hash catches a set that moved
 
     /*
@@ -543,7 +608,7 @@ try {
      * the same lesson as the paging check at gate 1: an injection that cannot
      * produce the failure is a green mark for a guard nobody tested.
      */
-    const moved = await planRetention("eng_cron_runs", { kind: "dry_run", askedBy: null });
+    const moved = await planRetention("eng_cron_runs", { kind: "dry_run", askedBy: AUDIT_ASKED });
     if (moved.ok && moved.manifest.idLow !== null) {
       const removed = await db.from("eng_cron_runs").delete().eq("id", moved.manifest.idLow);
       const refused = await runRetention(moved.manifest.id);
