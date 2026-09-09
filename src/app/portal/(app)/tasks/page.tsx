@@ -134,9 +134,25 @@ export default async function TasksPage({
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-[15px] leading-[1.35] font-semibold text-[var(--navy)]">{task.title}</p>
+                    {/*
+                      break-words on both, because a task title and a task
+                      description now routinely carry an EMAIL ADDRESS and an
+                      address has no break opportunity in it.
+
+                      Found on the board at 320 the first time a deletion
+                      request raised a task: "Deletion request from
+                      forgotten.1788978099569@example.com" pushed the scrolling
+                      region 8px past itself. /portal/audit had exactly this in
+                      Phase 12 Section 2, from suppression summaries, and the
+                      fix is the same one. A screen that renders text somebody
+                      else typed has to assume the longest unbreakable run in it
+                      is an address.
+                    */}
+                    <p className="text-[15px] leading-[1.35] font-semibold break-words text-[var(--navy)]">
+                      {task.title}
+                    </p>
                     {task.description ? (
-                      <p className="mt-1 max-w-[75ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+                      <p className="mt-1 max-w-[75ch] text-[13.5px] leading-[1.55] break-words whitespace-pre-line text-[var(--secondary)]">
                         {task.description}
                       </p>
                     ) : null}
