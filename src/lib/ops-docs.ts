@@ -318,11 +318,31 @@ export async function fileMargins(actor: Actor | null): Promise<FileMargin[]> {
   const db = supabaseAdmin();
   if (!db || !can(actor, "billing.read")) return [];
 
+  /*
+   * DEMONSTRATIONS ARE EXCLUDED HERE, WHICH IS FURTHER UP THAN IT LOOKS.
+   *
+   * Found 2026-09-09 by looking at the administrator's dashboard on a
+   * development database: "Margin this period $175.00" and "Revenue this period
+   * $450.00", every dollar of it from the three seeded files 254-DEMO-0001 to
+   * 0003. The margin by period table underneath said the same thing, and so did
+   * the margin CSV that leaves the building through /api/portal/exports.
+   *
+   * demo-audit's file injection did not catch it, and the reason is worth
+   * keeping: the file it inserts carries no price, so it cannot move a margin
+   * however wrong the filter is. A check can only find what its fixture can
+   * touch, and this one was found by reading a screenshot for the third time in
+   * this section.
+   *
+   * This is the single read behind the administrator's money tiles, the margin
+   * by period table, the billing screen and two of the three CSV exports, so
+   * the exclusion belongs here rather than at any of the four.
+   */
   const { data } = await db
     .from("eng_files")
     .select(
       "id, file_number, property_address, county, status, service_slug, client_price_cents, tech_cost_cents, engineer_cost_cents, partner_id, delivered_at, created_at",
     )
+    .eq("is_demo", false)
     .order("created_at", { ascending: false })
     .limit(500);
 

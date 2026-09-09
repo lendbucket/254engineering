@@ -531,6 +531,19 @@ if (!db) {
             property_address: "2 Audit Way",
             county: "Nueces",
             status: "needs_dispatch",
+            /*
+             * PRICED, AND THAT IS THE POINT.
+             *
+             * The first version of this fixture carried no money, so it could
+             * not move a margin however wrong the filter was, and the
+             * administrator dashboard went on reporting $175.00 of margin from
+             * three seeded files while this check passed. A fixture can only
+             * catch what it can touch.
+             */
+            client_price_cents: 450_00,
+            tech_cost_cents: 150_00,
+            engineer_cost_cents: 125_00,
+            delivered_at: new Date().toISOString(),
             is_demo: true,
           })
           .select("id")
