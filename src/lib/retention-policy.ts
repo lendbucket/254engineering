@@ -3,7 +3,7 @@ import "server-only";
 /**
  * WHAT THE FIRM KEEPS, FOR HOW LONG, AND WHO SAID SO.
  *
- * Phase 12 Section 3. One declaration for all 73 `eng_` tables. A table missing
+ * Phase 12 Section 3. One declaration for all 74 `eng_` tables. A table missing
  * from it fails the board; a table declared here that is not in the schema fails
  * the board. Same idiom as `scripts/lib/surfaces.mjs` and `supabase/applied.mjs`
  * and for the same reason: a list nothing reads is a list that stops being true
@@ -43,9 +43,12 @@ import "server-only";
  *
  * THE COUNT, AND WHAT MOVED
  * -------------------------
- * 73 tables: 41 kept pending counsel, 22 kept forever, 8 not a record, 2
- * deletable. Two entries changed after gate 0 and both are recorded rather than
- * silently different. `eng_retention_runs` is new, added by 0031 as the manifest
+ * 74 tables: 41 kept pending counsel, 23 kept forever, 8 not a record, 2
+ * deletable. Three entries changed after gate 0 and all three are recorded
+ * rather than silently different. `eng_deletion_requests` is new, added by 0036
+ * as the customer side of this section: somebody asking to be forgotten is
+ * recorded, and the record of the asking is one of the things that can never be
+ * removed. `eng_retention_runs` is new, added by 0031 as the manifest
  * retention writes before it takes anything, and it is kept forever because a
  * run that could age out its own manifests has a floor on its own history.
  * `eng_evidence_items` moved from kept_pending_counsel to kept_forever when
@@ -262,6 +265,21 @@ export const RETENTION_POLICY: RetentionEntry[] = [
   { table: "eng_customer_accounts", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   { table: "eng_customer_auth_tokens", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   { table: "eng_customer_users", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
+  {
+    table: "eng_deletion_requests",
+    rule: {
+      kind: "kept_forever",
+      because:
+        REFUSES_RECORD_DELETE +
+        " AND THE IRONY IS THE POINT. This is the record of somebody asking to be forgotten, and it " +
+        "is one of the tables that can never be removed. Deleting it would mean the firm could not " +
+        "show what it was asked or what it answered, so 'we never received that' would be " +
+        "unfalsifiable, which is worse for the person who asked than for the firm. The request " +
+        "outlives whatever is decided about the records it concerns, and it says so on the screen " +
+        "that takes it rather than only here.",
+      ruledBy: "operator, 2026-09-09, and 0036",
+    },
+  },
   {
     table: "eng_documents",
     rule: {
