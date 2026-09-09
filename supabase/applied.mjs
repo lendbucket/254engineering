@@ -207,6 +207,22 @@ export const APPLIED = [
     note:
       "Applied to development 2026-09-09 and to production on merge the same day, through apply_migration, and read back rather than assumed: fingerprint unchanged at 9bbcca2c9cd3c65503c923d7c32ea769 across 970 columns and 72 eng_ tables, which is what two seeded rows and no DDL should do, with 118 role grants in total and suppressions.manage held by exactly admin and customer_service. Sales holds nothing here on purpose: somebody paid to grow a list should not be the one who can quietly shorten it, and the request does not arrive there anyway. IT WAS DELIBERATELY PENDING UNTIL THE MERGE, which is the lesson 0027 taught: applying early leaves the board red on 'nothing is applied to production that is not on main' for the whole life of the branch, and one red check that is always there trains everybody to read red as normal.",
   },
+
+  /*
+   * The two things retention cannot be built without: a foreign key that would
+   * let a retention run undo Section 2's demo scoping, and the permission that
+   * turns a dry run into a deletion.
+   */
+  {
+    file: "0030_retention_foundations.sql", appliedBy: "apply_migration",
+    fingerprint: "9bbcca2c9cd3c65503c923d7c32ea769",
+    proves: { table: "eng_role_grants", match: { role_key: "admin", action: "retention.execute" } },
+    production: null,
+    because:
+      "Phase 12 Section 3 is open and this is the ruled sequence: pending until the branch merges, then applied through apply_migration, read back, and declared. Applied to development 2026-09-09 and read back rather than assumed: fingerprint unchanged at 9bbcca2c9cd3c65503c923d7c32ea769 across 970 columns and 72 eng_ tables, which is what an ALTER of a foreign key's delete action and one seeded row should do, with 119 role grants in total and retention.execute held by admin alone.",
+    note:
+      "TWO PARTS, AND THE FIRST IS THE ONE THE FINGERPRINT CANNOT SEE. Both ledgers' file_id carried ON DELETE SET NULL and both now carry RESTRICT, which pg_constraint reports as confdeltype 'r' and information_schema.columns reports as nothing at all: the column's name, type and nullability are identical either way, so this is the second migration in this chain after 0018 whose correctness is invisible to the figure above. It is verified by reading confdeltype directly and, since a constraint that merely EXISTS is not a constraint that FIRES, by a live proof on development: a demonstration file with a $600.00 production ledger entry against it, deleted, refused by name with 'violates foreign key constraint eng_production_ledger_file_id_fkey', the file still present and the entry's file_id still set. The reason is in the migration at length and is one sentence here: Section 2 scopes a person's pay THROUGH the file, so a retention run deleting a demonstration file would have nulled the link and started that money counting in a real person's figures, silently undoing scoping built three days earlier. The trade is accepted: a demonstration file with earnings is kept forever and is_demo keeps it out of every figure. Safe to apply now precisely because neither ledger holds a row on either database and production holds no files at all, so nothing existing can violate it; the same change after the firm is trading would have to reconcile live rows first. The second part seeds retention.execute to admin alone, which is the only permission in this platform that destroys a record.",
+  },
 ];
 
 /** The canary. An empty ledger must never read as a ledger with nothing to say. */

@@ -230,6 +230,12 @@ const EXPECTED = {
    * arrives at. None of the three roles this table covers holds it: an engineer
    * has a licence, not a say in the firm's marketing. */
   "suppressions.manage":          { admin: true,  engineer: false, field_tech: false },
+
+  /* The one permission in this platform that destroys a record. Admin alone,
+   * and the two falses matter more here than anywhere else in this table: a
+   * licence is not a reason to be able to delete, and neither is being the
+   * person whose work the rows describe. */
+  "retention.execute":            { admin: true,  engineer: false, field_tech: false },
 };
 
 /*

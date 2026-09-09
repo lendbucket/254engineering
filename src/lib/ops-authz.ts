@@ -328,7 +328,21 @@ export type Action =
   // decision about what the firm may say to a person, and the role that does it
   // on the telephone is not the role that runs a campaign. Seeded by 0029 to
   // admin and to customer service.
-  | "suppressions.manage";
+  | "suppressions.manage"
+  /*
+   * Turning a retention run from a dry run into one that removes rows.
+   *
+   * Phase 12 Section 3. Its own action rather than folded into jobs.manage,
+   * and the distance between the two is the reason. jobs.manage retries a job;
+   * this one is the only permission in this platform that DESTROYS a record,
+   * and nothing else here should imply the right to.
+   *
+   * Admin only, seeded by 0030. Not customer service, who hold
+   * suppressions.manage and take deletion REQUESTS from customers: a request
+   * produces a task, and the deletion is a run an administrator authorises.
+   * Those are two different acts by two different people on purpose.
+   */
+  | "retention.execute";
 
 /**
  * The matrix. Read it as: this role may perform these actions.
@@ -385,6 +399,8 @@ const MATRIX: Record<Role, Action[]> = {
      * every other operational grant: somebody has to be able to do it when the
      * one person who normally does is not working. Seeded by 0029. */
     "suppressions.manage",
+    /* And the one permission that deletes. Seeded by 0030, admin alone. */
+    "retention.execute",
   ],
   engineer: [
     "profiles.read_self", "profiles.update_self",
