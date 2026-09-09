@@ -324,6 +324,28 @@ BASE_URL=https://254engineering.com npx tsx scripts/security-audit.mjs
 **Every audit is verified by injecting a violation and watching it fail before its green is
 trusted.** An audit that has never failed has never been tested.
 
+**AND THE BOARD IS RUN UNDER ITS OWN INVOCATION BEFORE ANY COMMIT IS REPORTED AS
+GREEN.** The rule already existed. It is recorded again here with what breaking
+it cost, on 2026-09-09, because the cost is the argument.
+
+Three files were patched in one pass and one of them was re-run. The other two
+carried a variable moved out of scope and a check nobody had exercised, and both
+went to the board: `dashboards-audit` crashed outright with
+`ReferenceError: made is not defined`, and underneath that crash was a fixture
+inserting a production ledger row on EVERY run into a table 0032 had just made
+undeletable. Six identical rows accumulated before anything said so.
+
+Running the three audits by hand would have caught both in under two minutes.
+The board caught them in twenty, after a commit had already been described as
+done. **A green audit is a green audit of the file it read. The board is what
+knows whether the rest of the repository still agrees with it.**
+
+The same pass also produced the other half of this rule: `tsc` was clean and the
+BUILD failed, because a client component imported a module carrying
+`server-only` and that constraint belongs to the bundler rather than to the type
+system. The suite printed `THE SUITE DID NOT RUN TO COMPLETION`. **The board
+builds before it audits, and that ordering is the first step, not a convenience.**
+
 **A CHECK THAT MATCHES THE OLD SHAPE BY TEXT IS A CHECK ON WORDING.** Operator
 ruling, 2026-09-09, recorded as another instance of the fixture lesson below.
 

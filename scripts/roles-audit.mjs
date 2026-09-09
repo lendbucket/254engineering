@@ -1216,11 +1216,17 @@ if (!db) {
         `HTTP ${res.status}${body?.error ? `: ${body.error}` : ""}`,
       );
 
-      const { data: row } = await db
+      /* Oldest first, and the error read. eng_profiles has no unique index on
+       * email, so a leftover probe sharing an address would answer PGRST116
+       * and this check would fail claiming the row carries no role. */
+      const { data: rows, error: rowErr } = await db
         .from("eng_profiles")
         .select("id, role")
         .eq("email", email)
-        .maybeSingle();
+        .order("created_at", { ascending: true })
+        .limit(1);
+      if (rowErr) console.error(`  (could not read the profile just written: ${rowErr.message})`);
+      const row = (rows ?? [])[0] ?? null;
       rec(
         "and the row it wrote carries that role",
         row?.role === "dispatcher",

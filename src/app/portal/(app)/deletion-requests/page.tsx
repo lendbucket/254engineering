@@ -55,7 +55,7 @@ export default async function DeletionRequestsPage() {
         lede="Every person who has asked the firm to delete what it holds about them, written down as they asked it. Recording a request stops marketing to that address immediately and raises a task for somebody to answer. It deletes nothing: what the firm may remove is a question for counsel, and the only path that removes a record is a retention run an administrator plans."
       />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(300px,400px)_1fr]">
+      <div className="grid min-w-0 gap-6 [&>*]:min-w-0 lg:grid-cols-[minmax(300px,400px)_1fr]">
         <Panel title="Take a request">
           <TakeRequest />
         </Panel>

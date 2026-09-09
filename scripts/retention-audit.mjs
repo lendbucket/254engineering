@@ -656,11 +656,17 @@ try {
           id: 0, kind: "retention.sweep", payload: {}, attempts: 1, maxAttempts: 5,
         });
 
-        const { data: trail } = await db
+        /* Oldest first. A manifest could in principle carry more than one
+         * trail row, and the first is the one the sweep wrote; reading a pair
+         * as none would fail this check for the wrong reason. */
+        const { data: trailRows, error: trailErr } = await db
           .from("eng_audit_events")
           .select("action, actor_role, summary, entity_id")
           .eq("entity_id", trailPlan.manifest.id)
-          .maybeSingle();
+          .order("created_at", { ascending: true })
+          .limit(1);
+        if (trailErr) console.error(`  (could not read the trail row: ${trailErr.message})`);
+        const trail = (trailRows ?? [])[0] ?? null;
 
         rec(
           "the sweep handler writes a trail row naming who authorised it",

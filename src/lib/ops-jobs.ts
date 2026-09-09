@@ -170,14 +170,40 @@ export async function enqueue(
    * backstop that makes a race fail loudly rather than duplicate.
    */
   if (key) {
-    const { data: live } = await db
+    /*
+     * THE GUARD THAT STOPS A DUPLICATE MUST NOT BE DEFEATED BY ONE.
+     *
+     * This was `.maybeSingle()` with the error discarded. PostgREST answers
+     * PGRST116 when MORE THAN ONE row matches as well as when none does, and
+     * two live jobs sharing a key is exactly the state this check exists to
+     * notice. So the moment a duplicate existed the lookup failed, the failure
+     * read as "no live job", and the enqueue added a THIRD. The guard broke in
+     * the one circumstance it was written for.
+     *
+     * Oldest first, because the earliest live job is the one this enqueue is a
+     * duplicate OF, and returning its id is what makes the caller's retry
+     * idempotent rather than merely quiet.
+     */
+    const { data: liveRows, error: liveErr } = await db
       .from("eng_jobs")
       .select("id")
       .eq("kind", kind)
       .eq("idempotency_key", key)
       .in("status", ["pending", "running"])
-      .maybeSingle();
+      .order("id", { ascending: true })
+      .limit(1);
 
+    /*
+     * A failed read is not an absence. Refusing here means the caller logs a
+     * failed enqueue, which is loud; carrying on would mean a second side
+     * effect nobody asked for.
+     */
+    if (liveErr) {
+      console.error(`[jobs] could not check for a live ${kind}: ${liveErr.message}`);
+      return { ok: false, error: `Could not check whether that work is already queued: ${liveErr.message}` };
+    }
+
+    const live = (liveRows ?? [])[0];
     if (live) return { ok: true, id: live.id as number, duplicate: true };
   }
 

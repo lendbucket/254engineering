@@ -143,6 +143,29 @@ rec(
   current ? describeTarget(current) : "SUPABASE_URL is unset",
 );
 
+/*
+ * AND IT IS DEVELOPMENT, WHICH IS NOT THE SAME CLAIM.
+ *
+ * Operator ruling, 2026-09-09: a board that can write to a ledger is a board
+ * that must prove WHICH ledger. The check above says "not production", and an
+ * unknown project passes it: CLAUDE.md section 6b already names that hazard for
+ * qmvcqvkywmkogxbyzsaz, the cutover project, which would read as an ordinary
+ * development target to every guard in this repository.
+ *
+ * It matters more since 0032. The board writes a standing demonstration ledger
+ * entry, and eng_production_ledger now refuses DELETE, so a run pointed at the
+ * wrong project leaves money rows there that nobody can remove.
+ *
+ * This runs FIRST in the suite, before anything opens a connection.
+ */
+rec(
+  "and it is the development project by ref, not merely something that is not production",
+  refOf(current) === DEVELOPMENT_REF,
+  current
+    ? `${describeTarget(current)}; expected ${DEVELOPMENT_REF}, found ${refOf(current) ?? "no ref"}`
+    : "SUPABASE_URL is unset",
+);
+
 // =====================================================================
 // The DEPLOYED APP's guard, which is a different thing from this file's.
 //

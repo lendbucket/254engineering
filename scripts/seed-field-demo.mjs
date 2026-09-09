@@ -265,8 +265,27 @@ async function mustUpdate(table, patch, column, value) {
   if (error) throw new Error(`${table}: ${error.message}`);
 }
 
+/**
+ * Find the row this seed means, or make it.
+ *
+ * ORDERED AND LIMITED, AND THE ERROR IS READ. It was `.maybeSingle()` with the
+ * error discarded, which is the same defect that made the standing money
+ * fixture multiply: PostgREST answers PGRST116 for a MULTIPLE match as well as
+ * for none, so the first duplicate made every later run insert another. A seed
+ * that cannot tell whether a thing exists must stop rather than guess.
+ *
+ * Oldest first, because the earliest row is the one previous runs have already
+ * built on.
+ */
 async function idOf(table, match, insert) {
-  const { data: found } = await db.from(table).select("id").match(match).maybeSingle();
+  const { data: rows, error: findErr } = await db
+    .from(table)
+    .select("id")
+    .match(match)
+    .order("created_at", { ascending: true })
+    .limit(1);
+  if (findErr) throw new Error(`${table}: could not look for ${JSON.stringify(match)}: ${findErr.message}`);
+  const found = (rows ?? [])[0];
   if (found) return found.id;
   const { data, error } = await db.from(table).insert(insert).select("id").single();
   if (error) throw new Error(`${table}: ${error.message}`);
@@ -374,7 +393,11 @@ if (!KEEP_EXISTING) {
  */
 {
   const email = "demo.admin@example.com";
-  const { data: existing } = await db.from("eng_profiles").select("id").eq("email", email).maybeSingle();
+  const { data: existingRows, error: existingErr } = await db
+    .from("eng_profiles").select("id").eq("email", email)
+    .order("created_at", { ascending: true }).limit(1);
+  if (existingErr) throw new Error(`eng_profiles: could not look for ${email}: ${existingErr.message}`);
+  const existing = (existingRows ?? [])[0] ?? null;
   let id = existing?.id ?? null;
   if (!id) {
     const { data: created, error } = await db.auth.admin.createUser({
@@ -398,11 +421,14 @@ if (!KEEP_EXISTING) {
 
 const techIds = [];
 for (const tech of TECHS) {
-  const { data: existing } = await db
+  const { data: existingRows, error: existingErr } = await db
     .from("eng_profiles")
     .select("id")
     .eq("email", tech.email)
-    .maybeSingle();
+    .order("created_at", { ascending: true })
+    .limit(1);
+  if (existingErr) throw new Error(`eng_profiles: could not look for ${tech.email}: ${existingErr.message}`);
+  const existing = (existingRows ?? [])[0] ?? null;
 
   let id = existing?.id ?? null;
 
@@ -442,12 +468,15 @@ for (const tech of TECHS) {
   );
 
   if (tech.certified) {
-    const { data: cert } = await db
+    const { data: certRows, error: certErr } = await db
       .from("eng_certifications")
       .select("id")
       .eq("profile_id", id)
       .eq("service_slug", SERVICE)
-      .maybeSingle();
+      .order("created_at", { ascending: true })
+      .limit(1);
+    if (certErr) throw new Error(`eng_certifications: ${certErr.message}`);
+    const cert = (certRows ?? [])[0] ?? null;
     if (!cert) {
       await db.from("eng_certifications").insert({
         profile_id: id,
@@ -464,12 +493,18 @@ for (const tech of TECHS) {
 
 // --- the protocol ----------------------------------------------------------
 
-const { data: published } = await db
+/* Newest first: more than one published protocol for a service is a real
+ * possibility as versions accumulate, and the current one is what a job is
+ * carried out against. */
+const { data: publishedRows, error: publishedErr } = await db
   .from("eng_protocol_templates")
   .select("id")
   .eq("service_slug", SERVICE)
   .eq("status", "published")
-  .maybeSingle();
+  .order("created_at", { ascending: false })
+  .limit(1);
+if (publishedErr) throw new Error(`eng_protocol_templates: ${publishedErr.message}`);
+const published = (publishedRows ?? [])[0] ?? null;
 
 let protocolId = published?.id ?? null;
 if (!protocolId) {
@@ -601,12 +636,15 @@ const CREDENTIALS = {
 for (const tech of techIds) {
   const wanted = CREDENTIALS[tech.email] ?? [];
   for (const c of wanted) {
-    const { data: existing } = await db
+    const { data: existingRows, error: existingErr } = await db
       .from("eng_credentials")
       .select("id")
       .eq("profile_id", tech.id)
       .eq("kind", c.kind)
-      .maybeSingle();
+      .order("created_at", { ascending: true })
+      .limit(1);
+    if (existingErr) throw new Error(`eng_credentials: ${existingErr.message}`);
+    const existing = (existingRows ?? [])[0] ?? null;
     const row = {
       profile_id: tech.id,
       kind: c.kind,
@@ -682,11 +720,14 @@ const QUESTIONS = [
 
 {
   const email = "demo.applicant@example.com";
-  const { data: existing } = await db
+  const { data: existingRows, error: existingErr } = await db
     .from("eng_applications")
     .select("id")
     .eq("email", email)
-    .maybeSingle();
+    .order("created_at", { ascending: true })
+    .limit(1);
+  if (existingErr) throw new Error(`eng_applications: ${existingErr.message}`);
+  const existing = (existingRows ?? [])[0] ?? null;
   if (existing) {
     console.error("  application: already present");
   } else {
@@ -740,16 +781,18 @@ console.error("");
     return data?.id ?? null;
   };
 
-  const coastal = await db
-    .from("eng_profiles")
-    .select("id")
-    .eq("email", "demo.tech.coastal@example.com")
-    .maybeSingle();
-  const engineer = await db
-    .from("eng_profiles")
-    .select("id")
-    .eq("email", "demo.engineer@example.com")
-    .maybeSingle();
+  const one = async (email) => {
+    const { data, error } = await db
+      .from("eng_profiles")
+      .select("id")
+      .eq("email", email)
+      .order("created_at", { ascending: true })
+      .limit(1);
+    if (error) throw new Error(`eng_profiles: could not look for ${email}: ${error.message}`);
+    return { data: (data ?? [])[0] ?? null };
+  };
+  const coastal = await one("demo.tech.coastal@example.com");
+  const engineer = await one("demo.engineer@example.com");
   const techId = coastal.data?.id ?? null;
   const engineerId = engineer.data?.id ?? null;
 
@@ -1099,11 +1142,14 @@ console.error("");
    * have let a seeded paragraph carry a claim the product would have refused,
    * which is the demonstration disagreeing with the thing being demonstrated.
    */
-  const { data: seedAdmin } = await db
+  const { data: seedAdminRows, error: seedAdminErr } = await db
     .from("eng_profiles")
     .select("id, role")
     .eq("email", "demo.admin@example.com")
-    .maybeSingle();
+    .order("created_at", { ascending: true })
+    .limit(1);
+  if (seedAdminErr) console.error(`  (could not read the seeded administrator: ${seedAdminErr.message})`);
+  const seedAdmin = (seedAdminRows ?? [])[0] ?? null;
 
   if (seedAdmin) {
     const actor = {

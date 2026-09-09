@@ -198,12 +198,21 @@ export async function convertClientToAccount(
     };
   }
 
-  const { data: existing } = await db
+  /* Oldest first: if a client somehow has two accounts for one site, the
+   * first one opened is the one that has been billed against. A discarded
+   * error read that as no account and would have opened a third. */
+  const { data: existingRows, error: existingErr } = await db
     .from("eng_customer_accounts")
     .select("id")
     .eq("client_id", clientId)
     .eq("site", site)
-    .maybeSingle();
+    .order("created_at", { ascending: true })
+    .limit(1);
+
+  if (existingErr) {
+    return { ok: false, error: `Could not check whether that client already has an account: ${existingErr.message}` };
+  }
+  const existing = (existingRows ?? [])[0] ?? null;
 
   if (existing) {
     return { ok: true, accountId: existing.id as string, alreadyExisted: true };

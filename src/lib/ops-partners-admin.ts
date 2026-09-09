@@ -415,11 +415,30 @@ export async function invitePartnerUser(
     .maybeSingle();
   if (!partner) return { ok: false, error: "That partner does not exist." };
 
-  const { data: existing } = await db
+  /*
+   * THE SHARPEST OF THE THREE: THIS IS A UNIQUENESS GUARD, AND IT WAS BYPASSED
+   * BY THE THING IT GUARDS AGAINST.
+   *
+   * "One address, one partner" is enforced by the refusal below and by nothing
+   * else. With `.maybeSingle()` and the error discarded, two rows for an
+   * address answered PGRST116, read as "no existing user", and the guard passed
+   * silently, attaching that address to a second partner. The state it exists
+   * to prevent was the state that defeated it.
+   *
+   * Oldest first: the earliest row is the partner the address already belongs
+   * to, which is the one the refusal has to name.
+   */
+  const { data: existingRows, error: existingErr } = await db
     .from("eng_partner_users")
     .select("id, partner_id")
     .ilike("email", email)
-    .maybeSingle();
+    .order("created_at", { ascending: true })
+    .limit(1);
+
+  if (existingErr) {
+    return { ok: false, error: `Could not check whether that address already signs in somewhere: ${existingErr.message}` };
+  }
+  const existing = (existingRows ?? [])[0] ?? null;
 
   if (existing && existing.partner_id !== partnerId) {
     return {

@@ -161,13 +161,30 @@ audit asserts the count is exactly three.
 Created once, reused, its period moved forward by UPDATE. Both audits assert the
 production ledger's row count did not grow.
 
-**Two orphaned ledger rows from before that existed**, $888.00 and $777.00, left
-by the per-run fixtures on the one board run between 0032 being applied and the
-audits being fixed. The second has no file at all, which is the unscopable money
-row 0030 exists to prevent, arriving through a fixture rather than through a
-deletion. Neither can be removed. Both belong to `is_demo` engineers and the
-production report scopes on the engineer, so neither is counted; that was
-verified rather than assumed.
+**Nine production ledger rows that cannot be removed**, and what each is.
+
+Two are orphans from the one board run between 0032 being applied and the audits
+being fixed: $888.00 and $777.00, left by the per-run fixtures whose teardown had
+stopped working. The second has no file at all, which is the unscopable money row
+0030 exists to prevent, arriving through a fixture rather than through a deletion.
+
+Six more are the SAME standing fixture inserted over and over, $888.00 each, by
+the runaway described below: `maybeSingle()` answers PGRST116 for a multiple
+match, the lookup discarded the error, the failure read as "not found", and every
+run after the first duplicate added another.
+
+One is the standing fixture itself, which is meant to be there.
+
+**None of them moves a figure, and that is checked rather than assumed.** Every
+one belongs to a profile carrying `is_demo`, and the production report scopes on
+`eng_profiles.is_demo` rather than on the file, so the two with no file are
+excluded by the same filter as the rest. demo-audit proves it from the standing
+row directly: the report names it with demonstrations included and does not name
+it without. The margin and revenue figures read the file, and the file carries
+`is_demo` too.
+
+What they cost is clutter in a table nobody can tidy, on development only.
+Production holds none of this: it has no ledger rows at all.
 
 ### A cleanup nobody checks reports success by not speaking
 

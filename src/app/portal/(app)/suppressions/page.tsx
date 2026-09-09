@@ -54,7 +54,7 @@ export default async function SuppressionsPage() {
         lede="Everybody who has asked to stop receiving marketing from the firm, and how the firm came to know. Receipts, sealed document notices and refund decisions are never gated by this list: somebody who paid is owed those whatever their marketing preference says."
       />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(300px,380px)_1fr]">
+      <div className="grid min-w-0 gap-6 [&>*]:min-w-0 lg:grid-cols-[minmax(300px,380px)_1fr]">
         <Panel title="Record a request">
           <AddSuppression />
         </Panel>

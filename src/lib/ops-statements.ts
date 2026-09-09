@@ -86,12 +86,30 @@ export async function closePeriod(
     return { ok: false, error: "That account pays by card, so it has nothing to be invoiced for." };
   }
 
-  const { data: existing } = await db
+  /*
+   * A SECOND STATEMENT FOR A PERIOD MUST NOT READ AS NONE.
+   *
+   * There is no unique constraint on (account_id, period), so two statements
+   * for one month is a state this code can reach. `.maybeSingle()` with the
+   * error discarded answered PGRST116 for it and read it as "no statement for
+   * this period", which is the answer that ISSUES A THIRD and sends a customer
+   * a second invoice for a month they have already been billed for.
+   *
+   * Oldest first, because the earliest statement for a period is the one the
+   * customer was actually sent.
+   */
+  const { data: existingRows, error: existingErr } = await db
     .from("eng_statements")
     .select("id, reference, status, total_cents")
     .eq("account_id", accountId)
     .eq("period", period)
-    .maybeSingle();
+    .order("created_at", { ascending: true })
+    .limit(1);
+
+  if (existingErr) {
+    return { ok: false, error: `Could not check whether that period already has a statement: ${existingErr.message}` };
+  }
+  const existing = (existingRows ?? [])[0] ?? null;
 
   /*
    * An issued statement is closed. Reopening it to add a late order would change
