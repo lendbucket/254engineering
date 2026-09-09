@@ -27,10 +27,47 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
-## SECTION 4 OPENS HERE, AND IT OPENS TWICE
+## SECTION 4'S SECTION 0: FOUR DEBTS, AND THEY ARE ALL THE SAME DEBT
 
-Two items, both ruled at the gates of Phase 12 Section 3, both to be taken at
-the START of Section 4 rather than folded into a merge.
+Ruled at the gates of Phase 12 Section 3. All four are taken at the START of
+Section 4, before its own work, rather than folded into a merge.
+
+**They are one pattern: the harness saying something ACCIDENTAL instead of
+something true.** Each of the four is a check or a record that answered a
+narrower question than the person reading it would assume, and in three of the
+four the answer was right for reasons nobody had stated.
+
+| # | The debt | What it says accidentally |
+| --- | --- | --- |
+| 1 | Nothing on the board goes through the queue's door | 148 checks about a queue, none of which claims a job |
+| 2 | The schema fingerprint's four blind spots | "the schema matches", meaning only its column shapes match |
+| 3 | `mobile-overflow-audit` has no third verdict | "this page overflows", meaning the page did not load |
+| 4 | Line endings decide what a source check matches | "the code says this", meaning the file arrived this way |
+
+### 4. Line endings, and the cause as well as the symptom
+
+Operator ruling, 2026-09-09, after the board on main failed on a check that had
+passed on the branch with no change to the code.
+
+**The symptom** is fixed: `scripts/lib/read-source.mjs` normalises at the read
+and `retention-audit` goes through it. **Every other audit that matches across
+lines still uses `readFileSync` directly** and has simply not been unlucky yet.
+
+**The cause is not fixed.** The repository has no `.gitattributes`, so a
+checkout materialises CRLF while every patch script in this session writes LF,
+and the same file has different bytes depending on how it last arrived.
+
+What Section 4 does, in ONE commit:
+
+- `.gitattributes` declaring `text=auto eol=lf` for the repository, so a
+  checkout produces the bytes the session writes;
+- the renormalisation, with **what it touched stated** rather than left as a
+  diff nobody reads;
+- every audit matching across lines moved to `readSource`.
+
+Both halves, because the helper saves the audits that use it and the next reader
+who does not is saved by luck. A check whose answer depends on how the file
+arrived on disk says nothing about the code.
 
 ### The schema fingerprint has four blind spots, and a second one closes them
 
