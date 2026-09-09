@@ -67,6 +67,22 @@
  *   what the provider's history will NOT show, and how the schema was confirmed
  *   to hold it anyway.
  * @property {string} fingerprint The schema fingerprint after it, from a replay.
+ * @property {string} [behaviour] THE SECOND FINGERPRINT, from a replay, and
+ *   required from 0038 onwards. Operator ruling, 2026-09-09: the first
+ *   fingerprint's four blind spots close at the start of Phase 12 Section 4,
+ *   and from then on the second is recorded beside the first in every entry.
+ *
+ *   The first is md5 over columns and answers "do these databases have the same
+ *   SHAPE". The second is md5 over the catalogue facts it cannot reach: what a
+ *   foreign key does on delete, what fires and which function it calls, what
+ *   those functions are, what is indexed and uniquely, whether row level
+ *   security is on, and the rows of the tables whose CONTENT is part of the
+ *   schema. The query is scripts/lib/fingerprints.mjs and nothing else may
+ *   spell it, because two spellings of one question are two questions.
+ *
+ *   Earlier entries deliberately have none. The first fingerprint is kept for
+ *   the history it already describes, and backfilling a number nobody read at
+ *   the time would be a record invented after the fact.
  * @property {string|null} production  The date production received it, or null.
  * @property {string} [because]   Required when production is null: why not yet.
  * @property {string} [note]      Anything a reader would otherwise get wrong.
@@ -324,6 +340,108 @@ export const APPLIED = [
       "Same branch and the same ruled sequence as 0030 through 0036: pending until merge, then applied in order with each read back before the next. Applied to development 2026-09-09. THE FINGERPRINT IS UNCHANGED FROM 0036 and that is what an index-only migration should do: it adds no column, no table and no row, so the figure the fingerprint measures cannot see it. What it adds is read back directly instead, from pg_indexes: eng_partner_users_email_lower_key exists on lower(email). That makes it the fourth migration in this chain, after 0018, 0030 and 0032, whose correctness the fingerprint is blind to.",
     note:
       "A SCHEMA GAP RATHER THAN A CALL SITE. eng_partner_users.email was declared text not null unique, which in Postgres is CASE SENSITIVE, while every lookup against it is ilike, which is not. Two rows differing only in case were therefore permitted by the schema and were one address to every piece of code that read them. Two things followed and both were live: signing in matched two rows, PostgREST answered PGRST116, the error was discarded and the result read as no such address, so the person was refused with the deliberately generic message and had no way to discover why; and the one address, one partner guard in ops-partners-admin is a lookup and a refusal with nothing underneath it, so the same PGRST116 read as no existing user and the guard attached the address to a second partner. THE STATE IT EXISTS TO PREVENT WAS THE STATE THAT DEFEATED IT. The call sites are fixed in this branch and they are not the fix: ordering and limiting picks one of two rows that should never both have existed. eng_customer_users has carried exactly this since 0009 and the partner table simply never got it. IT REFUSES BY NAME rather than failing on a duplicate key error naming an index, because whoever read that would then have to write the query themselves to find out whose account it was about, and it does NOT merge: which sign in is the person is a decision about who somebody is, and a migration is not where that gets made. Both databases were read before it was written. Development holds 8 partner users and no such pair; production holds none at all.",
+  },
+];
+
+/**
+ * WHAT THE SECOND FINGERPRINT FOUND ON ITS FIRST RUN.
+ *
+ * Phase 12 Section 4, Section 0, debt two, 2026-09-09. Three databases were
+ * read at 0037 with both fingerprints. The first says they are the same
+ * database. The second says they are three different databases.
+ *
+ *   replay        shape 3acd988c07905602e0e091c5b8d329ad / 1,015 columns
+ *                 behaviour ea9d415b52c7693917fcf3a61b7aa690 / 806 facts
+ *   development   shape 3acd988c07905602e0e091c5b8d329ad / 1,015 columns
+ *                 behaviour ba3d0d8e016e59215e94090e73628981 / 802 facts
+ *   production    shape 3acd988c07905602e0e091c5b8d329ad / 1,015 columns
+ *                 behaviour 0006d52251d7b3207ea76a5d6ac5d2ba / 810 facts
+ *
+ * Identical shape, three behaviours. That is the whole argument for the second
+ * fingerprint, made by the second fingerprint, on the day it was written.
+ *
+ * The divergences are declared below rather than described in prose, because a
+ * record is not a check and schema-ledger-audit reads this.
+ */
+export const BEHAVIOUR_BASELINE = {
+  at: "0037_a_partner_address_is_one_address.sql",
+  read: "2026-09-09",
+  shape: "3acd988c07905602e0e091c5b8d329ad",
+  shapeColumns: 1015,
+  /* The replay's number is the only one this repository can recompute without a
+   * credential, so it is the only one schema-ledger-audit asserts. The two live
+   * numbers are read through the Supabase MCP and are here as the record of
+   * what those databases answered on the day, which is what makes the
+   * divergence below a measurement rather than a suspicion. */
+  replay: { behaviour: "ea9d415b52c7693917fcf3a61b7aa690", facts: 806 },
+  development: { behaviour: "ba3d0d8e016e59215e94090e73628981", facts: 802 },
+  production: { behaviour: "0006d52251d7b3207ea76a5d6ac5d2ba", facts: 810 },
+};
+
+export const BEHAVIOUR_DIVERGENCE = [
+  {
+    kind: "missing_on_both_live_databases",
+    what: "four foreign keys that 0001_ops_foundation.sql declares",
+    facts: [
+      "eng_file_events.actor_id -> eng_profiles(id) on delete set null",
+      "eng_responsible_charge_log.engineer_id -> eng_profiles(id) on delete restrict",
+      "eng_responsible_charge_log.file_id -> eng_files(id) on delete set null",
+      "eng_responsible_charge_log.document_id -> eng_documents(id) on delete set null",
+    ],
+    because:
+      "0001 spent a month unable to apply to an empty database while both live projects held the objects it " +
+      "failed to create, which is already written down in CLAUDE.md as the reason migration-audit exists. This " +
+      "is the residue of that: both live databases carry hand made versions of these two tables, the COLUMNS " +
+      "match so the first fingerprint has always said they agree, and the constraints were never there. It has " +
+      "been true since before the two projects were split and nothing could see it until now.",
+    costs:
+      "The sharpest is eng_responsible_charge_log.engineer_id. That table is the firm's record of which " +
+      "engineer was in responsible charge of what, it is a regulatory record, and RESTRICT is what stops an " +
+      "engineer being removed while entries name them. Neither live database refuses that today: the entry " +
+      "would keep a uuid pointing at nothing, and the record would say responsible charge was held by somebody " +
+      "the database can no longer name. eng_file_events.actor_id is the same shape and lower stakes: a file's " +
+      "history would keep an actor id that resolves to nobody.",
+    orphans:
+      "Both databases were read before this was written, because adding a foreign key fails outright against a " +
+      "row that would violate it. PRODUCTION: eng_responsible_charge_log holds 0 rows and eng_file_events holds " +
+      "0 rows, so all four constraints would apply cleanly today and cost nothing. DEVELOPMENT: 28 " +
+      "responsible charge rows, every engineer_id and document_id resolving, and ALL 28 file_id values " +
+      "pointing at files that no longer exist. Those 28 are the missing constraint's own residue: audits " +
+      "delete their fixture files, ON DELETE SET NULL was never there to blank the link, and the rows kept a " +
+      "uuid to nothing. Development needs those 28 file_id values set null before the constraint can be added; " +
+      "production needs nothing.",
+    ruling:
+      "NOT REPAIRED WITHOUT THE OPERATOR'S WORD. A repair is a migration against production touching the " +
+      "firm's regulatory record. Flagged at the top of the gate 0 report with the migration ready to write, " +
+      "and the argument for doing it now rather than later is in the orphan counts: the table production has " +
+      "to protect is empty today, so the constraint is free today and gets more expensive every day it is not " +
+      "there, exactly as development's 28 rows demonstrate.",
+  },
+  {
+    kind: "extra_on_production_only",
+    what: "eight indexes no migration creates",
+    facts: [
+      "eng_applications_site_created_idx",
+      "eng_applications_site_role_created_idx",
+      "eng_leads_site_created_idx",
+      "eng_leads_utm_campaign_idx",
+      "eng_onboardings_site_status_idx",
+      "eng_onboardings_created_idx",
+      "eng_onboarding_items_onboarding_idx",
+      "eng_orders_site_created_idx",
+    ],
+    because:
+      "Production is shared with unrelated apps, which is the reason every table this firm owns is eng_ " +
+      "prefixed, and these are shaped like that era: six of the eight are keyed on a `site` column. They " +
+      "predate the numbered migrations and no file in supabase/migrations creates any of them.",
+    costs:
+      "An index changes speed and not answers, so nothing production does is wrong because of these. What is " +
+      "wrong is the belief that the cutover project is production's equal: it would be built from the " +
+      "migrations and would not have them, and the first slow query after a cutover would be a surprise " +
+      "nobody had a record of. That is the cost, and it is a cost of not knowing rather than of the indexes.",
+    ruling:
+      "Left alone and declared. Dropping an index on production to make a number match is the wrong direction; " +
+      "the number is a description and production is the thing being described.",
   },
 ];
 

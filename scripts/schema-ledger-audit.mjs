@@ -40,7 +40,15 @@ import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { PGlite } from "@electric-sql/pglite";
-import { APPLIED, assertNotEmpty, appliedToProduction, pending } from "../supabase/applied.mjs";
+import {
+  APPLIED,
+  assertNotEmpty,
+  appliedToProduction,
+  pending,
+  BEHAVIOUR_BASELINE,
+  BEHAVIOUR_DIVERGENCE,
+} from "../supabase/applied.mjs";
+import { behaviourSqlFull, digestOf } from "./lib/fingerprints.mjs";
 
 const DIR = "supabase/migrations";
 const MAIN = "main";
@@ -293,8 +301,10 @@ rec(`there are migrations to check (${files.length})`, files.length > 0);
   const db = new PGlite();
 
   /* The same stubs migration-audit uses. They sit outside the fingerprint,
-   * which covers eng_ tables in public only. */
-  await db.exec(`
+   * which covers eng_ tables in public only. Named, because the behaviour
+   * fingerprint replays the chain a second time and two spellings of the stubs
+   * would be two starting databases. */
+  const STUBS = `
     create schema if not exists auth;
     create table if not exists auth.users (
       id uuid primary key, email text, created_at timestamptz not null default now()
@@ -308,7 +318,8 @@ rec(`there are migrations to check (${files.length})`, files.length > 0);
       id uuid primary key default gen_random_uuid(),
       bucket_id text, name text, metadata jsonb
     );
-  `);
+  `;
+  await db.exec(STUBS);
 
   const fingerprintNow = async () => {
     const r = await db.query(`
@@ -368,6 +379,211 @@ rec(`there are migrations to check (${files.length})`, files.length > 0);
       ? "no repeats found at all, which means this check is measuring nothing"
       : repeats.filter((e) => !e.note).map((e) => e.file).join(", "),
   );
+
+  /*
+   * ===================================================================
+   * THE SECOND FINGERPRINT, REPLAYED AND COMPARED AS THE FIRST IS.
+   *
+   * Phase 12 Section 4, Section 0, debt two. Every entry that declares a
+   * behaviour fingerprint has it recomputed here from the same replay, by the
+   * same query the live checks use, so the ledger cannot claim a behaviour the
+   * migrations do not produce.
+   *
+   * Entries before 0038 declare none, deliberately: backfilling a number
+   * nobody read at the time would be a record invented after the fact. That
+   * makes "zero declared" a state this check has to notice rather than pass
+   * over, which is the vacuous-check trap this repository keeps meeting.
+   * ===================================================================
+   */
+  /*
+   * THE BASELINE, RECOMPUTED. This is the number the whole of debt two rests
+   * on, and until 0038 declares one it is the only behaviour fingerprint in the
+   * repository. Left as prose it would be a record, and a record is not a
+   * check: the last time this schema's history lived only in prose, a migration
+   * spent a day missing from production and was found by accident.
+   */
+  {
+    const r = await db.query(behaviourSqlFull());
+    const actual = createHash("md5").update(digestOf(r.rows)).digest("hex");
+    rec(
+      "the declared behaviour baseline is what the migrations actually replay to",
+      BEHAVIOUR_BASELINE.replay.behaviour === actual && BEHAVIOUR_BASELINE.replay.facts === r.rows.length,
+      `${actual} across ${r.rows.length} facts; declared ${BEHAVIOUR_BASELINE.replay.behaviour} across ${BEHAVIOUR_BASELINE.replay.facts}`,
+    );
+    rec(
+      "and the baseline names the migration it was read at, and the two live databases it was compared against",
+      Boolean(
+        BEHAVIOUR_BASELINE.at &&
+          files.includes(BEHAVIOUR_BASELINE.at) &&
+          BEHAVIOUR_BASELINE.development.behaviour &&
+          BEHAVIOUR_BASELINE.production.behaviour,
+      ),
+      `read at ${BEHAVIOUR_BASELINE.at}`,
+    );
+    /*
+     * AND THE THREE NUMBERS DISAGREE, WHICH IS THE FINDING.
+     *
+     * Asserted rather than merely recorded, because the day they agree is the
+     * day the divergence below has been repaired, and this check is what makes
+     * somebody come back and delete it rather than leaving a fixed problem
+     * described as open. If this ever fails, the fix is to re-read both live
+     * databases and rewrite the divergence, not to change the number.
+     */
+    rec(
+      "the three databases do not agree on behaviour, which is what the divergence declares",
+      BEHAVIOUR_BASELINE.replay.behaviour !== BEHAVIOUR_BASELINE.development.behaviour &&
+        BEHAVIOUR_BASELINE.replay.behaviour !== BEHAVIOUR_BASELINE.production.behaviour &&
+        BEHAVIOUR_BASELINE.development.behaviour !== BEHAVIOUR_BASELINE.production.behaviour,
+      `replay ${BEHAVIOUR_BASELINE.replay.facts}, development ${BEHAVIOUR_BASELINE.development.facts}, production ${BEHAVIOUR_BASELINE.production.facts} facts`,
+    );
+    rec(
+      "while the first fingerprint says all three are the same database",
+      BEHAVIOUR_BASELINE.shape === ledger[ledger.length - 1].fingerprint,
+      "identical shape and three behaviours is the argument for the second fingerprint, made by it",
+    );
+  }
+
+  /*
+   * "FROM NOW ON" IS ENFORCED, NOT REMEMBERED.
+   *
+   * The ruling is that every ledger entry from the start of Section 4 carries
+   * both fingerprints. Left as an instruction it is a thing somebody has to
+   * remember while writing the entry after next, which is the same shape as the
+   * question nobody was made to answer in September. So the boundary is a
+   * number: 0038 and above must declare one, and 0037 and below must not,
+   * because a backfilled number is a record invented after the fact.
+   */
+  const FIRST_REQUIRED = "0038";
+  const numberOf = (f) => f.slice(0, 4);
+  {
+    const owe = ledger.filter((e) => numberOf(e.file) >= FIRST_REQUIRED && !e.behaviour);
+    rec(
+      `every migration from ${FIRST_REQUIRED} declares a behaviour fingerprint (${
+        ledger.filter((e) => numberOf(e.file) >= FIRST_REQUIRED).length
+      } at or above it)`,
+      owe.length === 0,
+      owe.length ? `${owe.map((e) => e.file).join(", ")} declares only a shape` : "",
+    );
+    const backfilled = ledger.filter((e) => numberOf(e.file) < FIRST_REQUIRED && e.behaviour);
+    rec(
+      "and nothing before it backfills one",
+      backfilled.length === 0,
+      backfilled.length
+        ? `${backfilled.map((e) => e.file).join(", ")} declares a number nobody read when it was applied`
+        : "the first fingerprint is kept for the history it already describes",
+    );
+  }
+
+  const declaring = ledger.filter((e) => e.behaviour);
+  if (declaring.length === 0) {
+    rec(
+      "no ledger entry declares a behaviour fingerprint yet, and this check says so rather than passing",
+      true,
+      "0038 is the first that must; until then the baseline above is what is asserted",
+    );
+  } else {
+    /* Replayed in order, exactly as the shape fingerprints are, so an entry is
+     * compared against the schema as it stood after ITS migration. */
+    const db2 = new PGlite();
+    await db2.exec(STUBS);
+    const wrongBehaviour = [];
+    const byFile2 = new Map(declaring.map((e) => [e.file, e]));
+    for (const f of files) {
+      await db2.exec(readSource(join(DIR, f)));
+      const entry = byFile2.get(f);
+      if (!entry) continue;
+      const r = await db2.query(behaviourSqlFull());
+      const actual = createHash("md5").update(digestOf(r.rows)).digest("hex");
+      if (entry.behaviour !== actual) {
+        wrongBehaviour.push(`${f}: ledger ${entry.behaviour}, replay ${actual}`);
+      }
+    }
+    await db2.close();
+    rec(
+      `every declared behaviour fingerprint matches the replay (${declaring.length} declared)`,
+      wrongBehaviour.length === 0,
+      wrongBehaviour.join(" | "),
+    );
+  }
+
+  /*
+   * THE DECLARED DIVERGENCE IS CHECKED AGAINST THE MIGRATIONS, BOTH WAYS.
+   *
+   * BEHAVIOUR_DIVERGENCE describes live databases this audit cannot reach, and
+   * it would be prose if nothing read it. What CAN be checked without a
+   * credential is the half the migrations decide: the four foreign keys said to
+   * be missing from both live databases must be four the migrations really
+   * create, and the eight indexes said to exist only on production must be
+   * eight no migration creates.
+   *
+   * Both directions matter. A divergence entry naming a constraint the
+   * migrations do not declare is a claim about a repair that would do nothing;
+   * one naming an index a migration DOES create is a claim about a mystery that
+   * has an obvious answer.
+   */
+  {
+    const fkRows = await db.query(`
+      with tbl as (select c.oid, c.relname from pg_class c
+        join pg_namespace n on n.oid = c.relnamespace
+        where n.nspname = 'public' and c.relkind = 'r' and c.relname like 'eng\\_%')
+      select t.relname || '.' || (
+        select string_agg(a.attname, ',' order by k.ord)
+        from unnest(con.conkey) with ordinality k(attnum, ord)
+        join pg_attribute a on a.attrelid = con.conrelid and a.attnum = k.attnum
+      ) as ref
+      from pg_constraint con join tbl t on t.oid = con.conrelid where con.contype = 'f'
+    `);
+    const replayFks = new Set(fkRows.rows.map((r) => r.ref));
+
+    const ixRows = await db.query(`
+      select ic.relname as name from pg_index i
+      join pg_class ic on ic.oid = i.indexrelid
+      join pg_class c on c.oid = i.indrelid
+      join pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public' and c.relname like 'eng\\_%'
+    `);
+    const replayIxs = new Set(ixRows.rows.map((r) => r.name));
+
+    const missing = BEHAVIOUR_DIVERGENCE.find((d) => d.kind === "missing_on_both_live_databases");
+    const extra = BEHAVIOUR_DIVERGENCE.find((d) => d.kind === "extra_on_production_only");
+
+    rec(
+      "the divergence declaration names both kinds",
+      Boolean(missing && extra),
+      "one for what the live databases lack and one for what production has spare",
+    );
+
+    if (missing) {
+      /* "eng_file_events.actor_id -> ..." reduced to the table.column the
+       * replay reports, so the sentence and the fact are compared rather than
+       * the sentence being taken on trust. */
+      const named = missing.facts.map((f) => f.split(" ")[0]);
+      const notInReplay = named.filter((n) => !replayFks.has(n));
+      rec(
+        `every foreign key declared missing from the live databases is one the migrations create (${named.length})`,
+        notInReplay.length === 0,
+        notInReplay.length
+          ? `${notInReplay.join(", ")} is not created by any migration, so repairing it would change nothing`
+          : "",
+      );
+      rec(
+        "and each one says what it costs",
+        Boolean(missing.costs && missing.costs.trim() && missing.orphans && missing.orphans.trim()),
+        "a divergence with no consequence written down is a number nobody can act on",
+      );
+    }
+
+    if (extra) {
+      const alsoInReplay = extra.facts.filter((n) => replayIxs.has(n));
+      rec(
+        `every index declared production-only is one no migration creates (${extra.facts.length})`,
+        alsoInReplay.length === 0,
+        alsoInReplay.length
+          ? `${alsoInReplay.join(", ")} IS created by a migration, so it is not a mystery`
+          : "",
+      );
+    }
+  }
 
   await db.close();
 }
