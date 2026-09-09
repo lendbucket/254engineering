@@ -1,4 +1,5 @@
 import "server-only";
+import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import { fingerprintOf, scrubString, scrubValue } from "./observability-scrub";
 import { firstNonEmpty } from "./env-value";
@@ -321,10 +322,26 @@ export async function recentErrors(sinceMinutes = 60, limit = 25) {
 
   if (error) return null;
 
-  const { data: events } = await db
-    .from("eng_error_events")
-    .select("fingerprint")
-    .gte("occurred_at", since);
+  /*
+   * PAGED, AND THIS TRUNCATES PRECISELY DURING AN INCIDENT.
+   *
+   * The window is time based and unfiltered otherwise, so the set is small on a
+   * quiet day and large exactly when a fault is repeating. A single request
+   * would cap the count at a thousand during the storm it exists to measure,
+   * and the alert threshold beneath it would never trip.
+   *
+   * A rate that reads low in an emergency is worse than no rate at all,
+   * because somebody acts on it.
+   */
+  const eventRead = await readEvery<{ fingerprint: string }>((from, to) =>
+    db
+      .from("eng_error_events")
+      .select("fingerprint")
+      .gte("occurred_at", since)
+      .order("occurred_at", { ascending: true })
+      .range(from, to),
+  );
+  const events = eventRead.ok ? eventRead.rows : null;
 
   const inWindow = new Map<string, number>();
   for (const e of events ?? []) {

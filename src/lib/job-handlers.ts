@@ -1,4 +1,5 @@
 import "server-only";
+import { READ_CAP } from "./bounded-read";
 import { createHash } from "node:crypto";
 import { registerJob, enqueue, queueEmail } from "./ops-jobs";
 import type { JobOutcome } from "./job-rules";
@@ -439,7 +440,8 @@ registerJob("errors.alert", {
     const { data: events } = await client
       .from("eng_error_events")
       .select("fingerprint")
-      .gte("occurred_at", since);
+      .gte("occurred_at", since)
+      .range(0, READ_CAP - 1);
 
     const inWindow = new Map<string, number>();
     for (const e of events ?? []) {
