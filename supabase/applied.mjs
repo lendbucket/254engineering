@@ -217,7 +217,7 @@ export const APPLIED = [
     file: "0030_retention_foundations.sql", appliedBy: "apply_migration",
     fingerprint: "9bbcca2c9cd3c65503c923d7c32ea769",
     proves: { table: "eng_role_grants", match: { role_key: "admin", action: "retention.execute" } },
-    production: null,
+    production: "2026-09-09",
     because:
       "Phase 12 Section 3 is open and this is the ruled sequence: pending until the branch merges, then applied through apply_migration, read back, and declared. Applied to development 2026-09-09 and read back rather than assumed: fingerprint unchanged at 9bbcca2c9cd3c65503c923d7c32ea769 across 970 columns and 72 eng_ tables, which is what an ALTER of a foreign key's delete action and one seeded row should do, with 119 role grants in total and retention.execute held by admin alone.",
     note:
@@ -233,7 +233,7 @@ export const APPLIED = [
     file: "0031_retention_manifest.sql", appliedBy: "apply_migration",
     fingerprint: "d4f266b0d595c9c2922b68971b9cec2a",
     proves: { table: "eng_retention_runs" },
-    production: null,
+    production: "2026-09-09",
     because:
       "Phase 12 Section 3 is open and this follows 0030's ruled sequence: pending until the branch merges, then applied through apply_migration, read back, and declared. Applied to development 2026-09-09 and read back rather than assumed: fingerprint d4f266b0d595c9c2922b68971b9cec2a across 994 columns and 73 eng_ tables, with row level security on all 73, 48 triggers, 10 eng_ functions and none of them with an unpinned search_path.",
     note:
@@ -247,7 +247,7 @@ export const APPLIED = [
     file: "0032_kept_forever_is_enforced.sql", appliedBy: "apply_migration",
     fingerprint: "d4f266b0d595c9c2922b68971b9cec2a",
     proves: { table: "eng_production_ledger" },
-    production: null,
+    production: "2026-09-09",
     because:
       "Phase 12 Section 3 is open and this follows the ruled sequence set by 0029: pending until the branch merges, then applied through apply_migration, read back, and declared. Applied to development 2026-09-09. THE FINGERPRINT IS UNCHANGED FROM 0031 AND THAT IS THE POINT OF IT: this migration adds seven triggers and two functions and not one column, so the figure the fingerprint measures cannot see any of it. What it adds is read back directly instead, from pg_trigger and pg_proc: 55 triggers where there were 48, 12 eng_ functions where there were 10, none with an unpinned search_path. That makes it the third migration in this chain after 0018 and 0030 whose correctness the fingerprint is blind to, and migration-audit checks it by asking the replayed catalogue which trigger is attached to what.",
     note:
@@ -261,7 +261,7 @@ export const APPLIED = [
     file: "0033_manifest_reads_and_abandons.sql", appliedBy: "apply_migration",
     fingerprint: "2aee07d8809c3db282e4eb282bb9bbd5",
     proves: { table: "eng_retention_runs" },
-    production: null,
+    production: "2026-09-09",
     because:
       "Same branch and the same ruled sequence as 0030, 0031 and 0032: pending until merge. Applied to development 2026-09-09 and read back rather than assumed: fingerprint 2aee07d8809c3db282e4eb282bb9bbd5 across 995 columns and 73 eng_ tables, with row level security on all 73, 55 triggers and 12 eng_ functions, none with an unpinned search_path. plan_reading is the one column that moves the count from 994 to 995, because 0032 before it adds none.",
     note:
@@ -275,7 +275,7 @@ export const APPLIED = [
     file: "0034_a_mistyped_suppression_is_marked.sql", appliedBy: "apply_migration",
     fingerprint: "a818bfb40dd9423d0b0b76472c35519c",
     proves: { table: "eng_marketing_suppressions", column: "voided_at" },
-    production: null,
+    production: "2026-09-09",
     because:
       "Same branch and the same ruled sequence as 0030 through 0033: pending until merge. Applied to development 2026-09-09 and read back rather than assumed: fingerprint a818bfb40dd9423d0b0b76472c35519c across 998 columns and 73 eng_ tables, the three new columns being the whole of the change from 995.",
     note:
@@ -289,7 +289,7 @@ export const APPLIED = [
     file: "0035_a_void_carries_the_address_that_was_meant.sql", appliedBy: "apply_migration",
     fingerprint: "7346d6b60e5a54d204d95ec51c217c3a",
     proves: { table: "eng_marketing_suppressions", column: "replaced_by_email" },
-    production: null,
+    production: "2026-09-09",
     because:
       "Same branch and the same ruled sequence as 0030 through 0034: pending until merge, then applied in order with each read back before the next. Applied to development 2026-09-09 and read back rather than assumed: fingerprint 7346d6b60e5a54d204d95ec51c217c3a across 1,000 columns and 73 eng_ tables, the two new columns being the whole of the change from 998.",
     note:
@@ -304,7 +304,7 @@ export const APPLIED = [
     file: "0036_a_deletion_request_is_a_record.sql", appliedBy: "apply_migration",
     fingerprint: "3acd988c07905602e0e091c5b8d329ad",
     proves: { table: "eng_deletion_requests" },
-    production: null,
+    production: "2026-09-09",
     because:
       "Same branch and the same ruled sequence as 0030 through 0035: pending until merge, then applied in order with each read back before the next. Applied to development 2026-09-09 and read back rather than assumed: fingerprint 3acd988c07905602e0e091c5b8d329ad across 1,015 columns and 74 eng_ tables, with 56 triggers and row level security on all 74.",
     note:
@@ -319,7 +319,7 @@ export const APPLIED = [
     file: "0037_a_partner_address_is_one_address.sql", appliedBy: "apply_migration",
     fingerprint: "3acd988c07905602e0e091c5b8d329ad",
     proves: { table: "eng_partner_users" },
-    production: null,
+    production: "2026-09-09",
     because:
       "Same branch and the same ruled sequence as 0030 through 0036: pending until merge, then applied in order with each read back before the next. Applied to development 2026-09-09. THE FINGERPRINT IS UNCHANGED FROM 0036 and that is what an index-only migration should do: it adds no column, no table and no row, so the figure the fingerprint measures cannot see it. What it adds is read back directly instead, from pg_indexes: eng_partner_users_email_lower_key exists on lower(email). That makes it the fourth migration in this chain, after 0018, 0030 and 0032, whose correctness the fingerprint is blind to.",
     note:
