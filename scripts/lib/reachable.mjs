@@ -133,6 +133,37 @@ export function navigationVerdict(err) {
 export const COULD_NOT_TELL = 3;
 
 /**
+ * THE SETUP HALF, WHICH IS WHERE THIS ACTUALLY BITES FIRST.
+ *
+ * A browser audit signs a probe in before it measures anything, and signing in
+ * is a fetch. Pointed at a dead port, mobile-overflow-audit did not report
+ * COULD NOT TELL for fifty routes: it threw ECONNREFUSED out of the sign in and
+ * died with a stack trace, having measured nothing and said nothing useful
+ * about why. The route level verdict never got a chance to run.
+ *
+ * So the same three answers are available before the first page is opened. This
+ * runs `fn`, and if it fails because nothing answered, it prints the verdict and
+ * exits on the third code instead of crashing.
+ *
+ * Anything else is rethrown. A sign in that fails because the CREDENTIALS are
+ * wrong is a real failure and must stay loud.
+ */
+export async function orCouldNotTell(fn, subject) {
+  try {
+    return await fn();
+  } catch (err) {
+    const verdict = navigationVerdict(err);
+    if (!verdict.unreachable) throw err;
+    console.log("");
+    console.log(`  COULD NOT TELL: ${subject} could not be reached (${verdict.reason}).`);
+    console.log("");
+    console.log("  Nothing was measured, and that is not a pass and not a failure. Start the");
+    console.log("  server, or run this through npm run audit, which starts its own.");
+    process.exit(COULD_NOT_TELL);
+  }
+}
+
+/**
  * The block a standalone audit prints when something was not measured. One
  * spelling in one place, so the three audits cannot drift into three wordings
  * of the same verdict.

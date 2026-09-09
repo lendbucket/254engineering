@@ -62,7 +62,7 @@ import {
   destroyCustomerProbes,
 } from "./lib/portal-probe.mjs";
 import { signInFully } from "./lib/probe-mfa.mjs";
-import { navigationVerdict, sayCouldNotTell, COULD_NOT_TELL } from "./lib/reachable.mjs";
+import { navigationVerdict, sayCouldNotTell, orCouldNotTell, COULD_NOT_TELL } from "./lib/reachable.mjs";
 import { assertNavigationVerdictHolds } from "./proofs/unreachable-is-not-failed.mjs";
 
 const BASE = process.env.BASE_URL || "http://localhost:3225";
@@ -162,6 +162,9 @@ async function createProbe(role = "admin") {
    * mfa-audit now fails on a third sign in path, so this cannot happen again by
    * somebody writing a fourth.
    */
+  /* An absent server throws out of here, before a single page is opened, and
+   * used to take the whole audit with it as a stack trace. Same three verdicts,
+   * one step earlier. */
   const signedIn = await signInFully(BASE, email, password);
   if (!signedIn.cookie) {
     console.error(
@@ -268,12 +271,28 @@ let partnerProbe = null;
 let customerProbe = null;
 
 async function run() {
-  const list = await routes();
-  probe = await createProbe("admin");
-  licensedProbe = await createProbe("engineer");
-  techProbe = await createProbe("field_tech");
-  partnerProbe = await createPartnerProbe(BASE, "mobile-overflow-audit");
-  customerProbe = await createCustomerProbe(BASE, "mobile-overflow-audit");
+  /*
+   * THE WHOLE SETUP, NOT JUST THE SIGN IN.
+   *
+   * Wrapping signInFully alone was not enough and the dead port run said so: the
+   * sitemap read and the partner and customer probes each fetch too, and the
+   * first of them threw "fetch failed" out of the top level as an uncaught
+   * rejection. The audit died with a stack trace having measured nothing and
+   * said nothing about why, which is the shape debt three exists to remove.
+   *
+   * Five probes and a route list, all of which need a server, so the boundary is
+   * drawn round all six rather than round the one that happened to be noticed.
+   */
+  const setup = await orCouldNotTell(async () => {
+    const list = await routes();
+    probe = await createProbe("admin");
+    licensedProbe = await createProbe("engineer");
+    techProbe = await createProbe("field_tech");
+    partnerProbe = await createPartnerProbe(BASE, "mobile-overflow-audit");
+    customerProbe = await createCustomerProbe(BASE, "mobile-overflow-audit");
+    return { list };
+  }, `the server at ${BASE}`);
+  const list = setup.list;
 
   /*
    * A principal whose probe could not be made is a FAILURE, not a skip. The
