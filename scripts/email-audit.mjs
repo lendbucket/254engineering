@@ -284,6 +284,22 @@ if (templates.length === 0) {
      * anything and neither imports the gate. */
     "src/app/portal/(app)/suppressions/page.tsx",
     "src/app/api/portal/suppressions/route.ts",
+    /*
+     * And the deletion request module, which WRITES to the list and never
+     * reads the gate.
+     *
+     * Somebody asking to be forgotten has unambiguously asked not to be
+     * written to, and stopping marketing is the one part of that the firm can
+     * do immediately and without a ruling from counsel. So recording a request
+     * suppresses the address in the same motion.
+     *
+     * It is a WRITER rather than a gate reader, and the split above is what
+     * makes that distinction assertable: a transactional send must never
+     * consult this list, and this file does not, because somebody who asked
+     * to be forgotten is still owed the receipt for what they already paid
+     * for.
+     */
+    "src/lib/deletion-requests.ts",
   ];
 
   const readers = [];

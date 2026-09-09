@@ -1366,6 +1366,22 @@ if (!db) {
          * the telephone. Nothing about a licence bears on it.
          */
         "/portal/suppressions",
+        /*
+         * And the requests to be forgotten, behind the same grant and refused
+         * for the same reason plus a sharper one.
+         *
+         * An engineer holds a licence, and what a licence bears on here is the
+         * opposite of what somebody asking might hope: the responsible charge
+         * log and the sealed work are the records the firm is LEAST able to
+         * remove. Putting this screen in front of the person whose regulatory
+         * record is the reason the answer is usually no would be putting them
+         * in a conversation they cannot help with.
+         *
+         * It reaches nothing anyway: the screen deletes nothing, and the only
+         * permission that removes a row is retention.execute, which the
+         * administrator holds alone.
+         */
+        "/portal/deletion-requests",
       ];
 
       const claimed = [...ENGINEER_REACHES, ...ENGINEER_REFUSED].sort();

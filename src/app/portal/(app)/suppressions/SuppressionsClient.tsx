@@ -184,7 +184,14 @@ export function VoidSuppression({ email }: { email: string }) {
   }
 
   return (
-    <div className="flex w-full max-w-[280px] flex-col items-end gap-2">
+    /*
+     * min-w-0 and no fixed maximum below the small breakpoint, because a flex
+     * item defaults to min-width:auto and will not shrink past the intrinsic
+     * width of the input inside it. At 320 that pushed the panel 4px past
+     * itself, which mobile-overflow-audit measures as the scroll a person
+     * would actually feel.
+     */
+    <div className="flex w-full min-w-0 flex-col items-stretch gap-2 sm:max-w-[280px] sm:items-end">
       <label className="w-full text-left">
         <span className="block text-[12px] font-semibold text-[var(--ink-soft)]">
           What was wrong with it?
@@ -194,7 +201,7 @@ export function VoidSuppression({ email }: { email: string }) {
           value={because}
           onChange={(e) => setBecause(e.target.value)}
           placeholder="Wrong address typed on the call"
-          className="mt-1 w-full rounded-[var(--radius-sm)] border border-[var(--line)] px-3 py-2 text-[13.5px]"
+          className="mt-1 w-full min-w-0 rounded-[var(--radius-sm)] border border-[var(--line)] px-3 py-2 text-[13.5px]"
         />
       </label>
       {/*
@@ -215,7 +222,7 @@ export function VoidSuppression({ email }: { email: string }) {
             value={noneBecause}
             onChange={(e) => setNoneBecause(e.target.value)}
             placeholder="Nobody asked; this was the wrong record entirely"
-            className="mt-1 w-full rounded-[var(--radius-sm)] border border-[var(--line)] px-3 py-2 text-[13.5px]"
+            className="mt-1 w-full min-w-0 rounded-[var(--radius-sm)] border border-[var(--line)] px-3 py-2 text-[13.5px]"
           />
         </label>
       ) : (
@@ -228,7 +235,7 @@ export function VoidSuppression({ email }: { email: string }) {
             value={instead}
             onChange={(e) => setInstead(e.target.value)}
             placeholder="the address they actually asked about"
-            className="mt-1 w-full rounded-[var(--radius-sm)] border border-[var(--line)] px-3 py-2 text-[13.5px]"
+            className="mt-1 w-full min-w-0 rounded-[var(--radius-sm)] border border-[var(--line)] px-3 py-2 text-[13.5px]"
           />
           <span className="mt-1 block text-[12px] text-[var(--ink-soft)]">
             Suppressed in the same motion, so their request is not lost.

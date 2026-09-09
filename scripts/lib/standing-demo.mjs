@@ -28,6 +28,35 @@
  * their being present is the fixture rather than a leak.
  */
 
+/**
+ * FIND ONE, AND NEVER MISTAKE A FAILED LOOKUP FOR AN ABSENCE.
+ *
+ * The first version of this file used `.maybeSingle()` on every lookup and
+ * destructured only `data`, discarding the error. PostgREST answers
+ * PGRST116, `JSON object requested, multiple (or no) rows returned`, when more
+ * than one row matches, so the moment a duplicate existed the lookup failed,
+ * the failure read as `not found`, and the fixture inserted ANOTHER one. Every
+ * board run after that added a row, forever, to a table 0032 will not let
+ * anybody delete from. Development gained five identical standing entries
+ * before the multiply check caught it.
+ *
+ * It is the same defect this repository had just written down in BACKLOG.md,
+ * a cleanup nobody checks reporting success by not speaking, committed again
+ * in the file written to fix it. A discarded error is not a small mistake in
+ * a helper; it is the mechanism by which a small mistake becomes permanent.
+ *
+ * So: order and limit rather than maybeSingle, which cannot fail on
+ * multiples, and the error is READ and thrown. A fixture that cannot tell
+ * whether a thing exists must stop, not guess.
+ */
+async function findOne(db, table, filters, columns = "id") {
+  let q = db.from(table).select(columns);
+  for (const [column, value] of Object.entries(filters)) q = q.eq(column, value);
+  const { data, error } = await q.order("created_at", { ascending: true }).limit(1);
+  if (error) throw new Error(`standing demo could not read ${table}: ${error.message}`);
+  return (data ?? [])[0] ?? null;
+}
+
 /** The one identity. Fixed, so a second board run finds it rather than adding one. */
 export const STANDING = {
   email: "standing.demo.engineer@demo-audit.invalid",
@@ -56,11 +85,7 @@ export async function standingDemo(db, period) {
 
   // ---- the engineer ------------------------------------------------------
   let userId = null;
-  const { data: existingProfile } = await db
-    .from("eng_profiles")
-    .select("id")
-    .eq("email", STANDING.email)
-    .maybeSingle();
+  const existingProfile = await findOne(db, "eng_profiles", { email: STANDING.email });
 
   if (existingProfile) {
     userId = existingProfile.id;
@@ -98,11 +123,7 @@ export async function standingDemo(db, period) {
 
   // ---- the client --------------------------------------------------------
   let clientId = null;
-  const { data: existingClient } = await db
-    .from("eng_clients")
-    .select("id")
-    .eq("email", STANDING.clientEmail)
-    .maybeSingle();
+  const existingClient = await findOne(db, "eng_clients", { email: STANDING.clientEmail });
 
   if (existingClient) {
     clientId = existingClient.id;
@@ -125,11 +146,7 @@ export async function standingDemo(db, period) {
 
   // ---- the file, priced, because an unpriced fixture moves no margin -----
   let fileId = null;
-  const { data: existingFile } = await db
-    .from("eng_files")
-    .select("id")
-    .eq("file_number", STANDING.fileNumber)
-    .maybeSingle();
+  const existingFile = await findOne(db, "eng_files", { file_number: STANDING.fileNumber });
 
   if (existingFile) {
     fileId = existingFile.id;
@@ -157,12 +174,12 @@ export async function standingDemo(db, period) {
 
   // ---- the ledger entry, moved to this period ---------------------------
   let entryId = null;
-  const { data: existingEntry } = await db
-    .from("eng_production_ledger")
-    .select("id, period")
-    .eq("engineer_id", userId)
-    .eq("file_id", fileId)
-    .maybeSingle();
+  const existingEntry = await findOne(
+    db,
+    "eng_production_ledger",
+    { engineer_id: userId, file_id: fileId },
+    "id, period",
+  );
 
   if (existingEntry) {
     entryId = existingEntry.id;

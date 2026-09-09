@@ -107,6 +107,11 @@ const ADMIN_PAGES = [
   // A list of people who did not want to hear from a company, reachable signed
   // out, is a list somebody else can use for exactly what it records.
   "/portal/suppressions",
+  // Every person who has asked the firm to delete what it holds about them,
+  // in their own words, with whatever the operator could work out about who
+  // they are. Reachable signed out it would be a list of people who tried to
+  // disappear, which is the opposite of what asking for it was meant to do.
+  "/portal/deletion-requests",
   // Names customers, properties and amounts, and carries the controls that ask
   // Stripe about a payment and give one back. Admin only behind the perimeter.
   "/portal/orders",
@@ -173,6 +178,12 @@ const ADMIN_APIS = [
   // anybody silence the firm's marketing to any address they chose, and its
   // DELETE would let them undo somebody else's request.
   "/api/portal/suppressions",
+  // Takes a request to be forgotten and records what the firm said back.
+  // Reachable signed out, its POST would let anybody file a request in
+  // somebody else's name, which silences the firm's marketing to an address
+  // they chose and puts a stranger's words on a record that is kept forever.
+  // Its PATCH would let them write the firm's answer.
+  "/api/portal/deletion-requests",
   // Asks Stripe what became of an order and can record that money moved. The
   // first route nested two deep, which is what exposed the one level discovery
   // above as a hole rather than a simplification.

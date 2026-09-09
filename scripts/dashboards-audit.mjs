@@ -298,9 +298,16 @@ console.log("");
      */
     const period = periodOf(new Date());
     const ledgerBefore = await ledgerRowCount(db);
+    /*
+     * Declared out here because the finally reads it. The first version had
+     * it inside the try, which threw ReferenceError on the board and nowhere
+     * else: the check that reads it was added in the same pass as two other
+     * fixes and only one of the three audits was re-run.
+     */
+    let made = null;
 
     try {
-      const made = await standingDemo(db, period);
+      made = await standingDemo(db, period);
       if (made.notes.length) console.log(`  (standing fixture: ${made.notes.join("; ")})`);
 
       /* The control: unscoped, the entry is plainly there. */
@@ -372,7 +379,7 @@ console.log("");
        * growth is known rather than guessed: nothing, unless this run built
        * the standing entry for the first time.
        */
-      const built = made.notes.some((n) => n.includes("ledger entry")) ? 1 : 0;
+      const built = made && made.notes.some((n) => n.includes("ledger entry")) ? 1 : 0;
       rec(
         "the money fixture did not multiply",
         ledgerAfter === ledgerBefore + built,
