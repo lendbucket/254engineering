@@ -62,6 +62,8 @@ import {
   destroyCustomerProbes,
 } from "./lib/portal-probe.mjs";
 import { signInFully } from "./lib/probe-mfa.mjs";
+import { navigationVerdict, sayCouldNotTell, COULD_NOT_TELL } from "./lib/reachable.mjs";
+import { assertNavigationVerdictHolds } from "./proofs/unreachable-is-not-failed.mjs";
 
 const BASE = process.env.BASE_URL || "http://localhost:3225";
 const WIDTHS = [360, 390];
@@ -241,8 +243,18 @@ function byPrincipal() {
   return groups;
 }
 
+/* The rule that decides failure from unreachable, before anything is measured. */
+assertNavigationVerdictHolds();
+
 const findings = [];
 const checks = [];
+/*
+ * ROUTES THAT NEVER LOADED. Not findings, not failed checks: a third list, for
+ * the reason written at the top of scripts/lib/reachable.mjs. Overflow is a
+ * property of a rendered page, and a navigation that never completed produced
+ * no page to have the property.
+ */
+const unmeasured = [];
 
 /*
  * The other two principals, from the shared probe module rather than from a
@@ -355,17 +367,33 @@ async function run() {
          * settle is what layout needs and is far more deterministic than waiting
          * on a network that may have a long lived connection on it.
          *
-         * The try/catch is the other half: a route that will not load is a
-         * FINDING, recorded against that route, not an exception that hides every
-         * route after it.
+         * The try/catch is the other half: a route that will not load is
+         * recorded against that route rather than thrown, so it cannot hide
+         * every route after it. What it is recorded AS is decided below, and it
+         * is not always a finding.
          */
         let res;
         try {
           res = await page.goto(BASE + route, { waitUntil: "domcontentloaded", timeout: 45000 });
           await page.waitForTimeout(600);
         } catch (err) {
-          findings.push(`${route} @${width}: did not load (${String(err.message).split("\n")[0]})`);
-          checks.push({ name: `${route} @${width}`, ok: false, detail: "did not load" });
+          /*
+           * The comment above used to end "a route that will not load is a
+           * FINDING", and that was wrong in the way that cost a board. On
+           * 2026-09-09 the server was killed partway through this audit and
+           * every remaining route recorded a finding: thirty one reports of a
+           * layout defect, written by something that never saw a layout.
+           *
+           * Which of the two it is depends on the error, and the error is read
+           * rather than guessed at. See scripts/lib/reachable.mjs.
+           */
+          const verdict = navigationVerdict(err);
+          if (verdict.unreachable) {
+            unmeasured.push(`${route} @${width}: ${verdict.reason}`);
+          } else {
+            findings.push(`${route} @${width}: did not load (${verdict.reason})`);
+            checks.push({ name: `${route} @${width}`, ok: false, detail: "did not load" });
+          }
           await page.close();
           continue;
         }
@@ -598,13 +626,28 @@ console.log("");
  * Found when a crashed run left its probe behind and the next run reported the
  * leftover and passed anyway.
  */
+sayCouldNotTell(unmeasured, "horizontal overflow");
+
 if (findings.length === 0 && failed.length === 0) {
-  console.log(`PASS: ${checks.length} route and width combinations, nothing scrolls sideways, document or region.`);
-  process.exitCode = 0;
+  /*
+   * A clean run over routes that never loaded is not a pass. It says how many
+   * did not, and exits on the third code, because a green board over a half
+   * that never ran is the other way to lie about the same run.
+   */
+  if (unmeasured.length) {
+    console.log(
+      `\nCOULD NOT TELL: ${checks.length} combination(s) measured and clean, ${unmeasured.length} never loaded.`,
+    );
+    process.exitCode = COULD_NOT_TELL;
+  } else {
+    console.log(`PASS: ${checks.length} route and width combinations, nothing scrolls sideways, document or region.`);
+    process.exitCode = 0;
+  }
 } else {
   for (const f of findings) console.log(`  - ${f}`);
   console.log(
-    `\nFAIL: ${findings.length} overflow finding(s) and ${failed.length} failed check(s) across ${checks.length} checks.`,
+    `\nFAIL: ${findings.length} overflow finding(s) and ${failed.length} failed check(s) across ${checks.length} checks.` +
+      (unmeasured.length ? ` ${unmeasured.length} route(s) never loaded and were not measured either way.` : ""),
   );
   process.exitCode = 1;
 }

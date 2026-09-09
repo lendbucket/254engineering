@@ -38,6 +38,7 @@ import { readSource } from "./lib/read-source.mjs";
 import { runtimeFor, DECLARATION } from "./lib/audit-runtime.mjs";
 import { assertClearToBuild } from "./lib/build-guard.mjs";
 import { startNextServer } from "./lib/dev-server.mjs";
+import { COULD_NOT_TELL } from "./lib/reachable.mjs";
 
 const PORT = Number(process.env.AUDIT_PORT || 3225);
 const BASE = process.env.BASE_URL || `http://localhost:${PORT}`;
@@ -725,7 +726,11 @@ if (setupError) {
   console.log(`  ${setupError.message}\n`);
   if (results.length) {
     console.log("  What did run before it stopped:");
-    for (const r of results) console.log(`    ${r.code === 0 ? "PASS" : "FAIL"}  ${r.name}`);
+    for (const r of results) {
+      console.log(
+        `    ${(r.code === 0 ? "PASS" : r.code === COULD_NOT_TELL ? "COULD NOT TELL" : "FAIL").padEnd(14)}  ${r.name}`,
+      );
+    }
     /*
      * The health check runs BEFORE each audit, so one already in flight when the
      * server went away still fails, and it fails looking like a content problem.
@@ -743,16 +748,44 @@ if (setupError) {
   console.log("");
   process.exitCode = 1;
 } else {
+  /*
+   * THREE COLUMNS, NOT TWO.
+   *
+   * Phase 12 Section 4, Section 0, debt three. An audit that exits on
+   * COULD_NOT_TELL reached the end and could not measure part of what it
+   * measures, almost always because the server went away underneath it. That is
+   * neither a pass nor a content failure, and rendering it as either is a lie
+   * about the run: as a pass it hides a half that never happened, as a failure
+   * it invents defects in pages nobody saw.
+   *
+   * The suite is still not green. It exits non zero, and the sentence says
+   * which of the two things happened so a reader knows whether to fix code or
+   * re-run.
+   */
+  const label = (code) => (code === 0 ? "PASS" : code === COULD_NOT_TELL ? "COULD NOT TELL" : "FAIL");
   for (const r of results) {
-    console.log(`  ${r.code === 0 ? "PASS" : "FAIL"}  ${r.name}`);
+    console.log(`  ${label(r.code).padEnd(14)}  ${r.name}`);
   }
-  const failed = results.filter((r) => r.code !== 0);
-  console.log(
-    failed.length === 0
-      ? `\nAll ${results.length} audits pass.`
-      : `\n${failed.length} of ${results.length} audits failed: ${failed.map((r) => r.name).join(", ")}`,
-  );
-  process.exitCode = failed.length ? 1 : 0;
+  const unmeasured = results.filter((r) => r.code === COULD_NOT_TELL);
+  const failed = results.filter((r) => r.code !== 0 && r.code !== COULD_NOT_TELL);
+  console.log("");
+  if (failed.length) {
+    console.log(`${failed.length} of ${results.length} audits failed: ${failed.map((r) => r.name).join(", ")}`);
+  }
+  if (unmeasured.length) {
+    console.log(
+      `${unmeasured.length} of ${results.length} audits could not measure: ${unmeasured.map((r) => r.name).join(", ")}`,
+    );
+    console.log("");
+    console.log("  Those are not findings about the pages. Something they navigated to did not");
+    console.log("  answer, which usually means the server went away mid run. Its own log ends");
+    console.log("  cleanly when something killed it, and carries the error when it fell over.");
+    console.log("  Re-run before believing anything about the routes they name.");
+  }
+  if (!failed.length && !unmeasured.length) {
+    console.log(`All ${results.length} audits pass.`);
+  }
+  process.exitCode = failed.length || unmeasured.length ? 1 : 0;
 }
 
 // link-map is a measurement, not a gate. It has no failure condition, because

@@ -29,6 +29,8 @@
 import fs from "node:fs";
 import { readSource } from "./lib/read-source.mjs";
 import { chromium } from "playwright";
+import { navigationVerdict, sayCouldNotTell, COULD_NOT_TELL } from "./lib/reachable.mjs";
+import { assertNavigationVerdictHolds } from "./proofs/unreachable-is-not-failed.mjs";
 import { allPages } from "./lib/surfaces.mjs";
 import {
   createProbe,
@@ -71,8 +73,17 @@ const SCREENS = allPages()
     kind: p.session === "partner" ? "partner" : "staff",
   }));
 
+/* The rule that decides failure from unreachable, before anything is measured. */
+assertNavigationVerdictHolds();
+
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
+/*
+ * Screens that never loaded. Whether the portal behaves as an application is a
+ * question about a rendered shell, and a navigation that never completed
+ * produced none. Third list, not a failure: scripts/lib/reachable.mjs.
+ */
+const unmeasured = [];
 
 console.log("");
 console.log("================ THE NATIVE STANDARD AT 390 ================");
@@ -149,7 +160,7 @@ console.log(`${BASE}, ${SCREENS.length} signed in screens\n`);
 
   const found = {};
   for (const file of files) {
-    const code = fs.readSource(file);
+    const code = readSource(file);
     const hits = [...code.matchAll(/hidden[^"'`]*?\b(?:lg|xl):(?:flex|block|inline|inline-flex|grid|table|table-cell)/g)];
     if (hits.length) found[file.split("\\").join("/")] = hits.length;
   }
@@ -224,7 +235,12 @@ for (const screen of SCREENS) {
     await page.goto(BASE + screen.path, { waitUntil: "domcontentloaded", timeout: 45000 });
     await page.waitForTimeout(600);
   } catch (err) {
-    rec(`${screen.path}: loads`, false, String(err.message).split("\n")[0]);
+    const verdict = navigationVerdict(err);
+    if (verdict.unreachable) {
+      unmeasured.push(`${screen.path}: ${verdict.reason}`);
+    } else {
+      rec(`${screen.path}: loads`, false, verdict.reason);
+    }
     await ctx.close();
     continue;
   }
@@ -748,7 +764,12 @@ for (const screen of SCREENS) {
         );
       }
     } catch (err) {
-      rec("the scroll memory check ran", false, String(err.message).split("\n")[0]);
+      const verdict = navigationVerdict(err);
+      if (verdict.unreachable) {
+        unmeasured.push(`the scroll memory check: ${verdict.reason}`);
+      } else {
+        rec("the scroll memory check ran", false, verdict.reason);
+      }
     }
 
     await ctx.close();
@@ -757,12 +778,24 @@ for (const screen of SCREENS) {
 
 await browser.close();
 
-rec("screens were actually measured", measured > 0, `${measured} of ${SCREENS.length}`);
-rec(
-  "the pressed state result is not vacuous",
-  screensWithControls >= 12,
-  `${totalControls} control(s) across ${screensWithControls} of ${measured} screens; the rest render empty states because the probe accounts hold no data`,
-);
+/*
+ * "NO SCREENS WERE MEASURED" IS A FAILURE ONLY WHEN THERE WERE SCREENS.
+ *
+ * With the server gone every screen is unreachable, and these two would report
+ * that the portal renders no controls and that nothing was measured, which
+ * reads as a portal that has stopped working and means there was no portal.
+ * Same misread as a route level "did not load", one level up.
+ */
+if (measured === 0 && unmeasured.length) {
+  unmeasured.push(`no screen loaded, so none of ${SCREENS.length} was measured as an application`);
+} else {
+  rec("screens were actually measured", measured > 0, `${measured} of ${SCREENS.length}`);
+  rec(
+    "the pressed state result is not vacuous",
+    screensWithControls >= 12,
+    `${totalControls} control(s) across ${screensWithControls} of ${measured} screens; the rest render empty states because the probe accounts hold no data`,
+  );
+}
 
 /*
  * BOTH SETS OF PROBES, AND THE PARTNER ONE IS THE ONE THAT CAN REFUSE.
@@ -783,10 +816,20 @@ rec("the probe accounts were removed", swept.ok, swept.note);
 console.log("");
 const failed = out.filter((c) => !c.ok);
 for (const c of failed) console.log(`  FAIL: ${c.name}${c.note ? ` (${c.note})` : ""}`);
+sayCouldNotTell(unmeasured, "the application shell");
 console.log("");
-console.log(
-  failed.length
-    ? `FAIL: ${failed.length} of ${out.length} checks.`
-    : `PASS: ${out.length} checks. The portal behaves as an application at 390.`,
-);
-process.exit(failed.length ? 1 : 0);
+if (failed.length) {
+  console.log(
+    `FAIL: ${failed.length} of ${out.length} checks.` +
+      (unmeasured.length ? ` ${unmeasured.length} screen(s) never loaded and were not measured either way.` : ""),
+  );
+  process.exit(1);
+}
+if (unmeasured.length) {
+  console.log(
+    `COULD NOT TELL: ${out.length} check(s) measured and clean, ${unmeasured.length} screen(s) never loaded.`,
+  );
+  process.exit(COULD_NOT_TELL);
+}
+console.log(`PASS: ${out.length} checks. The portal behaves as an application at 390.`);
+process.exit(0);
