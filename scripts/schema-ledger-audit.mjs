@@ -34,7 +34,8 @@
  * migration.
  */
 
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync } from "node:fs";
+import { readSource } from "./lib/read-source.mjs";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
@@ -326,7 +327,7 @@ rec(`there are migrations to check (${files.length})`, files.length > 0);
 
   for (const f of files) {
     try {
-      await db.exec(readFileSync(join(DIR, f), "utf8"));
+      await db.exec(readSource(join(DIR, f)));
     } catch (err) {
       broke = { f, message: err instanceof Error ? err.message : String(err) };
       break;

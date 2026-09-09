@@ -36,7 +36,8 @@
  * marked server-only.
  */
 
-import { readFileSync, existsSync } from "node:fs";
+import { existsSync } from "node:fs";
+import { readSource } from "./lib/read-source.mjs";
 import { registeredKinds, handlerFor, loadHandlers } from "../src/lib/ops-jobs.ts";
 import {
   backoffMs,
@@ -57,7 +58,7 @@ import {
  * is thick with prose.
  */
 function codeOnly(path) {
-  const withoutBlocks = readFileSync(path, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+  const withoutBlocks = readSource(path).replace(/\/\*[\s\S]*?\*\//g, "");
   return withoutBlocks
     .split("\n")
     .filter((line) => !/^\s*\/\//.test(line))
@@ -74,7 +75,7 @@ function codeOnly(path) {
  * to prove the mechanism was present.
  */
 function sqlCode(path) {
-  return readFileSync(path, "utf8")
+  return readSource(path)
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .split("\n")
     .filter((line) => !/^\s*--/.test(line))
@@ -722,7 +723,7 @@ rec(
   rec(
     "and the reason is written down beside it",
     /queue lives in the database being watched/.test(
-      readFileSync("src/app/api/cron/health-watch/route.ts", "utf8").replace(/\s*\n\s*\*\s*/g, " "),
+      readSource("src/app/api/cron/health-watch/route.ts").replace(/\s*\n\s*\*\s*/g, " "),
     ),
   );
 
@@ -876,7 +877,7 @@ rec(
   rec("and is audited", /writeAudit\(/.test(api) && /jobs\.retried/.test(api));
   rec("and has no GET", !/export async function GET/.test(api));
 
-  const authz = readFileSync("src/lib/ops-authz.ts", "utf8");
+  const authz = readSource("src/lib/ops-authz.ts");
   rec("jobs.manage is a real permission", /"jobs\.manage"/.test(authz));
 
   /*
@@ -894,7 +895,7 @@ rec(
     "0 claimed with 0 pending is a quiet queue; 0 claimed with 40 pending is a broken worker",
   );
 
-  const vercel = JSON.parse(readFileSync("vercel.json", "utf8"));
+  const vercel = JSON.parse(readSource("vercel.json"));
   const cronEntry = (vercel.crons ?? []).find((c) => c.path === "/api/cron/jobs");
   rec("the worker is scheduled", Boolean(cronEntry), cronEntry?.schedule ?? "not in vercel.json");
   rec(

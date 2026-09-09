@@ -24,7 +24,8 @@
  * It is pure. No server, no database, no network, so it runs in phase zero.
  */
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
+import { readSource } from "./lib/read-source.mjs";
 import { createHmac } from "node:crypto";
 import { issueOpsSession, readOpsSession, OPS_COOKIE } from "../src/lib/ops-session.ts";
 import {
@@ -55,7 +56,7 @@ import { ROLES } from "../src/lib/ops-authz.ts";
  * appeared here in an audit written to hunt it.
  */
 function codeOnly(path) {
-  const withoutBlocks = readFileSync(path, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+  const withoutBlocks = readSource(path).replace(/\/\*[\s\S]*?\*\//g, "");
   return withoutBlocks
     .split("\n")
     .filter((line) => !/^\s*\/\//.test(line))
@@ -268,7 +269,7 @@ withEnv(
  */
 {
   const labels = ["ops-session", "customer-session", "partner-session"].map((f) => {
-    const src = readFileSync(`src/lib/${f}.ts`, "utf8");
+    const src = readSource(`src/lib/${f}.ts`);
     const m = src.match(/\.update\("([a-z0-9-]+)"\)/);
     return m ? m[1] : null;
   });
@@ -678,7 +679,7 @@ withEnv({ CUSTOMER_SESSION_SECRET: CUS_SECRET }, () => {
    * does not price urgency, so setting a file to expedited from a saved
    * preference would commit the firm to faster work at the standard price.
    */
-  const settingsUi = readFileSync("src/app/account/settings/SettingsClient.tsx", "utf8");
+  const settingsUi = readSource("src/app/account/settings/SettingsClient.tsx");
   rec(
     "the turnaround preference does not claim to be a commitment",
     /not a commitment/.test(settingsUi) && /does not change\s*\n?\s*the price/.test(settingsUi.replace(/\s+/g, " ")),
@@ -819,7 +820,7 @@ withEnv({ CUSTOMER_SESSION_SECRET: CUS_SECRET }, () => {
 
   // Documented in the repo, not on the public site.
   rec("the API is documented", existsSync("docs/ordering-api.md"));
-  const docs = readFileSync("docs/ordering-api.md", "utf8");
+  const docs = readSource("docs/ordering-api.md");
   rec(
     "and the documentation says it is not published publicly",
     /not on the public site/.test(docs),

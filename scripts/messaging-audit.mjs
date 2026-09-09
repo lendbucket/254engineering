@@ -23,6 +23,7 @@
  */
 
 import fs from "node:fs";
+import { readSource } from "./lib/read-source.mjs";
 import { createProbe, destroyProbes } from "./lib/portal-probe.mjs";
 import { auditClient } from "./lib/db-target.mjs";
 import { ProbeLedger } from "./lib/probe-ledger.mjs";
@@ -42,7 +43,7 @@ const BASE = process.env.BASE_URL ?? "http://localhost:3225";
  */
 function codeOnly(path) {
   return fs
-    .readFileSync(path, "utf8")
+    .readSource(path)
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .split("\n")
     .filter((line) => !/^\s*\/\//.test(line))
@@ -400,8 +401,8 @@ if (admin?.cookie && engineer?.cookie && tech?.cookie && db) {
 
 // ------------------------------------------------------------- point 7, honestly
 {
-  const composer = fs.readFileSync("src/components/portal/design/Composer.tsx", "utf8");
-  const client = fs.readFileSync("src/app/portal/(app)/messages/MessagesClient.tsx", "utf8");
+  const composer = fs.readSource("src/components/portal/design/Composer.tsx");
+  const client = fs.readSource("src/app/portal/(app)/messages/MessagesClient.tsx");
   rec(
     "the keyboard aware composer is now actually rendered by something",
     client.includes("<KeyboardAwareComposer>"),
@@ -436,7 +437,7 @@ if (admin?.cookie && engineer?.cookie && tech?.cookie && db) {
    */
   const binder = codeOnly("src/lib/ops-binder.ts");
   const docs = codeOnly("src/lib/ops-docs.ts");
-  const page = fs.readFileSync("src/app/portal/(app)/documents/binder/[fileId]/page.tsx", "utf8");
+  const page = fs.readSource("src/app/portal/(app)/documents/binder/[fileId]/page.tsx");
 
   rec(
     "the binder type carries conversation attachments",

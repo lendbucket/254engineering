@@ -36,7 +36,8 @@
  * are 60KB each and diff cleanly.
  */
 
-import { readFileSync, existsSync } from "node:fs";
+import { existsSync } from "node:fs";
+import { readSource } from "./lib/read-source.mjs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
 import { TexasCountyMap } from "../src/components/map/TexasCountyMap.tsx";
@@ -103,7 +104,7 @@ for (const c of CASES) {
     rec(`${c.name}: the fixture exists`, false, `${c.fixture} is missing, so nothing can be compared`);
     continue;
   }
-  const expected = readFileSync(c.fixture, "utf8");
+  const expected = readSource(c.fixture);
   const actual = countyGroup(render(c.props));
 
   if (!actual) {

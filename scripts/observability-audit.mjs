@@ -32,7 +32,8 @@
  * modules, which are server-only.
  */
 
-import { readFileSync, existsSync } from "node:fs";
+import { existsSync } from "node:fs";
+import { readSource } from "./lib/read-source.mjs";
 import {
   scrubEvent,
   scrubString,
@@ -61,7 +62,7 @@ import {
 import { RELEASE } from "../src/lib/ops-observability.ts";
 
 function codeOnly(path) {
-  const withoutBlocks = readFileSync(path, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+  const withoutBlocks = readSource(path).replace(/\/\*[\s\S]*?\*\//g, "");
   return withoutBlocks
     .split("\n")
     .filter((line) => !/^\s*\/\//.test(line))
@@ -660,7 +661,7 @@ const base = {
     "it has been trying and failing, which is not the same as never having tried",
   );
 
-  const scheduled = JSON.parse(readFileSync("vercel.json", "utf8")).crons ?? [];
+  const scheduled = JSON.parse(readSource("vercel.json")).crons ?? [];
   for (const c of WATCHED_CRONS) {
     rec(
       `${c.name} is watched and actually scheduled`,
@@ -1086,7 +1087,7 @@ const base = {
     ["src/lib/ops-observability.ts", "the release the portal and the fault store use"],
     ["src/lib/sentry-config.ts", "the release and environment Sentry is tagged with"],
   ]) {
-    const source = readFileSync(file, "utf8");
+    const source = readSource(file);
     rec(
       `${what} reads its variables through firstNonEmpty`,
       /firstNonEmpty\(/.test(source) &&

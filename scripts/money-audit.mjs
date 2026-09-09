@@ -20,6 +20,7 @@
  * to one module rather than being copied into each one.
  */
 import fs from "node:fs";
+import { readSource } from "./lib/read-source.mjs";
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -440,7 +441,7 @@ const rec = (name, ok, note = "") => out.push({ name, ok, note });
 // the one with no data in it.
 // ---------------------------------------------------------------------------
 {
-  const read = (p) => (fs.existsSync(p) ? fs.readFileSync(p, "utf8") : null);
+  const read = (p) => (fs.existsSync(p) ? fs.readSource(p) : null);
 
   /*
    * EVERY FILE ON THE THREE SIGNED IN SURFACES, NOT FOUR NAMED ONES.

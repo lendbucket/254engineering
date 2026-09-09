@@ -32,7 +32,8 @@
  * claim is almost always false.
  */
 
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readdirSync, statSync } from "node:fs";
+import { readSource } from "./lib/read-source.mjs";
 import { join } from "node:path";
 
 /**
@@ -94,7 +95,7 @@ rec(`there are files to search (${files.length})`, files.length > 0, "a search o
 const offences = [];
 
 for (const file of files) {
-  const source = readFileSync(file, "utf8");
+  const source = readSource(file);
   const normalised = file.split("\\").join("/");
 
   for (const line of source.split(/\r?\n/).entries()) {

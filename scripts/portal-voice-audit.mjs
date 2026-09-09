@@ -27,7 +27,8 @@
  */
 
 import { findRegulatoryClaims } from "./lib/voice-blocklist.mjs";
-import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
+import { readSource } from "./lib/read-source.mjs";
+import { readdirSync, statSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
 const out = [];
@@ -98,7 +99,7 @@ rec("there are portal components to read", FILES.length > 0, `${FILES.length} fi
  * by shape: a string with no space in it is not a sentence, and a string that
  * looks like a Tailwind class list is not copy.
  */
-const readNormalised = (path) => readFileSync(path, "utf8").split("\r\n").join("\n");
+const readNormalised = (path) => readSource(path).split("\r\n").join("\n");
 
 function copyStringsOf(path) {
   const source = readNormalised(path)

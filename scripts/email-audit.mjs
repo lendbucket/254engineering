@@ -28,6 +28,7 @@
 //                   HTML part by design, and a width check on plain text would
 //                   be a green light for a measurement that never happened.
 import { allTemplatesForAudit, MARKETING_TEMPLATES } from "../src/lib/email-templates.ts";
+import { readSource } from "./lib/read-source.mjs";
 import { business } from "../src/config/business.ts";
 import { context, findBannedPhrases } from "./lib/voice-blocklist.mjs";
 
@@ -39,7 +40,7 @@ const PRODUCTION_ORIGIN = "https://254engineering.com";
 /** Subject lines get truncated in a phone notification well before this. */
 const MAX_SUBJECT = 78;
 
-import { readFileSync, readdirSync } from "node:fs";
+import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { chromium } from "playwright";
 import { emailIdentity, fromHeader, signatureLines, FROM_DISPLAY_NAME, REPLY_TO, REPLY_TO_EXCEPTIONS } from "../src/config/email-identity.ts";
@@ -74,7 +75,7 @@ if (templates.length === 0) {
 /* bare string would silently miss both halves of it.                        */
 /* ------------------------------------------------------------------------ */
 {
-  const source = readFileSync("src/lib/email-templates.ts", "utf8");
+  const source = readSource("src/lib/email-templates.ts");
   const declared = new Set();
 
   for (let i = source.indexOf("compose("); i !== -1; i = source.indexOf("compose(", i + 1)) {
@@ -309,7 +310,7 @@ if (templates.length === 0) {
       const full = join(dir, entry.name).split("\\").join("/");
       if (entry.isDirectory()) walk(full);
       else if (/\.(ts|tsx)$/.test(entry.name)) {
-        const src = readFileSync(full, "utf8");
+        const src = readSource(full);
         const imports = src.match(/import\s*\{([^}]*)\}\s*from\s*"[^"]*marketing-suppression"/);
         if (imports) {
           readers.push(full);
@@ -361,7 +362,7 @@ if (templates.length === 0) {
    * audit's job is that the gate is shaped right.
    */
   {
-    const src = readFileSync("src/lib/marketing-suppression.ts", "utf8");
+    const src = readSource("src/lib/marketing-suppression.ts");
     const gate = src.slice(src.indexOf("export async function isSuppressed"));
     const body = gate.slice(0, gate.indexOf("\n}"));
 
@@ -715,7 +716,7 @@ for (const t of templates) {
   const sources = ["src/lib/email-templates.ts", "src/lib/email-layout.ts"];
   const identityStrings = [emailIdentity.signer.name, emailIdentity.signer.title];
   for (const file of sources) {
-    const text = readFileSync(file, "utf8");
+    const text = readSource(file);
     const found = identityStrings.filter((v) => text.includes(v));
     rec(
       `${file}: does not hardcode a name or title from the identity config`,

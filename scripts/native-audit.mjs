@@ -27,6 +27,7 @@
  */
 
 import fs from "node:fs";
+import { readSource } from "./lib/read-source.mjs";
 import { chromium } from "playwright";
 import { allPages } from "./lib/surfaces.mjs";
 import {
@@ -148,7 +149,7 @@ console.log(`${BASE}, ${SCREENS.length} signed in screens\n`);
 
   const found = {};
   for (const file of files) {
-    const code = fs.readFileSync(file, "utf8");
+    const code = fs.readSource(file);
     const hits = [...code.matchAll(/hidden[^"'`]*?\b(?:lg|xl):(?:flex|block|inline|inline-flex|grid|table|table-cell)/g)];
     if (hits.length) found[file.split("\\").join("/")] = hits.length;
   }

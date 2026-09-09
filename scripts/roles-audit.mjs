@@ -46,6 +46,7 @@
  * neverProduction below rather than by remembering.
  */
 import fs from "node:fs";
+import { readSource } from "./lib/read-source.mjs";
 import { auditClient, describeTarget } from "./lib/db-target.mjs";
 import {
   canSetGrants,
@@ -510,7 +511,7 @@ rec(
     .sort();
 
   const sql = migrationFiles
-    .map((f) => fs.readFileSync(`supabase/migrations/${f}`, "utf8"))
+    .map((f) => fs.readSource(`supabase/migrations/${f}`))
     .join("\n");
 
   /*
@@ -765,7 +766,7 @@ rec(
    * AND THE SERVER ACTUALLY ASKS. The rules above are pure and correct, and a
    * write path that never called them would pass every one of them.
    */
-  const opsRoles = fs.readFileSync("src/lib/ops-roles.ts", "utf8");
+  const opsRoles = fs.readSource("src/lib/ops-roles.ts");
   rec(
     "the server refuses a grant change through the guard",
     /const verdict = canSetGrants\([\s\S]{0,120}if \(!verdict\.ok\) return/.test(opsRoles),
@@ -1609,7 +1610,7 @@ if (!db) {
    */
   const codeOnly = (path) =>
     fs
-      .readFileSync(path, "utf8")
+      .readSource(path)
       .replace(/\/\*[\s\S]*?\*\//g, "")
       .split("\n")
       .filter((line) => !/^\s*\/\//.test(line))

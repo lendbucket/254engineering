@@ -33,7 +33,8 @@
 // first failure hides how much else is broken, which turns one fix into five
 // round trips.
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readSource } from "./lib/read-source.mjs";
+
 import { runtimeFor, DECLARATION } from "./lib/audit-runtime.mjs";
 import { assertClearToBuild } from "./lib/build-guard.mjs";
 import { startNextServer } from "./lib/dev-server.mjs";
@@ -552,7 +553,7 @@ async function waitUntilHealthy(base, timeoutMs = 120_000) {
  * twenty minutes of browser audits is finding it too late to be useful.
  */
 function assertInvocationsMatchDeclarations() {
-  const pkg = JSON.parse(readFileSync("package.json", "utf8"));
+  const pkg = JSON.parse(readSource("package.json"));
   const wrong = [];
 
   for (const [name, cmd] of Object.entries(pkg.scripts)) {

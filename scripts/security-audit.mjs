@@ -28,7 +28,8 @@
  * This file is the unauthenticated perimeter and stays runnable without either.
  */
 import { chromium } from "playwright";
-import { readFileSync } from "node:fs";
+import { readSource } from "./lib/read-source.mjs";
+
 import { apisOf, guardedSurfaces, routesOf } from "./lib/surfaces.mjs";
 import {
   HEALTH_PROBE_PATH,
@@ -914,7 +915,7 @@ async function run() {
      * that drifts turns the promise in the alert email into a small lie about
      * how long the site has been down.
      */
-    const vercelConfig = JSON.parse(readFileSync("vercel.json", "utf8"));
+    const vercelConfig = JSON.parse(readSource("vercel.json"));
     const cron = (vercelConfig.crons ?? []).find((c) => c.path === CRON_ROUTE);
     rec("the watcher is actually scheduled", Boolean(cron), JSON.stringify(vercelConfig.crons ?? []));
     rec(
@@ -1089,7 +1090,7 @@ async function run() {
      * the route has no field for it at all: a body carrying priceCents and
      * totalCents must not produce an order at that price.
      */
-    const source = readFileSync("src/app/api/order-flow/route.ts", "utf8");
+    const source = readSource("src/app/api/order-flow/route.ts");
     rec(
       "the flow route accepts no price from the caller",
       !/priceCents|totalCents|amountCents/.test(source),
@@ -1106,7 +1107,7 @@ async function run() {
       "an order must not be created and then refused",
     );
 
-    const uploadSource = readFileSync("src/lib/order-uploads.ts", "utf8");
+    const uploadSource = readSource("src/lib/order-uploads.ts");
     rec(
       "an upload path is built from a validated draft id, never a filename",
       /SAFE\.test\(params\.draftId\)/.test(uploadSource) && /SAFE\.test\(params\.inputKey\)/.test(uploadSource),

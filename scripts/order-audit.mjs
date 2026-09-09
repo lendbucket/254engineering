@@ -31,6 +31,7 @@
  * nobody mistakes one for a decision.
  */
 import fs from "node:fs";
+import { readSource } from "./lib/read-source.mjs";
 import {
   CATALOG,
   catalogFor,
@@ -176,7 +177,7 @@ const answerAll = (entry, pick = () => 0) =>
    * these ever diverge, one tier would have a client price under one name and
    * an engineer production figure under another.
    */
-  const migration = fs.readFileSync("supabase/migrations/0007_order_tiers.sql", "utf8");
+  const migration = fs.readSource("supabase/migrations/0007_order_tiers.sql");
   rec(
     "the migration explains that tier is the fee schedule's own unit",
     /eng_fee_schedule/.test(migration),
@@ -653,7 +654,7 @@ const answerAll = (entry, pick = () => 0) =>
 // 8. THE CATALOG IS A SYNCHRONIZED FILE
 // ===========================================================================
 {
-  const src = fs.readFileSync("data/catalog.ts", "utf8");
+  const src = fs.readSource("data/catalog.ts");
   /*
    * Flattened, because these assertions are about what the file SAYS and not
    * about where a comment happens to wrap. The first version matched a phrase
@@ -883,7 +884,7 @@ const answerAll = (entry, pick = () => 0) =>
    * The browser never prices anything. A price computed in a browser is a price
    * a browser can change, and the server recomputes from the catalog anyway.
    */
-  const flowSource = fs.readFileSync("src/components/order/OrderFlow.tsx", "utf8");
+  const flowSource = fs.readSource("src/components/order/OrderFlow.tsx");
   rec(
     "the flow component never totals a price itself",
     !/priceCents\s*\+|\+\s*coastalSurchargeCents/.test(flowSource),
@@ -988,7 +989,7 @@ const answerAll = (entry, pick = () => 0) =>
   rec("and only one verdict ever records money", every.filter((j) => j.intent === "record_payment").length === 1);
 
   // The route that carries it must be admin only and read by default.
-  const route = fs.readFileSync("src/app/api/portal/orders/reconcile/route.ts", "utf8");
+  const route = fs.readSource("src/app/api/portal/orders/reconcile/route.ts");
   rec(
     "the reconcile route checks payments.reconcile",
     route.includes('can(actor, "payments.reconcile")'),
@@ -1001,7 +1002,7 @@ const answerAll = (entry, pick = () => 0) =>
   rec("and applying is opt in rather than the default", route.includes("body?.apply === true"));
 
   // The webhook must record a dashboard refund rather than only logging it.
-  const hook = fs.readFileSync("src/app/api/stripe/webhook/route.ts", "utf8");
+  const hook = fs.readSource("src/app/api/stripe/webhook/route.ts");
   rec("a refund made outside the platform is written down", hook.includes("recordExternalRefund("));
 
   /*
@@ -1009,7 +1010,7 @@ const answerAll = (entry, pick = () => 0) =>
    * charge.refunds.data[0], which Stripe does not expand on the charge object
    * it sends, so every delivery returned null, answered 200 and wrote nothing.
    */
-  const adapter = fs.readFileSync("src/lib/payments-stripe.ts", "utf8");
+  const adapter = fs.readSource("src/lib/payments-stripe.ts");
   const refundBranch = adapter.slice(adapter.indexOf('event.type === "charge.refunded"'));
   rec(
     "a refund event does not depend on a field Stripe does not send",
@@ -1026,7 +1027,7 @@ const answerAll = (entry, pick = () => 0) =>
     "a single refund amount and a running total must not share a field name",
   );
 
-  const pay = fs.readFileSync("src/lib/ops-payments.ts", "utf8");
+  const pay = fs.readSource("src/lib/ops-payments.ts");
   const recorder = pay.slice(pay.indexOf("export async function recordExternalRefund"));
   rec(
     "the recorder writes the difference rather than the running total",
@@ -1194,7 +1195,7 @@ const answerAll = (entry, pick = () => 0) =>
   rec("the stored case name has one spelling", FIRM_CANCELLATION_CASE === "cancelled_by_the_firm");
 
   // The writer, and the route that carries it.
-  const pay = fs.readFileSync("src/lib/ops-payments.ts", "utf8");
+  const pay = fs.readSource("src/lib/ops-payments.ts");
   const fn = pay.slice(pay.indexOf("export async function cancelAndRefund"));
   rec("cancelling requires a written reason", /reason\.length < 10/.test(fn));
   rec(
@@ -1208,7 +1209,7 @@ const answerAll = (entry, pick = () => 0) =>
   );
   rec("and writes the audit row against the operator", /action: "order\.cancelled_by_firm"/.test(fn));
 
-  const route = fs.readFileSync("src/app/api/portal/orders/refund/route.ts", "utf8");
+  const route = fs.readSource("src/app/api/portal/orders/refund/route.ts");
   rec("the refund route checks payments.refund", route.includes('can(actor, "payments.refund")'));
   rec(
     "and has no GET at all",
@@ -1217,7 +1218,7 @@ const answerAll = (entry, pick = () => 0) =>
   );
 
   // The dashboard has to be able to see it, or nobody is told.
-  const dash = fs.readFileSync("src/lib/ops-dashboard.ts", "utf8");
+  const dash = fs.readSource("src/lib/ops-dashboard.ts");
   rec("the dashboard counts stuck orders", /ordersNeedingAttention\(\)/.test(dash));
   rec("and gives them a tile", /Orders stuck on payment/.test(dash));
   rec("and puts them in the attention list", /stuck on payment/.test(dash));
@@ -1417,7 +1418,7 @@ const answerAll = (entry, pick = () => 0) =>
 // working site.
 // ===========================================================================
 {
-  const pay = fs.readFileSync("src/lib/ops-payments.ts", "utf8");
+  const pay = fs.readSource("src/lib/ops-payments.ts");
   const batchPaid = pay.slice(pay.indexOf("export async function markBatchPaid"));
   const batchCheckout = pay.slice(
     pay.indexOf("export async function startBatchCheckout"),
@@ -1504,7 +1505,7 @@ const answerAll = (entry, pick = () => 0) =>
   );
 
   // The webhook routes a batch before it routes an order.
-  const hook = fs.readFileSync("src/app/api/stripe/webhook/route.ts", "utf8");
+  const hook = fs.readSource("src/app/api/stripe/webhook/route.ts");
   const completed = hook.indexOf('parsed.kind === "checkout.completed"');
   const batchBranch = hook.indexOf("parsed.batchId", completed);
   const orderBranch = hook.indexOf("!parsed.orderId", completed);
@@ -1530,7 +1531,7 @@ const answerAll = (entry, pick = () => 0) =>
   );
 
   // The batch wrapper does not reimplement placing an order.
-  const bulk = fs.readFileSync("src/lib/ops-bulk.ts", "utf8");
+  const bulk = fs.readSource("src/lib/ops-bulk.ts");
   rec(
     "a batch places each property through placeOrder",
     /placeOrder\(\{/.test(bulk),
@@ -1577,7 +1578,7 @@ const answerAll = (entry, pick = () => 0) =>
 // 17. INVOICING: WHERE A BUG BILLS THE WRONG AMOUNT
 // ===========================================================================
 {
-  const st = fs.readFileSync("src/lib/ops-statements.ts", "utf8");
+  const st = fs.readSource("src/lib/ops-statements.ts");
   /*
    * The slice boundaries moved in Phase 8 Section 2, when issuing went on the
    * job queue. The three refusals that used to live inside issueStatement were
@@ -1707,7 +1708,7 @@ const answerAll = (entry, pick = () => 0) =>
   );
 
   // The webhook routes a statement before an order, same reason as a batch.
-  const hook = fs.readFileSync("src/app/api/stripe/webhook/route.ts", "utf8");
+  const hook = fs.readSource("src/app/api/stripe/webhook/route.ts");
   const completedPart = hook.slice(
     hook.indexOf('parsed.kind === "checkout.completed"'),
     hook.indexOf('parsed.kind === "checkout.expired"'),
@@ -1735,7 +1736,7 @@ const answerAll = (entry, pick = () => 0) =>
   );
 
   // The operator side.
-  const admin = fs.readFileSync("src/lib/ops-accounts-admin.ts", "utf8");
+  const admin = fs.readSource("src/lib/ops-accounts-admin.ts");
   rec(
     "the accounts screen computes can-they-order from the same rule the customer hits",
     /creditDecision\(/.test(admin),
@@ -1750,7 +1751,7 @@ const answerAll = (entry, pick = () => 0) =>
     /client\.kind !== "organization"/.test(admin),
   );
 
-  const route = fs.readFileSync("src/app/api/portal/accounts/route.ts", "utf8");
+  const route = fs.readSource("src/app/api/portal/accounts/route.ts");
   rec("the operator account route checks accounts.manage", route.includes('can(actor, "accounts.manage")'));
   rec(
     "and a credit limit is cleared explicitly rather than by omission",

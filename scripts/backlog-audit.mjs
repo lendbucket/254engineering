@@ -35,7 +35,8 @@
  * who reaches the document finds the reasoning.
  */
 
-import { readFileSync, readdirSync } from "node:fs";
+import { readdirSync } from "node:fs";
+import { readSource } from "./lib/read-source.mjs";
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -44,7 +45,7 @@ console.log("");
 console.log("THE BACKLOG IS THE INDEX");
 console.log("");
 
-const backlog = readFileSync("BACKLOG.md", "utf8");
+const backlog = readSource("BACKLOG.md");
 
 /*
  * The markers. Phrases this repository actually uses when it records something
@@ -93,7 +94,7 @@ const named = [];
 const missing = [];
 
 for (const file of docs) {
-  const body = readFileSync(`docs/${file}`, "utf8");
+  const body = readSource(`docs/${file}`);
   const hits = MARKERS.filter((m) => m.test(body));
   if (hits.length === 0) continue;
 
@@ -167,7 +168,7 @@ for (const [needle, what] of SEVEN) {
  * The rule itself has to stay written down. An audit enforcing a rule nobody
  * can find is an audit somebody deletes as noise.
  */
-const law = readFileSync("CLAUDE.md", "utf8");
+const law = readSource("CLAUDE.md");
 rec(
   "and CLAUDE.md still states the rule this enforces",
   /BACKLOG\.md` is the INDEX/.test(law),

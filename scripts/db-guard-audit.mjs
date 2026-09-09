@@ -22,6 +22,7 @@
  * the very front of the suite.
  */
 import fs from "node:fs";
+import { readSource } from "./lib/read-source.mjs";
 import path from "node:path";
 import { isProduction, refOf, describeTarget, PRODUCTION_REF, DEVELOPMENT_REF } from "./lib/db-target.mjs";
 import {
@@ -100,7 +101,7 @@ const files = scriptFiles("scripts");
 const offenders = [];
 for (const file of files) {
   if (file.endsWith(path.join("lib", "db-target.mjs"))) continue;
-  const source = fs.readFileSync(file, "utf8");
+  const source = fs.readSource(file);
   if (/from\s+["']@supabase\/supabase-js["']/.test(source)) offenders.push(file);
 }
 rec(
@@ -111,8 +112,8 @@ rec(
 
 // Every script that does touch a database must name itself to the guard, so a
 // refusal says which audit tried rather than just that something did.
-const users = files.filter((f) => /auditClient\(/.test(fs.readFileSync(f, "utf8")));
-const unnamed = users.filter((f) => /auditClient\(\s*\)/.test(fs.readFileSync(f, "utf8")));
+const users = files.filter((f) => /auditClient\(/.test(fs.readSource(f)));
+const unnamed = users.filter((f) => /auditClient\(\s*\)/.test(fs.readSource(f)));
 rec(
   `every database using script names itself in the refusal (${users.length} scripts)`,
   unnamed.length === 0,
@@ -127,7 +128,7 @@ rec(
  * flag that carries it.
  */
 {
-  const rolesSource = fs.readFileSync(path.join("scripts", "roles-audit.mjs"), "utf8");
+  const rolesSource = fs.readSource(path.join("scripts", "roles-audit.mjs"));
   rec(
     "roles-audit declares neverProduction, so no flag can point it at production",
     /auditClient\(\s*["']roles-audit["']\s*,\s*\{[^}]*neverProduction:\s*true/.test(rolesSource),
@@ -502,7 +503,7 @@ rec(
    * render is a convention; this one is in the function that builds the client,
    * so there is no way to a connection that goes around it.
    */
-  const supabaseSource = fs.readFileSync(path.join(process.cwd(), "src", "lib", "supabase.ts"), "utf8");
+  const supabaseSource = fs.readSource(path.join(process.cwd(), "src", "lib", "supabase.ts"));
   rec(
     "the check is called where the client is built, not only in a screen",
     /refuseIfMispointed\(\);/.test(supabaseSource),
@@ -602,7 +603,7 @@ rec(
     ["src/app/portal/(app)/layout.tsx", "the portal footer"],
     ["src/app/portal/(app)/status/page.tsx", "the status page"],
   ]) {
-    const source = fs.readFileSync(path.join(process.cwd(), ...file.split("/")), "utf8");
+    const source = fs.readSource(path.join(process.cwd(), ...file.split("/")));
     rec(
       `${what} shows the label rather than the build mode`,
       /environmentLabel\(\)/.test(source) && !/\{ENVIRONMENT\}|\$\{ENVIRONMENT\}/.test(source),
@@ -614,7 +615,7 @@ rec(
    * And ENVIRONMENT itself is left alone, because faults are grouped by it and
    * regrouping every historic fault to fix a footer would be the wrong trade.
    */
-  const obs = fs.readFileSync(path.join(process.cwd(), "src", "lib", "ops-observability.ts"), "utf8");
+  const obs = fs.readSource(path.join(process.cwd(), "src", "lib", "ops-observability.ts"));
   rec(
     "and fault grouping still uses the build mode it always did",
     /export const ENVIRONMENT = process\.env\.VERCEL_ENV \?\? process\.env\.NODE_ENV/.test(obs) &&

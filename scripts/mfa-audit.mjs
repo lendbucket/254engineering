@@ -30,7 +30,8 @@
  * caller of readPendingSession anywhere in the tree.
  */
 
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readdirSync, statSync } from "node:fs";
+import { readSource } from "./lib/read-source.mjs";
 import { join } from "node:path";
 import { routesOf, apisOf, surfacesWhere } from "./lib/surfaces.mjs";
 import { auditClient } from "./lib/db-target.mjs";
@@ -166,7 +167,7 @@ else process.env.OPS_SESSION_SECRET = HAD;
   for (const file of walk("src")) {
     const normalised = file.split("\\").join("/");
     if (normalised.endsWith("src/lib/ops-session.ts")) continue;
-    const source = readFileSync(file, "utf8");
+    const source = readSource(file);
     if (/\breadPendingSession\b/.test(source)) callers.push(normalised);
   }
 
@@ -257,7 +258,7 @@ else process.env.OPS_SESSION_SECRET = HAD;
     if (normalised === OWNER) continue;
     if (ALLOWED_TO_POST[normalised]) continue;
     scanned += 1;
-    const source = readFileSync(file, "utf8");
+    const source = readSource(file);
     for (const [n, line] of source.split(/\r?\n/).entries()) {
       const trimmed = line.trim();
       if (trimmed.startsWith("*") || trimmed.startsWith("//")) continue;
@@ -280,7 +281,7 @@ else process.env.OPS_SESSION_SECRET = HAD;
 /* ------------------------------------------- the proxy declares three paths */
 
 {
-  const proxy = readFileSync("src/proxy.ts", "utf8");
+  const proxy = readSource("src/proxy.ts");
   const match = /const MFA_PATHS = new Set\(\[([^\]]*)\]\)/.exec(proxy);
   const declared = match
     ? [...match[1].matchAll(/"([^"]+)"/g)].map((m) => m[1])
@@ -397,7 +398,7 @@ else process.env.OPS_SESSION_SECRET = HAD;
        * list cannot silently become a failure here, and a path REMOVED from it
        * cannot silently keep an exemption in this file.
        */
-      const proxySource = readFileSync("src/proxy.ts", "utf8");
+      const proxySource = readSource("src/proxy.ts");
       const openMatch = /const OPEN_PATHS = new Set\(\[([\s\S]*?)\]\);/.exec(proxySource);
       const openPaths = openMatch ? [...openMatch[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]) : [];
 

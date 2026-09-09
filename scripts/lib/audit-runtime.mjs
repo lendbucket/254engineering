@@ -1,4 +1,5 @@
-import { readFileSync, existsSync } from "node:fs";
+import { existsSync } from "node:fs";
+import { readSource } from "./read-source.mjs";
 import { dirname, resolve } from "node:path";
 
 /**
@@ -51,7 +52,7 @@ function serverOnly(file, depth = 0) {
   if (!existsSync(file)) return false;
 
   SEEN.set(file, false);
-  const src = readFileSync(file, "utf8");
+  const src = readSource(file);
 
   if (/^import "server-only";/m.test(src)) {
     SEEN.set(file, true);
@@ -80,7 +81,7 @@ function serverOnly(file, depth = 0) {
 export function runtimeFor(scriptPath) {
   if (!existsSync(scriptPath)) return { needsReactServer: false, declares: false, reason: null };
 
-  const src = readFileSync(scriptPath, "utf8");
+  const src = readSource(scriptPath);
   const declares = src.includes(DECLARATION);
 
   let reason = null;

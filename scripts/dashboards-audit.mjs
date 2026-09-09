@@ -42,7 +42,8 @@
 
 process.loadEnvFile?.(".env.local");
 
-import { readFileSync } from "node:fs";
+
+import { readSource } from "./lib/read-source.mjs";
 import { DEFAULT_ROLES, can } from "../src/lib/ops-authz.ts";
 import { MONEYLESS_ROLES, dashboardFor } from "../src/lib/ops-dashboard.ts";
 import { standingDemo, ledgerRowCount } from "./lib/standing-demo.mjs";
@@ -112,7 +113,7 @@ console.log("");
 // ------------------------------- and no dashboard shows a figure it cannot hold
 
 {
-  const source = readFileSync("src/lib/ops-dashboard.ts", "utf8");
+  const source = readSource("src/lib/ops-dashboard.ts");
 
   /*
    * The ruling as a shape check. A `money` field on any of the three would
@@ -465,7 +466,7 @@ console.log("");
 // -------------------------------- what could not be counted is on the screen
 
 {
-  const page = readFileSync("src/app/portal/(app)/page.tsx", "utf8");
+  const page = readSource("src/app/portal/(app)/page.tsx");
 
   rec(
     "the screen renders what a dashboard could not compute",

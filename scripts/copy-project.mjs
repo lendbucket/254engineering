@@ -41,6 +41,7 @@
  */
 
 import fs from "node:fs";
+import { readSource } from "./lib/read-source.mjs";
 import { pairClient } from "./lib/db-target.mjs";
 /*
  * The bucket walk lives in its own module so it can be exercised. It was six
@@ -226,7 +227,7 @@ async function completenessCheck() {
   const fromMigrations = new Set();
   for (const file of fs.readdirSync(dir).sort()) {
     if (!file.endsWith(".sql")) continue;
-    const sql = fs.readFileSync(new URL(file, dir), "utf8");
+    const sql = fs.readSource(new URL(file, dir));
     for (const m of sql.matchAll(/create table if not exists\s+(eng_[a-z0-9_]+)/gi)) {
       fromMigrations.add(m[1].toLowerCase());
     }
