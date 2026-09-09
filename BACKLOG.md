@@ -62,6 +62,34 @@ would make every entry before Section 4 unverifiable.
 cannot see states what was read back instead. 0030, 0032, 0033 and 0037 already
 do; that is the standard the next one meets.
 
+### Every audit matching across lines is sensitive to line endings
+
+Found on the board on MAIN, 2026-09-09, after the merge and after eight
+migrations had already gone to production.
+
+`retention-audit` asserts that the one DELETE in `ops-retention.ts` sits inside
+the mode check, with a pattern spanning two lines. It passed on the feature
+branch and failed on main. Nothing about the code had changed: node had written
+the file with LF while working on it, and `git checkout main` materialised the
+same bytes with CRLF, so `{
+s*const` no longer matched.
+
+**A check whose answer depends on how the file arrived on disk is worse than a
+check that is merely wrong.** It passes for one person and fails for the next
+with nothing to argue about between them, and it says nothing about the code
+either way.
+
+`scripts/lib/read-source.mjs` is the fix and retention-audit uses it. **Every
+other audit that matches across lines still uses `readFileSync` directly**, and
+a crude count says most of them match multi-line patterns somewhere. None has
+failed this way yet, because the files they read have not happened to change
+endings; that is luck rather than a property.
+
+What it needs is a sweep: every `readFileSync` in `scripts/` whose result is
+matched against a pattern containing a newline moves to `readSource`. It sits
+with the other two Section 4 harness items, and like them it is about the
+harness saying something true rather than something accidental.
+
 ### mobile-overflow-audit reports a page that did not load as an overflow
 
 Recorded 2026-09-09. On board 11 it failed with:

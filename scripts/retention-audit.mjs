@@ -49,7 +49,15 @@
 
 process.loadEnvFile?.(".env.local");
 
-import { readFileSync, readdirSync } from "node:fs";
+import { readdirSync } from "node:fs";
+/*
+ * readSource rather than readFileSync, because every pattern below that spans
+ * two lines was measuring how the file arrived on disk. This audit passed on
+ * the branch, where node had written ops-retention.ts with LF, and failed on
+ * main, where git had checked out the same bytes with CRLF. Nothing about the
+ * code had changed.
+ */
+import { readSource } from "./lib/read-source.mjs";
 import { auditClient } from "./lib/db-target.mjs";
 import { RETENTION_POLICY, DECLARED_TABLES, deletableEntries, mayDelete, ruleFor } from "../src/lib/retention-policy.ts";
 import {
@@ -122,7 +130,7 @@ console.log("");
 const declaredInSchema = (() => {
   const found = new Set();
   for (const file of readdirSync("supabase/migrations").filter((f) => f.endsWith(".sql")).sort()) {
-    const sql = readFileSync(`supabase/migrations/${file}`, "utf8");
+    const sql = readSource(`supabase/migrations/${file}`);
     for (const m of sql.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?(eng_[a-z0-9_]+)/gi)) {
       found.add(m[1].toLowerCase());
     }
@@ -356,7 +364,7 @@ rec(
 // =====================================================================
 
 {
-  const src = readFileSync("src/lib/ops-retention.ts", "utf8");
+  const src = readSource("src/lib/ops-retention.ts");
 
   rec(
     "retention never reads is_demo",
@@ -418,7 +426,7 @@ rec(
 }
 
 {
-  const handlers = readFileSync("src/lib/job-handlers.ts", "utf8");
+  const handlers = readSource("src/lib/job-handlers.ts");
   const block = handlers.slice(handlers.indexOf('registerJob("retention.sweep"'));
   rec(
     "the handler decides nothing: it passes a manifest id and reads the plan back",
@@ -832,7 +840,7 @@ try {
       "failed and pending queue rows are protected by the rule and not by a filter afterwards",
       jobs?.kind === "delete_after" &&
         protectedStatuses.every((s) => jobs.neverDelete?.values.includes(s)) &&
-        /\.not\(rule\.neverDelete\.column, "in"/.test(readFileSync("src/lib/ops-retention.ts", "utf8")),
+        /\.not\(rule\.neverDelete\.column, "in"/.test(readSource("src/lib/ops-retention.ts")),
       "applied in the query, so a protected row is never in the set, never in the hash and never in the count",
     );
   }
