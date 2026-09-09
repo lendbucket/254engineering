@@ -287,7 +287,7 @@ if (mode === "compare") {
     console.error(`\nlink-map: no baseline at ${BASELINE}. Run with --baseline first.`);
     process.exitCode = 1;
   } else {
-    const before = JSON.parse(fs.readSource(BASELINE));
+    const before = JSON.parse(readSource(BASELINE));
     console.log("\n=== CHANGE SINCE BASELINE ===");
     let changed = 0;
     for (const r of rows) {

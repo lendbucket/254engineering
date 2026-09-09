@@ -227,7 +227,7 @@ async function completenessCheck() {
   const fromMigrations = new Set();
   for (const file of fs.readdirSync(dir).sort()) {
     if (!file.endsWith(".sql")) continue;
-    const sql = fs.readSource(new URL(file, dir));
+    const sql = readSource(new URL(file, dir));
     for (const m of sql.matchAll(/create table if not exists\s+(eng_[a-z0-9_]+)/gi)) {
       fromMigrations.add(m[1].toLowerCase());
     }

@@ -114,7 +114,7 @@ export async function startNextServer({ port, env = {}, timeoutMs = 120000, comm
 function tailOf(file, lines = 25) {
   try {
     return (
-      fs.readSource(file).trimEnd().split(/\r?\n/).slice(-lines).join("\n") || "(empty)"
+      readSource(file).trimEnd().split(/\r?\n/).slice(-lines).join("\n") || "(empty)"
     );
   } catch {
     return "(log unreadable)";

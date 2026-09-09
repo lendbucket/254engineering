@@ -39,7 +39,7 @@ import { ROLES, PRICING_FIELDS, actionsFor } from "../src/lib/ops-authz.ts";
  * reason, as accounts-audit and intake-audit.
  */
 function codeOnly(path) {
-  const withoutBlocks = fs.readSource(path).replace(/\/\*[\s\S]*?\*\//g, "");
+  const withoutBlocks = readSource(path).replace(/\/\*[\s\S]*?\*\//g, "");
   return withoutBlocks
     .split("\n")
     .filter((line) => !/^\s*\/\//.test(line))
@@ -434,7 +434,7 @@ const GATED = { prelaunch: true };
   const offenders = [];
   for (const file of sourceFiles("src")) {
     if (file === OWNER) continue;
-    const text = fs.readSource(file).replace(/\/\*[\s\S]*?\*\//g, "");
+    const text = readSource(file).replace(/\/\*[\s\S]*?\*\//g, "");
 
     /*
      * Each fragment runs from a mention of the table to the end of that
@@ -460,7 +460,7 @@ const GATED = { prelaunch: true };
    * And the owner really does own it, so the check above cannot be passing
    * because the write moved somewhere this scan does not look.
    */
-  const owner = fs.readSource(OWNER);
+  const owner = readSource(OWNER);
   rec(
     "and ops-crm writes it through transitionFile, which asks canTransition first",
     /export async function transitionFile[\s\S]*?canTransition\([\s\S]*?\.update\(patch\)/.test(owner),
@@ -503,7 +503,7 @@ const GATED = { prelaunch: true };
   const sql = fs
     .readdirSync("supabase/migrations")
     .filter((f) => f.endsWith(".sql"))
-    .map((f) => fs.readSource(`supabase/migrations/${f}`))
+    .map((f) => readSource(`supabase/migrations/${f}`))
     .join("\n");
 
   /*
