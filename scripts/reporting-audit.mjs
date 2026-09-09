@@ -270,7 +270,7 @@ console.log("");
 
 {
   /*
-   * Phase 12 Section 3. A report on a screen is read by the person who opened
+   * Phase 12 Section 2, the reporting prompt's Section 3. A report on a screen is read by the person who opened
    * it, with the notes beside it. A file is read later, by somebody else, with
    * none of that. So the export carries a MANIFEST, and the manifest is what
    * these checks are about.

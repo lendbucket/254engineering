@@ -34,7 +34,7 @@ export type JobKind =
   | "metrics.rollup"
   | "errors.alert"
   /*
-   * Phase 12 Section 3. NOT the export itself: the RECORD that one was
+   * Phase 12 Section 2, the reporting prompt's Section 3. NOT the export itself: the RECORD that one was
    * assembled. docs/platform-state.md states the rule this follows, and
    * document.binder above is the precedent. A queued CSV is a CSV nobody
    * receives, because nothing in this platform delivers a file somebody is not

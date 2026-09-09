@@ -503,7 +503,7 @@ registerJob("errors.alert", {
 /**
  * Record that a report left the building.
  *
- * Phase 12 Section 3. This does NOT assemble the CSV. The file is built and
+ * Phase 12 Section 2, the reporting prompt's Section 3. This does NOT assemble the CSV. The file is built and
  * returned inside the request, because the person who clicked Export is
  * standing in front of it, and docs/platform-state.md has the rule this
  * follows: a queued CSV is a CSV nobody receives. Nothing in this platform

@@ -298,7 +298,7 @@ if (!db) {
   // ------------------------------ and no demonstration reaches an export file
 
   /*
-   * Phase 12 Section 3. A screen is looked at; a file is SENT. If a
+   * Phase 12 Section 2, the reporting prompt's Section 3. A screen is looked at; a file is SENT. If a
    * demonstration ever leaks into an export, it leaves the building inside a
    * document somebody hands to an accountant, and no amount of fixing the
    * screen afterwards catches it back.

@@ -1301,10 +1301,35 @@ its first run, and 0028 marks them by the address rule in
 and to production**, and on production it marked nothing, because production
 holds two profiles, one application and no partners, clients, orders or files.
 
+### Phase 12 Section 3, retention: the inventory is in docs/retention-inventory.md
+
+Recorded 2026-09-09, gate 0. Measured against both live databases rather than
+estimated. The floors are the operator's and are not set yet.
+
+The three things a reader needs from it without opening it: **production is
+already growing at 51,878 rows a month from `eng_cron_runs` alone, at a rate
+that does not depend on the firm**; **ten tables refuse deletes at the database
+and a retention job cannot touch them**, proved by attempting one with the
+service role; and **this repository states no retention period for any record
+anywhere**, while the privacy policy has already promised the public that
+engineering records are kept for the periods Texas requires.
+
+The full inventory, the deadline ranking of the twenty two reads, the rollup
+coverage and the three decisions it raises are in the document.
+
 ### THE SILENT THOUSAND: every unbounded read, ranked by what it corrupts
 
 Recorded 2026-09-09 on the operator's ruling, after `ROW_CEILING` was added to
 the reports. **Report only. Nothing here is fixed.**
+
+**A NAMING CORRECTION, KEPT RATHER THAN QUIETLY APPLIED.** This entry and the
+export work beside it were reported as "Phase 12 Section 3". They are not.
+Exports were **Section 3 of the reporting prompt**, which was Phase 12 Section 2.
+**Phase 12 Section 3 is RETENTION**, and this list is its starting point rather
+than a note filed near it: retention is the answer to the question this survey
+asks, which is how big each table is allowed to get before a read of it silently
+lies. Operator correction, 2026-09-09. The mislabel is recorded because a
+section number that means two things is a section number nobody can search.
 
 **The fact underneath it.** PostgREST returns at most 1000 rows and says nothing
 when it truncates. Measured on development: `eng_audit_events` holds 7,063 rows

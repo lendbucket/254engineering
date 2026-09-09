@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
   /*
    * THE FOUR OWNER REPORTS, AS FILES.
    *
-   * Phase 12 Section 3. The report is chosen from the REGISTRY rather than from
+   * Phase 12 Section 2, the reporting prompt's Section 3. The report is chosen from the REGISTRY rather than from
    * a list here, which is the same reason reporting-audit derives from it: a
    * fifth report added to ops-reports.ts is exportable the day it exists, and
    * cannot ship with an export nobody wrote a permission check for, because the

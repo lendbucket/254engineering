@@ -148,7 +148,7 @@ const PROBE_A = {
   requestedFor: "2026-09-04",
   statementId: "statement-a",
   day: "2026-09-01",
-  /* Phase 12 Section 3 added report.export, keyed on the report, the period,
+  /* Phase 12 Section 2, the reporting prompt's Section 3 added report.export, keyed on the report, the period,
    * the day and WHO asked: two people exporting the same report on the same day
    * are two events worth recording separately. Added here rather than the check
    * being loosened, which is what the comment above this object asks for. */
