@@ -71,13 +71,31 @@ thing and sent twenty.
   `live` again, so the hazard cannot quietly return.
 
 **What is still open, and it is the reason this entry exists.** The backlog
-itself. Development is carrying **533 pending jobs** from months of audit runs,
-133 of them `report.export` still marked `live`, and nothing on development ever
-drains the queue. Every audit that runs a worker has to reason about them. The
-options are to drain it under suppression, to let retention sweep `eng_jobs` on
-development the way it is meant to, or to leave it and keep the guard. **Nothing
-is done here without a ruling, because draining is a decision about somebody
-else's queued work even when that somebody is an audit from last Tuesday.**
+itself, and the fact that **it regenerates on every board run**.
+
+Development is carrying **525 pending jobs** from months of audit runs, 133 of
+them `report.export` still marked `live`, and nothing on development ever drains
+the queue. Marking the waiting ones suppressed fixed the rows that existed and
+not the source: `forms-audit` walks the real application form, the application
+enqueues a real `email.send` at `live` because that is exactly what it should do
+for a real submission, and four more appeared while this was being written.
+queue-audit caught them in the act, which is the check working, and it means the
+check goes red on the board after next unless somebody keeps sweeping by hand.
+
+The options, and each has a real cost:
+
+- **Drain it under suppression on a schedule.** Cheapest, and it makes
+  development's queue behave like a queue instead of a midden.
+- **Let retention sweep `eng_jobs` on development.** The declaration already
+  permits deleting from `eng_jobs`; nothing schedules it.
+- **Suppress outward-reaching kinds by default when the deployment is
+  development.** Tempting and the most dangerous: it makes production and
+  development behave differently on the one path where a silent difference
+  means a customer never hears from the firm.
+
+**Nothing is done here without a ruling.** Draining is a decision about somebody
+else's queued work, even when that somebody is an audit from last Tuesday, and
+the third option changes what the platform does depending on where it runs.
 
 ### THIS MACHINE'S CLOCK IS 85 SECONDS AHEAD OF THE DATABASE
 

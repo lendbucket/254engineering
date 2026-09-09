@@ -956,7 +956,27 @@ console.log("--- the failure paths");
 
 console.log("--- the mode, in the code");
 {
-  const handlers = readSource("src/lib/job-handlers.ts");
+  /*
+   * COMMENTS STRIPPED BEFORE ANYTHING IS MATCHED, and this is not tidiness.
+   *
+   * The first version of the check below read the raw source. errors.alert
+   * carries a comment saying, in words, that it passes job.effectMode to
+   * every email it queues. The injection that DELETED that argument left the
+   * comment in place, the regex matched the comment, and the check reported
+   * that the mode still travelled with the work. It did not.
+   *
+   * A check that matches the old shape by text is a check on wording. This
+   * repository has that written down twice already and it happened again,
+   * inside the file whose subject is checks that look at the wrong thing.
+   */
+  const codeOnly = (text) =>
+    text
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .split("\n")
+      .filter((line) => !/^\s*\/\//.test(line))
+      .join("\n");
+
+  const handlers = codeOnly(readSource("src/lib/job-handlers.ts"));
 
   const outward = registeredKinds().filter((k) => handlerFor(k)?.reachesOutside === true);
   const notHonouring = [];
