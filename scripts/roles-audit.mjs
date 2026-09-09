@@ -815,7 +815,7 @@ rec(
       pairs += 1;
       let problem;
       try {
-        problem = fn.real(fn.call(role), role);
+        problem = fn.real(await fn.call(role), role);
       } catch (err) {
         problem = `it threw: ${err instanceof Error ? err.message : String(err)}`;
       }

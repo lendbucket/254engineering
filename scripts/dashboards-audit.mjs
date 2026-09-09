@@ -44,7 +44,7 @@ process.loadEnvFile?.(".env.local");
 
 import { readFileSync } from "node:fs";
 import { DEFAULT_ROLES, can } from "../src/lib/ops-authz.ts";
-import { MONEYLESS_ROLES } from "../src/lib/ops-dashboard.ts";
+import { MONEYLESS_ROLES, dashboardFor } from "../src/lib/ops-dashboard.ts";
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -53,86 +53,57 @@ console.log("");
 console.log("============ EVERY ROLE LANDS ON ITS OWN DASHBOARD ============");
 console.log("");
 
-// ------------------------------------- the ladder, walked with a real actor
+// ------------------ the declaration that names this function has to check it
 
 /*
- * EXPECTED IS A LITERAL HERE AND IS NOT DERIVED FROM THE MODULE.
+ * THE HOLE, CLOSED AS A CHECK RATHER THAN AS A PARAGRAPH.
  *
- * CLAUDE.md section 6: an audit never imports its expectation from the thing it
- * audits. Reading the ladder's own answer back and comparing it to itself would
- * have passed on the day a dispatcher was being handed the technician's screen.
- * So the mapping a person ruled is written out, and the code is compared to it.
+ * This block used to walk the capability ladder itself, against its own copy of
+ * the role to dashboard mapping. That worked and it was the wrong home for it.
+ *
+ * `scripts/lib/role-total-functions.mjs` is the declaration of every function
+ * that takes a role and must be total over the seven that ship. Its own
+ * docstring listed `dashboardFor` among the six defects a September sweep
+ * found, and its array did not contain it, so the function regressed to a
+ * seventh instance and stayed there. Keeping the walk here would have left that
+ * exact hole open: a file naming a defect it does not check, with a second copy
+ * of the mapping in a different file to disagree with it.
+ *
+ * Operator ruling, 2026-09-09: fix the file, not the comment. So the walk lives
+ * in the registry, roles-audit runs it over every role and every function, and
+ * what is asserted HERE is that the registry covers this function at all. A
+ * dashboardFor quietly dropped from that list is now a red board, which is the
+ * failure that actually happened.
  */
-const EXPECTED = {
-  admin: "admin",
-  engineer: "engineer",
-  field_tech: "field_tech",
-  dispatcher: "dispatcher",
-  sales: "sales",
-  customer_service: "customer_service",
-  /* Granted ledger.read_all and billing.read on purpose: a buyer's accountant
-   * or an auditor has to see the money, so the administrator's screen is the
-   * right one and this is a decision rather than an accident. */
-  read_only: "admin",
-};
-
-const { dashboardFor } = await import("../src/lib/ops-dashboard.ts");
-
 {
+  const { ROLE_TOTAL_FUNCTIONS, DASHBOARD_FOR_ROLE } = await import("./lib/role-total-functions.mjs");
+
+  const registered = ROLE_TOTAL_FUNCTIONS.map((f) => f.name);
   rec(
-    `there are roles to walk (${DEFAULT_ROLES.length})`,
-    DEFAULT_ROLES.length > 3,
-    "a walk over nothing passes forever",
+    `the role total registry is populated (${registered.length} functions)`,
+    registered.length > 3,
+    "a check over an empty registry passes forever",
+  );
+  rec(
+    "and it covers dashboardFor, which is the one it named and did not check",
+    registered.includes("dashboardFor"),
+    registered.includes("dashboardFor")
+      ? registered.join(", ")
+      : "role-total-functions.mjs lists dashboardFor among the six defects in its own docstring. A file that names a defect and does not check it is the defect.",
   );
 
-  const wrong = [];
-  const missing = [];
-
-  for (const role of DEFAULT_ROLES) {
-    const expected = EXPECTED[role.key];
-    if (!expected) {
-      missing.push(role.key);
-      continue;
-    }
-
-    /*
-     * A WELL FORMED UUID, BECAUSE THE FIRST VERSION USED `probe-<role>`.
-     *
-     * Several dashboards scope a count to actor.id, and Postgres answered a
-     * non uuid with an error carrying an EMPTY message, which countRows logged
-     * four times per run as "a count could not be read". The routing checks
-     * still passed, so the noise was the only sign, and the obvious reading of
-     * it was that the product had a broken query.
-     *
-     * It did not: the audit was handing it rubbish. Worth the paragraph,
-     * because a check that emits a scary line every run trains somebody to
-     * ignore the line, and the next one will be real. The id belongs to nobody,
-     * so every scoped count truthfully returns zero.
-     */
-    const actor = {
-      id: "00000000-0000-4000-8000-000000000000",
-      role: role.key,
-      status: "active",
-      grants: new Set(role.grants),
-    };
-    const dashboard = await dashboardFor(actor);
-    const got = dashboard?.role ?? "none";
-    if (got !== expected) wrong.push(`${role.key}: expected ${expected}, got ${got}`);
-  }
-
+  /*
+   * And every shipped role has an answer decided for it. The mapping is in the
+   * registry rather than here, so there is one copy; this asserts it is total
+   * over DEFAULT_ROLES, which is the property that stops being true when
+   * somebody adds a role on the permission screen.
+   */
+  const undecided = DEFAULT_ROLES.filter((r) => !DASHBOARD_FOR_ROLE[r.key]).map((r) => r.key);
   rec(
-    "every role in DEFAULT_ROLES is named in this check",
-    missing.length === 0,
-    missing.length
-      ? `${missing.join(", ")} has no expected dashboard here, so nobody decided which one it should get`
-      : "",
-  );
-
-  rec(
-    `every role lands on the dashboard it was ruled to get (${DEFAULT_ROLES.length} walked)`,
-    wrong.length === 0,
-    wrong.length
-      ? `${wrong.join("; ")}. A role served somebody else's dashboard sees every tile read none, which looks like a quiet day rather than a defect.`
+    `every shipped role has a dashboard decided for it (${DEFAULT_ROLES.length})`,
+    undecided.length === 0,
+    undecided.length
+      ? `${undecided.join(", ")} has no entry in DASHBOARD_FOR_ROLE, so nobody decided what they see`
       : "",
   );
 }

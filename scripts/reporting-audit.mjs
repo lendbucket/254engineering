@@ -393,6 +393,55 @@ console.log("");
       : "read off the report rather than passed in, so there is no second place to say it",
   );
 
+  /*
+   * A MONEY CELL IS DOLLARS WITH TWO DECIMALS, IN EVERY EXPORT.
+   *
+   * Operator ruling, 2026-09-09, after the first version wrote raw cents and a
+   * $675.00 refund reached a spreadsheet as 67500. That is not a formatting
+   * preference: a number in the wrong unit in a file going to an accountant is
+   * wrong by a factor of a hundred and looks entirely ordinary.
+   *
+   * Every row of every export is parsed rather than a sample, and the money
+   * ones have to match dollars-and-cents exactly. The leading apostrophe is
+   * accepted because csv.ts prepends one to anything starting with a minus, to
+   * stop Excel reading it as a formula, which is deliberate and predates this.
+   */
+  const MONEY_CELL = /^'?-?\d+\.\d\d$/;
+  const badMoney = [];
+  for (const f of measured) {
+    const lines = f.body.split("\r\n");
+    const header = lines.findIndex((l) => l.startsWith('"Section"'));
+    if (header === -1) continue;
+    for (const line of lines.slice(header + 1)) {
+      const cells = line.split('","').map((c) => c.replace(/^"|"$/g, ""));
+      if (cells.length < 6) continue;
+      const [, figure, kind, , , amount] = cells;
+      if (kind !== "money" || amount === "") continue;
+      if (!MONEY_CELL.test(amount)) badMoney.push(`${f.key}/${figure}: ${JSON.stringify(amount)}`);
+    }
+  }
+
+  const moneyCells = measured.reduce((n, f) => {
+    const lines = f.body.split("\r\n");
+    const header = lines.findIndex((l) => l.startsWith('"Section"'));
+    return header === -1
+      ? n
+      : n + lines.slice(header + 1).filter((l) => l.includes('","money","')).length;
+  }, 0);
+
+  rec(
+    `there are money cells in an export to parse (${moneyCells})`,
+    moneyCells > 0,
+    "a parse over no money cells passes forever, which is why both scopes are measured",
+  );
+  rec(
+    "every money cell in every export is dollars with two decimals",
+    badMoney.length === 0,
+    badMoney.length
+      ? `${badMoney.slice(0, 6).join(", ")}. Cents in a file going to an accountant is wrong by a factor of a hundred and looks entirely ordinary.`
+      : "",
+  );
+
   /* And it says what it could not compute, rather than leaving a gap. */
   const silent = files.filter((f) => !/"Not computed/.test(f.body));
   rec(

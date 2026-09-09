@@ -62,6 +62,7 @@ import { auditClient } from "./lib/db-target.mjs";
 import { DEMO_SCOPED_TABLES } from "../src/lib/reporting-scope.ts";
 import { isProbeAddress } from "../src/lib/ops-files.ts";
 import { REPORTS, formatFigure, periodOf } from "../src/lib/ops-reports.ts";
+import { FIGURE_SURFACES, allFigures } from "../src/lib/figure-surfaces.ts";
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -77,20 +78,20 @@ const STAMP = Date.now();
 const TAIL = String(STAMP).slice(-6);
 
 /**
- * Every figure on one report, as comparable text.
+ * EVERY FIGURE ON EVERY SURFACE, NOT THE FOUR REPORTS.
  *
- * Rendered through formatFigure rather than compared as numbers, because the
- * thing that must not change is what the reader SEES. A figure that went from
- * absent to zero is a change this has to catch, and the two are the same value
- * to a numeric comparison.
+ * Operator ruling, 2026-09-09. This used to snapshot REPORTS, so an injection
+ * proved four surfaces and the six dashboards were never looked at. That is how
+ * the sales tile came to count a seeded client: the rule was right and the
+ * enforcement was pointed at a quarter of the surfaces that obey it.
+ *
+ * `allFigures` is the declared inventory of everything that renders a figure,
+ * derived from REPORTS and DEFAULT_ROLES rather than listed, so a fifth report
+ * or an eighth role joins this sweep without anybody remembering.
  */
-async function snapshot(reportKey, scope = "real") {
-  const built = await Promise.all(
-    REPORTS.filter((r) => !reportKey || r.key === reportKey).map((r) => r.build(PERIOD, scope)),
-  );
-  return built.flatMap((r) =>
-    r.sections.flatMap((s) => s.figures.map((f) => `${r.key}/${s.title}/${f.label}=${formatFigure(f)}`)),
-  );
+async function snapshot() {
+  const figures = await allFigures(PERIOD);
+  return figures.map((f) => `${f.surface}/${f.section}/${f.label}=${f.rendered}`);
 }
 
 function movement(before, after) {
@@ -204,6 +205,42 @@ if (!db) {
       found.length
         ? `${found.join(", ")}. An unroutable address can never be a real person, so these count in every figure that reaches them.`
         : "",
+    );
+  }
+
+  // ------------------------------- the registry covers every surface there is
+
+  /*
+   * THE DENOMINATOR CANNOT BE A MEMORY.
+   *
+   * Operator ruling, 2026-09-09: every surface that renders a figure joins the
+   * registry, dashboards included. This asserts the registry is that, rather
+   * than a list somebody trimmed to make a check pass. Both counts are derived
+   * from the modules that own them, so a fifth report or an eighth role makes
+   * this red until it is swept.
+   */
+  {
+    const reports = FIGURE_SURFACES.filter((s) => s.kind === "report");
+    const dashboards = FIGURE_SURFACES.filter((s) => s.kind === "dashboard");
+    const { DEFAULT_ROLES } = await import("../src/lib/ops-authz.ts");
+
+    rec(
+      `every report and every role's dashboard is a swept surface (${FIGURE_SURFACES.length})`,
+      reports.length === REPORTS.length && dashboards.length === DEFAULT_ROLES.length,
+      `${reports.length} of ${REPORTS.length} reports, ${dashboards.length} of ${DEFAULT_ROLES.length} dashboards`,
+    );
+
+    /*
+     * And the honest limit, asserted rather than left in a comment: a dashboard
+     * tile carries no rows, because its count comes from a head query that
+     * deliberately fetches none. So the evidence sweep below can only run over
+     * reports, and the movement check is what covers dashboards. Both facts are
+     * true and only the first was ruled, so the second is checked here.
+     */
+    rec(
+      "reports guarantee their rows and dashboards say plainly that they do not",
+      reports.every((s) => s.expandable) && dashboards.every((s) => !s.expandable),
+      "a dashboard tile's count comes from a head query that fetches no rows, so it can be proved not to MOVE but not to be free of a named record",
     );
   }
 
@@ -444,10 +481,94 @@ if (!db) {
       },
       control: (figures) => figures.find((f) => f.label === "Issued"),
     },
+    {
+      /*
+       * THE INJECTION THAT GIVES THE DASHBOARDS A SUBJECT.
+       *
+       * The three above insert an order, a ledger entry and a statement, and no
+       * dashboard counts any of them. So when the sweep was widened from four
+       * reports to eleven surfaces, the seven new ones were covered by a
+       * movement check that nothing could move: removing the dispatcher tile's
+       * is_demo filter and re-running produced a clean pass.
+       *
+       * That is the vacuity trap one level out. Widening the denominator does
+       * not widen the proof if the injected record touches nothing in the new
+       * part of it, and the green looks identical either way.
+       *
+       * A FILE awaiting dispatch is what the dispatcher dashboard actually
+       * counts, in its "Waiting to be placed" tile and in the county breakdown
+       * beneath it. With this here, removing that filter fails the board.
+       *
+       * The file number carries -DEMO- because 0027's two directional check
+       * refuses any other combination: a demonstration file whose number does
+       * not say so is unrepresentable, which is the constraint doing the work
+       * this injection would otherwise have to remember.
+       */
+      report: "dispatcher dashboard",
+      what: "a demonstration file waiting to be dispatched",
+      async insert() {
+        const fileNumber = `254-DEMO-AUD${TAIL}`;
+
+        const { data: client, error: cErr } = await db
+          .from("eng_clients")
+          .insert({
+            kind: "organization",
+            name: `Demo Audit Client ${TAIL}`,
+            email: `demo.client.${STAMP}@example.com`,
+            status: "active",
+            is_demo: true,
+          })
+          .select("id")
+          .maybeSingle();
+        if (cErr) throw new Error(`client: ${cErr.message}`);
+
+        const { data: file, error: fErr } = await db
+          .from("eng_files")
+          .insert({
+            file_number: fileNumber,
+            client_id: client.id,
+            service_slug: "windstorm-wpi-8",
+            property_address: "2 Audit Way",
+            county: "Nueces",
+            status: "needs_dispatch",
+            is_demo: true,
+          })
+          .select("id")
+          .maybeSingle();
+        if (fErr) {
+          await db.from("eng_clients").delete().eq("id", client.id);
+          throw new Error(`file: ${fErr.message}`);
+        }
+
+        return {
+          label: fileNumber,
+          cleanup: async () => {
+            await db.from("eng_files").delete().eq("id", file.id);
+            await db.from("eng_clients").delete().eq("id", client.id);
+          },
+        };
+      },
+      /*
+       * The control is a DASHBOARD figure rather than a report one, because
+       * this injection exists for the dashboards. There is no scope parameter
+       * to ask a dashboard with, so the control is the tile read directly off
+       * an unscoped query: if the record is not there to be counted, the
+       * movement check above passed over nothing.
+       */
+      control: null,
+      async proveVisible() {
+        const { count } = await db
+          .from("eng_files")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "needs_dispatch")
+          .is("assigned_tech_id", null);
+        return { label: "files awaiting dispatch, unscoped", value: count ?? 0 };
+      },
+    },
   ];
 
   for (const injection of INJECTIONS) {
-    const before = await snapshot(injection.report);
+    const before = await snapshot();
     if (before.length === 0) {
       unmeasured.push(`${injection.report} produced no figure to compare, so its injection proves nothing`);
       continue;
@@ -462,7 +583,7 @@ if (!db) {
     }
 
     try {
-      const after = await snapshot(injection.report);
+      const after = await snapshot();
       const moved = movement(before, after);
       rec(
         `${injection.report}: ${injection.what} moved no figure`,
@@ -476,24 +597,45 @@ if (!db) {
        * the filter works, which is the defect class this repository keeps
        * finding.
        */
-      const built = await Promise.all(
-        REPORTS.filter((r) => r.key === injection.report).map((r) => r.build(PERIOD, "including_demonstrations")),
-      );
-      const figures = built.flatMap((r) => r.sections.flatMap((s) => s.figures));
-      const control = injection.control(figures);
+      /*
+       * A DASHBOARD HAS NO SCOPE TO ASK, SO ITS CONTROL IS AN UNSCOPED QUERY.
+       *
+       * A report can be built with "including_demonstrations" and asked whether
+       * it can see the record. A dashboard takes an actor and has no such
+       * parameter, and giving it one would be adding a way to render a
+       * demonstration on a live screen in order to test that it does not. So
+       * the control for a dashboard injection is the same count without the
+       * filter, run here: if THAT cannot see the record either, the record was
+       * never inserted where the tile looks and the movement check above passed
+       * over nothing.
+       */
+      if (injection.proveVisible) {
+        const control = await injection.proveVisible();
+        rec(
+          `${injection.report}: and an unscoped count CAN see it`,
+          typeof control.value === "number" && control.value > 0,
+          `${control.label} = ${control.value}. Without this the movement check proves nothing: a record the tile's query never reaches cannot move it however broken the filter is.`,
+        );
+      } else {
+        const built = await Promise.all(
+          REPORTS.filter((r) => r.key === injection.report).map((r) => r.build(PERIOD, "including_demonstrations")),
+        );
+        const figures = built.flatMap((r) => r.sections.flatMap((s) => s.figures));
+        const control = injection.control(figures);
 
-      rec(
-        `${injection.report}: and the report CAN see it when asked to include demonstrations`,
-        typeof control?.value === "number" && control.value > 0,
-        control
-          ? `${control.label} = ${formatFigure(control)} with demonstrations included`
-          : "the control figure is not on the report at all",
-      );
+        rec(
+          `${injection.report}: and the report CAN see it when asked to include demonstrations`,
+          typeof control?.value === "number" && control.value > 0,
+          control
+            ? `${control.label} = ${formatFigure(control)} with demonstrations included`
+            : "the control figure is not on the report at all",
+        );
+      }
     } finally {
       await made.cleanup();
     }
 
-    const settled = await snapshot(injection.report);
+    const settled = await snapshot();
     rec(
       `${injection.report}: the injected record was cleaned up`,
       movement(before, settled).length === 0,
@@ -568,4 +710,4 @@ if (failed.length) {
   console.log("high, that somebody acts on.");
   process.exit(1);
 }
-console.log(`PASS: ${out.length} checks. A demonstration moves no figure on any report.`);
+console.log(`PASS: ${out.length} checks. A demonstration moves no figure on any surface.`);

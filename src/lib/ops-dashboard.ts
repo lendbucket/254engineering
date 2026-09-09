@@ -155,6 +155,37 @@ export type Dashboard =
 /** The three that carry no firm money, named so a check can derive rather than list. */
 export const MONEYLESS_ROLES = ["dispatcher", "sales", "customer_service"] as const;
 
+/**
+ * WHICH DASHBOARDS EXCLUDE DEMONSTRATIONS, AND WHY IT IS NOT ALL OF THEM.
+ *
+ * Decision taken 2026-09-09 and flagged, because it is a line rather than a
+ * rule and somebody should disagree with it if they want to.
+ *
+ * A FIRM LEVEL figure is a claim the firm makes about itself, and a
+ * demonstration in one is the plausible-slightly-wrong number Section 2 exists
+ * to stop. The administrator's, the dispatcher's, the salesperson's and the
+ * customer service dashboards are all of that kind, and every one of their
+ * reads is scoped. demo-audit's file injection caught the administrator's "Not
+ * yet dispatched" tile counting a seeded file, which is exactly how this was
+ * found rather than reasoned about.
+ *
+ * A PERSONAL figure is not a claim about the firm. "Jobs you hold", "Offers
+ * waiting on you", "Owed to you" and the engineer's review queue are one
+ * person's own work, every query already scoped to `actor.id`, and a
+ * demonstration reaches them only when the demonstration is being run AS that
+ * person. That is the case where the records SHOULD be visible: seed-field-demo
+ * exists to put work in front of somebody being walked through the platform,
+ * and a walkthrough where the jobs do not appear is not a walkthrough.
+ *
+ * So the engineer's and the field technician's dashboards are deliberately not
+ * scoped. The cost is real and worth stating: if a demonstration is ever run
+ * through a REAL person's account, their own pay figures will include it until
+ * the records are removed. The alternative cost is a demonstration that cannot
+ * show anybody their own screen, which is worse and is the thing those records
+ * are for.
+ */
+export const FIRM_LEVEL_DASHBOARDS = ["admin", "dispatcher", "sales", "customer_service"] as const;
+
 const HOURS_48 = 48 * 60 * 60 * 1000;
 const TECH_OPEN_STATUSES = ["dispatched", "evidence_in_progress", "revisions_requested"];
 
@@ -219,14 +250,15 @@ async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
   const [inQueue, overdueEvidence, dueSoon, openOffers, activeTechs, atIntake, tasks, unread, margins, expiring, stuckOrders] =
     await Promise.all([
       countRows((d) =>
-        d.from("eng_files").select("id", { count: "exact", head: true }).in("status", REVIEW_QUEUE_STATUSES),
+        d.from("eng_files").select("id", { count: "exact", head: true }).in("status", REVIEW_QUEUE_STATUSES).eq("is_demo", false),
       ),
       countRows((d) =>
         d
           .from("eng_files")
           .select("id", { count: "exact", head: true })
           .lt("evidence_due_at", now)
-          .in("status", TECH_OPEN_STATUSES),
+          .in("status", TECH_OPEN_STATUSES)
+          .eq("is_demo", false),
       ),
       countRows((d) =>
         d
@@ -234,7 +266,8 @@ async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
           .select("id", { count: "exact", head: true })
           .gte("evidence_due_at", now)
           .lt("evidence_due_at", soon)
-          .in("status", TECH_OPEN_STATUSES),
+          .in("status", TECH_OPEN_STATUSES)
+          .eq("is_demo", false),
       ),
       countRows((d) =>
         d.from("eng_assignments").select("id", { count: "exact", head: true }).eq("state", "offered"),
@@ -244,9 +277,10 @@ async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
           .from("eng_profiles")
           .select("id", { count: "exact", head: true })
           .eq("role", "field_tech")
-          .eq("status", "active"),
+          .eq("status", "active")
+          .eq("is_demo", false),
       ),
-      countRows((d) => d.from("eng_files").select("id", { count: "exact", head: true }).in("status", ["intake", "needs_dispatch"])),
+      countRows((d) => d.from("eng_files").select("id", { count: "exact", head: true }).in("status", ["intake", "needs_dispatch"]).eq("is_demo", false)),
       taskCounts(actor),
       unreadCount(actor.id),
       fileMargins(actor),
