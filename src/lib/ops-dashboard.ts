@@ -1047,30 +1047,42 @@ async function dispatcherDashboard(): Promise<DispatcherDashboard> {
    * nobody holds it. intake is earlier than that and is somebody else's
    * problem, which is why it is not counted here.
    */
-  const { data: waitingRaw, error: waitingErr } = await db
-    .from("eng_files")
-    .select("id, file_number, county, urgency, created_at, evidence_due_at")
-    .eq("status", "needs_dispatch")
-    .is("assigned_tech_id", null)
-    .eq("is_demo", false);
-  if (waitingErr) console.error("[dashboard] unassigned files could not be read:", waitingErr.message);
-  const waiting = waitingErr ? null : (waitingRaw ?? []);
+  const waitingRead = await readEvery<Record<string, unknown>>((from, to) =>
+    db
+      .from("eng_files")
+      .select("id, file_number, county, urgency, created_at, evidence_due_at")
+      .eq("status", "needs_dispatch")
+      .is("assigned_tech_id", null)
+      .eq("is_demo", false)
+      .order("created_at", { ascending: true })
+      .range(from, to),
+  );
+  if (!waitingRead.ok) console.error("[dashboard] unassigned files could not be read:", waitingRead.error);
+  const waiting = waitingRead.ok ? waitingRead.rows : null;
 
-  const { data: techsRaw, error: techsErr } = await db
-    .from("eng_profiles")
-    .select("id, display_name, certification_status, coverage_counties")
-    .eq("role", "field_tech")
-    .eq("status", "active")
-    .eq("is_demo", false);
-  if (techsErr) console.error("[dashboard] technicians could not be read:", techsErr.message);
-  const techs = techsErr ? null : (techsRaw ?? []);
+  const techRead = await readEvery<Record<string, unknown>>((from, to) =>
+    db
+      .from("eng_profiles")
+      .select("id, display_name, certification_status, coverage_counties")
+      .eq("role", "field_tech")
+      .eq("status", "active")
+      .eq("is_demo", false)
+      .order("display_name", { ascending: true })
+      .range(from, to),
+  );
+  if (!techRead.ok) console.error("[dashboard] technicians could not be read:", techRead.error);
+  const techs = techRead.ok ? techRead.rows : null;
 
-  const { data: offersRaw, error: offersErr } = await db
-    .from("eng_assignments")
-    .select("id, file_id, expires_at, offered_at")
-    .eq("state", "offered");
-  if (offersErr) console.error("[dashboard] outstanding offers could not be read:", offersErr.message);
-  const offers = offersErr ? null : (offersRaw ?? []);
+  const offerRead = await readEvery<Record<string, unknown>>((from, to) =>
+    db
+      .from("eng_assignments")
+      .select("id, file_id, expires_at, offered_at")
+      .eq("state", "offered")
+      .order("offered_at", { ascending: true })
+      .range(from, to),
+  );
+  if (!offerRead.ok) console.error("[dashboard] outstanding offers could not be read:", offerRead.error);
+  const offers = offerRead.ok ? offerRead.rows : null;
 
   const pastDue = await countRows((d) =>
     d
@@ -1232,11 +1244,17 @@ async function salesDashboard(): Promise<SalesDashboard> {
 
   const period = periodOf(new Date());
 
-  const { data: leadsRaw, error: leadsErr } = await db
-    .from("eng_leads")
-    .select("id, form, status, utm_source, partner_code, created_at");
-  if (leadsErr) console.error("[dashboard] leads could not be read:", leadsErr.message);
-  const leads = leadsErr ? null : (leadsRaw ?? []);
+  /* Unfiltered, so this and the quote read below are the two most likely on
+   * any dashboard to pass a thousand rows first. */
+  const leadRead = await readEvery<Record<string, unknown>>((from, to) =>
+    db
+      .from("eng_leads")
+      .select("id, form, status, utm_source, partner_code, created_at")
+      .order("created_at", { ascending: true })
+      .range(from, to),
+  );
+  if (!leadRead.ok) console.error("[dashboard] leads could not be read:", leadRead.error);
+  const leads = leadRead.ok ? leadRead.rows : null;
 
   /*
    * A QUOTE IS NOT AN ORDER IN THIS SCHEMA, WHICH CHANGES WHAT "UNPAID" MEANS.
@@ -1247,11 +1265,15 @@ async function salesDashboard(): Promise<SalesDashboard> {
    * unpaid quote: there is a quote that has been SENT and not yet answered,
    * which is the thing a salesperson chases, and that is what this counts.
    */
-  const { data: quotesRaw, error: quotesErr } = await db
-    .from("eng_quote_requests")
-    .select("id, reference, status, created_at, sent_at, expires_at");
-  if (quotesErr) console.error("[dashboard] quote requests could not be read:", quotesErr.message);
-  const quotes = quotesErr ? null : (quotesRaw ?? []);
+  const quoteRead = await readEvery<Record<string, unknown>>((from, to) =>
+    db
+      .from("eng_quote_requests")
+      .select("id, reference, status, created_at, sent_at, expires_at")
+      .order("created_at", { ascending: true })
+      .range(from, to),
+  );
+  if (!quoteRead.ok) console.error("[dashboard] quote requests could not be read:", quoteRead.error);
+  const quotes = quoteRead.ok ? quoteRead.rows : null;
 
   notComputable.push(
     "Quotes are counted from eng_quote_requests, not from orders. A quote never becomes an order until it is accepted, so there is no such thing as an unpaid quote here: what is shown is quotes sent and not yet answered, with their age.",
@@ -1506,11 +1528,15 @@ async function customerServiceDashboard(): Promise<CustomerServiceDashboard> {
       .eq("is_demo", false),
   );
 
-  const { data: threadsRaw, error: threadsErr } = await db
-    .from("eng_threads")
-    .select("id, kind, name, last_message_at, created_at");
-  if (threadsErr) console.error("[dashboard] threads could not be read:", threadsErr.message);
-  const threads = threadsErr ? null : (threadsRaw ?? []);
+  const threadRead = await readEvery<Record<string, unknown>>((from, to) =>
+    db
+      .from("eng_threads")
+      .select("id, kind, name, last_message_at, created_at")
+      .order("created_at", { ascending: true })
+      .range(from, to),
+  );
+  if (!threadRead.ok) console.error("[dashboard] threads could not be read:", threadRead.error);
+  const threads = threadRead.ok ? threadRead.rows : null;
 
   /*
    * Refunds in flight, by case. COUNTED and not summed, which keeps the
@@ -1530,11 +1556,17 @@ async function customerServiceDashboard(): Promise<CustomerServiceDashboard> {
   if (refundsErr) console.error("[dashboard] refunds in flight could not be read:", refundsErr.message);
   const refunds = refundsErr ? null : (refundsRaw ?? []);
 
-  const { data: supRaw, error: supErr } = await db
-    .from("eng_marketing_suppressions")
-    .select("email, because, created_at, token_hash");
-  if (supErr) console.error("[dashboard] the suppression list could not be read:", supErr.message);
-  const suppressions = supErr ? null : (supRaw ?? []);
+  /* The suppression list only grows and is never expired, by its own ruling,
+   * so it is one of the few tables here with no ceiling at all. */
+  const supRead = await readEvery<Record<string, unknown>>((from, to) =>
+    db
+      .from("eng_marketing_suppressions")
+      .select("email, because, created_at, token_hash")
+      .order("created_at", { ascending: true })
+      .range(from, to),
+  );
+  if (!supRead.ok) console.error("[dashboard] the suppression list could not be read:", supRead.error);
+  const suppressions = supRead.ok ? supRead.rows : null;
   const byOperator = suppressions === null ? null : suppressions.filter((s) => s.token_hash === null);
 
   const quiet =
