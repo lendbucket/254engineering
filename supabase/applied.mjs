@@ -223,6 +223,22 @@ export const APPLIED = [
     note:
       "TWO PARTS, AND THE FIRST IS THE ONE THE FINGERPRINT CANNOT SEE. Both ledgers' file_id carried ON DELETE SET NULL and both now carry RESTRICT, which pg_constraint reports as confdeltype 'r' and information_schema.columns reports as nothing at all: the column's name, type and nullability are identical either way, so this is the second migration in this chain after 0018 whose correctness is invisible to the figure above. It is verified by reading confdeltype directly and, since a constraint that merely EXISTS is not a constraint that FIRES, by a live proof on development: a demonstration file with a $600.00 production ledger entry against it, deleted, refused by name with 'violates foreign key constraint eng_production_ledger_file_id_fkey', the file still present and the entry's file_id still set. The reason is in the migration at length and is one sentence here: Section 2 scopes a person's pay THROUGH the file, so a retention run deleting a demonstration file would have nulled the link and started that money counting in a real person's figures, silently undoing scoping built three days earlier. The trade is accepted: a demonstration file with earnings is kept forever and is_demo keeps it out of every figure. Safe to apply now precisely because neither ledger holds a row on either database and production holds no files at all, so nothing existing can violate it; the same change after the firm is trading would have to reconcile live rows first. The second part seeds retention.execute to admin alone, which is the only permission in this platform that destroys a record.",
   },
+
+  /*
+   * The manifest. What a retention run intended, written down before it takes
+   * a row, and the first table in this schema whose purpose is to make a
+   * DELETION accountable.
+   */
+  {
+    file: "0031_retention_manifest.sql", appliedBy: "apply_migration",
+    fingerprint: "d4f266b0d595c9c2922b68971b9cec2a",
+    proves: { table: "eng_retention_runs" },
+    production: null,
+    because:
+      "Phase 12 Section 3 is open and this follows 0030's ruled sequence: pending until the branch merges, then applied through apply_migration, read back, and declared. Applied to development 2026-09-09 and read back rather than assumed: fingerprint d4f266b0d595c9c2922b68971b9cec2a across 994 columns and 73 eng_ tables, with row level security on all 73, 48 triggers, 10 eng_ functions and none of them with an unpinned search_path.",
+    note:
+      "THE ORDER IS THE WHOLE DESIGN: the manifest is written first and the rows go second, so a run that dies halfway leaves a record naming exactly what it was about to take rather than an absence nobody can describe. It carries the policy as it stood (table, rule, floor, age column, cutoff), the SET by id range and by sha256 over the ids, the rollups that had to reconcile per day before planning would finish, the mode, the actor, and both timestamps: planned_at in UTC and planned_at_ct written by the DATABASE from the same now(), so a stamp formatted in the application cannot disagree with the instant beside it. A count alone would not have done for the set, because two different thousand row sets have the same count. IT REFUSES DELETE AND ALLOWS UPDATE, and both halves are proved rather than asserted: with the service role, the most privileged credential this platform has, deleting a manifest row returns 'eng_retention_runs rows cannot be deleted. A retention run that can erase its own record is a retention run with no record.' and loses no rows, while an update to its status succeeds, which is what a run's own progress and reconciliation need. Append only would have made the table unusable; a manifest disappearing is the failure it exists to prevent. It is declared kept_forever in retention-policy.ts with the same reasoning, so the schema and the declaration cannot drift. The proof left one row on development that cannot be removed, which is the property it proves; its note says so and it is mode dry_run with intended_count 0.",
+  },
 ];
 
 /** The canary. An empty ledger must never read as a ledger with nothing to say. */

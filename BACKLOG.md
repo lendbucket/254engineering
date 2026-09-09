@@ -27,6 +27,83 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
+## Retention: what Section 2 built, and the four things it deliberately did not
+
+Recorded 2026-09-09. The machinery is complete and nothing starts a run by
+itself. The full reasoning for each rule is in `src/lib/retention-policy.ts` and
+in the header of `src/lib/ops-retention.ts`; these are pointers.
+
+### Retention has no screen and no schedule, on purpose
+
+A retention pass is planned and enqueued by hand:
+
+```
+npm run retention-dry-run
+```
+
+There is no cron entry and no operator screen. A pass that ran itself on a timer
+before anybody had read one is exactly what the operator's dry-run-first ruling
+exists to prevent, and a screen that starts one is a screen somebody clicks.
+
+What closing it needs, in this order: a run somebody has read on development, a
+run somebody has read on production, and only then a schedule. The screen is the
+smaller half, and it belongs with the customer-side deletion request screens
+below rather than on its own.
+
+### The customer side of retention is not built
+
+Phase 12 Section 3's own Section 3. A customer asking to be forgotten produces a
+TASK rather than a deletion, and the screens that take that request, under
+customer service and using the suppression permission, are not built. Nothing
+today records such a request except a suppression, which is a narrower thing: it
+stops marketing and does not claim to delete anything.
+
+### Forty one tables are kept with no period, and the question is not with us
+
+`retention-policy.ts` declares 41 of 73 tables `kept_pending_counsel`. That is
+not a placeholder for a number somebody forgot: the repository states no Texas
+retention period anywhere, and the published privacy policy already promises
+that engineering records are kept for as long as Texas requires, so a floor set
+here could make a published policy false. Retention treats that state exactly as
+kept forever. The question is with counsel and TBPELS, and the declaration says
+so per table rather than in one place.
+
+The one "ten years" in this repository is a design rationale about the
+responsible charge log outliving an engineer's employment. **It cites no rule and
+must not be used as a period.**
+
+### Development's queue holds 399 pending jobs and nothing drains it
+
+Found 2026-09-09 while running the first retention dry run, and it cost twenty
+real emails before it was understood.
+
+Nothing schedules the queue on development, so every audit run that queues an
+email adds a row that stays pending forever: 307 `email.send`, 54
+`report.export` and 38 `notification.deliver`, the oldest from 2026-09-04. The
+first version of `retention-dry-run` called `runBatch` to watch its own job
+finish, the worker claimed the twenty oldest rows of any kind, and **Resend
+accepted every one of them.** Application notifications for probe applicants
+went to the firm's own address.
+
+The script now counts what else is waiting and refuses to drain over a backlog,
+which fixes the tool and not the queue. The queue itself is still a pile of work
+that will all run the first time anything drains it.
+
+What closing it needs: a decision about whether those 399 should be run or
+marked dead, and then either a scheduled drain on development or a rule that
+development does not queue email at all. The second is probably right, and it is
+a bigger change than it sounds, because "does the email path work" is a thing
+several audits ask.
+
+### An execute run has never happened anywhere
+
+Every run so far, on development and in the audit, has been a dry run. The
+prelaunch gate makes that structural rather than a habit: `executeAuthority`
+refuses to mint the authority to delete while `isPrelaunch()` is true, whoever
+is asking. The first execute run is therefore a thing that happens after launch,
+after a dry run somebody has read, by an administrator, and it will be the first
+time the delete line in `runRetention` has ever run against a real row.
+
 ## A customer link cannot be revoked, and lives 120 days
 
 Recorded 2026-09-08. Accepted by the operator as the code behaves, and not being

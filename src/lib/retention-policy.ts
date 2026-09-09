@@ -3,7 +3,7 @@ import "server-only";
 /**
  * WHAT THE FIRM KEEPS, FOR HOW LONG, AND WHO SAID SO.
  *
- * Phase 12 Section 3. One declaration for all 72 `eng_` tables. A table missing
+ * Phase 12 Section 3. One declaration for all 73 `eng_` tables. A table missing
  * from it fails the board; a table declared here that is not in the schema fails
  * the board. Same idiom as `scripts/lib/surfaces.mjs` and `supabase/applied.mjs`
  * and for the same reason: a list nothing reads is a list that stops being true
@@ -40,6 +40,19 @@ import "server-only";
  *
  * Exactly two tables have a real floor, and both are machine telemetry that
  * grows from the clock rather than from the firm.
+ *
+ * THE COUNT, AND WHAT MOVED
+ * -------------------------
+ * 73 tables: 41 kept pending counsel, 22 kept forever, 8 not a record, 2
+ * deletable. Two entries changed after gate 0 and both are recorded rather than
+ * silently different. `eng_retention_runs` is new, added by 0031 as the manifest
+ * retention writes before it takes anything, and it is kept forever because a
+ * run that could age out its own manifests has a floor on its own history.
+ * `eng_evidence_items` moved from kept_pending_counsel to kept_forever when
+ * retention-audit compared this declaration against the operator ruling it pins
+ * as a literal: the evidence of a SEALED file is kept forever, this table holds
+ * the evidence of every file, and nothing in its shape tells the two apart. The
+ * stricter rule takes the whole table.
  */
 
 /**
@@ -205,7 +218,26 @@ export const RETENTION_POLICY: RetentionEntry[] = [
   },
   { table: "eng_error_events", rule: { kind: "kept_pending_counsel", because: "Telemetry in shape. A floor is defensible and none has been ruled, and this section's scope is the two tables below. " + COUNSEL } },
   { table: "eng_error_types", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
-  { table: "eng_evidence_items", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
+  {
+    table: "eng_evidence_items",
+    rule: {
+      kind: "kept_forever",
+      because:
+        "THE RULING IS ABOUT ROWS AND THIS DECLARATION IS ABOUT TABLES, SO THE STRICTER RULE TAKES THE " +
+        "WHOLE TABLE. The operator ruled that sealed documents and the evidence binders of sealed files " +
+        "are kept forever with no configuration able to shorten them. This table holds the evidence for " +
+        "every file, sealed and unsealed alike, and nothing in its shape tells the two apart without " +
+        "joining to the file and asking what happened to it. A rule that said kept_pending_counsel here " +
+        "would be a table whose eventual floor silently included evidence the operator ruled untouchable, " +
+        "and the join that was supposed to protect it would be one query somebody wrote wrong.\n\n" +
+        "It was declared kept_pending_counsel until retention-audit compared the declaration against the " +
+        "ruling pinned in the audit as a literal and disagreed. Nothing could have been deleted either " +
+        "way, because retention treats the two states identically, so this is a record made accurate " +
+        "rather than a deletion prevented. That is exactly the value of pinning a ruling somewhere the " +
+        "file under test cannot reach.",
+      ruledBy: "operator, 2026-09-09",
+    },
+  },
   {
     table: "eng_fee_schedule",
     rule: { kind: "not_a_record", because: "The price list. Configuration the firm sets, not a record of anything that happened." },
@@ -375,6 +407,25 @@ export const RETENTION_POLICY: RetentionEntry[] = [
         "an engineer's licence stands on and the artefact an enforcement action reads. Retention never " +
         "touches it, and retention-audit proves no path can, including a retention job run as admin.",
       ruledBy: "operator, standing law",
+    },
+  },
+  {
+    table: "eng_retention_runs",
+    rule: {
+      kind: "kept_forever",
+      because:
+        "THE RECORD OF WHAT RETENTION ITSELF DID, AND THE ONE TABLE WHERE THAT BEING DELETABLE WOULD " +
+        "BE CIRCULAR. A retention run that could age out its own manifests is a retention run whose " +
+        "history has a floor on it, and the whole reason the manifest is written before the rows go " +
+        "is so that the account of a deletion outlives the deletion. The database refuses DELETE on " +
+        "this table through eng_forbid_retention_run_delete, and that is proved rather than read: " +
+        "attempting one with the service role, the most privileged credential this platform has, " +
+        "returns \"eng_retention_runs rows cannot be deleted. A retention run that can erase its own " +
+        "record is a retention run with no record.\" and loses no rows. " +
+        "UPDATE is allowed and DELETE is not, because a run's progress, outcome and reconciliation " +
+        "are all updates to the row that planned it, while a manifest disappearing is the failure " +
+        "this table exists to make impossible.",
+      ruledBy: "0031, and the trigger",
     },
   },
   { table: "eng_review_sessions", rule: { kind: "kept_pending_counsel", because: COUNSEL } },

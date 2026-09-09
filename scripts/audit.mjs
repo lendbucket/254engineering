@@ -405,6 +405,24 @@ const PHASE_ONE = [
     name: "dashboards-audit",
     why: "every role lands on its own dashboard, and three of them cannot hold a firm money figure",
   },
+  {
+    /*
+     * Phase 12 Section 3. The only audit in this suite covering something that
+     * makes a wrong answer PERMANENT: a deletion leaves the absence of
+     * evidence, which reads exactly like the thing never having happened, and
+     * no later check can tell the two apart. So it derives the table list and
+     * the rules from retention-policy.ts, pins the operator kept-forever
+     * rulings as literals the declaration cannot reach, and proves the refusals
+     * against a constructed set on development rather than reading them.
+     *
+     * It has already earned that construction once: the declaration had
+     * eng_evidence_items as kept_pending_counsel while the ruling says the
+     * evidence of a sealed file is kept forever, and the pinned literal was the
+     * only thing in the repository that disagreed.
+     */
+    name: "retention-audit",
+    why: "nothing is deleted that the declaration did not say could be",
+  },
 ];
 
 const PHASE_TWO = [

@@ -10,6 +10,7 @@ import { opsNotification } from "./email-templates";
 import { issueStatement } from "./ops-statements";
 import { reconcileAll } from "./ops-reconcile";
 import { rollupDay } from "./ops-metrics";
+import { runRetention } from "./ops-retention";
 import { errorAlert } from "./email-templates";
 import { RELEASE, ENVIRONMENT } from "./ops-observability";
 import { business } from "@/config/business";
@@ -558,6 +559,81 @@ registerJob("report.export", {
     });
 
     if (error) return { kind: "retry", error: error.message };
+    return { kind: "done" };
+  },
+});
+
+// ----------------------------------------------------------- retention.sweep
+
+/**
+ * Take the rows a manifest already named.
+ *
+ * Phase 12 Section 3. This handler does not decide anything. The table, the
+ * rule, the cutoff, the mode, the exact set and the rollups that had to
+ * reconcile were all settled by planRetention and written to
+ * eng_retention_runs before this row existed, and runRetention reads them back
+ * from there rather than from this payload. The payload carries one id.
+ *
+ * WHY THE PAYLOAD IS DELIBERATELY THIN
+ * -------------------------------------
+ * A payload carrying the plan would be a plan that survives in the queue and
+ * nowhere else. Then a manifest edited, a policy changed, or an operator
+ * cancelling a run would all be invisible to a job already enqueued, and the
+ * deletion would happen on terms nobody could look up afterwards. One id means
+ * the database is the single account of what this run is.
+ *
+ * WHAT A RETRY DOES
+ * -----------------
+ * Resumes. runRetention writes progress after every batch and yields after a
+ * bounded number of them, so a retry continues from the manifest's own
+ * affected_count rather than starting the sweep again. That is why a retry here
+ * is safe in a way a retry of a naive delete loop would not be.
+ */
+registerJob("retention.sweep", {
+  /*
+   * The manifest id, which IS the identity of the run. A second enqueue of the
+   * same manifest finds the live job rather than starting a parallel sweep of
+   * the same rows, which is the one duplication that would produce a genuinely
+   * confusing outcome: two workers reconciling the same intent against each
+   * other's deletions.
+   */
+  idempotency: (p) => keyOf("retention-sweep", p.manifestId),
+  run: async (p): Promise<JobOutcome> => {
+    const manifestId = typeof p.manifestId === "string" ? p.manifestId : "";
+    if (!manifestId) return { kind: "fatal", error: "A retention sweep needs a manifest id." };
+
+    const result = await runRetention(manifestId);
+    if (!result.ok) {
+      return result.retryable
+        ? { kind: "retry", error: result.because }
+        : { kind: "fatal", error: result.because };
+    }
+
+    const r = result.report;
+    console.warn(
+      `[retention] ${r.mode} on ${r.table}: ${r.affected} of ${r.intended}, ` +
+        `${r.reconciled ? "reconciled" : "NOT RECONCILED"}`,
+    );
+
+    /*
+     * A run that finished but did not reconcile is DONE and NOT FINE. It is not
+     * retried, because retrying would delete nothing new and hide the
+     * discrepancy behind an eventual success; the manifest carries the
+     * difference and says what it means, and the audit trail row below is what
+     * somebody reads.
+     */
+    const { error } = await (db()?.from("eng_audit_events").insert({
+      actor_id: null,
+      action: r.mode === "execute" ? "retention.executed" : "retention.dry_run",
+      entity_type: "retention_run",
+      entity_id: r.manifestId,
+      summary:
+        `Retention ${r.mode === "execute" ? "deleted" : "would have deleted"} ${r.affected} row(s) ` +
+        `from ${r.table}, having intended ${r.intended}. ${r.reconciled ? "Reconciled." : "DID NOT RECONCILE."}`,
+      diff: { table: r.table, mode: r.mode, intended: r.intended, affected: r.affected, reconciled: r.reconciled },
+    }) ?? { error: null });
+
+    if (error) return { kind: "retry", error: `The sweep finished and its audit row did not write: ${error.message}` };
     return { kind: "done" };
   },
 });

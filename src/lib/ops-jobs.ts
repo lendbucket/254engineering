@@ -41,7 +41,19 @@ export type JobKind =
    * receives, because nothing in this platform delivers a file somebody is not
    * standing in front of.
    */
-  | "report.export";
+  | "report.export"
+  /*
+   * Phase 12 Section 3. Taking the rows a manifest already named.
+   *
+   * ON THE QUEUE RATHER THAN INLINE, AND IT IS THE ONE KIND HERE WHERE THAT IS
+   * NOT ABOUT LATENCY. Everything above left the request because somebody was
+   * waiting. This leaves because a deletion that dies halfway through a request
+   * is a deletion nobody can finish and nobody can describe: the queue gives it
+   * a row that survives the process, a lease, attempts, and a dead letter
+   * somebody has to look at. The manifest is written before this is enqueued,
+   * so the job carries an id and never a plan.
+   */
+  | "retention.sweep";
 
 export type JobPayload = Record<string, unknown>;
 
