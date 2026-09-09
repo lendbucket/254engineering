@@ -267,6 +267,20 @@ export const APPLIED = [
     note:
       "TWO GATE 2 RULINGS, BOTH SAYING THE SAME THING: the manifest is the artefact a person reads, so what a person needs in order to read it correctly belongs on the manifest. plan_reading carries the sentences a reader would otherwise get wrong about THAT plan: that an empty set bounds nothing and shares its hash with every other empty set, that a rollup with no day lines ran and had nothing to check, that an intended count of zero usually means the oldest candidate is younger than the floor and here is how old it actually is, and that two plans made in one pass carry cutoffs seconds apart. Written at planning time and never overwritten by the run, because note is the outcome. The status check constraint gains 'abandoned', a fourth terminal state meaning nothing was attempted and nothing will be. It is set by UPDATE, which this table has always allowed; DELETE is what it refuses, and a plan nobody will act on is exactly the row that would otherwise tempt somebody into removing one. Every script that plans without running now abandons what it planned before exiting, retention-audit reads the database back and fails if it finds one of its own left standing, and the twelve that development was already carrying were abandoned with a reason.",
   },
+
+  /*
+   * A repair, and it repairs something 0032 broke the same day.
+   */
+  {
+    file: "0034_a_mistyped_suppression_is_marked.sql", appliedBy: "apply_migration",
+    fingerprint: "a818bfb40dd9423d0b0b76472c35519c",
+    proves: { table: "eng_marketing_suppressions", column: "voided_at" },
+    production: null,
+    because:
+      "Same branch and the same ruled sequence as 0030 through 0033: pending until merge. Applied to development 2026-09-09 and read back rather than assumed: fingerprint a818bfb40dd9423d0b0b76472c35519c across 998 columns and 73 eng_ tables, the three new columns being the whole of the change from 995.",
+    note:
+      "0032 RULED A CONSENT RECORD UNDELETABLE AND BROKE A SHIPPED SCREEN IN THE SAME BREATH. /portal/suppressions has a Remove action for exactly one case, an operator taking a request on the telephone and typing the address wrong, and removeOperatorEntry implemented it as a DELETE. Verified rather than reasoned about: with the service role on development, removing an operator entered suppression answered 'eng_marketing_suppressions rows cannot be deleted. It is a money or consent record, and a correction is a new row rather than a removed one.' The person who took the call would have read that and had no way forward, and the customer they mistyped would have gone on hearing nothing. THE ANSWER IS NOT TO PUT THE DELETE BACK, and what replaces it is better than what was there: a deleted typo left NO TRACE that anybody had mistyped, so the address vanished and the mistake with it. The row now stays and gains voided_at, voided_because and voided_by; isSuppressed ignores a voided row, which is the single place anything asks the question, so the customer hears from the firm again. TWO CHECK CONSTRAINTS RATHER THAN TWO FILTERS. A row carrying a token_hash came from a person clicking the link in their own email, and voiding it would be the platform asserting a consent nobody gave: it is now UNREPRESENTABLE rather than refused, so a screen that forgot the filter cannot produce one. Proved both ways on development: the application refuses it with a sentence, and the same update sent straight at the database is refused by eng_marketing_suppressions_clicked_stays. A void with no reason is refused by the second constraint, because a row marked as a mistake with no reason cannot be told from one marked to move a number.",
+  },
 ];
 
 /** The canary. An empty ledger must never read as a ledger with nothing to say. */

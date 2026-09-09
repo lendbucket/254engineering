@@ -672,9 +672,12 @@ if (!db) {
     );
 
     const ledgerAfter = await ledgerRowCount(db);
+    /* Same correction as dashboards-audit: a `+ 1` tolerance permits exactly
+     * the growth a fixture that stopped being reused would produce. */
+    const built = made.notes.some((n) => n.includes("ledger entry")) ? 1 : 0;
     rec(
       "production: and the fixture did not multiply",
-      ledgerAfter <= ledgerBefore + 1,
+      ledgerAfter === ledgerBefore + built,
       `${ledgerBefore} production ledger row(s) before, ${ledgerAfter} after. eng_production_ledger refuses DELETE since 0032, so a per-run fixture would grow forever.`,
     );
   }

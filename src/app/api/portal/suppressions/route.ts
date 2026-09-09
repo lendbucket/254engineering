@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { currentActor, requestContext } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { writeAudit } from "@/lib/ops-audit";
-import { normaliseEmail, removeOperatorEntry, suppress } from "@/lib/marketing-suppression";
+import { normaliseEmail, voidOperatorEntry, suppress } from "@/lib/marketing-suppression";
 
 export const dynamic = "force-dynamic";
 
@@ -90,15 +90,25 @@ export async function DELETE(request: NextRequest) {
   const email = normaliseEmail(request.nextUrl.searchParams.get("email") ?? "");
   if (!email) return bad("Which address?");
 
-  const done = await removeOperatorEntry(email);
+  /*
+   * The reason travels with the request, because 0034 refuses a void without
+   * one at the database. Asking for it here means the person who knows why is
+   * the person who types it.
+   */
+  const because = request.nextUrl.searchParams.get("because") ?? "";
+
+  const done = await voidOperatorEntry(email, because, actor.id);
   if (!done.ok) return bad(done.error, done.error.includes("clicking") ? 403 : 400);
 
   await writeAudit({
     actor,
-    action: "suppression.remove",
+    action: "suppression.void",
     entityType: "marketing_suppression",
     entityId: email,
-    summary: `Removed an operator entered suppression for ${email}. This is a correction, not a resubscribe: the row carried no token, so it never represented a click.`,
+    summary:
+      `Marked the operator entered suppression for ${email} as a typing mistake: ${because.trim()}. ` +
+      "The row stays, because a consent record is never deleted; it stops counting, so the address hears from the firm again. " +
+      "This is a correction and not a resubscribe: the row carried no token, so it never represented a click.",
     ...(await requestContext()),
   });
 

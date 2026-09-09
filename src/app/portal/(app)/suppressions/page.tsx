@@ -3,7 +3,7 @@ import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { listSuppressions } from "@/lib/marketing-suppression";
 import { Chip, EmptyState, ErrorState, PageHead, Panel } from "@/components/portal/surfaces";
-import { AddSuppression, RemoveSuppression } from "./SuppressionsClient";
+import { AddSuppression, VoidSuppression } from "./SuppressionsClient";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +27,7 @@ export const dynamic = "force-dynamic";
  * "they clicked" and "somebody says they asked", and this screen is where it
  * finally means something: only the second kind can be removed.
  *
- * REMOVING IS A CORRECTION AND IS NOT A RESUBSCRIBE
+ * MARKING IS A CORRECTION AND IS NOT A RESUBSCRIBE
  * -------------------------------------------------
  * 0026 says this table has no delete and no resubscribe column, and it is right
  * about why: consent to hear from the firm again is a NEW fact with its own
@@ -104,7 +104,14 @@ export default async function SuppressionsPage() {
                     at all, rather than one that fails when pressed. The server
                     refuses it either way; not offering it is the honest version.
                   */}
-                  {row.enteredByOperator ? <RemoveSuppression email={row.email} /> : null}
+                  {row.voided ? (
+                    <p className="max-w-[280px] text-right text-[12.5px] text-[var(--ink-soft)]">
+                      Marked as a mistake. {row.voided.because} This address hears from the firm
+                      again; the row stays, because a consent record is never deleted.
+                    </p>
+                  ) : row.enteredByOperator ? (
+                    <VoidSuppression email={row.email} />
+                  ) : null}
                 </li>
               ))}
             </ul>

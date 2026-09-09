@@ -112,44 +112,96 @@ export function AddSuppression() {
 }
 
 /**
- * Undo a row somebody typed wrong.
+ * Mark a row somebody typed wrong.
+ *
+ * IT USED TO DELETE THE ROW AND SAY "Removing". 0032 made a consent record
+ * undeletable, and the trigger's own message says what to do instead: keep the
+ * row and record that it was a mistake. That is better than the delete it
+ * replaces, because a deleted typo left no trace that anybody had mistyped.
+ *
+ * SO THE BUTTON NOW ASKS WHY. 0034 refuses a void with no reason at the
+ * database, and the person who knows why is the person standing here. It is one
+ * field rather than a dialog because a confirmation step somebody clicks
+ * through adds friction without adding a fact.
  *
  * Only rendered for a row nobody clicked a link to produce. The server refuses
- * the other case against the row itself, whatever this component does, because
- * a screen is a place a filter goes missing.
+ * the other case against the row itself, and 0034 makes it unrepresentable in
+ * the schema besides, because a screen is a place a filter goes missing.
  */
-export function RemoveSuppression({ email }: { email: string }) {
+export function VoidSuppression({ email }: { email: string }) {
   const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [because, setBecause] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function remove() {
+  async function mark() {
+    if (!because.trim()) {
+      setError("Say what was wrong with it.");
+      return;
+    }
     setBusy(true);
     setError(null);
-    const res = await fetch(`/api/portal/suppressions?email=${encodeURIComponent(email)}`, {
-      method: "DELETE",
-    });
+    const res = await fetch(
+      `/api/portal/suppressions?email=${encodeURIComponent(email)}&because=${encodeURIComponent(because.trim())}`,
+      { method: "DELETE" },
+    );
     const body = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
     setBusy(false);
     if (!res.ok || !body.ok) {
-      setError(body.error ?? "That could not be removed.");
+      setError(body.error ?? "That could not be marked.");
       return;
     }
+    setOpen(false);
+    setBecause("");
     router.refresh();
   }
 
-  return (
-    <div className="flex flex-col items-end gap-1">
+  if (!open) {
+    return (
       <button
         type="button"
-        onClick={remove}
-        disabled={busy}
-        className="inline-flex min-h-[var(--tap-target)] items-center text-[12.5px] font-semibold text-[var(--navy)] underline disabled:opacity-60"
+        onClick={() => setOpen(true)}
+        className="inline-flex min-h-[var(--tap-target)] items-center text-[12.5px] font-semibold text-[var(--navy)] underline"
       >
-        {busy ? "Removing" : "Typed in error"}
+        Typed in error
       </button>
+    );
+  }
+
+  return (
+    <div className="flex w-full max-w-[280px] flex-col items-end gap-2">
+      <label className="w-full text-left">
+        <span className="block text-[12px] font-semibold text-[var(--ink-soft)]">
+          What was wrong with it?
+        </span>
+        <input
+          type="text"
+          value={because}
+          onChange={(e) => setBecause(e.target.value)}
+          placeholder="Wrong address typed on the call"
+          className="mt-1 w-full rounded-[var(--radius-sm)] border border-[var(--line)] px-3 py-2 text-[13.5px]"
+        />
+      </label>
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={() => { setOpen(false); setError(null); }}
+          className="inline-flex min-h-[var(--tap-target)] items-center text-[12.5px] font-semibold text-[var(--ink-soft)] underline"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={mark}
+          disabled={busy}
+          className="inline-flex min-h-[var(--tap-target)] items-center text-[12.5px] font-semibold text-[var(--navy)] underline disabled:opacity-60"
+        >
+          {busy ? "Marking" : "Mark as a mistake"}
+        </button>
+      </div>
       {error ? (
-        <p role="alert" className="max-w-[260px] text-right text-[12px] text-[var(--bad)]">
+        <p role="alert" className="w-full text-right text-[12px] text-[var(--bad)]">
           {error}
         </p>
       ) : null}

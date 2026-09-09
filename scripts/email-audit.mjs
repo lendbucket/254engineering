@@ -325,6 +325,43 @@ if (templates.length === 0) {
         : "",
   );
 
+  /*
+   * A VOIDED ROW MUST STOP COUNTING IN THE GATE, AND NOWHERE ELSE WILL DO.
+   *
+   * 0032 made a consent record undeletable and broke the one screen that had a
+   * Remove action, for the narrow case of an operator mistyping an address on a
+   * telephone call. 0034 keeps the row and marks it instead, which is better
+   * than the delete it replaces because a deleted typo left no trace that
+   * anybody had mistyped.
+   *
+   * The consequence is that the row has to stop counting SOMEWHERE, and there
+   * is exactly one right place: isSuppressed, which is the only thing that asks
+   * whether an address is suppressed. Put the filter on the screen instead and
+   * the list looks corrected while the customer goes on hearing nothing, which
+   * is the failure with a person attached.
+   *
+   * Asserted against the source of the gate rather than against a live row,
+   * because the live half of this belongs to the suppression proof and this
+   * audit's job is that the gate is shaped right.
+   */
+  {
+    const src = readFileSync("src/lib/marketing-suppression.ts", "utf8");
+    const gate = src.slice(src.indexOf("export async function isSuppressed"));
+    const body = gate.slice(0, gate.indexOf("\n}"));
+
+    rec(
+      "the suppression gate ignores a row somebody marked as a typing mistake",
+      /\.is\("voided_at", null\)/.test(body),
+      "0034 keeps a mistyped suppression rather than deleting it, so the gate is the one place it can stop counting",
+    );
+
+    rec(
+      "and nothing in the module deletes from the suppression list any more",
+      !/from\("eng_marketing_suppressions"\)\s*\n?\s*\.delete\(\)/.test(src) && !/\.delete\(\)/.test(src),
+      "0032 refuses it at the database; a call that would be refused is a screen that reports a failure to somebody who took a telephone call",
+    );
+  }
+
   rec(
     `and only declared surfaces read the suppression list at all (${readers.length} readers)`,
     unexpected.length === 0 && readers.length >= 2,

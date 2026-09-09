@@ -362,10 +362,21 @@ console.log("");
        * moment its delete stopped working. The count is the check.
        */
       const ledgerAfter = await ledgerRowCount(db);
+      /*
+       * THE TOLERANCE WAS THE DEFECT. This read `<= ledgerBefore + 1`, which
+       * permits exactly one new row per run, which is precisely what a
+       * fixture that stopped being reused would do. An injection making the
+       * fixture rebuild itself every run PASSED.
+       *
+       * The fixture itself says whether it created anything, so the expected
+       * growth is known rather than guessed: nothing, unless this run built
+       * the standing entry for the first time.
+       */
+      const built = made.notes.some((n) => n.includes("ledger entry")) ? 1 : 0;
       rec(
         "the money fixture did not multiply",
-        ledgerAfter <= ledgerBefore + 1,
-        `${ledgerBefore} production ledger row(s) before, ${ledgerAfter} after. The standing fixture is created once and reused; eng_production_ledger refuses DELETE since 0032, so a fixture that grew would grow forever.`,
+        ledgerAfter === ledgerBefore + built,
+        `${ledgerBefore} production ledger row(s) before, ${ledgerAfter} after, ${built} expected. The standing fixture is created once and reused; eng_production_ledger refuses DELETE since 0032, so a fixture that grew would grow forever.`,
       );
     }
   }

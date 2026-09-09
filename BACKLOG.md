@@ -27,6 +27,46 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
+## SECTION 4 OPENS HERE: nothing on the board goes through the queue's door
+
+Operator ruling, gate 2 of Phase 12 Section 3, and it is the first item of
+Section 4 because bulk operations are what put real volume through that door.
+
+**The fixture lesson at the queue level.** `jobs-audit` runs 148 checks over the
+queue and never invokes a handler. It reads `runBatch`'s SOURCE TEXT for the
+properties it asserts, that the lease is released, that an unregistered kind is
+fatal, that a dead job is logged, and it calls `handlerFor(kind)` only to inspect
+`idempotency`. Every check calls the function; none goes through the door a real
+job goes through.
+
+| Kind | `run` invoked by the board | Through `eng_claim_jobs` |
+| --- | --- | --- |
+| `email.send` | no | no |
+| `notification.deliver` | no | no |
+| `evidence.thumbnail` | no | no |
+| `document.binder` | no | no |
+| `statement.issue` | no | no |
+| `orders.reconcile` | no | no |
+| `metrics.rollup` | no | no |
+| `errors.alert` | no | no |
+| `report.export` | no | no |
+| `retention.sweep` | yes | see below |
+
+`runBatch` is called in exactly two places in the repository:
+`src/app/api/cron/jobs/route.ts`, which is production, and
+`scripts/retention-dry-run.mjs`, which is run by hand and is not in the suite.
+The claim path, the lease, `nextState` and the dead-letter transition are
+exercised on the board by nobody.
+
+**What it already cost.** The handler is what writes the regulatory trail row for
+a retention sweep, so the trail row was the one thing no check was reading, and
+it was written with `actor_id: null` while the manifest beside it named who
+asked. Found by reading the two tables side by side, not by any check.
+
+**Not widened here.** One handler is exercised, and its comment says it is the
+only one so nobody reads it as coverage. Nine remain, each declaring an
+idempotency key nothing has ever exercised.
+
 ## Retention: what Section 2 built, and the four things it deliberately did not
 
 Recorded 2026-09-09. The machinery is complete and nothing starts a run by
@@ -95,26 +135,55 @@ development does not queue email at all. The second is probably right, and it is
 a bigger change than it sounds, because "does the email path work" is a thing
 several audits ask.
 
-### The audit writes manifests it cannot clean up, and that is by construction
+### What development now carries permanently, and why each row is there
 
-Recorded 2026-09-09, found by reading `eng_retention_runs` rather than by any
-check. Development holds 128 manifests after one day of building this, every one
-a dry run, none of them deletable, because the table refuses DELETE and is
-declared kept forever for reasons that are correct.
+Recorded 2026-09-09, updated after 0032. None of this is a leak. All of it is
+the cost of records the database refuses to delete, and it is written down so
+the next person counting rows on development knows what they are looking at.
 
-Roughly four are written per board run: `retention-audit` plans three refusals
-and two live plans, and `retention-dry-run` writes one per table. That is about
-1,500 rows a year of board runs on development, which is small in absolute terms
-and is the wrong shape regardless: an audit that cannot clean up after itself is
-a thing this repository has recorded twice before, for `eng_audit_events` and
-for `eng_partner_entries`, and the resolution for the second was to exercise it
-inside `migration-audit`'s throwaway database.
+**Retention manifests.** Development holds well over a hundred, every one a dry
+run, none deletable. Three are written per `retention-audit` run and one per
+table by `retention-dry-run`. Since the gate 2 ruling every plan nobody ran is
+`abandoned` rather than left at `planned`, so none of them reads as a deletion
+still intended, and every one names its origin in `actor_role`. **They still
+accumulate.** What that needs is a decision between exercising the plan path
+against a replayed database, the way `eng_partner_entries` has been since 0019,
+and accepting the rows on the grounds that a manifest is small and a development
+database is not a record of anything.
 
-It is not urgent. What it needs is a decision between exercising the plan path
-against a replayed database the way partner entries are, and accepting the rows
-on the grounds that a manifest is small and a development database is not a
-record of anything. Every manifest names its origin in `actor_role`, so the two
-are at least tellable apart.
+**Three rollup rows for 2019-03.** `retention-audit`'s fixture. 0032 stopped
+`eng_metrics_daily` rows being deleted, so they persist; the upsert is on
+`(day, metric)`, so the same three are rewritten rather than added to, and the
+audit asserts the count is exactly three.
+
+**One standing demonstration engineer, client, priced file and ledger entry.**
+`scripts/lib/standing-demo.mjs`, shared by `dashboards-audit` and `demo-audit`.
+Created once, reused, its period moved forward by UPDATE. Both audits assert the
+production ledger's row count did not grow.
+
+**Two orphaned ledger rows from before that existed**, $888.00 and $777.00, left
+by the per-run fixtures on the one board run between 0032 being applied and the
+audits being fixed. The second has no file at all, which is the unscopable money
+row 0030 exists to prevent, arriving through a fixture rather than through a
+deletion. Neither can be removed. Both belong to `is_demo` engineers and the
+production report scopes on the engineer, so neither is counted; that was
+verified rather than assumed.
+
+### A cleanup nobody checks reports success by not speaking
+
+Recorded 2026-09-09 and it is a defect CLASS rather than an instance, which is
+why it has its own entry.
+
+`.delete()` on the Supabase client RETURNS an error rather than throwing one.
+Three teardowns in this repository called it and never looked: `dashboards-audit`,
+`demo-audit` and `seed-field-demo`. When 0032 attached delete refusals to the
+money and consent records, all three stopped working and **two of them went on
+reporting green**, while development quietly gained an orphaned ledger entry and
+its profile and file on every board run.
+
+Nothing in the suite looks for this shape. What closing it needs is a sweep of
+every `.delete()` in `scripts/` for a discarded error, and a rule that a teardown
+either asserts its own effect or says what it kept. The three above now do.
 
 ### An execute run has never happened anywhere
 

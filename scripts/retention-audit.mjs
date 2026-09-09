@@ -54,7 +54,7 @@ import { auditClient } from "./lib/db-target.mjs";
 import { RETENTION_POLICY, DECLARED_TABLES, deletableEntries, mayDelete, ruleFor } from "../src/lib/retention-policy.ts";
 import {
   planRetention, runRetention, executeAuthority, hashIds, cutoffFor, sweepable, BATCH,
-  abandonRun, stillPlanned,
+  abandonRun, stillPlanned, manifestById,
 } from "../src/lib/ops-retention.ts";
 import { METRICS } from "../src/lib/ops-metrics.ts";
 import { DEFAULT_ROLES } from "../src/lib/ops-authz.ts";
@@ -715,6 +715,97 @@ try {
       rec("a set that changed between the plan and the run is refused by its hash", false, "could not plan the fixture for it");
       rec("and the manifest records that it refused, rather than staying planned forever", false, "no fixture");
     }
+  }
+
+  // ------------------------------- abandoning, and what it refuses to touch
+
+  /*
+   * THE FOURTH TERMINAL STATUS, AND THE TWO THINGS IT MUST NOT DO.
+   *
+   * Operator ruling, gate 2. A manifest at `planned` is a deletion still
+   * intended, so nothing may leave one behind. `abandoned` is how a plan
+   * nobody ran says so, and it is an UPDATE because the table refuses DELETE.
+   *
+   * Two ways it could be wrong and both are worse than leaving the row alone:
+   * overwriting the record of a run that actually happened, and letting an
+   * abandoned plan be picked up and executed later.
+   */
+  {
+    /*
+     * eng_jobs rather than eng_cron_runs, because by this point the moved-set
+     * injection above has deleted one of the cron fixture rows on purpose, so
+     * that day no longer reconciles and a plan there is correctly refused.
+     * A fixture that cannot be built is a check that proves nothing.
+     */
+    const spare = await planAndTrack("eng_jobs", { kind: "dry_run", askedBy: AUDIT_ASKED });
+
+    if (!spare.ok) {
+      rec("a plan nobody ran can be abandoned", false, "could not plan the fixture for it");
+      rec("an abandoned plan cannot be run", false, "no fixture");
+      rec("abandoning a run that happened is refused", false, "no fixture");
+    } else {
+      const done = await abandonRun(spare.manifest.id, "planned by retention-audit to exercise abandoning");
+      const after = await manifestById(spare.manifest.id);
+      rec(
+        "a plan nobody ran can be abandoned",
+        done.ok === true && after?.status === "abandoned" && /Abandoned without running/.test(after?.note ?? ""),
+        after ? `${after.status}: ${(after.note ?? "").slice(0, 70)}` : "no manifest read back",
+      );
+
+      const revived = await runRetention(spare.manifest.id);
+      rec(
+        "an abandoned plan cannot be run",
+        revived.ok === false && /abandoned/.test(revived.because) && revived.retryable === false,
+        revived.ok ? "IT RAN AN ABANDONED PLAN" : revived.because.slice(0, 90),
+      );
+
+      /*
+       * And the other direction. The completed run from the dry run above is a
+       * record of something that happened, and abandoning it would replace that
+       * record with a claim that nothing was attempted.
+       */
+      const finished = plan.ok ? plan.manifest.id : null;
+      const refusedOverwrite = finished
+        ? await abandonRun(finished, "injected attempt to abandon a completed run")
+        : { ok: false, error: "no completed run to try it on" };
+      rec(
+        "abandoning a run that happened is refused",
+        finished !== null && refusedOverwrite.ok === false && /Only a plan nobody ran/.test(refusedOverwrite.error),
+        finished === null
+          ? "no completed run to try it on"
+          : refusedOverwrite.ok
+            ? "IT OVERWROTE THE RECORD OF A RUN THAT HAPPENED"
+            : refusedOverwrite.error.slice(0, 90),
+      );
+    }
+  }
+
+  // ------------------------------- what the manifest says a reader would miss
+
+  /*
+   * Operator ruling, gate 2: the manifest is the artefact a person reads, so
+   * the explanation lives on the manifest rather than in a document. An empty
+   * plan is the case that misled a reader at gate 2, because its id range
+   * bounds nothing and its hash is the one every empty plan shares.
+   */
+  {
+    const empty = await planAndTrack("eng_jobs", { kind: "dry_run", askedBy: AUDIT_ASKED });
+    rec(
+      "an empty plan says so on the manifest",
+      empty.ok === true &&
+        empty.manifest.intendedCount === 0 &&
+        empty.manifest.planReading.some((line) => /EMPTY SET/.test(line)) &&
+        empty.manifest.planReading.some((line) => /sha256 of the empty string/.test(line)),
+      empty.ok
+        ? `${empty.manifest.planReading.length} sentence(s) on a plan of ${empty.manifest.intendedCount}`
+        : empty.because.slice(0, 90),
+    );
+
+    rec(
+      "and every manifest says its cutoff came from its own clock",
+      empty.ok === true && empty.manifest.planReading.some((line) => /CUTOFF IS THIS PLAN/.test(line)),
+      "two plans made in one pass carry cutoffs seconds apart, which read as an inconsistency at gate 2",
+    );
   }
 
   // ---------------------------------------- what a run refuses to be handed

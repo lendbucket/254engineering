@@ -63,8 +63,8 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * mistake could have been applied to by hand, which is exactly how 0001 stayed
  * broken for a month. A constant has to be changed by a person who noticed.
  */
-const EXPECTED_FINGERPRINT = "2aee07d8809c3db282e4eb282bb9bbd5";
-const EXPECTED_COLUMNS = 995;
+const EXPECTED_FINGERPRINT = "a818bfb40dd9423d0b0b76472c35519c";
+const EXPECTED_COLUMNS = 998;
 const EXPECTED_TABLES = 73;
 const EXPECTED_TRIGGERS = 55;
 /**
@@ -670,6 +670,29 @@ if (failedAt === null) {
     "a sealed deliverable cannot be deleted",
     await refused("delete from eng_documents where id = '00000000-0000-4000-8000-0000000000b1'"),
     "a seal is a Professional Engineer's own act and the record of it outlives everything else",
+  );
+
+  /*
+   * AND ONE WITH NO FILE AT ALL, WHICH IS THE ONLY CASE THE FIRST BRANCH OF
+   * THAT TRIGGER ACTUALLY DECIDES.
+   *
+   * The check above passed with the sealed_at branch injected out, and it
+   * was right to: a sealed document attached to a file is already protected
+   * by the second branch, because the file it hangs off has a sealed
+   * document, namely itself. So that injection proved nothing and the branch
+   * was never load bearing.
+   *
+   * eng_documents.file_id is NULLABLE. A sealed firm document with no file
+   * is protected by the first branch alone, and by nothing else.
+   */
+  await db.exec(`
+    insert into eng_documents (id, kind, title, bucket, storage_key, sealed_at)
+    values ('00000000-0000-4000-8000-0000000000b3', 'firm_document', 'Probe sealed, no file', 'docs', 'probe/loose', now());
+  `);
+  rec(
+    "a sealed document with no file is refused by the branch that is only about sealing",
+    await refused("delete from eng_documents where id = '00000000-0000-4000-8000-0000000000b3'"),
+    "the only case the sealed_at test decides on its own; everything else is covered by its file",
   );
   rec(
     "nor can the evidence of a file that has one",

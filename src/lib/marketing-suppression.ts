@@ -112,10 +112,21 @@ export async function isSuppressed(email: string): Promise<boolean> {
   const db = supabaseAdmin();
   if (!db) return true;
 
+  /*
+   * A VOIDED ROW IS NOT A SUPPRESSION, AND THIS IS THE LINE THAT MAKES THAT
+   * TRUE ANYWHERE IT MATTERS.
+   *
+   * 0034 keeps a mistyped suppression rather than deleting it, because 0032
+   * ruled a consent record is never deleted. The row therefore has to stop
+   * COUNTING somewhere, and this is the only place anything asks whether an
+   * address is suppressed. If the filter were on the screen instead, the
+   * customer would go on hearing nothing while the list looked corrected.
+   */
   const { data, error } = await db
     .from("eng_marketing_suppressions")
     .select("email")
     .eq("email", normaliseEmail(email))
+    .is("voided_at", null)
     .maybeSingle();
 
   if (error) {
@@ -139,6 +150,15 @@ export type SuppressionRow = {
   because: string;
   createdAt: string;
   enteredByOperator: boolean;
+  /**
+   * Marked as a typing mistake, and by whom, or null.
+   *
+   * The row stays on the list rather than disappearing, which is the change
+   * 0034 makes and the reason it is better than the delete it replaces: a
+   * deleted typo left no trace that anybody had mistyped, so an audit of the
+   * firm's marketing consent could not see the mistake at all.
+   */
+  voided: { at: string; because: string } | null;
 };
 
 /**
@@ -155,7 +175,7 @@ export async function listSuppressions(): Promise<SuppressionRow[] | null> {
 
   const { data, error } = await db
     .from("eng_marketing_suppressions")
-    .select("email, because, created_at, token_hash")
+    .select("email, because, created_at, token_hash, voided_at, voided_because")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -168,11 +188,22 @@ export async function listSuppressions(): Promise<SuppressionRow[] | null> {
     because: r.because as string,
     createdAt: r.created_at as string,
     enteredByOperator: r.token_hash === null,
+    voided:
+      r.voided_at === null || r.voided_at === undefined
+        ? null
+        : { at: r.voided_at, because: (r.voided_because ?? "") },
   }));
 }
 
 /**
- * Remove a suppression somebody entered by hand and should not have.
+ * Mark a suppression somebody entered by hand and should not have.
+ *
+ * IT USED TO DELETE, AND 0032 STOPPED THAT MID SECTION. The trigger's own
+ * message says what to do instead, and what it says is better than what was
+ * here: a deleted typo left NO TRACE that anybody had mistyped, so the address
+ * vanished and the mistake with it. Marking keeps both facts, that somebody was
+ * suppressed and that it was wrong, which is what an audit of the firm's
+ * marketing consent would actually want to see.
  *
  * THIS IS A CORRECTION AND IT IS NOT A RESUBSCRIBE. THE DIFFERENCE IS THE
  * WHOLE REASON THIS FUNCTION IS SHAPED THE WAY IT IS.
@@ -196,8 +227,10 @@ export async function listSuppressions(): Promise<SuppressionRow[] | null> {
  * nobody gave. The refusal is checked against the row rather than trusted to
  * the screen, because a screen is a place a filter goes missing.
  */
-export async function removeOperatorEntry(
+export async function voidOperatorEntry(
   email: string,
+  because: string,
+  actorId: string | null,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
@@ -220,12 +253,30 @@ export async function removeOperatorEntry(
     };
   }
 
-  const { error: delErr } = await db
+  if (!because.trim()) {
+    return {
+      ok: false,
+      error: "Say what was wrong with it. A row marked as a mistake with no reason cannot be told from one marked to move a number.",
+    };
+  }
+
+  /*
+   * An UPDATE, and the .is("token_hash", null) stays even though a check
+   * constraint now makes a voided click unrepresentable. Two guards on the same
+   * rule is the point: the constraint is what makes it impossible, and this is
+   * what makes the refusal a sentence somebody can read rather than a database
+   * error.
+   */
+  const { error: voidErr } = await db
     .from("eng_marketing_suppressions")
-    .delete()
+    .update({
+      voided_at: new Date().toISOString(),
+      voided_because: because.trim(),
+      voided_by: actorId,
+    })
     .eq("email", address)
     .is("token_hash", null);
 
-  if (delErr) return { ok: false, error: delErr.message };
+  if (voidErr) return { ok: false, error: voidErr.message };
   return { ok: true };
 }
