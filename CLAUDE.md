@@ -324,6 +324,29 @@ BASE_URL=https://254engineering.com npx tsx scripts/security-audit.mjs
 **Every audit is verified by injecting a violation and watching it fail before its green is
 trusted.** An audit that has never failed has never been tested.
 
+**A CHECK THAT MATCHES THE OLD SHAPE BY TEXT IS A CHECK ON WORDING.** Operator
+ruling, 2026-09-09, recorded as another instance of the fixture lesson below.
+
+Two audits went red during Phase 12 Section 3 when reads were paged, and both
+were right to. `jobs-audit` asserted `if (error) return null` as a literal, and
+`order-audit` asserted a statement header was recomputed by matching
+`const headerTotal = (allLines ?? []).reduce`. Neither behaviour changed; the
+spelling did.
+
+**The correct response is never to loosen the pattern so it passes on both.**
+That converts a check into a check on nothing. Each was made to name the new
+shape exactly, and each GAINED a second check for the property the first could
+not see: that the queue read pages, and that the header is computed from ALL of
+its lines. `order-audit`'s was the valuable one, because it revealed that the
+original check could not see how many lines were read at all, so a statement
+over a thousand lines would have had its header computed from part of itself
+and written back, which is the exact disagreement the recompute exists to
+prevent.
+
+A red board when an implementation is deliberately changed is the harness
+asking whether you meant it. Answer it by making the check sharper, and by
+asking what the old one could not see.
+
 **A FIXTURE ONLY CATCHES WHAT IT CAN REACH. EVERY INJECTION FIXTURE CARRIES A
 VALUE IN EVERY COLUMN A FIGURE CAN SUM.** Operator ruling, 2026-09-09, and it
 sits beside the declared inventory idiom because it is the same failure one

@@ -148,6 +148,7 @@ export async function ordersNeedingAttention(): Promise<OrderNeedingAttention[]>
   const db = supabaseAdmin();
   if (!db) return [];
 
+  // readEvery: an order missing here is one nobody chases for its money.
   const orderRead = await readEvery<Record<string, unknown>>((from, to) =>
     db
       .from("eng_service_orders")
@@ -173,9 +174,11 @@ export async function ordersNeedingAttention(): Promise<OrderNeedingAttention[]>
    * screen reports it as stuck for a reason that is not true.
    */
   const [paymentRead, checkoutRead] = await Promise.all([
+    // readEvery: a payment missed here makes a paid order read as unpaid.
     readEvery<{ order_id: string }>((from, to) =>
       db.from("eng_order_payments").select("order_id").in("order_id", ids).eq("kind", "charge").order("created_at", { ascending: true }).range(from, to),
     ),
+    // readEvery: an event missed here reports an order stuck for a reason that is not true.
     readEvery<{ order_id: string; detail: unknown }>((from, to) =>
       db.from("eng_order_events").select("order_id, detail").in("order_id", ids).eq("event", "checkout.started").order("created_at", { ascending: true }).range(from, to),
     ),

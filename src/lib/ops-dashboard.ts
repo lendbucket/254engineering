@@ -1060,6 +1060,7 @@ async function dispatcherDashboard(): Promise<DispatcherDashboard> {
   if (!waitingRead.ok) console.error("[dashboard] unassigned files could not be read:", waitingRead.error);
   const waiting = waitingRead.ok ? waitingRead.rows : null;
 
+  // readEvery: a technician missing here is one dispatch never offers work to.
   const techRead = await readEvery<Record<string, unknown>>((from, to) =>
     db
       .from("eng_profiles")
@@ -1073,6 +1074,7 @@ async function dispatcherDashboard(): Promise<DispatcherDashboard> {
   if (!techRead.ok) console.error("[dashboard] technicians could not be read:", techRead.error);
   const techs = techRead.ok ? techRead.rows : null;
 
+  // readEvery: an offer missed here expires unseen, which is the queue going backwards.
   const offerRead = await readEvery<Record<string, unknown>>((from, to) =>
     db
       .from("eng_assignments")
@@ -1528,6 +1530,7 @@ async function customerServiceDashboard(): Promise<CustomerServiceDashboard> {
       .eq("is_demo", false),
   );
 
+  // readEvery: a thread missed here is a conversation the quiet count never sees.
   const threadRead = await readEvery<Record<string, unknown>>((from, to) =>
     db
       .from("eng_threads")
@@ -1558,6 +1561,7 @@ async function customerServiceDashboard(): Promise<CustomerServiceDashboard> {
 
   /* The suppression list only grows and is never expired, by its own ruling,
    * so it is one of the few tables here with no ceiling at all. */
+  // readEvery: this list only grows, and understating it is somebody written to.
   const supRead = await readEvery<Record<string, unknown>>((from, to) =>
     db
       .from("eng_marketing_suppressions")

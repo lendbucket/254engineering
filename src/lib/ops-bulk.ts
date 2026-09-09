@@ -352,6 +352,7 @@ export async function accountBalance(accountId: string): Promise<{
       .range(from, to),
   );
 
+  // readEvery: exposure that reads low grants credit, so it may never be partial.
   const unbilledRead = await readEvery<{ total_cents: number | null }>((from, to) =>
     db
       .from("eng_service_orders")

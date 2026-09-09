@@ -31,9 +31,22 @@ import "server-only";
  * period close that claims entries, a permission set. Those cannot say "some of
  * it" and must not guess, so they pay for the extra round trips.
  *
- * WHICH ONE A CALL SITE USES IS A JUDGEMENT ABOUT THE FIGURE, NOT ABOUT SIZE.
- * A dashboard tile can honestly say "not known". A customer's invoice total
- * cannot.
+ * WHICH ONE A CALL SITE USES IS A JUDGEMENT ABOUT WHETHER THE FIGURE MAY
+ * HONESTLY BE PARTIAL. IT IS NEVER ABOUT SIZE.
+ *
+ * Operator ruling, 2026-09-09, and it is the rule rather than a preference. A
+ * dashboard tile can say "not known" and lose nothing. A customer's invoice
+ * total, a partner's balance, a checkout's line items and a permission set
+ * cannot: for those, half an answer is not a smaller answer, it is a wrong one
+ * that looks ordinary.
+ *
+ * A small set does not earn `readAll`, and a large one does not force it. The
+ * question is only ever what the caller does with the rows.
+ *
+ * **Every call site states which it uses and why, in one comment line.** Same
+ * ruling. The reason is that the choice is not visible from the code: both
+ * spellings look identical at a glance, and the judgement behind them is the
+ * only thing that says whether the next person may change one to the other.
  */
 
 /**

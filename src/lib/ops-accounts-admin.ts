@@ -76,15 +76,19 @@ export async function accountRows(): Promise<AccountRow[]> {
   const clientIds = accounts.map((a) => a.client_id as string);
 
   const [clientRead, orderRead, userRead, statementRead] = await Promise.all([
+    // readEvery: a client missing from this map renders an account with no name.
     readEvery<Record<string, unknown>>((from, to) =>
       db.from("eng_clients").select("id, name").in("id", clientIds).order("id", { ascending: true }).range(from, to),
     ),
+    // readEvery: this is the order COUNT per account, and a partial count is a wrong one.
     readEvery<Record<string, unknown>>((from, to) =>
       db.from("eng_service_orders").select("account_id, created_at").in("account_id", ids).order("created_at", { ascending: true }).range(from, to),
     ),
+    // readEvery: the seat count on an account, billed on, so it cannot be partial.
     readEvery<Record<string, unknown>>((from, to) =>
       db.from("eng_customer_users").select("account_id").in("account_id", ids).eq("status", "active").order("id", { ascending: true }).range(from, to),
     ),
+    // readEvery: an open statement missed here is a bill the screen says does not exist.
     readEvery<Record<string, unknown>>((from, to) =>
       db
         .from("eng_statements")
