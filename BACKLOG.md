@@ -27,7 +27,42 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
-## SECTION 4 OPENS HERE: nothing on the board goes through the queue's door
+## SECTION 4 OPENS HERE, AND IT OPENS TWICE
+
+Two items, both ruled at the gates of Phase 12 Section 3, both to be taken at
+the START of Section 4 rather than folded into a merge.
+
+### The schema fingerprint has four blind spots, and a second one closes them
+
+Operator ruling, 2026-09-09. **At the start of Section 4**, not mid-merge.
+
+The fingerprint in `supabase/applied.mjs` is `md5` over
+`table_name.column_name:data_type:is_nullable` for every `eng_` table. It is a
+good measure of SHAPE and it cannot see four kinds of change, every one of which
+this section shipped:
+
+| Blind to | Shipped by | What was read back instead |
+| --- | --- | --- |
+| A constraint's delete action | 0030, SET NULL to RESTRICT on both ledgers | `pg_constraint.confdeltype`, and a live refusal |
+| Triggers and functions | 0032, seven triggers and two functions | `pg_trigger` and `pg_proc`: 55 to 56, 10 to 12 |
+| Indexes | 0037, a unique index on `lower(email)` | `pg_indexes` |
+| Seeded reference rows | 0018, and 0030's `retention.execute` grant | a row count on `eng_role_grants` |
+
+Four migrations in one section whose correctness the ledger's own number could
+not confirm. The number was right every time and it was answering a narrower
+question than anybody reading it would assume.
+
+**What is to be built.** A SECOND fingerprint, derived from the catalogue,
+covering constraint delete actions, triggers, indexes and seeded reference rows,
+recorded beside the first in every ledger entry from then on. The first is
+**kept**, because it already describes the whole history above and replacing it
+would make every entry before Section 4 unverifiable.
+
+**Until it exists**, every ledger entry for a migration the first fingerprint
+cannot see states what was read back instead. 0030, 0032, 0033 and 0037 already
+do; that is the standard the next one meets.
+
+## The queue: nothing on the board goes through its door
 
 Operator ruling, gate 2 of Phase 12 Section 3, and it is the first item of
 Section 4 because bulk operations are what put real volume through that door.

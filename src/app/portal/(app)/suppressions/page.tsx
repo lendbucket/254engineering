@@ -40,6 +40,20 @@ export const dynamic = "force-dynamic";
  * deleting it asserts nothing about consent. The server refuses every other
  * case against the row rather than trusting this screen.
  */
+/**
+ * Close a sentence somebody typed into a form.
+ *
+ * An operator writing "wrong address typed on the call" has said the whole
+ * thing; asking them to add a full stop so the screen reads properly is the
+ * screen's job leaking into theirs. This adds one when there is none, and
+ * leaves any other terminal punctuation alone.
+ */
+function sentence(text: string): string {
+  const t = text.trim();
+  if (!t) return "";
+  return /[.!?]$/.test(t) ? t : `${t}.`;
+}
+
 export default async function SuppressionsPage() {
   const actor = await currentActor();
   if (!can(actor, "suppressions.manage")) notFound();
@@ -105,11 +119,26 @@ export default async function SuppressionsPage() {
                     refuses it either way; not offering it is the honest version.
                   */}
                   {row.voided ? (
-                    <p className="max-w-[280px] text-right text-[12.5px] text-[var(--ink-soft)]">
-                      Marked as a mistake. {row.voided.because}{" "}
+                    /*
+                     * TWO THINGS HERE WERE FOUND BY LOOKING AT A SCREENSHOT, WHICH IS
+                     * WHY THE RULE SAYS TO LOOK AT ONE.
+                     *
+                     * It was `text-right` inside `max-w-[280px]`, so three sentences
+                     * of explanation rendered as a narrow ragged column hard against
+                     * the edge of the row. Right alignment is for a figure or a
+                     * control, not for prose somebody has to read.
+                     *
+                     * And the sentences ran into each other. The reason an operator
+                     * types is lowercase and carries no full stop, so the row read
+                     * "Marked as a mistake. wrong address typed on the call Recorded
+                     * instead for meant@example.com." The copy cannot require the
+                     * operator to punctuate; it has to close the sentence itself.
+                     */
+                    <p className="mt-2 w-full text-[12.5px] text-[var(--ink-soft)]">
+                      Marked as a mistake: {sentence(row.voided.because)}{" "}
                       {row.voided.replacedBy
                         ? `Recorded instead for ${row.voided.replacedBy}.`
-                        : `No correct address: ${row.voided.noReplacementBecause ?? ""}`}{" "}
+                        : `No correct address: ${sentence(row.voided.noReplacementBecause ?? "")}`}{" "}
                       This address hears from the firm again; the row stays, because a consent
                       record is never deleted.
                     </p>
