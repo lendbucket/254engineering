@@ -341,6 +341,41 @@ export const APPLIED = [
     note:
       "A SCHEMA GAP RATHER THAN A CALL SITE. eng_partner_users.email was declared text not null unique, which in Postgres is CASE SENSITIVE, while every lookup against it is ilike, which is not. Two rows differing only in case were therefore permitted by the schema and were one address to every piece of code that read them. Two things followed and both were live: signing in matched two rows, PostgREST answered PGRST116, the error was discarded and the result read as no such address, so the person was refused with the deliberately generic message and had no way to discover why; and the one address, one partner guard in ops-partners-admin is a lookup and a refusal with nothing underneath it, so the same PGRST116 read as no existing user and the guard attached the address to a second partner. THE STATE IT EXISTS TO PREVENT WAS THE STATE THAT DEFEATED IT. The call sites are fixed in this branch and they are not the fix: ordering and limiting picks one of two rows that should never both have existed. eng_customer_users has carried exactly this since 0009 and the partner table simply never got it. IT REFUSES BY NAME rather than failing on a duplicate key error naming an index, because whoever read that would then have to write the query themselves to find out whose account it was about, and it does NOT merge: which sign in is the person is a decision about who somebody is, and a migration is not where that gets made. Both databases were read before it was written. Development holds 8 partner users and no such pair; production holds none at all.",
   },
+
+  /*
+   * THE FIRST ENTRY CARRYING BOTH FINGERPRINTS, which is the whole of debt two
+   * arriving in the place it was always meant to land.
+   */
+  {
+    file: "0038_a_job_says_what_it_was_allowed_to_do.sql", appliedBy: "apply_migration",
+    fingerprint: "cac6f69d91b7e73441b307ea692a3f7b",
+    behaviour: "755b343c1baff05e43445747be0e5343",
+    proves: { table: "eng_jobs", column: "effect_mode" },
+    production: null,
+    because:
+      "Phase 12 Section 4 is open. Pending until the branch merges, then applied with the rest of the " +
+      "section in order and each read back before the next, which is the ruled sequence. Applied to " +
+      "development 2026-09-09 and read back: shape cac6f69d91b7e73441b307ea692a3f7b across 1,016 columns, and " +
+      "behaviour 755b343c1baff05e43445747be0e5343 across 808 facts, both recomputed from a replay by " +
+      "schema-ledger-audit rather than typed in from a live database.",
+    note:
+      "A JOB RECORDS WHETHER IT WAS ALLOWED TO REACH OUTSIDE THIS PLATFORM. Operator ruling: handlers that " +
+      "send or charge run in a mode producing no external effect that says so in the trail row, and a handler " +
+      "with no such mode gets one. WHY A COLUMN AND NOT A FLAG: an environment variable makes 'did this send " +
+      "an email' a property of the process that ran the job, and processes leave no record. It is also the " +
+      "shape that has now cost this project twice. On 2026-09-09 a retention dry run on development claimed " +
+      "the oldest jobs of any kind and sent twenty real emails; later the same day the first version of " +
+      "queue-audit did the same thing and sent thirty five, to the operator's own address and the firm's. " +
+      "Both times a worker ran jobs nobody intended it to run, and nothing on those rows said what they were " +
+      "permitted to do. WHY THE DEFAULT IS live: defaulting to suppression would make every job written by " +
+      "every future caller silently do nothing outside, and a customer waiting for a link that a green board " +
+      "says was sent is a worse failure than one email too many. Suppressing is the thing that has to be " +
+      "asked for. eng_claim_jobs is `returns setof eng_jobs` so it carries the column with no change to the " +
+      "function, which is stated in the migration because the next reader will look for that change and " +
+      "there is not one. NOT A DRY RUN: retention.sweep already has a mode, plan versus execute, and that one " +
+      "decides whether rows are deleted while this one decides whether a person hears anything. A sweep can " +
+      "be executing and suppressed at once and both are true.",
+  },
 ];
 
 /**

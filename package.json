@@ -61,6 +61,7 @@
     "partner-audit": "tsx scripts/partner-audit.mjs",
     "accounts-audit": "tsx --conditions=react-server scripts/accounts-audit.mjs",
     "jobs-audit": "tsx --conditions=react-server scripts/jobs-audit.mjs",
+    "queue-audit": "tsx --conditions=react-server scripts/queue-audit.mjs",
     "observability-audit": "tsx --conditions=react-server scripts/observability-audit.mjs",
     "token-audit": "tsx scripts/token-audit.mjs",
     "portal-voice-audit": "tsx scripts/portal-voice-audit.mjs",

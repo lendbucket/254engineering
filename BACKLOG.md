@@ -44,6 +44,67 @@ four the answer was right for reasons nobody had stated.
 | 3 | `mobile-overflow-audit` has no third verdict | "this page overflows", meaning the page did not load |
 | 4 | Line endings decide what a source check matches | "the code says this", meaning the file arrived this way |
 
+### THE 35 EMAILS, 2026-09-09, AND THE ONE THING THAT IS STILL OPEN
+
+**What happened.** The first version of `scripts/queue-audit.mjs` enqueued its
+probes as the oldest eligible work, which was right, and then called `runBatch`
+several times, which was not. `runBatch` claims BATCH_SIZE rows of ANY kind.
+Once the probes were consumed every later call took backlog, and 35 `email.send`
+jobs that had been sitting pending on development since 2026-09-04 ran for real:
+18 `apply.notification` to `ceo@36west.org` and 17 `apply.confirmation` to
+`forms.audit@254engineering.com`. **Nobody outside the firm received one, and
+that was luck rather than design.**
+
+It is the second time in one day. The retention dry run earlier did the same
+thing and sent twenty.
+
+**What is closed.** Three things, and each answers a different question.
+
+- `eng_jobs.effect_mode` (migration 0038) puts on the ROW what a job is
+  permitted to do, so it stops being a property of whichever process ran it.
+- `ourBatch()` in queue-audit REFUSES to run a batch unless every row the claim
+  would take belongs to that run. Section 3 already ruled that a board must
+  refuse to drain over a backlog; this file did not carry the rule and now does.
+- Development's waiting jobs of every outward-reaching kind were marked
+  `no_external_effect`: 347 `email.send`, 54 `notification.deliver`. Nothing was
+  deleted and nothing was marked done. queue-audit asserts that none is ever
+  `live` again, so the hazard cannot quietly return.
+
+**What is still open, and it is the reason this entry exists.** The backlog
+itself. Development is carrying **533 pending jobs** from months of audit runs,
+133 of them `report.export` still marked `live`, and nothing on development ever
+drains the queue. Every audit that runs a worker has to reason about them. The
+options are to drain it under suppression, to let retention sweep `eng_jobs` on
+development the way it is meant to, or to leave it and keep the guard. **Nothing
+is done here without a ruling, because draining is a decision about somebody
+else's queued work even when that somebody is an audit from last Tuesday.**
+
+### THIS MACHINE'S CLOCK IS 85 SECONDS AHEAD OF THE DATABASE
+
+Found by `queue-audit` on 2026-09-09, measured rather than guessed: a row is
+inserted, the database's own `created_at` default is read back, and the gap is
+reported with the round trip stated so the figure's precision is honest.
+
+**Why it matters.** Everything about the queue is decided by the DATABASE's
+`now()`: which rows are eligible, whether a lease has expired, when a retry may
+run. Everything the application stamps is written with THIS machine's. An 85
+second gap means a job enqueued to run now is ineligible for 85 seconds, and a
+lease that has expired here is still live there.
+
+It has already produced two defects. Phase 8 Section 2 found four jobs enqueued
+and claimed a moment later that were claimed by nothing, and `ops-jobs.ts`
+carries that lesson: `run_after` is only written when a delay was actually
+asked for, so the column default applies and the DATABASE stamps it. Section 4
+found the second: a probe lease written at "a minute ago" on this machine had
+not expired on the database, and the audit reported that a crashed worker's job
+is never reclaimed. It is. The check was measuring the gap between two clocks.
+
+**The board fails on this deliberately.** It is an environment fact rather than
+a code defect, and it is not one to absorb into a wider tolerance: the exposure
+is real for any caller that passes an explicit `runAfter`. The fix is to
+resync the machine clock, which is a change to the operator's system and is not
+made from here.
+
 ### 4. Line endings, and the cause as well as the symptom
 
 Operator ruling, 2026-09-09, after the board on main failed on a check that had

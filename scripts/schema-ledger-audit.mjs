@@ -403,8 +403,26 @@ rec(`there are migrations to check (${files.length})`, files.length > 0);
    * spent a day missing from production and was found by accident.
    */
   {
-    const r = await db.query(behaviourSqlFull());
+    /*
+     * REPLAYED TO THE MIGRATION THE BASELINE WAS READ AT, not to the head of
+     * the chain.
+     *
+     * The first version of this check computed the number after every
+     * migration and compared it to a baseline pinned at 0037, so it went red
+     * the moment 0038 landed. The baseline is a statement about a MOMENT in
+     * the chain and it stays true; a check that reads it as a statement about
+     * the present would have to be edited after every migration, which makes
+     * it a check on nothing within two of them.
+     */
+    const db3 = new PGlite();
+    await db3.exec(STUBS);
+    for (const f of files) {
+      await db3.exec(readSource(join(DIR, f)));
+      if (f === BEHAVIOUR_BASELINE.at) break;
+    }
+    const r = await db3.query(behaviourSqlFull());
     const actual = createHash("md5").update(digestOf(r.rows)).digest("hex");
+    await db3.close();
     rec(
       "the declared behaviour baseline is what the migrations actually replay to",
       BEHAVIOUR_BASELINE.replay.behaviour === actual && BEHAVIOUR_BASELINE.replay.facts === r.rows.length,
@@ -436,10 +454,15 @@ rec(`there are migrations to check (${files.length})`, files.length > 0);
         BEHAVIOUR_BASELINE.development.behaviour !== BEHAVIOUR_BASELINE.production.behaviour,
       `replay ${BEHAVIOUR_BASELINE.replay.facts}, development ${BEHAVIOUR_BASELINE.development.facts}, production ${BEHAVIOUR_BASELINE.production.facts} facts`,
     );
+    /* The shape at that same moment, from that same entry, for the same
+     * reason: pinned to the migration, not to the head. */
+    const atEntry = ledger.find((e) => e.file === BEHAVIOUR_BASELINE.at);
     rec(
       "while the first fingerprint says all three are the same database",
-      BEHAVIOUR_BASELINE.shape === ledger[ledger.length - 1].fingerprint,
-      "identical shape and three behaviours is the argument for the second fingerprint, made by it",
+      Boolean(atEntry) && BEHAVIOUR_BASELINE.shape === atEntry.fingerprint,
+      atEntry
+        ? "identical shape and three behaviours is the argument for the second fingerprint, made by it"
+        : `${BEHAVIOUR_BASELINE.at} has no ledger entry`,
     );
   }
 

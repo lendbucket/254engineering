@@ -197,6 +197,25 @@ const PHASE_ZERO = [
     why: "mandatory idempotency per kind, a lease that survives a killed worker, and no job lost in silence",
   },
   {
+    // Phase 12 Section 4, Section 0, debt one. jobs-audit above asserts a great
+    // deal ABOUT the queue by reading it; this one RUNS it. Until this existed
+    // exactly one check on the whole board went through eng_claim_jobs, and its
+    // own comment said so, so nine of the ten registered kinds had never been
+    // claimed, leased or transitioned by anything that watched.
+    //
+    // It enqueues one declared probe per kind, lets the real eng_claim_jobs
+    // claim them, runs them through the real runBatch, and reads back the lease,
+    // the transitions and the dead letters. Then the failure paths: a kind with
+    // no handler, a lease left behind by a worker that died, and a job that
+    // exhausts its attempts.
+    //
+    // It refuses to run a batch it does not wholly own. That refusal is the
+    // reason it is safe to have on the board, and it is written because the
+    // first version of this file did not have it and sent 35 emails.
+    name: "queue-audit",
+    why: "every registered kind claimed, leased, run and transitioned, against the real queue",
+  },
+  {
     // Phase 8 Section 3. An error reporter is a pipe out of the building, and
     // the check that matters stands up a real Sentry client with a capturing
     // transport and asserts on the bytes it was handed rather than on whether
