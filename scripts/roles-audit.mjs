@@ -230,6 +230,12 @@ const EXPECTED = {
    * arrives at. None of the three roles this table covers holds it: an engineer
    * has a licence, not a say in the firm's marketing. */
   "suppressions.manage":          { admin: true,  engineer: false, field_tech: false },
+
+  /* The one permission in this platform that destroys a record. Admin alone,
+   * and the two falses matter more here than anywhere else in this table: a
+   * licence is not a reason to be able to delete, and neither is being the
+   * person whose work the rows describe. */
+  "retention.execute":            { admin: true,  engineer: false, field_tech: false },
 };
 
 /*
@@ -1210,11 +1216,17 @@ if (!db) {
         `HTTP ${res.status}${body?.error ? `: ${body.error}` : ""}`,
       );
 
-      const { data: row } = await db
+      /* Oldest first, and the error read. eng_profiles has no unique index on
+       * email, so a leftover probe sharing an address would answer PGRST116
+       * and this check would fail claiming the row carries no role. */
+      const { data: rows, error: rowErr } = await db
         .from("eng_profiles")
         .select("id, role")
         .eq("email", email)
-        .maybeSingle();
+        .order("created_at", { ascending: true })
+        .limit(1);
+      if (rowErr) console.error(`  (could not read the profile just written: ${rowErr.message})`);
+      const row = (rows ?? [])[0] ?? null;
       rec(
         "and the row it wrote carries that role",
         row?.role === "dispatcher",
@@ -1360,6 +1372,22 @@ if (!db) {
          * the telephone. Nothing about a licence bears on it.
          */
         "/portal/suppressions",
+        /*
+         * And the requests to be forgotten, behind the same grant and refused
+         * for the same reason plus a sharper one.
+         *
+         * An engineer holds a licence, and what a licence bears on here is the
+         * opposite of what somebody asking might hope: the responsible charge
+         * log and the sealed work are the records the firm is LEAST able to
+         * remove. Putting this screen in front of the person whose regulatory
+         * record is the reason the answer is usually no would be putting them
+         * in a conversation they cannot help with.
+         *
+         * It reaches nothing anyway: the screen deletes nothing, and the only
+         * permission that removes a row is retention.execute, which the
+         * administrator holds alone.
+         */
+        "/portal/deletion-requests",
       ];
 
       const claimed = [...ENGINEER_REACHES, ...ENGINEER_REFUSED].sort();

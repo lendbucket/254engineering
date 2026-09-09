@@ -1,4 +1,6 @@
 import "server-only";
+import { readEvery } from "./bounded-read";
+import { orderForFile as liveOrderForFile } from "./order-for-file";
 import { supabaseAdmin } from "./supabase";
 import { business } from "@/config/business";
 import { deploymentOrigin } from "./site-url";
@@ -191,13 +193,31 @@ export async function startBatchCheckout(batchId: string): Promise<CheckoutResul
     return { ok: false, error: "That submission has no total, so it cannot be charged." };
   }
 
-  const { data: orders } = await db
-    .from("eng_service_orders")
-    .select("id, reference, property_address, batch_share_cents, customer_email")
-    .eq("batch_id", batchId)
-    .order("created_at", { ascending: true });
+  /*
+   * PAGED. These become the LINE ITEMS of a Stripe checkout, so a truncated
+   * read charges a customer for the first thousand properties of a larger
+   * submission and hands them a session that looks complete.
+   *
+   * A bulk submission over a thousand properties is not fanciful: it is the
+   * shape the account surface was built for.
+   */
+  const orderRead = await readEvery<{
+    id: string; reference: string; property_address: string; batch_share_cents: number | null; customer_email: string;
+  }>((from, to) =>
+    db
+      .from("eng_service_orders")
+      .select("id, reference, property_address, batch_share_cents, customer_email")
+      .eq("batch_id", batchId)
+      .order("created_at", { ascending: true })
+      .range(from, to),
+  );
 
-  if (!orders?.length) return { ok: false, error: "That submission has no properties on it." };
+  if (!orderRead.ok) {
+    return { ok: false, error: "The properties on that submission could not be read in full, so nothing was charged. " + orderRead.error };
+  }
+  const orders = orderRead.rows;
+
+  if (!orders.length) return { ok: false, error: "That submission has no properties on it." };
 
   const lines = orders
     .filter((o) => o.batch_share_cents !== null)
@@ -292,10 +312,22 @@ export async function markBatchPaid(input: {
     .update({ status: "accepted", paid_at: new Date().toISOString() })
     .eq("id", input.batchId);
 
-  const { data: orders } = await db
-    .from("eng_service_orders")
-    .select("id, reference, status, order_type, file_id")
-    .eq("batch_id", input.batchId);
+  /*
+   * PAGED. Every row here is RELEASED to fulfilment by the loop below. An order
+   * past the cut stays at awaiting_payment after the batch was paid, which is a
+   * customer who has been charged and whose work never starts.
+   */
+  const releaseRead = await readEvery<{
+    id: string; reference: string; status: string; order_type: string; file_id: string | null;
+  }>((from, to) =>
+    db
+      .from("eng_service_orders")
+      .select("id, reference, status, order_type, file_id")
+      .eq("batch_id", input.batchId)
+      .order("created_at", { ascending: true })
+      .range(from, to),
+  );
+  const orders = releaseRead.ok ? releaseRead.rows : null;
 
   let released = 0;
   for (const o of orders ?? []) {
@@ -356,10 +388,17 @@ export async function abandonBatch(
     return { ok: true, closed: 0 };
   }
 
-  const { data: orders } = await db
-    .from("eng_service_orders")
-    .select("id, status")
-    .eq("batch_id", batchId);
+  /* PAGED, for the reason the release above gives: a row past the cut keeps a
+   * state nobody meant to leave it in. */
+  const abandonRead = await readEvery<{ id: string; status: string }>((from, to) =>
+    db
+      .from("eng_service_orders")
+      .select("id, status")
+      .eq("batch_id", batchId)
+      .order("created_at", { ascending: true })
+      .range(from, to),
+  );
+  const orders = abandonRead.ok ? abandonRead.rows : null;
 
   let closed = 0;
   for (const o of orders ?? []) {
@@ -726,13 +765,34 @@ export async function recordExternalRefund(input: {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The order system is not configured." };
 
-  const { data: charge } = await db
+  /*
+   * THE CHARGE A REFUND ATTACHES TO, AND WHY A SECOND ONE CANNOT READ AS NONE.
+   *
+   * eng_order_payments has no unique constraint on (provider, provider_ref,
+   * kind): a provider event delivered twice, or a reconciliation sweep that
+   * recorded the same charge again, produces two rows. This was
+   * `.maybeSingle()` with the error discarded, so that state answered PGRST116,
+   * read as "no charge on file", and the refund was REFUSED against a charge
+   * the platform had recorded twice over.
+   *
+   * Oldest first. Both rows describe the same money, and the first one recorded
+   * is the one the order's timeline already refers to.
+   */
+  const { data: chargeRows, error: chargeErr } = await db
     .from("eng_order_payments")
     .select("id, order_id, amount_cents")
     .eq("provider", input.provider)
     .eq("provider_ref", input.chargeRef)
     .eq("kind", "charge")
-    .maybeSingle();
+    .order("created_at", { ascending: true })
+    .limit(1);
+
+  if (chargeErr) {
+    console.error(`[payments] could not read the charge for refund ${input.refundRef}: ${chargeErr.message}`);
+    return { ok: false, error: "Could not read the charge that refund is against." };
+  }
+
+  const charge = (chargeRows ?? [])[0] ?? null;
 
   /*
    * A refund against a charge this platform never recorded. Loud, and not an
@@ -1438,11 +1498,12 @@ export async function recordTechnicianVisit(fileId: string): Promise<void> {
   const db = supabaseAdmin();
   if (!db) return;
 
-  const { data: order } = await db
-    .from("eng_service_orders")
-    .select("id, technician_visited")
-    .eq("file_id", fileId)
-    .maybeSingle();
+  /*
+   * The LIVE order, not the latest one. A technician attending changes what a
+   * later decline refunds, so it has to be the engagement being worked rather
+   * than whichever quote was written most recently.
+   */
+  const order = await liveOrderForFile(fileId, "technician_visited");
   if (!order || order.technician_visited) return;
 
   await db.from("eng_service_orders").update({ technician_visited: true }).eq("id", order.id);
@@ -1487,11 +1548,9 @@ export async function deskPackageComplete(
   const db = supabaseAdmin();
   if (!db) return { applies: false, complete: false, blockers: [] };
 
-  const { data: order } = await db
-    .from("eng_service_orders")
-    .select("id, order_type, service_slug, tier")
-    .eq("file_id", fileId)
-    .maybeSingle();
+  /* The live order. What a desk job still needs is a question about the
+   * engagement in hand, and a cancelled quote alongside it answers nothing. */
+  const order = await liveOrderForFile(fileId, "order_type, service_slug, tier");
 
   if (!order || order.order_type !== "desk") return { applies: false, complete: false, blockers: [] };
 
@@ -1518,10 +1577,10 @@ export async function deskPackageComplete(
 export async function orderForFile(fileId: string) {
   const db = supabaseAdmin();
   if (!db) return null;
-  const { data } = await db
-    .from("eng_service_orders")
-    .select("id, reference, status, total_cents, inspection_fee_cents, technician_visited, refund_disclosure")
-    .eq("file_id", fileId)
-    .maybeSingle();
-  return data ?? null;
+  /* The live order, by the precedence in order-for-file.ts. The review
+   * surfaces are asking what this file is being worked under. */
+  return await liveOrderForFile(
+    fileId,
+    "reference, total_cents, inspection_fee_cents, technician_visited, refund_disclosure",
+  );
 }

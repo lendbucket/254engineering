@@ -196,13 +196,21 @@ export async function packageFor(actor: Actor | null, fileId: string): Promise<P
       })),
   }));
 
-  const { data: session } = await db
+  const { data: sessionRows, error: sessionErr } = await db
     .from("eng_review_sessions")
     .select("id, started_at")
     .eq("file_id", fileId)
     .eq("engineer_id", actor!.id)
     .is("ended_at", null)
-    .maybeSingle();
+    /* Oldest open session first. Two open sessions on one file is a state
+     * nothing prevents, and reading it as "none open" would show an engineer
+     * no session while they are inside one. */
+    .order("started_at", { ascending: true })
+    .limit(1);
+  if (sessionErr) {
+    console.error(`[engineer] could not read the open review session for ${fileId}: ${sessionErr.message}`);
+  }
+  const session = (sessionRows ?? [])[0] ?? null;
 
   let technician: PackageView["technician"] = null;
   if (file.assigned_tech_id) {
@@ -270,13 +278,19 @@ export async function openReview(
   const { data: file } = await db.from("eng_files").select("id, status, file_number").eq("id", fileId).maybeSingle();
   if (!file) return { ok: false, error: "That file does not exist." };
 
-  const { data: existing } = await db
+  const { data: existingRows, error: existingErr } = await db
     .from("eng_review_sessions")
     .select("id")
     .eq("file_id", fileId)
     .eq("engineer_id", actor.id)
     .is("ended_at", null)
-    .maybeSingle();
+    /* Oldest open session first, and the error is read below: this is the
+     * check that stops a second session being opened, so a duplicate reading
+     * as "none" is the one state that would open a third. */
+    .order("started_at", { ascending: true })
+    .limit(1);
+  if (existingErr) return { ok: false, error: `Could not check for an open review session: ${existingErr.message}` };
+  const existing = (existingRows ?? [])[0] ?? null;
   if (existing) return { ok: true, sessionId: existing.id as string };
 
   if (file.status === "evidence_submitted") {

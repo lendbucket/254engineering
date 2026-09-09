@@ -1,4 +1,5 @@
 import "server-only";
+import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import { writeAudit } from "./ops-audit";
 import { money } from "./ops-money";
@@ -85,12 +86,30 @@ export async function closePeriod(
     return { ok: false, error: "That account pays by card, so it has nothing to be invoiced for." };
   }
 
-  const { data: existing } = await db
+  /*
+   * A SECOND STATEMENT FOR A PERIOD MUST NOT READ AS NONE.
+   *
+   * There is no unique constraint on (account_id, period), so two statements
+   * for one month is a state this code can reach. `.maybeSingle()` with the
+   * error discarded answered PGRST116 for it and read it as "no statement for
+   * this period", which is the answer that ISSUES A THIRD and sends a customer
+   * a second invoice for a month they have already been billed for.
+   *
+   * Oldest first, because the earliest statement for a period is the one the
+   * customer was actually sent.
+   */
+  const { data: existingRows, error: existingErr } = await db
     .from("eng_statements")
     .select("id, reference, status, total_cents")
     .eq("account_id", accountId)
     .eq("period", period)
-    .maybeSingle();
+    .order("created_at", { ascending: true })
+    .limit(1);
+
+  if (existingErr) {
+    return { ok: false, error: `Could not check whether that period already has a statement: ${existingErr.message}` };
+  }
+  const existing = (existingRows ?? [])[0] ?? null;
 
   /*
    * An issued statement is closed. Reopening it to add a late order would change
@@ -126,15 +145,29 @@ export async function closePeriod(
    * Everything invoiced, delivered or underway, and not yet billed. A draft or
    * an awaiting_payment order is not billable: nothing has been agreed.
    */
-  const { data: orders, error: ordersError } = await db
-    .from("eng_service_orders")
-    .select("id, reference, property_address, service_slug, total_cents")
-    .eq("account_id", accountId)
-    .eq("billing_mode", "invoice")
-    .is("statement_id", null)
-    .in("status", ["paid", "in_fulfilment", "complete"]);
+  /*
+   * PAGED, BECAUSE AN ORDER PAST THE THOUSANDTH ROW WOULD NEVER BE BILLED.
+   *
+   * This is not a figure that could be reported as absent: every unbilled order
+   * here becomes a statement LINE, so a truncated read is revenue the firm
+   * silently never invoices, and the account looks settled.
+   */
+  const read = await readEvery<{
+    id: string; reference: string; property_address: string; service_slug: string; total_cents: number;
+  }>((from, to) =>
+    db
+      .from("eng_service_orders")
+      .select("id, reference, property_address, service_slug, total_cents")
+      .eq("account_id", accountId)
+      .eq("billing_mode", "invoice")
+      .is("statement_id", null)
+      .in("status", ["paid", "in_fulfilment", "complete"])
+      .order("created_at", { ascending: true })
+      .range(from, to),
+  );
 
-  if (ordersError) return { ok: false, error: "The unbilled orders could not be read." };
+  if (!read.ok) return { ok: false, error: `The unbilled orders could not be read. ${read.error}` };
+  const orders = read.rows;
 
   let lines = 0;
   let totalCents = 0;
@@ -179,11 +212,18 @@ export async function closePeriod(
    * that ran twice, or one that skipped an order, cannot leave a header that
    * disagrees with what is printed beneath it.
    */
-  const { data: allLines } = await db
-    .from("eng_statement_lines")
-    .select("amount_cents")
-    .eq("statement_id", statementId);
-  const headerTotal = (allLines ?? []).reduce((n, l) => n + Number(l.amount_cents), 0);
+  /*
+   * PAGED. The comment above says this recompute exists so a header cannot
+   * disagree with what is printed beneath it, and a truncated read is exactly
+   * what would make it disagree, on a number a customer is charged.
+   */
+  const lineRead = await readEvery<{ amount_cents: number }>((from, to) =>
+    db.from("eng_statement_lines").select("amount_cents").eq("statement_id", statementId).order("id", { ascending: true }).range(from, to),
+  );
+  if (!lineRead.ok) {
+    return { ok: false, error: `The statement lines could not be totalled, so the header was not written. ${lineRead.error}` };
+  }
+  const headerTotal = lineRead.rows.reduce((n, l) => n + Number(l.amount_cents), 0);
 
   await db.from("eng_statements").update({ total_cents: headerTotal }).eq("id", statementId);
 
@@ -192,7 +232,7 @@ export async function closePeriod(
     action: "statement.period_closed",
     entityType: "customer_account",
     entityId: accountId,
-    summary: `${reference}: ${period} closed with ${allLines?.length ?? 0} line(s), ${money(headerTotal)}`,
+    summary: `${reference}: ${period} closed with ${lineRead.rows.length} line(s), ${money(headerTotal)}`,
   });
 
   return {
@@ -319,12 +359,20 @@ export async function startStatementCheckout(
     return { ok: false, error: `That statement is ${statement.status} and is not awaiting payment.` };
   }
 
-  const { data: lines } = await db
-    .from("eng_statement_lines")
-    .select("description, amount_cents")
-    .eq("statement_id", statementId);
+  /*
+   * PAGED, and this one guards a CHARGE. A truncated read makes a correct
+   * statement fail the check below and refuse to take money, or, paired with a
+   * truncated header recompute, makes a wrong one pass.
+   */
+  const chargeRead = await readEvery<{ description: string; amount_cents: number }>((from, to) =>
+    db.from("eng_statement_lines").select("description, amount_cents").eq("statement_id", statementId).order("id", { ascending: true }).range(from, to),
+  );
+  if (!chargeRead.ok) {
+    return { ok: false, error: `The statement lines could not be read, so nothing was charged. ${chargeRead.error}` };
+  }
+  const lines = chargeRead.rows;
 
-  if (!lines?.length) return { ok: false, error: "That statement has no lines." };
+  if (!lines.length) return { ok: false, error: "That statement has no lines." };
 
   const lineTotal = lines.reduce((n, l) => n + Number(l.amount_cents), 0);
   if (lineTotal !== Number(statement.total_cents)) {

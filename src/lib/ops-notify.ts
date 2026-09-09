@@ -70,13 +70,22 @@ export async function preferencesFor(profileId: string, role: RoleKey): Promise<
 async function preferenceFor(profileId: string, kind: NotificationKind): Promise<Preference | null> {
   const db = supabaseAdmin();
   if (!db) return null;
-  const { data } = await db
+  /* Newest first: a second preference row for one person and kind would be a
+   * later change of mind, and that is the one to honour. A discarded error read
+   * the pair as "no preference" and fell back to the default, which is the
+   * quiet way to send somebody something they turned off. */
+  const { data, error } = await db
     .from("eng_notification_prefs")
     .select("kind, in_app, email, sms")
     .eq("profile_id", profileId)
     .eq("kind", kind)
-    .maybeSingle();
-  return (data as unknown as Preference) ?? null;
+    .order("updated_at", { ascending: false })
+    .limit(1);
+  if (error) {
+    console.error(`[notify] could not read the preference for ${kind}: ${error.message}`);
+    return null;
+  }
+  return ((data ?? [])[0] as unknown as Preference) ?? null;
 }
 
 export async function raise(input: RaiseInput): Promise<RaiseResult> {

@@ -1,4 +1,5 @@
 import "server-only";
+import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import type { Cents } from "./ops-money";
 import { recordTechnicianVisit } from "./ops-payments";
@@ -1316,10 +1317,32 @@ export async function techRoster(actor: Actor | null): Promise<RosterRow[]> {
   const ids = profiles.map((p) => p.id as string);
   const soon = new Date(Date.now() + 45 * 86_400_000).toISOString().slice(0, 10);
 
-  const [{ data: certs }, { data: files }, { data: ledger }, { data: creds }] = await Promise.all([
+  /*
+   * THE PAY LEDGER IS PAGED; THE OTHER THREE ARE NOT, AND THE DIFFERENCE IS THE
+   * RULE.
+   *
+   * The ledger read is every entry for every technician for all of history, and
+   * it produces the pending and paid TOTALS on the roster. A truncated read
+   * understates what the firm owes a person, which is the defect class with a
+   * person attached, so it pays for the round trips.
+   *
+   * Certifications and credentials are bounded per person by what a person can
+   * hold, and the files read is bounded by the roster's open work. They stay a
+   * single read, and if that ever stops being true this comment is where
+   * somebody should argue with it.
+   */
+  const payRead = await readEvery<{ tech_id: string; amount_cents: number | null; status: string }>((from, to) =>
+    db
+      .from("eng_tech_pay_ledger")
+      .select("tech_id, amount_cents, status")
+      .in("tech_id", ids)
+      .order("created_at", { ascending: true })
+      .range(from, to),
+  );
+
+  const [{ data: certs }, { data: files }, { data: creds }] = await Promise.all([
     db.from("eng_certifications").select("profile_id, service_slug, status").in("profile_id", ids),
     db.from("eng_files").select("assigned_tech_id, status").in("assigned_tech_id", ids),
-    db.from("eng_tech_pay_ledger").select("tech_id, amount_cents, status").in("tech_id", ids),
     db
       .from("eng_credentials")
       .select("profile_id, kind, expires_on")
@@ -1327,6 +1350,8 @@ export async function techRoster(actor: Actor | null): Promise<RosterRow[]> {
       .not("expires_on", "is", null)
       .lte("expires_on", soon),
   ]);
+
+  const ledger = payRead.ok ? payRead.rows : null;
 
   const OPEN = ["dispatched", "evidence_in_progress", "revisions_requested"];
   const DONE = ["evidence_submitted", "under_review", "sealed", "delivered", "closed"];
@@ -1645,12 +1670,18 @@ export async function checkFor(actor: Actor | null, serviceSlug: string): Promis
   const protocol = await publishedProtocolFor(serviceSlug);
   if (!protocol) return null;
 
-  const { data: cert } = await db
+  /* Newest first. A second certification row for one person and service would
+   * be a re-certification, and the current one is what governs whether they may
+   * take the work; a discarded error read the pair as "not certified". */
+  const { data: certRows, error: certErr } = await db
     .from("eng_certifications")
     .select("service_slug, status, template_id, score, attempts")
     .eq("profile_id", actor.id)
     .eq("service_slug", serviceSlug)
-    .maybeSingle();
+    .order("updated_at", { ascending: false })
+    .limit(1);
+  if (certErr) console.error(`[field] could not read the certification for ${serviceSlug}: ${certErr.message}`);
+  const cert = (certRows ?? [])[0] ?? null;
 
   const certification: CertificationRecord | null = cert
     ? {

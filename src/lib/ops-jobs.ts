@@ -1,4 +1,5 @@
 import "server-only";
+import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import { LEASE_SECONDS, BATCH_SIZE, nextState, type JobOutcome } from "./job-rules";
 import { business } from "@/config/business";
@@ -34,13 +35,25 @@ export type JobKind =
   | "metrics.rollup"
   | "errors.alert"
   /*
-   * Phase 12 Section 3. NOT the export itself: the RECORD that one was
+   * Phase 12 Section 2, the reporting prompt's Section 3. NOT the export itself: the RECORD that one was
    * assembled. docs/platform-state.md states the rule this follows, and
    * document.binder above is the precedent. A queued CSV is a CSV nobody
    * receives, because nothing in this platform delivers a file somebody is not
    * standing in front of.
    */
-  | "report.export";
+  | "report.export"
+  /*
+   * Phase 12 Section 3. Taking the rows a manifest already named.
+   *
+   * ON THE QUEUE RATHER THAN INLINE, AND IT IS THE ONE KIND HERE WHERE THAT IS
+   * NOT ABOUT LATENCY. Everything above left the request because somebody was
+   * waiting. This leaves because a deletion that dies halfway through a request
+   * is a deletion nobody can finish and nobody can describe: the queue gives it
+   * a row that survives the process, a lease, attempts, and a dead letter
+   * somebody has to look at. The manifest is written before this is enqueued,
+   * so the job carries an id and never a plan.
+   */
+  | "retention.sweep";
 
 export type JobPayload = Record<string, unknown>;
 
@@ -157,14 +170,40 @@ export async function enqueue(
    * backstop that makes a race fail loudly rather than duplicate.
    */
   if (key) {
-    const { data: live } = await db
+    /*
+     * THE GUARD THAT STOPS A DUPLICATE MUST NOT BE DEFEATED BY ONE.
+     *
+     * This was `.maybeSingle()` with the error discarded. PostgREST answers
+     * PGRST116 when MORE THAN ONE row matches as well as when none does, and
+     * two live jobs sharing a key is exactly the state this check exists to
+     * notice. So the moment a duplicate existed the lookup failed, the failure
+     * read as "no live job", and the enqueue added a THIRD. The guard broke in
+     * the one circumstance it was written for.
+     *
+     * Oldest first, because the earliest live job is the one this enqueue is a
+     * duplicate OF, and returning its id is what makes the caller's retry
+     * idempotent rather than merely quiet.
+     */
+    const { data: liveRows, error: liveErr } = await db
       .from("eng_jobs")
       .select("id")
       .eq("kind", kind)
       .eq("idempotency_key", key)
       .in("status", ["pending", "running"])
-      .maybeSingle();
+      .order("id", { ascending: true })
+      .limit(1);
 
+    /*
+     * A failed read is not an absence. Refusing here means the caller logs a
+     * failed enqueue, which is loud; carrying on would mean a second side
+     * effect nobody asked for.
+     */
+    if (liveErr) {
+      console.error(`[jobs] could not check for a live ${kind}: ${liveErr.message}`);
+      return { ok: false, error: `Could not check whether that work is already queued: ${liveErr.message}` };
+    }
+
+    const live = (liveRows ?? [])[0];
     if (live) return { ok: true, id: live.id as number, duplicate: true };
   }
 
@@ -326,19 +365,37 @@ export async function queueHealth(): Promise<QueueHealth | null> {
   const db = supabaseAdmin();
   if (!db) return null;
 
-  const { data, error } = await db
-    .from("eng_jobs")
-    .select("kind, status, run_after")
-    .in("status", ["pending", "running", "dead"]);
+  /*
+   * PAGED, AND THIS ONE TRUNCATES EXACTLY WHEN IT MATTERS.
+   *
+   * The comment below already says a failed read is not an empty queue. A
+   * TRUNCATED read is not a small queue either, and the difference is worse:
+   * this reads only pending, running and dead, so the set is empty on a healthy
+   * queue and only grows when the queue is BACKED UP. The one moment the depth
+   * figure is worth reading is the one moment it would have been capped at a
+   * thousand and reported calm.
+   *
+   * On production today the set is zero: 1,290 jobs, all done. That is why this
+   * is a deadline rather than a live defect, and why it is fixed before the
+   * deadline arrives.
+   */
+  const read = await readEvery<{ kind: string; status: string; run_after: string | null }>((from, to) =>
+    db
+      .from("eng_jobs")
+      .select("kind, status, run_after")
+      .in("status", ["pending", "running", "dead"])
+      .order("created_at", { ascending: true })
+      .range(from, to),
+  );
 
   /*
    * A failed read is null, not an empty queue. A status screen that reports
    * zero because it could not look is the exact shape of defect this section
    * exists to remove.
    */
-  if (error) return null;
+  if (!read.ok) return null;
 
-  const rows = data ?? [];
+  const rows = read.rows;
   const now = Date.now();
   const eligible = rows.filter(
     (r) => r.status === "pending" && Date.parse(r.run_after as string) <= now,

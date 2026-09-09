@@ -148,7 +148,7 @@ const PROBE_A = {
   requestedFor: "2026-09-04",
   statementId: "statement-a",
   day: "2026-09-01",
-  /* Phase 12 Section 3 added report.export, keyed on the report, the period,
+  /* Phase 12 Section 2, the reporting prompt's Section 3 added report.export, keyed on the report, the period,
    * the day and WHO asked: two people exporting the same report on the same day
    * are two events worth recording separately. Added here rather than the check
    * being loosened, which is what the comment above this object asks for. */
@@ -156,6 +156,12 @@ const PROBE_A = {
   period: "2026-08",
   at: "2026-09-04",
   actorId: "actor-a",
+  /* Phase 12 Section 3 added retention.sweep, keyed on the manifest alone,
+   * because the manifest IS the identity of a run: everything else about it
+   * lives in eng_retention_runs rather than in the payload. This audit went red
+   * on the first board run after it shipped, for the third time and for the
+   * same reason, and the field was added here rather than the check loosened. */
+  manifestId: "manifest-a",
 };
 const PROBE_B = {
   id: "b",
@@ -172,6 +178,7 @@ const PROBE_B = {
   period: "2026-09",
   at: "2026-09-05",
   actorId: "actor-b",
+  manifestId: "manifest-b",
 };
 
 /*
@@ -534,8 +541,28 @@ rec(
   const health = functionBody(jobsCode, "export async function queueHealth(");
   rec(
     "queueHealth returns null on a failed read rather than zeros",
-    /if \(error\) return null;/.test(health),
+    /if \(!read\.ok\) return null;/.test(health),
     "an unreadable queue is not a quiet one",
+  );
+
+  /*
+   * AND A TRUNCATED READ IS NOT A SMALL QUEUE.
+   *
+   * Phase 12 Section 3. The check above was written against `if (error)`, and
+   * it went red when the read was paged, which is the right thing for it to do:
+   * the pattern moved and somebody had to look. What it must not become is a
+   * looser pattern that passes on both, so it names the new one exactly.
+   *
+   * The new failure this guards is different from the old one. queueHealth
+   * reads only pending, running and dead, so its set is EMPTY on a healthy
+   * queue and grows only when the queue is backed up. A single request would
+   * therefore cap at a thousand precisely when the depth figure is worth
+   * reading, and report calm.
+   */
+  rec(
+    "and pages, because a backed up queue is when its set first exceeds one read",
+    /readEvery</.test(health) && !/\.in\("status", \["pending", "running", "dead"\]\);/.test(health),
+    "the one moment the depth is worth reading is the one moment a single request would have capped it",
   );
 
   const retry = functionBody(jobsCode, "export async function retryDeadJob(");

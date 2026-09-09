@@ -345,11 +345,20 @@ export async function invoiceAccount(actor: Author, fileId: string): Promise<Bil
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
 
-  const { data: account } = await db
+  /* A client can hold more than one account, one per site, so this is ordered
+   * and limited rather than asked for as a single row. Oldest first, which is
+   * the account the client has been billed against. A discarded error read two
+   * accounts as none and refused an invoice the client was entitled to. */
+  const { data: accountRows, error: accountErr } = await db
     .from("eng_customer_accounts")
     .select("id, status, billing_mode")
     .eq("client_id", file.client_id)
-    .maybeSingle();
+    .order("created_at", { ascending: true })
+    .limit(1);
+  if (accountErr) {
+    return { ok: false, error: `Could not read the ordering account for that client: ${accountErr.message}` };
+  }
+  const account = (accountRows ?? [])[0] ?? null;
 
   const canInvoice = Boolean(account && account.status === "active" && account.billing_mode === "invoice");
   const refusal = refusedBecause("invoiced", canInvoice, file.client_price_cents !== null);

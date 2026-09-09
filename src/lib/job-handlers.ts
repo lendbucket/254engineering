@@ -1,4 +1,5 @@
 import "server-only";
+import { READ_CAP } from "./bounded-read";
 import { createHash } from "node:crypto";
 import { registerJob, enqueue, queueEmail } from "./ops-jobs";
 import type { JobOutcome } from "./job-rules";
@@ -9,6 +10,7 @@ import { opsNotification } from "./email-templates";
 import { issueStatement } from "./ops-statements";
 import { reconcileAll } from "./ops-reconcile";
 import { rollupDay } from "./ops-metrics";
+import { runRetention } from "./ops-retention";
 import { errorAlert } from "./email-templates";
 import { RELEASE, ENVIRONMENT } from "./ops-observability";
 import { business } from "@/config/business";
@@ -439,7 +441,8 @@ registerJob("errors.alert", {
     const { data: events } = await client
       .from("eng_error_events")
       .select("fingerprint")
-      .gte("occurred_at", since);
+      .gte("occurred_at", since)
+      .range(0, READ_CAP - 1);
 
     const inWindow = new Map<string, number>();
     for (const e of events ?? []) {
@@ -503,7 +506,7 @@ registerJob("errors.alert", {
 /**
  * Record that a report left the building.
  *
- * Phase 12 Section 3. This does NOT assemble the CSV. The file is built and
+ * Phase 12 Section 2, the reporting prompt's Section 3. This does NOT assemble the CSV. The file is built and
  * returned inside the request, because the person who clicked Export is
  * standing in front of it, and docs/platform-state.md has the rule this
  * follows: a queued CSV is a CSV nobody receives. Nothing in this platform
@@ -556,6 +559,97 @@ registerJob("report.export", {
     });
 
     if (error) return { kind: "retry", error: error.message };
+    return { kind: "done" };
+  },
+});
+
+// ----------------------------------------------------------- retention.sweep
+
+/**
+ * Take the rows a manifest already named.
+ *
+ * Phase 12 Section 3. This handler does not decide anything. The table, the
+ * rule, the cutoff, the mode, the exact set and the rollups that had to
+ * reconcile were all settled by planRetention and written to
+ * eng_retention_runs before this row existed, and runRetention reads them back
+ * from there rather than from this payload. The payload carries one id.
+ *
+ * WHY THE PAYLOAD IS DELIBERATELY THIN
+ * -------------------------------------
+ * A payload carrying the plan would be a plan that survives in the queue and
+ * nowhere else. Then a manifest edited, a policy changed, or an operator
+ * cancelling a run would all be invisible to a job already enqueued, and the
+ * deletion would happen on terms nobody could look up afterwards. One id means
+ * the database is the single account of what this run is.
+ *
+ * WHAT A RETRY DOES
+ * -----------------
+ * Resumes. runRetention writes progress after every batch and yields after a
+ * bounded number of them, so a retry continues from the manifest's own
+ * affected_count rather than starting the sweep again. That is why a retry here
+ * is safe in a way a retry of a naive delete loop would not be.
+ */
+registerJob("retention.sweep", {
+  /*
+   * The manifest id, which IS the identity of the run. A second enqueue of the
+   * same manifest finds the live job rather than starting a parallel sweep of
+   * the same rows, which is the one duplication that would produce a genuinely
+   * confusing outcome: two workers reconciling the same intent against each
+   * other's deletions.
+   */
+  idempotency: (p) => keyOf("retention-sweep", p.manifestId),
+  run: async (p): Promise<JobOutcome> => {
+    const manifestId = typeof p.manifestId === "string" ? p.manifestId : "";
+    if (!manifestId) return { kind: "fatal", error: "A retention sweep needs a manifest id." };
+
+    const result = await runRetention(manifestId);
+    if (!result.ok) {
+      return result.retryable
+        ? { kind: "retry", error: result.because }
+        : { kind: "fatal", error: result.because };
+    }
+
+    const r = result.report;
+    console.warn(
+      `[retention] ${r.mode} on ${r.table}: ${r.affected} of ${r.intended}, ` +
+        `${r.reconciled ? "reconciled" : "NOT RECONCILED"}`,
+    );
+
+    /*
+     * A run that finished but did not reconcile is DONE and NOT FINE. It is not
+     * retried, because retrying would delete nothing new and hide the
+     * discrepancy behind an eventual success; the manifest carries the
+     * difference and says what it means, and the audit trail row below is what
+     * somebody reads.
+     */
+    /*
+     * THE TRAIL NAMES WHO AUTHORISED IT, AND IT DID NOT AT FIRST.
+     *
+     * actor_id was null here while the manifest beside it named somebody, which
+     * is backwards for the one action in this platform that destroys a record:
+     * the regulatory memory is the place that most needs the name. Found by
+     * reading eng_audit_events next to eng_retention_runs rather than by any
+     * check. The actor comes off the MANIFEST rather than out of this payload,
+     * for the same reason everything else here does.
+     */
+    const { error } = await (db()?.from("eng_audit_events").insert({
+      actor_id: r.actorId,
+      actor_email: r.actorEmail,
+      actor_role: r.actorRole,
+      action: r.mode === "execute" ? "retention.executed" : "retention.dry_run",
+      entity_type: "retention_run",
+      entity_id: r.manifestId,
+      summary:
+        `Retention ${r.mode === "execute" ? "deleted" : "would have deleted"} ${r.affected} row(s) ` +
+        `from ${r.table}, having intended ${r.intended}. ${r.reconciled ? "Reconciled." : "DID NOT RECONCILE."} ` +
+        `Authorised by ${r.actorRole ?? "nobody the manifest names"}.`,
+      diff: {
+        table: r.table, mode: r.mode, intended: r.intended, affected: r.affected,
+        reconciled: r.reconciled, actorRole: r.actorRole,
+      },
+    }) ?? { error: null });
+
+    if (error) return { kind: "retry", error: `The sweep finished and its audit row did not write: ${error.message}` };
     return { kind: "done" };
   },
 });

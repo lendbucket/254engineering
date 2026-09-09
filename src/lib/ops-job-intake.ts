@@ -423,11 +423,22 @@ async function accountCanInvoice(clientId: string | null): Promise<boolean> {
   const db = supabaseAdmin();
   if (!db) return false;
 
-  const { data } = await db
+  /* Oldest first, for the reason ops-job-billing gives: one client, one
+   * account per site, and the first opened is the one billed against. This
+   * decides whether a job may be taken on terms, so two accounts reading as
+   * none refused a customer who has an account. */
+  const { data: rows, error } = await db
     .from("eng_customer_accounts")
     .select("id, status, billing_mode, credit_limit_cents")
     .eq("client_id", clientId)
-    .maybeSingle();
+    .order("created_at", { ascending: true })
+    .limit(1);
+
+  if (error) {
+    console.error(`[intake] could not read the account for client ${clientId}: ${error.message}`);
+    return false;
+  }
+  const data = (rows ?? [])[0] ?? null;
 
   if (!data) return false;
   if (data.status !== "active") return false;

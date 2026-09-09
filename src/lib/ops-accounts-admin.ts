@@ -1,4 +1,5 @@
 import "server-only";
+import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import { accountBalance } from "./ops-bulk";
 import { creditDecision } from "./account-credit";
@@ -48,26 +49,61 @@ export async function accountRows(): Promise<AccountRow[]> {
   const db = supabaseAdmin();
   if (!db) return [];
 
-  const { data: accounts } = await db
-    .from("eng_customer_accounts")
-    .select("id, client_id, status, billing_mode, credit_limit_cents, net_days, created_at")
-    .order("created_at", { ascending: true });
+  /*
+   * FIVE READS, AND THE ORDERS ONE BREAKS FIRST BY A LONG WAY.
+   *
+   * The roster itself is bounded by how many accounts the firm has. The orders
+   * lookup is every order EVER placed by every one of them, which is the
+   * account count multiplied by all of history, and it feeds the per account
+   * order counts on the screen.
+   *
+   * Each is paged separately rather than the whole thing being given one bound,
+   * because they truncate at different sizes and a shared bound would hide
+   * which one ran out.
+   */
+  const accountRead = await readEvery<Record<string, unknown>>((from, to) =>
+    db
+      .from("eng_customer_accounts")
+      .select("id, client_id, status, billing_mode, credit_limit_cents, net_days, created_at")
+      .order("created_at", { ascending: true })
+      .range(from, to),
+  );
 
-  if (!accounts?.length) return [];
+  const accounts = accountRead.ok ? accountRead.rows : [];
+  if (!accounts.length) return [];
 
   const ids = accounts.map((a) => a.id as string);
   const clientIds = accounts.map((a) => a.client_id as string);
 
-  const [{ data: clients }, { data: orders }, { data: users }, { data: statements }] = await Promise.all([
-    db.from("eng_clients").select("id, name").in("id", clientIds),
-    db.from("eng_service_orders").select("account_id, created_at").in("account_id", ids),
-    db.from("eng_customer_users").select("account_id").in("account_id", ids).eq("status", "active"),
-    db
-      .from("eng_statements")
-      .select("id, account_id, reference, period, status, total_cents")
-      .in("account_id", ids)
-      .eq("status", "open"),
+  const [clientRead, orderRead, userRead, statementRead] = await Promise.all([
+    // readEvery: a client missing from this map renders an account with no name.
+    readEvery<Record<string, unknown>>((from, to) =>
+      db.from("eng_clients").select("id, name").in("id", clientIds).order("id", { ascending: true }).range(from, to),
+    ),
+    // readEvery: this is the order COUNT per account, and a partial count is a wrong one.
+    readEvery<Record<string, unknown>>((from, to) =>
+      db.from("eng_service_orders").select("account_id, created_at").in("account_id", ids).order("created_at", { ascending: true }).range(from, to),
+    ),
+    // readEvery: the seat count on an account, billed on, so it cannot be partial.
+    readEvery<Record<string, unknown>>((from, to) =>
+      db.from("eng_customer_users").select("account_id").in("account_id", ids).eq("status", "active").order("id", { ascending: true }).range(from, to),
+    ),
+    // readEvery: an open statement missed here is a bill the screen says does not exist.
+    readEvery<Record<string, unknown>>((from, to) =>
+      db
+        .from("eng_statements")
+        .select("id, account_id, reference, period, status, total_cents")
+        .in("account_id", ids)
+        .eq("status", "open")
+        .order("created_at", { ascending: true })
+        .range(from, to),
+    ),
   ]);
+
+  const clients = clientRead.ok ? clientRead.rows : null;
+  const orders = orderRead.ok ? orderRead.rows : null;
+  const users = userRead.ok ? userRead.rows : null;
+  const statements = statementRead.ok ? statementRead.rows : null;
 
   const nameOf = new Map((clients ?? []).map((c) => [c.id as string, c.name as string]));
   const thisPeriod = periodOf(new Date());
@@ -162,12 +198,21 @@ export async function convertClientToAccount(
     };
   }
 
-  const { data: existing } = await db
+  /* Oldest first: if a client somehow has two accounts for one site, the
+   * first one opened is the one that has been billed against. A discarded
+   * error read that as no account and would have opened a third. */
+  const { data: existingRows, error: existingErr } = await db
     .from("eng_customer_accounts")
     .select("id")
     .eq("client_id", clientId)
     .eq("site", site)
-    .maybeSingle();
+    .order("created_at", { ascending: true })
+    .limit(1);
+
+  if (existingErr) {
+    return { ok: false, error: `Could not check whether that client already has an account: ${existingErr.message}` };
+  }
+  const existing = (existingRows ?? [])[0] ?? null;
 
   if (existing) {
     return { ok: true, accountId: existing.id as string, alreadyExisted: true };

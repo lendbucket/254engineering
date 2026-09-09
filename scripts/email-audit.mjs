@@ -284,6 +284,22 @@ if (templates.length === 0) {
      * anything and neither imports the gate. */
     "src/app/portal/(app)/suppressions/page.tsx",
     "src/app/api/portal/suppressions/route.ts",
+    /*
+     * And the deletion request module, which WRITES to the list and never
+     * reads the gate.
+     *
+     * Somebody asking to be forgotten has unambiguously asked not to be
+     * written to, and stopping marketing is the one part of that the firm can
+     * do immediately and without a ruling from counsel. So recording a request
+     * suppresses the address in the same motion.
+     *
+     * It is a WRITER rather than a gate reader, and the split above is what
+     * makes that distinction assertable: a transactional send must never
+     * consult this list, and this file does not, because somebody who asked
+     * to be forgotten is still owed the receipt for what they already paid
+     * for.
+     */
+    "src/lib/deletion-requests.ts",
   ];
 
   const readers = [];
@@ -324,6 +340,74 @@ if (templates.length === 0) {
         ? `nothing imports ${SUPPRESSION_GATE} at all, so the announcement path is not consulting the list either`
         : "",
   );
+
+  /*
+   * A VOIDED ROW MUST STOP COUNTING IN THE GATE, AND NOWHERE ELSE WILL DO.
+   *
+   * 0032 made a consent record undeletable and broke the one screen that had a
+   * Remove action, for the narrow case of an operator mistyping an address on a
+   * telephone call. 0034 keeps the row and marks it instead, which is better
+   * than the delete it replaces because a deleted typo left no trace that
+   * anybody had mistyped.
+   *
+   * The consequence is that the row has to stop counting SOMEWHERE, and there
+   * is exactly one right place: isSuppressed, which is the only thing that asks
+   * whether an address is suppressed. Put the filter on the screen instead and
+   * the list looks corrected while the customer goes on hearing nothing, which
+   * is the failure with a person attached.
+   *
+   * Asserted against the source of the gate rather than against a live row,
+   * because the live half of this belongs to the suppression proof and this
+   * audit's job is that the gate is shaped right.
+   */
+  {
+    const src = readFileSync("src/lib/marketing-suppression.ts", "utf8");
+    const gate = src.slice(src.indexOf("export async function isSuppressed"));
+    const body = gate.slice(0, gate.indexOf("\n}"));
+
+    rec(
+      "the suppression gate ignores a row somebody marked as a typing mistake",
+      /\.is\("voided_at", null\)/.test(body),
+      "0034 keeps a mistyped suppression rather than deleting it, so the gate is the one place it can stop counting",
+    );
+
+    /*
+     * A VOID CANNOT LOSE THE REQUEST IT IS CORRECTING.
+     *
+     * Operator ruling at gate 2, and the failure it prevents is invisible: the
+     * caller asked not to be contacted, the address was typed wrong, and
+     * voiding the wrong row on its own un-suppresses somebody who never asked
+     * while leaving the actual request nowhere. The list ends up accurate about
+     * a mistake and silent about the thing the mistake was about.
+     *
+     * The schema refuses a void that names neither a replacement nor a reason
+     * there is none, so this is not the guard. What this asserts is that the
+     * APPLICATION cannot call the void without deciding, which is what makes
+     * the refusal a sentence somebody reads rather than a database error at the
+     * end of a telephone call.
+     */
+    const voidFn = src.slice(src.indexOf("export async function voidOperatorEntry"));
+    const signature = voidFn.slice(0, voidFn.indexOf("): Promise"));
+
+    rec(
+      "voiding a suppression requires deciding what was meant instead",
+      /replacement: VoidReplacement/.test(signature) && !/replacement\?:/.test(signature),
+      "not optional and with no default, because a default would make the case that loses a request the easy one",
+    );
+
+    rec(
+      "and the replacement is suppressed before the void, not after",
+      voidFn.indexOf("await suppress(") !== -1 &&
+        voidFn.indexOf("await suppress(") < voidFn.indexOf(".update({"),
+      "if it went second, a failure would leave the list saying nothing rather than saying something wrong, and a lost request is the one nobody can see",
+    );
+
+    rec(
+      "and nothing in the module deletes from the suppression list any more",
+      !/from\("eng_marketing_suppressions"\)\s*\n?\s*\.delete\(\)/.test(src) && !/\.delete\(\)/.test(src),
+      "0032 refuses it at the database; a call that would be refused is a screen that reports a failure to somebody who took a telephone call",
+    );
+  }
 
   rec(
     `and only declared surfaces read the suppression list at all (${readers.length} readers)`,

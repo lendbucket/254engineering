@@ -1,4 +1,5 @@
 import "server-only";
+import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import { markAbandoned, markPaid, paymentProvider } from "./ops-payments";
 import { event } from "./ops-intake";
@@ -91,13 +92,26 @@ export async function unreconciledOrders(): Promise<
 > {
   const db = supabaseAdmin();
   if (!db) return [];
-  const { data } = await db
-    .from("eng_service_orders")
-    .select("id, reference, status, total_cents, created_at")
-    .eq("status", "awaiting_payment")
-    .order("created_at", { ascending: true });
+  /*
+   * PAGED. The comment on this module asserts "the number waiting on payment is
+   * small by definition", and that is the assumption at risk rather than a
+   * guarantee: awaiting_payment is exactly the state that fills up when a
+   * webhook stops arriving, which is the failure this whole module was built
+   * for after three orders sat unrecorded.
+   */
+  const read = await readEvery<{
+    id: string; reference: string; status: string; total_cents: number | null; created_at: string;
+  }>((from, to) =>
+    db
+      .from("eng_service_orders")
+      .select("id, reference, status, total_cents, created_at")
+      .eq("status", "awaiting_payment")
+      .order("created_at", { ascending: true })
+      .range(from, to),
+  );
+  const data = read.ok ? read.rows : [];
 
-  return (data ?? []).map((o) => ({
+  return data.map((o) => ({
     id: o.id as string,
     reference: o.reference as string,
     status: o.status as string,
@@ -134,22 +148,44 @@ export async function ordersNeedingAttention(): Promise<OrderNeedingAttention[]>
   const db = supabaseAdmin();
   if (!db) return [];
 
-  const { data: orders } = await db
-    .from("eng_service_orders")
-    .select(
-      "id, reference, status, service_slug, customer_email, property_address, total_cents, placed_at, created_at",
-    )
-    .eq("status", "awaiting_payment")
-    .order("created_at", { ascending: true });
+  // readEvery: an order missing here is one nobody chases for its money.
+  const orderRead = await readEvery<Record<string, unknown>>((from, to) =>
+    db
+      .from("eng_service_orders")
+      .select(
+        "id, reference, status, service_slug, customer_email, property_address, total_cents, placed_at, created_at",
+      )
+      .eq("status", "awaiting_payment")
+      .order("created_at", { ascending: true })
+      .range(from, to),
+  );
 
-  if (!orders?.length) return [];
+  const orders = orderRead.ok ? orderRead.rows : [];
+  if (!orders.length) return [];
 
   const ids = orders.map((o) => o.id as string);
 
-  const [{ data: payments }, { data: checkouts }] = await Promise.all([
-    db.from("eng_order_payments").select("order_id").in("order_id", ids).eq("kind", "charge"),
-    db.from("eng_order_events").select("order_id, detail").in("order_id", ids).eq("event", "checkout.started"),
+  /*
+   * THESE TWO TRUNCATE BEFORE THE ORDER LIST DOES, AND THAT IS THE SHARP PART.
+   *
+   * An order has at most one charge but can have MANY events, so the events
+   * lookup reaches a thousand rows first. When it does, an order whose checkout
+   * session is past the cut looks like an order that never started one, and the
+   * screen reports it as stuck for a reason that is not true.
+   */
+  const [paymentRead, checkoutRead] = await Promise.all([
+    // readEvery: a payment missed here makes a paid order read as unpaid.
+    readEvery<{ order_id: string }>((from, to) =>
+      db.from("eng_order_payments").select("order_id").in("order_id", ids).eq("kind", "charge").order("created_at", { ascending: true }).range(from, to),
+    ),
+    // readEvery: an event missed here reports an order stuck for a reason that is not true.
+    readEvery<{ order_id: string; detail: unknown }>((from, to) =>
+      db.from("eng_order_events").select("order_id, detail").in("order_id", ids).eq("event", "checkout.started").order("created_at", { ascending: true }).range(from, to),
+    ),
   ]);
+
+  const payments = paymentRead.ok ? paymentRead.rows : null;
+  const checkouts = checkoutRead.ok ? checkoutRead.rows : null;
 
   const paid = new Set((payments ?? []).map((p) => p.order_id as string));
   const sessions = new Map<string, string>();

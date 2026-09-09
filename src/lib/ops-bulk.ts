@@ -1,4 +1,5 @@
 import "server-only";
+import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import { catalogFor, orderBlockedReason, type CatalogEntry } from "@data/catalog";
 import { isPrelaunch } from "./launch";
@@ -333,19 +334,41 @@ export async function accountBalance(accountId: string): Promise<{
   const db = supabaseAdmin();
   if (!db) return { issuedUnpaidCents: null, unbilledCents: null, outstandingCents: null, oldestUnpaidDays: null };
 
-  const { data: statements, error: sErr } = await db
-    .from("eng_statements")
-    .select("total_cents, due_at")
-    .eq("account_id", accountId)
-    .eq("status", "issued");
+  /*
+   * BOTH PAGED, BECAUSE THIS IS THE CREDIT GATE.
+   *
+   * These two figures decide whether an account may place another order on
+   * invoice. Truncating either makes the exposure read LOW, which is the
+   * direction that grants credit past the limit rather than refusing it, so
+   * the failure is silent and expensive rather than loud and safe.
+   */
+  const statementRead = await readEvery<{ total_cents: number | null; due_at: string | null }>((from, to) =>
+    db
+      .from("eng_statements")
+      .select("total_cents, due_at")
+      .eq("account_id", accountId)
+      .eq("status", "issued")
+      .order("created_at", { ascending: true })
+      .range(from, to),
+  );
 
-  const { data: unbilled, error: uErr } = await db
-    .from("eng_service_orders")
-    .select("total_cents")
-    .eq("account_id", accountId)
-    .eq("billing_mode", "invoice")
-    .is("statement_id", null)
-    .in("status", ["paid", "in_fulfilment", "complete"]);
+  // readEvery: exposure that reads low grants credit, so it may never be partial.
+  const unbilledRead = await readEvery<{ total_cents: number | null }>((from, to) =>
+    db
+      .from("eng_service_orders")
+      .select("total_cents")
+      .eq("account_id", accountId)
+      .eq("billing_mode", "invoice")
+      .is("statement_id", null)
+      .in("status", ["paid", "in_fulfilment", "complete"])
+      .order("created_at", { ascending: true })
+      .range(from, to),
+  );
+
+  const statements = statementRead.ok ? statementRead.rows : null;
+  const sErr = statementRead.ok ? null : { message: statementRead.error };
+  const unbilled = unbilledRead.ok ? unbilledRead.rows : null;
+  const uErr = unbilledRead.ok ? null : { message: unbilledRead.error };
 
   /*
    * A failed read is unknown, not zero. creditDecision refuses on an unknown

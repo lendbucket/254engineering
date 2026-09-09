@@ -1,5 +1,7 @@
 import "server-only";
+import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
+import { orderForFile as liveOrderForFile } from "./order-for-file";
 import { writeAudit } from "./ops-audit";
 import { isKnown, money, type Cents } from "./ops-money";
 import { can, type Actor } from "./ops-authz";
@@ -126,11 +128,13 @@ export async function accrueForDelivery(fileId: string): Promise<AccrualResult> 
 
   const partnerId = file.partner_id as string;
 
-  const { data: order } = await db
-    .from("eng_service_orders")
-    .select("id, reference, total_cents")
-    .eq("file_id", fileId)
-    .maybeSingle();
+  /*
+   * The LIVE order, by the precedence in order-for-file.ts, and on this call
+   * site the difference is money: a commission is owed against the engagement
+   * that took payment, so choosing the most recent row would attach a partner's
+   * earnings to a cancelled quote that never paid anybody anything.
+   */
+  const order = await liveOrderForFile(fileId, "reference, total_cents");
 
   const occurredAt = new Date((file.delivered_at as string | null) ?? Date.now());
   const terms = await termsInForce(partnerId, occurredAt);
@@ -585,12 +589,26 @@ export async function closePartnerPeriod(
 
   const cutoff = new Date(Math.min(periodEnd.getTime(), now.getTime()));
 
-  const { data: existing } = await db
+  /*
+   * The same as the customer side, and the same reason: no unique constraint on
+   * (partner_id, period), so two statements for a month is reachable, and a
+   * discarded PGRST116 read it as none and issued another. On this side the
+   * consequence is paying a partner twice for the same period.
+   *
+   * Oldest first, because the earliest is the one the partner was sent.
+   */
+  const { data: existingRows, error: existingErr } = await db
     .from("eng_partner_statements")
     .select("id, reference, status, total_cents")
     .eq("partner_id", partnerId)
     .eq("period", period)
-    .maybeSingle();
+    .order("created_at", { ascending: true })
+    .limit(1);
+
+  if (existingErr) {
+    return { ok: false, error: `Could not check whether that period already has a statement: ${existingErr.message}` };
+  }
+  const existing = (existingRows ?? [])[0] ?? null;
 
   /*
    * An issued statement is closed, exactly as on the customer side. A late
@@ -609,15 +627,40 @@ export async function closePartnerPeriod(
     };
   }
 
-  const { data: claimable } = await db
-    .from("eng_partner_entries")
-    .select("id, amount_cents, status, kind")
-    .eq("partner_id", partnerId)
-    .is("statement_id", null)
-    .lte("payable_at", cutoff.toISOString());
+  /*
+   * PAGED, BECAUSE A CLAIM CANNOT BE PARTIAL.
+   *
+   * Every row here is claimed into the statement by the update below and paid
+   * on. A truncated read bills the partner for the first thousand entries and
+   * silently leaves the rest unclaimed, so the issued statement is short and
+   * the backlog grows at every close without anybody seeing it.
+   *
+   * There is no honest "some of it" for this: it is money owed to a person.
+   */
+  const claim = await readEvery<{ id: string; amount_cents: number | null; status: string; kind: string }>(
+    (from, to) =>
+      db
+        .from("eng_partner_entries")
+        .select("id, amount_cents, status, kind")
+        .eq("partner_id", partnerId)
+        .is("statement_id", null)
+        .lte("payable_at", cutoff.toISOString())
+        .order("occurred_at", { ascending: true })
+        .range(from, to),
+  );
 
-  const payable = (claimable ?? []).filter((e) => e.status === "accrued" && e.amount_cents !== null);
-  const blocked = (claimable ?? []).filter((e) => e.status === "blocked").length;
+  if (!claim.ok) {
+    return {
+      ok: false,
+      error:
+        "The partner ledger could not be read in full, so nothing was claimed and no statement was issued. " +
+        claim.error,
+    };
+  }
+
+  const claimable = claim.rows;
+  const payable = claimable.filter((e) => e.status === "accrued" && e.amount_cents !== null);
+  const blocked = claimable.filter((e) => e.status === "blocked").length;
 
   const net = netOf(
     payable.map((e) => ({
@@ -681,10 +724,20 @@ export async function closePartnerPeriod(
    * what this run intended to attach, so a close that raced with another
    * cannot leave a header disagreeing with its own lines.
    */
-  const { data: attached } = await db
-    .from("eng_partner_entries")
-    .select("amount_cents, status")
-    .eq("statement_id", statementId);
+  /*
+   * PAGED, for the reason the comment above already gives: this recompute
+   * exists so a header cannot disagree with its own lines, and a truncated read
+   * is precisely what would make it disagree.
+   */
+  const attachedRead = await readEvery<{ amount_cents: number | null; status: string }>((from, to) =>
+    db
+      .from("eng_partner_entries")
+      .select("amount_cents, status")
+      .eq("statement_id", statementId)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  const attached = attachedRead.ok ? attachedRead.rows : null;
 
   const headerNet = netOf(
     (attached ?? []).map((e) => ({
@@ -915,15 +968,29 @@ export async function partnerBalance(
   const db = supabaseAdmin();
   if (!db) return unknown;
 
-  const { data, error } = await db
-    .from("eng_partner_entries")
-    .select("amount_cents, status, payable_at, statement_id")
-    .eq("partner_id", partnerId);
+  /*
+   * PAGED. This is a LIFETIME read with no period bound, and the figure is what
+   * a partner is paid on, so the highest volume partner is both the first to
+   * exceed a page and the one it costs most. An absence is available here,
+   * because `unknown` is already the shape of this function's failure, but the
+   * honest answer is the whole ledger and that is cheap enough to fetch.
+   */
+  const ledger = await readEvery<{
+    amount_cents: number | null; status: string; payable_at: string; statement_id: string | null;
+  }>((from, to) =>
+    db
+      .from("eng_partner_entries")
+      .select("amount_cents, status, payable_at, statement_id")
+      .eq("partner_id", partnerId)
+      .order("occurred_at", { ascending: true })
+      .range(from, to),
+  );
 
-  if (error) {
-    console.error("[partner] the ledger could not be read:", error.message);
+  if (!ledger.ok) {
+    console.error("[partner] the ledger could not be read:", ledger.error);
     return unknown;
   }
+  const data = ledger.rows;
 
   let payable = 0;
   let held = 0;

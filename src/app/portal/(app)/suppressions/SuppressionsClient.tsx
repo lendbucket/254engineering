@@ -112,44 +112,164 @@ export function AddSuppression() {
 }
 
 /**
- * Undo a row somebody typed wrong.
+ * Mark a row somebody typed wrong.
+ *
+ * IT USED TO DELETE THE ROW AND SAY "Removing". 0032 made a consent record
+ * undeletable, and the trigger's own message says what to do instead: keep the
+ * row and record that it was a mistake. That is better than the delete it
+ * replaces, because a deleted typo left no trace that anybody had mistyped.
+ *
+ * SO THE BUTTON NOW ASKS WHY. 0034 refuses a void with no reason at the
+ * database, and the person who knows why is the person standing here. It is one
+ * field rather than a dialog because a confirmation step somebody clicks
+ * through adds friction without adding a fact.
  *
  * Only rendered for a row nobody clicked a link to produce. The server refuses
- * the other case against the row itself, whatever this component does, because
- * a screen is a place a filter goes missing.
+ * the other case against the row itself, and 0034 makes it unrepresentable in
+ * the schema besides, because a screen is a place a filter goes missing.
  */
-export function RemoveSuppression({ email }: { email: string }) {
+export function VoidSuppression({ email }: { email: string }) {
   const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [because, setBecause] = useState("");
+  const [instead, setInstead] = useState("");
+  const [noneBecause, setNoneBecause] = useState("");
+  const [noReplacement, setNoReplacement] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function remove() {
+  async function mark() {
+    if (!because.trim()) {
+      setError("Say what was wrong with it.");
+      return;
+    }
+    if (!noReplacement && !instead.trim()) {
+      setError("What should it have said? They still asked not to be contacted.");
+      return;
+    }
+    if (noReplacement && !noneBecause.trim()) {
+      setError("Say why there is no correct address.");
+      return;
+    }
     setBusy(true);
     setError(null);
-    const res = await fetch(`/api/portal/suppressions?email=${encodeURIComponent(email)}`, {
-      method: "DELETE",
-    });
+    const params = new URLSearchParams({ email, because: because.trim() });
+    if (noReplacement) params.set("noReplacementBecause", noneBecause.trim());
+    else params.set("instead", instead.trim());
+    const res = await fetch(`/api/portal/suppressions?${params.toString()}`, { method: "DELETE" });
     const body = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
     setBusy(false);
     if (!res.ok || !body.ok) {
-      setError(body.error ?? "That could not be removed.");
+      setError(body.error ?? "That could not be marked.");
       return;
     }
+    setOpen(false);
+    setBecause("");
+    setInstead("");
+    setNoneBecause("");
+    setNoReplacement(false);
     router.refresh();
   }
 
-  return (
-    <div className="flex flex-col items-end gap-1">
+  if (!open) {
+    return (
       <button
         type="button"
-        onClick={remove}
-        disabled={busy}
-        className="inline-flex min-h-[var(--tap-target)] items-center text-[12.5px] font-semibold text-[var(--navy)] underline disabled:opacity-60"
+        onClick={() => setOpen(true)}
+        className="inline-flex min-h-[var(--tap-target)] items-center text-[12.5px] font-semibold text-[var(--navy)] underline"
       >
-        {busy ? "Removing" : "Typed in error"}
+        Typed in error
       </button>
+    );
+  }
+
+  return (
+    /*
+     * min-w-0 and no fixed maximum below the small breakpoint, because a flex
+     * item defaults to min-width:auto and will not shrink past the intrinsic
+     * width of the input inside it. At 320 that pushed the panel 4px past
+     * itself, which mobile-overflow-audit measures as the scroll a person
+     * would actually feel.
+     */
+    <div className="flex w-full min-w-0 flex-col items-stretch gap-2 sm:max-w-[280px] sm:items-end">
+      <label className="w-full text-left">
+        <span className="block text-[12px] font-semibold text-[var(--ink-soft)]">
+          What was wrong with it?
+        </span>
+        <input
+          type="text"
+          value={because}
+          onChange={(e) => setBecause(e.target.value)}
+          placeholder="Wrong address typed on the call"
+          className="mt-1 w-full min-w-0 rounded-[var(--radius-sm)] border border-[var(--line)] px-3 py-2 text-[13.5px]"
+        />
+      </label>
+      {/*
+        * THE CORRECT ADDRESS, ASKED IN THE SAME MOTION.
+        *
+        * Operator ruling, gate 2. The person on the call still asked not to be
+        * contacted, and a void with no replacement leaves that request lost.
+        * The address field is the default and the escape hatch is a deliberate
+        * click, because the lossy case must not be the easy one.
+        */}
+      {noReplacement ? (
+        <label className="w-full text-left">
+          <span className="block text-[12px] font-semibold text-[var(--ink-soft)]">
+            Why is there no correct address?
+          </span>
+          <input
+            type="text"
+            value={noneBecause}
+            onChange={(e) => setNoneBecause(e.target.value)}
+            placeholder="Nobody asked; this was the wrong record entirely"
+            className="mt-1 w-full min-w-0 rounded-[var(--radius-sm)] border border-[var(--line)] px-3 py-2 text-[13.5px]"
+          />
+        </label>
+      ) : (
+        <label className="w-full text-left">
+          <span className="block text-[12px] font-semibold text-[var(--ink-soft)]">
+            What should it have said?
+          </span>
+          <input
+            type="email"
+            value={instead}
+            onChange={(e) => setInstead(e.target.value)}
+            placeholder="the address they actually asked about"
+            className="mt-1 w-full min-w-0 rounded-[var(--radius-sm)] border border-[var(--line)] px-3 py-2 text-[13.5px]"
+          />
+          <span className="mt-1 block text-[12px] text-[var(--ink-soft)]">
+            Suppressed in the same motion, so their request is not lost.
+          </span>
+        </label>
+      )}
+
+      <button
+        type="button"
+        onClick={() => { setNoReplacement(!noReplacement); setError(null); }}
+        className="text-[12px] text-[var(--ink-soft)] underline"
+      >
+        {noReplacement ? "Give the correct address instead" : "There is no correct address"}
+      </button>
+
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={() => { setOpen(false); setError(null); }}
+          className="inline-flex min-h-[var(--tap-target)] items-center text-[12.5px] font-semibold text-[var(--ink-soft)] underline"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={mark}
+          disabled={busy}
+          className="inline-flex min-h-[var(--tap-target)] items-center text-[12.5px] font-semibold text-[var(--navy)] underline disabled:opacity-60"
+        >
+          {busy ? "Marking" : "Mark as a mistake"}
+        </button>
+      </div>
       {error ? (
-        <p role="alert" className="max-w-[260px] text-right text-[12px] text-[var(--bad)]">
+        <p role="alert" className="w-full text-right text-[12px] text-[var(--bad)]">
           {error}
         </p>
       ) : null}

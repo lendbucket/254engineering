@@ -1629,7 +1629,27 @@ const answerAll = (entry, pick = () => 0) =>
    */
   rec(
     "the statement total is recomputed from its lines, not accumulated",
-    /const headerTotal = \(allLines \?\? \[\]\)\.reduce/.test(close),
+    /const headerTotal = lineRead\.rows\.reduce/.test(close),
+  );
+
+  /*
+   * AND IT IS RECOMPUTED FROM ALL OF THEM.
+   *
+   * Phase 12 Section 3. The check above asserted the recompute and could not
+   * see how many lines it read. PostgREST returns at most a thousand rows and
+   * says nothing, so a statement with more lines than that would have had its
+   * header recomputed from part of itself and written back, which is precisely
+   * the disagreement the recompute exists to prevent, arriving through the door
+   * nobody was watching.
+   *
+   * The close pages now, and refuses to write a header at all if the lines
+   * could not be read in full, because a wrong total on a customer's bill is
+   * worse than a close that stopped and said so.
+   */
+  rec(
+    "and from ALL of them, because a header from part of its lines is the disagreement it exists to prevent",
+    /readEvery</.test(close) && /so the header was not written/.test(close),
+    "a statement with more than a thousand lines would otherwise be totalled from the first thousand",
   );
 
   // An issued statement is a document that has been sent.

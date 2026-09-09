@@ -7,7 +7,7 @@ import { moneyCell } from "./ops-money";
 /**
  * A REPORT AS A FILE, AND THE MANIFEST THAT SAYS WHAT THE FILE IS.
  *
- * Phase 12 Section 3. The four owner reports already answer "what did the firm
+ * Phase 12 Section 2, the reporting prompt's Section 3. The four owner reports already answer "what did the firm
  * do this period" on a screen. This is the same answer as something somebody
  * can send to an accountant, and the difference between the two is not the
  * formatting: a screen is read by the person who opened it, in front of the

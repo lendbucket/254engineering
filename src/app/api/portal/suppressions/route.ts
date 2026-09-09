@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { currentActor, requestContext } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { writeAudit } from "@/lib/ops-audit";
-import { normaliseEmail, removeOperatorEntry, suppress } from "@/lib/marketing-suppression";
+import { normaliseEmail, voidOperatorEntry, suppress } from "@/lib/marketing-suppression";
 
 export const dynamic = "force-dynamic";
 
@@ -90,15 +90,58 @@ export async function DELETE(request: NextRequest) {
   const email = normaliseEmail(request.nextUrl.searchParams.get("email") ?? "");
   if (!email) return bad("Which address?");
 
-  const done = await removeOperatorEntry(email);
+  /*
+   * The reason travels with the request, because 0034 refuses a void without
+   * one at the database. Asking for it here means the person who knows why is
+   * the person who types it.
+   */
+  const because = request.nextUrl.searchParams.get("because") ?? "";
+
+  /*
+   * AND WHAT WAS MEANT INSTEAD, ASKED IN THE SAME MOTION.
+   *
+   * Operator ruling, gate 2. Somebody rang and asked not to be contacted, and
+   * the address was written down wrong. Voiding the wrong row on its own
+   * un-suppresses an address that never asked for anything AND loses the
+   * request that was actually made.
+   *
+   * The route takes one or the other and never neither. It does not default,
+   * because a default here would make the lossy case the easy one.
+   */
+  const instead = (request.nextUrl.searchParams.get("instead") ?? "").trim();
+  const noneBecause = (request.nextUrl.searchParams.get("noReplacementBecause") ?? "").trim();
+
+  if (instead && noneBecause) {
+    return bad(
+      "Give the correct address or say there is not one, not both. A row that names an address and a reason there is no address is a row nobody can read.",
+    );
+  }
+  if (!instead && !noneBecause) {
+    return bad(
+      "What should it have said? Give the address they actually asked about, or say why there is not one. A void with neither loses a request somebody made out loud.",
+    );
+  }
+
+  const done = await voidOperatorEntry(
+    email,
+    because,
+    actor.id,
+    instead ? { kind: "address", email: instead } : { kind: "none", because: noneBecause },
+  );
   if (!done.ok) return bad(done.error, done.error.includes("clicking") ? 403 : 400);
 
   await writeAudit({
     actor,
-    action: "suppression.remove",
+    action: "suppression.void",
     entityType: "marketing_suppression",
     entityId: email,
-    summary: `Removed an operator entered suppression for ${email}. This is a correction, not a resubscribe: the row carried no token, so it never represented a click.`,
+    summary:
+      `Marked the operator entered suppression for ${email} as a typing mistake: ${because.trim()}. ` +
+      (done.suppressedInstead
+        ? `The address they actually asked about, ${done.suppressedInstead}, was suppressed in the same motion, so the request itself is not lost. `
+        : `There is no correct address to record instead: ${noneBecause} `) +
+      "The row stays, because a consent record is never deleted; it stops counting, so the mistyped address hears from the firm again. " +
+      "This is a correction and not a resubscribe: the row carried no token, so it never represented a click.",
     ...(await requestContext()),
   });
 

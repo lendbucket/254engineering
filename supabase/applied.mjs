@@ -207,6 +207,124 @@ export const APPLIED = [
     note:
       "Applied to development 2026-09-09 and to production on merge the same day, through apply_migration, and read back rather than assumed: fingerprint unchanged at 9bbcca2c9cd3c65503c923d7c32ea769 across 970 columns and 72 eng_ tables, which is what two seeded rows and no DDL should do, with 118 role grants in total and suppressions.manage held by exactly admin and customer_service. Sales holds nothing here on purpose: somebody paid to grow a list should not be the one who can quietly shorten it, and the request does not arrive there anyway. IT WAS DELIBERATELY PENDING UNTIL THE MERGE, which is the lesson 0027 taught: applying early leaves the board red on 'nothing is applied to production that is not on main' for the whole life of the branch, and one red check that is always there trains everybody to read red as normal.",
   },
+
+  /*
+   * The two things retention cannot be built without: a foreign key that would
+   * let a retention run undo Section 2's demo scoping, and the permission that
+   * turns a dry run into a deletion.
+   */
+  {
+    file: "0030_retention_foundations.sql", appliedBy: "apply_migration",
+    fingerprint: "9bbcca2c9cd3c65503c923d7c32ea769",
+    proves: { table: "eng_role_grants", match: { role_key: "admin", action: "retention.execute" } },
+    production: "2026-09-09",
+    because:
+      "Phase 12 Section 3 is open and this is the ruled sequence: pending until the branch merges, then applied through apply_migration, read back, and declared. Applied to development 2026-09-09 and read back rather than assumed: fingerprint unchanged at 9bbcca2c9cd3c65503c923d7c32ea769 across 970 columns and 72 eng_ tables, which is what an ALTER of a foreign key's delete action and one seeded row should do, with 119 role grants in total and retention.execute held by admin alone.",
+    note:
+      "TWO PARTS, AND THE FIRST IS THE ONE THE FINGERPRINT CANNOT SEE. Both ledgers' file_id carried ON DELETE SET NULL and both now carry RESTRICT, which pg_constraint reports as confdeltype 'r' and information_schema.columns reports as nothing at all: the column's name, type and nullability are identical either way, so this is the second migration in this chain after 0018 whose correctness is invisible to the figure above. It is verified by reading confdeltype directly and, since a constraint that merely EXISTS is not a constraint that FIRES, by a live proof on development: a demonstration file with a $600.00 production ledger entry against it, deleted, refused by name with 'violates foreign key constraint eng_production_ledger_file_id_fkey', the file still present and the entry's file_id still set. The reason is in the migration at length and is one sentence here: Section 2 scopes a person's pay THROUGH the file, so a retention run deleting a demonstration file would have nulled the link and started that money counting in a real person's figures, silently undoing scoping built three days earlier. The trade is accepted: a demonstration file with earnings is kept forever and is_demo keeps it out of every figure. Safe to apply now precisely because neither ledger holds a row on either database and production holds no files at all, so nothing existing can violate it; the same change after the firm is trading would have to reconcile live rows first. The second part seeds retention.execute to admin alone, which is the only permission in this platform that destroys a record.",
+  },
+
+  /*
+   * The manifest. What a retention run intended, written down before it takes
+   * a row, and the first table in this schema whose purpose is to make a
+   * DELETION accountable.
+   */
+  {
+    file: "0031_retention_manifest.sql", appliedBy: "apply_migration",
+    fingerprint: "d4f266b0d595c9c2922b68971b9cec2a",
+    proves: { table: "eng_retention_runs" },
+    production: "2026-09-09",
+    because:
+      "Phase 12 Section 3 is open and this follows 0030's ruled sequence: pending until the branch merges, then applied through apply_migration, read back, and declared. Applied to development 2026-09-09 and read back rather than assumed: fingerprint d4f266b0d595c9c2922b68971b9cec2a across 994 columns and 73 eng_ tables, with row level security on all 73, 48 triggers, 10 eng_ functions and none of them with an unpinned search_path.",
+    note:
+      "THE ORDER IS THE WHOLE DESIGN: the manifest is written first and the rows go second, so a run that dies halfway leaves a record naming exactly what it was about to take rather than an absence nobody can describe. It carries the policy as it stood (table, rule, floor, age column, cutoff), the SET by id range and by sha256 over the ids, the rollups that had to reconcile per day before planning would finish, the mode, the actor, and both timestamps: planned_at in UTC and planned_at_ct written by the DATABASE from the same now(), so a stamp formatted in the application cannot disagree with the instant beside it. A count alone would not have done for the set, because two different thousand row sets have the same count. IT REFUSES DELETE AND ALLOWS UPDATE, and both halves are proved rather than asserted: with the service role, the most privileged credential this platform has, deleting a manifest row returns 'eng_retention_runs rows cannot be deleted. A retention run that can erase its own record is a retention run with no record.' and loses no rows, while an update to its status succeeds, which is what a run's own progress and reconciliation need. Append only would have made the table unusable; a manifest disappearing is the failure it exists to prevent. It is declared kept_forever in retention-policy.ts with the same reasoning, so the schema and the declaration cannot drift. The proof left one row on development that cannot be removed, which is the property it proves; its note says so and it is mode dry_run with intended_count 0.",
+  },
+
+  /*
+   * The seven tables the declaration called kept forever and nothing enforced.
+   */
+  {
+    file: "0032_kept_forever_is_enforced.sql", appliedBy: "apply_migration",
+    fingerprint: "d4f266b0d595c9c2922b68971b9cec2a",
+    proves: { table: "eng_production_ledger" },
+    production: "2026-09-09",
+    because:
+      "Phase 12 Section 3 is open and this follows the ruled sequence set by 0029: pending until the branch merges, then applied through apply_migration, read back, and declared. Applied to development 2026-09-09. THE FINGERPRINT IS UNCHANGED FROM 0031 AND THAT IS THE POINT OF IT: this migration adds seven triggers and two functions and not one column, so the figure the fingerprint measures cannot see any of it. What it adds is read back directly instead, from pg_trigger and pg_proc: 55 triggers where there were 48, 12 eng_ functions where there were 10, none with an unpinned search_path. That makes it the third migration in this chain after 0018 and 0030 whose correctness the fingerprint is blind to, and migration-audit checks it by asking the replayed catalogue which trigger is attached to what.",
+    note:
+      "A MIGRATION WRITTEN BECAUSE A DECLARATION WAS FOUND MAKING A PROMISE NOTHING KEPT. retention-policy.ts declared 22 tables kept forever; 15 were held by a delete refusing trigger or an inbound ON DELETE RESTRICT and SEVEN were held by nothing but the file itself, THREE of which said in writing that a foreign key kept them. That sentence was true and about the wrong table: an outbound reference with ON DELETE RESTRICT protects the table it POINTS AT, so the ledgers' key on eng_profiles keeps profiles and did nothing to stop a ledger row being deleted. Found by reading the declaration against pg_constraint, not by any check. FIVE TABLES GET AN UNCONDITIONAL REFUSAL through eng_forbid_record_delete: both ledgers, the time log, the suppression list and eng_metrics_daily. Money, consent, and the rollup that outlives its sources, which is the one table here retention itself makes irreplaceable. TWO GET A CONDITIONAL ONE through eng_forbid_sealed_work_delete: a sealed deliverable and everything belonging to a file that has one, cascade included, while evidence on an unsealed file stays deletable because that question is still with counsel. THOSE TWO REFUSE NOTHING TODAY and it is said out loud in the migration: registration is pending, no PE is on staff, nothing is sealed or can be. They are proved inside migration-audit's replayed database, which is thrown away, because proving them live would mean writing a fabricated sealing record; that is the same treatment eng_partner_entries has had since 0019. Both directions are checked and the unsealed half EARNED ITS PLACE IMMEDIATELY: it caught the first version of the trigger raising 'record old has no field sealed_at' on evidence rows, because plpgsql resolves the field reference whatever the guard beside it says. It reads the column through to_jsonb now. THE COST IS REAL AND IS RECORDED RATHER THAN DISCOVERED: three scripts could no longer tear their fixtures down, and two of them WENT ON PASSING because the client returns a delete error rather than throwing and their cleanup never looked at it. Development gained two orphaned ledger rows, one of them with no file at all, before anybody counted. dashboards-audit and demo-audit now share one standing fixture that is created once and reused, and each asserts its own row count did not grow.",
+  },
+
+  /*
+   * The manifest explains itself, and a plan nobody ran says so.
+   */
+  {
+    file: "0033_manifest_reads_and_abandons.sql", appliedBy: "apply_migration",
+    fingerprint: "2aee07d8809c3db282e4eb282bb9bbd5",
+    proves: { table: "eng_retention_runs" },
+    production: "2026-09-09",
+    because:
+      "Same branch and the same ruled sequence as 0030, 0031 and 0032: pending until merge. Applied to development 2026-09-09 and read back rather than assumed: fingerprint 2aee07d8809c3db282e4eb282bb9bbd5 across 995 columns and 73 eng_ tables, with row level security on all 73, 55 triggers and 12 eng_ functions, none with an unpinned search_path. plan_reading is the one column that moves the count from 994 to 995, because 0032 before it adds none.",
+    note:
+      "TWO GATE 2 RULINGS, BOTH SAYING THE SAME THING: the manifest is the artefact a person reads, so what a person needs in order to read it correctly belongs on the manifest. plan_reading carries the sentences a reader would otherwise get wrong about THAT plan: that an empty set bounds nothing and shares its hash with every other empty set, that a rollup with no day lines ran and had nothing to check, that an intended count of zero usually means the oldest candidate is younger than the floor and here is how old it actually is, and that two plans made in one pass carry cutoffs seconds apart. Written at planning time and never overwritten by the run, because note is the outcome. The status check constraint gains 'abandoned', a fourth terminal state meaning nothing was attempted and nothing will be. It is set by UPDATE, which this table has always allowed; DELETE is what it refuses, and a plan nobody will act on is exactly the row that would otherwise tempt somebody into removing one. Every script that plans without running now abandons what it planned before exiting, retention-audit reads the database back and fails if it finds one of its own left standing, and the twelve that development was already carrying were abandoned with a reason.",
+  },
+
+  /*
+   * A repair, and it repairs something 0032 broke the same day.
+   */
+  {
+    file: "0034_a_mistyped_suppression_is_marked.sql", appliedBy: "apply_migration",
+    fingerprint: "a818bfb40dd9423d0b0b76472c35519c",
+    proves: { table: "eng_marketing_suppressions", column: "voided_at" },
+    production: "2026-09-09",
+    because:
+      "Same branch and the same ruled sequence as 0030 through 0033: pending until merge. Applied to development 2026-09-09 and read back rather than assumed: fingerprint a818bfb40dd9423d0b0b76472c35519c across 998 columns and 73 eng_ tables, the three new columns being the whole of the change from 995.",
+    note:
+      "0032 RULED A CONSENT RECORD UNDELETABLE AND BROKE A SHIPPED SCREEN IN THE SAME BREATH. /portal/suppressions has a Remove action for exactly one case, an operator taking a request on the telephone and typing the address wrong, and removeOperatorEntry implemented it as a DELETE. Verified rather than reasoned about: with the service role on development, removing an operator entered suppression answered 'eng_marketing_suppressions rows cannot be deleted. It is a money or consent record, and a correction is a new row rather than a removed one.' The person who took the call would have read that and had no way forward, and the customer they mistyped would have gone on hearing nothing. THE ANSWER IS NOT TO PUT THE DELETE BACK, and what replaces it is better than what was there: a deleted typo left NO TRACE that anybody had mistyped, so the address vanished and the mistake with it. The row now stays and gains voided_at, voided_because and voided_by; isSuppressed ignores a voided row, which is the single place anything asks the question, so the customer hears from the firm again. TWO CHECK CONSTRAINTS RATHER THAN TWO FILTERS. A row carrying a token_hash came from a person clicking the link in their own email, and voiding it would be the platform asserting a consent nobody gave: it is now UNREPRESENTABLE rather than refused, so a screen that forgot the filter cannot produce one. Proved both ways on development: the application refuses it with a sentence, and the same update sent straight at the database is refused by eng_marketing_suppressions_clicked_stays. A void with no reason is refused by the second constraint, because a row marked as a mistake with no reason cannot be told from one marked to move a number.",
+  },
+
+  /*
+   * The other half of the correction: what the caller actually asked for.
+   */
+  {
+    file: "0035_a_void_carries_the_address_that_was_meant.sql", appliedBy: "apply_migration",
+    fingerprint: "7346d6b60e5a54d204d95ec51c217c3a",
+    proves: { table: "eng_marketing_suppressions", column: "replaced_by_email" },
+    production: "2026-09-09",
+    because:
+      "Same branch and the same ruled sequence as 0030 through 0034: pending until merge, then applied in order with each read back before the next. Applied to development 2026-09-09 and read back rather than assumed: fingerprint 7346d6b60e5a54d204d95ec51c217c3a across 1,000 columns and 73 eng_ tables, the two new columns being the whole of the change from 998.",
+    note:
+      "0034 WAS ONLY HALF THE JOB AND THE MISSING HALF LOST A REQUEST. Operator ruling at gate 2. Somebody rang the firm and asked not to be contacted, and the address was written down wrong. Voiding the wrong row un-suppresses an address that never asked for anything, which is right, and on its own it leaves the ORIGINAL REQUEST UNRECORDED: the person who rang goes on hearing from the firm and nothing anywhere says they asked not to. The void made the list accurate about a mistake and lost the fact the mistake was about, which is worse than the typo because the typo was visible. Every voided row now carries exactly one of replaced_by_email or no_replacement_because, enforced by a check constraint rather than by the screen, and the replacement is suppressed BEFORE the void so a failure leaves the list saying something wrong rather than saying nothing. Two more constraints: a replacement is lowercased like the address column itself, and a replacement cannot be the same address, because correcting a row to itself would un-suppress somebody and record that it meant to. IT ALSO BACKFILLS, AND THE BACKFILL IS THE HONEST PART. Rows voided between 0034 and this migration carry neither, and the constraint refused every one of them: applying it without a backfill fails outright, which was found by running it. It marks them as voided before there was anywhere to record what was meant, and it does NOT invent a replacement, because this platform cannot know which address was intended and a guess written into a consent record is worse than recording that the answer was never captured.",
+  },
+
+  /*
+   * The customer side: somebody asked to be forgotten, and this is where that
+   * is written down. It produces a task and never a deletion.
+   */
+  {
+    file: "0036_a_deletion_request_is_a_record.sql", appliedBy: "apply_migration",
+    fingerprint: "3acd988c07905602e0e091c5b8d329ad",
+    proves: { table: "eng_deletion_requests" },
+    production: "2026-09-09",
+    because:
+      "Same branch and the same ruled sequence as 0030 through 0035: pending until merge, then applied in order with each read back before the next. Applied to development 2026-09-09 and read back rather than assumed: fingerprint 3acd988c07905602e0e091c5b8d329ad across 1,015 columns and 74 eng_ tables, with 56 triggers and row level security on all 74.",
+    note:
+      "OPERATOR RULING: A DELETION REQUEST PRODUCES A TASK, NOT A DELETION. Nothing in this migration, in src/lib/deletion-requests.ts or on the screen connects a row here to a retention run; a person holding retention.execute plans a run against a table the declaration allows, and that is the only path a row is ever removed by. WHY A TABLE AND NOT JUST A TASK: a task is a thing somebody has to do and it has two states, open and done, while a deletion request is a thing somebody SAID, and what matters a year later is what they asked, when, through which door, who took it and what the firm answered. Closing a task records that somebody ticked it. THE OUTCOME IS DELIBERATELY NOT AN ENUM. Refused, actioned and partly actioned are each a decision about what the firm may do with an engineering record, and none of those decisions has been made: 41 tables in retention-policy.ts are waiting on counsel for exactly this question, and the published privacy policy already tells the public that engineering records are kept for the periods Texas requires. An enum shipped now would be this platform inventing the answer and then offering it on a screen, which is how a placeholder becomes a policy. So the answer is a sentence somebody wrote, with their name and the date on it. The one thing the firm can do immediately and without a ruling is stop writing to them, and recording a request suppresses the address in the same motion; the screen names all three outcomes including the one that has not happened, because a confirmation reading Request recorded would let the person who took the call believe the thing was done. The table refuses DELETE through the same function 0032 attached to the money and consent records, and it belongs with them: a platform that could quietly remove the record of a request is one where we never received that is unfalsifiable, which is worse for the person who asked than for the firm.",
+  },
+
+  /*
+   * One address, one partner user, whatever the casing. Found by the
+   * maybeSingle survey the operator ordered at gate 3.
+   */
+  {
+    file: "0037_a_partner_address_is_one_address.sql", appliedBy: "apply_migration",
+    fingerprint: "3acd988c07905602e0e091c5b8d329ad",
+    proves: { table: "eng_partner_users" },
+    production: "2026-09-09",
+    because:
+      "Same branch and the same ruled sequence as 0030 through 0036: pending until merge, then applied in order with each read back before the next. Applied to development 2026-09-09. THE FINGERPRINT IS UNCHANGED FROM 0036 and that is what an index-only migration should do: it adds no column, no table and no row, so the figure the fingerprint measures cannot see it. What it adds is read back directly instead, from pg_indexes: eng_partner_users_email_lower_key exists on lower(email). That makes it the fourth migration in this chain, after 0018, 0030 and 0032, whose correctness the fingerprint is blind to.",
+    note:
+      "A SCHEMA GAP RATHER THAN A CALL SITE. eng_partner_users.email was declared text not null unique, which in Postgres is CASE SENSITIVE, while every lookup against it is ilike, which is not. Two rows differing only in case were therefore permitted by the schema and were one address to every piece of code that read them. Two things followed and both were live: signing in matched two rows, PostgREST answered PGRST116, the error was discarded and the result read as no such address, so the person was refused with the deliberately generic message and had no way to discover why; and the one address, one partner guard in ops-partners-admin is a lookup and a refusal with nothing underneath it, so the same PGRST116 read as no existing user and the guard attached the address to a second partner. THE STATE IT EXISTS TO PREVENT WAS THE STATE THAT DEFEATED IT. The call sites are fixed in this branch and they are not the fix: ordering and limiting picks one of two rows that should never both have existed. eng_customer_users has carried exactly this since 0009 and the partner table simply never got it. IT REFUSES BY NAME rather than failing on a duplicate key error naming an index, because whoever read that would then have to write the query themselves to find out whose account it was about, and it does NOT merge: which sign in is the person is a decision about who somebody is, and a migration is not where that gets made. Both databases were read before it was written. Development holds 8 partner users and no such pair; production holds none at all.",
+  },
 ];
 
 /** The canary. An empty ledger must never read as a ledger with nothing to say. */

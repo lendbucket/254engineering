@@ -1,4 +1,5 @@
 import "server-only";
+import { readEvery } from "./bounded-read";
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { cookies, headers } from "next/headers";
 import { supabaseAdmin, supabaseCredentialCheck } from "./supabase";
@@ -113,10 +114,31 @@ export async function currentActor(): Promise<(Actor & ProfileRow) | null> {
    * read happened to hold. A permissions table that is briefly unreachable must
    * not become a permissions table that is briefly permissive.
    */
-  const { data: grantRows, error: grantError } = await db
-    .from("eng_role_grants")
-    .select("action")
-    .eq("role_key", profile.role);
+  /*
+   * PAGED, AND IT IS A SECURITY SURFACE RATHER THAN A FIGURE.
+   *
+   * This builds the set of actions the signed in person may perform. A
+   * truncated read does not show a wrong number: it silently DENIES actions the
+   * role holds, and the person is told they cannot do their job with nothing
+   * anywhere explaining why.
+   *
+   * There are 118 grants across seven roles today, so this is nowhere near a
+   * page and is latent rather than live. It is paged because the failure mode
+   * is a permission quietly disappearing, which is the one class of bug this
+   * file's own comment above says must never happen: a permissions table that
+   * is briefly unreachable must not become one that is briefly wrong.
+   */
+  const grantRead = await readEvery<{ action: string }>((from, to) =>
+    db
+      .from("eng_role_grants")
+      .select("action")
+      .eq("role_key", profile.role)
+      .order("action", { ascending: true })
+      .range(from, to),
+  );
+
+  const grantRows = grantRead.ok ? grantRead.rows : null;
+  const grantError = grantRead.ok ? null : { message: grantRead.error };
 
   if (grantError) {
     console.error(`[ops-auth] could not read grants for ${profile.role}: ${grantError.message}`);

@@ -257,11 +257,30 @@ export async function signInPartner(
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The partner system is not configured." };
 
-  const { data: user } = await db
+  /*
+   * The same pair, the same lockout, and one more reason on this table.
+   *
+   * eng_partner_users.email is `text not null unique`, which is CASE SENSITIVE,
+   * while every lookup against it is case insensitive. Two rows differing only
+   * in case are therefore permitted by the schema and both match this query.
+   * 0037 closes that with a unique index on lower(email), the same shape
+   * eng_customer_users has carried since 0009; until it is applied the ordering
+   * below is what decides.
+   *
+   * Oldest first, and the error is read rather than becoming a wrong password.
+   */
+  const { data: userRows, error: userErr } = await db
     .from("eng_partner_users")
     .select("id, partner_id, email, display_name, status, password_hash, password_salt")
     .ilike("email", email.trim())
-    .maybeSingle();
+    .order("created_at", { ascending: true })
+    .limit(1);
+
+  if (userErr) {
+    console.error(`[partner-auth] could not read the partner user for a sign in attempt: ${userErr.message}`);
+    return { ok: false, error: "That could not be checked just now. Try again shortly." };
+  }
+  const user = (userRows ?? [])[0] ?? null;
 
   /*
    * One refusal for every failure, and the hash is still computed when there is

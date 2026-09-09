@@ -45,6 +45,7 @@ process.loadEnvFile?.(".env.local");
 import { readFileSync } from "node:fs";
 import { DEFAULT_ROLES, can } from "../src/lib/ops-authz.ts";
 import { MONEYLESS_ROLES, dashboardFor } from "../src/lib/ops-dashboard.ts";
+import { standingDemo, ledgerRowCount } from "./lib/standing-demo.mjs";
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -279,78 +280,41 @@ console.log("");
   if (!db) {
     console.log("  COULD NOT TELL: no database, so the money split was not exercised.");
   } else {
-    const stamp = Date.now();
-    const tail = String(stamp).slice(-6);
+    /*
+     * A STANDING FIXTURE, NOT A DISPOSABLE ONE, AND 0032 IS WHY.
+     *
+     * This built an engineer, a client, a priced file and a ledger entry per
+     * run and deleted them afterwards. 0032 attached a delete refusal to
+     * eng_production_ledger, so the teardown stopped working, AND THIS AUDIT
+     * WENT ON PASSING: the client hands a delete error back rather than
+     * throwing, the cleanup never looked at it, and development quietly
+     * gained an orphaned ledger entry and its profile and file on every run.
+     *
+     * scripts/lib/standing-demo.mjs keeps ONE of each, forever, and moves its
+     * period forward with an UPDATE. Every assertion below is absolute rather
+     * than a before-and-after, so a permanent fixture proves the same thing:
+     * the unscoped read CAN see the entry, and the dashboard's money reads
+     * zero anyway.
+     */
     const period = periodOf(new Date());
+    const ledgerBefore = await ledgerRowCount(db);
+    /*
+     * Declared out here because the finally reads it. The first version had
+     * it inside the try, which threw ReferenceError on the board and nowhere
+     * else: the check that reads it was added in the same pass as two other
+     * fixes and only one of the three audits was re-run.
+     */
     let made = null;
 
     try {
-      const { data: user, error: uErr } = await db.auth.admin.createUser({
-        email: `demo.split.${stamp}@demo-audit.invalid`,
-        password: `demo-${stamp}-Aa1!longenough`,
-        email_confirm: true,
-      });
-      if (uErr || !user?.user) throw new Error(`auth user: ${uErr?.message}`);
-
-      const { error: pErr } = await db.from("eng_profiles").insert({
-        id: user.user.id,
-        email: `demo.split.${stamp}@demo-audit.invalid`,
-        display_name: `Demo Split ${tail}`,
-        role: "engineer",
-        status: "active",
-        tdi_appointment: "none",
-        is_demo: true,
-      });
-      if (pErr) throw new Error(`profile: ${pErr.message}`);
-
-      const { data: client } = await db
-        .from("eng_clients")
-        .insert({
-          kind: "organization",
-          name: `Demo Split Client ${tail}`,
-          email: `demo.split.client.${stamp}@example.com`,
-          status: "active",
-          is_demo: true,
-        })
-        .select("id")
-        .maybeSingle();
-
-      const { data: file, error: fErr } = await db
-        .from("eng_files")
-        .insert({
-          file_number: `254-DEMO-SPL${tail}`,
-          client_id: client.id,
-          service_slug: "windstorm-wpi-8",
-          property_address: "3 Audit Way",
-          county: "Nueces",
-          status: "under_review",
-          is_demo: true,
-        })
-        .select("id")
-        .maybeSingle();
-      if (fErr) throw new Error(`file: ${fErr.message}`);
-
-      const { data: entry, error: lErr } = await db
-        .from("eng_production_ledger")
-        .insert({
-          engineer_id: user.user.id,
-          file_id: file.id,
-          amount_cents: 888_00,
-          period,
-          status: "pending",
-          decision: "seal",
-        })
-        .select("id")
-        .maybeSingle();
-      if (lErr) throw new Error(`ledger: ${lErr.message}`);
-
-      made = { userId: user.user.id, clientId: client.id, fileId: file.id, entryId: entry.id };
+      made = await standingDemo(db, period);
+      if (made.notes.length) console.log(`  (standing fixture: ${made.notes.join("; ")})`);
 
       /* The control: unscoped, the entry is plainly there. */
       const { data: unscoped } = await db
         .from("eng_production_ledger")
         .select("amount_cents")
-        .eq("engineer_id", user.user.id)
+        .eq("engineer_id", made.userId)
         .eq("period", period);
       const wouldBe = (unscoped ?? []).reduce((n, r) => n + Number(r.amount_cents ?? 0), 0);
 
@@ -360,6 +324,7 @@ console.log("");
         "without this the money assertion below passes over a fixture that never landed",
       );
 
+      const user = { user: { id: made.userId } };
       const dashboard = await dashboardFor({
         id: user.user.id,
         role: "engineer",
@@ -396,13 +361,30 @@ console.log("");
     } catch (err) {
       rec("the money split fixture could be built", false, String(err.message));
     } finally {
-      if (made) {
-        await db.from("eng_production_ledger").delete().eq("id", made.entryId);
-        await db.from("eng_files").delete().eq("id", made.fileId);
-        await db.from("eng_clients").delete().eq("id", made.clientId);
-        await db.from("eng_profiles").delete().eq("id", made.userId);
-        await db.auth.admin.deleteUser(made.userId).catch(() => {});
-      }
+      /*
+       * NOTHING IS TORN DOWN, AND THAT IS ASSERTED RATHER THAN ASSUMED.
+       *
+       * The fixture is standing by design. What must not happen is it
+       * MULTIPLYING, which is what the old per-run fixture started doing the
+       * moment its delete stopped working. The count is the check.
+       */
+      const ledgerAfter = await ledgerRowCount(db);
+      /*
+       * THE TOLERANCE WAS THE DEFECT. This read `<= ledgerBefore + 1`, which
+       * permits exactly one new row per run, which is precisely what a
+       * fixture that stopped being reused would do. An injection making the
+       * fixture rebuild itself every run PASSED.
+       *
+       * The fixture itself says whether it created anything, so the expected
+       * growth is known rather than guessed: nothing, unless this run built
+       * the standing entry for the first time.
+       */
+      const built = made && made.notes.some((n) => n.includes("ledger entry")) ? 1 : 0;
+      rec(
+        "the money fixture did not multiply",
+        ledgerAfter === ledgerBefore + built,
+        `${ledgerBefore} production ledger row(s) before, ${ledgerAfter} after, ${built} expected. The standing fixture is created once and reused; eng_production_ledger refuses DELETE since 0032, so a fixture that grew would grow forever.`,
+      );
     }
   }
 }

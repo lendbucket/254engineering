@@ -27,6 +27,247 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
+## SECTION 4 OPENS HERE, AND IT OPENS TWICE
+
+Two items, both ruled at the gates of Phase 12 Section 3, both to be taken at
+the START of Section 4 rather than folded into a merge.
+
+### The schema fingerprint has four blind spots, and a second one closes them
+
+Operator ruling, 2026-09-09. **At the start of Section 4**, not mid-merge.
+
+The fingerprint in `supabase/applied.mjs` is `md5` over
+`table_name.column_name:data_type:is_nullable` for every `eng_` table. It is a
+good measure of SHAPE and it cannot see four kinds of change, every one of which
+this section shipped:
+
+| Blind to | Shipped by | What was read back instead |
+| --- | --- | --- |
+| A constraint's delete action | 0030, SET NULL to RESTRICT on both ledgers | `pg_constraint.confdeltype`, and a live refusal |
+| Triggers and functions | 0032, seven triggers and two functions | `pg_trigger` and `pg_proc`: 55 to 56, 10 to 12 |
+| Indexes | 0037, a unique index on `lower(email)` | `pg_indexes` |
+| Seeded reference rows | 0018, and 0030's `retention.execute` grant | a row count on `eng_role_grants` |
+
+Four migrations in one section whose correctness the ledger's own number could
+not confirm. The number was right every time and it was answering a narrower
+question than anybody reading it would assume.
+
+**What is to be built.** A SECOND fingerprint, derived from the catalogue,
+covering constraint delete actions, triggers, indexes and seeded reference rows,
+recorded beside the first in every ledger entry from then on. The first is
+**kept**, because it already describes the whole history above and replacing it
+would make every entry before Section 4 unverifiable.
+
+**Until it exists**, every ledger entry for a migration the first fingerprint
+cannot see states what was read back instead. 0030, 0032, 0033 and 0037 already
+do; that is the standard the next one meets.
+
+### mobile-overflow-audit reports a page that did not load as an overflow
+
+Recorded 2026-09-09. On board 11 it failed with:
+
+    FAIL: /portal/login @360 (did not load)
+    - /portal/login @360: did not load (page.goto: Timeout 45000ms exceeded.)
+
+`mobile-audit` loaded the same screens in the same run and passed 200 checks,
+and board 12 was green with no change to that page. It was the server compiling
+under load on the first route that audit touches.
+
+**A page that could not be reached is not a page that overflows.** CLAUDE.md
+section 6c already rules on this: UNREACHABLE IS NOT FAILED, and an audit whose
+subject cannot be reached answers COULD NOT TELL. `sister-intake-audit` carries
+that three way verdict; `mobile-overflow-audit` does not, so a load timeout
+becomes an overflow finding and a red board that means something else.
+
+Not fixed here, deliberately: the change is to an audit's verdict handling and
+this branch was at its merge when it surfaced. What it needs is the same three
+way answer, and a retry before it gives up, because one 45 second timeout on a
+cold route is not evidence about a layout.
+
+## The queue: nothing on the board goes through its door
+
+Operator ruling, gate 2 of Phase 12 Section 3, and it is the first item of
+Section 4 because bulk operations are what put real volume through that door.
+
+**The fixture lesson at the queue level.** `jobs-audit` runs 148 checks over the
+queue and never invokes a handler. It reads `runBatch`'s SOURCE TEXT for the
+properties it asserts, that the lease is released, that an unregistered kind is
+fatal, that a dead job is logged, and it calls `handlerFor(kind)` only to inspect
+`idempotency`. Every check calls the function; none goes through the door a real
+job goes through.
+
+| Kind | `run` invoked by the board | Through `eng_claim_jobs` |
+| --- | --- | --- |
+| `email.send` | no | no |
+| `notification.deliver` | no | no |
+| `evidence.thumbnail` | no | no |
+| `document.binder` | no | no |
+| `statement.issue` | no | no |
+| `orders.reconcile` | no | no |
+| `metrics.rollup` | no | no |
+| `errors.alert` | no | no |
+| `report.export` | no | no |
+| `retention.sweep` | yes | see below |
+
+`runBatch` is called in exactly two places in the repository:
+`src/app/api/cron/jobs/route.ts`, which is production, and
+`scripts/retention-dry-run.mjs`, which is run by hand and is not in the suite.
+The claim path, the lease, `nextState` and the dead-letter transition are
+exercised on the board by nobody.
+
+**What it already cost.** The handler is what writes the regulatory trail row for
+a retention sweep, so the trail row was the one thing no check was reading, and
+it was written with `actor_id: null` while the manifest beside it named who
+asked. Found by reading the two tables side by side, not by any check.
+
+**Not widened here.** One handler is exercised, and its comment says it is the
+only one so nobody reads it as coverage. Nine remain, each declaring an
+idempotency key nothing has ever exercised.
+
+## Retention: what Section 2 built, and the four things it deliberately did not
+
+Recorded 2026-09-09. The machinery is complete and nothing starts a run by
+itself. The full reasoning for each rule is in `src/lib/retention-policy.ts` and
+in the header of `src/lib/ops-retention.ts`; these are pointers.
+
+### Retention has no screen and no schedule, on purpose
+
+A retention pass is planned and enqueued by hand:
+
+```
+npm run retention-dry-run
+```
+
+There is no cron entry and no operator screen. A pass that ran itself on a timer
+before anybody had read one is exactly what the operator's dry-run-first ruling
+exists to prevent, and a screen that starts one is a screen somebody clicks.
+
+What closing it needs, in this order: a run somebody has read on development, a
+run somebody has read on production, and only then a schedule. The screen is the
+smaller half, and it belongs with the customer-side deletion request screens
+below rather than on its own.
+
+### The customer side of retention is not built
+
+Phase 12 Section 3's own Section 3. A customer asking to be forgotten produces a
+TASK rather than a deletion, and the screens that take that request, under
+customer service and using the suppression permission, are not built. Nothing
+today records such a request except a suppression, which is a narrower thing: it
+stops marketing and does not claim to delete anything.
+
+### Forty one tables are kept with no period, and the question is not with us
+
+`retention-policy.ts` declares 41 of 73 tables `kept_pending_counsel`. That is
+not a placeholder for a number somebody forgot: the repository states no Texas
+retention period anywhere, and the published privacy policy already promises
+that engineering records are kept for as long as Texas requires, so a floor set
+here could make a published policy false. Retention treats that state exactly as
+kept forever. The question is with counsel and TBPELS, and the declaration says
+so per table rather than in one place.
+
+The one "ten years" in this repository is a design rationale about the
+responsible charge log outliving an engineer's employment. **It cites no rule and
+must not be used as a period.**
+
+### Development's queue holds 399 pending jobs and nothing drains it
+
+Found 2026-09-09 while running the first retention dry run, and it cost twenty
+real emails before it was understood.
+
+Nothing schedules the queue on development, so every audit run that queues an
+email adds a row that stays pending forever: 307 `email.send`, 54
+`report.export` and 38 `notification.deliver`, the oldest from 2026-09-04. The
+first version of `retention-dry-run` called `runBatch` to watch its own job
+finish, the worker claimed the twenty oldest rows of any kind, and **Resend
+accepted every one of them.** Application notifications for probe applicants
+went to the firm's own address.
+
+The script now counts what else is waiting and refuses to drain over a backlog,
+which fixes the tool and not the queue. The queue itself is still a pile of work
+that will all run the first time anything drains it.
+
+What closing it needs: a decision about whether those 399 should be run or
+marked dead, and then either a scheduled drain on development or a rule that
+development does not queue email at all. The second is probably right, and it is
+a bigger change than it sounds, because "does the email path work" is a thing
+several audits ask.
+
+### What development now carries permanently, and why each row is there
+
+Recorded 2026-09-09, updated after 0032. None of this is a leak. All of it is
+the cost of records the database refuses to delete, and it is written down so
+the next person counting rows on development knows what they are looking at.
+
+**Retention manifests.** Development holds well over a hundred, every one a dry
+run, none deletable. Three are written per `retention-audit` run and one per
+table by `retention-dry-run`. Since the gate 2 ruling every plan nobody ran is
+`abandoned` rather than left at `planned`, so none of them reads as a deletion
+still intended, and every one names its origin in `actor_role`. **They still
+accumulate.** What that needs is a decision between exercising the plan path
+against a replayed database, the way `eng_partner_entries` has been since 0019,
+and accepting the rows on the grounds that a manifest is small and a development
+database is not a record of anything.
+
+**Three rollup rows for 2019-03.** `retention-audit`'s fixture. 0032 stopped
+`eng_metrics_daily` rows being deleted, so they persist; the upsert is on
+`(day, metric)`, so the same three are rewritten rather than added to, and the
+audit asserts the count is exactly three.
+
+**One standing demonstration engineer, client, priced file and ledger entry.**
+`scripts/lib/standing-demo.mjs`, shared by `dashboards-audit` and `demo-audit`.
+Created once, reused, its period moved forward by UPDATE. Both audits assert the
+production ledger's row count did not grow.
+
+**Nine production ledger rows that cannot be removed**, and what each is.
+
+Two are orphans from the one board run between 0032 being applied and the audits
+being fixed: $888.00 and $777.00, left by the per-run fixtures whose teardown had
+stopped working. The second has no file at all, which is the unscopable money row
+0030 exists to prevent, arriving through a fixture rather than through a deletion.
+
+Six more are the SAME standing fixture inserted over and over, $888.00 each, by
+the runaway described below: `maybeSingle()` answers PGRST116 for a multiple
+match, the lookup discarded the error, the failure read as "not found", and every
+run after the first duplicate added another.
+
+One is the standing fixture itself, which is meant to be there.
+
+**None of them moves a figure, and that is checked rather than assumed.** Every
+one belongs to a profile carrying `is_demo`, and the production report scopes on
+`eng_profiles.is_demo` rather than on the file, so the two with no file are
+excluded by the same filter as the rest. demo-audit proves it from the standing
+row directly: the report names it with demonstrations included and does not name
+it without. The margin and revenue figures read the file, and the file carries
+`is_demo` too.
+
+What they cost is clutter in a table nobody can tidy, on development only.
+Production holds none of this: it has no ledger rows at all.
+
+### A cleanup nobody checks reports success by not speaking
+
+Recorded 2026-09-09 and it is a defect CLASS rather than an instance, which is
+why it has its own entry.
+
+`.delete()` on the Supabase client RETURNS an error rather than throwing one.
+Three teardowns in this repository called it and never looked: `dashboards-audit`,
+`demo-audit` and `seed-field-demo`. When 0032 attached delete refusals to the
+money and consent records, all three stopped working and **two of them went on
+reporting green**, while development quietly gained an orphaned ledger entry and
+its profile and file on every board run.
+
+Nothing in the suite looks for this shape. What closing it needs is a sweep of
+every `.delete()` in `scripts/` for a discarded error, and a rule that a teardown
+either asserts its own effect or says what it kept. The three above now do.
+
+### An execute run has never happened anywhere
+
+Every run so far, on development and in the audit, has been a dry run. The
+prelaunch gate makes that structural rather than a habit: `executeAuthority`
+refuses to mint the authority to delete while `isPrelaunch()` is true, whoever
+is asking. The first execute run is therefore a thing that happens after launch,
+after a dry run somebody has read, by an administrator, and it will be the first
+time the delete line in `runRetention` has ever run against a real row.
+
 ## A customer link cannot be revoked, and lives 120 days
 
 Recorded 2026-09-08. Accepted by the operator as the code behaves, and not being
@@ -1301,10 +1542,35 @@ its first run, and 0028 marks them by the address rule in
 and to production**, and on production it marked nothing, because production
 holds two profiles, one application and no partners, clients, orders or files.
 
+### Phase 12 Section 3, retention: the inventory is in docs/retention-inventory.md
+
+Recorded 2026-09-09, gate 0. Measured against both live databases rather than
+estimated. The floors are the operator's and are not set yet.
+
+The three things a reader needs from it without opening it: **production is
+already growing at 51,878 rows a month from `eng_cron_runs` alone, at a rate
+that does not depend on the firm**; **ten tables refuse deletes at the database
+and a retention job cannot touch them**, proved by attempting one with the
+service role; and **this repository states no retention period for any record
+anywhere**, while the privacy policy has already promised the public that
+engineering records are kept for the periods Texas requires.
+
+The full inventory, the deadline ranking of the twenty two reads, the rollup
+coverage and the three decisions it raises are in the document.
+
 ### THE SILENT THOUSAND: every unbounded read, ranked by what it corrupts
 
 Recorded 2026-09-09 on the operator's ruling, after `ROW_CEILING` was added to
 the reports. **Report only. Nothing here is fixed.**
+
+**A NAMING CORRECTION, KEPT RATHER THAN QUIETLY APPLIED.** This entry and the
+export work beside it were reported as "Phase 12 Section 3". They are not.
+Exports were **Section 3 of the reporting prompt**, which was Phase 12 Section 2.
+**Phase 12 Section 3 is RETENTION**, and this list is its starting point rather
+than a note filed near it: retention is the answer to the question this survey
+asks, which is how big each table is allowed to get before a read of it silently
+lies. Operator correction, 2026-09-09. The mislabel is recorded because a
+section number that means two things is a section number nobody can search.
 
 **The fact underneath it.** PostgREST returns at most 1000 rows and says nothing
 when it truncates. Measured on development: `eng_audit_events` holds 7,063 rows
@@ -1328,7 +1594,40 @@ and retention" above for the standing position.
 **Nothing here is live today.** Production holds no orders, files or payments.
 The ranking is what breaks FIRST on a live firm, not what is broken now.
 
-**RANKS 1 AND 2 ARE FIXED. THE OTHER TWENTY TWO STAND.** Operator ruling,
+**ALL TWENTY FOUR ARE CLOSED.** Phase 12 Section 3, Section 1, 2026-09-09. The
+table below is kept struck through rather than deleted, because the reasoning
+for each is why the fix took the shape it did, and a list that shrinks to
+nothing teaches the next reader nothing.
+
+**One helper, `src/lib/bounded-read.ts`, two shapes, and the choice between them
+is a judgement about the FIGURE rather than about size.** `readAll` takes one
+bounded page and reports the true total, for figures that can honestly say "not
+known". `readEvery` pages until the set is exhausted, for answers that cannot be
+partial: a statement total written back, a period close that claims entries, a
+permission set, a checkout's line items.
+
+**Proved against a real table at real scale, not a fixture.** On
+`eng_audit_events`, 7,627 rows on development:
+
+```
+old shape  .select() with no bound : 1000 rows, and NO error
+readAll    one page + the true size: 1000 rows, total 7627, complete=false
+readEvery  pages until short       : 7627 rows, complete=true
+
+old shape lost 6627 rows and said nothing.
+```
+
+**Two audits went red while this was done, and both were right to.** jobs-audit
+asserted `if (error) return null` by pattern and the pattern moved; it names the
+new one exactly now and gained a check that the queue read pages, because a
+backed up queue is when its set first exceeds one request. order-audit asserted
+the statement header is recomputed from its lines and could not see HOW MANY
+lines it read, so a statement over a thousand lines would have had its header
+computed from part of itself and written back. That is the disagreement the
+recompute exists to prevent, arriving through the door the check was not
+watching.
+
+**RANKS 1 AND 2 WERE FIXED FIRST, AHEAD OF THE REST.** Operator ruling,
 2026-09-09: the two reads in `ops-engineer.ts` are closed before the branch
 merges, because both are regulatory and one was already truncating rather than
 waiting to.
@@ -1355,28 +1654,28 @@ which is why they were at the top.**
 | --- | --- | --- | --- |
 | ~~1~~ | ~~`ops-engineer.ts:576`~~ | FIXED 2026-09-09. Refuses rather than truncating. | Below the ceiling, so a ROW_CEILING guard would never have fired. The count is what catches it. |
 | ~~2~~ | ~~`ops-engineer.ts:603`~~ | FIXED 2026-09-09. Pages. | Was already truncating, not waiting to. |
-| 3 | `ops-statements.ts:183` | A customer statement's HEADER TOTAL, recomputed from its lines and written back to `eng_statements.total_cents`. | Verified. The comment three lines above says the recompute exists so a header "cannot disagree with what is printed beneath it". Truncation is exactly what makes it disagree, and the number is one a customer is charged. |
-| 4 | `ops-statements.ts:323` | The pre-charge integrity check that compares the line total to the header before taking money. | Verified. Truncation makes a correct statement fail and refuse to charge, or, paired with rank 3, makes a wrong one pass. |
-| 5 | `ops-statements.ts:130` | Orders past row 1000 are never turned into statement lines at all. | Not a wrong figure: unbilled revenue, invisible. |
-| 6 | `ops-partner-comp.ts:613` and `:685` | The period close. Only 1000 entries are claimed into a statement, the rest stay unclaimed, and the issued statement is short. The backlog grows every close. | Verified at `:919` and by reading both. This is money a partner is paid. |
-| 7 | `ops-partner-comp.ts:919` | A partner's own payable balance, `partner_id` only, no period, LIFETIME. | Verified. The highest volume partner breaks first, and the figure is the one they are paid on. |
-| 8 | `ops-partners-admin.ts:69` | The admin partner roster: every entry for up to 200 partners, lifetime, in one query. | Verified. **Certain to break earliest of the money reads**, because it is the only one that multiplies the roster by all of history. Every partner below the cut shows nothing payable. |
-| 9 | `ops-field.ts:1322` | Every technician's pending and paid totals on the roster, lifetime, whole roster. | `sumKnownPay` returns null for an unpriced row and has no way to see a row that never arrived. |
-| 10 | `ops-dashboard.ts:730` | One technician's "Owed to you", `tech_id` only, no period. | The tile whose whole point this section just made is not showing somebody money they will not be paid. This shows them LESS than they are owed. |
-| 11 | `ops-bulk.ts:337` and `:343` | The credit decision: unpaid balance and unbilled exposure both read low, so credit is granted past the limit. | |
-| 12 | `ops-dashboard.ts:533` | An engineer's review count and review minutes for a period. | A licence figure, bounded by one month, so it takes a very high volume engineer. |
-| 13 | `ops-dashboard.ts:573` | An engineer's own production pay for the month. | |
-| 14 | `ops-payments.ts:195`, `:296`, `:360` | A bulk submission over 1000 properties is charged for the first 1000 lines, and orders past 1000 stay stuck in `awaiting_payment` after the batch was paid. | |
-| 15 | `ops-docs.ts:197` | A refusal reason missing from an assembled sealed deliverable. | Bounded to one file, so unlikely, but it is a regulatory artefact. |
-| 16 | `ops-jobs.ts:330` | Queue depth, dead letters and the oldest waiting job. | Verified. The comment beside it insists a failed read is not an empty queue. A truncated one is not a small queue either, and it truncates exactly when the queue is deep, which is the moment the number matters. |
-| 17 | `ops-observability.ts:325`, `job-handlers.ts:440` | Error rates per fingerprint during an incident, and the alert thresholds that read them. | Truncates precisely during a storm, so the alert never trips. |
-| 18 | `ops-auth.ts:117` | The actor's granted action set. | Small today and latent rather than live, but a truncated grant list silently DENIES actions. Worth knowing it is on this list at all. |
-| 19 | `ops-reconcile.ts:95`, `:138`, `:150`, `:151` | The reconciliation worklist, and the payment and event lookups beneath it, which truncate before the order list does so orders wrongly appear unpaid. | The comment asserts "the number waiting on payment is small by definition". That is the assumption at risk. |
-| 20 | `ops-accounts-admin.ts:52`–`:69` | The account roster and its per-account order counts, all accounts, all orders ever. | |
-| 21 | `ops-dashboard.ts:1202`, `:1217`, `:1476` | Sales and comms tiles reading `eng_leads`, `eng_quote_requests` and `eng_threads` with NO FILTER AT ALL. | Leads and threads unfiltered are near certain to pass a thousand first of anything on a dashboard. |
-| 22 | `ops-partners.ts:130`, `:194`, `.limit(50)` | Attribution touch history. | Limited, so not truncating at the ceiling, but a truncated touch list can change WHICH partner an order is attributed to, and attribution decides commission. Worth a second look on its own terms. |
-| 23 | `ops-threads.ts:96`–`:195`, `ops-field.ts:430`–`:1324`, `ops-tasks.ts:426`, `ops-crm.ts:249`, `ops-metrics.ts:228`, `ops-dashboard.ts:496`, `:1017`, `:1026`, `:1035`, `:1235`, `:1460`, `:1492`, `:1500` | Participant lists, dispatch scoring, credential tiles, metric series, stale task cleanup. | Operational lists and counts. Wrong rather than dangerous. |
-| 24 | `marketing-suppression.ts:157`, `ops-partner-assets.ts:61`, `ops-onboarding.ts`, `onboarding.ts:302`, `ops-roles.ts:52` | Rendered lists that understate themselves. | Cosmetic. The suppression SEND check is a per address lookup at `:116` and is unaffected, so nobody is emailed wrongly. |
+| ~~3~~ | ~~`ops-statements.ts:183`~~ | A customer statement's HEADER TOTAL, recomputed from its lines and written back to `eng_statements.total_cents`. | Verified. The comment three lines above says the recompute exists so a header "cannot disagree with what is printed beneath it". Truncation is exactly what makes it disagree, and the number is one a customer is charged. |
+| ~~4~~ | ~~`ops-statements.ts:323`~~ | The pre-charge integrity check that compares the line total to the header before taking money. | Verified. Truncation makes a correct statement fail and refuse to charge, or, paired with rank 3, makes a wrong one pass. |
+| ~~5~~ | ~~`ops-statements.ts:130`~~ | Orders past row 1000 are never turned into statement lines at all. | Not a wrong figure: unbilled revenue, invisible. |
+| ~~6~~ | ~~`ops-partner-comp.ts:613`~~ and `:685` | The period close. Only 1000 entries are claimed into a statement, the rest stay unclaimed, and the issued statement is short. The backlog grows every close. | Verified at `:919` and by reading both. This is money a partner is paid. |
+| ~~7~~ | ~~`ops-partner-comp.ts:919`~~ | A partner's own payable balance, `partner_id` only, no period, LIFETIME. | Verified. The highest volume partner breaks first, and the figure is the one they are paid on. |
+| ~~8~~ | ~~`ops-partners-admin.ts:69`~~ | The admin partner roster: every entry for up to 200 partners, lifetime, in one query. | Verified. **Certain to break earliest of the money reads**, because it is the only one that multiplies the roster by all of history. Every partner below the cut shows nothing payable. |
+| ~~9~~ | ~~`ops-field.ts:1322`~~ | Every technician's pending and paid totals on the roster, lifetime, whole roster. | `sumKnownPay` returns null for an unpriced row and has no way to see a row that never arrived. |
+| ~~10~~ | ~~`ops-dashboard.ts:730`~~ | One technician's "Owed to you", `tech_id` only, no period. | The tile whose whole point this section just made is not showing somebody money they will not be paid. This shows them LESS than they are owed. |
+| ~~11~~ | ~~`ops-bulk.ts:337`~~ and `:343` | The credit decision: unpaid balance and unbilled exposure both read low, so credit is granted past the limit. | |
+| ~~12~~ | ~~`ops-dashboard.ts:533`~~ | An engineer's review count and review minutes for a period. | A licence figure, bounded by one month, so it takes a very high volume engineer. |
+| ~~13~~ | ~~`ops-dashboard.ts:573`~~ | An engineer's own production pay for the month. | |
+| ~~14~~ | ~~`ops-payments.ts:195`~~, `:296`, `:360` | A bulk submission over 1000 properties is charged for the first 1000 lines, and orders past 1000 stay stuck in `awaiting_payment` after the batch was paid. | |
+| ~~15~~ | ~~`ops-docs.ts:197`~~ | A refusal reason missing from an assembled sealed deliverable. | Bounded to one file, so unlikely, but it is a regulatory artefact. |
+| ~~16~~ | ~~`ops-jobs.ts:330`~~ | Queue depth, dead letters and the oldest waiting job. | Verified. The comment beside it insists a failed read is not an empty queue. A truncated one is not a small queue either, and it truncates exactly when the queue is deep, which is the moment the number matters. |
+| ~~17~~ | ~~`ops-observability.ts:325`~~, `job-handlers.ts:440` | Error rates per fingerprint during an incident, and the alert thresholds that read them. | Truncates precisely during a storm, so the alert never trips. |
+| ~~18~~ | ~~`ops-auth.ts:117`~~ | The actor's granted action set. | Small today and latent rather than live, but a truncated grant list silently DENIES actions. Worth knowing it is on this list at all. |
+| ~~19~~ | ~~`ops-reconcile.ts:95`~~, `:138`, `:150`, `:151` | The reconciliation worklist, and the payment and event lookups beneath it, which truncate before the order list does so orders wrongly appear unpaid. | The comment asserts "the number waiting on payment is small by definition". That is the assumption at risk. |
+| ~~20~~ | ~~`ops-accounts-admin.ts:52`~~–`:69` | The account roster and its per-account order counts, all accounts, all orders ever. | |
+| ~~21~~ | ~~`ops-dashboard.ts:1202`~~, `:1217`, `:1476` | Sales and comms tiles reading `eng_leads`, `eng_quote_requests` and `eng_threads` with NO FILTER AT ALL. | Leads and threads unfiltered are near certain to pass a thousand first of anything on a dashboard. |
+| ~~22~~ | ~~`ops-partners.ts:130`~~, `:194`, `.limit(50)` | Attribution touch history. | Limited, so not truncating at the ceiling, but a truncated touch list can change WHICH partner an order is attributed to, and attribution decides commission. Worth a second look on its own terms. |
+| ~~23~~ | ~~`ops-threads.ts:96`~~–`:195`, `ops-field.ts:430`–`:1324`, `ops-tasks.ts:426`, `ops-crm.ts:249`, `ops-metrics.ts:228`, `ops-dashboard.ts:496`, `:1017`, `:1026`, `:1035`, `:1235`, `:1460`, `:1492`, `:1500` | Participant lists, dispatch scoring, credential tiles, metric series, stale task cleanup. | Operational lists and counts. Wrong rather than dangerous. |
+| ~~24~~ | ~~`marketing-suppression.ts:157`~~, `ops-partner-assets.ts:61`, `ops-onboarding.ts`, `onboarding.ts:302`, `ops-roles.ts:52` | Rendered lists that understate themselves. | Cosmetic. The suppression SEND check is a per address lookup at `:116` and is unaffected, so nobody is emailed wrongly. |
 
 **Bounded by a single parent row and effectively safe**, listed so nobody
 re-surveys them: `ops-customer.ts:132`, `ops-payments.ts:759`/`:907`/`:935`/`:1077`,

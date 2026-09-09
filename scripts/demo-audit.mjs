@@ -63,6 +63,7 @@ import { DEMO_SCOPED_TABLES } from "../src/lib/reporting-scope.ts";
 import { isProbeAddress } from "../src/lib/ops-files.ts";
 import { REPORTS, formatFigure, periodOf } from "../src/lib/ops-reports.ts";
 import { FIGURE_SURFACES, allFigures } from "../src/lib/figure-surfaces.ts";
+import { standingDemo, STANDING, ledgerRowCount } from "./lib/standing-demo.mjs";
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -298,7 +299,7 @@ if (!db) {
   // ------------------------------ and no demonstration reaches an export file
 
   /*
-   * Phase 12 Section 3. A screen is looked at; a file is SENT. If a
+   * Phase 12 Section 2, the reporting prompt's Section 3. A screen is looked at; a file is SENT. If a
    * demonstration ever leaks into an export, it leaves the building inside a
    * document somebody hands to an accountant, and no amount of fixing the
    * screen afterwards catches it back.
@@ -387,55 +388,27 @@ if (!db) {
       },
       control: (figures) => figures.find((f) => f.label === "in fulfilment"),
     },
-    {
-      report: "production",
-      what: "a demonstration engineer with a priced ledger entry",
-      async insert() {
-        const email = `demo.engineer.${STAMP}@demo-audit.invalid`;
-        const { data: user, error: uErr } = await db.auth.admin.createUser({
-          email,
-          password: `demo-${STAMP}-Aa1!longenough`,
-          email_confirm: true,
-        });
-        if (uErr || !user?.user) throw new Error(`auth user: ${uErr?.message}`);
-        const id = user.user.id;
-
-        const { error: pErr } = await db.from("eng_profiles").insert({
-          id,
-          email,
-          display_name: `Demo Engineer ${TAIL}`,
-          role: "engineer",
-          status: "active",
-          tdi_appointment: "none",
-          is_demo: true,
-        });
-        if (pErr) {
-          await db.auth.admin.deleteUser(id).catch(() => {});
-          throw new Error(`profile: ${pErr.message}`);
-        }
-
-        const { data: entry, error: lErr } = await db
-          .from("eng_production_ledger")
-          .insert({ engineer_id: id, amount_cents: 777_00, period: PERIOD, status: "pending", decision: "seal" })
-          .select("id")
-          .maybeSingle();
-        if (lErr) {
-          await db.from("eng_profiles").delete().eq("id", id);
-          await db.auth.admin.deleteUser(id).catch(() => {});
-          throw new Error(`ledger: ${lErr.message}`);
-        }
-
-        return {
-          label: `Demo Engineer ${TAIL}`,
-          cleanup: async () => {
-            await db.from("eng_production_ledger").delete().eq("id", entry.id);
-            await db.from("eng_profiles").delete().eq("id", id);
-            await db.auth.admin.deleteUser(id).catch(() => {});
-          },
-        };
-      },
-      control: (figures) => figures.find((f) => f.label.startsWith("Unsigned amendment")),
-    },
+    /*
+     * PRODUCTION JOINS REVENUE AS A REPORT THAT CANNOT BE INJECTED.
+     *
+     * It read eng_production_ledger by building a demonstration engineer with a
+     * ledger entry, measuring, and deleting both. 0032 attached a delete
+     * refusal to that table, because what an engineer is owed is a money record
+     * and a correction there is a new row rather than a removed one.
+     *
+     * The teardown therefore stopped working and NOTHING SAID SO: the client
+     * hands a delete error back rather than throwing, the cleanup never looked,
+     * and every board run left another engineer and another ledger entry on
+     * development. One of them had no file at all, which is precisely the
+     * unscopable money row 0030 exists to prevent, arriving through a fixture
+     * rather than through a deletion.
+     *
+     * So it moves to the treatment revenue has had since this file was written:
+     * proved from a demonstration record that is ALREADY STANDING, absolutely,
+     * rather than by a before and after. The standing fixture is one row that
+     * every run reuses. An absolute assertion is the stronger shape anyway,
+     * because a delta over a fixture that never moves proves nothing.
+     */
     {
       report: "partner",
       what: "a demonstration partner with an issued statement",
@@ -653,6 +626,59 @@ if (!db) {
       `${injection.report}: the injected record was cleaned up`,
       movement(before, settled).length === 0,
       movement(before, settled).join(" | "),
+    );
+  }
+
+  // ---------------------------- production, proved from a standing record
+
+  {
+    const ledgerBefore = await ledgerRowCount(db);
+    const made = await standingDemo(db, PERIOD);
+    if (made.notes.length) console.log(`  (standing fixture: ${made.notes.join("; ")})`);
+
+    const real = await Promise.all(
+      REPORTS.filter((r) => r.key === "production").map((r) => r.build(PERIOD, "real")),
+    );
+    const withDemos = await Promise.all(
+      REPORTS.filter((r) => r.key === "production").map((r) => r.build(PERIOD, "including_demonstrations")),
+    );
+
+    const namesIn = (built) =>
+      built
+        .flatMap((r) => r.sections.flatMap((sec) => sec.figures))
+        .flatMap((f) => (f.rows ?? []).map((row) => String(row.label ?? "")));
+
+    const realNames = namesIn(real);
+    const demoNames = namesIn(withDemos);
+
+    rec(
+      "production: the standing demonstration engineer is on no real figure",
+      !realNames.some((n) => n.includes(STANDING.displayName)),
+      realNames.some((n) => n.includes(STANDING.displayName))
+        ? `NAMED on a real figure: ${realNames.filter((n) => n.includes(STANDING.displayName)).join(", ")}`
+        : `${realNames.length} row label(s) across the production report, none of them the fixture`,
+    );
+
+    /*
+     * The control, and it is the half that stops the check above passing over
+     * a fixture the report cannot reach at all.
+     */
+    rec(
+      "production: and it IS there when demonstrations are included",
+      demoNames.some((n) => n.includes(STANDING.displayName)),
+      demoNames.some((n) => n.includes(STANDING.displayName))
+        ? "so the exclusion above is a filter working rather than a query that reaches nothing"
+        : `the fixture is invisible even with demonstrations included, so the check above proves nothing. ${demoNames.length} row label(s) seen.`,
+    );
+
+    const ledgerAfter = await ledgerRowCount(db);
+    /* Same correction as dashboards-audit: a `+ 1` tolerance permits exactly
+     * the growth a fixture that stopped being reused would produce. */
+    const built = made.notes.some((n) => n.includes("ledger entry")) ? 1 : 0;
+    rec(
+      "production: and the fixture did not multiply",
+      ledgerAfter === ledgerBefore + built,
+      `${ledgerBefore} production ledger row(s) before, ${ledgerAfter} after. eng_production_ledger refuses DELETE since 0032, so a per-run fixture would grow forever.`,
     );
   }
 

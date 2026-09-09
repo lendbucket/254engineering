@@ -1,4 +1,5 @@
 import "server-only";
+import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import { writeAudit } from "./ops-audit";
 import { can, type Actor } from "./ops-authz";
@@ -65,10 +66,26 @@ export async function partnerRoster(actor: Actor): Promise<PartnerRow[]> {
     .select("partner_id")
     .in("partner_id", ids);
 
-  const { data: entries } = await db
-    .from("eng_partner_entries")
-    .select("partner_id, amount_cents, status, statement_id, payable_at")
-    .in("partner_id", ids);
+  /*
+   * PAGED, AND THIS IS THE ONE THAT BREAKS EARLIEST OF ALL THE MONEY READS.
+   *
+   * Every entry, for every partner on the roster, for all of history, in one
+   * request. It is the only read in this repository that multiplies the roster
+   * by all of time, so it reaches a thousand rows long before any single
+   * partner's own ledger does, and every partner below the cut then shows
+   * nothing payable on the administrator's screen.
+   */
+  const entryRead = await readEvery<{
+    partner_id: string; amount_cents: number | null; status: string; statement_id: string | null; payable_at: string;
+  }>((from, to) =>
+    db
+      .from("eng_partner_entries")
+      .select("partner_id, amount_cents, status, statement_id, payable_at")
+      .in("partner_id", ids)
+      .order("occurred_at", { ascending: true })
+      .range(from, to),
+  );
+  const entries = entryRead.ok ? entryRead.rows : null;
 
   const { data: users } = await db
     .from("eng_partner_users")
@@ -398,11 +415,30 @@ export async function invitePartnerUser(
     .maybeSingle();
   if (!partner) return { ok: false, error: "That partner does not exist." };
 
-  const { data: existing } = await db
+  /*
+   * THE SHARPEST OF THE THREE: THIS IS A UNIQUENESS GUARD, AND IT WAS BYPASSED
+   * BY THE THING IT GUARDS AGAINST.
+   *
+   * "One address, one partner" is enforced by the refusal below and by nothing
+   * else. With `.maybeSingle()` and the error discarded, two rows for an
+   * address answered PGRST116, read as "no existing user", and the guard passed
+   * silently, attaching that address to a second partner. The state it exists
+   * to prevent was the state that defeated it.
+   *
+   * Oldest first: the earliest row is the partner the address already belongs
+   * to, which is the one the refusal has to name.
+   */
+  const { data: existingRows, error: existingErr } = await db
     .from("eng_partner_users")
     .select("id, partner_id")
     .ilike("email", email)
-    .maybeSingle();
+    .order("created_at", { ascending: true })
+    .limit(1);
+
+  if (existingErr) {
+    return { ok: false, error: `Could not check whether that address already signs in somewhere: ${existingErr.message}` };
+  }
+  const existing = (existingRows ?? [])[0] ?? null;
 
   if (existing && existing.partner_id !== partnerId) {
     return {

@@ -324,6 +324,51 @@ BASE_URL=https://254engineering.com npx tsx scripts/security-audit.mjs
 **Every audit is verified by injecting a violation and watching it fail before its green is
 trusted.** An audit that has never failed has never been tested.
 
+**AND THE BOARD IS RUN UNDER ITS OWN INVOCATION BEFORE ANY COMMIT IS REPORTED AS
+GREEN.** The rule already existed. It is recorded again here with what breaking
+it cost, on 2026-09-09, because the cost is the argument.
+
+Three files were patched in one pass and one of them was re-run. The other two
+carried a variable moved out of scope and a check nobody had exercised, and both
+went to the board: `dashboards-audit` crashed outright with
+`ReferenceError: made is not defined`, and underneath that crash was a fixture
+inserting a production ledger row on EVERY run into a table 0032 had just made
+undeletable. Six identical rows accumulated before anything said so.
+
+Running the three audits by hand would have caught both in under two minutes.
+The board caught them in twenty, after a commit had already been described as
+done. **A green audit is a green audit of the file it read. The board is what
+knows whether the rest of the repository still agrees with it.**
+
+The same pass also produced the other half of this rule: `tsc` was clean and the
+BUILD failed, because a client component imported a module carrying
+`server-only` and that constraint belongs to the bundler rather than to the type
+system. The suite printed `THE SUITE DID NOT RUN TO COMPLETION`. **The board
+builds before it audits, and that ordering is the first step, not a convenience.**
+
+**A CHECK THAT MATCHES THE OLD SHAPE BY TEXT IS A CHECK ON WORDING.** Operator
+ruling, 2026-09-09, recorded as another instance of the fixture lesson below.
+
+Two audits went red during Phase 12 Section 3 when reads were paged, and both
+were right to. `jobs-audit` asserted `if (error) return null` as a literal, and
+`order-audit` asserted a statement header was recomputed by matching
+`const headerTotal = (allLines ?? []).reduce`. Neither behaviour changed; the
+spelling did.
+
+**The correct response is never to loosen the pattern so it passes on both.**
+That converts a check into a check on nothing. Each was made to name the new
+shape exactly, and each GAINED a second check for the property the first could
+not see: that the queue read pages, and that the header is computed from ALL of
+its lines. `order-audit`'s was the valuable one, because it revealed that the
+original check could not see how many lines were read at all, so a statement
+over a thousand lines would have had its header computed from part of itself
+and written back, which is the exact disagreement the recompute exists to
+prevent.
+
+A red board when an implementation is deliberately changed is the harness
+asking whether you meant it. Answer it by making the check sharper, and by
+asking what the old one could not see.
+
 **A FIXTURE ONLY CATCHES WHAT IT CAN REACH. EVERY INJECTION FIXTURE CARRIES A
 VALUE IN EVERY COLUMN A FIGURE CAN SUM.** Operator ruling, 2026-09-09, and it
 sits beside the declared inventory idiom because it is the same failure one
@@ -341,6 +386,37 @@ reading a screenshot.
 So a fixture is priced, dated and complete: every column any figure could sum,
 count or age. The test of a fixture is not whether it inserts a row, it is
 whether removing the filter makes a number move.
+
+**A FIXTURE THAT CANNOT SEPARATE THE TWO ANSWERS PROVES NEITHER.** Recorded
+2026-09-09. The first attempt at proving the credit gate used twelve $100 orders
+against a $500 limit, and the truncated exposure landed exactly ON the limit, so
+the old shape and the new shape both refused and the run reported nothing. The
+fixture was wrong rather than the code. Moving the limit to $800, between the
+truncated $500 and the true $1,200, made the difference visible: granted against
+refused.
+
+**AND A MATCHER WITH A WINDOW WIDER THAN THE THING IT MATCHES ATTACHES TO ITS
+NEIGHBOUR.** Same day, same section, in the patch script written to document all
+of this. It searched an eight line window for a table name to decide which query
+a comment belonged above, and these queries sit in three line blocks, so one
+block's window reached into the next and three reasons landed on the wrong
+reads. It is the recurring defect of this repository wearing a code generator: a
+thing looking at the right subject in the wrong span.
+
+The fix is the general one: match the line immediately adjacent, not a window,
+and where adjacency is not enough, place by explicit position and ASSERT the
+target before writing. The four that could not be disambiguated were inserted by
+line number with each one checked against the read beneath it first.
+
+**On the patch scripts themselves.** Eleven were written in that section, none
+is tracked by git, and every one refuses to exit zero when its substitution
+finds nothing: re-running all eleven exits non-zero and changes no file. The one
+that silently did nothing was not a substitution but an IMPORT GUARD, which
+asked whether the file already mentioned a symbol that the substitution above it
+had just inserted, so it always answered yes and skipped. Nothing in the script
+could catch that, because the script had done exactly what it was told;
+`tsc` caught it, and that is the argument for a compile step over a careful
+script.
 
 **A CHECK THAT FILTERS LIVE DATA FOR A SUBJECT THAT DOES NOT EXIST YET IS
 VACUOUS. BUILD THE SUBJECT.** Operator ruling, 2026-09-09, from the reporting
@@ -782,6 +858,16 @@ asking whether you meant it.
 | Alerts per sweep | **3** | `src/lib/alert-rules.ts` | `scripts/observability-audit.mjs` |
 | Sister intake rate | **20 a minute** | `src/lib/sister-intake.ts` | `scripts/sister-intake-audit.mjs` |
 | TOTP digits and period | **6 digits, 30 seconds** | `src/lib/totp.ts` | `scripts/proofs/totp-matches-the-rfc.mjs` |
+| Telemetry retention floor | **30 days** | `src/lib/retention-policy.ts` | `scripts/retention-audit.mjs` |
+| Tables retention may delete from | **`eng_cron_runs`, `eng_jobs`** | `src/lib/retention-policy.ts` | `scripts/retention-audit.mjs` |
+
+The last two joined on 2026-09-09, and retention is the sharpest case this
+table has. Every other ruling here costs money or locks somebody out, and both
+are recoverable by reading a record. A floor moved from thirty days to one, or a
+third table quietly added to the deletable set, destroys the record itself, and
+no later audit can tell a deleted row from a row that never existed.
+retention-audit also pins the operator kept-forever list, which is the same
+mechanism applied to the tables no configuration may shorten.
 
 They were pinned on 2026-09-08 after a survey of all 47 audit and proof
 scripts found each of them written in terms of its own constant on both sides

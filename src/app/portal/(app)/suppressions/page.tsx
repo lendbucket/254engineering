@@ -3,7 +3,7 @@ import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { listSuppressions } from "@/lib/marketing-suppression";
 import { Chip, EmptyState, ErrorState, PageHead, Panel } from "@/components/portal/surfaces";
-import { AddSuppression, RemoveSuppression } from "./SuppressionsClient";
+import { AddSuppression, VoidSuppression } from "./SuppressionsClient";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +27,7 @@ export const dynamic = "force-dynamic";
  * "they clicked" and "somebody says they asked", and this screen is where it
  * finally means something: only the second kind can be removed.
  *
- * REMOVING IS A CORRECTION AND IS NOT A RESUBSCRIBE
+ * MARKING IS A CORRECTION AND IS NOT A RESUBSCRIBE
  * -------------------------------------------------
  * 0026 says this table has no delete and no resubscribe column, and it is right
  * about why: consent to hear from the firm again is a NEW fact with its own
@@ -40,6 +40,20 @@ export const dynamic = "force-dynamic";
  * deleting it asserts nothing about consent. The server refuses every other
  * case against the row rather than trusting this screen.
  */
+/**
+ * Close a sentence somebody typed into a form.
+ *
+ * An operator writing "wrong address typed on the call" has said the whole
+ * thing; asking them to add a full stop so the screen reads properly is the
+ * screen's job leaking into theirs. This adds one when there is none, and
+ * leaves any other terminal punctuation alone.
+ */
+function sentence(text: string): string {
+  const t = text.trim();
+  if (!t) return "";
+  return /[.!?]$/.test(t) ? t : `${t}.`;
+}
+
 export default async function SuppressionsPage() {
   const actor = await currentActor();
   if (!can(actor, "suppressions.manage")) notFound();
@@ -54,7 +68,7 @@ export default async function SuppressionsPage() {
         lede="Everybody who has asked to stop receiving marketing from the firm, and how the firm came to know. Receipts, sealed document notices and refund decisions are never gated by this list: somebody who paid is owed those whatever their marketing preference says."
       />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(300px,380px)_1fr]">
+      <div className="grid min-w-0 gap-6 [&>*]:min-w-0 lg:grid-cols-[minmax(300px,380px)_1fr]">
         <Panel title="Record a request">
           <AddSuppression />
         </Panel>
@@ -104,7 +118,33 @@ export default async function SuppressionsPage() {
                     at all, rather than one that fails when pressed. The server
                     refuses it either way; not offering it is the honest version.
                   */}
-                  {row.enteredByOperator ? <RemoveSuppression email={row.email} /> : null}
+                  {row.voided ? (
+                    /*
+                     * TWO THINGS HERE WERE FOUND BY LOOKING AT A SCREENSHOT, WHICH IS
+                     * WHY THE RULE SAYS TO LOOK AT ONE.
+                     *
+                     * It was `text-right` inside `max-w-[280px]`, so three sentences
+                     * of explanation rendered as a narrow ragged column hard against
+                     * the edge of the row. Right alignment is for a figure or a
+                     * control, not for prose somebody has to read.
+                     *
+                     * And the sentences ran into each other. The reason an operator
+                     * types is lowercase and carries no full stop, so the row read
+                     * "Marked as a mistake. wrong address typed on the call Recorded
+                     * instead for meant@example.com." The copy cannot require the
+                     * operator to punctuate; it has to close the sentence itself.
+                     */
+                    <p className="mt-2 w-full text-[12.5px] text-[var(--ink-soft)]">
+                      Marked as a mistake: {sentence(row.voided.because)}{" "}
+                      {row.voided.replacedBy
+                        ? `Recorded instead for ${row.voided.replacedBy}.`
+                        : `No correct address: ${sentence(row.voided.noReplacementBecause ?? "")}`}{" "}
+                      This address hears from the firm again; the row stays, because a consent
+                      record is never deleted.
+                    </p>
+                  ) : row.enteredByOperator ? (
+                    <VoidSuppression email={row.email} />
+                  ) : null}
                 </li>
               ))}
             </ul>

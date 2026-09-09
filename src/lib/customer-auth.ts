@@ -233,11 +233,32 @@ export async function signInCustomer(
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The account system is not configured." };
 
-  const { data: user } = await db
+  /*
+   * ilike AND maybeSingle WERE A BAD PAIR, AND THE FAILURE WAS A LOCKOUT.
+   *
+   * `ilike` treats % and _ in the pattern as WILDCARDS, so an address
+   * containing either matches more than one row, and the unique index is on
+   * lower(email) rather than on anything ilike respects. PostgREST answers
+   * PGRST116 for a multiple match, the error was discarded, and the result read
+   * as "no such address" and became the deliberately generic sign in refusal.
+   * Somebody would be told their details were wrong, forever, with no way to
+   * find out why.
+   *
+   * Oldest first, and the error is read. A failed read is answered as a failed
+   * read rather than as a wrong password.
+   */
+  const { data: userRows, error: userErr } = await db
     .from("eng_customer_users")
     .select("id, account_id, email, display_name, account_role, status, password_hash, password_salt")
     .ilike("email", email.trim())
-    .maybeSingle();
+    .order("created_at", { ascending: true })
+    .limit(1);
+
+  if (userErr) {
+    console.error(`[customer-auth] could not read the account for a sign in attempt: ${userErr.message}`);
+    return { ok: false, error: "That could not be checked just now. Try again shortly." };
+  }
+  const user = (userRows ?? [])[0] ?? null;
 
   /*
    * One refusal for every failure: no such address, wrong password, invited but

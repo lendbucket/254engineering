@@ -121,12 +121,19 @@ export async function inviteFromApplication(
   if (!app.email) return { ok: false, error: "That application has no email address to invite." };
   if (!app.name) return { ok: false, error: "That application has no name on it." };
 
-  const { data: already } = await db
+  /* Oldest first, and the error is read: this is the guard that stops a second
+   * invitation, so two onboardings reading as none is the state that sends a
+   * third. */
+  const { data: alreadyRows, error: alreadyErr } = await db
     .from("eng_onboardings")
     .select("id")
     .eq("application_id", applicationId)
-    .maybeSingle();
-  if (already) return { ok: false, error: "That application has already been invited." };
+    .order("created_at", { ascending: true })
+    .limit(1);
+  if (alreadyErr) {
+    return { ok: false, error: `Could not check whether that application was already invited: ${alreadyErr.message}` };
+  }
+  if ((alreadyRows ?? [])[0]) return { ok: false, error: "That application has already been invited." };
 
   const created = await createOnboarding({
     personName: app.name,
