@@ -109,6 +109,27 @@ const REFUSES_DELETE = (fn: string) =>
   `with the service role, the most privileged credential this platform has, returns "append only. ` +
   `DELETE is not permitted on it." and loses no rows. Retention cannot touch it whatever this file says.`;
 
+/**
+ * A REFERENCE POINTS ONE WAY, AND SO DOES THE PROTECTION IT GIVES.
+ *
+ * ON DELETE RESTRICT on an OUTBOUND foreign key keeps the table it points AT.
+ * It gives the table holding the column nothing. Three entries in this file
+ * cited an outbound key as the reason they were kept forever, which read as a
+ * database guarantee and was a sentence about a different table.
+ *
+ * Kept as its own helper rather than folded into prose so the mistake has a
+ * name, and so a search for it finds every instance.
+ */
+const OUTBOUND_ONLY = (what: string) =>
+  `KEPT BY THIS RULING, NOT BY THE DATABASE, AND THE FIRST VERSION OF THIS LINE SAID OTHERWISE. It ` +
+  `claimed to be kept forever by the foreign keys, citing that ${what}. That sentence is true and it ` +
+  `is about the WRONG TABLE: an outbound reference with ON DELETE RESTRICT protects the table it ` +
+  `POINTS AT, so it keeps eng_profiles and does nothing to stop a row HERE being deleted. Read ` +
+  `against pg_constraint on 2026-09-09, this table has no delete trigger and nothing references it ` +
+  `with RESTRICT: the database would allow every row to go. It is kept because it records money, or ` +
+  `time somebody is paid for, and this ruling is the only thing keeping it. migration-audit checks ` +
+  `the claim against the replayed catalogue now, in the direction the claim is actually made.`;
+
 const RESTRICTED = (what: string) =>
   `Kept forever by the FOREIGN KEYS rather than by a ruling: ${what}. The schema already decided this, ` +
   `and the declaration says the same thing so the two cannot drift apart.`;
@@ -381,7 +402,9 @@ export const RETENTION_POLICY: RetentionEntry[] = [
     table: "eng_production_ledger",
     rule: {
       kind: "kept_forever",
-      because: RESTRICTED("it references eng_profiles with ON DELETE RESTRICT, so a person with earnings cannot be removed") + " It is also what an engineer is paid on.",
+      because:
+        OUTBOUND_ONLY("it references eng_profiles with ON DELETE RESTRICT, so a person with earnings cannot be removed") +
+        " This is what an engineer is paid on.",
       ruledBy: "the schema, confirmed by the operator 2026-09-09",
     },
   },
@@ -442,7 +465,9 @@ export const RETENTION_POLICY: RetentionEntry[] = [
     table: "eng_tech_pay_ledger",
     rule: {
       kind: "kept_forever",
-      because: RESTRICTED("it references eng_profiles with ON DELETE RESTRICT, so a person with earnings cannot be removed") + " It is also what a technician is paid on.",
+      because:
+        OUTBOUND_ONLY("it references eng_profiles with ON DELETE RESTRICT, so a person with earnings cannot be removed") +
+        " This is what a technician is paid on.",
       ruledBy: "the schema, confirmed by the operator 2026-09-09",
     },
   },
@@ -452,7 +477,7 @@ export const RETENTION_POLICY: RetentionEntry[] = [
     table: "eng_time_log",
     rule: {
       kind: "kept_forever",
-      because: RESTRICTED("it references eng_profiles with ON DELETE RESTRICT, so a person with logged time cannot be removed"),
+      because: OUTBOUND_ONLY("it references eng_profiles with ON DELETE RESTRICT, so a person with logged time cannot be removed"),
       ruledBy: "the schema, confirmed by the operator 2026-09-09",
     },
   },

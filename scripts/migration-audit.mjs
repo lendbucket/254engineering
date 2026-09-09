@@ -1,3 +1,8 @@
+// @runtime react-server
+//
+// Declared because this audit imports retention-policy.ts, which carries
+// `server-only`. scripts/lib/audit-runtime.mjs makes package.json agree.
+
 /**
  * Every migration, replayed in order into a scratch database, fingerprinted and
  * compared against the schema this platform actually runs.
@@ -46,6 +51,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { PGlite } from "@electric-sql/pglite";
+import { RETENTION_POLICY } from "../src/lib/retention-policy.ts";
 
 const DIR = join(process.cwd(), "supabase", "migrations");
 
@@ -224,6 +230,146 @@ if (failedAt === null) {
     trgRows.rows[0].n === EXPECTED_TRIGGERS,
     `${trgRows.rows[0].n} of ${EXPECTED_TRIGGERS}`,
   );
+
+  /*
+   * WHAT ACTUALLY STOPS A DELETE ON A KEPT-FOREVER TABLE, ASKED OF THE
+   * CATALOGUE RATHER THAN OF THE PROSE THAT CLAIMS IT.
+   *
+   * retention-policy.ts declares 22 tables kept forever. Three of them said
+   * they were kept BY THE FOREIGN KEYS and cited an OUTBOUND reference, which
+   * is a true sentence about the wrong table: ON DELETE RESTRICT protects the
+   * table a key POINTS AT, so eng_production_ledger referencing eng_profiles
+   * keeps profiles and does nothing for the ledger. Read against pg_constraint
+   * on 2026-09-09 those three had no delete trigger and nothing referencing
+   * them with RESTRICT: the database would have allowed every row to go, while
+   * the declaration read like a guarantee.
+   *
+   * Nothing could have caught it by reading, because the prose was internally
+   * consistent. It was caught by asking the catalogue which direction the keys
+   * point, and this is that question made permanent.
+   *
+   * The list below is a LITERAL, so a kept-forever table quietly losing its
+   * trigger, or a new one arriving with no protection but this file, fails
+   * here rather than being discovered the day somebody deletes from it.
+   */
+  const KEPT_BY_THIS_FILE_ALONE = [
+    "eng_documents",
+    "eng_evidence_items",
+    "eng_marketing_suppressions",
+    "eng_metrics_daily",
+    "eng_production_ledger",
+    "eng_tech_pay_ledger",
+    "eng_time_log",
+  ];
+
+  {
+    const kept = RETENTION_POLICY.filter((e) => e.rule.kind === "kept_forever").map((e) => e.table);
+    rec(
+      "the declaration names kept-forever tables at all",
+      kept.length > 10,
+      `${kept.length}; if this said zero the check below would pass over nothing`,
+    );
+
+    const guarded = await db.query(`
+      select c.relname as t,
+        exists (
+          select 1 from pg_trigger tg
+          where tg.tgrelid = c.oid and not tg.tgisinternal and (tg.tgtype & 8) = 8
+        ) as has_delete_trigger,
+        coalesce((
+          select string_agg(p.proname, ',') from pg_trigger tg join pg_proc p on p.oid = tg.tgfoid
+          where tg.tgrelid = c.oid and not tg.tgisinternal and (tg.tgtype & 8) = 8
+        ), '') as delete_trigger_functions,
+        exists (
+          select 1 from pg_constraint fk
+          where fk.contype = 'f' and fk.confrelid = c.oid and fk.confdeltype = 'r'
+        ) as has_inbound_restrict
+      from pg_class c join pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public' and c.relkind = 'r' and c.relname like 'eng\_%'
+    `);
+    const byTable = new Map(guarded.rows.map((r) => [r.t, r]));
+
+    const unguarded = kept
+      .filter((t) => {
+        const g = byTable.get(t);
+        return g && !g.has_delete_trigger && !g.has_inbound_restrict;
+      })
+      .sort();
+
+    const expected = [...KEPT_BY_THIS_FILE_ALONE].sort();
+    rec(
+      "every kept-forever table the database does not protect is one somebody listed",
+      unguarded.length === expected.length && unguarded.every((t, i) => t === expected[i]),
+      unguarded.length === expected.length && unguarded.every((t, i) => t === expected[i])
+        ? `${unguarded.length} of ${kept.length} are kept by the declaration alone, and the other ${kept.length - unguarded.length} by a trigger or an inbound RESTRICT`
+        : `the catalogue says [${unguarded.join(", ")}] and the list says [${expected.join(", ")}]`,
+    );
+
+    /*
+     * AND THE CLAIM ITSELF, CHECKED IN THE DIRECTION IT IS MADE.
+     *
+     * The check above reads the catalogue, and it would have passed over the
+     * original defect untouched: three entries asserted a database guarantee
+     * that no key gave them, and the set of unprotected tables was the same
+     * whether they said so or not. The defect was in the ASSERTION.
+     *
+     * THE CLAIM IS THE HELPER CALL, NOT THE SENTENCE IT RENDERS. A first
+     * version of this matched the rendered text and went red on the three
+     * entries that had just been CORRECTED, because their new wording
+     * describes the mistake it warns about. A check that cannot tell a claim
+     * from a description of one is a check on wording, which is the shape
+     * CLAUDE.md already names as recurring here.
+     *
+     * RESTRICTED() and REFUSES_DELETE() are the only two ways this declaration
+     * asserts a database guarantee, so the CALL is the claim. Parsing calls is
+     * the idiom email-audit uses for compose(), and a narrative mention inside
+     * another helper cannot look like one.
+     */
+    const policySrc = readFileSync("src/lib/retention-policy.ts", "utf8");
+    const entryStarts = [...policySrc.matchAll(/\{\s*table:\s*"(eng_[a-z0-9_]+)"/g)];
+    rec(
+      "the declaration's entries can be parsed one at a time",
+      entryStarts.length === RETENTION_POLICY.length,
+      `${entryStarts.length} parsed against ${RETENTION_POLICY.length} declared`,
+    );
+
+    const falseClaims = [];
+    for (let i = 0; i < entryStarts.length; i += 1) {
+      const table = entryStarts[i][1];
+      const body = policySrc.slice(
+        entryStarts[i].index,
+        i + 1 < entryStarts.length ? entryStarts[i + 1].index : policySrc.length,
+      );
+      const g = byTable.get(table);
+      if (!g) continue;
+
+      if (/\bRESTRICTED\(/.test(body) && !g.has_inbound_restrict) {
+        falseClaims.push(`${table} calls RESTRICTED() and nothing references it with ON DELETE RESTRICT`);
+      }
+      const named = body.match(/\bREFUSES_DELETE\("(eng_[a-z_]+)"\)/);
+      if (named) {
+        const attached = String(g.delete_trigger_functions || "").split(",").filter(Boolean);
+        if (!attached.includes(named[1])) {
+          falseClaims.push(
+            `${table} calls REFUSES_DELETE("${named[1]}") and the delete triggers actually attached are ` +
+              `[${attached.join(", ") || "none"}]`,
+          );
+        }
+      }
+    }
+    rec(
+      "no kept-forever rule claims a guarantee the catalogue does not give it",
+      falseClaims.length === 0,
+      falseClaims.length ? falseClaims.join("; ") : "every asserted mechanism exists, in the direction it is asserted",
+    );
+
+    const missing = kept.filter((t) => !byTable.has(t));
+    rec(
+      "and every kept-forever table exists in the replayed schema",
+      missing.length === 0,
+      missing.length ? missing.join(", ") : `${kept.length} checked`,
+    );
+  }
 
   const rlsRows = await db.query(`
     select count(*)::int as n from pg_class c join pg_namespace n2 on n2.oid = c.relnamespace
