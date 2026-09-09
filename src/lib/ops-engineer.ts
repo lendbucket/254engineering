@@ -562,23 +562,44 @@ export async function decideReview(
 
 export type ChargeLogEntry = ExportRow & { id: number; file_id: string | null };
 
-export async function chargeLog(
+/**
+ * HOW MANY ROWS THE CHARGE LOG READS AT ONCE, AND WHY IT IS DECLARED.
+ *
+ * Operator ruling, 2026-09-09, after the silent thousand survey ranked the two
+ * reads in this file first and second of twenty four.
+ *
+ * PostgREST returns at most 1000 rows and reports nothing when it truncates.
+ * This page size is 500, comfortably under that, so the CAP is never the thing
+ * that silences a read here. What matters is that a caller can tell whether it
+ * received everything, which is what `total` is for.
+ */
+const CHARGE_LOG_PAGE = 500;
+
+/**
+ * Read the log, and say how many rows there were.
+ *
+ * The screen wants a page. The regulator's export wants ALL of it or nothing,
+ * and until this returned a total it had no way to tell the two apart. Both go
+ * through here so the permission rule is written once.
+ */
+async function readChargeLog(
   actor: Actor | null,
-  options: { engineerId?: string; period?: string } = {},
-): Promise<ChargeLogEntry[]> {
+  options: { engineerId?: string; period?: string; limit?: number } = {},
+): Promise<{ rows: ChargeLogEntry[]; total: number } | null> {
   const db = supabaseAdmin();
-  if (!db || !actor) return [];
+  if (!db || !actor) return null;
 
   const all = can(actor, "responsible_charge.read_all");
-  if (!all && !can(actor, "responsible_charge.read_own")) return [];
+  if (!all && !can(actor, "responsible_charge.read_own")) return null;
 
   let query = db
     .from("eng_responsible_charge_log")
     .select(
       "id, file_id, decision, reviewed_at, property_address, county, document_type, review_minutes, revision_count, site_visit, refused, refusal_reason",
+      { count: "exact" },
     )
     .order("reviewed_at", { ascending: false })
-    .limit(500);
+    .limit(options.limit ?? CHARGE_LOG_PAGE);
 
   /*
    * An engineer reads their own log and nobody else's, even though they hold
@@ -589,21 +610,69 @@ export async function chargeLog(
   query = all && options.engineerId ? query.eq("engineer_id", options.engineerId) : all ? query : query.eq("engineer_id", actor.id);
   if (options.period) query = query.eq("period", options.period);
 
-  const { data } = await query;
-  return (data ?? []) as ChargeLogEntry[];
+  const { data, count, error } = await query;
+  if (error) {
+    console.error("[charge log] could not be read:", error.message);
+    return null;
+  }
+
+  const rows = (data ?? []) as ChargeLogEntry[];
+  return { rows, total: count ?? rows.length };
 }
 
-/** The months that have entries, for the export picker. */
+export async function chargeLog(
+  actor: Actor | null,
+  options: { engineerId?: string; period?: string } = {},
+): Promise<ChargeLogEntry[]> {
+  return (await readChargeLog(actor, options))?.rows ?? [];
+}
+
+/**
+ * The months that have entries, for the export picker.
+ *
+ * PAGED, BECAUSE THIS ASKED FOR 2000 AND RECEIVED 1000 WITHOUT AN ERROR.
+ *
+ * It carried `.limit(2000)`, which was the only limit in this repository above
+ * PostgREST's thousand row cap, so on any firm with that much history it was
+ * already truncating and the months past the cut simply vanished from the
+ * picker. A regulator is never offered a month that is not on the list, and
+ * nothing anywhere said a month was missing.
+ *
+ * It pages now, in the order the index gives, until a page comes back short.
+ * The set of distinct months is small however long the firm has traded, so this
+ * is a handful of round trips at worst and the answer is complete rather than
+ * capped. A hard stop guards against a page that never shrinks, and it is set
+ * far beyond any real history rather than at a number somebody might reach.
+ */
 export async function chargeLogPeriods(actor: Actor | null, engineerId?: string): Promise<string[]> {
   const db = supabaseAdmin();
   if (!db || !actor) return [];
   const all = can(actor, "responsible_charge.read_all");
   if (!all && !can(actor, "responsible_charge.read_own")) return [];
 
-  let query = db.from("eng_responsible_charge_log").select("period").limit(2000);
-  query = all && engineerId ? query.eq("engineer_id", engineerId) : all ? query : query.eq("engineer_id", actor.id);
-  const { data } = await query;
-  return [...new Set((data ?? []).map((r) => r.period as string).filter(Boolean))].sort().reverse();
+  const periods = new Set<string>();
+  const PAGE = CHARGE_LOG_PAGE;
+  const MAX_PAGES = 200; // 100,000 rows. A firm reaching this has other problems.
+
+  for (let page = 0; page < MAX_PAGES; page += 1) {
+    let query = db
+      .from("eng_responsible_charge_log")
+      .select("period")
+      .order("reviewed_at", { ascending: false })
+      .range(page * PAGE, page * PAGE + PAGE - 1);
+    query = all && engineerId ? query.eq("engineer_id", engineerId) : all ? query : query.eq("engineer_id", actor.id);
+
+    const { data, error } = await query;
+    if (error) {
+      console.error("[charge log] the period list could not be read:", error.message);
+      return [...periods].sort().reverse();
+    }
+
+    for (const row of data ?? []) if (row.period) periods.add(row.period as string);
+    if ((data ?? []).length < PAGE) break;
+  }
+
+  return [...periods].sort().reverse();
 }
 
 /**
@@ -634,7 +703,35 @@ export async function monthlyExport(
     .eq("id", subjectId)
     .maybeSingle();
 
-  const rows = await chargeLog(actor, { engineerId: subjectId, period });
+  /*
+   * ALL OF IT OR NONE OF IT. A REGULATOR IS NEVER HANDED A TRUNCATED CSV.
+   *
+   * Operator ruling, 2026-09-09. This read 500 rows and returned whatever came
+   * back, so a month with more than 500 reviews produced a file that looked
+   * complete, was short, and said nothing. It is the record an engineer's
+   * licence stands on, and it goes to a regulator, which makes a quiet omission
+   * worse here than anywhere else in the platform: the reader has no way to
+   * know a row is missing and every reason to assume it is not.
+   *
+   * It is also the case a ROW_CEILING guard would never have caught, because
+   * the limit was BELOW the cap. The count is what catches it, and the count
+   * comes back on the same request so the two cannot disagree.
+   */
+  const read = await readChargeLog(actor, { engineerId: subjectId, period });
+  if (!read) return { ok: false, error: "The responsible charge log could not be read." };
+
+  if (read.total > read.rows.length) {
+    return {
+      ok: false,
+      error:
+        `${period} holds ${read.total.toLocaleString("en-US")} reviews and this export reads ` +
+        `${read.rows.length.toLocaleString("en-US")} at a time, so no file was produced. A short ` +
+        `responsible charge log is worse than none: a regulator reading it has no way to know a ` +
+        `row is missing. Export a narrower period, or ask for the paged export, which is not built.`,
+    };
+  }
+
+  const rows = read.rows;
 
   return {
     ok: true,

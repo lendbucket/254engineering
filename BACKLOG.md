@@ -1328,13 +1328,33 @@ and retention" above for the standing position.
 **Nothing here is live today.** Production holds no orders, files or payments.
 The ranking is what breaks FIRST on a live firm, not what is broken now.
 
+**RANKS 1 AND 2 ARE FIXED. THE OTHER TWENTY TWO STAND.** Operator ruling,
+2026-09-09: the two reads in `ops-engineer.ts` are closed before the branch
+merges, because both are regulatory and one was already truncating rather than
+waiting to.
+
+- **The monthly export refuses rather than truncating.** It reads with
+  `{ count: "exact" }` and, when the true count exceeds what came back, produces
+  NO FILE and a sentence saying so. A short responsible charge log is worse than
+  none: a regulator reading it has no way to know a row is missing and every
+  reason to assume none is. Injection verified by lowering the page to 5 against
+  a log of 28, which is the same condition a month of 501 reviews makes against
+  a page of 500; it refuses with the count in the sentence.
+- **The period picker pages.** It asked for 2000 and received 1000 without an
+  error, the only limit in the repository above the cap, so it was already
+  losing months on any firm with that much history. Verified at real scale
+  rather than with synthetic rows, because this table refuses deletes and a loop
+  is not worth permanent fake entries in a regulatory record: the identical loop
+  run over `eng_audit_events`, which holds 7,421 rows, sees **1,000 under the
+  old `.limit(2000)` shape and all 7,421 paged**.
+
 **Two carry an explicit limit and are therefore invisible to any ceiling guard,
-which is why they are at the top.**
+which is why they were at the top.**
 
 | Rank | Where | What breaks | Why it is where it is |
 | --- | --- | --- | --- |
-| 1 | `ops-engineer.ts:576`, `.limit(500)` | **The monthly export a regulator reads.** A month with more than 500 reviews, or an administrator exporting all engineers at once, produces a truncated regulatory CSV with nothing saying so. | Verified: the limit is 500 and the function's own docstring calls it "the monthly export a regulator reads". Below the ceiling, so a ROW_CEILING guard would never fire. It is a licence record. |
-| 2 | `ops-engineer.ts:603`, `.limit(2000)` | The period picker for that same export. Months vanish from the list, so a regulator is never offered the month. | Verified: **this is the only limit in the repository above the ceiling.** It asks for 2000 and receives 1000 without an error, so it is already truncating on any firm with that much history. |
+| ~~1~~ | ~~`ops-engineer.ts:576`~~ | FIXED 2026-09-09. Refuses rather than truncating. | Below the ceiling, so a ROW_CEILING guard would never have fired. The count is what catches it. |
+| ~~2~~ | ~~`ops-engineer.ts:603`~~ | FIXED 2026-09-09. Pages. | Was already truncating, not waiting to. |
 | 3 | `ops-statements.ts:183` | A customer statement's HEADER TOTAL, recomputed from its lines and written back to `eng_statements.total_cents`. | Verified. The comment three lines above says the recompute exists so a header "cannot disagree with what is printed beneath it". Truncation is exactly what makes it disagree, and the number is one a customer is charged. |
 | 4 | `ops-statements.ts:323` | The pre-charge integrity check that compares the line total to the header before taking money. | Verified. Truncation makes a correct statement fail and refuse to charge, or, paired with rank 3, makes a wrong one pass. |
 | 5 | `ops-statements.ts:130` | Orders past row 1000 are never turned into statement lines at all. | Not a wrong figure: unbilled revenue, invisible. |

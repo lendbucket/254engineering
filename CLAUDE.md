@@ -821,6 +821,31 @@ the audits that still fail red standalone are listed in `BACKLOG.md`.
 - Commit coherent work immediately. One session per repo directory at a time.
 - Report and stop at every workstream end.
 - Screenshots at 390 and 1280, looked at by you, before reporting anything as done.
+- **EVERY GATE REPORT INCLUDES AT LEAST ONE REAL ARTEFACT READ AS A PERSON WOULD
+  READ IT, AND SAYS WHAT IT FOUND OR THAT IT FOUND NOTHING.** Operator ruling,
+  2026-09-09. An export opened and read line by line. An email received in an
+  inbox. A page looked at. Not a check that passed about the artefact: the
+  artefact.
+
+  **The harness catches what it is pointed at; reading catches the rest.** Phase
+  12 Section 2 is the evidence. Nine defects were found in one pass and FOUR of
+  them came from reading output rather than code, every one of them past a green
+  board:
+
+  - a sales tile counting a seeded client, found in a screenshot
+  - an export whose manifest said "Real records only" above eighteen
+    demonstration rows, found by opening the CSV
+  - the administrator's margin and revenue, $175.00 and $450.00 of it entirely
+    seeded files, found in a screenshot
+  - amounts written in cents, so a $675.00 refund would have reached an
+    accountant's spreadsheet as 67500, found in the same CSV
+
+  Two of those were sitting behind checks that had just been widened to look
+  straight at them. The harness was not wrong; it was answering the question it
+  had been asked. Reading is how the unasked question gets asked.
+
+  A report that names no artefact is a report written from the board, and the
+  board is exactly the thing that cannot see this class of defect.
 - Completion claims verified from disk and from the running app, not from intent.
 - Judgment calls disclosed in the report, not buried.
 - **The confession rule: a completion report that is not true is the one unforgivable failure
