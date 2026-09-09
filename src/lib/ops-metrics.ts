@@ -1,4 +1,5 @@
 import "server-only";
+import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 
 /**
@@ -49,6 +50,28 @@ export const METRICS = {
   ERROR_TYPES_NEW: "errors.new_types",
   API_REQUESTS: "api.requests",
   SIGN_INS: "auth.sign_ins",
+
+  /*
+   * THE CRON ROLLUP, AND IT EXISTS SO A FLOOR CAN.
+   *
+   * Phase 12 Section 3. eng_cron_runs is the fastest growing table in this
+   * schema by a wide margin, 51,878 rows a month measured on production with
+   * the firm not trading, because it grows from the CLOCK rather than from the
+   * business. It also had no rollup at all: none of the twelve metrics above
+   * read it, and it is read in exactly one place as the most recent 500 runs.
+   *
+   * The operator's ruling was a rollup first and then a thirty day floor, in
+   * that order, because a source may only be deleted once the thing that
+   * replaces it exists AND reconciles against it. These three are that thing.
+   *
+   * CRON_RUNS is the denominator, CRON_FAILURES the numerator anybody actually
+   * asks about, and CRON_SECONDS the total duration, which is kept as a sum
+   * rather than a mean so that a day can still be combined with another day
+   * afterwards. A mean cannot be added to a mean.
+   */
+  CRON_RUNS: "cron.runs",
+  CRON_FAILURES: "cron.failures",
+  CRON_SECONDS: "cron.seconds",
 } as const;
 
 export type MetricName = (typeof METRICS)[keyof typeof METRICS];
@@ -190,6 +213,44 @@ export async function rollupDay(day: string = dayKey(new Date(Date.now() - 86_40
   put(METRICS.ERRORS_RECORDED, await countIn(db, "eng_error_events", "occurred_at", from, to));
   put(METRICS.ERROR_TYPES_NEW, await countIn(db, "eng_error_types", "first_seen_at", from, to));
   put(METRICS.API_REQUESTS, await countIn(db, "eng_account_api_requests", "created_at", from, to));
+  /*
+   * Read as ROWS rather than as three counts, because the duration has to be
+   * summed and a second pass for it could see a different set: a cron run that
+   * finishes between two queries would be counted in one and not the other.
+   * One read, three figures, no chance of them disagreeing.
+   */
+  const cronRead = await readEvery<{ ok: boolean | null; started_at: string; finished_at: string | null }>(
+    (rangeFrom, rangeTo) =>
+      db
+        .from("eng_cron_runs")
+        .select("ok, started_at, finished_at")
+        .gte("started_at", from)
+        .lt("started_at", to)
+        .order("started_at", { ascending: true })
+        .range(rangeFrom, rangeTo),
+  );
+
+  if (cronRead.ok) {
+    const runs = cronRead.rows;
+    put(METRICS.CRON_RUNS, runs.length);
+    put(METRICS.CRON_FAILURES, runs.filter((r) => r.ok === false).length);
+    put(
+      METRICS.CRON_SECONDS,
+      Math.round(
+        runs.reduce((n, r) => {
+          if (!r.finished_at) return n;
+          const ms = Date.parse(r.finished_at) - Date.parse(r.started_at);
+          return Number.isFinite(ms) && ms >= 0 ? n + ms / 1000 : n;
+        }, 0),
+      ),
+    );
+  } else {
+    /* Null rather than zero, for the reason every other figure in this file
+     * gives: a day nobody could read is not a day nothing ran. */
+    put(METRICS.CRON_RUNS, null);
+    put(METRICS.CRON_FAILURES, null);
+    put(METRICS.CRON_SECONDS, null);
+  }
   put(
     METRICS.SIGN_INS,
     await countIn(db, "eng_audit_events", "created_at", from, to, {

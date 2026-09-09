@@ -365,6 +365,37 @@ So a fixture is priced, dated and complete: every column any figure could sum,
 count or age. The test of a fixture is not whether it inserts a row, it is
 whether removing the filter makes a number move.
 
+**A FIXTURE THAT CANNOT SEPARATE THE TWO ANSWERS PROVES NEITHER.** Recorded
+2026-09-09. The first attempt at proving the credit gate used twelve $100 orders
+against a $500 limit, and the truncated exposure landed exactly ON the limit, so
+the old shape and the new shape both refused and the run reported nothing. The
+fixture was wrong rather than the code. Moving the limit to $800, between the
+truncated $500 and the true $1,200, made the difference visible: granted against
+refused.
+
+**AND A MATCHER WITH A WINDOW WIDER THAN THE THING IT MATCHES ATTACHES TO ITS
+NEIGHBOUR.** Same day, same section, in the patch script written to document all
+of this. It searched an eight line window for a table name to decide which query
+a comment belonged above, and these queries sit in three line blocks, so one
+block's window reached into the next and three reasons landed on the wrong
+reads. It is the recurring defect of this repository wearing a code generator: a
+thing looking at the right subject in the wrong span.
+
+The fix is the general one: match the line immediately adjacent, not a window,
+and where adjacency is not enough, place by explicit position and ASSERT the
+target before writing. The four that could not be disambiguated were inserted by
+line number with each one checked against the read beneath it first.
+
+**On the patch scripts themselves.** Eleven were written in that section, none
+is tracked by git, and every one refuses to exit zero when its substitution
+finds nothing: re-running all eleven exits non-zero and changes no file. The one
+that silently did nothing was not a substitution but an IMPORT GUARD, which
+asked whether the file already mentioned a symbol that the substitution above it
+had just inserted, so it always answered yes and skipped. Nothing in the script
+could catch that, because the script had done exactly what it was told;
+`tsc` caught it, and that is the argument for a compile step over a careful
+script.
+
 **A CHECK THAT FILTERS LIVE DATA FOR A SUBJECT THAT DOES NOT EXIST YET IS
 VACUOUS. BUILD THE SUBJECT.** Operator ruling, 2026-09-09, from the reporting
 paging work. The obvious way to check that a paged expansion still sums the
