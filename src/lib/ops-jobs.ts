@@ -1,4 +1,5 @@
 import "server-only";
+import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import { LEASE_SECONDS, BATCH_SIZE, nextState, type JobOutcome } from "./job-rules";
 import { business } from "@/config/business";
@@ -326,19 +327,37 @@ export async function queueHealth(): Promise<QueueHealth | null> {
   const db = supabaseAdmin();
   if (!db) return null;
 
-  const { data, error } = await db
-    .from("eng_jobs")
-    .select("kind, status, run_after")
-    .in("status", ["pending", "running", "dead"]);
+  /*
+   * PAGED, AND THIS ONE TRUNCATES EXACTLY WHEN IT MATTERS.
+   *
+   * The comment below already says a failed read is not an empty queue. A
+   * TRUNCATED read is not a small queue either, and the difference is worse:
+   * this reads only pending, running and dead, so the set is empty on a healthy
+   * queue and only grows when the queue is BACKED UP. The one moment the depth
+   * figure is worth reading is the one moment it would have been capped at a
+   * thousand and reported calm.
+   *
+   * On production today the set is zero: 1,290 jobs, all done. That is why this
+   * is a deadline rather than a live defect, and why it is fixed before the
+   * deadline arrives.
+   */
+  const read = await readEvery<{ kind: string; status: string; run_after: string | null }>((from, to) =>
+    db
+      .from("eng_jobs")
+      .select("kind, status, run_after")
+      .in("status", ["pending", "running", "dead"])
+      .order("created_at", { ascending: true })
+      .range(from, to),
+  );
 
   /*
    * A failed read is null, not an empty queue. A status screen that reports
    * zero because it could not look is the exact shape of defect this section
    * exists to remove.
    */
-  if (error) return null;
+  if (!read.ok) return null;
 
-  const rows = data ?? [];
+  const rows = read.rows;
   const now = Date.now();
   const eligible = rows.filter(
     (r) => r.status === "pending" && Date.parse(r.run_after as string) <= now,

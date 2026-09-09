@@ -1,4 +1,5 @@
 import "server-only";
+import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import { can, REVIEW_QUEUE_STATUSES, type Actor } from "./ops-authz";
 import { taskCounts } from "./ops-tasks";
@@ -529,11 +530,23 @@ async function engineerDashboard(actor: Actor): Promise<EngineerDashboard> {
     unreadCount(actor.id),
   ]);
 
-  const { data: charge } = await db
-    .from("eng_responsible_charge_log")
-    .select("review_minutes")
-    .eq("engineer_id", actor.id)
-    .eq("period", period);
+  /*
+   * PAGED. This is the count of reviews an engineer's licence stands on and the
+   * minutes behind it, bounded by one month, so it takes a very high volume
+   * engineer to reach a page. It is paged anyway because the cost of being
+   * wrong is a regulatory figure understated, and the cost of paging is a
+   * second round trip in the month it happens.
+   */
+  const chargeRead = await readEvery<{ review_minutes: number | null }>((from, to) =>
+    db
+      .from("eng_responsible_charge_log")
+      .select("review_minutes")
+      .eq("engineer_id", actor.id)
+      .eq("period", period)
+      .order("reviewed_at", { ascending: true })
+      .range(from, to),
+  );
+  const charge = chargeRead.ok ? chargeRead.rows : null;
 
   const reviewsThisPeriod = (charge ?? []).length;
   const reviewMinutesThisPeriod = (charge ?? []).reduce(
@@ -569,11 +582,20 @@ async function engineerDashboard(actor: Actor): Promise<EngineerDashboard> {
    * demonstration is not a demonstration. Only an entry whose file is EXPLICITLY
    * marked is removed.
    */
-  const { data: ledgerRaw } = await db
-    .from("eng_production_ledger")
-    .select("amount_cents, status, eng_files(is_demo)")
-    .eq("engineer_id", actor.id)
-    .eq("period", period);
+  /* eng_files is typed as the embedded ARRAY PostgREST returns rather than the
+   * object the call site reads, because the cast already lives at the filter
+   * below and a second, prettier type here would be a second thing to keep in
+   * step with the query. */
+  const productionRead = await readEvery<Record<string, unknown>>((from, to) =>
+    db
+      .from("eng_production_ledger")
+      .select("amount_cents, status, eng_files(is_demo)")
+      .eq("engineer_id", actor.id)
+      .eq("period", period)
+      .order("created_at", { ascending: true })
+      .range(from, to),
+  );
+  const ledgerRaw = productionRead.ok ? productionRead.rows : null;
 
   const ledger =
     ledgerRaw === null
@@ -726,10 +748,22 @@ async function techDashboard(actor: Actor): Promise<TechDashboard> {
    * An entry with no file is kept, because file_id is nullable and an inner
    * join would quietly reduce somebody's pay.
    */
-  const { data: pay } = await db
-    .from("eng_tech_pay_ledger")
-    .select("amount_cents, status, eng_files(is_demo)")
-    .eq("tech_id", actor.id);
+  /*
+   * PAGED, and this one has no period bound at all: it is a technician's whole
+   * history with the firm. A long tenured person is the first to exceed a page
+   * and the figure is what they are owed, so a truncated read shows them LESS
+   * than the firm owes them. That is the same defect the scoping above exists
+   * to prevent, arriving from the other direction.
+   */
+  const payRead = await readEvery<Record<string, unknown>>((from, to) =>
+    db
+      .from("eng_tech_pay_ledger")
+      .select("amount_cents, status, eng_files(is_demo)")
+      .eq("tech_id", actor.id)
+      .order("created_at", { ascending: true })
+      .range(from, to),
+  );
+  const pay = payRead.ok ? payRead.rows : null;
   const rows =
     pay === null
       ? null

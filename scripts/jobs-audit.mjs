@@ -534,8 +534,28 @@ rec(
   const health = functionBody(jobsCode, "export async function queueHealth(");
   rec(
     "queueHealth returns null on a failed read rather than zeros",
-    /if \(error\) return null;/.test(health),
+    /if \(!read\.ok\) return null;/.test(health),
     "an unreadable queue is not a quiet one",
+  );
+
+  /*
+   * AND A TRUNCATED READ IS NOT A SMALL QUEUE.
+   *
+   * Phase 12 Section 3. The check above was written against `if (error)`, and
+   * it went red when the read was paged, which is the right thing for it to do:
+   * the pattern moved and somebody had to look. What it must not become is a
+   * looser pattern that passes on both, so it names the new one exactly.
+   *
+   * The new failure this guards is different from the old one. queueHealth
+   * reads only pending, running and dead, so its set is EMPTY on a healthy
+   * queue and grows only when the queue is backed up. A single request would
+   * therefore cap at a thousand precisely when the depth figure is worth
+   * reading, and report calm.
+   */
+  rec(
+    "and pages, because a backed up queue is when its set first exceeds one read",
+    /readEvery</.test(health) && !/\.in\("status", \["pending", "running", "dead"\]\);/.test(health),
+    "the one moment the depth is worth reading is the one moment a single request would have capped it",
   );
 
   const retry = functionBody(jobsCode, "export async function retryDeadJob(");
