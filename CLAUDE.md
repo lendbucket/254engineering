@@ -836,6 +836,16 @@ asking whether you meant it.
 | Alerts per sweep | **3** | `src/lib/alert-rules.ts` | `scripts/observability-audit.mjs` |
 | Sister intake rate | **20 a minute** | `src/lib/sister-intake.ts` | `scripts/sister-intake-audit.mjs` |
 | TOTP digits and period | **6 digits, 30 seconds** | `src/lib/totp.ts` | `scripts/proofs/totp-matches-the-rfc.mjs` |
+| Telemetry retention floor | **30 days** | `src/lib/retention-policy.ts` | `scripts/retention-audit.mjs` |
+| Tables retention may delete from | **`eng_cron_runs`, `eng_jobs`** | `src/lib/retention-policy.ts` | `scripts/retention-audit.mjs` |
+
+The last two joined on 2026-09-09, and retention is the sharpest case this
+table has. Every other ruling here costs money or locks somebody out, and both
+are recoverable by reading a record. A floor moved from thirty days to one, or a
+third table quietly added to the deletable set, destroys the record itself, and
+no later audit can tell a deleted row from a row that never existed.
+retention-audit also pins the operator kept-forever list, which is the same
+mechanism applied to the tables no configuration may shorten.
 
 They were pinned on 2026-09-08 after a survey of all 47 audit and proof
 scripts found each of them written in terms of its own constant on both sides

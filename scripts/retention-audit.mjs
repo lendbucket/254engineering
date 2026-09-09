@@ -205,6 +205,28 @@ rec(
 }
 
 {
+  /*
+   * THE FLOORS THEMSELVES, PINNED. CLAUDE.md section 6c is the mechanism and
+   * this is the sharpest instance of it.
+   *
+   * The check below asserts every deletable table has a POSITIVE floor, which
+   * would have stayed green with the floor moved from thirty days to one. Every
+   * other ruling in that table costs money or locks somebody out and is
+   * recoverable by reading a record. A floor moved down destroys the record, and
+   * no later audit can tell a deleted row from a row that never existed.
+   */
+  const RULED_FLOORS = { eng_cron_runs: 30, eng_jobs: 30 };
+  const wrong = deletableEntries()
+    .filter((e) => e.rule.floorDays !== RULED_FLOORS[e.table])
+    .map((e) => `${e.table} is ${e.rule.floorDays}d and the ruling is ${RULED_FLOORS[e.table] ?? "no floor at all"}`);
+  rec(
+    "the floors are the ones the operator ruled, to the day",
+    wrong.length === 0 && deletableEntries().length === Object.keys(RULED_FLOORS).length,
+    wrong.length ? wrong.join("; ") : "30 days on eng_cron_runs and on eng_jobs, ruled 2026-09-09",
+  );
+}
+
+{
   const bad = [];
   const metricNames = new Set(Object.values(METRICS));
   for (const { table, rule } of deletableEntries()) {

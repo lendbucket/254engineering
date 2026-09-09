@@ -402,3 +402,69 @@ declaration; nothing here is inferred.
    count in a real person's pay. Needs a decision before any file retention.
 3. **`eng_audit_events` cannot be bounded by retention** and grows at 2,309 a
    month on production. Recorded so nobody expects this section to solve it.
+
+## 9. What Section 2 built, and where each finding above landed
+
+Written 2026-09-09 at gate 2. This closes the loop on section 8's three
+questions and section 7's six rulings, so the inventory does not read as though
+it is still waiting on any of them.
+
+**The declaration is `src/lib/retention-policy.ts`**, 73 tables: 41 kept pending
+counsel, 22 kept forever, 8 not a record, 2 deletable. A table in the schema and
+not in it fails the board, and so does a table in it and not in the schema.
+`scripts/retention-audit.mjs` derives the list from the migration chain, which
+is independent of both.
+
+**Section 8 question 1, the cron rollup: built.** `cron.runs`, `cron.failures`
+and `cron.seconds` are computed in `rollupDay`, read as rows in one pass so the
+duration cannot disagree with the counts, and the duration is a sum rather than
+a mean so days can still be combined. The 30 day floor exists only because they
+do, and the job refuses to delete a day whose rollup is absent or disagrees,
+naming the day.
+
+**Section 8 question 2, the `SET NULL` on ledger `file_id`: closed by 0030.**
+Both are `ON DELETE RESTRICT` now. Proved rather than declared: a demonstration
+file with a $600.00 production ledger entry against it refuses to delete, by
+constraint name, with the entry's `file_id` still set.
+
+**Section 8 question 3, `eng_audit_events`: recorded, not solved.** It is
+declared kept forever with the ruling attached and the sentence that nobody
+should expect retention to bound it. Section 1's paging is what bounds its
+readers.
+
+**Sections 2 and 3 above, the ten tables that refuse deletes and the foreign
+keys: both are now rules in the declaration** rather than facts in this
+document, with the trigger or the constraint named as the reason, and the audit
+proves the declaration and the schema still agree.
+
+### What the manifest carries, and the two defects the audit found
+
+`eng_retention_runs`, added by 0031, is written before a run touches anything:
+the policy as it stood, the set by id range and by sha256 over the ids, the
+rollups proved per day, the mode, the actor, and the time in Central written by
+the database from the same `now()` as the UTC instant beside it. It refuses
+DELETE and allows UPDATE, both proved with the service role.
+
+Two defects were found by the audit disagreeing with the code rather than by
+anybody reading it:
+
+1. **`eng_evidence_items` was declared kept pending counsel** while the
+   operator's ruling says the evidence binder of a sealed file is kept forever.
+   The audit pins that ruling as a literal the declaration cannot reach, and
+   they disagreed. The table holds the evidence of every file and nothing in its
+   shape tells a sealed one from an unsealed one, so the stricter rule takes the
+   whole table.
+
+2. **The first dry run sent twenty emails.** The script called the queue's
+   worker to watch its own job finish, and the worker claims the oldest eligible
+   row of any kind. Development's queue holds 399 pending jobs that nothing
+   drains, 307 of them email, and Resend accepted the twenty it reached. The
+   script refuses to drain over a backlog now; the backlog is its own item in
+   `BACKLOG.md`.
+
+### What is deliberately absent
+
+No schedule and no screen. A retention pass is planned and enqueued by hand with
+`npm run retention-dry-run`, and no execute run has happened anywhere, because
+`executeAuthority` refuses to mint the authority to delete while the prelaunch
+gate is on. All four absences are in `BACKLOG.md` with their reasons.
