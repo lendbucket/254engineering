@@ -52,7 +52,10 @@ process.loadEnvFile?.(".env.local");
 import { readFileSync, readdirSync } from "node:fs";
 import { auditClient } from "./lib/db-target.mjs";
 import { RETENTION_POLICY, DECLARED_TABLES, deletableEntries, mayDelete, ruleFor } from "../src/lib/retention-policy.ts";
-import { planRetention, runRetention, executeAuthority, hashIds, cutoffFor, sweepable, BATCH } from "../src/lib/ops-retention.ts";
+import {
+  planRetention, runRetention, executeAuthority, hashIds, cutoffFor, sweepable, BATCH,
+  abandonRun, stillPlanned,
+} from "../src/lib/ops-retention.ts";
 import { METRICS } from "../src/lib/ops-metrics.ts";
 import { DEFAULT_ROLES } from "../src/lib/ops-authz.ts";
 import { registeredKinds, handlerFor, loadHandlers } from "../src/lib/ops-jobs.ts";
@@ -72,6 +75,30 @@ import { registeredKinds, handlerFor, loadHandlers } from "../src/lib/ops-jobs.t
  * should be written against a replayed database instead.
  */
 const AUDIT_ASKED = { id: null, email: null, role: "audit:retention-audit" };
+
+/*
+ * EVERY PLAN THIS AUDIT MAKES IS CLOSED OUT BEFORE IT EXITS.
+ *
+ * Operator ruling, gate 2. A manifest at `planned` is a deletion that is
+ * still intended, and this audit plans eight times a run to prove the
+ * refusals and the guards. Development held ten of them, each one reading as
+ * a sweep waiting to happen.
+ *
+ * They cannot be deleted: the manifest table refuses DELETE for the reason
+ * 0031 gives at length. They are ABANDONED instead, which is an UPDATE and
+ * says what the row actually is, that nothing was attempted and nothing will
+ * be.
+ *
+ * Every plan in this file goes through `planAndTrack` rather than planRetention
+ * directly, so a new one cannot be added without being tracked. The check at
+ * the end reads the database back rather than trusting this list.
+ */
+const planned = [];
+const planAndTrack = async (table, mode) => {
+  const result = await planRetention(table, mode);
+  if (result.ok) planned.push(result.manifest.id);
+  return result;
+};
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -407,32 +434,64 @@ rec(
 const db = auditClient("retention-audit", { neverProduction: true });
 
 const DAY = "2019-03-0";
+
+/*
+ * A DAY THAT IS NEVER ROLLED UP, AND WHY IT HAD TO BE A DIFFERENT DAY.
+ *
+ * The no-rollup check used the same three days the plan check later rolls
+ * up. That worked exactly once. 0032 stopped eng_metrics_daily rows being
+ * deleted, so the rollup this audit writes for 2019-03 now survives the run,
+ * and the SECOND run found those days already reconciled and planned a
+ * deletion the check expected to be refused.
+ *
+ * The audit's own residue defeating the audit's own fixture is the fixture
+ * lesson in its purest form. 2019-04-01 is used instead: cron rows are
+ * written for it, the plan is refused for naming it, and the rows are removed
+ * before the rest of the file runs. It is never rolled up, by anything, ever,
+ * so "this day has no rollup" stays true whatever ran before.
+ */
+const UNROLLED_DAY = "2019-04-01";
 const madeCron = [];
+/* Removed inline, and tracked separately so the dry run's count is about the fixture it is actually asserting. */
+const madeUnrolled = [];
 const madeMetrics = [];
 
+/*
+ * THE CRON ROWS GO AND THE ROLLUP ROWS CANNOT, WHICH IS 0032 WORKING.
+ *
+ * eng_metrics_daily refuses DELETE now, because it is the rollup that
+ * outlives its sources: deleting a row there destroys the only remaining
+ * record of a day retention already emptied. So this audit leaves three rows
+ * behind, for three days in 2019 that nothing else will ever write, and it
+ * rewrites the same three every run rather than adding to them, because the
+ * upsert is on (day, metric).
+ *
+ * That is the honest trade, and the count is asserted below rather than
+ * assumed.
+ */
 const cleanup = async () => {
-  if (madeCron.length) await db.from("eng_cron_runs").delete().in("id", madeCron);
-  for (const day of madeMetrics) await db.from("eng_metrics_daily").delete().eq("day", day).eq("metric", METRICS.CRON_RUNS);
+  const ids = [...madeCron, ...madeUnrolled];
+  if (ids.length) await db.from("eng_cron_runs").delete().in("id", ids);
 };
 
 try {
   // ------------------------------------------------ a plan refuses what it must
 
-  const forever = await planRetention("eng_audit_events", { kind: "dry_run", askedBy: AUDIT_ASKED });
+  const forever = await planAndTrack("eng_audit_events", { kind: "dry_run", askedBy: AUDIT_ASKED });
   rec(
     "planning against a kept-forever table is refused and says so",
     forever.ok === false && /kept_forever/.test(forever.because),
     forever.ok ? "IT PLANNED ONE" : forever.because.slice(0, 90),
   );
 
-  const unknown = await planRetention("eng_not_a_real_table", { kind: "dry_run", askedBy: AUDIT_ASKED });
+  const unknown = await planAndTrack("eng_not_a_real_table", { kind: "dry_run", askedBy: AUDIT_ASKED });
   rec(
     "planning against a table the declaration does not name is refused",
     unknown.ok === false && /not named in retention-policy/.test(unknown.because),
     unknown.ok ? "IT PLANNED ONE" : "refused before it reads a row",
   );
 
-  const counsel = await planRetention("eng_files", { kind: "dry_run", askedBy: AUDIT_ASKED });
+  const counsel = await planAndTrack("eng_files", { kind: "dry_run", askedBy: AUDIT_ASKED });
   rec(
     "and so is a table waiting on counsel",
     counsel.ok === false && /kept_pending_counsel/.test(counsel.because),
@@ -442,8 +501,43 @@ try {
   // ------------------------------------------------------ the rollup guard
 
   /*
-   * Six cron runs across three days in 2019, well past any floor. The rollup for
-   * those days does not exist, which is the first thing a plan must refuse.
+   * FIRST, A DAY NOTHING HAS EVER ROLLED UP.
+   *
+   * Written, planned against, and removed again before anything else runs, so
+   * that the rest of the file is not looking at it.
+   */
+  const unrolled = [];
+  for (let n = 0; n < 2; n += 1) {
+    unrolled.push({
+      name: "retention-audit-probe",
+      started_at: `${UNROLLED_DAY}T0${n}:00:00Z`,
+      finished_at: `${UNROLLED_DAY}T0${n}:00:05Z`,
+      ok: true,
+      detail: "Written by retention-audit for the no-rollup refusal, and removed immediately.",
+    });
+  }
+  const { data: unrolledRows, error: unrolledErr } = await db
+    .from("eng_cron_runs")
+    .insert(unrolled)
+    .select("id");
+  if (unrolledErr) throw new Error(`could not construct the no-rollup fixture: ${unrolledErr.message}`);
+  madeUnrolled.push(...unrolledRows.map((r) => r.id));
+
+  const noRollup = await planAndTrack("eng_cron_runs", { kind: "dry_run", askedBy: AUDIT_ASKED });
+  rec(
+    "a day with no rollup is refused, and the day is named",
+    noRollup.ok === false &&
+      noRollup.because.includes(UNROLLED_DAY) &&
+      /does not exist yet/.test(noRollup.because),
+    noRollup.ok ? "IT PLANNED THE DELETION OF AN UNROLLED DAY" : noRollup.because.slice(0, 80),
+  );
+
+  /* Removed before the rest of the file plans anything. */
+  await db.from("eng_cron_runs").delete().in("id", unrolledRows.map((r) => r.id));
+
+  /*
+   * Six cron runs across three days in 2019, well past any floor. These get a
+   * rollup, so a plan can succeed against them.
    */
   const rows = [];
   for (let d = 1; d <= 3; d += 1) {
@@ -461,13 +555,6 @@ try {
   if (insErr) throw new Error(`could not construct the fixture: ${insErr.message}`);
   madeCron.push(...inserted.map((r) => r.id));
 
-  const noRollup = await planRetention("eng_cron_runs", { kind: "dry_run", askedBy: AUDIT_ASKED });
-  rec(
-    "a day with no rollup is refused, and the day is named",
-    noRollup.ok === false && new RegExp(`${DAY}[123]`).test(noRollup.because) && /does not exist yet/.test(noRollup.because),
-    noRollup.ok ? "IT PLANNED THE DELETION OF AN UNROLLED DAY" : noRollup.because.slice(0, 80),
-  );
-
   // A rollup that exists and disagrees is refused too, and that is the sharper half.
   await db.from("eng_metrics_daily").upsert(
     [{ day: `${DAY}1`, metric: METRICS.CRON_RUNS, value: 99, computed_at: new Date().toISOString() }],
@@ -475,7 +562,7 @@ try {
   );
   madeMetrics.push(`${DAY}1`);
 
-  const wrongRollup = await planRetention("eng_cron_runs", { kind: "dry_run", askedBy: AUDIT_ASKED });
+  const wrongRollup = await planAndTrack("eng_cron_runs", { kind: "dry_run", askedBy: AUDIT_ASKED });
   rec(
     "a rollup that disagrees with its source is refused, with both numbers",
     wrongRollup.ok === false && /does not reconcile/.test(wrongRollup.because) && /99/.test(wrongRollup.because),
@@ -494,7 +581,7 @@ try {
 
   // ------------------------------------------------------- a dry run deletes nothing
 
-  const plan = await planRetention("eng_cron_runs", { kind: "dry_run", askedBy: { id: null, email: "retention-audit", role: "audit" } });
+  const plan = await planAndTrack("eng_cron_runs", { kind: "dry_run", askedBy: AUDIT_ASKED });
   rec(
     "with the rollups reconciling, a plan is written",
     plan.ok === true,
@@ -560,7 +647,7 @@ try {
      */
     {
       const handler = handlerFor("retention.sweep");
-      const trailPlan = await planRetention("eng_cron_runs", { kind: "dry_run", askedBy: AUDIT_ASKED });
+      const trailPlan = await planAndTrack("eng_cron_runs", { kind: "dry_run", askedBy: AUDIT_ASKED });
 
       if (!handler || !trailPlan.ok) {
         rec("the sweep handler writes a trail row naming who authorised it", false, "could not plan the fixture for it");
@@ -608,7 +695,7 @@ try {
      * the same lesson as the paging check at gate 1: an injection that cannot
      * produce the failure is a green mark for a guard nobody tested.
      */
-    const moved = await planRetention("eng_cron_runs", { kind: "dry_run", askedBy: AUDIT_ASKED });
+    const moved = await planAndTrack("eng_cron_runs", { kind: "dry_run", askedBy: AUDIT_ASKED });
     if (moved.ok && moved.manifest.idLow !== null) {
       const removed = await db.from("eng_cron_runs").delete().eq("id", moved.manifest.idLow);
       const refused = await runRetention(moved.manifest.id);
@@ -691,6 +778,10 @@ try {
   );
 } finally {
   await cleanup();
+
+  for (const id of planned) {
+    await abandonRun(id, "planned by retention-audit to prove a refusal, and never run");
+  }
   const { count: left } = await db
     .from("eng_cron_runs")
     .select("id", { count: "exact", head: true })
@@ -699,6 +790,31 @@ try {
     "the audit leaves nothing behind in the table it swept",
     left === 0,
     `${left} probe run(s) remaining`,
+  );
+
+  /*
+   * AND NOTHING AT `planned`, WHICH IS THE ONE KIND OF RESIDUE THAT READS AS
+   * AN INTENTION RATHER THAN AS RUBBISH. Read back from the database rather
+   * than from the list above, so a plan this file forgot to track still fails.
+   */
+  const leftPlanned = await stillPlanned(AUDIT_ASKED.role);
+  rec(
+    "and no manifest of its own left standing at planned",
+    leftPlanned.length === 0,
+    leftPlanned.length
+      ? `${leftPlanned.length} still planned: ${leftPlanned.map((m) => m.id).join(", ")}`
+      : `${planned.length} plan(s) made this run, every one abandoned`,
+  );
+
+  const { count: metricRows } = await db
+    .from("eng_metrics_daily")
+    .select("day", { count: "exact", head: true })
+    .gte("day", "2019-03-01")
+    .lte("day", "2019-03-31");
+  rec(
+    "and exactly the three rollup rows 0032 will not let it remove",
+    metricRows === 3,
+    `${metricRows} row(s) for 2019-03. eng_metrics_daily refuses DELETE, so these persist; the upsert is on (day, metric), so they are rewritten rather than added to.`,
   );
 }
 

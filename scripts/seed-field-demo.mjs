@@ -301,8 +301,32 @@ if (!KEEP_EXISTING) {
     await db.from("eng_file_inputs").delete().eq("file_id", f.id);
     await db.from("eng_evidence_items").delete().eq("file_id", f.id);
     await db.from("eng_assignments").delete().eq("file_id", f.id);
-    await db.from("eng_tech_pay_ledger").delete().eq("file_id", f.id);
-    await db.from("eng_files").delete().eq("id", f.id);
+
+    /*
+     * THE TECH PAY LEDGER IS NOT SWEPT, AND SAYS SO RATHER THAN FAILING QUIETLY.
+     *
+     * 0032 attached a delete refusal to it: what a technician is owed is a money
+     * record, and a correction there is a new row rather than a removed one. So
+     * a file this script created that ever accrued pay CANNOT be removed either,
+     * because 0030 made the ledger's file_id ON DELETE RESTRICT.
+     *
+     * The attempt is still made and the error is READ, which is the whole point.
+     * The version of this teardown that called delete and ignored the result
+     * went on reporting success after 0032 landed, and two other audits did the
+     * same thing on the production ledger for a whole board run before anybody
+     * counted the rows. A cleanup nobody checks is a cleanup that reports
+     * success by not speaking.
+     */
+    const { error: payErr } = await db.from("eng_tech_pay_ledger").delete().eq("file_id", f.id);
+    const { error: fileErr } = await db.from("eng_files").delete().eq("id", f.id);
+    if (payErr || fileErr) {
+      console.error(
+        `  KEPT ${f.file_number}: ${payErr ? `its technician pay cannot be deleted (${payErr.message.slice(0, 90)})` : ""}` +
+          `${payErr && fileErr ? " and " : ""}` +
+          `${fileErr ? `the file itself is held by it (${fileErr.message.slice(0, 90)})` : ""}` +
+          ". This is 0032 and 0030 working: a demonstration file with earnings is kept, and is_demo keeps it out of every figure.",
+      );
+    }
   }
 
   /*

@@ -63,18 +63,22 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * mistake could have been applied to by hand, which is exactly how 0001 stayed
  * broken for a month. A constant has to be changed by a person who noticed.
  */
-const EXPECTED_FINGERPRINT = "d4f266b0d595c9c2922b68971b9cec2a";
-const EXPECTED_COLUMNS = 994;
+const EXPECTED_FINGERPRINT = "2aee07d8809c3db282e4eb282bb9bbd5";
+const EXPECTED_COLUMNS = 995;
 const EXPECTED_TABLES = 73;
-const EXPECTED_TRIGGERS = 48;
+const EXPECTED_TRIGGERS = 55;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the
  * rest. 0031 adds eng_forbid_retention_run_delete, which refuses DELETE on the
  * retention manifest: a run that can erase its own record is a run with no
- * record. eng_claim_jobs is still the only one called directly.
+ * record. 0032 adds the last two, eng_forbid_record_delete for the money and
+ * consent records and eng_forbid_sealed_work_delete for sealed engineering
+ * work, which is what put a refusal underneath the seven tables the
+ * declaration was keeping on its own word. eng_claim_jobs is still the only
+ * one called directly.
  */
-const EXPECTED_FUNCTIONS = 10;
+const EXPECTED_FUNCTIONS = 12;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -252,15 +256,12 @@ if (failedAt === null) {
    * trigger, or a new one arriving with no protection but this file, fails
    * here rather than being discovered the day somebody deletes from it.
    */
-  const KEPT_BY_THIS_FILE_ALONE = [
-    "eng_documents",
-    "eng_evidence_items",
-    "eng_marketing_suppressions",
-    "eng_metrics_daily",
-    "eng_production_ledger",
-    "eng_tech_pay_ledger",
-    "eng_time_log",
-  ];
+  // Empty since 0032. It was these seven, and the list stays as the mechanism:
+  //   eng_documents, eng_evidence_items, eng_marketing_suppressions,
+  //   eng_metrics_daily, and the three ledgers.
+  // A kept-forever table arriving with no refusal, or losing the one it has,
+  // now fails here rather than being discovered the day somebody deletes from it.
+  const KEPT_BY_THIS_FILE_ALONE = [];
 
   {
     const kept = RETENTION_POLICY.filter((e) => e.rule.kind === "kept_forever").map((e) => e.table);
@@ -346,14 +347,28 @@ if (failedAt === null) {
       if (/\bRESTRICTED\(/.test(body) && !g.has_inbound_restrict) {
         falseClaims.push(`${table} calls RESTRICTED() and nothing references it with ON DELETE RESTRICT`);
       }
+      /*
+     * Three ways this declaration asserts a trigger, and all three name the
+     * function they are asserting. REFUSES_DELETE takes it as an argument;
+     * REFUSES_RECORD_DELETE and REFUSES_SEALED_DELETE are constants added by
+     * 0032 and each asserts exactly one, so the mapping is written here as a
+     * literal rather than parsed out of their text.
+     */
+      const asserted = [];
       const named = body.match(/\bREFUSES_DELETE\("(eng_[a-z_]+)"\)/);
-      if (named) {
+      if (named) asserted.push(named[1]);
+      if (/\bREFUSES_RECORD_DELETE\b/.test(body)) asserted.push("eng_forbid_record_delete");
+      if (/\bREFUSES_SEALED_DELETE\b/.test(body)) asserted.push("eng_forbid_sealed_work_delete");
+
+      if (asserted.length) {
         const attached = String(g.delete_trigger_functions || "").split(",").filter(Boolean);
-        if (!attached.includes(named[1])) {
-          falseClaims.push(
-            `${table} calls REFUSES_DELETE("${named[1]}") and the delete triggers actually attached are ` +
-              `[${attached.join(", ") || "none"}]`,
-          );
+        for (const fn of asserted) {
+          if (!attached.includes(fn)) {
+            falseClaims.push(
+              `${table} asserts ${fn} refuses its deletes and the triggers actually attached are ` +
+                `[${attached.join(", ") || "none"}]`,
+            );
+          }
         }
       }
     }
@@ -599,6 +614,115 @@ if (failedAt === null) {
     reversalAllowedOnSameFile = false;
   }
   rec("while a reversal on that same file is allowed", reversalAllowedOnSameFile);
+
+  /*
+   * ===================================================================
+   * 0032, AND THE ONLY PLACE A SEAL CAN BE WRITTEN AT ALL.
+   * ===================================================================
+   *
+   * eng_forbid_sealed_work_delete refuses a sealed deliverable, and every row
+   * belonging to a file that has one, including a delete cascading from
+   * eng_files. It refuses NOTHING on either live database, because the firm
+   * has no licensed PE and nothing in this platform is sealed or can be, so a
+   * live check would report a pass over an empty list forever and be exercised
+   * for the first time in production.
+   *
+   * Proving it needs a row with sealed_at set, and writing one to a live
+   * database would be a fabricated sealing record on the firm's regulatory
+   * memory, which is forbidden outright. THIS DATABASE IS THROWN AWAY at the
+   * end of this file, which is the same treatment eng_partner_entries has had
+   * since 0019 and for exactly the same reason.
+   *
+   * Both directions are checked, because a trigger that refuses everything
+   * would pass the first half and be a worse defect than the hole it closes:
+   * an unsealed file's evidence has no ruling yet and must stay deletable.
+   */
+  const SEALED_FILE = "'00000000-0000-4000-8000-0000000000ab'";
+  const OPEN_FILE = "'00000000-0000-4000-8000-0000000000ac'";
+
+  await db.exec(`
+    insert into eng_files (id, client_id, file_number, property_address, county, service_slug)
+    values (${SEALED_FILE}, '00000000-0000-4000-8000-0000000000dd', '254-PROBE-SEAL', '2 Probe Street', 'Nueces', 'windstorm'),
+           (${OPEN_FILE}, '00000000-0000-4000-8000-0000000000dd', '254-PROBE-OPEN', '3 Probe Street', 'Nueces', 'windstorm');
+
+    insert into eng_documents (id, file_id, kind, title, bucket, storage_key, sealed_at)
+    values ('00000000-0000-4000-8000-0000000000b1', ${SEALED_FILE}, 'deliverable', 'Probe sealed letter', 'docs', 'probe/sealed', now());
+
+    insert into eng_documents (id, file_id, kind, title, bucket, storage_key)
+    values ('00000000-0000-4000-8000-0000000000b2', ${OPEN_FILE}, 'deliverable', 'Probe draft', 'docs', 'probe/draft');
+
+    insert into eng_evidence_items (id, file_id, item_key, kind)
+    values ('00000000-0000-4000-8000-0000000000e1', ${SEALED_FILE}, 'probe', 'note'),
+           ('00000000-0000-4000-8000-0000000000e2', ${OPEN_FILE}, 'probe', 'note');
+  `);
+
+  const attempt = async (sql) => {
+    try {
+      await db.exec(sql);
+      return null;
+    } catch (err) {
+      return String(err.message ?? err).split("\n")[0].slice(0, 130);
+    }
+  };
+  const refused = async (sql) => (await attempt(sql)) !== null;
+
+  rec(
+    "a sealed deliverable cannot be deleted",
+    await refused("delete from eng_documents where id = '00000000-0000-4000-8000-0000000000b1'"),
+    "a seal is a Professional Engineer's own act and the record of it outlives everything else",
+  );
+  rec(
+    "nor can the evidence of a file that has one",
+    await refused("delete from eng_evidence_items where id = '00000000-0000-4000-8000-0000000000e1'"),
+    "the binder is kept with the file the operator ruled is kept forever",
+  );
+  rec(
+    "nor the sealed file itself, which the cascade would have taken them with",
+    await refused(`delete from eng_files where id = ${SEALED_FILE}`),
+    "eng_documents and eng_evidence_items cascade from eng_files, and a BEFORE DELETE trigger fires on a cascade",
+  );
+
+  /*
+   * The other direction, and it is the half that stops this being a blanket
+   * refusal nobody meant. Evidence on an UNSEALED file has no ruling yet and
+   * sits under pending counsel with everything else.
+   */
+  const openEvidence = await attempt(
+    "delete from eng_evidence_items where id = '00000000-0000-4000-8000-0000000000e2'",
+  );
+  rec(
+    "and evidence on an unsealed file is still deletable, which is the ruling",
+    openEvidence === null,
+    openEvidence === null
+      ? "a trigger that refused everything would have answered a question that is still with counsel"
+      : `REFUSED: ${openEvidence}`,
+  );
+  const openDoc = await attempt(
+    "delete from eng_documents where id = '00000000-0000-4000-8000-0000000000b2'",
+  );
+  rec(
+    "and so is an unsealed document",
+    openDoc === null,
+    openDoc === null ? "the rule is about sealed work, and a draft is not sealed work" : `REFUSED: ${openDoc}`,
+  );
+
+  /*
+   * And the five with no condition on them at all.
+   */
+  await db.exec(`
+    insert into eng_metrics_daily (day, metric, value) values ('2019-01-01', 'probe.metric', 1);
+    insert into eng_marketing_suppressions (email, because) values ('probe@example.com', 'probe');
+  `);
+  rec(
+    "a rollup row cannot be deleted",
+    await refused("delete from eng_metrics_daily where metric = 'probe.metric'"),
+    "it is the only remaining record of a day whose sources retention already took",
+  );
+  rec(
+    "nor a suppression",
+    await refused("delete from eng_marketing_suppressions where email = 'probe@example.com'"),
+    "deleting the row does not undo the asking, it resumes the writing",
+  );
 }
 
 await db.close();

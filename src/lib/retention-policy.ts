@@ -130,6 +130,42 @@ const OUTBOUND_ONLY = (what: string) =>
   `time somebody is paid for, and this ruling is the only thing keeping it. migration-audit checks ` +
   `the claim against the replayed catalogue now, in the direction the claim is actually made.`;
 
+/**
+ * WHAT 0032 PUT UNDERNEATH THE PROMISE.
+ *
+ * Five tables were declared kept forever and held by nothing but this file.
+ * Three of them said in writing that a foreign key kept them, citing a key
+ * that protects a different table. 0032 attached a real refusal, so the
+ * sentence and the schema now say the same thing, and migration-audit
+ * compares the function named here against the trigger actually attached.
+ */
+const REFUSES_RECORD_DELETE =
+  'The database refuses DELETE on this table through eng_forbid_record_delete, added by 0032. ' +
+  'Proved rather than read: attempting one with the service role, the most privileged credential ' +
+  'this platform has, is refused and loses no rows. A correction here is a new row rather than a ' +
+  'removed one, which is the rule eng_order_payments has carried since 0006.';
+
+/**
+ * AND THE NARROWER ONE, FOR ROWS THAT ARE NOT ALL IN THE SAME POSITION.
+ *
+ * eng_forbid_sealed_work_delete refuses a sealed deliverable, and anything
+ * belonging to a file that has one, including a delete cascading from
+ * eng_files. Evidence on an UNSEALED file is untouched, because that
+ * question is still with counsel and a blanket refusal would have answered
+ * it by accident.
+ *
+ * IT REFUSES NOTHING TODAY. Registration is pending, no licensed PE is on
+ * staff, and nothing in this platform is sealed or can be, so every row in
+ * both tables is deletable right now and stops being deletable the moment a
+ * sealed deliverable is uploaded against its file. It is proved inside
+ * migration-audit's replayed database, which is thrown away, because proving
+ * it live would mean writing a fabricated sealing record.
+ */
+const REFUSES_SEALED_DELETE =
+  'The database refuses DELETE on this table through eng_forbid_sealed_work_delete, added by 0032, ' +
+  'for a sealed deliverable and for every row belonging to a file that has one, cascade included. ' +
+  'Rows on an unsealed file are not refused, because that question is with counsel.';
+
 const RESTRICTED = (what: string) =>
   `Kept forever by the FOREIGN KEYS rather than by a ruling: ${what}. The schema already decided this, ` +
   `and the declaration says the same thing so the two cannot drift apart.`;
@@ -231,10 +267,11 @@ export const RETENTION_POLICY: RetentionEntry[] = [
     rule: {
       kind: "kept_forever",
       because:
-        "A sealed deliverable and the evidence binder of a sealed file are kept with the file. Operator " +
-        "ruling: a sealed file is retained forever by default, and if a floor is ever set for one it is " +
-        "set on the advice of counsel with that advice recorded as its reason.",
-      ruledBy: "operator, 2026-09-09",
+        REFUSES_SEALED_DELETE +
+        " A sealed deliverable and the evidence binder of a sealed file are kept with the file." +
+        " Operator ruling: a sealed file is retained forever by default, and if a floor is ever set" +
+        " for one it is set on the advice of counsel with that advice recorded as its reason.",
+      ruledBy: "operator, 2026-09-09, and 0032",
     },
   },
   { table: "eng_error_events", rule: { kind: "kept_pending_counsel", because: "Telemetry in shape. A floor is defensible and none has been ruled, and this section's scope is the two tables below. " + COUNSEL } },
@@ -244,7 +281,9 @@ export const RETENTION_POLICY: RetentionEntry[] = [
     rule: {
       kind: "kept_forever",
       because:
-        "THE RULING IS ABOUT ROWS AND THIS DECLARATION IS ABOUT TABLES, SO THE STRICTER RULE TAKES THE " +
+        REFUSES_SEALED_DELETE +
+        " THE RULING IS ABOUT ROWS AND THIS DECLARATION IS ABOUT TABLES, SO THE STRICTER RULE TAKES " +
+        "THE " +
         "WHOLE TABLE. The operator ruled that sealed documents and the evidence binders of sealed files " +
         "are kept forever with no configuration able to shorten them. This table holds the evidence for " +
         "every file, sealed and unsealed alike, and nothing in its shape tells the two apart without " +
@@ -255,8 +294,10 @@ export const RETENTION_POLICY: RetentionEntry[] = [
         "ruling pinned in the audit as a literal and disagreed. Nothing could have been deleted either " +
         "way, because retention treats the two states identically, so this is a record made accurate " +
         "rather than a deletion prevented. That is exactly the value of pinning a ruling somewhere the " +
-        "file under test cannot reach.",
-      ruledBy: "operator, 2026-09-09",
+        "file under test cannot reach. 0032 then put a trigger underneath the sealed half of it, so " +
+        "the declaration and the schema say the same thing about the rows the ruling is actually " +
+        "about.",
+      ruledBy: "operator, 2026-09-09, and 0032",
     },
   },
   {
@@ -300,10 +341,12 @@ export const RETENTION_POLICY: RetentionEntry[] = [
     rule: {
       kind: "kept_forever",
       because:
-        "NEVER EXPIRES. Operator ruling: a person who asked not to be contacted stays asked. A floor " +
-        "here would mean the firm resumes writing to somebody because time passed, which is the one " +
-        "thing this list exists to prevent.",
-      ruledBy: "operator, 2026-09-09",
+        REFUSES_RECORD_DELETE +
+        " NEVER EXPIRES. Operator ruling: a person who asked not to be contacted stays asked. A floor" +
+        " here would mean the firm resumes writing to somebody because time passed, which is the one" +
+        " thing this list exists to prevent, and the one outcome nobody can take back once an email" +
+        " has gone.",
+      ruledBy: "operator, 2026-09-09, and 0032",
     },
   },
   { table: "eng_messages", rule: { kind: "kept_pending_counsel", because: "A file's thread is part of what the firm would produce about that file, and the binder now carries it. " + COUNSEL } },
@@ -312,10 +355,12 @@ export const RETENTION_POLICY: RetentionEntry[] = [
     rule: {
       kind: "kept_forever",
       because:
-        "THE ROLLUP THAT OUTLIVES ITS SOURCES. Deleting a rollup row would destroy the only remaining " +
-        "record of a day whose source rows retention had already removed, which is the exact inversion " +
-        "of the rule that a source may go only once its rollup exists.",
-      ruledBy: "operator, 2026-09-09",
+        REFUSES_RECORD_DELETE +
+        " THE ROLLUP THAT OUTLIVES ITS SOURCES. Deleting a rollup row would destroy the only" +
+        " remaining record of a day whose source rows retention had already removed, which is the" +
+        " exact inversion of the rule that a source may go only once its rollup exists. It is the one" +
+        " table here that retention itself makes irreplaceable.",
+      ruledBy: "operator, 2026-09-09, and 0032",
     },
   },
   { table: "eng_mfa_enrolments", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
@@ -403,9 +448,10 @@ export const RETENTION_POLICY: RetentionEntry[] = [
     rule: {
       kind: "kept_forever",
       because:
-        OUTBOUND_ONLY("it references eng_profiles with ON DELETE RESTRICT, so a person with earnings cannot be removed") +
-        " This is what an engineer is paid on.",
-      ruledBy: "the schema, confirmed by the operator 2026-09-09",
+        REFUSES_RECORD_DELETE +
+        " This is what an engineer is paid on. " +
+        OUTBOUND_ONLY("it references eng_profiles with ON DELETE RESTRICT, so a person with earnings cannot be removed"),
+      ruledBy: "operator, 2026-09-09, and 0032",
     },
   },
   {
@@ -466,9 +512,10 @@ export const RETENTION_POLICY: RetentionEntry[] = [
     rule: {
       kind: "kept_forever",
       because:
-        OUTBOUND_ONLY("it references eng_profiles with ON DELETE RESTRICT, so a person with earnings cannot be removed") +
-        " This is what a technician is paid on.",
-      ruledBy: "the schema, confirmed by the operator 2026-09-09",
+        REFUSES_RECORD_DELETE +
+        " This is what a technician is paid on. " +
+        OUTBOUND_ONLY("it references eng_profiles with ON DELETE RESTRICT, so a person with earnings cannot be removed"),
+      ruledBy: "operator, 2026-09-09, and 0032",
     },
   },
   { table: "eng_thread_participants", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
@@ -477,8 +524,11 @@ export const RETENTION_POLICY: RetentionEntry[] = [
     table: "eng_time_log",
     rule: {
       kind: "kept_forever",
-      because: OUTBOUND_ONLY("it references eng_profiles with ON DELETE RESTRICT, so a person with logged time cannot be removed"),
-      ruledBy: "the schema, confirmed by the operator 2026-09-09",
+      because:
+        REFUSES_RECORD_DELETE +
+        " These are the hours somebody is paid for. " +
+        OUTBOUND_ONLY("it references eng_profiles with ON DELETE RESTRICT, so a person with logged time cannot be removed"),
+      ruledBy: "operator, 2026-09-09, and 0032",
     },
   },
 ];

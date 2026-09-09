@@ -106,6 +106,10 @@ for (const table of tables) {
   console.log(`    asked by         script:retention-dry-run (a script cannot mint the authority to delete)`);
   console.log(`    planned at (CT)  ${m.plannedAtCt}`);
   console.log(`    status           ${m.status}`);
+  for (const line of m.planReading) {
+    console.log("");
+    for (const chunk of line.match(/.{1,72}(\s|$)/g) ?? [line]) console.log(`    ! ${chunk.trim()}`);
+  }
 
   const queued = await enqueue("retention.sweep", { manifestId: m.id });
   console.log("");

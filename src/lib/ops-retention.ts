@@ -150,7 +150,7 @@ export type Manifest = {
   idHash: string;
   rollupMetric: string | null;
   rollupDays: RollupDay[];
-  status: "planned" | "running" | "complete" | "failed";
+  status: "planned" | "running" | "complete" | "failed" | "abandoned";
   affectedCount: number;
   lastId: string | null;
   reconciled: boolean | null;
@@ -159,6 +159,19 @@ export type Manifest = {
   actorRole: string | null;
   plannedAtCt: string;
   note: string | null;
+  /**
+   * WHAT A READER WOULD OTHERWISE GET WRONG ABOUT THIS PARTICULAR MANIFEST.
+   *
+   * Operator ruling, gate 2. Four things in the first dry run invited a wrong
+   * conclusion, every one was answered in a report nobody will open again, and
+   * the manifest is the artefact a person actually reads. So the manifest
+   * carries the explanation.
+   *
+   * Written at planning time and never overwritten by the run, because these
+   * are statements about the PLAN. `note` is the outcome, written when the run
+   * ends.
+   */
+  planReading: string[];
 };
 
 export type PlanResult = { ok: true; manifest: Manifest } | { ok: false; because: string };
@@ -334,6 +347,66 @@ export async function planRetention(table: string, mode: RetentionMode): Promise
     }
   }
 
+  /*
+   * THE SENTENCES A READER NEEDS, DECIDED FROM THE PLAN ITSELF.
+   *
+   * Each one exists because somebody read a real manifest at gate 2 and drew
+   * the wrong conclusion from it. They are conditions rather than boilerplate:
+   * a manifest that cannot be misread in a given way does not carry the
+   * sentence about it.
+   */
+  const reading: string[] = [];
+
+  if (ids.length === 0) {
+    reading.push(
+      "EMPTY SET. Nothing is bounded: with no rows there is no id range, so the range on this " +
+        "manifest constrains nothing. The hash is the sha256 of the empty string, which EVERY empty " +
+        "plan carries, so another manifest with the same hash is not a duplicate of this one.",
+    );
+
+    /*
+     * And the question anybody actually has about a zero: is the rule broken or
+     * is the data young. Asked of the table at planning time, because the
+     * answer changes daily and a reader a month from now needs it as it was.
+     */
+    const { data: oldest } = await client
+      .from(table)
+      .select(rule.ageColumn)
+      .not(rule.ageColumn, "is", null)
+      .order(rule.ageColumn, { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    /* Same computed-select cast as `asRows` above, and for the same reason:
+     * the column name comes from the declaration, so the client's type parser
+     * cannot see it. */
+    const at = oldest ? (oldest as unknown as Row)[rule.ageColumn] : null;
+    if (typeof at === "string") {
+      const ageDays = Math.floor((Date.now() - Date.parse(at)) / 86_400_000);
+      reading.push(
+        `INTENDED COUNT IS ZERO AND THE RULE IS WORKING. The oldest ${rule.ageColumn} in ${table} is ` +
+          `${ageDays} day(s) old and the floor is ${rule.floorDays}, so nothing has aged into the set yet.`,
+      );
+    } else {
+      reading.push(
+        `INTENDED COUNT IS ZERO because ${table} holds no row carrying a ${rule.ageColumn} at all, ` +
+          "rather than because the rule failed to match.",
+      );
+    }
+  }
+
+  if (rule.rollupRequired && rollupDays.length === 0) {
+    reading.push(
+      `NO DAYS TO RECONCILE. The ${rule.rollupRequired} rollup guard ran and had nothing to check, ` +
+        "because the planned set is empty. An absent list of days is not a guard that was skipped.",
+    );
+  }
+
+  reading.push(
+    `CUTOFF IS THIS PLAN'S OWN CLOCK less ${rule.floorDays} days. Two plans made in one pass carry ` +
+      "cutoffs seconds apart, which is not an inconsistency between them.",
+  );
+
   const actor =
     mode.kind === "execute"
       ? { id: mode.authority.actorId, email: mode.authority.actorEmail, role: mode.authority.actorRole }
@@ -357,6 +430,7 @@ export async function planRetention(table: string, mode: RetentionMode): Promise
       actor_id: actor?.id ?? null,
       actor_email: actor?.email ?? null,
       actor_role: actor?.role ?? null,
+      plan_reading: reading.join("\n"),
     })
     .select("*")
     .maybeSingle();
@@ -391,6 +465,8 @@ function toManifest(r: Row): Manifest {
     actorEmail: r.actor_email === null || r.actor_email === undefined ? null : String(r.actor_email),
     actorRole: r.actor_role === null || r.actor_role === undefined ? null : String(r.actor_role),
     plannedAtCt: String(r.planned_at_ct),
+    planReading:
+      typeof r.plan_reading === "string" && r.plan_reading.trim() ? r.plan_reading.split("\n") : [],
     note: r.note === null ? null : String(r.note),
   };
 }
@@ -480,6 +556,16 @@ export async function runRetention(manifestId: string): Promise<RunResult> {
         actorId: manifest.actorId, actorEmail: manifest.actorEmail, actorRole: manifest.actorRole,
         note: "Already complete. A second attempt at a finished run is a no operation rather than a second sweep.",
       },
+    };
+  }
+
+  if (manifest.status === "abandoned") {
+    return {
+      ok: false,
+      because:
+        `${manifestId} was abandoned without running, and an abandoned plan is not one waiting to be ` +
+        `picked up. ${manifest.note ?? ""}`.trim(),
+      retryable: false,
     };
   }
 
@@ -612,6 +698,65 @@ async function fail(
     .from("eng_retention_runs")
     .update({ status: "failed", reconciled: false, finished_at: new Date().toISOString(), note })
     .eq("id", id);
+}
+
+/**
+ * A PLAN NOBODY RAN, CLOSED OUT RATHER THAN LEFT STANDING.
+ *
+ * Operator ruling, gate 2. A manifest at `planned` is a deletion that is still
+ * intended, and anything that plans in order to prove a refusal leaves one
+ * behind: retention-audit plans six times a run and a readout script left two
+ * more. Development held ten, each reading as a sweep waiting to happen.
+ *
+ * It is an UPDATE, which this table allows and always has. DELETE is what it
+ * refuses, and a manifest nobody will act on is exactly the row that would
+ * otherwise tempt somebody into removing one.
+ *
+ * It refuses to touch a run that actually happened. A complete or failed
+ * manifest is the record of something, and abandoning it would overwrite that
+ * record with a claim that nothing was attempted.
+ */
+export async function abandonRun(
+  manifestId: string,
+  because: string,
+): Promise<{ ok: true; already: boolean } | { ok: false; error: string }> {
+  const client = db();
+  if (!client) return { ok: false, error: "The database is not configured." };
+  if (!because.trim()) return { ok: false, error: "Abandoning a plan requires a reason." };
+
+  const manifest = await manifestById(manifestId);
+  if (!manifest) return { ok: false, error: `No retention manifest ${manifestId}.` };
+  if (manifest.status === "abandoned") return { ok: true, already: true };
+  if (manifest.status !== "planned") {
+    return {
+      ok: false,
+      error:
+        `${manifestId} is ${manifest.status}, so it is the record of something that happened. Only a ` +
+        "plan nobody ran can be abandoned.",
+    };
+  }
+
+  const { error } = await client
+    .from("eng_retention_runs")
+    .update({
+      status: "abandoned",
+      finished_at: new Date().toISOString(),
+      note: `Abandoned without running: ${because}`,
+    })
+    .eq("id", manifestId);
+
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, already: false };
+}
+
+/** The manifests still standing at `planned`, which nothing should leave behind. */
+export async function stillPlanned(actorRole?: string): Promise<Manifest[]> {
+  const client = db();
+  if (!client) return [];
+  let q = client.from("eng_retention_runs").select("*").eq("status", "planned");
+  if (actorRole) q = q.eq("actor_role", actorRole);
+  const { data } = await q;
+  return (data ?? []).map((r) => toManifest(r as Row));
 }
 
 /** Every table the declaration allows a run against, for a screen or a sweep. */
