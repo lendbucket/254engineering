@@ -62,6 +62,28 @@ would make every entry before Section 4 unverifiable.
 cannot see states what was read back instead. 0030, 0032, 0033 and 0037 already
 do; that is the standard the next one meets.
 
+### mobile-overflow-audit reports a page that did not load as an overflow
+
+Recorded 2026-09-09. On board 11 it failed with:
+
+    FAIL: /portal/login @360 (did not load)
+    - /portal/login @360: did not load (page.goto: Timeout 45000ms exceeded.)
+
+`mobile-audit` loaded the same screens in the same run and passed 200 checks,
+and board 12 was green with no change to that page. It was the server compiling
+under load on the first route that audit touches.
+
+**A page that could not be reached is not a page that overflows.** CLAUDE.md
+section 6c already rules on this: UNREACHABLE IS NOT FAILED, and an audit whose
+subject cannot be reached answers COULD NOT TELL. `sister-intake-audit` carries
+that three way verdict; `mobile-overflow-audit` does not, so a load timeout
+becomes an overflow finding and a red board that means something else.
+
+Not fixed here, deliberately: the change is to an audit's verdict handling and
+this branch was at its merge when it surfaced. What it needs is the same three
+way answer, and a retry before it gives up, because one 45 second timeout on a
+cold route is not evidence about a layout.
+
 ## The queue: nothing on the board goes through its door
 
 Operator ruling, gate 2 of Phase 12 Section 3, and it is the first item of
