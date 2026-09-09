@@ -97,6 +97,32 @@ The options, and each has a real cost:
 else's queued work, even when that somebody is an audit from last Tuesday, and
 the third option changes what the platform does depending on where it runs.
 
+### A QUEUED EMAIL BURNS ITS RECIPIENT'S SIGNED LINK WINDOW
+
+Found by READING one of the 35 emails above, as its recipient would, rather than
+by any check.
+
+The application notification carries a signed storage URL for the applicant's
+resume. `signedDownloadUrl` in `src/lib/uploads.ts` gives it seven days, and the
+reasoning beside it is right: "long enough to read an application over a weekend
+and short enough that an old forwarded email stops being a key to somebody's
+resume."
+
+**The clock starts when the email is COMPOSED, not when it is sent.** The
+message read for this gate was composed on 2026-09-05 and delivered on
+2026-09-09, so it arrived with three of its seven days left. Nothing said so.
+
+It does not matter while the queue drains in a minute, which is the normal case
+and the reason nobody has met this. It matters exactly when the queue is the
+thing that failed: a job that dead letters and is replayed by hand a week later
+delivers an application whose resume link is already dead, and the operator gets
+a 404 with no explanation and no way to tell whether the file was ever there.
+
+The fix is to sign the URL in the HANDLER rather than in the composer, so the
+window starts when the message actually goes out. Not done here: it moves a
+credential from the payload into the send path and that deserves its own look at
+what else is composed early and delivered late.
+
 ### THIS MACHINE'S CLOCK IS 85 SECONDS AHEAD OF THE DATABASE
 
 Found by `queue-audit` on 2026-09-09, measured rather than guessed: a row is
