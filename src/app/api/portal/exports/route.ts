@@ -3,7 +3,7 @@ import { currentActor, requestContext } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { csvHeaders } from "@/lib/csv";
 import { binderCsv, binderFor, fileMargins, marginCsv, periodCsv } from "@/lib/ops-docs";
-import { REPORTS, periodOf } from "@/lib/ops-reports";
+import { REPORTS, ROW_CEILING, periodOf } from "@/lib/ops-reports";
 import { exportFilename, exportRowCount, reportCsv } from "@/lib/ops-report-export";
 import { enqueue } from "@/lib/ops-jobs";
 import { writeAudit } from "@/lib/ops-audit";
@@ -134,6 +134,31 @@ export async function GET(request: NextRequest) {
     const period = /^\d{4}-\d{2}$/.test(asked) ? asked : periodOf();
 
     const built = await entry.build(period);
+
+    /*
+     * THE CEILING, AND A SENTENCE RATHER THAN A TIMEOUT.
+     *
+     * Operator ruling, 2026-09-09: inline assembly is accepted at today's
+     * volume with a stated ceiling, and above it the route refuses with a
+     * sentence saying the export is too large and the queued export is not yet
+     * built.
+     *
+     * The report has already said so by the time this runs: a builder whose
+     * read was truncated returns no sections and puts the reason in
+     * `unavailable`, because a figure computed from part of a set is a
+     * plausible number rather than a small one. So the refusal reads the
+     * report's own answer rather than counting a second time and possibly
+     * disagreeing with it.
+     *
+     * 413 rather than 500. Nothing failed: the request is too large for the way
+     * this is built, which is a different thing and is the thing the response
+     * should say.
+     */
+    const tooLargeToAssemble = built.sections.length === 0 && built.unavailable.some((u) => u.includes(String(ROW_CEILING.toLocaleString("en-US"))));
+    if (tooLargeToAssemble) {
+      return NextResponse.json({ ok: false, error: built.unavailable.join(" ") }, { status: 413 });
+    }
+
     const body = reportCsv(built, { email: actor.email, role: actor.role });
 
     await writeAudit({

@@ -95,6 +95,65 @@ export type ReportSection = { title: string; figures: Figure[] };
  */
 export const ROWS_PER_PAGE = 25;
 
+/**
+ * THE MOST ROWS A FIGURE CAN BE COMPUTED FROM, AND WHY IT IS NOT ABOUT TIME.
+ *
+ * Operator ruling, 2026-09-09: set a ceiling from the perf gate's remote limit,
+ * refuse above it with a sentence rather than timing out, and put the ceiling
+ * beside the BACKLOG entry for the queued export so the day it fires the next
+ * step is already written.
+ *
+ * The ceiling is 1000 and the perf gate is not what sets it, which is worth
+ * saying plainly because the ruling expected otherwise. Measured: serialising
+ * 50,000 rows takes 43ms and produces 4.19MB, against a remote LCP ceiling of
+ * 2760ms. Assembly is nowhere near the constraint.
+ *
+ * WHAT IS THE CONSTRAINT, AND IT IS WORSE THAN A TIMEOUT
+ * ------------------------------------------------------
+ * PostgREST caps a response at 1000 rows. Measured against development on
+ * 2026-09-09: eng_audit_events holds 7,037 rows and `.select("id")` returns
+ * exactly 1000, with no error and nothing on the response to say so.
+ *
+ * So a figure whose query matches more than a thousand records is not slow. It
+ * is WRONG, silently, and wrong in the flattering direction for a cost and the
+ * unflattering one for revenue. Worse, the manifest would agree with it: the
+ * row count in the file is taken from the same truncated array, so the
+ * export's own completeness check would pass on a file missing most of its
+ * evidence.
+ *
+ * A timeout is a failure somebody notices. This is a plausible number.
+ *
+ * SO THE CEILING IS THE POINT WHERE THE PLATFORM STOPS BEING ABLE TO ANSWER,
+ * and above it a figure is an ABSENCE WITH A REASON rather than a total. That
+ * is the section's own law applied to its own limit: a figure is a number a
+ * query produced, the word none, or an absence because the query could not
+ * run, and a query that could only see part of the set did not run.
+ *
+ * Production holds no orders, files or payments today, so nothing is near this.
+ * It is written now because the failure is invisible when it arrives.
+ */
+export const ROW_CEILING = 1000;
+
+/**
+ * Read rows and say whether the set was bigger than the platform could return.
+ *
+ * `count: "exact"` comes back on the same request, so the true size and the
+ * returned size are compared without a second query that could disagree.
+ */
+export async function readAll<T>(
+  query: PromiseLike<{ data: T[] | null; count: number | null; error: { message: string } | null }>,
+): Promise<{ rows: T[]; total: number; truncated: boolean } | { error: string }> {
+  const { data, count, error } = await query;
+  if (error) return { error: error.message };
+  const rows = data ?? [];
+  const total = count ?? rows.length;
+  return { rows, total, truncated: total > rows.length || rows.length >= ROW_CEILING };
+}
+
+/** The sentence a figure carries when its set was too large to read. */
+export const tooLarge = (what: string, total: number): string =>
+  `${what} matched ${total.toLocaleString("en-US")} records, and this platform can read ${ROW_CEILING.toLocaleString("en-US")} in one query. Every figure computed from it is absent rather than wrong: a total from part of the set is a plausible number, not a small one. The queued export that would answer this is not built, and BACKLOG.md says what it needs.`;
+
 /** A window onto one figure's rows, plus what the window is not showing. */
 export function pageOfRows(rows: FigureRow[], page: number): {
   shown: FigureRow[];
@@ -212,12 +271,13 @@ export async function revenueReport(period = periodOf(), scope: FigureScope = "r
     .from("eng_order_payments")
     .select(
       "amount_cents, kind, status, provider, refund_case, created_at, eng_service_orders!inner(reference, service_slug, is_demo)",
+      { count: "exact" },
     )
     .gte("created_at", from)
     .lt("created_at", to);
   if (scope !== "including_demonstrations") q = q.eq("eng_service_orders.is_demo", false);
 
-  const { data, error } = await q;
+  const { data, count, error } = await q;
   if (error) {
     return {
       key: "revenue",
@@ -226,6 +286,26 @@ export async function revenueReport(period = periodOf(), scope: FigureScope = "r
       scope,
       sections: [],
       unavailable: [`Payments could not be read: ${error.message}`],
+    };
+  }
+
+  /*
+   * TRUNCATION IS AN ABSENCE, NOT A SMALLER NUMBER.
+   *
+   * PostgREST returns at most ROW_CEILING rows and says nothing about it, so a
+   * set larger than that would produce a total computed from PART of it: a
+   * plausible figure, quietly wrong, with a manifest that agrees. Every figure
+   * on this report comes from the one read above, so if it could not see the
+   * whole set, none of them can be stated.
+   */
+  if ((count ?? 0) > (data ?? []).length) {
+    return {
+      key: "revenue",
+      title: "Revenue",
+      period,
+      scope,
+      sections: [],
+      unavailable: [tooLarge("Payments in this period", count ?? 0)],
     };
   }
 
@@ -413,11 +493,11 @@ export async function productionReport(period = periodOf(), scope: FigureScope =
    */
   let q = client
     .from("eng_production_ledger")
-    .select("engineer_id, decision, amount_cents, status, period, eng_profiles!inner(display_name, is_demo)")
+    .select("engineer_id, decision, amount_cents, status, period, eng_profiles!inner(display_name, is_demo)", { count: "exact" })
     .eq("period", period);
   if (scope !== "including_demonstrations") q = q.eq("eng_profiles.is_demo", false);
 
-  const { data, error } = await q;
+  const { data, count, error } = await q;
 
   if (error) {
     return {
@@ -427,6 +507,26 @@ export async function productionReport(period = periodOf(), scope: FigureScope =
       scope,
       sections: [],
       unavailable: [`The production ledger could not be read: ${error.message}`],
+    };
+  }
+
+  /*
+   * TRUNCATION IS AN ABSENCE, NOT A SMALLER NUMBER.
+   *
+   * PostgREST returns at most ROW_CEILING rows and says nothing about it, so a
+   * set larger than that would produce a total computed from PART of it: a
+   * plausible figure, quietly wrong, with a manifest that agrees. Every figure
+   * on this report comes from the one read above, so if it could not see the
+   * whole set, none of them can be stated.
+   */
+  if ((count ?? 0) > (data ?? []).length) {
+    return {
+      key: "production",
+      title: "Production",
+      period,
+      scope,
+      sections: [],
+      unavailable: [tooLarge("Production ledger entries in this period", count ?? 0)],
     };
   }
 
@@ -576,9 +676,9 @@ export async function pipelineReport(period = periodOf(), scope: FigureScope = "
 
   let q = client
     .from("eng_service_orders")
-    .select("reference, status, county, twia_county, created_at, placed_at, paid_at, is_demo, file_id");
+    .select("reference, status, county, twia_county, created_at, placed_at, paid_at, is_demo, file_id", { count: "exact" });
   if (scope !== "including_demonstrations") q = q.eq("is_demo", false);
-  const { data: orders, error } = await q;
+  const { data: orders, count, error } = await q;
 
   if (error) {
     return {
@@ -588,6 +688,26 @@ export async function pipelineReport(period = periodOf(), scope: FigureScope = "
       scope,
       sections: [],
       unavailable: [`Orders could not be read: ${error.message}`],
+    };
+  }
+
+  /*
+   * TRUNCATION IS AN ABSENCE, NOT A SMALLER NUMBER.
+   *
+   * PostgREST returns at most ROW_CEILING rows and says nothing about it, so a
+   * set larger than that would produce a total computed from PART of it: a
+   * plausible figure, quietly wrong, with a manifest that agrees. Every figure
+   * on this report comes from the one read above, so if it could not see the
+   * whole set, none of them can be stated.
+   */
+  if ((count ?? 0) > (orders ?? []).length) {
+    return {
+      key: "pipeline",
+      title: "Pipeline",
+      period,
+      scope,
+      sections: [],
+      unavailable: [tooLarge("Orders", count ?? 0)],
     };
   }
 
@@ -803,11 +923,11 @@ export async function partnerReport(period = periodOf(), scope: FigureScope = "r
    * ledger: a statement is a demonstration exactly when its partner is. */
   let q = client
     .from("eng_partner_statements")
-    .select("reference, total_cents, status, period, eng_partners!inner(organisation, is_demo)")
+    .select("reference, total_cents, status, period, eng_partners!inner(organisation, is_demo)", { count: "exact" })
     .eq("period", period);
   if (scope !== "including_demonstrations") q = q.eq("eng_partners.is_demo", false);
 
-  const { data, error } = await q;
+  const { data, count, error } = await q;
 
   if (error) {
     return {
@@ -817,6 +937,26 @@ export async function partnerReport(period = periodOf(), scope: FigureScope = "r
       scope,
       sections: [],
       unavailable: [`Partner statements could not be read: ${error.message}`],
+    };
+  }
+
+  /*
+   * TRUNCATION IS AN ABSENCE, NOT A SMALLER NUMBER.
+   *
+   * PostgREST returns at most ROW_CEILING rows and says nothing about it, so a
+   * set larger than that would produce a total computed from PART of it: a
+   * plausible figure, quietly wrong, with a manifest that agrees. Every figure
+   * on this report comes from the one read above, so if it could not see the
+   * whole set, none of them can be stated.
+   */
+  if ((count ?? 0) > (data ?? []).length) {
+    return {
+      key: "partner",
+      title: "Partner",
+      period,
+      scope,
+      sections: [],
+      unavailable: [tooLarge("Partner statements in this period", count ?? 0)],
     };
   }
 

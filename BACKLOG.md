@@ -1319,7 +1319,31 @@ delivery, so there is nothing for a file to fail to match.
 reversing the two lines is all it would take to turn the row into a claim about
 a document that may not exist.
 
-**What making the FILE the queued artefact would need**, none of which exists:
+**THE CEILING IS 1000 ROWS, AND IT IS NOT ABOUT SPEED.** Operator ruling,
+2026-09-09: state a ceiling, refuse above it with a sentence rather than timing
+out, and put the ceiling beside this entry so the day it fires the next step is
+already written. `ROW_CEILING` in `src/lib/ops-reports.ts` carries the same
+reasoning, and the two are meant to be read together.
+
+The ruling expected the number to come from the perf gate's remote limit. It does
+not, and the measurement is why. Serialising 50,000 rows takes 43ms and produces
+4.19MB against a 2760ms LCP ceiling, so assembly is nowhere near the constraint.
+
+**PostgREST returns at most 1000 rows and says nothing about it.** Measured on
+development, 2026-09-09: `eng_audit_events` holds 7,063 rows and `.select("id")`
+returns exactly 1000, no error, nothing on the response to say so. A figure whose
+query matches more than that is not slow, it is WRONG, and wrong quietly. Worse,
+the export's manifest would agree with it, because the row count in the file
+comes from the same truncated array.
+
+So above the ceiling a figure is an absence with a reason rather than a total,
+every builder refuses to state one, and the export route answers 413 with the
+sentence rather than handing over a file that looks complete. Production holds
+no orders, files or payments today, so nothing is near it; it is written now
+because the failure is invisible when it arrives.
+
+**What making the FILE the queued artefact would need**, none of which exists,
+and which is the step to take the day the ceiling fires:
 
 - Somewhere to put it. A private bucket, with a retention rule, because these
   files name properties, people and amounts.

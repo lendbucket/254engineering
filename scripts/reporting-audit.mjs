@@ -485,6 +485,49 @@ console.log("");
    * ORDER is asserted rather than trusted, which is the whole content of the
    * ruling's condition.
    */
+  /*
+   * THE CEILING IS STATED, DERIVED, AND REFUSED ON.
+   *
+   * Operator ruling, 2026-09-09. Asserted against the measured limit rather
+   * than against a number typed here, and the limit is not the perf gate: 1000
+   * is where PostgREST stops returning rows, verified on development where
+   * eng_audit_events holds over 7,000 and a plain select returns exactly a
+   * thousand. Serialisation is nowhere near a constraint at 50,000 rows in
+   * 43ms, which is why the ceiling is about correctness rather than speed.
+   */
+  const { ROW_CEILING, tooLarge } = await import("../src/lib/ops-reports.ts");
+
+  rec(
+    `the export ceiling is stated as a number (${ROW_CEILING})`,
+    ROW_CEILING > 0 && ROW_CEILING <= 1000,
+    "PostgREST returns at most 1000 rows and says nothing about it, so a figure over that is computed from part of its set",
+  );
+  /*
+   * The first version of this matched `413` and `tooLargeToAssemble` anywhere
+   * in the file, and passed when the branch was replaced with `if (false)`,
+   * because the declaration and a comment still carried both strings. It
+   * asserts the BRANCH and the STATUS now, which is what actually refuses.
+   */
+  rec(
+    "and the refusal says what happened and what is not built",
+    /if \(tooLargeToAssemble\) \{/.test(route) &&
+      /status: 413/.test(route) &&
+      /queued export/.test(tooLarge("x", 5000)),
+    "a timeout is a failure somebody notices; a truncated total is a plausible number, so the refusal has to be a sentence",
+  );
+
+  /* And every builder turns a truncated read into an absence rather than a
+   * smaller total, which is the section's own law applied to its own limit. */
+  const module = readFileSync("src/lib/ops-reports.ts", "utf8");
+  const guards = (module.match(/TRUNCATION IS AN ABSENCE/g) ?? []).length;
+  rec(
+    `every report refuses to state a figure from a truncated read (${guards} of ${REPORTS.length})`,
+    guards === REPORTS.length,
+    guards === REPORTS.length
+      ? "count: exact comes back on the same request, so the true size and the returned size cannot disagree"
+      : "a builder without the guard returns a total computed from part of its set, with a manifest that agrees",
+  );
+
   const assembledAt = route.indexOf("reportCsv(built");
   const queuedAt = route.indexOf('enqueue("report.export"');
   rec(
