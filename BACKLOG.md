@@ -372,11 +372,78 @@ list built in the email port has no operator screen, so somebody who asks to
 be removed by telephone cannot be recorded without SQL. It is built here, as a
 list with add and remove, audited.
 
+**BUILT 2026-09-09 at `/portal/suppressions`, and "remove" is a CORRECTION
+rather than a resubscribe.** 0026 is why, and it is not a technicality:
+resubscribing is CONSENT, consent is a new fact with its own date rather than
+the absence of an old one, and it gets its own table, its own migration and its
+own ruling when somebody asks for it. So a row carrying a `token_hash` can never
+be removed, whatever permission the caller holds, because that row exists
+because a person clicked the unsubscribe link in their own email. The refusal is
+checked against the ROW in `marketing-suppression.ts` rather than trusted to the
+screen, and the screen does not render the control at all for such a row.
+
+What can be removed is a row an operator typed wrong: a mistyped address quietly
+stops a customer who never asked for anything from hearing from the firm, and
+that row records no decision anybody made. Both verbs write an audit event, and
+`eng_audit_events` refuses deletes, so the act stays answerable.
+
+`suppressions.manage` is seeded by 0029 to admin and customer service. Sales
+holds nothing here: somebody paid to grow a list should not be the one who can
+quietly shorten it, and the request does not arrive there anyway.
+
+**If a resubscribe is ever wanted, it is not this screen.** It is a new table
+recording who gave consent and when, its own migration, and a ruling. Nothing
+here should be widened to do it.
+
 **The constraint this entry named still holds and was not relaxed to make any
 of the three complete.** None of these roles holds `ledger.read_all` or
 `billing.read`, and no dashboard for them carries a firm level money figure.
 Where a dashboard would need a figure the grants do not cover, that is
 reported rather than fixed by widening a grant.
+
+**BUILT 2026-09-09, AND A DEFECT THIS ENTRY DENIED WAS FOUND WHILE BUILDING
+IT.** All three dashboards exist, and the constraint is now carried by the TYPE:
+`DispatcherDashboard`, `SalesDashboard` and `CustomerServiceDashboard` have no
+`money` field, so a firm figure on one of them does not compile.
+
+The defect: **a dispatcher was already being served the field technician's
+dashboard.** `dashboardFor` routes on capability, a dispatcher holds
+`offers.list_own`, and that was the technician's branch. Every tile was scoped
+to `actor.id`, so every one read none and every money figure read zero. The
+comment directly beneath that ladder asserted a dispatcher gets null and that no
+dashboard exists for them, and this entry repeated it. Both had been wrong since
+the day they were written. It is exactly the "fourth generic dashboard that
+renders empty tiles" named three paragraphs above, except it was a real
+dashboard belonging to somebody else. `dashboards-audit` builds an actor from
+every entry in `DEFAULT_ROLES` and walks the ladder on every board run.
+
+**Three ruled figures do not exist as facts, and are reported rather than
+faked.** The ruling above says a figure the grants do not cover is reported
+rather than fixed by widening a grant; the same holds when it is the SCHEMA that
+does not carry it, and all three are on the screen in a "What could not be
+counted" panel:
+
+- **"Jobs past their capture window"** (dispatcher). There is no capture window
+  column. `eng_files` has `evidence_due_at` and `due_at`, and
+  `eng_assignments.expires_at` is an OFFER expiry. Evidence past due is counted
+  and the tile says which column it counted.
+- **"Orders awaiting something from the customer, with what is awaited"**
+  (customer service). The only awaiting status in the whole schema is
+  `awaiting_payment`, nothing names what is awaited, and outstanding intake
+  answers are missing ROWS computed by `missingFor` rather than anything a query
+  can count. Orders awaiting payment plus files with a payment link sent are
+  shown instead.
+- **"Open message threads by age of last inbound"** (customer service).
+  `eng_messages` records an author and no direction, and there is no customer
+  facing conversation table at all, so every thread is staff to staff and
+  nothing in one is inbound. Threads by how long they have been quiet are shown
+  instead, from `eng_threads.last_message_at`.
+
+**`read_only` gets the administrator's dashboard, including firm money.** That
+follows from its grants rather than from an accident: the role is given
+`ledger.read_all` and `billing.read` on purpose, for a buyer's accountant or an
+auditor. Recorded because it surprised the session that found it, and it will
+surprise the next one.
 
 **AND THE BUSINESS QUESTION, WHICH IS THE OPERATOR'S AND IS NEEDED BEFORE
 HIRING ANY OF THE THREE.** What each of these roles should see is not a design
@@ -1233,6 +1300,153 @@ its first run, and 0028 marks them by the address rule in
 `src/lib/ops-files.ts` rather than by a name. **0028 is applied to development
 and to production**, and on production it marked nothing, because production
 holds two profiles, one application and no partners, clients, orders or files.
+
+### THE SILENT THOUSAND: every unbounded read, ranked by what it corrupts
+
+Recorded 2026-09-09 on the operator's ruling, after `ROW_CEILING` was added to
+the reports. **Report only. Nothing here is fixed.**
+
+**The fact underneath it.** PostgREST returns at most 1000 rows and says nothing
+when it truncates. Measured on development: `eng_audit_events` holds 7,063 rows
+and `.select("id")` returns exactly 1000, no error, nothing on the response.
+So any read that returns a LIST and is then counted, summed, grouped or written
+back is silently wrong once its matching set passes a thousand. Not slow. Wrong,
+in the flattering direction for a cost and the unflattering one for revenue.
+
+`src/lib/ops-reports.ts` is the one module that has solved it: `{ count: "exact" }`
+paired with `(count ?? 0) > data.length`, returning `tooLarge(...)` instead of a
+figure. That pattern is what everything below is missing.
+
+**Retention is where this closes, which is why it is recorded rather than
+patched.** How big these tables are ALLOWED to get is a retention decision, and
+the operator ruled on 2026-09-06 to build no retention deletion yet, because a
+rule written before there is volume is written from imagination. Every entry
+below is a consequence of that ruling rather than a defect somebody introduced,
+and the order to fix them is the order retention decides. See "Messaging: export
+and retention" above for the standing position.
+
+**Nothing here is live today.** Production holds no orders, files or payments.
+The ranking is what breaks FIRST on a live firm, not what is broken now.
+
+**RANKS 1 AND 2 ARE FIXED. THE OTHER TWENTY TWO STAND.** Operator ruling,
+2026-09-09: the two reads in `ops-engineer.ts` are closed before the branch
+merges, because both are regulatory and one was already truncating rather than
+waiting to.
+
+- **The monthly export refuses rather than truncating.** It reads with
+  `{ count: "exact" }` and, when the true count exceeds what came back, produces
+  NO FILE and a sentence saying so. A short responsible charge log is worse than
+  none: a regulator reading it has no way to know a row is missing and every
+  reason to assume none is. Injection verified by lowering the page to 5 against
+  a log of 28, which is the same condition a month of 501 reviews makes against
+  a page of 500; it refuses with the count in the sentence.
+- **The period picker pages.** It asked for 2000 and received 1000 without an
+  error, the only limit in the repository above the cap, so it was already
+  losing months on any firm with that much history. Verified at real scale
+  rather than with synthetic rows, because this table refuses deletes and a loop
+  is not worth permanent fake entries in a regulatory record: the identical loop
+  run over `eng_audit_events`, which holds 7,421 rows, sees **1,000 under the
+  old `.limit(2000)` shape and all 7,421 paged**.
+
+**Two carry an explicit limit and are therefore invisible to any ceiling guard,
+which is why they were at the top.**
+
+| Rank | Where | What breaks | Why it is where it is |
+| --- | --- | --- | --- |
+| ~~1~~ | ~~`ops-engineer.ts:576`~~ | FIXED 2026-09-09. Refuses rather than truncating. | Below the ceiling, so a ROW_CEILING guard would never have fired. The count is what catches it. |
+| ~~2~~ | ~~`ops-engineer.ts:603`~~ | FIXED 2026-09-09. Pages. | Was already truncating, not waiting to. |
+| 3 | `ops-statements.ts:183` | A customer statement's HEADER TOTAL, recomputed from its lines and written back to `eng_statements.total_cents`. | Verified. The comment three lines above says the recompute exists so a header "cannot disagree with what is printed beneath it". Truncation is exactly what makes it disagree, and the number is one a customer is charged. |
+| 4 | `ops-statements.ts:323` | The pre-charge integrity check that compares the line total to the header before taking money. | Verified. Truncation makes a correct statement fail and refuse to charge, or, paired with rank 3, makes a wrong one pass. |
+| 5 | `ops-statements.ts:130` | Orders past row 1000 are never turned into statement lines at all. | Not a wrong figure: unbilled revenue, invisible. |
+| 6 | `ops-partner-comp.ts:613` and `:685` | The period close. Only 1000 entries are claimed into a statement, the rest stay unclaimed, and the issued statement is short. The backlog grows every close. | Verified at `:919` and by reading both. This is money a partner is paid. |
+| 7 | `ops-partner-comp.ts:919` | A partner's own payable balance, `partner_id` only, no period, LIFETIME. | Verified. The highest volume partner breaks first, and the figure is the one they are paid on. |
+| 8 | `ops-partners-admin.ts:69` | The admin partner roster: every entry for up to 200 partners, lifetime, in one query. | Verified. **Certain to break earliest of the money reads**, because it is the only one that multiplies the roster by all of history. Every partner below the cut shows nothing payable. |
+| 9 | `ops-field.ts:1322` | Every technician's pending and paid totals on the roster, lifetime, whole roster. | `sumKnownPay` returns null for an unpriced row and has no way to see a row that never arrived. |
+| 10 | `ops-dashboard.ts:730` | One technician's "Owed to you", `tech_id` only, no period. | The tile whose whole point this section just made is not showing somebody money they will not be paid. This shows them LESS than they are owed. |
+| 11 | `ops-bulk.ts:337` and `:343` | The credit decision: unpaid balance and unbilled exposure both read low, so credit is granted past the limit. | |
+| 12 | `ops-dashboard.ts:533` | An engineer's review count and review minutes for a period. | A licence figure, bounded by one month, so it takes a very high volume engineer. |
+| 13 | `ops-dashboard.ts:573` | An engineer's own production pay for the month. | |
+| 14 | `ops-payments.ts:195`, `:296`, `:360` | A bulk submission over 1000 properties is charged for the first 1000 lines, and orders past 1000 stay stuck in `awaiting_payment` after the batch was paid. | |
+| 15 | `ops-docs.ts:197` | A refusal reason missing from an assembled sealed deliverable. | Bounded to one file, so unlikely, but it is a regulatory artefact. |
+| 16 | `ops-jobs.ts:330` | Queue depth, dead letters and the oldest waiting job. | Verified. The comment beside it insists a failed read is not an empty queue. A truncated one is not a small queue either, and it truncates exactly when the queue is deep, which is the moment the number matters. |
+| 17 | `ops-observability.ts:325`, `job-handlers.ts:440` | Error rates per fingerprint during an incident, and the alert thresholds that read them. | Truncates precisely during a storm, so the alert never trips. |
+| 18 | `ops-auth.ts:117` | The actor's granted action set. | Small today and latent rather than live, but a truncated grant list silently DENIES actions. Worth knowing it is on this list at all. |
+| 19 | `ops-reconcile.ts:95`, `:138`, `:150`, `:151` | The reconciliation worklist, and the payment and event lookups beneath it, which truncate before the order list does so orders wrongly appear unpaid. | The comment asserts "the number waiting on payment is small by definition". That is the assumption at risk. |
+| 20 | `ops-accounts-admin.ts:52`–`:69` | The account roster and its per-account order counts, all accounts, all orders ever. | |
+| 21 | `ops-dashboard.ts:1202`, `:1217`, `:1476` | Sales and comms tiles reading `eng_leads`, `eng_quote_requests` and `eng_threads` with NO FILTER AT ALL. | Leads and threads unfiltered are near certain to pass a thousand first of anything on a dashboard. |
+| 22 | `ops-partners.ts:130`, `:194`, `.limit(50)` | Attribution touch history. | Limited, so not truncating at the ceiling, but a truncated touch list can change WHICH partner an order is attributed to, and attribution decides commission. Worth a second look on its own terms. |
+| 23 | `ops-threads.ts:96`–`:195`, `ops-field.ts:430`–`:1324`, `ops-tasks.ts:426`, `ops-crm.ts:249`, `ops-metrics.ts:228`, `ops-dashboard.ts:496`, `:1017`, `:1026`, `:1035`, `:1235`, `:1460`, `:1492`, `:1500` | Participant lists, dispatch scoring, credential tiles, metric series, stale task cleanup. | Operational lists and counts. Wrong rather than dangerous. |
+| 24 | `marketing-suppression.ts:157`, `ops-partner-assets.ts:61`, `ops-onboarding.ts`, `onboarding.ts:302`, `ops-roles.ts:52` | Rendered lists that understate themselves. | Cosmetic. The suppression SEND check is a per address lookup at `:116` and is unaffected, so nobody is emailed wrongly. |
+
+**Bounded by a single parent row and effectively safe**, listed so nobody
+re-surveys them: `ops-customer.ts:132`, `ops-payments.ts:759`/`:907`/`:935`/`:1077`,
+`ops-partner-portal.ts:159`, `ops-partner-comp.ts:505`/`:943`,
+`ops-file-inputs.ts:29`, `ops-notify.ts:62`, `ops-account.ts:126`,
+`account-api-keys.ts:139`, `ops-field.ts:987`/`:1025`/`:140`/`:199`/`:401`/`:1523`.
+
+**What fixing one looks like**, when retention says it is time: pair
+`{ count: "exact" }` with the read, compare `count` to `rows.length`, and return
+an absence with a reason rather than a figure. `ops-reports.ts:143` is the
+helper and `ops-reports.ts:135` is the ceiling.
+
+### A report export queues the record, not the file, and what the other way needs
+
+Recorded 2026-09-09, on the operator's ruling asking what "through the job
+queue" actually means here.
+
+**What it means in one sentence.** The CSV is assembled inside the request and
+handed straight back, because the person who clicked Export is standing in front
+of the response; what goes on the queue is an audit row saying a report of that
+period was assembled with that many figures over that many rows.
+
+**It is naming, not a completion claim, and that was the ruling's condition.**
+The enqueue happens after `reportCsv` has produced the body, from the same built
+object, so nothing records a file that was never made. It asserts no hash and no
+delivery, so there is nothing for a file to fail to match.
+`reporting-audit` asserts that ordering rather than trusting it, because
+reversing the two lines is all it would take to turn the row into a claim about
+a document that may not exist.
+
+**THE CEILING IS 1000 ROWS, AND IT IS NOT ABOUT SPEED.** Operator ruling,
+2026-09-09: state a ceiling, refuse above it with a sentence rather than timing
+out, and put the ceiling beside this entry so the day it fires the next step is
+already written. `ROW_CEILING` in `src/lib/ops-reports.ts` carries the same
+reasoning, and the two are meant to be read together.
+
+The ruling expected the number to come from the perf gate's remote limit. It does
+not, and the measurement is why. Serialising 50,000 rows takes 43ms and produces
+4.19MB against a 2760ms LCP ceiling, so assembly is nowhere near the constraint.
+
+**PostgREST returns at most 1000 rows and says nothing about it.** Measured on
+development, 2026-09-09: `eng_audit_events` holds 7,063 rows and `.select("id")`
+returns exactly 1000, no error, nothing on the response to say so. A figure whose
+query matches more than that is not slow, it is WRONG, and wrong quietly. Worse,
+the export's manifest would agree with it, because the row count in the file
+comes from the same truncated array.
+
+So above the ceiling a figure is an absence with a reason rather than a total,
+every builder refuses to state one, and the export route answers 413 with the
+sentence rather than handing over a file that looks complete. Production holds
+no orders, files or payments today, so nothing is near it; it is written now
+because the failure is invisible when it arrives.
+
+**What making the FILE the queued artefact would need**, none of which exists,
+and which is the step to take the day the ceiling fires:
+
+- Somewhere to put it. A private bucket, with a retention rule, because these
+  files name properties, people and amounts.
+- A way to hand it over afterwards. An email carrying a signed link, or a
+  downloads screen somebody comes back to. Without one this is the rule
+  `docs/platform-state.md` already states: a queued CSV is a CSV nobody
+  receives.
+- The record written AFTER the object is stored and keyed on its HASH, so a
+  retry cannot record a file that was never written, and so the row and the
+  bytes can be checked against each other later.
+
+**No action.** It is worth building the day an export is too large to assemble
+in a request, or the day somebody wants a scheduled monthly export sent rather
+than fetched. Neither is true, and building storage and delivery to solve
+neither would be three new failure modes for no gain.
 
 ### One development client was written by a script nobody can name
 

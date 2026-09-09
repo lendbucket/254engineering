@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
-import { PageHead, Panel, EmptyState } from "@/components/portal/surfaces";
+import { ButtonLink, PageHead, Panel, EmptyState } from "@/components/portal/surfaces";
 import { SystemAlert } from "@/components/portal/design";
 import { REPORTS, ROWS_PER_PAGE, formatFigure, pageOfRows, periodOf, type Figure } from "@/lib/ops-reports";
 import { isKnown, money } from "@/lib/ops-money";
@@ -93,7 +93,7 @@ function FigureCell({
         differently on purpose: it must never be mistaken for a figure.
       */}
       <p
-        className={`mt-1 font-display text-[26px] leading-none font-bold ${
+        className={`mt-1 font-display text-[24px] leading-none font-bold ${
           absent ? "text-[var(--muted)] italic" : "text-[var(--navy)]"
         }`}
       >
@@ -211,7 +211,29 @@ export default async function ReportsPage({
       </div>
 
       {built.map((report) => (
-        <Panel key={report.key} title={report.title}>
+        <Panel
+          key={report.key}
+          title={report.title}
+          /*
+           * A REAL FILE DOWNLOAD, FOR THE REASON THE CHARGE LOG ALREADY GIVES.
+           *
+           * A GET returning text/csv with a Content-Disposition, not a blob
+           * assembled in the browser. What somebody wants is a file on their
+           * machine to send to an accountant, and rebuilding it in JavaScript
+           * is more code between the row and the disk.
+           *
+           * The button is per report and asks the same grant the panel above it
+           * did, so a button that appears is a button that works.
+           */
+          actions={
+            <ButtonLink
+              href={`/api/portal/exports?report=${report.key}&period=${period}`}
+              tone="ghost"
+            >
+              Export {period}
+            </ButtonLink>
+          }
+        >
           {report.unavailable.length > 0 ? (
             <div className="mb-4">
               <SystemAlert condition="Part of this report could not be computed." tone="failed">

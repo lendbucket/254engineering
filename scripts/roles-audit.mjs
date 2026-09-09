@@ -223,6 +223,13 @@ const EXPECTED = {
   "reports.production":           { admin: true,  engineer: true,  field_tech: false },
   "reports.pipeline":             { admin: true,  engineer: false, field_tech: false },
   "reports.partner":              { admin: true,  engineer: false, field_tech: false },
+
+  /* The do not contact list. Deciding whether the firm may write to a person is
+   * a customer relationship decision rather than an engineering or a field one,
+   * and it is held by customer service, which is the role the request actually
+   * arrives at. None of the three roles this table covers holds it: an engineer
+   * has a licence, not a say in the firm's marketing. */
+  "suppressions.manage":          { admin: true,  engineer: false, field_tech: false },
 };
 
 /*
@@ -808,7 +815,7 @@ rec(
       pairs += 1;
       let problem;
       try {
-        problem = fn.real(fn.call(role), role);
+        problem = fn.real(await fn.call(role), role);
       } catch (err) {
         problem = `it threw: ${err instanceof Error ? err.message : String(err)}`;
       }
@@ -1345,6 +1352,14 @@ if (!db) {
         "/portal/jobs",
         "/portal/onboarding",
         "/portal/certification",
+        /*
+         * The do not contact list. An engineer does not hold
+         * suppressions.manage and should not: deciding whether the firm may
+         * write to a person is a customer relationship decision, not an
+         * engineering one, and the request arrives at the people who answer
+         * the telephone. Nothing about a licence bears on it.
+         */
+        "/portal/suppressions",
       ];
 
       const claimed = [...ENGINEER_REACHES, ...ENGINEER_REFUSED].sort();

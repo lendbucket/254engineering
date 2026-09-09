@@ -68,6 +68,33 @@ export function isReal(row: { is_demo?: boolean | null }): boolean {
  * eng_leads is deliberately absent: nothing seeds it, and a column that is
  * always false is a question nobody can answer.
  */
+/**
+ * THE TABLES THAT DELIBERATELY DO NOT CARRY THE COLUMN, AND WHY.
+ *
+ * Operator ruling, 2026-09-09: record the reason, because the next person will
+ * want to add it. Three different reasons, and only the first is "not yet".
+ *
+ * `eng_customer_accounts`, `eng_order_payments`, `eng_partner_statements` and
+ * `eng_production_ledger` are DEPENDENT records. An account is a demonstration
+ * exactly when the organisation it belongs to is; a payment exactly when its
+ * order is; a statement exactly when its partner is; a ledger entry exactly
+ * when its engineer is. Every one of them is scoped through its parent with an
+ * inner join, and adding a column would create a SECOND answer that can
+ * disagree with the first. The failure that produces is worse than the one it
+ * prevents: two rows that are the same fact, one marked and one not, and no way
+ * to tell which is right. If you are here to add `is_demo` to one of these,
+ * that is the argument you have to beat.
+ *
+ * `eng_leads` and `eng_quote_requests` carry no column because NOTHING SEEDS
+ * THEM. A column that is always false is a question nobody can answer, and a
+ * filter on it is a filter nobody can test. The day something seeds a lead, the
+ * column goes on in a migration and the filter goes on in the same commit.
+ *
+ * `eng_messages` and `eng_threads` carry none because they hold no figure the
+ * firm claims anything with. The customer service dashboard counts threads by
+ * how long they have been quiet, which is a working queue rather than a
+ * statement about the business.
+ */
 export const DEMO_SCOPED_TABLES = [
   "eng_files",
   "eng_service_orders",

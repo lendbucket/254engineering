@@ -324,6 +324,44 @@ BASE_URL=https://254engineering.com npx tsx scripts/security-audit.mjs
 **Every audit is verified by injecting a violation and watching it fail before its green is
 trusted.** An audit that has never failed has never been tested.
 
+**A FIXTURE ONLY CATCHES WHAT IT CAN REACH. EVERY INJECTION FIXTURE CARRIES A
+VALUE IN EVERY COLUMN A FIGURE CAN SUM.** Operator ruling, 2026-09-09, and it
+sits beside the declared inventory idiom because it is the same failure one
+level in: the inventory decides WHICH surfaces are swept, and the fixture
+decides which FIGURES on them can move.
+
+Both were wrong in the same afternoon. The demo sweep was widened from the four
+reports to all eleven figure surfaces, which was necessary and was not
+sufficient: the demonstration file it inserted carried no price, so it could not
+move a margin however wrong the filter was. The administrator's dashboard went
+on reporting $175.00 of margin and $450.00 of revenue from three seeded files,
+past a check that had just been widened to look straight at it. It was found by
+reading a screenshot.
+
+So a fixture is priced, dated and complete: every column any figure could sum,
+count or age. The test of a fixture is not whether it inserts a row, it is
+whether removing the filter makes a number move.
+
+**A CHECK THAT FILTERS LIVE DATA FOR A SUBJECT THAT DOES NOT EXIST YET IS
+VACUOUS. BUILD THE SUBJECT.** Operator ruling, 2026-09-09, from the reporting
+paging work. The obvious way to check that a paged expansion still sums the
+whole set is to filter the live figures for one that exceeds a page and check
+that one. No figure does on this database, so that check reports a pass over an
+empty list every run until the data grows, and is then exercised for the first
+time in production, which is the one place nobody is watching it.
+
+So the window is asserted against a set CONSTRUCTED to be bigger than a page,
+which makes it true or false today and every day. The same trap caught the
+neighbouring check in the same hour: "no migration numbered above 0028 went in
+by hand" is what the ruling says in words, and it passed over an empty list and
+passed just as happily when a by hand 0028 was injected to test it. Stating the
+rule as the SET instead, "0025 is the only by hand entry there may be", made it
+fail on the injection immediately.
+
+Where a check genuinely depends on live data, say what it had to work with:
+`(0 figures exceed one page today)` in a note is honest, and it tells the next
+reader the green was cheap.
+
 **AN AUDIT NEVER IMPORTS ITS EXPECTATION FROM THE THING IT AUDITS.** Operator
 ruling, 2026-09-08, and it is the companion to the declared inventory idiom
 below. An audit that reads its expected value from the module under test
@@ -527,14 +565,38 @@ actually applied the last migration before declaring anything unreachable, and
 never let "I could not measure it" stand in a ledger when it means "I did not
 try the other tool".**
 
-**The provider's migration list is not the record. `supabase/applied.mjs` is.**
-Production's `list_migrations` shows 0026 and 0027 and does not show 0025, while
-production unmistakably HAS 0025: `eng_roles` reads `optional` for admin and
-engineer, which is the only thing that migration does. It was applied by
-`execute_sql` rather than `apply_migration`, so it changed the database without
-leaving a row in the provider's history. That is exactly why the ledger exists
-and why `production-schema-check` asks the database about the objects rather
-than reading a list.
+**EVERY PRODUCTION MIGRATION GOES THROUGH `apply_migration`, NEVER
+`execute_sql`.** Operator ruling, 2026-09-09. The two tools differ in a way that
+matters months later: `apply_migration` writes a row into
+`supabase_migrations.schema_migrations`, and `execute_sql` changes the database
+and writes nothing. A migration applied the second way is plainly present in the
+schema and completely absent from the provider's own history of what has been
+applied.
+
+0025 is exactly that, and it is the one grandfathered case. Production's
+`list_migrations` names 0024, 0026 and 0027 and not 0025, while production
+unmistakably HAS 0025: `eng_roles` reads `optional` for admin and engineer,
+which is the only thing that migration does. Somebody reading that list to
+answer "does production have 0025" gets the wrong answer, and the wrong answer
+is the alarming one, because they would re-apply a migration production already
+has.
+
+**The ledger stays the authority and the provider's list is the cross-check.**
+Every entry in `supabase/applied.mjs` now declares `appliedBy`, and
+`schema-ledger-audit` enforces three things with no credentials: every applied
+migration says how production got it, anything applied by hand carries a
+`handApplied` sentence saying what the provider's history will not show, and
+0025 is the only by hand entry there may be.
+
+**The live comparison is a by hand step, and the reason is not laziness.**
+`supabase_migrations.schema_migrations` is not in the `public` schema, so
+PostgREST does not expose it, which was verified rather than assumed: neither
+`schema-ledger-audit`, which runs credential free in the suite by design, nor
+`production-schema-check`, which has the key, can read it. Checking a SNAPSHOT
+of that list into the repository would make it readable and would be the exact
+failure the ledger exists to prevent, a record that stops being true without
+telling anybody. So the comparison is run through the Supabase MCP when a
+migration lands, and what runs on the board is the declaration.
 
 0023 adds `eng_alert_state`, which is the fifth table in this schema that is
 deliberately NOT append only, and it belongs to the same class as the four in
@@ -748,9 +810,42 @@ the audits that still fail red standalone are listed in `BACKLOG.md`.
 ## 7. Session mechanics
 
 - Feature branches. No force pushes to main. Merges only on the operator's word.
+- **Read the branch off git before every merge, never off the session context.**
+  Operator ruling, 2026-09-09. The branch name a session is given at startup is a
+  snapshot, and a long session outlives it: on 2026-09-09 the work was on
+  `feat/reporting` while the startup status still said
+  `feat/mfa-optional-default`, and `git merge` on the stale name answered
+  "Already up to date" and changed nothing. It was harmless by luck. The same
+  mistake against a branch that HAD moved would have merged the wrong work onto
+  main and reported success. `git branch --show-current` costs nothing.
 - Commit coherent work immediately. One session per repo directory at a time.
 - Report and stop at every workstream end.
 - Screenshots at 390 and 1280, looked at by you, before reporting anything as done.
+- **EVERY GATE REPORT INCLUDES AT LEAST ONE REAL ARTEFACT READ AS A PERSON WOULD
+  READ IT, AND SAYS WHAT IT FOUND OR THAT IT FOUND NOTHING.** Operator ruling,
+  2026-09-09. An export opened and read line by line. An email received in an
+  inbox. A page looked at. Not a check that passed about the artefact: the
+  artefact.
+
+  **The harness catches what it is pointed at; reading catches the rest.** Phase
+  12 Section 2 is the evidence. Nine defects were found in one pass and FOUR of
+  them came from reading output rather than code, every one of them past a green
+  board:
+
+  - a sales tile counting a seeded client, found in a screenshot
+  - an export whose manifest said "Real records only" above eighteen
+    demonstration rows, found by opening the CSV
+  - the administrator's margin and revenue, $175.00 and $450.00 of it entirely
+    seeded files, found in a screenshot
+  - amounts written in cents, so a $675.00 refund would have reached an
+    accountant's spreadsheet as 67500, found in the same CSV
+
+  Two of those were sitting behind checks that had just been widened to look
+  straight at them. The harness was not wrong; it was answering the question it
+  had been asked. Reading is how the unasked question gets asked.
+
+  A report that names no artefact is a report written from the board, and the
+  board is exactly the thing that cannot see this class of defect.
 - Completion claims verified from disk and from the running app, not from intent.
 - Judgment calls disclosed in the report, not buried.
 - **The confession rule: a completion report that is not true is the one unforgivable failure

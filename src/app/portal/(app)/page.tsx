@@ -6,7 +6,7 @@ import { dashboardFor } from "@/lib/ops-dashboard";
 import { money } from "@/lib/ops-money";
 import type { PeriodTotals } from "@/lib/ops-money";
 import type { Column } from "@/components/portal/design";
-import { AttentionList, CountTiles, MoneyTiles } from "@/components/portal/Dashboard";
+import { AttentionList, BreakdownList, CountTiles, MoneyTiles, NotComputable } from "@/components/portal/Dashboard";
 import { ButtonLink, EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
 
 export const dynamic = "force-dynamic";
@@ -82,12 +82,25 @@ export default async function PortalHome() {
     );
   }
 
-  const lede =
-    dashboard.role === "admin"
-      ? "The firm at a glance. Every number is a live row, and a money figure nobody has entered says so rather than showing a zero."
-      : dashboard.role === "engineer"
-        ? "Your queue, your time and your production for this period. Nothing here is estimated."
-        : "Your offers, your deadlines and your pay. Nothing here is estimated.";
+  /*
+   * Derived from the role rather than from an else, because the else was the
+   * technician's sentence and three new roles arrived behind it. A dispatcher
+   * reading "your offers, your deadlines and your pay" is the same defect as a
+   * dispatcher being served the technician's tiles, in words.
+   */
+  const LEDE: Record<typeof dashboard.role, string> = {
+    admin:
+      "The firm at a glance. Every number is a live row, and a money figure nobody has entered says so rather than showing a zero.",
+    engineer: "Your queue, your time and your production for this period. Nothing here is estimated.",
+    field_tech: "Your offers, your deadlines and your pay. Nothing here is estimated.",
+    dispatcher:
+      "What is waiting to be placed, oldest first, and who could take it. Nothing here is estimated.",
+    sales:
+      "Where the work is coming from and how long it has been sitting. Flow and age only: what the firm makes on any of it is not on this screen.",
+    customer_service:
+      "What is in flight and who is waiting. Where the platform has never recorded the thing you were meant to see, it says so rather than showing something that looks like it.",
+  };
+  const lede = LEDE[dashboard.role];
 
   return (
     <>
@@ -127,17 +140,50 @@ export default async function PortalHome() {
           <AttentionList items={dashboard.attention} />
         </Panel>
 
-        <Panel
-          title={dashboard.role === "field_tech" ? "Your pay" : "Money"}
-          description={
-            dashboard.role === "admin"
-              ? "Totals cover only files where every figure is present."
-              : "Read from the ledger, not recalculated here."
-          }
-        >
-          <MoneyTiles tiles={dashboard.money} />
-        </Panel>
+        {/*
+          THREE DASHBOARDS HAVE NO MONEY PANEL, AND THE NARROWING IS THE PROOF.
+
+          A dispatcher, a salesperson and a customer service account hold
+          neither ledger.read_all nor billing.read, and the operator's ruling of
+          2026-09-08 is that no dashboard for them carries a firm level money
+          figure. Their types therefore have no `money` field at all, so this is
+          not a condition somebody has to remember to write: reading
+          dashboard.money without narrowing first does not compile, and it did
+          not, which is how this branch came to exist.
+        */}
+        {"money" in dashboard ? (
+          <Panel
+            title={dashboard.role === "field_tech" ? "Your pay" : "Money"}
+            description={
+              dashboard.role === "admin"
+                ? "Totals cover only files where every figure is present."
+                : "Read from the ledger, not recalculated here."
+            }
+          >
+            <MoneyTiles tiles={dashboard.money} />
+          </Panel>
+        ) : (
+          <Panel
+            title="What could not be counted"
+            description="Reported rather than fixed by widening a grant or inventing a figure that looks like the one that was asked for."
+          >
+            <NotComputable reasons={dashboard.notComputable} />
+          </Panel>
+        )}
       </div>
+
+      {/*
+        A grouped answer, where one number is not the answer. "Unassigned jobs"
+        is a tile; "unassigned jobs by county and age" is what a dispatcher acts
+        on, and it does not fit in one.
+      */}
+      {"breakdowns" in dashboard
+        ? dashboard.breakdowns.map((b) => (
+            <Panel key={b.title} className="mt-4" title={b.title} description={b.note}>
+              <BreakdownList breakdown={b} />
+            </Panel>
+          ))
+        : null}
 
       {dashboard.role === "admin" && dashboard.periods.length > 0 ? (
         <Panel

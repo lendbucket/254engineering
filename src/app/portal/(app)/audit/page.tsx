@@ -79,8 +79,20 @@ export default async function AuditPage() {
             card={(e) => (
               <div>
                 <p className="font-mono text-[12.5px] text-[var(--gold-deep)]">{e.action}</p>
-                <p className="mt-1 text-[13.5px] leading-[1.5] text-[var(--navy)]">{e.summary ?? e.entity_type}</p>
-                <p className="mt-1.5 text-[12.5px] text-[var(--secondary)]">
+                <p className="mt-1 text-[13.5px] leading-[1.5] break-words text-[var(--navy)]">{e.summary ?? e.entity_type}</p>
+                {/*
+                  break-words on both lines, because everything on this card is
+                  written by something else and can be arbitrarily long without
+                  a space in it.
+
+                  Found on 2026-09-09 by native-audit, after the suppression
+                  screen started writing summaries that quote an email address.
+                  An address has no break opportunity, so one row forced the
+                  card wider than the phone and the whole trail scrolled
+                  sideways with no affordance. The trail is the one screen whose
+                  content the platform has no say over at all.
+                */}
+                <p className="mt-1.5 text-[12.5px] break-words text-[var(--secondary)]">
                   {e.actor_email ?? "system"}, {stamp(e.created_at)}
                 </p>
               </div>

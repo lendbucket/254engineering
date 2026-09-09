@@ -148,6 +148,14 @@ const PROBE_A = {
   requestedFor: "2026-09-04",
   statementId: "statement-a",
   day: "2026-09-01",
+  /* Phase 12 Section 3 added report.export, keyed on the report, the period,
+   * the day and WHO asked: two people exporting the same report on the same day
+   * are two events worth recording separately. Added here rather than the check
+   * being loosened, which is what the comment above this object asks for. */
+  report: "revenue",
+  period: "2026-08",
+  at: "2026-09-04",
+  actorId: "actor-a",
 };
 const PROBE_B = {
   id: "b",
@@ -160,6 +168,10 @@ const PROBE_B = {
   requestedFor: "2026-09-05",
   statementId: "statement-b",
   day: "2026-09-02",
+  report: "pipeline",
+  period: "2026-09",
+  at: "2026-09-05",
+  actorId: "actor-b",
 };
 
 /*

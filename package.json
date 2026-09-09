@@ -77,7 +77,8 @@
     "link-map": "node scripts/link-map.mjs",
     "build-county-map": "tsx scripts/build-county-map.mts",
     "fetch-photos": "node scripts/fetch-photos.mjs",
-    "image-contrast-audit": "node scripts/image-contrast-audit.mjs"
+    "image-contrast-audit": "node scripts/image-contrast-audit.mjs",
+    "dashboards-audit": "tsx --conditions=react-server scripts/dashboards-audit.mjs"
   },
   "dependencies": {
     "@sentry/nextjs": "^10.73.0",

@@ -322,7 +322,13 @@ export type Action =
   | "reports.revenue"
   | "reports.production"
   | "reports.pipeline"
-  | "reports.partner";
+  | "reports.partner"
+  // The marketing suppression list. Its own grant rather than folded into
+  // messages.use, because taking somebody off the firm's marketing is a
+  // decision about what the firm may say to a person, and the role that does it
+  // on the telephone is not the role that runs a campaign. Seeded by 0029 to
+  // admin and to customer service.
+  | "suppressions.manage";
 
 /**
  * The matrix. Read it as: this role may perform these actions.
@@ -375,6 +381,10 @@ const MATRIX: Record<Role, Action[]> = {
      * compares this array to the migration chain and a grant in one and not the
      * other is a permission nobody decided. */
     "reports.revenue", "reports.production", "reports.pipeline", "reports.partner",
+    /* And the suppression list, for the same reason an administrator holds
+     * every other operational grant: somebody has to be able to do it when the
+     * one person who normally does is not working. Seeded by 0029. */
+    "suppressions.manage",
   ],
   engineer: [
     "profiles.read_self", "profiles.update_self",
@@ -565,6 +575,12 @@ export const DEFAULT_ROLES: DefaultRole[] = [
       "files.list",
       "tasks.use", "messages.use",
       "time.log_own",
+      /*
+       * The one thing this role does that nobody else was able to do. Somebody
+       * asks to stop hearing from the firm on the telephone, and before this
+       * there was no way to record it that did not involve SQL.
+       */
+      "suppressions.manage",
     ],
   },
   {

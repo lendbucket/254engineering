@@ -115,6 +115,96 @@ rec(`there are migrations to check (${files.length})`, files.length > 0);
   );
 }
 
+// ------------------------------- how it got there, and whether the provider knows
+
+/*
+ * THE PROVIDER'S MIGRATION HISTORY AND THIS LEDGER CAN DISAGREE, AND ONE OF
+ * THEM DID.
+ *
+ * `apply_migration` writes a row into supabase_migrations.schema_migrations.
+ * `execute_sql` changes the database and writes nothing. So a migration applied
+ * the second way is plainly present in the schema and completely absent from
+ * the provider's own list of what has been applied.
+ *
+ * 0025 is exactly that. Production's history names 0024, 0026 and 0027 and not
+ * 0025, while production unmistakably HAS 0025, because eng_roles reads
+ * optional for admin and engineer and that is the only thing it does. Somebody
+ * reading that list to answer "does production have 0025" gets the wrong
+ * answer, and the wrong answer is the alarming one: they would re-apply a
+ * migration production already has.
+ *
+ * Operator ruling, 2026-09-09: every production migration from here goes
+ * through apply_migration so the two records agree, the LEDGER stays the
+ * authority, and a ledger entry the provider's history will not show is NAMED
+ * rather than left to be rediscovered.
+ *
+ * WHY THIS CHECK DOES NOT READ THE LIVE LIST
+ * ------------------------------------------
+ * It cannot, and the reason is worth writing down rather than working around.
+ * This audit runs in the suite with NO credentials, which is the whole point of
+ * it: the September failure was a question nobody was made to answer, and a
+ * check that needs production's service role key would not run on the board at
+ * all. And the list is out of reach even for the audit that does have the key:
+ * supabase_migrations.schema_migrations is not in the `public` schema, so
+ * PostgREST does not expose it, which was verified rather than assumed.
+ *
+ * Checking a snapshot of the list into the repository would make this readable
+ * and would be the exact failure the ledger exists to prevent: a record that
+ * stops being true without telling anybody. So the live comparison stays a by
+ * hand step through the Supabase MCP, recorded in CLAUDE.md section 6b, and
+ * what runs on every board is this: the ledger states HOW each migration got
+ * there, and anything applied by hand has to say so in a sentence.
+ */
+{
+  const WAYS = ["apply_migration", "execute_sql", "pre_ledger"];
+  const applied = appliedToProduction();
+
+  const undeclared = applied.filter((e) => !WAYS.includes(e.appliedBy));
+  rec(
+    `every applied migration declares how production got it (${applied.length})`,
+    undeclared.length === 0,
+    undeclared.length
+      ? `${undeclared.map((e) => e.file).join(", ")} does not say whether it went through apply_migration or execute_sql, so nobody can tell whether the provider's history will show it`
+      : "",
+  );
+
+  const byHand = applied.filter((e) => e.appliedBy === "execute_sql");
+  const silent = byHand.filter((e) => !e.handApplied || !e.handApplied.trim());
+  rec(
+    `every migration applied by hand says what the provider's history will not show (${byHand.length})`,
+    silent.length === 0,
+    silent.length
+      ? `${silent.map((e) => e.file).join(", ")} is declared execute_sql with no handApplied sentence`
+      : byHand.map((e) => e.file).join(", "),
+  );
+
+  /*
+   * And the ruling itself, as a check rather than as a paragraph.
+   *
+   * The first version of this read "nothing numbered above 0028 went in by
+   * hand", which is what the ruling says in words and is a check that cannot
+   * fail today: no migration above 0028 exists, so it passed over an empty list
+   * and passed just as happily when a by hand 0028 was injected to test it.
+   * That is the vacuous check this repository keeps finding, written by
+   * somebody who had just written a paragraph about vacuous checks.
+   *
+   * So the rule is stated as the SET instead. Exactly one migration in this
+   * chain reached production by hand, it is 0025, and it is named here as a
+   * literal rather than derived from the ledger, because an audit that asks the
+   * ledger which entries are grandfathered is asking the thing under test to
+   * approve itself. Any other by hand entry is the thing the ruling forbids.
+   */
+  const GRANDFATHERED = ["0025_mfa_optional_default.sql"];
+  const forbidden = byHand.filter((e) => !GRANDFATHERED.includes(e.file));
+  rec(
+    "and no migration except the one already grandfathered reached production by hand",
+    forbidden.length === 0,
+    forbidden.length
+      ? `${forbidden.map((e) => e.file).join(", ")}. Operator ruling 2026-09-09: apply_migration, so the provider's history and this ledger agree.`
+      : `${GRANDFATHERED.join(", ")} is the only one, and it predates the ruling`,
+  );
+}
+
 // -------------------------------------------- THE ONE THAT WOULD HAVE CAUGHT IT
 
 /*

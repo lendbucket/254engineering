@@ -240,28 +240,96 @@ if (templates.length === 0) {
    * question "who is allowed to ask this" is answerable from the imports and
    * nowhere else.
    */
-  const SUPPRESSION_READERS = ["src/lib/ops-announce.ts", "src/app/(site)/unsubscribe/page.tsx"];
+  /*
+   * TWO LISTS SINCE 2026-09-09, AND THE SPLIT MAKES THIS CHECK SHARPER RATHER
+   * THAN LOOSER.
+   *
+   * Phase 12 Section 2 built the operator screen for the list, so a request
+   * made on the telephone can be recorded without somebody writing SQL against
+   * production. That screen and its route import the module, and this check
+   * went red on both, correctly: as written it asked "who imports the module",
+   * and the answer had grown.
+   *
+   * Adding two entries to one list would have answered the failure and weakened
+   * the guarantee, turning "the one legitimate reader is the announcement path"
+   * into a list that grows whenever somebody needs it to.
+   *
+   * The real claim is narrower than the module. `isSuppressed` is the GATE, the
+   * function a send path would call to decide whether to write to somebody, and
+   * it is the one that must never be reachable from a transactional send.
+   * Everything else in the module manages the list: reading it to show it,
+   * recording a request, correcting a mistyped row, building an unsubscribe
+   * URL. None of those can suppress a receipt.
+   *
+   * So the gate has its own allowlist of one, which is stricter than before,
+   * and managing the list is allowed from the operator surface that exists to
+   * manage it.
+   */
+  const SUPPRESSION_GATE = "isSuppressed";
+  const SUPPRESSION_GATE_READERS = [
+    /* The one path that consults it to decide whether to SEND. */
+    "src/lib/ops-announce.ts",
+    /* And the public unsubscribe page, which sends nothing at all: it asks so
+     * it can tell somebody who follows the link twice that they are already
+     * off the list, rather than thanking them for a second time as though the
+     * first had not worked. Verified rather than assumed: the file imports no
+     * send, no compose and no queue. */
+    "src/app/(site)/unsubscribe/page.tsx",
+  ];
+
+  const SUPPRESSION_READERS = [
+    "src/lib/ops-announce.ts",
+    "src/app/(site)/unsubscribe/page.tsx",
+    /* The operator screen for the list, and the route behind it. Neither sends
+     * anything and neither imports the gate. */
+    "src/app/portal/(app)/suppressions/page.tsx",
+    "src/app/api/portal/suppressions/route.ts",
+  ];
 
   const readers = [];
+  const gateReaders = [];
   const walk = (dir) => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       const full = join(dir, entry.name).split("\\").join("/");
       if (entry.isDirectory()) walk(full);
       else if (/\.(ts|tsx)$/.test(entry.name)) {
         const src = readFileSync(full, "utf8");
-        if (/from "[^"]*marketing-suppression"/.test(src)) readers.push(full);
+        const imports = src.match(/import\s*\{([^}]*)\}\s*from\s*"[^"]*marketing-suppression"/);
+        if (imports) {
+          readers.push(full);
+          if (imports[1].split(",").some((n) => n.trim() === SUPPRESSION_GATE)) gateReaders.push(full);
+        } else if (/from "[^"]*marketing-suppression"/.test(src)) {
+          /* A namespace or default import reaches everything, including the
+           * gate, so it counts as both rather than slipping past the split. */
+          readers.push(full);
+          gateReaders.push(full);
+        }
       }
     }
   };
   walk("src");
 
   const unexpected = readers.filter((r) => !SUPPRESSION_READERS.includes(r)).sort();
+  const unexpectedGate = gateReaders.filter((r) => !SUPPRESSION_GATE_READERS.includes(r)).sort();
+
+  /*
+   * THE GATE FIRST, BECAUSE IT IS THE ONE THAT COSTS SOMEBODY A RECEIPT.
+   */
+  rec(
+    `only the announcement path can ask whether an address is suppressed (${gateReaders.length} caller)`,
+    unexpectedGate.length === 0 && gateReaders.length >= 1,
+    unexpectedGate.length
+      ? `${unexpectedGate.join(", ")} imports ${SUPPRESSION_GATE}. A transactional send must never consult it: somebody who unsubscribed from announcements is still owed their receipt.`
+      : gateReaders.length === 0
+        ? `nothing imports ${SUPPRESSION_GATE} at all, so the announcement path is not consulting the list either`
+        : "",
+  );
 
   rec(
-    `only the announcement path reads the suppression list (${readers.length} readers)`,
+    `and only declared surfaces read the suppression list at all (${readers.length} readers)`,
     unexpected.length === 0 && readers.length >= 2,
     unexpected.length
-      ? `${unexpected.join(", ")} reads it. A transactional send must never consult it: somebody who unsubscribed from announcements is still owed their receipt.`
+      ? `${unexpected.join(", ")} reads it. Managing the list is allowed from the operator surface built for it; anything else has to be argued for.`
       : "",
   );
 

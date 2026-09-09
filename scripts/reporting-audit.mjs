@@ -266,6 +266,279 @@ console.log("");
   );
 }
 
+// ------------------------------- every report leaves as a file that says what it is
+
+{
+  /*
+   * Phase 12 Section 3. A report on a screen is read by the person who opened
+   * it, with the notes beside it. A file is read later, by somebody else, with
+   * none of that. So the export carries a MANIFEST, and the manifest is what
+   * these checks are about.
+   *
+   * The one thing a CSV can prove about itself is that it is not truncated, and
+   * it can only prove that if it states its own size. So the manifest's row
+   * count is compared against the rows actually written, on every report.
+   */
+  const { reportCsv, exportRowCount, exportFilename } = await import("../src/lib/ops-report-export.ts");
+  const period = periodOf();
+  const by = { email: "audit@254engineering.com", role: "admin" };
+
+  const files = [];
+  for (const r of REPORTS) {
+    const built = await r.build(period);
+    files.push({ key: r.key, built, body: reportCsv(built, by), name: exportFilename(built) });
+  }
+
+  rec(
+    `every report can be exported as a file (${files.length})`,
+    files.length === REPORTS.length && files.every((f) => f.body.length > 0),
+    "a report nobody can hand to an accountant is a report that gets retyped into a spreadsheet",
+  );
+
+  /* The manifest names every figure, including the ones that could not be
+   * computed, because a blank in a file is read as a zero. */
+  const unlisted = [];
+  for (const f of files) {
+    for (const section of f.built.sections) {
+      for (const figure of section.figures) {
+        if (!f.body.includes(`${section.title} / ${figure.label}`)) {
+          unlisted.push(`${f.key}/${figure.label}`);
+        }
+      }
+    }
+  }
+  rec(
+    "and the manifest names every figure on it",
+    unlisted.length === 0,
+    unlisted.length
+      ? `${unlisted.join(", ")} is in the report and not in the file's manifest`
+      : "including the absent ones, which a blank cell would otherwise read as zero",
+  );
+
+  /*
+   * THE SIZE THE MANIFEST CLAIMS IS THE SIZE THE FILE CARRIES.
+   *
+   * Checked over the DEMONSTRATION scope as well as the real one, and the
+   * reason is the operator's ruling of 2026-09-09: a check that filters live
+   * data for a subject that does not exist yet is vacuous, so build the
+   * subject. Production and development both hold no real orders or payments,
+   * so the real scope exports four files of zero rows, and a manifest that
+   * claimed the wrong count would agree with an empty body every time.
+   *
+   * The demonstration scope has rows today, which is what makes this assertion
+   * capable of failing. It is the same data demo-audit proves never reaches a
+   * real figure, used here for the one thing it is good for.
+   */
+  const measured = [...files];
+  for (const r of REPORTS) {
+    const built = await r.build(period, "including_demonstrations");
+    measured.push({ key: `${r.key} (demonstrations)`, built, body: reportCsv(built, by) });
+  }
+
+  const withRows = measured.filter((f) => exportRowCount(f.built) > 0);
+  const countOf = (body) => {
+    const lines = body.split("\r\n");
+    const header = lines.findIndex((l) => l.startsWith('"Section"'));
+    return header === -1 ? -1 : lines.length - header - 1;
+  };
+
+  const wrong = measured.filter((f) => {
+    const claimed = f.body.match(/^"Rows","(\d+)"/m);
+    return !claimed || Number(claimed[1]) !== countOf(f.body);
+  });
+
+  rec(
+    `the manifest's row count is checkable against a file that has rows (${withRows.length} of ${measured.length})`,
+    withRows.length > 0,
+    withRows.length === 0
+      ? "every export is empty in both scopes, so the check below would pass over nothing"
+      : `${withRows.map((f) => `${f.key}: ${exportRowCount(f.built)}`).join(", ")}`,
+  );
+  rec(
+    "and the row count in the manifest is the number of rows in the file",
+    wrong.length === 0,
+    wrong.length
+      ? `${wrong.map((f) => f.key).join(", ")}: the manifest and the body disagree, which is what a truncated file looks like`
+      : `${measured.reduce((n, f) => n + exportRowCount(f.built), 0)} rows across ${measured.length} files`,
+  );
+
+  /*
+   * THE FILE STATES THE SCOPE IT WAS ACTUALLY COMPUTED UNDER.
+   *
+   * Found by reading a real file rather than by a check. The scope used to be a
+   * PARAMETER to the exporter with a default of "real", so a report built
+   * including demonstrations produced a document whose manifest said, in words,
+   * that demonstrations were excluded. A document describing itself wrongly is
+   * this section's defect one level up, and nothing was looking.
+   *
+   * Both scopes are exercised, because a check over "real" alone would pass on
+   * the exact bug: the wrong answer and the right answer agree there.
+   */
+  const scoped = [
+    ...files.map((f) => ({ ...f, want: "real" })),
+    ...measured.filter((f) => f.key.includes("demonstrations")).map((f) => ({ ...f, want: "demonstrations" })),
+  ];
+  const lying = scoped.filter((f) => {
+    const line = f.body.match(/^"Scope","([^"]*)"/m);
+    if (!line) return true;
+    return f.want === "real"
+      ? !/^Real records only/.test(line[1])
+      : !/^INCLUDING DEMONSTRATIONS/.test(line[1]);
+  });
+  rec(
+    `every file states the scope it was computed under (${scoped.length} files, both scopes)`,
+    lying.length === 0,
+    lying.length
+      ? `${lying.map((f) => f.key).join(", ")}: the manifest names a scope the figures were not computed under`
+      : "read off the report rather than passed in, so there is no second place to say it",
+  );
+
+  /*
+   * A MONEY CELL IS DOLLARS WITH TWO DECIMALS, IN EVERY EXPORT.
+   *
+   * Operator ruling, 2026-09-09, after the first version wrote raw cents and a
+   * $675.00 refund reached a spreadsheet as 67500. That is not a formatting
+   * preference: a number in the wrong unit in a file going to an accountant is
+   * wrong by a factor of a hundred and looks entirely ordinary.
+   *
+   * Every row of every export is parsed rather than a sample, and the money
+   * ones have to match dollars-and-cents exactly. The leading apostrophe is
+   * accepted because csv.ts prepends one to anything starting with a minus, to
+   * stop Excel reading it as a formula, which is deliberate and predates this.
+   */
+  const MONEY_CELL = /^'?-?\d+\.\d\d$/;
+  const badMoney = [];
+  for (const f of measured) {
+    const lines = f.body.split("\r\n");
+    const header = lines.findIndex((l) => l.startsWith('"Section"'));
+    if (header === -1) continue;
+    for (const line of lines.slice(header + 1)) {
+      const cells = line.split('","').map((c) => c.replace(/^"|"$/g, ""));
+      if (cells.length < 6) continue;
+      const [, figure, kind, , , amount] = cells;
+      if (kind !== "money" || amount === "") continue;
+      if (!MONEY_CELL.test(amount)) badMoney.push(`${f.key}/${figure}: ${JSON.stringify(amount)}`);
+    }
+  }
+
+  const moneyCells = measured.reduce((n, f) => {
+    const lines = f.body.split("\r\n");
+    const header = lines.findIndex((l) => l.startsWith('"Section"'));
+    return header === -1
+      ? n
+      : n + lines.slice(header + 1).filter((l) => l.includes('","money","')).length;
+  }, 0);
+
+  rec(
+    `there are money cells in an export to parse (${moneyCells})`,
+    moneyCells > 0,
+    "a parse over no money cells passes forever, which is why both scopes are measured",
+  );
+  rec(
+    "every money cell in every export is dollars with two decimals",
+    badMoney.length === 0,
+    badMoney.length
+      ? `${badMoney.slice(0, 6).join(", ")}. Cents in a file going to an accountant is wrong by a factor of a hundred and looks entirely ordinary.`
+      : "",
+  );
+
+  /* And it says what it could not compute, rather than leaving a gap. */
+  const silent = files.filter((f) => !/"Not computed/.test(f.body));
+  rec(
+    "and every file says what the report could not compute",
+    silent.length === 0,
+    silent.length
+      ? `${silent.map((f) => f.key).join(", ")} carries no Not computed line at all, so a reader cannot tell an absent figure from a zero`
+      : "",
+  );
+
+  /* The export is gated by the report's own action, read from the registry. */
+  const route = readFileSync("src/app/api/portal/exports/route.ts", "utf8");
+  rec(
+    "the export route asks the grant the registry names",
+    /can\(actor, entry\.action\)/.test(route) && /REPORTS\.find/.test(route),
+    "a fixed list here would be a second list to keep in step, and the third entry is where somebody forgets the check",
+  );
+
+  /* The record goes on the queue and the file does not, which is the standing
+   * rule in docs/platform-state.md. */
+  rec(
+    "the record of an export is queued and the file is not",
+    /enqueue\("report\.export"/.test(route) && !/enqueue\([^)]*body/.test(route),
+    "a queued CSV is a CSV nobody receives: nothing here delivers a file to somebody who has walked away",
+  );
+
+  /*
+   * THE RECORD IS QUEUED AFTER THE FILE EXISTS, NOT BEFORE.
+   *
+   * Operator ruling, 2026-09-09: "If the job records completion before the file
+   * exists and its hash matches, that is the defect; if it is only naming,
+   * leave it."
+   *
+   * It is only naming, and this is what keeps it so. The job writes an audit
+   * row saying a report WAS assembled, with the figure and row counts taken
+   * from the same built object the body was rendered from. It claims no hash
+   * and it claims no delivery, so there is nothing for a file to fail to match.
+   *
+   * What would make it a lie is reordering: enqueue first, assemble second, and
+   * the record then describes a file that may never have been produced. So the
+   * ORDER is asserted rather than trusted, which is the whole content of the
+   * ruling's condition.
+   */
+  /*
+   * THE CEILING IS STATED, DERIVED, AND REFUSED ON.
+   *
+   * Operator ruling, 2026-09-09. Asserted against the measured limit rather
+   * than against a number typed here, and the limit is not the perf gate: 1000
+   * is where PostgREST stops returning rows, verified on development where
+   * eng_audit_events holds over 7,000 and a plain select returns exactly a
+   * thousand. Serialisation is nowhere near a constraint at 50,000 rows in
+   * 43ms, which is why the ceiling is about correctness rather than speed.
+   */
+  const { ROW_CEILING, tooLarge } = await import("../src/lib/ops-reports.ts");
+
+  rec(
+    `the export ceiling is stated as a number (${ROW_CEILING})`,
+    ROW_CEILING > 0 && ROW_CEILING <= 1000,
+    "PostgREST returns at most 1000 rows and says nothing about it, so a figure over that is computed from part of its set",
+  );
+  /*
+   * The first version of this matched `413` and `tooLargeToAssemble` anywhere
+   * in the file, and passed when the branch was replaced with `if (false)`,
+   * because the declaration and a comment still carried both strings. It
+   * asserts the BRANCH and the STATUS now, which is what actually refuses.
+   */
+  rec(
+    "and the refusal says what happened and what is not built",
+    /if \(tooLargeToAssemble\) \{/.test(route) &&
+      /status: 413/.test(route) &&
+      /queued export/.test(tooLarge("x", 5000)),
+    "a timeout is a failure somebody notices; a truncated total is a plausible number, so the refusal has to be a sentence",
+  );
+
+  /* And every builder turns a truncated read into an absence rather than a
+   * smaller total, which is the section's own law applied to its own limit. */
+  const module = readFileSync("src/lib/ops-reports.ts", "utf8");
+  const guards = (module.match(/TRUNCATION IS AN ABSENCE/g) ?? []).length;
+  rec(
+    `every report refuses to state a figure from a truncated read (${guards} of ${REPORTS.length})`,
+    guards === REPORTS.length,
+    guards === REPORTS.length
+      ? "count: exact comes back on the same request, so the true size and the returned size cannot disagree"
+      : "a builder without the guard returns a total computed from part of its set, with a manifest that agrees",
+  );
+
+  const assembledAt = route.indexOf("reportCsv(built");
+  const queuedAt = route.indexOf('enqueue("report.export"');
+  rec(
+    "and it is queued after the file has been assembled, never before",
+    assembledAt > 0 && queuedAt > assembledAt,
+    assembledAt < 0
+      ? "the assembly could not be found in the route at all"
+      : "a record enqueued before the assembly describes a file that may never have been produced",
+  );
+}
+
 // ------------------------------------------- the coastal figure shows its work
 
 {

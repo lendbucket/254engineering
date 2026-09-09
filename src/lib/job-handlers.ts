@@ -497,3 +497,65 @@ registerJob("errors.alert", {
     return { kind: "done" };
   },
 });
+
+// -------------------------------------------------------------- report.export
+
+/**
+ * Record that a report left the building.
+ *
+ * Phase 12 Section 3. This does NOT assemble the CSV. The file is built and
+ * returned inside the request, because the person who clicked Export is
+ * standing in front of it, and docs/platform-state.md has the rule this
+ * follows: a queued CSV is a CSV nobody receives. Nothing in this platform
+ * delivers a file to somebody who has walked away.
+ *
+ * What is queued is the fact. A report is the firm's own statement about
+ * itself, and once one has been handed to an accountant or a client the
+ * important question stops being what the screen shows today and becomes what
+ * the file said on the day it went out. So this writes an audit row carrying
+ * the manifest's own totals: the period, the scope, how many figures, how many
+ * rows, and how many of the figures could not be computed.
+ *
+ * WHY THE FIGURES ARE NOT RECOMPUTED HERE
+ * ---------------------------------------
+ * A retry an hour later would produce different numbers, and the audit row
+ * would then describe a file nobody was ever sent. The payload carries what the
+ * file actually said, and this records that. The binder job above takes the
+ * opposite decision for the opposite reason, and both are right: a binder is
+ * asked for by file id because a reader wants the file as it stands NOW, and a
+ * report export is evidence of what was handed over THEN.
+ */
+registerJob("report.export", {
+  idempotency: (p) => keyOf("report-export", p.report, p.period, p.at, p.actorId),
+  run: async (p): Promise<JobOutcome> => {
+    const client = db();
+    if (!client) return { kind: "retry", error: "The database is not configured." };
+
+    const report = typeof p.report === "string" ? p.report : "";
+    const period = typeof p.period === "string" ? p.period : "";
+    if (!report || !period) return { kind: "fatal", error: "A report export job needs a report and a period." };
+
+    const figures = Number(p.figures ?? 0);
+    const rows = Number(p.rows ?? 0);
+    const notComputed = Number(p.notComputed ?? 0);
+
+    const { error } = await client.from("eng_audit_events").insert({
+      actor_id: typeof p.actorId === "string" ? p.actorId : null,
+      actor_email: typeof p.actorEmail === "string" ? p.actorEmail : null,
+      actor_role: typeof p.actorRole === "string" ? p.actorRole : null,
+      action: "export.report.assembled",
+      entity_type: "report",
+      entity_id: `${report}:${period}`,
+      summary:
+        `The ${report} report for ${period} was assembled as a file: ` +
+        `${figures} figure(s) over ${rows} row(s)` +
+        (notComputed > 0
+          ? `, ${notComputed} of which the report could not compute and said so in the manifest.`
+          : ", all of them computed."),
+      diff: { scope: p.scope ?? "real", figures, rows, notComputed },
+    });
+
+    if (error) return { kind: "retry", error: error.message };
+    return { kind: "done" };
+  },
+});

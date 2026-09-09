@@ -3,6 +3,8 @@ import { currentActor, requestContext } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { csvHeaders } from "@/lib/csv";
 import { binderCsv, binderFor, fileMargins, marginCsv, periodCsv } from "@/lib/ops-docs";
+import { REPORTS, ROW_CEILING, periodOf } from "@/lib/ops-reports";
+import { exportFilename, exportRowCount, reportCsv } from "@/lib/ops-report-export";
 import { enqueue } from "@/lib/ops-jobs";
 import { writeAudit } from "@/lib/ops-audit";
 
@@ -94,7 +96,15 @@ export async function GET(request: NextRequest) {
   if (report === "margin" || report === "period") {
     if (!can(actor, "billing.read")) return bad("Your role cannot read the firm's billing.", 403);
 
+    /*
+     * A failed read is not an empty firm, and an export is the worst place to
+     * confuse them: a CSV of nothing, headed as a margin report, handed to an
+     * accountant, is a statement that the firm delivered no work.
+     */
     const files = await fileMargins(actor);
+    if (files === null) {
+      return bad("The margin figures could not be read. Nothing was exported, because an empty file would say the firm delivered nothing.", 503);
+    }
     const body = report === "margin" ? marginCsv(files) : periodCsv(files);
 
     await writeAudit({
@@ -108,6 +118,91 @@ export async function GET(request: NextRequest) {
     return new NextResponse(body, {
       headers: csvHeaders(`${report === "margin" ? "margin-by-file" : "margin-by-period"}-${stamp()}.csv`),
     });
+  }
+
+  /*
+   * THE FOUR OWNER REPORTS, AS FILES.
+   *
+   * Phase 12 Section 3. The report is chosen from the REGISTRY rather than from
+   * a list here, which is the same reason reporting-audit derives from it: a
+   * fifth report added to ops-reports.ts is exportable the day it exists, and
+   * cannot ship with an export nobody wrote a permission check for, because the
+   * check reads the action off the registry entry.
+   *
+   * The grant asked for is the report's OWN action, so somebody granted the
+   * pipeline can export the pipeline and gets a 403 on revenue. The screen
+   * makes the same test against the same field, so a button that appears is a
+   * button that works.
+   */
+  const entry = REPORTS.find((r) => r.key === report);
+  if (entry) {
+    if (!can(actor, entry.action)) return bad(`Your role cannot read the ${entry.title.toLowerCase()} report.`, 403);
+
+    const asked = request.nextUrl.searchParams.get("period") ?? "";
+    const period = /^\d{4}-\d{2}$/.test(asked) ? asked : periodOf();
+
+    const built = await entry.build(period);
+
+    /*
+     * THE CEILING, AND A SENTENCE RATHER THAN A TIMEOUT.
+     *
+     * Operator ruling, 2026-09-09: inline assembly is accepted at today's
+     * volume with a stated ceiling, and above it the route refuses with a
+     * sentence saying the export is too large and the queued export is not yet
+     * built.
+     *
+     * The report has already said so by the time this runs: a builder whose
+     * read was truncated returns no sections and puts the reason in
+     * `unavailable`, because a figure computed from part of a set is a
+     * plausible number rather than a small one. So the refusal reads the
+     * report's own answer rather than counting a second time and possibly
+     * disagreeing with it.
+     *
+     * 413 rather than 500. Nothing failed: the request is too large for the way
+     * this is built, which is a different thing and is the thing the response
+     * should say.
+     */
+    const tooLargeToAssemble = built.sections.length === 0 && built.unavailable.some((u) => u.includes(String(ROW_CEILING.toLocaleString("en-US"))));
+    if (tooLargeToAssemble) {
+      return NextResponse.json({ ok: false, error: built.unavailable.join(" ") }, { status: 413 });
+    }
+
+    const body = reportCsv(built, { email: actor.email, role: actor.role });
+
+    await writeAudit({
+      actor,
+      action: `export.report.${entry.key}`,
+      entityType: "report",
+      entityId: `${entry.key}:${period}`,
+      summary: `Exported the ${entry.title.toLowerCase()} report for ${period}, ${exportRowCount(built)} row(s)${
+        built.unavailable.length ? `, with ${built.unavailable.length} figure(s) the report could not compute` : ""
+      }`,
+      ...context,
+    });
+
+    /*
+     * The record goes on the queue, the file does not. Same decision as the
+     * binder above and for the same reason: the person who clicked Export is
+     * standing in front of the response, and a queued CSV is a CSV nobody
+     * receives. What the job writes is what the FILE said, taken from the
+     * manifest, so a later reader can tell what was handed over rather than
+     * what the screen shows today.
+     */
+    const recorded = await enqueue("report.export", {
+      report: entry.key,
+      period,
+      scope: "real",
+      at: stamp(),
+      figures: built.sections.reduce((n, s) => n + s.figures.length, 0),
+      rows: exportRowCount(built),
+      notComputed: built.unavailable.length,
+      actorId: actor.id,
+      actorEmail: actor.email,
+      actorRole: actor.role,
+    });
+    if (!recorded.ok) console.error(`[exports] report export not queued: ${recorded.error}`);
+
+    return new NextResponse(body, { headers: csvHeaders(exportFilename(built)) });
   }
 
   return bad("That is not a report this platform produces.");

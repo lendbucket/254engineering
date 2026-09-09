@@ -103,6 +103,10 @@ const ADMIN_PAGES = [
   // Behind the perimeter for the same reason billing is: a signed out visitor
   // reaching it would read the firm's position straight off the page.
   "/portal/reports",
+  // Every address that has asked the firm to stop writing to them, and why.
+  // A list of people who did not want to hear from a company, reachable signed
+  // out, is a list somebody else can use for exactly what it records.
+  "/portal/suppressions",
   // Names customers, properties and amounts, and carries the controls that ask
   // Stripe about a payment and give one back. Admin only behind the perimeter.
   "/portal/orders",
@@ -164,6 +168,11 @@ const ADMIN_APIS = [
   // check below is what made sure they were listed here on the day they shipped.
   "/api/portal/exports",
   "/api/portal/documents",
+  // Records that somebody asked the firm to stop writing to them, and removes a
+  // row an operator typed wrong. Reachable signed out, its POST would let
+  // anybody silence the firm's marketing to any address they chose, and its
+  // DELETE would let them undo somebody else's request.
+  "/api/portal/suppressions",
   // Asks Stripe what became of an order and can record that money moved. The
   // first route nested two deep, which is what exposed the one level discovery
   // above as a hole rather than a simplification.
