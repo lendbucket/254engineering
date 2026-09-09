@@ -203,11 +203,9 @@ export const APPLIED = [
     file: "0029_suppressions_manage_grant.sql", appliedBy: "apply_migration",
     fingerprint: "9bbcca2c9cd3c65503c923d7c32ea769",
     proves: { table: "eng_role_grants", match: { role_key: "customer_service", action: "suppressions.manage" } },
-    production: null,
-    because:
-      "ON A FEATURE BRANCH, WHICH IS THE ONE REASON A PENDING ENTRY IS ORDINARY. It goes to production through apply_migration when Phase 12 Section 2 merges, and schema-ledger-audit fails the board the moment it is reachable from main and still says null. Applied to development 2026-09-09. The lesson from 0027 is why it is NOT being applied to production early: doing that leaves the board red on 'nothing is applied to production that is not on main' for the whole life of the branch, which trains everybody to read one red check as normal.",
+    production: "2026-09-09",
     note:
-      "Seeds suppressions.manage to admin and to customer service. No DDL, so the fingerprint stays 9bbcca2c9cd3c65503c923d7c32ea769 across 970 columns and 72 eng_ tables. Sales holds nothing here on purpose: somebody paid to grow a list should not be the one who can quietly shorten it, and the request does not arrive there anyway.",
+      "Applied to development 2026-09-09 and to production on merge the same day, through apply_migration, and read back rather than assumed: fingerprint unchanged at 9bbcca2c9cd3c65503c923d7c32ea769 across 970 columns and 72 eng_ tables, which is what two seeded rows and no DDL should do, with 118 role grants in total and suppressions.manage held by exactly admin and customer_service. Sales holds nothing here on purpose: somebody paid to grow a list should not be the one who can quietly shorten it, and the request does not arrive there anyway. IT WAS DELIBERATELY PENDING UNTIL THE MERGE, which is the lesson 0027 taught: applying early leaves the board red on 'nothing is applied to production that is not on main' for the whole life of the branch, and one red check that is always there trains everybody to read red as normal.",
   },
 ];
 
