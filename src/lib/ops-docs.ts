@@ -1,4 +1,5 @@
 import "server-only";
+import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import { writeAudit } from "./ops-audit";
 import { can, type Actor } from "./ops-authz";
@@ -193,10 +194,22 @@ export async function binderFor(actor: Actor | null, fileId: string): Promise<Bi
    * would file one engineer's reasoning under another engineer's decision the
    * first time two reviews landed in the same minute.
    */
-  const { data: chargeRows } = await db
-    .from("eng_responsible_charge_log")
-    .select("refusal_reason, review_session_id")
-    .eq("file_id", fileId);
+  /*
+   * PAGED. Bounded to one file, so it is unlikely to reach a page, and it is
+   * paged anyway because what it feeds is an assembled SEALED DELIVERABLE: a
+   * refusal reason silently missing from a regulatory document is the kind of
+   * omission nobody reading the document could detect.
+   */
+  const chargeRead = await readEvery<{ refusal_reason: string | null; review_session_id: string | null }>(
+    (from, to) =>
+      db
+        .from("eng_responsible_charge_log")
+        .select("refusal_reason, review_session_id")
+        .eq("file_id", fileId)
+        .order("reviewed_at", { ascending: true })
+        .range(from, to),
+  );
+  const chargeRows = chargeRead.ok ? chargeRead.rows : null;
   const reasonBySession = new Map(
     (chargeRows ?? [])
       .filter((r) => r.review_session_id)

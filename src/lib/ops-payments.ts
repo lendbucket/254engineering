@@ -1,4 +1,5 @@
 import "server-only";
+import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import { business } from "@/config/business";
 import { deploymentOrigin } from "./site-url";
@@ -191,13 +192,31 @@ export async function startBatchCheckout(batchId: string): Promise<CheckoutResul
     return { ok: false, error: "That submission has no total, so it cannot be charged." };
   }
 
-  const { data: orders } = await db
-    .from("eng_service_orders")
-    .select("id, reference, property_address, batch_share_cents, customer_email")
-    .eq("batch_id", batchId)
-    .order("created_at", { ascending: true });
+  /*
+   * PAGED. These become the LINE ITEMS of a Stripe checkout, so a truncated
+   * read charges a customer for the first thousand properties of a larger
+   * submission and hands them a session that looks complete.
+   *
+   * A bulk submission over a thousand properties is not fanciful: it is the
+   * shape the account surface was built for.
+   */
+  const orderRead = await readEvery<{
+    id: string; reference: string; property_address: string; batch_share_cents: number | null; customer_email: string;
+  }>((from, to) =>
+    db
+      .from("eng_service_orders")
+      .select("id, reference, property_address, batch_share_cents, customer_email")
+      .eq("batch_id", batchId)
+      .order("created_at", { ascending: true })
+      .range(from, to),
+  );
 
-  if (!orders?.length) return { ok: false, error: "That submission has no properties on it." };
+  if (!orderRead.ok) {
+    return { ok: false, error: "The properties on that submission could not be read in full, so nothing was charged. " + orderRead.error };
+  }
+  const orders = orderRead.rows;
+
+  if (!orders.length) return { ok: false, error: "That submission has no properties on it." };
 
   const lines = orders
     .filter((o) => o.batch_share_cents !== null)
@@ -292,10 +311,22 @@ export async function markBatchPaid(input: {
     .update({ status: "accepted", paid_at: new Date().toISOString() })
     .eq("id", input.batchId);
 
-  const { data: orders } = await db
-    .from("eng_service_orders")
-    .select("id, reference, status, order_type, file_id")
-    .eq("batch_id", input.batchId);
+  /*
+   * PAGED. Every row here is RELEASED to fulfilment by the loop below. An order
+   * past the cut stays at awaiting_payment after the batch was paid, which is a
+   * customer who has been charged and whose work never starts.
+   */
+  const releaseRead = await readEvery<{
+    id: string; reference: string; status: string; order_type: string; file_id: string | null;
+  }>((from, to) =>
+    db
+      .from("eng_service_orders")
+      .select("id, reference, status, order_type, file_id")
+      .eq("batch_id", input.batchId)
+      .order("created_at", { ascending: true })
+      .range(from, to),
+  );
+  const orders = releaseRead.ok ? releaseRead.rows : null;
 
   let released = 0;
   for (const o of orders ?? []) {
@@ -356,10 +387,17 @@ export async function abandonBatch(
     return { ok: true, closed: 0 };
   }
 
-  const { data: orders } = await db
-    .from("eng_service_orders")
-    .select("id, status")
-    .eq("batch_id", batchId);
+  /* PAGED, for the reason the release above gives: a row past the cut keeps a
+   * state nobody meant to leave it in. */
+  const abandonRead = await readEvery<{ id: string; status: string }>((from, to) =>
+    db
+      .from("eng_service_orders")
+      .select("id, status")
+      .eq("batch_id", batchId)
+      .order("created_at", { ascending: true })
+      .range(from, to),
+  );
+  const orders = abandonRead.ok ? abandonRead.rows : null;
 
   let closed = 0;
   for (const o of orders ?? []) {
