@@ -2,7 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { currentActor, requestContext } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { writeAudit } from "@/lib/ops-audit";
-import { answerDeletionRequest, recordDeletionRequest, type RequestChannel } from "@/lib/deletion-requests";
+import { answerDeletionRequest, recordDeletionRequest } from "@/lib/deletion-requests";
+import { CHANNEL_VALUES, type RequestChannel } from "@/lib/deletion-request-kinds";
 
 export const dynamic = "force-dynamic";
 
@@ -42,8 +43,6 @@ async function gate() {
   return { actor };
 }
 
-const CHANNELS = new Set<RequestChannel>(["telephone", "email", "letter", "in_person", "other"]);
-
 export async function POST(request: NextRequest) {
   const gated = await gate();
   if (gated.error) return gated.error;
@@ -52,7 +51,7 @@ export async function POST(request: NextRequest) {
 
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const channel = String(body.channel ?? "");
-  if (!CHANNELS.has(channel as RequestChannel)) return bad("How did it reach the firm?");
+  if (!CHANNEL_VALUES.has(channel)) return bad("How did it reach the firm?");
 
   const done = await recordDeletionRequest(actor as typeof actor & { email: string }, {
     subjectEmail: String(body.subjectEmail ?? ""),

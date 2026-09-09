@@ -4,6 +4,13 @@ import { readEvery } from "./bounded-read";
 import { createTask } from "./ops-tasks";
 import { normaliseEmail, suppress } from "./marketing-suppression";
 import type { Actor } from "./ops-authz";
+/*
+ * The channel list lives in a module with no server-only on it, because the
+ * screen needs the same values this validates against. Re-exported here so a
+ * server caller has one import rather than two.
+ */
+export { CHANNELS, CHANNEL_VALUES, type RequestChannel } from "./deletion-request-kinds";
+import type { RequestChannel } from "./deletion-request-kinds";
 
 /**
  * SOMEBODY ASKED TO BE FORGOTTEN.
@@ -36,16 +43,6 @@ import type { Actor } from "./ops-authz";
  */
 
 const db = () => supabaseAdmin();
-
-export type RequestChannel = "telephone" | "email" | "letter" | "in_person" | "other";
-
-export const CHANNELS: { value: RequestChannel; label: string }[] = [
-  { value: "telephone", label: "Telephone" },
-  { value: "email", label: "Email" },
-  { value: "letter", label: "Letter" },
-  { value: "in_person", label: "In person" },
-  { value: "other", label: "Something else" },
-];
 
 export type DeletionRequest = {
   id: string;

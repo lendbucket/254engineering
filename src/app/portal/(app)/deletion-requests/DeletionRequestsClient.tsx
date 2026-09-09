@@ -2,7 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CHANNELS, type RequestChannel } from "@/lib/deletion-requests";
+/*
+ * From deletion-request-kinds and NOT from deletion-requests, which carries
+ * server-only because it reaches the database. Importing it here compiled
+ * cleanly and broke the BUILD, and the suite then reported that it could not
+ * run at all rather than a list of content failures, which is the runner
+ * working the way CLAUDE.md section 6 describes.
+ */
+import { CHANNELS, type RequestChannel } from "@/lib/deletion-request-kinds";
 
 /**
  * Taking a request while the person is still on the telephone.
