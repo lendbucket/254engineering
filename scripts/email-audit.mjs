@@ -355,6 +355,37 @@ if (templates.length === 0) {
       "0034 keeps a mistyped suppression rather than deleting it, so the gate is the one place it can stop counting",
     );
 
+    /*
+     * A VOID CANNOT LOSE THE REQUEST IT IS CORRECTING.
+     *
+     * Operator ruling at gate 2, and the failure it prevents is invisible: the
+     * caller asked not to be contacted, the address was typed wrong, and
+     * voiding the wrong row on its own un-suppresses somebody who never asked
+     * while leaving the actual request nowhere. The list ends up accurate about
+     * a mistake and silent about the thing the mistake was about.
+     *
+     * The schema refuses a void that names neither a replacement nor a reason
+     * there is none, so this is not the guard. What this asserts is that the
+     * APPLICATION cannot call the void without deciding, which is what makes
+     * the refusal a sentence somebody reads rather than a database error at the
+     * end of a telephone call.
+     */
+    const voidFn = src.slice(src.indexOf("export async function voidOperatorEntry"));
+    const signature = voidFn.slice(0, voidFn.indexOf("): Promise"));
+
+    rec(
+      "voiding a suppression requires deciding what was meant instead",
+      /replacement: VoidReplacement/.test(signature) && !/replacement\?:/.test(signature),
+      "not optional and with no default, because a default would make the case that loses a request the easy one",
+    );
+
+    rec(
+      "and the replacement is suppressed before the void, not after",
+      voidFn.indexOf("await suppress(") !== -1 &&
+        voidFn.indexOf("await suppress(") < voidFn.indexOf(".update({"),
+      "if it went second, a failure would leave the list saying nothing rather than saying something wrong, and a lost request is the one nobody can see",
+    );
+
     rec(
       "and nothing in the module deletes from the suppression list any more",
       !/from\("eng_marketing_suppressions"\)\s*\n?\s*\.delete\(\)/.test(src) && !/\.delete\(\)/.test(src),

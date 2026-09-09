@@ -106,8 +106,12 @@ export default async function SuppressionsPage() {
                   */}
                   {row.voided ? (
                     <p className="max-w-[280px] text-right text-[12.5px] text-[var(--ink-soft)]">
-                      Marked as a mistake. {row.voided.because} This address hears from the firm
-                      again; the row stays, because a consent record is never deleted.
+                      Marked as a mistake. {row.voided.because}{" "}
+                      {row.voided.replacedBy
+                        ? `Recorded instead for ${row.voided.replacedBy}.`
+                        : `No correct address: ${row.voided.noReplacementBecause ?? ""}`}{" "}
+                      This address hears from the firm again; the row stays, because a consent
+                      record is never deleted.
                     </p>
                   ) : row.enteredByOperator ? (
                     <VoidSuppression email={row.email} />

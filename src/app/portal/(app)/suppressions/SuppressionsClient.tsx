@@ -132,6 +132,9 @@ export function VoidSuppression({ email }: { email: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [because, setBecause] = useState("");
+  const [instead, setInstead] = useState("");
+  const [noneBecause, setNoneBecause] = useState("");
+  const [noReplacement, setNoReplacement] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -140,12 +143,20 @@ export function VoidSuppression({ email }: { email: string }) {
       setError("Say what was wrong with it.");
       return;
     }
+    if (!noReplacement && !instead.trim()) {
+      setError("What should it have said? They still asked not to be contacted.");
+      return;
+    }
+    if (noReplacement && !noneBecause.trim()) {
+      setError("Say why there is no correct address.");
+      return;
+    }
     setBusy(true);
     setError(null);
-    const res = await fetch(
-      `/api/portal/suppressions?email=${encodeURIComponent(email)}&because=${encodeURIComponent(because.trim())}`,
-      { method: "DELETE" },
-    );
+    const params = new URLSearchParams({ email, because: because.trim() });
+    if (noReplacement) params.set("noReplacementBecause", noneBecause.trim());
+    else params.set("instead", instead.trim());
+    const res = await fetch(`/api/portal/suppressions?${params.toString()}`, { method: "DELETE" });
     const body = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
     setBusy(false);
     if (!res.ok || !body.ok) {
@@ -154,6 +165,9 @@ export function VoidSuppression({ email }: { email: string }) {
     }
     setOpen(false);
     setBecause("");
+    setInstead("");
+    setNoneBecause("");
+    setNoReplacement(false);
     router.refresh();
   }
 
@@ -183,6 +197,53 @@ export function VoidSuppression({ email }: { email: string }) {
           className="mt-1 w-full rounded-[var(--radius-sm)] border border-[var(--line)] px-3 py-2 text-[13.5px]"
         />
       </label>
+      {/*
+        * THE CORRECT ADDRESS, ASKED IN THE SAME MOTION.
+        *
+        * Operator ruling, gate 2. The person on the call still asked not to be
+        * contacted, and a void with no replacement leaves that request lost.
+        * The address field is the default and the escape hatch is a deliberate
+        * click, because the lossy case must not be the easy one.
+        */}
+      {noReplacement ? (
+        <label className="w-full text-left">
+          <span className="block text-[12px] font-semibold text-[var(--ink-soft)]">
+            Why is there no correct address?
+          </span>
+          <input
+            type="text"
+            value={noneBecause}
+            onChange={(e) => setNoneBecause(e.target.value)}
+            placeholder="Nobody asked; this was the wrong record entirely"
+            className="mt-1 w-full rounded-[var(--radius-sm)] border border-[var(--line)] px-3 py-2 text-[13.5px]"
+          />
+        </label>
+      ) : (
+        <label className="w-full text-left">
+          <span className="block text-[12px] font-semibold text-[var(--ink-soft)]">
+            What should it have said?
+          </span>
+          <input
+            type="email"
+            value={instead}
+            onChange={(e) => setInstead(e.target.value)}
+            placeholder="the address they actually asked about"
+            className="mt-1 w-full rounded-[var(--radius-sm)] border border-[var(--line)] px-3 py-2 text-[13.5px]"
+          />
+          <span className="mt-1 block text-[12px] text-[var(--ink-soft)]">
+            Suppressed in the same motion, so their request is not lost.
+          </span>
+        </label>
+      )}
+
+      <button
+        type="button"
+        onClick={() => { setNoReplacement(!noReplacement); setError(null); }}
+        className="text-[12px] text-[var(--ink-soft)] underline"
+      >
+        {noReplacement ? "Give the correct address instead" : "There is no correct address"}
+      </button>
+
       <div className="flex gap-3">
         <button
           type="button"

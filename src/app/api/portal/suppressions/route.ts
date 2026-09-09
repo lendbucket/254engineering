@@ -97,7 +97,37 @@ export async function DELETE(request: NextRequest) {
    */
   const because = request.nextUrl.searchParams.get("because") ?? "";
 
-  const done = await voidOperatorEntry(email, because, actor.id);
+  /*
+   * AND WHAT WAS MEANT INSTEAD, ASKED IN THE SAME MOTION.
+   *
+   * Operator ruling, gate 2. Somebody rang and asked not to be contacted, and
+   * the address was written down wrong. Voiding the wrong row on its own
+   * un-suppresses an address that never asked for anything AND loses the
+   * request that was actually made.
+   *
+   * The route takes one or the other and never neither. It does not default,
+   * because a default here would make the lossy case the easy one.
+   */
+  const instead = (request.nextUrl.searchParams.get("instead") ?? "").trim();
+  const noneBecause = (request.nextUrl.searchParams.get("noReplacementBecause") ?? "").trim();
+
+  if (instead && noneBecause) {
+    return bad(
+      "Give the correct address or say there is not one, not both. A row that names an address and a reason there is no address is a row nobody can read.",
+    );
+  }
+  if (!instead && !noneBecause) {
+    return bad(
+      "What should it have said? Give the address they actually asked about, or say why there is not one. A void with neither loses a request somebody made out loud.",
+    );
+  }
+
+  const done = await voidOperatorEntry(
+    email,
+    because,
+    actor.id,
+    instead ? { kind: "address", email: instead } : { kind: "none", because: noneBecause },
+  );
   if (!done.ok) return bad(done.error, done.error.includes("clicking") ? 403 : 400);
 
   await writeAudit({
@@ -107,7 +137,10 @@ export async function DELETE(request: NextRequest) {
     entityId: email,
     summary:
       `Marked the operator entered suppression for ${email} as a typing mistake: ${because.trim()}. ` +
-      "The row stays, because a consent record is never deleted; it stops counting, so the address hears from the firm again. " +
+      (done.suppressedInstead
+        ? `The address they actually asked about, ${done.suppressedInstead}, was suppressed in the same motion, so the request itself is not lost. `
+        : `There is no correct address to record instead: ${noneBecause} `) +
+      "The row stays, because a consent record is never deleted; it stops counting, so the mistyped address hears from the firm again. " +
       "This is a correction and not a resubscribe: the row carried no token, so it never represented a click.",
     ...(await requestContext()),
   });

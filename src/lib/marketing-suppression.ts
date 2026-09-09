@@ -158,7 +158,19 @@ export type SuppressionRow = {
    * deleted typo left no trace that anybody had mistyped, so an audit of the
    * firm's marketing consent could not see the mistake at all.
    */
-  voided: { at: string; because: string } | null;
+  voided: {
+    at: string;
+    because: string;
+    /**
+     * What was meant instead, or why there was nothing.
+     *
+     * Exactly one is set on every voided row, by a check constraint rather than
+     * by care: a void that names neither loses the request the caller actually
+     * made, and a void that names both is a row nobody can read.
+     */
+    replacedBy: string | null;
+    noReplacementBecause: string | null;
+  } | null;
 };
 
 /**
@@ -175,7 +187,9 @@ export async function listSuppressions(): Promise<SuppressionRow[] | null> {
 
   const { data, error } = await db
     .from("eng_marketing_suppressions")
-    .select("email, because, created_at, token_hash, voided_at, voided_because")
+    .select(
+      "email, because, created_at, token_hash, voided_at, voided_because, replaced_by_email, no_replacement_because",
+    )
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -191,7 +205,12 @@ export async function listSuppressions(): Promise<SuppressionRow[] | null> {
     voided:
       r.voided_at === null || r.voided_at === undefined
         ? null
-        : { at: r.voided_at, because: (r.voided_because ?? "") },
+        : {
+            at: r.voided_at,
+            because: r.voided_because ?? "",
+            replacedBy: (r.replaced_by_email ?? null) as string | null,
+            noReplacementBecause: (r.no_replacement_because ?? null) as string | null,
+          },
   }));
 }
 
@@ -227,11 +246,26 @@ export async function listSuppressions(): Promise<SuppressionRow[] | null> {
  * nobody gave. The refusal is checked against the row rather than trusted to
  * the screen, because a screen is a place a filter goes missing.
  */
+export type VoidReplacement =
+  /** The address that should have been written down. Suppressed in the same motion. */
+  | { kind: "address"; email: string }
+  /** There is no correct address, and this is why. Saying so is not saying nothing. */
+  | { kind: "none"; because: string };
+
 export async function voidOperatorEntry(
   email: string,
   because: string,
   actorId: string | null,
-): Promise<{ ok: true } | { ok: false; error: string }> {
+  /*
+   * NOT OPTIONAL, AND THAT IS THE WHOLE ADDITION.
+   *
+   * A default would make the lossy case the easy one. The caller has to decide
+   * which of the two things is true, because the person who took the telephone
+   * call is the only one who knows, and they are standing at the screen when
+   * this is called rather than reading a report later.
+   */
+  replacement: VoidReplacement,
+): Promise<{ ok: true; suppressedInstead: string | null } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
 
@@ -261,6 +295,53 @@ export async function voidOperatorEntry(
   }
 
   /*
+   * THE REQUEST THE CALLER ACTUALLY MADE, BEFORE THE ROW ABOUT THE MISTAKE.
+   *
+   * Somebody rang and asked not to be contacted. Voiding the mistyped row
+   * un-suppresses an address that never asked for anything, which is right, and
+   * on its own it LOSES the request: the person who rang goes on hearing from
+   * the firm and nothing anywhere says they asked not to.
+   *
+   * So the replacement is suppressed FIRST. If that fails the void does not
+   * happen, and the list is left saying something wrong rather than saying
+   * nothing: a wrong address suppressed is visible and recoverable, a lost
+   * request is neither.
+   */
+  let corrected: string | null = null;
+
+  if (replacement.kind === "address") {
+    const to = normaliseEmail(replacement.email);
+    if (!to || !to.includes("@")) {
+      return { ok: false, error: "That does not look like an address. Give the one they actually asked about." };
+    }
+    if (to === address) {
+      return {
+        ok: false,
+        error:
+          "That is the same address. Correcting a row to itself would un-suppress somebody and record that it meant to.",
+      };
+    }
+
+    const put = await suppress(
+      to,
+      `Corrected from a mistyped operator entry for ${address}: ${because.trim()}`,
+    );
+    if (!put.ok) {
+      return {
+        ok: false,
+        error: `The correct address could not be suppressed, so nothing was voided: ${put.error}`,
+      };
+    }
+    corrected = to;
+  } else if (!replacement.because.trim()) {
+    return {
+      ok: false,
+      error:
+        "Say why there is no correct address. A void with no replacement and no reason loses a request somebody made out loud.",
+    };
+  }
+
+  /*
    * An UPDATE, and the .is("token_hash", null) stays even though a check
    * constraint now makes a voided click unrepresentable. Two guards on the same
    * rule is the point: the constraint is what makes it impossible, and this is
@@ -273,10 +354,12 @@ export async function voidOperatorEntry(
       voided_at: new Date().toISOString(),
       voided_because: because.trim(),
       voided_by: actorId,
+      replaced_by_email: corrected,
+      no_replacement_because: replacement.kind === "none" ? replacement.because.trim() : null,
     })
     .eq("email", address)
     .is("token_hash", null);
 
   if (voidErr) return { ok: false, error: voidErr.message };
-  return { ok: true };
+  return { ok: true, suppressedInstead: corrected };
 }
