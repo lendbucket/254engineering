@@ -346,7 +346,52 @@ they break soon.
 
 ---
 
-## 7. What I would ask before the floors are set
+## 7. THE FLOORS, RULED 2026-09-09
+
+The operator's rulings on this inventory. These are the input to Section 2's
+declaration; nothing here is inferred.
+
+1. **No business record is deleted by retention in this section.** The repo is
+   silent on the Texas period, the privacy policy points at it, and a floor set
+   below it would make a published policy false. Every table holding a business
+   record is declared **"kept, floor pending counsel"** with that as the stated
+   reason, and retention treats it as kept forever until the operator replaces
+   the line. The question is with counsel and TBPELS and is on the operator's
+   standing list. **Retention's deletion scope in this section is TELEMETRY
+   ONLY.**
+
+2. **`eng_cron_runs`: a rollup first, then a 30 day floor.** Runs, failures and
+   duration per job, per day, into `eng_metrics_daily`, proven against the
+   source before anything is deleted. It is the one table with a real floor in
+   this section, and it is the one going from empty to a thousand rows in
+   fourteen hours regardless of what the firm does. **The same shape for
+   completed job queue rows: rollup, then 30 days. Failed and pending rows are
+   never aged out by a timer.**
+
+3. **`eng_audit_events`: kept forever, declared as such**, because that is what
+   an audit trail is. Its growth is bounded by PAGING ITS READS, which is
+   Section 1's work rather than retention's. **Recorded so nobody expects
+   retention to bound it.**
+
+4. **Ledger `file_id` becomes `ON DELETE RESTRICT` by migration.** A ledger
+   entry whose file is gone cannot be scoped, and an unscopable money row is
+   worse than an undeleted demonstration file. Consequence accepted: a
+   demonstration file with earnings is KEPT, and `is_demo` keeps it out of every
+   figure. Retention refuses such a file and names the ledger entries as the
+   reason.
+
+5. **The foreign keys that already decide this are recorded as kept-forever
+   rules in the declaration, with RESTRICT as the stated reason**, so the
+   declaration and the schema say the same thing and the audit proves they still
+   do: an order that took money, a person with earnings, a partner ever touched.
+
+6. **Item 4's finding goes in the declaration's header**: the repository states
+   no retention period, the privacy policy points at Texas, and the one "ten
+   years" in the repo is a design rationale citing no rule and is unusable.
+
+## 8. What I asked before the floors were set
+
+*(Kept as asked. Rulings 2, 3 and 4 above are the answers.)*
 
 1. **`eng_cron_runs` has no rollup.** Deleting it loses nothing anybody reads
    past the most recent 500 rows, but the standing rule is that a source is
