@@ -45,17 +45,63 @@ even read, so no environment variable could have redirected them.
 
 ## 2. Round 1: the board
 
-**NOT YET COMPLETE.** The board is running under its own invocation. This
-section will state the final count, every audit that went red, and for each one
-whether the check or the code was wrong and how that was proved.
+Run under its own invocation, `npm run audit`, which builds first and starts its
+own server.
 
-What is known so far and is already committed:
+**46 of 47 audits pass. One is red: `queue-audit`, on exactly one check of 106.**
 
-- Board 11, before this run, was **45 of 47**, failing on `queue-audit` (a
-  clock finding, section 6) and `security-audit` (the dispatch page was not in
-  the perimeter list).
-- The perimeter entry was added and committed as
-  `test(security): the dispatch page was outside the perimeter list`.
+| | |
+| --- | --- |
+| Before this run | 45 of 47 |
+| After | **46 of 47** |
+| Fixed | `security-audit`: `/portal/files/dispatch` was outside the perimeter list |
+| Still red | `queue-audit`, one check, and it is the machine rather than the check or the code |
+
+### The one red mark, and why nothing in this repository was changed for it
+
+```
+FAIL: this machine and the database agree on the time to within a minute
+      (this machine is 85s ahead of the database (round trip 124ms, so that
+      figure is good to about that). Every run_after and every leased_until
+      this application writes is stamped here and compared there. A job
+      enqueued to run now can be ineligible for that long, and a lease can
+      look expired here while it is live there.)
+```
+
+The round's instruction is to decide whether the check or the code is wrong and
+prove it by injection. **Neither is wrong**, and this run settled which one is,
+which the check itself cannot do: it holds only the two clocks that disagree.
+
+A third source was asked. Three independent NTP disciplined HTTP servers, at the
+same moment as the local clock:
+
+```
+local clock: 2026-09-10T05:29:39.771Z
+  https://www.cloudflare.com/   says Thu, 10 Sep 2026 05:28:15 GMT  => +85s (round trip 368ms)
+  https://www.google.com/       says Thu, 10 Sep 2026 05:28:15 GMT  => +85s (round trip 187ms)
+  https://254engineering.com/   says Thu, 10 Sep 2026 05:28:15 GMT  => +86s (round trip 473ms)
+```
+
+**The machine is wrong, and the database is right.** All three agree with the
+database to within a round trip, including the firm's own deployment. The
+disagreement is not a database misconfiguration and not an artefact of
+PostgREST: this Windows machine's clock has drifted 85 seconds ahead.
+
+That is a system setting on the operator's machine, not code, and resyncing it
+unattended is outside this run's authority. The command is
+`w32tm /resync` from an elevated prompt. Until it is run, `queue-audit` is red
+and is right to be, and every other audit on the board is measuring correctly,
+because `DB_NOW` already moved 68 timestamps off the process clock precisely so
+that this drift cannot reach a stored value.
+
+### The check was not loosened, and that is the point
+
+The tempting fix is to widen "to within a minute" to "to within two minutes" and
+take the board green. That would convert a check that just correctly identified
+a real 85 second fault into a check that would pass through it, and would keep
+passing as the drift grew. CLAUDE.md section 6 states this as a rule: a red
+board when something genuinely changed is the harness asking whether you meant
+it, and the answer is never to loosen the pattern.
 
 ---
 
@@ -180,12 +226,16 @@ and invalidate Round 1.
 
 ## 6. The environment findings, recorded and not fixed
 
-**The machine clock is 85 seconds ahead of the database.** Measured by
-round-tripping the `'now'` literal through PostgREST: the row the database wrote
-carried a time 85 seconds behind `Date.now()`. This is why `DB_NOW` exists and
-why 68 timestamps were moved onto it. Resyncing the operator's system clock is
-outside this run's authority, so it is recorded rather than fixed, and
-`queue-audit` is red on it by design.
+**The machine clock is 85 seconds ahead, and the database is not the one that is
+wrong.** Full evidence in section 2. Three independent time sources, including
+254engineering.com itself, agree with the database to within a round trip.
+
+Recorded rather than fixed: it is a system setting on the operator's machine and
+this run has no authority to change one unattended. `w32tm /resync` from an
+elevated prompt is the whole of it, and `queue-audit` goes green the moment it
+runs. Nothing stored is affected, because `DB_NOW` already moved 68 timestamps
+off the process clock so that every `planned_at`, `sent_at` and `sealed_at` is
+the database's own `now()`.
 
 ---
 
