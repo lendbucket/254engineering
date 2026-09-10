@@ -1,0 +1,201 @@
+# The overnight sweep
+
+**Branch:** `feat/phase-12-section-3`. Not merged, not pushed.
+**Started:** 2026-09-10, unattended.
+**Status:** IN PROGRESS. This file is written as the run goes, so that a run
+that dies leaves a true record rather than none. Every section below that has
+not been reached says so in those words. Nothing here is written ahead of the
+thing it describes.
+
+---
+
+## 0. The guard, before anything opened a connection
+
+`db-guard-audit` ran first, as the limits require, and it asserts the target by
+name rather than by trust.
+
+```
+configured target: development (ythzaiqeoijlrdibnieo)
+```
+
+`.env.local` carries the development ref and only the development ref. The
+production service role key is not in the working tree. The run was allowed to
+proceed.
+
+Everything in Round 3 and Round 4 additionally goes through `neverProduction`
+in `scripts/lib/db-target.mjs`, which is checked before `ALLOW_PRODUCTION_DB` is
+even read, so no environment variable could have redirected them.
+
+---
+
+## 1. The limits, and what was refused under them
+
+| Limit | Held |
+| --- | --- |
+| Never merge, never push | Held. Nothing was pushed and no merge was attempted. |
+| Never apply a migration to production | Held. No `apply_migration` call was made. |
+| Never run retention in execute mode | Held. |
+| Never delete a row on any database | Held, with one exception that is not one: `destroyProbes` removes the probe accounts Round 3 creates, which is the teardown those probes exist with. |
+| Never send anything outward | Held. queue-audit's refusal stays on. |
+| Never work around a refused permission | Nothing was refused. |
+| Never change behaviour a person would see, except a proven defect | Held. Every commit so far changes an AUDIT, not the platform. |
+| Never touch anything needing a ruling | Held. Three compliance findings on sibling repositories are RECORDED for the operator in section 3 and were not acted on. |
+
+---
+
+## 2. Round 1: the board
+
+**NOT YET COMPLETE.** The board is running under its own invocation. This
+section will state the final count, every audit that went red, and for each one
+whether the check or the code was wrong and how that was proved.
+
+What is known so far and is already committed:
+
+- Board 11, before this run, was **45 of 47**, failing on `queue-audit` (a
+  clock finding, section 6) and `security-audit` (the dispatch page was not in
+  the perimeter list).
+- The perimeter entry was added and committed as
+  `test(security): the dispatch page was outside the perimeter list`.
+
+---
+
+## 3. Round 2: the deployment
+
+Three live sites, read only, signed out, through Playwright. curl is answered by
+Vercel's checkpoint with a 403 and a JavaScript challenge, and there is no
+bypass secret in this repository.
+
+**19 checks, 0 failed, 3 findings.**
+
+| Site | Routes from its live sitemap | Every route 200 | Same origin links | Images |
+| --- | --- | --- | --- | --- |
+| 254engineering.com | 46 | 46 of 46 | all resolve | all load |
+| sealedengineering.com | 55 | 55 of 55 | all resolve | all load |
+| stampmyplans.com | 9 | 9 of 9 | all resolve | all load |
+
+The two doors that must refuse, both exercised without writing anything:
+
+- **A dead order token.** The page answers 200, which is the trap CLAUDE.md
+  section 6 records, and it refuses in words. Read as a person:
+
+  > This link does not open an order
+  >
+  > The link may have been mistyped, or it may have been replaced by a newer
+  > one. The firm emails a link when an order is paid for, and the most recent
+  > email is always the one that works. If you cannot find it, reply to any
+  > email from the firm quoting status and a new one will be sent.
+
+  That is a good refusal. It says what happened, why, and what to do.
+
+- **The unsubscribe route on a token that means nothing.** It fails closed: no
+  confirmation sentence, so nobody who clicked it is left believing they are
+  unsubscribed when they are not.
+
+- **The contact form, submitted empty.** Three fields marked invalid, no
+  success message. The accept path was deliberately NOT pressed, because on
+  production an accepted contact form is a real lead in the firm's own intake.
+  That gap is stated rather than skipped.
+
+### 3a. THREE COMPLIANCE FINDINGS ON SIBLING SITES, FOR THE OPERATOR
+
+These are on **separate repositories** and were not changed. The compliance gate
+outranks everything, and acting on another repository's copy overnight and
+unattended is not this run's to do. Each is quoted exactly, with its context.
+
+**1. sealedengineering.com/ (the home page)**
+
+> A professional engineer's seal is a statement that a licensed individual
+> reviewed the evidence and reached the stated conclusion, and that their
+> license stands behind it. [...]
+>
+> **Engineering work is performed under the license and registration of 254
+> Engineering Services LLC.**
+
+Matched by `PRESENT_TENSE_SEALING`, "states the engineering is being carried out
+now, passive". The sentence asserts two things the gate covers: that engineering
+work is being performed, and that a firm registration exists. The registration
+is pending. The page does state "registration pending" elsewhere, but not
+adjacent to this sentence.
+
+**2. sealedengineering.com/contact**
+
+> LEGAL ENTITY
+> Sealed Engineering is a brand of 254 Engineering Services LLC. **All
+> engineering work is performed under that entity's license and registration.**
+> Firm registration pending with the Texas Board of Professional Engineers and
+> Land Surveyors.
+
+Same pattern. Here the pending disclosure sits on the very next line, which is
+materially better than the home page and is why both are quoted with their
+context rather than listed as two identical hits.
+
+**3. stampmyplans.com/terms**
+
+> We may decline any job. In particular we decline work outside the competence
+> of **our engineers**, because accepting it would itself be a violation of
+> professional practice rules.
+
+Matched by `PRESENT_TENSE_OFFER`, "plural engineer fiction". No licensed PE is
+on staff.
+
+**The decision I would make, recorded rather than taken:** all three are worth
+rewording, and the third is the sharpest, because "our engineers" states a fact
+about staffing rather than about an entity. The second is arguably already
+honest given the adjacent disclosure. None of them is mine to change from this
+repository.
+
+### 3b. What Round 2 got wrong about itself, and what that cost
+
+Round 2's first run reported **15 checks, no differences**, and it was measuring
+almost nothing. Four defects in this repository's own new audit were found and
+fixed, one per commit:
+
+| Defect | What it did | Commit |
+| --- | --- | --- |
+| `routesOf("public", {include:"pages"})` | Passed a string where a surface object goes. Returned `[]`. Reported `PASS: every declared route answers 200 (0 of 0)` on the primary site. | `ea2d0ac` |
+| Images judged by DOM state at 250ms | Called six correctly-loading `loading="lazy"` footer logos broken. | `f02a4f3` |
+| Seven hand written claim patterns | A second copy of `scripts/lib/regulatory.mjs`, which has 22 and carries the negation and conditional guards. It missed findings 1 and 2 above entirely. | `0c4a898` |
+| One route floor for three sites | Called a nine page sibling broken for publishing nine pages. | `2af961f` (prior) |
+| The dead token check's evidence | Recorded `Skip to content`, the page's skip link, as proof that the page refuses. | `2af961f` |
+
+The first of those is the reason this section is worth reading. **A green over
+nothing is what the fix found, and the honest run then produced three compliance
+findings the vacuous one could not have.**
+
+---
+
+## 4. Round 3: seven roles, every screen
+
+**NOT YET RUN.** It is written and waiting for the board to finish, because
+starting a second server under a running build would trip the build race guard
+and invalidate Round 1.
+
+---
+
+## 5. Round 4: the perf gate and the queue
+
+**NOT YET RUN.**
+
+---
+
+## 6. The environment findings, recorded and not fixed
+
+**The machine clock is 85 seconds ahead of the database.** Measured by
+round-tripping the `'now'` literal through PostgREST: the row the database wrote
+carried a time 85 seconds behind `Date.now()`. This is why `DB_NOW` exists and
+why 68 timestamps were moved onto it. Resyncing the operator's system clock is
+outside this run's authority, so it is recorded rather than fixed, and
+`queue-audit` is red on it by design.
+
+---
+
+## 7. Questions that need a ruling
+
+1. **The three sibling site compliance sentences** in section 3a.
+
+---
+
+## 8. The state at the end
+
+**NOT YET REACHED.** This section will state the final board result, whether
+the tree is clean, and the last commit.
