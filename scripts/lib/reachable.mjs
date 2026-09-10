@@ -148,12 +148,34 @@ export const COULD_NOT_TELL = 3;
  * Anything else is rethrown. A sign in that fails because the CREDENTIALS are
  * wrong is a real failure and must stay loud.
  */
-export async function orCouldNotTell(fn, subject) {
+export async function orCouldNotTell(fn, subject, cleanup) {
   try {
     return await fn();
   } catch (err) {
     const verdict = navigationVerdict(err);
     if (!verdict.unreachable) throw err;
+
+    /*
+     * TORN DOWN BEFORE EXITING, WHERE THERE IS ANYTHING TO TEAR DOWN.
+     *
+     * A probe is made in the DATABASE and then signed in over HTTP, so an
+     * absent server fails between the two: the account exists and nothing is
+     * going to remove it. Exiting straight out would leave a probe on a live
+     * database every time somebody ran the audit with no server up, which is
+     * the residue this repository sweeps for in three other places.
+     *
+     * The cleanup's own failure is swallowed deliberately. It is a best effort
+     * on the way out of a run that already could not measure anything, and a
+     * teardown error here would replace a clear verdict with a stack trace.
+     */
+    if (cleanup) {
+      try {
+        await cleanup();
+      } catch {
+        console.log("  (the teardown could not run either)");
+      }
+    }
+
     console.log("");
     console.log(`  COULD NOT TELL: ${subject} could not be reached (${verdict.reason}).`);
     console.log("");

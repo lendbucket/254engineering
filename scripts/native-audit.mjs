@@ -29,7 +29,7 @@
 import fs from "node:fs";
 import { readSource } from "./lib/read-source.mjs";
 import { chromium } from "playwright";
-import { navigationVerdict, sayCouldNotTell, COULD_NOT_TELL } from "./lib/reachable.mjs";
+import { navigationVerdict, sayCouldNotTell, orCouldNotTell, COULD_NOT_TELL } from "./lib/reachable.mjs";
 import { assertNavigationVerdictHolds } from "./proofs/unreachable-is-not-failed.mjs";
 import { allPages } from "./lib/surfaces.mjs";
 import {
@@ -193,10 +193,21 @@ console.log(`${BASE}, ${SCREENS.length} signed in screens\n`);
   );
 }
 
+/*
+ * SIGNING FOUR PROBES IN NEEDS A SERVER, and without this an absent one
+ * throws out of the first fetch as an uncaught rejection and the audit dies
+ * with a stack trace having measured nothing. Same three verdicts as the route
+ * level ones below, one step earlier. See scripts/lib/reachable.mjs.
+ */
 const sessions = {};
-for (const role of ["admin", "engineer", "field_tech"]) {
-  sessions[role] = await createProbe(BASE, role, "native-audit");
-}
+await orCouldNotTell(async () => {
+  for (const role of ["admin", "engineer", "field_tech"]) {
+    sessions[role] = await createProbe(BASE, role, "native-audit");
+  }
+}, `the server at ${BASE}`, async () => {
+  await destroyProbes("native-audit");
+  await destroyPartnerProbes("native-audit");
+});
 for (const role of Object.keys(sessions)) {
   rec(`a ${role} session was created`, Boolean(sessions[role]?.cookie));
 }
@@ -207,7 +218,14 @@ for (const role of Object.keys(sessions)) {
  * set password flow, because a partner's password is hashed in the application
  * and an audit that reimplemented that hashing would be measuring its own copy.
  */
-const partnerProbe = await createPartnerProbe(BASE, "native-audit");
+const partnerProbe = await orCouldNotTell(
+  () => createPartnerProbe(BASE, "native-audit"),
+  `the server at ${BASE}`,
+  async () => {
+    await destroyProbes("native-audit");
+    await destroyPartnerProbes("native-audit");
+  },
+);
 rec("a partner session was created", Boolean(partnerProbe?.cookie));
 
 const browser = await chromium.launch();

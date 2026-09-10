@@ -291,7 +291,13 @@ async function run() {
     partnerProbe = await createPartnerProbe(BASE, "mobile-overflow-audit");
     customerProbe = await createCustomerProbe(BASE, "mobile-overflow-audit");
     return { list };
-  }, `the server at ${BASE}`);
+  }, `the server at ${BASE}`, async () => {
+    /* Whatever got made before the server went away. destroyProbe sweeps this
+     * file's staff probes by domain and the two helpers take the others. */
+    await destroyProbe();
+    await destroyPartnerProbes("mobile-overflow-audit");
+    await destroyCustomerProbes("mobile-overflow-audit");
+  });
   const list = setup.list;
 
   /*
