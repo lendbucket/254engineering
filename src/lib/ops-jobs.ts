@@ -1,4 +1,5 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import { LEASE_SECONDS, BATCH_SIZE, nextState, type JobOutcome } from "./job-rules";
@@ -364,7 +365,9 @@ export async function runBatch(workerId: string): Promise<WorkerReport> {
         status: next.status,
         run_after: new Date(next.runAfterMs).toISOString(),
         last_error: next.lastError,
-        finished_at: next.finished ? new Date().toISOString() : null,
+        /* DB_NOW. Retention ages jobs by this column against the database's
+         * clock, so a value from this machine ages by the wrong amount. */
+        finished_at: next.finished ? DB_NOW : null,
         // The lease is released whatever happened. A retry must be claimable at
         // its run_after rather than waiting for a lease nobody holds.
         leased_until: null,
@@ -511,7 +514,16 @@ export async function retryDeadJob(
     .update({
       status: "pending",
       attempts: 0,
-      run_after: new Date().toISOString(),
+      /*
+       * DB_NOW, AND HERE THE PROCESS CLOCK HAD A SYMPTOM RATHER THAN A RISK.
+       *
+       * eng_claim_jobs compares run_after against the DATABASE's clock. This
+       * machine is 85 seconds ahead of it, so a job retried "now" was written
+       * with a run_after 85 seconds in the database's future and sat
+       * unclaimable for that long. The column does not end in _at, which is the
+       * other reason the src sweep never saw it.
+       */
+      run_after: DB_NOW,
       finished_at: null,
       leased_until: null,
       leased_by: null,

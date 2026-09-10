@@ -466,7 +466,12 @@ export async function markPaid(input: {
     return { ok: true, alreadyRecorded: false };
   }
 
-  const paidAt = new Date().toISOString();
+  /*
+   * DB_NOW. When an order was paid for is a money fact on the firm's own
+   * record, and it was written from whichever machine served the callback.
+   * The variable is kept because it is used once and reads better named.
+   */
+  const paidAt = DB_NOW;
   await db
     .from("eng_service_orders")
     .update({ status: "in_fulfilment", paid_at: paidAt })

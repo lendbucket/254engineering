@@ -1,4 +1,5 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { supabaseAdmin } from "./supabase";
 import { writeAudit, diffOf, safeDiff } from "./ops-audit";
 import { canSeeFile, redactFile, visibleFiles, type Actor, actionsFor } from "./ops-authz";
@@ -479,7 +480,9 @@ export async function createFile(
          * "somebody changed it and we lost who".
          */
         price_overridden_by: input.priceOverrideReason ? actor.id : null,
-        price_overridden_at: input.priceOverrideReason ? new Date().toISOString() : null,
+        /* DB_NOW. When a price was overridden is a money fact, and the
+         * ternary is why the src sweep could not see this one. */
+        price_overridden_at: input.priceOverrideReason ? DB_NOW : null,
         payment_intent: input.paymentIntent ?? "unset",
         payment_note: input.paymentNote || null,
         converted_from_lead_id: input.fromLeadId || null,
@@ -573,8 +576,22 @@ export async function transitionFile(
   if (!verdict.ok) return { ok: false, error: verdict.reason };
 
   const patch: Record<string, unknown> = { status: to };
+  /*
+   * DB_NOW, AND THIS IS THE ONE THE RULING NAMED.
+   *
+   * STATUS_TIMESTAMP maps a status to its column, and one of them is
+   * sealed_at: when a named Professional Engineer put their seal on the firm's
+   * regulatory output. The others are dispatched_at, refused_at,
+   * evidence_submitted_at, delivered_at and closed_at.
+   *
+   * All six were written from this process's clock, which was measured 85
+   * seconds ahead of the database on 2026-09-10, against three independent time
+   * sources. db-guard-audit's sweep could not see it because the column name is
+   * a COMPUTED KEY: its pattern matches a literal name followed by the machine
+   * clock, and there is no literal name on this line to match.
+   */
   const stamp = STATUS_TIMESTAMP[to];
-  if (stamp) patch[stamp] = new Date().toISOString();
+  if (stamp) patch[stamp] = DB_NOW;
 
   const { error } = await db.from("eng_files").update(patch).eq("id", id).eq("status", current.status);
   if (error) return { ok: false, error: error.message };

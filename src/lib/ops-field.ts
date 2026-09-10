@@ -1156,7 +1156,10 @@ export async function recordCapture(
         value_number: input.valueNumber ?? null,
         unit: item.unit ?? null,
         storage_key: input.storageKey ?? null,
-        captured_at: input.capturedAt ?? new Date().toISOString(),
+        /* DB_NOW as the fallback only. A supplied capturedAt is the DEVICE
+         * saying when the photograph was taken, which is the honest answer and
+         * is not this machine's clock either way. */
+        captured_at: input.capturedAt ?? DB_NOW,
         captured_lat: input.lat ?? null,
         captured_lng: input.lng ?? null,
         captured_accuracy: input.accuracy ?? null,
@@ -1824,7 +1827,9 @@ export async function submitAttempt(
       status: grade.passed ? "certified" : "failed",
       score: grade.score,
       attempts,
-      certified_at: grade.passed ? new Date().toISOString() : null,
+      /* DB_NOW. When a technician became certified decides what work they may
+       * be offered, so it is the database's clock. */
+      certified_at: grade.passed ? DB_NOW : null,
     },
     { onConflict: "profile_id,service_slug" },
   );

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { DB_NOW } from "@/lib/db-now";
 import { createAccount, currentActor, issueSetPasswordToken, requestContext } from "@/lib/ops-auth";
 import { can, type Role } from "@/lib/ops-authz";
 import { writeAudit } from "@/lib/ops-audit";
@@ -277,7 +278,9 @@ export async function POST(request: NextRequest) {
       .from("eng_profiles")
       .update({
         status: nextStatus,
-        suspended_at: action === "suspend" ? new Date().toISOString() : null,
+        /* DB_NOW. When an account was suspended is on the firm's audit trail,
+         * and it was written from whichever machine served the request. */
+        suspended_at: action === "suspend" ? DB_NOW : null,
       })
       .eq("id", profileId);
     if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });

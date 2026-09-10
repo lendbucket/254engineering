@@ -660,20 +660,102 @@ for (const r of out) console.log(`  ${r.ok ? "PASS" : "FAIL"}: ${r.name}${r.note
    * found by surveying bulk operations for Section 1 rather than by this check,
    * which is the argument for the check matching both.
    */
-  const OBSERVED =
-    /\b[a-z_]+_at(:|\s*=)\s*(new Date\(\)\.toISOString\(\)|now\b|now\.toISOString\(\))/;
+  /*
+   * ===========================================================================
+   * A PATTERN COULD NOT SEE TWELVE OF THESE, SO THIS IS A DECLARATION INSTEAD.
+   * ===========================================================================
+   *
+   * The pattern that used to live here matched a literal column name followed
+   * immediately by the machine clock:
+   *
+   *   /[a-z_]+_at(:|s*=)s*(new Date().toISOString()|now|...)/
+   *
+   * It was widened once already, after setLedgerStatus was found stamping three
+   * hundred technician payment rows from this machine in one press. It was
+   * still wrong, and on 2026-09-10 an overnight sweep found THIRTEEN stored
+   * timestamps it could not see. Every one of them hid the same way: the
+   * machine clock was not adjacent to the column name.
+   *
+   *   patch[stamp] = new Date().toISOString()        a COMPUTED key, and this
+   *                                                  one wrote sealed_at
+   *   [field]: value ? new Date()... : null          a computed key and a ternary
+   *   price_overridden_at: x ? new Date()... : null  a TERNARY
+   *   captured_at: input.capturedAt ?? new Date()... a FALLBACK
+   *   started_at: input.startedAt || new Date()...   a fallback
+   *   run_after: new Date().toISOString()            the name does not end in _at
+   *   const paidAt = new Date()...; { paid_at: paidAt }   a VARIABLE
+   *
+   * sealed_at is when a named Professional Engineer put their seal on the
+   * firm's regulatory output. paid_at is when a customer's money arrived.
+   * Both were written from a clock measured 85 seconds ahead of the database.
+   *
+   * A pattern that has been wrong twice in the same way is the wrong mechanism.
+   * So the rule is inverted, into the declared inventory idiom this repository
+   * uses for surfaces, migrations and bulk paths: EVERY use of the machine
+   * clock in src/ is declared here with what it is for, and anything
+   * undeclared fails. A pattern has to guess which uses are writes. A
+   * declaration makes somebody say so.
+   *
+   * Adding a machine clock call is now a decision somebody writes down, which
+   * is the only thing that would have caught any of the thirteen.
+   */
+  const ALLOWED = {
+    "src/app/api/cron/health-watch/route.ts": "checkedAt on an in memory health report, returned and never stored",
+    "src/app/api/portal/exports/route.ts": "the date in a downloaded file's NAME",
+    "src/app/portal/(app)/jobs/[id]/CaptureClient.tsx":
+      "the DEVICE's clock, which is the honest answer to when a photograph was taken and is not a server's to decide",
+    "src/app/portal/(app)/partners/[id]/PartnerActions.tsx": "default values in a form, in the browser, twice",
+    "src/lib/deletion-requests.ts": "a date inside a sentence written into a note",
+    "src/lib/job-handlers.ts": "a local now for comparison; the writes beside it send DB_NOW",
+    "src/lib/ops-dashboard.ts": "three comparisons against ages, reading rather than writing",
+    "src/lib/ops-docs.ts":
+      "generatedAt on an in memory binder manifest, and two date cells in a CSV a person reads",
+    "src/lib/ops-engineer.ts": "today, for comparison",
+    "src/lib/ops-field.ts": "today for comparison, and the YYYY-MM period a ledger row is bucketed under",
+    "src/lib/ops-observability.ts": "a comparison and an in memory health report",
+    "src/lib/ops-payments.ts": "sealedAt as a rendered phrase inside an email, never a column",
+  };
+
+  const machineClock = [];
   const walkSrc = (dir) => {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
       const full = dir + "/" + entry.name;
       if (entry.isDirectory()) walkSrc(full);
       else if (/\.tsx?$/.test(entry.name)) {
+        const rel = full.split("\\").join("/");
         for (const line of readSource(full).split("\n")) {
-          if (OBSERVED.test(line)) offenders.push(full + ": " + line.trim().slice(0, 90));
+          if (/new Date\(\)\.toISOString\(\)/.test(line)) {
+            machineClock.push({ rel, line: line.trim().slice(0, 100) });
+          }
         }
       }
     }
   };
   walkSrc("src");
+
+  for (const hit of machineClock) {
+    if (!ALLOWED[hit.rel]) offenders.push(hit.rel + ": " + hit.line);
+  }
+
+  /*
+   * AND THE DECLARATION IS SWEPT BACK, so a reason recorded for a use that no
+   * longer exists is removed rather than left standing. A stale exemption is a
+   * reason nobody will ever question, which is the failure native-audit's
+   * accounted list already records.
+   */
+  const usedFiles = new Set(machineClock.map((h) => h.rel));
+  const staleAllowances = Object.keys(ALLOWED).filter((f) => !usedFiles.has(f));
+  rec(
+    "no file is excused for a machine clock call it no longer makes",
+    staleAllowances.length === 0,
+    staleAllowances.join(", ") || Object.keys(ALLOWED).length + " allowance(s), every one still used",
+  );
+
+  rec(
+    "there are machine clock calls to sweep (" + machineClock.length + ")",
+    machineClock.length > 0,
+    "a sweep with nothing to sweep passes forever",
+  );
 
   rec(
     "no observed timestamp in src/ is written from this process's clock",

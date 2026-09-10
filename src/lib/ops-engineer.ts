@@ -849,7 +849,10 @@ export async function recordTime(
     file_id: input.fileId || null,
     kind: input.kind,
     minutes: Math.round(input.minutes),
-    started_at: input.startedAt || new Date().toISOString(),
+    /* DB_NOW when the caller supplied nothing. A supplied startedAt is the
+     * engineer saying when they began; the fallback is the database's own
+     * clock rather than whichever machine served the request. */
+    started_at: input.startedAt || DB_NOW,
     note: input.note?.trim() || null,
     entered_manually: true,
   });
