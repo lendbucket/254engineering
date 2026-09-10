@@ -1,11 +1,18 @@
 # The overnight sweep
 
-**Branch:** `feat/phase-12-section-3`. Not merged, not pushed.
+**Branch:** `feat/phase-12-section-4`, read from `git branch --show-current`.
+Not merged, not pushed, and contained in no other branch.
 **Started:** 2026-09-10, unattended.
-**Status:** IN PROGRESS. This file is written as the run goes, so that a run
-that dies leaves a true record rather than none. Every section below that has
-not been reached says so in those words. Nothing here is written ahead of the
-thing it describes.
+**Status:** written as the run went, so that a run which died would leave a true
+record rather than none. Nothing here was written ahead of the thing it
+describes.
+
+> An earlier draft of this line said `feat/phase-12-section-3`, which is what
+> the session was told at startup and is not what git says. CLAUDE.md section 7
+> records why that is a rule: a branch name a session is given is a snapshot, a
+> long session outlives it, and on 2026-09-09 a merge against the stale name
+> answered "Already up to date" and changed nothing. It was harmless by luck.
+> The same mistake in a report is a report about the wrong work.
 
 ---
 
