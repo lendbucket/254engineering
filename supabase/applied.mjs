@@ -346,6 +346,38 @@ export const APPLIED = [
    * THE FIRST ENTRY CARRYING BOTH FINGERPRINTS, which is the whole of debt two
    * arriving in the place it was always meant to land.
    */
+  /*
+   * ==========================================================================
+   * 0038 THROUGH 0041 GO TO THE NEW PRODUCTION, NOT THE OLD ONE.
+   * Operator ruling, 2026-09-10, and it SUPERSEDES gate 2's ruling 6 for these
+   * four migrations.
+   * ==========================================================================
+   *
+   * Gate 2's ruling 6 was: merge, push, then apply 0038 through 0040 to
+   * production in order. That was right when it was made and is wrong now,
+   * because the cutover to qmvcqvkywmkogxbyzsaz moved ahead of Section 6.
+   *
+   * THE ORDER IS NOW:
+   *
+   *   1. the cutover runs on main as it stands, 0000 through 0037
+   *   2. the new project replays main's chain, the data moves, the app flips
+   *   3. ONLY THEN does feat/phase-12-section-4 merge
+   *   4. and 0038 through 0041 apply to the NEW production, in order, each
+   *      read back before the next
+   *
+   * THE OLD PRODUCTION NEVER RECEIVES THEM. Applying four migrations to a
+   * database with a fortnight to live is risk spent on a target that is being
+   * abandoned.
+   *
+   * The property this preserves is the one that matters and it is worth saying
+   * in the operator's own words: production is never ahead of main, and main
+   * never describes a schema production lacks. The four stay pending here until
+   * the flip, which is exactly what `production: null` means, and
+   * schema-ledger-audit goes on refusing to let them reach main undeclared.
+   *
+   * docs/production-cutover-plan.md carries the sequence. Step 14 is where
+   * these four land.
+   */
   {
     file: "0038_a_job_says_what_it_was_allowed_to_do.sql", appliedBy: "apply_migration",
     fingerprint: "cac6f69d91b7e73441b307ea692a3f7b",

@@ -73,22 +73,19 @@ before anything else happens.
 pending in `supabase/applied.mjs` and the branch has not merged. That creates a
 question the operator has to answer and this plan must not answer for itself:
 
-> **DECISION A: does the old production get 0038 through 0041 at all?**
+> **DECISION A, ANSWERED 2026-09-10. The old production never receives them.**
 >
-> Gate 2's ruling 6 was merge, push, then 0038 through 0040 to production in
-> order. That ruling predates this one. Applying four migrations to a database
-> that is about to be abandoned is work and risk spent on a target with a
-> fortnight to live, and the alternative is to replay 0024 through 0041 into the
-> new project and merge afterwards.
+> The cutover runs on main as it stands, 0000 through 0037, BEFORE Section 4
+> merges. The new project replays main's chain, the data moves, the app flips,
+> and only then does `feat/phase-12-section-4` merge and 0038 through 0041 apply
+> to the NEW production in order, each read back before the next.
 >
-> **What I would do:** skip them on the old project. Replay the full chain into
-> the new one, cut over, then merge and let `production-schema-check` verify the
-> new target. The only thing the old project has to do between now and step 14 is
-> keep serving what it already serves, which needs no new migration.
+> **This supersedes gate 2's ruling 6 for those four migrations**, and
+> `supabase/applied.mjs` says so above the 0038 entry rather than leaving the two
+> rulings to be reconciled by whoever reads them next.
 >
-> **Why it is not mine to decide:** it reorders a standing ruling, and the merge
-> is what makes the deployed code and the schema agree. Getting that order wrong
-> is the 0023 incident again, in the other direction.
+> The property it preserves, in the operator's words: production is never ahead
+> of main, and main never describes a schema production lacks.
 
 **3. Step 8b's answer exists and is partly built.** The sisters post to
 `/api/intake/lead` rather than writing Supabase. It is built, documented in
@@ -106,6 +103,192 @@ one is about what the sites may say, the other is about where the rows live.
 time recovery, backup schedule and restore rehearsal are step 15 below, added by
 this reopening, because the operator's stated reason for moving was the absence
 of one and the original plan ended at step 14 without it.
+
+---
+
+## THE SEQUENCE AS RULED, 2026-09-10. NOTHING BELOW HAS BEEN EXECUTED.
+
+This supersedes the ordering in section 3. The detail under each old step still
+stands and is referenced by number; what changed is the order, the ownership and
+the read-backs.
+
+**Stop for the operator's word before step 1.**
+
+---
+
+### FIRST, A FINDING THAT CHANGES ONE OF THE RULED READ-BACKS
+
+The ruling says the new project replays main's chain and **both fingerprints are
+read back against the old production**. Read today, before writing any of this:
+
+| | Shape | Columns | Behaviour | Facts |
+| --- | --- | --- | --- | --- |
+| Replay of main, 0000 to 0037 | `3acd988c07905602e0e091c5b8d329ad` | 1015 | `764ff4339fed2db9e74317ee19278950` | 806 |
+| **Old production, today** | `3acd988c07905602e0e091c5b8d329ad` | 1015 | `05f058a1c8f4c9f4e19546179482adfb` | **810** |
+
+**The shapes match exactly. The behaviours cannot, and never will.** The
+difference is twelve facts and every one of them is already documented:
+
+**Four foreign keys the replay HAS and production LACKS.** 0001 declares them
+and neither live database has ever had them, because 0001 spent a month unable
+to apply while the objects were made by hand, and the hands that made them did
+not make these:
+
+    eng_file_events_actor_id_fkey
+    eng_responsible_charge_log_engineer_id_fkey
+    eng_responsible_charge_log_file_id_fkey
+    eng_responsible_charge_log_document_id_fkey
+
+The third is the one that matters: `engineer_id -> eng_profiles ON DELETE
+RESTRICT` is what stops a Professional Engineer being removed while responsible
+charge entries name them. 0039 exists to add all four and is on the branch.
+
+**Eight indexes production HAS and the replay lacks.** Production has carried
+them since before this repository kept migrations. 0040 exists to add them and
+is also on the branch.
+
+**So a byte-equal behaviour match is impossible by construction, and demanding
+one would stall this cutover at step 2 permanently.** The read-back is therefore
+stated as the stronger thing:
+
+> The new project's behaviour must equal the REPLAY figure exactly, and the
+> difference from old production must be EXACTLY those twelve named facts. Any
+> thirteenth difference stops the sequence.
+
+That is stronger than equality because equality was never achievable and this
+names what may differ. **This is a change to the letter of the ruling and it is
+flagged rather than absorbed.**
+
+**One consequence worth knowing now:** after the cutover the new production
+briefly has four foreign keys that old production never had, and lacks eight
+indexes it had. 0039 and 0040 close both at step 14. 0039 does `drop constraint
+if exists` before each `add`, so it is idempotent and applies cleanly to a
+project that already has the four from 0001, which was checked rather than
+assumed.
+
+---
+
+### PHASE 0. THE DRY RUN. NOT OPTIONAL.
+
+Operator ruling: the whole sequence runs against the dev project first, into a
+second throwaway. Nothing in phase 1 begins until phase 0 is in a report.
+
+| # | Step | Whose | Read-back before the next step |
+| --- | --- | --- | --- |
+| 0.1 | Create throwaway **T1**, `us-east-1` | mine, on your cost approval | Project healthy; its ref recorded in the report |
+| 0.2 | Replay 0000 to 0037 into T1 through `apply_migration` | mine | Shape `3acd988c…`/1015 and behaviour `764ff4339…`/806. Both, not one |
+| 0.3 | Create the five buckets, all private | mine | Five present, five private, limits and mime types per old step 3 |
+| 0.4 | Dry run `copy-project.mjs` dev to T1, writing nothing | mine | Per table counts it INTENDS to copy, compared to dev's own counts. Read the two defects under old steps 5 and 8 first: both let this script report success having done nothing |
+| 0.5 | Copy dev to T1 for real | mine | Every table's row count equals dev's; `eng_profiles` uuids preserved; both fingerprints unchanged from 0.2 |
+| 0.6 | Copy storage | mine | Object count and total bytes per bucket equal dev's, enumerated RECURSIVELY |
+| 0.7 | Back up T1, restore into throwaway **T2** | mine, on your cost approval | Both fingerprints on T2 equal T1's, and every row count equals T1's. **This is the step 15 mechanism, rehearsed** |
+| 0.8 | Point a local build at T1 and complete an MFA challenge with a dev enrolment | **yours** to complete the challenge, mine to stand the build up | A code from your authenticator is accepted against T1 |
+| 0.9 | Destroy T1 and T2 | mine | Both gone; the bill returns to its previous figure |
+| 0.10 | **The dry run report** | mine | Every figure above, and what went wrong, in `docs/`. **GO/NO-GO is your word** |
+
+---
+
+### PHASE 1. THE CUTOVER.
+
+| # | Step | Whose | Read-back before the next step |
+| --- | --- | --- | --- |
+| 1 | **Confirm both sisters** (old step 8b) | **yours** | Each in state A or state B, confirmed from that deployment's own configuration. What to look for is below |
+| 2 | Replay 0000 to 0037 into `qmvcqvkywmkogxbyzsaz` | mine | Shape equals old production exactly. Behaviour equals `764ff4339…`/806, and differs from old production by EXACTLY the twelve named facts |
+| 3 | Verify the five buckets already there | mine | Five, private, limits per old step 3 |
+| 4 | **Point in time recovery and leaked password protection** | **yours** (plan setting, possible cost) | PITR on, window recorded; the protection enabled |
+| 5 | Dry run `copy-project.mjs` production to new, writing nothing | mine | Intended per table counts equal production's, including the 477 audit events |
+| 6 | **FREEZE the write paths** (old step 6) | **yours** | Every public form and the intake API refuse; a probe submission is refused and nothing new appears in production |
+| 7 | Copy | mine | **Every irreplaceable row, individually:** 2 profiles by uuid, 2 leads, 1 application, 1 MFA enrolment, 10 recovery codes, **477 audit events**, 7 roles, 119 grants. Plus every telemetry table's count |
+| 8 | Copy storage | mine | Recursive object count and bytes per bucket equal production's |
+| 9 | **Back up the new project, restore into a throwaway, read it back** | mine, on your cost approval | Both fingerprints and **every irreplaceable row count** on the restored copy. **In the report before step 11.** The throwaway is then destroyed |
+| 10 | **The second factor** | **yours** to complete the challenge | `MFA_ENCRYPTION_KEY` unchanged in Vercel; you complete an MFA challenge against the NEW production and it is accepted. Detail below |
+| 11 | **FLIP.** Point the application at the new project (old step 9) | **yours** (Vercel env) | The deployed app reads the new project; `db-guard-audit` and `security-audit` against the deployment |
+| 12 | Verify from outside (old step 10) | mine and yours | Sign in, open the portal, read the audit trail, see the 477 events |
+| 13 | **UNFREEZE** (old step 11) | **yours** | A probe submission lands in the NEW project and nowhere else |
+| 14 | Merge `feat/phase-12-section-4`; apply **0038, 0039, 0040, 0041** to the new production in order, each read back | mine | After each: its ledger fingerprint. After 0041: shape `1a11138f…`/1017, behaviour `7acbb5b2…`/814. The eight indexes and four keys now agree |
+| 15 | Board on main | mine | 48 of 48, or the report says which is red and why |
+| 16 | Thirty days, old tables untouched (old step 13) | both | Nothing |
+| 17 | Drop the old tables (old step 14) | **yours**, separate act, own report | Nothing. There is no read-back because there is nothing left to read |
+
+---
+
+### THE TWO LINES THE OPERATOR ASKED TO HAVE NAMED
+
+**After step 6, the old production is no longer written to.** The freeze is what
+makes the copy at step 7 a copy of a still thing rather than a moving one. If
+anything writes to old production after step 6, step 7's read-back is measuring
+a database that changed underneath it and the sequence restarts from step 5.
+
+**Rollback is clean up to and including step 12. It stops being clean at step
+13, and stops existing at step 17.**
+
+- **Through step 12**, rollback is one Vercel change: point back at old
+  production, unfreeze, and nothing has been lost, because old production still
+  holds everything and has received no writes since step 6.
+- **After step 13**, the new project starts receiving writes that exist nowhere
+  else. Rolling back after this means deciding what happens to them, which is a
+  data merge and not a rollback. **This is the point of no easy return.**
+- **After step 17**, there is no return at all. It is thirty days after the step
+  that needed one, which is the whole reason for the gap.
+
+---
+
+### STEP 10, THE SECOND FACTOR, IN FULL
+
+The operator's enrolment is encrypted at rest and the concern is exactly right.
+What the code actually does, read rather than assumed:
+
+`MFA_ENCRYPTION_KEY` is an **environment variable**, not database state.
+`encryptionKey()` derives a 32 byte key as `sha256("eng-mfa-v1:" + secret)`, and
+the ciphertext lives in `eng_mfa_enrolments`. So:
+
+- **The key does not move with the database and does not need to.** The cutover
+  changes `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` and nothing else. If
+  `MFA_ENCRYPTION_KEY` is left alone, the copied row decrypts.
+- **The risk is not the key, it is the copy.** If the ciphertext is altered in
+  transit, by an encoding change or a truncation, decryption fails and the
+  failure looks exactly like a wrong code.
+- **So the proof is a real challenge**, which is what the ruling asks for: after
+  step 9 and before step 11 is called done, the operator completes an MFA
+  challenge against the new production.
+- **The recovery codes.** They are stored per `eng_mfa_recovery_codes`, 10 rows,
+  and they are only as good as the rows that get copied. The operator's point
+  stands exactly: the moment the old row is not the one being read, the codes
+  the operator holds are worth whatever the new project's rows say. Step 7's
+  read-back counts them individually for that reason.
+- **If the challenge fails**, the plan says so rather than improvising: the
+  operator re-enrols against the new production, the old enrolment row is left
+  untouched on old production, and the report records that the codes held on
+  paper are dead and new ones were issued.
+
+---
+
+### STEP 1, WHAT TO LOOK FOR IN EACH SISTER'S DEPLOYMENT
+
+The operator confirms these. They are read from **that project's own deployment
+configuration**, not from this repository and not from a `.env.local`.
+
+**State A, moved to the intake API.** In that project's Vercel environment
+variables, for the Production environment:
+
+- `SUPABASE_URL` is **absent**
+- `SUPABASE_SERVICE_ROLE_KEY` is **absent**
+- some variable names the 254 intake endpoint, and the site's lead form posts
+  there
+
+**Deleted, not merely unused.** A credential that is present is a credential
+something can still use, and the failure being prevented is a sister writing a
+lead into a database nobody reads any more.
+
+**State B, still writing Supabase directly.** Either variable is present. Then
+that project's two variables move with 254's inside the same window at step 11,
+and it is redeployed inside that window.
+
+**What is already known from here and does not need confirming:** production's
+two leads and one application all carry `site = '254'`, so neither sister has
+ever written a row. State B carries no data risk today, only future writes,
+which also means a mistake here stays invisible for exactly as long as the
+sisters stay quiet.
 
 ---
 
@@ -139,7 +322,18 @@ identity, which is the uuid preservation, and that was tested exactly.
 
 ---
 
-## 3. The sequence
+## 3. The sequence. SUPERSEDED AS AN ORDER, KEPT AS THE DETAIL.
+
+**Do not follow the order below.** The ruled sequence is at the top of this
+file, under "THE SEQUENCE AS RULED, 2026-09-10", and it changed three things
+this section cannot know: which steps are the operator's, where the restore
+proof sits, and that the dry run into a throwaway is not optional.
+
+What is kept here is the DETAIL of each step, which is still correct and is
+referenced by number from the ruled sequence: what a step does, what it verifies
+and what its rollback is. Two of them, old step 5 and old step 8, carry defects
+found in the 2026-09-07 dry run that let `copy-project.mjs` report success
+having copied nothing, and those must be read before it is run.
 
 Every step names what to do if it goes wrong. Steps 1 to 6 are reversible by
 doing nothing, because production is untouched throughout.
