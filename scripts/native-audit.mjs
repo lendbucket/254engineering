@@ -31,7 +31,7 @@ import { readSource } from "./lib/read-source.mjs";
 import { chromium } from "playwright";
 import { navigationVerdict, sayCouldNotTell, orCouldNotTell, COULD_NOT_TELL } from "./lib/reachable.mjs";
 import { assertNavigationVerdictHolds } from "./proofs/unreachable-is-not-failed.mjs";
-import { allPages } from "./lib/surfaces.mjs";
+import { allPages, sourceDirsOf } from "./lib/surfaces.mjs";
 import {
   createProbe,
   cookieFor,
@@ -825,6 +825,114 @@ if (measured === 0 && unmeasured.length) {
  * something a person has to look at.
  */
 
+/* ------------------- a phone card is not a link wrapped around another link */
+
+/*
+ * NO RecordTable PASSES BOTH A rowHref AND A CARD THAT CONTAINS A LINK.
+ *
+ * RecordTable renders the phone view as a stack of cards and wraps each one in
+ * a <Link> when it is given a rowHref. A card that carries its own anchor is
+ * then an <a> inside an <a>: invalid HTML, a React hydration error on every
+ * load, and an inner link whose behaviour is whatever the browser decides.
+ *
+ * Found overnight on 2026-09-10 by reading the browser console while walking
+ * the portal as each of the seven roles. /portal/documents logged
+ *
+ *   In HTML, <a> cannot be a descendant of <a>. This will cause a hydration error.
+ *
+ * for admin, engineer and read_only, at both widths. Its card said "Read the
+ * binder" and the wrap went to /portal/files, so the whole card linked
+ * somewhere other than the action written on it. It was ambiguous before it
+ * was invalid.
+ *
+ * This is a SOURCE check rather than a browser one on purpose. The fault is in
+ * the phone view, so a check at 1280 cannot see it, and a check at 390 only
+ * sees the screens that happen to have a row to render. A call site with an
+ * empty table would hide it until the day somebody filed a document.
+ */
+{
+  /*
+   * THE DECLARED SOURCE DIRECTORIES, walked.
+   *
+   * The first version mapped allPages() to x.file, and allPages() has no file
+   * property: its entries carry surface, path, session, probe, role, shell and
+   * name. Every entry mapped to undefined, the filter emptied the list, and the
+   * check swept nothing while reporting green. "there are RecordTable call
+   * sites to check (0)" is the only thing that said so, which is the argument
+   * for the guard rather than for care.
+   */
+  const files = [];
+  const walkSrc = (dir) => {
+    if (!fs.existsSync(dir)) return;
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = `${dir}/${e.name}`;
+      if (e.isDirectory()) walkSrc(full);
+      else if (/\.tsx$/.test(e.name)) files.push(full);
+    }
+  };
+  for (const dir of sourceDirsOf()) walkSrc(dir);
+
+  const callSites = [];
+  const nested = [];
+
+  for (const file of [...new Set(files)]) {
+    const code = readSource(file);
+    if (!/<RecordTable/.test(code)) continue;
+    /*
+     * EACH <RecordTable ...> UP TO THE `/>` THAT CLOSES IT, WHICH IS NOT THE
+     * FIRST ONE.
+     *
+     * The first version matched /<RecordTable[\s\S]*?\/>/ and that is wrong in
+     * a way that passes: a RecordTable's columns are full of self closing JSX,
+     * `<Chip ... />` among them, so the non-greedy match ended a few lines in,
+     * before it ever reached `card=`. The extraction below then found no card,
+     * skipped, and the check reported zero. It was caught by putting the defect
+     * back and watching nothing happen, which is what an injection is for.
+     *
+     * "A line holding only whitespace and `/>`" is not enough either, and that
+     * was the second wrong answer: a `<Chip ... />` inside a column is written
+     * over three lines and closes exactly that way. Its INDENTATION is what
+     * tells the two apart, because a child is always deeper than its parent.
+     *
+     * So the terminator is `/>` at the same indentation as the `<RecordTable`
+     * that opened it, which no descendant can have.
+     */
+    const starts = [...code.matchAll(/^([ \t]*)<RecordTable\b/gm)];
+    for (const m of starts) {
+      const indent = m[1];
+      const rest = code.slice(m.index);
+      const close = rest.match(new RegExp(`\\n${indent}/>[ \\t]*(?:\\n|$)`));
+      const block = close ? rest.slice(0, close.index + close[0].length) : rest;
+      callSites.push(file);
+      if (!/rowHref=/.test(block)) continue;
+      /*
+       * ONLY THE CARD, because only the card is wrapped. The desktop table
+       * renders `columns` in <td>s that no rowHref touches, and those columns
+       * are full of links by design: this same screen has a Read and a CSV link
+       * in one cell. Testing the whole block would flag every call site that
+       * has a link anywhere, which is a check on nothing.
+       */
+      const from = block.indexOf("card=");
+      if (from < 0) continue;
+      const to = block.indexOf("empty=", from);
+      const cardText = block.slice(from, to < 0 ? undefined : to);
+      if (/<a\s|<Link\s/.test(cardText)) nested.push(file);
+    }
+  }
+
+  rec(
+    `there are RecordTable call sites to check (${callSites.length})`,
+    callSites.length > 0,
+    "a check over an empty list passes forever, and this one sweeps the declared pages",
+  );
+  rec(
+    "no phone card is a link wrapped around another link",
+    nested.length === 0,
+    nested.length
+      ? `${[...new Set(nested)].join(", ")}: a rowHref wraps the card in a <Link> and the card carries its own anchor`
+      : "rowHref makes the whole card tappable, which only works when the card has nothing else to tap",
+  );
+}
 const sweptPartners = await destroyPartnerProbes("native-audit");
 rec("the probe partner was removed", sweptPartners.ok, sweptPartners.note);
 
