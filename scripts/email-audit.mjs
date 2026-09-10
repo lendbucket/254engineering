@@ -29,6 +29,7 @@
 //                   be a green light for a measurement that never happened.
 import { allTemplatesForAudit, MARKETING_TEMPLATES } from "../src/lib/email-templates.ts";
 import { readSource } from "./lib/read-source.mjs";
+import { inOpenGateProcess } from "./lib/gate-fixture.mjs";
 import { business } from "../src/config/business.ts";
 import { context, findBannedPhrases } from "./lib/voice-blocklist.mjs";
 
@@ -637,15 +638,32 @@ for (const t of templates) {
   const PENDING = "Firm registration pending";
   const seen = {};
 
-  for (const mode of ["prelaunch", "live"]) {
+  /*
+   * THE LIVE PASS RUNS IN A CHILD PROCESS.
+   *
+   * Operator ruling 2026-09-10 moved the registration into configuration, so no
+   * environment variable opens the gate and the two lines that used to set
+   * TBPELS_FIRM_NUMBER are gone with the variable.
+   *
+   * A fresh `import("...?mode=live")` is not enough and was tried first: the
+   * query string busts email-templates and nothing under it, so email-layout
+   * and launch keep the module level values they were loaded with, and the live
+   * pass renders PRELAUNCH footers while asserting live things about them. A
+   * child process has no module graph to invalidate.
+   */
+  const renderIn = async (mode) => {
     process.env.LAUNCH_MODE = mode;
-    process.env.TBPELS_FIRM_NUMBER = mode === "live" ? "AUDIT-FIXTURE-NOT-A-REAL-NUMBER" : "";
     process.env.TBPELS_PE_LICENSE = mode === "live" ? "AUDIT-FIXTURE-NOT-A-REAL-LICENCE" : "";
-    // A fresh import per mode: the module graph caches, so the query string is
-    // what forces the template functions to be re-evaluated with the new env.
-    const mod = await import(`../src/lib/email-templates.ts?mode=${mode}`);
-    seen[mode] = mod.allTemplatesForAudit();
-  }
+    const mod = await import(`../src/lib/email-templates.ts?mode=${mode}-${Date.now()}`);
+    return mod.allTemplatesForAudit();
+  };
+
+  seen.prelaunch = await renderIn("prelaunch");
+  seen.live = await inOpenGateProcess(`
+    process.env.TBPELS_PE_LICENSE = "AUDIT-FIXTURE-NOT-A-REAL-LICENCE";
+    const mod = await import("./src/lib/email-templates.ts");
+    answer(mod.allTemplatesForAudit());
+  `);
   Object.assign(process.env, original);
 
   for (const t of seen.prelaunch) {

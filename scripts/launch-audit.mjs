@@ -43,12 +43,13 @@ import {
   PRESENT_TENSE_OFFER,
   PRESENT_TENSE_SEALING,
 } from "./lib/regulatory.mjs";
+import { withGateConditionsMet, FIXTURE_FIRM_NUMBER } from "./lib/gate-fixture.mjs";
 
 const PRELAUNCH_PORT = Number(process.env.LAUNCH_AUDIT_PORT || 3227);
 const LIVE_PORT = Number(process.env.LAUNCH_AUDIT_LIVE_PORT || 3228);
 
 /** A stand-in firm number for the live run. Never rendered anywhere else. */
-const TEST_FIRM_NUMBER = "AUDIT-FIXTURE-NOT-A-REAL-REGISTRATION";
+const TEST_FIRM_NUMBER = FIXTURE_FIRM_NUMBER;
 /** Stand-in PE licence for the live run. Same reasoning as the firm number. */
 const TEST_PE_LICENSE = "AUDIT-FIXTURE-NOT-A-REAL-LICENCE";
 
@@ -149,11 +150,25 @@ async function run() {
     // in-between state, registered but nobody able to seal, is real and is
     // handled by registrationLine(), but the live assertions below describe the
     // fully open site.
-    const live = await crawlMode("live", LIVE_PORT, {
-      LAUNCH_MODE: "live",
-      TBPELS_FIRM_NUMBER: TEST_FIRM_NUMBER,
-      TBPELS_PE_LICENSE: TEST_PE_LICENSE,
-    });
+    /*
+     * THE LIVE CRAWL RUNS WITH THE GATE'S CONDITIONS STATED TRUE IN THE FILE.
+     *
+     * Setting TBPELS_FIRM_NUMBER used to be enough. Operator ruling
+     * 2026-09-10 made the gate a set of named conditions read from
+     * configuration, so no variable opens it any more and this crawl was
+     * rendering the PRELAUNCH site while asserting live things about it.
+     *
+     * withGateConditionsMet writes the register, runs, and puts it back,
+     * which is what the ruling says opening the gate takes. LAUNCH_MODE is
+     * still set here rather than by the fixture, because the switch is the
+     * operator's and an audit that forgot it should get prelaunch.
+     */
+    const live = await withGateConditionsMet(() =>
+      crawlMode("live", LIVE_PORT, {
+        LAUNCH_MODE: "live",
+        TBPELS_PE_LICENSE: TEST_PE_LICENSE,
+      }),
+    );
 
     const unreachablePre = [...pre.entries()].filter(([, p]) => p.status !== 200).map(([r]) => r);
     const unreachableLive = [...live.entries()].filter(([, p]) => p.status !== 200).map(([r]) => r);

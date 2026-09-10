@@ -717,7 +717,6 @@ rec(
 
 console.log("================ DATABASE TARGET GUARD ================");
 console.log(`configured target: ${current ? describeTarget(current) : "unset"}\n`);
-for (const r of out) console.log(`  ${r.ok ? "PASS" : "FAIL"}: ${r.name}${r.note ? ` (${r.note})` : ""}`);
 // ===========================================================================
 // NO RECORDED MOMENT COMES FROM A PROCESS CLOCK.
 //
@@ -805,6 +804,9 @@ for (const r of out) console.log(`  ${r.ok ? "PASS" : "FAIL"}: ${r.name}${r.note
     "src/app/portal/(app)/partners/[id]/PartnerActions.tsx": "default values in a form, in the browser, twice",
     "src/lib/deletion-requests.ts": "a date inside a sentence written into a note",
     "src/lib/job-handlers.ts": "a local now for comparison; the writes beside it send DB_NOW",
+    "src/lib/launch.ts":
+      "today, to ask whether the firm registration has expired. A comparison, not a stored value: nothing in " +
+      "the compliance gate writes a row, and an expiry read a second late is still the same date.",
     "src/lib/ops-dashboard.ts": "three comparisons against ages, reading rather than writing",
     "src/lib/ops-docs.ts":
       "generatedAt on an in memory binder manifest, and two date cells in a CSV a person reads",
@@ -897,6 +899,19 @@ for (const r of out) console.log(`  ${r.ok ? "PASS" : "FAIL"}: ${r.name}${r.note
     "if this were zero the check above would be passing over an empty tree",
   );
 }
+
+/*
+ * EVERY CHECK IS PRINTED, AND THIS LOOP USED TO SIT IN THE MIDDLE OF THE FILE.
+ *
+ * It ran before the last five checks were even declared, so those five were
+ * counted in the total and never shown. The audit could report "FAIL: 1 of 84"
+ * and name nothing, which is the worst thing a red board can say: it tells you
+ * something is wrong and refuses to tell you what.
+ *
+ * Found 2026-09-10 when a check added after it went red. The checks before it
+ * had always printed, so nobody had met the gap.
+ */
+for (const r of out) console.log(`  ${r.ok ? "PASS" : "FAIL"}: ${r.name}${r.note ? ` (${r.note})` : ""}`);
 
 const failed = out.filter((r) => !r.ok);
 console.log("");
