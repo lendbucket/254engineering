@@ -139,6 +139,18 @@ await loadHandlers();
     console.log("  Nothing was enqueued and nothing was claimed. Work queued by a fixture is");
     console.log("  suppressed at creation now, so these are either older than that rule or");
     console.log("  they belong to somebody real, and which of the two is a decision.");
+    /*
+     * EXITED AFTER A TICK, NOT INSIDE ONE.
+     *
+     * process.exit() here aborted the process outright on Windows with
+     * "Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)", because the
+     * database client still had a socket mid close. The exit code became 127
+     * and the board read the refusal as a FAILED audit rather than as one that
+     * could not measure, which is the exact distinction the refusal exists to
+     * draw. It said the right words and reported the wrong verdict.
+     */
+    process.exitCode = COULD_NOT_TELL;
+    await new Promise((resolve) => setTimeout(resolve, 150));
     process.exit(COULD_NOT_TELL);
   }
 }

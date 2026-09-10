@@ -162,7 +162,25 @@ export async function raise(input: RaiseInput): Promise<RaiseResult> {
   const queued = await enqueue(
     "notification.deliver",
     { notificationId: data.id },
-    { effectMode: effectModeFor((recipient?.email as string) ?? null) },
+    {
+      /*
+       * A RECIPIENT THIS PLATFORM CANNOT FIND IS NOT A RECIPIENT.
+       *
+       * effectModeFor reads an absent address as REAL, deliberately, because
+       * the failure that costs is a suppression nobody asked for. That default
+       * is right where an address is merely unrecognised and wrong here: if
+       * the profile row is gone there is nobody to reach, the handler will
+       * dead letter with "no longer exists", and marking the job live leaves
+       * an orphan that trips queue-audit's refusal on every board from now on.
+       *
+       * Two of those had already accumulated before this was written, both
+       * from probe accounts torn down between the notification being raised
+       * and the job being run.
+       */
+      effectMode: recipient?.email
+        ? effectModeFor(recipient.email as string)
+        : "no_external_effect",
+    },
   );
 
   if (!queued.ok) {
