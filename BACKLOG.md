@@ -27,6 +27,36 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
+## THREE COMPLIANCE SENTENCES ON THE SIBLING SITES, FOUND OVERNIGHT
+
+Found on 2026-09-10 by the overnight sweep's Round 2, which reads the three live
+deployments signed out and matches them against `scripts/lib/regulatory.mjs`,
+the declaration both gates are stated in. Full quotes with their surrounding
+context are in `docs/overnight-report.md` section 3a; this is the pointer.
+
+**Why it is not fixed.** Both sites are separate repositories. Nothing in this
+repository can change their copy, and the overnight limits refuse acting on
+anything needing a ruling.
+
+| Where | The sentence | The pattern |
+| --- | --- | --- |
+| sealedengineering.com/ | "Engineering work is performed under the license and registration of 254 Engineering Services LLC." | states the engineering is being carried out now, passive |
+| sealedengineering.com/contact | "All engineering work is performed under that entity's license and registration." | the same, but the pending disclosure is on the next line |
+| stampmyplans.com/terms | "we decline work outside the competence of our engineers" | plural engineer fiction |
+
+**The decision that would be made, recorded rather than taken.** The third is
+the sharpest: "our engineers" states a fact about staffing, and no licensed PE
+is on staff. The second is arguably already honest, because "Firm registration
+pending with the Texas Board of Professional Engineers and Land Surveyors"
+follows it immediately. The first is the same sentence as the second WITHOUT
+that adjacent qualifier.
+
+**What this repository can and did do about it.** Round 2 originally carried
+seven hand written patterns of its own and found only the third. Replacing them
+with the declared twenty two found the other two on the first honest run, which
+is the argument for the declared inventory idiom made on a live deployment
+rather than in a test.
+
 ## SECTION 4'S SECTION 0: FOUR DEBTS, AND THEY ARE ALL THE SAME DEBT
 
 Ruled at the gates of Phase 12 Section 3. All four are taken at the START of
