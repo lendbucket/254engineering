@@ -1,4 +1,5 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import type { Cents } from "./ops-money";
@@ -368,7 +369,7 @@ export async function publishProtocol(
 
   const { error } = await db
     .from("eng_protocol_templates")
-    .update({ status: "published", published_at: new Date().toISOString() })
+    .update({ status: "published", published_at: DB_NOW })
     .eq("id", id)
     .eq("status", "draft");
   if (error) return { ok: false, error: error.message };
@@ -787,12 +788,12 @@ export async function acceptOffer(
 
   await db
     .from("eng_assignments")
-    .update({ state: "accepted", responded_at: new Date().toISOString() })
+    .update({ state: "accepted", responded_at: DB_NOW })
     .eq("id", offerId);
 
   await db
     .from("eng_assignments")
-    .update({ state: "withdrawn", responded_at: new Date().toISOString() })
+    .update({ state: "withdrawn", responded_at: DB_NOW })
     .eq("file_id", offer.file_id)
     .eq("state", "offered")
     .neq("id", offerId);
@@ -881,7 +882,7 @@ export async function declineOffer(
     .from("eng_assignments")
     .update({
       state: "declined",
-      responded_at: new Date().toISOString(),
+      responded_at: DB_NOW,
       decline_reason: reason?.trim() || null,
     })
     .eq("id", offerId)
@@ -1835,7 +1836,7 @@ export async function revokeCertification(
 
   const { error } = await db
     .from("eng_certifications")
-    .update({ status: "revoked", revoked_at: new Date().toISOString() })
+    .update({ status: "revoked", revoked_at: DB_NOW })
     .eq("profile_id", profileId)
     .eq("service_slug", serviceSlug);
   if (error) return { ok: false, error: error.message };

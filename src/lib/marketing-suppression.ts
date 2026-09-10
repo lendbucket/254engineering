@@ -1,4 +1,5 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { supabaseAdmin } from "./supabase";
 import { business } from "@/config/business";
@@ -351,7 +352,7 @@ export async function voidOperatorEntry(
   const { error: voidErr } = await db
     .from("eng_marketing_suppressions")
     .update({
-      voided_at: new Date().toISOString(),
+      voided_at: DB_NOW,
       voided_because: because.trim(),
       voided_by: actorId,
       replaced_by_email: corrected,

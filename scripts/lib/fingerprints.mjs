@@ -112,7 +112,19 @@ select 'fk:' || t.relname || '.' || con.conname
          join pg_attribute a on a.attrelid = con.conrelid and a.attnum = k.attnum
        )
        || ':del=' || con.confdeltype::text
-       || ':upd=' || con.confupdtype::text as sig
+       || ':upd=' || con.confupdtype::text
+       /*
+        * VALIDATED OR MERELY ENFORCED, which are different states and 0039 is
+        * the migration that makes the difference real.
+        *
+        * A constraint added NOT VALID is enforced for every new row and has
+        * never been checked against the old ones. Two databases can hold the
+        * same four foreign keys with the same delete actions and disagree about
+        * whether the rows already in them obey. Without this the fingerprint
+        * would say they agree, which is the exact blind spot this whole second
+        * fingerprint exists to remove, one level in.
+        */
+       || ':validated=' || con.convalidated::text as sig
 from pg_constraint con
 join tbl t on t.oid = con.conrelid
 join pg_class rt on rt.oid = con.confrelid
@@ -126,7 +138,8 @@ union all
  * other refuses. conbin is the parsed tree; md5 of its text is stable in a way
  * pg_get_constraintdef's pretty printing is not. */
 select 'ck:' || t.relname || '.' || con.conname
-       || ':' || md5(con.conbin::text) as sig
+       || ':' || md5(con.conbin::text)
+       || ':validated=' || con.convalidated::text as sig
 from pg_constraint con
 join tbl t on t.oid = con.conrelid
 where con.contype = 'c'

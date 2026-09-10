@@ -1,4 +1,5 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { readEvery } from "./bounded-read";
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { cookies, headers } from "next/headers";
@@ -479,7 +480,7 @@ export async function consumeTokenAndSetPassword(
 
   const { error: spendError } = await db
     .from("eng_auth_tokens")
-    .update({ used_at: new Date().toISOString() })
+    .update({ used_at: DB_NOW })
     .eq("token_hash", hashToken(token))
     .is("used_at", null);
   if (spendError) return { ok: false, error: "That link could not be used. Ask for a new one." };

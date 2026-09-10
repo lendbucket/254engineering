@@ -1,4 +1,5 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { supabaseAdmin } from "./supabase";
 import { writeAudit } from "./ops-audit";
 import { can, type Actor } from "./ops-authz";
@@ -431,7 +432,7 @@ export async function refreshCredentialTasks(actor: Actor & { email: string }): 
     if (!wantedKeys.has(row.source_key as string)) {
       await db
         .from("eng_tasks")
-        .update({ status: "done", completed_at: new Date().toISOString() })
+        .update({ status: "done", completed_at: DB_NOW })
         .eq("id", row.id);
     }
   }

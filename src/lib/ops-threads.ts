@@ -1,4 +1,5 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { supabaseAdmin } from "./supabase";
 import { writeAudit } from "./ops-audit";
 import { can, canSeeFile, type Actor, type RoleKey } from "./ops-authz";
@@ -340,7 +341,7 @@ export async function threadView(actor: Actor | null, threadId: string): Promise
   // Reading it marks it read. Anything else needs a button nobody presses.
   await db
     .from("eng_thread_participants")
-    .update({ last_read_at: new Date().toISOString() })
+    .update({ last_read_at: DB_NOW })
     .eq("thread_id", threadId)
     .eq("profile_id", actor.id);
 
@@ -558,10 +559,10 @@ export async function postMessage(
     .single();
   if (error || !data) return { ok: false, error: error?.message ?? "Could not post that." };
 
-  await db.from("eng_threads").update({ last_message_at: new Date().toISOString() }).eq("id", threadId);
+  await db.from("eng_threads").update({ last_message_at: DB_NOW }).eq("id", threadId);
   await db
     .from("eng_thread_participants")
-    .update({ last_read_at: new Date().toISOString() })
+    .update({ last_read_at: DB_NOW })
     .eq("thread_id", threadId)
     .eq("profile_id", actor.id);
 

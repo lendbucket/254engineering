@@ -726,6 +726,84 @@ for (const t of templates) {
   }
 }
 
+// ===========================================================================
+// A LINK IS SIGNED WHEN THE MESSAGE GOES OUT, NEVER WHEN IT IS COMPOSED.
+//
+// Operator ruling, 2026-09-09, after reading one of the 35 emails that went
+// out of development by accident. It carried a signed link to an applicant's
+// resume, good for seven days, minted when the message was COMPOSED. That one
+// was composed on the 5th and delivered on the 9th, so it arrived with three of
+// its seven days left and nothing said so.
+// ===========================================================================
+{
+  /* Comments stripped before anything is matched. A check that finds the word
+   * in a sentence about the word is a check on wording, and this section is
+   * about code that is easy to describe and easy to leave undone. */
+  const codeOnly = (text) =>
+    text
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .split("\n")
+      .filter((line) => !/^\s*\/\//.test(line))
+      .join("\n");
+
+  const applyRoute = codeOnly(readSource("src/app/api/apply/route.ts"));
+  const handlers = codeOnly(readSource("src/lib/job-handlers.ts"));
+
+  rec(
+    "the application composer defers its links rather than signing them",
+    /deferredLink\(file\.path\)/.test(applyRoute),
+    "the storage path travels; the URL is minted at the door",
+  );
+  rec(
+    "and it no longer signs anything itself",
+    !/signedDownloadUrl\(/.test(applyRoute),
+    "a composer that signs is a composer that starts the clock too early",
+  );
+  rec(
+    "email.send resolves the deferred links",
+    /resolveDeferred\(/.test(handlers) && /signedDownloadUrl/.test(handlers),
+    "",
+  );
+  rec(
+    "and it sends what it resolved rather than the payload it was handed",
+    /text:\s*signedText/.test(handlers) && /html:\s*signedHtml/.test(handlers),
+    "signing into a variable nobody sends would look identical and do nothing",
+  );
+
+  /* The mechanism itself, both ways, with a signer this file controls. */
+  const { deferredLink, deferredPathsIn, resolveDeferred, DEFERRED_HOST } = await import(
+    "../src/lib/deferred-links.ts"
+  );
+  const token = deferredLink("254/abc/resume-jane.pdf");
+
+  rec(
+    "a token names its path and carries no credential",
+    deferredPathsIn(`see ${token} for the file`)[0] === "254/abc/resume-jane.pdf" &&
+      !/token|signature|jwt|eyJ/i.test(token),
+    token,
+  );
+  rec(
+    "and it is an absolute URL at a host that can never resolve",
+    token.startsWith("https://") && DEFERRED_HOST.includes(".invalid"),
+    "an unresolved token must go nowhere, not somewhere somebody could register",
+  );
+
+  const resolved = await resolveDeferred(`Resume: ${token}`, async (path) =>
+    `https://storage.example.com/${path}?token=fresh`,
+  );
+  rec(
+    "a resolved message carries the signed URL and no token",
+    resolved.includes("?token=fresh") && !resolved.includes(DEFERRED_HOST),
+    resolved,
+  );
+
+  const unsignable = await resolveDeferred(`Resume: ${token}`, async () => null);
+  rec(
+    "and a path that cannot be signed keeps its token rather than losing the link",
+    unsignable.includes(DEFERRED_HOST),
+    "a message that silently drops its attachment reads as an application with no resume",
+  );
+}
 console.log("=== EMAIL AUDIT ===");
 console.log(`${templates.length} templates rendered\n`);
 for (const r of out) {

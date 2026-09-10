@@ -1,4 +1,5 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { supabaseAdmin } from "./supabase";
 import { writeAudit } from "./ops-audit";
 import { can, type Actor } from "./ops-authz";
@@ -403,7 +404,7 @@ export async function activateTechnician(
       issued_on: i.issuedOn,
       expires_on: i.expiresOn,
       status: "verified",
-      verified_at: new Date().toISOString(),
+      verified_at: DB_NOW,
       verified_by: actor.id,
     }));
 
@@ -424,7 +425,7 @@ export async function activateTechnician(
   await db
     .from("eng_onboardings")
     .update({
-      activated_at: new Date().toISOString(),
+      activated_at: DB_NOW,
       profile_id: created.profileId,
       status: "complete",
     })

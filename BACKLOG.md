@@ -97,32 +97,6 @@ The options, and each has a real cost:
 else's queued work, even when that somebody is an audit from last Tuesday, and
 the third option changes what the platform does depending on where it runs.
 
-### A QUEUED EMAIL BURNS ITS RECIPIENT'S SIGNED LINK WINDOW
-
-Found by READING one of the 35 emails above, as its recipient would, rather than
-by any check.
-
-The application notification carries a signed storage URL for the applicant's
-resume. `signedDownloadUrl` in `src/lib/uploads.ts` gives it seven days, and the
-reasoning beside it is right: "long enough to read an application over a weekend
-and short enough that an old forwarded email stops being a key to somebody's
-resume."
-
-**The clock starts when the email is COMPOSED, not when it is sent.** The
-message read for this gate was composed on 2026-09-05 and delivered on
-2026-09-09, so it arrived with three of its seven days left. Nothing said so.
-
-It does not matter while the queue drains in a minute, which is the normal case
-and the reason nobody has met this. It matters exactly when the queue is the
-thing that failed: a job that dead letters and is replayed by hand a week later
-delivers an application whose resume link is already dead, and the operator gets
-a 404 with no explanation and no way to tell whether the file was ever there.
-
-The fix is to sign the URL in the HANDLER rather than in the composer, so the
-window starts when the message actually goes out. Not done here: it moves a
-credential from the payload into the send path and that deserves its own look at
-what else is composed early and delivered late.
-
 ### THIS MACHINE'S CLOCK IS 85 SECONDS AHEAD OF THE DATABASE
 
 Found by `queue-audit` on 2026-09-09, measured rather than guessed: a row is
@@ -143,11 +117,20 @@ found the second: a probe lease written at "a minute ago" on this machine had
 not expired on the database, and the audit reported that a crashed worker's job
 is never reclaimed. It is. The check was measuring the gap between two clocks.
 
-**The board fails on this deliberately.** It is an environment fact rather than
-a code defect, and it is not one to absorb into a wider tolerance: the exposure
-is real for any caller that passes an explicit `runAfter`. The fix is to
-resync the machine clock, which is a change to the operator's system and is not
-made from here.
+**The operator is resyncing the clock.** The code consequence was ruled
+separately and is done: `src/lib/db-now.ts`, and 68 observed timestamps across
+26 files now carry the string `now`, which Postgres resolves to
+`transaction_timestamp()`. No recorded moment comes from a process clock any
+more. Proven end to end rather than from documentation: a row written through
+PostgREST came back stamped 85 seconds behind what this machine would have
+written.
+
+**What is still open is narrower and it is not about this laptop.** A DURATION
+computed as (local now minus a database timestamp) still carries whatever gap
+exists, and `ops-engineer` computes review `minutes` that way. With a synced
+machine that is seconds; on a serverless instance that came up moments ago it
+is whatever NTP has managed. Moving it needs the arithmetic to happen in the
+database, which is an RPC, and it is a smaller prize than the timestamps were.
 
 ### 4. Line endings, and the cause as well as the symptom
 
@@ -356,11 +339,23 @@ The script now counts what else is waiting and refuses to drain over a backlog,
 which fixes the tool and not the queue. The queue itself is still a pile of work
 that will all run the first time anything drains it.
 
-What closing it needs: a decision about whether those 399 should be run or
-marked dead, and then either a scheduled drain on development or a rule that
-development does not queue email at all. The second is probably right, and it is
-a bigger change than it sounds, because "does the email path work" is a thing
-several audits ask.
+**Half of this is closed, 2026-09-09.** The operator refused "development does
+not queue email" for the reason that makes it tempting: it would make
+production and development behave differently on the one path where a silent
+difference means a customer never hears from the firm. What was ruled instead
+is suppression BY ACTOR, and it is built: `src/lib/fixture-identity.ts`, read
+by `queueEmail` from the message's own `to` and `replyTo`, so work about a
+person who does not exist is `no_external_effect` at creation and work about a
+real one still sends. It needs nobody to remember, which is the property that
+matters, because remembering has now failed twice at a cost of 55 emails.
+
+**What is still open is the pile itself.** 526 rows that predate the rule, and
+the question is unchanged: run them or mark them dead. Nothing here decides
+that, because it is a decision about somebody else's queued work even when
+that somebody is an audit from last Tuesday. `queue-audit` now REFUSES TO
+START if any outward reaching job it did not create is claimable, so the pile
+cannot hurt anybody while the decision waits, and it says so loudly rather
+than working around it.
 
 ### What development now carries permanently, and why each row is there
 

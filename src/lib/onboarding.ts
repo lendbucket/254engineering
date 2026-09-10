@@ -1,4 +1,5 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { supabaseAdmin, supabaseConfigured } from "./supabase";
 import { checklistFor, type OnboardingRole } from "@/content/onboarding-checklists";
 import { generateInvite, hashToken, isExpired, looksLikeToken } from "./onboarding-tokens";
@@ -201,7 +202,7 @@ export async function markItemUploaded(params: {
       // A re-upload clears a previous rejection: the reason no longer describes
       // the file that is there now.
       rejected_reason: null,
-      updated_at: new Date().toISOString(),
+      updated_at: DB_NOW,
     })
     .eq("onboarding_id", params.onboardingId)
     .eq("item_key", params.itemKey);
@@ -221,7 +222,7 @@ export async function markItemAcknowledged(params: {
   if (!db) return { ok: false, error: NOT_CONFIGURED };
   const { error } = await db
     .from("eng_onboarding_items")
-    .update({ status: "uploaded", rejected_reason: null, updated_at: new Date().toISOString() })
+    .update({ status: "uploaded", rejected_reason: null, updated_at: DB_NOW })
     .eq("onboarding_id", params.onboardingId)
     .eq("item_key", params.itemKey);
   if (error) return { ok: false, error: error.message };
@@ -244,7 +245,7 @@ export async function setItemDecision(params: {
     .update({
       status: params.decision,
       rejected_reason: params.decision === "rejected" ? (params.reason ?? null) : null,
-      updated_at: new Date().toISOString(),
+      updated_at: DB_NOW,
     })
     .eq("onboarding_id", params.onboardingId)
     .eq("item_key", params.itemKey);
@@ -258,9 +259,9 @@ export async function setStatus(
   if (!supabaseConfigured()) return { ok: false, error: NOT_CONFIGURED };
   const stamp =
     status === "submitted"
-      ? { submitted_at: new Date().toISOString() }
+      ? { submitted_at: DB_NOW }
       : status === "verified"
-        ? { verified_at: new Date().toISOString() }
+        ? { verified_at: DB_NOW }
         : {};
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: NOT_CONFIGURED };
@@ -288,7 +289,7 @@ export async function regenerateInvite(onboardingId: string): Promise<Result<{ t
     .update({
       invite_token_hash: invite.tokenHash,
       invite_expires_at: invite.expiresAt.toISOString(),
-      invited_at: new Date().toISOString(),
+      invited_at: DB_NOW,
     })
     .eq("id", onboardingId);
   return error ? { ok: false, error: error.message } : { ok: true, data: { token: invite.token } };

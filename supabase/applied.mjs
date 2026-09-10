@@ -349,14 +349,14 @@ export const APPLIED = [
   {
     file: "0038_a_job_says_what_it_was_allowed_to_do.sql", appliedBy: "apply_migration",
     fingerprint: "cac6f69d91b7e73441b307ea692a3f7b",
-    behaviour: "755b343c1baff05e43445747be0e5343",
+    behaviour: "b555b089052d225725c3d2ead29f3564",
     proves: { table: "eng_jobs", column: "effect_mode" },
     production: null,
     because:
       "Phase 12 Section 4 is open. Pending until the branch merges, then applied with the rest of the " +
       "section in order and each read back before the next, which is the ruled sequence. Applied to " +
       "development 2026-09-09 and read back: shape cac6f69d91b7e73441b307ea692a3f7b across 1,016 columns, and " +
-      "behaviour 755b343c1baff05e43445747be0e5343 across 808 facts, both recomputed from a replay by " +
+      "behaviour b555b089052d225725c3d2ead29f3564 across 808 facts, both recomputed from a replay by " +
       "schema-ledger-audit rather than typed in from a live database.",
     note:
       "A JOB RECORDS WHETHER IT WAS ALLOWED TO REACH OUTSIDE THIS PLATFORM. Operator ruling: handlers that " +
@@ -375,6 +375,43 @@ export const APPLIED = [
       "there is not one. NOT A DRY RUN: retention.sweep already has a mode, plan versus execute, and that one " +
       "decides whether rows are deleted while this one decides whether a person hears anything. A sweep can " +
       "be executing and suppressed at once and both are true.",
+  },
+
+  /*
+   * The four foreign keys the second fingerprint found on its first run, three
+   * days after the fingerprint that could not see them said the databases
+   * agreed.
+   */
+  {
+    file: "0039_the_four_keys_that_were_never_there.sql", appliedBy: "apply_migration",
+    fingerprint: "cac6f69d91b7e73441b307ea692a3f7b",
+    behaviour: "b555b089052d225725c3d2ead29f3564",
+    proves: { table: "eng_responsible_charge_log" },
+    production: null,
+    because:
+      "Phase 12 Section 4 is open. Pending until the branch merges, then applied with the rest of the " +
+      "section in order and each read back before the next. Applied to development 2026-09-09. BOTH " +
+      "FINGERPRINTS ARE IDENTICAL TO 0038 ON THE REPLAY, and that is what this migration should do there: " +
+      "the replay applies 0001, which already declares all four keys, so against an empty database 0039 " +
+      "re-adds constraints that were never missing and validates all four because there are no rows to " +
+      "check. The figure it moves is on the LIVE databases, which is where the keys were absent, and those " +
+      "numbers are in BEHAVIOUR_BASELINE: development went from 802 facts to 808.",
+    note:
+      "NOT VALID IS THE POINT OF THIS MIGRATION RATHER THAN A DETAIL OF IT. Operator ruling: no regulatory " +
+      "row is edited to make a constraint fit. Development holds 28 eng_responsible_charge_log rows whose " +
+      "file_id all point at files that no longer exist, and they are the missing constraint's own residue: " +
+      "audits delete their fixture files, ON DELETE SET NULL was never there to blank the link, and the rows " +
+      "kept a uuid to nothing. The obvious repair is to null those 28 and validate, and it is refused, " +
+      "because blanking a column on a responsible charge entry to suit a migration is editing the firm's " +
+      "regulatory record, and that these particular rows happen to be audit residue is not something a " +
+      "migration can know. So all four go on NOT VALID, which enforces them for every new row and never " +
+      "re-examines the old ones, and each is validated only where validation passes. WHAT THAT BUYS: the " +
+      "future completely, including ON DELETE RESTRICT refusing to remove an engineer named by any entry, " +
+      "old rows included, because that check runs against the REFERENCED side and does not care whether the " +
+      "constraint was validated. WHAT IT DOES NOT BUY: the past, so the 28 keep their dangling file_id until " +
+      "somebody decides, which is why they are named here rather than discovered later. READ BACK ON " +
+      "DEVELOPMENT: 3 of 4 convalidated, eng_responsible_charge_log_file_id_fkey false. Production holds 0 " +
+      "rows in both tables and will validate all four.",
   },
 ];
 
@@ -400,22 +437,39 @@ export const APPLIED = [
  */
 export const BEHAVIOUR_BASELINE = {
   at: "0037_a_partner_address_is_one_address.sql",
-  read: "2026-09-09",
+  read: "2026-09-10",
   shape: "3acd988c07905602e0e091c5b8d329ad",
   shapeColumns: 1015,
-  /* The replay's number is the only one this repository can recompute without a
-   * credential, so it is the only one schema-ledger-audit asserts. The two live
-   * numbers are read through the Supabase MCP and are here as the record of
-   * what those databases answered on the day, which is what makes the
-   * divergence below a measurement rather than a suspicion. */
-  replay: { behaviour: "ea9d415b52c7693917fcf3a61b7aa690", facts: 806 },
-  development: { behaviour: "ba3d0d8e016e59215e94090e73628981", facts: 802 },
-  production: { behaviour: "0006d52251d7b3207ea76a5d6ac5d2ba", facts: 810 },
+  /*
+   * The replay's number is the only one this repository can recompute without a
+   * credential, so it is the only one schema-ledger-audit asserts. It is pinned
+   * at 0037 and stays there: it is a statement about a MOMENT in the chain, and
+   * a number re-read after every migration would be a number nobody could use
+   * to say anything happened.
+   *
+   * THE LIVE NUMBERS SAY WHICH MIGRATION EACH DATABASE WAS AT.
+   *
+   * They have to, because the two are no longer at the same place: development
+   * has 0038 and 0039 and production has neither while the branch is open. A
+   * recorded number with no position in the chain beside it is a number nobody
+   * can reproduce, which is the failure this whole file exists to prevent.
+   *
+   * ALL THREE MOVED ON 2026-09-10 and none of the databases changed to make
+   * them move. The fingerprint gained `convalidated`, because 0039 adds
+   * constraints NOT VALID and enforced-but-unvalidated is a real state the
+   * previous query could not see. Sharpening a fingerprint invalidates every
+   * number taken with the blunt one, which is the cost, and it is paid once
+   * rather than left as a figure that quietly means less than it says.
+   */
+  replay: { behaviour: "764ff4339fed2db9e74317ee19278950", facts: 806 },
+  development: { at: "0039", behaviour: "5f280ac447c28562407ed1969071c403", facts: 808 },
+  production: { at: "0037", behaviour: "05f058a1c8f4c9f4e19546179482adfb", facts: 810 },
 };
 
 export const BEHAVIOUR_DIVERGENCE = [
   {
     kind: "missing_on_both_live_databases",
+    repairedBy: "0039_the_four_keys_that_were_never_there.sql",
     what: "four foreign keys that 0001_ops_foundation.sql declares",
     facts: [
       "eng_file_events.actor_id -> eng_profiles(id) on delete set null",
@@ -446,11 +500,13 @@ export const BEHAVIOUR_DIVERGENCE = [
       "uuid to nothing. Development needs those 28 file_id values set null before the constraint can be added; " +
       "production needs nothing.",
     ruling:
-      "NOT REPAIRED WITHOUT THE OPERATOR'S WORD. A repair is a migration against production touching the " +
-      "firm's regulatory record. Flagged at the top of the gate 0 report with the migration ready to write, " +
-      "and the argument for doing it now rather than later is in the orphan counts: the table production has " +
-      "to protect is empty today, so the constraint is free today and gets more expensive every day it is not " +
-      "there, exactly as development's 28 rows demonstrate.",
+      "RULED AND REPAIRED, 2026-09-09: 0039, now. All four go on NOT VALID, which enforces them for every "  +
+      "new row and never re-examines the old ones, and each is then validated only where validation passes. "  +
+      "NO REGULATORY ROW IS EDITED TO MAKE A CONSTRAINT FIT. On development 3 of 4 validated and "  +
+      "eng_responsible_charge_log_file_id_fkey did not: it is in place, enforced, and unvalidated, and the 28 "  +
+      "rows are exactly as they were. Production holds no rows in either table, so all four will validate "  +
+      "clean there. APPLIED TO DEVELOPMENT 2026-09-09 AND PENDING ON PRODUCTION while this branch is open, "  +
+      "which is the ruled sequence for every migration in this section.",
   },
   {
     kind: "extra_on_production_only",
@@ -466,17 +522,28 @@ export const BEHAVIOUR_DIVERGENCE = [
       "eng_orders_site_created_idx",
     ],
     because:
-      "Production is shared with unrelated apps, which is the reason every table this firm owns is eng_ " +
-      "prefixed, and these are shaped like that era: six of the eight are keyed on a `site` column. They " +
-      "predate the numbered migrations and no file in supabase/migrations creates any of them.",
+      "FOUND, AND IT IS NOT ANONYMOUS DRIFT. Operator ruling: an index nobody's migration created is drift "  +
+      "with an author, so say who. The author is 0000_eng_legacy_intake.sql, by omission. That file is a "  +
+      "RECONSTRUCTION of five tables that were created directly against the shared project before this repo "  +
+      "kept migrations, and its own header says so: eng_leads, eng_orders, eng_applications, eng_onboardings "  +
+      "and eng_onboarding_items. Every one of the eight indexes is on one of those five. The reconstruction "  +
+      "copied the columns and the constraints and copied ZERO indexes: `grep -c 'create index' 0000` "  +
+      "returns 0. Six of the eight lead on `site`, which is the multi brand discriminator from that era and "  +
+      "is why they were built in the first place. So production is not carrying something mysterious. The "  +
+      "REPOSITORY is missing something production has always had, and the divergence points the other way "  +
+      "from how it first read.",
     costs:
       "An index changes speed and not answers, so nothing production does is wrong because of these. What is " +
       "wrong is the belief that the cutover project is production's equal: it would be built from the " +
       "migrations and would not have them, and the first slow query after a cutover would be a surprise " +
       "nobody had a record of. That is the cost, and it is a cost of not knowing rather than of the indexes.",
     ruling:
-      "Left alone and declared. Dropping an index on production to make a number match is the wrong direction; " +
-      "the number is a description and production is the thing being described.",
+      "Left alone and declared, 2026-09-09: dropping an index on production to make a number match is the "  +
+      "wrong direction, because the number is a description and production is the thing being described. "  +
+      "What the provenance changes is what the FIX would be if one is wanted: not dropping eight indexes but "  +
+      "adding them to the repository, so a project built from the migrations is production's equal rather "  +
+      "than production minus whatever nobody wrote down. That is a migration and it is not written here, "  +
+      "because the ruling was to declare rather than to converge and converging is a separate decision.",
   },
 ];
 

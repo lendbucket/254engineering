@@ -1,4 +1,5 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { supabaseAdmin } from "./supabase";
 import type { RoleKey } from "./ops-authz";
 import { enqueue } from "./ops-jobs";
@@ -193,7 +194,7 @@ export async function markRead(profileId: string, ids: number[]): Promise<void> 
   const db = supabaseAdmin();
   if (!db) return;
   const now = new Date().toISOString();
-  let query = db.from("eng_notifications").update({ read_at: now }).eq("profile_id", profileId).is("read_at", null);
+  let query = db.from("eng_notifications").update({ read_at: DB_NOW }).eq("profile_id", profileId).is("read_at", null);
   if (ids.length) query = query.in("id", ids);
   await query;
 }

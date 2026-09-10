@@ -4,6 +4,7 @@ import { supabaseAdmin } from "./supabase";
 import { LEASE_SECONDS, BATCH_SIZE, nextState, type JobOutcome } from "./job-rules";
 import { business } from "@/config/business";
 import type { RenderedEmail } from "./email-templates";
+import { effectModeFor, isFixtureIdentity } from "./fixture-identity";
 
 /**
  * The queue: enqueue, claim, run, record.
@@ -576,6 +577,25 @@ export async function queueEmail(
    */
   effectMode?: EffectMode,
 ): Promise<EnqueueResult> {
+  /*
+   * THE ACTOR DECIDES, AND NOBODY HAS TO REMEMBER TO SAY SO.
+   *
+   * Operator ruling: work enqueued by a board fixture or a demo actor is
+   * suppressed at creation, because the actor is not real.
+   *
+   * Read off the message's own ADDRESS fields rather than passed in by each
+   * caller, because a rule each caller has to remember is a rule that has
+   * now been forgotten twice, at a cost of 55 emails in one day. `to` is who
+   * receives it and `replyTo` is who an operator template is ABOUT: every
+   * operator notification composes with the enquirer's address there, which
+   * is what makes the eighteen that reached a real inbox about a person who
+   * does not exist catchable at all.
+   *
+   * An explicit mode from the caller still wins. queue-audit passes
+   * no_external_effect for its probes and must keep getting it.
+   */
+  const derived = effectMode ?? effectModeFor(email.to ?? null, email.replyTo ?? null);
+
   return enqueue(
     "email.send",
     {
@@ -589,6 +609,6 @@ export async function queueEmail(
       html: email.html ?? "",
       orderId: about?.orderId ?? null,
     },
-    effectMode ? { effectMode } : {},
+    derived !== "live" ? { effectMode: derived } : {},
   );
 }

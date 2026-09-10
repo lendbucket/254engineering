@@ -34,7 +34,10 @@
  * consumed took backlog. 35 email.send jobs ran for real and 35 emails went
  * out. Nobody outside the firm received one, and that was luck.
  *
- * So there are two mechanisms now and they answer different questions. Probes
+ * So there are THREE mechanisms now and they answer different questions. Before
+ * anything is enqueued this file REFUSES TO START if any outward reaching job it
+ * did not create is claimable on the target, which is the blunt question asked
+ * first: could running a worker here reach a person at all. Probes
  * are still made the oldest eligible work, so the REAL claim returns them
  * first, using the real function and the real ordering, and the backlog is
  * never touched. And every batch goes through ourBatch(), which refuses to run
@@ -64,6 +67,8 @@ import { readSource } from "./lib/read-source.mjs";
 import { PROBES, probedKinds, probeFor, NOWHERE } from "./lib/job-probes.mjs";
 import { registeredKinds, handlerFor, loadHandlers, enqueue, runBatch } from "../src/lib/ops-jobs.ts";
 import { nextState, LEASE_SECONDS, BATCH_SIZE } from "../src/lib/job-rules.ts";
+import { COULD_NOT_TELL } from "./lib/reachable.mjs";
+import { isFixtureIdentity } from "../src/lib/fixture-identity.ts";
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -79,6 +84,63 @@ if (!db) {
 }
 
 await loadHandlers();
+
+/*
+ * ===========================================================================
+ * THE REFUSAL, BEFORE THIS FILE PUTS A SINGLE ROW ON THE QUEUE.
+ *
+ * Operator ruling, 2026-09-09, on top of everything below: queue-audit
+ * refuses to START if any outward-reaching job it did not enqueue is
+ * claimable on the target.
+ *
+ * WHY IT IS HERE AND NOT AT THE END
+ * ----------------------------------
+ * The first version asked this question in the teardown, which is the wrong
+ * end of the run. By then the batches have been claimed and the sends, if
+ * there were any, have happened. A check that reports afterwards that this
+ * audit could have sent an email is a check that already did.
+ *
+ * The guard on each batch is still there and still does its job. This is the
+ * cheaper and blunter question asked first: is the database in a state where
+ * running a worker at all could reach a person. If it is, nothing runs.
+ *
+ * IT IS A REFUSAL, NOT A FAILURE OF THE PLATFORM
+ * -----------------------------------------------
+ * The exit code says so. This is the same third answer the browser audits
+ * give when there is no server: the queue was not measured, and that is not
+ * a pass and not a defect in the queue.
+ * ===========================================================================
+ */
+{
+  const outwardKinds = registeredKinds().filter((k) => handlerFor(k)?.reachesOutside === true);
+  const { data: hazards } = await db
+    .from("eng_jobs")
+    .select("id, kind, run_after")
+    .eq("effect_mode", "live")
+    .in("kind", outwardKinds)
+    .in("status", ["pending", "running"])
+    .order("run_after", { ascending: true })
+    .limit(20);
+
+  if ((hazards ?? []).length > 0) {
+    console.log("");
+    console.log(
+      `  REFUSED TO START: ${hazards.length}${hazards.length === 20 ? "+" : ""} job(s) of an outward reaching kind are waiting on this database and are marked live.`,
+    );
+    console.log("");
+    for (const h of hazards.slice(0, 5)) {
+      console.log(`    #${h.id} ${h.kind}, eligible from ${h.run_after}`);
+    }
+    console.log("");
+    console.log("  Running a worker here can send them, and this audit runs a worker. That is");
+    console.log("  how 20 emails went out at 05:21 and 35 more at 23:08 on 2026-09-09.");
+    console.log("");
+    console.log("  Nothing was enqueued and nothing was claimed. Work queued by a fixture is");
+    console.log("  suppressed at creation now, so these are either older than that rule or");
+    console.log("  they belong to somebody real, and which of the two is a decision.");
+    process.exit(COULD_NOT_TELL);
+  }
+}
 
 /*
  * The probes are made the oldest eligible work on the queue. One day behind the
@@ -629,6 +691,110 @@ const ids = new Map();
   }
 }
 
+// ===========================================================================
+// 3b. THE ACTOR DECIDES THE MODE, AT CREATION, WITH NOBODY REMEMBERING TO.
+//
+//    Operator ruling: work enqueued by a board fixture or a demo actor is
+//    no_external_effect at creation, because the actor is not real, and real
+//    work on development still sends. Suppressing by ENVIRONMENT was refused,
+//    so this is the check that the distinction actually exists.
+//
+//    Both directions, because a rule that suppressed everything would pass a
+//    check that only looked at the fixture case, and would mean a customer
+//    never hears from the firm.
+// ===========================================================================
+
+console.log("--- the actor decides");
+{
+  const { queueEmail } = await import("../src/lib/ops-jobs.ts");
+
+  /* The exact shape of the eighteen that reached a real inbox on 2026-09-09:
+   * addressed to a real person, ABOUT somebody who does not exist. */
+  const aboutAFixture = await queueEmail({
+    id: "queue-audit-actor-fixture",
+    purpose: "operator",
+    subject: "queue-audit: about a fixture",
+    from: "queue-audit@254engineering.com",
+    to: "ceo@36west.org",
+    replyTo: "forms.audit@254engineering.com",
+    text: "A probe. The recipient is real and the subject is not.",
+    html: "",
+  });
+  if (aboutAFixture.ok && aboutAFixture.id > 0) created.add(aboutAFixture.id);
+
+  const { data: fixtureRow } = await db
+    .from("eng_jobs")
+    .select("effect_mode")
+    .eq("id", aboutAFixture.ok ? aboutAFixture.id : -1)
+    .maybeSingle();
+
+  rec(
+    "work about a fixture is suppressed at creation, even addressed to a real person",
+    fixtureRow?.effect_mode === "no_external_effect",
+    `effect_mode=${fixtureRow?.effect_mode}; this is the shape of the 18 that reached the operator`,
+  );
+
+  /*
+   * AND REAL WORK STILL SENDS, which is the half that makes the rule worth
+   * having. Enqueued a year out so it can never be claimed by anything: a live
+   * outward job left eligible on this database is the hazard this whole file
+   * refuses to start over.
+   */
+  const real = await queueEmail(
+    {
+      id: "queue-audit-actor-real",
+      purpose: "operator",
+      subject: "queue-audit: about a real person",
+      from: "queue-audit@254engineering.com",
+      to: "ceo@36west.org",
+      replyTo: "someone@gmail.com",
+      text: "A probe. Both identities are real, so this must stay live.",
+      html: "",
+    },
+    undefined,
+    undefined,
+  );
+  if (real.ok && real.id > 0) {
+    created.add(real.id);
+    await db
+      .from("eng_jobs")
+      .update({ run_after: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() })
+      .eq("id", real.id);
+  }
+
+  const { data: realRow } = await db
+    .from("eng_jobs")
+    .select("effect_mode, run_after")
+    .eq("id", real.ok ? real.id : -1)
+    .maybeSingle();
+
+  rec(
+    "and work about real people is NOT suppressed",
+    realRow?.effect_mode === "live",
+    `effect_mode=${realRow?.effect_mode}; a rule that suppressed this would mean a customer never hears from the firm`,
+  );
+  rec(
+    "and that live probe was made unclaimable rather than left waiting",
+    realRow?.run_after ? Date.parse(realRow.run_after) > Date.now() + 300_000 : false,
+    `run_after=${realRow?.run_after}`,
+  );
+
+  /* The predicate itself, on the identities that actually appeared. */
+  rec(
+    "the probe domains the harness uses are recognised",
+    isFixtureIdentity("probe-1@audit-probe.invalid") &&
+      isFixtureIdentity("demo.tech.coastal@example.com") &&
+      isFixtureIdentity("forms.audit@254engineering.com"),
+    "audit-probe.invalid, the seeded demo cast, and the firm's own audit mailbox",
+  );
+  rec(
+    "and an ordinary address is not",
+    !isFixtureIdentity("ceo@36west.org") &&
+      !isFixtureIdentity("someone@gmail.com") &&
+      !isFixtureIdentity("support@254engineering.com"),
+    "the dangerous direction is a suppression nobody asked for",
+  );
+}
 // ===========================================================================
 // 4. THE IDEMPOTENCY KEY REFUSES A SECOND ENQUEUE WHILE THE FIRST IS LIVE.
 // ===========================================================================

@@ -1,4 +1,5 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { createCipheriv, createDecipheriv, createHash, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { supabaseAdmin } from "./supabase";
 import { base32Decode, newTotpSecret, otpauthUri, verifyTotp } from "./totp";
@@ -256,8 +257,8 @@ export async function beginEnrolment(
     {
       user_id: userId,
       pending_cipher: cipher,
-      pending_started_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      pending_started_at: DB_NOW,
+      updated_at: DB_NOW,
     },
     { onConflict: "user_id" },
   );
@@ -319,11 +320,11 @@ export async function confirmEnrolment(
     .from("eng_mfa_enrolments")
     .update({
       secret_cipher: data.pending_cipher,
-      verified_at: new Date().toISOString(),
+      verified_at: DB_NOW,
       pending_cipher: null,
       pending_started_at: null,
       last_step: check.step,
-      last_used_at: new Date().toISOString(),
+      last_used_at: DB_NOW,
     })
     .eq("user_id", userId);
   if (activateError) return { ok: false, error: `The enrolment could not be completed: ${activateError.message}` };
@@ -386,7 +387,7 @@ export async function answerChallenge(userId: string, answer: string): Promise<C
 
   await db
     .from("eng_mfa_enrolments")
-    .update({ last_step: check.step, last_used_at: new Date().toISOString() })
+    .update({ last_step: check.step, last_used_at: DB_NOW })
     .eq("user_id", userId);
 
   return { ok: true, used: "code" };
@@ -419,7 +420,7 @@ async function spendRecoveryCode(userId: string, code: string): Promise<Challeng
    */
   const { data: claimed, error: claimError } = await db
     .from("eng_mfa_recovery_codes")
-    .update({ used_at: new Date().toISOString() })
+    .update({ used_at: DB_NOW })
     .eq("id", data.id)
     .is("used_at", null)
     .select("id");
@@ -435,7 +436,7 @@ async function spendRecoveryCode(userId: string, code: string): Promise<Challeng
 
   await db
     .from("eng_mfa_enrolments")
-    .update({ last_used_at: new Date().toISOString() })
+    .update({ last_used_at: DB_NOW })
     .eq("user_id", userId);
 
   return { ok: true, used: "recovery", remaining: count ?? 0 };

@@ -1,4 +1,5 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { readEvery } from "./bounded-read";
 import { orderForFile as liveOrderForFile } from "./order-for-file";
 import { supabaseAdmin } from "./supabase";
@@ -309,7 +310,7 @@ export async function markBatchPaid(input: {
 
   await db
     .from("eng_order_batches")
-    .update({ status: "accepted", paid_at: new Date().toISOString() })
+    .update({ status: "accepted", paid_at: DB_NOW })
     .eq("id", input.batchId);
 
   /*
@@ -334,7 +335,7 @@ export async function markBatchPaid(input: {
     if (!canTransitionOrder(o.status as never, "paid")) continue;
     await db
       .from("eng_service_orders")
-      .update({ status: "in_fulfilment", paid_at: new Date().toISOString() })
+      .update({ status: "in_fulfilment", paid_at: DB_NOW })
       .eq("id", o.id);
     await event(
       o.id as string,
@@ -408,7 +409,7 @@ export async function abandonBatch(
 
   await db
     .from("eng_order_batches")
-    .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
+    .update({ status: "cancelled", cancelled_at: DB_NOW })
     .eq("id", batchId);
 
   return { ok: true, closed };
@@ -672,7 +673,7 @@ export async function acceptOnInvoice(
 
   await db
     .from("eng_service_orders")
-    .update({ status: "in_fulfilment", paid_at: new Date().toISOString() })
+    .update({ status: "in_fulfilment", paid_at: DB_NOW })
     .eq("id", orderId);
 
   await event(
@@ -736,7 +737,7 @@ export async function markAbandoned(
   await event(orderId, "checkout.expired", true, reason);
   await db
     .from("eng_service_orders")
-    .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
+    .update({ status: "cancelled", cancelled_at: DB_NOW })
     .eq("id", orderId);
 
   return { ok: true, changed: true };
@@ -884,7 +885,7 @@ export async function recordExternalRefund(input: {
     if (order && canTransitionOrder(order.status as never, "refunded")) {
       await db
         .from("eng_service_orders")
-        .update({ status: "refunded", refunded_at: new Date().toISOString() })
+        .update({ status: "refunded", refunded_at: DB_NOW })
         .eq("id", charge.order_id);
     }
   }
@@ -1059,7 +1060,7 @@ export async function cancelAndRefund(input: {
 
   await db
     .from("eng_service_orders")
-    .update({ status: "refunded", refunded_at: new Date().toISOString() })
+    .update({ status: "refunded", refunded_at: DB_NOW })
     .eq("id", input.orderId);
 
   await reverseForRefund({
@@ -1272,7 +1273,7 @@ export async function settleDecision(input: {
   if (canTransitionOrder(order.status as never, "refunded")) {
     await db
       .from("eng_service_orders")
-      .update({ status: "refunded", refunded_at: new Date().toISOString() })
+      .update({ status: "refunded", refunded_at: DB_NOW })
       .eq("id", input.orderId);
   }
 

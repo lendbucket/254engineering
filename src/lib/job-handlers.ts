@@ -1,7 +1,11 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { READ_CAP } from "./bounded-read";
 import { createHash } from "node:crypto";
 import { registerJob, enqueue, queueEmail } from "./ops-jobs";
+import { isFixtureIdentity } from "./fixture-identity";
+import { resolveDeferred } from "./deferred-links";
+import { signedDownloadUrl } from "./uploads";
 import type { JobOutcome } from "./job-rules";
 import { supabaseAdmin } from "./supabase";
 import { notify } from "./notify";
@@ -97,7 +101,15 @@ registerJob("email.send", {
      * named. The job row carries effect_mode, so what happened is on the
      * record where it belongs.
      */
-    if (job.effectMode === "no_external_effect") {
+    /*
+     * THE SECOND GUARD, AT RUN TIME, AND IT CATCHES A DIFFERENT THING.
+     *
+     * The mode on the row is decided at enqueue from the actor. This asks the
+     * narrower question the row cannot: is the address in front of me right
+     * now one nobody can be reached at. A job that predates the actor rule, or
+     * one inserted by hand, still stops here.
+     */
+    if (job.effectMode === "no_external_effect" || isFixtureIdentity(to)) {
       console.warn(
         "[jobs] email.send #" + job.id + " to " + to + ": suppressed, nothing was sent.",
       );
@@ -110,6 +122,17 @@ registerJob("email.send", {
      * the work happened. id and purpose ride along because email-audit uses
      * them to name a failure and to decide which sender identity applies.
      */
+    /*
+     * THE LINKS ARE SIGNED HERE, AND HERE IS THE LAST MOMENT BEFORE THE DOOR.
+     *
+     * Everything above has already decided this message is going out. What
+     * has not happened yet is the provider call, so a link minted now is a
+     * link whose window starts when the recipient could first have used it.
+     * A four day queue used to hand over a three day link.
+     */
+    const signedText = await resolveDeferred((p.text as string) ?? "", signedDownloadUrl);
+    const signedHtml = await resolveDeferred((p.html as string) ?? "", signedDownloadUrl);
+
     const result = await notify({
       id: (p.id as string) ?? "queued",
       purpose: (p.purpose as "operator" | "human") ?? "operator",
@@ -120,8 +143,8 @@ registerJob("email.send", {
       // the payload carries null and it is turned back into an absent header
       // here. Handing Resend a null reply-to is not the same as omitting it.
       replyTo: (p.replyTo as string) ?? undefined,
-      text: (p.text as string) ?? "",
-      html: (p.html as string) ?? "",
+      text: signedText,
+      html: signedHtml,
     });
 
     if (result.outcome === "ok") {
@@ -225,6 +248,21 @@ registerJob("notification.deliver", {
       .maybeSingle();
 
     const address = (profile?.email as string) ?? null;
+
+    /*
+     * The run time backstop, same as email.send. The mode on the row is decided
+     * at enqueue from the actor; this asks whether the address resolved from the
+     * profile a moment ago is one nobody can be reached at. Every portal probe
+     * lives at audit-probe.invalid, so a notification queued for one stops here
+     * whatever its row says.
+     */
+    if (address && isFixtureIdentity(address)) {
+      console.warn(
+        "[jobs] notification.deliver #" + job.id + " to " + address + ": suppressed, nobody is there.",
+      );
+      return { kind: "done" };
+    }
+
     if (!address) {
       await client
         .from("eng_notifications")
@@ -245,7 +283,7 @@ registerJob("notification.deliver", {
     if (sent.outcome === "ok") {
       await client
         .from("eng_notifications")
-        .update({ emailed_at: new Date().toISOString(), email_error: null })
+        .update({ emailed_at: DB_NOW, email_error: null })
         .eq("id", row.id);
       return { kind: "done" };
     }
@@ -570,7 +608,7 @@ registerJob("errors.alert", {
     for (const { type, kind, because } of chosen) {
       await client
         .from("eng_error_types")
-        .update(kind === "rate" ? { alerted_rate_at: now } : { alerted_new_at: now })
+        .update(kind === "rate" ? { alerted_rate_at: DB_NOW } : { alerted_new_at: DB_NOW })
         .eq("fingerprint", type.fingerprint);
 
       console.warn(`[alert] ${kind}: ${type.fingerprint} (${because})`);
