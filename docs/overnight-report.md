@@ -212,9 +212,82 @@ findings the vacuous one could not have.**
 
 ## 4. Round 3: seven roles, every screen
 
-**NOT YET RUN.** It is written and waiting for the board to finish, because
-starting a second server under a running build would trip the build race guard
-and invalidate Round 1.
+`scripts/overnight-roles.mjs`, against development, signed in as a fresh probe
+per role. **176 screens opened and photographed at 390 and 1280**, into
+`screenshots/overnight/<role>/<screen>-<width>.png`, with a transcript of every
+one at `screenshots/overnight/transcript.json`. Every probe account was created,
+used and removed, verified by sweeping the whole probe domain: `left: 0`.
+
+The list of screens is not a list. It is what the shell actually rendered for
+that role, which is the platform's own answer to "what does this role reach",
+and asking it that way turns drift into a finding instead of a blind spot.
+
+| Role | Landing path | Opened | Destinations offered |
+| --- | --- | --- | --- |
+| admin | /portal | yes, "Dashboard" | 26 of 28 |
+| engineer | /portal/review | yes, "Review queue" | 12 |
+| field_tech | /portal/jobs | yes, "My jobs" | 8 |
+| dispatcher | /portal/files | yes, "Files" | 9 |
+| sales | /portal/clients | yes, "Clients" | 7 |
+| customer_service | /portal/files | yes, "Files" | 7 |
+| read_only | /portal | yes, "Dashboard" | 12 |
+
+Every role's declared landing path opens for it. Six of seven refuse a screen
+they are not offered, in words, at HTTP 404 with "That page is not here". The
+seventh is section 7.2.
+
+### 4a. What Round 3 found, and what happened to each
+
+| Finding | Verdict | Outcome |
+| --- | --- | --- |
+| 11 dashboard tiles linked where the person clicking could not go | **REAL** | Fixed, `6e2da4d`, with two checks in `5afd232` |
+| `/portal/documents` phone card was an `<a>` inside an `<a>` | **REAL** | Fixed, `4608a71`, with a check |
+| The Job queue screen was 38,744px of rendered email HTML | **REAL** | Fixed, `23a10ae` |
+| An administrator opens `/portal/certification`, which the shell never offers | **REAL, needs a ruling** | Recorded, section 7.2. Not touched. |
+| 76 "demonstration data shown and the screen does not say so" | **FALSE POSITIVE** | See below |
+| 66 "five digit bare numbers" | **FALSE POSITIVE** | See below |
+| 4 "the word null is on the screen" | **FALSE POSITIVE**, and it led to a real one | See below |
+
+### 4b. The three false positives, stated rather than quietly dropped
+
+**Demonstration data, 76 hits over 15 screens.** The heuristic asked whether a
+screen carrying anything that looks like a fixture SAYS so in prose. Reading
+`/portal/files` as a person answers it: the rows are `254-DEMO-STANDING`,
+`254-DEMO-0003`, "1 Standing Demo Way", "312 Demo Harbour Row", "88 Demo
+Windward Court". Nobody can mistake those for real work, and that is exactly the
+design CLAUDE.md records for `seed-field-demo`: obviously fake names, addresses
+that do not exist. The records announce themselves and no banner is needed.
+`/portal/profile` hit for all seven roles, and that one was this round's own
+probe reading its own `@audit-probe.invalid` address back off the screen.
+
+**Five digit bare numbers, 66 hits.** Written to catch amounts in cents, which
+is a real defect Phase 12 Section 2 found in an export. What it actually caught
+was millisecond timestamps and row ids: `1789018194875`, `1788447318333`. No
+money is printed in cents on any screen.
+
+**The word "null", 4 hits.** Two were the sales dashboard, where the prose
+reads "which is the arithmetic a nulls-last sort quietly produces". That
+sentence is correct and well written.
+
+**The other two were the Job queue, and they were not prose.** They were
+`"replyTo":null` inside a raw job payload the screen was printing in full,
+which is how the 38,744 pixel screen was found. A crude heuristic pointed at
+the right screen for the wrong reason, and looking is what turned it into a
+finding.
+
+### 4c. The artefact, read as a person would read it
+
+`screenshots/overnight/admin/queue-1280.png`, before the fix, is 38,744 pixels
+tall. Opened, it is a grey slab: doctype declarations, `<head>`, inline styles,
+the entire rendered body of eight emails, wrapped and running down the page with
+the actual queue somewhere inside it. Every check that looks at that page was
+green. No horizontal scroll, tap targets fine, contrast fine. The screen was
+unusable and correct by every measure anybody had asked for, and nothing on the
+board measures how tall a portal screen is.
+
+After the fix the same screen is 14,984 pixels, and what remains is dead letter
+rows: a header, the error, four hundred characters of payload, and a Retry
+button. The rows that remain are real data rather than a rendering fault.
 
 ---
 
