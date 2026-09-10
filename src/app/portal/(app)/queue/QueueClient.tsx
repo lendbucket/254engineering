@@ -113,7 +113,21 @@ export function QueueClient({ jobs }: { jobs: DeadJob[] }) {
               <p className="mt-1.5 max-w-[76ch] font-mono text-[12px] leading-[1.5] break-all text-[var(--secondary)]">
                 {JSON.stringify(j.payload).slice(0, PAYLOAD_CHARS)}
                 {JSON.stringify(j.payload).length > PAYLOAD_CHARS ? (
-                  <span className="font-sans not-italic text-[var(--muted)]">
+                  {/*
+                    --secondary, NOT --muted, and the board is why.
+
+                    The first version of this note used var(--muted), which
+                    measures #8a93a0 on white at 3.1:1. contrast-audit went red
+                    on nine instances of it at 12px, needing 4.5:1, on the very
+                    screen this fix was written to make readable. DESIGN_SPEC
+                    section 2 is the standing rule and AA wins wherever a token
+                    and accessibility disagree.
+
+                    The note is set apart by being sans rather than mono, and by
+                    its brackets, rather than by being fainter. A truncation
+                    notice nobody can read is the truncation going unannounced.
+                  */}
+                  <span className="font-sans not-italic text-[var(--secondary)]">
                     {` [${(JSON.stringify(j.payload).length - PAYLOAD_CHARS).toLocaleString("en-US")} more characters, not shown]`}
                   </span>
                 ) : null}
