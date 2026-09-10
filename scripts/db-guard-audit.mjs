@@ -689,6 +689,12 @@ for (const r of out) console.log(`  ${r.ok ? "PASS" : "FAIL"}: ${r.name}${r.note
    * firm's regulatory output. paid_at is when a customer's money arrived.
    * Both were written from a clock measured 85 seconds ahead of the database.
    *
+   * ==========================================================================
+   * A PATTERN WRONG TWICE THE SAME WAY IS THE WRONG MECHANISM.
+   * Operator ruling, 2026-09-10, and it is the sentence this declaration exists
+   * under rather than a remark about one regex.
+   * ==========================================================================
+   *
    * A pattern that has been wrong twice in the same way is the wrong mechanism.
    * So the rule is inverted, into the declared inventory idiom this repository
    * uses for surfaces, migrations and bulk paths: EVERY use of the machine
