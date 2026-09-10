@@ -143,6 +143,25 @@ clock, `sealed_at` and `paid_at` among them. So the red mark above was not
 merely an environment annoyance. It was the visible end of a real defect, and
 following it is what found the other one.
 
+### The board was run four times, and the last three are the argument for it
+
+| Pass | Result | What it caught |
+| --- | --- | --- |
+| 1 | 46 of 47 | The starting state. Only the clock. |
+| 2 | **45 of 47** | `contrast-audit` red on nine instances of a note I had added to the Job queue two commits earlier: `var(--muted)` at **3.1:1** on 12px text, needing 4.5:1. A truncation notice nobody can read is the truncation going unannounced, so it failed at the thing it was added to do, on the screen it was added to fix. |
+| 3 | **THE SUITE DID NOT RUN TO COMPLETION** | The build failed. Fixing the contrast note put a JSX comment inside a ternary branch, which is two expressions where one is allowed. `tsc` was CLEAN. |
+| 4 | see section 8 | |
+
+Pass 3 is the pairing CLAUDE.md section 6 already records from 2026-09-09: a
+clean `tsc` and a failed build, because the constraint belongs to the bundler
+rather than to the type system. It is why the board builds before it audits and
+prints `THE SUITE DID NOT RUN TO COMPLETION` rather than a list of content
+failures, and it is why nothing was reported green before it ran.
+
+Both regressions were mine, both were introduced by fixes that were themselves
+verified (page height measured, `tsc` clean), and neither was visible from the
+change. **A green audit is a green audit of the file it read.**
+
 ### The check was not loosened, and that is the point
 
 The tempting fix is to widen "to within a minute" to "to within two minutes" and
