@@ -722,6 +722,213 @@ if (ids.length > 0) {
   );
 }
 
+/* ================== N PLANS, AND EACH ONE IS THE SINGLE FILE'S PLAN EXACTLY */
+
+/*
+ * ===========================================================================
+ * NO TECHNICIAN IS CHOSEN BY A BULK PATH THAT THE SINGLE PATH WOULD NOT HAVE
+ * CHOSEN FOR THAT FILE.
+ * Operator ruling, gate 1, and this is the block that proves it rather than
+ * describing it.
+ * ===========================================================================
+ *
+ * Every other dispatch check in this file reads SOURCE: that the panel
+ * preselects nothing, that bulk calls sendOffers, that no shortcut exists.
+ * Those are worth having and none of them can see the thing the ruling
+ * actually says, which is a statement about two computed answers being the
+ * same answer.
+ *
+ * So this computes both and compares them, field by field, in order.
+ *
+ *   the SINGLE path  dispatchContext(actor, file).plan.offers
+ *   the BULK path    dispatchPlans(actor, [id]).plans[0].offers
+ *
+ * And then the part that makes it N PLANS rather than one plan applied N
+ * times: every file is planned again as part of a BATCH, and each file's plan
+ * in the batch must equal its plan alone. A batch that re-ranked, deduplicated
+ * across files, or spread work between them would pass the two checks above
+ * and fail here.
+ *
+ * THE SUBJECT IS BUILT, BECAUSE FILTERING FOR IT FINDS NOTHING.
+ *
+ * Development holds one file in needs_dispatch and it is in Aransas, where no
+ * certified technician covers the service line, so its plan is empty. Two
+ * empty lists are equal and prove nothing at all: that is the vacuous check
+ * CLAUDE.md rules against, so three files are created in a county two
+ * certified technicians DO cover, planned, compared, and removed.
+ */
+{
+  const { dispatchPlans } = await import("../src/lib/ops-bulk-dispatch.ts");
+  const { dispatchContext } = await import("../src/lib/ops-field.ts");
+  const { createFile, transitionFile } = await import("../src/lib/ops-crm.ts");
+  const { DEFAULT_ROLES } = await import("../src/lib/ops-authz.ts");
+
+  /*
+   * A real profile, and a DEMONSTRATION one, so every file this block opens is
+   * a demonstration file. That is the ruling of 2026-09-10 working for us: the
+   * fixture cannot mint a real file by accident, and the DEMO number is what
+   * the teardown finds.
+   */
+  const { data: demoAdmins } = await db
+    .from("eng_profiles")
+    .select("id, email")
+    .eq("role", "admin")
+    .eq("status", "active")
+    .eq("is_demo", true)
+    .limit(1);
+
+  const { data: anyClient } = await db.from("eng_clients").select("id").eq("is_demo", true).limit(1);
+
+  const planner = demoAdmins?.[0]
+    ? {
+        id: demoAdmins[0].id,
+        email: demoAdmins[0].email,
+        role: "admin",
+        status: "active",
+        grants: new Set(DEFAULT_ROLES.find((r) => r.key === "admin").grants),
+        license_number: null,
+        coverage_counties: [],
+        is_demo: true,
+      }
+    : null;
+
+  const made = [];
+  let built = 0;
+
+  if (!planner || !anyClient?.[0]) {
+    rec(
+      "a demonstration administrator and client exist to build the dispatch subject with",
+      false,
+      "seed-field-demo has not run on this database, so the N plans proof has no subject",
+    );
+  } else {
+    /*
+     * THE COUNTY AND THE SERVICE LINE ARE CHOSEN SO THE PLAN IS NOT EMPTY.
+     *
+     * windstorm-wpi-8 is the one service line with a published protocol, and
+     * Nueces is covered by both certified technicians. A file here plans two
+     * offers; a file in Aransas plans none, which is why the one file already
+     * on the database could not be the subject.
+     */
+    for (let i = 0; i < 3; i += 1) {
+      const opened = await createFile(planner, {
+        clientId: anyClient[0].id,
+        serviceSlug: "windstorm-wpi-8",
+        propertyAddress: `${10 + i} N Plans Proof Row`,
+        county: "Nueces",
+        urgency: "standard",
+        notes: "Opened by bulk-audit to compare the single and bulk dispatch plans. Removed at the end of the run.",
+      });
+      if (!opened.ok) continue;
+      made.push(opened.id);
+      const moved = await transitionFile(planner, opened.id, "needs_dispatch", "Ready to dispatch, for the plan comparison.");
+      if (moved.ok) built += 1;
+    }
+
+    rec(
+      `three dispatchable files were built for the comparison (${built})`,
+      built === 3,
+      built === 3 ? "in Nueces, windstorm-wpi-8, which two certified technicians cover" : "the subject could not be built",
+    );
+
+    /* The shape a comparison can be made on: ids in order, and every number. */
+    const shapeOf = (offers) =>
+      offers.map((o) => [o.techId, o.rank, o.miles ?? o.distanceMiles ?? null, o.openJobs, o.amountCents].join("|"));
+
+    /* ---- 1. one file at a time: bulk equals single ---- */
+    const singles = new Map();
+    const alone = new Map();
+    let planned = 0;
+
+    for (const id of made) {
+      const { data: row } = await db
+        .from("eng_files")
+        .select("id, county, service_slug, latitude, longitude")
+        .eq("id", id)
+        .single();
+
+      const context = await dispatchContext(planner, row);
+      singles.set(id, shapeOf(context?.plan.offers ?? []));
+
+      const bulk = await dispatchPlans(planner, [id]);
+      alone.set(id, bulk.ok ? shapeOf(bulk.plans[0].offers) : ["BULK REFUSED: " + bulk.error]);
+      if ((context?.plan.offers ?? []).length > 0) planned += 1;
+    }
+
+    rec(
+      `the built files actually plan somebody (${planned} of ${made.length})`,
+      planned === made.length && made.length > 0,
+      planned
+        ? `${[...singles.values()][0].length} offer(s) on the first file, so the comparison below has something to compare`
+        : "every plan is empty, so comparing them proves nothing",
+    );
+
+    const mismatchAlone = made.filter((id) => singles.get(id).join(" ") !== alone.get(id).join(" "));
+    rec(
+      "a bulk plan for one file is the single path's plan, in the same order, with the same numbers",
+      mismatchAlone.length === 0,
+      mismatchAlone.length
+        ? mismatchAlone
+            .map((id) => `${id}: single [${singles.get(id).join(", ")}] vs bulk [${alone.get(id).join(", ")}]`)
+            .join(" | ")
+        : `${made.length} file(s) compared on techId, rank, miles, open jobs and amount`,
+    );
+
+    /* ---- 2. and the batch does not change any of them ---- */
+    const batch = await dispatchPlans(planner, made);
+    const inBatch = new Map(
+      batch.ok ? batch.plans.map((p) => [p.fileId, shapeOf(p.offers)]) : [],
+    );
+
+    rec(
+      "planning all of them at once returns a plan for every one",
+      batch.ok && batch.plans.length === made.length,
+      batch.ok ? `${batch.plans.length} of ${made.length}` : batch.error,
+    );
+
+    const mismatchBatch = made.filter(
+      (id) => (inBatch.get(id) ?? ["MISSING"]).join(" ") !== singles.get(id).join(" "),
+    );
+    rec(
+      "and each file's plan in the batch is identical to its plan alone",
+      mismatchBatch.length === 0,
+      mismatchBatch.length
+        ? mismatchBatch
+            .map((id) => `${id}: alone [${singles.get(id).join(", ")}] vs in batch [${(inBatch.get(id) ?? []).join(", ")}]`)
+            .join(" | ")
+        : "N plans, not one plan applied N times: no re-ranking, no spreading, no deduplication across files",
+    );
+
+    /*
+     * ---- 3. and the batch chooses nobody ----
+     *
+     * The single path preselects nothing, so the bulk path must preselect
+     * nothing, and "nothing" here means the plan carries no selection field at
+     * all rather than an empty one somebody could default.
+     */
+    const firstPlan = batch.ok ? batch.plans[0] : null;
+    rec(
+      "a plan carries no selection of its own",
+      Boolean(firstPlan) && !("selected" in firstPlan) && !("chosen" in firstPlan) && !("techIds" in firstPlan),
+      firstPlan
+        ? `the plan's fields are: ${Object.keys(firstPlan).join(", ")}`
+        : "no plan was returned",
+    );
+  }
+
+  /* ---- teardown: the files this block created, on development ---- */
+  if (made.length) {
+    for (const id of made) await db.from("eng_file_events").delete().eq("file_id", id);
+    await db.from("eng_files").delete().in("id", made);
+    const { data: left } = await db.from("eng_files").select("id").in("id", made);
+    rec(
+      "the files this comparison built were removed",
+      (left ?? []).length === 0,
+      (left ?? []).length ? `${left.length} left behind` : `${made.length} removed`,
+    );
+  }
+}
+
 /* ----------------------------------------------------------------- verdict */
 
 console.log("");

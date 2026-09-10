@@ -478,17 +478,46 @@ export async function createFile(
    * to mint a demonstration file would give it a real sequence, and reading the
    * demonstration block to mint a real one would be worse.
    */
-  const { data: highest } = await db
+  /*
+   * THE HIGHEST NUMERIC SEQUENCE, NOT THE HIGHEST STRING.
+   *
+   * This read one row, ordered by file_number descending as text, and took the
+   * part after the last dash as a number. That is correct while every number in
+   * the block ends in four digits, and the DEMO block does not:
+   *
+   *   254-DEMO-STANDING      the standing fixture
+   *   254-DEMO-SPL418364     a split client fixture
+   *   254-DEMO-WALK0910      renamed by hand after a path walk
+   *
+   * Text descending puts every one of those ABOVE 254-DEMO-0003, so the read
+   * returned a name, Number("WALK0910") was NaN, the guard below turned NaN
+   * into 0, and the five retries tried 0001 to 0005. Three were taken by the
+   * seeder, so opening a third demonstration file failed with "Could not
+   * allocate a file number. Try again." every time.
+   *
+   * Found immediately after this function learned to mint demonstration
+   * numbers, by building three files for the dispatch comparison and watching
+   * the third refuse. Nothing could have found it before, because nothing but
+   * the seeder had ever written a DEMO number, and the seeder writes them as
+   * literals.
+   *
+   * So the sequence is the MAXIMUM of the numeric tails rather than the tail of
+   * the maximum name. A bounded page rather than every row: real numbers are
+   * zero padded to a fixed width, so text order and numeric order agree there
+   * and the first row is already the answer; the page exists for the DEMO block,
+   * where a handful of named fixtures sit on top.
+   */
+  const { data: numbered } = await db
     .from("eng_files")
     .select("file_number")
     .like("file_number", isDemo ? `%-${DEMO_FILE_SEGMENT}-%` : `%-${year}-%`)
     .order("file_number", { ascending: false })
-    .limit(1);
+    .limit(200);
 
-  const lastSequence = highest?.[0]?.file_number
-    ? Number(String(highest[0].file_number).split("-").pop())
-    : 0;
-  const nextSequence = Number.isFinite(lastSequence) ? lastSequence : 0;
+  const sequences = (numbered ?? [])
+    .map((r) => Number(String(r.file_number).split("-").pop()))
+    .filter((n) => Number.isFinite(n));
+  const nextSequence = sequences.length ? Math.max(...sequences) : 0;
 
   /*
    * Retries are for the collision two simultaneous intakes cause, which is a
