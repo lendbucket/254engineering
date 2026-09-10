@@ -174,6 +174,40 @@ for (const v of VERSIONS) {
   }
 }
 
+/**
+ * The largest payload this encoder can hold, in bytes.
+ *
+ * Derived from the version table rather than written down, so it cannot drift
+ * away from what the encoder actually does: the last version's data codewords
+ * less the two the byte mode header and the character count occupy.
+ *
+ * WHY IT IS EXPORTED
+ * ------------------
+ * So a caller can ASK before it encodes. qrMatrix still throws on something it
+ * cannot fit, which is right for a pure encoder, and a route that turns a throw
+ * into a 500 is not right for a person trying to enrol. /api/portal/mfa asks
+ * this first and refuses in a sentence naming the limit.
+ *
+ * The number was found the hard way on 2026-09-10. A staff member with a long
+ * enough email address got a 500 at enrolment, because the otpauth URI carries
+ * their address and the error said the encoder "covers versions 5 to 10 in byte
+ * mode, which is every otpauth URI". That claim is false: a SHORT address is
+ * already 165 bytes and a 68 character one is 222.
+ */
+export const QR_MAX_BYTES = VERSIONS[VERSIONS.length - 1].dataCodewords - 2;
+
+/**
+ * Would this text fit? Cheap, allocation free, and the question a caller wants.
+ */
+export function qrFits(text: string): boolean {
+  return new TextEncoder().encode(text).length <= QR_MAX_BYTES;
+}
+
+/** How many bytes this text would need, for a message that says the number. */
+export function qrByteLength(text: string): number {
+  return new TextEncoder().encode(text).length;
+}
+
 /** Alignment pattern centres per version, versions 5 to 10. */
 const ALIGNMENT: Record<number, number[]> = {
   5: [6, 30],
