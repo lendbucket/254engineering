@@ -787,7 +787,15 @@ const base = {
    * entirely made it return -1, which is less than everything, so removing the
    * cooldown stamp passed a check named "stamps before it queues".
    */
-  const stampAt = handlers.indexOf("alerted_rate_at: now");
+  /*
+   * THE SPELLING MOVED AND THIS NAMES THE NEW ONE.
+   *
+   * It pinned `alerted_rate_at: now` and went red when the timestamp sweep
+   * landed. Loosening it to match either spelling would make it a check on
+   * nothing, so it names DB_NOW and gains the check below, which is the
+   * property the old one could not see.
+   */
+  const stampAt = handlers.indexOf("alerted_rate_at: DB_NOW");
   const queueAt = handlers.indexOf("const queued = await queueEmail(");
   rec(
     "the alert sweep stamps before it queues",
@@ -795,6 +803,24 @@ const base = {
     stampAt === -1
       ? "the cooldown stamp is not written at all"
       : "otherwise a failure between the two loses the cooldown and sends every sweep",
+  );
+
+  /*
+   * AND THE COOLDOWN IS MEASURED ON ONE CLOCK.
+   *
+   * This one is not housekeeping. The stamp is WRITTEN by the application and
+   * READ back to decide whether the cooldown has elapsed, and the read compares
+   * it against a window computed here. A stamp written 85 seconds ahead of the
+   * database is a cooldown 85 seconds short, on the alert about a queue that is
+   * already behind, which is the alert most likely to be firing repeatedly when
+   * somebody is trying to work.
+   */
+  rec(
+    "and the cooldown stamp comes from the database's clock",
+    /alerted_rate_at: DB_NOW/.test(handlers) &&
+      /alerted_new_at: DB_NOW/.test(handlers) &&
+      !/alerted_(rate|new)_at: now\b/.test(handlers),
+    "a stamp on one clock compared against a window on another is a cooldown that is wrong by the gap",
   );
 }
 

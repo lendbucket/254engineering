@@ -626,6 +626,83 @@ rec(
 console.log("================ DATABASE TARGET GUARD ================");
 console.log(`configured target: ${current ? describeTarget(current) : "unset"}\n`);
 for (const r of out) console.log(`  ${r.ok ? "PASS" : "FAIL"}: ${r.name}${r.note ? ` (${r.note})` : ""}`);
+// ===========================================================================
+// NO RECORDED MOMENT COMES FROM A PROCESS CLOCK.
+//
+// Operator ruling, 2026-09-09, after queue-audit measured this machine running
+// 85 seconds ahead of the database. Everything the queue decides is decided by
+// the DATABASE's now(); everything the application stamped was written with the
+// machine's. The gap had already produced two defects before anybody measured
+// it, and both were found as puzzles rather than as clock problems.
+//
+// This lives with the database guard because it is the same kind of rule: what
+// this platform is allowed to write to a database, enforced by something that
+// reads the whole tree rather than by whoever remembers.
+//
+// It matches an assignment shaped like a recorded moment, name_at, and nothing
+// else. A COMPUTED time is arithmetic the application did and should look like
+// it, so payable_at: new Date(input.payableAtMs) is deliberately not matched:
+// the moment it describes is not now and never was.
+// ===========================================================================
+{
+  const offenders = [];
+  const OBSERVED = /\b[a-z_]+_at:\s*(new Date\(\)\.toISOString\(\)|now\b|now\.toISOString\(\))/;
+  const walkSrc = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = dir + "/" + entry.name;
+      if (entry.isDirectory()) walkSrc(full);
+      else if (/\.tsx?$/.test(entry.name)) {
+        for (const line of readSource(full).split("\n")) {
+          if (OBSERVED.test(line)) offenders.push(full + ": " + line.trim().slice(0, 90));
+        }
+      }
+    }
+  };
+  walkSrc("src");
+
+  rec(
+    "no observed timestamp in src/ is written from this process's clock",
+    offenders.length === 0,
+    offenders.length
+      ? offenders.length + ": " + offenders.slice(0, 3).join(" | ")
+      : "every one sends DB_NOW, which Postgres resolves to transaction_timestamp()",
+  );
+
+  /*
+   * And the mechanism is what it claims to be. Without this the check above is
+   * only asserting that a particular string is absent, which a typo in DB_NOW
+   * would satisfy perfectly while writing the word "nwo" into a timestamp
+   * column on every row.
+   */
+  rec(
+    "and DB_NOW is the literal Postgres resolves against its own clock",
+    /export const DB_NOW = "now";/.test(readSource("src/lib/db-now.ts")),
+    "verified against the development database rather than taken from documentation",
+  );
+
+  /*
+   * The count, because a sweep with nothing to sweep would pass every run while
+   * meaning nothing. This is the vacuous-check trap this repository keeps
+   * meeting, and stating the number is how the green stays cheap to read.
+   */
+  let governed = 0;
+  const countSrc = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = dir + "/" + entry.name;
+      if (entry.isDirectory()) countSrc(full);
+      else if (/\.tsx?$/.test(entry.name)) {
+        governed += (readSource(full).match(/_at: DB_NOW/g) ?? []).length;
+      }
+    }
+  };
+  countSrc("src");
+  rec(
+    "and there are timestamps for it to govern (" + governed + ")",
+    governed > 30,
+    "if this were zero the check above would be passing over an empty tree",
+  );
+}
+
 const failed = out.filter((r) => !r.ok);
 console.log("");
 if (failed.length === 0) {

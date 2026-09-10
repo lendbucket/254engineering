@@ -652,10 +652,28 @@ withEnv({ CUSTOMER_SESSION_SECRET: CUS_SECRET }, () => {
     "archiving a property is scoped to the account in the query",
     /\.eq\("account_id", me\.accountId\)/.test(account),
   );
+  /*
+   * THE SHAPE MOVED AND THIS CHECK NAMES THE NEW ONE EXACTLY.
+   *
+   * It pinned `archived_at: new Date().toISOString()` and went red when the
+   * timestamp sweep landed, which is the harness asking whether that was meant.
+   * It was: no recorded moment comes from a process clock any more.
+   *
+   * Loosening the pattern to pass on both spellings would convert this into a
+   * check on nothing, so it names DB_NOW, and it GAINS the check the old one
+   * could not make. The old pattern could see that a timestamp was written and
+   * could not see WHOSE clock wrote it, which is the whole subject of the rule
+   * that broke it.
+   */
   rec(
     "and a property is archived rather than deleted",
-    /archived_at: new Date\(\)\.toISOString\(\)/.test(account) && !/\.delete\(\)/.test(account),
+    /archived_at: DB_NOW/.test(account) && !/\.delete\(\)/.test(account),
     "orders already placed against it must keep their record",
+  );
+  rec(
+    "and the archive stamp is the database's clock, not this process's",
+    /archived_at: DB_NOW/.test(account) && !/archived_at: new Date/.test(account),
+    "when a customer's property left the account is a record, and a record with two possible answers depending on which host wrote it is not one",
   );
 
   /*
