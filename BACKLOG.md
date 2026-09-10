@@ -56,12 +56,22 @@ is not a thing to do unattended overnight.
 
 Found on 2026-09-10 by the overnight sweep's Round 2, which reads the three live
 deployments signed out and matches them against `scripts/lib/regulatory.mjs`,
-the declaration both gates are stated in. Full quotes with their surrounding
-context are in `docs/overnight-report.md` section 3a; this is the pointer.
+the declaration both gates are stated in.
 
-**Why it is not fixed.** Both sites are separate repositories. Nothing in this
-repository can change their copy, and the overnight limits refuse acting on
-anything needing a ruling.
+**The reasoning lives in two briefs, one per sibling repository, and they are
+the first item for those sessions:**
+
+- `docs/brief-sealedengineering.md`
+- `docs/brief-stampmyplans.md`
+
+Each quotes its sentences exactly, with the paragraphs around them, says what is
+wrong with each one and what this sweep did NOT check on that site. Full quotes
+also appear in `docs/overnight-report.md` section 3a. This is the pointer and
+not a third copy.
+
+**Why it is not fixed here, and will not be.** Operator ruling, 2026-09-10: the
+sibling sites are not touched from this repository, ever. The briefs are carried
+across by hand, into those repositories, in those sessions.
 
 | Where | The sentence | The pattern |
 | --- | --- | --- |
