@@ -3,7 +3,14 @@ import { DB_NOW } from "./db-now";
 import { supabaseAdmin } from "./supabase";
 import { writeAudit, diffOf, safeDiff } from "./ops-audit";
 import { canSeeFile, redactFile, visibleFiles, type Actor, actionsFor } from "./ops-authz";
-import { canTransition, formatFileNumber, STATUS_TIMESTAMP, type FileStatus } from "./ops-files";
+import {
+  canTransition,
+  formatFileNumber,
+  formatDemoFileNumber,
+  DEMO_FILE_SEGMENT,
+  STATUS_TIMESTAMP,
+  type FileStatus,
+} from "./ops-files";
 import { accrueForDelivery, accrueForQualifiedLead } from "./ops-partner-comp";
 import { resolveCounty, twiaStatus, regionForCounty } from "./ops-counties";
 
@@ -433,10 +440,48 @@ export async function createFile(
    * exclusion is structural rather than a rule somebody has to remember, which
    * is the only kind that survives.
    */
+  /*
+   * ============================================================================
+   * A DEMONSTRATION ACTOR PRODUCES A DEMONSTRATION FILE.
+   * Operator ruling, 2026-09-10. The seeder should not be the only thing that
+   * can mark one.
+   * ============================================================================
+   *
+   * Found by opening a file through this function during an overnight path
+   * walk. The client was "Demo Split Client 418364" with is_demo true, and the
+   * file came out as 254-2026-0001 with is_demo FALSE: a demonstration record
+   * that every report counts as real work. It could not even be corrected
+   * afterwards without renumbering, because eng_files_demo_number_agrees
+   * requires (file_number like '%-DEMO-%') = is_demo, and that constraint is
+   * right: the flag and the number must not be able to disagree.
+   *
+   * It is decided by the ACTOR rather than by the client, which is the same
+   * shape as the suppression rule: effect_mode is decided at enqueue from the
+   * identity the work is about, and a bulk action cannot become a bulk send by
+   * being pointed at the wrong rows. Here, a seeded actor cannot mint a real
+   * file by being pointed at a real client.
+   *
+   * SYSTEM_AUTHOR is not a demonstration. The order engine takes real money and
+   * has no is_demo, so it falls through to false, which is what it should be.
+   *
+   * This cannot bite production, where no demonstration profile exists. It bites
+   * development, where every path walk and audit that opened a file was
+   * inflating the real figures, which is the class Phase 12 Section 2 already
+   * found once as a sales tile counting a seeded client.
+   */
+  const isDemo = "is_demo" in actor && actor.is_demo === true;
+
+  /*
+   * The two blocks are numbered separately and must be, because DEMO is a word
+   * where the year goes. A demonstration file's sequence comes from the DEMO
+   * block; a real one's comes from the year. Reading the year's highest number
+   * to mint a demonstration file would give it a real sequence, and reading the
+   * demonstration block to mint a real one would be worse.
+   */
   const { data: highest } = await db
     .from("eng_files")
     .select("file_number")
-    .like("file_number", `%-${year}-%`)
+    .like("file_number", isDemo ? `%-${DEMO_FILE_SEGMENT}-%` : `%-${year}-%`)
     .order("file_number", { ascending: false })
     .limit(1);
 
@@ -452,11 +497,16 @@ export async function createFile(
    * also make a short run of taken numbers plausible.
    */
   for (let attempt = 0; attempt < 5; attempt++) {
-    const fileNumber = formatFileNumber(year, nextSequence + 1 + attempt);
+    const fileNumber = isDemo
+      ? formatDemoFileNumber(nextSequence + 1 + attempt)
+      : formatFileNumber(year, nextSequence + 1 + attempt);
     const { data, error } = await db
       .from("eng_files")
       .insert({
         file_number: fileNumber,
+        /* Set together with the number, because the check constraint requires
+         * them to agree and a row that fails it is a row nobody can save. */
+        is_demo: isDemo,
         client_id: input.clientId,
         service_slug: input.serviceSlug,
         property_address: input.propertyAddress.trim(),
