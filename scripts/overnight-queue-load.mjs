@@ -54,8 +54,8 @@
  * ===========================================================================
  */
 
+import { randomUUID } from "node:crypto";
 import { auditClient } from "./lib/db-target.mjs";
-import { NOWHERE } from "./lib/job-probes.mjs";
 import { COULD_NOT_TELL, sayCouldNotTell } from "./lib/reachable.mjs";
 
 const { registeredKinds, handlerFor, loadHandlers, enqueue, runBatch } = await import("../src/lib/ops-jobs.ts");
@@ -130,11 +130,20 @@ console.log("");
 const MIX = [
   {
     kind: "email.send",
-    payload: () => ({
-      id: `overnight-load-${Math.random().toString(36).slice(2, 9)}`,
+    payload: (i) => ({
+      id: `overnight-load-${i}`,
       purpose: "operator",
       to: "overnight-load@example.com",
-      subject: "overnight load probe",
+      /*
+       * THE SUBJECT VARIES, AND IT HAS TO BE THIS FIELD.
+       *
+       * email.send's idempotency key is keyOf(p.to, p.subject, p.text). The
+       * first version varied only an "id" field, which the key does not read,
+       * so all 67 email.send calls deduped to ONE row and the run drained a
+       * queue of 69 while reporting 200. The distinct-row check caught it,
+       * which is what that check is for.
+       */
+      subject: `overnight load probe ${i}`,
       from: "overnight-load@example.com",
       replyTo: null,
       text: "Enqueued by scripts/overnight-queue-load.mjs. Nothing sends this.",
@@ -154,7 +163,14 @@ const MIX = [
    * The notificationId stays negative, so every one of them still names no row.
    */
   { kind: "notification.deliver", payload: (i) => ({ notificationId: -1 - i }) },
-  { kind: "evidence.thumbnail", payload: (i) => ({ evidenceItemId: NOWHERE, load: `${WORKER}-${i}` }) },
+  /*
+   * A DISTINCT uuid PER JOB, for the same reason. evidence.thumbnail's key is
+   * keyOf("thumb", p.evidenceItemId), and the first version sent the same
+   * NOWHERE uuid every time, so 66 calls became one row. These are random v4
+   * uuids, which name no evidence item, so the handler still dead letters
+   * exactly as the probe expects.
+   */
+  { kind: "evidence.thumbnail", payload: (i) => ({ evidenceItemId: randomUUID(), load: `${WORKER}-${i}` }) },
 ];
 
 for (const m of MIX) {
@@ -333,12 +349,28 @@ for (let i = 0; i < ids.length; i += 100) {
 console.log("");
 console.log(`  final states: ${JSON.stringify(terminal)}`);
 
+/*
+ * EVERY JOB THE DRAIN REACHED, WHICH IS NOT EVERY JOB WHEN THE REFUSAL FIRES.
+ *
+ * The first version asserted that all of them reached a terminal state, and it
+ * failed with nine still pending. That was the REFUSAL working: a foreign
+ * email.send row had become the oldest eligible work, refusal two stopped the
+ * drain, and nine of ours were still behind it.
+ *
+ * Stopping there is the correct behaviour and the whole point of the refusal,
+ * so the check now says so. Rows left pending are only a failure when nothing
+ * refused, because then the drain simply did not finish its work.
+ */
 rec(
-  "every job this run created reached a terminal state",
-  stillPending === 0 && stillRunning === 0,
-  stillPending || stillRunning
-    ? `${stillPending} still pending and ${stillRunning} still running; the drain did not finish them`
-    : JSON.stringify(terminal),
+  refused
+    ? "every job the drain reached is terminal, and the rest were left because the refusal stopped it"
+    : "every job this run created reached a terminal state",
+  refused ? stillRunning === 0 : stillPending === 0 && stillRunning === 0,
+  refused
+    ? `${JSON.stringify(terminal)}; ${stillPending} left pending behind the refusal, which is the refusal doing its job`
+    : stillPending || stillRunning
+      ? `${stillPending} still pending and ${stillRunning} still running; the drain did not finish them`
+      : JSON.stringify(terminal),
 );
 
 /*
