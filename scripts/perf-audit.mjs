@@ -224,7 +224,7 @@ for (const route of ROUTE_BUDGETS) {
   };
   const summary = ok[0].summary;
 
-  rows.push({ ...route, median, spread, summary, runs: ok.length });
+  rows.push({ ...route, median, spread, summary, runs: ok.length, samples: ok.map((r) => ({ lcp: r.lcp, cls: r.cls, tbt: r.tbt, bytes: r.bytes })) });
 
   /*
    * A route may carry its OWN lcp ceiling, and one does. Everything else is
@@ -309,6 +309,53 @@ for (const r of rows) {
       8,
     )} / ${String(r.kb).padEnd(5)}  ${s("document")}  ${s("script")}  ${s("font")}  ${s("image")}  ${r.path}`,
   );
+}
+
+/*
+ * THE RAW SAMPLES, OPT IN, AND THEY CHANGE NO VERDICT.
+ *
+ * PERF_SAMPLES=<path> writes every individual run to a file. Nothing above
+ * reads it back and no ceiling consults it: this is a dump of what was
+ * measured, added so a caller can ask a question the printed table cannot
+ * answer.
+ *
+ * The question it was added for is "worst of three", which the overnight sweep
+ * asks for and which the table genuinely cannot supply: the table prints the
+ * MEDIAN and the SPREAD, and median plus spread does not reconstruct the
+ * maximum.
+ *
+ * AND THE GATE IS STILL JUDGED ON THE MEDIAN. That is the operator's ruling of
+ * 2026-09-04 and this does not touch it. Reporting the slowest sample beside
+ * the median is a second view of the same data; changing which statistic a
+ * ceiling is applied to would be changing what the board enforces, and doing
+ * that quietly inside a reporting flag is exactly the move the ruling was made
+ * against. If the worst of three should gate, that is a ruling, not an
+ * environment variable.
+ */
+if (process.env.PERF_SAMPLES) {
+  const { writeFileSync } = await import("node:fs");
+  writeFileSync(
+    process.env.PERF_SAMPLES,
+    JSON.stringify(
+      {
+        base: BASE,
+        runs: RUNS,
+        judgedOn: "median, which is what the ceilings gate; the samples are for reporting only",
+        ceilings: CEILINGS,
+        rows: rows.map((r) => ({
+          path: r.path,
+          name: r.name,
+          failed: r.failed ?? false,
+          median: r.median,
+          spread: r.spread,
+          samples: r.samples ?? [],
+        })),
+      },
+      null,
+      2,
+    ),
+  );
+  console.log(`\nraw samples written to ${process.env.PERF_SAMPLES} (reporting only, no verdict reads it)`);
 }
 
 console.log("\n=== RESULT ===");
