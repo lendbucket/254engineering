@@ -241,7 +241,6 @@ export async function unreadCount(profileId: string): Promise<number> {
 export async function markRead(profileId: string, ids: number[]): Promise<void> {
   const db = supabaseAdmin();
   if (!db) return;
-  const now = new Date().toISOString();
   let query = db.from("eng_notifications").update({ read_at: DB_NOW }).eq("profile_id", profileId).is("read_at", null);
   if (ids.length) query = query.in("id", ids);
   await query;

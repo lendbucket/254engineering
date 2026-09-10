@@ -1,4 +1,5 @@
 import "server-only";
+import { STATUS_LABEL, type FileStatus } from "./ops-files";
 import { can, type Actor } from "./ops-authz";
 import { filesByIds } from "./ops-crm";
 import { dispatchContext, sendOffers } from "./ops-field";
@@ -111,13 +112,24 @@ export async function dispatchPlans(
      * sendOffers would refuse anyway. Said on the review screen so the operator
      * learns it before ticking rather than after pressing.
      */
-    const blocked = file.assigned_tech_id
-      ? "This file already has a technician."
-      : !context
-        ? "No dispatch plan could be built for this file."
-        : context.plan.offers.length === 0
-          ? `No technician covers ${file.county} County for this service line.`
-          : null;
+    const blocked =
+      /*
+       * SAID HERE TOO, BEFORE ANYTHING IS TICKED.
+       *
+       * sendOffers refuses it either way and that refusal is the guarantee.
+       * This is so a dispatcher reviewing twelve plans learns which of them
+       * are not dispatchable BEFORE choosing technicians for them, rather
+       * than by reading twelve refusals afterwards.
+       */
+      file.status !== "needs_dispatch"
+        ? `This file is ${STATUS_LABEL[file.status as FileStatus] ?? file.status}, not waiting for dispatch.`
+        : file.assigned_tech_id
+          ? "This file already has a technician."
+          : !context
+            ? "No dispatch plan could be built for this file."
+            : context.plan.offers.length === 0
+              ? `No technician covers ${file.county} County for this service line.`
+              : null;
 
     plans.push({
       fileId: file.id,

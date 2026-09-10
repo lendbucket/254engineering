@@ -1,4 +1,5 @@
 import "server-only";
+import { STATUS_LABEL, type FileStatus } from "./ops-files";
 import { DB_NOW } from "./db-now";
 import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
@@ -569,6 +570,40 @@ export async function sendOffers(
     .maybeSingle();
   if (!file) return { ok: false, error: "That file does not exist." };
   if (file.assigned_tech_id) return { ok: false, error: "That file already has a technician." };
+
+  /*
+   * THE STATUS RULE LIVED IN THE SCREEN, WHICH IS NOT THE PLATFORM.
+   *
+   * Phase 12 Section 4, Section 2. This function selected `status` and never
+   * read it. The Files page only rendered the dispatch panel when a file was
+   * in needs_dispatch, and that was the entire rule: a UI condition, in one
+   * component, guarding a function anybody could call.
+   *
+   * So sendOffers would happily offer a SEALED file to technicians. Sealed
+   * means a Professional Engineer has already put their seal on the work.
+   * Dispatching it sends field technicians out to inspect a job that is
+   * finished, against a protocol whose evidence has already been reviewed,
+   * and it does it in the firm's name. The same hole accepted delivered,
+   * closed, cancelled and refused.
+   *
+   * It was found by BUILDING THE BULK PATH. Bulk dispatch calls this
+   * function directly, as it must, and the moment it did the screen's rule
+   * stopped applying. That is what Section 2 is about: a bulk operation does
+   * not introduce the danger, it REMOVES the accident that was containing
+   * it, and a rule kept in a component is a rule that was always one caller
+   * away from not existing.
+   *
+   * The refusal is here, once, so every caller inherits it: the panel, the
+   * bulk review, and whatever calls it next.
+   */
+  if (file.status !== "needs_dispatch") {
+    return {
+      ok: false,
+      error:
+        `That file is ${STATUS_LABEL[file.status as FileStatus] ?? file.status}, not waiting for dispatch. ` +
+        "Offers are only sent for a file in Needs dispatch.",
+    };
+  }
 
   const protocol = await publishedProtocolFor(file.service_slug as string);
   if (!protocol) {

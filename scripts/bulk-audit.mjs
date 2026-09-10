@@ -28,7 +28,8 @@
 
 import { auditClient } from "./lib/db-target.mjs";
 import { readSource } from "./lib/read-source.mjs";
-import { readdirSync } from "node:fs";
+import { readdirSync, existsSync } from "node:fs";
+import { BULK_PATHS, REFUSALS, refusalKeys } from "./lib/bulk-paths.mjs";
 import { exportFiles, EXPORT_LIMIT } from "../src/lib/ops-bulk-files.ts";
 
 const out = [];
@@ -564,6 +565,161 @@ if (ids.length > 0) {
   } else {
     rec("the catalog entry the county check is exercised against exists", false, "windstorm-wpi-8");
   }
+}
+
+
+/* ================================================ SECTION 2: WHAT BULK MUST NOT DO */
+
+/*
+ * Every bulk path on this platform, and the refusals each declares.
+ *
+ * A path with no declared refusals fails, for the same reason a registered job
+ * kind with no probe does: the list is the mechanism.
+ */
+{
+  const paths = BULK_PATHS;
+  const keys = refusalKeys();
+
+  rec(
+    "there are bulk paths declared (" + paths.length + ")",
+    paths.length >= 4,
+    paths.map((x) => x.module.split("/").pop()).join(", "),
+  );
+
+  const undeclared = paths.filter((x) => !Array.isArray(x.refuses) || x.refuses.length === 0);
+  rec(
+    "every declared bulk path names the refusals that apply to it",
+    undeclared.length === 0,
+    undeclared.map((x) => x.module).join(", "),
+  );
+
+  const invented = paths.flatMap((x) => x.refuses.filter((r) => !keys.includes(r)).map((r) => x.module + ":" + r));
+  rec(
+    "and names only refusals that exist",
+    invented.length === 0,
+    invented.join(", "),
+  );
+
+  const unexplained = paths.filter((x) => !x.note || x.note.length < 60);
+  rec(
+    "and says why the ones it does NOT name do not apply",
+    unexplained.length === 0,
+    unexplained.map((x) => x.module).join(", ") ||
+      "an exemption with no reason beside it is a gap wearing a reason",
+  );
+
+  const missingFiles = paths.filter((x) => !existsSync(x.module));
+  rec(
+    "every declared path is a real module",
+    missingFiles.length === 0,
+    missingFiles.map((x) => x.module).join(", "),
+  );
+
+  /*
+   * AND THE DECLARATION IS NOT THE ONLY LIST.
+   *
+   * A module that acts on many records and is NOT declared here is the failure
+   * this file exists to catch, so the tree is swept for the shape and every hit
+   * has to be accounted for. Same idiom as surface-audit: adding one without
+   * declaring it is a red board.
+   */
+  const declaredModules = new Set(paths.map((x) => x.module));
+  const suspects = [];
+  const sweep = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = dir + "/" + entry.name;
+      if (entry.isDirectory()) sweep(full);
+      else if (/\.ts$/.test(entry.name)) {
+        const text = codeOnly(readSource(full));
+        /* .in("id", ids) or .in("<col>", <something plural>) on a write. */
+        if (/\.(update|delete)\([^)]*\)[\s\S]{0,200}?\.in\(/.test(text) && !declaredModules.has(full)) {
+          suspects.push(full);
+        }
+      }
+    }
+  };
+  sweep("src/lib");
+  rec(
+    "no module writes to many rows at once without being declared a bulk path (" + suspects.length + ")",
+    suspects.length === 0,
+    suspects.join(", ") || "swept src/lib for an update or delete followed by an .in()",
+  );
+}
+
+/* ---------------------------------------- the refusals, exercised where they bite */
+
+{
+  const dispatchSrc = codeOnly(readSource("src/lib/ops-bulk-dispatch.ts"));
+  const fieldSrc = codeOnly(readSource("src/lib/ops-field.ts"));
+  const exportSrc = codeOnly(readSource("src/lib/ops-bulk-files.ts"));
+  const retentionSrc = codeOnly(readSource("src/lib/ops-retention.ts"));
+
+  /*
+   * THE SEALED REFUSAL, WHICH IS THE ONE SECTION 2 FOUND.
+   *
+   * sendOffers selected the status column and never read it. The Files page rendered the
+   * dispatch panel only for a file in needs_dispatch, and that was the entire
+   * rule: a UI condition guarding a function anybody could call. Bulk dispatch
+   * calls it directly, as it must, and a sealed file became dispatchable.
+   */
+  rec(
+    "sendOffers refuses a file that is not waiting for dispatch",
+    /file\.status !== "needs_dispatch"/.test(fieldSrc),
+    "the rule used to live in the Files page, which is not the platform",
+  );
+  rec(
+    "and the bulk review says so before anything is ticked",
+    /file\.status !== "needs_dispatch"/.test(dispatchSrc),
+    "twelve refusals after the press is a worse way to learn it",
+  );
+
+  /* No bulk path writes an assignment or deletes. */
+  for (const [name, src] of [
+    ["the export", exportSrc],
+    ["bulk dispatch", dispatchSrc],
+  ]) {
+    /*
+     * THE WRITE, NOT THE MENTION, FOR THE SECOND TIME IN THIS FILE.
+     *
+     * The first version matched the column name anywhere and failed on bulk
+     * dispatch, which READS file.assigned_tech_id to tell a dispatcher that a
+     * file already has a technician. Refusing to let a bulk path even mention
+     * the column would mean refusing to let it explain itself.
+     *
+     * An update or an insert with the column inside its own braces, which is
+     * the same matcher the reconciliation check above already uses. Two checks
+     * in one file learning the same lesson separately is how a third one
+     * eventually gets it wrong.
+     */
+    rec(
+      name + " writes no assignment",
+      !/\.(update|insert)\(\{[^}]*assigned_(engineer|tech)_id/.test(src),
+      "nothing gives a file to a person; an engineer accepts one",
+    );
+    rec(
+      name + " deletes nothing",
+      !/\.delete\(/.test(src),
+      "retention is the only path that removes rows, and it plans first",
+    );
+  }
+
+  /*
+   * AND RETENTION IS STILL THE ONLY ONE THAT DELETES, which is what makes the
+   * refusal above meaningful rather than a rule about two files nobody was
+   * going to break.
+   */
+  rec(
+    "retention is still the one path that deletes, and still plans before it does",
+    /\.delete\(/.test(retentionSrc) && /manifest/i.test(retentionSrc),
+    "a bulk screen offering deletion would be a second answer to what may be removed",
+  );
+
+  /* Every bulk path that reaches outside decides the mode. */
+  rec(
+    "no bulk path sends without the mode being decided",
+    !/queueEmail\(|notify\(/.test(exportSrc + dispatchSrc),
+    "neither of these sends at all; dispatch notifies through sendOffers, which is where the decision is made",
+  );
 }
 
 /* ----------------------------------------------------------------- verdict */

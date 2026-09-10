@@ -119,6 +119,40 @@ requires, they describe three different situations.
   means choosing technicians without a person looking, which is a decision about
   who gets paid. **Needs a ruling** on the selection rule before it is built.
 
+### B2B CSV IMPORT: THE FILE UPLOAD IS DEFERRED, THE DEFECT IS NOT
+
+Phase 12 Section 4, Section 1. Full reasoning in
+`docs/bulk-actions-reconciliation.md` section 5; this is the pointer.
+
+Most of a CSV import has existed since Phase 8: `/account/order` takes pasted
+properties, one per line, and `splitBatch` prices and qualifies each. What is
+missing is a FILE, a header row and a column mapping.
+
+**The live money defect that parser had is fixed** and is not what is deferred:
+it split on commas, so an address with a suite number put a city in the county
+column, and the county decides the coastal surcharge and the protocol.
+
+**Deferred because a file brings its own questions**, none of which the defect
+should have waited behind: which encodings, what happens to a header row
+somebody did or did not include, whether a column mapping screen is needed, and
+what a five thousand row file does to one request.
+
+### BULK MESSAGING: REFUSED, AND WHAT IS ACTUALLY WANTED EXISTS
+
+Phase 12 Section 4, Section 1, refused at gate 1's reconciliation. Reasoning in
+`docs/bulk-actions-reconciliation.md` section 4.
+
+A thread hangs off a FILE and its messages are the record of what the firm told
+a client about that client's job. One sentence posted into fifty of them is a
+statement about fifty pieces of work by somebody who read none of them, and it
+reads to each recipient as being about their property. Same shape as the Assign
+refusal: the bulk action is not the single action many times, it is a different
+act that resembles it.
+
+**What is wanted is almost certainly an announcement**, and `ops-announce.ts`
+is already that. Nothing is being built here; the entry exists so the next
+person asking for bulk messaging finds the reasoning rather than the gap.
+
 ### THIS MACHINE'S CLOCK IS 85 SECONDS AHEAD OF THE DATABASE
 
 Found by `queue-audit` on 2026-09-09, measured rather than guessed: a row is
