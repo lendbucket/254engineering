@@ -34,6 +34,58 @@ The firm's TBPELS registration is pending, and no licensed PE is on staff yet. U
 - "Engineer", "engineering", and "sealed" are regulated terms in Texas. Treat every sentence
   containing them as load bearing.
 
+**THE FIRM REGISTRATION ISSUED ON 2026-09-10, AND THE GATE DID NOT OPEN.**
+
+TBPELS issued **F-29811** to **254 Services LLC**, active, expiring
+**2027-07-31**. It is recorded in `src/config/credentials.ts`, which is the one
+place it lives.
+
+**The gate stays shut, and the reason is the name.** The registration is in the
+name 254 Services LLC. All three sites hold out as 254 Engineering Services. A
+registration in one name does not authorise holding out under another, and Texas
+regulates the use of "engineer" and "engineering" in how a firm names itself and
+presents itself. Printing the board's number beside a name the board has no
+record of would be the exact misstatement this gate exists to prevent, made in
+the one place a reader goes to check.
+
+So the gate is no longer one variable. **`LAUNCH_MODE` is the operator's SWITCH
+and one of the conditions rather than all of them.** `launchBlockers()` in
+`src/lib/launch.ts` returns a sentence per unmet condition, and `launchMode()`
+answers "live" only when the list is empty. Today, with `LAUNCH_MODE=live`, the
+mode is still prelaunch and `tbpelsFirmNumber()` is still null.
+
+The conditions, all read from CONFIGURATION so the flip is impossible until each
+is stated true in a file somebody edits on purpose:
+
+| Condition | Where it is stated |
+| --- | --- |
+| The operator has thrown the switch | `LAUNCH_MODE=live` |
+| An active, unexpired registration is on record | `verifiedFirmRegistrations` |
+| **The board holds the operating name** | `operatingNameOnBoardRecord` |
+
+The third is a two field object rather than a boolean on purpose. A boolean can
+be flipped by anybody in a hurry; this one cannot be flipped without writing
+down what the board now holds, and `compliance-audit` reads what is written. It
+becomes true when the entity is renamed or an assumed name is filed and recorded
+with the board, and the sentence beside it says which.
+
+**Before the gate may open, the number must appear in three places**, and
+`compliance-audit` asserts each: the public footer of all three sites, every
+email footer, and the sealed document upload record. The third is a ROW rather
+than a render, which is why it needed migration 0041. A footer answers "under
+whose registration does this firm operate NOW"; only the row answers it for a
+document as it was THEN, which is what somebody asks about a sealed deliverable
+years later, and this registration expires in 2027.
+
+**The name printed beside the number is the name on the REGISTRATION**, read off
+the record, never the name the site trades under. That was a live defect:
+`registrationLine()` printed a module constant, so the moment the gate opened it
+would have put F-29811 next to "254 Engineering Services LLC".
+
+`compliance-audit` and `launch-audit` answer different questions and both run.
+launch-audit asks whether the copy is right for a given mode. compliance-audit
+asks whether the mode may change at all.
+
 **A SEALED DOCUMENT IS UPLOADED, NEVER GENERATED. Operator ruling, 2026-09-06,
 and it is standing law rather than a phase decision.**
 
