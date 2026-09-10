@@ -143,14 +143,28 @@ clock, `sealed_at` and `paid_at` among them. So the red mark above was not
 merely an environment annoyance. It was the visible end of a real defect, and
 following it is what found the other one.
 
-### The board was run four times, and the last three are the argument for it
+### The board was run five times, and the last four are the argument for it
 
 | Pass | Result | What it caught |
 | --- | --- | --- |
 | 1 | 46 of 47 | The starting state. Only the clock. |
 | 2 | **45 of 47** | `contrast-audit` red on nine instances of a note I had added to the Job queue two commits earlier: `var(--muted)` at **3.1:1** on 12px text, needing 4.5:1. A truncation notice nobody can read is the truncation going unannounced, so it failed at the thing it was added to do, on the screen it was added to fix. |
 | 3 | **THE SUITE DID NOT RUN TO COMPLETION** | The build failed. Fixing the contrast note put a JSX comment inside a ternary branch, which is two expressions where one is allowed. `tsc` was CLEAN. |
-| 4 | see section 8 | |
+| 4 | **THE SUITE DID NOT RUN TO COMPLETION** | The server stopped answering before `roles-audit`. Not a content failure, and the suite said so instead of reporting thirteen absent audits as red. Cause in the note below. |
+| 5 | **46 of 47** | The final state. |
+
+**Pass 4 was caused by a flag I set.** I ran the board as
+`AUDIT_KILL_STALE=1 npm run audit`, because an earlier build had refused over a
+stale server I had left on port 3235 from the perf gate. With `BASE_URL` unset,
+`preflight-harness` reads that flag and has the build guard KILL whatever is
+holding `.next`, which partway through a suite run is the suite's own server.
+The server log ends cleanly with no error, which is exactly what the suite's
+message predicts when something killed the process rather than it falling over.
+
+Re-running as plain `npm run audit`, after clearing eleven orphaned Chromium
+processes left by the browser audits, completed normally. **`AUDIT_KILL_STALE=1`
+is for a build, not for a suite run**, and that is worth knowing before somebody
+reaches for it the next time a build refuses.
 
 Pass 3 is the pairing CLAUDE.md section 6 already records from 2026-09-09: a
 clean `tsc` and a failed build, because the constraint belongs to the bundler
@@ -698,5 +712,56 @@ import it, in daylight, with the board re-run after.
 
 ## 8. The state at the end
 
-**NOT YET REACHED.** This section will state the final board result, whether
-the tree is clean, and the last commit.
+| | |
+| --- | --- |
+| **Board** | **46 of 47.** `queue-audit` is red on one check of 106: the machine clock. Nothing else is red. |
+| **Tree** | Clean. `git status --porcelain` returns nothing. |
+| **Branch** | `feat/phase-12-section-4`. **Not merged, not pushed**, contained in no other branch. |
+| **Commits** | 26, one fix per commit, each carrying the defect, the injection and the file. |
+
+The board is not green, and it is not green for the right reason. The one red
+mark is `w32tm /resync` away from going green and nothing in this repository can
+run that command.
+
+### What was fixed, with the injection that proved each one
+
+| Commit | Defect |
+| --- | --- |
+| `04a8a69` | `/portal/files/dispatch` was outside the perimeter list |
+| `ea2d0ac` | Round 2 measured 0 routes on the primary site and passed |
+| `f02a4f3` | Round 2 called six correctly-loading lazy images broken |
+| `0c4a898` | Round 2 wrote its own compliance patterns instead of the declared 22 |
+| `108b752` | One route floor for three sites called a nine page site broken |
+| `2af961f` | The dead order token check recorded the skip link as its evidence |
+| `6e2da4d` | **Eleven dashboard tiles linked where the person clicking could not go** |
+| `5afd232` | Two checks so a tile linking nowhere cannot ship again |
+| `4608a71` | **The `/portal/documents` phone card was an `<a>` inside an `<a>`** |
+| `23a10ae` | **The Job queue screen was 38,744 pixels of rendered email HTML** |
+| `66d89bd` | **Thirteen stored timestamps came from the machine, `sealed_at` among them** |
+| `e7194f1` | Two defects in the queue load test, caught by its own checks |
+| `958e6bb` | The truncation note was 3.1:1, on the screen it was written to fix |
+| `330d0e0` | A JSX comment inside a ternary branch broke the build |
+
+### What was NOT done, and why
+
+- **The three sibling compliance sentences** (3a). Separate repositories.
+- **The certification role-name gate** (7.2). Needs a ruling.
+- **`createFile` cannot make a demonstration file** (7.3). Needs a ruling.
+- **Two copies of the queue drain refusal** (7.4). Unifying them is reorganising, which this run's limits refuse.
+- **The machine clock** (6). A system setting, not code.
+- **The perf gate covers 10 route templates, not all 46 routes** (5a). Stated rather than implied.
+- **No form's ACCEPT path was exercised on production** (3). An accepted contact form is a real lead in the firm's intake.
+
+### The one thing worth carrying into the morning
+
+The night's largest finding was not found by any check. `sealed_at` and
+`paid_at` were being written from a clock 85 seconds wrong, and the audit
+written to catch exactly that had been green over them since the day it was
+widened. It was found by trying to walk a file through the platform, watching
+the platform refuse the walk with a very good sentence, and then reading the
+line that wrote the timestamp.
+
+The harness caught two regressions I introduced tonight and could not see the
+defect that mattered most. **Both halves of that are the argument for the rule
+in CLAUDE.md section 7: the harness catches what it is pointed at, and reading
+catches the rest.**
