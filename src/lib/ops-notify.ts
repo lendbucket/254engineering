@@ -3,6 +3,7 @@ import { DB_NOW } from "./db-now";
 import { supabaseAdmin } from "./supabase";
 import type { RoleKey } from "./ops-authz";
 import { enqueue } from "./ops-jobs";
+import { effectModeFor } from "./fixture-identity";
 import {
   NOTIFICATION_KINDS,
   channelsFor,
@@ -133,7 +134,36 @@ export async function raise(input: RaiseInput): Promise<RaiseResult> {
    * the notification itself still stands. That is the same shape as the old
    * email_error, which is deliberate, because the operator reads that column.
    */
-  const queued = await enqueue("notification.deliver", { notificationId: data.id });
+  /*
+   * THE ACTOR DECIDES THE MODE HERE TOO, AND THIS GAP WAS FOUND ON A BOARD.
+   *
+   * queueEmail derives the mode from the message it is handed. This path has
+   * no message: it queues an id and the handler resolves the address later. So
+   * every notification raised for a probe account was enqueued marked live,
+   * and queue-audit REFUSED TO START over one of them on the very next board.
+   *
+   * The run time backstop in the handler would have stopped the send, because
+   * a probe lives at audit-probe.invalid. That is not enough: a row that says
+   * it may reach outside is a row every worker and every audit has to reason
+   * about, and the whole point of putting the permission ON THE ROW was to
+   * stop that reasoning being necessary.
+   *
+   * One extra read, on a path that has already written its row and is only
+   * queueing the email. The recipient is looked up rather than passed in
+   * because the caller has a profile id and no address, and asking the caller
+   * to fetch one would be a rule somebody has to remember.
+   */
+  const { data: recipient } = await db
+    .from("eng_profiles")
+    .select("email")
+    .eq("id", input.profileId)
+    .maybeSingle();
+
+  const queued = await enqueue(
+    "notification.deliver",
+    { notificationId: data.id },
+    { effectMode: effectModeFor((recipient?.email as string) ?? null) },
+  );
 
   if (!queued.ok) {
     await db

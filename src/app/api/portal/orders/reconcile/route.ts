@@ -78,7 +78,25 @@ export async function POST(request: NextRequest) {
     : undefined;
 
   if (apply) {
-    const queued = await enqueue("orders.reconcile", { apply: true, references: references ?? null });
+    /*
+     * LIVE, SAID OUT LOUD RATHER THAN LEFT TO THE COLUMN DEFAULT.
+     *
+     * An operator pressed reconcile on the orders screen, so the actor is a
+     * real person doing real work and the sweep must reach the provider. That
+     * is what the default would have given anyway, and the point is that
+     * somebody decided it: queue-audit requires every enqueue of an outward
+     * reaching kind to say what the work may do, because the alternative is a
+     * site nobody has looked at behaving correctly by accident.
+     *
+     * Reconciling READS charges rather than creating them, so nobody is charged
+     * by this. What it can do is ask a live payment provider about real order
+     * references, which is exactly why a probe must not.
+     */
+    const queued = await enqueue(
+      "orders.reconcile",
+      { apply: true, references: references ?? null },
+      { effectMode: "live" },
+    );
     if (!queued.ok) {
       return NextResponse.json({ ok: false, error: queued.error }, { status: 503 });
     }

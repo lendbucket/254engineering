@@ -62,6 +62,7 @@
  * scripts/lib/job-probes.mjs.
  */
 
+import fs from "node:fs";
 import { auditClient } from "./lib/db-target.mjs";
 import { readSource } from "./lib/read-source.mjs";
 import { PROBES, probedKinds, probeFor, NOWHERE } from "./lib/job-probes.mjs";
@@ -795,6 +796,87 @@ console.log("--- the actor decides");
     "the dangerous direction is a suppression nobody asked for",
   );
 }
+
+  /*
+   * EVERY ENQUEUE OF AN OUTWARD REACHING KIND DECIDES A MODE.
+   *
+   * queueEmail derives one from the message it is handed, which covers
+   * email.send. Nothing covered notification.deliver, because that path has no
+   * message: it queues an id and the handler resolves the address later. So
+   * every notification raised for a probe account was written marked live, and
+   * queue-audit REFUSED TO START over one of them on the next board, which is
+   * how this was found.
+   *
+   * The run time backstop in the handler would have stopped the send. That is
+   * not enough and the distinction is the whole of 0038: a row that says it may
+   * reach outside is a row every worker and every audit has to reason about,
+   * and putting the permission ON THE ROW was meant to end that reasoning.
+   */
+  {
+    const sources = [];
+    const walkSrc = (dir) => {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = dir + "/" + entry.name;
+        if (entry.isDirectory()) walkSrc(full);
+        else if (/\.tsx?$/.test(entry.name)) sources.push(full);
+      }
+    };
+    walkSrc("src");
+
+    const outward = registeredKinds().filter((k) => handlerFor(k)?.reachesOutside === true);
+    const sites = [];
+    for (const file of sources) {
+      const text = readSource(file);
+      for (const kind of outward) {
+        /*
+         * WHITESPACE TOLERANT, BECAUSE A REFORMAT IS NOT A CHANGE.
+         *
+         * The first version searched for the literal `enqueue("kind"`. Wrapping
+         * one call across three lines to add an argument made every site
+         * invisible, and this file reported zero sites to check rather than
+         * reporting them all as passing. The vacuity guard beneath caught it,
+         * which is the only reason it was noticed within a minute.
+         */
+        const pattern = new RegExp("enqueue\\(\\s*\"" + kind.replace(/\./g, "\\.") + "\"", "g");
+        let m = pattern.exec(text);
+        let at = m ? m.index : -1;
+        while (at !== -1) {
+          /* The call, to its closing paren at the same depth. Adjacent rather
+           * than a fixed window: a window wider than the thing it matches
+           * attaches to its neighbour, which this repository has paid for. */
+          let depth = 0;
+          let end = at;
+          for (; end < text.length; end += 1) {
+            if (text[end] === "(") depth += 1;
+            else if (text[end] === ")") {
+              depth -= 1;
+              if (depth === 0) break;
+            }
+          }
+          sites.push({ file, kind, call: text.slice(at, end + 1) });
+          pattern.lastIndex = end;
+          m = pattern.exec(text);
+          at = m ? m.index : -1;
+        }
+      }
+    }
+
+    rec(
+      "there are enqueue sites for outward reaching kinds to check (" + sites.length + ")",
+      sites.length > 0,
+      "if this were zero the check below would pass over nothing",
+    );
+
+    const silent = sites.filter((x) => !/effectMode/.test(x.call));
+    rec(
+      "and every one of them decides an effect mode",
+      silent.length === 0,
+      silent.length
+        ? silent.map((x) => x.file + " enqueues " + x.kind + " without saying what it may do").join(" | ")
+        : sites.map((x) => x.kind).join(", "),
+    );
+  }
+
 // ===========================================================================
 // 4. THE IDEMPOTENCY KEY REFUSES A SECOND ENQUEUE WHILE THE FIRST IS LIVE.
 // ===========================================================================
