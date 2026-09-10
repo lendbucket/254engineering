@@ -241,7 +241,56 @@ the database's own `now()`.
 
 ## 7. Questions that need a ruling
 
-1. **The three sibling site compliance sentences** in section 3a.
+### 7.1 The three sibling site compliance sentences
+
+In section 3a. On separate repositories, so nothing here can act on them.
+
+### 7.2 The one authorization gate decided by a role NAME rather than a grant
+
+`src/app/portal/(app)/certification/page.tsx:38`
+
+```ts
+if (!can(actor, "evidence.capture") && actor?.role !== "admin") notFound();
+```
+
+Found by Round 3's "one screen it does not reach" check. The shell offers an
+administrator 26 of the 28 destinations in `NAV`, and Certification is one of
+the two it does not, because `NAV` gates it on `evidence.capture` and no role
+but `field_tech` holds that grant. **The page opens for an administrator
+anyway**, at HTTP 200, reading as an ordinary screen, because of the escape
+hatch above. It is reachable only by typing the URL.
+
+The whole platform's authorization is grants, and has been since 0018 made
+roles data. This is the one place in the portal where whether a screen opens is
+decided by comparing a role KEY to a string. Every other role name comparison
+found in the sweep is display: which rows to show on your own profile, which
+label to print, which panel a dashboard renders. This one is a door.
+
+Three things it costs:
+
+1. **An administrator has an invisible screen.** The capability exists and
+   nothing offers it, which is the inverse of the drift `nav.ts` was written
+   to prevent and is just as much a disagreement between the two.
+2. **Roles are data.** An operator renaming the administrator role on the roles
+   screen breaks this comparison silently, and the failure is a screen that
+   stops opening rather than an error anybody sees.
+3. **It is a second authorization model in one line**, which is exactly what
+   `nav.ts`'s own header argues against for the nav.
+
+Line 248 of the same file has `actor?.role === "admin"` as well, which is a
+display branch rather than a gate and is only worth naming because it is the
+same string in the same file.
+
+**The decision I would make, recorded rather than taken.** Delete the escape
+hatch and let the gate be the grant alone. If an administrator should see the
+technician certification screen, that is a grant they should hold and a `NAV`
+entry they should be offered, not a name the page recognises. It needs a ruling
+because `evidence.capture` is capture as well as read, so granting it to
+administrators would give them more than the screen: the honest fix may be a
+separate read grant, and inventing a grant is not a thing to do unattended at
+night.
+
+Nothing was changed.
 
 ---
 

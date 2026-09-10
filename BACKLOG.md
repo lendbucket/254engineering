@@ -27,6 +27,31 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
+## ONE PORTAL GATE IS DECIDED BY A ROLE NAME, NOT BY A GRANT
+
+Found 2026-09-10 by the overnight sweep's Round 3, which opens one screen each
+role is NOT offered and reads what happens. Full reasoning in
+`docs/overnight-report.md` section 7.2; this is the pointer.
+
+`src/app/portal/(app)/certification/page.tsx:38`
+
+```ts
+if (!can(actor, "evidence.capture") && actor?.role !== "admin") notFound();
+```
+
+The shell offers an administrator 26 of the 28 destinations in NAV, and
+Certification is not one of them, because NAV gates it on `evidence.capture`
+and only `field_tech` holds that grant. The page opens for an administrator
+anyway, at HTTP 200. It is the one place in the portal where whether a screen
+opens is decided by comparing a role KEY to a string; every other role name
+comparison in the sweep is display rather than a door.
+
+**Why it is not fixed.** It needs a ruling. Deleting the escape hatch is the
+obvious change and it takes the screen away from administrators, which may not
+be intended. Granting them `evidence.capture` instead gives them capture as
+well as read, so the honest fix may be a new read grant, and inventing a grant
+is not a thing to do unattended overnight.
+
 ## THREE COMPLIANCE SENTENCES ON THE SIBLING SITES, FOUND OVERNIGHT
 
 Found on 2026-09-10 by the overnight sweep's Round 2, which reads the three live
