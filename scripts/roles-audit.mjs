@@ -1572,6 +1572,184 @@ if (!db) {
       await db.from("eng_profiles").update({ status: "active" }).eq("id", tech.id);
     }
 
+    /*
+     * =====================================================================
+     * A GRANT DECIDES A DOOR. A ROLE NAME DOES NOT.
+     * Operator ruling, 2026-09-10, and this is the injection it asked for.
+     * =====================================================================
+     *
+     * /portal/certification used to read
+     *
+     *   if (!can(actor, "evidence.capture") && actor?.role !== "admin") notFound();
+     *
+     * so "admin" was a capability the permission screen could neither see nor
+     * withdraw. Roles have been data since 0018; a string comparison in a page
+     * is a grant nobody can revoke.
+     *
+     * The two halves below are the whole ruling, and each is useless without
+     * the other:
+     *
+     *   a role holding the grant UNDER A DIFFERENT NAME must pass. This is the
+     *   half that proves the gate reads the grant rather than a list of names
+     *   somebody remembered. The role key here has never existed before and no
+     *   line of this platform mentions it.
+     *
+     *   a role carrying the NAME and not the grant must be refused. This is the
+     *   half that proves the escape hatch is gone. It uses "admin" itself,
+     *   which is the exact name that used to open the door.
+     *
+     * Both roles are created here, used, and removed in the teardown below.
+     */
+    {
+      /*
+       * SHORT KEYS, AND THE REASON IS A REAL DEFECT SOMEWHERE ELSE.
+       *
+       * makeProbe builds probe-<role>-<STAMP>@roles-audit.invalid, so a long
+       * role key makes a long email, and the email goes into the otpauth URI
+       * that src/lib/qr.ts encodes at enrolment. That encoder refuses anything
+       * over version 10, and the first version of this block used
+       * overnight_capturer_<13 digit stamp>, which produced a 226 byte URI and
+       * a 500 from /api/portal/mfa. Both checks then reported HTTP 0 and read
+       * as "the gate is reading something other than the grant", which was a
+       * statement about this fixture rather than about the page.
+       *
+       * The keys are short so this block measures the certification gate. The
+       * encoder limit it uncovered is a separate finding and is recorded in
+       * BACKLOG.md rather than worked around silently here.
+       */
+      const SHORT = String(STAMP).slice(-6);
+      const INVENTED = `cap_${SHORT}`;
+      const NAMED = `nog_${SHORT}`;
+      const madeRoles = [];
+
+      try {
+        /* A role nobody has ever heard of, holding the one grant that matters. */
+        /*
+         * mfa_requirement IS SET EXPLICITLY, and leaving it out cost a run.
+         *
+         * The column is nullable, so the insert succeeded, and the sign in path
+         * then answered 500 at begin. Both checks reported HTTP 0 and read as
+         * "the gate is reading something other than the grant", which was a
+         * statement about this fixture rather than about the page. A role row a
+         * person creates on the permission screen gets a requirement; one
+         * created here has to as well, or it is not the same subject.
+         */
+        await db.from("eng_roles").insert({
+          key: INVENTED,
+          name: "Invented Capturer",
+          landing_path: "/portal",
+          is_system: false,
+          mfa_requirement: "optional",
+        });
+        madeRoles.push(INVENTED);
+        await db.from("eng_role_grants").insert({ role_key: INVENTED, action: "evidence.capture" });
+
+        /*
+         * And a role that LOOKS like the old escape hatch. The profile's role
+         * column carries a key, so this one is named to sit as close to "admin"
+         * as a distinct row can, and holds no grants at all.
+         */
+        await db.from("eng_roles").insert({
+          key: NAMED,
+          name: "Administrator Without The Grant",
+          landing_path: "/portal",
+          is_system: false,
+          mfa_requirement: "optional",
+        });
+        madeRoles.push(NAMED);
+
+        const openedBy = async (roleKey) => {
+          const probe = await makeProbe(db, roleKey);
+          const session = await signIn(probe.email, probe.password);
+          /* A sign in that failed is not a verdict about the gate, and saying
+           * so is the difference between a finding and a wild goose chase. */
+          if (!session.ok || !session.cookie) {
+            return { status: -1, why: `the probe could not sign in: ${session.error ?? "no cookie"}` };
+          }
+          const res = await fetch(`${BASE}/portal/certification`, {
+            headers: { cookie: session.cookie },
+            redirect: "manual",
+          });
+          return { status: res.status, why: "" };
+        };
+
+        const invented = await openedBy(INVENTED);
+        rec(
+          "a role holding evidence.capture under a name nothing has heard of opens Certification",
+          invented.status === 200,
+          invented.status === 200
+            ? `${INVENTED} got HTTP 200, so the gate read the GRANT`
+            : invented.status === -1
+              ? `NOT MEASURED, ${invented.why}`
+              : `HTTP ${invented.status}: the gate is reading something other than the grant`,
+        );
+
+        const named = await openedBy(NAMED);
+        rec(
+          "and a role holding no grant is refused, however it is named",
+          named.status === 404,
+          named.status === 404
+            ? `${NAMED} got HTTP 404`
+            : named.status === -1
+              ? `NOT MEASURED, ${named.why}`
+              : `HTTP ${named.status}: a role with no evidence.capture opened it anyway`,
+        );
+
+        /*
+         * THE REAL administrator, which is the row the escape hatch was written
+         * for. It holds no evidence.capture, so it must now be refused too, and
+         * the shell already never offered it the link.
+         */
+        /* sessions[role] is the cookie STRING, the shape every other fetch in
+         * this file uses. Reading .cookie off it would be undefined and the
+         * check would silently not run. */
+        const adminCookie = sessions.admin;
+        if (adminCookie) {
+          const res = await fetch(`${BASE}/portal/certification`, {
+            headers: { cookie: adminCookie },
+            redirect: "manual",
+          });
+          rec(
+            "and the administrator, who the escape hatch was written for, is refused with it gone",
+            res.status === 404,
+            res.status === 404
+              ? "HTTP 404, and nav.ts never offered the link either, so the shell and the page now agree"
+              : `HTTP ${res.status}: the escape hatch is still open somewhere`,
+          );
+        }
+      } catch (err) {
+        rec("the role name injection ran", false, String(err.message).slice(0, 160));
+      } finally {
+        /*
+         * THE PROBES GO FIRST, AND THE DATABASE INSISTS.
+         *
+         * 0018 line 231: eng_profiles.role references eng_roles (key) on update
+         * cascade, and NOT on delete cascade. Deleting a role while a profile
+         * still carries its key is refused, which is correct: a profile whose
+         * role does not exist is an account with undefined permissions.
+         *
+         * So the two probes made against these invented roles are removed here,
+         * before the roles are, and taken out of `created` so the outer
+         * teardown is not left deleting rows that have gone.
+         */
+        for (const key of madeRoles) {
+          for (const c of created.filter((x) => x.role === key)) {
+            await db.from("eng_profiles").delete().eq("id", c.id);
+            await db.auth.admin.deleteUser(c.id).catch(() => {});
+            created.splice(created.indexOf(c), 1);
+          }
+          await db.from("eng_role_grants").delete().eq("role_key", key);
+          await db.from("eng_roles").delete().eq("key", key);
+        }
+        const { data: leftRoles } = await db.from("eng_roles").select("key").in("key", madeRoles);
+        rec(
+          "the invented roles were removed",
+          (leftRoles?.length ?? 0) === 0,
+          leftRoles?.length ? `left behind: ${leftRoles.map((r) => r.key).join(", ")}` : `${madeRoles.length} removed`,
+        );
+      }
+    }
+
     // The trail recorded the sign ins. A writer that has quietly stopped is the
     // failure this check exists to catch.
     {
