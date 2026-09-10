@@ -646,7 +646,22 @@ for (const r of out) console.log(`  ${r.ok ? "PASS" : "FAIL"}: ${r.name}${r.note
 // ===========================================================================
 {
   const offenders = [];
-  const OBSERVED = /\b[a-z_]+_at:\s*(new Date\(\)\.toISOString\(\)|now\b|now\.toISOString\(\))/;
+  /*
+   * TWO SHAPES, AND THE SECOND WAS FOUND THE HARD WAY.
+   *
+   * The first is a literal in an object. The second is an assignment onto a
+   * patch object, which is how a column that is only SOMETIMES written gets
+   * set: patch.paid_at = now.
+   *
+   * Only the first was matched at first, and the miss was in the worst place
+   * available. setLedgerStatus is the one operator side BULK write in this
+   * platform, and it stamped approved_at and paid_at on up to three hundred
+   * technician payment rows from this machine's clock in a single press. It was
+   * found by surveying bulk operations for Section 1 rather than by this check,
+   * which is the argument for the check matching both.
+   */
+  const OBSERVED =
+    /\b[a-z_]+_at(:|\s*=)\s*(new Date\(\)\.toISOString\(\)|now\b|now\.toISOString\(\))/;
   const walkSrc = (dir) => {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
       const full = dir + "/" + entry.name;
@@ -691,7 +706,7 @@ for (const r of out) console.log(`  ${r.ok ? "PASS" : "FAIL"}: ${r.name}${r.note
       const full = dir + "/" + entry.name;
       if (entry.isDirectory()) countSrc(full);
       else if (/\.tsx?$/.test(entry.name)) {
-        governed += (readSource(full).match(/_at: DB_NOW/g) ?? []).length;
+        governed += (readSource(full).match(/_at(:| =) DB_NOW/g) ?? []).length;
       }
     }
   };

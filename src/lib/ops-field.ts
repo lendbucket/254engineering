@@ -1442,10 +1442,24 @@ export async function setLedgerStatus(
   if (!can(actor, "ledger.approve")) return { ok: false, error: "Your role cannot approve payments." };
   if (ids.length === 0) return { ok: false, error: "Nothing selected." };
 
-  const now = new Date().toISOString();
+  /*
+   * THE DATABASE STAMPS WHEN A TECHNICIAN WAS APPROVED AND WHEN THEY WERE PAID.
+   *
+   * These two are money and they are written in BULK, which is the combination
+   * that makes the clock matter most: one operator press stamps up to three
+   * hundred ledger rows, and every one of them would carry this machine s idea
+   * of the time. A payment record whose timestamp depends on which host ran the
+   * request is a payment record with two possible answers.
+   *
+   * Assigned by property rather than written in a literal, which is why the
+   * timestamp sweep did not find these and why db-guard-audit now matches this
+   * shape as well. Found while surveying bulk operations for Section 1: the one
+   * operator side bulk write in the platform was the one place still on the
+   * process clock.
+   */
   const patch: Record<string, unknown> = { status };
-  if (status === "approved") patch.approved_at = now;
-  if (status === "paid") patch.paid_at = now;
+  if (status === "approved") patch.approved_at = DB_NOW;
+  if (status === "paid") patch.paid_at = DB_NOW;
 
   const { data, error } = await db.from("eng_tech_pay_ledger").update(patch).in("id", ids).select("id");
   if (error) return { ok: false, error: error.message };
