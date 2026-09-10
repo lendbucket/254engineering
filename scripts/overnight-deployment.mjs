@@ -73,8 +73,28 @@ if (SITE_SURFACE?.routesFrom !== "sitemap") {
   process.exit(1);
 }
 
-/** The minimum number of routes a live sitemap must carry to be believed. */
-const ROUTE_FLOOR = 20;
+/*
+ * THE FLOOR IS PER SITE, AND THE FIRST VERSION WAS ONE NUMBER FOR THREE.
+ *
+ * The floor exists to catch ONE shape: a sitemap that did not parse, which
+ * yields an empty list and would otherwise pass as a green over nothing. That
+ * is what it just caught in this round's own first run.
+ *
+ * A single floor of 20 then reported stampmyplans as a failure for publishing
+ * nine pages. Nine is a real answer from a sitemap that parsed perfectly, and
+ * this repository has no standing whatever to say how many pages another
+ * repository ought to publish. Loosening the number to make that pass would
+ * have been the other error, because it would have loosened it for the primary
+ * too, where a real number IS known.
+ *
+ * So the floor is knowledge rather than a threshold. On the primary this
+ * repository builds the sitemap and seo-audit already measures 46 routes, so 20
+ * is a fact about a site that has drifted badly. On a sibling all that is known
+ * is whether the XML parsed, so the floor is 1 and the COUNT IS REPORTED
+ * without a verdict, which is the honest thing to say about a site whose
+ * contents are somebody else's decision.
+ */
+const routeFloor = (site) => (site.primary ? 20 : 1);
 
 async function sitemapRoutes(page, base) {
   const res = await page.request.get(base + "/sitemap.xml", { maxRedirects: 5, timeout: 30000 });
@@ -145,12 +165,17 @@ for (const site of SITES) {
   const { routes: fromSitemap, why } = await sitemapRoutes(page, site.base);
   const routes = fromSitemap.length ? fromSitemap : ["/"];
   console.log(`${site.name}: ${fromSitemap.length} routes from the live sitemap (${why})`);
+  const floor = routeFloor(site);
   rec(
-    `${site.name}: the live sitemap carries a believable number of routes`,
-    fromSitemap.length >= ROUTE_FLOOR,
-    fromSitemap.length >= ROUTE_FLOOR
-      ? `${fromSitemap.length} routes`
-      : `ONLY ${fromSitemap.length}, which is below the floor of ${ROUTE_FLOOR}: everything measured below is measured over almost nothing`,
+    `${site.name}: its live sitemap parsed into routes` +
+      (site.primary ? " and still carries the number this repository builds" : ""),
+    fromSitemap.length >= floor,
+    fromSitemap.length >= floor
+      ? `${fromSitemap.length} routes` +
+        (site.primary
+          ? ""
+          : " (reported, not judged: how many pages a sibling repository publishes is its own decision)")
+      : `ONLY ${fromSitemap.length}, below the floor of ${floor}: everything measured below is measured over almost nothing`,
   );
 
   let checked = 0;
