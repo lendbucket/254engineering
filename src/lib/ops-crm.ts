@@ -80,6 +80,8 @@ export type FileRow = {
   client_price_cents?: number | null;
   tech_cost_cents?: number | null;
   engineer_cost_cents?: number | null;
+  /* Only filesByIds fills this. A screen does not need it and an export does. */
+  is_demo?: boolean;
   /**
    * The partner attributed to this file, or null.
    *
@@ -276,6 +278,40 @@ export async function listFiles(
   return ((data ?? []) as FileRow[]).map((f) => redactFile(actor, f));
 }
 
+/**
+ * The files behind a set of ids, through the SAME scope the list uses.
+ *
+ * Phase 12 Section 4, Section 1. A bulk export is handed ids by a browser, and
+ * a browser is not allowed to decide which files somebody may read. This exists
+ * so the export cannot reimplement the scoping rule: it is the one in
+ * scopedFileQuery, and there is one of it.
+ *
+ * WHY IT CARRIES is_demo AND listFiles DOES NOT
+ * ----------------------------------------------
+ * A screen does not need it; an export does, because a demonstration row that
+ * reaches a spreadsheet unnamed is one of the four defects Phase 12 Section 2
+ * found by reading a CSV. Added here rather than to FILE_COLUMNS so no existing
+ * caller's shape changes for a column only this path reads.
+ */
+export async function filesByIds(actor: Actor | null, ids: string[]): Promise<FileRow[]> {
+  if (!actor || ids.length === 0) return [];
+  const db = supabaseAdmin();
+  if (!db) return [];
+
+  const scoped = await scopedFileQuery(actor);
+  if (!scoped) return [];
+
+  const { data } = await scoped.query.in("id", ids);
+  const rows = ((data ?? []) as FileRow[]).map((f) => redactFile(actor, f));
+
+  /* is_demo, for the rows the scope actually allowed. A second read rather than
+   * a widened select, and scoped by the ids that survived the first. */
+  const allowed = rows.map((r) => r.id);
+  if (allowed.length === 0) return rows;
+  const { data: flags } = await db.from("eng_files").select("id, is_demo").in("id", allowed);
+  const demo = new Map((flags ?? []).map((f) => [f.id as string, f.is_demo === true]));
+  return rows.map((r) => ({ ...r, is_demo: demo.get(r.id) ?? false }));
+}
 export async function getFile(actor: Actor | null, id: string): Promise<FileRow | null> {
   const db = supabaseAdmin();
   if (!db || !actor) return null;

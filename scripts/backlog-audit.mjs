@@ -77,6 +77,25 @@ const MARKERS = [
   /\bis not done\b/i,
   /\bnothing (?:writes|reads|prunes|watches|computes|draws)\b/i,
   /\bwaiting on the operator\b/i,
+  /*
+   * A DOCUMENT THAT ASKS A QUESTION IS CARRYING OPEN WORK.
+   *
+   * Added 2026-09-09, after docs/bulk-actions-reconciliation.md was written with
+   * a section headed "What is being asked at gate 1" and this audit passed
+   * straight over it.
+   *
+   * Every marker above describes work somebody DECIDED not to do. None of them
+   * describes work nobody has decided about yet, which is exactly the state a
+   * reconciliation document exists to produce and exactly the state most likely
+   * to be forgotten, because nobody has written a reason down yet.
+   *
+   * Same shape as everything else this section turned up: a check looking at the
+   * right subject through too narrow a window.
+   */
+  /\bis being asked\b/i,
+  /\bneeds a ruling\b/i,
+  /\bwithout a ruling\b/i,
+  /\bunless the operator rules\b/i,
 ];
 
 const docs = readdirSync("docs")

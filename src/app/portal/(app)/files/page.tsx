@@ -9,6 +9,8 @@ import { TEXAS_COUNTIES, twiaStatus } from "@/lib/ops-counties";
 import { outstandingFor, answeredFor } from "@/lib/ops-file-inputs";
 import { services } from "@/content/services";
 import { Chip, EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
+import { FileSelection } from "./FileSelection";
+import { EXPORT_LIMIT } from "@/lib/ops-bulk-files";
 import { dispatchContext, jobView } from "@/lib/ops-field";
 import { marginOf, money } from "@/lib/ops-money";
 import { partnerCostByFile } from "@/lib/ops-partner-comp";
@@ -178,29 +180,27 @@ export default async function FilesPage({
           }
         />
       ) : (
-        <ul className="flex flex-col gap-2">
-          {files.map((f) => (
-            <li key={f.id}>
-              <Link
-                href={`/portal/files?id=${f.id}`}
-                className={`block rounded-[4px] border bg-white p-4 transition-colors hover:border-slate ${
-                  selected?.id === f.id ? "border-slate" : "border-[var(--border)]"
-                }`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="font-mono text-[12.5px] text-[var(--gold-deep)]">{f.file_number}</p>
-                    <p className="mt-1 text-[13.5px] font-semibold text-[var(--navy)]">{f.property_address}</p>
-                    <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">
-                      {f.county} County{f.twia_county ? ", windstorm" : ""}
-                    </p>
-                  </div>
-                  <Chip label={STATUS_LABEL[f.status]} tone={STATUS_TONE[f.status]} />
-                </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        /*
+          The list moved into a client component so rows can be TICKED. What it
+          renders is the same card; what it adds is a checkbox beside each one
+          and a toolbar above them when anything is chosen. See
+          docs/bulk-actions-reconciliation.md for why Export is the only one of
+          the prototype's three bulk buttons that is here.
+        */
+        <FileSelection
+          limit={EXPORT_LIMIT}
+          selectedId={selected?.id ?? null}
+          files={files.map((f) => ({
+            id: f.id,
+            file_number: f.file_number,
+            property_address: f.property_address,
+            county: f.county,
+            twia_county: f.twia_county,
+            status: f.status,
+            statusLabel: STATUS_LABEL[f.status],
+            statusTone: STATUS_TONE[f.status],
+          }))}
+        />
       )}
     </div>
   );
@@ -448,7 +448,7 @@ export default async function FilesPage({
     </div>
   ) : (
     <div className="hidden lg:block">
-      <EmptyState title="No file selected" body="Choose a file from the list to see it here." />
+      <EmptyState title="No file open" body="Choose a file from the list to see it here." />
     </div>
   );
 

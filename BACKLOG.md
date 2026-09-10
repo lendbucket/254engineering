@@ -97,6 +97,28 @@ The options, and each has a real cost:
 else's queued work, even when that somebody is an audit from last Tuesday, and
 the third option changes what the platform does depending on where it runs.
 
+### BULK TABLE ACTIONS: TWO OF THE THREE DRAWN ACTIONS NEED A RULING
+
+Phase 12 Section 4, Section 1. The full reconciliation is in
+`docs/bulk-actions-reconciliation.md` and this is the pointer, not a second copy
+of it.
+
+The approved prototype draws a selection toolbar on the Files screen with three
+buttons: Export, Assign, Dispatch. Read against the code as CLAUDE.md section 2c
+requires, they describe three different situations.
+
+- **Export** is a capability the platform does not have and can have. Built in
+  Section 1.
+- **Assign** is an operation this platform deliberately does not have. Nothing
+  gives a file to a person; both `assigned_engineer_id` and `assigned_tech_id`
+  are written only when somebody ACCEPTS work. The engineer half is the record
+  of responsible charge, which 0039 has just made a RESTRICT foreign key.
+  **Refused unless the operator rules otherwise**, and the refusal belongs in
+  Section 2 as a thing bulk must not do.
+- **Dispatch** is half real. Sending offers exists; sending them for many files
+  means choosing technicians without a person looking, which is a decision about
+  who gets paid. **Needs a ruling** on the selection rule before it is built.
+
 ### THIS MACHINE'S CLOCK IS 85 SECONDS AHEAD OF THE DATABASE
 
 Found by `queue-audit` on 2026-09-09, measured rather than guessed: a row is

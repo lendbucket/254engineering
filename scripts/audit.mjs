@@ -216,6 +216,18 @@ const PHASE_ZERO = [
     why: "every registered kind claimed, leased, run and transitioned, against the real queue",
   },
   {
+    // Phase 12 Section 4, Section 1. The approved prototype draws three bulk
+    // buttons on the Files screen and only one of the three describes something
+    // this platform can honestly do; docs/bulk-actions-reconciliation.md carries
+    // the verdict for each, which is the order CLAUDE.md section 2c fixes.
+    //
+    // It RUNS the export and reads the CSV, because every one of the four export
+    // defects Phase 12 Section 2 found was found by opening a file and every one
+    // was invisible to a green board.
+    name: "bulk-audit",
+    why: "the export says what it is, names its demonstration rows, and does not widen what a role may see",
+  },
+  {
     // Phase 8 Section 3. An error reporter is a pipe out of the building, and
     // the check that matters stands up a real Sentry client with a capturing
     // transport and asserts on the bytes it was handed rather than on whether
