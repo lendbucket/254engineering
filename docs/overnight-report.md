@@ -620,6 +620,66 @@ the board, and restoring both returns 81 of 81.
 found by trying to walk a file through the platform and reading the line that
 wrote the timestamp.
 
+### 6b. What production actually holds, read from the tables
+
+Operator ruling, gate: state the blast radius from the tables rather than
+reasoning about it. Read through the Supabase MCP against
+`fsaryeciduszuahgjbly` on 2026-09-10.
+
+**No real `sealed_at` or `paid_at` was ever written, from any clock, because
+production holds nothing to write one on.**
+
+```
+files_total 0   files_sealed 0   files_delivered 0   files_dispatched 0
+files_refused 0 files_closed 0   files_evidence_submitted 0
+files_price_overridden 0
+orders_total 0  orders_paid 0
+```
+
+Every one of the thirteen columns was then counted on production, including
+`eng_documents.sealed_at`, which is a SECOND sealed_at this check found and
+which the fix did not touch because nothing writes it from the machine clock:
+
+| Column | Rows stamped |
+| --- | --- |
+| `eng_documents.sealed_at` | 0 |
+| `eng_certifications.certified_at` | 0 |
+| `eng_credentials.verified_at` | 0 |
+| `eng_onboardings.verified_at` | 0 |
+| `eng_evidence_items.captured_at` | 0 |
+| `eng_partner_acceptances.accepted_at` | 0 |
+| `eng_partners.agreement_accepted_at` | 0 |
+| `eng_tasks.completed_at` | 0 |
+| `eng_time_log.started_at` | 0 |
+| `eng_profiles.suspended_at` | 0 of 2 rows |
+| `eng_customer_users.suspended_at` | 0 |
+| `eng_production_ledger.paid_at` | 0 |
+| `eng_tech_pay_ledger.paid_at` | 0 |
+| `eng_partner_statements.paid_at` | 0 |
+| `eng_statements.paid_at` | 0 |
+| `eng_order_batches.paid_at` | 0 |
+| **`eng_jobs.finished_at`** | **1,690** |
+
+**One column is not zero, and it is worth being exact rather than reassuring.**
+1,690 production job rows carry a `finished_at` written from a process clock.
+Those were stamped by the worker running on Vercel, not by this machine, and
+Vercel's clock agrees with the database:
+
+```
+jobs 1690
+finished_before_created    0
+finished_before_eligible   0
+min seconds created to finished  4.76
+avg seconds created to finished  44.38
+```
+
+Not one row finishes before it was created or before it was eligible. The 85
+second drift is this machine's alone. So the defect was real everywhere and its
+CONSEQUENCE on production was nil: telemetry rows stamped from a correct clock
+by the wrong mechanism.
+
+Nothing on production needs correcting, and nothing was corrected there.
+
 ---
 
 ## 7. Questions that need a ruling
