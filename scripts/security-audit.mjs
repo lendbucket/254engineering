@@ -90,6 +90,11 @@ const ADMIN_PAGES = [
   "/portal/review",
   "/portal/jobs",
   "/portal/files",
+  // Phase 12 Section 4, Section 1. Names every technician who could be offered
+  // each selected file and what each is owed, which is the firm s field spend
+  // laid out on one page. Signed out it would be a list of who works for this
+  // firm, where, and for how much.
+  "/portal/files/dispatch",
   "/portal/clients",
   "/portal/techs",
   "/portal/protocols",
