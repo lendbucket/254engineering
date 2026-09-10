@@ -1072,23 +1072,41 @@ role: that the session survives the NEXT request. Signing in and being signed in
 are different facts, and the sign in check answered 200 with a Set-Cookie for
 all seven roles while four of them were already dead.
 
-## The cutover, deferred by decision, and two defects the dry run found
+## The cutover, REOPENED 2026-09-10, and two defects the dry run found
 
-### The database cutover is deferred. Not blocked.
+### The database cutover is reopened and moves ahead of Section 6.
 
-Operator ruling, 2026-09-07. The full record is in
-`docs/production-cutover-plan.md`, under a notice at the top of the file.
+Operator ruling, 2026-09-10. The full record is in
+`docs/production-cutover-plan.md`, under a notice at the top of the file. This
+is the pointer, not a second copy.
 
-The reason is a decision rather than an obstacle: the sibling repositories and
-their deployments are not to be touched right now, and step 8b cannot be done
-honestly without them. Deferred and blocked are different states and only one of
-them asks the next session to look for a way through.
+**The reason, in the operator's words:** the firm can now take money and has no
+restore path. TBPELS issued firm registration F-29811 the same day.
 
-**Steps 1, 2 and 3 are done.** The new project `qmvcqvkywmkogxbyzsaz` holds
-migrations 0000 through 0023, verified against every checkpoint in CLAUDE.md
-section 6b, and all five buckets, all private. It holds no rows and no storage
-objects. Production was not touched by any of it and is serving exactly what it
-served before. Ten dollars a month is the cost of holding the option open.
+**Nothing has been executed.** Steps 1 and 3 remain done, every step that writes
+anything remains unrun, and the next action is the operator's word.
+
+**What the reopening changed, and each is stated in the plan:**
+
+- **Step 2 is no longer done. It is eighteen migrations short.** The new project
+  holds 0000 through 0023; the repository is at 0041. Both fingerprints to
+  verify after the replay are in the step.
+- **DECISION A is open and is the operator's:** whether the OLD production gets
+  0038 through 0041 at all, given gate 2's ruling 6 said merge then apply, and
+  that ruling predates this one. The plan states what it would do and why it is
+  not its decision.
+- **Step 8b is confirmation rather than construction.** The intake API is built;
+  what is unknown is the state of the two sibling DEPLOYMENTS, and each must be
+  in one of two named states before step 9.
+- **Step 15 is new: the restore path.** The original sequence ended at step 14
+  and never built one, so a cutover run exactly as written would have moved the
+  firm onto a new database with the same gap that prompted the move.
+
+**What is at stake, read from production on 2026-09-10:** zero files, zero
+orders, zero documents, zero ledger rows. The irreplaceable set is 2 profiles, 2
+leads, 1 application, one enrolled second factor and **477 audit events** that
+the table refuses to let anyone delete. Everything else is telemetry. This is
+the smallest the migration will ever be.
 
 ### RESOLVED: copy-project.mjs could not see the objects it was meant to copy, and reported agreement
 

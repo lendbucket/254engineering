@@ -4,57 +4,108 @@ Written 2026-09-03.
 
 ---
 
-## DEFERRED BY DECISION, 2026-09-07. NOT BLOCKED.
+## REOPENED BY DECISION, 2026-09-10. NOTHING HAS BEEN TOUCHED.
 
-**Operator ruling.** The cutover stops here and does not resume until the
-operator says so. The reason is not a technical obstacle:
+**Operator ruling.** The cutover moves ahead of Section 6. The reason, in the
+operator's words:
 
-> The sibling repositories and their deployments are not to be touched right
-> now, and step 8b cannot be done honestly without them.
+> The firm can now take money and has no restore path.
 
-That is worth carrying in the operator's terms rather than paraphrasing into a
-risk, because deferred and blocked are different states and only one of them
-asks the next session to go looking for a way through. **Nothing here is waiting
-on a discovery.** Step 8b is a decision about two other businesses, and the plan
-already says of it: ask, do not assume.
+TBPELS issued firm registration **F-29811** the same day. That is what changed:
+until then the worst case was losing a handful of leads, and from now on it is
+losing a record of work somebody paid for.
 
-**What the new project holds today.** This is a correction rather than a
-restatement, because the ruling described the project as empty and it is empty
-of DATA rather than of schema:
-
-| | State |
-| --- | --- |
-| Ref | `qmvcqvkywmkogxbyzsaz`, `us-east-1`, healthy |
-| Schema | **Migrations 0000 through 0023, all applied and verified.** Step 2 is done. |
-| Buckets | **All five, all private.** Step 3's configuration half is done. |
-| Rows | Zero in every `eng_` table except the 7 roles and 111 grants 0018 and 0021 seed. |
-| Storage objects | Zero. |
-| Cost | Ten dollars a month, which is the price of holding the option open. |
-
-Steps 2 and 3 ran on 2026-09-07, in the session that received the deferral, and
-the ruling arrived after they had completed. They are recorded as done because
-they are done and verified, and because a future session redoing them would be
-replaying twenty four migrations to reach the state it is already in.
-
-**Neither step touched production.** Every step at or below the line in section
-3 that writes anything remains unexecuted: no rows were copied, no forms were
-frozen, no environment variable was changed, and production is serving exactly
-what it served before.
-
-**What resuming looks like.** Step 4 onward, in order, with step 8b answered
-first. Read the two defects recorded under step 5 and step 8 before running
-`copy-project.mjs`, because both of them let that script report success without
-having done anything.
+**This section is a PLAN. Nothing in it has been executed.** Steps 1, 2 and 3
+were done on 2026-09-07 and are still done. Every step that writes anything
+remains unrun. The next action is the operator's word, not a command.
 
 ---
 
-**Nothing below this notice has been executed except steps 1, 2 and 3.**
+### What is actually at stake, read from production today
 
-Operator ruling of 2026-09-03: migrate, `us-east-1`, rehearse first, preserve the
-`eng_profiles` uuid by direct insert, and stop before touching production.
+The 2026-09-03 plan sized this cutover before there was anything in it. Read
+back from `fsaryeciduszuahgjbly` on 2026-09-10:
 
-The rehearsal is done and is recorded in section 1. The sequence in section 3 is
-what remains, and it does not begin until the operator says so.
+| Table | Rows | What it is |
+| --- | --- | --- |
+| `eng_cron_runs` | 10,460 | telemetry, prunable, and retention may delete from it |
+| `eng_jobs` | 1,749 | telemetry, prunable |
+| **`eng_audit_events`** | **477** | **the firm's regulatory memory. Append only. Refuses DELETE.** |
+| `eng_role_grants` | 119 | seeded by migrations; the new project already has its own |
+| `eng_metrics_daily` | 81 | daily rollups |
+| `eng_mfa_recovery_codes` | 10 | one account's recovery codes |
+| **`eng_profiles`** | **2** | one admin, one engineer. Real accounts. |
+| `eng_auth_tokens` | 2 | short lived |
+| **`eng_leads`** | **2** | real enquiries, both `site = '254'` |
+| **`eng_applications`** | **1** | a real application, `site = '254'` |
+| `eng_mfa_enrolments` | 1 | one enrolled second factor |
+
+**And what production does NOT hold, which is the number that decides the risk:**
+
+```
+files 0   orders 0   documents 0   evidence 0
+production_ledger 0  tech_pay_ledger 0  partner_entries 0  statements 0
+```
+
+**Nobody has been billed and no work exists.** The irreplaceable set is five
+rows of business record plus 477 audit events plus one person's second factor.
+Everything else is telemetry that retention is allowed to delete anyway.
+
+That is the argument for going NOW rather than after Section 6. This is the
+smallest this migration will ever be, and the registration issuing is the moment
+it starts growing.
+
+**Audit events span 2026-09-02 to 2026-09-10** and cannot be recreated. They are
+the one table where a botched copy is unrecoverable, because the table refuses
+DELETE by design and a second import would double every row rather than replace
+it.
+
+---
+
+### What changed since the deferral, and what it does to the plan
+
+**1. The schema moved from 0023 to 0041.** The new project holds 0000 through
+0023. The repository now has through 0041. **Step 2 is no longer done: it is
+eighteen migrations short.** 0024 through 0041 replay into the new project
+before anything else happens.
+
+**2. 0038 through 0041 have never been applied to production either.** They are
+pending in `supabase/applied.mjs` and the branch has not merged. That creates a
+question the operator has to answer and this plan must not answer for itself:
+
+> **DECISION A: does the old production get 0038 through 0041 at all?**
+>
+> Gate 2's ruling 6 was merge, push, then 0038 through 0040 to production in
+> order. That ruling predates this one. Applying four migrations to a database
+> that is about to be abandoned is work and risk spent on a target with a
+> fortnight to live, and the alternative is to replay 0024 through 0041 into the
+> new project and merge afterwards.
+>
+> **What I would do:** skip them on the old project. Replay the full chain into
+> the new one, cut over, then merge and let `production-schema-check` verify the
+> new target. The only thing the old project has to do between now and step 14 is
+> keep serving what it already serves, which needs no new migration.
+>
+> **Why it is not mine to decide:** it reorders a standing ruling, and the merge
+> is what makes the deployed code and the schema agree. Getting that order wrong
+> is the 0023 incident again, in the other direction.
+
+**3. Step 8b's answer exists and is partly built.** The sisters post to
+`/api/intake/lead` rather than writing Supabase. It is built, documented in
+`docs/sister-intake-api.md`, and asserted by `sister-intake-audit` on the board.
+What remains is not construction, it is confirmation, and it is in section 8b
+below.
+
+**4. The compliance gate did not open.** F-29811 is issued to *254 Services LLC*
+and the sites hold out as *254 Engineering Services*, so `LAUNCH_MODE` stays
+prelaunch until the board holds the operating name. **This does not block the
+cutover and must not be allowed to look like it does.** The two are independent:
+one is about what the sites may say, the other is about where the rows live.
+
+**5. A restore path is what this is FOR, and there still is not one.** Point-in-
+time recovery, backup schedule and restore rehearsal are step 15 below, added by
+this reopening, because the operator's stated reason for moving was the absence
+of one and the original plan ended at step 14 without it.
 
 ---
 
@@ -108,30 +159,55 @@ verification below ambiguous.
 
 **Rollback:** delete the project. Production is untouched.
 
-### Step 2. Replay the migrations
+### Step 2. Replay the migrations. NOW EIGHTEEN SHORT.
 
-Apply **`0000` through `0023`** in order. Twenty four files.
+**0000 through 0023 are applied and verified.** That was true on 2026-09-07 and
+is still true.
 
-**This is the number that has moved most since the plan was written.** It said
-`0000` through `0008` and a fingerprint from Phase 7, which was true on
-2026-09-03 and has been overtaken by fifteen migrations: the B2B accounts, the
-job queue, observability, the partner programme and its compensation ledger, the
-operator intake, roles as data, the partner asset library, and what an alert
-remembers. A session working the plan as written would have built a schema three
-phases behind the code and found out at step 10.
+**It is no longer step 2 being done.** The repository is at **0041**, so
+**0024 through 0041 replay next, in order, eighteen files.** A session reading
+the old "Step 2 is DONE" line and moving to step 3 would build a schema
+eighteen migrations behind the code and find out at step 10, which is exactly
+the failure the same line already caused once when it said 0000 through 0008.
 
-**Verify:** fingerprint equals `b2c841480f983ec50e36e72a11e9072a` across **945
-columns and 69 tables**, with row level security on all 69, 46 triggers, 9
-`eng_` functions and none with an unpinned `search_path`, and **111 role
-grants** seeded by 0018 and 0021.
+What the eighteen carry, so the number means something: the second factor,
+marketing suppressions, reporting foundations, the demo flag and its check
+constraint, bulk order columns, deletion requests, partner addresses, the job
+effect mode, four foreign keys, the eight indexes production always had, and
+0041's firm registration column.
 
-The grant count is checked separately and deliberately: it is a row count rather
-than a shape, so the fingerprint cannot see it. 0018's first version seeded a
-role without the permission that opens the permission screen, and the fingerprint
-was identical either way.
+**Apply them through `apply_migration`, never `execute_sql`.** CLAUDE.md section
+6b, operator ruling 2026-09-09: `apply_migration` writes a row into
+`supabase_migrations.schema_migrations` and `execute_sql` changes the database
+and writes nothing. A chain applied the second way is present in the schema and
+absent from the provider's history, which is what makes 0025 the one
+grandfathered case and not a precedent.
 
-`migration-audit` asserts the same figures against a scratch database on every
-suite run, so a mismatch here means the project rather than the files.
+**Verify, after 0041:**
+
+| | Expected |
+| --- | --- |
+| Shape fingerprint | `1a11138f01f9be2f66251640cfb55b70` |
+| Columns | **1017** |
+| Behaviour fingerprint | `7acbb5b22f11220b4a36f535fab9e09c` |
+| Behaviour facts | **814** |
+
+Both figures come from `supabase/applied.mjs`'s 0041 entry and are asserted
+against a scratch replay by `migration-audit` on every suite run, so a mismatch
+here means the PROJECT rather than the files.
+
+**Two fingerprints and not one, and the second is the one that matters here.**
+The shape figure sees columns. It cannot see a constraint, a trigger, a
+function, an index, a policy or a seeded row, and this chain adds all six. 0039
+alone adds four foreign keys of which one is `NOT VALID` on development because
+28 rows predate it; a project where all four validated would have an identical
+SHAPE and a different BEHAVIOUR, and only the second figure would say so.
+
+**And the row counts, which no fingerprint can see:** 7 roles and the grants
+0018 and 0021 seed. Production carries 119 grant rows against the 111 the
+migrations seed, and 0040 deletes the two `files.assign` rows; reconcile the
+number on the new project against the migrations rather than against production,
+because production's extra rows are what 0040 exists to explain.
 
 **The query, which is the same one CLAUDE.md section 6b carries:**
 
@@ -141,7 +217,6 @@ suite run, so a mismatch here means the project rather than the files.
           where table_schema='public' and table_name like 'eng\_%') t;
 
 **Rollback:** delete the project and start again. Production is untouched.
-
 ### Step 3. Create the buckets
 
 `eng-evidence`, `eng-onboarding`, `eng-uploads`, `eng-messages`,
@@ -479,18 +554,42 @@ sisters post to an intake API rather than writing Supabase. It is built,
 `sister-intake-audit` in the suite, and both sibling briefs carry what each
 repository has to do.
 
-That changes what this step blocks on. It is no longer "move three deployments
-in one window". It is:
 
-  **For each sister, one of two states must be true before step 9.** Either it
-  has moved to the intake API and deleted its Supabase credentials, in which case
-  it is not part of this window at all, or it has not, in which case its
-  `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` move with 254's in the same
-  window and it is redeployed.
+**WHAT REMAINS, 2026-09-10, and it is confirmation rather than construction.**
 
-  **Ask, do not assume.** Each sister's deployed values live in its own Vercel
-  project and were not readable from here. The state to confirm is what that
-  deployment is actually pointed at, not what its `.env.local` says.
+The intake API is built and on the board. What is NOT known from this repository
+is the state of the two sibling DEPLOYMENTS, and the plan's own instruction
+stands: **ask, do not assume.** Each sister's deployed values live in its own
+Vercel project and are not readable from here.
+
+**For each sister, confirm ONE of these two states before step 9:**
+
+| State | What it means for the window |
+| --- | --- |
+| **A. Moved to the intake API.** It POSTs to `/api/intake/lead` and its `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are DELETED from its Vercel project. | It is not part of this window at all. Nothing to move, nothing to redeploy. |
+| **B. Still writing Supabase directly.** | Its two environment variables move with 254's in the same window, and it is redeployed inside it. |
+
+**Deleted, not merely unused.** A credential that is still present is a
+credential something can still use, and the failure this step exists to prevent
+is a sister writing a lead into the abandoned project where nobody reads it. If
+the answer is "it does not use them any more", the check is whether they are
+GONE.
+
+**What can be confirmed from here, and it is not much:** production holds two
+leads and one application, and every one carries `site = '254'`. **Neither
+sister has ever written a row.** That is worth knowing because it means state B
+carries no data risk at all today, only future writes, and it means a mistake
+here would be invisible for exactly as long as the sisters stay quiet.
+
+**What the sibling repositories have to do, and where it is written:**
+`docs/brief-sealedengineering.md` and `docs/brief-stampmyplans.md` each carry
+their side. Those two files are also the only route: the sibling repositories
+are not touched from here, ever, by the operator's ruling of 2026-09-10. Both
+briefs now open with the firm registration, which is a separate matter from this
+step and is stated there so a session opening either file meets both.
+
+**Rollback:** not applicable. This step is a decision and a verification, not a
+change. Step 9 does not begin until both sisters are in a known state.
 
 The original options are kept below, because the reasoning for rejecting the
 other two is what makes the third one right rather than merely chosen.
@@ -576,6 +675,48 @@ one merge.
 Only after thirty days, only on the operator's word, and as a separate
 deliberate act with its own report. This is the step that has no rollback, which
 is why it is thirty days away from the one that needed it.
+
+---
+
+### Step 15. THE RESTORE PATH. Added 2026-09-10, and it is the reason for the whole reopening.
+
+The operator's words when reopening this plan were "the firm can now take money
+and has no restore path". The original sequence ended at step 14 and never
+built one, so a cutover run exactly as written would have moved the firm onto a
+new database with the same gap it started with.
+
+**A migration is not a backup.** Everything above moves the rows. None of it
+answers what happens when somebody deletes the wrong thing on a Tuesday.
+
+Three separate things, and they are not interchangeable:
+
+1. **Point in time recovery.** Confirm it is enabled on the new project and know
+   the window. Supabase's free tier does not carry PITR, so this is a plan
+   setting and possibly a cost, and the answer "we have daily backups" is not the
+   same answer.
+
+2. **A backup that leaves the provider.** A restore path that depends on the
+   provider being reachable is not a restore path for the case where the
+   provider is the problem. The smallest honest version is a scheduled dump of
+   the `eng_` schema to storage the firm controls.
+
+3. **A REHEARSED restore.** Untested backups are the oldest failure in this
+   business. Restore into a scratch project and compare the shape fingerprint,
+   the behaviour fingerprint and the row counts, the same three figures step 2
+   and step 10 use. This repository already believes that: `migration-audit`
+   exists because comparing two live projects to each other could never catch
+   both of them being wrong.
+
+**What makes it urgent rather than tidy:** `eng_audit_events` refuses DELETE by
+design and holds 477 rows spanning 2026-09-02 to 2026-09-10. It is the one table
+where a bad restore cannot be corrected by re-importing, because a second import
+would double every row rather than replace it. The firm's regulatory memory has
+exactly one copy today.
+
+**This step does not block steps 1 to 14** and must not be used to delay them.
+It is written here because the plan is what the next session reads, and a plan
+that ends at step 14 is a plan that says the job is finished when the thing that
+prompted it is still missing.
 
 ---
 
