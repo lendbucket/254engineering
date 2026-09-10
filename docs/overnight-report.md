@@ -293,7 +293,186 @@ button. The rows that remain are real data rather than a rendering fault.
 
 ## 5. Round 4: the perf gate and the queue
 
-**NOT YET RUN.**
+### 5a. The perf gate, both ceilings, both hosts, three runs each
+
+Local against a production build on port 3235, and remote against
+`https://254engineering.com`. The gate carries two ceiling sets because
+localhost measures slower than the live host, and which applies is decided by
+the host being measured rather than by a flag.
+
+**80 checks, 0 failed, 0 too unstable to gate on.**
+
+| | Local ceiling | Remote ceiling |
+| --- | --- | --- |
+| LCP | 3400ms (homepage 3600, application stepper 3660) | 2760ms (same two overrides) |
+| CLS | 0.05 | 0.05 |
+| TBT | 200ms | 200ms |
+
+**The twenty slowest, by the WORST of three runs**, which is what the sweep
+asked for and which the printed table cannot supply, because it prints the
+median and the spread and those do not reconstruct a maximum. `PERF_SAMPLES`
+was added to dump the raw runs; it gates on nothing.
+
+```
+  worst  median   best  ceiling  over?  host    route
+   3532    3532   3465     3600  no     local   /
+   3455    3455   3381     3660  no     local   /careers/professional-engineer
+   3207    3200   3168     3400  no     local   /coverage
+   3167    3164   3163     3400  no     local   /coverage/coastal-bend
+   3076    2391   2386     3600  no     remote  /
+   3013    3013   3011     3400  no     local   /services/windstorm-wpi-8
+   3013    3010   3009     3400  no     local   /careers
+   2967    2936   2934     3400  no     local   /insights/texas-pe-license-lookup
+   2940    2936   2935     3400  no     local   /structural-engineer
+   2939    2935   2934     3400  no     local   /windstorm/before-work-begins
+   2788    2786   2785     3400  no     local   /windstorm
+   2606    1867   1858     3660  no     remote  /careers/professional-engineer
+   2454    2312   1876     2760  no     remote  /coverage
+   2302    2248   1713     2760  no     remote  /services/windstorm-wpi-8
+   2298    2020   2016     2760  no     remote  /careers
+   2290    2115   1717     2760  no     remote  /insights/texas-pe-license-lookup
+   2161    2158   2157     2760  no     remote  /coverage/coastal-bend
+   2087    1863   1722     2760  no     remote  /windstorm
+   2083    1855   1704     2760  no     remote  /windstorm/before-work-begins
+   1869    1860   1703     2760  no     remote  /structural-engineer
+```
+
+**Zero routes exceed their ceiling on the worst of three, and zero on the
+median.** Nothing was fixed because nothing was over. That is the honest
+outcome, not a skipped step.
+
+One correction worth recording, because the first pass got it wrong. The first
+version of this table applied the shared 3400ms ceiling to every route and
+reported two routes over. Both carry their OWN declared ceiling, 3600 for the
+homepage and 3660 for the application stepper, which the audit's printed result
+states in words on every line ("its own ceiling"). Reading the ceiling out of
+the audit's own output instead of assuming one took both findings away. A
+finding produced by ignoring a declaration is not a finding.
+
+**What this does NOT cover, stated rather than implied.** The gate measures **10
+route templates**, not the 46 routes on the sitemap. That is `perf-budgets.mjs`'s
+deliberate design, one budget per template, and it is also a practical limit:
+46 routes times 3 runs times 2 hosts is several hours of Lighthouse. The 46 are
+covered for byte budget and uniqueness by `seo-audit`, which reported "46 routes
+within budget and unique, 15 sampled pages at SEO 100" on this run.
+
+### 5b. Two hundred jobs through the real claim function
+
+`scripts/overnight-queue-load.mjs`. **10 checks, all green.**
+
+```
+  enqueue      200 distinct rows in 44,635ms, 223ms each
+  drain        20 batches of 10 in 24,257ms
+               fastest 1,171ms, median 1,210ms, slowest 1,283ms per batch
+               about 121ms per job end to end
+  outcome      134 done, 66 dead, 0 pending, 0 running
+  lease        no job that succeeded was attempted more than once
+  refusal      fired at the boundary, naming #2159, #2160, #2161 email.send,
+               and stopped the drain
+  teardown     all 200 removed
+```
+
+Every job was `no_external_effect`, written at enqueue and **read back off
+`eng_jobs` rather than trusted from the argument**, with the drain refusing
+outright if any row read `live`. Nothing was sent.
+
+The 66 dead are the `evidence.thumbnail` probes, which are unimplemented and
+dead letter by design, so the mix exercised both terminal shapes rather than one
+code path two hundred times.
+
+**Two defects in the load test itself, caught by its own checks on the first
+run.** Deduplication is on the IDEMPOTENCY KEY, not the payload: `email.send`
+keys on `to`+`subject`+`text` and the first version varied only an unread `id`
+field, so 67 email jobs became one row and 66 thumbnails became one, and the run
+drained a queue of 69 while reporting 200. And the drain does not always finish,
+because the refusal can stop it with rows still pending, which is the refusal
+working rather than a failure.
+
+---
+
+## 5c. The four paths, walked and read line by line
+
+`scripts/overnight-paths.mjs`, and one driven walk. Nothing sent, nothing
+sealed, nothing deleted, no retention run executed.
+
+**PATH 1, a file's timeline. The finding here is that there was nothing to
+read.** `eng_file_events` held **zero rows on the entire development database**.
+Every one of the five files there was inserted straight into `eng_files` by a
+fixture, so the timeline, and every screen that renders one, had never been
+exercised anywhere anybody looks. `fileTimeline` was not broken; there was
+simply nothing in it.
+
+So one file was driven through the real functions, and this is its timeline,
+the first non-empty one on that database:
+
+```
+  2026-09-10T06:04:47.927  status    intake -> needs_dispatch  Moved to needs_dispatch by the overnight path walk.
+  2026-09-10T06:04:47.278  created   -      -> intake          File opened for 9 Demo Timeline Walk in Nueces County.
+```
+
+The walk then stopped, because the platform refused it, and the refusal is the
+best sentence read all night:
+
+> Nobody has accepted this job yet. A file reaches dispatched when a technician
+> accepts an offer, because a file marked dispatched with nobody on it is not a
+> status, it is a lie.
+
+That is correct and it is well said. The walk stopped there.
+
+**And it produced a finding about itself.** `createFile` gave that file the
+number `254-2026-0001` with `is_demo: false`, even though its client is
+`Demo Split Client 418364` with `is_demo: true`. A file opened for a
+demonstration client is a REAL file to every report. The side effect was
+corrected by renumbering it `254-DEMO-WALK0910` and setting the flag, which the
+`eng_files_demo_number_agrees` check constraint requires to move together.
+Development now holds six files, all demonstrations, and zero real ones.
+
+The underlying question is in section 7.3 and was not acted on.
+
+**PATH 2, the audit trail.** Read newest first. Every row carries an actor
+email, a role, an entity type and a summary. Nothing in the window read as a
+claim of contact the platform could not evidence, which is the question
+`customer_link.issued` taught this repository to ask.
+
+**PATH 3, dispatch, walked to the door and stopped.** `dispatchPlans` computes
+the review screen and sends nothing; `sendBulkOffers` was not called. For the
+one file in `needs_dispatch`:
+
+```
+  254-DEMO-0003
+    blocked:    no
+    eligible:   0 technician(s)
+    ineligible: 3, each with the reason
+      Does not cover Aransas County.
+      Does not cover Aransas County.
+      Account is invited.
+```
+
+Every ineligible technician carries its reason, which is the rule that a shorter
+list is not an answer to who could do this work.
+
+And Section 2's sealed refusal, exercised live rather than asserted. Asking for
+a plan on a file that is not waiting for dispatch:
+
+> This file is Declined to seal, not waiting for dispatch.
+
+**PATH 4, retention, planned and never run.** The declaration names two tables
+retention may ever delete from, `eng_cron_runs` and `eng_jobs`, and a dry run
+was planned against both and then read rather than acted on.
+
+Two defects in the walk script, both mine and both worth recording because each
+would have produced a false finding about the platform:
+
+- It passed `"dry_run"` as a string where `RetentionMode` is an object, so
+  `mode.kind` was undefined and the manifest insert wrote null into a NOT NULL
+  column. The database refused it, correctly.
+- It then used the all-zero uuid as the actor, and `eng_retention_runs.actor_id`
+  is a foreign key to a profile. The database refused that too, correctly. That
+  constraint is the point of the column: a dry run records who asked for it, and
+  an actor who does not exist is not an answer.
+
+Both were the platform being right about an invalid request. Neither was a
+defect in it.
 
 ---
 
@@ -306,9 +485,58 @@ wrong.** Full evidence in section 2. Three independent time sources, including
 Recorded rather than fixed: it is a system setting on the operator's machine and
 this run has no authority to change one unattended. `w32tm /resync` from an
 elevated prompt is the whole of it, and `queue-audit` goes green the moment it
-runs. Nothing stored is affected, because `DB_NOW` already moved 68 timestamps
-off the process clock so that every `planned_at`, `sent_at` and `sealed_at` is
-the database's own `now()`.
+runs.
+
+### 6a. AND THE LAST SENTENCE OF THAT PARAGRAPH WAS NOT TRUE WHEN THIS RUN BEGAN
+
+It said nothing stored is affected, because `DB_NOW` had moved 68 timestamps off
+the process clock so that every `planned_at`, `sent_at` and `sealed_at` is the
+database's own `now()`.
+
+**Thirteen were missed, and `sealed_at` was one of them.** Found by driving a
+file through `transitionFile` and reading what it wrote. Full account in the
+commit `66d89bd`; the shape of it is:
+
+| Where | Column |
+| --- | --- |
+| `ops-crm.ts` | `dispatched_at`, `refused_at`, `evidence_submitted_at`, **`sealed_at`**, `delivered_at`, `closed_at`, `price_overridden_at` |
+| `ops-payments.ts` | **`paid_at`** |
+| `ops-partner-portal.ts` | `accepted_at`, `agreement_accepted_at` |
+| `ops-onboarding.ts` | `verified_at` |
+| `ops-field.ts` | `captured_at` (fallback), `certified_at` |
+| `ops-engineer.ts` | `started_at` (fallback) |
+| `ops-tasks.ts` | `completed_at` |
+| `ops-jobs.ts` | `finished_at`, `run_after` |
+| `admin-onboarding.ts` | an onboarding milestone, computed column |
+| `api/portal/people` | `suspended_at` |
+
+`sealed_at` is when a named Professional Engineer put their seal on the firm's
+regulatory output. `paid_at` is when a customer's money arrived. Both were being
+written 85 seconds ahead of the database.
+
+`run_after` is the one with a symptom rather than a risk. `eng_claim_jobs`
+compares it against the DATABASE's clock, so a job retried "now" was written 85
+seconds into the database's future and sat unclaimable for that long.
+
+**Why the check missed every one.** Its pattern matched a literal column name
+followed IMMEDIATELY by the machine clock. All thirteen put something in
+between: a computed key (`patch[stamp] =`), a ternary, a `??` fallback, a name
+not ending in `_at`, or a variable. That pattern had already been widened once,
+after `setLedgerStatus` was caught stamping three hundred technician payment
+rows from this machine in a single press. **A pattern wrong twice in the same
+way is the wrong mechanism.**
+
+It is now a declaration: every machine clock call in `src/` is listed with what
+it is for, and anything undeclared fails, and an allowance for a call that no
+longer exists fails too. A pattern has to guess which uses are writes. A
+declaration makes somebody say so.
+
+Injection both ways: an undeclared call fails the board, a stale allowance fails
+the board, and restoring both returns 81 of 81.
+
+**This is the finding of the night, and it was not found by any check.** It was
+found by trying to walk a file through the platform and reading the line that
+wrote the timestamp.
 
 ---
 
@@ -364,6 +592,39 @@ separate read grant, and inventing a grant is not a thing to do unattended at
 night.
 
 Nothing was changed.
+
+### 7.3 A file opened for a demonstration client is a REAL file
+
+`createFile` sets no `is_demo`, so a file opened for a client whose `is_demo` is
+true gets a real file number and counts as real work in every report. Found in
+section 5c by opening one.
+
+It cannot be corrected afterwards without renumbering, because
+`eng_files_demo_number_agrees` requires `(file_number like '%-DEMO-%') = is_demo`.
+That constraint is right: the flag and the number must not be able to disagree.
+
+**It cannot bite production**, because there are no demonstration clients there,
+and that is why this is a ruling rather than a fix. On development it means any
+path walk, audit or person who opens a file inflates the real figures, which is
+the class Phase 12 Section 2 already found once as a sales tile counting a
+seeded client.
+
+**The decision I would make.** `createFile` should inherit `is_demo` from its
+client and mint a DEMO file number when it does. It needs a ruling because file
+numbers are read down a telephone to a lender, and changing how one is minted is
+a product decision rather than a defect fix.
+
+### 7.4 Two copies of the queue drain refusal
+
+`scripts/overnight-queue-load.mjs` reproduces `queue-audit`'s two refusals
+rather than sharing them. Two copies of a safety mechanism drift, and this
+mechanism exists because 20 emails went out at 05:21 and 35 more at 23:08 on
+2026-09-09.
+
+Unifying them means moving code out of a green board audit, which this run's
+limits refuse as reorganising. **The decision I would make:** extract
+`nextEligible` and the ownership refusal into `scripts/lib/` and have both
+import it, in daylight, with the board re-run after.
 
 ---
 
