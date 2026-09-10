@@ -112,6 +112,52 @@ honest version sends offers to the technicians the existing plan proposes for
 each file and says so plainly, per file, before anything is sent, so the bulk
 action is a review of N plans rather than a press that fans work out invisibly.
 
+### Built, and then PROVED, 2026-09-10
+
+The ruling is a statement about two computed answers being the same answer, and
+for a while it was enforced only by checks that read source: that the panel
+preselects nothing, that bulk calls `sendOffers`, that no offer-to-everyone
+shortcut exists. Every one of those is worth having and not one of them can see
+what the ruling says.
+
+`bulk-audit` now computes both and compares them, field by field, in order:
+
+| | |
+| --- | --- |
+| the SINGLE path | `dispatchContext(actor, file).plan.offers` |
+| the BULK path | `dispatchPlans(actor, [id]).plans[0].offers` |
+
+compared on `techId`, `rank`, `miles`, `openJobs` and `amountCents`. And then
+the part that makes it **N plans** rather than one plan applied N times: every
+file is planned again as part of a batch, and each plan in the batch must equal
+that file's plan alone.
+
+**The subject is built rather than filtered for.** Development holds one file in
+`needs_dispatch`, in Aransas, where no certified technician covers the service
+line, so its plan is empty. Two empty lists are equal and prove nothing. Three
+files are created in Nueces on `windstorm-wpi-8`, which two certified
+technicians cover, and removed at the end.
+
+**Three injections, and each catches something the others cannot:**
+
+1. **the bulk path reverses the plan's order.** Both comparisons go red, naming
+   the two technicians and their swapped ranks.
+2. **the batch never offers the same technician twice**, which is a plausible
+   and entirely wrong idea about spreading work. Only the BATCH comparison goes
+   red: with one file there is nothing to spread across, so a check that
+   compared files one at a time would have shipped it.
+3. **the bulk path redacts the amount for an actor without `pricing.read`.**
+   Only the DISPATCHER comparison goes red. An administrator holds
+   `pricing.read` and cannot see a redaction that is not applied to them, which
+   is why the comparison is run twice: once as an administrator and once as a
+   dispatcher, the one role on this platform that plans dispatch without being
+   allowed to see money.
+
+What is deliberately not asserted is that a dispatcher cannot see the offer
+amount. They can, and should: sending an offer without knowing what it is worth
+is not a decision. The refusal is that the two paths AGREE.
+
+
 ---
 
 ---
