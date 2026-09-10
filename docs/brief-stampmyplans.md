@@ -10,6 +10,67 @@ across by hand, into that repository, in that session.
 
 ---
 
+## 0. THE FIRM REGISTRATION ISSUED, AND IT DOES NOT OPEN YOUR GATE EITHER
+
+Recorded 2026-09-10. Read this before item 1.
+
+TBPELS issued a firm registration:
+
+| | |
+| --- | --- |
+| Number | **F-29811** |
+| Issued to | **254 Services LLC** |
+| Status | active |
+| Expires | **2027-07-31** |
+
+**The compliance gate stays shut on all three sites, and the reason is the
+name.** The registration is in the name *254 Services LLC*. This site holds out
+under a different name. A registration in one name does not authorise holding
+out under another, and Texas regulates the use of "engineer" and "engineering"
+in how a firm names itself and presents itself.
+
+So the gate does not open until the board HAS the operating name, either by the
+entity being renamed or by an assumed name being filed and recorded. Until then
+nothing changes on any of the three sites.
+
+### What this means for this repository, in order
+
+1. **Do not print F-29811 anywhere yet.** While the gate is shut the number must
+   not render. Printing it beside a trading name the board has no record of is
+   the misstatement the gate exists to prevent, and it would be worse than
+   printing nothing because it looks like a verified fact.
+
+2. **When the gate does open, the number must appear in this site's public
+   footer.** That is an operator ruling, not a preference: the requirement is
+   the number in the public footer of ALL THREE sites, in every email footer,
+   and on the sealed document upload record.
+
+3. **Print the name the registration was ISSUED TO beside the number, not the
+   name the site trades under.** In the 254 Engineering Services repository this
+   was a live defect: `registrationLine()` printed a module constant reading
+   "254 Engineering Services LLC", so the moment the gate opened it would have
+   put the board's number next to a name the board's record does not carry. It
+   now reads the name off the registration record, so the two cannot disagree.
+
+4. **Keep the number in ONE place**, a configuration file, and have the footer
+   read it from there. Not an environment variable: a variable can differ
+   between a build and a deployment, and this is a regulatory statement. Pin it
+   as a literal in whatever audit covers it, so changing it costs two edits made
+   on purpose.
+
+5. **Check the expiry.** A registration is not evidence of anything after
+   2027-07-31. A site that goes on printing a lapsed number is making a claim it
+   cannot support, so the check is `status active AND expires >= today` rather
+   than "a number exists".
+
+### Why you are being told rather than sent a patch
+
+The sibling sites are not touched from the 254 Engineering Services repository,
+ever, by the operator's ruling of 2026-09-10. This brief is how the requirement
+crosses.
+
+---
+
 ## 1. THE COMPLIANCE GATE: one sentence on the live site, and this is the first item
 
 Found 2026-09-10 by the overnight sweep's Round 2, which reads the three live

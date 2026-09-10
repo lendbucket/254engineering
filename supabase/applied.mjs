@@ -448,6 +448,42 @@ export const APPLIED = [
       "and roles-audit had to learn that the chain's NET effect is what a database holds rather than its " +
       "inserts alone.",
   },
+  /*
+   * 0041, THE DAY THE REGISTRATION ISSUED.
+   *
+   * TBPELS issued F-29811 to 254 Services LLC on 2026-09-10, active, expiring
+   * 2027-07-31. The operator's ruling that day made the number a condition of
+   * the compliance gate in three places: the public footer of all three sites,
+   * every email footer, and the sealed document upload record. The first two
+   * are rendered from configuration and needed no schema. This is the third.
+   *
+   * ONE COLUMN, NULLABLE, AND THE NULL IS THE POINT. Every document already
+   * filed was filed before any registration existed, so null is true of them
+   * and a backfill would invent a fact. What holds the rule going forward is
+   * recordDocument, which writes the active registration on every insert, and
+   * compliance-audit, which asserts it does.
+   */
+  {
+    file: "0041_a_filed_document_says_which_registration.sql", appliedBy: "apply_migration",
+    fingerprint: "1a11138f01f9be2f66251640cfb55b70",
+    behaviour: "7acbb5b22f11220b4a36f535fab9e09c",
+    proves: { column: { table: "eng_documents", name: "firm_registration" } },
+    production: null,
+    because:
+      "Phase 12 Section 4 is open and the cutover to the new project is being planned ahead of Section 6, " +
+      "so this is pending on BOTH counts. Applied to development 2026-09-10 through apply_migration and read " +
+      "back. One column added, so the shape moves from 1016 columns to 1017 and the fingerprint from " +
+      "cac6f69d91b7e73441b307ea692a3f7b to 1a11138f01f9be2f66251640cfb55b70. THE BEHAVIOUR FINGERPRINT DOES " +
+      "NOT MOVE, and that is the check working rather than a copied value: 814 facts before and 814 after. A " +
+      "nullable column with a comment adds no constraint, no trigger, no function, no index, no policy and no " +
+      "seeded row, so a behaviour figure that HAD moved would mean this migration did something it does not say.",
+    note:
+      "THE CUTOVER HAS TO CARRY THIS ONE. The new project qmvcqvkywmkogxbyzsaz holds the schema at 0023, so " +
+      "0024 through 0041 all replay into it, and 0041 is simply the last of them rather than a special case. " +
+      "It is called out here because it was written the same day the cutover reopened, and a migration " +
+      "written during a cutover is the one most likely to be applied to the old target out of habit. " +
+      "docs/production-cutover-plan.md names it in the replay step.",
+  },
 ];
 
 /**

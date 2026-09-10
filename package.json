@@ -34,6 +34,7 @@
     "precoverage-audit": "node scripts/preflight-audit.mjs",
     "coverage-audit": "node scripts/coverage-audit.mjs",
     "prelaunch-audit": "node scripts/preflight-harness.mjs",
+    "compliance-audit": "tsx --conditions=react-server scripts/compliance-audit.mjs",
     "launch-audit": "tsx --conditions=react-server scripts/launch-audit.mjs",
     "preperf-audit": "node scripts/preflight-audit.mjs",
     "perf-audit": "node scripts/perf-audit.mjs",

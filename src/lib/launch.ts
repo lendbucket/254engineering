@@ -1,3 +1,9 @@
+import {
+  verifiedFirmRegistrations,
+  operatingNameOnBoardRecord,
+  type VerifiedFirmRegistration,
+} from "@/config/credentials";
+
 /**
  * The compliance gate.
  *
@@ -37,11 +43,76 @@
 export type LaunchMode = "prelaunch" | "live";
 
 /**
- * The current mode. Anything other than the literal "live" is prelaunch,
- * including a missing variable, an empty one, and a typo.
+ * ===========================================================================
+ * WHAT MUST BE TRUE BEFORE THE GATE CAN OPEN, AND IT IS NOT ONE VARIABLE.
+ * Operator ruling, 2026-09-10, the day the firm registration issued.
+ * ===========================================================================
+ *
+ * LAUNCH_MODE used to be the whole gate. It is now the operator's SWITCH, and
+ * the switch is one of the conditions rather than all of them. Every other
+ * condition is read from CONFIGURATION, so the flip is impossible until each is
+ * stated true in a file somebody has to edit on purpose.
+ *
+ * The ruling came from a real gap. TBPELS issued F-29811 on 2026-09-10, which
+ * looks like the day the gate opens, and it is not: the registration is in the
+ * name 254 Services LLC while all three sites hold out as 254 Engineering
+ * Services. Setting LAUNCH_MODE=live that afternoon would have printed a
+ * registration number beside a name the board has no record of.
+ *
+ * So each blocker returns a SENTENCE, not a boolean, because what a reader
+ * needs when the gate will not open is the reason.
+ */
+export function launchBlockers(): string[] {
+  const blockers: string[] = [];
+
+  if (process.env.LAUNCH_MODE?.trim().toLowerCase() !== "live") {
+    blockers.push("LAUNCH_MODE is not live.");
+  }
+
+  /*
+   * A registration the board actually issued, read from the register rather
+   * than from the environment. An environment variable can differ between a
+   * build and a deployment; a file cannot.
+   */
+  const registration = activeFirmRegistration();
+  if (!registration) {
+    blockers.push(
+      "No active firm registration is recorded in src/config/credentials.ts, or the one recorded has expired.",
+    );
+  }
+
+  /*
+   * AND THE BOARD HOLDS THE NAME THIS FIRM TRADES UNDER. The condition this
+   * ruling exists for: a registration in one name does not authorise holding
+   * out under another.
+   */
+  if (!operatingNameOnBoardRecord.onRecord) {
+    blockers.push(`The board does not hold the operating name. ${operatingNameOnBoardRecord.because}`);
+  }
+
+  return blockers;
+}
+
+/**
+ * The active firm registration, or null.
+ *
+ * Expiry is checked rather than trusted. A registration is not evidence of
+ * anything after the date the board put on it, and a site that goes on printing
+ * a lapsed number is making a claim it cannot support.
+ */
+export function activeFirmRegistration(): VerifiedFirmRegistration | null {
+  const today = new Date().toISOString().slice(0, 10);
+  return (
+    verifiedFirmRegistrations.find((r) => r.status === "active" && r.expires >= today) ?? null
+  );
+}
+
+/**
+ * The current mode. Prelaunch unless EVERY condition is satisfied, including a
+ * missing variable, an empty one, and a typo.
  */
 export function launchMode(): LaunchMode {
-  return process.env.LAUNCH_MODE?.trim().toLowerCase() === "live" ? "live" : "prelaunch";
+  return launchBlockers().length === 0 ? "live" : "prelaunch";
 }
 
 /** True while the firm may not represent that it is performing engineering work. */
@@ -50,17 +121,16 @@ export function isPrelaunch(): boolean {
 }
 
 /**
- * The TBPELS firm registration number, or null while it is pending.
+ * The TBPELS firm registration number, or null while the gate is shut.
  *
- * Returns null in prelaunch regardless of what the variable holds. The number
- * arriving in the environment is not the same event as the registration being
- * active, and rendering a number the board has not issued would be a worse
- * misstatement than rendering none.
+ * Returns null in prelaunch regardless of what the register holds. The number
+ * being issued is not the same event as the firm being entitled to hold itself
+ * out under the name beside it, and rendering the number before that would be a
+ * worse misstatement than rendering none.
  */
 export function tbpelsFirmNumber(): string | null {
   if (isPrelaunch()) return null;
-  const value = process.env.TBPELS_FIRM_NUMBER?.trim();
-  return value ? value : null;
+  return activeFirmRegistration()?.number ?? null;
 }
 
 /**
@@ -97,23 +167,35 @@ export function peInResponsibleCharge(): boolean {
  * it exists.
  */
 export function registrationLine(): string {
-  const firmNumber = tbpelsFirmNumber();
+  const registration = isPrelaunch() ? null : activeFirmRegistration();
   const pe = peInResponsibleCharge();
 
-  if (firmNumber && pe) {
-    return `${businessLegalName} TBPELS Firm No. ${firmNumber}`;
+  /*
+   * THE NAME PRINTED IS THE NAME ON THE REGISTRATION, not the one this site
+   * trades under. Operator ruling, 2026-09-10.
+   *
+   * This used to print a module constant reading "254 Engineering Services
+   * LLC". F-29811 is issued to "254 Services LLC", so once the gate opened this
+   * line would have put the board's number beside a name the board's record
+   * does not carry, which is the exact misstatement the gate exists to prevent,
+   * printed in the one place a reader goes to check.
+   *
+   * Reading it off the registration means the two cannot disagree: whatever
+   * name the board holds is the name that appears next to its number, and if
+   * that name changes the line changes with it.
+   */
+  if (registration && pe) {
+    return `${registration.issuedTo} TBPELS Firm No. ${registration.number}`;
   }
 
   // Both pendings are stated, and separately, because they are separate facts
   // and a reader who is checking one will want to know about the other. A
   // registration alone does not let a firm seal anything.
-  if (firmNumber && !pe) {
-    return `${businessLegalName} TBPELS Firm No. ${firmNumber}. No engineer of record is yet in responsible charge, and no work is being sealed.`;
+  if (registration && !pe) {
+    return `${registration.issuedTo} TBPELS Firm No. ${registration.number}. No engineer of record is yet in responsible charge, and no work is being sealed.`;
   }
-  if (!firmNumber && pe) {
+  if (!registration && pe) {
     return "Firm registration pending with the Texas Board of Professional Engineers and Land Surveyors.";
   }
   return "Firm registration pending with the Texas Board of Professional Engineers and Land Surveyors. No engineer of record is yet in responsible charge.";
 }
-
-const businessLegalName = "254 Engineering Services LLC";

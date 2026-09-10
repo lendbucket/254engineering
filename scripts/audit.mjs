@@ -459,6 +459,10 @@ const PHASE_ONE = [
 ];
 
 const PHASE_TWO = [
+  {
+    name: "compliance-audit",
+    why: "whether the gate MAY open at all, which is a different question from what each mode renders",
+  },
   { name: "launch-audit", why: "the compliance gate, in both modes" },
   { name: "mobile-audit", why: "zero horizontal scroll and 44px tap targets at four widths" },
   { name: "contrast-audit", why: "WCAG 2.1 A and AA including the form error states" },
