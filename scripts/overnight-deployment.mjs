@@ -151,6 +151,9 @@ for (const site of SITES) {
   let checked = 0;
   let brokenLinks = 0;
   let brokenImages = 0;
+  /* Deferred by loading="lazy" and proved fine by fetching. Counted rather than
+   * silently dropped, so the note says how much of the green was the fetch. */
+  let lazyNotBroken = 0;
 
   for (const route of routes) {
     let status = 0;
@@ -192,10 +195,51 @@ for (const site of SITES) {
       }
     }
 
+    /*
+     * AN IMAGE IS BROKEN WHEN ITS URL DOES NOT SERVE ONE, NOT WHEN THE DOM HAS
+     * NOT GOT ROUND TO IT YET.
+     *
+     * The first version asked the DOM, a quarter of a second after
+     * domcontentloaded, whether every img was complete with a naturalWidth.
+     * It reported six broken images on the primary site, including the home
+     * page, and every one of them was the footer wordmark.
+     *
+     * That image is loading="lazy" and sits at y=6412. It had not loaded
+     * because nothing had scrolled to it, which is the browser doing exactly
+     * what the page asked. Proved by fetching it: the optimized URL answers
+     * 200 with 5297 bytes of image/png, and scrolling to the footer and
+     * waiting turns complete false into complete true.
+     *
+     * So a not-yet-complete image is not a finding, it is a question, and the
+     * question is answered by fetching the URL. That is also viewport
+     * independent, which the scroll-and-wait alternative is not: a lazy image
+     * further down a longer page would need a longer scroll and the check
+     * would go quietly blind again.
+     */
     for (const img of seen.images) {
       if (!img.loaded) {
-        brokenImages += 1;
-        findings.push(`${site.name}${route}: image did not load (${img.src})`);
+        if (!img.src) {
+          brokenImages += 1;
+          findings.push(`${site.name}${route}: an img element has no src at all`);
+        } else {
+          let verdict = null;
+          try {
+            const r = await page.request.get(img.src, { maxRedirects: 5, timeout: 30000 });
+            const type = r.headers()["content-type"] ?? "";
+            const bytes = (await r.body()).length;
+            if (r.status() >= 400 || !type.startsWith("image/") || bytes === 0) {
+              verdict = `HTTP ${r.status()}, ${type || "no content-type"}, ${bytes} bytes`;
+            }
+          } catch (err) {
+            verdict = String(err.message).split("\n")[0];
+          }
+          if (verdict) {
+            brokenImages += 1;
+            findings.push(`${site.name}${route}: image did not load and its URL does not serve one (${img.src}) ${verdict}`);
+          } else {
+            lazyNotBroken += 1;
+          }
+        }
       }
       if (img.alt === null) {
         findings.push(`${site.name}${route}: an image carries no alt attribute (${img.src})`);
@@ -229,7 +273,12 @@ for (const site of SITES) {
     checked === routes.length ? "" : "see the findings",
   );
   rec(`${site.name}: every same origin link resolves`, brokenLinks === 0, `${brokenLinks} broken`);
-  rec(`${site.name}: every image loads`, brokenImages === 0, `${brokenImages} broken`);
+  rec(
+    `${site.name}: every image loads`,
+    brokenImages === 0,
+    `${brokenImages} broken` +
+      (lazyNotBroken ? `, and ${lazyNotBroken} lazy image(s) were not loaded yet and their URLs were fetched instead` : ""),
+  );
 
   await ctx.close();
 }
