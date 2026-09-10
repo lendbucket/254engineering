@@ -615,7 +615,15 @@ rec(
    * call site rather than by trusting that a handler exists for it.
    */
   const moved = [
-    ["src/lib/ops-notify.ts", /enqueue\("notification\.deliver"/, "the notification email"],
+    /*
+     * WHITESPACE TOLERANT, BECAUSE A REFORMAT IS NOT A CHANGE.
+     *
+     * This one and the reconcile one below went red when their calls were
+     * wrapped across lines to add an effect mode argument. Nothing about what
+     * they do moved. The pattern names the same call and stops asserting how
+     * many spaces are in it.
+     */
+    ["src/lib/ops-notify.ts", /enqueue\(\s*"notification\.deliver"/, "the notification email"],
     ["src/app/api/lead/route.ts", /queueEmail\(/, "the lead notification"],
     ["src/app/api/apply/route.ts", /queueEmail\(/, "the application emails"],
     ["src/app/api/onboarding/route.ts", /queueEmail\(/, "the onboarding submission email"],
@@ -628,12 +636,36 @@ rec(
      */
     ["src/app/api/portal/people/route.ts", /queueEmail\(/, "the portal invite and reset links"],
     ["src/app/api/portal/accounts/route.ts", /enqueue\("statement\.issue"/, "statement issuance"],
-    ["src/app/api/portal/orders/reconcile/route.ts", /enqueue\("orders\.reconcile"/, "the applying sweep"],
+    ["src/app/api/portal/orders/reconcile/route.ts", /enqueue\(\s*"orders\.reconcile"/, "the applying sweep"],
     ["src/app/api/portal/exports/route.ts", /enqueue\("document\.binder"/, "the binder record"],
   ];
 
   for (const [path, pattern, what] of moved) {
     rec(`${what} is queued`, pattern.test(codeOnly(path)), path);
+  }
+
+  /*
+   * AND WHAT THE OLD CHECK COULD NOT SEE: WHAT THE QUEUED WORK MAY DO.
+   *
+   * The list above proves each of these paths queues rather than sending
+   * inline, which is the property it was written for. It cannot see whether the
+   * job it queued is allowed to reach a person, and that is the gap two of
+   * these call sites actually had: ops-notify wrote every notification for a
+   * probe account marked live, and the reconcile route inherited a column
+   * default nobody had looked at.
+   *
+   * queue-audit enforces the general rule against every enqueue site in the
+   * tree. This names the two that were wrong, so a revert is loud here too.
+   */
+  for (const [path, what] of [
+    ["src/lib/ops-notify.ts", "the notification email"],
+    ["src/app/api/portal/orders/reconcile/route.ts", "the applying sweep"],
+  ]) {
+    rec(
+      `${what} says what the queued work may do`,
+      /effectMode/.test(codeOnly(path)),
+      "a job that may reach outside is a job every worker has to reason about; 0038 put the answer on the row",
+    );
   }
 
   /*

@@ -173,6 +173,12 @@ const ADMIN_APIS = [
   // private buckets. Both are closed to a signed out client and the coverage
   // check below is what made sure they were listed here on the day they shipped.
   "/api/portal/exports",
+  // Phase 12 Section 4, Section 1. The same CSV risk as /api/portal/exports and
+  // one worse shape: it takes a LIST of ids, so a signed out POST would be a way
+  // to ask the firm about three hundred properties in one request. It was
+  // written and this list was not updated, and the coverage check below is what
+  // said so, on the first board after it shipped.
+  "/api/portal/files/export",
   "/api/portal/documents",
   // Records that somebody asked the firm to stop writing to them, and removes a
   // row an operator typed wrong. Reachable signed out, its POST would let
