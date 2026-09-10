@@ -69,6 +69,7 @@ import { PROBES, probedKinds, probeFor, NOWHERE } from "./lib/job-probes.mjs";
 import { registeredKinds, handlerFor, loadHandlers, enqueue, runBatch } from "../src/lib/ops-jobs.ts";
 import { nextState, LEASE_SECONDS, BATCH_SIZE } from "../src/lib/job-rules.ts";
 import { COULD_NOT_TELL } from "./lib/reachable.mjs";
+import { refuseIfOutwardWorkIsWaiting, makeBatchRunner } from "./lib/queue-drain.mjs";
 import { isFixtureIdentity } from "../src/lib/fixture-identity.ts";
 
 const out = [];
@@ -112,48 +113,11 @@ await loadHandlers();
  * a pass and not a defect in the queue.
  * ===========================================================================
  */
-{
-  const outwardKinds = registeredKinds().filter((k) => handlerFor(k)?.reachesOutside === true);
-  const { data: hazards } = await db
-    .from("eng_jobs")
-    .select("id, kind, run_after")
-    .eq("effect_mode", "live")
-    .in("kind", outwardKinds)
-    .in("status", ["pending", "running"])
-    .order("run_after", { ascending: true })
-    .limit(20);
-
-  if ((hazards ?? []).length > 0) {
-    console.log("");
-    console.log(
-      `  REFUSED TO START: ${hazards.length}${hazards.length === 20 ? "+" : ""} job(s) of an outward reaching kind are waiting on this database and are marked live.`,
-    );
-    console.log("");
-    for (const h of hazards.slice(0, 5)) {
-      console.log(`    #${h.id} ${h.kind}, eligible from ${h.run_after}`);
-    }
-    console.log("");
-    console.log("  Running a worker here can send them, and this audit runs a worker. That is");
-    console.log("  how 20 emails went out at 05:21 and 35 more at 23:08 on 2026-09-09.");
-    console.log("");
-    console.log("  Nothing was enqueued and nothing was claimed. Work queued by a fixture is");
-    console.log("  suppressed at creation now, so these are either older than that rule or");
-    console.log("  they belong to somebody real, and which of the two is a decision.");
-    /*
-     * EXITED AFTER A TICK, NOT INSIDE ONE.
-     *
-     * process.exit() here aborted the process outright on Windows with
-     * "Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)", because the
-     * database client still had a socket mid close. The exit code became 127
-     * and the board read the refusal as a FAILED audit rather than as one that
-     * could not measure, which is the exact distinction the refusal exists to
-     * draw. It said the right words and reported the wrong verdict.
-     */
-    process.exitCode = COULD_NOT_TELL;
-    await new Promise((resolve) => setTimeout(resolve, 150));
-    process.exit(COULD_NOT_TELL);
-  }
-}
+await refuseIfOutwardWorkIsWaiting({
+  db,
+  outwardKinds: registeredKinds().filter((k) => handlerFor(k)?.reachesOutside === true),
+  label: "queue-audit",
+});
 
 /*
  * The probes are made the oldest eligible work on the queue. One day behind the
@@ -244,24 +208,19 @@ const { count: pendingBefore } = await db
  * ===========================================================================
  */
 
-/** Rows eligible right now, in the order eng_claim_jobs would take them. */
-async function nextEligible(limit) {
-  const nowIso = new Date().toISOString();
-  const { data } = await db
-    .from("eng_jobs")
-    .select("id, kind, status, run_after, leased_until, effect_mode")
-    .lte("run_after", nowIso)
-    .in("status", ["pending", "running"])
-    .order("run_after", { ascending: true })
-    .order("id", { ascending: true })
-    .limit(limit * 4);
-  /* A running row is only eligible once its lease has run out. Mirrored from
-   * eng_claim_jobs rather than assumed, and over-read then filtered because
-   * PostgREST cannot express the OR the function's WHERE clause has. */
-  return (data ?? [])
-    .filter((r) => r.status === "pending" || (r.leased_until && Date.parse(r.leased_until) < Date.now()))
-    .slice(0, limit);
-}
+/*
+ * THE REFUSAL IS SHARED, and scripts/lib/queue-drain.mjs is the one place it
+ * is written. Operator ruling, 2026-09-10: one refusal, declared once, both
+ * call sites reading it.
+ *
+ * The FILLER below stays here, because it is queue-audit's problem and not the
+ * refusal's. This file enqueues a handful of probes and a handful is smaller
+ * than a batch, so it tops the queue up to make a whole batch its own. The
+ * load test enqueues two hundred and has no such problem. Sharing the filler
+ * would be moving a solution to a problem one caller does not have.
+ */
+const runner = makeBatchRunner({ db, created, batchSize: BATCH_SIZE, runBatch, worker: WORKER });
+const nextEligible = runner.nextEligible;
 
 let fillerMade = 0;
 
@@ -288,61 +247,14 @@ async function topUpFiller() {
   return false;
 }
 
-let refusedBatches = 0;
-
 /**
- * Run one batch, and only if every row it would take belongs to this run.
+ * Top up with filler, then run one batch through the shared refusal.
  *
- * Returns the worker report, or null when it refused. A refusal is recorded and
- * is a FAILURE of this audit rather than a reason to press on: an audit that
- * cannot run its own batch has not measured the queue, and pressing on is how
- * 35 emails went out.
+ * Returns the worker report, or null when it refused.
  */
-const leaks = [];
-
 async function ourBatch(label) {
   await topUpFiller();
-  const eligible = await nextEligible(BATCH_SIZE);
-  const foreign = eligible.filter((r) => !created.has(r.id));
-  if (foreign.length > 0) {
-    refusedBatches += 1;
-    console.warn(
-      `[queue-audit] REFUSED to run ${label}: the next batch would take ${foreign.length} row(s) ` +
-        `this run does not own (${foreign.slice(0, 3).map((r) => `#${r.id} ${r.kind}`).join(", ")}).`,
-    );
-    return null;
-  }
-
-  /*
-   * THE GUARD IS AN ARGUMENT; THIS IS THE OBSERVATION, PER BATCH.
-   *
-   * The check the guard makes is "the ten rows I can see are mine". What the
-   * claim then takes is decided by the DATABASE's clock and the database's view
-   * of which leases have expired, and those are not the same reads. A batch
-   * that leaks is named here, at the batch, rather than turning up as a number
-   * at the end that nobody can trace back.
-   */
-  const before = await db
-    .from("eng_jobs")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "pending");
-  const report = await runBatch(`${WORKER}-${label}`);
-  const after = await db
-    .from("eng_jobs")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "pending");
-
-  const ours = eligible.length;
-  const consumed = (before.count ?? 0) - (after.count ?? 0);
-  /*
-   * Every row this batch could legitimately consume was one of ours and was
-   * pending a moment ago, so the pending count may fall by at most that many.
-   * More than that is somebody else's work.
-   */
-  if (consumed > ours) {
-    leaks.push(`${label}: pending fell by ${consumed} and this run only offered ${ours}`);
-  }
-  return report;
+  return runner.ourBatch(label);
 }
 
 // ===========================================================================
@@ -1388,15 +1300,15 @@ console.log("--- teardown");
 
   rec(
     "and no single batch consumed more than this run offered it",
-    leaks.length === 0,
-    leaks.join(" | "),
+    runner.leaks.length === 0,
+    runner.leaks.join(" | "),
   );
 
   rec(
     "and every batch this run asked for was one it owned",
-    refusedBatches === 0,
-    refusedBatches
-      ? `${refusedBatches} batch(es) were refused because the backlog was in the way, so the queue was not fully measured. That is a failure of this audit, not a pass.`
+    runner.refusedBatches === 0,
+    runner.refusedBatches
+      ? `${runner.refusedBatches} batch(es) were refused because the backlog was in the way, so the queue was not fully measured. That is a failure of this audit, not a pass.`
       : "",
   );
 }

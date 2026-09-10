@@ -110,6 +110,98 @@ rec(
   offenders.join(", "),
 );
 
+/*
+ * ===========================================================================
+ * THE QUEUE DRAIN REFUSAL IS DECLARED ONCE, AND EVERY WORKER RUNNER READS IT.
+ * Operator ruling, 2026-09-10.
+ * ===========================================================================
+ *
+ * runBatch claims BATCH_SIZE rows of ANY kind, so a script that runs a worker
+ * over a queue it does not own sends other people's mail. That happened twice
+ * on 2026-09-09, at 05:21 and at 23:08, for 55 emails.
+ *
+ * The refusal that fixed it was then COPIED into a second script, which is how
+ * a safety mechanism starts to drift. This asserts the copy is gone and cannot
+ * come back: any script calling runBatch must get its batches from
+ * scripts/lib/queue-drain.mjs.
+ *
+ * Read as a COVERAGE check rather than a pattern hunt. It does not try to
+ * recognise a hand rolled refusal, which is exactly the guessing game the
+ * timestamp declaration above stopped playing. It asks a simpler question with
+ * no false negatives: who calls runBatch, and does each of them read the
+ * shared module.
+ */
+{
+  const DRAIN = "lib/queue-drain.mjs";
+  const drainFile = files.find((f) => f.endsWith(path.join("lib", "queue-drain.mjs")));
+
+  rec(
+    "the shared queue drain module exists",
+    Boolean(drainFile),
+    drainFile ?? "scripts/lib/queue-drain.mjs is missing, so the callers below have nowhere to read it from",
+  );
+
+  const runsAWorker = files.filter((f) => {
+    if (f.endsWith(path.join("lib", "queue-drain.mjs"))) return false;
+    /*
+     * AND THIS FILE IS NOT A CALLER, IT IS THE CHECK.
+     *
+     * Its own code carries the strings "runBatch" and "ops-jobs" on one line,
+     * because that is what the predicate below looks for. Stripping comments
+     * does not help: this is genuine code. Naming the exclusion is honest and
+     * a cleverer predicate would only be a longer way to say the same thing.
+     */
+    if (f.endsWith(path.join("db-guard-audit.mjs"))) return false;
+    const src = readSource(f);
+    /*
+     * IT IMPORTS runBatch, WHICH IS THE ONLY WAY TO CALL IT, AND COMMENTS DO NOT
+     * COUNT.
+     *
+     * Two wrong versions preceded this one and both were the same mistake.
+     *
+     * The first asked whether the file MENTIONED runBatch and named six files.
+     * Three do not run a worker at all: audit.mjs describes one in a comment,
+     * jobs-audit.mjs holds the function's SOURCE in a local variable to match
+     * against, and this file matched its own string literals.
+     *
+     * The second asked for a line naming both runBatch and the jobs module,
+     * which is what an import looks like, and this file matched AGAIN, on the
+     * sentence explaining the rule. A check that reads its own explanation is
+     * the wording defect this repository keeps meeting, one level up.
+     *
+     * So comments are stripped first and the question is asked of the code. A
+     * line naming both is an import or a destructured dynamic import, and there
+     * is no third way to get the function.
+     */
+    const code = src
+      .split("\n")
+      .filter((line) => {
+        const t = line.trim();
+        return !t.startsWith("*") && !t.startsWith("//") && !t.startsWith("/*");
+      })
+      .join("\n");
+    return code
+      .split("\n")
+      .some((line) => line.includes("runBatch") && line.includes("ops-jobs"));
+  });
+
+  rec(
+    `there are scripts that run a worker (${runsAWorker.length})`,
+    runsAWorker.length > 0,
+    runsAWorker.map((f) => f.split(/[\/]/).pop()).join(", ") ||
+      "a coverage check over an empty set passes forever",
+  );
+
+  const notReading = runsAWorker.filter((f) => !readSource(f).includes(DRAIN));
+  rec(
+    "every script that runs a worker gets its batches from the shared refusal",
+    notReading.length === 0,
+    notReading.length
+      ? `${notReading.join(", ")}: runs a worker without reading ${DRAIN}, which is how 55 emails went out`
+      : `${runsAWorker.length} caller(s), one refusal`,
+  );
+}
+
 // Every script that does touch a database must name itself to the guard, so a
 // refusal says which audit tried rather than just that something did.
 const users = files.filter((f) => /auditClient\(/.test(readSource(f)));

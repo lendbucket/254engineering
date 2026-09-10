@@ -57,6 +57,7 @@
 import { randomUUID } from "node:crypto";
 import { auditClient } from "./lib/db-target.mjs";
 import { COULD_NOT_TELL, sayCouldNotTell } from "./lib/reachable.mjs";
+import { refuseIfOutwardWorkIsWaiting, makeBatchRunner } from "./lib/queue-drain.mjs";
 
 const { registeredKinds, handlerFor, loadHandlers, enqueue, runBatch } = await import("../src/lib/ops-jobs.ts");
 const { BATCH_SIZE } = await import("../src/lib/job-rules.ts");
@@ -85,28 +86,8 @@ console.log("");
 
 {
   const outwardKinds = registeredKinds().filter((k) => handlerFor(k)?.reachesOutside === true);
-  const { data: hazards } = await db
-    .from("eng_jobs")
-    .select("id, kind, run_after")
-    .eq("effect_mode", "live")
-    .in("kind", outwardKinds)
-    .in("status", ["pending", "running"])
-    .order("run_after", { ascending: true })
-    .limit(20);
-
-  if ((hazards ?? []).length > 0) {
-    console.log(
-      `  REFUSED TO START: ${hazards.length}${hazards.length === 20 ? "+" : ""} job(s) of an outward reaching kind are waiting here and are marked live.`,
-    );
-    for (const h of hazards.slice(0, 5)) console.log(`    #${h.id} ${h.kind}, eligible from ${h.run_after}`);
-    console.log("");
-    console.log("  This file runs a worker, and a worker here can send them. Nothing was");
-    console.log("  enqueued and nothing was claimed.");
-    process.exitCode = COULD_NOT_TELL;
-    await new Promise((r) => setTimeout(r, 150));
-    process.exit(COULD_NOT_TELL);
-  }
-  rec("no outward reaching job was waiting here marked live", true, `checked ${outwardKinds.length} outward kind(s)`);
+  const checked = await refuseIfOutwardWorkIsWaiting({ db, outwardKinds, label: "the load test" });
+  rec("no outward reaching job was waiting here marked live", true, `checked ${checked.checked} outward kind(s)`);
 }
 
 /* --------------------------------------------------------------- the mixed set */
@@ -258,21 +239,13 @@ rec(
 
 /* --------------------------------------------------- refusal two, and the drain */
 
-/** Rows eligible right now, in the order eng_claim_jobs would take them. */
-async function nextEligible(limit) {
-  const nowIso = new Date().toISOString();
-  const { data } = await db
-    .from("eng_jobs")
-    .select("id, kind, status, run_after, leased_until")
-    .lte("run_after", nowIso)
-    .in("status", ["pending", "running"])
-    .order("run_after", { ascending: true })
-    .order("id", { ascending: true })
-    .limit(limit * 4);
-  return (data ?? [])
-    .filter((r) => r.status === "pending" || (r.leased_until && Date.parse(r.leased_until) < Date.now()))
-    .slice(0, limit);
-}
+/*
+ * THE REFUSAL IS SHARED. scripts/lib/queue-drain.mjs is the one place it is
+ * written, and both this file and queue-audit read it. Operator ruling,
+ * 2026-09-10: two copies of a mechanism that exists because of two incidents
+ * is the last thing that should have two versions of itself.
+ */
+const runner = makeBatchRunner({ db, created, batchSize: BATCH_SIZE, runBatch, worker: WORKER });
 
 const batchMs = [];
 let batches = 0;
@@ -288,20 +261,17 @@ console.log(`draining, batch size ${BATCH_SIZE}`);
 const MAX_BATCHES = Math.ceil(TOTAL / BATCH_SIZE) + 20;
 
 while (batches < MAX_BATCHES) {
-  const eligible = await nextEligible(BATCH_SIZE);
+  const eligible = await runner.nextEligible(BATCH_SIZE);
   if (eligible.length === 0) break;
 
-  const foreign = eligible.filter((r) => !created.has(r.id));
-  if (foreign.length > 0) {
+  const t0 = Date.now();
+  const report = await runner.ourBatch(String(batches));
+  if (report === null) {
+    /* The shared refusal stopped it, and that is the refusal doing its job. */
     refused += 1;
-    refusedBecause =
-      `the next batch would take ${foreign.length} row(s) this run does not own ` +
-      `(${foreign.slice(0, 3).map((r) => `#${r.id} ${r.kind}`).join(", ")})`;
+    refusedBecause = runner.lastRefusal;
     break;
   }
-
-  const t0 = Date.now();
-  const report = await runBatch(`${WORKER}-${batches}`);
   batchMs.push(Date.now() - t0);
   batches += 1;
   claimed += report?.claimed ?? eligible.length;
