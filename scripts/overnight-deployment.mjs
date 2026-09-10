@@ -25,6 +25,7 @@
 
 import { chromium } from "playwright";
 import { SURFACES } from "./lib/surfaces.mjs";
+import { ALL_REGULATED, NEVER_CLAIMS, findClaims } from "./lib/regulatory.mjs";
 
 const SITES = [
   { name: "254engineering", base: "https://254engineering.com", primary: true },
@@ -104,19 +105,23 @@ const browser = await chromium.launch();
  * licensed PE is on staff. Nothing on the deployment may state or imply that
  * engineering services are currently offered or performed.
  *
- * These are the phrases voice-audit flags mechanically. Read on the DEPLOYED
- * page rather than in the source, because what a visitor sees is what matters
- * and a build can be stale.
+ * Read on the DEPLOYED page rather than in the source, because what a visitor
+ * sees is what matters and a build can be stale.
+ *
+ * THE PATTERNS ARE THE DECLARED ONES, AND THE FIRST VERSION WROTE ITS OWN.
+ *
+ * That version carried seven hand written regexes. scripts/lib/regulatory.mjs
+ * carries twenty two, and it is the declaration both gates are stated in, read
+ * by voice-audit and by launch-audit. Two accounts of one rule are two accounts
+ * that will disagree, and the hand written seven were already the poorer one:
+ * they had no NEGATION_GUARD, so "we do not seal" would have been reported as a
+ * claim that the firm seals, and no CONDITIONAL_GUARD, so "once the firm is
+ * registered it will perform" would have been too.
+ *
+ * Deriving from a DECLARATION is the idiom; importing from the IMPLEMENTATION
+ * is the defect this repository hunts. regulatory.mjs is the first: it states
+ * the rule, and no page's rendered copy is read back out of it.
  */
-const PRESENT_TENSE_CLAIMS = [
-  /\bwe seal\b/i,
-  /\bwe provide engineering\b/i,
-  /\bour engineers\b/i,
-  /\bour licensed engineers\b/i,
-  /\bwe perform engineering\b/i,
-  /\bwe are licensed\b/i,
-  /\bwe are registered with TBPELS\b/i,
-];
 
 for (const site of SITES) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
@@ -187,12 +192,17 @@ for (const site of SITES) {
       title: document.title,
     }));
 
-    for (const pattern of PRESENT_TENSE_CLAIMS) {
-      if (pattern.test(seen.text)) {
-        findings.push(
-          `${site.name}${route}: THE COMPLIANCE GATE. The deployed page matches ${pattern}, which states or implies the firm performs engineering now.`,
-        );
-      }
+    for (const hit of findClaims(seen.text, ALL_REGULATED)) {
+      findings.push(
+        `${site.name}${route}: THE COMPLIANCE GATE. ${hit.why} ("${hit.match}"). ` +
+          "The firm's TBPELS registration is pending and no licensed PE is on staff, so nothing on any of " +
+          "these sites may state or imply that engineering services are currently offered or performed.",
+      );
+    }
+    for (const hit of findClaims(seen.text, NEVER_CLAIMS)) {
+      findings.push(
+        `${site.name}${route}: A CLAIM NO GATE EVER LIFTS. ${hit.why} ("${hit.match}").`,
+      );
     }
 
     /*
