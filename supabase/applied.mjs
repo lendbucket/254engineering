@@ -348,14 +348,78 @@ export const APPLIED = [
    */
   /*
    * ==========================================================================
+   * WHAT 0038 THROUGH 0041 DO TO THE TWELVE FACT DIVERGENCE.
+   * Operator ruling, 2026-09-10: note it here, because the cutover plan's
+   * read-back is re-derived on the day it runs and this is what it re-derives
+   * from.
+   * ==========================================================================
+   *
+   * THE DIVERGENCE, measured 2026-09-10 with main at 0037:
+   *
+   *   replay of 0000-0037   764ff4339fed2db9e74317ee19278950   806 facts
+   *   shared production     05f058a1c8f4c9f4e19546179482adfb   810 facts
+   *
+   * Twelve facts apart, in two groups, and the SHAPES are identical either way:
+   * both are 3acd988c07905602e0e091c5b8d329ad across 1015 columns, which is the
+   * whole argument for having a second fingerprint at all.
+   *
+   * ALL TWELVE CLOSE, AND THE OPERATOR'S NOTE SAID EIGHT. The number is twelve,
+   * and the reason the two readings differ is worth writing down rather than
+   * correcting silently: the twelve close by TWO DIFFERENT MECHANISMS, and only
+   * one of them changes production.
+   *
+   *   FOUR, by changing PRODUCTION. 0039 adds the four foreign keys 0001
+   *   declares and no live database ever had. Production goes from 132 to 136.
+   *   It holds 0 rows in both eng_file_events and eng_responsible_charge_log,
+   *   so all four validate clean and the NOT VALID dance costs it nothing.
+   *
+   *   EIGHT, by changing the REPOSITORY. 0040's eight indexes already exist on
+   *   production and have since before this repository kept migrations, so
+   *   `create index if not exists` is a NO-OP there. What closes is the replay
+   *   catching up: 231 index facts to 240.
+   *
+   * So after 0038 through 0041 land, the shared production and the replay
+   * should agree exactly, at 7acbb5b22f11220b4a36f535fab9e09c across 814 facts.
+   * Predicted per kind, from the replay at each end:
+   *
+   *   ck   97 -> 98    0038's effect_mode check constraint
+   *   ix  239 -> 240   0038's partial index; 0040's eight are already there
+   *   fk  132 -> 136   0039's four
+   *   grants 119 -> 117  0040 deletes the two files.assign rows
+   *
+   * PREDICTED, NOT MEASURED. It is written down so the day it runs has
+   * something to disagree with, which is the only thing a prediction is for. If
+   * production comes back at anything other than 814 and that figure, the
+   * difference is new and the run stops.
+   *
+   * AND THE CUTOVER'S READ-BACK IS RE-DERIVED THAT DAY. The plan's twelve named
+   * facts are true of main at 0037. Once these four land on the shared
+   * production the divergence is gone, so a future cutover replaying a chain
+   * that includes them compares against a production that already agrees. The
+   * twelve become zero, and the plan's rule stands unchanged: any difference
+   * stops the sequence.
+   */
+  /*
+   * ==========================================================================
    * 0038 THROUGH 0041 GO TO THE NEW PRODUCTION, NOT THE OLD ONE.
    * Operator ruling, 2026-09-10, and it SUPERSEDES gate 2's ruling 6 for these
    * four migrations.
    * ==========================================================================
    *
+ * AND THE CUTOVER IS DEFERRED AGAIN, 2026-09-10, SO RULING 6 IS OPERATIVE.
+   *
+   * Read this paragraph before the one below it. The operator deferred the
+   * cutover the same day it was planned, and ruled that until it runs, gate 2's
+   * ruling 6 stands: Section 4 merges, and 0038 through 0041 go to the SHARED
+   * production in order, each read back, declared here, board on main.
+   *
+   * So the ordering below describes THE DAY THE CUTOVER RUNS, not today. Both
+   * are recorded because a plan that replaces a ruling without saying when it
+   * takes effect is two rulings nobody can date.
+   *
    * Gate 2's ruling 6 was: merge, push, then apply 0038 through 0040 to
-   * production in order. That was right when it was made and is wrong now,
-   * because the cutover to qmvcqvkywmkogxbyzsaz moved ahead of Section 6.
+   * production in order. It is superseded ON THE DAY THE CUTOVER RUNS, and not
+   * before, because the cutover to qmvcqvkywmkogxbyzsaz moved ahead of Section 6.
    *
    * THE ORDER IS NOW:
    *

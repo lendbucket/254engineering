@@ -76,6 +76,72 @@ a bad migration truncates `eng_leads`, the firm's options are:
 Neither is a recovery procedure. **Option 1 is the only mechanism, and it is
 one the firm should not take.**
 
+> **AMENDED 2026-09-10.** Point in time recovery is now enabled on the shared
+> project. Option 1 is still the only mechanism and is still one the firm cannot
+> take alone, but there is now a moment to go back to. Read section 2a for what
+> that does and does not buy: it restores all five apps or none.
+
+---
+
+## 2a. THE STOPGAP: POINT IN TIME RECOVERY, ENABLED 2026-09-10
+
+**Operator ruling and operator action, the day TBPELS issued F-29811.** Point in
+time recovery is enabled on the shared project. It is recorded here as a
+STOPGAP, with its limit stated, because a restore path recorded without its
+limit is worse than none: somebody reads it in an incident and believes they
+have something they do not.
+
+### What it changes
+
+Section 2 above said the firm has no mechanism at all and that the only one
+available was asking the operator of the shared project to rewind it. That is
+now wrong in one direction and still right in the other. **The firm now has a
+mechanism.** What it does not have is one it can use alone.
+
+### THE LIMIT, AND IT IS THE WHOLE OF WHY THIS IS A STOPGAP
+
+**It restores all five apps or none.**
+
+The recovery is a property of the PROJECT, not of a schema and not of a table.
+`fsaryeciduszuahgjbly` is shared with unrelated applications, which is the
+reason every table this firm owns is `eng_` prefixed in the first place. A
+rewind to recover `eng_audit_events` takes the other four applications back to
+the same moment, discarding whatever they did in between, and none of their
+operators asked for that.
+
+So the decision to use it is never this firm's alone. In an incident the
+sequence is: establish what was lost, establish the window, and then ASK, with
+the cost to four neighbours on the table. **Section 1's argument stands
+unchanged.** What has changed is that the answer to "is there anything to ask
+for" is now yes.
+
+### What it does NOT close, stated so nobody reads this as done
+
+- **It is not a backup that leaves the provider.** If the provider is the
+  problem, this is not a path. Nothing this firm owns is written outside that
+  project, which section 2 already says and which is still true.
+- **It has never been exercised.** An untested restore is a belief. The cutover
+  plan's step 9 is where a restore gets rehearsed and read back, and that plan
+  is deferred, so this remains a belief until then.
+- **It does not make a per-table recovery possible.** There is no path that
+  restores `eng_leads` and leaves the neighbours alone.
+- **The window was not read from here.** The dashboard is the operator's. The
+  retention window and its cost are theirs to state, and this file deliberately
+  does not guess at a number that an incident would be planned around.
+
+### Why this is recorded rather than celebrated
+
+The reason the cutover exists is that this firm's data sits in a project it does
+not control, and enabling recovery on that project does not move it. It buys the
+one thing that mattered most on the day the firm became able to take money:
+**there is now a moment to go back to, and before today there was not.** That is
+a genuine improvement and it is not the fix.
+
+The fix is the cutover, and after it, step 15 of
+`docs/production-cutover-plan.md`: recovery on a project this firm owns, a
+backup that leaves the provider, and a restore rehearsed and read back rather
+than assumed.
+
 ---
 
 ## 3. What makes this smaller than it sounds, and what does not
