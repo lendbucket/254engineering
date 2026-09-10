@@ -125,10 +125,16 @@ PostgREST: this Windows machine's clock has drifted 85 seconds ahead.
 
 That is a system setting on the operator's machine, not code, and resyncing it
 unattended is outside this run's authority. The command is
-`w32tm /resync` from an elevated prompt. Until it is run, `queue-audit` is red
-and is right to be, and every other audit on the board is measuring correctly,
-because `DB_NOW` already moved 68 timestamps off the process clock precisely so
-that this drift cannot reach a stored value.
+`w32tm /resync` from an administrator prompt. Until it is run, `queue-audit` is
+red and is right to be.
+
+**And this drift turned out to be reaching stored values after all.** The
+obvious next sentence was that it does not matter, because `DB_NOW` had already
+moved 68 timestamps off the process clock. That sentence was false, and finding
+out why is section 6a: thirteen stored timestamps were still on this machine's
+clock, `sealed_at` and `paid_at` among them. So the red mark above was not
+merely an environment annoyance. It was the visible end of a real defect, and
+following it is what found the other one.
 
 ### The check was not loosened, and that is the point
 
