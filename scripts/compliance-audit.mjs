@@ -1,4 +1,3 @@
-// @runtime react-server
 /**
  * THE COMPLIANCE GATE'S NAMED CONDITIONS, ASSERTED.
  *
