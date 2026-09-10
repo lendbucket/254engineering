@@ -341,11 +341,33 @@ for (const site of SITES) {
     });
     await page.waitForTimeout(400);
     const text = await page.evaluate(() => document.body.innerText);
-    const refuses = /does not open|no longer|expired|could not|not valid|cannot find/i.test(text);
+    /*
+     * THE EVIDENCE IS THE SENTENCE, NOT THE FIRST LINE OF THE PAGE.
+     *
+     * The first version recorded text.split("\n")[0], and what that printed was
+     *
+     *   PASS: a dead order token is refused in words (Skip to content)
+     *
+     * The check was right and its evidence proved nothing: the first line of
+     * this page is the skip link, and it would have read exactly the same way
+     * over a page that refused nothing at all. CLAUDE.md section 7 requires a
+     * real artefact read as a person would read it, and a note nobody can check
+     * is the shape that requirement exists to prevent.
+     *
+     * So the matched line is quoted whole, which is what the page actually says
+     * to somebody holding a dead link.
+     */
+    const REFUSAL = /does not open|no longer|expired|could not|not valid|cannot find/i;
+    const sentence = text
+      .split("\n")
+      .map((l) => l.trim())
+      .find((l) => REFUSAL.test(l));
     rec(
       "a dead order token is refused in words, not by a 200",
-      refuses,
-      refuses ? text.split("\n").filter(Boolean)[0]?.slice(0, 90) : text.slice(0, 120),
+      Boolean(sentence),
+      sentence
+        ? `it says: "${sentence.slice(0, 110)}"`
+        : `NOTHING ON THE PAGE REFUSES. It answered 200 and read: "${text.replace(/\s+/g, " ").slice(0, 140)}"`,
     );
   } catch (err) {
     rec("a dead order token is refused in words", false, String(err.message).split("\n")[0]);
