@@ -105,7 +105,6 @@ const EXPECTED = {
   "files.list":                   { admin: true,  engineer: true,  field_tech: true },
   "files.create":                 { admin: true,  engineer: false, field_tech: false },
   "files.update":                 { admin: true,  engineer: true,  field_tech: false },
-  "files.assign":                 { admin: true,  engineer: false, field_tech: false },
   "files.transition":             { admin: true,  engineer: true,  field_tech: false },
   "files.cancel":                 { admin: true,  engineer: false, field_tech: false },
 
@@ -546,7 +545,37 @@ rec(
   const seededRoles = [...rolesBlock.matchAll(/\('([a-z_]+)',\s*'([^']+)',\s*'([^']+)',\s*(true|false)\)/g)].map(
     (m) => ({ key: m[1], name: m[2], landingPath: m[3], isSystem: m[4] === "true" }),
   );
-  const seededGrants = [...grantsBlock.matchAll(/\('([a-z_]+)',\s*'([^']+)'\)/g)].map((m) => m[1] + ":" + m[2]);
+  const inserted = [...grantsBlock.matchAll(/\('([a-z_]+)',\s*'([^']+)'\)/g)].map((m) => m[1] + ":" + m[2]);
+
+  /*
+   * A GRANT CAN BE REMOVED, AND THE CHAIN'S NET EFFECT IS WHAT A DATABASE HOLDS.
+   *
+   * This read only INSERTS, so when 0040 deleted files.assign it reported the
+   * grant as existing "in the migration only". That was true of one statement
+   * and false of the chain: 0018 seeds it, 0040 removes it, and what a fresh
+   * database ends up holding is nothing.
+   *
+   * It is the same lesson 0021 taught this file, one operation further along.
+   * It used to read 0018 alone and had to learn that a LATER migration can add
+   * a grant; now it has to know that a later one can take one away.
+   *
+   * A migration is never edited to make this pass. 0018 stays exactly as it
+   * ran, because a migration that changes after it has run is one nobody can
+   * reason about. The removal is a new statement and this reads both.
+   */
+  const removed = [
+    ...sql.matchAll(/delete\s+from\s+eng_role_grants\s+where\s+action\s*=\s*'([^']+)'/gi),
+  ].map((m) => m[1]);
+
+  rec(
+    `the chain's grant removals are read as well as its inserts (${removed.length})`,
+    true,
+    removed.length
+      ? removed.join(", ")
+      : "none yet; when one arrives this is the check that notices it",
+  );
+
+  const seededGrants = inserted.filter((g) => !removed.includes(g.split(":")[1]));
 
   const wantRoles = DEFAULT_ROLES.map((r) => r.key).sort();
   const gotRoles = seededRoles.map((r) => r.key).sort();

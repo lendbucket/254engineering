@@ -49,10 +49,18 @@ export function FileSelection({
   files,
   selectedId,
   limit,
+  canDispatch,
 }: {
   files: SelectableFile[];
   selectedId: string | null;
   limit: number;
+  /*
+   * Whether this person may dispatch at all, decided on the SERVER and
+   * passed in. The button is not rendered otherwise. It would be refused
+   * anyway, by the page and by sendOffers, and offering a control that will
+   * be refused is a screen making a promise the platform will not keep.
+   */
+  canDispatch: boolean;
 }) {
   const [ticked, setTicked] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
@@ -135,6 +143,21 @@ export function FileSelection({
             >
               {busy ? "Exporting" : "Export"}
             </button>
+            {canDispatch && (
+              /*
+               * A LINK, NOT A BUTTON, and it carries the ids to a review
+               * screen rather than doing anything. Operator ruling at gate 1:
+               * bulk dispatch is N plans a person reviews, and no technician
+               * is chosen by a bulk path that the single path would not have
+               * chosen for that file. Nothing is sent from here.
+               */
+              <Link
+                href={`/portal/files/dispatch?ids=${[...ticked].join(",")}`}
+                className="inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] bg-white px-3 text-[13.5px] font-bold text-[var(--navy)] hover:border-slate"
+              >
+                Dispatch
+              </Link>
+            )}
             <button
               type="button"
               onClick={clear}

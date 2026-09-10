@@ -188,6 +188,7 @@ export default async function FilesPage({
           the prototype's three bulk buttons that is here.
         */
         <FileSelection
+          canDispatch={can(actor, "offers.dispatch")}
           limit={EXPORT_LIMIT}
           selectedId={selected?.id ?? null}
           files={files.map((f) => ({

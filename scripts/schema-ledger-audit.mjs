@@ -598,13 +598,42 @@ rec(`there are migrations to check (${files.length})`, files.length > 0);
 
     if (extra) {
       const alsoInReplay = extra.facts.filter((n) => replayIxs.has(n));
-      rec(
-        `every index declared production-only is one no migration creates (${extra.facts.length})`,
-        alsoInReplay.length === 0,
-        alsoInReplay.length
-          ? `${alsoInReplay.join(", ")} IS created by a migration, so it is not a mystery`
-          : "",
-      );
+
+      /*
+       * THE DIRECTION OF THIS CHECK FLIPS WHEN THE DIVERGENCE IS RESOLVED.
+       *
+       * While it is open, an index declared production-only must be one NO
+       * migration creates, or the mystery has an obvious answer nobody wrote
+       * down. Once a migration converges it, the same list must be one EVERY
+       * migration creates, or the repair is partial and reads as complete.
+       *
+       * Written this way rather than deleted, because a divergence that
+       * vanishes without a trace looks like one nobody ever found, and the
+       * eight indexes sitting in 0040 would then need explaining from scratch.
+       */
+      if (extra.resolvedBy) {
+        const stillMissing = extra.facts.filter((n) => !replayIxs.has(n));
+        rec(
+          `the resolved index divergence is fully resolved (${extra.facts.length} by ${extra.resolvedBy})`,
+          stillMissing.length === 0,
+          stillMissing.length
+            ? `${stillMissing.join(", ")} is still not created by any migration`
+            : "the replay now produces every index production has carried since before this repository existed",
+        );
+        rec(
+          "and the migration that resolved it is real",
+          files.includes(extra.resolvedBy),
+          extra.resolvedBy,
+        );
+      } else {
+        rec(
+          `every index declared production-only is one no migration creates (${extra.facts.length})`,
+          alsoInReplay.length === 0,
+          alsoInReplay.length
+            ? `${alsoInReplay.join(", ")} IS created by a migration, so it is not a mystery`
+            : "",
+        );
+      }
     }
   }
 

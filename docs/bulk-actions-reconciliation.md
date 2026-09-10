@@ -114,15 +114,132 @@ action is a review of N plans rather than a press that fans work out invisibly.
 
 ---
 
-## What is being built in Section 1
+---
 
-1. **The selection itself**, on the Files screen: choosing rows, the count, and
-   clearing it. No action attached to it is dangerous, and it is the part the
-   design got right.
-2. **Bulk export**, with the Section 2 lessons applied.
+## The two that were missed, and why
 
-## What is being asked at gate 1
+**These two were named in the Section 1 brief and were not reconciled at gate 1.**
+That is not a judgment I made; it is one I did not know I was making. The session
+was compacted before Section 1 began, and the compaction reduced the brief to one
+line, "bulk operations, then what bulk must not do". Section 1's scope was then
+reconstructed from BACKLOG's own entry about bulk table actions and from the
+approved prototype, which is a reasonable reconstruction and was not the brief.
 
-1. **Assign:** refuse outright, or build one of the two things it might mean?
-2. **Dispatch:** build it as a review of N plans, or leave it until the
-   selection rule for technicians has been ruled on?
+The gate 1 report described Section 1 as reconciled when it had reconciled three
+of five drawn items. Operator ruling, gate 1: state the verdict for each of the
+two the same way. Here they are.
+
+---
+
+## 4. Bulk messaging — refused, and it is the same refusal as Assign
+
+**What it would mean:** one message posted into many threads, or one message to
+many people, from a selection.
+
+**In the code:** `postMessage` writes the message and then calls `raise()` for
+every participant who is not the author, which writes a notification row and
+queues an email. So a bulk post of one message into fifty threads is fifty
+notifications and up to fifty emails, from one press.
+
+**Why that is not merely a bigger version of the single path.** Two reasons and
+the second is the one that decides it.
+
+The first is volume, and volume alone would be manageable: the queue exists for
+exactly this and `effect_mode` now says per job what each is allowed to do.
+
+The second is what a message IS on this platform. A thread hangs off a FILE, and
+the messages in it are the record of what the firm told a client about that
+client's job. A message written once and posted into fifty of them is a sentence
+about fifty different pieces of work, written by somebody looking at none of
+them. It reads to each recipient as a statement about their property.
+
+That is the Assign failure in a different column. Assign would have put one
+engineer's name on three hundred files nobody looked at; bulk messaging would put
+one sentence in fifty conversations nobody read. In both cases the bulk action is
+not doing the single action many times, it is doing a DIFFERENT thing that
+resembles it.
+
+**Verdict: REFUSED, on the same ground as Assign.** What is genuinely wanted here
+is almost certainly an ANNOUNCEMENT: one thing said once, to a named audience,
+recorded once, and read as an announcement rather than as fifty personal replies.
+`src/lib/ops-announce.ts` already exists and is that shape. If the operator wants
+a message to reach many people, it should go through the thing built for saying
+one thing to many people, not through the thing built for a conversation about
+one property.
+
+---
+
+## 5. B2B CSV import — half built, and the half that exists has a live money defect
+
+**What the brief asks for:** a B2B account uploading many properties as a file.
+
+**In the code:** most of it is already there and has been since Phase 8.
+`/account/order` carries a paste box, `BulkOrderClient.parse()` turns each line
+into a property, and `splitBatch` prices and qualifies each one. What is missing
+is a FILE, a header row and a column mapping. The parsing, the per property
+qualification, the partial failure reporting and the checkout all exist.
+
+**And the parser has the defect I had just fixed in my own audit an hour
+earlier**, which is why it was found at all.
+
+```
+line.split(",")
+```
+
+An address with a comma in it shifts every field after it. Pasting
+
+```
+1200 Ocean Drive, Suite 4, Corpus Christi, Nueces, 78404
+```
+
+gives address `1200 Ocean Drive`, city `Suite 4`, **county `Corpus Christi`**,
+postcode `Nueces`.
+
+**That is money and it is not caught anywhere.** `splitBatch` checks the county
+is PRESENT and never checks it is a real county:
+
+- `isCoastal` asks `twiaCounties.has(county)`. "Corpus Christi" is a city, so the
+  answer is false and **the coastal surcharge is not applied** to a property on
+  the coast. The firm undercharges.
+- The county also decides the protocol, so the property is dispatched under the
+  wrong inspection.
+
+The property is accepted, priced, charged and dispatched, and nothing anywhere
+says a word. A suite number is not an exotic address.
+
+**Verdict: the defect is fixed in Section 1 and the file upload is deferred.**
+
+The defect, because it is live, it is money, and it is on the customer facing
+path. Two things: the parser handles quoted fields the way `src/lib/csv.ts`
+already does for output, and `splitBatch` rejects a county that is not one of the
+254 rather than pricing it.
+
+The upload is deferred because a file brings its own questions that deserve their
+own gate: which encodings, what happens to a header row somebody did or did not
+include, whether a column mapping screen is needed, and what a 5,000 row file
+does to a request. None of that is required to close the defect, and the defect
+should not wait behind it.
+
+## The five verdicts, and what the operator ruled
+
+| # | Drawn | Verdict | Ruled at gate 1 |
+| --- | --- | --- | --- |
+| 1 | Export | Build it, not as a report | Built |
+| 2 | Assign | Refused | **Refused outright.** `files.assign` comes out of the authz matrix in 0040 |
+| 3 | Dispatch | Needs a selection rule | **Build it as N plans**, reproducing the single path exactly |
+| 4 | Bulk messaging | Refused, same ground as Assign | Reconciled at gate 1's ruling |
+| 5 | B2B CSV import | Half built, with a live money defect | Defect fixed, upload deferred |
+
+**Assign, ruled 2026-09-09:** refused outright. Nothing assigns a file to an
+engineer; an engineer accepts it, and that acceptance IS the responsible charge
+entry. `files.assign` is removed from the matrix in 0040, because a declared
+capability nothing uses is a door waiting for somebody to build on it, and this
+one leads somewhere the firm cannot go.
+
+**Dispatch, ruled 2026-09-09:** bulk dispatch reproduces the single file rule
+exactly and introduces no selection rule of its own. Whatever the single path
+does for a file, bulk does N times, and the operator reviews N plans before any
+offer goes out. **No technician is chosen by a bulk path that the single path
+would not have chosen for that file.** If the single path has no default and the
+operator picks by hand, bulk dispatch is a review screen with N picks and no
+shortcut, and that is fine.

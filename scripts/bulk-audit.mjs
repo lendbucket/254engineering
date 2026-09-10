@@ -34,6 +34,15 @@ import { exportFiles, EXPORT_LIMIT } from "../src/lib/ops-bulk-files.ts";
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
 
+/* Comments stripped before anything is matched. A check that finds the word in
+ * a sentence about the word is a check on wording. */
+const codeOnly = (text) =>
+  text
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .split("\n")
+    .filter((line) => !/^\s*\/\//.test(line))
+    .join("\n");
+
 console.log("");
 console.log("================ BULK OPERATIONS ================");
 console.log("");
@@ -397,6 +406,164 @@ if (ids.length > 0) {
     row?.actor_email === ACTOR.email,
     "eng_audit_events is append only; see CLAUDE.md 6b",
   );
+}
+
+
+/* ============================================================ bulk dispatch */
+
+/*
+ * Operator ruling at gate 1: bulk dispatch reproduces the single file rule
+ * EXACTLY and introduces no selection rule. No technician is chosen by a bulk
+ * path that the single path would not have chosen for that file.
+ *
+ * The single path preselects nothing, so these checks are mostly about what is
+ * ABSENT: no default, no fan out, and no second implementation of "may this
+ * work be offered".
+ */
+{
+  const bulkDispatch = codeOnly(readSource("src/lib/ops-bulk-dispatch.ts"));
+  const panel = codeOnly(readSource("src/app/portal/(app)/files/DispatchPanel.tsx"));
+  const client = codeOnly(readSource("src/app/portal/(app)/files/dispatch/BulkDispatchClient.tsx"));
+
+  rec(
+    "the single file panel still preselects nothing",
+    /useState<string\[\]>\(\[\]\)/.test(panel),
+    "if this ever gains a default, bulk has to reproduce THAT and this check is where it is noticed",
+  );
+  rec(
+    "and the bulk screen preselects nothing either",
+    /useState<Record<string, string\[\]>>\(\{\}\)/.test(client),
+    "no technician is chosen by a bulk path that the single path would not have chosen",
+  );
+
+  rec(
+    "bulk dispatch sends through the single file sendOffers",
+    /sendOffers\(/.test(bulkDispatch),
+    "a second answer to whether work may be offered would drift from the first",
+  );
+  rec(
+    "and writes no offer of its own",
+    !/eng_assignments/.test(bulkDispatch),
+    "the refusals sendOffers makes, a file that already has a technician and a service line with no published protocol, are the ones that matter",
+  );
+
+  /*
+   * THE ABSENCE THAT IS THE WHOLE RULING. A control offering every eligible
+   * technician at once would be a selection rule this path invented.
+   */
+  rec(
+    "there is no offer-to-everyone shortcut anywhere in the bulk path",
+    !/selectAll|offerAll|everyEligible|all eligible/i.test(bulkDispatch + client),
+    "a bulk action that fanned every plan out would route the firm's field spend by a rule nobody ruled on",
+  );
+
+  rec(
+    "a file that cannot be dispatched is shown with the reason, not dropped",
+    /blocked/.test(bulkDispatch) && /plan\.blocked/.test(client),
+    "a file missing from a review screen reads as a file that was fine",
+  );
+  rec(
+    "and the ineligible technicians are shown with theirs",
+    /ineligible/.test(bulkDispatch) && /plan\.ineligible/.test(client),
+    "a shorter list of eligible technicians is not an answer to who could do this",
+  );
+  rec(
+    "partial failure is reported per file rather than as one number",
+    /refused/.test(bulkDispatch) && /refused/.test(client),
+    "a screen reporting 12 dispatched over three silent refusals describes work that did not happen",
+  );
+  rec(
+    "and the ids are resolved through the scoped read before anything is sent",
+    /filesByIds\(/.test(bulkDispatch),
+    "a browser carries picks, never a decision about which files it may reach",
+  );
+}
+
+/* ================================================= the B2B paste, and money */
+
+/*
+ * The defect this found is live, it is money, and it was on the customer facing
+ * path. /account/order split each pasted line on commas, so an address with a
+ * suite number put a CITY in the county column, and splitBatch checked the
+ * county was PRESENT and never that it was real.
+ *
+ * The coastal surcharge is decided by county. The protocol is decided by
+ * county. The property was accepted, priced, charged and dispatched.
+ */
+{
+  const { parseLine } = await import("../src/lib/csv.ts");
+  const { splitBatch } = await import("../src/lib/bulk-order.ts");
+
+  const naive = "1200 Ocean Drive, Suite 4, Corpus Christi, Nueces, 78404".split(",").map((x) => x.trim());
+  rec(
+    "the defect is real: splitting on commas puts a city in the county column",
+    naive[2] === "Corpus Christi",
+    "this is the check that says the fix below is fixing something",
+  );
+
+  const quoted = parseLine('"1200 Ocean Drive, Suite 4","Corpus Christi","Nueces","78404"');
+  rec(
+    "parseLine keeps a quoted comma inside its own field",
+    quoted[0] === "1200 Ocean Drive, Suite 4" && quoted[2] === "Nueces",
+    JSON.stringify(quoted),
+  );
+  rec(
+    "and a doubled quote is one literal quote",
+    parseLine('"He said ""go""","Bexar"')[0] === 'He said "go"',
+    "what a spreadsheet writes when a field contains a quotation mark",
+  );
+
+  rec(
+    "the paste box uses it rather than splitting on commas",
+    /parseLine\(/.test(codeOnly(readSource("src/app/account/order/BulkOrderClient.tsx"))) &&
+      !/line\.split\(","\)/.test(codeOnly(readSource("src/app/account/order/BulkOrderClient.tsx"))),
+    "",
+  );
+
+  /*
+   * AND THE SERVER REFUSES, which is the half that is a guarantee rather than a
+   * convenience. Exercised through splitBatch itself with a real catalog entry.
+   */
+  const { catalogFor } = await import("../data/catalog.ts");
+  const entry = catalogFor("windstorm-wpi-8");
+  const twia = new Set(["Nueces", "Aransas"]);
+  const answers = (entry?.qualifiers ?? []).map((q) => ({ qualifierId: q.id, optionIndex: 0 }));
+
+  if (entry) {
+    const split = splitBatch(
+      entry,
+      [
+        { ref: "REAL", propertyAddress: "1 Somewhere", county: "Nueces", answers },
+        { ref: "CITY", propertyAddress: "1200 Ocean Drive", county: "Corpus Christi", answers },
+        { ref: "SHIFTED", propertyAddress: "1200 Ocean Drive", county: "78404", answers },
+      ],
+      twia,
+    );
+
+    const rejected = new Map(split.rejected.map((r) => [r.ref, r.reason]));
+    rec(
+      "a county that is not one of the 254 is refused rather than priced",
+      rejected.has("CITY") && rejected.has("SHIFTED"),
+      rejected.get("CITY") ?? "it was accepted",
+    );
+    rec(
+      "and the refusal quotes back what was received",
+      /Corpus Christi/.test(rejected.get("CITY") ?? ""),
+      "the customer has to be able to see what their own line turned into",
+    );
+    rec(
+      "while a real county is still accepted",
+      split.accepted.some((a) => a.ref === "REAL"),
+      "the dangerous direction is a refusal nobody asked for",
+    );
+    rec(
+      "and the accepted coastal property carries the surcharge",
+      split.accepted.find((a) => a.ref === "REAL")?.twiaCounty === true,
+      "the surcharge is the thing the wrong county was silently dropping",
+    );
+  } else {
+    rec("the catalog entry the county check is exercised against exists", false, "windstorm-wpi-8");
+  }
 }
 
 /* ----------------------------------------------------------------- verdict */

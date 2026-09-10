@@ -413,6 +413,41 @@ export const APPLIED = [
       "DEVELOPMENT: 3 of 4 convalidated, eng_responsible_charge_log_file_id_fkey false. Production holds 0 " +
       "rows in both tables and will validate all four.",
   },
+
+  /*
+   * The repository catching up to production, and a door being closed.
+   */
+  {
+    file: "0040_the_repository_catches_up_to_production.sql", appliedBy: "apply_migration",
+    fingerprint: "cac6f69d91b7e73441b307ea692a3f7b",
+    behaviour: "7acbb5b22f11220b4a36f535fab9e09c",
+    proves: { table: "eng_role_grants" },
+    production: null,
+    because:
+      "Phase 12 Section 4 is open. Pending until the branch merges, then applied in order with each read " +
+      "back before the next. Applied to development 2026-09-09. THE SHAPE IS UNCHANGED and that is what both " +
+      "halves should do: eight indexes and one delete add no column and no table. The behaviour fingerprint " +
+      "moves from 808 facts to 814, which is eight indexes in and two grant rows out.",
+    note:
+      "TWO GATE 1 RULINGS, AND BOTH CAME OUT OF THE SECOND FINGERPRINT'S FIRST RUN. (1) THE EIGHT INDEXES. " +
+      "0000_eng_legacy_intake.sql is a RECONSTRUCTION of five tables that were created directly against the " +
+      "shared project before this repository kept migrations, and it copied the columns, copied the " +
+      "constraints and copied ZERO indexes. So production has carried eight since before this repository " +
+      "existed and the migrations have never produced one. The divergence first read as production carrying " +
+      "something mysterious; it is the repository missing what production has always had, which points the " +
+      "other way entirely. Operator ruling: the repository catches up, because dropping an index on " +
+      "production to make a number match is editing the thing being described to suit the description. They " +
+      "are reproduced exactly as pg_indexes reports them and every one is `if not exists`, so this is a no-op " +
+      "against production and a repair everywhere else. (2) files.assign IS REMOVED. Declared in " +
+      "ops-authz.ts, seeded to admin and dispatcher by 0018, and never read by one call site. Found while " +
+      "reconciling the prototype's bulk Assign button against the code. Refused outright because of where it " +
+      "leads: nothing here assigns a file to an engineer, an engineer ACCEPTS one, and that acceptance IS the " +
+      "responsible charge entry. A declared capability nothing uses is a door waiting for somebody to build " +
+      "on, and the room behind this one is where an administrator's click puts a Professional Engineer in " +
+      "responsible charge of work they have never seen. 0018 IS NOT EDITED; the removal is a new statement, " +
+      "and roles-audit had to learn that the chain's NET effect is what a database holds rather than its " +
+      "inserts alone.",
+  },
 ];
 
 /**
@@ -510,7 +545,14 @@ export const BEHAVIOUR_DIVERGENCE = [
   },
   {
     kind: "extra_on_production_only",
-    what: "eight indexes no migration creates",
+    /*
+     * RESOLVED BY 0040. Kept rather than deleted, because a divergence that
+     * vanishes without a trace looks like one nobody ever found, and the next
+     * reader meeting eight indexes in 0040 with no explanation would have to
+     * work out why they are there.
+     */
+    resolvedBy: "0040_the_repository_catches_up_to_production.sql",
+    what: "eight indexes production had and no migration created, until 0040",
     facts: [
       "eng_applications_site_created_idx",
       "eng_applications_site_role_created_idx",

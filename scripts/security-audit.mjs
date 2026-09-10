@@ -179,6 +179,11 @@ const ADMIN_APIS = [
   // written and this list was not updated, and the coverage check below is what
   // said so, on the first board after it shipped.
   "/api/portal/files/export",
+  // Phase 12 Section 4, Section 1. Sends offers across many files. A signed out
+  // POST would be a way to put the firm s work in front of technicians of the
+  // caller s choosing, which is money, so it is on this list the same day it
+  // shipped rather than on the next board.
+  "/api/portal/files/dispatch",
   "/api/portal/documents",
   // Records that somebody asked the firm to stop writing to them, and removes a
   // row an operator typed wrong. Reachable signed out, its POST would let
