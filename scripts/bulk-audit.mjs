@@ -900,6 +900,110 @@ if (ids.length > 0) {
     );
 
     /*
+     * ---- THE REDACTION REFUSAL, AND MY OWN CHECK HAD A BLIND SPOT ----
+     *
+     * "No bulk operation may return more than the same actor's single record
+     * read would." The comparison above runs as an ADMINISTRATOR, who holds
+     * pricing.read, so it could never have seen a redaction applied in one path
+     * and not the other.
+     *
+     * A DISPATCHER is the actor that matters here: it holds offers.dispatch and
+     * NOT pricing.read, which is the one combination on this platform that
+     * plans dispatch without being allowed to see money. If either path
+     * redacted and the other did not, this is where it shows.
+     *
+     * Note what is NOT being asserted: that a dispatcher cannot see the offer
+     * amount. They can, and they should, because sending an offer without
+     * knowing what it is worth is not a decision. The refusal is about the two
+     * paths AGREEING, not about hiding a number the single screen shows.
+     */
+    const dispatcherRole = DEFAULT_ROLES.find((r) => r.key === "dispatcher");
+    const asDispatcher = {
+      ...planner,
+      role: "dispatcher",
+      grants: new Set(dispatcherRole.grants),
+    };
+
+    rec(
+      "the redaction comparison uses an actor that genuinely cannot see money",
+      !asDispatcher.grants.has("pricing.read") && asDispatcher.grants.has("offers.dispatch"),
+      "dispatcher holds offers.dispatch and not pricing.read, which is the combination that matters",
+    );
+
+    const dispatcherMismatch = [];
+    for (const id of made) {
+      const { data: row } = await db
+        .from("eng_files")
+        .select("id, county, service_slug, latitude, longitude")
+        .eq("id", id)
+        .single();
+      const single = shapeOf((await dispatchContext(asDispatcher, row))?.plan.offers ?? []);
+      const viaBulk = await dispatchPlans(asDispatcher, [id]);
+      const bulk = viaBulk.ok ? shapeOf(viaBulk.plans[0].offers) : ["BULK REFUSED: " + viaBulk.error];
+      if (single.join(" ") !== bulk.join(" ")) {
+        dispatcherMismatch.push(`${id}: single [${single.join(", ")}] vs bulk [${bulk.join(", ")}]`);
+      }
+    }
+    rec(
+      "and the two paths still agree for an actor with no pricing.read",
+      dispatcherMismatch.length === 0,
+      dispatcherMismatch.join(" | ") ||
+        `${made.length} file(s) compared as a dispatcher, amounts included, and neither path redacted more than the other`,
+    );
+
+    /*
+     * ---- THE SILENT REFUSAL, EXERCISED RATHER THAN READ ----
+     *
+     * "No bulk operation may report success over a refusal." A screen saying
+     * twelve dispatched over three silent refusals is describing work that did
+     * not happen.
+     *
+     * The source check asserts the word `blocked` appears. This asks the
+     * function: hand it a dispatchable file AND one that is not, together, and
+     * require that BOTH come back, that the second carries a reason in words,
+     * and that the first is untouched by the second's presence.
+     */
+    const { data: notDispatchable } = await db
+      .from("eng_files")
+      .select("id, file_number, status")
+      .neq("status", "needs_dispatch")
+      .not("id", "in", `(${made.join(",")})`)
+      .limit(1);
+
+    if (!notDispatchable?.[0]) {
+      rec(
+        "there is a file that cannot be dispatched, to mix into the batch",
+        false,
+        "every file on this database is in needs_dispatch, so the silent refusal has nothing to refuse",
+      );
+    } else {
+      const mixed = await dispatchPlans(planner, [made[0], notDispatchable[0].id]);
+      const plansById = new Map(mixed.ok ? mixed.plans.map((p) => [p.fileId, p]) : []);
+      const good = plansById.get(made[0]);
+      const bad = plansById.get(notDispatchable[0].id);
+
+      rec(
+        "a mixed batch returns a plan for the file it cannot dispatch, rather than dropping it",
+        Boolean(bad),
+        bad
+          ? `${bad.fileNumber} is ${bad.status} and came back`
+          : `${notDispatchable[0].file_number} was silently missing, which reads as a file that was fine`,
+      );
+      rec(
+        "and says why, in a sentence a person can act on",
+        Boolean(bad?.blocked) && /\w+\s\w+/.test(String(bad?.blocked)),
+        bad?.blocked ?? "no reason was given",
+      );
+      rec(
+        "while the dispatchable file beside it is unaffected",
+        Boolean(good) && shapeOf(good?.offers ?? []).join(" ") === singles.get(made[0]).join(" "),
+        good
+          ? `${good.fileNumber} planned the same ${good.offers.length} offer(s) it plans alone`
+          : "the dispatchable file did not come back at all",
+      );
+    }
+
+    /*
      * ---- 3. and the batch chooses nobody ----
      *
      * The single path preselects nothing, so the bulk path must preselect
