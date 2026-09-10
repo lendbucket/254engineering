@@ -52,6 +52,61 @@ be intended. Granting them `evidence.capture` instead gives them capture as
 well as read, so the honest fix may be a new read grant, and inventing a grant
 is not a thing to do unattended overnight.
 
+## A LONG EMAIL ADDRESS CANNOT ENROL A SECOND FACTOR, AND GETS A 500
+
+Found 2026-09-10 while building the injection for the certification gate ruling.
+A probe with a long role key produced a long email, and `/api/portal/mfa`
+answered **500**:
+
+```
+Error: 226 bytes is more than this encoder handles. It covers versions 5 to 10
+in byte mode, which is every otpauth URI; anything longer needs a bigger
+version and a 16 bit character count.
+```
+
+**The comment in that error is the defect.** "which is every otpauth URI" is not
+true, and `src/lib/qr.ts` line 48 states the same estimate: "an otpauth URI is
+around 100 to 160 bytes". Measured against the real `otpauthUri` with a real
+160 bit secret and the shipped issuer, "254 Engineering Services":
+
+| Email | URI bytes | |
+| --- | --- | --- |
+| bob@254.com | 165 | ok |
+| robert.reyna@254engineering.com | 185 | ok |
+| christopher.vandenberghe@254engineering.com | 197 | ok |
+| christopher.vandenberghe@254engineeringservices.com | 205 | ok |
+| a.very.long.professional.engineer@254engineeringservices.example.com | 222 | **500** |
+
+The real range starts at 165 for a SHORT address, not 100. Version 10 holds 216
+data codewords, so the headroom is about eleven bytes past a fifty character
+email address.
+
+**Why it matters rather than being a curiosity.** This is a lockout. A role
+whose `mfa_requirement` demands a second factor issues a PENDING session until
+one is enrolled, and enrolment is the thing that 500s. A staff member with a
+long name at a long domain could not finish signing in, and what they would see
+is a server error rather than a sentence.
+
+**Why it is not fixed here.** It needs a ruling, and there are three candidate
+fixes that are not interchangeable:
+
+1. **Extend the encoder past version 10.** Correct, and the most work: it needs
+   a 16 bit character count, which the file already names as the reason it
+   stops, plus version specs and alignment centres.
+2. **Shorten the URI.** The label is `issuer:account`. Dropping the issuer from
+   the LABEL would buy 25 bytes, and
+   `scripts/proofs/totp-matches-the-rfc.mjs` pins "carries the issuer in the
+   label" as a literal, because apps use the parameter and the label is what a
+   person reads. That is a pinned decision, so changing it is a ruling.
+3. **Refuse gracefully instead of crashing.** Every authenticator app accepts a
+   manually typed key, so the screen could show the secret and say the code
+   could not be drawn. This is the smallest change and it is the one that stops
+   the lockout without deciding anything about the other two.
+
+**The decision I would make:** 3 now, because a 500 is never the right answer to
+a valid request, and 1 afterwards in daylight. Not 2, because it unpins a
+ruling to save bytes.
+
 ## THREE COMPLIANCE SENTENCES ON THE SIBLING SITES, FOUND OVERNIGHT
 
 Found on 2026-09-10 by the overnight sweep's Round 2, which reads the three live
