@@ -1,4 +1,6 @@
 import "server-only";
+import { STATUS_LABEL, type FileStatus } from "./ops-files";
+import { DB_NOW } from "./db-now";
 import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import type { Cents } from "./ops-money";
@@ -368,7 +370,7 @@ export async function publishProtocol(
 
   const { error } = await db
     .from("eng_protocol_templates")
-    .update({ status: "published", published_at: new Date().toISOString() })
+    .update({ status: "published", published_at: DB_NOW })
     .eq("id", id)
     .eq("status", "draft");
   if (error) return { ok: false, error: error.message };
@@ -568,6 +570,40 @@ export async function sendOffers(
     .maybeSingle();
   if (!file) return { ok: false, error: "That file does not exist." };
   if (file.assigned_tech_id) return { ok: false, error: "That file already has a technician." };
+
+  /*
+   * THE STATUS RULE LIVED IN THE SCREEN, WHICH IS NOT THE PLATFORM.
+   *
+   * Phase 12 Section 4, Section 2. This function selected `status` and never
+   * read it. The Files page only rendered the dispatch panel when a file was
+   * in needs_dispatch, and that was the entire rule: a UI condition, in one
+   * component, guarding a function anybody could call.
+   *
+   * So sendOffers would happily offer a SEALED file to technicians. Sealed
+   * means a Professional Engineer has already put their seal on the work.
+   * Dispatching it sends field technicians out to inspect a job that is
+   * finished, against a protocol whose evidence has already been reviewed,
+   * and it does it in the firm's name. The same hole accepted delivered,
+   * closed, cancelled and refused.
+   *
+   * It was found by BUILDING THE BULK PATH. Bulk dispatch calls this
+   * function directly, as it must, and the moment it did the screen's rule
+   * stopped applying. That is what Section 2 is about: a bulk operation does
+   * not introduce the danger, it REMOVES the accident that was containing
+   * it, and a rule kept in a component is a rule that was always one caller
+   * away from not existing.
+   *
+   * The refusal is here, once, so every caller inherits it: the panel, the
+   * bulk review, and whatever calls it next.
+   */
+  if (file.status !== "needs_dispatch") {
+    return {
+      ok: false,
+      error:
+        `That file is ${STATUS_LABEL[file.status as FileStatus] ?? file.status}, not waiting for dispatch. ` +
+        "Offers are only sent for a file in Needs dispatch.",
+    };
+  }
 
   const protocol = await publishedProtocolFor(file.service_slug as string);
   if (!protocol) {
@@ -787,12 +823,12 @@ export async function acceptOffer(
 
   await db
     .from("eng_assignments")
-    .update({ state: "accepted", responded_at: new Date().toISOString() })
+    .update({ state: "accepted", responded_at: DB_NOW })
     .eq("id", offerId);
 
   await db
     .from("eng_assignments")
-    .update({ state: "withdrawn", responded_at: new Date().toISOString() })
+    .update({ state: "withdrawn", responded_at: DB_NOW })
     .eq("file_id", offer.file_id)
     .eq("state", "offered")
     .neq("id", offerId);
@@ -881,7 +917,7 @@ export async function declineOffer(
     .from("eng_assignments")
     .update({
       state: "declined",
-      responded_at: new Date().toISOString(),
+      responded_at: DB_NOW,
       decline_reason: reason?.trim() || null,
     })
     .eq("id", offerId)
@@ -1120,7 +1156,10 @@ export async function recordCapture(
         value_number: input.valueNumber ?? null,
         unit: item.unit ?? null,
         storage_key: input.storageKey ?? null,
-        captured_at: input.capturedAt ?? new Date().toISOString(),
+        /* DB_NOW as the fallback only. A supplied capturedAt is the DEVICE
+         * saying when the photograph was taken, which is the honest answer and
+         * is not this machine's clock either way. */
+        captured_at: input.capturedAt ?? DB_NOW,
         captured_lat: input.lat ?? null,
         captured_lng: input.lng ?? null,
         captured_accuracy: input.accuracy ?? null,
@@ -1441,10 +1480,24 @@ export async function setLedgerStatus(
   if (!can(actor, "ledger.approve")) return { ok: false, error: "Your role cannot approve payments." };
   if (ids.length === 0) return { ok: false, error: "Nothing selected." };
 
-  const now = new Date().toISOString();
+  /*
+   * THE DATABASE STAMPS WHEN A TECHNICIAN WAS APPROVED AND WHEN THEY WERE PAID.
+   *
+   * These two are money and they are written in BULK, which is the combination
+   * that makes the clock matter most: one operator press stamps up to three
+   * hundred ledger rows, and every one of them would carry this machine s idea
+   * of the time. A payment record whose timestamp depends on which host ran the
+   * request is a payment record with two possible answers.
+   *
+   * Assigned by property rather than written in a literal, which is why the
+   * timestamp sweep did not find these and why db-guard-audit now matches this
+   * shape as well. Found while surveying bulk operations for Section 1: the one
+   * operator side bulk write in the platform was the one place still on the
+   * process clock.
+   */
   const patch: Record<string, unknown> = { status };
-  if (status === "approved") patch.approved_at = now;
-  if (status === "paid") patch.paid_at = now;
+  if (status === "approved") patch.approved_at = DB_NOW;
+  if (status === "paid") patch.paid_at = DB_NOW;
 
   const { data, error } = await db.from("eng_tech_pay_ledger").update(patch).in("id", ids).select("id");
   if (error) return { ok: false, error: error.message };
@@ -1774,7 +1827,9 @@ export async function submitAttempt(
       status: grade.passed ? "certified" : "failed",
       score: grade.score,
       attempts,
-      certified_at: grade.passed ? new Date().toISOString() : null,
+      /* DB_NOW. When a technician became certified decides what work they may
+       * be offered, so it is the database's clock. */
+      certified_at: grade.passed ? DB_NOW : null,
     },
     { onConflict: "profile_id,service_slug" },
   );
@@ -1835,7 +1890,7 @@ export async function revokeCertification(
 
   const { error } = await db
     .from("eng_certifications")
-    .update({ status: "revoked", revoked_at: new Date().toISOString() })
+    .update({ status: "revoked", revoked_at: DB_NOW })
     .eq("profile_id", profileId)
     .eq("service_slug", serviceSlug);
   if (error) return { ok: false, error: error.message };

@@ -1,4 +1,5 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { readEvery } from "./bounded-read";
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { cookies, headers } from "next/headers";
@@ -52,6 +53,8 @@ export type ProfileRow = {
   base_county: string | null;
   certification_status: string | null;
   last_sign_in_at: string | null;
+  /** True when this account was seeded rather than being a person. */
+  is_demo: boolean | null;
 };
 
 // ---------------------------------------------------------------- tokens
@@ -97,7 +100,16 @@ export async function currentActor(): Promise<(Actor & ProfileRow) | null> {
   const { data, error } = await db
     .from("eng_profiles")
     .select(
-      "id, email, display_name, phone, role, status, license_number, tdi_appointment, coverage_counties, base_city, base_county, certification_status, last_sign_in_at",
+      /*
+       * is_demo, because A DEMONSTRATION ACTOR PRODUCES A DEMONSTRATION FILE.
+       * Operator ruling, 2026-09-10, and it is the same rule as
+       * suppress-by-actor: what a record is follows from who made it, not from
+       * which script happened to make it.
+       *
+       * All three reads that build a ProfileRow carry it. Adding it to one
+       * would make the type true in one place and a lie in the other two.
+       */
+      "id, email, display_name, phone, role, status, license_number, tdi_appointment, coverage_counties, base_city, base_county, certification_status, last_sign_in_at, is_demo",
     )
     .eq("id", claims.sub)
     .maybeSingle();
@@ -211,7 +223,16 @@ export async function verifyCredentials(email: string, password: string): Promis
   const { data: profile } = await db
     .from("eng_profiles")
     .select(
-      "id, email, display_name, phone, role, status, license_number, tdi_appointment, coverage_counties, base_city, base_county, certification_status, last_sign_in_at",
+      /*
+       * is_demo, because A DEMONSTRATION ACTOR PRODUCES A DEMONSTRATION FILE.
+       * Operator ruling, 2026-09-10, and it is the same rule as
+       * suppress-by-actor: what a record is follows from who made it, not from
+       * which script happened to make it.
+       *
+       * All three reads that build a ProfileRow carry it. Adding it to one
+       * would make the type true in one place and a lie in the other two.
+       */
+      "id, email, display_name, phone, role, status, license_number, tdi_appointment, coverage_counties, base_city, base_county, certification_status, last_sign_in_at, is_demo",
     )
     .eq("id", data.user.id)
     .maybeSingle();
@@ -438,7 +459,16 @@ export async function inspectToken(token: string): Promise<ConsumeTokenResult> {
   const { data: profile } = await db
     .from("eng_profiles")
     .select(
-      "id, email, display_name, phone, role, status, license_number, tdi_appointment, coverage_counties, base_city, base_county, certification_status, last_sign_in_at",
+      /*
+       * is_demo, because A DEMONSTRATION ACTOR PRODUCES A DEMONSTRATION FILE.
+       * Operator ruling, 2026-09-10, and it is the same rule as
+       * suppress-by-actor: what a record is follows from who made it, not from
+       * which script happened to make it.
+       *
+       * All three reads that build a ProfileRow carry it. Adding it to one
+       * would make the type true in one place and a lie in the other two.
+       */
+      "id, email, display_name, phone, role, status, license_number, tdi_appointment, coverage_counties, base_city, base_county, certification_status, last_sign_in_at, is_demo",
     )
     .eq("id", data.profile_id)
     .maybeSingle();
@@ -479,7 +509,7 @@ export async function consumeTokenAndSetPassword(
 
   const { error: spendError } = await db
     .from("eng_auth_tokens")
-    .update({ used_at: new Date().toISOString() })
+    .update({ used_at: DB_NOW })
     .eq("token_hash", hashToken(token))
     .is("used_at", null);
   if (spendError) return { ok: false, error: "That link could not be used. Ask for a new one." };

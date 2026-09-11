@@ -1,4 +1,5 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { supabaseAdmin } from "./supabase";
 import { writeAudit } from "./ops-audit";
 import { copyVerdict, performingFirmLine, type CopyVerdict } from "./partner-copy";
@@ -198,7 +199,7 @@ export async function publishAsset(
      * statement from "it passes today".
      */
     check_note: `Checked against the firm's regulated and voice patterns. ${verdict.summary}`,
-    published_at: new Date().toISOString(),
+    published_at: DB_NOW,
     published_by: actor.id,
   });
   if (versionError) return { ok: false, error: `The version could not be written: ${versionError.message}` };
@@ -397,7 +398,7 @@ export async function decideSubmission(
       status: decision,
       decision_note: note.trim(),
       decided_by: actor.id,
-      decided_at: new Date().toISOString(),
+      decided_at: DB_NOW,
     })
     .eq("id", id)
     .is("decided_at", null);

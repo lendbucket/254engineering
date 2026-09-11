@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { readSource } from "./read-source.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -113,7 +114,7 @@ export async function startNextServer({ port, env = {}, timeoutMs = 120000, comm
 function tailOf(file, lines = 25) {
   try {
     return (
-      fs.readFileSync(file, "utf8").trimEnd().split(/\r?\n/).slice(-lines).join("\n") || "(empty)"
+      readSource(file).trimEnd().split(/\r?\n/).slice(-lines).join("\n") || "(empty)"
     );
   } catch {
     return "(log unreadable)";

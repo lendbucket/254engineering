@@ -23,7 +23,8 @@
  * says plainly when it could not run rather than passing over an absence.
  */
 
-import { readFileSync } from "node:fs";
+
+import { readSource } from "./lib/read-source.mjs";
 import { auditClient } from "./lib/db-target.mjs";
 import {
   SISTER_KEY_ENV,
@@ -114,8 +115,8 @@ console.log("");
    * THE BODY CANNOT NAME A BRAND. Asserted on the source, because it is an
    * absence: there is no parameter to test at runtime, which is the point.
    */
-  const lib = readFileSync("src/lib/sister-intake.ts", "utf8");
-  const route = readFileSync("src/app/api/intake/lead/route.ts", "utf8");
+  const lib = readSource("src/lib/sister-intake.ts");
+  const route = readSource("src/app/api/intake/lead/route.ts");
   rec(
     "the lead type has no field in which a caller could name a brand",
     !/\bsite\??:\s*(string|SisterSite)/.test(lib.split("export type SisterLead")[1]?.split("};")[0] ?? ""),
@@ -389,21 +390,21 @@ console.log("");
 // =========================================================================
 
 {
-  const proxy = readFileSync("src/proxy.ts", "utf8");
+  const proxy = readSource("src/proxy.ts");
   rec(
     "the proxy does not gate the intake endpoint",
     !/\/api\/intake/.test(proxy),
     "a sister has a key and no cookie, so a gated prefix would refuse it before the key was read",
   );
 
-  const security = readFileSync("scripts/security-audit.mjs", "utf8");
+  const security = readSource("scripts/security-audit.mjs");
   rec(
     "security-audit knows the endpoint exists",
     /\/api\/intake\/lead/.test(security),
     "an endpoint that writes rows for another business belongs in the perimeter checks",
   );
 
-  const surfaces = readFileSync("scripts/surface-audit.mjs", "utf8");
+  const surfaces = readSource("scripts/surface-audit.mjs");
   rec(
     "and the surface inventory names this audit as its owner",
     /intake: \["scripts\/sister-intake-audit\.mjs"/.test(surfaces),

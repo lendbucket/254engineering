@@ -1,4 +1,5 @@
 import type { CatalogEntry } from "@data/catalog";
+import { TEXAS_COUNTIES } from "./ops-counties";
 import { qualify, quoteFor } from "./ops-orders";
 import type { Cents } from "./ops-money";
 import { isKnown } from "./ops-money";
@@ -69,6 +70,16 @@ export type BatchSplit = {
 };
 
 /** The counties that carry the coastal surcharge, asked of the catalog entry. */
+/**
+ * The 254, and one spelling of how a county name is compared.
+ *
+ * Trailing "County" and case are both things a customer types either way, and
+ * ops-dispatch already normalises the same two when it matches coverage. The
+ * set is built once from the canonical list rather than at every call.
+ */
+const normalizeCountyName = (c: string) => c.trim().replace(/s+county$/i, "").toLowerCase();
+const TEXAS_COUNTY_KEYS = new Set(TEXAS_COUNTIES.map(normalizeCountyName));
+
 function isCoastal(entry: CatalogEntry, county: string, twiaCounties: Set<string>): boolean {
   return isKnown(entry.coastalSurchargeCents) && twiaCounties.has(county);
 }
@@ -109,6 +120,34 @@ export function splitBatch(
         ref: p.ref,
         property: p,
         reason: "No county was given, and the county decides both the protocol and the price.",
+      });
+      continue;
+    }
+
+    /*
+     * AND IT HAS TO BE A REAL COUNTY, NOT MERELY PRESENT.
+     *
+     * Phase 12 Section 4, Section 1. This checked presence for two phases and
+     * that was one check short of the thing it was for.
+     *
+     * The paste box on /account/order split each line on commas, so an
+     * address with a suite number shifted every field and put a CITY in the
+     * county column. The county decides the coastal surcharge and the
+     * protocol, so the property was priced without the surcharge, dispatched
+     * under the wrong inspection, and accepted without a word.
+     *
+     * The parser is fixed too, and this is the half that matters: a parser is
+     * a convenience and a refusal is a guarantee. Anything that reaches here
+     * with a county Texas does not have is now rejected BY NAME rather than
+     * priced, and the reason says what was received so the customer can see
+     * what their own line turned into.
+     */
+    if (!TEXAS_COUNTY_KEYS.has(normalizeCountyName(p.county))) {
+      rejected.push({
+        ref: p.ref,
+        property: p,
+        reason:
+          `"${p.county.trim()}" is not one of the 254 Texas counties. The county decides both the protocol and the price, so it has to be the county rather than the city or a line that shifted.`,
       });
       continue;
     }

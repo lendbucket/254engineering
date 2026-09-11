@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { money } from "@/lib/ops-money";
+import { parseLine } from "@/lib/csv";
 
 type Deliverable = {
   serviceSlug: string;
@@ -80,7 +81,23 @@ export function BulkOrderClient({
       .map((l) => l.trim())
       .filter(Boolean)
       .map((line, i) => {
-        const parts = line.split(",").map((p) => p.trim());
+        /*
+         * QUOTED FIELDS, BECAUSE ADDRESSES HAVE COMMAS IN THEM.
+         *
+         * This was `line.split(",")`, and pasting
+         *
+         *   1200 Ocean Drive, Suite 4, Corpus Christi, Nueces, 78404
+         *
+         * put "Corpus Christi" in the COUNTY field. The county decides the
+         * coastal surcharge and the protocol, so the property was priced
+         * without the surcharge and dispatched under the wrong inspection,
+         * and nothing anywhere said a word. src/lib/csv.ts carries the full
+         * account beside parseLine.
+         *
+         * The server refuses an unreal county now as well. Both halves,
+         * because a parser is a convenience and the refusal is the guarantee.
+         */
+        const parts = parseLine(line);
         return {
           ref: `P${i + 1}`,
           propertyAddress: parts[0] ?? "",

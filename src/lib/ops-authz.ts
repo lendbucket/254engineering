@@ -236,7 +236,22 @@ export type Action =
   | "files.list"
   | "files.create"
   | "files.update"
-  | "files.assign"
+  /*
+   * files.assign IS GONE, AND THE GAP IS THE RECORD.
+   *
+   * Operator ruling, 2026-09-09, at gate 1 of Phase 12 Section 4. It was
+   * declared here and seeded to admin and dispatcher in 0018, and NOTHING IN
+   * THIS PLATFORM EVER READ IT. Removed in 0040.
+   *
+   * Not tidied away: it is removed because of where it leads. Nothing here
+   * assigns a file to an engineer. An engineer ACCEPTS one, and that
+   * acceptance is the responsible charge entry. A capability named
+   * files.assign is a door somebody would eventually build on, and the room
+   * behind it is one where an administrator's click puts a Professional
+   * Engineer in responsible charge of work they have not seen.
+   *
+   * The reasoning in full is docs/bulk-actions-reconciliation.md section 2.
+   */
   | "files.transition"
   | "files.cancel"
   // dispatch and field
@@ -362,7 +377,7 @@ const MATRIX: Record<Role, Action[]> = {
     "profiles.list", "profiles.create", "profiles.update", "profiles.suspend",
     "profiles.force_reset", "profiles.read_self", "profiles.update_self",
     "clients.list", "clients.create", "clients.update",
-    "files.list", "files.create", "files.update", "files.assign", "files.transition", "files.cancel",
+    "files.list", "files.create", "files.update", "files.transition", "files.cancel",
     "offers.dispatch", "offers.list_own", "offers.respond",
     "evidence.review", "evidence.start", "evidence.submit",
     /*
@@ -544,7 +559,7 @@ export const DEFAULT_ROLES: DefaultRole[] = [
     grants: [
       "profiles.read_self", "profiles.update_self", "profiles.list",
       "clients.list",
-      "files.list", "files.update", "files.assign", "files.transition",
+      "files.list", "files.update", "files.transition",
       "offers.dispatch", "offers.list_own",
       "tasks.use", "messages.use",
       "time.log_own",

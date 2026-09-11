@@ -1,4 +1,5 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { supabaseAdmin } from "./supabase";
 import { writeAudit } from "./ops-audit";
 import { can, type Actor } from "./ops-authz";
@@ -225,7 +226,9 @@ export async function setTaskStatus(
   const done = status === "done";
   const { error } = await db
     .from("eng_tasks")
-    .update({ status, completed_at: done ? new Date().toISOString() : null })
+    /* DB_NOW: overdue is measured against the database's clock, so completion
+     * has to be recorded on the same one. */
+    .update({ status, completed_at: done ? DB_NOW : null })
     .eq("id", taskId);
   if (error) return { ok: false, error: error.message };
 
@@ -431,7 +434,7 @@ export async function refreshCredentialTasks(actor: Actor & { email: string }): 
     if (!wantedKeys.has(row.source_key as string)) {
       await db
         .from("eng_tasks")
-        .update({ status: "done", completed_at: new Date().toISOString() })
+        .update({ status: "done", completed_at: DB_NOW })
         .eq("id", row.id);
     }
   }

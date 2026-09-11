@@ -1,9 +1,11 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import { LEASE_SECONDS, BATCH_SIZE, nextState, type JobOutcome } from "./job-rules";
 import { business } from "@/config/business";
 import type { RenderedEmail } from "./email-templates";
+import { effectModeFor, isFixtureIdentity } from "./fixture-identity";
 
 /**
  * The queue: enqueue, claim, run, record.
@@ -57,12 +59,28 @@ export type JobKind =
 
 export type JobPayload = Record<string, unknown>;
 
+/**
+ * Whether a job was permitted to reach outside this platform.
+ *
+ * See 0038. `live` is everything the handler does. `no_external_effect` is
+ * everything except putting a message in somebody's inbox or money on a card:
+ * it still reads, still writes rows, and still returns a real outcome, so the
+ * queue is exercised exactly as it runs in anger.
+ */
+export type EffectMode = "live" | "no_external_effect";
+
 export type JobRecord = {
   id: number;
   kind: string;
   payload: JobPayload;
   attempts: number;
   maxAttempts: number;
+  /**
+   * Read off the claimed row, never off the environment. A flag set in one
+   * terminal cannot protect a worker started in another, which is exactly how
+   * a retention dry run on development sent twenty real emails on 2026-09-09.
+   */
+  effectMode: EffectMode;
 };
 
 type Handler = {
@@ -76,6 +94,24 @@ type Handler = {
   idempotency: ((payload: JobPayload) => string) | "naturally";
   /** Why, when it is "naturally". Required, so nobody asserts it without cause. */
   why?: string;
+  /**
+   * DOES RUNNING THIS REACH ANYBODY OUTSIDE THIS PLATFORM?
+   *
+   * Declared per handler rather than worked out by reading the code, because
+   * the question a person asks before running a worker is "what will this send"
+   * and the answer must be readable without following six imports.
+   *
+   * A handler declaring true MUST honour job.effectMode. queue-audit asserts
+   * both halves: that every kind declares this, and that every kind declaring
+   * true actually behaves differently in the two modes.
+   */
+  reachesOutside: boolean;
+  /**
+   * What it reaches, when reachesOutside is true. Required for the same reason
+   * `why` is required beside "naturally": an assertion with no cause written
+   * beside it is one nobody can check.
+   */
+  reaches?: string;
   run: (payload: JobPayload, job: JobRecord) => Promise<JobOutcome>;
 };
 
@@ -140,7 +176,7 @@ export type EnqueueResult =
 export async function enqueue(
   kind: JobKind,
   payload: JobPayload,
-  options: { runAfter?: Date; maxAttempts?: number } = {},
+  options: { runAfter?: Date; maxAttempts?: number; effectMode?: EffectMode } = {},
 ): Promise<EnqueueResult> {
   await loadHandlers();
 
@@ -228,6 +264,16 @@ export async function enqueue(
        */
       ...(options.runAfter ? { run_after: options.runAfter.toISOString() } : {}),
       ...(options.maxAttempts ? { max_attempts: options.maxAttempts } : {}),
+      /*
+       * Only written when suppression was ASKED for, so the column default of
+       * live applies to everything else. Defaulting the other way would make
+       * every job written by every future caller silently do nothing outside,
+       * and a customer waiting for a link a green board says was sent is a
+       * worse failure than one email too many.
+       */
+      ...(options.effectMode && options.effectMode !== "live"
+        ? { effect_mode: options.effectMode }
+        : {}),
     })
     .select("id")
     .single();
@@ -291,6 +337,13 @@ export async function runBatch(workerId: string): Promise<WorkerReport> {
       payload: (row.payload ?? {}) as JobPayload,
       attempts: Number(row.attempts),
       maxAttempts: Number(row.max_attempts),
+      /*
+       * Off the claimed row. eng_claim_jobs is `returns setof eng_jobs`, so
+       * the column arrives with no change to the function. An unrecognised
+       * value reads as live rather than as suppression, because a typo that
+       * silences a send is the failure nobody would notice.
+       */
+      effectMode: row.effect_mode === "no_external_effect" ? "no_external_effect" : "live",
     };
 
     const handler = registry.get(kind);
@@ -312,7 +365,9 @@ export async function runBatch(workerId: string): Promise<WorkerReport> {
         status: next.status,
         run_after: new Date(next.runAfterMs).toISOString(),
         last_error: next.lastError,
-        finished_at: next.finished ? new Date().toISOString() : null,
+        /* DB_NOW. Retention ages jobs by this column against the database's
+         * clock, so a value from this machine ages by the wrong amount. */
+        finished_at: next.finished ? DB_NOW : null,
         // The lease is released whatever happened. A retry must be claimable at
         // its run_after rather than waiting for a lease nobody holds.
         leased_until: null,
@@ -459,7 +514,16 @@ export async function retryDeadJob(
     .update({
       status: "pending",
       attempts: 0,
-      run_after: new Date().toISOString(),
+      /*
+       * DB_NOW, AND HERE THE PROCESS CLOCK HAD A SYMPTOM RATHER THAN A RISK.
+       *
+       * eng_claim_jobs compares run_after against the DATABASE's clock. This
+       * machine is 85 seconds ahead of it, so a job retried "now" was written
+       * with a run_after 85 seconds in the database's future and sat
+       * unclaimable for that long. The column does not end in _at, which is the
+       * other reason the src sweep never saw it.
+       */
+      run_after: DB_NOW,
       finished_at: null,
       leased_until: null,
       leased_by: null,
@@ -510,16 +574,53 @@ export async function queueEmail(
    * order to write to.
    */
   about?: { orderId: string },
+  /**
+   * THE MODE THE JOB THAT ASKED FOR THIS WAS RUNNING IN.
+   *
+   * A handler running under no_external_effect that enqueues an email without
+   * saying so has spawned a live send from a suppressed job, and the
+   * suppression has leaked in the one direction that matters. errors.alert is
+   * the handler this exists for: it sends nothing itself and queues an
+   * email.send, so `reachesOutside: false` is true of it and would have been
+   * exactly the wrong thing to rely on.
+   *
+   * queue-audit asserts every handler that enqueues passes its own job's mode
+   * through, because this is an argument somebody can forget to write.
+   */
+  effectMode?: EffectMode,
 ): Promise<EnqueueResult> {
-  return enqueue("email.send", {
-    id: email.id,
-    purpose: email.purpose,
-    to: email.to ?? business.notificationEmail,
-    subject: email.subject,
-    from: email.from,
-    replyTo: email.replyTo ?? null,
-    text: email.text,
-    html: email.html ?? "",
-    orderId: about?.orderId ?? null,
-  });
+  /*
+   * THE ACTOR DECIDES, AND NOBODY HAS TO REMEMBER TO SAY SO.
+   *
+   * Operator ruling: work enqueued by a board fixture or a demo actor is
+   * suppressed at creation, because the actor is not real.
+   *
+   * Read off the message's own ADDRESS fields rather than passed in by each
+   * caller, because a rule each caller has to remember is a rule that has
+   * now been forgotten twice, at a cost of 55 emails in one day. `to` is who
+   * receives it and `replyTo` is who an operator template is ABOUT: every
+   * operator notification composes with the enquirer's address there, which
+   * is what makes the eighteen that reached a real inbox about a person who
+   * does not exist catchable at all.
+   *
+   * An explicit mode from the caller still wins. queue-audit passes
+   * no_external_effect for its probes and must keep getting it.
+   */
+  const derived = effectMode ?? effectModeFor(email.to ?? null, email.replyTo ?? null);
+
+  return enqueue(
+    "email.send",
+    {
+      id: email.id,
+      purpose: email.purpose,
+      to: email.to ?? business.notificationEmail,
+      subject: email.subject,
+      from: email.from,
+      replyTo: email.replyTo ?? null,
+      text: email.text,
+      html: email.html ?? "",
+      orderId: about?.orderId ?? null,
+    },
+    derived !== "live" ? { effectMode: derived } : {},
+  );
 }

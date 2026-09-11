@@ -28,6 +28,8 @@
 //                   HTML part by design, and a width check on plain text would
 //                   be a green light for a measurement that never happened.
 import { allTemplatesForAudit, MARKETING_TEMPLATES } from "../src/lib/email-templates.ts";
+import { readSource } from "./lib/read-source.mjs";
+import { inOpenGateProcess } from "./lib/gate-fixture.mjs";
 import { business } from "../src/config/business.ts";
 import { context, findBannedPhrases } from "./lib/voice-blocklist.mjs";
 
@@ -39,7 +41,7 @@ const PRODUCTION_ORIGIN = "https://254engineering.com";
 /** Subject lines get truncated in a phone notification well before this. */
 const MAX_SUBJECT = 78;
 
-import { readFileSync, readdirSync } from "node:fs";
+import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { chromium } from "playwright";
 import { emailIdentity, fromHeader, signatureLines, FROM_DISPLAY_NAME, REPLY_TO, REPLY_TO_EXCEPTIONS } from "../src/config/email-identity.ts";
@@ -74,7 +76,7 @@ if (templates.length === 0) {
 /* bare string would silently miss both halves of it.                        */
 /* ------------------------------------------------------------------------ */
 {
-  const source = readFileSync("src/lib/email-templates.ts", "utf8");
+  const source = readSource("src/lib/email-templates.ts");
   const declared = new Set();
 
   for (let i = source.indexOf("compose("); i !== -1; i = source.indexOf("compose(", i + 1)) {
@@ -309,7 +311,7 @@ if (templates.length === 0) {
       const full = join(dir, entry.name).split("\\").join("/");
       if (entry.isDirectory()) walk(full);
       else if (/\.(ts|tsx)$/.test(entry.name)) {
-        const src = readFileSync(full, "utf8");
+        const src = readSource(full);
         const imports = src.match(/import\s*\{([^}]*)\}\s*from\s*"[^"]*marketing-suppression"/);
         if (imports) {
           readers.push(full);
@@ -361,7 +363,7 @@ if (templates.length === 0) {
    * audit's job is that the gate is shaped right.
    */
   {
-    const src = readFileSync("src/lib/marketing-suppression.ts", "utf8");
+    const src = readSource("src/lib/marketing-suppression.ts");
     const gate = src.slice(src.indexOf("export async function isSuppressed"));
     const body = gate.slice(0, gate.indexOf("\n}"));
 
@@ -636,15 +638,32 @@ for (const t of templates) {
   const PENDING = "Firm registration pending";
   const seen = {};
 
-  for (const mode of ["prelaunch", "live"]) {
+  /*
+   * THE LIVE PASS RUNS IN A CHILD PROCESS.
+   *
+   * Operator ruling 2026-09-10 moved the registration into configuration, so no
+   * environment variable opens the gate and the two lines that used to set
+   * TBPELS_FIRM_NUMBER are gone with the variable.
+   *
+   * A fresh `import("...?mode=live")` is not enough and was tried first: the
+   * query string busts email-templates and nothing under it, so email-layout
+   * and launch keep the module level values they were loaded with, and the live
+   * pass renders PRELAUNCH footers while asserting live things about them. A
+   * child process has no module graph to invalidate.
+   */
+  const renderIn = async (mode) => {
     process.env.LAUNCH_MODE = mode;
-    process.env.TBPELS_FIRM_NUMBER = mode === "live" ? "AUDIT-FIXTURE-NOT-A-REAL-NUMBER" : "";
     process.env.TBPELS_PE_LICENSE = mode === "live" ? "AUDIT-FIXTURE-NOT-A-REAL-LICENCE" : "";
-    // A fresh import per mode: the module graph caches, so the query string is
-    // what forces the template functions to be re-evaluated with the new env.
-    const mod = await import(`../src/lib/email-templates.ts?mode=${mode}`);
-    seen[mode] = mod.allTemplatesForAudit();
-  }
+    const mod = await import(`../src/lib/email-templates.ts?mode=${mode}-${Date.now()}`);
+    return mod.allTemplatesForAudit();
+  };
+
+  seen.prelaunch = await renderIn("prelaunch");
+  seen.live = await inOpenGateProcess(`
+    process.env.TBPELS_PE_LICENSE = "AUDIT-FIXTURE-NOT-A-REAL-LICENCE";
+    const mod = await import("./src/lib/email-templates.ts");
+    answer(mod.allTemplatesForAudit());
+  `);
   Object.assign(process.env, original);
 
   for (const t of seen.prelaunch) {
@@ -715,7 +734,7 @@ for (const t of templates) {
   const sources = ["src/lib/email-templates.ts", "src/lib/email-layout.ts"];
   const identityStrings = [emailIdentity.signer.name, emailIdentity.signer.title];
   for (const file of sources) {
-    const text = readFileSync(file, "utf8");
+    const text = readSource(file);
     const found = identityStrings.filter((v) => text.includes(v));
     rec(
       `${file}: does not hardcode a name or title from the identity config`,
@@ -725,6 +744,84 @@ for (const t of templates) {
   }
 }
 
+// ===========================================================================
+// A LINK IS SIGNED WHEN THE MESSAGE GOES OUT, NEVER WHEN IT IS COMPOSED.
+//
+// Operator ruling, 2026-09-09, after reading one of the 35 emails that went
+// out of development by accident. It carried a signed link to an applicant's
+// resume, good for seven days, minted when the message was COMPOSED. That one
+// was composed on the 5th and delivered on the 9th, so it arrived with three of
+// its seven days left and nothing said so.
+// ===========================================================================
+{
+  /* Comments stripped before anything is matched. A check that finds the word
+   * in a sentence about the word is a check on wording, and this section is
+   * about code that is easy to describe and easy to leave undone. */
+  const codeOnly = (text) =>
+    text
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .split("\n")
+      .filter((line) => !/^\s*\/\//.test(line))
+      .join("\n");
+
+  const applyRoute = codeOnly(readSource("src/app/api/apply/route.ts"));
+  const handlers = codeOnly(readSource("src/lib/job-handlers.ts"));
+
+  rec(
+    "the application composer defers its links rather than signing them",
+    /deferredLink\(file\.path\)/.test(applyRoute),
+    "the storage path travels; the URL is minted at the door",
+  );
+  rec(
+    "and it no longer signs anything itself",
+    !/signedDownloadUrl\(/.test(applyRoute),
+    "a composer that signs is a composer that starts the clock too early",
+  );
+  rec(
+    "email.send resolves the deferred links",
+    /resolveDeferred\(/.test(handlers) && /signedDownloadUrl/.test(handlers),
+    "",
+  );
+  rec(
+    "and it sends what it resolved rather than the payload it was handed",
+    /text:\s*signedText/.test(handlers) && /html:\s*signedHtml/.test(handlers),
+    "signing into a variable nobody sends would look identical and do nothing",
+  );
+
+  /* The mechanism itself, both ways, with a signer this file controls. */
+  const { deferredLink, deferredPathsIn, resolveDeferred, DEFERRED_HOST } = await import(
+    "../src/lib/deferred-links.ts"
+  );
+  const token = deferredLink("254/abc/resume-jane.pdf");
+
+  rec(
+    "a token names its path and carries no credential",
+    deferredPathsIn(`see ${token} for the file`)[0] === "254/abc/resume-jane.pdf" &&
+      !/token|signature|jwt|eyJ/i.test(token),
+    token,
+  );
+  rec(
+    "and it is an absolute URL at a host that can never resolve",
+    token.startsWith("https://") && DEFERRED_HOST.includes(".invalid"),
+    "an unresolved token must go nowhere, not somewhere somebody could register",
+  );
+
+  const resolved = await resolveDeferred(`Resume: ${token}`, async (path) =>
+    `https://storage.example.com/${path}?token=fresh`,
+  );
+  rec(
+    "a resolved message carries the signed URL and no token",
+    resolved.includes("?token=fresh") && !resolved.includes(DEFERRED_HOST),
+    resolved,
+  );
+
+  const unsignable = await resolveDeferred(`Resume: ${token}`, async () => null);
+  rec(
+    "and a path that cannot be signed keeps its token rather than losing the link",
+    unsignable.includes(DEFERRED_HOST),
+    "a message that silently drops its attachment reads as an application with no resume",
+  );
+}
 console.log("=== EMAIL AUDIT ===");
 console.log(`${templates.length} templates rendered\n`);
 for (const r of out) {

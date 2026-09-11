@@ -31,7 +31,8 @@
  * audits.
  */
 
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
+import { readSource } from "./lib/read-source.mjs";
 import { join } from "node:path";
 import {
   SESSIONS,
@@ -178,7 +179,7 @@ const APIS_MEASURED_ELSEWHERE = {
     }
     const [owner] = exemption;
     const covered =
-      existsSync(join(root, owner)) && readFileSync(join(root, owner), "utf8").includes(`/api/${entry.name}`);
+      existsSync(join(root, owner)) && readSource(join(root, owner)).includes(`/api/${entry.name}`);
     if (!covered) staleExemptions.push(`${entry.name} -> ${owner}`);
   }
 
@@ -224,7 +225,7 @@ const APIS_MEASURED_ELSEWHERE = {
   }
   rec("every declared surface is well formed", problems.length === 0, problems.join(" | "));
 
-  const probeSource = readFileSync("scripts/lib/portal-probe.mjs", "utf8");
+  const probeSource = readSource("scripts/lib/portal-probe.mjs");
   const missingProbes = surfaces()
     .filter((s) => s.probe)
     .filter((s) => !new RegExp(`export async function ${s.probe}\\b`).test(probeSource))
@@ -253,7 +254,7 @@ const APIS_MEASURED_ELSEWHERE = {
   ];
 
   for (const [file, what] of MUST_DERIVE) {
-    const source = readFileSync(file, "utf8");
+    const source = readSource(file);
     rec(
       `${file.replace("scripts/", "")} derives its list from the inventory`,
       /from "\.\/lib\/surfaces\.mjs"|from "\.\.\/lib\/surfaces\.mjs"|require\("\.\/lib\/surfaces/.test(source),
@@ -276,7 +277,7 @@ const APIS_MEASURED_ELSEWHERE = {
   );
 
   for (const file of ["scripts/mobile-audit.mjs", "scripts/mobile-overflow-audit.mjs"]) {
-    const source = readFileSync(file, "utf8");
+    const source = readSource(file);
     rec(
       `${file.replace("scripts/", "")} measures the scrolling region and not only the document`,
       /data-portal-scroll/.test(source),

@@ -42,7 +42,10 @@
 
 process.loadEnvFile?.(".env.local");
 
-import { readFileSync } from "node:fs";
+
+import { readdirSync, existsSync } from "node:fs";
+import { join } from "node:path";
+import { readSource } from "./lib/read-source.mjs";
 import { DEFAULT_ROLES, can } from "../src/lib/ops-authz.ts";
 import { MONEYLESS_ROLES, dashboardFor } from "../src/lib/ops-dashboard.ts";
 import { standingDemo, ledgerRowCount } from "./lib/standing-demo.mjs";
@@ -112,7 +115,7 @@ console.log("");
 // ------------------------------- and no dashboard shows a figure it cannot hold
 
 {
-  const source = readFileSync("src/lib/ops-dashboard.ts", "utf8");
+  const source = readSource("src/lib/ops-dashboard.ts");
 
   /*
    * The ruling as a shape check. A `money` field on any of the three would
@@ -465,7 +468,7 @@ console.log("");
 // -------------------------------- what could not be counted is on the screen
 
 {
-  const page = readFileSync("src/app/portal/(app)/page.tsx", "utf8");
+  const page = readSource("src/app/portal/(app)/page.tsx");
 
   rec(
     "the screen renders what a dashboard could not compute",
@@ -479,6 +482,121 @@ console.log("");
   );
 }
 
+/* ============================ EVERY DASHBOARD LINK GOES SOMEWHERE THAT EXISTS */
+
+/*
+ * Found overnight, 2026-09-10, by opening every screen as each of the seven
+ * roles and following the links on it. Five dashboard tiles landed on "That
+ * page is not here", and they were two different faults:
+ *
+ *   admin      /portal/review        gated on holdsLicence, which an admin fails
+ *   read_only  /portal/review        the same
+ *   read_only  /portal/tasks         no tasks.use grant
+ *   admin      /portal/dispatch      NO SUCH ROUTE (it is /portal/files/dispatch)
+ *   engineer   /portal/notifications NO SUCH ROUTE (the bell is a control)
+ *   field_tech /portal/offers        NO SUCH ROUTE (offers are on /portal/jobs)
+ *
+ * The first three are a permission question and pruneUnreachableLinks answers
+ * it. The last three are worse and simpler: an href nobody had ever followed,
+ * pointing at a page that has never existed. Nothing could have caught them,
+ * because every check on this file read the dashboard STRUCTURE and none of
+ * them asked whether a destination was real.
+ *
+ * Two checks, because the two faults fail differently. The first is static and
+ * runs with no database: every href written into this module names a route on
+ * disk. The second builds each role's real dashboard and asserts that nothing
+ * it emits points somewhere that role cannot open.
+ */
+{
+  const src = readSource("src/lib/ops-dashboard.ts");
+  const written = [...new Set([...src.matchAll(/href: "(\/portal[^"]*)"/g)].map((m) => m[1]))].sort();
+
+  rec(
+    `the dashboard writes portal hrefs at all (${written.length})`,
+    written.length > 0,
+    "a check over an empty list passes forever",
+  );
+
+  /*
+   * A route EXISTS when a page.tsx sits at its path. Walked rather than listed,
+   * for the reason surfaces.mjs gives: a list is the memory problem one level
+   * down. Route groups in brackets do not appear in a URL.
+   */
+  const realRoutes = new Set();
+  const walk = (dir, url) => {
+    if (!existsSync(dir)) return;
+    if (existsSync(join(dir, "page.tsx"))) realRoutes.add(url || "/");
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      if (!e.isDirectory() || e.name === "api") continue;
+      walk(join(dir, e.name), e.name.startsWith("(") ? url : `${url}/${e.name}`);
+    }
+  };
+  walk("src/app/portal", "/portal");
+
+  const nowhere = written.filter((h) => !realRoutes.has(h.split(/[?#]/)[0]));
+  rec(
+    "every href the dashboard writes names a route that exists",
+    nowhere.length === 0,
+    nowhere.length
+      ? `${nowhere.join(", ")} (a tile linking at a page that has never existed lands on "That page is not here")`
+      : `${written.length} href(s) checked against ${realRoutes.size} real portal routes`,
+  );
+}
+
+/* And the same question asked of what each role is actually HANDED. */
+{
+  const { canOpen } = await import("../src/lib/reachable-href.ts");
+  const unreachable = [];
+  let linksSeen = 0;
+
+  for (const role of DEFAULT_ROLES) {
+    const actor = {
+      /*
+       * A real uuid, because these ids reach scoped queries, and grants as a
+       * SET, because that is what can() asks. The first version passed the
+       * array straight off DEFAULT_ROLES, every can() call threw on the missing
+       * .has, and the try/catch below swallowed all seven. The vacuity guard
+       * reported "0 link(s) across 7 roles" and that is the only reason it was
+       * noticed: the check itself was perfectly green.
+       */
+      id: "00000000-0000-4000-8000-000000000000",
+      role: role.key,
+      status: "active",
+      grants: new Set(role.grants),
+      license_number: null,
+      coverage_counties: [],
+    };
+    let dash = null;
+    try {
+      dash = await dashboardFor(actor);
+    } catch (err) {
+      /* Named, never swallowed. A role whose dashboard throws is a finding. */
+      unreachable.push(`${role.key}: building the dashboard threw (${String(err.message).split("\n")[0]})`);
+      continue;
+    }
+    if (!dash) continue;
+    const groups = [dash.tiles, dash.attention, dash.breakdowns].filter(Array.isArray);
+    for (const group of groups) {
+      for (const item of group) {
+        if (!item?.href) continue;
+        linksSeen += 1;
+        if (!canOpen(actor, item.href)) unreachable.push(`${role.key} is handed ${item.href}`);
+      }
+    }
+  }
+
+  rec(
+    "a dashboard was built with links on it (a check over no links passes forever)",
+    linksSeen > 0,
+    `${linksSeen} link(s) across ${DEFAULT_ROLES.length} roles`,
+  );
+  rec(
+    "no role is handed a dashboard link it cannot open",
+    unreachable.length === 0,
+    unreachable.join("; ") ||
+      "pruneUnreachableLinks drops the href rather than the tile, so the count survives and the dead end does not",
+  );
+}
 // ------------------------------------------------------------------ verdict
 
 for (const r of out) console.log(`  ${r.ok ? "PASS" : "FAIL"}: ${r.name}${r.note ? ` (${r.note})` : ""}`);

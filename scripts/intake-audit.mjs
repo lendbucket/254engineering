@@ -18,7 +18,8 @@
  * Pure. No server, no database, no network, so it runs in phase zero.
  */
 
-import { readFileSync } from "node:fs";
+
+import { readSource } from "./lib/read-source.mjs";
 import { fieldsFor, missingFor, INTAKE_FIELDS } from "../data/intake-fields.ts";
 import { CATALOG } from "../data/catalog.ts";
 import {
@@ -32,7 +33,7 @@ import {
 } from "../src/lib/job-intake-rules.ts";
 
 function codeOnly(path) {
-  const withoutBlocks = readFileSync(path, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+  const withoutBlocks = readSource(path).replace(/\/\*[\s\S]*?\*\//g, "");
   return withoutBlocks
     .split("\n")
     .filter((line) => !/^\s*\/\//.test(line))
@@ -696,7 +697,7 @@ console.log("");
 // ==================================================== the vocabularies agree
 
 {
-  const sql = readFileSync("supabase/migrations/0015_operator_intake.sql", "utf8");
+  const sql = readSource("supabase/migrations/0015_operator_intake.sql");
   for (const channel of INTAKE_CHANNELS) {
     rec(`the database accepts the channel ${channel}`, sql.includes(`'${channel}'`));
   }

@@ -73,9 +73,27 @@ export default async function DocumentsPage() {
         title="Evidence binders"
         description="Every item the protocol asked for, what was captured against it, every review decision, and what the binder does not contain. Assembled fresh each time."
       >
+        {/*
+          NO rowHref HERE, AND ITS ABSENCE IS THE FIX.
+
+          RecordTable wraps the phone card in a <Link> when it is given one, and
+          this card carries its own "Read the binder" anchor. That is an <a>
+          inside an <a>: invalid HTML, a React hydration error logged on every
+          load of this screen for every role that reaches it, and an inner link
+          whose behaviour on a phone is then whatever the browser decides.
+
+          Found overnight on 2026-09-10 by reading the console while walking the
+          portal as each of the seven roles.
+
+          Removing the wrap rather than the inner link, because the inner link
+          is the one this panel is FOR. The panel is Evidence binders; the card
+          says "Read the binder"; and rowHref went to /portal/files, which is a
+          different screen answering a different question. A whole card linking
+          somewhere other than the action written on it was ambiguous before it
+          was ever invalid.
+        */}
         <RecordTable
           rows={files}
-          rowHref={(f) => `/portal/files?file=${f.id}`}
           columns={[
             { key: "file", head: "File", cell: (f) => <span className="font-semibold">{f.file_number}</span> },
             { key: "address", head: "Property", cell: (f) => f.property_address },

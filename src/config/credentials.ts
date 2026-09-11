@@ -38,6 +38,17 @@ export type VerifiedFirmRegistration = {
   board: string;
   /** The registration number exactly as issued. */
   number: string;
+  /**
+   * The entity name ON THE REGISTRATION, exactly as the board issued it.
+   *
+   * Recorded separately from the name this site trades under because on
+   * 2026-09-10 they were not the same string, and that difference is the whole
+   * reason the launch gate is still shut. See operatingNameOnBoardRecord.
+   */
+  issuedTo: string;
+  status: "active" | "expired" | "suspended";
+  /** ISO date. The registration is not evidence of anything after this. */
+  expires: string;
   verified: string;
 };
 
@@ -54,13 +65,67 @@ export const verifiedEngineers: VerifiedEngineer[] = [];
 /**
  * Firm registrations that may appear on this site.
  *
- * EMPTY BY DESIGN. The TBPELS firm registration is pending. When it issues, the
- * number goes into the TBPELS_FIRM_NUMBER environment variable for the launch
- * gate AND into this array for the audit, and those are two deliberate steps
- * rather than one, because the gate controls what renders and this controls what
- * is permitted to render.
+ * ONE PLACE, AND THIS IS IT. Operator ruling, 2026-09-10.
+ *
+ * This file used to say the number goes into the TBPELS_FIRM_NUMBER environment
+ * variable AND into this array, "two deliberate steps rather than one". That is
+ * superseded: the number is configuration and lives here, and src/lib/launch.ts
+ * reads it from here rather than from the environment.
+ *
+ * The old reasoning was that the gate controls what renders and the register
+ * controls what is PERMITTED to render, which is a real distinction. It is now
+ * kept somewhere better: compliance-audit pins the number as a literal, so
+ * changing it still costs two edits made on purpose, and neither of them is an
+ * environment variable that can differ between a build and a deployment.
  */
-export const verifiedFirmRegistrations: VerifiedFirmRegistration[] = [];
+export const verifiedFirmRegistrations: VerifiedFirmRegistration[] = [
+  {
+    board: "Texas Board of Professional Engineers and Land Surveyors",
+    number: "F-29811",
+    issuedTo: "254 Services LLC",
+    status: "active",
+    expires: "2027-07-31",
+    verified: "Issued 2026-09-10, recorded by the operator the same day.",
+  },
+];
+
+/**
+ * DOES THE BOARD HOLD THE NAME THIS FIRM TRADES UNDER?
+ *
+ * Operator ruling, 2026-09-10, and it is a named condition of the compliance
+ * gate rather than a note.
+ *
+ * F-29811 was issued to **254 Services LLC**. Every one of the three sites
+ * holds out as **254 Engineering Services**, and business.legalName says
+ * "254 Engineering Services LLC". Those are not the same entity name.
+ *
+ * Texas regulates the use of "engineer" and "engineering" in a firm's name and
+ * in how it holds itself out. A registration in one name does not authorise
+ * holding out under another, so printing "TBPELS Firm No. F-29811" beside
+ * "254 Engineering Services" would be asserting something the board's record
+ * does not say.
+ *
+ * The gate does not open until the board HAS the operating name: either the
+ * entity is renamed, or an assumed name is filed and recorded with the board.
+ * Whichever happens, this becomes true and `because` says which, with the
+ * board's record as the reason rather than somebody's judgement that it is
+ * probably fine.
+ *
+ * It is a two field object rather than a boolean on purpose. A boolean can be
+ * flipped by anybody in a hurry; this cannot be flipped without writing down
+ * what the board now holds, and compliance-audit reads what is written.
+ */
+export const operatingNameOnBoardRecord: {
+  onRecord: boolean;
+  /** What the board's record says, or why it does not yet say it. */
+  because: string;
+} = {
+  onRecord: false,
+  because:
+    "F-29811 is issued to 254 Services LLC. The sites hold out as 254 Engineering Services, and the board " +
+    "has no record of that name. This becomes true when the entity is renamed or an assumed name is filed " +
+    "and recorded with the board, and this sentence says which.",
+};
 
 /**
  * Strings that look like credentials, are not, and are allowed.

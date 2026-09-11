@@ -2,6 +2,7 @@ import "server-only";
 import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import { can, REVIEW_QUEUE_STATUSES, type Actor } from "./ops-authz";
+import { reachableHref } from "./reachable-href";
 import { taskCounts } from "./ops-tasks";
 import { unreadCount } from "./ops-notify";
 import { fileMargins, marginByPeriod, type FileMargin } from "./ops-docs";
@@ -44,7 +45,8 @@ export type Tile = {
   count: Count;
   /** What the number means, and what to do about it. */
   note: string;
-  href: string;
+  /** Absent when this actor cannot open the destination. See pruneUnreachableLinks. */
+  href?: string;
   tone: "neutral" | "good" | "warn" | "bad";
 };
 
@@ -55,7 +57,8 @@ export type MoneyTile = {
   note: string;
 };
 
-export type Attention = { label: string; detail: string; href: string };
+/** href is absent when this actor cannot open the destination. */
+export type Attention = { label: string; detail: string; href?: string };
 
 export type AdminDashboard = {
   role: "admin";
@@ -101,7 +104,8 @@ export type Breakdown = {
   title: string;
   /** What the grouping means, and what an empty one means. */
   note: string;
-  href: string;
+  /** Absent when this actor cannot open the destination. */
+  href?: string;
   rows: BreakdownRow[] | null;
 };
 
@@ -352,7 +356,7 @@ async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
       label: "Offers out",
       count: openOffers,
       note: openOffers === 0 ? "No offer is waiting on a technician." : "Sent and not yet answered.",
-      href: "/portal/dispatch",
+      /* No href: /portal/files/dispatch lists files awaiting dispatch, which is not this question, and no screen lists offers already out. */
       tone: "neutral",
     },
     {
@@ -483,7 +487,7 @@ async function adminDashboard(actor: Actor): Promise<AdminDashboard> {
     attention.push({
       label: `${unread} unread notification${unread === 1 ? "" : "s"}`,
       detail: "In the bell, oldest first.",
-      href: "/portal/notifications",
+      /* No href: the bell is a control in PortalChrome and there is no notifications page. The note says so. */
     });
   }
 
@@ -647,7 +651,7 @@ async function engineerDashboard(actor: Actor): Promise<EngineerDashboard> {
       label: "Unread notifications",
       count: unread,
       note: "In the bell.",
-      href: "/portal/notifications",
+      /* No href: the bell is a control in PortalChrome and there is no notifications page. The note says so. */
       tone: "neutral",
     },
   ];
@@ -778,7 +782,7 @@ async function techDashboard(actor: Actor): Promise<TechDashboard> {
       label: "Offers waiting on you",
       count: offers,
       note: offers === 0 ? "Nothing has been offered to you right now." : "Answer before they expire.",
-      href: "/portal/offers",
+      href: "/portal/jobs",
       tone: offers === 0 ? "neutral" : "warn",
     },
     {
@@ -813,7 +817,7 @@ async function techDashboard(actor: Actor): Promise<TechDashboard> {
       label: "Unread notifications",
       count: unread,
       note: "In the bell.",
-      href: "/portal/notifications",
+      /* No href: the bell is a control in PortalChrome and there is no notifications page. The note says so. */
       tone: "neutral",
     },
   ];
@@ -846,7 +850,7 @@ async function techDashboard(actor: Actor): Promise<TechDashboard> {
     attention.push({
       label: `${offers} offer${offers === 1 ? "" : "s"} waiting`,
       detail: "An offer that expires goes to somebody else.",
-      href: "/portal/offers",
+      href: "/portal/jobs",
     });
   }
   if (overdue !== null && overdue > 0) {
@@ -861,7 +865,49 @@ async function techDashboard(actor: Actor): Promise<TechDashboard> {
 }
 
 /** The dashboard for whoever is asking. Role decides it, never a query parameter. */
+/**
+ * NO TILE LINKS SOMEWHERE THE ACTOR CANNOT GO.
+ *
+ * Found overnight, 2026-09-10, by opening every screen as each of the seven
+ * roles and following what the screen offered:
+ *
+ *   admin      /portal/review  HTTP 404  "That page is not here"
+ *   read_only  /portal/review  HTTP 404  "That page is not here"
+ *   read_only  /portal/tasks   HTTP 404  "That page is not here"
+ *
+ * Every one was reached from a dashboard tile. An administrator's dashboard
+ * renders "0, Waiting on an engineer" and links it at the review queue, which
+ * is gated on holdsLicence and which an administrator cannot open. The COUNT is
+ * right and worth showing: an administrator should know how many files wait on
+ * an engineer. The LINK is a dead end, and a dead end reads as a broken product
+ * rather than as a locked door.
+ *
+ * nav.ts already states this rule for the sidebar, and the sidebar obeys it.
+ * The dashboard was never brought inside it, and the dashboard is the screen
+ * every role lands on.
+ *
+ * The pass runs once, here, rather than at each of the fifty nine places an
+ * href is written, because per-href care is what fails and a single pass is
+ * what holds. A tile whose destination is unreachable keeps its number, its
+ * label and its note, and stops being a link.
+ */
+function pruneUnreachableLinks<T extends Dashboard>(actor: Actor | null, dashboard: T): T {
+  const prune = <U extends { href?: string }>(x: U): U =>
+    x.href === undefined ? x : { ...x, href: reachableHref(actor, x.href) };
+
+  const next = { ...dashboard } as Dashboard;
+  if ("tiles" in next) next.tiles = next.tiles.map(prune);
+  if ("attention" in next) next.attention = next.attention.map(prune);
+  if ("breakdowns" in next) next.breakdowns = next.breakdowns.map(prune);
+  return next as T;
+}
+
 export async function dashboardFor(actor: Actor | null): Promise<Dashboard | null> {
+  const built = await buildDashboard(actor);
+  return built ? pruneUnreachableLinks(actor, built) : null;
+}
+
+async function buildDashboard(actor: Actor | null): Promise<Dashboard | null> {
   if (!actor || actor.status !== "active") return null;
 
   /*

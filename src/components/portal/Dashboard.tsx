@@ -1,6 +1,39 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import type { Attention, Breakdown, MoneyTile, Tile } from "@/lib/ops-dashboard";
 import { isKnown, money } from "@/lib/ops-money";
+
+/**
+ * A link when there is somewhere to go, and a plain element when there is not.
+ *
+ * ops-dashboard's pruneUnreachableLinks drops the href of any tile whose
+ * destination this actor cannot open. Found overnight on 2026-09-10: an
+ * administrator's "Waiting on an engineer" tile linked at the review queue,
+ * which is gated on holdsLicence, and clicking it landed on "That page is not
+ * here". The count is worth showing and the destination is not theirs.
+ *
+ * The HOVER treatment is passed separately and applied only to the link, on
+ * purpose. A surface that lights up under a pointer and then does nothing is
+ * the same lie one step quieter.
+ */
+function Card({
+  href,
+  className,
+  hover,
+  children,
+}: {
+  href?: string;
+  className: string;
+  hover: string;
+  children: ReactNode;
+}) {
+  if (!href) return <div className={className}>{children}</div>;
+  return (
+    <Link href={href} className={`${className} ${hover}`}>
+      {children}
+    </Link>
+  );
+}
 
 /**
  * The dashboard's three kinds of tile.
@@ -39,10 +72,23 @@ export function CountTiles({ tiles }: { tiles: Tile[] }) {
   return (
     <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
       {tiles.map((tile) => (
-        <Link
+        /*
+          A TILE WITH NOWHERE TO GO IS STILL A TILE.
+
+          ops-dashboard's pruneUnreachableLinks removes the href when this actor
+          cannot open the destination. An administrator's "Waiting on an
+          engineer" count is worth showing and the review queue is not theirs to
+          open, so it renders as a card rather than as a link to a 404.
+
+          The hover treatment goes with the link, because a surface that
+          responds to a pointer and does nothing is the same lie one step
+          quieter.
+        */
+        <Card
           key={tile.label}
           href={tile.href}
-          className="block rounded-[var(--radius-card)] border border-[var(--border)] bg-white p-4 transition-colors hover:bg-[var(--row-hover)]"
+          className="block rounded-[var(--radius-card)] border border-[var(--border)] bg-white p-4"
+          hover="transition-colors hover:bg-[var(--row-hover)]"
         >
           {/*
             A count that is not known says so, in the same shape MoneyFigure
@@ -62,7 +108,7 @@ export function CountTiles({ tiles }: { tiles: Tile[] }) {
           )}
           <p className="mt-2 text-[13.5px] leading-[1.35] font-semibold text-[var(--navy)]">{tile.label}</p>
           <p className="mt-1.5 text-[12px] leading-[1.45] text-[var(--secondary)]">{tile.note}</p>
-        </Link>
+        </Card>
       ))}
     </div>
   );
@@ -116,13 +162,14 @@ export function AttentionList({ items }: { items: Attention[] }) {
     <ul className="flex flex-col gap-2.5">
       {items.map((item) => (
         <li key={item.label}>
-          <Link
+          <Card
             href={item.href}
-            className="block rounded-[4px] border border-[var(--border)] bg-white px-4 py-3 transition-colors hover:bg-[var(--canvas)]/50"
+            className="block rounded-[4px] border border-[var(--border)] bg-white px-4 py-3"
+            hover="transition-colors hover:bg-[var(--canvas)]/50"
           >
             <p className="text-[13.5px] font-semibold text-[var(--navy)]">{item.label}</p>
             <p className="mt-1 max-w-[74ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">{item.detail}</p>
-          </Link>
+          </Card>
         </li>
       ))}
     </ul>
@@ -165,12 +212,13 @@ export function BreakdownList({ breakdown }: { breakdown: Breakdown }) {
       {breakdown.rows.map((row) => (
         <li key={row.label} className="flex flex-col gap-1">
           <div className="flex items-baseline justify-between gap-3">
-            <Link
+            <Card
               href={breakdown.href}
-              className="text-[13.5px] font-semibold text-[var(--navy)] underline-offset-2 hover:underline"
+              className="text-[13.5px] font-semibold text-[var(--navy)]"
+              hover="underline-offset-2 hover:underline"
             >
               {row.label}
-            </Link>
+            </Card>
             <span className="shrink-0 font-display text-[15px] font-bold tabular-nums text-[var(--navy)]">
               {row.count === null ? (
                 <span className="text-[13.5px] font-normal text-[var(--muted)] italic">not known</span>

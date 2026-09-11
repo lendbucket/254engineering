@@ -56,6 +56,8 @@ import { readFileSync, existsSync } from "node:fs";
 import { chromium } from "playwright";
 import { guardedSurfaces, routesOf } from "./lib/surfaces.mjs";
 import { PNG } from "pngjs";
+import { navigationVerdict, sayCouldNotTell, COULD_NOT_TELL } from "./lib/reachable.mjs";
+import { assertNavigationVerdictHolds } from "./proofs/unreachable-is-not-failed.mjs";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3225";
 
@@ -100,8 +102,17 @@ const SURFACES = [
 /** The AA text threshold, and the reasoning is in the header. */
 const MIN_RATIO = 4.5;
 
+/* The rule that decides failure from unreachable, before anything is measured. */
+assertNavigationVerdictHolds();
+
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
+/*
+ * Surfaces that never loaded. Whether a brand mark is legible is a question
+ * about a rendered page, and a navigation that never completed produced none.
+ * See scripts/lib/reachable.mjs for why this is a third list and not a failure.
+ */
+const unmeasured = [];
 
 const toLinear = (c) => {
   const s = c / 255;
@@ -187,7 +198,12 @@ for (const route of SURFACES) {
     status = res?.status() ?? 0;
     await page.waitForTimeout(400);
   } catch (err) {
-    rec(`${route} loads`, false, String(err.message).split("\n")[0]);
+    const verdict = navigationVerdict(err);
+    if (verdict.unreachable) {
+      unmeasured.push(`${route}: ${verdict.reason}`);
+    } else {
+      rec(`${route} loads`, false, verdict.reason);
+    }
     await page.close();
     continue;
   }
@@ -290,12 +306,22 @@ await browser.close();
 /*
  * A run that found no marks at all is a run that measured nothing, and would
  * otherwise print a green line saying so.
+ *
+ * It is only a FAILURE when there were pages to find them on. With every
+ * surface unreachable this check would report "no brand marks were found",
+ * which reads as artwork missing from the site and means the site was not
+ * there. That is the same misread the three way verdict exists to stop, one
+ * level up from a single route.
  */
-rec(
-  "brand marks were actually found and measured",
-  marksSeen > 0,
-  `${marksSeen} mark(s) across ${SURFACES.length} surfaces`,
-);
+if (unmeasured.length === SURFACES.length && SURFACES.length > 0) {
+  unmeasured.push("no surface loaded, so whether the brand marks are there was not asked");
+} else {
+  rec(
+    "brand marks were actually found and measured",
+    marksSeen > 0,
+    `${marksSeen} mark(s) across ${SURFACES.length - unmeasured.length} of ${SURFACES.length} surfaces`,
+  );
+}
 
 console.log("");
 const failed = out.filter((c) => !c.ok);
@@ -303,10 +329,20 @@ for (const c of failed) console.log(`  FAIL: ${c.name} (${c.note})`);
 if (failed.length === 0) {
   for (const c of out) console.log(`  PASS: ${c.name}${c.note ? ` (${c.note})` : ""}`);
 }
+sayCouldNotTell(unmeasured, "brand mark legibility");
 console.log("");
-console.log(
-  failed.length
-    ? `FAIL: ${failed.length} of ${out.length} checks.`
-    : `PASS: ${out.length} checks. Every brand mark is legible on the surface it sits on.`,
-);
-process.exit(failed.length ? 1 : 0);
+if (failed.length) {
+  console.log(
+    `FAIL: ${failed.length} of ${out.length} checks.` +
+      (unmeasured.length ? ` ${unmeasured.length} surface(s) never loaded and were not measured either way.` : ""),
+  );
+  process.exit(1);
+}
+if (unmeasured.length) {
+  console.log(
+    `COULD NOT TELL: ${out.length} check(s) measured and clean, ${unmeasured.length} surface(s) never loaded.`,
+  );
+  process.exit(COULD_NOT_TELL);
+}
+console.log(`PASS: ${out.length} checks. Every brand mark is legible on the surface it sits on.`);
+process.exit(0);

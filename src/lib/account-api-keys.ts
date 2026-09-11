@@ -1,4 +1,5 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { supabaseAdmin } from "./supabase";
 import { writeAudit } from "./ops-audit";
@@ -111,7 +112,7 @@ export async function revokeApiKey(
 
   const { data } = await db
     .from("eng_account_api_keys")
-    .update({ revoked_at: new Date().toISOString(), revoked_reason: reason ?? null })
+    .update({ revoked_at: DB_NOW, revoked_reason: reason ?? null })
     .eq("id", keyId)
     .eq("account_id", me.accountId)
     .is("revoked_at", null)
@@ -242,6 +243,6 @@ export async function recordApiRequest(input: {
 
   await db
     .from("eng_account_api_keys")
-    .update({ last_used_at: new Date().toISOString() })
+    .update({ last_used_at: DB_NOW })
     .eq("id", input.key.keyId);
 }

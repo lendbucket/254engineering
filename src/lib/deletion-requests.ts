@@ -1,4 +1,5 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { supabaseAdmin } from "./supabase";
 import { readEvery } from "./bounded-read";
 import { createTask } from "./ops-tasks";
@@ -243,7 +244,7 @@ export async function answerDeletionRequest(
 
   const { error } = await client
     .from("eng_deletion_requests")
-    .update({ answered_at: new Date().toISOString(), answered_by: actor.id, answered_because: said })
+    .update({ answered_at: DB_NOW, answered_by: actor.id, answered_because: said })
     .eq("id", id);
 
   if (error) return { ok: false, error: error.message };

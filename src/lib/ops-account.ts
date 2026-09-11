@@ -1,4 +1,5 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { supabaseAdmin } from "./supabase";
 import { writeAudit } from "./ops-audit";
 import type { CustomerPrincipal } from "./customer-auth";
@@ -199,7 +200,7 @@ export async function archiveProperty(
    */
   const { data } = await db
     .from("eng_account_properties")
-    .update({ archived_at: new Date().toISOString() })
+    .update({ archived_at: DB_NOW })
     .eq("id", propertyId)
     .eq("account_id", me.accountId)
     .select("id");

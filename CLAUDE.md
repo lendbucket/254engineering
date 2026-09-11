@@ -34,6 +34,58 @@ The firm's TBPELS registration is pending, and no licensed PE is on staff yet. U
 - "Engineer", "engineering", and "sealed" are regulated terms in Texas. Treat every sentence
   containing them as load bearing.
 
+**THE FIRM REGISTRATION ISSUED ON 2026-09-10, AND THE GATE DID NOT OPEN.**
+
+TBPELS issued **F-29811** to **254 Services LLC**, active, expiring
+**2027-07-31**. It is recorded in `src/config/credentials.ts`, which is the one
+place it lives.
+
+**The gate stays shut, and the reason is the name.** The registration is in the
+name 254 Services LLC. All three sites hold out as 254 Engineering Services. A
+registration in one name does not authorise holding out under another, and Texas
+regulates the use of "engineer" and "engineering" in how a firm names itself and
+presents itself. Printing the board's number beside a name the board has no
+record of would be the exact misstatement this gate exists to prevent, made in
+the one place a reader goes to check.
+
+So the gate is no longer one variable. **`LAUNCH_MODE` is the operator's SWITCH
+and one of the conditions rather than all of them.** `launchBlockers()` in
+`src/lib/launch.ts` returns a sentence per unmet condition, and `launchMode()`
+answers "live" only when the list is empty. Today, with `LAUNCH_MODE=live`, the
+mode is still prelaunch and `tbpelsFirmNumber()` is still null.
+
+The conditions, all read from CONFIGURATION so the flip is impossible until each
+is stated true in a file somebody edits on purpose:
+
+| Condition | Where it is stated |
+| --- | --- |
+| The operator has thrown the switch | `LAUNCH_MODE=live` |
+| An active, unexpired registration is on record | `verifiedFirmRegistrations` |
+| **The board holds the operating name** | `operatingNameOnBoardRecord` |
+
+The third is a two field object rather than a boolean on purpose. A boolean can
+be flipped by anybody in a hurry; this one cannot be flipped without writing
+down what the board now holds, and `compliance-audit` reads what is written. It
+becomes true when the entity is renamed or an assumed name is filed and recorded
+with the board, and the sentence beside it says which.
+
+**Before the gate may open, the number must appear in three places**, and
+`compliance-audit` asserts each: the public footer of all three sites, every
+email footer, and the sealed document upload record. The third is a ROW rather
+than a render, which is why it needed migration 0041. A footer answers "under
+whose registration does this firm operate NOW"; only the row answers it for a
+document as it was THEN, which is what somebody asks about a sealed deliverable
+years later, and this registration expires in 2027.
+
+**The name printed beside the number is the name on the REGISTRATION**, read off
+the record, never the name the site trades under. That was a live defect:
+`registrationLine()` printed a module constant, so the moment the gate opened it
+would have put F-29811 next to "254 Engineering Services LLC".
+
+`compliance-audit` and `launch-audit` answer different questions and both run.
+launch-audit asks whether the copy is right for a given mode. compliance-audit
+asks whether the mode may change at all.
+
 **A SEALED DOCUMENT IS UPLOADED, NEVER GENERATED. Operator ruling, 2026-09-06,
 and it is standing law rather than a phase decision.**
 
@@ -346,6 +398,37 @@ BUILD failed, because a client component imported a module carrying
 system. The suite printed `THE SUITE DID NOT RUN TO COMPLETION`. **The board
 builds before it audits, and that ordering is the first step, not a convenience.**
 
+**`AUDIT_KILL_STALE=1` IS FOR A BUILD, NEVER FOR A SUITE RUN.** Recorded
+2026-09-10, because it cost thirteen audits a run.
+
+A build had refused over a stale server left on a port by the perf gate, and the
+guard's own message says to re-run with that flag. It was then carried onto the
+next `npm run audit`. With `BASE_URL` unset, `preflight-harness` reads the flag
+and has the build guard KILL whatever is holding `.next`, which partway through
+a suite run is the suite's own server. It died before `roles-audit` and thirteen
+audits never ran.
+
+The suite printed `THE SUITE DID NOT RUN TO COMPLETION` and named the cause
+precisely: the server log "ends cleanly when something killed the process, and
+carries the error when it fell over by itself". It ended cleanly. Clear the
+stale server first, or let the guard tell you which process holds it, and run
+the board with no flag at all.
+
+**THE BOARD IS THE LAST WORD, INCLUDING OVER YOUR OWN VERIFICATION.** Operator
+ruling, 2026-09-10, from a run that fixed three real defects and introduced two
+regressions doing it.
+
+The queue screen fix was verified by measuring the rendered page height before
+and after, which is exactly the kind of reading this file asks for, and the note
+it added was `var(--muted)` at **3.1:1** on 12px text. `contrast-audit` caught it
+on nine instances, on the very screen the fix had been written to make readable.
+Fixing THAT put a JSX comment inside a ternary branch, which is two expressions
+where one is allowed; `tsc` was clean and the build failed.
+
+Neither was visible from the change, both passed the verification their author
+chose, and the board caught both. Verification you design tests what you
+already thought of. **The board is what tests what you did not.**
+
 **A CHECK THAT MATCHES THE OLD SHAPE BY TEXT IS A CHECK ON WORDING.** Operator
 ruling, 2026-09-09, recorded as another instance of the fixture lesson below.
 
@@ -386,6 +469,40 @@ reading a screenshot.
 So a fixture is priced, dated and complete: every column any figure could sum,
 count or age. The test of a fixture is not whether it inserts a row, it is
 whether removing the filter makes a number move.
+
+**TWO MORE INSTANCES, 2026-09-10, AND THEY ARE THE SAME THING FROM BOTH ENDS.**
+Operator ruling: a check that measures nothing and a screen no check reads are
+the same failure. One is a green over an empty set; the other is an empty set of
+checks over a real screen. Neither can be seen from the result.
+
+**The check that measured nothing.** A new round was written to walk the three
+live deployments, and it called `routesOf("public", { include: "pages" })`.
+`routesOf` takes a SURFACE OBJECT, so every property it read was undefined, and
+"pages" is not one of the three include values either. It returned an empty
+array and the run reported
+
+    PASS: 254engineering: every declared route answers 200 (0 of 0)
+
+Fifteen checks passed and only the apex was ever fetched. Reading the LOG rather
+than the exit code found it, and the honest re-run then produced three
+compliance findings on the sibling sites that the vacuous one could not have.
+The fix carries a floor: a sitemap that fails to parse yields an empty list,
+which is exactly the shape that just passed, so the count is now asserted rather
+than trusted.
+
+**The screen no check reads.** `/portal/queue` prints each dead letter job's
+payload, and an `email.send` payload carries the whole rendered HTML body of the
+message. Eight of them, wrapped rather than clipped, made the Job queue **38,744
+pixels tall** at 1280: a slab of doctype declarations with the queue somewhere
+inside it, 7,462 words on one screen.
+
+Every check that looks at that page was green, and all of them were right. No
+horizontal scroll, tap targets fine, contrast fine. **Nothing on the board
+measures how tall a portal screen is**, so the screen was unusable and correct by
+every question anybody had asked. It was found by opening the screenshot.
+
+The pair is the rule: ask what the green is over, and ask what nothing is
+looking at.
 
 **A FIXTURE THAT CANNOT SEPARATE THE TWO ANSWERS PROVES NEITHER.** Recorded
 2026-09-09. The first attempt at proving the credit gate used twelve $100 orders
@@ -797,6 +914,35 @@ by `neverProduction` in `scripts/lib/db-target.mjs`, checked before
 
 **Against production, run only `security-audit` and `db-guard-audit`.** Neither
 writes anything. Everything else that touches a database goes to development.
+
+**A RUN MAY DELETE ROWS IT CREATED ITSELF, ON DEVELOPMENT, AS FIXTURE TEARDOWN.
+NOTHING ELSE.** Operator ruling, 2026-09-10, replacing a limit that had been
+written as "never delete any row on any database".
+
+That wording could not be obeyed and followed at the same time. The board itself
+deletes rows on every run: `roles-audit`, `native-audit` and `contrast-audit`
+each create probe accounts and remove them, and the removal is the point, because
+a probe left behind is a live account on a database. A rule that forbids running
+the board cannot be the rule.
+
+So the permission is exactly as wide as the practice that already exists, and
+no wider:
+
+| Allowed | A run removing rows IT created, on development, as teardown. `destroyProbes` is the model: it sweeps the whole probe domain rather than only the ids it made, so a crashed earlier run is cleaned up too. |
+| Not allowed | Anything on production. Anything a person created. Anything on an append only table, which is most of this schema and all of the regulatory and financial ones. Any row a run did not create. |
+
+The five tables that are deliberately NOT append only, `eng_jobs`,
+`eng_cron_runs`, `eng_error_events`, `eng_metrics_daily` and `eng_alert_state`,
+are telemetry about the machine rather than a regulatory or financial fact, and
+are the only place this permission has room to operate. Everything else refuses
+DELETE at the database and will go on refusing it.
+
+**The reason this is a ruling and not a reprimand.** An overnight run wrote a
+load test that enqueued 200 jobs and removed them in teardown, judged that to be
+within the spirit of a limit worded absolutely, did it, and then said so plainly
+in its report under a heading naming it a confession. The judgement was right.
+Disclosing it was more right, and it is what turned a rule nobody could follow
+into one that says what it means.
 
 **A preview deployment must be pointed at development, and the app now refuses
 if it is not.** Vercel previews inherit the Preview environment, and adding a

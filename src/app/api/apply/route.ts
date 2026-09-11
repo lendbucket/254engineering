@@ -7,7 +7,7 @@ import {
 import { insertStructuredApplication } from "@/lib/intake";
 import { queueEmail } from "@/lib/ops-jobs";
 import { applicantConfirmation, applicationNotification } from "@/lib/email-templates";
-import { signedDownloadUrl } from "@/lib/uploads";
+import { deferredLink } from "@/lib/deferred-links";
 import { positionByTrack } from "@data/positions";
 
 /**
@@ -124,7 +124,15 @@ export async function POST(request: Request) {
   ] as const) {
     const file = answers[field] as { path: string; filename: string } | undefined;
     if (file?.path) {
-      documents.push({ label, filename: file.filename, url: await signedDownloadUrl(file.path) });
+      /*
+       * A TOKEN, NOT A SIGNED URL. The link is signed by the email.send
+       * handler immediately before the message goes to the provider, so its
+       * seven days start when the recipient could first have clicked rather
+       * than when this request ran. See src/lib/deferred-links.ts: an
+       * application composed on the 5th and delivered on the 9th used to
+       * arrive with three of its seven days already spent.
+       */
+      documents.push({ label, filename: file.filename, url: deferredLink(file.path) });
     }
   }
 

@@ -11,7 +11,7 @@
 //      explicit assertion rather than a proxy.
 //
 //   BASE_URL=http://localhost:3225 node scripts/seo-audit.mjs
-import fs from "node:fs";
+import { readSource } from "./lib/read-source.mjs";
 import { chromium } from "playwright";
 import * as chromeLauncher from "chrome-launcher";
 import lighthouse from "lighthouse";
@@ -213,7 +213,7 @@ for (const route of routes) {
  * ==========================================================================
  */
 {
-  const source = fs.readFileSync("data/positions.ts", "utf8");
+  const source = readSource("data/positions.ts");
   const declared = source.match(/POSTING_WARNING_DAYS = (\d+)/);
   if (!declared) {
     problems.push(
@@ -283,13 +283,13 @@ for (const route of routes) {
    * everything above is true of a page that happens to have no lapsed posting
    * today and would go on being true the day one lapses.
    */
-  const hub = fs.readFileSync("src/app/(site)/careers/page.tsx", "utf8");
+  const hub = readSource("src/app/(site)/careers/page.tsx");
   if (!/schemaPositions\(\)\.map/.test(hub)) {
     problems.push(
       "careers hub: JobPosting is not emitted from schemaPositions, so a lapsed posting would still be claimed",
     );
   }
-  const detail = fs.readFileSync("src/app/(site)/careers/[slug]/page.tsx", "utf8");
+  const detail = readSource("src/app/(site)/careers/[slug]/page.tsx");
   if (!/postingState\(position\) !== "lapsed"/.test(detail)) {
     problems.push(
       "careers detail: JobPosting is emitted without checking whether the posting has lapsed",

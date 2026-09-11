@@ -27,6 +27,7 @@
 // counted separately as "template", and it is not evidence that anything was
 // argued.
 import fs from "node:fs";
+import { readSource } from "./lib/read-source.mjs";
 import path from "node:path";
 
 const BASE = process.env.BASE_URL || "http://localhost:3225";
@@ -286,7 +287,7 @@ if (mode === "compare") {
     console.error(`\nlink-map: no baseline at ${BASELINE}. Run with --baseline first.`);
     process.exitCode = 1;
   } else {
-    const before = JSON.parse(fs.readFileSync(BASELINE, "utf8"));
+    const before = JSON.parse(readSource(BASELINE));
     console.log("\n=== CHANGE SINCE BASELINE ===");
     let changed = 0;
     for (const r of rows) {

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
-import { can } from "@/lib/ops-authz";
+import { can, holdsLicence } from "@/lib/ops-authz";
 import { checkFor, listProtocols } from "@/lib/ops-field";
 import { certificationLabel } from "@/lib/ops-certification";
 import { credentialsFor } from "@/lib/ops-onboarding";
@@ -35,7 +35,33 @@ export default async function CertificationPage({
   searchParams: Promise<{ service?: string }>;
 }) {
   const actor = await currentActor();
-  if (!can(actor, "evidence.capture") && actor?.role !== "admin") notFound();
+  /*
+   * THE GRANT DECIDES, AND THE ROLE NAME USED TO GET A SECOND VOTE.
+   *
+   * This read: !can(actor, "evidence.capture") && actor?.role !== "admin".
+   *
+   * Operator ruling, 2026-09-10: grants decide, and a role-name check is a
+   * grant nobody can revoke. Every permission on this platform has been data
+   * since 0018, which means an owner can take a capability away on the
+   * permission screen. A string comparison in a page is a capability that
+   * screen cannot see and cannot withdraw.
+   *
+   * It was found overnight by walking every screen as each of the seven roles
+   * and opening one the shell did NOT offer. nav.ts gates this destination on
+   * evidence.capture, which only field_tech holds, so an administrator was
+   * never shown the link, and the page opened for them anyway at HTTP 200. The
+   * capability existed and nothing offered it: reachable only by typing the URL.
+   *
+   * Two other things the escape hatch cost. Roles are DATA, so renaming the
+   * administrator role on the roles screen would have broken this comparison
+   * silently, and the failure would have been a screen that stopped opening
+   * rather than an error anybody sees. And it was a second authorization model
+   * in one line, which is what nav.ts's own header argues against for the nav.
+   *
+   * If an administrator should see this screen, that is a grant they should
+   * hold and a NAV entry they should be offered.
+   */
+  if (!can(actor, "evidence.capture")) notFound();
   const params = await searchParams;
 
   const db = supabaseAdmin();
@@ -245,7 +271,22 @@ export default async function CertificationPage({
             </ul>
           </Panel>
 
-          {templates.length > 0 && actor?.role === "admin" ? (
+          {/*
+            AND THE SAME RULE ON A PANEL RATHER THAN A DOOR.
+
+            This asked actor?.role === "admin". The panel's only content is a
+            link to /portal/protocols, which gates itself on
+            holdsLicence(actor, "protocols.author"). So the old condition showed
+            an administrator a link they could not open, which is the dashboard
+            defect fixed in 6e2da4d wearing a different hat, and hid it from the
+            licensed engineer who can.
+
+            holdsLicence rather than can, because protocols.author is a LICENSED
+            action: can() answers true for a grant holder without a licence, and
+            the destination calls holdsLicence. Asking the weaker question here
+            would put the dead link straight back.
+          */}
+          {templates.length > 0 && holdsLicence(actor, "protocols.author") ? (
             <Panel title="Authoring">
               <p className="text-[13.5px] leading-[1.55] text-[var(--secondary)]">
                 Check questions are written on the protocol itself, by the engineer who will review

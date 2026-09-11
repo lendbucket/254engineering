@@ -64,3 +64,66 @@ export function csvHeaders(filename: string): HeadersInit {
     "Cache-Control": "no-store, max-age=0",
   };
 }
+
+/**
+ * READING a CSV line, which is not the mirror image of writing one.
+ *
+ * Phase 12 Section 4, Section 1. This module has escaped OUTPUT since Phase 6
+ * and nothing had ever parsed INPUT, so the one place that needed to did it
+ * with `line.split(",")` and had a live defect for it.
+ *
+ * WHAT THAT COST, AND IT IS MONEY
+ * --------------------------------
+ * `/account/order` lets a B2B customer paste properties, one per line, as
+ * address, city, county, postcode. Split on commas, this
+ *
+ *   1200 Ocean Drive, Suite 4, Corpus Christi, Nueces, 78404
+ *
+ * gives address "1200 Ocean Drive", city "Suite 4", COUNTY "Corpus Christi" and
+ * postcode "Nueces". splitBatch checked the county was PRESENT and never that
+ * it was real, so:
+ *
+ *   isCoastal asks twiaCounties.has("Corpus Christi"), a city, and answers no,
+ *   so the coastal surcharge is not applied to a property on the coast and the
+ *   firm undercharges; and the county also chooses the protocol, so the
+ *   property is dispatched under the wrong inspection.
+ *
+ * The property was accepted, priced, charged and dispatched, and nothing said a
+ * word. A suite number is not an exotic address.
+ *
+ * WHY IT LIVES HERE
+ * ------------------
+ * The same argument the top of this file makes about escaping. One rule for how
+ * this platform reads a delimited line, tested once, and every caller inherits
+ * it. A second copy is a second chance for one of them to be the copy that
+ * forgot quotes.
+ */
+export function parseLine(line: string, delimiter = ","): string[] {
+  const cells: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i += 1) {
+    const ch = line[i];
+    if (inQuotes) {
+      /* A doubled quote inside a quoted field is one literal quote. */
+      if (ch === '"' && line[i + 1] === '"') {
+        current += '"';
+        i += 1;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        current += ch;
+      }
+    } else if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === delimiter) {
+      cells.push(current.trim());
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+  cells.push(current.trim());
+  return cells;
+}

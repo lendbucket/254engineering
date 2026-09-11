@@ -1,4 +1,5 @@
 import "server-only";
+import { activeFirmRegistration } from "./launch";
 import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import { writeAudit } from "./ops-audit";
@@ -40,13 +41,15 @@ export type DocumentRow = {
   byte_size: number | null;
   version: number;
   sealed_at: string | null;
+  /** The TBPELS registration in force when this was filed. Null before 2026-09-10. */
+  firm_registration: string | null;
   sealed_by: string | null;
   expires_on: string | null;
   visibility: string;
 };
 
 const DOCUMENT_COLUMNS =
-  "id, created_at, file_id, kind, title, bucket, storage_key, content_type, byte_size, version, sealed_at, sealed_by, expires_on, visibility";
+  "id, created_at, file_id, kind, title, bucket, storage_key, content_type, byte_size, version, sealed_at, sealed_by, expires_on, visibility, firm_registration";
 
 /**
  * The document centre.
@@ -501,6 +504,21 @@ export async function recordDocument(
   if (!can(actor, "files.update")) return { ok: false, error: "Your role cannot file documents." };
   if (!input.title.trim()) return { ok: false, error: "A document needs a title." };
 
+  /*
+   * WHICH REGISTRATION THIS WAS FILED UNDER, written at insert and never
+   * recomputed. Operator ruling, 2026-09-10.
+   *
+   * activeFirmRegistration() rather than tbpelsFirmNumber(): the number is
+   * recorded whether or not the site is currently RENDERING it. Those are
+   * different questions. The gate decides what a visitor sees; this row is the
+   * firm's own record of the fact, and a document filed today under F-29811 was
+   * filed under F-29811 whatever LAUNCH_MODE said that afternoon.
+   *
+   * Null while no registration exists, which is the honest value and is what
+   * every row before today carries.
+   */
+  const registration = activeFirmRegistration();
+
   const { data, error } = await db
     .from("eng_documents")
     .insert({
@@ -512,6 +530,7 @@ export async function recordDocument(
       visibility: input.visibility ?? "internal",
       expires_on: input.expiresOn || null,
       uploaded_by: actor.id,
+      firm_registration: registration?.number ?? null,
     })
     .select("id")
     .single();

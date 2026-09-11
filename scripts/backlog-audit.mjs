@@ -35,7 +35,8 @@
  * who reaches the document finds the reasoning.
  */
 
-import { readFileSync, readdirSync } from "node:fs";
+import { readdirSync } from "node:fs";
+import { readSource } from "./lib/read-source.mjs";
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -44,7 +45,7 @@ console.log("");
 console.log("THE BACKLOG IS THE INDEX");
 console.log("");
 
-const backlog = readFileSync("BACKLOG.md", "utf8");
+const backlog = readSource("BACKLOG.md");
 
 /*
  * The markers. Phrases this repository actually uses when it records something
@@ -76,6 +77,25 @@ const MARKERS = [
   /\bis not done\b/i,
   /\bnothing (?:writes|reads|prunes|watches|computes|draws)\b/i,
   /\bwaiting on the operator\b/i,
+  /*
+   * A DOCUMENT THAT ASKS A QUESTION IS CARRYING OPEN WORK.
+   *
+   * Added 2026-09-09, after docs/bulk-actions-reconciliation.md was written with
+   * a section headed "What is being asked at gate 1" and this audit passed
+   * straight over it.
+   *
+   * Every marker above describes work somebody DECIDED not to do. None of them
+   * describes work nobody has decided about yet, which is exactly the state a
+   * reconciliation document exists to produce and exactly the state most likely
+   * to be forgotten, because nobody has written a reason down yet.
+   *
+   * Same shape as everything else this section turned up: a check looking at the
+   * right subject through too narrow a window.
+   */
+  /\bis being asked\b/i,
+  /\bneeds a ruling\b/i,
+  /\bwithout a ruling\b/i,
+  /\bunless the operator rules\b/i,
 ];
 
 const docs = readdirSync("docs")
@@ -93,7 +113,7 @@ const named = [];
 const missing = [];
 
 for (const file of docs) {
-  const body = readFileSync(`docs/${file}`, "utf8");
+  const body = readSource(`docs/${file}`);
   const hits = MARKERS.filter((m) => m.test(body));
   if (hits.length === 0) continue;
 
@@ -167,7 +187,7 @@ for (const [needle, what] of SEVEN) {
  * The rule itself has to stay written down. An audit enforcing a rule nobody
  * can find is an audit somebody deletes as noise.
  */
-const law = readFileSync("CLAUDE.md", "utf8");
+const law = readSource("CLAUDE.md");
 rec(
   "and CLAUDE.md still states the rule this enforces",
   /BACKLOG\.md` is the INDEX/.test(law),

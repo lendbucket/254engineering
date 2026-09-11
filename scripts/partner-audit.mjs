@@ -21,7 +21,8 @@
  * It is pure. No server, no database, no network, so it runs in phase zero.
  */
 
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readdirSync, statSync } from "node:fs";
+import { readSource } from "./lib/read-source.mjs";
 import {
   attribute,
   normaliseCode,
@@ -41,7 +42,7 @@ import {
 } from "../src/lib/partner-comp.ts";
 
 function codeOnly(path) {
-  const withoutBlocks = readFileSync(path, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+  const withoutBlocks = readSource(path).replace(/\/\*[\s\S]*?\*\//g, "");
   return withoutBlocks
     .split("\n")
     .filter((line) => !/^\s*\/\//.test(line))
@@ -999,7 +1000,7 @@ const terms = (over = {}) => ({
     grantingRoles.join(", ") || "nobody, which would make the screen unreachable",
   );
 
-  const seedSql = readFileSync("supabase/migrations/0021_partners_manage_grant.sql", "utf8");
+  const seedSql = readSource("supabase/migrations/0021_partners_manage_grant.sql");
   rec(
     "and a migration seeds it, because 0018 had already run",
     /'admin', 'partners\.manage'/.test(seedSql) && /on conflict/.test(seedSql),
@@ -1043,7 +1044,7 @@ const terms = (over = {}) => ({
     "why did this order not go to a partner is the question that gets asked",
   );
 
-  const sql = readFileSync("supabase/migrations/0014_partner_attribution.sql", "utf8")
+  const sql = readSource("supabase/migrations/0014_partner_attribution.sql")
     .replace(/--[^\n]*/g, "")
     .replace(/\/\*[\s\S]*?\*\//g, "");
   rec(
@@ -1151,7 +1152,7 @@ const terms = (over = {}) => ({
   // Shape checks, and each is about where something sits rather than what it
   // computes. The arithmetic is exercised above by calling it.
 
-  const ledgerSql = readFileSync("supabase/migrations/0019_partner_compensation.sql", "utf8")
+  const ledgerSql = readSource("supabase/migrations/0019_partner_compensation.sql")
     .replace(/--[^\n]*/g, "")
     .replace(/\/\*[\s\S]*?\*\//g, "");
 

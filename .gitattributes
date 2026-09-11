@@ -1,0 +1,50 @@
+# ===========================================================================
+# ONE KIND OF LINE ENDING IN THE REPOSITORY, AND THE SAME KIND ON DISK.
+#
+# Phase 12 Section 4, Section 0, debt four. Operator ruling 2026-09-09, after
+# the board on MAIN failed on a check that had passed on the feature branch
+# with no change to the code between them.
+#
+# WHAT HAPPENED
+# --------------
+# retention-audit asserts that the one DELETE in ops-retention.ts sits inside
+# the mode check, with a pattern spanning two lines. Node had written that file
+# with LF while it was being worked on; `git checkout main` materialised the
+# same bytes with CRLF; the pattern stopped matching. The check was measuring
+# how the file had arrived on disk rather than what the code says.
+#
+# A check whose answer depends on that is worse than one that is merely wrong.
+# It passes for one person and fails for the next with nothing to argue about
+# between them.
+#
+# WHY BOTH HALVES
+# ----------------
+# scripts/lib/read-source.mjs normalises at the read, and it only saves the
+# audits that use it. This file makes the working tree match what every patch
+# script in this repository already writes, so the next reader who reaches for
+# readFileSync is not saved by luck.
+#
+# `text=auto` lets git decide what is text. `eol=lf` says that text is checked
+# out with LF on every platform, including this one.
+# ===========================================================================
+
+* text=auto eol=lf
+
+# Binary, declared so git never tries to normalise them. A renormalisation that
+# rewrote a PNG would be a quiet corruption rather than a noisy one.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.avif binary
+*.ico  binary
+*.pdf  binary
+*.woff binary
+*.woff2 binary
+*.ttf  binary
+*.otf  binary
+*.eot  binary
+*.zip  binary
+*.mp4  binary
+*.webm binary

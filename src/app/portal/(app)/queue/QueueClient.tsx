@@ -3,6 +3,16 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+/**
+ * How much of a dead job's payload this screen prints.
+ *
+ * Enough for the identifying front of it, which is what somebody reading a
+ * dead letter row is looking for: the id, the kind, and who it is about.
+ * Deliberately not enough for a rendered email body, which is what made this
+ * screen 38,744 pixels tall before there was a cap.
+ */
+const PAYLOAD_CHARS = 400;
+
 type DeadJob = {
   id: number;
   kind: string;
@@ -79,10 +89,48 @@ export function QueueClient({ jobs }: { jobs: DeadJob[] }) {
               an overflow container is clipped at 390 with nothing saying it can
               be scrolled, and the identifier that got cut off is exactly the
               one somebody is reading the row to find.
+
+              AND CAPPED, WHICH THE PARAGRAPH ABOVE MADE NECESSARY.
+
+              Wrapping is right for a payload of a few hundred characters and it
+              is what turned this screen into a wall. An email.send payload
+              carries the whole rendered HTML body of the message, so eight of
+              them wrapped rather than clipped made the Job queue 38,744 pixels
+              tall at 1280: a grey slab of doctype declarations with the actual
+              queue somewhere inside it. Found overnight on 2026-09-10 by
+              looking at the screenshot.
+
+              The cap does not fight the reasoning above, it completes it. What
+              somebody reads a row to find is at the FRONT of the payload, the
+              id and the kind and who it is about, and JSON.stringify puts it
+              there. What is cut is the tail, which is the body nobody is
+              reading in a queue screen.
+
+              The count of what was cut is stated, because a truncation nobody
+              is told about is the same screen lying more quietly.
             */}
             {Object.keys(j.payload).length > 0 ? (
               <p className="mt-1.5 max-w-[76ch] font-mono text-[12px] leading-[1.5] break-all text-[var(--secondary)]">
-                {JSON.stringify(j.payload)}
+                {JSON.stringify(j.payload).slice(0, PAYLOAD_CHARS)}
+                {/*
+                  --secondary, NOT --muted, and the board is why.
+
+                  The first version of this note used var(--muted), which
+                  measures #8a93a0 on white at 3.1:1. contrast-audit went red on
+                  nine instances of it at 12px, needing 4.5:1, on the very
+                  screen this fix was written to make readable. DESIGN_SPEC
+                  section 2 is the standing rule and AA wins wherever a token
+                  and accessibility disagree.
+
+                  The note is set apart by being sans rather than mono, and by
+                  its brackets, rather than by being fainter. A truncation
+                  notice nobody can read is the truncation going unannounced.
+                */}
+                {JSON.stringify(j.payload).length > PAYLOAD_CHARS ? (
+                  <span className="font-sans not-italic text-[var(--secondary)]">
+                    {` [${(JSON.stringify(j.payload).length - PAYLOAD_CHARS).toLocaleString("en-US")} more characters, not shown]`}
+                  </span>
+                ) : null}
               </p>
             ) : null}
 

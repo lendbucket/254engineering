@@ -33,10 +33,12 @@
 // first failure hides how much else is broken, which turns one fix into five
 // round trips.
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readSource } from "./lib/read-source.mjs";
+
 import { runtimeFor, DECLARATION } from "./lib/audit-runtime.mjs";
 import { assertClearToBuild } from "./lib/build-guard.mjs";
 import { startNextServer } from "./lib/dev-server.mjs";
+import { COULD_NOT_TELL } from "./lib/reachable.mjs";
 
 const PORT = Number(process.env.AUDIT_PORT || 3225);
 const BASE = process.env.BASE_URL || `http://localhost:${PORT}`;
@@ -193,6 +195,37 @@ const PHASE_ZERO = [
     // the queue itself, which is marked server-only.
     name: "jobs-audit",
     why: "mandatory idempotency per kind, a lease that survives a killed worker, and no job lost in silence",
+  },
+  {
+    // Phase 12 Section 4, Section 0, debt one. jobs-audit above asserts a great
+    // deal ABOUT the queue by reading it; this one RUNS it. Until this existed
+    // exactly one check on the whole board went through eng_claim_jobs, and its
+    // own comment said so, so nine of the ten registered kinds had never been
+    // claimed, leased or transitioned by anything that watched.
+    //
+    // It enqueues one declared probe per kind, lets the real eng_claim_jobs
+    // claim them, runs them through the real runBatch, and reads back the lease,
+    // the transitions and the dead letters. Then the failure paths: a kind with
+    // no handler, a lease left behind by a worker that died, and a job that
+    // exhausts its attempts.
+    //
+    // It refuses to run a batch it does not wholly own. That refusal is the
+    // reason it is safe to have on the board, and it is written because the
+    // first version of this file did not have it and sent 35 emails.
+    name: "queue-audit",
+    why: "every registered kind claimed, leased, run and transitioned, against the real queue",
+  },
+  {
+    // Phase 12 Section 4, Section 1. The approved prototype draws three bulk
+    // buttons on the Files screen and only one of the three describes something
+    // this platform can honestly do; docs/bulk-actions-reconciliation.md carries
+    // the verdict for each, which is the order CLAUDE.md section 2c fixes.
+    //
+    // It RUNS the export and reads the CSV, because every one of the four export
+    // defects Phase 12 Section 2 found was found by opening a file and every one
+    // was invisible to a green board.
+    name: "bulk-audit",
+    why: "the export says what it is, names its demonstration rows, and does not widen what a role may see",
   },
   {
     // Phase 8 Section 3. An error reporter is a pipe out of the building, and
@@ -426,6 +459,10 @@ const PHASE_ONE = [
 ];
 
 const PHASE_TWO = [
+  {
+    name: "compliance-audit",
+    why: "whether the gate MAY open at all, which is a different question from what each mode renders",
+  },
   { name: "launch-audit", why: "the compliance gate, in both modes" },
   { name: "mobile-audit", why: "zero horizontal scroll and 44px tap targets at four widths" },
   { name: "contrast-audit", why: "WCAG 2.1 A and AA including the form error states" },
@@ -552,7 +589,7 @@ async function waitUntilHealthy(base, timeoutMs = 120_000) {
  * twenty minutes of browser audits is finding it too late to be useful.
  */
 function assertInvocationsMatchDeclarations() {
-  const pkg = JSON.parse(readFileSync("package.json", "utf8"));
+  const pkg = JSON.parse(readSource("package.json"));
   const wrong = [];
 
   for (const [name, cmd] of Object.entries(pkg.scripts)) {
@@ -724,7 +761,11 @@ if (setupError) {
   console.log(`  ${setupError.message}\n`);
   if (results.length) {
     console.log("  What did run before it stopped:");
-    for (const r of results) console.log(`    ${r.code === 0 ? "PASS" : "FAIL"}  ${r.name}`);
+    for (const r of results) {
+      console.log(
+        `    ${(r.code === 0 ? "PASS" : r.code === COULD_NOT_TELL ? "COULD NOT TELL" : "FAIL").padEnd(14)}  ${r.name}`,
+      );
+    }
     /*
      * The health check runs BEFORE each audit, so one already in flight when the
      * server went away still fails, and it fails looking like a content problem.
@@ -742,16 +783,44 @@ if (setupError) {
   console.log("");
   process.exitCode = 1;
 } else {
+  /*
+   * THREE COLUMNS, NOT TWO.
+   *
+   * Phase 12 Section 4, Section 0, debt three. An audit that exits on
+   * COULD_NOT_TELL reached the end and could not measure part of what it
+   * measures, almost always because the server went away underneath it. That is
+   * neither a pass nor a content failure, and rendering it as either is a lie
+   * about the run: as a pass it hides a half that never happened, as a failure
+   * it invents defects in pages nobody saw.
+   *
+   * The suite is still not green. It exits non zero, and the sentence says
+   * which of the two things happened so a reader knows whether to fix code or
+   * re-run.
+   */
+  const label = (code) => (code === 0 ? "PASS" : code === COULD_NOT_TELL ? "COULD NOT TELL" : "FAIL");
   for (const r of results) {
-    console.log(`  ${r.code === 0 ? "PASS" : "FAIL"}  ${r.name}`);
+    console.log(`  ${label(r.code).padEnd(14)}  ${r.name}`);
   }
-  const failed = results.filter((r) => r.code !== 0);
-  console.log(
-    failed.length === 0
-      ? `\nAll ${results.length} audits pass.`
-      : `\n${failed.length} of ${results.length} audits failed: ${failed.map((r) => r.name).join(", ")}`,
-  );
-  process.exitCode = failed.length ? 1 : 0;
+  const unmeasured = results.filter((r) => r.code === COULD_NOT_TELL);
+  const failed = results.filter((r) => r.code !== 0 && r.code !== COULD_NOT_TELL);
+  console.log("");
+  if (failed.length) {
+    console.log(`${failed.length} of ${results.length} audits failed: ${failed.map((r) => r.name).join(", ")}`);
+  }
+  if (unmeasured.length) {
+    console.log(
+      `${unmeasured.length} of ${results.length} audits could not measure: ${unmeasured.map((r) => r.name).join(", ")}`,
+    );
+    console.log("");
+    console.log("  Those are not findings about the pages. Something they navigated to did not");
+    console.log("  answer, which usually means the server went away mid run. Its own log ends");
+    console.log("  cleanly when something killed it, and carries the error when it fell over.");
+    console.log("  Re-run before believing anything about the routes they name.");
+  }
+  if (!failed.length && !unmeasured.length) {
+    console.log(`All ${results.length} audits pass.`);
+  }
+  process.exitCode = failed.length || unmeasured.length ? 1 : 0;
 }
 
 // link-map is a measurement, not a gate. It has no failure condition, because

@@ -1,4 +1,5 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { supabaseAdmin, SITE_KEY } from "./supabase";
 import { referenceForCustomer } from "./ops-files";
@@ -329,7 +330,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
       utm_term: input.attribution?.utmTerm ?? null,
       landing_path: input.attribution?.landingPath ?? null,
       referrer: input.attribution?.referrer ?? null,
-      placed_at: new Date().toISOString(),
+      placed_at: DB_NOW,
       client_request_id: input.clientRequestId,
     })
     .select("id, reference, total_cents")
@@ -708,7 +709,7 @@ export async function orderForCustomerToken(token: string) {
 
   await db
     .from("eng_customer_access")
-    .update({ last_seen_at: new Date().toISOString() })
+    .update({ last_seen_at: DB_NOW })
     .eq("id", access.id);
 
   return {

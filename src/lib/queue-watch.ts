@@ -1,4 +1,5 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { supabaseAdmin } from "./supabase";
 import { queueHealth } from "./ops-jobs";
 import { queueAlert } from "./email-templates";
@@ -160,9 +161,9 @@ export async function watchQueue(now: number = Date.now()): Promise<QueueWatchRe
     const { error: stampError } = await db.from("eng_alert_state").upsert(
       {
         key: KEY,
-        last_alerted_at: new Date(now).toISOString(),
+        last_alerted_at: DB_NOW,
         detail: `${decision.reason}: ${decision.because}`,
-        updated_at: new Date(now).toISOString(),
+        updated_at: DB_NOW,
       },
       { onConflict: "key" },
     );

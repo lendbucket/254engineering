@@ -1,4 +1,5 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { createHash } from "node:crypto";
 import { supabaseAdmin } from "./supabase";
 import { readEvery } from "./bounded-read";
@@ -674,7 +675,7 @@ export async function runRetention(manifestId: string): Promise<RunResult> {
       affected_count: affected,
       last_id: lastId,
       reconciled,
-      finished_at: new Date().toISOString(),
+      finished_at: DB_NOW,
       note,
     })
     .eq("id", manifestId);
@@ -696,7 +697,7 @@ async function fail(
 ): Promise<void> {
   await client
     .from("eng_retention_runs")
-    .update({ status: "failed", reconciled: false, finished_at: new Date().toISOString(), note })
+    .update({ status: "failed", reconciled: false, finished_at: DB_NOW, note })
     .eq("id", id);
 }
 
@@ -740,7 +741,7 @@ export async function abandonRun(
     .from("eng_retention_runs")
     .update({
       status: "abandoned",
-      finished_at: new Date().toISOString(),
+      finished_at: DB_NOW,
       note: `Abandoned without running: ${because}`,
     })
     .eq("id", manifestId);

@@ -31,7 +31,8 @@
 
 process.loadEnvFile?.(".env.local");
 
-import { readFileSync } from "node:fs";
+
+import { readSource } from "./lib/read-source.mjs";
 import { REPORTS, ROWS_PER_PAGE, formatFigure, pageOfRows, periodOf } from "../src/lib/ops-reports.ts";
 import { LICENSED_FIGURES } from "../src/lib/ops-authz.ts";
 
@@ -45,7 +46,7 @@ console.log("");
 // -------------------------------------------- the registry describes the module
 
 {
-  const source = readFileSync("src/lib/ops-reports.ts", "utf8");
+  const source = readSource("src/lib/ops-reports.ts");
 
   /*
    * Every exported builder must be in the registry. Read from the source rather
@@ -80,7 +81,7 @@ console.log("");
    * because the alternative is a page that renders for everybody while the
    * registry says otherwise.
    */
-  const page = readFileSync("src/app/portal/(app)/reports/page.tsx", "utf8");
+  const page = readSource("src/app/portal/(app)/reports/page.tsx");
   rec(
     "the screen filters the registry by the actor's grants",
     /REPORTS\.filter\(\(r\) => can\(actor, r\.action\)\)/.test(page),
@@ -166,7 +167,7 @@ console.log("");
   /* The screen has to render the expansion rather than link away to a screen
    * that would run a second query. Asserted on the source for the same reason
    * the grant filter is. */
-  const screen = readFileSync("src/app/portal/(app)/reports/page.tsx", "utf8");
+  const screen = readSource("src/app/portal/(app)/reports/page.tsx");
   rec(
     "the screen renders the rows rather than linking to a screen that might have them",
     /window\.shown\.map\(/.test(screen) && !/href=\{figure\.rows\}/.test(screen),
@@ -453,7 +454,7 @@ console.log("");
   );
 
   /* The export is gated by the report's own action, read from the registry. */
-  const route = readFileSync("src/app/api/portal/exports/route.ts", "utf8");
+  const route = readSource("src/app/api/portal/exports/route.ts");
   rec(
     "the export route asks the grant the registry names",
     /can\(actor, entry\.action\)/.test(route) && /REPORTS\.find/.test(route),
@@ -518,7 +519,7 @@ console.log("");
 
   /* And every builder turns a truncated read into an absence rather than a
    * smaller total, which is the section's own law applied to its own limit. */
-  const module = readFileSync("src/lib/ops-reports.ts", "utf8");
+  const module = readSource("src/lib/ops-reports.ts");
   const guards = (module.match(/TRUNCATION IS AN ABSENCE/g) ?? []).length;
   rec(
     `every report refuses to state a figure from a truncated read (${guards} of ${REPORTS.length})`,
@@ -643,7 +644,7 @@ console.log("");
     "an empty list would make the compile proof vacuous",
   );
 
-  const proof = readFileSync("scripts/proofs/licensed-actions-are-unrepresentable.ts", "utf8");
+  const proof = readSource("scripts/proofs/licensed-actions-are-unrepresentable.ts");
   const uncovered = LICENSED_FIGURES.filter((f) => !proof.includes(`"${f}"`));
   rec(
     "and every one of them appears in the compile proof",

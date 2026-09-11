@@ -1,4 +1,5 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { supabaseAdmin } from "./supabase";
 import { deskPackageComplete, orderForFile, settleDecision } from "./ops-payments";
 import { writeAudit } from "./ops-audit";
@@ -377,7 +378,7 @@ export async function decideReview(
   if (action === "refuse") {
     await db
       .from("eng_files")
-      .update({ refused_at: now.toISOString(), refusal_reason: note, refused_by: actor.id })
+      .update({ refused_at: DB_NOW, refusal_reason: note, refused_by: actor.id })
       .eq("id", fileId);
   }
   if (action === "revisions" || action === "site_visit") {
@@ -395,7 +396,7 @@ export async function decideReview(
     await db.from("eng_files").update({ assigned_tech_id: null }).eq("id", fileId);
     await db
       .from("eng_assignments")
-      .update({ state: "withdrawn", responded_at: now.toISOString() })
+      .update({ state: "withdrawn", responded_at: DB_NOW })
       .eq("file_id", fileId)
       .eq("state", "accepted");
   }
@@ -404,7 +405,7 @@ export async function decideReview(
   if (session) {
     await db
       .from("eng_review_sessions")
-      .update({ ended_at: now.toISOString(), decision: action, minutes })
+      .update({ ended_at: DB_NOW, decision: action, minutes })
       .eq("id", session.id);
   }
 
@@ -848,7 +849,10 @@ export async function recordTime(
     file_id: input.fileId || null,
     kind: input.kind,
     minutes: Math.round(input.minutes),
-    started_at: input.startedAt || new Date().toISOString(),
+    /* DB_NOW when the caller supplied nothing. A supplied startedAt is the
+     * engineer saying when they began; the fallback is the database's own
+     * clock rather than whichever machine served the request. */
+    started_at: input.startedAt || DB_NOW,
     note: input.note?.trim() || null,
     entered_manually: true,
   });

@@ -1,307 +1,170 @@
-# Brief: stampmyplans
+# Brief for the next StampMyPlans session
 
-**Written 2026-09-07 from `254engineering`, for a session opening cold in
-`~/projects/stampmyplans`. Nothing in this document was executed from here.
-Standing operator instruction: that repository is not to be touched from this
-one, so everything below is written to be executed there, by a session that has
-read it first.**
+This file lives in the 254 Engineering Services repository and describes work
+that belongs to a DIFFERENT one. It exists because a finding was made here, on
+the live deployment, and there was nowhere in that repository to put it.
 
-Two of the three tasks below are the same as sealedengineering's and are written
-out again rather than cross referenced, because a brief that sends the reader to
-another brief is a brief that gets half read. The third is this brand's own
-problem and it is the one that decides whether the site is a business or a
-placeholder.
-
-What this brief cannot do is describe that repository's own tree. It has not
-been read. Where a step depends on what is actually there, the step says what to
-verify rather than asserting what is true.
+**Nothing in this file may be acted on from this repository.** Operator ruling,
+2026-09-10: the sibling sites are not touched from here, ever. Carry the item
+across by hand, into that repository, in that session.
 
 ---
 
-## Order of work
+## 0. THE FIRM REGISTRATION ISSUED, AND IT DOES NOT OPEN YOUR GATE EITHER
 
-1. **The regulatory pattern library.** First, ahead of whatever the session was
-   opened for. Operator ruling, 2026-09-05.
-2. **The order flow.** This matters more here than anywhere else. The brand's
-   entire promise is getting plans stamped, and the site cannot take an order.
-3. **The corpus.** Nine indexable pages is not a site competing for anything.
+Recorded 2026-09-10. Read this before item 1.
 
-The environment variable position at the end is not a task. It is a fact that
-constrains the timing of a database cutover happening in `254engineering`.
+TBPELS issued a firm registration:
 
----
+| | |
+| --- | --- |
+| Number | **F-29811** |
+| Issued to | **254 Services LLC** |
+| Status | active |
+| Expires | **2027-07-31** |
 
-## 1. Sync `scripts/lib/regulatory.mjs`, then run the gate and read what it says
+**The compliance gate stays shut on all three sites, and the reason is the
+name.** The registration is in the name *254 Services LLC*. This site holds out
+under a different name. A registration in one name does not authorise holding
+out under another, and Texas regulates the use of "engineer" and "engineering"
+in how a firm names itself and presents itself.
 
-### Why this is first
+So the gate does not open until the board HAS the operating name, either by the
+entity being renamed or by an assumed name being filed and recorded. Until then
+nothing changes on any of the three sites.
 
-stampmyplans carries 9 pages written under the same regulatory gate as the other
-two brands: a Texas engineering firm whose registration is pending, which may
-not state or imply that engineering services are currently offered or performed.
+### What this means for this repository, in order
 
-Nine pages is a smaller exposure than sealedengineering's 55 and it is not a
-smaller risk per page. This brand's whole proposition is a regulated act. "We
-stamp your plans" is exactly the sentence the gate forbids, and it is the
-sentence the domain name promises.
+1. **Do not print F-29811 anywhere yet.** While the gate is shut the number must
+   not render. Printing it beside a trading name the board has no record of is
+   the misstatement the gate exists to prevent, and it would be worse than
+   printing nothing because it looks like a verified fact.
 
-On 2026-09-05 three patterns and one guard were added to the library here, and
-the first run after adding them found a live breach on `254engineering`:
-`/government` had been serving "254 Engineering Services delivers inspections,
-sealed engineering letters, certifications, and design" to procurement officers.
-It had been live for weeks with every audit green, because the library was
-written for the first person and the passive voice and had no pattern for a
-brand writing about itself by name.
+2. **When the gate does open, the number must appear in this site's public
+   footer.** That is an operator ruling, not a preference: the requirement is
+   the number in the public footer of ALL THREE sites, in every email footer,
+   and on the sealed document upload record.
 
-stampmyplans' detector is the version without those patterns.
+3. **Print the name the registration was ISSUED TO beside the number, not the
+   name the site trades under.** In the 254 Engineering Services repository this
+   was a live defect: `registrationLine()` printed a module constant reading
+   "254 Engineering Services LLC", so the moment the gate opened it would have
+   put the board's number next to a name the board's record does not carry. It
+   now reads the name off the registration record, so the two cannot disagree.
 
-### What to copy
+4. **Keep the number in ONE place**, a configuration file, and have the footer
+   read it from there. Not an environment variable: a variable can differ
+   between a build and a deployment, and this is a regulatory statement. Pin it
+   as a literal in whatever audit covers it, so changing it costs two edits made
+   on purpose.
 
-`~/projects/254engineering/scripts/lib/regulatory.mjs`, **verbatim**, over the
-top of the local copy. It is a synchronized file by design, like
-`data/keyword-registry.ts` and `data/catalog.ts`: one detector copied three
-times rather than three detectors that drift.
+5. **Check the expiry.** A registration is not evidence of anything after
+   2027-07-31. A site that goes on printing a lapsed number is making a claim it
+   cannot support, so the check is `status active AND expires >= today` rather
+   than "a number exists".
 
-Do not merge selectively. If the local copy has diverged in the other direction,
-stop and report it rather than resolving it by hand.
+### Why you are being told rather than sent a patch
 
-### What is in it that was not before
-
-**`CONDITIONAL_GUARD`.** A lookbehind that refuses a match when the sentence is
-conditional: "when the firm stamps", "once the registration issues". It covers
-an optional determiner, because "when **the** engineering work is completed" is
-the same sentence with an article in it. A detector that flags the careful
-phrasing teaches whoever runs it to delete the honest sentence to get a green
-board.
-
-**The third person brand claim.** `254 Engineering Services|Sealed
-Engineering|StampMyPlans|the firm` followed by `performs|provides|delivers|
-issues|seals|stamps|inspects|certifies`. **`StampMyPlans` and `stamps` are both
-in that pattern**, which makes this the brand it is most likely to fire on.
-That is not a reason to soften it.
-
-**"performs and seals".** Its own pattern, because that exact phrase was written
-onto three screens here in Phase 9 Section 4 and nothing in the suite saw it.
-
-**A passive pattern with an agent lookahead**, so "performed by independent
-contractors" stays legal while "plans are stamped" does not.
-
-### What to run, and what to do with the result
-
-```
-npm run voice-audit
-npm run launch-audit
-```
-
-Both, **before changing any copy**. Report what it catches before fixing it: a
-page that has been serving a claim for a month is a page whose fix belongs in a
-commit that says what it said, how long it said it, and what it says now.
-
-Then inject a violation and watch it fail, before believing the green. Put
-`StampMyPlans stamps residential plans` into any page, run `voice-audit`,
-confirm it fails, remove it. An audit that has never failed has never been
-tested, and this one has just changed shape.
+The sibling sites are not touched from the 254 Engineering Services repository,
+ever, by the operator's ruling of 2026-09-10. This brief is how the requirement
+crosses.
 
 ---
 
-## 2. The order flow, which this brand needs most
+## 1. THE COMPLIANCE GATE: one sentence on the live site, and this is the first item
 
-### Why it ranks above the corpus here
+Found 2026-09-10 by the overnight sweep's Round 2, which reads the three live
+deployments signed out and matches the rendered text against
+`scripts/lib/regulatory.mjs`, the declaration both gates are stated in.
 
-Sealed Engineering and 254 both have other ways to start a relationship: a
-contact form, a coverage page, a procurement audience that reads before it buys.
-This brand does not. Somebody arrives with a set of drawings and a deadline, and
-the site's entire job is to take that job. It currently cannot, which means every
-visitor who is ready to buy leaves without a way to.
+The gate outranks every other consideration. CLAUDE.md section 1: the firm's
+TBPELS registration is pending and no licensed PE is on staff, and until both
+are real, nothing on any of these sites may state or imply that engineering
+services are currently offered or performed.
 
-### What "the order flow" means
+### 1.1 stampmyplans.com/terms
 
-A visitor picks a service, answers what that service needs to be quoted and
-performed, pays, and receives a reference. In `254engineering` it is:
+The sentence, quoted exactly, with the paragraph above it for context:
 
-```
-data/catalog.ts            what can be ordered, at what price, needing what
-/order/start/[slug]        the flow, one step at a time
-/api/order-flow            the write, then Stripe Checkout
-/order/[reference]         what they see afterwards
+> One round of revisions on a set we reviewed is included. Revisions are a
+> normal outcome of engineering review. Redesign, a change of scope, or a new
+> structure is new work and is quoted separately.
+>
+> We may decline any job. In particular we decline work outside the competence
+> of **our engineers**, because accepting it would itself be a violation of
+> professional practice rules.
+
+Matched by `PRESENT_TENSE_OFFER`, declared in `regulatory.mjs` as:
+
+```js
+{ pattern: /\bour engineers\b/i, why: "plural engineer fiction" }
 ```
 
-`data/catalog.ts` is **synchronized, copied verbatim, never rewritten locally.**
-Copy it from `~/projects/254engineering/data/catalog.ts`. Every price in it was
-given by the operator on 2026-09-03; none was derived or estimated. A second
-catalog is a second set of prices, and the first time one is updated and the
-other is not, a customer is quoted one number and charged another. `order-audit`
-in `254engineering` compares all three live sites and fails on a price that
-disagrees.
+**This is the sharpest of the three found across the two sibling sites**, and it
+is worth being clear why. The other two say engineering work is performed under
+a named entity's registration, which is a claim about an ENTITY and sits beside
+a pending disclosure. This one states a fact about STAFFING. It says the firm
+has engineers, in the plural, whose competence bounds what it will accept.
 
-### What is copied and what is written fresh
+No licensed Professional Engineer is on staff.
 
-**Copied verbatim:** `data/catalog.ts` and `scripts/lib/regulatory.mjs`.
+### 1.2 The extra weight this one carries
 
-**Written fresh, without exception:** every rendered sentence. The doorway rule
-is absolute: no page may share substantial copy, structure, headings or
-paraphrase with a sibling page on the same subject, and any page that could be
-find and replaced into a sibling page fails and is rewritten. This brand sells
-to a contractor with drawings and a deadline. 254 sells to a procurement officer
-and Sealed Engineering to a different buyer again. The catalog is the same; the
-words are not.
+It is on the **terms** page. That is the document a customer is deemed to have
+read and agreed to, and it is the one a regulator or a lawyer reads first. A
+staffing claim in a paragraph about professional practice rules is not marketing
+copy that overreached; it reads as a representation.
 
-**Engineering patterns may be shared.** The step machine, the validation shape,
-the checkout call, the reference format.
+### 1.3 The recommendation, which is a recommendation and not a ruling
 
-### The gate applies to the flow itself
+The sentence is trying to say something true and worth saying: that the firm
+declines work outside its competence, and that accepting such work would itself
+be a violation. That is a good clause. The only problem is the possessive
+plural.
 
-While registration is pending, a checkout that takes money for a stamped plan
-states by its existence that the firm stamps plans. In `254engineering` the flow
-is gated by `isPrelaunch()` and the entry page reads it directly; `/order`
-redirects to `/waitlist` while the gate is on. Whatever the shape here, the
-equivalent has to be true and `launch-audit` has to assert it in both modes.
+Rewriting it to describe the standard rather than the staff keeps the clause and
+removes the claim. The operator has not ruled on the wording, and this is the
+sibling's session to write.
 
-**And the redirect must be a 307, never a 308.** A permanent redirect is cached
-hard by browsers and crawlers, so every client that saw one would go on sending
-itself to `/waitlist` after launch without asking the server, and the highest
-intent page on the site would be unreachable for exactly the people who visited
-before. If this repository redirects `/order` the same way, assert the 307 with
-that reasoning in the check.
+**Do not fix it by deleting the clause.** `regulatory.mjs` records at length why
+a check that matches a claim and its denial identically teaches whoever runs it
+to delete the honest sentence to get a green board. The clause about declining
+work is the honest part.
 
-### What it needs from the environment
+### 1.4 How to find these again in that repository
 
-`STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`, in test mode until the firm is
-open. One warning worth carrying: on 2026-09-03 a preview here was configured
-with an `sk_live` key by mistake, and the first order placed against it produced
-a real checkout page for 675 dollars on a probe order for a property that does
-not exist. Nothing was charged, because a Checkout Session is only a page until
-somebody pays, but the plan for that test was to put a card through it.
-`254engineering` now refuses to build a Stripe client when a live key is present
-off production. Build the same refusal before the first key is set.
+`voice-audit` in this repository reads `scripts/lib/regulatory.mjs` and runs
+against a sitemap. If the sibling has an equivalent, point it at the live host.
+If it does not, the smallest useful thing is to copy `regulatory.mjs` across,
+because the two gates are the same two gates: the firm registration and the
+engineer of record. They are properties of the FIRM, and all three brands are
+one firm.
+
+**Worth knowing before you start:** this repository's own hand written attempt
+at these patterns found only THIS sentence and missed both of the
+sealedengineering ones. The declared list has 22 patterns and carries a negation
+guard and a conditional guard, so "we do not seal" and "once the firm is
+registered it will perform" are not reported as claims. Writing your own is how
+two of the three get missed.
 
 ---
 
-## 3. Nine indexable pages, and what it would take to compete
+## 2. What this sweep did NOT check on that site
 
-Nine against 46 and 55 is not a site competing for anything. It is a brochure
-with a domain name that happens to be the best of the three: somebody searching
-for how to get plans stamped is searching for this brand's name without knowing
-it.
+Stated so the next session does not read a green where none was measured.
 
-**What is missing is not volume, it is the shape of a corpus.** Volume without
-differentiation makes it a doorway, and `registry-audit` in `254engineering`
-fetches all three live sitemaps and fails on a similarity score above 0.75. The
-work is to write the pages this brand can write that the other two cannot.
-
-What that means concretely, in the order it earns:
-
-**The process pages.** What plan stamping actually is, what a reviewing engineer
-looks for, what makes a set of drawings reviewable, what gets a submission
-rejected by a plan reviewer, and how long each stage takes. This is the corpus
-the domain promises and none of it exists. It is also the corpus the other two
-brands should NOT write: 254 is institutional and Sealed Engineering has its own
-buyer.
-
-**The jurisdiction pages, carefully.** What a specific city or county building
-department requires of a stamped submission is real, specific, and useful, and
-it is also the doorway trap if it is minted mechanically. The rule from
-`254engineering`'s standing law applies: a page ships only if it contains
-substantial information true of that place specifically, which could not be
-produced by find and replacing the place name. Two done properly beat forty
-minted.
-
-**The document pages.** What a contractor actually receives, what a stamp means
-legally in Texas, what responsible charge requires of the engineer signing, and
-what a stamped drawing does not certify. That last one is the honest page nobody
-writes and the one a careful buyer searches for.
-
-**What must not be done to reach a number.** No service by city combinations, no
-thin county pages, no reworded versions of 254's or Sealed Engineering's pages,
-and nothing written before `data/keyword-registry.ts` has been read: it is
-synchronized across all three repositories and records the angle each brand
-takes on each topic, so a writer opens it to find out how this brand's treatment
-differs.
-
-**Sequence.** The content engine here is two phases and the first one stops for
-operator approval: one batched research pull with the expected cost stated
-before the call, delivered as a proposal with volume, difficulty, what ranks
-today, why it is beatable, a cannibalization check against the registry and the
-other two sites, and the internal link plan. Writing starts after approval, not
-before.
-
----
-
-## The environment variable position, and why it has a deadline
-
-**State this plainly to the operator before touching anything here.**
-
-stampmyplans writes `eng_leads` and `eng_orders` in the **shared** Supabase
-project that `254engineering` currently calls production
-(`fsaryeciduszuahgjbly`). That was confirmed by reading this repository's
-`.env.local` on 2026-09-03. **Re-confirm the deployed value in its Vercel
-project** rather than assuming the local file matches it.
-
-254's portal is deliberately the shared inbox for all three brands: it reads
-leads and applications with **no site filter**, verified by reading the queries.
-
-`254engineering` is in the middle of a database cutover to a new Supabase
-project (`docs/production-cutover-plan.md`). The consequence is exact:
-
-> If 254 cuts over and stampmyplans does not, stampmyplans keeps writing leads
-> into the old project while the only screen anybody opens reads the new one.
-> There is no error, no gap in a sequence, and nothing to notice. It surfaces as
-> a customer who was never called back.
-
-There is no data to move: every row in the shared tables carries `site = '254'`
-and the sisters have written none to date. The cost is future writes going to
-the wrong place.
-
-**The position today:** `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` move in
-the same window as 254's cutover, followed by a redeploy. That window is the
-operator's to schedule, and the cutover plan stops before the step that would
-make the divergence live.
-
-**The position that is being built:** an intake API on `254engineering`, so the
-sisters POST a lead rather than writing Supabase directly. It removes the shared
-table coupling permanently and means this repository stops holding a service
-role key for somebody else's database. It is being built there before the
-cutover completes, so **check the cross repo section of
-`254engineering/BACKLOG.md` before acting on this paragraph.**
-
----
-
----
-
-## The intake API exists now, and it changes the paragraph above
-
-**Built 2026-09-07.** `docs/sister-intake-api.md` in the 254engineering
-repository is the reference: the endpoint, the body, every status it answers,
-and what to do with each. Read it before changing anything here.
-
-The short version:
-
-1. POST leads to `https://254engineering.com/api/intake/lead` with an
-   `x-intake-key` header instead of writing `eng_leads`.
-2. Ask the operator for this brand's key. It is set on the 254 deployment as
-   `INTAKE_KEY_STAMP` and given to this one.
-3. When the posts are landing, **delete `SUPABASE_URL` and
-   `SUPABASE_SERVICE_ROLE_KEY` from this deployment.** That is the point: this
-   site should not hold a master credential for somebody else's database.
-4. Keep the failure states honest. A 503 carrying `emailed: true` means a person
-   has the enquiry even though no row was written, and a 503 carrying
-   `emailed: false` means nothing left: retry, and if it keeps failing put the
-   enquiry in front of a human rather than telling the visitor it was received.
-
-**Once that is done, this repository is out of the cutover window entirely.** It
-writes nothing to the shared project, so 254 can move databases without
-coordinating with stampmyplans. Until it is done, the two variables move in the same
-window as 254's cutover, which is what the paragraph above describes.
-
----
-
-## What not to do
-
-- Do not edit `scripts/lib/regulatory.mjs` or `data/catalog.ts` locally. They
-  are copies, and an edit is an invisible divergence.
-- Do not copy rendered sentences from either sibling. Templates yes, prose
-  never.
-- Do not invent a price, a turnaround, a project count, or a credential.
-- Do not write pages to reach a number. Nine honest pages beat forty that make
-  the site a doorway network, and the similarity check will say so.
-- Do not reach into `254engineering` to change anything. Read it, copy the
-  synchronized files, and leave it alone.
+- **Only the compliance patterns, the routes, the links and the images** were
+  checked. 9 routes from the live sitemap, all answering 200, all same origin
+  links resolving, all images loading.
+- **Nine routes is a small site**, and this sweep deliberately does not judge
+  that. How many pages a sibling repository publishes is its own decision, and
+  the count is reported rather than gated. It is recorded here only so that a
+  future run seeing a much smaller number knows what it was on this date.
+- **No form was submitted**, in either direction. The accept path was
+  deliberately not pressed on any live site, because an accepted form is a real
+  enquiry in a real inbox.
+- **No signed in surface was opened.** If that site has one, nothing here has
+  ever looked at it.
+- **Nothing was checked for the doorway rule.** `registry-audit` scores
+  similarity across all three live sitemaps and is the tool for that; it was not
+  part of this sweep.

@@ -27,7 +27,8 @@
  * Pure. No server, no database, no network, so it runs in phase zero.
  */
 
-import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
+import { readdirSync, statSync, existsSync } from "node:fs";
+import { readSource } from "./lib/read-source.mjs";
 import { measurableSurfaces, sourceDirsOf } from "./lib/surfaces.mjs";
 import { join } from "node:path";
 
@@ -57,7 +58,7 @@ rec("and the token file exists", existsSync(TOKENS));
  * that depends on how git happened to write a file is a check that reports on
  * the checkout instead of on the content.
  */
-const readNormalised = (path) => readFileSync(path, "utf8").split("\r\n").join("\n");
+const readNormalised = (path) => readSource(path).split("\r\n").join("\n");
 
 const standardsText = readNormalised(STANDARDS);
 const tokenText = readNormalised(TOKENS);
@@ -390,7 +391,7 @@ console.log(
 
 /** Source with comments removed, so prose about a colour is not read as one. */
 function codeOnly(path) {
-  return readFileSync(path, "utf8")
+  return readSource(path)
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
     .split("\n")
@@ -562,7 +563,7 @@ for (const [standard, site] of TWINS) {
 
   rec(
     "the italic face is loaded for the absent data chip",
-    /style: \["normal", "italic"\]/.test(readFileSync("src/app/layout.tsx", "utf8")),
+    /style: \["normal", "italic"\]/.test(readSource("src/app/layout.tsx")),
     "a synthesised oblique on a 12px chip is the mush this system exists to avoid",
   );
 }

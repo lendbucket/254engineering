@@ -1,4 +1,5 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { randomBytes } from "node:crypto";
 import { supabaseAdmin } from "./supabase";
 import { writeAudit } from "./ops-audit";
@@ -227,7 +228,7 @@ export async function attributeOrder(input: {
     .update({
       partner_id: decision.attributed ? decision.partnerId : null,
       partner_code: decision.attributed ? decision.code : null,
-      attributed_at: new Date().toISOString(),
+      attributed_at: DB_NOW,
       attribution_reason: decision.because,
       /*
        * THE KEY THE DECISION WAS MADE FROM, KEPT. Added by 0022, and it is a

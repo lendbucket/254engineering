@@ -28,7 +28,8 @@
  * This file is the unauthenticated perimeter and stays runnable without either.
  */
 import { chromium } from "playwright";
-import { readFileSync } from "node:fs";
+import { readSource } from "./lib/read-source.mjs";
+
 import { apisOf, guardedSurfaces, routesOf } from "./lib/surfaces.mjs";
 import {
   HEALTH_PROBE_PATH,
@@ -89,6 +90,11 @@ const ADMIN_PAGES = [
   "/portal/review",
   "/portal/jobs",
   "/portal/files",
+  // Phase 12 Section 4, Section 1. Names every technician who could be offered
+  // each selected file and what each is owed, which is the firm s field spend
+  // laid out on one page. Signed out it would be a list of who works for this
+  // firm, where, and for how much.
+  "/portal/files/dispatch",
   "/portal/clients",
   "/portal/techs",
   "/portal/protocols",
@@ -172,6 +178,17 @@ const ADMIN_APIS = [
   // private buckets. Both are closed to a signed out client and the coverage
   // check below is what made sure they were listed here on the day they shipped.
   "/api/portal/exports",
+  // Phase 12 Section 4, Section 1. The same CSV risk as /api/portal/exports and
+  // one worse shape: it takes a LIST of ids, so a signed out POST would be a way
+  // to ask the firm about three hundred properties in one request. It was
+  // written and this list was not updated, and the coverage check below is what
+  // said so, on the first board after it shipped.
+  "/api/portal/files/export",
+  // Phase 12 Section 4, Section 1. Sends offers across many files. A signed out
+  // POST would be a way to put the firm s work in front of technicians of the
+  // caller s choosing, which is money, so it is on this list the same day it
+  // shipped rather than on the next board.
+  "/api/portal/files/dispatch",
   "/api/portal/documents",
   // Records that somebody asked the firm to stop writing to them, and removes a
   // row an operator typed wrong. Reachable signed out, its POST would let
@@ -914,7 +931,7 @@ async function run() {
      * that drifts turns the promise in the alert email into a small lie about
      * how long the site has been down.
      */
-    const vercelConfig = JSON.parse(readFileSync("vercel.json", "utf8"));
+    const vercelConfig = JSON.parse(readSource("vercel.json"));
     const cron = (vercelConfig.crons ?? []).find((c) => c.path === CRON_ROUTE);
     rec("the watcher is actually scheduled", Boolean(cron), JSON.stringify(vercelConfig.crons ?? []));
     rec(
@@ -1089,7 +1106,7 @@ async function run() {
      * the route has no field for it at all: a body carrying priceCents and
      * totalCents must not produce an order at that price.
      */
-    const source = readFileSync("src/app/api/order-flow/route.ts", "utf8");
+    const source = readSource("src/app/api/order-flow/route.ts");
     rec(
       "the flow route accepts no price from the caller",
       !/priceCents|totalCents|amountCents/.test(source),
@@ -1106,7 +1123,7 @@ async function run() {
       "an order must not be created and then refused",
     );
 
-    const uploadSource = readFileSync("src/lib/order-uploads.ts", "utf8");
+    const uploadSource = readSource("src/lib/order-uploads.ts");
     rec(
       "an upload path is built from a validated draft id, never a filename",
       /SAFE\.test\(params\.draftId\)/.test(uploadSource) && /SAFE\.test\(params\.inputKey\)/.test(uploadSource),

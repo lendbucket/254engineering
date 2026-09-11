@@ -1,4 +1,5 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { supabaseAdmin } from "./supabase";
 import type { Cents } from "./ops-money";
 import { writeAudit } from "./ops-audit";
@@ -351,7 +352,12 @@ export async function acceptAgreement(
     };
   }
 
-  const acceptedAt = new Date().toISOString();
+  /*
+   * DB_NOW. When a partner accepted the agreement, and which version, is the
+   * evidence a dispute is settled with. It is stamped by the database, and one
+   * value is written to two columns so they cannot disagree.
+   */
+  const acceptedAt = DB_NOW;
 
   const { error } = await db.from("eng_partner_acceptances").insert({
     partner_id: principal.partnerId,

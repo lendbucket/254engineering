@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+
+import { readSource } from "./read-source.mjs";
 
 /**
  * "Is the server at this URL serving the build currently on disk?"
@@ -27,7 +28,7 @@ export async function checkServingCurrentBuild(base) {
 
   let onDisk = null;
   try {
-    onDisk = readFileSync(new URL("../../.next/BUILD_ID", import.meta.url), "utf8").trim();
+    onDisk = readSource(new URL("../../.next/BUILD_ID", import.meta.url)).trim();
   } catch {
     return {
       ok: true,

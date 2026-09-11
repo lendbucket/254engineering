@@ -1,4 +1,5 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import { catalogFor, orderBlockedReason, type CatalogEntry } from "@data/catalog";
@@ -195,7 +196,7 @@ export async function placeBatch(input: {
         reason: r.reason,
       })),
       client_request_id: input.clientRequestId,
-      placed_at: new Date().toISOString(),
+      placed_at: DB_NOW,
     })
     .select("id")
     .single();
@@ -269,7 +270,7 @@ export async function placeBatch(input: {
   }
 
   if (accepted.length === 0) {
-    await db.from("eng_order_batches").update({ status: "cancelled", cancelled_at: new Date().toISOString() }).eq("id", batch.id);
+    await db.from("eng_order_batches").update({ status: "cancelled", cancelled_at: DB_NOW }).eq("id", batch.id);
     return {
       ok: false,
       error: "None of these properties could be placed. Nothing has been charged.",

@@ -1,4 +1,5 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { supabaseAdmin } from "./supabase";
 import type { Result } from "./onboarding";
 
@@ -35,7 +36,9 @@ export async function setVerification(
   if (!db) return { ok: false, error: "Supabase is not configured for this deployment." };
   const { error } = await db
     .from("eng_onboardings")
-    .update({ [field]: value ? new Date().toISOString() : null })
+    /* DB_NOW: an onboarding milestone is stamped by the database. The column
+     * name is computed, which is why the src sweep could not see this one. */
+    .update({ [field]: value ? DB_NOW : null })
     .eq("id", onboardingId);
   return error ? { ok: false, error: error.message } : { ok: true, data: null };
 }

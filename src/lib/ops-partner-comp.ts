@@ -1,4 +1,5 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import { orderForFile as liveOrderForFile } from "./order-for-file";
@@ -802,7 +803,7 @@ export async function issuePartnerStatement(
 
   await db
     .from("eng_partner_statements")
-    .update({ status: "issued", issued_at: new Date().toISOString() })
+    .update({ status: "issued", issued_at: DB_NOW })
     .eq("id", statementId);
 
   await writeAudit({
@@ -857,7 +858,7 @@ export async function recordPartnerPayout(input: {
     .from("eng_partner_statements")
     .update({
       status: "paid",
-      paid_at: new Date().toISOString(),
+      paid_at: DB_NOW,
       payout_reference: reference,
       paid_by: input.actorId ?? null,
       paid_note: input.note?.trim() || null,

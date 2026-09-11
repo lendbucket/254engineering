@@ -46,6 +46,7 @@
  * neverProduction below rather than by remembering.
  */
 import fs from "node:fs";
+import { readSource } from "./lib/read-source.mjs";
 import { auditClient, describeTarget } from "./lib/db-target.mjs";
 import {
   canSetGrants,
@@ -104,7 +105,6 @@ const EXPECTED = {
   "files.list":                   { admin: true,  engineer: true,  field_tech: true },
   "files.create":                 { admin: true,  engineer: false, field_tech: false },
   "files.update":                 { admin: true,  engineer: true,  field_tech: false },
-  "files.assign":                 { admin: true,  engineer: false, field_tech: false },
   "files.transition":             { admin: true,  engineer: true,  field_tech: false },
   "files.cancel":                 { admin: true,  engineer: false, field_tech: false },
 
@@ -510,7 +510,7 @@ rec(
     .sort();
 
   const sql = migrationFiles
-    .map((f) => fs.readFileSync(`supabase/migrations/${f}`, "utf8"))
+    .map((f) => readSource(`supabase/migrations/${f}`))
     .join("\n");
 
   /*
@@ -545,7 +545,37 @@ rec(
   const seededRoles = [...rolesBlock.matchAll(/\('([a-z_]+)',\s*'([^']+)',\s*'([^']+)',\s*(true|false)\)/g)].map(
     (m) => ({ key: m[1], name: m[2], landingPath: m[3], isSystem: m[4] === "true" }),
   );
-  const seededGrants = [...grantsBlock.matchAll(/\('([a-z_]+)',\s*'([^']+)'\)/g)].map((m) => m[1] + ":" + m[2]);
+  const inserted = [...grantsBlock.matchAll(/\('([a-z_]+)',\s*'([^']+)'\)/g)].map((m) => m[1] + ":" + m[2]);
+
+  /*
+   * A GRANT CAN BE REMOVED, AND THE CHAIN'S NET EFFECT IS WHAT A DATABASE HOLDS.
+   *
+   * This read only INSERTS, so when 0040 deleted files.assign it reported the
+   * grant as existing "in the migration only". That was true of one statement
+   * and false of the chain: 0018 seeds it, 0040 removes it, and what a fresh
+   * database ends up holding is nothing.
+   *
+   * It is the same lesson 0021 taught this file, one operation further along.
+   * It used to read 0018 alone and had to learn that a LATER migration can add
+   * a grant; now it has to know that a later one can take one away.
+   *
+   * A migration is never edited to make this pass. 0018 stays exactly as it
+   * ran, because a migration that changes after it has run is one nobody can
+   * reason about. The removal is a new statement and this reads both.
+   */
+  const removed = [
+    ...sql.matchAll(/delete\s+from\s+eng_role_grants\s+where\s+action\s*=\s*'([^']+)'/gi),
+  ].map((m) => m[1]);
+
+  rec(
+    `the chain's grant removals are read as well as its inserts (${removed.length})`,
+    true,
+    removed.length
+      ? removed.join(", ")
+      : "none yet; when one arrives this is the check that notices it",
+  );
+
+  const seededGrants = inserted.filter((g) => !removed.includes(g.split(":")[1]));
 
   const wantRoles = DEFAULT_ROLES.map((r) => r.key).sort();
   const gotRoles = seededRoles.map((r) => r.key).sort();
@@ -765,7 +795,7 @@ rec(
    * AND THE SERVER ACTUALLY ASKS. The rules above are pure and correct, and a
    * write path that never called them would pass every one of them.
    */
-  const opsRoles = fs.readFileSync("src/lib/ops-roles.ts", "utf8");
+  const opsRoles = readSource("src/lib/ops-roles.ts");
   rec(
     "the server refuses a grant change through the guard",
     /const verdict = canSetGrants\([\s\S]{0,120}if \(!verdict\.ok\) return/.test(opsRoles),
@@ -1542,6 +1572,184 @@ if (!db) {
       await db.from("eng_profiles").update({ status: "active" }).eq("id", tech.id);
     }
 
+    /*
+     * =====================================================================
+     * A GRANT DECIDES A DOOR. A ROLE NAME DOES NOT.
+     * Operator ruling, 2026-09-10, and this is the injection it asked for.
+     * =====================================================================
+     *
+     * /portal/certification used to read
+     *
+     *   if (!can(actor, "evidence.capture") && actor?.role !== "admin") notFound();
+     *
+     * so "admin" was a capability the permission screen could neither see nor
+     * withdraw. Roles have been data since 0018; a string comparison in a page
+     * is a grant nobody can revoke.
+     *
+     * The two halves below are the whole ruling, and each is useless without
+     * the other:
+     *
+     *   a role holding the grant UNDER A DIFFERENT NAME must pass. This is the
+     *   half that proves the gate reads the grant rather than a list of names
+     *   somebody remembered. The role key here has never existed before and no
+     *   line of this platform mentions it.
+     *
+     *   a role carrying the NAME and not the grant must be refused. This is the
+     *   half that proves the escape hatch is gone. It uses "admin" itself,
+     *   which is the exact name that used to open the door.
+     *
+     * Both roles are created here, used, and removed in the teardown below.
+     */
+    {
+      /*
+       * SHORT KEYS, AND THE REASON IS A REAL DEFECT SOMEWHERE ELSE.
+       *
+       * makeProbe builds probe-<role>-<STAMP>@roles-audit.invalid, so a long
+       * role key makes a long email, and the email goes into the otpauth URI
+       * that src/lib/qr.ts encodes at enrolment. That encoder refuses anything
+       * over version 10, and the first version of this block used
+       * overnight_capturer_<13 digit stamp>, which produced a 226 byte URI and
+       * a 500 from /api/portal/mfa. Both checks then reported HTTP 0 and read
+       * as "the gate is reading something other than the grant", which was a
+       * statement about this fixture rather than about the page.
+       *
+       * The keys are short so this block measures the certification gate. The
+       * encoder limit it uncovered is a separate finding and is recorded in
+       * BACKLOG.md rather than worked around silently here.
+       */
+      const SHORT = String(STAMP).slice(-6);
+      const INVENTED = `cap_${SHORT}`;
+      const NAMED = `nog_${SHORT}`;
+      const madeRoles = [];
+
+      try {
+        /* A role nobody has ever heard of, holding the one grant that matters. */
+        /*
+         * mfa_requirement IS SET EXPLICITLY, and leaving it out cost a run.
+         *
+         * The column is nullable, so the insert succeeded, and the sign in path
+         * then answered 500 at begin. Both checks reported HTTP 0 and read as
+         * "the gate is reading something other than the grant", which was a
+         * statement about this fixture rather than about the page. A role row a
+         * person creates on the permission screen gets a requirement; one
+         * created here has to as well, or it is not the same subject.
+         */
+        await db.from("eng_roles").insert({
+          key: INVENTED,
+          name: "Invented Capturer",
+          landing_path: "/portal",
+          is_system: false,
+          mfa_requirement: "optional",
+        });
+        madeRoles.push(INVENTED);
+        await db.from("eng_role_grants").insert({ role_key: INVENTED, action: "evidence.capture" });
+
+        /*
+         * And a role that LOOKS like the old escape hatch. The profile's role
+         * column carries a key, so this one is named to sit as close to "admin"
+         * as a distinct row can, and holds no grants at all.
+         */
+        await db.from("eng_roles").insert({
+          key: NAMED,
+          name: "Administrator Without The Grant",
+          landing_path: "/portal",
+          is_system: false,
+          mfa_requirement: "optional",
+        });
+        madeRoles.push(NAMED);
+
+        const openedBy = async (roleKey) => {
+          const probe = await makeProbe(db, roleKey);
+          const session = await signIn(probe.email, probe.password);
+          /* A sign in that failed is not a verdict about the gate, and saying
+           * so is the difference between a finding and a wild goose chase. */
+          if (!session.ok || !session.cookie) {
+            return { status: -1, why: `the probe could not sign in: ${session.error ?? "no cookie"}` };
+          }
+          const res = await fetch(`${BASE}/portal/certification`, {
+            headers: { cookie: session.cookie },
+            redirect: "manual",
+          });
+          return { status: res.status, why: "" };
+        };
+
+        const invented = await openedBy(INVENTED);
+        rec(
+          "a role holding evidence.capture under a name nothing has heard of opens Certification",
+          invented.status === 200,
+          invented.status === 200
+            ? `${INVENTED} got HTTP 200, so the gate read the GRANT`
+            : invented.status === -1
+              ? `NOT MEASURED, ${invented.why}`
+              : `HTTP ${invented.status}: the gate is reading something other than the grant`,
+        );
+
+        const named = await openedBy(NAMED);
+        rec(
+          "and a role holding no grant is refused, however it is named",
+          named.status === 404,
+          named.status === 404
+            ? `${NAMED} got HTTP 404`
+            : named.status === -1
+              ? `NOT MEASURED, ${named.why}`
+              : `HTTP ${named.status}: a role with no evidence.capture opened it anyway`,
+        );
+
+        /*
+         * THE REAL administrator, which is the row the escape hatch was written
+         * for. It holds no evidence.capture, so it must now be refused too, and
+         * the shell already never offered it the link.
+         */
+        /* sessions[role] is the cookie STRING, the shape every other fetch in
+         * this file uses. Reading .cookie off it would be undefined and the
+         * check would silently not run. */
+        const adminCookie = sessions.admin;
+        if (adminCookie) {
+          const res = await fetch(`${BASE}/portal/certification`, {
+            headers: { cookie: adminCookie },
+            redirect: "manual",
+          });
+          rec(
+            "and the administrator, who the escape hatch was written for, is refused with it gone",
+            res.status === 404,
+            res.status === 404
+              ? "HTTP 404, and nav.ts never offered the link either, so the shell and the page now agree"
+              : `HTTP ${res.status}: the escape hatch is still open somewhere`,
+          );
+        }
+      } catch (err) {
+        rec("the role name injection ran", false, String(err.message).slice(0, 160));
+      } finally {
+        /*
+         * THE PROBES GO FIRST, AND THE DATABASE INSISTS.
+         *
+         * 0018 line 231: eng_profiles.role references eng_roles (key) on update
+         * cascade, and NOT on delete cascade. Deleting a role while a profile
+         * still carries its key is refused, which is correct: a profile whose
+         * role does not exist is an account with undefined permissions.
+         *
+         * So the two probes made against these invented roles are removed here,
+         * before the roles are, and taken out of `created` so the outer
+         * teardown is not left deleting rows that have gone.
+         */
+        for (const key of madeRoles) {
+          for (const c of created.filter((x) => x.role === key)) {
+            await db.from("eng_profiles").delete().eq("id", c.id);
+            await db.auth.admin.deleteUser(c.id).catch(() => {});
+            created.splice(created.indexOf(c), 1);
+          }
+          await db.from("eng_role_grants").delete().eq("role_key", key);
+          await db.from("eng_roles").delete().eq("key", key);
+        }
+        const { data: leftRoles } = await db.from("eng_roles").select("key").in("key", madeRoles);
+        rec(
+          "the invented roles were removed",
+          (leftRoles?.length ?? 0) === 0,
+          leftRoles?.length ? `left behind: ${leftRoles.map((r) => r.key).join(", ")}` : `${madeRoles.length} removed`,
+        );
+      }
+    }
+
     // The trail recorded the sign ins. A writer that has quietly stopped is the
     // failure this check exists to catch.
     {
@@ -1608,8 +1816,7 @@ if (!db) {
    * level up.
    */
   const codeOnly = (path) =>
-    fs
-      .readFileSync(path, "utf8")
+    readSource(path)
       .replace(/\/\*[\s\S]*?\*\//g, "")
       .split("\n")
       .filter((line) => !/^\s*\/\//.test(line))

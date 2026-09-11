@@ -1,7 +1,11 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { READ_CAP } from "./bounded-read";
 import { createHash } from "node:crypto";
 import { registerJob, enqueue, queueEmail } from "./ops-jobs";
+import { isFixtureIdentity } from "./fixture-identity";
+import { resolveDeferred } from "./deferred-links";
+import { signedDownloadUrl } from "./uploads";
 import type { JobOutcome } from "./job-rules";
 import { supabaseAdmin } from "./supabase";
 import { notify } from "./notify";
@@ -67,17 +71,49 @@ function keyOf(...parts: unknown[]): string {
  * establishes that the firm keeps what was actually shown.
  */
 registerJob("email.send", {
+  reachesOutside: true,
+  reaches:
+    "Resend, and therefore a message in a named person's inbox. This is the handler the effect mode exists for: on 2026-09-09 a dry run on development claimed the oldest jobs of any kind and twenty of these went out to real addresses.",
   /*
    * Keyed on the recipient, the subject and the body. Enqueueing the identical
    * message twice is deduped; a genuinely different message to the same person
    * is not, because the subject or body differs.
    */
   idempotency: (p) => keyOf(p.to, p.subject, p.text),
-  run: async (p): Promise<JobOutcome> => {
+  run: async (p, job): Promise<JobOutcome> => {
     const to = typeof p.to === "string" ? p.to : "";
     const subject = typeof p.subject === "string" ? p.subject : "";
     if (!to || !subject) {
       return { kind: "fatal", error: "An email job needs a recipient and a subject." };
+    }
+
+    /*
+     * SUPPRESSED, AND IT STOPS BEFORE THE PROVIDER RATHER THAN AFTER IT.
+     *
+     * Everything above still ran: the payload was validated, and a missing
+     * recipient is still fatal. What does not happen is the call to Resend.
+     *
+     * NOTHING IS WRITTEN TO THE ORDER TIMELINE EITHER, and that is the half
+     * somebody would get wrong. customer_link.emailed means a person was
+     * written to. Writing it for a message nobody sent would be an entry that
+     * looks like evidence of contact and is evidence of a database write,
+     * which is the exact defect this platform has already found once and
+     * named. The job row carries effect_mode, so what happened is on the
+     * record where it belongs.
+     */
+    /*
+     * THE SECOND GUARD, AT RUN TIME, AND IT CATCHES A DIFFERENT THING.
+     *
+     * The mode on the row is decided at enqueue from the actor. This asks the
+     * narrower question the row cannot: is the address in front of me right
+     * now one nobody can be reached at. A job that predates the actor rule, or
+     * one inserted by hand, still stops here.
+     */
+    if (job.effectMode === "no_external_effect" || isFixtureIdentity(to)) {
+      console.warn(
+        "[jobs] email.send #" + job.id + " to " + to + ": suppressed, nothing was sent.",
+      );
+      return { kind: "done" };
     }
 
     /*
@@ -86,6 +122,17 @@ registerJob("email.send", {
      * the work happened. id and purpose ride along because email-audit uses
      * them to name a failure and to decide which sender identity applies.
      */
+    /*
+     * THE LINKS ARE SIGNED HERE, AND HERE IS THE LAST MOMENT BEFORE THE DOOR.
+     *
+     * Everything above has already decided this message is going out. What
+     * has not happened yet is the provider call, so a link minted now is a
+     * link whose window starts when the recipient could first have used it.
+     * A four day queue used to hand over a three day link.
+     */
+    const signedText = await resolveDeferred((p.text as string) ?? "", signedDownloadUrl);
+    const signedHtml = await resolveDeferred((p.html as string) ?? "", signedDownloadUrl);
+
     const result = await notify({
       id: (p.id as string) ?? "queued",
       purpose: (p.purpose as "operator" | "human") ?? "operator",
@@ -96,8 +143,8 @@ registerJob("email.send", {
       // the payload carries null and it is turned back into an absent header
       // here. Handing Resend a null reply-to is not the same as omitting it.
       replyTo: (p.replyTo as string) ?? undefined,
-      text: (p.text as string) ?? "",
-      html: (p.html as string) ?? "",
+      text: signedText,
+      html: signedHtml,
     });
 
     if (result.outcome === "ok") {
@@ -151,14 +198,28 @@ registerJob("email.send", {
  * instant the request returns. This is only the delivery.
  */
 registerJob("notification.deliver", {
+  reachesOutside: true,
+  reaches:
+    "Resend, through notify(). The notification ROW is written synchronously by ops-notify so the bell is already correct; what this adds is an email somebody receives.",
   /*
    * The notification's own id. One row, one email, however many times this is
    * enqueued or retried.
    */
   idempotency: (p) => keyOf("notification", p.notificationId),
-  run: async (p): Promise<JobOutcome> => {
+  run: async (p, job): Promise<JobOutcome> => {
     const client = db();
     if (!client) return { kind: "retry", error: "The database is not configured." };
+
+    /*
+     * Suppressed before notify(), and emailed_at is deliberately NOT stamped.
+     * That column is what the bell and the operator read to mean "this one
+     * went out by email", and stamping it for a message nobody sent is the
+     * same false claim of contact the order timeline nearly carried.
+     */
+    if (job.effectMode === "no_external_effect") {
+      console.warn("[jobs] notification.deliver #" + job.id + ": suppressed, nothing was sent.");
+      return { kind: "done" };
+    }
 
     const id = p.notificationId;
     if (typeof id !== "number" && typeof id !== "string") {
@@ -187,6 +248,21 @@ registerJob("notification.deliver", {
       .maybeSingle();
 
     const address = (profile?.email as string) ?? null;
+
+    /*
+     * The run time backstop, same as email.send. The mode on the row is decided
+     * at enqueue from the actor; this asks whether the address resolved from the
+     * profile a moment ago is one nobody can be reached at. Every portal probe
+     * lives at audit-probe.invalid, so a notification queued for one stops here
+     * whatever its row says.
+     */
+    if (address && isFixtureIdentity(address)) {
+      console.warn(
+        "[jobs] notification.deliver #" + job.id + " to " + address + ": suppressed, nobody is there.",
+      );
+      return { kind: "done" };
+    }
+
     if (!address) {
       await client
         .from("eng_notifications")
@@ -207,7 +283,7 @@ registerJob("notification.deliver", {
     if (sent.outcome === "ok") {
       await client
         .from("eng_notifications")
-        .update({ emailed_at: new Date().toISOString(), email_error: null })
+        .update({ emailed_at: DB_NOW, email_error: null })
         .eq("id", row.id);
       return { kind: "done" };
     }
@@ -240,6 +316,8 @@ registerJob("notification.deliver", {
  * BACKLOG carries it. Nothing enqueues this kind today.
  */
 registerJob("evidence.thumbnail", {
+  /* It returns fatal and does nothing at all. */
+  reachesOutside: false,
   idempotency: (p) => keyOf("thumb", p.evidenceItemId),
   run: async (): Promise<JobOutcome> => ({
     kind: "fatal",
@@ -259,6 +337,8 @@ registerJob("evidence.thumbnail", {
  * anybody reading it would want.
  */
 registerJob("document.binder", {
+  /* Reads a file, writes a file event. Nothing leaves. */
+  reachesOutside: false,
   idempotency: (p) => keyOf("binder", p.fileId, p.requestedFor ?? "latest"),
   run: async (p): Promise<JobOutcome> => {
     const client = db();
@@ -298,6 +378,12 @@ registerJob("document.binder", {
 // ------------------------------------------------------------ statement.issue
 
 registerJob("statement.issue", {
+  /*
+   * issueStatement writes rows and nothing else: it does not email the account
+   * and it does not charge anything. Money moves when a payment arrives against
+   * the statement, which is a different path entirely.
+   */
+  reachesOutside: false,
   idempotency: (p) => keyOf("statement", p.statementId),
   run: async (p): Promise<JobOutcome> => {
     const statementId = typeof p.statementId === "string" ? p.statementId : "";
@@ -325,6 +411,9 @@ registerJob("statement.issue", {
 // ---------------------------------------------------------- orders.reconcile
 
 registerJob("orders.reconcile", {
+  reachesOutside: true,
+  reaches:
+    "Stripe. It reads charges rather than creating them, so nobody is charged by running it, and it is still a call to a live provider with live keys against real order references. Suppressing it is what stops a probe asking a payment provider about orders that do not exist.",
   /*
    * Naturally repeatable, and this is the one kind that earns that claim.
    *
@@ -336,7 +425,18 @@ registerJob("orders.reconcile", {
    */
   idempotency: "naturally",
   why: "reconcileAll records through markPaid, which is idempotent on the provider's charge ref, so a second sweep finds the charge already on file and writes nothing.",
-  run: async (p): Promise<JobOutcome> => {
+  run: async (p, job): Promise<JobOutcome> => {
+    /*
+     * Suppressed before the provider call. Reconciling reads charges rather
+     * than creating them, so nobody is charged either way; what this stops is
+     * a probe asking a live payment provider about order references that were
+     * invented by an audit thirty seconds ago.
+     */
+    if (job.effectMode === "no_external_effect") {
+      console.warn("[jobs] orders.reconcile #" + job.id + ": suppressed, the provider was not called.");
+      return { kind: "done" };
+    }
+
     const apply = p.apply === true;
 
     /*
@@ -374,9 +474,34 @@ registerJob("orders.reconcile", {
  * slipped past the key would produce the same numbers.
  */
 registerJob("metrics.rollup", {
+  /* Counts rows this platform already has and writes one row per day. */
+  reachesOutside: false,
   idempotency: (p) => keyOf("rollup", p.day ?? "yesterday"),
   run: async (p): Promise<JobOutcome> => {
     const day = typeof p.day === "string" ? p.day : undefined;
+
+    /*
+     * A DAY THAT IS NOT A DAY IS FATAL, NOT RETRIED.
+     *
+     * Found by queue-audit on 2026-09-09, which enqueued a probe with a
+     * malformed day and expected a dead letter. It got a retry: rollupDay threw
+     * "Invalid time value", runOne turned the throw into a retry, and the job
+     * went back on the queue to fail identically four more times over the next
+     * hour.
+     *
+     * That is precisely the case nextState's own comment names as the reason
+     * fatal exists: "a payload missing the id it needs will fail the same way
+     * five times, and five identical failures spread over an hour is worse than
+     * one, because it delays the moment the operator sees a queue that needs a
+     * person". Nothing about a malformed date is going to be different on the
+     * fifth attempt.
+     *
+     * The probe's expectation was not moved to match the code. The code moved.
+     */
+    if (day !== undefined && Number.isNaN(Date.parse(day))) {
+      return { kind: "fatal", error: `"${day}" is not a date, so this rollup will never succeed.` };
+    }
+
     const report = day ? await rollupDay(day) : await rollupDay();
 
     if (!report) return { kind: "retry", error: "The database is not configured." };
@@ -419,9 +544,22 @@ registerJob("metrics.rollup", {
  * operator to filter the sender.
  */
 registerJob("errors.alert", {
+  /*
+   * FALSE, AND IT IS THE ONE WHERE THAT ANSWER IS DANGEROUS ON ITS OWN.
+   *
+   * This handler sends nothing. It reads the faults, decides, stamps the
+   * cooldown and QUEUES an email.send, so the thing a person receives is sent
+   * by a different job entirely. Declaring true here would be a lie about what
+   * this code does; declaring false and stopping would let a suppressed alert
+   * spawn a live send, which is the leak in the only direction that matters.
+   *
+   * So it is false AND it passes job.effectMode to every email it queues, and
+   * queue-audit asserts the second half rather than trusting the first.
+   */
+  reachesOutside: false,
   idempotency: "naturally",
   why: "the decision is read from alerted_new_at and alerted_rate_at, which the sweep writes before it queues anything, so a second sweep in the same cooldown finds the stamps and sends nothing.",
-  run: async (): Promise<JobOutcome> => {
+  run: async (_p, job): Promise<JobOutcome> => {
     const client = db();
     if (!client) return { kind: "retry", error: "The database is not configured." };
 
@@ -470,7 +608,7 @@ registerJob("errors.alert", {
     for (const { type, kind, because } of chosen) {
       await client
         .from("eng_error_types")
-        .update(kind === "rate" ? { alerted_rate_at: now } : { alerted_new_at: now })
+        .update(kind === "rate" ? { alerted_rate_at: DB_NOW } : { alerted_new_at: DB_NOW })
         .eq("fingerprint", type.fingerprint);
 
       console.warn(`[alert] ${kind}: ${type.fingerprint} (${because})`);
@@ -491,6 +629,17 @@ registerJob("errors.alert", {
           statusUrl: `${business.url}/portal/status`,
           cooldownMinutes: COOLDOWN_MINUTES,
         }),
+        /* No order. An operator alert is about the machine. */
+        undefined,
+        /*
+         * THE MODE TRAVELS WITH THE WORK.
+         *
+         * This is the only handler in the registry that queues something that
+         * sends, and without this line a suppressed alert would spawn a live
+         * email. The child job carries its own effect_mode on its own row, so
+         * the record stays complete one hop down.
+         */
+        job.effectMode,
       );
       if (!queued.ok) {
         return { kind: "retry", error: `Could not queue the alert: ${queued.error}` };
@@ -529,6 +678,9 @@ registerJob("errors.alert", {
  * report export is evidence of what was handed over THEN.
  */
 registerJob("report.export", {
+  /* One audit row. The CSV was built and handed over inside the request, and
+   * nothing here delivers a file to anybody. */
+  reachesOutside: false,
   idempotency: (p) => keyOf("report-export", p.report, p.period, p.at, p.actorId),
   run: async (p): Promise<JobOutcome> => {
     const client = db();
@@ -590,6 +742,13 @@ registerJob("report.export", {
  * is safe in a way a retry of a naive delete loop would not be.
  */
 registerJob("retention.sweep", {
+  /*
+   * It deletes rows this platform owns, which is as consequential as anything
+   * here and is not an EXTERNAL effect: nobody outside the firm hears about it.
+   * The mode it already carries, plan versus execute, decides whether rows go,
+   * and the two modes are independent on purpose.
+   */
+  reachesOutside: false,
   /*
    * The manifest id, which IS the identity of the run. A second enqueue of the
    * same manifest finds the live job rather than starting a parallel sweep of

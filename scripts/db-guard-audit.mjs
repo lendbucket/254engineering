@@ -22,6 +22,7 @@
  * the very front of the suite.
  */
 import fs from "node:fs";
+import { readSource } from "./lib/read-source.mjs";
 import path from "node:path";
 import { isProduction, refOf, describeTarget, PRODUCTION_REF, DEVELOPMENT_REF } from "./lib/db-target.mjs";
 import {
@@ -100,7 +101,7 @@ const files = scriptFiles("scripts");
 const offenders = [];
 for (const file of files) {
   if (file.endsWith(path.join("lib", "db-target.mjs"))) continue;
-  const source = fs.readFileSync(file, "utf8");
+  const source = readSource(file);
   if (/from\s+["']@supabase\/supabase-js["']/.test(source)) offenders.push(file);
 }
 rec(
@@ -109,10 +110,102 @@ rec(
   offenders.join(", "),
 );
 
+/*
+ * ===========================================================================
+ * THE QUEUE DRAIN REFUSAL IS DECLARED ONCE, AND EVERY WORKER RUNNER READS IT.
+ * Operator ruling, 2026-09-10.
+ * ===========================================================================
+ *
+ * runBatch claims BATCH_SIZE rows of ANY kind, so a script that runs a worker
+ * over a queue it does not own sends other people's mail. That happened twice
+ * on 2026-09-09, at 05:21 and at 23:08, for 55 emails.
+ *
+ * The refusal that fixed it was then COPIED into a second script, which is how
+ * a safety mechanism starts to drift. This asserts the copy is gone and cannot
+ * come back: any script calling runBatch must get its batches from
+ * scripts/lib/queue-drain.mjs.
+ *
+ * Read as a COVERAGE check rather than a pattern hunt. It does not try to
+ * recognise a hand rolled refusal, which is exactly the guessing game the
+ * timestamp declaration above stopped playing. It asks a simpler question with
+ * no false negatives: who calls runBatch, and does each of them read the
+ * shared module.
+ */
+{
+  const DRAIN = "lib/queue-drain.mjs";
+  const drainFile = files.find((f) => f.endsWith(path.join("lib", "queue-drain.mjs")));
+
+  rec(
+    "the shared queue drain module exists",
+    Boolean(drainFile),
+    drainFile ?? "scripts/lib/queue-drain.mjs is missing, so the callers below have nowhere to read it from",
+  );
+
+  const runsAWorker = files.filter((f) => {
+    if (f.endsWith(path.join("lib", "queue-drain.mjs"))) return false;
+    /*
+     * AND THIS FILE IS NOT A CALLER, IT IS THE CHECK.
+     *
+     * Its own code carries the strings "runBatch" and "ops-jobs" on one line,
+     * because that is what the predicate below looks for. Stripping comments
+     * does not help: this is genuine code. Naming the exclusion is honest and
+     * a cleverer predicate would only be a longer way to say the same thing.
+     */
+    if (f.endsWith(path.join("db-guard-audit.mjs"))) return false;
+    const src = readSource(f);
+    /*
+     * IT IMPORTS runBatch, WHICH IS THE ONLY WAY TO CALL IT, AND COMMENTS DO NOT
+     * COUNT.
+     *
+     * Two wrong versions preceded this one and both were the same mistake.
+     *
+     * The first asked whether the file MENTIONED runBatch and named six files.
+     * Three do not run a worker at all: audit.mjs describes one in a comment,
+     * jobs-audit.mjs holds the function's SOURCE in a local variable to match
+     * against, and this file matched its own string literals.
+     *
+     * The second asked for a line naming both runBatch and the jobs module,
+     * which is what an import looks like, and this file matched AGAIN, on the
+     * sentence explaining the rule. A check that reads its own explanation is
+     * the wording defect this repository keeps meeting, one level up.
+     *
+     * So comments are stripped first and the question is asked of the code. A
+     * line naming both is an import or a destructured dynamic import, and there
+     * is no third way to get the function.
+     */
+    const code = src
+      .split("\n")
+      .filter((line) => {
+        const t = line.trim();
+        return !t.startsWith("*") && !t.startsWith("//") && !t.startsWith("/*");
+      })
+      .join("\n");
+    return code
+      .split("\n")
+      .some((line) => line.includes("runBatch") && line.includes("ops-jobs"));
+  });
+
+  rec(
+    `there are scripts that run a worker (${runsAWorker.length})`,
+    runsAWorker.length > 0,
+    runsAWorker.map((f) => f.split(/[\/]/).pop()).join(", ") ||
+      "a coverage check over an empty set passes forever",
+  );
+
+  const notReading = runsAWorker.filter((f) => !readSource(f).includes(DRAIN));
+  rec(
+    "every script that runs a worker gets its batches from the shared refusal",
+    notReading.length === 0,
+    notReading.length
+      ? `${notReading.join(", ")}: runs a worker without reading ${DRAIN}, which is how 55 emails went out`
+      : `${runsAWorker.length} caller(s), one refusal`,
+  );
+}
+
 // Every script that does touch a database must name itself to the guard, so a
 // refusal says which audit tried rather than just that something did.
-const users = files.filter((f) => /auditClient\(/.test(fs.readFileSync(f, "utf8")));
-const unnamed = users.filter((f) => /auditClient\(\s*\)/.test(fs.readFileSync(f, "utf8")));
+const users = files.filter((f) => /auditClient\(/.test(readSource(f)));
+const unnamed = users.filter((f) => /auditClient\(\s*\)/.test(readSource(f)));
 rec(
   `every database using script names itself in the refusal (${users.length} scripts)`,
   unnamed.length === 0,
@@ -127,7 +220,7 @@ rec(
  * flag that carries it.
  */
 {
-  const rolesSource = fs.readFileSync(path.join("scripts", "roles-audit.mjs"), "utf8");
+  const rolesSource = readSource(path.join("scripts", "roles-audit.mjs"));
   rec(
     "roles-audit declares neverProduction, so no flag can point it at production",
     /auditClient\(\s*["']roles-audit["']\s*,\s*\{[^}]*neverProduction:\s*true/.test(rolesSource),
@@ -473,9 +566,8 @@ rec(
      * inside the function that builds the Stripe client, so there is no path to
      * the provider that goes around it.
      */
-    const stripeSource = fs.readFileSync(
+    const stripeSource = readSource(
       path.join(process.cwd(), "src", "lib", "payments-stripe.ts"),
-      "utf8",
     );
     rec(
       "the live key check is inside the function that builds the Stripe client",
@@ -502,7 +594,7 @@ rec(
    * render is a convention; this one is in the function that builds the client,
    * so there is no way to a connection that goes around it.
    */
-  const supabaseSource = fs.readFileSync(path.join(process.cwd(), "src", "lib", "supabase.ts"), "utf8");
+  const supabaseSource = readSource(path.join(process.cwd(), "src", "lib", "supabase.ts"));
   rec(
     "the check is called where the client is built, not only in a screen",
     /refuseIfMispointed\(\);/.test(supabaseSource),
@@ -602,7 +694,7 @@ rec(
     ["src/app/portal/(app)/layout.tsx", "the portal footer"],
     ["src/app/portal/(app)/status/page.tsx", "the status page"],
   ]) {
-    const source = fs.readFileSync(path.join(process.cwd(), ...file.split("/")), "utf8");
+    const source = readSource(path.join(process.cwd(), ...file.split("/")));
     rec(
       `${what} shows the label rather than the build mode`,
       /environmentLabel\(\)/.test(source) && !/\{ENVIRONMENT\}|\$\{ENVIRONMENT\}/.test(source),
@@ -614,7 +706,7 @@ rec(
    * And ENVIRONMENT itself is left alone, because faults are grouped by it and
    * regrouping every historic fault to fix a footer would be the wrong trade.
    */
-  const obs = fs.readFileSync(path.join(process.cwd(), "src", "lib", "ops-observability.ts"), "utf8");
+  const obs = readSource(path.join(process.cwd(), "src", "lib", "ops-observability.ts"));
   rec(
     "and fault grouping still uses the build mode it always did",
     /export const ENVIRONMENT = process\.env\.VERCEL_ENV \?\? process\.env\.NODE_ENV/.test(obs) &&
@@ -625,7 +717,202 @@ rec(
 
 console.log("================ DATABASE TARGET GUARD ================");
 console.log(`configured target: ${current ? describeTarget(current) : "unset"}\n`);
+// ===========================================================================
+// NO RECORDED MOMENT COMES FROM A PROCESS CLOCK.
+//
+// Operator ruling, 2026-09-09, after queue-audit measured this machine running
+// 85 seconds ahead of the database. Everything the queue decides is decided by
+// the DATABASE's now(); everything the application stamped was written with the
+// machine's. The gap had already produced two defects before anybody measured
+// it, and both were found as puzzles rather than as clock problems.
+//
+// This lives with the database guard because it is the same kind of rule: what
+// this platform is allowed to write to a database, enforced by something that
+// reads the whole tree rather than by whoever remembers.
+//
+// It matches an assignment shaped like a recorded moment, name_at, and nothing
+// else. A COMPUTED time is arithmetic the application did and should look like
+// it, so payable_at: new Date(input.payableAtMs) is deliberately not matched:
+// the moment it describes is not now and never was.
+// ===========================================================================
+{
+  const offenders = [];
+  /*
+   * TWO SHAPES, AND THE SECOND WAS FOUND THE HARD WAY.
+   *
+   * The first is a literal in an object. The second is an assignment onto a
+   * patch object, which is how a column that is only SOMETIMES written gets
+   * set: patch.paid_at = now.
+   *
+   * Only the first was matched at first, and the miss was in the worst place
+   * available. setLedgerStatus is the one operator side BULK write in this
+   * platform, and it stamped approved_at and paid_at on up to three hundred
+   * technician payment rows from this machine's clock in a single press. It was
+   * found by surveying bulk operations for Section 1 rather than by this check,
+   * which is the argument for the check matching both.
+   */
+  /*
+   * ===========================================================================
+   * A PATTERN COULD NOT SEE TWELVE OF THESE, SO THIS IS A DECLARATION INSTEAD.
+   * ===========================================================================
+   *
+   * The pattern that used to live here matched a literal column name followed
+   * immediately by the machine clock:
+   *
+   *   /[a-z_]+_at(:|s*=)s*(new Date().toISOString()|now|...)/
+   *
+   * It was widened once already, after setLedgerStatus was found stamping three
+   * hundred technician payment rows from this machine in one press. It was
+   * still wrong, and on 2026-09-10 an overnight sweep found THIRTEEN stored
+   * timestamps it could not see. Every one of them hid the same way: the
+   * machine clock was not adjacent to the column name.
+   *
+   *   patch[stamp] = new Date().toISOString()        a COMPUTED key, and this
+   *                                                  one wrote sealed_at
+   *   [field]: value ? new Date()... : null          a computed key and a ternary
+   *   price_overridden_at: x ? new Date()... : null  a TERNARY
+   *   captured_at: input.capturedAt ?? new Date()... a FALLBACK
+   *   started_at: input.startedAt || new Date()...   a fallback
+   *   run_after: new Date().toISOString()            the name does not end in _at
+   *   const paidAt = new Date()...; { paid_at: paidAt }   a VARIABLE
+   *
+   * sealed_at is when a named Professional Engineer put their seal on the
+   * firm's regulatory output. paid_at is when a customer's money arrived.
+   * Both were written from a clock measured 85 seconds ahead of the database.
+   *
+   * ==========================================================================
+   * A PATTERN WRONG TWICE THE SAME WAY IS THE WRONG MECHANISM.
+   * Operator ruling, 2026-09-10, and it is the sentence this declaration exists
+   * under rather than a remark about one regex.
+   * ==========================================================================
+   *
+   * A pattern that has been wrong twice in the same way is the wrong mechanism.
+   * So the rule is inverted, into the declared inventory idiom this repository
+   * uses for surfaces, migrations and bulk paths: EVERY use of the machine
+   * clock in src/ is declared here with what it is for, and anything
+   * undeclared fails. A pattern has to guess which uses are writes. A
+   * declaration makes somebody say so.
+   *
+   * Adding a machine clock call is now a decision somebody writes down, which
+   * is the only thing that would have caught any of the thirteen.
+   */
+  const ALLOWED = {
+    "src/app/api/cron/health-watch/route.ts": "checkedAt on an in memory health report, returned and never stored",
+    "src/app/api/portal/exports/route.ts": "the date in a downloaded file's NAME",
+    "src/app/portal/(app)/jobs/[id]/CaptureClient.tsx":
+      "the DEVICE's clock, which is the honest answer to when a photograph was taken and is not a server's to decide",
+    "src/app/portal/(app)/partners/[id]/PartnerActions.tsx": "default values in a form, in the browser, twice",
+    "src/lib/deletion-requests.ts": "a date inside a sentence written into a note",
+    "src/lib/job-handlers.ts": "a local now for comparison; the writes beside it send DB_NOW",
+    "src/lib/launch.ts":
+      "today, to ask whether the firm registration has expired. A comparison, not a stored value: nothing in " +
+      "the compliance gate writes a row, and an expiry read a second late is still the same date.",
+    "src/lib/ops-dashboard.ts": "three comparisons against ages, reading rather than writing",
+    "src/lib/ops-docs.ts":
+      "generatedAt on an in memory binder manifest, and two date cells in a CSV a person reads",
+    "src/lib/ops-engineer.ts": "today, for comparison",
+    "src/lib/ops-field.ts": "today for comparison, and the YYYY-MM period a ledger row is bucketed under",
+    "src/lib/ops-observability.ts": "a comparison and an in memory health report",
+    "src/lib/ops-payments.ts": "sealedAt as a rendered phrase inside an email, never a column",
+  };
+
+  const machineClock = [];
+  const walkSrc = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = dir + "/" + entry.name;
+      if (entry.isDirectory()) walkSrc(full);
+      else if (/\.tsx?$/.test(entry.name)) {
+        const rel = full.split("\\").join("/");
+        for (const line of readSource(full).split("\n")) {
+          if (/new Date\(\)\.toISOString\(\)/.test(line)) {
+            machineClock.push({ rel, line: line.trim().slice(0, 100) });
+          }
+        }
+      }
+    }
+  };
+  walkSrc("src");
+
+  for (const hit of machineClock) {
+    if (!ALLOWED[hit.rel]) offenders.push(hit.rel + ": " + hit.line);
+  }
+
+  /*
+   * AND THE DECLARATION IS SWEPT BACK, so a reason recorded for a use that no
+   * longer exists is removed rather than left standing. A stale exemption is a
+   * reason nobody will ever question, which is the failure native-audit's
+   * accounted list already records.
+   */
+  const usedFiles = new Set(machineClock.map((h) => h.rel));
+  const staleAllowances = Object.keys(ALLOWED).filter((f) => !usedFiles.has(f));
+  rec(
+    "no file is excused for a machine clock call it no longer makes",
+    staleAllowances.length === 0,
+    staleAllowances.join(", ") || Object.keys(ALLOWED).length + " allowance(s), every one still used",
+  );
+
+  rec(
+    "there are machine clock calls to sweep (" + machineClock.length + ")",
+    machineClock.length > 0,
+    "a sweep with nothing to sweep passes forever",
+  );
+
+  rec(
+    "no observed timestamp in src/ is written from this process's clock",
+    offenders.length === 0,
+    offenders.length
+      ? offenders.length + ": " + offenders.slice(0, 3).join(" | ")
+      : "every one sends DB_NOW, which Postgres resolves to transaction_timestamp()",
+  );
+
+  /*
+   * And the mechanism is what it claims to be. Without this the check above is
+   * only asserting that a particular string is absent, which a typo in DB_NOW
+   * would satisfy perfectly while writing the word "nwo" into a timestamp
+   * column on every row.
+   */
+  rec(
+    "and DB_NOW is the literal Postgres resolves against its own clock",
+    /export const DB_NOW = "now";/.test(readSource("src/lib/db-now.ts")),
+    "verified against the development database rather than taken from documentation",
+  );
+
+  /*
+   * The count, because a sweep with nothing to sweep would pass every run while
+   * meaning nothing. This is the vacuous-check trap this repository keeps
+   * meeting, and stating the number is how the green stays cheap to read.
+   */
+  let governed = 0;
+  const countSrc = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = dir + "/" + entry.name;
+      if (entry.isDirectory()) countSrc(full);
+      else if (/\.tsx?$/.test(entry.name)) {
+        governed += (readSource(full).match(/_at(:| =) DB_NOW/g) ?? []).length;
+      }
+    }
+  };
+  countSrc("src");
+  rec(
+    "and there are timestamps for it to govern (" + governed + ")",
+    governed > 30,
+    "if this were zero the check above would be passing over an empty tree",
+  );
+}
+
+/*
+ * EVERY CHECK IS PRINTED, AND THIS LOOP USED TO SIT IN THE MIDDLE OF THE FILE.
+ *
+ * It ran before the last five checks were even declared, so those five were
+ * counted in the total and never shown. The audit could report "FAIL: 1 of 84"
+ * and name nothing, which is the worst thing a red board can say: it tells you
+ * something is wrong and refuses to tell you what.
+ *
+ * Found 2026-09-10 when a check added after it went red. The checks before it
+ * had always printed, so nobody had met the gap.
+ */
 for (const r of out) console.log(`  ${r.ok ? "PASS" : "FAIL"}: ${r.name}${r.note ? ` (${r.note})` : ""}`);
+
 const failed = out.filter((r) => !r.ok);
 console.log("");
 if (failed.length === 0) {

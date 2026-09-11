@@ -12,7 +12,8 @@ import { answerChallenge, beginEnrolment, confirmEnrolment, mfaStateFor } from "
 import { breakGlassMatches, breakGlassConfigured } from "@/lib/ops-mfa-breakglass";
 import { clearEnrolment } from "@/lib/ops-mfa";
 import { writeAudit } from "@/lib/ops-audit";
-import { qrSvg } from "@/lib/qr";
+import { captureError } from "@/lib/ops-observability";
+import { qrSvg, qrFits, qrByteLength, QR_MAX_BYTES } from "@/lib/qr";
 import { takeLoginAttempt, clientKey } from "@/lib/ops-rate-limit";
 import { supabaseAdmin } from "@/lib/supabase";
 import { homeFor } from "@/lib/ops-authz";
@@ -100,7 +101,53 @@ export async function POST(request: NextRequest) {
      * The QR is rendered HERE, on the server, from the otpauth uri. Nothing
      * about the secret reaches a third party, and the browser receives inert
      * markup rather than a library and a string to encode itself.
+     *
+     * ENROLMENT NEVER RETURNS A 500. Operator ruling, 2026-09-10.
+     *
+     * This called qrSvg directly, and qrSvg throws on a payload it cannot fit.
+     * The otpauth URI carries the person's EMAIL ADDRESS, so a long enough
+     * address made the URI too big and the throw became a 500 on the one
+     * request standing between somebody and a second factor. Measured: a short
+     * address is already 165 bytes and a 68 character one is 222, against a
+     * ceiling of 214. The headroom is about eleven bytes past a fifty character
+     * address, and the encoder's own error called that range "every otpauth
+     * URI".
+     *
+     * So the question is ASKED before the encoder is called, and the refusal
+     * names the limit and the number. qrSvg still throws, which is right for a
+     * pure encoder; what was wrong was a route turning that into a 500.
+     *
+     * It is recorded rather than only returned, because a person who cannot
+     * enrol will not report it as anything more specific than "it did not
+     * work", and this is the only place that knows why.
+     *
+     * WHAT THIS COSTS THE PERSON, and it is worth being exact. Every role ships
+     * with mfa_requirement "optional", so somebody refused here signs in
+     * normally and is not locked out. A role set to require a factor WOULD lock
+     * them out, and the sentence says so rather than leaving them to discover
+     * it. The encoder is extended in the commit after this one, which removes
+     * the refusal for every address the platform accepts.
      */
+    if (!qrFits(started.uri)) {
+      const bytes = qrByteLength(started.uri);
+      await captureError(
+        new Error(
+          `otpauth URI is ${bytes} bytes, over the ${QR_MAX_BYTES} byte QR ceiling, so enrolment was refused for ${profile.email}`,
+        ),
+        { route: "/api/portal/mfa", kind: "mfa.qr_too_large", level: "error" },
+      );
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            `A second factor could not be set up for this account. The code that an authenticator app scans has to carry ` +
+            `your email address, and at ${bytes} bytes this one is over the ${QR_MAX_BYTES} byte limit the code can hold. ` +
+            `Nothing about your account has changed and you can sign in as usual. Tell the operator, quoting this message.`,
+        },
+        { status: 422 },
+      );
+    }
+
     return NextResponse.json({
       ok: true,
       secret: started.secret,

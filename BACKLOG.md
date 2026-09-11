@@ -27,6 +27,71 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
+## ONE PORTAL GATE IS DECIDED BY A ROLE NAME, NOT BY A GRANT
+
+Found 2026-09-10 by the overnight sweep's Round 3, which opens one screen each
+role is NOT offered and reads what happens. Full reasoning in
+`docs/overnight-report.md` section 7.2; this is the pointer.
+
+`src/app/portal/(app)/certification/page.tsx:38`
+
+```ts
+if (!can(actor, "evidence.capture") && actor?.role !== "admin") notFound();
+```
+
+The shell offers an administrator 26 of the 28 destinations in NAV, and
+Certification is not one of them, because NAV gates it on `evidence.capture`
+and only `field_tech` holds that grant. The page opens for an administrator
+anyway, at HTTP 200. It is the one place in the portal where whether a screen
+opens is decided by comparing a role KEY to a string; every other role name
+comparison in the sweep is display rather than a door.
+
+**Why it is not fixed.** It needs a ruling. Deleting the escape hatch is the
+obvious change and it takes the screen away from administrators, which may not
+be intended. Granting them `evidence.capture` instead gives them capture as
+well as read, so the honest fix may be a new read grant, and inventing a grant
+is not a thing to do unattended overnight.
+
+## THREE COMPLIANCE SENTENCES ON THE SIBLING SITES, FOUND OVERNIGHT
+
+Found on 2026-09-10 by the overnight sweep's Round 2, which reads the three live
+deployments signed out and matches them against `scripts/lib/regulatory.mjs`,
+the declaration both gates are stated in.
+
+**The reasoning lives in two briefs, one per sibling repository, and they are
+the first item for those sessions:**
+
+- `docs/brief-sealedengineering.md`
+- `docs/brief-stampmyplans.md`
+
+Each quotes its sentences exactly, with the paragraphs around them, says what is
+wrong with each one and what this sweep did NOT check on that site. Full quotes
+also appear in `docs/overnight-report.md` section 3a. This is the pointer and
+not a third copy.
+
+**Why it is not fixed here, and will not be.** Operator ruling, 2026-09-10: the
+sibling sites are not touched from this repository, ever. The briefs are carried
+across by hand, into those repositories, in those sessions.
+
+| Where | The sentence | The pattern |
+| --- | --- | --- |
+| sealedengineering.com/ | "Engineering work is performed under the license and registration of 254 Engineering Services LLC." | states the engineering is being carried out now, passive |
+| sealedengineering.com/contact | "All engineering work is performed under that entity's license and registration." | the same, but the pending disclosure is on the next line |
+| stampmyplans.com/terms | "we decline work outside the competence of our engineers" | plural engineer fiction |
+
+**The decision that would be made, recorded rather than taken.** The third is
+the sharpest: "our engineers" states a fact about staffing, and no licensed PE
+is on staff. The second is arguably already honest, because "Firm registration
+pending with the Texas Board of Professional Engineers and Land Surveyors"
+follows it immediately. The first is the same sentence as the second WITHOUT
+that adjacent qualifier.
+
+**What this repository can and did do about it.** Round 2 originally carried
+seven hand written patterns of its own and found only the third. Replacing them
+with the declared twenty two found the other two on the first honest run, which
+is the argument for the declared inventory idiom made on a live deployment
+rather than in a test.
+
 ## SECTION 4'S SECTION 0: FOUR DEBTS, AND THEY ARE ALL THE SAME DEBT
 
 Ruled at the gates of Phase 12 Section 3. All four are taken at the START of
@@ -43,6 +108,150 @@ four the answer was right for reasons nobody had stated.
 | 2 | The schema fingerprint's four blind spots | "the schema matches", meaning only its column shapes match |
 | 3 | `mobile-overflow-audit` has no third verdict | "this page overflows", meaning the page did not load |
 | 4 | Line endings decide what a source check matches | "the code says this", meaning the file arrived this way |
+
+### THE 35 EMAILS, 2026-09-09, AND THE ONE THING THAT IS STILL OPEN
+
+**What happened.** The first version of `scripts/queue-audit.mjs` enqueued its
+probes as the oldest eligible work, which was right, and then called `runBatch`
+several times, which was not. `runBatch` claims BATCH_SIZE rows of ANY kind.
+Once the probes were consumed every later call took backlog, and 35 `email.send`
+jobs that had been sitting pending on development since 2026-09-04 ran for real:
+18 `apply.notification` to `ceo@36west.org` and 17 `apply.confirmation` to
+`forms.audit@254engineering.com`. **Nobody outside the firm received one, and
+that was luck rather than design.**
+
+It is the second time in one day. The retention dry run earlier did the same
+thing and sent twenty.
+
+**What is closed.** Three things, and each answers a different question.
+
+- `eng_jobs.effect_mode` (migration 0038) puts on the ROW what a job is
+  permitted to do, so it stops being a property of whichever process ran it.
+- `ourBatch()` in queue-audit REFUSES to run a batch unless every row the claim
+  would take belongs to that run. Section 3 already ruled that a board must
+  refuse to drain over a backlog; this file did not carry the rule and now does.
+- Development's waiting jobs of every outward-reaching kind were marked
+  `no_external_effect`: 347 `email.send`, 54 `notification.deliver`. Nothing was
+  deleted and nothing was marked done. queue-audit asserts that none is ever
+  `live` again, so the hazard cannot quietly return.
+
+**What is still open, and it is the reason this entry exists.** The backlog
+itself, and the fact that **it regenerates on every board run**.
+
+Development is carrying **525 pending jobs** from months of audit runs, 133 of
+them `report.export` still marked `live`, and nothing on development ever drains
+the queue. Marking the waiting ones suppressed fixed the rows that existed and
+not the source: `forms-audit` walks the real application form, the application
+enqueues a real `email.send` at `live` because that is exactly what it should do
+for a real submission, and four more appeared while this was being written.
+queue-audit caught them in the act, which is the check working, and it means the
+check goes red on the board after next unless somebody keeps sweeping by hand.
+
+The options, and each has a real cost:
+
+- **Drain it under suppression on a schedule.** Cheapest, and it makes
+  development's queue behave like a queue instead of a midden.
+- **Let retention sweep `eng_jobs` on development.** The declaration already
+  permits deleting from `eng_jobs`; nothing schedules it.
+- **Suppress outward-reaching kinds by default when the deployment is
+  development.** Tempting and the most dangerous: it makes production and
+  development behave differently on the one path where a silent difference
+  means a customer never hears from the firm.
+
+**Nothing is done here without a ruling.** Draining is a decision about somebody
+else's queued work, even when that somebody is an audit from last Tuesday, and
+the third option changes what the platform does depending on where it runs.
+
+### BULK TABLE ACTIONS: TWO OF THE THREE DRAWN ACTIONS NEED A RULING
+
+Phase 12 Section 4, Section 1. The full reconciliation is in
+`docs/bulk-actions-reconciliation.md` and this is the pointer, not a second copy
+of it.
+
+The approved prototype draws a selection toolbar on the Files screen with three
+buttons: Export, Assign, Dispatch. Read against the code as CLAUDE.md section 2c
+requires, they describe three different situations.
+
+- **Export** is a capability the platform does not have and can have. Built in
+  Section 1.
+- **Assign** is an operation this platform deliberately does not have. Nothing
+  gives a file to a person; both `assigned_engineer_id` and `assigned_tech_id`
+  are written only when somebody ACCEPTS work. The engineer half is the record
+  of responsible charge, which 0039 has just made a RESTRICT foreign key.
+  **Refused unless the operator rules otherwise**, and the refusal belongs in
+  Section 2 as a thing bulk must not do.
+- **Dispatch** is half real. Sending offers exists; sending them for many files
+  means choosing technicians without a person looking, which is a decision about
+  who gets paid. **Needs a ruling** on the selection rule before it is built.
+
+### B2B CSV IMPORT: THE FILE UPLOAD IS DEFERRED, THE DEFECT IS NOT
+
+Phase 12 Section 4, Section 1. Full reasoning in
+`docs/bulk-actions-reconciliation.md` section 5; this is the pointer.
+
+Most of a CSV import has existed since Phase 8: `/account/order` takes pasted
+properties, one per line, and `splitBatch` prices and qualifies each. What is
+missing is a FILE, a header row and a column mapping.
+
+**The live money defect that parser had is fixed** and is not what is deferred:
+it split on commas, so an address with a suite number put a city in the county
+column, and the county decides the coastal surcharge and the protocol.
+
+**Deferred because a file brings its own questions**, none of which the defect
+should have waited behind: which encodings, what happens to a header row
+somebody did or did not include, whether a column mapping screen is needed, and
+what a five thousand row file does to one request.
+
+### BULK MESSAGING: REFUSED, AND WHAT IS ACTUALLY WANTED EXISTS
+
+Phase 12 Section 4, Section 1, refused at gate 1's reconciliation. Reasoning in
+`docs/bulk-actions-reconciliation.md` section 4.
+
+A thread hangs off a FILE and its messages are the record of what the firm told
+a client about that client's job. One sentence posted into fifty of them is a
+statement about fifty pieces of work by somebody who read none of them, and it
+reads to each recipient as being about their property. Same shape as the Assign
+refusal: the bulk action is not the single action many times, it is a different
+act that resembles it.
+
+**What is wanted is almost certainly an announcement**, and `ops-announce.ts`
+is already that. Nothing is being built here; the entry exists so the next
+person asking for bulk messaging finds the reasoning rather than the gap.
+
+### THIS MACHINE'S CLOCK IS 85 SECONDS AHEAD OF THE DATABASE
+
+Found by `queue-audit` on 2026-09-09, measured rather than guessed: a row is
+inserted, the database's own `created_at` default is read back, and the gap is
+reported with the round trip stated so the figure's precision is honest.
+
+**Why it matters.** Everything about the queue is decided by the DATABASE's
+`now()`: which rows are eligible, whether a lease has expired, when a retry may
+run. Everything the application stamps is written with THIS machine's. An 85
+second gap means a job enqueued to run now is ineligible for 85 seconds, and a
+lease that has expired here is still live there.
+
+It has already produced two defects. Phase 8 Section 2 found four jobs enqueued
+and claimed a moment later that were claimed by nothing, and `ops-jobs.ts`
+carries that lesson: `run_after` is only written when a delay was actually
+asked for, so the column default applies and the DATABASE stamps it. Section 4
+found the second: a probe lease written at "a minute ago" on this machine had
+not expired on the database, and the audit reported that a crashed worker's job
+is never reclaimed. It is. The check was measuring the gap between two clocks.
+
+**The operator is resyncing the clock.** The code consequence was ruled
+separately and is done: `src/lib/db-now.ts`, and 68 observed timestamps across
+26 files now carry the string `now`, which Postgres resolves to
+`transaction_timestamp()`. No recorded moment comes from a process clock any
+more. Proven end to end rather than from documentation: a row written through
+PostgREST came back stamped 85 seconds behind what this machine would have
+written.
+
+**What is still open is narrower and it is not about this laptop.** A DURATION
+computed as (local now minus a database timestamp) still carries whatever gap
+exists, and `ops-engineer` computes review `minutes` that way. With a synced
+machine that is seconds; on a serverless instance that came up moments ago it
+is whatever NTP has managed. Moving it needs the arithmetic to happen in the
+database, which is an RPC, and it is a smaller prize than the timestamps were.
 
 ### 4. Line endings, and the cause as well as the symptom
 
@@ -251,11 +460,23 @@ The script now counts what else is waiting and refuses to drain over a backlog,
 which fixes the tool and not the queue. The queue itself is still a pile of work
 that will all run the first time anything drains it.
 
-What closing it needs: a decision about whether those 399 should be run or
-marked dead, and then either a scheduled drain on development or a rule that
-development does not queue email at all. The second is probably right, and it is
-a bigger change than it sounds, because "does the email path work" is a thing
-several audits ask.
+**Half of this is closed, 2026-09-09.** The operator refused "development does
+not queue email" for the reason that makes it tempting: it would make
+production and development behave differently on the one path where a silent
+difference means a customer never hears from the firm. What was ruled instead
+is suppression BY ACTOR, and it is built: `src/lib/fixture-identity.ts`, read
+by `queueEmail` from the message's own `to` and `replyTo`, so work about a
+person who does not exist is `no_external_effect` at creation and work about a
+real one still sends. It needs nobody to remember, which is the property that
+matters, because remembering has now failed twice at a cost of 55 emails.
+
+**What is still open is the pile itself.** 526 rows that predate the rule, and
+the question is unchanged: run them or mark them dead. Nothing here decides
+that, because it is a decision about somebody else's queued work even when
+that somebody is an audit from last Tuesday. `queue-audit` now REFUSES TO
+START if any outward reaching job it did not create is claimable, so the pile
+cannot hurt anybody while the decision waits, and it says so loudly rather
+than working around it.
 
 ### What development now carries permanently, and why each row is there
 
@@ -851,23 +1072,41 @@ role: that the session survives the NEXT request. Signing in and being signed in
 are different facts, and the sign in check answered 200 with a Set-Cookie for
 all seven roles while four of them were already dead.
 
-## The cutover, deferred by decision, and two defects the dry run found
+## The cutover, REOPENED 2026-09-10, and two defects the dry run found
 
-### The database cutover is deferred. Not blocked.
+### The database cutover is reopened and moves ahead of Section 6.
 
-Operator ruling, 2026-09-07. The full record is in
-`docs/production-cutover-plan.md`, under a notice at the top of the file.
+Operator ruling, 2026-09-10. The full record is in
+`docs/production-cutover-plan.md`, under a notice at the top of the file. This
+is the pointer, not a second copy.
 
-The reason is a decision rather than an obstacle: the sibling repositories and
-their deployments are not to be touched right now, and step 8b cannot be done
-honestly without them. Deferred and blocked are different states and only one of
-them asks the next session to look for a way through.
+**The reason, in the operator's words:** the firm can now take money and has no
+restore path. TBPELS issued firm registration F-29811 the same day.
 
-**Steps 1, 2 and 3 are done.** The new project `qmvcqvkywmkogxbyzsaz` holds
-migrations 0000 through 0023, verified against every checkpoint in CLAUDE.md
-section 6b, and all five buckets, all private. It holds no rows and no storage
-objects. Production was not touched by any of it and is serving exactly what it
-served before. Ten dollars a month is the cost of holding the option open.
+**Nothing has been executed.** Steps 1 and 3 remain done, every step that writes
+anything remains unrun, and the next action is the operator's word.
+
+**What the reopening changed, and each is stated in the plan:**
+
+- **Step 2 is no longer done. It is eighteen migrations short.** The new project
+  holds 0000 through 0023; the repository is at 0041. Both fingerprints to
+  verify after the replay are in the step.
+- **DECISION A is open and is the operator's:** whether the OLD production gets
+  0038 through 0041 at all, given gate 2's ruling 6 said merge then apply, and
+  that ruling predates this one. The plan states what it would do and why it is
+  not its decision.
+- **Step 8b is confirmation rather than construction.** The intake API is built;
+  what is unknown is the state of the two sibling DEPLOYMENTS, and each must be
+  in one of two named states before step 9.
+- **Step 15 is new: the restore path.** The original sequence ended at step 14
+  and never built one, so a cutover run exactly as written would have moved the
+  firm onto a new database with the same gap that prompted the move.
+
+**What is at stake, read from production on 2026-09-10:** zero files, zero
+orders, zero documents, zero ledger rows. The irreplaceable set is 2 profiles, 2
+leads, 1 application, one enrolled second factor and **477 audit events** that
+the table refuses to let anyone delete. Everything else is telemetry. This is
+the smallest the migration will ever be.
 
 ### RESOLVED: copy-project.mjs could not see the objects it was meant to copy, and reported agreement
 

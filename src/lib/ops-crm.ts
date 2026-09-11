@@ -1,8 +1,16 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { supabaseAdmin } from "./supabase";
 import { writeAudit, diffOf, safeDiff } from "./ops-audit";
 import { canSeeFile, redactFile, visibleFiles, type Actor, actionsFor } from "./ops-authz";
-import { canTransition, formatFileNumber, STATUS_TIMESTAMP, type FileStatus } from "./ops-files";
+import {
+  canTransition,
+  formatFileNumber,
+  formatDemoFileNumber,
+  DEMO_FILE_SEGMENT,
+  STATUS_TIMESTAMP,
+  type FileStatus,
+} from "./ops-files";
 import { accrueForDelivery, accrueForQualifiedLead } from "./ops-partner-comp";
 import { resolveCounty, twiaStatus, regionForCounty } from "./ops-counties";
 
@@ -80,6 +88,8 @@ export type FileRow = {
   client_price_cents?: number | null;
   tech_cost_cents?: number | null;
   engineer_cost_cents?: number | null;
+  /* Only filesByIds fills this. A screen does not need it and an export does. */
+  is_demo?: boolean;
   /**
    * The partner attributed to this file, or null.
    *
@@ -276,6 +286,40 @@ export async function listFiles(
   return ((data ?? []) as FileRow[]).map((f) => redactFile(actor, f));
 }
 
+/**
+ * The files behind a set of ids, through the SAME scope the list uses.
+ *
+ * Phase 12 Section 4, Section 1. A bulk export is handed ids by a browser, and
+ * a browser is not allowed to decide which files somebody may read. This exists
+ * so the export cannot reimplement the scoping rule: it is the one in
+ * scopedFileQuery, and there is one of it.
+ *
+ * WHY IT CARRIES is_demo AND listFiles DOES NOT
+ * ----------------------------------------------
+ * A screen does not need it; an export does, because a demonstration row that
+ * reaches a spreadsheet unnamed is one of the four defects Phase 12 Section 2
+ * found by reading a CSV. Added here rather than to FILE_COLUMNS so no existing
+ * caller's shape changes for a column only this path reads.
+ */
+export async function filesByIds(actor: Actor | null, ids: string[]): Promise<FileRow[]> {
+  if (!actor || ids.length === 0) return [];
+  const db = supabaseAdmin();
+  if (!db) return [];
+
+  const scoped = await scopedFileQuery(actor);
+  if (!scoped) return [];
+
+  const { data } = await scoped.query.in("id", ids);
+  const rows = ((data ?? []) as FileRow[]).map((f) => redactFile(actor, f));
+
+  /* is_demo, for the rows the scope actually allowed. A second read rather than
+   * a widened select, and scoped by the ids that survived the first. */
+  const allowed = rows.map((r) => r.id);
+  if (allowed.length === 0) return rows;
+  const { data: flags } = await db.from("eng_files").select("id, is_demo").in("id", allowed);
+  const demo = new Map((flags ?? []).map((f) => [f.id as string, f.is_demo === true]));
+  return rows.map((r) => ({ ...r, is_demo: demo.get(r.id) ?? false }));
+}
 export async function getFile(actor: Actor | null, id: string): Promise<FileRow | null> {
   const db = supabaseAdmin();
   if (!db || !actor) return null;
@@ -396,17 +440,84 @@ export async function createFile(
    * exclusion is structural rather than a rule somebody has to remember, which
    * is the only kind that survives.
    */
-  const { data: highest } = await db
+  /*
+   * ============================================================================
+   * A DEMONSTRATION ACTOR PRODUCES A DEMONSTRATION FILE.
+   * Operator ruling, 2026-09-10. The seeder should not be the only thing that
+   * can mark one.
+   * ============================================================================
+   *
+   * Found by opening a file through this function during an overnight path
+   * walk. The client was "Demo Split Client 418364" with is_demo true, and the
+   * file came out as 254-2026-0001 with is_demo FALSE: a demonstration record
+   * that every report counts as real work. It could not even be corrected
+   * afterwards without renumbering, because eng_files_demo_number_agrees
+   * requires (file_number like '%-DEMO-%') = is_demo, and that constraint is
+   * right: the flag and the number must not be able to disagree.
+   *
+   * It is decided by the ACTOR rather than by the client, which is the same
+   * shape as the suppression rule: effect_mode is decided at enqueue from the
+   * identity the work is about, and a bulk action cannot become a bulk send by
+   * being pointed at the wrong rows. Here, a seeded actor cannot mint a real
+   * file by being pointed at a real client.
+   *
+   * SYSTEM_AUTHOR is not a demonstration. The order engine takes real money and
+   * has no is_demo, so it falls through to false, which is what it should be.
+   *
+   * This cannot bite production, where no demonstration profile exists. It bites
+   * development, where every path walk and audit that opened a file was
+   * inflating the real figures, which is the class Phase 12 Section 2 already
+   * found once as a sales tile counting a seeded client.
+   */
+  const isDemo = "is_demo" in actor && actor.is_demo === true;
+
+  /*
+   * The two blocks are numbered separately and must be, because DEMO is a word
+   * where the year goes. A demonstration file's sequence comes from the DEMO
+   * block; a real one's comes from the year. Reading the year's highest number
+   * to mint a demonstration file would give it a real sequence, and reading the
+   * demonstration block to mint a real one would be worse.
+   */
+  /*
+   * THE HIGHEST NUMERIC SEQUENCE, NOT THE HIGHEST STRING.
+   *
+   * This read one row, ordered by file_number descending as text, and took the
+   * part after the last dash as a number. That is correct while every number in
+   * the block ends in four digits, and the DEMO block does not:
+   *
+   *   254-DEMO-STANDING      the standing fixture
+   *   254-DEMO-SPL418364     a split client fixture
+   *   254-DEMO-WALK0910      renamed by hand after a path walk
+   *
+   * Text descending puts every one of those ABOVE 254-DEMO-0003, so the read
+   * returned a name, Number("WALK0910") was NaN, the guard below turned NaN
+   * into 0, and the five retries tried 0001 to 0005. Three were taken by the
+   * seeder, so opening a third demonstration file failed with "Could not
+   * allocate a file number. Try again." every time.
+   *
+   * Found immediately after this function learned to mint demonstration
+   * numbers, by building three files for the dispatch comparison and watching
+   * the third refuse. Nothing could have found it before, because nothing but
+   * the seeder had ever written a DEMO number, and the seeder writes them as
+   * literals.
+   *
+   * So the sequence is the MAXIMUM of the numeric tails rather than the tail of
+   * the maximum name. A bounded page rather than every row: real numbers are
+   * zero padded to a fixed width, so text order and numeric order agree there
+   * and the first row is already the answer; the page exists for the DEMO block,
+   * where a handful of named fixtures sit on top.
+   */
+  const { data: numbered } = await db
     .from("eng_files")
     .select("file_number")
-    .like("file_number", `%-${year}-%`)
+    .like("file_number", isDemo ? `%-${DEMO_FILE_SEGMENT}-%` : `%-${year}-%`)
     .order("file_number", { ascending: false })
-    .limit(1);
+    .limit(200);
 
-  const lastSequence = highest?.[0]?.file_number
-    ? Number(String(highest[0].file_number).split("-").pop())
-    : 0;
-  const nextSequence = Number.isFinite(lastSequence) ? lastSequence : 0;
+  const sequences = (numbered ?? [])
+    .map((r) => Number(String(r.file_number).split("-").pop()))
+    .filter((n) => Number.isFinite(n));
+  const nextSequence = sequences.length ? Math.max(...sequences) : 0;
 
   /*
    * Retries are for the collision two simultaneous intakes cause, which is a
@@ -415,11 +526,16 @@ export async function createFile(
    * also make a short run of taken numbers plausible.
    */
   for (let attempt = 0; attempt < 5; attempt++) {
-    const fileNumber = formatFileNumber(year, nextSequence + 1 + attempt);
+    const fileNumber = isDemo
+      ? formatDemoFileNumber(nextSequence + 1 + attempt)
+      : formatFileNumber(year, nextSequence + 1 + attempt);
     const { data, error } = await db
       .from("eng_files")
       .insert({
         file_number: fileNumber,
+        /* Set together with the number, because the check constraint requires
+         * them to agree and a row that fails it is a row nobody can save. */
+        is_demo: isDemo,
         client_id: input.clientId,
         service_slug: input.serviceSlug,
         property_address: input.propertyAddress.trim(),
@@ -443,7 +559,9 @@ export async function createFile(
          * "somebody changed it and we lost who".
          */
         price_overridden_by: input.priceOverrideReason ? actor.id : null,
-        price_overridden_at: input.priceOverrideReason ? new Date().toISOString() : null,
+        /* DB_NOW. When a price was overridden is a money fact, and the
+         * ternary is why the src sweep could not see this one. */
+        price_overridden_at: input.priceOverrideReason ? DB_NOW : null,
         payment_intent: input.paymentIntent ?? "unset",
         payment_note: input.paymentNote || null,
         converted_from_lead_id: input.fromLeadId || null,
@@ -537,8 +655,22 @@ export async function transitionFile(
   if (!verdict.ok) return { ok: false, error: verdict.reason };
 
   const patch: Record<string, unknown> = { status: to };
+  /*
+   * DB_NOW, AND THIS IS THE ONE THE RULING NAMED.
+   *
+   * STATUS_TIMESTAMP maps a status to its column, and one of them is
+   * sealed_at: when a named Professional Engineer put their seal on the firm's
+   * regulatory output. The others are dispatched_at, refused_at,
+   * evidence_submitted_at, delivered_at and closed_at.
+   *
+   * All six were written from this process's clock, which was measured 85
+   * seconds ahead of the database on 2026-09-10, against three independent time
+   * sources. db-guard-audit's sweep could not see it because the column name is
+   * a COMPUTED KEY: its pattern matches a literal name followed by the machine
+   * clock, and there is no literal name on this line to match.
+   */
   const stamp = STATUS_TIMESTAMP[to];
-  if (stamp) patch[stamp] = new Date().toISOString();
+  if (stamp) patch[stamp] = DB_NOW;
 
   const { error } = await db.from("eng_files").update(patch).eq("id", id).eq("status", current.status);
   if (error) return { ok: false, error: error.message };

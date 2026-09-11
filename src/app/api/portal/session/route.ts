@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { DB_NOW } from "@/lib/db-now";
 import { verifyCredentials, requestContext } from "@/lib/ops-auth";
 import { issueOpsSession, opsCookieOptions, OPS_COOKIE, opsSessionConfigured } from "@/lib/ops-session";
 import { mfaRequirementFor, mfaStateFor } from "@/lib/ops-mfa";
@@ -208,7 +209,7 @@ export async function POST(request: NextRequest) {
   const db = supabaseAdmin();
   await db
     ?.from("eng_profiles")
-    .update({ last_sign_in_at: new Date().toISOString() })
+    .update({ last_sign_in_at: DB_NOW })
     .eq("id", result.profile.id);
 
   const { ip, userAgent } = await requestContext();

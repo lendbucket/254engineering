@@ -27,7 +27,15 @@
  */
 
 import jsQR from "jsqr";
-import { qrMatrix, qrSvg } from "../../src/lib/qr.ts";
+import {
+  qrMatrix,
+  qrSvg,
+  qrFits,
+  qrByteLength,
+  qrVersionFor,
+  QR_MAX_BYTES,
+  QR_VERSION_CAPACITIES,
+} from "../../src/lib/qr.ts";
 import { otpauthUri, newTotpSecret } from "../../src/lib/totp.ts";
 
 /**
@@ -126,14 +134,139 @@ function bitmap(matrix, scale = 4, quiet = 4) {
   rec(`a ${long.length} character uri round trips`, roundTrip(long) === long);
 
   /* Beyond what this encoder covers, it must THROW rather than emit a QR that
-   * silently carries the wrong header. */
+   * silently carries the wrong header.
+   *
+   * The length comes from the table rather than a literal. It used to be 400,
+   * which was past the ceiling when the encoder stopped at version 10 and is
+   * comfortably inside it now that it reaches 17. A check asserting a throw
+   * that no longer happens goes red, which is what this one did; the same check
+   * written at a number that HAPPENED to still be over would have gone quiet
+   * instead, which is worse. */
   let threw = false;
   try {
-    qrMatrix("x".repeat(400));
+    qrMatrix("x".repeat(QR_MAX_BYTES + 1));
   } catch {
     threw = true;
   }
   rec("something too long throws rather than encoding wrongly", threw, "a wrong character count header would produce a scannable code carrying nonsense");
+}
+
+  say("\nEVERY VERSION BOUNDARY, AT ITS EXACT CAPACITY");
+{
+  /*
+   * ==========================================================================
+   * THE PROOF THE RULING ASKED FOR.
+   * ==========================================================================
+   * Operator ruling, gate 2: the encoder extended to the version that fits the
+   * longest address the platform accepts, "proven the way the original was, by
+   * the independent decoder, every version boundary crossed".
+   *
+   * A version is CHOSEN by payload length, so the way to cross a boundary is to
+   * encode a payload of exactly the length that selects each version and decode
+   * it. The encoder reserves two codewords for the byte mode header and the
+   * character count, so version V is selected by a payload of exactly
+   * dataCodewords(V) - 2 bytes, and one byte more selects V + 1.
+   *
+   * This is where a wrong ecPerBlock or a wrong alignment table shows. Both
+   * produce a code that renders perfectly and decodes to nothing, which is the
+   * failure that shipped twice in this file's history: once for a missing
+   * version information block at version 7, and once for an 8 bit character
+   * count at version 10. Versions below the break were fine both times, which
+   * is exactly why every boundary is crossed rather than a couple of samples.
+   */
+  const capacities = QR_VERSION_CAPACITIES;
+
+  let crossed = 0;
+  const failures = [];
+  for (const { version, maxBytes } of capacities) {
+    /*
+     * Deterministic, ASCII, and NOT a repeated character: a payload of one
+     * repeated byte is the easiest thing in the world for a broken interleaver
+     * to get right by accident, because every block holds the same value.
+     */
+    const payload = Array.from({ length: maxBytes }, (_, i) =>
+      String.fromCharCode(33 + ((i * 7 + version) % 94)),
+    ).join("");
+
+    const chosen = qrVersionFor(payload);
+    if (chosen !== version) {
+      failures.push(`${maxBytes} bytes chose version ${chosen}, expected ${version}`);
+      continue;
+    }
+    const back = roundTrip(payload);
+    if (back !== payload) {
+      failures.push(
+        `version ${version} at ${maxBytes} bytes decoded to ${back === null ? "nothing" : `${back.length} bytes that differ`}`,
+      );
+      continue;
+    }
+    crossed += 1;
+  }
+
+  rec(
+    `every version is exercised at its exact capacity (${crossed} of ${capacities.length})`,
+    crossed === capacities.length,
+    failures.join(" | ") ||
+      `versions ${capacities[0].version} to ${capacities[capacities.length - 1].version}, ${capacities[0].maxBytes} to ${capacities[capacities.length - 1].maxBytes} bytes`,
+  );
+
+  /*
+   * AND ONE BYTE MORE MUST CHOOSE THE NEXT VERSION, which is the boundary
+   * itself rather than the capacity either side of it. Without this, a table
+   * whose versions all decoded but whose capacities were understated would pass
+   * every check above while quietly using a larger symbol than it needs.
+   */
+  const stepped = [];
+  for (let i = 0; i < capacities.length - 1; i += 1) {
+    const justOver = capacities[i].maxBytes + 1;
+    const payload = "z".repeat(justOver);
+    const chosen = qrVersionFor(payload);
+    if (chosen !== capacities[i + 1].version) {
+      stepped.push(`${justOver} bytes chose ${chosen}, expected ${capacities[i + 1].version}`);
+    }
+  }
+  rec(
+    "and one byte past each capacity steps to the next version",
+    stepped.length === 0,
+    stepped.join(" | ") || `${capacities.length - 1} boundaries`,
+  );
+}
+
+  say("\nTHE LONGEST ADDRESS THE PLATFORM ACCEPTS");
+{
+  /*
+   * The platform sets no limit of its own: eng_profiles.email is `text` and no
+   * input carries a maxLength, so the ceiling is the standard's. RFC 5321
+   * allows 64 octets of local part and 255 of domain, 320 with the @.
+   *
+   * This is the case the whole extension exists for. Before it, this address
+   * produced a 500 at enrolment.
+   */
+  const local = "a".repeat(64);
+  const domain = `${"b".repeat(251)}.com`;
+  const longest = `${local}@${domain}`;
+  rec("the address under test is the RFC 5321 maximum", longest.length === 320, `${longest.length} characters`);
+
+  const uri = otpauthUri(newTotpSecret().base32, longest, "254 Engineering Services");
+  rec(
+    `its otpauth uri is ${uri.length} bytes, inside what the encoder holds`,
+    qrFits(uri),
+    `${qrByteLength(uri)} bytes against a ceiling of ${QR_MAX_BYTES}`,
+  );
+  rec("and it round trips through the independent decoder", roundTrip(uri) === uri, `version ${qrVersionFor(uri)}`);
+
+  /*
+   * A pathological local part, every character one the URI has to percent
+   * encode, so the label expands. It measures the same, because the label was
+   * already encoded, and asserting that is cheaper than assuming it.
+   */
+  const nasty = `${"!".repeat(64)}@${domain}`;
+  const nastyUri = otpauthUri(newTotpSecret().base32, nasty, "254 Engineering Services");
+  rec(
+    "and so does one whose every local character percent encodes",
+    qrFits(nastyUri) && roundTrip(nastyUri) === nastyUri,
+    `${qrByteLength(nastyUri)} bytes, version ${qrVersionFor(nastyUri)}`,
+  );
 }
 
   say("\nAND THE SVG IS THE SAME MATRIX");

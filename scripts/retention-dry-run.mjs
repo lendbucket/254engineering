@@ -43,6 +43,8 @@ process.loadEnvFile?.(".env.local");
  * modules, which is the point.
  */
 import { auditClient } from "./lib/db-target.mjs";
+import { makeBatchRunner } from "./lib/queue-drain.mjs";
+import { BATCH_SIZE } from "../src/lib/job-rules.ts";
 import { planRetention, manifestById, sweepable } from "../src/lib/ops-retention.ts";
 import { enqueue, runBatch } from "../src/lib/ops-jobs.ts";
 
@@ -117,7 +119,7 @@ for (const table of tables) {
   if (!queued.ok) { failures += 1; continue; }
 
   /*
-   * DRAINING RUNS OTHER PEOPLE'S JOBS, SO IT ASKS FIRST.
+   * DRAINING RUNS OTHER PEOPLE'S JOBS, SO IT ASKS THE SHARED REFUSAL.
    *
    * The queue's claim takes the oldest eligible rows of ANY kind, which is
    * correct for a worker and wrong for a diagnostic tool: the first version of
@@ -126,32 +128,78 @@ for (const table of tables) {
    * Resend accepted every one of them. Twenty emails went out because a
    * retention dry run wanted to see its own job finish.
    *
-   * So it counts what else is waiting and refuses to drain over a backlog. The
-   * job is queued either way, which is the part that matters: the sweep runs
-   * through the durable queue, and this script never calls the sweep itself.
+   * IT THEN GREW ITS OWN REFUSAL, AND THAT REFUSAL HAD AN ESCAPE HATCH.
+   *
+   * It counted pending jobs of other kinds and refused to drain over them
+   * unless --drain was passed. Operator ruling, 2026-09-10: one refusal,
+   * declared once, every caller reading it. This file was the third caller and
+   * was not on the list, found by making the coverage check precise.
+   *
+   * Its hand rolled version was weaker in the way that matters. --drain
+   * overrode it completely, and the next twenty batches would then claim
+   * whatever was oldest. A flag that says "yes, send other people's mail" is
+   * the foot gun that already fired once here.
+   *
+   * SO THE TWO GUARDS NOW DO DIFFERENT JOBS, and both are kept:
+   *
+   *   --drain says whether to run a worker AT ALL. Default is no, and the
+   *     message below is unchanged: the job is queued either way, and the
+   *     sweep runs through the durable queue when the queue next runs.
+   *
+   *   the shared refusal says whether draining is SAFE, by asking whether the
+   *     next batch would take a row this run did not create. That question is
+   *     not a flag's to answer, so --drain can no longer override it.
    */
-  const others = await db
-    .from("eng_jobs")
-    .select("id", { count: "exact", head: true })
-    .in("status", ["pending", "running"])
-    .neq("kind", "retention.sweep");
-
-  if ((others.count ?? 0) > 0 && !process.argv.includes("--drain")) {
+  if (!process.argv.includes("--drain")) {
+    const others = await db
+      .from("eng_jobs")
+      .select("id", { count: "exact", head: true })
+      .in("status", ["pending", "running"])
+      .neq("kind", "retention.sweep");
     console.log("");
-    console.log(`  NOT DRAINING. The queue holds ${others.count} pending job(s) of other kinds, and`);
-    console.log("  the worker claims the oldest eligible row whatever its kind, so draining here");
-    console.log("  would run all of them. Job is queued and will run when the queue next runs.");
-    console.log("  Pass --drain to run the queue anyway, knowing what that sends.");
+    console.log(`  NOT DRAINING. The queue holds ${others.count ?? 0} pending job(s) of other kinds, and`);
+    console.log("  the worker claims the oldest eligible row whatever its kind. Job is queued");
+    console.log("  and will run when the queue next runs.");
+    console.log("  Pass --drain to run the worker, which will still refuse to claim work it");
+    console.log("  did not create.");
     continue;
   }
 
+  /*
+   * Only the job this run just enqueued. The runner refuses any batch whose
+   * next rows are not in this set, which is the whole guarantee.
+   */
+  const mine = new Set([queued.id]);
+  const runner = makeBatchRunner({
+    db,
+    created: mine,
+    batchSize: BATCH_SIZE,
+    runBatch,
+    worker: "retention-dry-run",
+  });
+
   let worked = { claimed: 0, done: 0, retried: 0, dead: 0 };
+  let refusedToDrain = false;
   for (let pass = 0; pass < 20; pass += 1) {
-    const r = await runBatch("retention-dry-run");
-    worked = { claimed: worked.claimed + r.claimed, done: worked.done + r.done, retried: worked.retried + r.retried, dead: worked.dead + r.dead };
+    const r = await runner.ourBatch(String(pass));
+    if (r === null) {
+      refusedToDrain = true;
+      break;
+    }
+    worked = {
+      claimed: worked.claimed + r.claimed,
+      done: worked.done + r.done,
+      retried: worked.retried + r.retried,
+      dead: worked.dead + r.dead,
+    };
     if (r.claimed === 0) break;
     const check = await manifestById(m.id);
     if (check && check.status !== "planned") break;
+  }
+  if (refusedToDrain) {
+    console.log("");
+    console.log(`  DID NOT DRAIN: ${runner.lastRefusal}`);
+    console.log("  The sweep job is queued and will run when the queue next runs.");
   }
   console.log(
     `  the worker claimed ${worked.claimed} job(s): ${worked.done} done, ${worked.retried} retried, ${worked.dead} dead`,

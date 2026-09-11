@@ -1,4 +1,5 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import { writeAudit } from "./ops-audit";
@@ -317,7 +318,7 @@ export async function issueStatement(
 
   await db
     .from("eng_statements")
-    .update({ status: "issued", issued_at: new Date().toISOString(), due_at: dueAt })
+    .update({ status: "issued", issued_at: DB_NOW, due_at: dueAt })
     .eq("id", statementId);
 
   await writeAudit({
@@ -453,7 +454,7 @@ export async function markStatementPaid(input: {
 
   await db
     .from("eng_statements")
-    .update({ status: "paid", paid_at: new Date().toISOString() })
+    .update({ status: "paid", paid_at: DB_NOW })
     .eq("id", input.statementId);
 
   await writeAudit({

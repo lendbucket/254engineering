@@ -27,8 +27,11 @@
  */
 
 import fs from "node:fs";
+import { readSource } from "./lib/read-source.mjs";
 import { chromium } from "playwright";
-import { allPages } from "./lib/surfaces.mjs";
+import { navigationVerdict, sayCouldNotTell, orCouldNotTell, COULD_NOT_TELL } from "./lib/reachable.mjs";
+import { assertNavigationVerdictHolds } from "./proofs/unreachable-is-not-failed.mjs";
+import { allPages, sourceDirsOf } from "./lib/surfaces.mjs";
 import {
   createProbe,
   cookieFor,
@@ -70,8 +73,17 @@ const SCREENS = allPages()
     kind: p.session === "partner" ? "partner" : "staff",
   }));
 
+/* The rule that decides failure from unreachable, before anything is measured. */
+assertNavigationVerdictHolds();
+
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
+/*
+ * Screens that never loaded. Whether the portal behaves as an application is a
+ * question about a rendered shell, and a navigation that never completed
+ * produced none. Third list, not a failure: scripts/lib/reachable.mjs.
+ */
+const unmeasured = [];
 
 console.log("");
 console.log("================ THE NATIVE STANDARD AT 390 ================");
@@ -148,7 +160,7 @@ console.log(`${BASE}, ${SCREENS.length} signed in screens\n`);
 
   const found = {};
   for (const file of files) {
-    const code = fs.readFileSync(file, "utf8");
+    const code = readSource(file);
     const hits = [...code.matchAll(/hidden[^"'`]*?\b(?:lg|xl):(?:flex|block|inline|inline-flex|grid|table|table-cell)/g)];
     if (hits.length) found[file.split("\\").join("/")] = hits.length;
   }
@@ -181,10 +193,21 @@ console.log(`${BASE}, ${SCREENS.length} signed in screens\n`);
   );
 }
 
+/*
+ * SIGNING FOUR PROBES IN NEEDS A SERVER, and without this an absent one
+ * throws out of the first fetch as an uncaught rejection and the audit dies
+ * with a stack trace having measured nothing. Same three verdicts as the route
+ * level ones below, one step earlier. See scripts/lib/reachable.mjs.
+ */
 const sessions = {};
-for (const role of ["admin", "engineer", "field_tech"]) {
-  sessions[role] = await createProbe(BASE, role, "native-audit");
-}
+await orCouldNotTell(async () => {
+  for (const role of ["admin", "engineer", "field_tech"]) {
+    sessions[role] = await createProbe(BASE, role, "native-audit");
+  }
+}, `the server at ${BASE}`, async () => {
+  await destroyProbes("native-audit");
+  await destroyPartnerProbes("native-audit");
+});
 for (const role of Object.keys(sessions)) {
   rec(`a ${role} session was created`, Boolean(sessions[role]?.cookie));
 }
@@ -195,7 +218,14 @@ for (const role of Object.keys(sessions)) {
  * set password flow, because a partner's password is hashed in the application
  * and an audit that reimplemented that hashing would be measuring its own copy.
  */
-const partnerProbe = await createPartnerProbe(BASE, "native-audit");
+const partnerProbe = await orCouldNotTell(
+  () => createPartnerProbe(BASE, "native-audit"),
+  `the server at ${BASE}`,
+  async () => {
+    await destroyProbes("native-audit");
+    await destroyPartnerProbes("native-audit");
+  },
+);
 rec("a partner session was created", Boolean(partnerProbe?.cookie));
 
 const browser = await chromium.launch();
@@ -223,7 +253,12 @@ for (const screen of SCREENS) {
     await page.goto(BASE + screen.path, { waitUntil: "domcontentloaded", timeout: 45000 });
     await page.waitForTimeout(600);
   } catch (err) {
-    rec(`${screen.path}: loads`, false, String(err.message).split("\n")[0]);
+    const verdict = navigationVerdict(err);
+    if (verdict.unreachable) {
+      unmeasured.push(`${screen.path}: ${verdict.reason}`);
+    } else {
+      rec(`${screen.path}: loads`, false, verdict.reason);
+    }
     await ctx.close();
     continue;
   }
@@ -747,7 +782,12 @@ for (const screen of SCREENS) {
         );
       }
     } catch (err) {
-      rec("the scroll memory check ran", false, String(err.message).split("\n")[0]);
+      const verdict = navigationVerdict(err);
+      if (verdict.unreachable) {
+        unmeasured.push(`the scroll memory check: ${verdict.reason}`);
+      } else {
+        rec("the scroll memory check ran", false, verdict.reason);
+      }
     }
 
     await ctx.close();
@@ -756,12 +796,24 @@ for (const screen of SCREENS) {
 
 await browser.close();
 
-rec("screens were actually measured", measured > 0, `${measured} of ${SCREENS.length}`);
-rec(
-  "the pressed state result is not vacuous",
-  screensWithControls >= 12,
-  `${totalControls} control(s) across ${screensWithControls} of ${measured} screens; the rest render empty states because the probe accounts hold no data`,
-);
+/*
+ * "NO SCREENS WERE MEASURED" IS A FAILURE ONLY WHEN THERE WERE SCREENS.
+ *
+ * With the server gone every screen is unreachable, and these two would report
+ * that the portal renders no controls and that nothing was measured, which
+ * reads as a portal that has stopped working and means there was no portal.
+ * Same misread as a route level "did not load", one level up.
+ */
+if (measured === 0 && unmeasured.length) {
+  unmeasured.push(`no screen loaded, so none of ${SCREENS.length} was measured as an application`);
+} else {
+  rec("screens were actually measured", measured > 0, `${measured} of ${SCREENS.length}`);
+  rec(
+    "the pressed state result is not vacuous",
+    screensWithControls >= 12,
+    `${totalControls} control(s) across ${screensWithControls} of ${measured} screens; the rest render empty states because the probe accounts hold no data`,
+  );
+}
 
 /*
  * BOTH SETS OF PROBES, AND THE PARTNER ONE IS THE ONE THAT CAN REFUSE.
@@ -773,6 +825,114 @@ rec(
  * something a person has to look at.
  */
 
+/* ------------------- a phone card is not a link wrapped around another link */
+
+/*
+ * NO RecordTable PASSES BOTH A rowHref AND A CARD THAT CONTAINS A LINK.
+ *
+ * RecordTable renders the phone view as a stack of cards and wraps each one in
+ * a <Link> when it is given a rowHref. A card that carries its own anchor is
+ * then an <a> inside an <a>: invalid HTML, a React hydration error on every
+ * load, and an inner link whose behaviour is whatever the browser decides.
+ *
+ * Found overnight on 2026-09-10 by reading the browser console while walking
+ * the portal as each of the seven roles. /portal/documents logged
+ *
+ *   In HTML, <a> cannot be a descendant of <a>. This will cause a hydration error.
+ *
+ * for admin, engineer and read_only, at both widths. Its card said "Read the
+ * binder" and the wrap went to /portal/files, so the whole card linked
+ * somewhere other than the action written on it. It was ambiguous before it
+ * was invalid.
+ *
+ * This is a SOURCE check rather than a browser one on purpose. The fault is in
+ * the phone view, so a check at 1280 cannot see it, and a check at 390 only
+ * sees the screens that happen to have a row to render. A call site with an
+ * empty table would hide it until the day somebody filed a document.
+ */
+{
+  /*
+   * THE DECLARED SOURCE DIRECTORIES, walked.
+   *
+   * The first version mapped allPages() to x.file, and allPages() has no file
+   * property: its entries carry surface, path, session, probe, role, shell and
+   * name. Every entry mapped to undefined, the filter emptied the list, and the
+   * check swept nothing while reporting green. "there are RecordTable call
+   * sites to check (0)" is the only thing that said so, which is the argument
+   * for the guard rather than for care.
+   */
+  const files = [];
+  const walkSrc = (dir) => {
+    if (!fs.existsSync(dir)) return;
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = `${dir}/${e.name}`;
+      if (e.isDirectory()) walkSrc(full);
+      else if (/\.tsx$/.test(e.name)) files.push(full);
+    }
+  };
+  for (const dir of sourceDirsOf()) walkSrc(dir);
+
+  const callSites = [];
+  const nested = [];
+
+  for (const file of [...new Set(files)]) {
+    const code = readSource(file);
+    if (!/<RecordTable/.test(code)) continue;
+    /*
+     * EACH <RecordTable ...> UP TO THE `/>` THAT CLOSES IT, WHICH IS NOT THE
+     * FIRST ONE.
+     *
+     * The first version matched /<RecordTable[\s\S]*?\/>/ and that is wrong in
+     * a way that passes: a RecordTable's columns are full of self closing JSX,
+     * `<Chip ... />` among them, so the non-greedy match ended a few lines in,
+     * before it ever reached `card=`. The extraction below then found no card,
+     * skipped, and the check reported zero. It was caught by putting the defect
+     * back and watching nothing happen, which is what an injection is for.
+     *
+     * "A line holding only whitespace and `/>`" is not enough either, and that
+     * was the second wrong answer: a `<Chip ... />` inside a column is written
+     * over three lines and closes exactly that way. Its INDENTATION is what
+     * tells the two apart, because a child is always deeper than its parent.
+     *
+     * So the terminator is `/>` at the same indentation as the `<RecordTable`
+     * that opened it, which no descendant can have.
+     */
+    const starts = [...code.matchAll(/^([ \t]*)<RecordTable\b/gm)];
+    for (const m of starts) {
+      const indent = m[1];
+      const rest = code.slice(m.index);
+      const close = rest.match(new RegExp(`\\n${indent}/>[ \\t]*(?:\\n|$)`));
+      const block = close ? rest.slice(0, close.index + close[0].length) : rest;
+      callSites.push(file);
+      if (!/rowHref=/.test(block)) continue;
+      /*
+       * ONLY THE CARD, because only the card is wrapped. The desktop table
+       * renders `columns` in <td>s that no rowHref touches, and those columns
+       * are full of links by design: this same screen has a Read and a CSV link
+       * in one cell. Testing the whole block would flag every call site that
+       * has a link anywhere, which is a check on nothing.
+       */
+      const from = block.indexOf("card=");
+      if (from < 0) continue;
+      const to = block.indexOf("empty=", from);
+      const cardText = block.slice(from, to < 0 ? undefined : to);
+      if (/<a\s|<Link\s/.test(cardText)) nested.push(file);
+    }
+  }
+
+  rec(
+    `there are RecordTable call sites to check (${callSites.length})`,
+    callSites.length > 0,
+    "a check over an empty list passes forever, and this one sweeps the declared pages",
+  );
+  rec(
+    "no phone card is a link wrapped around another link",
+    nested.length === 0,
+    nested.length
+      ? `${[...new Set(nested)].join(", ")}: a rowHref wraps the card in a <Link> and the card carries its own anchor`
+      : "rowHref makes the whole card tappable, which only works when the card has nothing else to tap",
+  );
+}
 const sweptPartners = await destroyPartnerProbes("native-audit");
 rec("the probe partner was removed", sweptPartners.ok, sweptPartners.note);
 
@@ -782,10 +942,20 @@ rec("the probe accounts were removed", swept.ok, swept.note);
 console.log("");
 const failed = out.filter((c) => !c.ok);
 for (const c of failed) console.log(`  FAIL: ${c.name}${c.note ? ` (${c.note})` : ""}`);
+sayCouldNotTell(unmeasured, "the application shell");
 console.log("");
-console.log(
-  failed.length
-    ? `FAIL: ${failed.length} of ${out.length} checks.`
-    : `PASS: ${out.length} checks. The portal behaves as an application at 390.`,
-);
-process.exit(failed.length ? 1 : 0);
+if (failed.length) {
+  console.log(
+    `FAIL: ${failed.length} of ${out.length} checks.` +
+      (unmeasured.length ? ` ${unmeasured.length} screen(s) never loaded and were not measured either way.` : ""),
+  );
+  process.exit(1);
+}
+if (unmeasured.length) {
+  console.log(
+    `COULD NOT TELL: ${out.length} check(s) measured and clean, ${unmeasured.length} screen(s) never loaded.`,
+  );
+  process.exit(COULD_NOT_TELL);
+}
+console.log(`PASS: ${out.length} checks. The portal behaves as an application at 390.`);
+process.exit(0);

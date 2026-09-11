@@ -1,4 +1,5 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import { fingerprintOf, scrubString, scrubValue } from "./observability-scrub";
@@ -112,7 +113,7 @@ export async function captureError(err: unknown, context: ErrorContext = {}): Pr
       await db
         .from("eng_error_types")
         .update({
-          last_seen_at: now,
+          last_seen_at: DB_NOW,
           occurrences: Number(existing.occurrences) + 1,
         })
         .eq("fingerprint", fingerprint);
@@ -121,8 +122,8 @@ export async function captureError(err: unknown, context: ErrorContext = {}): Pr
         fingerprint,
         title: message.slice(0, 200),
         culprit: route,
-        first_seen_at: now,
-        last_seen_at: now,
+        first_seen_at: DB_NOW,
+        last_seen_at: DB_NOW,
         occurrences: 1,
       });
     }
@@ -140,7 +141,7 @@ export async function captureError(err: unknown, context: ErrorContext = {}): Pr
        * and scrubbing at read time would only hide it from the screen.
        */
       extra: context.extra ? (scrubValue(context.extra) as Record<string, unknown>) : null,
-      occurred_at: now,
+      occurred_at: DB_NOW,
     });
   } catch (recordingFailure) {
     /*
@@ -175,7 +176,7 @@ export async function cronStarted(name: string): Promise<number | null> {
     if (!db) return null;
     const { data } = await db
       .from("eng_cron_runs")
-      .insert({ name, started_at: new Date().toISOString() })
+      .insert({ name, started_at: DB_NOW })
       .select("id")
       .single();
     return (data?.id as number) ?? null;
@@ -196,7 +197,7 @@ export async function cronFinished(
     await db
       .from("eng_cron_runs")
       .update({
-        finished_at: new Date().toISOString(),
+        finished_at: DB_NOW,
         ok,
         detail: detail ? scrubString(detail).slice(0, 500) : null,
       })

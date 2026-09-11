@@ -1,4 +1,5 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 
@@ -263,7 +264,7 @@ export async function rollupDay(day: string = dayKey(new Date(Date.now() - 86_40
     day,
     metric,
     value,
-    computed_at: new Date().toISOString(),
+    computed_at: DB_NOW,
   }));
 
   if (rows.length > 0) {

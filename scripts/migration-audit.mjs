@@ -47,7 +47,8 @@
  * is for, and it is checked separately below.
  */
 
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync } from "node:fs";
+import { readSource } from "./lib/read-source.mjs";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { PGlite } from "@electric-sql/pglite";
@@ -63,8 +64,8 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * mistake could have been applied to by hand, which is exactly how 0001 stayed
  * broken for a month. A constant has to be changed by a person who noticed.
  */
-const EXPECTED_FINGERPRINT = "3acd988c07905602e0e091c5b8d329ad";
-const EXPECTED_COLUMNS = 1015;
+const EXPECTED_FINGERPRINT = "1a11138f01f9be2f66251640cfb55b70";
+const EXPECTED_COLUMNS = 1017;
 const EXPECTED_TABLES = 74;
 const EXPECTED_TRIGGERS = 56;
 /**
@@ -111,7 +112,7 @@ rec(
  * too, but a targeted check gives a targeted message.
  */
 for (const f of files) {
-  const body = readFileSync(join(DIR, f), "utf8");
+  const body = readSource(join(DIR, f));
   const dollars = (body.match(/\$\$/g) ?? []).length;
   const lone = (body.match(/^[ \t]*as \$[ \t]*$|^\$;[ \t]*$/gm) ?? []).length;
   const fns = (body.match(/^create or replace function/gm) ?? []).length;
@@ -152,7 +153,7 @@ let replayed = 0;
 let failedAt = null;
 
 for (const f of files) {
-  const sql = readFileSync(join(DIR, f), "utf8");
+  const sql = readSource(join(DIR, f));
   try {
     await db.exec(sql);
     replayed += 1;
@@ -326,7 +327,7 @@ if (failedAt === null) {
      * the idiom email-audit uses for compose(), and a narrative mention inside
      * another helper cannot look like one.
      */
-    const policySrc = readFileSync("src/lib/retention-policy.ts", "utf8");
+    const policySrc = readSource("src/lib/retention-policy.ts");
     const entryStarts = [...policySrc.matchAll(/\{\s*table:\s*"(eng_[a-z0-9_]+)"/g)];
     rec(
       "the declaration's entries can be parsed one at a time",

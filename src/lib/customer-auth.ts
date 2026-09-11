@@ -1,4 +1,5 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { cookies } from "next/headers";
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { supabaseAdmin, SITE_KEY } from "./supabase";
@@ -200,7 +201,7 @@ export async function setCustomerPassword(
    */
   const { data: spent } = await db
     .from("eng_customer_auth_tokens")
-    .update({ used_at: new Date().toISOString() })
+    .update({ used_at: DB_NOW })
     .eq("token_hash", hashToken(token))
     .is("used_at", null)
     .select("id");
@@ -297,7 +298,7 @@ export async function signInCustomer(
 
   await db
     .from("eng_customer_users")
-    .update({ last_sign_in_at: new Date().toISOString() })
+    .update({ last_sign_in_at: DB_NOW })
     .eq("id", user.id);
 
   return { ok: true, principal };

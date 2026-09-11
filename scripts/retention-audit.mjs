@@ -50,6 +50,7 @@
 process.loadEnvFile?.(".env.local");
 
 import { readdirSync } from "node:fs";
+import { inOpenGateProcess } from "./lib/gate-fixture.mjs";
 /*
  * readSource rather than readFileSync, because every pattern below that spans
  * two lines was measuring how the file arrived on disk. This audit passed on
@@ -332,21 +333,51 @@ rec(
 
   const wasLaunch = process.env.LAUNCH_MODE;
 
+  /*
+   * THE OPEN GATE HALF RUNS INSIDE THE FIXTURE, AND RE-IMPORTS.
+   *
+   * Operator ruling 2026-09-10 made the gate a set of named conditions read
+   * from CONFIGURATION, so setting LAUNCH_MODE=live no longer opens it and
+   * these two checks were asserting an open gate against a shut one.
+   *
+   * The re-import is the part that is easy to miss. The register is a module
+   * level constant, so a module already in the graph keeps the value it was
+   * loaded with however the file on disk changes. Patching without
+   * re-importing would leave this passing over the same shut gate it was
+   * failing on, which is worse than the failure.
+   */
   process.env.LAUNCH_MODE = "live";
-  const denied = executeAuthority(actorWith("dispatcher", ["files.list"]));
+  const openGate = await inOpenGateProcess(`
+    const { executeAuthority } = await import("./src/lib/ops-retention.ts");
+    const actor = (role, grants) => ({ id: role + "-1", role, status: "active", grants: new Set(grants) });
+    const denied = executeAuthority(actor("dispatcher", ["files.list"]));
+    const allowed = executeAuthority(actor("admin", ["retention.execute"]), "owner@example.com");
+    answer({
+      denied: { ok: denied.ok, because: denied.because ?? "" },
+      allowed: {
+        ok: allowed.ok,
+        role: allowed.ok ? allowed.authority.actorRole : null,
+        email: allowed.ok ? allowed.authority.actorEmail : null,
+        because: allowed.because ?? "",
+      },
+    });
+  `);
+
   rec(
     "an actor without retention.execute cannot mint the authority to delete",
-    denied.ok === false && /retention\.execute/.test(denied.because),
-    denied.ok ? "IT MINTED ONE" : "and it says which permission is missing",
+    openGate.denied.ok === false && /retention\.execute/.test(openGate.denied.because),
+    openGate.denied.ok ? "IT MINTED ONE" : "and it says which permission is missing",
   );
 
-  const allowed = executeAuthority(actorWith("admin", ["retention.execute"]), "owner@example.com");
   rec(
     "and an administrator can, when the gate is open",
-    allowed.ok === true && allowed.authority.actorRole === "admin" && allowed.authority.actorEmail === "owner@example.com",
-    "the control: a refusal that refuses everybody proves nothing",
+    openGate.allowed.ok === true &&
+      openGate.allowed.role === "admin" &&
+      openGate.allowed.email === "owner@example.com",
+    openGate.allowed.ok
+      ? "the control: a refusal that refuses everybody proves nothing"
+      : `the gate did not open for the fixture: ${openGate.allowed.because}`,
   );
-
   process.env.LAUNCH_MODE = "prelaunch";
   const prelaunch = executeAuthority(actorWith("admin", ["retention.execute"]));
   rec(

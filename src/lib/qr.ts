@@ -44,10 +44,18 @@
  *
  * WHAT IS DELIBERATELY NOT HERE
  * -----------------------------
- * Numeric and alphanumeric modes, kanji, and versions above 10. An otpauth URI
- * is around 100 to 160 bytes of mixed case ASCII, which byte mode encodes and
- * versions 5 to 10 hold comfortably. Implementing modes nothing calls would be
- * more surface with no reader.
+ * Numeric and alphanumeric modes, and kanji. Byte mode encodes an otpauth URI
+ * and the others would be surface with no reader.
+ *
+ * VERSIONS ABOVE 17 ARE ALSO NOT HERE, and the number is a decision rather than
+ * a limit somebody stopped at. The longest address the platform accepts is the
+ * RFC 5321 maximum of 320 characters, its otpauth URI measures 474 bytes, and
+ * version 17 holds 504. Version 16 holds 451 and would refuse it.
+ *
+ * The estimate that used to sit here said "around 100 to 160 bytes", and it was
+ * wrong in the direction that costs: a SHORT address is already 165 bytes. That
+ * sentence is why the encoder stopped at version 10, and a 68 character address
+ * got a 500 at enrolment until 2026-09-10.
  */
 
 /* ---------------------------------------------------------------- galois field */
@@ -158,6 +166,50 @@ const VERSIONS: VersionSpec[] = [
   { version: 8, dataCodewords: 154, ecPerBlock: 22, groups: [[2, 38], [2, 39]] },
   { version: 9, dataCodewords: 182, ecPerBlock: 22, groups: [[3, 36], [2, 37]] },
   { version: 10, dataCodewords: 216, ecPerBlock: 26, groups: [[4, 43], [1, 44]] },
+  /*
+   * ==========================================================================
+   * VERSIONS 11 TO 17, ADDED 2026-09-10, SO THE LONGEST ADDRESS FITS.
+   * ==========================================================================
+   *
+   * Operator ruling: the encoder is extended to the version that fits the
+   * longest address the platform accepts.
+   *
+   * The platform sets no limit of its own. eng_profiles.email is `text` and no
+   * input carries a maxLength, so the honest ceiling is the standard's: RFC
+   * 5321 allows 64 octets of local part and 255 of domain, 320 with the @.
+   *
+   * An otpauth URI for a 320 character address, with this platform's issuer and
+   * a 160 bit secret, measures 474 bytes. Percent encoding does not make it
+   * worse: the label is already encoded and a pathological local part of
+   * reserved characters measures the same 474.
+   *
+   * 474 bytes needs 476 data codewords once the byte mode header and the 16 bit
+   * character count are paid for. Version 16 holds 453 and version 17 holds
+   * 507, so 17 is the answer and there is no reason to go further.
+   *
+   * EVERY ROW BELOW IS THREE NUMBERS THAT HAVE TO AGREE, and that is the only
+   * reason to trust a table typed by hand. For each version:
+   *
+   *   total codewords = dataCodewords + blocks * ecPerBlock
+   *
+   * where total codewords is fixed by the symbol's geometry. Version 11 holds
+   * 404: 254 data plus 5 blocks of 30. Version 17 holds 815: 507 data plus 11
+   * blocks of 28. A typo in any one of the three breaks the identity, and the
+   * assertion under this table checks the groups sum separately.
+   *
+   * AND THE REAL PROOF IS NOT ARITHMETIC. Every one of these versions is
+   * encoded at its exact capacity and decoded by jsQR in
+   * scripts/proofs/qr-decodes-to-what-it-encoded.mjs. A wrong ecPerBlock
+   * produces a code that renders perfectly and decodes to nothing, which is the
+   * failure that shipped twice in this file already.
+   */
+  { version: 11, dataCodewords: 254, ecPerBlock: 30, groups: [[1, 50], [4, 51]] },
+  { version: 12, dataCodewords: 290, ecPerBlock: 22, groups: [[6, 36], [2, 37]] },
+  { version: 13, dataCodewords: 334, ecPerBlock: 22, groups: [[8, 37], [1, 38]] },
+  { version: 14, dataCodewords: 365, ecPerBlock: 24, groups: [[4, 40], [5, 41]] },
+  { version: 15, dataCodewords: 415, ecPerBlock: 24, groups: [[5, 41], [5, 42]] },
+  { version: 16, dataCodewords: 453, ecPerBlock: 28, groups: [[7, 45], [3, 46]] },
+  { version: 17, dataCodewords: 507, ecPerBlock: 28, groups: [[10, 46], [1, 47]] },
 ];
 
 /*
@@ -174,7 +226,103 @@ for (const v of VERSIONS) {
   }
 }
 
-/** Alignment pattern centres per version, versions 5 to 10. */
+/**
+ * Codewords the header costs, which is NOT the same at every version.
+ *
+ * Byte mode is 4 bits, and the character count is 8 bits up to version 9 and 16
+ * bits from version 10. So the header is 12 bits below the break and 20 above
+ * it: one and a half codewords, or two and a half, and both round up.
+ *
+ *   versions 5 to 9    ceil(1.5 + len) = len + 2
+ *   versions 10 and up ceil(2.5 + len) = len + 3
+ *
+ * THIS WAS A FLAT 2 AND IT WAS WRONG ABOVE VERSION 9.
+ *
+ * Every caller reserved two codewords, so a payload within one byte of a
+ * version 10 to 17 capacity was accepted, overflowed the symbol by half a
+ * codeword, and produced a QR that rendered perfectly and decoded to NOTHING.
+ * The same shape as the two failures already recorded in this file: correct for
+ * the small payloads anybody tests by hand, wrong at the boundary.
+ *
+ * It was latent rather than theoretical. The old ceiling was version 10's
+ * dataCodewords - 2, so QR_MAX_BYTES itself named a length that could not be
+ * encoded, and an otpauth URI landing on it would have stranded somebody mid
+ * enrolment with a code their phone would not read.
+ *
+ * Found on 2026-09-10 by encoding every version at its exact capacity and
+ * decoding it with jsQR: versions 5 to 9 passed and 10 to 17 all decoded to
+ * nothing, which is the break in the character count width and nothing else.
+ */
+function headerCodewords(version: number): number {
+  return version >= 10 ? 3 : 2;
+}
+
+/** The largest payload each version can actually hold. */
+function capacityOf(spec: VersionSpec): number {
+  return spec.dataCodewords - headerCodewords(spec.version);
+}
+
+/**
+ * The largest payload this encoder can hold, in bytes.
+ *
+ * Derived from the version table rather than written down, so it cannot drift
+ * away from what the encoder actually does: the last version's data codewords
+ * less the two the byte mode header and the character count occupy.
+ *
+ * WHY IT IS EXPORTED
+ * ------------------
+ * So a caller can ASK before it encodes. qrMatrix still throws on something it
+ * cannot fit, which is right for a pure encoder, and a route that turns a throw
+ * into a 500 is not right for a person trying to enrol. /api/portal/mfa asks
+ * this first and refuses in a sentence naming the limit.
+ *
+ * The number was found the hard way on 2026-09-10. A staff member with a long
+ * enough email address got a 500 at enrolment, because the otpauth URI carries
+ * their address and the error said the encoder "covers versions 5 to 10 in byte
+ * mode, which is every otpauth URI". That claim is false: a SHORT address is
+ * already 165 bytes and a 68 character one is 222.
+ */
+export const QR_MAX_BYTES = capacityOf(VERSIONS[VERSIONS.length - 1]);
+
+/**
+ * Would this text fit? Cheap, allocation free, and the question a caller wants.
+ */
+export function qrFits(text: string): boolean {
+  return new TextEncoder().encode(text).length <= QR_MAX_BYTES;
+}
+
+/** How many bytes this text would need, for a message that says the number. */
+export function qrByteLength(text: string): number {
+  return new TextEncoder().encode(text).length;
+}
+/**
+ * Each version this encoder holds, with the largest payload that selects it.
+ *
+ * Exported for the proof rather than for the app: crossing a version boundary
+ * means encoding at exactly these lengths, and a proof that recomputed them
+ * from its own copy of the table would be comparing the table to itself.
+ * Derived from VERSIONS, so it cannot drift from what the encoder does.
+ */
+export const QR_VERSION_CAPACITIES: { version: number; maxBytes: number }[] = VERSIONS.map((v) => ({
+  version: v.version,
+  maxBytes: capacityOf(v),
+}));
+
+/** Which version this text would be encoded at, or null if it does not fit. */
+export function qrVersionFor(text: string): number | null {
+  const length = new TextEncoder().encode(text).length;
+  return VERSIONS.find((v) => length <= capacityOf(v))?.version ?? null;
+}
+
+
+/**
+ * Alignment pattern centres per version, 5 to 17.
+ *
+ * Level independent: a symbol of a given version has these centres whatever its
+ * error correction level. Every pair of centres gets a pattern except the three
+ * that would sit on a finder, which the placement below skips, so versions 14
+ * and up carry twelve rather than the six a three centre version has.
+ */
 const ALIGNMENT: Record<number, number[]> = {
   5: [6, 30],
   6: [6, 34],
@@ -182,6 +330,13 @@ const ALIGNMENT: Record<number, number[]> = {
   8: [6, 24, 42],
   9: [6, 26, 46],
   10: [6, 28, 50],
+  11: [6, 30, 54],
+  12: [6, 32, 58],
+  13: [6, 34, 62],
+  14: [6, 26, 46, 66],
+  15: [6, 26, 48, 70],
+  16: [6, 26, 50, 74],
+  17: [6, 30, 54, 78],
 };
 
 /* ------------------------------------------------------------------ encoding */
@@ -502,10 +657,10 @@ function applyFormat(g: Grid, mask: number) {
 export function qrMatrix(text: string): boolean[][] {
   const bytes = Array.from(new TextEncoder().encode(text));
 
-  const spec = VERSIONS.find((v) => bytes.length + 2 <= v.dataCodewords);
+  const spec = VERSIONS.find((v) => bytes.length <= capacityOf(v));
   if (!spec) {
     throw new Error(
-      `${bytes.length} bytes is more than this encoder handles. It covers versions 5 to 10 in byte mode, which is every otpauth URI; anything longer needs a bigger version and a 16 bit character count.`,
+      `${bytes.length} bytes is more than this encoder handles, which is ${QR_MAX_BYTES} at version ${VERSIONS[VERSIONS.length - 1].version}. Anything longer needs a version above that. Callers that can refuse politely should ask qrFits first: /api/portal/mfa does.`,
     );
   }
 

@@ -1,4 +1,5 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { cookies } from "next/headers";
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { supabaseAdmin } from "./supabase";
@@ -224,7 +225,7 @@ export async function setPartnerPassword(
    */
   const { data: spent } = await db
     .from("eng_partner_tokens")
-    .update({ used_at: new Date().toISOString() })
+    .update({ used_at: DB_NOW })
     .eq("token_hash", hashToken(token))
     .is("used_at", null)
     .select("id");
@@ -326,7 +327,7 @@ export async function signInPartner(
 
   await db
     .from("eng_partner_users")
-    .update({ last_sign_in_at: new Date().toISOString() })
+    .update({ last_sign_in_at: DB_NOW })
     .eq("id", user.id);
 
   return { ok: true, principal };
