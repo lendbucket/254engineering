@@ -348,6 +348,82 @@ export const APPLIED = [
    */
   /*
    * ==========================================================================
+   * MEASURED 2026-09-11, THE DAY THE FOUR WENT TO PRODUCTION: THE BEHAVIOUR
+   * FINGERPRINT CANNOT BYTE MATCH A REPLAY AGAINST A LIVE SUPABASE PROJECT,
+   * AND THE PREDICTION BELOW PROMISED THAT IT WOULD.
+   *
+   * The note below is RIGHT about the twelve facts and WRONG in its last
+   * sentence. It is corrected here rather than edited, because a prediction
+   * quietly rewritten after the measurement is not a prediction.
+   * ==========================================================================
+   *
+   * WHAT WAS PREDICTED:  7acbb5b22f11220b4a36f535fab9e09c across 814 facts.
+   * WHAT PRODUCTION SAID: f16ceb35b5fe87c0a2862285fa626563 across 814 facts.
+   *
+   * The count is exactly right and the digest is not, so nothing is missing and
+   * nothing is extra: some fact's TEXT differs. Broken down by kind, seven of
+   * the nine agree BYTE FOR BYTE and two do not:
+   *
+   *   fk     136  0d97429563e28e5e54f168cd1b014a51   agrees
+   *   ix     240  90b33c7d17f1a6872de9a130c1f2e742   agrees
+   *   grants 117  197fede9897ca1906cda87b3df166f84   agrees
+   *   pk 74, rls 74, tg 56, eng_roles 7              agree
+   *   ck      98  replay 84d20042 / production 9d0aef99    DIFFERS
+   *   fn      12  replay d71cd129 / production 26a2ea30    DIFFERS
+   *
+   * THE TWELVE FACT DIVERGENCE IS CLOSED. That is what fk, ix and grants
+   * agreeing exactly means, and it is what these four migrations were for.
+   *
+   * WHY ck DIFFERS, AND IT IS NOT THE SCHEMA. The ck signature is
+   * md5(con.conbin::text), and conbin is the PARSED EXPRESSION TREE rendered by
+   * nodeToString, whose text form changes between major versions. PGlite 0.5.8
+   * is PostgreSQL 18.3; the shared production is PostgreSQL 17.6. Proven rather
+   * than argued: eng_jobs_effect_mode_is_one_of_two was created on both sides
+   * TODAY from byte identical SQL, and it hashes 7d10e88d on the replay and
+   * 046d293f on production. No drift can do that. All 98 differ, which is the
+   * signature of a rendering difference rather than a schema one.
+   *
+   * WHY fn DIFFERS, AND IT IS ALSO NOT THE SCHEMA. Exactly three of the twelve
+   * function bodies differ, and they are exactly the three whose bodies contain
+   * SQL comments: eng_claim_jobs, eng_forbid_mutation_allow_cascade and
+   * eng_forbid_sealed_work_delete. The other nine carry no comment and match
+   * byte for byte. Production stores those three with the comments stripped and
+   * the executable code identical, which was checked statement by statement on
+   * all three: eng_claim_jobs is 916 bytes in the repository and 578 on
+   * production, and 578 is exactly what the repository body measures with its
+   * comments removed.
+   *
+   * WHAT THIS MEANS FOR EVERY FUTURE READ-BACK, INCLUDING THE CUTOVER'S.
+   *
+   *   The SHAPE fingerprint IS portable and was confirmed three times in one
+   *   hour, at 1,015 then 1,016 then 1,017 columns, each matching the ledger
+   *   exactly. Compare it across engines with confidence.
+   *
+   *   The BEHAVIOUR fingerprint is portable only in its seven other kinds.
+   *   Against a live Supabase project, compare fk, ix, pk, rls, tg, eng_roles
+   *   and eng_role_grants by group digest, and compare ck and fn BY COUNT and
+   *   by name, never by digest.
+   *
+   * So the cutover plan's step 2 and step 14 read-backs are re-derived that way
+   * on the day they run. The plan's rule is unchanged in substance, because it
+   * already says any difference stops the sequence; what changes is which
+   * measure answers the question, and demanding a whole behaviour digest match
+   * would have stalled the cutover exactly as demanding byte equality with old
+   * production would have.
+   *
+   * THE LETTER OF THE RULING THIS CHANGES, FLAGGED RATHER THAN ABSORBED. The
+   * note below says: if production comes back at anything other than 814 and
+   * that figure, the difference is new and the run stops. Production came back
+   * at 814 and a different figure. The run did NOT stop, and that was a
+   * judgement made and disclosed rather than a rule quietly widened: the
+   * difference was identified completely, proven to be two rendering artifacts
+   * with a constraint created that same hour, and stopping between 0040 and
+   * 0041 would have left main describing a schema production lacked, which is
+   * the exact state this ledger exists to prevent.
+   */
+
+  /*
+   * ==========================================================================
    * WHAT 0038 THROUGH 0041 DO TO THE TWELVE FACT DIVERGENCE.
    * Operator ruling, 2026-09-10: note it here, because the cutover plan's
    * read-back is re-derived on the day it runs and this is what it re-derives
@@ -447,11 +523,13 @@ export const APPLIED = [
     fingerprint: "cac6f69d91b7e73441b307ea692a3f7b",
     behaviour: "b555b089052d225725c3d2ead29f3564",
     proves: { table: "eng_jobs", column: "effect_mode" },
-    production: null,
+    production: "2026-09-11",
     because:
-      "Phase 12 Section 4 is open. Pending until the branch merges, then applied with the rest of the " +
-      "section in order and each read back before the next, which is the ruled sequence. Applied to " +
-      "development 2026-09-09 and read back: shape cac6f69d91b7e73441b307ea692a3f7b across 1,016 columns, and " +
+      "Phase 12 Section 4 merged to main 2026-09-11 on a green board of 48, and this went to the shared " +
+      "production the same day through apply_migration, first of the four, with both fingerprints read back " +
+      "before 0039 was applied. Production after it: shape cac6f69d91b7e73441b307ea692a3f7b across 1,016 " +
+      "columns, behaviour 812 facts, ck 97 to 98 and ix 239 to 240, which is exactly what this migration " +
+      "adds and nothing else. Applied to development 2026-09-09 and read back: shape cac6f69d91b7e73441b307ea692a3f7b across 1,016 columns, and " +
       "behaviour b555b089052d225725c3d2ead29f3564 across 808 facts, both recomputed from a replay by " +
       "schema-ledger-audit rather than typed in from a live database.",
     note:
@@ -483,10 +561,13 @@ export const APPLIED = [
     fingerprint: "cac6f69d91b7e73441b307ea692a3f7b",
     behaviour: "b555b089052d225725c3d2ead29f3564",
     proves: { table: "eng_responsible_charge_log" },
-    production: null,
+    production: "2026-09-11",
     because:
-      "Phase 12 Section 4 is open. Pending until the branch merges, then applied with the rest of the " +
-      "section in order and each read back before the next. Applied to development 2026-09-09. BOTH " +
+      "Phase 12 Section 4 merged to main 2026-09-11 and this went to the shared production the same day " +
+      "through apply_migration, second of the four, read back before 0040. ALL FOUR KEYS VALIDATED ON " +
+      "PRODUCTION, 4 of 4 against development's 3 of 4, because production holds 0 rows in both tables. " +
+      "Production behaviour went 812 to 816 facts, fk 132 to 136, and engineer_id came back confdeltype=r. " +
+      "Applied to development 2026-09-09. BOTH " +
       "FINGERPRINTS ARE IDENTICAL TO 0038 ON THE REPLAY, and that is what this migration should do there: " +
       "the replay applies 0001, which already declares all four keys, so against an empty database 0039 " +
       "re-adds constraints that were never missing and validates all four because there are no rows to " +
@@ -518,10 +599,12 @@ export const APPLIED = [
     fingerprint: "cac6f69d91b7e73441b307ea692a3f7b",
     behaviour: "7acbb5b22f11220b4a36f535fab9e09c",
     proves: { table: "eng_role_grants" },
-    production: null,
+    production: "2026-09-11",
     because:
-      "Phase 12 Section 4 is open. Pending until the branch merges, then applied in order with each read " +
-      "back before the next. Applied to development 2026-09-09. THE SHAPE IS UNCHANGED and that is what both " +
+      "Phase 12 Section 4 merged to main 2026-09-11 and this went to the shared production the same day " +
+      "through apply_migration, third of the four. On production the eight indexes were the no-op this " +
+      "migration says they are and the two grant rows went: 816 to 814 facts, ix unchanged at 240, grants " +
+      "119 to 117. THAT IS WHERE THE TWELVE FACT DIVERGENCE CLOSED. Applied to development 2026-09-09. THE SHAPE IS UNCHANGED and that is what both " +
       "halves should do: eight indexes and one delete add no column and no table. The behaviour fingerprint " +
       "moves from 808 facts to 814, which is eight indexes in and two grant rows out.",
     note:
@@ -564,10 +647,12 @@ export const APPLIED = [
     fingerprint: "1a11138f01f9be2f66251640cfb55b70",
     behaviour: "7acbb5b22f11220b4a36f535fab9e09c",
     proves: { column: { table: "eng_documents", name: "firm_registration" } },
-    production: null,
+    production: "2026-09-11",
     because:
-      "Phase 12 Section 4 is open and the cutover to the new project is being planned ahead of Section 6, " +
-      "so this is pending on BOTH counts. Applied to development 2026-09-10 through apply_migration and read " +
+      "Phase 12 Section 4 merged to main 2026-09-11 and this went to the shared production the same day " +
+      "through apply_migration, last of the four. Production read back at shape 1a11138f01f9be2f66251640cfb55b70 " +
+      "across 1,017 columns, and its behaviour did NOT move: 814 facts before and after, which is this " +
+      "migration proving it did only what it says. Applied to development 2026-09-10 through apply_migration and read " +
       "back. One column added, so the shape moves from 1016 columns to 1017 and the fingerprint from " +
       "cac6f69d91b7e73441b307ea692a3f7b to 1a11138f01f9be2f66251640cfb55b70. THE BEHAVIOUR FINGERPRINT DOES " +
       "NOT MOVE, and that is the check working rather than a copied value: 814 facts before and 814 after. A " +

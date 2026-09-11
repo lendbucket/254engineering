@@ -168,6 +168,32 @@ assumed.
 
 ---
 
+### SECOND, A FINDING FROM 2026-09-11 THAT CHANGES HOW BOTH READ-BACKS ARE MEASURED
+
+The twelve facts named below are CLOSED. 0038 through 0041 went to the shared
+production on 2026-09-11 and its foreign keys, indexes and grants now agree with
+the replay byte for byte. A cutover replaying a chain that includes them
+compares against a production that already agrees, which is what the deferral
+ruling anticipated.
+
+What the same run also found is that **a behaviour digest from a PGlite replay
+can never equal one read from a live Supabase project**, for two reasons that
+have nothing to do with this schema: `conbin::text` is rendered differently by
+PostgreSQL 18.3 (PGlite) and 17.6 (Supabase), and the three function bodies
+carrying SQL comments are stored on production with those comments stripped.
+
+**The reasoning, the proof and the per-kind figures are in
+`supabase/applied.mjs`**, immediately above the twelve fact note. It is not
+repeated here, because two accounts of one finding are two accounts that will
+disagree.
+
+What it changes on this page: **step 2 and step 14 compare the SHAPE digest
+whole, and compare behaviour by the seven portable kinds plus counts and names
+for `ck` and `fn`.** The rule that any difference stops the sequence is
+unchanged.
+
+---
+
 ### PHASE 0. THE DRY RUN. NOT OPTIONAL.
 
 Operator ruling: the whole sequence runs against the dev project first, into a
