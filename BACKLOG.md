@@ -218,7 +218,7 @@ act that resembles it.
 is already that. Nothing is being built here; the entry exists so the next
 person asking for bulk messaging finds the reasoning rather than the gap.
 
-### THIS MACHINE'S CLOCK IS 85 SECONDS AHEAD OF THE DATABASE
+### THE MACHINE CLOCK WAS 85 SECONDS AHEAD. RESYNCED 2026-09-11; THE DURATION ARITHMETIC IS STILL OPEN
 
 Found by `queue-audit` on 2026-09-09, measured rather than guessed: a row is
 inserted, the database's own `created_at` default is read back, and the gap is
@@ -238,7 +238,16 @@ found the second: a probe lease written at "a minute ago" on this machine had
 not expired on the database, and the audit reported that a crashed worker's job
 is never reclaimed. It is. The check was measuring the gap between two clocks.
 
-**The operator is resyncing the clock.** The code consequence was ruled
+**RESOLVED ON THE MACHINE, 2026-09-11.** W32Time was running and had never once
+synchronised: leap indicator 3, stratum 0, no last successful sync, and
+`Source: Free-running System Clock`, which is why a bare `w32tm /resync` could
+not fix it and why the first attempt did not take. A manual peer was configured
+and the service restarted. Verified independently rather than from the service,
+three HTTP `Date` headers reading inside one second, and `queue-audit` then
+reported 0s ahead of the database against 85s before. The Section 4 merge was
+held until that check was green, which is the whole argument for the check.
+
+**The operator resynced the clock.** The code consequence was ruled
 separately and is done: `src/lib/db-now.ts`, and 68 observed timestamps across
 26 files now carry the string `now`, which Postgres resolves to
 `transaction_timestamp()`. No recorded moment comes from a process clock any
@@ -252,6 +261,23 @@ exists, and `ops-engineer` computes review `minutes` that way. With a synced
 machine that is seconds; on a serverless instance that came up moments ago it
 is whatever NTP has managed. Moving it needs the arithmetic to happen in the
 database, which is an RPC, and it is a smaller prize than the timestamps were.
+
+### fp-at.mjs IS A USEFUL TOOL SITTING AT THE REPOSITORY ROOT, DECLARED BY NOTHING
+
+Committed with Phase 12 Section 4. It replays the migration chain to any named
+migration and prints BOTH fingerprints, which is exactly what the cutover plan
+re-derives its read-back from and what found the PostgreSQL version artifact on
+2026-09-11. It is worth keeping.
+
+What is wrong with it is where it lives. Nothing in `scripts/lib/surfaces.mjs`
+or anywhere else declares it, nothing references it, and the repository root is
+where a leftover looks identical to a tool. It belongs in `scripts/` with a name
+that says what it does, and its two relative imports move with it.
+
+**Not fixed at the Section 4 close on purpose:** moving a file invalidates the
+green board that merge was made on. It moves on the launch readiness branch,
+which gets its own board run. Full context in
+`docs/phase-12-section-4-close.md` section 6.
 
 ### 4. Line endings, and the cause as well as the symptom
 
