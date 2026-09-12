@@ -430,7 +430,9 @@ export const GAPS = [
     severity: "medium",
     consequence:
       "Faults are recorded in eng_error_events. An INCIDENT, meaning something that affected a person and required a decision, had no shape at all until 0042 gave it one. What is still missing is the PLAN: nothing says who is called, what is decided, or how a customer is told. The table being empty is honest rather than reassuring, because no incident has occurred and the firm has not traded.",
-    ruling: "BUILT 2026-09-12. 0042 adds eng_incidents on development, empty, refusing deletes and requiring a resolved incident to say what was done. The response PLAN is not built and is not something a platform can hold.",
+    ruling:
+      "BUILT 2026-09-12. 0042 adds eng_incidents on development, empty, refusing deletes and requiring a resolved incident to say what was done. The response PLAN is not built and is not something a platform can hold. " +
+      "ONE THING NEEDS THE OPERATOR'S WORD: the table is declared kept_forever in retention-policy.ts and is deliberately NOT in retention-audit's pinned KEPT_FOREVER_BY_RULING, because that list is the operator's own rulings written out as literals and this session cannot put a ruling in their mouth. Adding it there is a one line change.",
   },
   {
     id: "mfa-optional",

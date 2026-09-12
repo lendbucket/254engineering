@@ -333,6 +333,38 @@ export const RETENTION_POLICY: RetentionEntry[] = [
   { table: "eng_file_inputs", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   { table: "eng_files", rule: { kind: "kept_pending_counsel", because: "The central record of the firm's work. " + COUNSEL } },
   {
+    /*
+     * KEPT FOREVER, AND IT WANTS THE OPERATOR'S WORD.
+     *
+     * 0042 added this table during Phase 12 Section 6 and retention-audit
+     * caught it undeclared on the first board run, which is exactly what that
+     * check is for: a table added without a retention rule is a table whose
+     * deletion nobody has decided.
+     *
+     * The rule is kept_forever because an incident record is the firm's account
+     * of something that affected a person and what was decided about it, and a
+     * record of that which expires is not a record. The table already refuses
+     * DELETE at the database, so this declaration agrees with the trigger
+     * rather than adding a promise on top of it.
+     *
+     * IT IS DELIBERATELY NOT IN retention-audit's KEPT_FOREVER_BY_RULING. That
+     * list is the OPERATOR's rulings, written out as literals so no
+     * configuration can shorten them, and this session cannot put a ruling in
+     * the operator's mouth at two in the morning. Adding it there is a one line
+     * change on their word, and docs/soc2-exceptions.md asks for it.
+     */
+    table: "eng_incidents",
+    rule: {
+      kind: "kept_forever",
+      because:
+        REFUSES_RECORD_DELETE +
+        " An incident record is the firm's account of something that affected a person and what was " +
+        "decided about it. A record of that which expires is not a record. Declared by Phase 12 Section 6 " +
+        "and awaiting the operator's word to join the pinned kept-forever list.",
+      ruledBy: "0042, and the trigger. Not yet on the operator's pinned list.",
+    },
+  },
+  {
     table: "eng_jobs",
     rule: {
       kind: "delete_after",
