@@ -620,6 +620,54 @@ ${g.ruling ? `\n**Ruling:** ${g.ruling}` : "\n**No ruling has been made on this.
 
 ---
 
+## 2a. FOUND BY READING A DASHBOARD NO CHECK CAN SEE, 2026-09-12
+
+**Every control in this pack is derived from the repository. The sharpest
+finding of the section was not in the repository at all.**
+
+The operator opened the Vercel environment variable list, which nothing here can
+read, and found that secrets deciding IDENTITY were shared between Preview and
+Production:
+
+| Secret | As found | Why it matters |
+| --- | --- | --- |
+| \`CUSTOMER_SESSION_SECRET\` | All Environments | A customer cookie minted on ANY preview deployment was valid on production |
+| \`PARTNER_SESSION_SECRET\` | Production and Preview, one value | The same, for partners |
+| \`MFA_ENCRYPTION_KEY\` | Production and Preview, one value | A preview could decrypt production second factor secrets |
+| \`RESEND_API_KEY\` | All Environments | A preview deployment could send real mail as the firm |
+| \`OPS_SESSION_SECRET\` | Already split, distinct Preview value | **The correct pattern, applied to one principal of three** |
+
+**Preview URLs are reachable by anybody holding the link.** That is what turns a
+shared session secret from untidy into an authentication bypass.
+
+**The last row is why this was findable.** The right answer already existed in
+the same dashboard, one row away, which is the difference between a defect and a
+design. An audit that could read Vercel would have caught it in a second; no
+audit here can.
+
+**What has been done:** the operator set distinct Preview values for the three
+identity secrets, left Production untouched, and scoped the mail key to
+Production only. \`ADMIN_PASSPHRASE\`, which nothing reads, is deleted from all
+three environments and treated as exposed.
+
+**What is still open:** whether the Preview \`SUPABASE_URL\` names the
+development project ref. A distinct Preview service role key pointing at
+production would be split in form and shared in effect.
+
+**What this pack can now do about it:** \`scripts/lib/soc2-credentials.mjs\`
+records which environments each credential lives in and whether the Preview
+value is distinct, and \`soc2-audit\` fails when any identity or database secret
+is declared as shared. It cannot read Vercel and does not pretend to. What it
+buys is that a future sharing is a deliberate edit to a reviewed file rather
+than a dropdown nobody opens again.
+
+**And a credential nothing reads was invisible to every scan here.** All of them
+start from the source, so they can only find what the code mentions. The scan
+runs both ways now: every name set in an environment file must be declared or
+recorded as retired. It found two more on its first run.
+
+---
+
 ## 3. DEFERRALS, WITH THE RULING AND THE RECORDED CONSEQUENCE
 
 ### The cutover to a dedicated database project

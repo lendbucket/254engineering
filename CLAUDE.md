@@ -504,6 +504,47 @@ So a fixture is priced, dated and complete: every column any figure could sum,
 count or age. The test of a fixture is not whether it inserts a row, it is
 whether removing the filter makes a number move.
 
+**AND EVERY SCAN SO FAR ASKED WHAT THE CODE READS. A SECRET NOTHING READS WAS
+INVISIBLE TO ALL OF THEM.** Operator ruling, 2026-09-12, recorded beside the
+fixture lesson because it is the same failure one turn further round: the
+fixture decides which figures can move, the inventory decides which surfaces are
+swept, and a scan that starts from the source decides that a credential exists
+only if something uses it.
+
+`ADMIN_PASSPHRASE` sat in `.env.local` holding a short human passphrase for the
+`/admin` surface, which was deleted months earlier. `BACKLOG.md` had even
+recorded that nothing reads it and that it could come out of Vercel. Three
+separate scans could not see it, and each was working correctly: the property
+scan looks for `process.env.X`, the injected-env scan looks for `env.X`, the
+string lookup scan looks for a name written as a literal. None of them can find
+a name that appears in no source file at all.
+
+It was found by reading an environment file, and the same reverse scan then
+found two more, `LEAD_FROM_EMAIL` and `LEAD_TO_EMAIL`, left behind when the
+email identity moved into a declaration.
+
+So the scan runs BOTH WAYS. Every name set in an environment file must be
+declared or listed as retired, and a retirement says when and why, so a dead
+credential is named rather than invisible. **The general form: a check derived
+from the code can only ever find what the code knows about, and the things worth
+finding are often the things nothing references any more.**
+
+**THE INFRASTRUCTURE HALF OF THE ARTEFACT RULE, SAME DAY.** The sharpest finding
+of that section came from the operator opening the Vercel dashboard, which no
+check in this repository can see. `CUSTOMER_SESSION_SECRET` was set for All
+Environments, so a customer cookie minted on any preview deployment was valid on
+production, and a preview URL is reachable by anybody holding the link.
+`PARTNER_SESSION_SECRET` and `MFA_ENCRYPTION_KEY` shared one value across
+Production and Preview. `OPS_SESSION_SECRET` was already split, which is what
+made the other three legible as a defect rather than as a configuration: the
+correct pattern existed and had been applied to one principal of three.
+
+The declaration now records which environments each credential lives in and
+whether a Preview value is distinct, and `soc2-audit` asserts that no secret
+deciding identity or opening a database is declared as shared. **It cannot read
+Vercel and says so.** What it buys is that a future sharing becomes a deliberate
+edit to a reviewed file rather than a dropdown nobody opens again.
+
 **TWO MORE INSTANCES, 2026-09-10, AND THEY ARE THE SAME THING FROM BOTH ENDS.**
 Operator ruling: a check that measures nothing and a screen no check reads are
 the same failure. One is a green over an empty set; the other is an empty set of
