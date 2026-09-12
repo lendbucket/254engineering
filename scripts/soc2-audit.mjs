@@ -678,6 +678,160 @@ console.log("");
   );
 }
 
+/* ------------- 3d. what must not be sitting in an environment file at all */
+
+{
+  /*
+   * A CREDENTIAL IN AN ENVIRONMENT FOR A THING NOBODY IS RUNNING.
+   *
+   * Operator rulings, 2026-09-12. Three keys were sitting in .env.local for no
+   * current purpose, and one of them had already done damage.
+   *
+   * RESEND_API_KEY is the worked example and the reason this check exists.
+   * notify.ts returns null when it is absent and logs "skipped, RESEND_API_KEY
+   * is not set", so with no key a mistake writes a row instead of reaching
+   * somebody's inbox. WITH the key present, two bugs in one day sent fifty five
+   * real emails: a retention dry run sent twenty and the first version of
+   * queue-audit sent thirty five, to the operator's own address and the firm's.
+   * Migration 0038's header records both.
+   *
+   * effect_mode answered it for the JOBS. This answers it for the MACHINE.
+   *
+   * THE REFUSAL TO SEND WITHOUT A KEY IS CORRECT AND IS NOT WORKED AROUND. A
+   * session that genuinely means to send sets ALLOW_REAL_EMAIL_SENDS and
+   * supplies the key by hand for that session. Neither is ever committed.
+   */
+  const ENV_FILES = [".env", ".env.local", ".env.development", ".env.production", ".env.development.local", ".env.production.local"];
+  const present = ENV_FILES.filter((p) => existsSync(p));
+
+  rec(
+    "there is an environment file to check",
+    present.length > 0,
+    present.join(", ") || "none found, so every check below would pass over nothing",
+  );
+
+  /** Which env files name this variable at all. Never reads a value. */
+  const setIn = (name) =>
+    present.filter((p) => new RegExp(`^\\s*${name}=`, "m").test(readFileSync(p, "utf8")));
+
+  /*
+   * THE CUTOVER KEYS. Full access to a source database and a destination,
+   * between them, for a script that is deferred. The largest single credential
+   * exposure this firm could have, existing for no current purpose.
+   */
+  for (const key of ["COPY_FROM_KEY", "COPY_TO_KEY"]) {
+    const where = setIn(key);
+    rec(
+      `${key} is in no environment file, because the cutover is deferred`,
+      where.length === 0,
+      where.length === 0
+        ? "supplied by hand for one command on the day it runs"
+        : `SET IN ${where.join(", ")}. Remove it and rotate the underlying key.`,
+    );
+  }
+
+  /*
+   * THE MAIL KEY, unless somebody said they meant it. Checked against the
+   * PROCESS environment rather than a file, because the opt in is for a session
+   * and must never be committed.
+   */
+  {
+    const where = setIn("RESEND_API_KEY");
+    const optedIn = process.env.ALLOW_REAL_EMAIL_SENDS === "1";
+    rec(
+      "RESEND_API_KEY is in no environment file unless this session means to send",
+      where.length === 0 || optedIn,
+      where.length === 0
+        ? "absent, so a mistake writes a row instead of reaching an inbox"
+        : optedIn
+          ? `set in ${where.join(", ")}, and ALLOW_REAL_EMAIL_SENDS=1 says that is deliberate`
+          : `SET IN ${where.join(", ")} with no ALLOW_REAL_EMAIL_SENDS. Two bugs sent 55 real emails the last time this was true.`,
+    );
+
+    /*
+     * AND THE OPT IN IS NEVER COMMITTED. A variable that lives in a file is not
+     * a decision somebody made for one session.
+     */
+    const optInFiles = setIn("ALLOW_REAL_EMAIL_SENDS");
+    rec(
+      "and the opt in itself is in no environment file",
+      optInFiles.length === 0,
+      optInFiles.length === 0
+        ? "it is typed for a session, never stored"
+        : `SET IN ${optInFiles.join(", ")}, which makes the permission permanent`,
+    );
+  }
+
+  /*
+   * AND THE UNLOCK TOKEN, removed for the same reason: it serves one route
+   * handler that nothing local calls.
+   */
+  {
+    const where = setIn("OPS_UNLOCK_TOKEN");
+    rec(
+      "OPS_UNLOCK_TOKEN is in no environment file, because nothing local calls that route",
+      where.length === 0,
+      where.length === 0 ? "absent" : `SET IN ${where.join(", ")}`,
+    );
+  }
+
+  /*
+   * AND THE DEVELOPMENT KEY IS THE DEVELOPMENT PROJECT'S.
+   *
+   * The one service role key that SHOULD be here. Asserted by ref rather than
+   * by value, so this says which database it opens without reading the secret
+   * that opens it.
+   */
+  {
+    const local = present.includes(".env.local") ? readFileSync(".env.local", "utf8") : "";
+    const url = (local.match(/^\s*SUPABASE_URL=(.*)$/m) ?? [])[1] ?? "";
+    rec(
+      "the local service role key belongs to the development project",
+      /ythzaiqeoijlrdibnieo/.test(url),
+      /ythzaiqeoijlrdibnieo/.test(url)
+        ? "SUPABASE_URL names development, which every audit reads through"
+        : `SUPABASE_URL does not name the development project: ${url.slice(0, 40)}`,
+    );
+  }
+
+  /*
+   * THREE THINGS THIS MACHINE CANNOT SEE, RECORDED AS UNKNOWN RATHER THAN
+   * ABSENT.
+   *
+   * Operator ruling, 2026-09-12. No Vercel tool available here exposes
+   * environment variables and the CLI is not installed, so the deployment half
+   * of every answer above is unread. Recording it as absent would be the
+   * overstatement this whole section exists to avoid: a check that cannot see a
+   * thing must not report on it.
+   */
+  /*
+   * THREE QUESTIONS, FOUR ENTRIES. The two cutover keys are one question, and
+   * counting entries instead of naming them reported four against an expected
+   * three on the first run. Named, so the check says which answer is missing
+   * rather than that a number moved.
+   */
+  const MUST_BE_PENDING = {
+    "do the cutover keys exist in Vercel at all": ["COPY_FROM_KEY", "COPY_TO_KEY"],
+    "is the service role key scoped to Production alone": ["SUPABASE_SERVICE_ROLE_KEY"],
+    "is the mail key set on Preview": ["RESEND_API_KEY"],
+  };
+  const byName = new Map(CREDENTIALS.map((c) => [c.name, c]));
+  const notPending = [];
+  for (const [question, names] of Object.entries(MUST_BE_PENDING)) {
+    for (const name of names) {
+      const entry = byName.get(name);
+      if (!entry || !/UNKNOWN, pending the operator/.test(entry.livesIn)) notPending.push(`${name} (${question})`);
+    }
+  }
+  rec(
+    "what only Vercel can answer is recorded as unknown rather than as absent",
+    notPending.length === 0,
+    notPending.length === 0
+      ? `${Object.keys(MUST_BE_PENDING).length} questions across 4 entries, every one marked pending the operator`
+      : `recorded as settled when it is not known: ${notPending.join("; ")}`,
+  );
+}
+
 /* ------------------------------------ 4. no secret value in what we wrote */
 
 {

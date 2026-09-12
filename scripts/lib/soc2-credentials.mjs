@@ -58,7 +58,8 @@ export const CREDENTIALS = [
   {
     name: "SUPABASE_SERVICE_ROLE_KEY",
     kind: "secret",
-    livesIn: "Vercel for production; .env.local for development. Never in the working tree for production.",
+    livesIn:
+      "Vercel for production; .env.local for development, where it is the DEVELOPMENT project's key and every audit reads through it. Never in the working tree for production. WHETHER THE PRODUCTION KEY IS SCOPED TO THE PRODUCTION ENVIRONMENT ALONE IS UNKNOWN, pending the operator reading Vercel: a Preview inheriting it is the exact hazard previewPointingAtProduction() exists for, and it has happened once already, on 2026-09-03.",
     grants:
       "Everything. It bypasses row level security on every table, and since there are zero policies it is the ONLY way in. Holding it is equivalent to holding the database.",
     rotated: "Never.",
@@ -106,10 +107,31 @@ export const CREDENTIALS = [
     grants: "Forging a payment webhook this platform would believe, which is how an order gets marked paid without money moving.",
     rotated: "Never.",
   },
+  /*
+   * OUT OF .env.local BY OPERATOR RULING, 2026-09-12.
+   *
+   * Nothing local needs it, and its presence is what turned two bugs into
+   * fifty five real sends in one day. Migration 0038's header records both: a
+   * retention dry run claimed the oldest jobs of any kind and sent twenty real
+   * emails, and the first version of queue-audit sent thirty five, to the
+   * operator's own address and the firm's.
+   *
+   * effect_mode was the answer for the JOBS. This is the answer for the
+   * MACHINE: notify.ts returns null when the key is absent and logs "skipped,
+   * RESEND_API_KEY is not set", so with no key a mistake writes a row instead
+   * of reaching somebody's inbox. THAT REFUSAL IS CORRECT DEVELOPMENT
+   * BEHAVIOUR AND IS NOT A DEFECT TO WORK AROUND.
+   *
+   * A session that genuinely needs to send sets ALLOW_REAL_EMAIL_SENDS for that
+   * session and supplies the key by hand. Neither is ever committed, and
+   * soc2-audit asserts the key is absent from every env file unless that
+   * variable is set.
+   */
   {
     name: "RESEND_API_KEY",
     kind: "secret",
-    livesIn: "Vercel.",
+    livesIn:
+      "Vercel for production. REMOVED from .env.local 2026-09-12: nothing local needs it and its presence made two bugs send 55 real emails. Whether it is set on Preview is UNKNOWN, pending the operator reading Vercel.",
     grants: "Sending mail as this firm's domain, and reading the delivery log.",
     rotated: "Never.",
   },
@@ -123,7 +145,8 @@ export const CREDENTIALS = [
   {
     name: "OPS_UNLOCK_TOKEN",
     kind: "secret",
-    livesIn: "Vercel.",
+    livesIn:
+      "Vercel. REMOVED from .env.local 2026-09-12 by the same ruling as the mail key: it serves one route handler that nothing local calls, so it was a credential sitting in a development environment for no current purpose.",
     grants: "Clearing a lockout on a staff account.",
     rotated: "Never.",
   },
@@ -174,14 +197,16 @@ export const CREDENTIALS = [
   {
     name: "COPY_FROM_KEY",
     kind: "secret",
-    livesIn: "Nowhere. Typed by hand for one command and never stored, which is why the cutover plan says the operator supplies it.",
+    livesIn:
+      "NOT SET IN ANY ENVIRONMENT, and it must not be until the day the cutover runs. Supplied by hand for one command and never stored. Operator ruling 2026-09-12: a full access key sitting in an environment for a script nobody is running is the largest single credential exposure this firm could have, and it would exist for no current purpose. Confirmed absent from every env file on this machine; whether it exists in Vercel is UNKNOWN, pending the operator reading it there.",
     grants: "Everything on the SOURCE project of a copy, including production if that is what it names.",
     rotated: "Never.",
   },
   {
     name: "COPY_TO_KEY",
     kind: "secret",
-    livesIn: "Nowhere. Typed by hand for one command.",
+    livesIn:
+      "NOT SET IN ANY ENVIRONMENT, and it must not be until the day the cutover runs. Supplied by hand for one command. Same ruling as COPY_FROM_KEY. Confirmed absent from every env file on this machine; whether it exists in Vercel is UNKNOWN, pending the operator reading it there.",
     grants: "Everything on the DESTINATION project of a copy, including the ability to overwrite it.",
     rotated: "Never.",
   },
@@ -215,17 +240,36 @@ export const CREDENTIALS = [
   },
 
   // ----------------------------------------------------------------- config
-  { name: "SUPABASE_URL", kind: "config", livesIn: "Vercel and .env.local.", grants: "Names which database. Not a secret, and the single most important value to get right: db-guard exists because of it.", rotated: null },
-  { name: "LAUNCH_MODE", kind: "config", livesIn: "Vercel.", grants: "One of seven launch gate conditions. Alone it opens nothing.", rotated: null },
-  { name: "TBPELS_PE_LICENSE", kind: "config", livesIn: "Not set. No PE is in responsible charge.", grants: "Asserts an engineer of record exists. Gated on the licence number being supplied so the gate cannot be opened by optimism.", rotated: null },
-  { name: "TBPELS_FIRM_NUMBER", kind: "config", livesIn: "Nothing in src/ reads it any more. The registration moved into src/config/credentials.ts on 2026-09-10.", grants: "Nothing. Retained only where audits clear it.", rotated: null },
-  { name: "FIRM_PHONE", kind: "config", livesIn: "Not set. A launch gate condition.", grants: "Publishes a telephone number.", rotated: null },
-  { name: "MAIL_FROM_ADDRESS_LINE", kind: "config", livesIn: "Vercel.", grants: "The postal address in an email footer.", rotated: null },
-  { name: "NEXT_PUBLIC_SITE_URL", kind: "config", livesIn: "Vercel.", grants: "Nothing. The canonical host.", rotated: null },
-  { name: "ALLOW_PRODUCTION_DB", kind: "config", livesIn: "Never set in any deployment. Typed by hand for one command.", grants: "Permission for a script to talk to production. Compared exactly against the string 1, so 0, false and true are all refusals.", rotated: null },
-  { name: "ALLOW_PRODUCTION_PREVIEW", kind: "config", livesIn: "Never set.", grants: "Permission for a preview deployment to point at production. Almost never the right answer.", rotated: null },
-  { name: "MFA_BREAK_GLASS", kind: "config", livesIn: "Never set in a deployment.", grants: "Bypassing the second factor requirement. The most dangerous config value here, which is why it is named rather than left to be discovered.", rotated: null },
-  { name: "ORDER_PAYMENTS_FAKE", kind: "config", livesIn: "Development only.", grants: "Taking an order without calling Stripe.", rotated: null },
+  { name: "SUPABASE_URL", kind: "config", livesIn: "Vercel and .env.local.", grants: "Names which database. Not a secret, and the single most important value to get right: db-guard exists because of it.", rotated: "Never." },
+  { name: "LAUNCH_MODE", kind: "config", livesIn: "Vercel.", grants: "One of seven launch gate conditions. Alone it opens nothing.", rotated: "Never." },
+  { name: "TBPELS_PE_LICENSE", kind: "config", livesIn: "Not set. No PE is in responsible charge.", grants: "Asserts an engineer of record exists. Gated on the licence number being supplied so the gate cannot be opened by optimism.", rotated: "Never." },
+  { name: "TBPELS_FIRM_NUMBER", kind: "config", livesIn: "Nothing in src/ reads it any more. The registration moved into src/config/credentials.ts on 2026-09-10.", grants: "Nothing. Retained only where audits clear it.", rotated: "Never." },
+  { name: "FIRM_PHONE", kind: "config", livesIn: "Not set. A launch gate condition.", grants: "Publishes a telephone number.", rotated: "Never." },
+  { name: "MAIL_FROM_ADDRESS_LINE", kind: "config", livesIn: "Vercel.", grants: "The postal address in an email footer.", rotated: "Never." },
+  { name: "NEXT_PUBLIC_SITE_URL", kind: "config", livesIn: "Vercel.", grants: "Nothing. The canonical host.", rotated: "Never." },
+  { name: "ALLOW_PRODUCTION_DB", kind: "config", livesIn: "Never set in any deployment. Typed by hand for one command.", grants: "Permission for a script to talk to production. Compared exactly against the string 1, so 0, false and true are all refusals.", rotated: "Never." },
+  { name: "ALLOW_PRODUCTION_PREVIEW", kind: "config", livesIn: "Never set.", grants: "Permission for a preview deployment to point at production. Almost never the right answer.", rotated: "Never." },
+  { name: "MFA_BREAK_GLASS", kind: "config", livesIn: "Never set in a deployment.", grants: "Bypassing the second factor requirement. The most dangerous config value here, which is why it is named rather than left to be discovered.", rotated: "Never." },
+  { name: "ORDER_PAYMENTS_FAKE", kind: "config", livesIn: "Development only.", grants: "Taking an order without calling Stripe.", rotated: "Never." },
+  /*
+   * THE OPT IN FOR DELIBERATELY SENDING, AND IT IS NAMED FOR WHAT IT DOES.
+   *
+   * Operator ruling, 2026-09-12. RESEND_API_KEY is absent from .env.local, and
+   * the board asserts it stays absent UNLESS this is set for a session where
+   * somebody is deliberately sending. Neither is ever committed.
+   *
+   * Named the way ALLOW_PRODUCTION_DB is, for the same reason: somebody reading
+   * a shell history sees what they turned on. A variable called DEBUG or MAIL
+   * would not have told them.
+   */
+  {
+    name: "ALLOW_REAL_EMAIL_SENDS",
+    kind: "config",
+    livesIn: "Never set, and never committed. Typed for one session by somebody who means to send.",
+    grants:
+      "Permission for this machine to hold a live mail key at all. It does not itself send anything; it is what the board checks before it will tolerate RESEND_API_KEY being present in an env file.",
+    rotated: "Never.",
+  },
   /*
    * The other two escape hatches in src/lib/db-guard.ts, found by the same
    * widened scan. They are config rather than secrets, and they are the most
