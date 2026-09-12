@@ -217,6 +217,9 @@ export const NOT_CREDENTIALS = new Set([
   "AUDIT_KILL_STALE", "AUDIT_LOG_DIR", "AUDIT_PORT", "BASE_URL", "CONTRAST_PORT",
   "LAUNCH_AUDIT_LIVE_PORT", "LAUNCH_AUDIT_PORT", "MOBILE_PORT", "OVERFLOW_SHOW_ALL",
   "PERF_RUNS", "PERF_SAMPLES", "ROUND3_PORT", "SHOTS_PORT", "KEEP_EXISTING", "LOAD_JOBS",
+  /* Where soc2-audit points the generator so that proving it runs does not
+   * rewrite four tracked artefacts and leave the working tree dirty. */
+  "SOC2_OUT_DIR", "SOC2_DOCS_DIR",
   /* Provided by the runtime or the platform, never by this firm. */
   "CI", "GITHUB_ACTIONS", "NODE_ENV", "VERCEL", "VERCEL_ENV", "VERCEL_DEPLOYMENT_ID",
   "VERCEL_GIT_COMMIT_SHA", "NEXT_PUBLIC_VERCEL_ENV", "NEXT_PUBLIC_SENTRY_RELEASE", "SENTRY_RELEASE",
