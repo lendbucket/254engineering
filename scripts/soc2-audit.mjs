@@ -28,7 +28,9 @@
  * can see, and a check that cannot see a thing must not report on it.
  */
 
-import { readFileSync, existsSync, readdirSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { CONTROLS, GAPS, regenerateCommands } from "./lib/soc2-controls.mjs";
 import { CREDENTIALS, NOT_CREDENTIALS, OFFBOARDING } from "./lib/soc2-credentials.mjs";
@@ -214,10 +216,25 @@ console.log("");
     try {
       const tsx = cmd.match(/^npx tsx (\S+)$/);
       if (tsx) {
+        /*
+         * INTO A TEMPORARY DIRECTORY, NOT OVER THE TRACKED ARTEFACTS.
+         *
+         * The first version ran the generator over docs/ and evidence/, so
+         * every board run rewrote four tracked files with a fresh timestamp
+         * and left the working tree dirty. A board that dirties the tree is a
+         * board a real uncommitted change can hide in.
+         *
+         * The command is still genuinely executed, which is the whole point of
+         * the check. What it no longer does is edit the repository in order to
+         * prove it can.
+         */
+        const scratch = mkdtempSync(join(tmpdir(), "soc2-audit-"));
         execFileSync(process.execPath, ["./node_modules/tsx/dist/cli.mjs", tsx[1]], {
           stdio: ["ignore", "pipe", "pipe"],
           encoding: "utf8",
+          env: { ...process.env, SOC2_OUT_DIR: join(scratch, "evidence"), SOC2_DOCS_DIR: join(scratch, "docs") },
         });
+        rmSync(scratch, { recursive: true, force: true });
         ran = true;
         note = "ran";
       } else if (/^npx tsc\b/.test(cmd)) {

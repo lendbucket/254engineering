@@ -35,7 +35,23 @@ import { CONTROLS, GAPS, CRITERIA, regenerateCommands } from "./lib/soc2-control
 import { CREDENTIALS, OFFBOARDING } from "./lib/soc2-credentials.mjs";
 import { APPLIED } from "../supabase/applied.mjs";
 
-const OUT_DIR = "evidence";
+/*
+ * WHERE THE ARTEFACTS GO, AND WHY IT IS OVERRIDABLE.
+ *
+ * Normally `evidence/` and `docs/`, which are tracked.
+ *
+ * `scripts/soc2-audit.mjs` proves this command still runs by EXECUTING it, and
+ * the first version of that check ran it over the tracked files. So every board
+ * run rewrote four tracked artefacts with a fresh timestamp and left the working
+ * tree dirty, which is how a real uncommitted change hides among four expected
+ * ones.
+ *
+ * The audit points these at a temporary directory instead. The command is still
+ * genuinely executed, which is what the check is for; what it no longer does is
+ * edit the repository in order to check that it can.
+ */
+const OUT_DIR = process.env.SOC2_OUT_DIR || "evidence";
+const DOCS_DIR = process.env.SOC2_DOCS_DIR || "docs";
 const db = auditClient("soc2-evidence");
 /*
  * THE TARGET IS READ AFTER the client is built, because auditClient is what
@@ -127,6 +143,7 @@ const csv = ({ preamble = [], headers, rows }) =>
     .join("\r\n");
 
 mkdirSync(OUT_DIR, { recursive: true });
+mkdirSync(DOCS_DIR, { recursive: true });
 const written = [];
 const write = (name, body) => {
   writeFileSync(`${OUT_DIR}/${name}`, body);
@@ -556,8 +573,8 @@ consequence that was recorded rather than fixed. It is the half that makes this
 half credible.
 `;
 
-writeFileSync("docs/soc2-readiness.md", readinessDoc);
-written.push("docs/soc2-readiness.md");
+writeFileSync(`${DOCS_DIR}/soc2-readiness.md`, readinessDoc);
+written.push(`${DOCS_DIR}/soc2-readiness.md`);
 
 const exceptionsDoc = `# SOC 2 exceptions register
 
@@ -642,8 +659,8 @@ That is the honest limit of a self assessment, and it is the reason a real
 engagement uses somebody outside the firm.
 `;
 
-writeFileSync("docs/soc2-exceptions.md", exceptionsDoc);
-written.push("docs/soc2-exceptions.md");
+writeFileSync(`${DOCS_DIR}/soc2-exceptions.md`, exceptionsDoc);
+written.push(`${DOCS_DIR}/soc2-exceptions.md`);
 
 console.log("");
 console.log(`SOC 2 evidence generated against ${targetLabel} at ${iso(generatedAt) || "unknown time"}.`);
