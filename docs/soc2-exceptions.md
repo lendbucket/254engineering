@@ -10,7 +10,7 @@ platform was made deliberately and recorded with its consequence.
 
 ## 1. CONTROLS THAT DO NOT EXIST
 
-20 declared. Ranked by what an auditor asks for first.
+21 declared. Ranked by what an auditor asks for first.
 
 | # | Gap | Criterion | Severity | Ruling recorded |
 | --- | --- | --- | --- | --- |
@@ -22,18 +22,19 @@ platform was made deliberately and recorded with its consequence.
 | 6 | The restore path has never been exercised. | availability | high | none yet |
 | 7 | No vendor inventory and no vendor risk assessment. | security | medium | yes |
 | 8 | No offboarding procedure. | security | medium | yes |
-| 9 | No incident response plan and no incident record. | availability | medium | yes |
-| 10 | MFA is optional by default for the administrator and engineer roles. | security | medium | yes |
-| 11 | No history of board runs. The suite reports a verdict and keeps none. | integrity | medium | yes |
-| 12 | No formal risk assessment. | security | medium | none yet |
-| 13 | No security awareness training and no background checks. | security | low | none yet |
-| 14 | No penetration test and no vulnerability scanning beyond dependency defaults. | security | medium | none yet |
-| 15 | No customer contracts, no data processing agreements, and no stated data residency. | privacy | medium | none yet |
-| 16 | Encryption at rest and in transit is the provider's, and the firm holds no attestation of it. | confidentiality | low | none yet |
-| 17 | No automated secret scanning on the repository. | confidentiality | medium | none yet |
-| 18 | Nobody reviews the audit trail. It is written and never read. | security | medium | none yet |
-| 19 | Nothing this firm owns is written outside the provider. | availability | high | none yet |
-| 20 | No external uptime monitoring and no stated availability commitment. | availability | low | none yet |
+| 9 | The platform cannot raise work for itself, because no system actor exists. | security | medium | yes |
+| 10 | No incident response plan and no incident record. | availability | medium | yes |
+| 11 | MFA is optional by default for the administrator and engineer roles. | security | medium | yes |
+| 12 | No history of board runs. The suite reports a verdict and keeps none. | integrity | medium | yes |
+| 13 | No formal risk assessment. | security | medium | none yet |
+| 14 | No security awareness training and no background checks. | security | low | none yet |
+| 15 | No penetration test and no vulnerability scanning beyond dependency defaults. | security | medium | none yet |
+| 16 | No customer contracts, no data processing agreements, and no stated data residency. | privacy | medium | none yet |
+| 17 | Encryption at rest and in transit is the provider's, and the firm holds no attestation of it. | confidentiality | low | none yet |
+| 18 | No automated secret scanning on the repository. | confidentiality | medium | none yet |
+| 19 | Nobody reviews the audit trail. It is written and never read. | security | medium | none yet |
+| 20 | Nothing this firm owns is written outside the provider. | availability | high | none yet |
+| 21 | No external uptime monitoring and no stated availability commitment. | availability | low | none yet |
 
 ---
 
@@ -53,7 +54,7 @@ No periodic access review has ever been performed or attested.
 
 **What follows:** This is the first artefact requested in almost every engagement. The platform holds every fact needed to produce it and has never been asked to.
 
-**Ruling:** Section 2 of this run builds it, schedules it, and records the attestation. Until an attestation exists the report says the review is unattested.
+**Ruling:** PARTLY BUILT, AND THE REST NEEDS A RULING. The report is generated and states its own findings, and it says Attested by NOBODY at the top rather than in a footnote. What is NOT built is the recurring half: a job that produces it on a schedule and raises a task to attest it. The blocker is real rather than effort: createTask requires an Actor, a scheduled job has none, and no system actor exists in this platform. Inventing one is a new door in the authorisation model, because an actor that can raise a task is an actor, and deciding what else it may do is not a decision to make unattended at two in the morning. THE RULING I WOULD MAKE: the attestation is an APPEND ONLY AUDIT EVENT rather than a new table, because eng_audit_events already refuses UPDATE and DELETE at the database and an attestation that can be edited is not one. The system actor is a named row in eng_profiles with the narrowest possible role, holding tasks.use and nothing else, so that what the platform can do for itself is visible in the same access review as everybody else rather than being a special case in code.
 
 ### 3. `one-person-holds-everything`
 
@@ -103,7 +104,15 @@ No offboarding procedure.
 
 **Ruling:** Section 2 writes the sequence keyed to what the platform can actually do, and says which steps it cannot perform.
 
-### 9. `no-incident-record`
+### 9. `no-system-actor`
+
+The platform cannot raise work for itself, because no system actor exists.
+
+**What follows:** Every write in this platform is attributed to a person, which is a genuine strength and is why the audit trail is worth anything. The cost is that nothing scheduled can create a task, so a recurring control like an access review can produce its artefact and cannot ask anybody to look at it. Found while building the access review on 2026-09-12.
+
+**Ruling:** Recorded rather than decided. A system actor is a new door in the authorisation model and deserves the operator's word on what it may hold. The narrowest version that works is a named eng_profiles row with tasks.use and nothing else, which keeps it visible in the access review rather than special cased in code.
+
+### 10. `no-incident-record`
 
 No incident response plan and no incident record.
 
@@ -111,7 +120,7 @@ No incident response plan and no incident record.
 
 **Ruling:** Section 2 adds the table, empty, with the shape an incident takes. Empty and honest beats absent.
 
-### 10. `mfa-optional`
+### 11. `mfa-optional`
 
 MFA is optional by default for the administrator and engineer roles.
 
@@ -119,7 +128,7 @@ MFA is optional by default for the administrator and engineer roles.
 
 **Ruling:** Record it. Changing it needs a second administrator to exist first, which is the same gap as one person holding everything.
 
-### 11. `no-board-history`
+### 12. `no-board-history`
 
 No history of board runs. The suite reports a verdict and keeps none.
 
@@ -127,7 +136,7 @@ No history of board runs. The suite reports a verdict and keeps none.
 
 **Ruling:** Say so and start recording it. The change record names this as the half it cannot produce.
 
-### 12. `no-risk-assessment`
+### 13. `no-risk-assessment`
 
 No formal risk assessment.
 
@@ -135,7 +144,7 @@ No formal risk assessment.
 
 **No ruling has been made on this.**
 
-### 13. `no-training`
+### 14. `no-training`
 
 No security awareness training and no background checks.
 
@@ -143,7 +152,7 @@ No security awareness training and no background checks.
 
 **No ruling has been made on this.**
 
-### 14. `no-pentest`
+### 15. `no-pentest`
 
 No penetration test and no vulnerability scanning beyond dependency defaults.
 
@@ -151,7 +160,7 @@ No penetration test and no vulnerability scanning beyond dependency defaults.
 
 **No ruling has been made on this.**
 
-### 15. `no-dpa`
+### 16. `no-dpa`
 
 No customer contracts, no data processing agreements, and no stated data residency.
 
@@ -159,7 +168,7 @@ No customer contracts, no data processing agreements, and no stated data residen
 
 **No ruling has been made on this.**
 
-### 16. `no-encryption-attestation`
+### 17. `no-encryption-attestation`
 
 Encryption at rest and in transit is the provider's, and the firm holds no attestation of it.
 
@@ -167,7 +176,7 @@ Encryption at rest and in transit is the provider's, and the firm holds no attes
 
 **No ruling has been made on this.**
 
-### 17. `no-secret-scanning`
+### 18. `no-secret-scanning`
 
 No automated secret scanning on the repository.
 
@@ -175,7 +184,7 @@ No automated secret scanning on the repository.
 
 **No ruling has been made on this.**
 
-### 18. `no-log-review`
+### 19. `no-log-review`
 
 Nobody reviews the audit trail. It is written and never read.
 
@@ -183,7 +192,7 @@ Nobody reviews the audit trail. It is written and never read.
 
 **No ruling has been made on this.**
 
-### 19. `no-backup-offsite`
+### 20. `no-backup-offsite`
 
 Nothing this firm owns is written outside the provider.
 
@@ -191,7 +200,7 @@ Nothing this firm owns is written outside the provider.
 
 **No ruling has been made on this.**
 
-### 20. `no-uptime-monitoring`
+### 21. `no-uptime-monitoring`
 
 No external uptime monitoring and no stated availability commitment.
 
@@ -236,7 +245,7 @@ places, produces a manifest, and has been rehearsed in plan mode only.
 ## 4. WHAT THIS REGISTER CANNOT TELL YOU
 
 It is generated from a declaration. A control nobody thought of is absent from
-both halves of this document, and no generator can find one. The 20
+both halves of this document, and no generator can find one. The 21
 gaps above are the ones this firm has noticed.
 
 That is the honest limit of a self assessment, and it is the reason a real

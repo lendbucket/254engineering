@@ -12,7 +12,7 @@ no engagement, no auditor, and no report.
 
 **Readiness is a different and answerable question:** if an auditor asked for
 evidence tomorrow, what could be produced today. That is what this document
-answers, and the answer includes 20 things it cannot produce, listed
+answers, and the answer includes 21 things it cannot produce, listed
 before the things it can.
 
 **One person holds every credential, approves every change, and operates every
@@ -53,7 +53,7 @@ A SOC 2 Type II report describes controls operating over a period, typically thr
 
 This is the first artefact requested in almost every engagement. The platform holds every fact needed to produce it and has never been asked to.
 
-**Ruling:** Section 2 of this run builds it, schedules it, and records the attestation. Until an attestation exists the report says the review is unattested.
+**Ruling:** PARTLY BUILT, AND THE REST NEEDS A RULING. The report is generated and states its own findings, and it says Attested by NOBODY at the top rather than in a footnote. What is NOT built is the recurring half: a job that produces it on a schedule and raises a task to attest it. The blocker is real rather than effort: createTask requires an Actor, a scheduled job has none, and no system actor exists in this platform. Inventing one is a new door in the authorisation model, because an actor that can raise a task is an actor, and deciding what else it may do is not a decision to make unattended at two in the morning. THE RULING I WOULD MAKE: the attestation is an APPEND ONLY AUDIT EVENT rather than a new table, because eng_audit_events already refuses UPDATE and DELETE at the database and an attestation that can be edited is not one. The system actor is a named row in eng_profiles with the narrowest possible role, holding tasks.use and nothing else, so that what the platform can do for itself is visible in the same access review as everybody else rather than being a special case in code.
 
 ### 3. One person holds every credential, approves every change, and operates every system.
 
@@ -99,7 +99,15 @@ Nobody has ever left, so nothing has failed. The first departure would be improv
 
 **Ruling:** Section 2 writes the sequence keyed to what the platform can actually do, and says which steps it cannot perform.
 
-### 9. No incident response plan and no incident record.
+### 9. The platform cannot raise work for itself, because no system actor exists.
+
+**Criterion:** Security. **Severity, this session's judgement:** medium.
+
+Every write in this platform is attributed to a person, which is a genuine strength and is why the audit trail is worth anything. The cost is that nothing scheduled can create a task, so a recurring control like an access review can produce its artefact and cannot ask anybody to look at it. Found while building the access review on 2026-09-12.
+
+**Ruling:** Recorded rather than decided. A system actor is a new door in the authorisation model and deserves the operator's word on what it may hold. The narrowest version that works is a named eng_profiles row with tasks.use and nothing else, which keeps it visible in the access review rather than special cased in code.
+
+### 10. No incident response plan and no incident record.
 
 **Criterion:** Availability. **Severity, this session's judgement:** medium.
 
@@ -107,7 +115,7 @@ Faults are recorded in eng_error_events. An INCIDENT, meaning something that aff
 
 **Ruling:** Section 2 adds the table, empty, with the shape an incident takes. Empty and honest beats absent.
 
-### 10. MFA is optional by default for the administrator and engineer roles.
+### 11. MFA is optional by default for the administrator and engineer roles.
 
 **Criterion:** Security. **Severity, this session's judgement:** medium.
 
@@ -115,7 +123,7 @@ Faults are recorded in eng_error_events. An INCIDENT, meaning something that aff
 
 **Ruling:** Record it. Changing it needs a second administrator to exist first, which is the same gap as one person holding everything.
 
-### 11. No history of board runs. The suite reports a verdict and keeps none.
+### 12. No history of board runs. The suite reports a verdict and keeps none.
 
 **Criterion:** Processing integrity. **Severity, this session's judgement:** medium.
 
@@ -123,55 +131,55 @@ The board proves the controls work today and cannot show they worked in March. F
 
 **Ruling:** Say so and start recording it. The change record names this as the half it cannot produce.
 
-### 12. No formal risk assessment.
+### 13. No formal risk assessment.
 
 **Criterion:** Security. **Severity, this session's judgement:** medium.
 
 Risks have been reasoned about extensively and recorded in BACKLOG and in migration headers. None of that is a risk register with likelihood, impact and an owner.
 
-### 13. No security awareness training and no background checks.
+### 14. No security awareness training and no background checks.
 
 **Criterion:** Security. **Severity, this session's judgement:** low.
 
 There is one person and no employees, so there is nobody to train or screen. It becomes a real gap on the first hire rather than now.
 
-### 14. No penetration test and no vulnerability scanning beyond dependency defaults.
+### 15. No penetration test and no vulnerability scanning beyond dependency defaults.
 
 **Criterion:** Security. **Severity, this session's judgement:** medium.
 
 security-audit tests the perimeter this firm thought to test. Nobody adversarial has looked.
 
-### 15. No customer contracts, no data processing agreements, and no stated data residency.
+### 16. No customer contracts, no data processing agreements, and no stated data residency.
 
 **Criterion:** Privacy. **Severity, this session's judgement:** medium.
 
 The privacy policy states commitments the firm has made to nobody in particular, because there is no customer to have made them to.
 
-### 16. Encryption at rest and in transit is the provider's, and the firm holds no attestation of it.
+### 17. Encryption at rest and in transit is the provider's, and the firm holds no attestation of it.
 
 **Criterion:** Confidentiality. **Severity, this session's judgement:** low.
 
 One exception, and it is the firm's own: MFA secrets are encrypted by the platform before they are stored, with a key held outside the database. Everything else relies on the provider's defaults, which is normal and is still unevidenced here.
 
-### 17. No automated secret scanning on the repository.
+### 18. No automated secret scanning on the repository.
 
 **Criterion:** Confidentiality. **Severity, this session's judgement:** medium.
 
 That the production key is not in the tree is enforced by a person remembering. The audit this section adds proves no secret VALUE is in the files this section created, which is a narrow guarantee and is not secret scanning.
 
-### 18. Nobody reviews the audit trail. It is written and never read.
+### 19. Nobody reviews the audit trail. It is written and never read.
 
 **Criterion:** Security. **Severity, this session's judgement:** medium.
 
 12,000 audit events on development and hundreds on production, and no procedure that says who looks at them, how often, or what they would be looking for. A trail nobody reads detects nothing.
 
-### 19. Nothing this firm owns is written outside the provider.
+### 20. Nothing this firm owns is written outside the provider.
 
 **Criterion:** Availability. **Severity, this session's judgement:** high.
 
 If the provider is the problem, there is no path. Point in time recovery is a property of the same project that would be gone.
 
-### 20. No external uptime monitoring and no stated availability commitment.
+### 21. No external uptime monitoring and no stated availability commitment.
 
 **Criterion:** Availability. **Severity, this session's judgement:** low.
 
@@ -322,8 +330,8 @@ Read from `ythzaiqeoijlrdibnieo` at 2026-09-12 00:21:39.
 | Audit trail events | 12256 |
 | Earliest audit event | 2026-09-02 18:39:59 |
 | Latest audit event | 2026-09-12 00:33:28 |
-| Migrations in the ledger | 42 |
-| Migrations not yet on production | 0 |
+| Migrations in the ledger | 43 |
+| Migrations not yet on production | 1 |
 
 **These are development figures unless the database named above is production.**
 An access review of the wrong database is worse than none, which is why the

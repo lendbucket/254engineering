@@ -348,7 +348,10 @@ export const GAPS = [
     severity: "high",
     consequence:
       "This is the first artefact requested in almost every engagement. The platform holds every fact needed to produce it and has never been asked to.",
-    ruling: "Section 2 of this run builds it, schedules it, and records the attestation. Until an attestation exists the report says the review is unattested.",
+    ruling:
+      "PARTLY BUILT, AND THE REST NEEDS A RULING. The report is generated and states its own findings, and it says Attested by NOBODY at the top rather than in a footnote. What is NOT built is the recurring half: a job that produces it on a schedule and raises a task to attest it. " +
+      "The blocker is real rather than effort: createTask requires an Actor, a scheduled job has none, and no system actor exists in this platform. Inventing one is a new door in the authorisation model, because an actor that can raise a task is an actor, and deciding what else it may do is not a decision to make unattended at two in the morning. " +
+      "THE RULING I WOULD MAKE: the attestation is an APPEND ONLY AUDIT EVENT rather than a new table, because eng_audit_events already refuses UPDATE and DELETE at the database and an attestation that can be edited is not one. The system actor is a named row in eng_profiles with the narrowest possible role, holding tasks.use and nothing else, so that what the platform can do for itself is visible in the same access review as everybody else rather than being a special case in code.",
   },
   {
     id: "one-person-holds-everything",
@@ -409,8 +412,19 @@ export const GAPS = [
     ruling: "Section 2 writes the sequence keyed to what the platform can actually do, and says which steps it cannot perform.",
   },
   {
-    id: "no-incident-record",
+    id: "no-system-actor",
     rank: 9,
+    criterion: "security",
+    gap: "The platform cannot raise work for itself, because no system actor exists.",
+    severity: "medium",
+    consequence:
+      "Every write in this platform is attributed to a person, which is a genuine strength and is why the audit trail is worth anything. The cost is that nothing scheduled can create a task, so a recurring control like an access review can produce its artefact and cannot ask anybody to look at it. Found while building the access review on 2026-09-12.",
+    ruling:
+      "Recorded rather than decided. A system actor is a new door in the authorisation model and deserves the operator's word on what it may hold. The narrowest version that works is a named eng_profiles row with tasks.use and nothing else, which keeps it visible in the access review rather than special cased in code.",
+  },
+  {
+    id: "no-incident-record",
+    rank: 10,
     criterion: "availability",
     gap: "No incident response plan and no incident record.",
     severity: "medium",
@@ -419,7 +433,7 @@ export const GAPS = [
   },
   {
     id: "mfa-optional",
-    rank: 10,
+    rank: 11,
     criterion: "security",
     gap: "MFA is optional by default for the administrator and engineer roles.",
     severity: "medium",
@@ -429,7 +443,7 @@ export const GAPS = [
   },
   {
     id: "no-board-history",
-    rank: 11,
+    rank: 12,
     criterion: "integrity",
     gap: "No history of board runs. The suite reports a verdict and keeps none.",
     severity: "medium",
@@ -439,7 +453,7 @@ export const GAPS = [
   },
   {
     id: "no-risk-assessment",
-    rank: 12,
+    rank: 13,
     criterion: "security",
     gap: "No formal risk assessment.",
     severity: "medium",
@@ -448,7 +462,7 @@ export const GAPS = [
   },
   {
     id: "no-training",
-    rank: 13,
+    rank: 14,
     criterion: "security",
     gap: "No security awareness training and no background checks.",
     severity: "low",
@@ -457,7 +471,7 @@ export const GAPS = [
   },
   {
     id: "no-pentest",
-    rank: 14,
+    rank: 15,
     criterion: "security",
     gap: "No penetration test and no vulnerability scanning beyond dependency defaults.",
     severity: "medium",
@@ -466,7 +480,7 @@ export const GAPS = [
   },
   {
     id: "no-dpa",
-    rank: 15,
+    rank: 16,
     criterion: "privacy",
     gap: "No customer contracts, no data processing agreements, and no stated data residency.",
     severity: "medium",
@@ -475,7 +489,7 @@ export const GAPS = [
   },
   {
     id: "no-encryption-attestation",
-    rank: 16,
+    rank: 17,
     criterion: "confidentiality",
     gap: "Encryption at rest and in transit is the provider's, and the firm holds no attestation of it.",
     severity: "low",
@@ -485,7 +499,7 @@ export const GAPS = [
   },
   {
     id: "no-secret-scanning",
-    rank: 17,
+    rank: 18,
     criterion: "confidentiality",
     gap: "No automated secret scanning on the repository.",
     severity: "medium",
@@ -494,7 +508,7 @@ export const GAPS = [
   },
   {
     id: "no-log-review",
-    rank: 18,
+    rank: 19,
     criterion: "security",
     gap: "Nobody reviews the audit trail. It is written and never read.",
     severity: "medium",
@@ -504,7 +518,7 @@ export const GAPS = [
   },
   {
     id: "no-backup-offsite",
-    rank: 19,
+    rank: 20,
     criterion: "availability",
     gap: "Nothing this firm owns is written outside the provider.",
     severity: "high",
@@ -513,7 +527,7 @@ export const GAPS = [
   },
   {
     id: "no-uptime-monitoring",
-    rank: 20,
+    rank: 21,
     criterion: "availability",
     gap: "No external uptime monitoring and no stated availability commitment.",
     severity: "low",

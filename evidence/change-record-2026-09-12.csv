@@ -1,8 +1,8 @@
 Export,Change record
 What this is,"Every schema change this platform has ever applied, with both fingerprints and the date it reached production. Read from supabase/applied.mjs, which is the ledger two audits already enforce."
 Generated,2026-09-12 00:21:39
-Migrations,42
-Not yet on production,0
+Migrations,43
+Not yet on production,1
 Applied by hand rather than through the provider,1
 The behaviour fingerprint,"Carried from 0038 onward. It sees foreign key delete actions, check constraint bodies, trigger functions, index predicates, row level security and seeded rows, none of which the shape fingerprint can see."
 What this cannot tell you,"Who approved each change, because nobody separate from the author did. And it carries no history of board runs, because the suite keeps none. Both are in docs/soc2-exceptions.md."
@@ -50,3 +50,4 @@ Migration,Applied by,Shape fingerprint,Behaviour fingerprint,On production,On de
 0039_the_four_keys_that_were_never_there.sql,apply_migration,cac6f69d91b7e73441b307ea692a3f7b,b555b089052d225725c3d2ead29f3564,2026-09-11,,
 0040_the_repository_catches_up_to_production.sql,apply_migration,cac6f69d91b7e73441b307ea692a3f7b,7acbb5b22f11220b4a36f535fab9e09c,2026-09-11,,
 0041_a_filed_document_says_which_registration.sql,apply_migration,1a11138f01f9be2f66251640cfb55b70,7acbb5b22f11220b4a36f535fab9e09c,2026-09-11,,
+0042_an_incident_is_a_record.sql,apply_migration,11a709155214441ec2b7c3b382f6e17f,a3a7eb9953f60e59555f7fcddd221a7f,NOT APPLIED,[object Object],
