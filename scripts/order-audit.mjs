@@ -65,6 +65,9 @@ import {
 } from "../src/lib/ops-orders.ts";
 import { services } from "../src/content/services.ts";
 
+/* Hoisted: the price, fee and catalog checks below live in several scopes. */
+const PROTOCOL_APPROVED = true;
+
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
 
@@ -244,8 +247,65 @@ const answerAll = (entry, pick = () => 0) =>
    * The invariant that did not change: a null price still means unknown and
    * still refuses the order. The two quote services prove it is still live.
    */
+  /*
+   * ===========================================================================
+   * THE PROTOCOL CONDITION, AND WHY IT IS PASSED AS TRUE THROUGHOUT THIS BLOCK.
+   * Operator ruling, 2026-09-11.
+   * ===========================================================================
+   *
+   * `orderBlockedReason` gained a third condition: a service line with no
+   * protocol approved by the engineer of record is a waitlist rather than an
+   * order. `approvedProtocols` is empty today, because no PE is in responsible
+   * charge, so every line is currently blocked on it.
+   *
+   * The checks below are about PRICES, FEES and the CATALOG, and every one of
+   * them went red when that condition landed. Passing true here isolates the
+   * property each check is actually asserting, which is the honest thing to do:
+   * a price check that fails because a protocol is missing is a check reporting
+   * the wrong defect.
+   *
+   * WHAT WOULD BE WRONG IS LEAVING IT THERE. A constant that makes checks pass
+   * is exactly the shape of a check that stops measuring, so the condition
+   * itself is asserted separately and in both directions immediately below,
+   * which is the thing the old checks could not see at all.
+   */
   const orderableEntries = CATALOG.filter((e) => e.orderType !== "quote");
   const quoteEntries = catalogByType("quote");
+
+  {
+    const entry = orderableEntries[0];
+    rec(
+      "a service line with no approved protocol cannot be ordered, gate open or not",
+      !orderable(entry, false, false),
+      orderBlockedReason(entry, false, false) ?? "IT WAS ORDERABLE, which would sell work the firm cannot dispatch",
+    );
+    rec(
+      "and the refusal says it is a waitlist rather than failing vaguely",
+      /waitlist/i.test(orderBlockedReason(entry, false, false) ?? ""),
+      orderBlockedReason(entry, false, false) ?? "",
+    );
+    /*
+     * AND THE SAME LINE IS ORDERABLE WITH ONE, which is the half that would
+     * catch this condition widened until it refuses everything. A gate that
+     * refuses every service is not a gate, it is an outage.
+     */
+    rec(
+      "and the same line is orderable once a protocol is approved",
+      orderable(entry, false, true),
+      orderBlockedReason(entry, false, true) ?? `${entry.serviceSlug} clears with an approved protocol`,
+    );
+    /*
+     * The gate still wins. A protocol approved while the firm is prelaunch does
+     * not let anybody order anything, and the reason names the registration
+     * rather than the protocol.
+     */
+    rec(
+      "and prelaunch still refuses even with a protocol approved",
+      !orderable(entry, true, true) &&
+        /Texas Board of Professional Engineers/i.test(orderBlockedReason(entry, true, true) ?? ""),
+      orderBlockedReason(entry, true, true) ?? "",
+    );
+  }
 
   for (const entry of orderableEntries) {
     rec(
@@ -255,8 +315,8 @@ const answerAll = (entry, pick = () => 0) =>
     );
     rec(
       `${entry.serviceSlug}: and can therefore be ordered once the gate lifts`,
-      orderable(entry, false),
-      orderBlockedReason(entry, false) ?? "",
+      orderable(entry, false, PROTOCOL_APPROVED),
+      orderBlockedReason(entry, false, PROTOCOL_APPROVED) ?? "",
     );
     rec(
       `${entry.serviceSlug}: the price is a whole number of cents`,
@@ -346,11 +406,11 @@ const answerAll = (entry, pick = () => 0) =>
   rec(
     "removing a price still refuses the order",
     !orderable(unpriced, false),
-    orderBlockedReason(unpriced, false) ?? "",
+    orderBlockedReason(unpriced, false, PROTOCOL_APPROVED) ?? "",
   );
   rec(
     "and still says the price is not published",
-    /price has not been published/.test(orderBlockedReason(unpriced, false) ?? ""),
+    /price has not been published/.test(orderBlockedReason(unpriced, false, PROTOCOL_APPROVED) ?? ""),
   );
 
   for (const entry of catalogByType("field")) {
@@ -362,7 +422,7 @@ const answerAll = (entry, pick = () => 0) =>
     );
     rec(
       "and the reason names the refund rule",
-      /refund rule/.test(orderBlockedReason(noFee, false) ?? ""),
+      /refund rule/.test(orderBlockedReason(noFee, false, PROTOCOL_APPROVED) ?? ""),
     );
   }
 
@@ -412,7 +472,7 @@ const answerAll = (entry, pick = () => 0) =>
       "including quote requests, which are still the firm taking work",
     );
   }
-  const reason = orderBlockedReason(priced(CATALOG[0]), true);
+  const reason = orderBlockedReason(priced(CATALOG[0]), true, PROTOCOL_APPROVED);
   rec("the prelaunch refusal names the registration", /TBPELS|Texas Board of Professional/.test(reason ?? ""));
   rec("and says no payment can be taken", /no payment/i.test(reason ?? ""));
 
@@ -422,7 +482,7 @@ const answerAll = (entry, pick = () => 0) =>
   );
   rec(
     "and the refusal says it is not in the catalog",
-    /not in the order catalog/.test(orderBlockedReason(catalogFor("no-such-service"), false) ?? ""),
+    /not in the order catalog/.test(orderBlockedReason(catalogFor("no-such-service"), false, PROTOCOL_APPROVED) ?? ""),
   );
 
   /*
@@ -431,7 +491,7 @@ const answerAll = (entry, pick = () => 0) =>
    * surfaces.
    */
   const quoteEntry = catalogByType("quote")[0];
-  rec("a quote request is available once the gate lifts", orderable(quoteEntry, false));
+  rec("a quote request is available once the gate lifts", orderable(quoteEntry, false, PROTOCOL_APPROVED));
   rec("and blocked while it has not", !orderable(quoteEntry, true));
 }
 

@@ -62,6 +62,30 @@ is stated true in a file somebody edits on purpose:
 | The operator has thrown the switch | `LAUNCH_MODE=live` |
 | An active, unexpired registration is on record | `verifiedFirmRegistrations` |
 | **The board holds the operating name** | `operatingNameOnBoardRecord` |
+| A live Stripe account belonging to 254, proven by a charge and its refund | `stripeAccount` |
+| One protocol per offered service line, approved by the engineer of record | `approvedProtocols` |
+| `FIRM_PHONE` is a real number, not a placeholder | `FIRM_PHONE` |
+| Point in time recovery on the production project | `pointInTimeRecovery` |
+
+**Four more were added on 2026-09-11**, and the last three of those live in
+`src/config/launch-readiness.ts`. Each condition carries the sentence a reader
+gets when it is unmet, who clears it, and where it is stated true, and
+`compliance-audit` asserts the gate carries EXACTLY these seven against a pinned
+list of ids, so removing one costs two edits made on purpose.
+
+**`docs/launch-readiness.md` is the written form and `/portal/launch` is the
+operator's live view.** The screen renders `launchReadiness()` and computes
+nothing itself, because a screen with its own copy of the logic is a second gate.
+
+**Two consequences worth knowing before they bite.** First, the public footer now
+reads `254 Services LLC, TBPELS Firm F-29811` while the gate is SHUT, with the
+brand on its own line above: the hazard was never printing the number, it was
+printing it beside a name the board has no record of. `tbpelsFirmNumber()` still
+returns null in prelaunch, because it feeds claims of capability rather than a
+disclosure of who the registrant is. Second, `orderBlockedReason` in
+`data/catalog.ts` now takes `hasApprovedProtocol` as a REQUIRED third parameter,
+so a service line with no approved protocol is a waitlist rather than an order,
+and the two sibling repositories fail to compile until somebody decides.
 
 The third is a two field object rather than a boolean on purpose. A boolean can
 be flipped by anybody in a hurry; this one cannot be flipped without writing

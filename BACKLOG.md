@@ -262,22 +262,83 @@ machine that is seconds; on a serverless instance that came up moments ago it
 is whatever NTP has managed. Moving it needs the arithmetic to happen in the
 database, which is an RPC, and it is a smaller prize than the timestamps were.
 
-### fp-at.mjs IS A USEFUL TOOL SITTING AT THE REPOSITORY ROOT, DECLARED BY NOTHING
+### fp-at.mjs MOVED TO scripts/fingerprint-at.mjs. DONE 2026-09-11
 
-Committed with Phase 12 Section 4. It replays the migration chain to any named
-migration and prints BOTH fingerprints, which is exactly what the cutover plan
-re-derives its read-back from and what found the PostgreSQL version artifact on
-2026-09-11. It is worth keeping.
+Recorded here rather than deleted because the entry above it in git history
+explains why a tool at the repository root was a defect, and an item that
+vanishes looks like one nobody ever raised. It now lives at
+`scripts/fingerprint-at.mjs` with a header saying what it is for, and it was
+run from its new home and reproduced the ledger figures for 0041 exactly.
 
-What is wrong with it is where it lives. Nothing in `scripts/lib/surfaces.mjs`
-or anywhere else declares it, nothing references it, and the repository root is
-where a leftover looks identical to a tool. It belongs in `scripts/` with a name
-that says what it does, and its two relative imports move with it.
+## SIX OF THE SEVEN LAUNCH CONDITIONS ARE UNMET, AND EACH IS SOMEBODY'S TO CLEAR
 
-**Not fixed at the Section 4 close on purpose:** moving a file invalidates the
-green board that merge was made on. It moves on the launch readiness branch,
-which gets its own board run. Full context in
-`docs/phase-12-section-4-close.md` section 6.
+The compliance gate became seven named conditions on 2026-09-11. Six are
+outstanding. **The full reasoning for each is in `docs/launch-readiness.md`** and
+is not repeated here; the operator's live view is `/portal/launch`, which renders
+the gate's own answer.
+
+What is open, and who clears it:
+
+- **`operating-name`** is the one holding the gate. TBPELS issued F-29811 to 254
+  Services LLC and all three sites hold out as 254 Engineering Services. Cleared
+  by an assumed name filing plus TBPELS acknowledgement, or by renaming the
+  entity. The operator's.
+- **`stripe`** needs a live account belonging to 254 rather than Reyna Pay,
+  proven by one real charge and its refund with both recorded. The operator's.
+- **`protocols`** needs one protocol per offered service line, approved by the
+  engineer of record. `approvedProtocols` is empty, so all nine lines are a
+  waitlist. **Blocked on hiring a PE**, which is the second gate.
+- **`phone`** needs a real `FIRM_PHONE`. The operator's, and it is a commitment
+  to answer it.
+- **`switch`** is the operator's deliberate last act and is correctly last.
+- **`recovery`** is CLEARED, 2026-09-10, with its limit recorded: it restores all
+  five applications on the shared project or none.
+
+**Nothing here is a defect.** These are conditions on a firm, recorded so that
+the answer to "why will the gate not open" is a sentence rather than an
+investigation.
+
+### THE LEGAL ENTITY NAME ON THE SITE IS NOT THE NAME THE BOARD REGISTERED
+
+Found 2026-09-11. This is a SECOND name discrepancy and not a restatement of the
+operating name one: that is about what the firm trades as, this is about what the
+firm IS.
+
+  business.legalName        254 Engineering Services LLC
+  F-29811 issued to         254 Services LLC
+
+`business.legalName` renders as **Legal entity** on /government, which is the
+capability statement a government buyer reads, and in the footer copyright line
+on every page of all three sites.
+
+**Exactly one can be right,** and the answer is in formation documents nothing
+here can read. Either business.legalName is wrong and the capability statement
+has been naming the wrong company, or there are two entities and the
+registration belongs to one while the website describes the other.
+
+**Recorded rather than guessed**, in `legalEntityMatchesRegistrant` in
+`src/config/credentials.ts`, with both names written out. compliance-audit
+asserts the record names them and stays true of the values as they are today, so
+it cannot be resolved by editing one string and assuming the other followed.
+
+**Deliberately not an eighth launch condition.** The gate already will not open
+on the operating name, and a second condition for the same underlying fact would
+make clearing one look like progress while the other silently holds. The full
+reasoning is in `docs/launch-readiness.md`.
+
+**This is the operator's to answer.**
+
+### The sibling repositories do not compile until they answer the protocol question
+
+`orderBlockedReason` in `data/catalog.ts` gained a REQUIRED third parameter,
+`hasApprovedProtocol`. That file is synchronized verbatim into sealedengineering
+and stampmyplans, so both will fail to compile on the copy until each passes its
+own answer.
+
+**That is the intended failure mode and not an oversight.** Either default would
+be wrong invisibly: true lets a sibling sell a line it cannot dispatch, false
+silently refuses every order on a launched site. A required parameter makes the
+question loud and early. The reasoning is written above the function.
 
 ### 4. Line endings, and the cause as well as the symptom
 

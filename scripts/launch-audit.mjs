@@ -43,7 +43,7 @@ import {
   PRESENT_TENSE_OFFER,
   PRESENT_TENSE_SEALING,
 } from "./lib/regulatory.mjs";
-import { withGateConditionsMet, FIXTURE_FIRM_NUMBER } from "./lib/gate-fixture.mjs";
+import { withGateConditionsMet, FIXTURE_FIRM_NUMBER, FIXTURE_ENV } from "./lib/gate-fixture.mjs";
 
 const PRELAUNCH_PORT = Number(process.env.LAUNCH_AUDIT_PORT || 3227);
 const LIVE_PORT = Number(process.env.LAUNCH_AUDIT_LIVE_PORT || 3228);
@@ -167,6 +167,14 @@ async function run() {
       crawlMode("live", LIVE_PORT, {
         LAUNCH_MODE: "live",
         TBPELS_PE_LICENSE: TEST_PE_LICENSE,
+        /*
+         * The gate grew a phone condition on 2026-09-11, and a spawned server
+         * reads it from its own environment rather than from the patched
+         * files. Without this the live crawl renders the PRELAUNCH site and
+         * asserts live things about it, which is the exact failure the 09-10
+         * ruling produced and this comment exists to stop repeating.
+         */
+        ...FIXTURE_ENV,
       }),
     );
 
@@ -177,21 +185,86 @@ async function run() {
 
     // ---------- prelaunch ----------
 
-    const DISCLOSURE = "Firm registration pending with the Texas Board of Professional Engineers and Land Surveyors";
+    /*
+     * THE PRELAUNCH FOOTER NAMES THE REGISTRANT NOW, AND THESE TWO CHECKS
+     * CHANGED WITH THE RULING RATHER THAN BEING LOOSENED.
+     *
+     * Operator ruling, 2026-09-11: until the board holds the operating name,
+     * the public footer reads "254 Services LLC, TBPELS Firm F-29811" with the
+     * brand above it, so the day the gate opens the sites already hold out
+     * under the registered name.
+     *
+     * The old pair asserted that the footer said "pending" and that no page
+     * rendered a firm number at all. Both are now the wrong question, and the
+     * second had become WORSE than wrong: it matched "TBPELS Firm No." and the
+     * ruled string is "TBPELS Firm F-29811", so it would have passed over every
+     * page forever while measuring nothing.
+     *
+     * What replaces them is the property that actually matters and that neither
+     * old check could see: the number appears, it appears beside the name the
+     * BOARD issued it to, and it never appears beside the name the firm trades
+     * under.
+     */
+    const REGISTRANT_LINE = "254 Services LLC, TBPELS Firm F-29811";
     const missingDisclosure = [...pre.entries()]
-      .filter(([route, p]) => !route.endsWith(".txt") && !p.text.includes(DISCLOSURE))
+      .filter(([route, p]) => !route.endsWith(".txt") && !p.text.includes(REGISTRANT_LINE))
       .map(([route]) => route);
     rec(
-      "prelaunch: the registration disclosure appears in the footer of every page",
+      "prelaunch: the footer names the registrant and the number on every page",
       missingDisclosure.length === 0,
       missingDisclosure.join(", "),
     );
 
-    const firmNumberLeak = routesMatching(pre, /TBPELS Firm No\./i);
+    /*
+     * The hazard the gate exists to prevent, asserted directly. "254
+     * Engineering Services" within a short distance of the number means the
+     * board's number is sitting beside a name the board has no record of.
+     */
+    /*
+     * MATCHED IN THE HTML AND WITHIN ONE ELEMENT, NOT IN THE EXTRACTED TEXT.
+     *
+     * The first version of this matched p.text and failed on all fourteen
+     * routes, which was the check being wrong rather than the pages. The
+     * footer renders the brand and the registrant line as two SEPARATE
+     * paragraphs, exactly as the ruling asks, and flattening to text puts them
+     * side by side with nothing between.
+     *
+     * [^<] stops at the first tag boundary, so this asks the question that
+     * actually matters: does any single rendered element put the board number
+     * and the trading name in one phrase.
+     */
+    const besideTradingName = [...pre.entries()]
+      .filter(([, p]) =>
+        /254 Engineering Services[^<]{0,60}F-29811|F-29811[^<]{0,60}254 Engineering Services/i.test(p.html),
+      )
+      .map(([route]) => route);
     rec(
-      "prelaunch: no page renders a TBPELS firm number",
-      firmNumberLeak.length === 0,
-      firmNumberLeak.join(", "),
+      "prelaunch: no page puts the number beside the trading name",
+      besideTradingName.length === 0,
+      besideTradingName.join(", "),
+    );
+
+    /*
+     * AND THE CREDENTIAL CLAIM SURFACES STILL CARRY NOTHING. tbpelsFirmNumber()
+     * returns null while the gate is shut, which is a different answer from the
+     * footer's on purpose: the footer discloses who the registrant is, these
+     * assert what the firm may do.
+     */
+    /*
+     * "TBPELS Firm No." and not "TBPELS Firm". The first version matched the
+     * latter and failed on /government, which was the check reading that
+     * page's own FOOTER rather than its capability statement.
+     *
+     * The two strings are genuinely different claims and that is the point:
+     * the footer discloses who the registrant is, the capability statement
+     * asserts the firm is registered, and only the second may not appear while
+     * the gate is shut.
+     */
+    const claimLeak = ["/government"].filter((r) => /TBPELS Firm No./i.test(pre.get(r).text));
+    rec(
+      "prelaunch: the capability statement claims no firm number",
+      claimLeak.length === 0,
+      claimLeak.join(", "),
     );
 
     const servicePages = ["/services", "/services/roof-inspections", "/services/windstorm-wpi-8", "/services/forensic-engineering"];
@@ -259,7 +332,7 @@ async function run() {
 
     rec(
       "prelaunch: llms.txt carries the registration status so a model summarizing the firm states it correctly",
-      pre.get("/llms.txt").text.includes(DISCLOSURE),
+      pre.get("/llms.txt").text.includes(REGISTRANT_LINE),
     );
 
     rec(
@@ -270,7 +343,7 @@ async function run() {
     // ---------- live ----------
 
     const liveMissingNumber = [...live.entries()]
-      .filter(([route, p]) => !route.endsWith(".txt") && !p.text.includes(`TBPELS Firm No. ${TEST_FIRM_NUMBER}`))
+      .filter(([route, p]) => !route.endsWith(".txt") && !p.text.includes(`TBPELS Firm ${TEST_FIRM_NUMBER}`))
       .map(([route]) => route);
     rec(
       "live: the firm number appears in the footer of every page",
@@ -287,7 +360,48 @@ async function run() {
       liveLegalName.join(", "),
     );
 
-    const liveDisclosureLeak = routesMatching(live, new RegExp(DISCLOSURE, "i"));
+    /*
+     * ======================================================================
+     * THE CAPABILITY STATEMENT IS WHERE THIS HAZARD IS ACTUALLY REACHABLE.
+     * Added 2026-09-11, after the prelaunch version of this check turned out
+     * to be unreachable rather than passing.
+     * ======================================================================
+     *
+     * /government renders its registration row only when tbpelsFirmNumber() is
+     * non null, so in prelaunch there is nothing to catch and a check there is
+     * measuring an empty set. In LIVE it renders "TBPELS Firm No. <number>" two
+     * rows below "Legal entity: <business.legalName>", which is a government
+     * buyer reading a board number beside an entity name.
+     *
+     * This asserts the pair is consistent: the entity named on the capability
+     * statement must be the entity the registration was issued to. It is the
+     * one page where a procurement officer checks exactly that.
+     *
+     * WHAT IS ASSERTED HERE IS ONLY THAT THE ROW RENDERS. Whether the entity it
+     * names is the entity the registration was issued to is a question about
+     * two CONFIGURED strings, not about a rendered page, so it is asserted in
+     * compliance-audit where both declarations are in scope. Writing it here
+     * produced a condition that was true whatever the page said, which is worse
+     * than no check.
+     */
+    const gov = live.get("/government");
+    const govClaimsNumber = /TBPELS Firm No\./i.test(gov.text);
+    rec(
+      "live: the capability statement claims the firm number",
+      govClaimsNumber,
+      govClaimsNumber ? "the registration row renders" : "it renders the pending branch in live mode",
+    );
+
+    /*
+     * The pending sentence is its own constant now. It used to be DISCLOSURE,
+     * which was both "what prelaunch must say" and "what live must not say",
+     * and those stopped being the same string on 2026-09-11 when the prelaunch
+     * footer began naming the registrant. One constant serving two opposite
+     * assertions is how one of them quietly stops meaning anything.
+     */
+    const PENDING_SENTENCE =
+      "Firm registration pending with the Texas Board of Professional Engineers and Land Surveyors";
+    const liveDisclosureLeak = routesMatching(live, new RegExp(PENDING_SENTENCE, "i"));
     rec(
       "live: the pending disclosure is gone from every page",
       liveDisclosureLeak.length === 0,

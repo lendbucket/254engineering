@@ -1389,6 +1389,14 @@ if (!db) {
         "/portal/partners",
         "/portal/queue",
         "/portal/status",
+        /*
+         * Launch readiness. Gated on roles.manage, which an engineer does not
+         * hold: deciding the firm may trade is the administrator's act. The
+         * engineer's own gate is a different one, peInResponsibleCharge, and
+         * being the person who satisfies a condition is not the same as being
+         * the person who declares it met.
+         */
+        "/portal/launch",
         "/portal/techs",
         "/portal/intake",
         "/portal/jobs",

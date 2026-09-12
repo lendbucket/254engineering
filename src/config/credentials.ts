@@ -115,6 +115,57 @@ export const verifiedFirmRegistrations: VerifiedFirmRegistration[] = [
  * flipped by anybody in a hurry; this cannot be flipped without writing down
  * what the board now holds, and compliance-audit reads what is written.
  */
+/**
+ * AND THE LEGAL ENTITY NAME DOES NOT MATCH THE REGISTRANT EITHER.
+ *
+ * Found 2026-09-11 while wiring the launch conditions, and it is a SECOND
+ * discrepancy rather than a restatement of the one below.
+ *
+ * `business.legalName` in src/config/business.ts says the registered entity is
+ * **254 Engineering Services LLC**, and it renders as "Legal entity" on
+ * /government, in the footer copyright line, and in contracts language. TBPELS
+ * issued F-29811 to **254 Services LLC**.
+ *
+ * Those are two different claims about who this firm IS, not about what it
+ * trades as, and exactly one of them can be right:
+ *
+ *   Either `business.legalName` is wrong and the entity is 254 Services LLC,
+ *   in which case the capability statement has been naming the wrong company
+ *   to government buyers.
+ *
+ *   Or there are genuinely two entities, in which case the registration
+ *   belongs to one and the website describes the other, and that is a bigger
+ *   question than a config value.
+ *
+ * NOTHING HERE GUESSES WHICH. The operator holds the formation documents and
+ * this file will not invent an answer from a string comparison. What it does is
+ * refuse to let the discrepancy go unrecorded: `resolved` stays false, and
+ * `compliance-audit` asserts that while it is false the two names are named.
+ *
+ * WHY IT IS NOT A LAUNCH CONDITION. The gate already will not open, on the
+ * operating name. Adding a second condition for the same underlying fact would
+ * mean clearing one appears to make progress while the other silently holds,
+ * and the launch screen would show two rows saying nearly the same thing. When
+ * the operator resolves the entity question, BOTH are answered by the same act.
+ */
+export const legalEntityMatchesRegistrant: {
+  resolved: boolean;
+  /** What business.legalName says today. */
+  legalNameOnSite: string;
+  /** What the board's record says today. */
+  registrantOnRecord: string;
+  because: string;
+} = {
+  resolved: false,
+  legalNameOnSite: "254 Engineering Services LLC",
+  registrantOnRecord: "254 Services LLC",
+  because:
+    "The site states its legal entity is 254 Engineering Services LLC and TBPELS issued F-29811 to 254 " +
+    "Services LLC. One of those is wrong, or there are two entities. The operator holds the formation " +
+    "documents and this is theirs to answer; it is recorded rather than guessed because /government names " +
+    "the legal entity to procurement officers.",
+};
+
 export const operatingNameOnBoardRecord: {
   onRecord: boolean;
   /** What the board's record says, or why it does not yet say it. */

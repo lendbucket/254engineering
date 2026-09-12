@@ -791,14 +791,38 @@ export const catalogByType = (type: OrderType): CatalogEntry[] =>
  * `prelaunch` is passed in rather than read here, because this file is copied
  * into three repositories and each has its own launch module. A cross repo
  * import would be the first thing to break on the copy.
+ *
+ * AND SO IS `hasApprovedProtocol`, FOR THE SAME REASON AND ONE MORE.
+ * -----------------------------------------------------------------
+ * Operator ruling, 2026-09-11: for every service line the sites offer at launch
+ * there is one protocol approved by the engineer of record, and a line with no
+ * approved protocol is not offered, it is a waitlist. This function is where
+ * that becomes true of the ORDER rather than of the copy, because this is the
+ * one place that decides whether money may be taken for a deliverable.
+ *
+ * The argument is dispatch. A field order with no approved protocol reaches a
+ * technician with no checklist to work to and an engineer with no agreed basis
+ * to review against, which means the firm has taken payment for work it has no
+ * stated way to perform. That is worse than not selling it.
+ *
+ * IT IS A REQUIRED PARAMETER AND NOT AN OPTIONAL ONE WITH A DEFAULT, and the
+ * choice is deliberate. Either default is wrong in a way nobody would see: true
+ * lets a sibling repo sell an undispatchable line, false silently refuses every
+ * order on a site that has launched. Required means the two sibling
+ * repositories fail to COMPILE until somebody decides, which is the loudest and
+ * earliest place this can be answered.
  */
 export function orderBlockedReason(
   entry: CatalogEntry | undefined,
   prelaunch: boolean,
+  hasApprovedProtocol: boolean,
 ): string | null {
   if (!entry) return "That deliverable is not in the order catalog.";
   if (prelaunch) {
     return "The firm's registration with the Texas Board of Professional Engineers and Land Surveyors is pending. No order can be placed and no payment can be taken until it is active.";
+  }
+  if (!hasApprovedProtocol) {
+    return "No protocol for this service line has been approved by the engineer of record yet, so the firm has no agreed way to perform it. It is a waitlist rather than an order.";
   }
   if (entry.orderType === "quote") return null;
   if (entry.priceCents === null) {
@@ -810,5 +834,8 @@ export function orderBlockedReason(
   return null;
 }
 
-export const orderable = (entry: CatalogEntry | undefined, prelaunch: boolean): boolean =>
-  orderBlockedReason(entry, prelaunch) === null;
+export const orderable = (
+  entry: CatalogEntry | undefined,
+  prelaunch: boolean,
+  hasApprovedProtocol: boolean,
+): boolean => orderBlockedReason(entry, prelaunch, hasApprovedProtocol) === null;

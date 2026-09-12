@@ -3,6 +3,14 @@ import {
   operatingNameOnBoardRecord,
   type VerifiedFirmRegistration,
 } from "@/config/credentials";
+import {
+  stripeAccount,
+  approvedProtocols,
+  pointInTimeRecovery,
+  placeholderPhonePatterns,
+} from "@/config/launch-readiness";
+import { contact } from "@/config/contact";
+import { services } from "@/content/services";
 
 /**
  * The compliance gate.
@@ -62,35 +70,187 @@ export type LaunchMode = "prelaunch" | "live";
  * So each blocker returns a SENTENCE, not a boolean, because what a reader
  * needs when the gate will not open is the reason.
  */
+export type LaunchCondition = {
+  /** Stable key. compliance-audit pins these, so renaming one is deliberate. */
+  id: string;
+  /** What must be true, in one line. */
+  what: string;
+  /** Who can make it true. Not a role in this platform; a person or a body. */
+  whoClears: string;
+  /** Where it is stated true, exactly enough to open the file and edit it. */
+  statedIn: string;
+  /**
+   * The sentence a reader gets when it is not met, or null when it is.
+   *
+   * A SENTENCE AND NOT A BOOLEAN, which is the whole design. What somebody needs
+   * when the gate will not open is the reason, and a list of falses is a puzzle.
+   */
+  unmet: () => string | null;
+};
+
+/**
+ * ===========================================================================
+ * THE CONDITIONS, AS DATA.
+ * Operator ruling, 2026-09-11.
+ * ===========================================================================
+ *
+ * Five were added to the two that already existed, and they are a list rather
+ * than a function body so that three things are possible at once: the gate maps
+ * over them, the operator's launch screen renders them, and
+ * `scripts/compliance-audit.mjs` asserts each one by id against a pinned list.
+ *
+ * The last of those is why `id` exists. An audit that iterates whatever the
+ * array happens to hold would pass just as happily over an array somebody
+ * shortened, which is the defect class this repository keeps finding: a check
+ * that agrees with the thing it checks.
+ */
+export const LAUNCH_CONDITIONS: LaunchCondition[] = [
+  {
+    id: "switch",
+    what: "The operator has thrown the switch.",
+    whoClears: "The operator, in the deployment environment.",
+    statedIn: "LAUNCH_MODE=live",
+    unmet: () =>
+      process.env.LAUNCH_MODE?.trim().toLowerCase() === "live" ? null : "LAUNCH_MODE is not live.",
+  },
+
+  {
+    id: "registration",
+    /*
+     * A registration the board actually issued, read from the register rather
+     * than from the environment. An environment variable can differ between a
+     * build and a deployment; a file cannot.
+     */
+    what: "An active, unexpired firm registration is on record.",
+    whoClears: "TBPELS issues it; the operator records it.",
+    statedIn: "verifiedFirmRegistrations in src/config/credentials.ts",
+    unmet: () =>
+      activeFirmRegistration()
+        ? null
+        : "No active firm registration is recorded in src/config/credentials.ts, or the one recorded has expired.",
+  },
+
+  {
+    id: "operating-name",
+    /*
+     * AND THE BOARD HOLDS THE NAME THIS FIRM TRADES UNDER. The condition this
+     * ruling exists for: a registration in one name does not authorise holding
+     * out under another.
+     */
+    what: "The board holds the name this firm trades under.",
+    whoClears:
+      "The operator files an assumed name for 254 Engineering Services and gets TBPELS acknowledgement of it, or renames the entity.",
+    statedIn: "operatingNameOnBoardRecord in src/config/credentials.ts",
+    unmet: () =>
+      operatingNameOnBoardRecord.onRecord
+        ? null
+        : `The board does not hold the operating name. ${operatingNameOnBoardRecord.because}`,
+  },
+
+  {
+    id: "stripe",
+    what: "A live Stripe account belonging to 254, proven by one real charge and its refund.",
+    whoClears: "The operator connects the account and makes the charge and the refund.",
+    statedIn: "stripeAccount in src/config/launch-readiness.ts",
+    unmet: () => {
+      if (!stripeAccount.connected) return `No live Stripe account belongs to this firm. ${stripeAccount.because}`;
+      if (!stripeAccount.accountName) {
+        return "A Stripe account is marked connected but no account holder is named, so nobody can tell whose it is.";
+      }
+      if (!stripeAccount.proof) {
+        return `The Stripe account ${stripeAccount.accountName} is connected but no charge and refund have been recorded, so the refund path has never been run.`;
+      }
+      return null;
+    },
+  },
+
+  {
+    id: "protocols",
+    /*
+     * The condition that decides what may be SOLD rather than what may be said.
+     * A line with no approved protocol cannot be dispatched, so offering it is
+     * taking money for work the firm has no agreed way to perform.
+     */
+    what: "Every service line offered at launch has one protocol approved by the engineer of record.",
+    whoClears: "The Professional Engineer in responsible charge approves each protocol.",
+    statedIn: "approvedProtocols in src/config/launch-readiness.ts",
+    unmet: () => {
+      const waiting = services.filter((s) => !approvedProtocolFor(s.slug)).map((s) => s.slug);
+      if (waiting.length === 0) return null;
+      if (waiting.length === services.length) {
+        return `No service line has a protocol approved by an engineer of record, so all ${services.length} are a waitlist rather than an offer.`;
+      }
+      return `${waiting.length} of ${services.length} service lines have no approved protocol and are a waitlist: ${waiting.join(", ")}.`;
+    },
+  },
+
+  {
+    id: "phone",
+    what: "FIRM_PHONE is a real number, not a placeholder.",
+    whoClears: "The operator, once there is a number somebody answers.",
+    statedIn: "FIRM_PHONE in the deployment environment",
+    unmet: () => {
+      const phone = contact.phone;
+      if (!phone) return "FIRM_PHONE is not set, so the firm publishes no telephone number.";
+      const digits = phone.replace(/[^\d+]/g, "");
+      const placeholder = placeholderPhonePatterns.find((p) => p.pattern.test(digits));
+      if (placeholder) return `FIRM_PHONE is a placeholder. ${placeholder.why}`;
+      if (digits.replace(/\D/g, "").replace(/^1(?=\d{10}$)/, "").length !== 10) {
+        return "FIRM_PHONE is not ten digits, so it is not a number anybody can ring.";
+      }
+      return null;
+    },
+  },
+
+  {
+    id: "recovery",
+    what: "Point in time recovery is enabled on the production project.",
+    whoClears: "The operator, in the Supabase dashboard, and states it here with the date.",
+    statedIn: "pointInTimeRecovery in src/config/launch-readiness.ts",
+    unmet: () => {
+      if (!pointInTimeRecovery.enabled) {
+        return `Point in time recovery is not enabled on the production project. ${pointInTimeRecovery.because}`;
+      }
+      if (!pointInTimeRecovery.on) {
+        return "Point in time recovery is marked enabled with no date, so nobody can tell when the window starts.";
+      }
+      return null;
+    },
+  },
+];
+
+/**
+ * The protocol approved for a service line, or null.
+ *
+ * Exported because the catalogue needs it to decide what may be ordered, which
+ * is the operator's ruling that nobody can list a line that cannot be
+ * dispatched.
+ */
+export function approvedProtocolFor(serviceSlug: string) {
+  return approvedProtocols.find((p) => p.serviceSlug === serviceSlug) ?? null;
+}
+
+/**
+ * Is this service line offered, or is it a waitlist?
+ *
+ * One function, so the order flow, the service pages and the gate cannot answer
+ * it three ways.
+ */
+export function serviceLineIsOffered(serviceSlug: string): boolean {
+  return approvedProtocolFor(serviceSlug) !== null;
+}
+
 export function launchBlockers(): string[] {
-  const blockers: string[] = [];
+  return LAUNCH_CONDITIONS.map((c) => c.unmet()).filter((s): s is string => s !== null);
+}
 
-  if (process.env.LAUNCH_MODE?.trim().toLowerCase() !== "live") {
-    blockers.push("LAUNCH_MODE is not live.");
-  }
-
-  /*
-   * A registration the board actually issued, read from the register rather
-   * than from the environment. An environment variable can differ between a
-   * build and a deployment; a file cannot.
-   */
-  const registration = activeFirmRegistration();
-  if (!registration) {
-    blockers.push(
-      "No active firm registration is recorded in src/config/credentials.ts, or the one recorded has expired.",
-    );
-  }
-
-  /*
-   * AND THE BOARD HOLDS THE NAME THIS FIRM TRADES UNDER. The condition this
-   * ruling exists for: a registration in one name does not authorise holding
-   * out under another.
-   */
-  if (!operatingNameOnBoardRecord.onRecord) {
-    blockers.push(`The board does not hold the operating name. ${operatingNameOnBoardRecord.because}`);
-  }
-
-  return blockers;
+/**
+ * The same answer with the conditions attached, for the operator's launch
+ * screen. Kept beside launchBlockers rather than derived somewhere else,
+ * because a screen computing its own version of the gate is a second gate.
+ */
+export function launchReadiness(): { condition: LaunchCondition; blocker: string | null }[] {
+  return LAUNCH_CONDITIONS.map((condition) => ({ condition, blocker: condition.unmet() }));
 }
 
 /**
@@ -167,7 +327,30 @@ export function peInResponsibleCharge(): boolean {
  * it exists.
  */
 export function registrationLine(): string {
-  const registration = isPrelaunch() ? null : activeFirmRegistration();
+  /*
+   * THE REGISTRATION IS STATED WHILE THE GATE IS SHUT, AND THAT IS A CHANGE.
+   * Operator ruling, 2026-09-11: until the board holds the operating name, the
+   * public footer reads "254 Services LLC, TBPELS Firm F-29811" with the brand
+   * above it, so the day the gate opens the sites already hold out under the
+   * registered name.
+   *
+   * WHY THIS IS NOT THE THING THE GATE PREVENTS. The hazard was never printing
+   * the number. It was printing the number BESIDE A NAME THE BOARD HAS NO
+   * RECORD OF. Naming the registrant exactly as the board issued it, with the
+   * brand on its own line above, asserts only what the board's record says.
+   *
+   * It also removes a cliff. The alternative is a footer that says "pending"
+   * for months and then changes to a registered firm on the day a filing is
+   * acknowledged, which is the version where somebody has to remember to make
+   * the change and the sites disagree with each other while they deploy.
+   *
+   * `tbpelsFirmNumber()` still returns null while the gate is shut and that is
+   * deliberate: it feeds the government page, the credentials strip and the
+   * schema block, which are CLAIMS OF CAPABILITY rather than a disclosure of
+   * who the registrant is. The two answers are different because the two
+   * questions are.
+   */
+  const registration = activeFirmRegistration();
   const pe = peInResponsibleCharge();
 
   /*
@@ -185,14 +368,14 @@ export function registrationLine(): string {
    * that name changes the line changes with it.
    */
   if (registration && pe) {
-    return `${registration.issuedTo} TBPELS Firm No. ${registration.number}`;
+    return `${registration.issuedTo}, TBPELS Firm ${registration.number}`;
   }
 
   // Both pendings are stated, and separately, because they are separate facts
   // and a reader who is checking one will want to know about the other. A
   // registration alone does not let a firm seal anything.
   if (registration && !pe) {
-    return `${registration.issuedTo} TBPELS Firm No. ${registration.number}. No engineer of record is yet in responsible charge, and no work is being sealed.`;
+    return `${registration.issuedTo}, TBPELS Firm ${registration.number}. No engineer of record is yet in responsible charge, and no work is being sealed.`;
   }
   if (!registration && pe) {
     return "Firm registration pending with the Texas Board of Professional Engineers and Land Surveyors.";
