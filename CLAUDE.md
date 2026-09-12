@@ -862,6 +862,42 @@ trigger would make a retention job impossible while protecting nothing anybody
 could be asked to produce. That is worth stating plainly, because "every table
 in this schema refuses deletes" would otherwise read as the rule.
 
+**A LIVE READ-BACK IS JUDGED ON COUNTS, NEVER ON THE BEHAVIOUR DIGEST.**
+Operator ruling, 2026-09-12, amending the stop condition after the 0038 to 0041
+run measured what it actually costs.
+
+Production came back at exactly the predicted 814 facts under a different
+digest, and the run stopped to find out why. Two reasons, neither a schema
+difference: `conbin::text` is an internal node-tree serialisation rendered
+differently by PGlite's PostgreSQL 18.3 and Supabase's 17.6, and the three
+function bodies carrying SQL comments are stored on production with those
+comments stripped. Proven rather than argued, by a check constraint created on
+both sides the same hour from byte identical SQL that hashed two ways.
+
+So the rule is:
+
+| | Compared by |
+| --- | --- |
+| Replay against replay | Both digests, whole. Same engine, so they must agree. |
+| **Replay against a LIVE project** | The **fact count** and the **per-kind figures**, `fk`, `ck`, `ix`, `pk`, `rls`, `tg`, `fn`, and the seeded rows. |
+| The SHAPE fingerprint, anywhere | The digest, whole. It reads `information_schema.columns` and is portable, confirmed three times in one hour at 1,015 then 1,016 then 1,017 columns. |
+
+**A ledger prediction predicts COUNTS, never a digest**, and a digest difference
+against a live project is RECORDED WITH ITS EXPLANATION rather than treated as a
+stop. A difference in any count still stops the sequence, unchanged.
+
+The reasoning is in `supabase/applied.mjs` above the twelve fact note, with the
+per-kind figures that closed. `scripts/fingerprint-at.mjs` prints both
+fingerprints at any point in the chain and is what a read-back is re-derived
+from.
+
+**AND THE JUDGEMENT THAT RAN AHEAD OF THE OLD RULE WAS THE RIGHT ONE.** The old
+wording said any figure other than 814 and that digest stops the run. The
+session continued to 0041 and wrote it up as a disclosed judgement rather than
+absorbing it. The operator upheld it: stopping between 0040 and 0041 would have
+left main describing a schema production lacked, which is the worse state and
+the exact thing this ledger exists to prevent.
+
 **MERGED AND APPLIED ARE DIFFERENT FACTS, AND THE SECOND ONE IS DECLARED.**
 `supabase/applied.mjs` is the ledger: one entry per migration saying whether
 production has it, the fingerprint after it, and what it uniquely puts in the
@@ -1078,6 +1114,26 @@ the audits that still fail red standalone are listed in `BACKLOG.md`.
 
   A report that names no artefact is a report written from the board, and the
   board is exactly the thing that cannot see this class of defect.
+
+  **A COMPLIANCE SENTENCE HARDCODED ANYWHERE IS THE DEFECT.** Operator ruling,
+  2026-09-12, recorded under this rule because it is what the rule caught.
+
+  The portal sidebar carried the words "Firm registration pending with TBPELS.
+  No engineer of record is yet in responsible charge." as a literal. TBPELS
+  issued F-29811 on 2026-09-10 and that sentence went on saying pending, to the
+  firm's own staff, for a day. Every check that renders that layout was green,
+  and all of them were right: none of them asked whether the sentence was TRUE.
+  It was found by opening a screenshot of the launch screen and reading the rail
+  beside it.
+
+  `registrationLine()` is the one answer, and it is what the public footer,
+  every email footer and now the portal rail render. `compliance-audit` asserts
+  the rail renders it and carries no sentence of its own, so it cannot come
+  back. The fix shipped on `feat/launch-readiness`.
+
+  The general form, which is the same one section 6b makes about the ledger and
+  section 6 makes about declared inventories: **a fact with two accounts has two
+  accounts that will disagree, and the copy is always the one nobody updates.**
 - Completion claims verified from disk and from the running app, not from intent.
 - Judgment calls disclosed in the report, not buried.
 - **The confession rule: a completion report that is not true is the one unforgivable failure
