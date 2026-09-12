@@ -332,6 +332,57 @@ export const RETENTION_POLICY: RetentionEntry[] = [
   },
   { table: "eng_file_inputs", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   { table: "eng_files", rule: { kind: "kept_pending_counsel", because: "The central record of the firm's work. " + COUNSEL } },
+  /*
+   * KEPT FOREVER, AND IT WANTS THE OPERATOR'S WORD.
+   *
+   * THIS COMMENT SITS OUTSIDE THE ENTRY ON PURPOSE. migration-audit parses this
+   * declaration one entry at a time by matching `{ table: "..."`, and it slices
+   * each entry's body from one match to the next to check that no kept-forever
+   * rule claims a database guarantee the catalogue does not give it.
+   *
+   * Putting a comment between the brace and `table:` made this entry
+   * unparseable, so 74 of 75 parsed and the body slice for eng_files ran
+   * straight through this one and inherited the delete-refusal claim made
+   * below. eng_files was reported as asserting a guarantee it does not have,
+   * and naming that helper in this sentence caused the same thing a second
+   * time, so it is described rather than spelled. That is
+   * the neighbour-attribution defect CLAUDE.md already records, and the parser
+   * was right to be sharp about it: both checks went red rather than one
+   * quietly mis-attributing a guarantee.
+   *
+   * 0042 added this table during Phase 12 Section 6 and retention-audit
+   * caught it undeclared on the first board run, which is exactly what that
+   * check is for: a table added without a retention rule is a table whose
+   * deletion nobody has decided.
+   *
+   * The rule is kept_forever because an incident record is the firm's account
+   * of something that affected a person and what was decided about it, and a
+   * record of that which expires is not a record. The table already refuses
+   * DELETE at the database, so this declaration agrees with the trigger
+   * rather than adding a promise on top of it.
+   *
+   * IT IS ON retention-audit's KEPT_FOREVER_BY_RULING, by the operator's ruling
+   * of 2026-09-12, for the same reason eng_deletion_requests is there: AN
+   * INCIDENT RECORD THAT CAN BE REMOVED IS AN INCIDENT THAT CAN BE DENIED.
+   *
+   * It was declared here and left off that list until they ruled, because that
+   * array is the operator's own rulings written out as literals so no
+   * configuration can shorten them, and a session cannot put one in their
+   * mouth.
+   */
+  {
+    table: "eng_incidents",
+    rule: {
+      kind: "kept_forever",
+      because:
+        REFUSES_RECORD_DELETE +
+        " An incident record is the firm's account of something that affected a person and what was " +
+        "decided about it. A record of that which expires is not a record. Operator ruling 2026-09-12, on " +
+        "the pinned kept-forever list for the same reason eng_deletion_requests is there: an incident " +
+        "record that can be removed is an incident that can be denied.",
+      ruledBy: "operator, 2026-09-12, and the trigger",
+    },
+  },
   {
     table: "eng_jobs",
     rule: {

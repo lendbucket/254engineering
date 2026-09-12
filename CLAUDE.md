@@ -414,6 +414,40 @@ carries the error when it fell over by itself". It ended cleanly. Clear the
 stale server first, or let the guard tell you which process holds it, and run
 the board with no flag at all.
 
+**NOTHING ELSE RUNS WHILE THE BOARD RUNS, AND THE BOARD IS INVOKED ON ITS OWN.**
+Operator ruling, 2026-09-12. This is the third and fourth instance of the same
+rule, and it now has enough behind it to be stated as a rule rather than as a
+lesson from one incident.
+
+The rule already said the board builds before it audits and refuses to score a
+stale artifact. What it did not say is that the board is the ONLY thing touching
+the repository while it runs, and that it gets its own invocation with nothing
+chained to it.
+
+**Instance three: a command run beside the board killed it.** During Phase 12
+Section 6 the evidence generator and its audit were run in another shell while
+`npm run audit` was in flight. The suite stopped before `mfa-audit` and printed
+`THE SUITE DID NOT RUN TO COMPLETION`, naming exactly what happened: the server
+stopped answering, so everything from there would have measured nothing. The
+harness behaved perfectly. Thirty audits did not run.
+
+**Instance four: chaining a commit into the board invocation made the build
+guard kill its own caller.** The command was
+`git commit ... && npm run audit`, and the guard, which looks for processes
+holding `.next` or an audit port, matched the invoking shell itself, killed one
+process, failed to kill a second, and the build then failed with nothing to
+audit.
+
+So: **`npm run audit`, alone, as its own command, with nothing else running
+against the repository.** Not chained after a commit, not beside a generator,
+not while anything is writing files. A board run takes twenty minutes and the
+temptation to do something useful in the meantime is exactly what produces a
+result that means nothing.
+
+The pair with 2026-09-02's lesson is the whole argument: a suite that can be
+pointed at nothing, or killed by its own operator, is a suite whose red means
+two things.
+
 **THE BOARD IS THE LAST WORD, INCLUDING OVER YOUR OWN VERIFICATION.** Operator
 ruling, 2026-09-10, from a run that fixed three real defects and introduced two
 regressions doing it.
@@ -469,6 +503,47 @@ reading a screenshot.
 So a fixture is priced, dated and complete: every column any figure could sum,
 count or age. The test of a fixture is not whether it inserts a row, it is
 whether removing the filter makes a number move.
+
+**AND EVERY SCAN SO FAR ASKED WHAT THE CODE READS. A SECRET NOTHING READS WAS
+INVISIBLE TO ALL OF THEM.** Operator ruling, 2026-09-12, recorded beside the
+fixture lesson because it is the same failure one turn further round: the
+fixture decides which figures can move, the inventory decides which surfaces are
+swept, and a scan that starts from the source decides that a credential exists
+only if something uses it.
+
+`ADMIN_PASSPHRASE` sat in `.env.local` holding a short human passphrase for the
+`/admin` surface, which was deleted months earlier. `BACKLOG.md` had even
+recorded that nothing reads it and that it could come out of Vercel. Three
+separate scans could not see it, and each was working correctly: the property
+scan looks for `process.env.X`, the injected-env scan looks for `env.X`, the
+string lookup scan looks for a name written as a literal. None of them can find
+a name that appears in no source file at all.
+
+It was found by reading an environment file, and the same reverse scan then
+found two more, `LEAD_FROM_EMAIL` and `LEAD_TO_EMAIL`, left behind when the
+email identity moved into a declaration.
+
+So the scan runs BOTH WAYS. Every name set in an environment file must be
+declared or listed as retired, and a retirement says when and why, so a dead
+credential is named rather than invisible. **The general form: a check derived
+from the code can only ever find what the code knows about, and the things worth
+finding are often the things nothing references any more.**
+
+**THE INFRASTRUCTURE HALF OF THE ARTEFACT RULE, SAME DAY.** The sharpest finding
+of that section came from the operator opening the Vercel dashboard, which no
+check in this repository can see. `CUSTOMER_SESSION_SECRET` was set for All
+Environments, so a customer cookie minted on any preview deployment was valid on
+production, and a preview URL is reachable by anybody holding the link.
+`PARTNER_SESSION_SECRET` and `MFA_ENCRYPTION_KEY` shared one value across
+Production and Preview. `OPS_SESSION_SECRET` was already split, which is what
+made the other three legible as a defect rather than as a configuration: the
+correct pattern existed and had been applied to one principal of three.
+
+The declaration now records which environments each credential lives in and
+whether a Preview value is distinct, and `soc2-audit` asserts that no secret
+deciding identity or opening a database is declared as shared. **It cannot read
+Vercel and says so.** What it buys is that a future sharing becomes a deliberate
+edit to a reviewed file rather than a dropdown nobody opens again.
 
 **TWO MORE INSTANCES, 2026-09-10, AND THEY ARE THE SAME THING FROM BOTH ENDS.**
 Operator ruling: a check that measures nothing and a screen no check reads are
@@ -862,6 +937,42 @@ trigger would make a retention job impossible while protecting nothing anybody
 could be asked to produce. That is worth stating plainly, because "every table
 in this schema refuses deletes" would otherwise read as the rule.
 
+**A LIVE READ-BACK IS JUDGED ON COUNTS, NEVER ON THE BEHAVIOUR DIGEST.**
+Operator ruling, 2026-09-12, amending the stop condition after the 0038 to 0041
+run measured what it actually costs.
+
+Production came back at exactly the predicted 814 facts under a different
+digest, and the run stopped to find out why. Two reasons, neither a schema
+difference: `conbin::text` is an internal node-tree serialisation rendered
+differently by PGlite's PostgreSQL 18.3 and Supabase's 17.6, and the three
+function bodies carrying SQL comments are stored on production with those
+comments stripped. Proven rather than argued, by a check constraint created on
+both sides the same hour from byte identical SQL that hashed two ways.
+
+So the rule is:
+
+| | Compared by |
+| --- | --- |
+| Replay against replay | Both digests, whole. Same engine, so they must agree. |
+| **Replay against a LIVE project** | The **fact count** and the **per-kind figures**, `fk`, `ck`, `ix`, `pk`, `rls`, `tg`, `fn`, and the seeded rows. |
+| The SHAPE fingerprint, anywhere | The digest, whole. It reads `information_schema.columns` and is portable, confirmed three times in one hour at 1,015 then 1,016 then 1,017 columns. |
+
+**A ledger prediction predicts COUNTS, never a digest**, and a digest difference
+against a live project is RECORDED WITH ITS EXPLANATION rather than treated as a
+stop. A difference in any count still stops the sequence, unchanged.
+
+The reasoning is in `supabase/applied.mjs` above the twelve fact note, with the
+per-kind figures that closed. `scripts/fingerprint-at.mjs` prints both
+fingerprints at any point in the chain and is what a read-back is re-derived
+from.
+
+**AND THE JUDGEMENT THAT RAN AHEAD OF THE OLD RULE WAS THE RIGHT ONE.** The old
+wording said any figure other than 814 and that digest stops the run. The
+session continued to 0041 and wrote it up as a disclosed judgement rather than
+absorbing it. The operator upheld it: stopping between 0040 and 0041 would have
+left main describing a schema production lacked, which is the worse state and
+the exact thing this ledger exists to prevent.
+
 **MERGED AND APPLIED ARE DIFFERENT FACTS, AND THE SECOND ONE IS DECLARED.**
 `supabase/applied.mjs` is the ledger: one entry per migration saying whether
 production has it, the fingerprint after it, and what it uniquely puts in the
@@ -1078,6 +1189,46 @@ the audits that still fail red standalone are listed in `BACKLOG.md`.
 
   A report that names no artefact is a report written from the board, and the
   board is exactly the thing that cannot see this class of defect.
+
+  **AND AN ACCESS REVIEW THAT UNDERSTATES ACCESS IS WORSE THAN ONE THAT OMITS
+  IT, BECAUSE THE READER BELIEVES THEY HAVE LOOKED.** Operator ruling,
+  2026-09-12, from Phase 12 Section 6.
+
+  The generated access review reported `Grants 0` and an empty Permissions
+  column for every customer and partner. Both figures were correct: those
+  principals hold no rows in `eng_role_grants`. What a reader takes from a zero
+  in a Permissions column is that the account can do nothing, and a customer can
+  see their own orders and a partner their own earnings, scoped by ownership in
+  `customer-auth.ts` and `partner-auth.ts` rather than by a grant.
+
+  Every check was asking whether the number was right. None was asking what a
+  reader would take it to mean. It was found by opening the CSV.
+
+  The report says "not role based" now, with the scope written out. The general
+  form belongs beside the other entries in this list: **a figure can be
+  arithmetically correct and still be a false statement about the thing it
+  describes**, and only reading the artefact as its audience would read it finds
+  that.
+
+  **A COMPLIANCE SENTENCE HARDCODED ANYWHERE IS THE DEFECT.** Operator ruling,
+  2026-09-12, recorded under this rule because it is what the rule caught.
+
+  The portal sidebar carried the words "Firm registration pending with TBPELS.
+  No engineer of record is yet in responsible charge." as a literal. TBPELS
+  issued F-29811 on 2026-09-10 and that sentence went on saying pending, to the
+  firm's own staff, for a day. Every check that renders that layout was green,
+  and all of them were right: none of them asked whether the sentence was TRUE.
+  It was found by opening a screenshot of the launch screen and reading the rail
+  beside it.
+
+  `registrationLine()` is the one answer, and it is what the public footer,
+  every email footer and now the portal rail render. `compliance-audit` asserts
+  the rail renders it and carries no sentence of its own, so it cannot come
+  back. The fix shipped on `feat/launch-readiness`.
+
+  The general form, which is the same one section 6b makes about the ledger and
+  section 6 makes about declared inventories: **a fact with two accounts has two
+  accounts that will disagree, and the copy is always the one nobody updates.**
 - Completion claims verified from disk and from the running app, not from intent.
 - Judgment calls disclosed in the report, not buried.
 - **The confession rule: a completion report that is not true is the one unforgivable failure

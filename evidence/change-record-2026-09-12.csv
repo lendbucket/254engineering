@@ -1,0 +1,53 @@
+Export,Change record
+What this is,"Every schema change this platform has ever applied, with both fingerprints and the date it reached production. Read from supabase/applied.mjs, which is the ledger two audits already enforce."
+Generated,2026-09-12 22:25:30
+Migrations,43
+Not yet on production,1
+Applied by hand rather than through the provider,1
+The behaviour fingerprint,"Carried from 0038 onward. It sees foreign key delete actions, check constraint bodies, trigger functions, index predicates, row level security and seeded rows, none of which the shape fingerprint can see."
+What this cannot tell you,"Who approved each change, because nobody separate from the author did. And it carries no history of board runs, because the suite keeps none. Both are in docs/soc2-exceptions.md."
+
+Migration,Applied by,Shape fingerprint,Behaviour fingerprint,On production,On development,By hand
+0000_eng_legacy_intake.sql,pre_ledger,6b3c866b9fd2d2a6cb2610406579bec7,not carried before 0038,2026-09-02,,
+0001_ops_foundation.sql,pre_ledger,295e928584cea806d90c5a2f2dede886,not carried before 0038,2026-09-02,,
+0002_field_dispatch.sql,pre_ledger,b4b422e1b761ae633b7729dff63f7669,not carried before 0038,2026-09-02,,
+0003_tech_onboarding.sql,pre_ledger,ad2663f8e0e6cd2508c9b5bd43c7b7f4,not carried before 0038,2026-09-02,,
+0004_engineer_review.sql,pre_ledger,7249bb177ad22e5bab4da2ab0cae44f9,not carried before 0038,2026-09-02,,
+0005_comms.sql,pre_ledger,1187b16a91c10ff758ce8953e4efb1ca,not carried before 0038,2026-09-02,,
+0006_order_engine.sql,apply_migration,f27078a89edc555283d50476b2be252e,not carried before 0038,2026-09-03,,
+0007_order_tiers.sql,apply_migration,eac11d782d44bd11cb893637f67d2ee1,not carried before 0038,2026-09-03,,
+0008_pin_function_search_path.sql,apply_migration,eac11d782d44bd11cb893637f67d2ee1,not carried before 0038,2026-09-03,,
+0009_b2b_accounts.sql,apply_migration,2f92026fb0d75e4cc9d0942be067999f,not carried before 0038,2026-09-04,,
+0010_api_requests.sql,apply_migration,9b32a7cced94549f7aeea93cc3ee3d6e,not carried before 0038,2026-09-04,,
+0011_job_queue.sql,apply_migration,8b1dee7c095418d7e91bcc3434a00796,not carried before 0038,2026-09-04,,
+0012_observability.sql,apply_migration,7bf0d1553cf0169d366389eeae4b7497,not carried before 0038,2026-09-04,,
+0013_partner_program.sql,apply_migration,e5637c603ce0d20535478427bfa28508,not carried before 0038,2026-09-04,,
+0014_partner_attribution.sql,apply_migration,b1ad321300010129b5dbd0afc42a156b,not carried before 0038,2026-09-04,,
+0015_operator_intake.sql,apply_migration,44bf672bdd0b4afa29d46965b54c7eb7,not carried before 0038,2026-09-04,,
+0016_file_inputs.sql,apply_migration,b73977baf49b6e1ad84840ea042186a1,not carried before 0038,2026-09-04,,
+0017_account_defaults.sql,apply_migration,aca946e3c49d149d73685c4eb30d092e,not carried before 0038,2026-09-04,,
+0018_roles_as_data.sql,apply_migration,eb4f97be87ef35c21b1cc8b3b4d6af23,not carried before 0038,2026-09-05,,
+0019_partner_compensation.sql,apply_migration,d8fa49515f2666bd7543c21aff831407,not carried before 0038,2026-09-06,,
+0020_partner_assets.sql,apply_migration,0b269ca7f86b3c3efa06c8c43e0084b0,not carried before 0038,2026-09-06,,
+0021_partners_manage_grant.sql,apply_migration,0b269ca7f86b3c3efa06c8c43e0084b0,not carried before 0038,2026-09-06,,
+0022_order_visitor_key.sql,apply_migration,330536b4b13cfc2f51ed1cb3b0c6edf1,not carried before 0038,2026-09-06,,
+0023_alert_state.sql,apply_migration,b2c841480f983ec50e36e72a11e9072a,not carried before 0038,2026-09-07,,
+0024_mfa.sql,apply_migration,0e8ff33c7106ce05ec2cf81a1c66cd35,not carried before 0038,2026-09-07,,
+0025_mfa_optional_default.sql,execute_sql,0e8ff33c7106ce05ec2cf81a1c66cd35,not carried before 0038,2026-09-07,,yes
+0026_marketing_suppressions.sql,apply_migration,2f76de7be0fb4ed93459db4d72d80237,not carried before 0038,2026-09-08,,
+0027_reporting_foundations.sql,apply_migration,9bbcca2c9cd3c65503c923d7c32ea769,not carried before 0038,2026-09-08,,
+0028_probe_records_are_demonstrations.sql,apply_migration,9bbcca2c9cd3c65503c923d7c32ea769,not carried before 0038,2026-09-08,,
+0029_suppressions_manage_grant.sql,apply_migration,9bbcca2c9cd3c65503c923d7c32ea769,not carried before 0038,2026-09-09,,
+0030_retention_foundations.sql,apply_migration,9bbcca2c9cd3c65503c923d7c32ea769,not carried before 0038,2026-09-09,,
+0031_retention_manifest.sql,apply_migration,d4f266b0d595c9c2922b68971b9cec2a,not carried before 0038,2026-09-09,,
+0032_kept_forever_is_enforced.sql,apply_migration,d4f266b0d595c9c2922b68971b9cec2a,not carried before 0038,2026-09-09,,
+0033_manifest_reads_and_abandons.sql,apply_migration,2aee07d8809c3db282e4eb282bb9bbd5,not carried before 0038,2026-09-09,,
+0034_a_mistyped_suppression_is_marked.sql,apply_migration,a818bfb40dd9423d0b0b76472c35519c,not carried before 0038,2026-09-09,,
+0035_a_void_carries_the_address_that_was_meant.sql,apply_migration,7346d6b60e5a54d204d95ec51c217c3a,not carried before 0038,2026-09-09,,
+0036_a_deletion_request_is_a_record.sql,apply_migration,3acd988c07905602e0e091c5b8d329ad,not carried before 0038,2026-09-09,,
+0037_a_partner_address_is_one_address.sql,apply_migration,3acd988c07905602e0e091c5b8d329ad,not carried before 0038,2026-09-09,,
+0038_a_job_says_what_it_was_allowed_to_do.sql,apply_migration,cac6f69d91b7e73441b307ea692a3f7b,b555b089052d225725c3d2ead29f3564,2026-09-11,,
+0039_the_four_keys_that_were_never_there.sql,apply_migration,cac6f69d91b7e73441b307ea692a3f7b,b555b089052d225725c3d2ead29f3564,2026-09-11,,
+0040_the_repository_catches_up_to_production.sql,apply_migration,cac6f69d91b7e73441b307ea692a3f7b,7acbb5b22f11220b4a36f535fab9e09c,2026-09-11,,
+0041_a_filed_document_says_which_registration.sql,apply_migration,1a11138f01f9be2f66251640cfb55b70,7acbb5b22f11220b4a36f535fab9e09c,2026-09-11,,
+0042_an_incident_is_a_record.sql,apply_migration,11a709155214441ec2b7c3b382f6e17f,a3a7eb9953f60e59555f7fcddd221a7f,NOT APPLIED,[object Object],
