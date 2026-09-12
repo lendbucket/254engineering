@@ -83,7 +83,9 @@
     "image-contrast-audit": "node scripts/image-contrast-audit.mjs",
     "dashboards-audit": "tsx --conditions=react-server scripts/dashboards-audit.mjs",
     "retention-audit": "tsx --conditions=react-server scripts/retention-audit.mjs",
-    "retention-dry-run": "tsx --conditions=react-server scripts/retention-dry-run.mjs"
+    "retention-dry-run": "tsx --conditions=react-server scripts/retention-dry-run.mjs",
+    "soc2-audit": "tsx scripts/soc2-audit.mjs",
+    "soc2-evidence": "tsx scripts/soc2-evidence.mjs"
   },
   "dependencies": {
     "@sentry/nextjs": "^10.73.0",

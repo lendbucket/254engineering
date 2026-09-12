@@ -171,9 +171,31 @@ console.log("");
    * So: a command that is a board audit is covered by the board, and that is
    * asserted rather than assumed. Anything else is executed here.
    */
+  /*
+   * WHAT THE BOARD RUNS IS THE BOARD'S OWN LIST, NOT package.json.
+   *
+   * The first version asked whether an npm script existed with that name and
+   * treated a yes as "the board covers it". Those are different facts, and the
+   * moment soc2-evidence was given an npm script for convenience this check
+   * reclassified it as covered and quietly stopped executing it. The audit went
+   * from 24 checks to 23 and said nothing, which is a check disappearing rather
+   * than failing.
+   *
+   * scripts/audit.mjs carries the suite's own list, so it is parsed here. That
+   * is the declared inventory idiom: derive from the declaration of intent,
+   * never from something that merely correlates with it.
+   */
+  const boardSource = readFileSync("scripts/audit.mjs", "utf8");
+  const boardRuns = new Set([...boardSource.matchAll(/name:\s*"([\w-]+)"/g)].map((m) => m[1]));
+  rec(
+    "the board's own audit list can be read",
+    boardRuns.size > 20,
+    `${boardRuns.size} audits named in scripts/audit.mjs`,
+  );
+
   const inSuite = commands.filter((c) => {
     const m = c.match(/^npx tsx scripts\/([\w-]+)\.mjs$/);
-    return m && pkg.scripts?.[m[1]];
+    return m && boardRuns.has(m[1]);
   });
   const selfReferential = commands.filter((c) => c === "npm run audit");
   const mustRunHere = commands.filter((c) => !inSuite.includes(c) && !selfReferential.includes(c));

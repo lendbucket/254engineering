@@ -456,6 +456,16 @@ const PHASE_ONE = [
     name: "retention-audit",
     why: "nothing is deleted that the declaration did not say could be",
   },
+  {
+    /*
+     * The evidence pack, which is DOCUMENTS, and a document is the easiest
+     * thing here to get wrong because nothing contradicts it. This is on the
+     * board rather than run by hand for the same reason schema-ledger-audit is:
+     * a record nothing reads is a record that stops being true silently.
+     */
+    name: "soc2-audit",
+    why: "the readiness pack still matches the platform, and still claims nothing the firm cannot show",
+  },
 ];
 
 const PHASE_TWO = [
