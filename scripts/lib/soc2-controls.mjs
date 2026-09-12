@@ -426,10 +426,11 @@ export const GAPS = [
     id: "no-incident-record",
     rank: 10,
     criterion: "availability",
-    gap: "No incident response plan and no incident record.",
+    gap: "No incident response plan, and the incident record is empty because nothing has been recorded in it.",
     severity: "medium",
-    consequence: "Faults are recorded in eng_error_events. An INCIDENT, meaning something that affected a person and required a decision, has no shape and no record.",
-    ruling: "Section 2 adds the table, empty, with the shape an incident takes. Empty and honest beats absent.",
+    consequence:
+      "Faults are recorded in eng_error_events. An INCIDENT, meaning something that affected a person and required a decision, had no shape at all until 0042 gave it one. What is still missing is the PLAN: nothing says who is called, what is decided, or how a customer is told. The table being empty is honest rather than reassuring, because no incident has occurred and the firm has not traded.",
+    ruling: "BUILT 2026-09-12. 0042 adds eng_incidents on development, empty, refusing deletes and requiring a resolved incident to say what was done. The response PLAN is not built and is not something a platform can hold.",
   },
   {
     id: "mfa-optional",

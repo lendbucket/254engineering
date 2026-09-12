@@ -10,7 +10,13 @@ platform was made deliberately and recorded with its consequence.
 
 ## 1. CONTROLS THAT DO NOT EXIST
 
-21 declared. Ranked by what an auditor asks for first.
+21 declared.
+
+**Ranked by the order the request actually arrives in an engagement, NOT by
+severity**, which is why a high severity finding can sit below a medium one. The
+first three are what a readiness call opens with, and hearing "we do not have
+that" three times in five minutes is the outcome this register exists to stop
+being a surprise. Read the severity column separately from the rank.
 
 | # | Gap | Criterion | Severity | Ruling recorded |
 | --- | --- | --- | --- | --- |
@@ -23,7 +29,7 @@ platform was made deliberately and recorded with its consequence.
 | 7 | No vendor inventory and no vendor risk assessment. | security | medium | yes |
 | 8 | No offboarding procedure. | security | medium | yes |
 | 9 | The platform cannot raise work for itself, because no system actor exists. | security | medium | yes |
-| 10 | No incident response plan and no incident record. | availability | medium | yes |
+| 10 | No incident response plan, and the incident record is empty because nothing has been recorded in it. | availability | medium | yes |
 | 11 | MFA is optional by default for the administrator and engineer roles. | security | medium | yes |
 | 12 | No history of board runs. The suite reports a verdict and keeps none. | integrity | medium | yes |
 | 13 | No formal risk assessment. | security | medium | none yet |
@@ -114,11 +120,11 @@ The platform cannot raise work for itself, because no system actor exists.
 
 ### 10. `no-incident-record`
 
-No incident response plan and no incident record.
+No incident response plan, and the incident record is empty because nothing has been recorded in it.
 
-**What follows:** Faults are recorded in eng_error_events. An INCIDENT, meaning something that affected a person and required a decision, has no shape and no record.
+**What follows:** Faults are recorded in eng_error_events. An INCIDENT, meaning something that affected a person and required a decision, had no shape at all until 0042 gave it one. What is still missing is the PLAN: nothing says who is called, what is decided, or how a customer is told. The table being empty is honest rather than reassuring, because no incident has occurred and the firm has not traded.
 
-**Ruling:** Section 2 adds the table, empty, with the shape an incident takes. Empty and honest beats absent.
+**Ruling:** BUILT 2026-09-12. 0042 adds eng_incidents on development, empty, refusing deletes and requiring a resolved incident to say what was done. The response PLAN is not built and is not something a platform can hold.
 
 ### 11. `mfa-optional`
 

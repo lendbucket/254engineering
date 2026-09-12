@@ -39,6 +39,63 @@ organisational. Read the rest of this document with that sentence in front of it
 
 ---
 
+## THE RUN THAT PRODUCED THIS PACK
+
+Phase 12 Section 6, overnight, 2026-09-12. Recorded here rather than in a
+separate file because it is the provenance of every artefact above, and it is
+history rather than state, so it cannot drift.
+
+**Gate 0, the inventory.** 22 controls declared against the five
+criteria, 21 gaps ranked. Nothing was written before the platform was
+read: the table list, the row level security state and the integrity guards came
+from live catalogue queries against development, not from memory.
+
+**Gate 1, the evidence pack.** The access review, the change record, the control
+evidence index and the exceptions register, all generated. Read line by line as
+artefacts rather than checked.
+
+**Gate 2, the controls worth adding.** The credential inventory, the offboarding
+sequence, and migration 0042's incident record. The access review's recurring
+half was NOT built, and the reason is recorded as a gap with the ruling that
+would settle it.
+
+### What each round found that no check did
+
+- **The access review reported `Grants 0` for customers and partners**, which
+  reads as "this account can do nothing" and is false: their access is scoped by
+  ownership rather than by grant rows. An access review that understates access
+  is worse than one that omits it, because the reader believes they have looked.
+  Found by reading the CSV.
+- **The evidence pack stamped an unresolved placeholder as its database name.**
+  The target was read before the client had loaded the environment. It refuses
+  outright now: an evidence pack that cannot name its database is not evidence.
+- **The audit was green over documents that no longer existed.** It ran the
+  regenerate commands before reading the documents, so it overwrote them and
+  inspected its own fresh output. Three injections proved it. Everything it
+  judges is snapshotted first now.
+- **Two undeclared secrets, invisible to the first scan.** Widening the
+  environment scan past a direct property read turned up `INTAKE_KEY_SEALED` and
+  `INTAKE_KEY_STAMP`, one per sister site, each of which lets a caller write
+  into this firm's database. Neither appears as a property read anywhere.
+- **The exceptions register looked self contradictory**, showing a high severity
+  finding at rank 20. The rank is the order a request arrives, not severity, and
+  the document now says so where a reader will see it.
+
+### Decisions taken, and flagged
+
+Nothing was merged, nothing was pushed, no migration reached production, no
+retention ran, nothing was sent outward, and no row was deleted. 0042 is on
+development alone and the ledger says `production: null` as a decision rather
+than an omission.
+
+### Rulings needed
+
+Three, and they are named where they belong rather than collected here: the
+system actor in gap 9, the legal entity name in `docs/launch-readiness.md`, and
+the cutover in section 3 of the exceptions register.
+
+---
+
 ## THE GAPS, RANKED BY WHAT IS ASKED FOR FIRST
 
 ### 1. There is no observation window, and there are no customers, no employees and one engineer.
@@ -107,13 +164,13 @@ Every write in this platform is attributed to a person, which is a genuine stren
 
 **Ruling:** Recorded rather than decided. A system actor is a new door in the authorisation model and deserves the operator's word on what it may hold. The narrowest version that works is a named eng_profiles row with tasks.use and nothing else, which keeps it visible in the access review rather than special cased in code.
 
-### 10. No incident response plan and no incident record.
+### 10. No incident response plan, and the incident record is empty because nothing has been recorded in it.
 
 **Criterion:** Availability. **Severity, this session's judgement:** medium.
 
-Faults are recorded in eng_error_events. An INCIDENT, meaning something that affected a person and required a decision, has no shape and no record.
+Faults are recorded in eng_error_events. An INCIDENT, meaning something that affected a person and required a decision, had no shape at all until 0042 gave it one. What is still missing is the PLAN: nothing says who is called, what is decided, or how a customer is told. The table being empty is honest rather than reassuring, because no incident has occurred and the firm has not traded.
 
-**Ruling:** Section 2 adds the table, empty, with the shape an incident takes. Empty and honest beats absent.
+**Ruling:** BUILT 2026-09-12. 0042 adds eng_incidents on development, empty, refusing deletes and requiring a resolved incident to say what was done. The response PLAN is not built and is not something a platform can hold.
 
 ### 11. MFA is optional by default for the administrator and engineer roles.
 
@@ -327,9 +384,9 @@ Read from `ythzaiqeoijlrdibnieo` at 2026-09-12 00:21:39.
 | Roles | 7 |
 | Grants | 117 |
 | Staff with a verified second factor | 0 of 10 |
-| Audit trail events | 12256 |
+| Audit trail events | 12264 |
 | Earliest audit event | 2026-09-02 18:39:59 |
-| Latest audit event | 2026-09-12 00:33:28 |
+| Latest audit event | 2026-09-12 06:30:23 |
 | Migrations in the ledger | 43 |
 | Migrations not yet on production | 1 |
 

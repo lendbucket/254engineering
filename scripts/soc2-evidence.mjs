@@ -347,6 +347,63 @@ organisational. Read the rest of this document with that sentence in front of it
 
 ---
 
+## THE RUN THAT PRODUCED THIS PACK
+
+Phase 12 Section 6, overnight, 2026-09-12. Recorded here rather than in a
+separate file because it is the provenance of every artefact above, and it is
+history rather than state, so it cannot drift.
+
+**Gate 0, the inventory.** ${CONTROLS.length} controls declared against the five
+criteria, ${GAPS.length} gaps ranked. Nothing was written before the platform was
+read: the table list, the row level security state and the integrity guards came
+from live catalogue queries against development, not from memory.
+
+**Gate 1, the evidence pack.** The access review, the change record, the control
+evidence index and the exceptions register, all generated. Read line by line as
+artefacts rather than checked.
+
+**Gate 2, the controls worth adding.** The credential inventory, the offboarding
+sequence, and migration 0042's incident record. The access review's recurring
+half was NOT built, and the reason is recorded as a gap with the ruling that
+would settle it.
+
+### What each round found that no check did
+
+- **The access review reported \`Grants 0\` for customers and partners**, which
+  reads as "this account can do nothing" and is false: their access is scoped by
+  ownership rather than by grant rows. An access review that understates access
+  is worse than one that omits it, because the reader believes they have looked.
+  Found by reading the CSV.
+- **The evidence pack stamped an unresolved placeholder as its database name.**
+  The target was read before the client had loaded the environment. It refuses
+  outright now: an evidence pack that cannot name its database is not evidence.
+- **The audit was green over documents that no longer existed.** It ran the
+  regenerate commands before reading the documents, so it overwrote them and
+  inspected its own fresh output. Three injections proved it. Everything it
+  judges is snapshotted first now.
+- **Two undeclared secrets, invisible to the first scan.** Widening the
+  environment scan past a direct property read turned up \`INTAKE_KEY_SEALED\` and
+  \`INTAKE_KEY_STAMP\`, one per sister site, each of which lets a caller write
+  into this firm's database. Neither appears as a property read anywhere.
+- **The exceptions register looked self contradictory**, showing a high severity
+  finding at rank 20. The rank is the order a request arrives, not severity, and
+  the document now says so where a reader will see it.
+
+### Decisions taken, and flagged
+
+Nothing was merged, nothing was pushed, no migration reached production, no
+retention ran, nothing was sent outward, and no row was deleted. 0042 is on
+development alone and the ledger says \`production: null\` as a decision rather
+than an omission.
+
+### Rulings needed
+
+Three, and they are named where they belong rather than collected here: the
+system actor in gap 9, the legal entity name in \`docs/launch-readiness.md\`, and
+the cutover in section 3 of the exceptions register.
+
+---
+
 ## THE GAPS, RANKED BY WHAT IS ASKED FOR FIRST
 
 ${GAPS.map(
@@ -514,7 +571,13 @@ platform was made deliberately and recorded with its consequence.
 
 ## 1. CONTROLS THAT DO NOT EXIST
 
-${GAPS.length} declared. Ranked by what an auditor asks for first.
+${GAPS.length} declared.
+
+**Ranked by the order the request actually arrives in an engagement, NOT by
+severity**, which is why a high severity finding can sit below a medium one. The
+first three are what a readiness call opens with, and hearing "we do not have
+that" three times in five minutes is the outcome this register exists to stop
+being a surprise. Read the severity column separately from the rank.
 
 | # | Gap | Criterion | Severity | Ruling recorded |
 | --- | --- | --- | --- | --- |
