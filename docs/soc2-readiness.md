@@ -345,6 +345,80 @@ target is stamped on every artefact this script writes rather than assumed.
 
 ---
 
+## THE CREDENTIAL INVENTORY
+
+Every environment value this platform reads, what it grants, and where the real
+one is held. **No value appears here or anywhere this section writes**, and
+`scripts/soc2-audit.mjs` proves it by scanning for the SHAPES of secrets rather
+than for their names.
+
+The inventory is compared against a scan of every `process.env` read in
+`src/` and `scripts/`, so a secret added without being declared fails the
+board.
+
+### Secrets
+
+| Name | What it grants | Where the value lives | Last rotated |
+| --- | --- | --- | --- |
+| `SUPABASE_SERVICE_ROLE_KEY` | Everything. It bypasses row level security on every table, and since there are zero policies it is the ONLY way in. Holding it is equivalent to holding the database. | Vercel for production; .env.local for development. Never in the working tree for production. | **unknown** |
+| `MFA_ENCRYPTION_KEY` | Decryption of every stored TOTP secret. Holding it plus the database would let somebody generate valid second factor codes for any enrolled account. | Vercel. Not database state, which is why a database cutover does not move it. | **unknown** |
+| `OPS_SESSION_SECRET` | Minting a valid staff session cookie for any account, without a password and without a second factor. | Vercel and .env.local. | **unknown** |
+| `CUSTOMER_SESSION_SECRET` | Minting a valid customer session for any customer account. | Vercel and .env.local. | **unknown** |
+| `PARTNER_SESSION_SECRET` | Minting a valid partner session for any partner account. | Vercel and .env.local. | **unknown** |
+| `STRIPE_SECRET_KEY` | Charging and refunding against that Stripe account, and reading every charge on it. | Vercel. The account it belongs to is Reyna Pay, not this firm, which is launch condition `stripe`. | **unknown** |
+| `STRIPE_WEBHOOK_SECRET` | Forging a payment webhook this platform would believe, which is how an order gets marked paid without money moving. | Vercel. | **unknown** |
+| `RESEND_API_KEY` | Sending mail as this firm's domain, and reading the delivery log. | Vercel. | **unknown** |
+| `CRON_SECRET` | Triggering any scheduled job on demand, including the retention sweep. | Vercel. | **unknown** |
+| `OPS_UNLOCK_TOKEN` | Clearing a lockout on a staff account. | Vercel. | **unknown** |
+| `ORDER_INTAKE_KEYS` | Submitting leads and orders into this platform as a sister site. | Vercel. The keys the two sister sites present to the intake API. | **unknown** |
+| `INTAKE_KEY_SEALED` | Submitting leads and orders into this firm's database as Sealed Engineering. | Vercel. Held by the sealedengineering deployment, which presents it to this platform's intake API. | **unknown** |
+| `INTAKE_KEY_STAMP` | Submitting leads and orders into this firm's database as StampMyPlans. | Vercel. Held by the stampmyplans deployment. | **unknown** |
+| `SENTRY_DSN` | Writing fault reports into a Sentry project. Listed because the code reads it, not because it is in use. | Not set. The fault store is this platform's own table. | **unknown** |
+
+**14 of 14 secrets have no known rotation date**, because nothing has ever rotated one and nothing records it. A plausible date in that column would be a fabrication, so it says unknown.
+
+### Configuration, not secret
+
+| Name | What it does | Where |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SENTRY_DSN` | Nothing secret. A DSN is write only and is inlined into the browser bundle. | Not set. Public by construction if it ever is. |
+| `SUPABASE_URL` | Names which database. Not a secret, and the single most important value to get right: db-guard exists because of it. | Vercel and .env.local. |
+| `LAUNCH_MODE` | One of seven launch gate conditions. Alone it opens nothing. | Vercel. |
+| `TBPELS_PE_LICENSE` | Asserts an engineer of record exists. Gated on the licence number being supplied so the gate cannot be opened by optimism. | Not set. No PE is in responsible charge. |
+| `TBPELS_FIRM_NUMBER` | Nothing. Retained only where audits clear it. | Nothing in src/ reads it any more. The registration moved into src/config/credentials.ts on 2026-09-10. |
+| `FIRM_PHONE` | Publishes a telephone number. | Not set. A launch gate condition. |
+| `MAIL_FROM_ADDRESS_LINE` | The postal address in an email footer. | Vercel. |
+| `NEXT_PUBLIC_SITE_URL` | Nothing. The canonical host. | Vercel. |
+| `ALLOW_PRODUCTION_DB` | Permission for a script to talk to production. Compared exactly against the string 1, so 0, false and true are all refusals. | Never set in any deployment. Typed by hand for one command. |
+| `ALLOW_PRODUCTION_PREVIEW` | Permission for a preview deployment to point at production. Almost never the right answer. | Never set. |
+| `MFA_BREAK_GLASS` | Bypassing the second factor requirement. The most dangerous config value here, which is why it is named rather than left to be discovered. | Never set in a deployment. |
+| `ORDER_PAYMENTS_FAKE` | Taking an order without calling Stripe. | Development only. |
+| `ALLOW_PRODUCTION_ON_OTHER_DB` | Permission for a production deployment to point at a database that is not the production project. Compared exactly against the string 1. | Never set in any deployment. |
+| `ALLOW_LIVE_KEY_OFF_PRODUCTION` | Permission for a non production deployment to hold a live payment key, which is how a test order charges a real card. | Never set in any deployment. |
+
+---
+
+## OFFBOARDING, KEYED TO WHAT THIS PLATFORM CAN DO
+
+A sequence rather than a policy, because a policy is a sentence about intent and
+a sequence is a list somebody can follow at eleven at night having never done it
+before. Nobody has ever left this firm, so none of it has been exercised.
+
+| # | Step | How | Platform can do it |
+| --- | --- | --- | --- |
+| 1 | Suspend the account. | Set status to suspended on eng_profiles, from /portal/people. currentActor re-reads the profile on every request, so a suspended account is refused on its next request rather than when a twelve hour cookie expires. | yes |
+| 2 | End the sessions that already exist. | Suspension does this by consequence rather than by revocation, because the layout checks status on every request. There is no session table to clear. | yes |
+| 3 | Remove the grants. | Grants are held by the ROLE, not the person, so there is nothing to remove from an individual. Changing what they can do means changing their role, which is what suspension supersedes. | yes |
+| 4 | Transfer responsible charge. | NOT POSSIBLE, and it must not become possible. A responsible charge entry names the Professional Engineer who WAS in responsible charge, and that is a regulatory fact about the past. 0039 added ON DELETE RESTRICT so the engineer cannot be deleted while entries name them. Work in flight is re-accepted by another engineer, which creates a NEW entry; the old one stands. | **no** |
+| 5 | Preserve the audit trail. | Nothing to do. eng_audit_events refuses UPDATE and DELETE at the database, so the departing person's history cannot be removed even deliberately. | yes |
+| 6 | Remove their second factor enrolment. | Delete the eng_mfa_enrolments row. The account is already suspended, so this is hygiene rather than access control. | yes |
+| 7 | Rotate any shared secret they held. | NOT POSSIBLE TO VERIFY. Nothing records who has seen which secret, and nothing records when a secret was last rotated. With one operator this is vacuous; with a second person it becomes the most important step on this list and the platform cannot help with it. | **no** |
+| 8 | Record that it happened. | The suspension writes an audit event. There is no offboarding record with a checklist and a date, so the evidence is an audit row rather than an attestation. | **no** |
+
+**3 of 8 steps the platform cannot perform**, and each says why rather than implying somebody will remember. The sharpest is transferring responsible charge, which must NOT become possible: an entry names the engineer who WAS in responsible charge, and that is a fact about the past.
+
+---
+
 ## WHERE THE HONEST HALF LIVES
 
 `docs/soc2-exceptions.md`, generated by the same script, carries every control

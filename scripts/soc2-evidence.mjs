@@ -32,6 +32,7 @@
 import { writeFileSync, mkdirSync } from "node:fs";
 import { auditClient, describeTarget, refOf } from "./lib/db-target.mjs";
 import { CONTROLS, GAPS, CRITERIA, regenerateCommands } from "./lib/soc2-controls.mjs";
+import { CREDENTIALS, OFFBOARDING } from "./lib/soc2-credentials.mjs";
 import { APPLIED } from "../supabase/applied.mjs";
 
 const OUT_DIR = "evidence";
@@ -442,6 +443,51 @@ ${(roles.data ?? [])
       `| \`${r.key}\` | ${r.name} | ${r.is_system ? "yes" : "no"} | ${r.mfa_requirement} | ${(grantsByRole.get(r.key) ?? []).length} |`,
   )
   .join("\n")}
+
+---
+
+## THE CREDENTIAL INVENTORY
+
+Every environment value this platform reads, what it grants, and where the real
+one is held. **No value appears here or anywhere this section writes**, and
+\`scripts/soc2-audit.mjs\` proves it by scanning for the SHAPES of secrets rather
+than for their names.
+
+The inventory is compared against a scan of every \`process.env\` read in
+\`src/\` and \`scripts/\`, so a secret added without being declared fails the
+board.
+
+### Secrets
+
+| Name | What it grants | Where the value lives | Last rotated |
+| --- | --- | --- | --- |
+${CREDENTIALS.filter((c) => c.kind === "secret")
+  .map((c) => `| \`${c.name}\` | ${c.grants} | ${c.livesIn} | ${c.rotated ?? "**unknown**"} |`)
+  .join("\n")}
+
+**${CREDENTIALS.filter((c) => c.kind === "secret" && c.rotated === null).length} of ${CREDENTIALS.filter((c) => c.kind === "secret").length} secrets have no known rotation date**, because nothing has ever rotated one and nothing records it. A plausible date in that column would be a fabrication, so it says unknown.
+
+### Configuration, not secret
+
+| Name | What it does | Where |
+| --- | --- | --- |
+${CREDENTIALS.filter((c) => c.kind !== "secret")
+  .map((c) => `| \`${c.name}\` | ${c.grants} | ${c.livesIn} |`)
+  .join("\n")}
+
+---
+
+## OFFBOARDING, KEYED TO WHAT THIS PLATFORM CAN DO
+
+A sequence rather than a policy, because a policy is a sentence about intent and
+a sequence is a list somebody can follow at eleven at night having never done it
+before. Nobody has ever left this firm, so none of it has been exercised.
+
+| # | Step | How | Platform can do it |
+| --- | --- | --- | --- |
+${OFFBOARDING.map((s) => `| ${s.step} | ${s.what} | ${s.how} | ${s.can ? "yes" : "**no**"} |`).join("\n")}
+
+**${OFFBOARDING.filter((s) => !s.can).length} of ${OFFBOARDING.length} steps the platform cannot perform**, and each says why rather than implying somebody will remember. The sharpest is transferring responsible charge, which must NOT become possible: an entry names the engineer who WAS in responsible charge, and that is a fact about the past.
 
 ---
 

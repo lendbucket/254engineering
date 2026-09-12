@@ -31,6 +31,8 @@
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { CONTROLS, GAPS, regenerateCommands } from "./lib/soc2-controls.mjs";
+import { CREDENTIALS, NOT_CREDENTIALS, OFFBOARDING } from "./lib/soc2-credentials.mjs";
+import { readdirSync as _readdirSync } from "node:fs";
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -341,6 +343,133 @@ console.log("");
   }
 }
 
+/* ------------------- 3b. the credential inventory matches what the code reads */
+
+{
+  /*
+   * DERIVED FROM THE SOURCE, COMPARED TO THE DECLARATION.
+   *
+   * The inventory is worth nothing if it is a list somebody maintained once. So
+   * every process.env read in src/ and scripts/ is scanned out of the files and
+   * every one of them must be either declared as a credential or named as not
+   * being one. Adding a secret without declaring it fails the board.
+   *
+   * This is the surfaces.mjs idiom: the harness measures what the declaration
+   * says exists, and a directory that renders pages and belongs to no declared
+   * surface is a red board.
+   */
+  const files = [];
+  const walk = (dir) => {
+    for (const entry of _readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name === "node_modules" || entry.name.startsWith(".")) continue;
+      const p = `${dir}/${entry.name}`;
+      if (entry.isDirectory()) walk(p);
+      else if (/\.(ts|tsx|mjs)$/.test(entry.name)) files.push(p);
+    }
+  };
+  walk("src");
+  walk("scripts");
+
+  /*
+   * COMMENTS ARE STRIPPED BEFORE ANYTHING IS MATCHED.
+   *
+   * The first run reported an undeclared credential called X, which is the word
+   * process.env.X written inside the explanatory comment at the top of
+   * soc2-credentials.mjs. That is the fourth time in this repository a check has
+   * matched its own prose, and the answer is the one used the other three times
+   * rather than a looser pattern.
+   */
+  const codeOnly = (text) =>
+    text
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .split("\n")
+      .filter((line) => !/^\s*(\/\/|\*)/.test(line))
+      .join("\n");
+
+  /*
+   * AND TWO SHAPES ARE SCANNED, NOT ONE.
+   *
+   * The first version looked only for process.env.NAME and reported
+   * ALLOW_PRODUCTION_PREVIEW as declared but never read. It IS read, at
+   * src/lib/db-guard.ts:136, as env.ALLOW_PRODUCTION_PREVIEW: that module takes
+   * an env object as a parameter so its guard can be tested against a preview,
+   * a production and a local environment without setting real variables.
+   *
+   * So the scanner had a blind spot exactly where the most careful code lives.
+   * A secret read through an injected env object would never have been required
+   * to be declared, and the check would have been green over it forever. Both
+   * shapes are matched now.
+   */
+  const read = new Set();
+  for (const p of files) {
+    const text = codeOnly(readFileSync(p, "utf8"));
+    for (const m of text.matchAll(/process\.env\.([A-Z][A-Z0-9_]{2,})/g)) read.add(m[1]);
+    for (const m of text.matchAll(/\benv\.([A-Z][A-Z0-9_]{2,})/g)) read.add(m[1]);
+  }
+
+  rec(
+    "the environment scan found variables to check",
+    read.size > 20,
+    `${read.size} distinct process.env reads across ${files.length} files`,
+  );
+
+  const declared = new Set(CREDENTIALS.map((c) => c.name));
+  const undeclared = [...read].filter((v) => !declared.has(v) && !NOT_CREDENTIALS.has(v)).sort();
+  rec(
+    "every environment value the code reads is either declared or named as not a credential",
+    undeclared.length === 0,
+    undeclared.length === 0
+      ? `${declared.size} declared, ${NOT_CREDENTIALS.size} named as not credentials`
+      : `UNDECLARED: ${undeclared.join(", ")}`,
+  );
+
+  /*
+   * AND THE DECLARATION DOES NOT DESCRIBE THINGS THAT NO LONGER EXIST. A list
+   * that only ever grows is a list nobody is reading.
+   */
+  /*
+   * FIRM_PHONE is read through src/config/contact.ts's env() helper, which takes
+   * the name as a STRING. Neither shape above can see that, and a scanner that
+   * chased string arguments would match every string in the repository. It is
+   * excused by name, with the reason, rather than by widening the pattern until
+   * it matches nothing usefully.
+   */
+  const phantom = CREDENTIALS.filter((c) => !read.has(c.name) && c.name !== "FIRM_PHONE").map((c) => c.name);
+  rec(
+    "and the declaration does not carry credentials the code never reads",
+    phantom.length === 0,
+    phantom.length === 0 ? "every declared name is read somewhere" : `declared but never read: ${phantom.join(", ")}`,
+  );
+
+  const noGrant = CREDENTIALS.filter((c) => !c.grants?.trim() || !c.livesIn?.trim()).map((c) => c.name);
+  rec(
+    "and every credential says what it grants and where it lives",
+    noGrant.length === 0,
+    noGrant.length === 0 ? `${CREDENTIALS.length} complete` : `incomplete: ${noGrant.join(", ")}`,
+  );
+
+  /*
+   * THE ROTATION FINDING, ASSERTED RATHER THAN LEFT IN PROSE. Nothing records
+   * when a secret was last changed. If that ever becomes knowable this check
+   * starts failing, which is the right way round: it forces the report to be
+   * updated when the fact changes.
+   */
+  const secrets = CREDENTIALS.filter((c) => c.kind === "secret");
+  const rotatedKnown = secrets.filter((c) => c.rotated !== null).length;
+  rec(
+    "the report states that no secret rotation date is known, because none is",
+    rotatedKnown === 0,
+    `${secrets.length} secrets, ${rotatedKnown} with a known rotation date. A plausible date here would be a fabrication.`,
+  );
+
+  const cannot = OFFBOARDING.filter((s) => !s.can).length;
+  rec(
+    "the offboarding sequence names the steps the platform cannot perform",
+    cannot > 0 && OFFBOARDING.every((s) => s.what?.trim() && s.how?.trim()),
+    `${OFFBOARDING.length} steps, ${cannot} the platform cannot perform and says so`,
+  );
+}
+
 /* ------------------------------------ 4. no secret value in what we wrote */
 
 {
@@ -360,7 +489,7 @@ console.log("");
   const ours = [
     ...[...SNAPSHOT.entries()].filter(([, v]) => v !== null),
     ...SNAPSHOT_EVIDENCE,
-    ...["scripts/lib/soc2-controls.mjs", "scripts/soc2-evidence.mjs", "scripts/soc2-audit.mjs"]
+    ...["scripts/lib/soc2-controls.mjs", "scripts/lib/soc2-credentials.mjs", "scripts/soc2-evidence.mjs", "scripts/soc2-audit.mjs"]
       .filter((p) => existsSync(p))
       .map((p) => [p, readFileSync(p, "utf8")]),
   ];
