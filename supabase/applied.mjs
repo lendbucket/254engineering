@@ -665,6 +665,46 @@ export const APPLIED = [
       "written during a cutover is the one most likely to be applied to the old target out of habit. " +
       "docs/production-cutover-plan.md names it in the replay step.",
   },
+
+  /*
+   * 0042, THE INCIDENT RECORD, AND IT IS PENDING BY INSTRUCTION RATHER THAN BY
+   * CIRCUMSTANCE.
+   *
+   * Phase 12 Section 6 ran unattended under absolute limits, one of which is
+   * that nothing applies a migration to production. So this is on development
+   * and nowhere else, and `production: null` here is a decision somebody made
+   * rather than a step somebody forgot.
+   *
+   * It merges the way every other migration does: on the operator's word, then
+   * apply_migration against the shared production, then read back both
+   * fingerprints and write the date in. Until then schema-ledger-audit will
+   * fail the moment this reaches main, which is exactly what that check is for.
+   */
+  {
+    file: "0042_an_incident_is_a_record.sql", appliedBy: "apply_migration",
+    fingerprint: "11a709155214441ec2b7c3b382f6e17f",
+    behaviour: "a3a7eb9953f60e59555f7fcddd221a7f",
+    proves: { table: "eng_incidents" },
+    production: null,
+    development: { at: "0042", behaviour: "a3a7eb9953f60e59555f7fcddd221a7f", facts: 824 },
+    because:
+      "Phase 12 Section 6 is open and ran under overnight limits that forbid applying anything to production. " +
+      "Applied to development 2026-09-12 through apply_migration and read back: shape " +
+      "11a709155214441ec2b7c3b382f6e17f across 1,030 columns, behaviour a3a7eb9953f60e59555f7fcddd221a7f " +
+      "across 824 facts, both recomputed from a replay rather than typed in from a live database.",
+    note:
+      "AN INCIDENT IS NOT A FAULT, AND THE TABLE IS EMPTY ON PURPOSE. eng_error_events holds what broke: a " +
+      "stack trace, a route, a fingerprint, pruned on a retention schedule. An incident is something that " +
+      "affected a person and required a decision, which may produce no fault row at all, and what an auditor " +
+      "asks for is who decided what and what changed afterwards. Recording one inside the fault table would " +
+      "also put it inside the retention sweep, and an incident record that expires is not a record. IT SHIPS " +
+      "EMPTY because none has occurred; seeding an example would put a fabricated event into the firm's own " +
+      "incident history. DELETES ARE REFUSED AND UPDATES ARE NOT: the most valuable column, what was learned, " +
+      "is filled in days after the row is written, so UPDATE has to work. That asymmetry follows 0019's " +
+      "reasoning about partner entries, where forbidding UPDATE wholesale is how a table ends up with a " +
+      "corrections column that everything reads instead. began_at is separate from detected_at because the " +
+      "gap between them is how long nobody knew, which is the number an incident review is actually about.",
+  },
 ];
 
 /**

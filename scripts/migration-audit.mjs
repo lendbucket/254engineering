@@ -64,10 +64,10 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * mistake could have been applied to by hand, which is exactly how 0001 stayed
  * broken for a month. A constant has to be changed by a person who noticed.
  */
-const EXPECTED_FINGERPRINT = "1a11138f01f9be2f66251640cfb55b70";
-const EXPECTED_COLUMNS = 1017;
-const EXPECTED_TABLES = 74;
-const EXPECTED_TRIGGERS = 56;
+const EXPECTED_FINGERPRINT = "11a709155214441ec2b7c3b382f6e17f";
+const EXPECTED_COLUMNS = 1030;
+const EXPECTED_TABLES = 75;
+const EXPECTED_TRIGGERS = 58;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the
@@ -424,6 +424,62 @@ if (failedAt === null) {
     refusedDelete = true;
   }
   rec("and a DELETE", refusedDelete);
+
+  /*
+   * ===================================================================
+   * THE INCIDENT RECORD, 0042, AND WHY IT IS EXERCISED HERE AND NOWHERE
+   * ELSE.
+   * ===================================================================
+   *
+   * eng_incidents refuses DELETE. So a live audit that inserted a probe
+   * incident could never remove it, and the firm's incident history would
+   * permanently contain an event that did not happen. That is the exact
+   * fabrication the migration's own header forbids.
+   *
+   * This is the same reasoning already applied to eng_partner_entries below:
+   * a table whose guarantees cannot be cleaned up after gets exercised in the
+   * replay, which is thrown away when this script exits.
+   */
+  await db.exec(`
+    insert into eng_incidents (detected_at, detected_by, summary, severity)
+    values (now(), 'migration-audit', 'written by migration-audit into a database that is about to be discarded', 'low')
+  `);
+
+  let incidentUpdate = true;
+  try {
+    await db.exec(`update eng_incidents set learned = 'an incident record is written to while it is open'`);
+  } catch {
+    incidentUpdate = false;
+  }
+  /*
+   * THE UPDATE MUST SUCCEED, and asserting that is the point rather than an
+   * oversight. The most valuable column on an incident is what was learned, and
+   * it is filled in days after the row is written. A table that refused UPDATE
+   * would push that into a second table nobody reads.
+   */
+  rec("an incident record accepts the update that fills in what was learned", incidentUpdate);
+
+  let incidentDelete = false;
+  try {
+    await db.exec(`delete from eng_incidents`);
+  } catch {
+    incidentDelete = true;
+  }
+  rec("and an incident record refuses a DELETE", incidentDelete);
+
+  /*
+   * AND A RESOLVED INCIDENT CANNOT BE SILENT ABOUT WHAT WAS DONE. The check
+   * constraint is the whole reason resolving is not just a timestamp: an
+   * incident closed with an empty actions column is a record that says
+   * something happened and nothing was done about it.
+   */
+  let refusedEmptyResolution = false;
+  try {
+    await db.exec(`update eng_incidents set resolved_at = now(), actions = '   '`);
+  } catch {
+    refusedEmptyResolution = true;
+  }
+  rec("and refuses to resolve an incident without saying what was done", refusedEmptyResolution);
 
   /*
    * ===================================================================
