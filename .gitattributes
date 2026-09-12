@@ -48,3 +48,17 @@
 *.zip  binary
 *.mp4  binary
 *.webm binary
+
+# ---------------------------------------------------------------- evidence CSVs
+#
+# CRLF, and deliberately against the eol=lf rule above.
+#
+# src/lib/csv.ts writes CRLF because the people who open these are on Windows
+# with Excel, where a lone newline turns the whole file into one long row. The
+# blanket rule would normalise that to LF on commit and check it back out broken,
+# which would make the evidence pack unreadable in the one application anybody
+# will actually open it in.
+#
+# This is the narrow exception to the line ending law recorded in BACKLOG, and it
+# is narrow on purpose: one directory, one extension.
+evidence/*.csv text eol=crlf
