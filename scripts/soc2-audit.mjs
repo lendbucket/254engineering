@@ -40,7 +40,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { CONTROLS, GAPS, regenerateCommands } from "./lib/soc2-controls.mjs";
-import { CREDENTIALS, NOT_CREDENTIALS, STRING_LOOKUP_NOT_SECRETS, OFFBOARDING } from "./lib/soc2-credentials.mjs";
+import { CREDENTIALS, NOT_CREDENTIALS, STRING_LOOKUP_NOT_SECRETS, OFFBOARDING, RETIRED } from "./lib/soc2-credentials.mjs";
 import { SYSTEM_CAPABILITIES, SYSTEM_ACTOR_MUST_NEVER } from "../src/lib/system-actor.ts";
 import { readdirSync as _readdirSync } from "node:fs";
 
@@ -488,8 +488,17 @@ console.log("");
     `${byStringLookup.size} all capitals underscored string literals`,
   );
 
+  /*
+   * RETIRED NAMES ARE EXCUSED, and the first run without this is the eighth
+   * time a check here matched its own declaration: listing ADMIN_PASSPHRASE as
+   * retired put the string into a scanned file, and the scan reported it as an
+   * undeclared secret.
+   *
+   * Recording that a credential is dead must not itself look like a live one.
+   */
+  const retiredHere = new Set(RETIRED.map((r) => r.name));
   const undeclaredStrings = [...byStringLookup]
-    .filter((v) => !declared.has(v) && !NOT_CREDENTIALS.has(v) && !STRING_LOOKUP_NOT_SECRETS.has(v))
+    .filter((v) => !declared.has(v) && !NOT_CREDENTIALS.has(v) && !STRING_LOOKUP_NOT_SECRETS.has(v) && !retiredHere.has(v))
     .sort();
   rec(
     "and every secret named by string lookup is declared, which is the shape that hid two",
@@ -823,12 +832,168 @@ console.log("");
       if (!entry || !/UNKNOWN, pending the operator/.test(entry.livesIn)) notPending.push(`${name} (${question})`);
     }
   }
+  /*
+   * ANSWERED ON 2026-09-12, SO THE CHECK CHANGED WITH THE FACT.
+   *
+   * It used to assert every one of these was marked pending, which was right
+   * while nobody had read the dashboard and became wrong the moment the
+   * operator did. A check that insists on ignorance after the answer arrives is
+   * a check on a moment rather than on a property.
+   *
+   * What it asserts now is that each entry carries an ANSWER WITH ITS
+   * PROVENANCE: either still pending the operator, or read on a date by a named
+   * reader. What it will not tolerate is a bare claim with neither.
+   */
+  const unanswered = [];
+  for (const [question, names] of Object.entries(MUST_BE_PENDING)) {
+    for (const name of names) {
+      const entry = byName.get(name);
+      const text = entry?.livesIn ?? "";
+      const pending = /UNKNOWN, pending the operator/.test(text);
+      const answered = /Read 2026-\d\d-\d\d|the operator read Vercel on 2026-\d\d-\d\d/.test(text);
+      if (!entry || (!pending && !answered)) unanswered.push(`${name} (${question})`);
+    }
+  }
   rec(
-    "what only Vercel can answer is recorded as unknown rather than as absent",
-    notPending.length === 0,
-    notPending.length === 0
-      ? `${Object.keys(MUST_BE_PENDING).length} questions across 4 entries, every one marked pending the operator`
-      : `recorded as settled when it is not known: ${notPending.join("; ")}`,
+    "what only Vercel can answer is either still pending or recorded with when it was read",
+    unanswered.length === 0,
+    unanswered.length === 0
+      ? `${Object.keys(MUST_BE_PENDING).length} questions across 4 entries, each carrying an answer or an explicit pending`
+      : `a bare claim with no provenance: ${unanswered.join("; ")}`,
+  );
+}
+
+/* ------- 3e. the reverse scan, and secrets that must never cross Preview */
+
+{
+  const ENV_FILES = [".env", ".env.local", ".env.development", ".env.production", ".env.development.local", ".env.production.local"];
+  const present = ENV_FILES.filter((p) => existsSync(p));
+
+  /*
+   * ===================================================================
+   * THE REVERSE SCAN. EVERY OTHER CHECK HERE ASKS WHAT THE CODE READS.
+   * ===================================================================
+   *
+   * Operator ruling, 2026-09-12, and the sentence is the whole lesson: a secret
+   * NOTHING READS was invisible to every scan, because every scan asked what
+   * the code reads.
+   *
+   * ADMIN_PASSPHRASE sat in .env.local holding a short human passphrase for a
+   * surface retired months ago. The property scans could not see it, the string
+   * lookup scan could not see it, and the phantom check could not see it,
+   * because all three start from the source. It was found by reading an
+   * environment file.
+   *
+   * So this runs the other way: every name SET in an env file must be declared
+   * or listed as retired. A dead credential is named rather than invisible.
+   */
+  const namesInEnvFiles = new Set();
+  for (const p of present) {
+    for (const line of readFileSync(p, "utf8").split("\n")) {
+      const m = line.match(/^\s*([A-Z][A-Z0-9_]*)=/);
+      if (m) namesInEnvFiles.add(m[1]);
+    }
+  }
+
+  rec(
+    "the reverse scan found names in the environment files to check",
+    namesInEnvFiles.size > 3,
+    `${namesInEnvFiles.size} names set across ${present.length} file(s)`,
+  );
+
+  const declaredNames = new Set(CREDENTIALS.map((c) => c.name));
+  const retiredNames = new Set(RETIRED.map((r) => r.name));
+  const undeclaredInFiles = [...namesInEnvFiles]
+    .filter((v) => !declaredNames.has(v) && !NOT_CREDENTIALS.has(v) && !retiredNames.has(v))
+    .sort();
+  rec(
+    "and every name set in an environment file is declared or recorded as retired",
+    undeclaredInFiles.length === 0,
+    undeclaredInFiles.length === 0
+      ? `${namesInEnvFiles.size} checked against ${declaredNames.size} declared and ${retiredNames.size} retired`
+      : `SET BUT DECLARED NOWHERE: ${undeclaredInFiles.join(", ")}. A secret nothing reads is invisible to every other check here.`,
+  );
+
+  /*
+   * AND A RETIRED CREDENTIAL IS NOT STILL SITTING THERE. Naming it is half the
+   * job; the other half is that it is actually gone.
+   */
+  const retiredButPresent = [...retiredNames].filter((v) => namesInEnvFiles.has(v));
+  rec(
+    "and nothing recorded as retired is still set",
+    retiredButPresent.length === 0,
+    retiredButPresent.length === 0
+      ? `${retiredNames.size} retired, none present`
+      : `RETIRED BUT STILL SET: ${retiredButPresent.join(", ")}`,
+  );
+
+  /*
+   * AND EVERY RETIREMENT SAYS WHEN AND WHY. A list of names nobody can act on
+   * is the shape this repository keeps rejecting.
+   */
+  const thinRetirements = RETIRED.filter((r) => !r.retired?.trim() || (r.why ?? "").trim().length < 40).map((r) => r.name);
+  rec(
+    "and every retirement says when and why",
+    thinRetirements.length === 0,
+    thinRetirements.length === 0 ? `${RETIRED.length} recorded` : `thin: ${thinRetirements.join(", ")}`,
+  );
+
+  /*
+   * ===================================================================
+   * A SECRET THAT DECIDES IDENTITY OR OPENS A DATABASE IS NEVER SHARED
+   * BETWEEN PREVIEW AND PRODUCTION.
+   * ===================================================================
+   *
+   * Operator ruling, 2026-09-12, after reading the dashboard. CUSTOMER_SESSION_
+   * SECRET was All Environments, so a customer cookie minted on ANY preview
+   * deployment was valid on production, and a preview URL is reachable by
+   * anybody holding the link. PARTNER_SESSION_SECRET and MFA_ENCRYPTION_KEY
+   * were Production and Preview sharing one value. OPS_SESSION_SECRET was
+   * already split, which is how the finding was findable at all: the correct
+   * pattern existed and had been applied to one principal of three.
+   *
+   * THIS CHECK CANNOT READ VERCEL, and does not pretend to. It asserts what the
+   * DECLARATION says, which is the operator's answer written down. That is
+   * worth having because it makes a future sharing a deliberate edit to a file
+   * somebody reviews, rather than a dropdown nobody looks at again.
+   */
+  const sensitive = CREDENTIALS.filter((c) => c.decides === "identity" || c.decides === "database");
+  rec(
+    "the identity and database secrets are named",
+    sensitive.length >= 5,
+    sensitive.map((c) => c.name).join(", "),
+  );
+
+  const undeclaredEnvs = sensitive.filter((c) => !c.environments).map((c) => c.name);
+  rec(
+    "and every one records which environments it lives in",
+    undeclaredEnvs.length === 0,
+    undeclaredEnvs.length === 0
+      ? `${sensitive.length} recorded, read from the dashboard`
+      : `no environments recorded: ${undeclaredEnvs.join(", ")}`,
+  );
+
+  const shared = sensitive
+    .filter((c) => c.environments)
+    .filter((c) => c.environments.preview === "set" && c.environments.previewValueDistinct !== true)
+    .map((c) => c.name);
+  rec(
+    "and none is declared as sharing a value between Preview and Production",
+    shared.length === 0,
+    shared.length === 0
+      ? "every one is absent on Preview or holds a distinct value there"
+      : `SHARED WITH PREVIEW: ${shared.join(", ")}. A preview URL is reachable by anybody with the link.`,
+  );
+
+  /*
+   * AND THE ANSWER HAS A DATE AND AN AUTHOR. An environment map with no
+   * provenance is a claim about a dashboard somebody looked at once.
+   */
+  const undated = sensitive.filter((c) => c.environments && !(c.environments.readOn ?? "").trim()).map((c) => c.name);
+  rec(
+    "and says when it was read and by whom",
+    undated.length === 0,
+    undated.length === 0 ? "every environment map carries its provenance" : `undated: ${undated.join(", ")}`,
   );
 }
 

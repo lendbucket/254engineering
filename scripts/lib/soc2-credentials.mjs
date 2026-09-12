@@ -21,6 +21,18 @@
  * setting real variables. The most carefully written module in the repository
  * was the one the scanner could not see.
  *
+ * AND THE FOURTH SHAPE IS THE ONE NO SCAN COULD EVER HAVE FOUND: A SECRET
+ * NOTHING READS.
+ *
+ * Operator ruling, 2026-09-12. ADMIN_PASSPHRASE sat in .env.local holding a
+ * short human passphrase for a surface retired months ago. Every scan here
+ * asks what the CODE READS, so a credential nobody reads is invisible to all of
+ * them, and it can sit in an environment forever.
+ *
+ * So the scan runs in reverse as well: every name SET in an environment file
+ * must be declared here or listed in RETIRED below. A dead credential is named
+ * rather than invisible.
+ *
  * A THIRD SHAPE IS STILL INVISIBLE AND IS HANDLED BY NAME. Two of the secrets
  * below are named as STRINGS in a lookup table rather than read as properties,
  * and no pattern could find them without matching every string in the
@@ -49,8 +61,56 @@
  * @property {"secret"|"config"|"test-only"} kind
  * @property {string} livesIn       Where the real value is held.
  * @property {string} grants        What somebody holding it could do.
- * @property {string|null} rotated  ISO date last rotated, or null if unknown.
+ * @property {string} rotated      When it was last rotated. "Never." is an answer.
+ * @property {"identity"|"database"|null} [decides]
+ *   What a holder of this could decide. "identity" mints or reads a session or a
+ *   second factor; "database" opens a database. Both are asserted never shared
+ *   between Preview and Production, because a preview URL is reachable by
+ *   anybody with the link.
+ * @property {{production: Env, preview: Env, development: Env, previewValueDistinct: boolean|null, readOn: string}} [environments]
+ *   Where it is actually set, as the operator read it from the dashboard.
+ *   Nothing here can see Vercel, so this is their answer and the board asserts
+ *   what the answer SAYS, which makes a future sharing a deliberate edit.
+ *
+ * @typedef {"set"|"absent"|"unknown"} Env
  */
+
+/**
+ * CREDENTIALS THAT ONCE EXISTED AND MUST NOT COME BACK.
+ *
+ * The answer to the fourth shape. A name in an environment file that matches
+ * nothing in CREDENTIALS is a finding unless it is here, and a name here is a
+ * thing somebody deliberately retired rather than a thing nobody noticed.
+ */
+export const RETIRED = [
+  /*
+   * FOUND BY THE REVERSE SCAN ON ITS FIRST RUN, which is the check existing for
+   * the reason it was written. Both were set in .env.local and read by no code
+   * anywhere, so every forward scan was blind to them exactly as it was to
+   * ADMIN_PASSPHRASE.
+   */
+  {
+    name: "LEAD_FROM_EMAIL",
+    retired: "2026-09-12",
+    why:
+      "An address the lead notification was once sent FROM. Nothing reads it: the email identity moved into src/config/email-identity.ts, which is a declaration rather than an environment variable, so that one place decides who the firm writes as. Left behind in .env.local by the move and found by the reverse scan.",
+  },
+  {
+    name: "LEAD_TO_EMAIL",
+    retired: "2026-09-12",
+    why:
+      "An address lead notifications were once sent TO. Nothing reads it: business.notificationEmail in src/config/business.ts is where that now lives. Same move, same leftover, same scan.",
+  },
+  {
+    name: "ADMIN_PASSPHRASE",
+    retired: "2026-09-12",
+    why:
+      "The shared passphrase for the /admin surface, which was deleted and replaced by the portal's role based access. BACKLOG.md recorded that nothing reads it and that it could come out of Vercel; nothing acted on that, and it went on sitting in .env.local holding a short human passphrase. Removed from .env.local and from all three Vercel environments on 2026-09-12 and treated as exposed, because a passphrase of that shape is one somebody reuses.",
+  },
+];
+
+/** Where the dashboard answers came from, so every entry says it once. */
+const READ_ON = "2026-09-12, by the operator, from the Vercel dashboard. Nothing here can see it.";
 
 /** @type {Credential[]} */
 export const CREDENTIALS = [
@@ -59,9 +119,25 @@ export const CREDENTIALS = [
     name: "SUPABASE_SERVICE_ROLE_KEY",
     kind: "secret",
     livesIn:
-      "Vercel for production; .env.local for development, where it is the DEVELOPMENT project's key and every audit reads through it. Never in the working tree for production. WHETHER THE PRODUCTION KEY IS SCOPED TO THE PRODUCTION ENVIRONMENT ALONE IS UNKNOWN, pending the operator reading Vercel: a Preview inheriting it is the exact hazard previewPointingAtProduction() exists for, and it has happened once already, on 2026-09-03.",
+      "Vercel for production; .env.local for development, where it is the DEVELOPMENT project's key and every audit reads through it. Never in the working tree for production. Read 2026-09-12: SPLIT into two entries, one covering Production and Development and one covering Preview, with SUPABASE_URL split the same way. Whether the Preview URL names the development project ref is the one thing still unconfirmed, and it is the whole question, because a distinct Preview key pointing at production would be split in form and shared in effect.",
     grants:
       "Everything. It bypasses row level security on every table, and since there are zero policies it is the ONLY way in. Holding it is equivalent to holding the database.",
+    decides: "database",
+    environments: {
+      production: "set",
+      preview: "set",
+      development: "set",
+      /*
+       * SPLIT, which is the correct pattern: two entries, one covering
+       * Production and Development and one covering Preview, with SUPABASE_URL
+       * split the same way. Whether the Preview URL names the DEVELOPMENT
+       * project ref is the one thing still unconfirmed, and it is the whole
+       * question: a Preview holding a distinct key that points at production
+       * would be split in form and shared in effect.
+       */
+      previewValueDistinct: true,
+      readOn: READ_ON,
+    },
     rotated: "Never.",
   },
   {
@@ -71,6 +147,25 @@ export const CREDENTIALS = [
     grants:
       "Decryption of every stored TOTP secret. Holding it plus the database would let somebody generate valid second factor codes for any enrolled account.",
     rotated: "Never.",
+    decides: "identity",
+    /*
+     * THE PRODUCTION VALUE IS NEVER CHANGED. encryptionKey() is
+     * sha256("eng-mfa-v1:" + this), and every enrolment's ciphertext is under
+     * the current one, so changing it makes every second factor undecryptable
+     * and the failure presents exactly like a wrong code.
+     *
+     * The safety margin, confirmed in the code before the operator touched
+     * anything: recovery codes do NOT depend on this key. They are scrypt
+     * hashed against a salt of the user id, so they still work even if a TOTP
+     * secret cannot be read.
+     */
+    environments: {
+      production: "set",
+      preview: "set",
+      development: "set",
+      previewValueDistinct: true,
+      readOn: READ_ON + " Was Production and Preview sharing one value; a distinct Preview value set by the operator the same day, Production untouched.",
+    },
   },
   {
     name: "OPS_SESSION_SECRET",
@@ -78,6 +173,13 @@ export const CREDENTIALS = [
     livesIn: "Vercel and .env.local.",
     grants: "Minting a valid staff session cookie for any account, without a password and without a second factor.",
     rotated: "Never.",
+    decides: "identity",
+    /*
+     * THE ONE THAT WAS ALREADY RIGHT, and the reason the finding was findable:
+     * the correct pattern existed and had been applied to one principal of
+     * three.
+     */
+    environments: { production: "set", preview: "set", development: "set", previewValueDistinct: true, readOn: READ_ON },
   },
   {
     name: "CUSTOMER_SESSION_SECRET",
@@ -85,6 +187,18 @@ export const CREDENTIALS = [
     livesIn: "Vercel and .env.local.",
     grants: "Minting a valid customer session for any customer account.",
     rotated: "Never.",
+    decides: "identity",
+    /*
+     * THE SHARPEST OF THE THREE. It was All Environments, so a customer cookie
+     * minted on ANY preview deployment was valid on production.
+     */
+    environments: {
+      production: "set",
+      preview: "set",
+      development: "set",
+      previewValueDistinct: true,
+      readOn: READ_ON + " Was All Environments; a distinct Preview value set by the operator the same day.",
+    },
   },
   {
     name: "PARTNER_SESSION_SECRET",
@@ -92,6 +206,14 @@ export const CREDENTIALS = [
     livesIn: "Vercel and .env.local.",
     grants: "Minting a valid partner session for any partner account.",
     rotated: "Never.",
+    decides: "identity",
+    environments: {
+      production: "set",
+      preview: "set",
+      development: "set",
+      previewValueDistinct: true,
+      readOn: READ_ON + " Was Production and Preview sharing one value; a distinct Preview value set by the operator the same day.",
+    },
   },
   {
     name: "STRIPE_SECRET_KEY",
@@ -131,9 +253,26 @@ export const CREDENTIALS = [
     name: "RESEND_API_KEY",
     kind: "secret",
     livesIn:
-      "Vercel for production. REMOVED from .env.local 2026-09-12: nothing local needs it and its presence made two bugs send 55 real emails. Whether it is set on Preview is UNKNOWN, pending the operator reading Vercel.",
+      "Vercel for production. REMOVED from .env.local 2026-09-12: nothing local needs it and its presence made two bugs send 55 real emails. Read 2026-09-12: it was All Environments, INCLUDING PREVIEW, which meant a preview deployment could send real mail as the firm. Scoped to Production only by the operator the same day.",
     grants: "Sending mail as this firm's domain, and reading the delivery log.",
     rotated: "Never.",
+    /*
+     * NOT an identity or database secret, so it is not covered by the never
+     * shared rule. It is here because it was All Environments, which meant a
+     * PREVIEW DEPLOYMENT COULD SEND REAL MAIL as the firm, and preview URLs are
+     * reachable by anybody holding the link.
+     *
+     * Being scoped to Production only by the operator. Preview holds nothing,
+     * which is the fix rather than a gap: notify.ts returns null and logs
+     * "skipped" without a key.
+     */
+    environments: {
+      production: "set",
+      preview: "absent",
+      development: "absent",
+      previewValueDistinct: null,
+      readOn: READ_ON + " Was All Environments; scoped to Production by the operator the same day.",
+    },
   },
   {
     name: "CRON_SECRET",
@@ -198,7 +337,7 @@ export const CREDENTIALS = [
     name: "COPY_FROM_KEY",
     kind: "secret",
     livesIn:
-      "NOT SET IN ANY ENVIRONMENT, and it must not be until the day the cutover runs. Supplied by hand for one command and never stored. Operator ruling 2026-09-12: a full access key sitting in an environment for a script nobody is running is the largest single credential exposure this firm could have, and it would exist for no current purpose. Confirmed absent from every env file on this machine; whether it exists in Vercel is UNKNOWN, pending the operator reading it there.",
+      "NOT SET IN ANY ENVIRONMENT, and it must not be until the day the cutover runs. Supplied by hand for one command and never stored. Operator ruling 2026-09-12: a full access key sitting in an environment for a script nobody is running is the largest single credential exposure this firm could have, and it would exist for no current purpose. Confirmed absent from every env file on this machine, and the operator read Vercel on 2026-09-12: NOT PRESENT IN ANY ENVIRONMENT there either. Settled.",
     grants: "Everything on the SOURCE project of a copy, including production if that is what it names.",
     rotated: "Never.",
   },
@@ -206,7 +345,7 @@ export const CREDENTIALS = [
     name: "COPY_TO_KEY",
     kind: "secret",
     livesIn:
-      "NOT SET IN ANY ENVIRONMENT, and it must not be until the day the cutover runs. Supplied by hand for one command. Same ruling as COPY_FROM_KEY. Confirmed absent from every env file on this machine; whether it exists in Vercel is UNKNOWN, pending the operator reading it there.",
+      "NOT SET IN ANY ENVIRONMENT, and it must not be until the day the cutover runs. Supplied by hand for one command. Same ruling as COPY_FROM_KEY. Confirmed absent from every env file on this machine, and the operator read Vercel on 2026-09-12: NOT PRESENT IN ANY ENVIRONMENT there either. Settled.",
     grants: "Everything on the DESTINATION project of a copy, including the ability to overwrite it.",
     rotated: "Never.",
   },
@@ -307,6 +446,22 @@ export const NOT_CREDENTIALS = new Set([
   /* Where soc2-audit points the generator so that proving it runs does not
    * rewrite four tracked artefacts and leave the working tree dirty. */
   "SOC2_OUT_DIR", "SOC2_DOCS_DIR",
+  /*
+   * Written into .env.local by `vercel env pull`, not set by this firm. They
+   * describe the commit and the build, and the reverse scan sees them because
+   * it reads the FILE rather than the source.
+   *
+   * VERCEL_OIDC_TOKEN is the one genuine credential in this group and it is
+   * still not this firm's: Vercel issues it, it is short lived, and nothing
+   * here can rotate it. Named rather than silently skipped so a reader knows it
+   * was considered.
+   */
+  "VERCEL_OIDC_TOKEN", "VERCEL_TARGET_ENV",
+  "VERCEL_GIT_COMMIT_AUTHOR_LOGIN", "VERCEL_GIT_COMMIT_AUTHOR_NAME", "VERCEL_GIT_COMMIT_MESSAGE",
+  "VERCEL_GIT_COMMIT_REF", "VERCEL_GIT_PREVIOUS_SHA", "VERCEL_GIT_PROVIDER",
+  "VERCEL_GIT_PULL_REQUEST_ID", "VERCEL_GIT_REPO_ID", "VERCEL_GIT_REPO_OWNER", "VERCEL_GIT_REPO_SLUG",
+  /* Build tool switches, written by the same pull. */
+  "NX_DAEMON", "TURBO_CACHE", "TURBO_DOWNLOAD_LOCAL_ENABLED", "TURBO_REMOTE_ONLY", "TURBO_RUN_SUMMARY",
   /* Provided by the runtime or the platform, never by this firm. */
   "CI", "GITHUB_ACTIONS", "NODE_ENV", "VERCEL", "VERCEL_ENV", "VERCEL_DEPLOYMENT_ID",
   "VERCEL_GIT_COMMIT_SHA", "NEXT_PUBLIC_VERCEL_ENV", "NEXT_PUBLIC_SENTRY_RELEASE", "SENTRY_RELEASE",
