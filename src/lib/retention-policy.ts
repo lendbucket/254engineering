@@ -361,11 +361,14 @@ export const RETENTION_POLICY: RetentionEntry[] = [
    * DELETE at the database, so this declaration agrees with the trigger
    * rather than adding a promise on top of it.
    *
-   * IT IS DELIBERATELY NOT IN retention-audit's KEPT_FOREVER_BY_RULING. That
-   * list is the OPERATOR's rulings, written out as literals so no
-   * configuration can shorten them, and this session cannot put a ruling in
-   * the operator's mouth at two in the morning. Adding it there is a one line
-   * change on their word, and docs/soc2-exceptions.md asks for it.
+   * IT IS ON retention-audit's KEPT_FOREVER_BY_RULING, by the operator's ruling
+   * of 2026-09-12, for the same reason eng_deletion_requests is there: AN
+   * INCIDENT RECORD THAT CAN BE REMOVED IS AN INCIDENT THAT CAN BE DENIED.
+   *
+   * It was declared here and left off that list until they ruled, because that
+   * array is the operator's own rulings written out as literals so no
+   * configuration can shorten them, and a session cannot put one in their
+   * mouth.
    */
   {
     table: "eng_incidents",
@@ -374,9 +377,10 @@ export const RETENTION_POLICY: RetentionEntry[] = [
       because:
         REFUSES_RECORD_DELETE +
         " An incident record is the firm's account of something that affected a person and what was " +
-        "decided about it. A record of that which expires is not a record. Declared by Phase 12 Section 6 " +
-        "and awaiting the operator's word to join the pinned kept-forever list.",
-      ruledBy: "0042, and the trigger. Not yet on the operator's pinned list.",
+        "decided about it. A record of that which expires is not a record. Operator ruling 2026-09-12, on " +
+        "the pinned kept-forever list for the same reason eng_deletion_requests is there: an incident " +
+        "record that can be removed is an incident that can be denied.",
+      ruledBy: "operator, 2026-09-12, and the trigger",
     },
   },
   {

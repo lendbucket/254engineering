@@ -414,6 +414,40 @@ carries the error when it fell over by itself". It ended cleanly. Clear the
 stale server first, or let the guard tell you which process holds it, and run
 the board with no flag at all.
 
+**NOTHING ELSE RUNS WHILE THE BOARD RUNS, AND THE BOARD IS INVOKED ON ITS OWN.**
+Operator ruling, 2026-09-12. This is the third and fourth instance of the same
+rule, and it now has enough behind it to be stated as a rule rather than as a
+lesson from one incident.
+
+The rule already said the board builds before it audits and refuses to score a
+stale artifact. What it did not say is that the board is the ONLY thing touching
+the repository while it runs, and that it gets its own invocation with nothing
+chained to it.
+
+**Instance three: a command run beside the board killed it.** During Phase 12
+Section 6 the evidence generator and its audit were run in another shell while
+`npm run audit` was in flight. The suite stopped before `mfa-audit` and printed
+`THE SUITE DID NOT RUN TO COMPLETION`, naming exactly what happened: the server
+stopped answering, so everything from there would have measured nothing. The
+harness behaved perfectly. Thirty audits did not run.
+
+**Instance four: chaining a commit into the board invocation made the build
+guard kill its own caller.** The command was
+`git commit ... && npm run audit`, and the guard, which looks for processes
+holding `.next` or an audit port, matched the invoking shell itself, killed one
+process, failed to kill a second, and the build then failed with nothing to
+audit.
+
+So: **`npm run audit`, alone, as its own command, with nothing else running
+against the repository.** Not chained after a commit, not beside a generator,
+not while anything is writing files. A board run takes twenty minutes and the
+temptation to do something useful in the meantime is exactly what produces a
+result that means nothing.
+
+The pair with 2026-09-02's lesson is the whole argument: a suite that can be
+pointed at nothing, or killed by its own operator, is a suite whose red means
+two things.
+
 **THE BOARD IS THE LAST WORD, INCLUDING OVER YOUR OWN VERIFICATION.** Operator
 ruling, 2026-09-10, from a run that fixed three real defects and introduced two
 regressions doing it.
@@ -1114,6 +1148,26 @@ the audits that still fail red standalone are listed in `BACKLOG.md`.
 
   A report that names no artefact is a report written from the board, and the
   board is exactly the thing that cannot see this class of defect.
+
+  **AND AN ACCESS REVIEW THAT UNDERSTATES ACCESS IS WORSE THAN ONE THAT OMITS
+  IT, BECAUSE THE READER BELIEVES THEY HAVE LOOKED.** Operator ruling,
+  2026-09-12, from Phase 12 Section 6.
+
+  The generated access review reported `Grants 0` and an empty Permissions
+  column for every customer and partner. Both figures were correct: those
+  principals hold no rows in `eng_role_grants`. What a reader takes from a zero
+  in a Permissions column is that the account can do nothing, and a customer can
+  see their own orders and a partner their own earnings, scoped by ownership in
+  `customer-auth.ts` and `partner-auth.ts` rather than by a grant.
+
+  Every check was asking whether the number was right. None was asking what a
+  reader would take it to mean. It was found by opening the CSV.
+
+  The report says "not role based" now, with the scope written out. The general
+  form belongs beside the other entries in this list: **a figure can be
+  arithmetically correct and still be a false statement about the thing it
+  describes**, and only reading the artefact as its audience would read it finds
+  that.
 
   **A COMPLIANCE SENTENCE HARDCODED ANYWHERE IS THE DEFECT.** Operator ruling,
   2026-09-12, recorded under this rule because it is what the rule caught.

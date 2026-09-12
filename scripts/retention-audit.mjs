@@ -207,6 +207,17 @@ const KEPT_FOREVER_BY_RULING = [
   "eng_order_payments",
   // The audit trail. Explicitly not bounded by retention, and it says so.
   "eng_audit_events",
+  /*
+   * The firm's account of something that affected a person and what was decided
+   * about it. Operator ruling, 2026-09-12, added for the same reason
+   * eng_deletion_requests is kept: AN INCIDENT RECORD THAT CAN BE REMOVED IS AN
+   * INCIDENT THAT CAN BE DENIED.
+   *
+   * Declared kept_forever by Phase 12 Section 6 and deliberately left off this
+   * list until the operator ruled, because this array is the operator's own
+   * rulings and a session cannot put one in their mouth.
+   */
+  "eng_incidents",
 ];
 
 for (const table of KEPT_FOREVER_BY_RULING) {
