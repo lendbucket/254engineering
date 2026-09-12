@@ -84,7 +84,7 @@
     "dashboards-audit": "tsx --conditions=react-server scripts/dashboards-audit.mjs",
     "retention-audit": "tsx --conditions=react-server scripts/retention-audit.mjs",
     "retention-dry-run": "tsx --conditions=react-server scripts/retention-dry-run.mjs",
-    "soc2-audit": "tsx scripts/soc2-audit.mjs",
+    "soc2-audit": "tsx --conditions=react-server scripts/soc2-audit.mjs",
     "soc2-evidence": "tsx scripts/soc2-evidence.mjs"
   },
   "dependencies": {

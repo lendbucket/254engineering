@@ -45,7 +45,7 @@ Phase 12 Section 6, overnight, 2026-09-12. Recorded here rather than in a
 separate file because it is the provenance of every artefact above, and it is
 history rather than state, so it cannot drift.
 
-**Gate 0, the inventory.** 22 controls declared against the five
+**Gate 0, the inventory.** 23 controls declared against the five
 criteria, 21 gaps ranked. Nothing was written before the platform was
 read: the table list, the row level security state and the integrity guards came
 from live catalogue queries against development, not from memory.
@@ -110,7 +110,7 @@ A SOC 2 Type II report describes controls operating over a period, typically thr
 
 This is the first artefact requested in almost every engagement. The platform holds every fact needed to produce it and has never been asked to.
 
-**Ruling:** PARTLY BUILT, AND THE REST NEEDS A RULING. The report is generated and states its own findings, and it says Attested by NOBODY at the top rather than in a footnote. What is NOT built is the recurring half: a job that produces it on a schedule and raises a task to attest it. The blocker is real rather than effort: createTask requires an Actor, a scheduled job has none, and no system actor exists in this platform. Inventing one is a new door in the authorisation model, because an actor that can raise a task is an actor, and deciding what else it may do is not a decision to make unattended at two in the morning. THE RULING I WOULD MAKE: the attestation is an APPEND ONLY AUDIT EVENT rather than a new table, because eng_audit_events already refuses UPDATE and DELETE at the database and an attestation that can be edited is not one. The system actor is a named row in eng_profiles with the narrowest possible role, holding tasks.use and nothing else, so that what the platform can do for itself is visible in the same access review as everybody else rather than being a special case in code.
+**Ruling:** PARTLY BUILT, AND THE REST NEEDS A RULING. The report is generated and states its own findings, and it says Attested by NOBODY at the top rather than in a footnote. What is NOT built is the recurring half: a job that produces it on a schedule and raises a task to attest it. THE BLOCKER IS GONE AS OF 2026-09-12: the system principal exists and can raise a task, so the scheduled half is now buildable and is the next piece of work rather than a design question. The attestation will be an APPEND ONLY AUDIT EVENT rather than a new table, because eng_audit_events already refuses UPDATE and DELETE and an attestation that can be edited is not one.
 
 ### 3. One person holds every credential, approves every change, and operates every system.
 
@@ -156,13 +156,13 @@ Nobody has ever left, so nothing has failed. The first departure would be improv
 
 **Ruling:** Section 2 writes the sequence keyed to what the platform can actually do, and says which steps it cannot perform.
 
-### 9. The platform cannot raise work for itself, because no system actor exists.
+### 9. BUILT 2026-09-12. The platform can raise work for itself, narrowly, and could not before.
 
-**Criterion:** Security. **Severity, this session's judgement:** medium.
+**Criterion:** Security. **Severity, this session's judgement:** closed.
 
-Every write in this platform is attributed to a person, which is a genuine strength and is why the audit trail is worth anything. The cost is that nothing scheduled can create a task, so a recurring control like an access review can produce its artefact and cannot ask anybody to look at it. Found while building the access review on 2026-09-12.
+Every write here is attributed to a person, which is why the audit trail is worth anything, and the cost was that nothing scheduled could ask anybody to look at what it produced. The choice was an anonymous write or no write, and an anonymous write into an append only trail is worse: an auditor could not tell platform-raised work from a person's.
 
-**Ruling:** Recorded rather than decided. A system actor is a new door in the authorisation model and deserves the operator's word on what it may hold. The narrowest version that works is a named eng_profiles row with tasks.use and nothing else, which keeps it visible in the access review rather than special cased in code.
+**Ruling:** Operator ruling 2026-09-12: create it, narrowly. SYSTEM_ACTOR holds exactly two capabilities, tasks.raise and audit.write, and they are not Actions so they cannot be granted to a role. It is a CONSTANT rather than an eng_profiles row, because a profile can be signed in to and is one password reset away from being a person. It is unassignable to a human actor in both directions, and every licensed and money action is proved unaskable at compile time. Every row it writes carries the-platform@system.invalid, so an auditor separates platform-raised work from a person's by reading the trail.
 
 ### 10. No incident response plan, and the incident record is empty because nothing has been recorded in it.
 
@@ -247,8 +247,8 @@ The platform records its own faults. Nothing outside it would notice the whole t
 
 ## THE CONTROLS THAT DO EXIST
 
-22 controls are declared in `scripts/lib/soc2-controls.mjs`.
-**21 carry machine readable evidence** and **16 could be
+23 controls are declared in `scripts/lib/soc2-controls.mjs`.
+**22 carry machine readable evidence** and **17 could be
 verified by an outsider who will not read the source.** The gap between those two
 numbers is the honest measure of how much of this rests on trusting the code.
 
@@ -263,6 +263,7 @@ numbers is the honest measure of how much of this rests on trusting the code.
 | Every portal route is behind a session, asserted twice. | src/proxy.ts and the portal root layout, deliberately duplicated: a matcher is one typo from leaving a route uncovered. | `scripts/security-audit.mjs, which enumerates every portal page on disk and fails when one is not in the perimeter list.` | yes | no |
 | Row level security on every table, and zero policies on every table. | Every migration. The service role is the only way in, so PostgREST exposes nothing to an anonymous caller. | `pg_class.relrowsecurity and pg_policy, read live.` | yes | yes |
 | A script cannot reach production by accident, and a preview cannot point at it. | scripts/lib/db-target.mjs owns client construction for every script; src/lib/db-guard.ts refuses a preview deployment pointed at the production ref. | `scripts/db-guard-audit.mjs, 84 checks, first in the suite.` | yes | no |
+| Scheduled work is attributable. The platform acts in its own name and can do exactly two things. | SYSTEM_ACTOR in src/lib/system-actor.ts, holding tasks.raise and audit.write, which are not Actions and so cannot be granted to a role. scripts/proofs/the-system-actor-is-not-a-person.ts fails to COMPILE if it becomes assignable to a human actor or if any licensed or money action becomes askable of it. | `eng_audit_events rows carrying actor_email the-platform@system.invalid.` | yes | yes |
 
 **authn-principals.** An outsider cannot verify separation without reading the code. What they CAN verify is the access review, which lists every principal of every kind.
 
@@ -275,6 +276,8 @@ numbers is the honest measure of how much of this rests on trusting the code.
 **closed-door.** Zero policies is the point. A table with RLS on and a permissive policy is a table that is open.
 
 **db-guard.** Written after audits had already filled production tables with test rows while reporting green.
+
+**system-principal.** An auditor separates platform-raised work from a person's by one greppable string, without knowing a uuid and without asking anybody. It is a constant rather than a profile row, so there is nothing to sign in to, reset or suspend, and it does not appear in the access review as an account somebody must justify.
 
 ### Availability. The system is available for operation and use.
 
@@ -351,6 +354,7 @@ not run, so an index entry cannot rot into a command nobody can execute.
 | `perimeter` | security | `npx tsx scripts/security-audit.mjs` |
 | `closed-door` | security | `npx tsx scripts/soc2-evidence.mjs` |
 | `db-guard` | security | `npx tsx scripts/db-guard-audit.mjs` |
+| `system-principal` | security | `npx tsc --noEmit` |
 | `queue` | availability | `npx tsx scripts/soc2-evidence.mjs` |
 | `observability` | availability | `npx tsx scripts/soc2-evidence.mjs` |
 | `pitr` | availability | standing artefact, not generated |

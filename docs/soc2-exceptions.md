@@ -28,7 +28,7 @@ being a surprise. Read the severity column separately from the rank.
 | 6 | The restore path has never been exercised. | availability | high | none yet |
 | 7 | No vendor inventory and no vendor risk assessment. | security | medium | yes |
 | 8 | No offboarding procedure. | security | medium | yes |
-| 9 | The platform cannot raise work for itself, because no system actor exists. | security | medium | yes |
+| 9 | BUILT 2026-09-12. The platform can raise work for itself, narrowly, and could not before. | security | closed | yes |
 | 10 | No incident response plan, and the incident record is empty because nothing has been recorded in it. | availability | medium | yes |
 | 11 | MFA is optional by default for the administrator and engineer roles. | security | medium | yes |
 | 12 | No history of board runs. The suite reports a verdict and keeps none. | integrity | medium | yes |
@@ -60,7 +60,7 @@ No periodic access review has ever been performed or attested.
 
 **What follows:** This is the first artefact requested in almost every engagement. The platform holds every fact needed to produce it and has never been asked to.
 
-**Ruling:** PARTLY BUILT, AND THE REST NEEDS A RULING. The report is generated and states its own findings, and it says Attested by NOBODY at the top rather than in a footnote. What is NOT built is the recurring half: a job that produces it on a schedule and raises a task to attest it. The blocker is real rather than effort: createTask requires an Actor, a scheduled job has none, and no system actor exists in this platform. Inventing one is a new door in the authorisation model, because an actor that can raise a task is an actor, and deciding what else it may do is not a decision to make unattended at two in the morning. THE RULING I WOULD MAKE: the attestation is an APPEND ONLY AUDIT EVENT rather than a new table, because eng_audit_events already refuses UPDATE and DELETE at the database and an attestation that can be edited is not one. The system actor is a named row in eng_profiles with the narrowest possible role, holding tasks.use and nothing else, so that what the platform can do for itself is visible in the same access review as everybody else rather than being a special case in code.
+**Ruling:** PARTLY BUILT, AND THE REST NEEDS A RULING. The report is generated and states its own findings, and it says Attested by NOBODY at the top rather than in a footnote. What is NOT built is the recurring half: a job that produces it on a schedule and raises a task to attest it. THE BLOCKER IS GONE AS OF 2026-09-12: the system principal exists and can raise a task, so the scheduled half is now buildable and is the next piece of work rather than a design question. The attestation will be an APPEND ONLY AUDIT EVENT rather than a new table, because eng_audit_events already refuses UPDATE and DELETE and an attestation that can be edited is not one.
 
 ### 3. `one-person-holds-everything`
 
@@ -112,11 +112,11 @@ No offboarding procedure.
 
 ### 9. `no-system-actor`
 
-The platform cannot raise work for itself, because no system actor exists.
+BUILT 2026-09-12. The platform can raise work for itself, narrowly, and could not before.
 
-**What follows:** Every write in this platform is attributed to a person, which is a genuine strength and is why the audit trail is worth anything. The cost is that nothing scheduled can create a task, so a recurring control like an access review can produce its artefact and cannot ask anybody to look at it. Found while building the access review on 2026-09-12.
+**What follows:** Every write here is attributed to a person, which is why the audit trail is worth anything, and the cost was that nothing scheduled could ask anybody to look at what it produced. The choice was an anonymous write or no write, and an anonymous write into an append only trail is worse: an auditor could not tell platform-raised work from a person's.
 
-**Ruling:** Recorded rather than decided. A system actor is a new door in the authorisation model and deserves the operator's word on what it may hold. The narrowest version that works is a named eng_profiles row with tasks.use and nothing else, which keeps it visible in the access review rather than special cased in code.
+**Ruling:** Operator ruling 2026-09-12: create it, narrowly. SYSTEM_ACTOR holds exactly two capabilities, tasks.raise and audit.write, and they are not Actions so they cannot be granted to a role. It is a CONSTANT rather than an eng_profiles row, because a profile can be signed in to and is one password reset away from being a person. It is unassignable to a human actor in both directions, and every licensed and money action is proved unaskable at compile time. Every row it writes carries the-platform@system.invalid, so an auditor separates platform-raised work from a person's by reading the trail.
 
 ### 10. `no-incident-record`
 

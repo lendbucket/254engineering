@@ -1,3 +1,10 @@
+// @runtime react-server
+//
+// Declared because this audit imports src/lib/system-actor.ts, which carries
+// `server-only`. scripts/lib/audit-runtime.mjs works the requirement out from
+// the imports and the board refuses to start when package.json disagrees, so
+// this line and the invocation cannot drift apart.
+
 /**
  * THE EVIDENCE PACK, KEPT HONEST.
  *
@@ -34,10 +41,18 @@ import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { CONTROLS, GAPS, regenerateCommands } from "./lib/soc2-controls.mjs";
 import { CREDENTIALS, NOT_CREDENTIALS, STRING_LOOKUP_NOT_SECRETS, OFFBOARDING } from "./lib/soc2-credentials.mjs";
+import { SYSTEM_CAPABILITIES, SYSTEM_ACTOR_MUST_NEVER } from "../src/lib/system-actor.ts";
 import { readdirSync as _readdirSync } from "node:fs";
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
+
+const codeOnlyFile = (path) =>
+  readFileSync(path, "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .split("\n")
+    .filter((line) => !/^\s*(\/\/|\*)/.test(line))
+    .join("\n");
 
 const READINESS = "docs/soc2-readiness.md";
 const EXCEPTIONS = "docs/soc2-exceptions.md";
@@ -551,6 +566,115 @@ console.log("");
     "the offboarding sequence names the steps the platform cannot perform",
     cannot > 0 && OFFBOARDING.every((s) => s.what?.trim() && s.how?.trim()),
     `${OFFBOARDING.length} steps, ${cannot} the platform cannot perform and says so`,
+  );
+}
+
+/* --------------------- 3c. the system principal, and what it may never do */
+
+{
+  /*
+   * THE PLATFORM ACTING IN ITS OWN NAME, CHECKED THE WAY THE LICENSED ACTIONS
+   * ARE.
+   *
+   * Operator ruling, 2026-09-12. The guarantee itself is a COMPILE TIME one and
+   * lives in scripts/proofs/the-system-actor-is-not-a-person.ts, which fails to
+   * build if the system principal ever becomes assignable to a human actor or
+   * its capabilities become grantable.
+   *
+   * What this audit adds is the thing a compile proof cannot do: assert that
+   * the proof still NAMES everything it claims to cover. A proof that stopped
+   * mentioning documents.seal would keep compiling and would prove less, which
+   * is the same reason reporting-audit checks its own proof for every licensed
+   * figure.
+   */
+  const proofPath = "scripts/proofs/the-system-actor-is-not-a-person.ts";
+  if (!existsSync(proofPath)) {
+    rec("the system actor compile proof exists", false, proofPath);
+  } else {
+    const proof = readFileSync(proofPath, "utf8");
+
+    rec("the system actor compile proof exists", true, proofPath);
+
+    /*
+     * EVERY ACTION IT MUST NEVER PERFORM IS NAMED IN THE PROOF. Read from the
+     * declaration, so adding one to SYSTEM_ACTOR_MUST_NEVER without proving it
+     * fails here rather than being a sentence nothing enforces.
+     */
+    const mustNever = [...SYSTEM_ACTOR_MUST_NEVER.licensed, ...SYSTEM_ACTOR_MUST_NEVER.money];
+    const unproved = mustNever.filter((a) => !proof.includes(`"${a}"`));
+    rec(
+      "and every action the platform must never perform is named in it",
+      mustNever.length > 0 && unproved.length === 0,
+      unproved.length === 0
+        ? `${mustNever.length} actions proved unaskable`
+        : `declared forbidden but not proved: ${unproved.join(", ")}`,
+    );
+
+    /*
+     * AND THE PROOF ASSERTS BOTH DIRECTIONS. One direction stops the platform
+     * being handed to a function that takes a person. The other stops a
+     * person's action being attributed to the platform, which would hide a real
+     * actor behind "The platform" in the trail.
+     */
+    rec(
+      "and it proves the principal is not a person in both directions",
+      /systemAsPerson/.test(proof) && /personAsSystem/.test(proof),
+      "a one way check would let a person's action be recorded as the platform's",
+    );
+
+    /*
+     * A PROOF WITH NO ASSERTIONS IS A FILE. Every guarantee here is a
+     * @ts-expect-error, so counting them is counting the assertions.
+     */
+    const expectations = (proof.match(/@ts-expect-error/g) ?? []).length;
+    rec(
+      "and it carries assertions rather than prose",
+      expectations >= 10,
+      `${expectations} compile time assertions`,
+    );
+  }
+
+  /*
+   * THE PRINCIPAL HOLDS NO GRANTS AND IS NOT A PERSON'S ROLE.
+   *
+   * Read from the declaration rather than asserted in words: its capabilities
+   * are a closed set of two, and neither is an Action.
+   */
+  rec(
+    "the system principal holds exactly the two capabilities it was ruled",
+    SYSTEM_CAPABILITIES.length === 2 &&
+      SYSTEM_CAPABILITIES.includes("tasks.raise") &&
+      SYSTEM_CAPABILITIES.includes("audit.write"),
+    SYSTEM_CAPABILITIES.join(", "),
+  );
+
+  /*
+   * AND IT IS NOT A ROW IN eng_profiles, which is what stops it being signed in
+   * to, reset, suspended, or listed as an account somebody must justify. The
+   * access review would otherwise carry a principal nobody can offboard.
+   */
+  const sysSrc = codeOnlyFile("src/lib/system-actor.ts");
+  rec(
+    "and it is a constant rather than a profile row, so there is nothing to sign in to",
+    !/eng_profiles/.test(sysSrc),
+    "a profile is one password reset away from being a person",
+  );
+
+  /*
+   * EVERY ROW IT WRITES NAMES IT. The operator's requirement, and the reason
+   * the principal exists at all: an auditor separates platform-raised work from
+   * a person's by reading the trail, without asking anybody.
+   */
+  const workSrc = codeOnlyFile("src/lib/system-work.ts");
+  rec(
+    "every row the platform writes names it",
+    /SYSTEM_ACTOR_EMAIL/.test(workSrc) && /SYSTEM_ACTOR\.id/.test(workSrc),
+    "actor_email is the-platform@system.invalid, which is greppable without knowing the uuid",
+  );
+  rec(
+    "and it writes through the same audit path as everybody else",
+    /writeAudit\(/.test(workSrc),
+    "a second insert path is a second row shape that will drift",
   );
 }
 
