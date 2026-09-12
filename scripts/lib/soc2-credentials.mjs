@@ -136,7 +136,9 @@ export const CREDENTIALS = [
        * would be split in form and shared in effect.
        */
       previewValueDistinct: true,
-      readOn: READ_ON,
+      readOn:
+        READ_ON +
+        " SETTLED 2026-09-12: the Preview SUPABASE_URL reads https://ythzaiqeoijlrdibnieo.supabase.co, which is the DEVELOPMENT project, so the Preview key and the Preview URL point at the same non production database. Split in form and in effect, which is the distinction that mattered: a distinct Preview key pointing at production would have been split in form and shared in effect.",
     },
     rotated: "Never.",
   },
@@ -163,8 +165,21 @@ export const CREDENTIALS = [
       production: "set",
       preview: "set",
       development: "set",
-      previewValueDistinct: true,
-      readOn: READ_ON + " Was Production and Preview sharing one value; a distinct Preview value set by the operator the same day, Production untouched.",
+      /*
+       * NOT YET SPLIT. The dashboard shows ONE entry covering Production and
+       * Preview, which is the same sharing wearing a new row. The operator is
+       * splitting each into two entries with different values, Production
+       * untouched.
+       *
+       * RECORDED AS SHARED RATHER THAN AS FIXED, and the board is RED on it
+       * until it is confirmed. An earlier version of this file said distinct,
+       * because it recorded the intent to split rather than the split, and a
+       * declaration that asserts a fix which has not happened is the exact
+       * thing this pack exists to prevent.
+       */
+      previewValueDistinct: false,
+      pendingFix: "Being split, Production value NEVER changed: encryptionKey is sha256 over it, so changing it makes every enrolment undecryptable and the failure looks exactly like a wrong code. Recovery codes are scrypt hashed against the user id and do not depend on it, which is the way back in.",
+      readOn: READ_ON + " Re-read 2026-09-12: still a single entry covering Production and Preview.",
     },
   },
   {
@@ -179,7 +194,31 @@ export const CREDENTIALS = [
      * the correct pattern existed and had been applied to one principal of
      * three.
      */
-    environments: { production: "set", preview: "set", development: "set", previewValueDistinct: true, readOn: READ_ON },
+    environments: {
+      /*
+       * NO LONGER IN THE DASHBOARD LIST, read 2026-09-12, and the operator is
+       * confirming whether it was deleted.
+       *
+       * IF IT WAS, THE SYMPTOM IS AN OUTAGE RATHER THAN A WEAKNESS, which was
+       * checked in the code before saying so: signingKey() returns null below
+       * 24 characters or when absent, with no fallback and no default, so no
+       * session can be forged because none can be signed. opsSessionStatus()
+       * says "Nobody can sign into the portal until it is" and the sign in
+       * screen shows it. Announcements stop too: ops-announce refuses to send
+       * rather than send an unsigned unsubscribe link.
+       *
+       * It was the ONE identity secret already split correctly, which is what
+       * made the other three legible as a defect rather than as a
+       * configuration.
+       */
+      production: "unknown",
+      preview: "unknown",
+      development: "set",
+      previewValueDistinct: null,
+      pendingFix:
+        "Confirming whether it was deleted; restoring it as two split entries before the next deploy, because staff sign in reads it.",
+      readOn: READ_ON + " Re-read 2026-09-12: ABSENT FROM THE LIST.",
+    },
   },
   {
     name: "CUSTOMER_SESSION_SECRET",
@@ -196,8 +235,21 @@ export const CREDENTIALS = [
       production: "set",
       preview: "set",
       development: "set",
-      previewValueDistinct: true,
-      readOn: READ_ON + " Was All Environments; a distinct Preview value set by the operator the same day.",
+      /*
+       * NOT YET SPLIT. The dashboard shows ONE entry covering Production and
+       * Preview, which is the same sharing wearing a new row. The operator is
+       * splitting each into two entries with different values, Production
+       * untouched.
+       *
+       * RECORDED AS SHARED RATHER THAN AS FIXED, and the board is RED on it
+       * until it is confirmed. An earlier version of this file said distinct,
+       * because it recorded the intent to split rather than the split, and a
+       * declaration that asserts a fix which has not happened is the exact
+       * thing this pack exists to prevent.
+       */
+      previewValueDistinct: false,
+      pendingFix: "Being split into two entries with different values, Production untouched. Until then a customer cookie minted on any preview deployment is valid on production.",
+      readOn: READ_ON + " Re-read 2026-09-12: still a single entry covering Production and Preview.",
     },
   },
   {
@@ -211,8 +263,21 @@ export const CREDENTIALS = [
       production: "set",
       preview: "set",
       development: "set",
-      previewValueDistinct: true,
-      readOn: READ_ON + " Was Production and Preview sharing one value; a distinct Preview value set by the operator the same day.",
+      /*
+       * NOT YET SPLIT. The dashboard shows ONE entry covering Production and
+       * Preview, which is the same sharing wearing a new row. The operator is
+       * splitting each into two entries with different values, Production
+       * untouched.
+       *
+       * RECORDED AS SHARED RATHER THAN AS FIXED, and the board is RED on it
+       * until it is confirmed. An earlier version of this file said distinct,
+       * because it recorded the intent to split rather than the split, and a
+       * declaration that asserts a fix which has not happened is the exact
+       * thing this pack exists to prevent.
+       */
+      previewValueDistinct: false,
+      pendingFix: "Being split into two entries with different values, Production untouched. Until then a partner cookie minted on any preview deployment is valid on production.",
+      readOn: READ_ON + " Re-read 2026-09-12: still a single entry covering Production and Preview.",
     },
   },
   {
@@ -271,7 +336,9 @@ export const CREDENTIALS = [
       preview: "absent",
       development: "absent",
       previewValueDistinct: null,
-      readOn: READ_ON + " Was All Environments; scoped to Production by the operator the same day.",
+      readOn:
+        READ_ON +
+        " SETTLED 2026-09-12: was All Environments including Preview, which meant a preview deployment could send real mail as the firm. Now Production only. Preview holds nothing, which is the fix rather than a gap: notify.ts returns null and logs skipped without a key.",
     },
   },
   {

@@ -257,10 +257,37 @@ export const GUARD_EXPLANATION =
   "would write to the firm's real records rather than to development. The application has refused " +
   "to open a database connection rather than let that happen.";
 
+/*
+ * IT NAMES ALL FOUR IDENTITY SECRETS NOW, AND IT USED TO NAME ONE.
+ *
+ * This sentence ended "OPS_SESSION_SECRET needs a Preview value too", which is
+ * true and is a quarter of the job. On 2026-09-12 the operator read the Vercel
+ * list and found that OPS_SESSION_SECRET was the ONLY one of the four that had
+ * ever been split: CUSTOMER_SESSION_SECRET was set for All Environments, so a
+ * customer cookie minted on any preview deployment was valid on production, and
+ * PARTNER_SESSION_SECRET and MFA_ENCRYPTION_KEY shared one value across
+ * Production and Preview.
+ *
+ * This text is the remediation somebody follows while staring at a guard page,
+ * and it had been understating the fix since the day it was written. That is
+ * plausibly part of why one of four got split.
+ *
+ * MFA_ENCRYPTION_KEY CARRIES A WARNING THE OTHERS DO NOT. encryptionKey() is
+ * sha256 over it and every enrolment's ciphertext is under the current value,
+ * so CHANGING THE PRODUCTION ONE makes every second factor undecryptable and
+ * the failure presents exactly like a wrong code. Only Preview gets a new
+ * value. Recovery codes are scrypt hashed against the user id and do not depend
+ * on it, which is the way back in if somebody gets this wrong.
+ */
 export const GUARD_FIX =
   "In the Vercel project settings, set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY scoped to the " +
   "Preview environment only, pointed at the development project, then redeploy this branch. " +
-  "OPS_SESSION_SECRET needs a Preview value too.";
+  "Every secret that decides identity needs its own Preview value as well, and there are four: " +
+  "OPS_SESSION_SECRET, CUSTOMER_SESSION_SECRET, PARTNER_SESSION_SECRET and MFA_ENCRYPTION_KEY. " +
+  "A session secret shared with Preview means a cookie minted on any preview deployment is valid " +
+  "on production, and a preview URL is reachable by anybody holding the link. Give Preview a new " +
+  "value for each; NEVER change the production MFA_ENCRYPTION_KEY, because every enrolled second " +
+  "factor is encrypted under it and changing it locks everybody out.";
 
 const PREVIEW_ON_PRODUCTION: Mispointing = {
   kind: "preview_on_production",

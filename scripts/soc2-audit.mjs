@@ -986,6 +986,31 @@ console.log("");
   );
 
   /*
+   * AND AN IDENTITY SECRET THAT MAY HAVE BEEN DELETED IS ITS OWN HAZARD.
+   *
+   * The sharing check above only looks at secrets PRESENT on Preview, so one
+   * that vanished from the dashboard passes it silently. OPS_SESSION_SECRET
+   * did exactly that on 2026-09-12.
+   *
+   * It fails CLOSED, which was read in the code rather than assumed:
+   * signingKey() returns null below 24 characters or when absent, with no
+   * fallback, so no session can be forged because none can be signed. The
+   * symptom is nobody signing in rather than anybody signing in wrongly. That
+   * is the good failure mode and it is still an outage.
+   */
+  const unknownPresence = sensitive
+    .filter((c) => c.environments)
+    .filter((c) => c.environments.production === "unknown" || c.environments.preview === "unknown")
+    .map((c) => `${c.name} (${c.environments.pendingFix ? "being restored" : "NO PLAN RECORDED"})`);
+  rec(
+    "and any identity secret whose presence is unknown says what is being done about it",
+    unknownPresence.every((u) => !u.includes("NO PLAN RECORDED")),
+    unknownPresence.length === 0
+      ? "every identity secret has a known presence in every environment"
+      : `presence unknown: ${unknownPresence.join(", ")}`,
+  );
+
+  /*
    * AND THE ANSWER HAS A DATE AND AN AUTHOR. An environment map with no
    * provenance is a claim about a dashboard somebody looked at once.
    */
