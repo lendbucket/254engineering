@@ -1,6 +1,6 @@
 Export,Change record
 What this is,"Every schema change this platform has ever applied, with both fingerprints and the date it reached production. Read from supabase/applied.mjs, which is the ledger two audits already enforce."
-Generated,2026-09-12 07:54:00
+Generated,2026-09-12 08:25:05
 Migrations,43
 Not yet on production,1
 Applied by hand rather than through the provider,1

@@ -536,10 +536,12 @@ board.
 | Name | What it grants | Where the value lives | Last rotated |
 | --- | --- | --- | --- |
 ${CREDENTIALS.filter((c) => c.kind === "secret")
-  .map((c) => `| \`${c.name}\` | ${c.grants} | ${c.livesIn} | ${c.rotated ?? "**unknown**"} |`)
+  .map((c) => `| \`${c.name}\` | ${c.grants} | ${c.livesIn} | ${c.rotated} |`)
   .join("\n")}
 
-**${CREDENTIALS.filter((c) => c.kind === "secret" && c.rotated === null).length} of ${CREDENTIALS.filter((c) => c.kind === "secret").length} secrets have no known rotation date**, because nothing has ever rotated one and nothing records it. A plausible date in that column would be a fabrication, so it says unknown.
+**${CREDENTIALS.filter((c) => c.kind === "secret" && String(c.rotated).trim() === "Never.").length} of ${CREDENTIALS.filter((c) => c.kind === "secret").length} secrets have never been rotated**, and say so rather than saying unknown. Operator ruling, 2026-09-12: state when each was last rotated, and if the answer is never, say never.
+
+Nothing in this platform RECORDS a rotation, so that column is the operator's statement rather than a platform fact, which is why it is prose and not a date. The two sister intake keys were rotated on development on 2026-09-12 and say that production has not been.
 
 ### Configuration, not secret
 

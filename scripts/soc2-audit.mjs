@@ -33,7 +33,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { CONTROLS, GAPS, regenerateCommands } from "./lib/soc2-controls.mjs";
-import { CREDENTIALS, NOT_CREDENTIALS, OFFBOARDING } from "./lib/soc2-credentials.mjs";
+import { CREDENTIALS, NOT_CREDENTIALS, STRING_LOOKUP_NOT_SECRETS, OFFBOARDING } from "./lib/soc2-credentials.mjs";
 import { readdirSync as _readdirSync } from "node:fs";
 
 const out = [];
@@ -430,6 +430,33 @@ console.log("");
     `${read.size} distinct process.env reads across ${files.length} files`,
   );
 
+  /*
+   * THE THIRD SHAPE, AND IT IS THE ONE THAT HID TWO REAL SECRETS.
+   *
+   * Operator ruling, 2026-09-12. INTAKE_KEY_SEALED and INTAKE_KEY_STAMP are
+   * named as STRINGS in a lookup table in src/lib/sister-intake.ts and read
+   * through that map, so neither a direct property read nor an injected env
+   * object read appears for them anywhere. Both scans above were blind to them
+   * and the inventory was silently short by two credentials, each of which lets
+   * a caller write into this firm's database.
+   *
+   * So an all capitals underscored string literal is treated as a candidate
+   * environment name and must be declared or named as not a credential. That
+   * convention is the only thing distinguishing an env name from any other
+   * string, which is exactly why the shape is worth checking rather than
+   * trusting.
+   *
+   * IT IS DELIBERATELY NOISY IN ONE DIRECTION. A false positive costs one line
+   * in NOT_CREDENTIALS with a reason beside it. A false negative is a secret
+   * nobody declared, which is what this ruling exists to prevent happening
+   * twice.
+   */
+  const byStringLookup = new Set();
+  for (const p of files) {
+    const text = codeOnly(readFileSync(p, "utf8"));
+    for (const m of text.matchAll(/["']([A-Z][A-Z0-9]*(?:_[A-Z0-9]+){1,})["']/g)) byStringLookup.add(m[1]);
+  }
+
   const declared = new Set(CREDENTIALS.map((c) => c.name));
   const undeclared = [...read].filter((v) => !declared.has(v) && !NOT_CREDENTIALS.has(v)).sort();
   rec(
@@ -440,18 +467,66 @@ console.log("");
       : `UNDECLARED: ${undeclared.join(", ")}`,
   );
 
+  rec(
+    "the string literal scan found candidate names to check",
+    byStringLookup.size > 5,
+    `${byStringLookup.size} all capitals underscored string literals`,
+  );
+
+  const undeclaredStrings = [...byStringLookup]
+    .filter((v) => !declared.has(v) && !NOT_CREDENTIALS.has(v) && !STRING_LOOKUP_NOT_SECRETS.has(v))
+    .sort();
+  rec(
+    "and every secret named by string lookup is declared, which is the shape that hid two",
+    undeclaredStrings.length === 0,
+    undeclaredStrings.length === 0
+      ? `${byStringLookup.size} candidates, all declared or named as not credentials`
+      : `UNDECLARED BY STRING LOOKUP: ${undeclaredStrings.join(", ")}`,
+  );
+
+  /*
+   * AND THE SCAN PROVES IT CAN SEE THE TWO IT WAS WRITTEN FOR. A scanner that
+   * has never matched anything has never been tested, and these are the exact
+   * names it exists because of.
+   */
+  rec(
+    "and the scan can see the two secrets that hid from the other two shapes",
+    byStringLookup.has("INTAKE_KEY_SEALED") && byStringLookup.has("INTAKE_KEY_STAMP"),
+    byStringLookup.has("INTAKE_KEY_SEALED") && byStringLookup.has("INTAKE_KEY_STAMP")
+      ? "both found as string literals in src/lib/sister-intake.ts"
+      : "THE SCAN CANNOT SEE THEM, so it would not have caught the thing it was written for",
+  );
+
+  /*
+   * ROTATION IS STATED FOR EVERY SECRET, AND "Never." IS A STATEMENT.
+   *
+   * Operator ruling, 2026-09-12: state when each was last rotated, and if the
+   * answer is never, say never. null used to mean unknown, which is softer than
+   * the truth and let the column stay empty forever.
+   */
+  const unstated = CREDENTIALS.filter((c) => c.kind === "secret" && !String(c.rotated ?? "").trim()).map((c) => c.name);
+  const rotatedSecrets = CREDENTIALS.filter((c) => c.kind === "secret" && !/^Never\.$/.test(String(c.rotated)));
+  rec(
+    "every secret states when it was last rotated, and says Never when it never was",
+    unstated.length === 0,
+    unstated.length === 0
+      ? `${CREDENTIALS.filter((c) => c.kind === "secret").length} secrets, ${rotatedSecrets.length} rotated at least once`
+      : `no rotation stated: ${unstated.join(", ")}`,
+  );
+
   /*
    * AND THE DECLARATION DOES NOT DESCRIBE THINGS THAT NO LONGER EXIST. A list
    * that only ever grows is a list nobody is reading.
    */
   /*
-   * FIRM_PHONE is read through src/config/contact.ts's env() helper, which takes
-   * the name as a STRING. Neither shape above can see that, and a scanner that
-   * chased string arguments would match every string in the repository. It is
-   * excused by name, with the reason, rather than by widening the pattern until
-   * it matches nothing usefully.
+   * ACROSS ALL THREE SHAPES. The by-name exception for FIRM_PHONE is gone: the
+   * string lookup scan added on 2026-09-12 sees it, because contact.ts reads it
+   * through a helper that takes the name as a string. An exception that exists
+   * only because a scanner was blind should disappear when the scanner learns
+   * to see, rather than staying as a permanent excuse nobody revisits.
    */
-  const phantom = CREDENTIALS.filter((c) => !read.has(c.name) && c.name !== "FIRM_PHONE").map((c) => c.name);
+  const readAnyShape = new Set([...read, ...byStringLookup]);
+  const phantom = CREDENTIALS.filter((c) => !readAnyShape.has(c.name)).map((c) => c.name);
   rec(
     "and the declaration does not carry credentials the code never reads",
     phantom.length === 0,
@@ -471,14 +546,6 @@ console.log("");
    * starts failing, which is the right way round: it forces the report to be
    * updated when the fact changes.
    */
-  const secrets = CREDENTIALS.filter((c) => c.kind === "secret");
-  const rotatedKnown = secrets.filter((c) => c.rotated !== null).length;
-  rec(
-    "the report states that no secret rotation date is known, because none is",
-    rotatedKnown === 0,
-    `${secrets.length} secrets, ${rotatedKnown} with a known rotation date. A plausible date here would be a fabrication.`,
-  );
-
   const cannot = OFFBOARDING.filter((s) => !s.can).length;
   rec(
     "the offboarding sequence names the steps the platform cannot perform",

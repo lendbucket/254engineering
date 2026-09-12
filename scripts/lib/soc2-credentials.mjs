@@ -31,11 +31,16 @@
  * for the SHAPES of secrets rather than for their names. A variable called
  * SUPABASE_SERVICE_ROLE_KEY is fine here; the token it holds is not.
  *
- * `rotated` IS ALMOST ALWAYS null AND THAT IS THE FINDING. Nothing in this
- * platform records when a secret was last changed, because nothing has ever
- * rotated one. Writing a plausible date would be the fabrication this whole
- * repository exists to prevent, so the column says null and the readiness
- * report counts them.
+ * `rotated` SAYS "Never." FOR ALL BUT TWO, AND THAT IS THE FINDING.
+ *
+ * Operator ruling, 2026-09-12: state when each key was last rotated, and if the
+ * answer is never, say never. It used to say null, which reads as unknown and
+ * is softer than the truth.
+ *
+ * Nothing in this platform RECORDS a rotation, so these are the operator's
+ * statement rather than a platform fact, and that distinction is why the column
+ * is prose rather than a date type. The two intake keys were rotated on
+ * development on 2026-09-12 and say so, including that production has not been.
  */
 
 /**
@@ -56,7 +61,7 @@ export const CREDENTIALS = [
     livesIn: "Vercel for production; .env.local for development. Never in the working tree for production.",
     grants:
       "Everything. It bypasses row level security on every table, and since there are zero policies it is the ONLY way in. Holding it is equivalent to holding the database.",
-    rotated: null,
+    rotated: "Never.",
   },
   {
     name: "MFA_ENCRYPTION_KEY",
@@ -64,70 +69,70 @@ export const CREDENTIALS = [
     livesIn: "Vercel. Not database state, which is why a database cutover does not move it.",
     grants:
       "Decryption of every stored TOTP secret. Holding it plus the database would let somebody generate valid second factor codes for any enrolled account.",
-    rotated: null,
+    rotated: "Never.",
   },
   {
     name: "OPS_SESSION_SECRET",
     kind: "secret",
     livesIn: "Vercel and .env.local.",
     grants: "Minting a valid staff session cookie for any account, without a password and without a second factor.",
-    rotated: null,
+    rotated: "Never.",
   },
   {
     name: "CUSTOMER_SESSION_SECRET",
     kind: "secret",
     livesIn: "Vercel and .env.local.",
     grants: "Minting a valid customer session for any customer account.",
-    rotated: null,
+    rotated: "Never.",
   },
   {
     name: "PARTNER_SESSION_SECRET",
     kind: "secret",
     livesIn: "Vercel and .env.local.",
     grants: "Minting a valid partner session for any partner account.",
-    rotated: null,
+    rotated: "Never.",
   },
   {
     name: "STRIPE_SECRET_KEY",
     kind: "secret",
     livesIn: "Vercel. The account it belongs to is Reyna Pay, not this firm, which is launch condition `stripe`.",
     grants: "Charging and refunding against that Stripe account, and reading every charge on it.",
-    rotated: null,
+    rotated: "Never.",
   },
   {
     name: "STRIPE_WEBHOOK_SECRET",
     kind: "secret",
     livesIn: "Vercel.",
     grants: "Forging a payment webhook this platform would believe, which is how an order gets marked paid without money moving.",
-    rotated: null,
+    rotated: "Never.",
   },
   {
     name: "RESEND_API_KEY",
     kind: "secret",
     livesIn: "Vercel.",
     grants: "Sending mail as this firm's domain, and reading the delivery log.",
-    rotated: null,
+    rotated: "Never.",
   },
   {
     name: "CRON_SECRET",
     kind: "secret",
     livesIn: "Vercel.",
     grants: "Triggering any scheduled job on demand, including the retention sweep.",
-    rotated: null,
+    rotated: "Never.",
   },
   {
     name: "OPS_UNLOCK_TOKEN",
     kind: "secret",
     livesIn: "Vercel.",
     grants: "Clearing a lockout on a staff account.",
-    rotated: null,
+    rotated: "Never.",
   },
   {
     name: "ORDER_INTAKE_KEYS",
     kind: "secret",
     livesIn: "Vercel. The keys the two sister sites present to the intake API.",
     grants: "Submitting leads and orders into this platform as a sister site.",
-    rotated: null,
+    rotated: "Never.",
   },
   /*
    * THESE TWO WERE INVISIBLE TO THE FIRST SCAN AND ARE REAL SECRETS.
@@ -147,28 +152,66 @@ export const CREDENTIALS = [
     kind: "secret",
     livesIn: "Vercel. Held by the sealedengineering deployment, which presents it to this platform's intake API.",
     grants: "Submitting leads and orders into this firm's database as Sealed Engineering.",
-    rotated: null,
+    rotated: "2026-09-12 on development. NEVER on production.",
   },
   {
     name: "INTAKE_KEY_STAMP",
     kind: "secret",
     livesIn: "Vercel. Held by the stampmyplans deployment.",
     grants: "Submitting leads and orders into this firm's database as StampMyPlans.",
-    rotated: null,
+    rotated: "2026-09-12 on development. NEVER on production.",
   },
+  /*
+   * FOUND BY THE STRING LOOKUP SCAN ON 2026-09-12, the check the operator
+   * ruled for after the two intake keys hid. scripts/copy-project.mjs reads
+   * all four through a required() helper that takes the NAME as a string, so
+   * the two property scans were blind to them.
+   *
+   * TWO OF THEM ARE SERVICE ROLE KEYS. This is the cutover copy script, the one
+   * script that deliberately holds two projects at once, so between them these
+   * grant everything on a source database and everything on a destination.
+   */
+  {
+    name: "COPY_FROM_KEY",
+    kind: "secret",
+    livesIn: "Nowhere. Typed by hand for one command and never stored, which is why the cutover plan says the operator supplies it.",
+    grants: "Everything on the SOURCE project of a copy, including production if that is what it names.",
+    rotated: "Never.",
+  },
+  {
+    name: "COPY_TO_KEY",
+    kind: "secret",
+    livesIn: "Nowhere. Typed by hand for one command.",
+    grants: "Everything on the DESTINATION project of a copy, including the ability to overwrite it.",
+    rotated: "Never.",
+  },
+  { name: "COPY_FROM_URL", kind: "config", livesIn: "Typed by hand for one command.", grants: "Names the source project of a copy. pairClient applies the same production check to it as everything else.", rotated: "Never." },
+  { name: "COPY_TO_URL", kind: "config", livesIn: "Typed by hand for one command.", grants: "Names the destination project of a copy.", rotated: "Never." },
+  /*
+   * The address family, read through src/config/contact.ts's env() helper,
+   * which also takes the name as a string. Not secret, and publishing any of
+   * them is a commitment: an address here is an address published permanently.
+   */
+  { name: "FIRM_STREET", kind: "config", livesIn: "Not set.", grants: "Publishes the street address of the firm's place of business.", rotated: "Never." },
+  { name: "FIRM_STREET_2", kind: "config", livesIn: "Not set.", grants: "The second address line.", rotated: "Never." },
+  { name: "FIRM_CITY", kind: "config", livesIn: "Not set.", grants: "Publishes the city.", rotated: "Never." },
+  { name: "FIRM_POSTAL_CODE", kind: "config", livesIn: "Not set.", grants: "Publishes the postal code.", rotated: "Never." },
+  { name: "FIRM_LATITUDE", kind: "config", livesIn: "Not set.", grants: "The geo point for LocalBusiness markup. Omitted rather than approximated: a map pin is trusted absolutely.", rotated: "Never." },
+  { name: "FIRM_LONGITUDE", kind: "config", livesIn: "Not set.", grants: "The other half of the geo point.", rotated: "Never." },
+  { name: "FIRM_HOURS", kind: "config", livesIn: "Not set.", grants: "Publishes opening hours, which is a commitment to answer during them.", rotated: "Never." },
   {
     name: "SENTRY_DSN",
     kind: "secret",
     livesIn: "Not set. The fault store is this platform's own table.",
     grants: "Writing fault reports into a Sentry project. Listed because the code reads it, not because it is in use.",
-    rotated: null,
+    rotated: "Never.",
   },
   {
     name: "NEXT_PUBLIC_SENTRY_DSN",
     kind: "config",
     livesIn: "Not set. Public by construction if it ever is.",
     grants: "Nothing secret. A DSN is write only and is inlined into the browser bundle.",
-    rotated: null,
+    rotated: "Never.",
   },
 
   // ----------------------------------------------------------------- config
@@ -194,14 +237,14 @@ export const CREDENTIALS = [
     kind: "config",
     livesIn: "Never set in any deployment.",
     grants: "Permission for a production deployment to point at a database that is not the production project. Compared exactly against the string 1.",
-    rotated: null,
+    rotated: "Never.",
   },
   {
     name: "ALLOW_LIVE_KEY_OFF_PRODUCTION",
     kind: "config",
     livesIn: "Never set in any deployment.",
     grants: "Permission for a non production deployment to hold a live payment key, which is how a test order charges a real card.",
-    rotated: null,
+    rotated: "Never.",
   },
 ];
 
@@ -290,3 +333,21 @@ export const OFFBOARDING = [
     can: false,
   },
 ];
+
+/**
+ * ALL CAPITALS UNDERSCORED STRING LITERALS THAT ARE NOT ENVIRONMENT NAMES.
+ *
+ * The string lookup scan treats every such literal as a candidate secret,
+ * because that convention is the only thing that distinguishes an environment
+ * name from any other string, and two real secrets hid behind exactly that
+ * shape.
+ *
+ * Excusing one costs a line here with a reason beside it, which is the cheap
+ * direction. A false negative is a secret nobody declared.
+ */
+export const STRING_LOOKUP_NOT_SECRETS = new Set([
+  /* A code symbol name, used as a search needle by accounts-audit to prove the
+   * authorisation module has no notion of the customer principal. Not a
+   * variable and never read from an environment. */
+  "CUSTOMER_COOKIE",
+]);
