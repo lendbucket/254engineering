@@ -575,12 +575,21 @@ rec(`there are migrations to check (${files.length})`, files.length > 0);
         claimed.push({ file: e.file, where: "production", at: e.production.at, digest: e.production.behaviour });
       }
     }
-    /* The baseline declares two of its own, and they are the same kind of claim. */
+    /*
+     * The baseline declares two of its own, and they are the same kind of claim.
+     *
+     * LABELLED IN LOWER CASE ON PURPOSE. The first version wrote the constant's
+     * own name as a quoted literal, and soc2-audit's string lookup scan went red
+     * on it: that scan treats any quoted SCREAMING_SNAKE token as a credential
+     * somebody reads by name, which is exactly the shape that hid ADMIN_PASSPHRASE
+     * and two others. The scan is right and this label was the thing that was
+     * wrong, so the label changed rather than the scan.
+     */
     if (BEHAVIOUR_BASELINE.development?.behaviour) {
-      claimed.push({ file: "BEHAVIOUR_BASELINE", where: "development", at: BEHAVIOUR_BASELINE.development.at, digest: BEHAVIOUR_BASELINE.development.behaviour });
+      claimed.push({ file: "the behaviour baseline", where: "development", at: BEHAVIOUR_BASELINE.development.at, digest: BEHAVIOUR_BASELINE.development.behaviour });
     }
     if (BEHAVIOUR_BASELINE.production?.behaviour) {
-      claimed.push({ file: "BEHAVIOUR_BASELINE", where: "production", at: BEHAVIOUR_BASELINE.production.at, digest: BEHAVIOUR_BASELINE.production.behaviour });
+      claimed.push({ file: "the behaviour baseline", where: "production", at: BEHAVIOUR_BASELINE.production.at, digest: BEHAVIOUR_BASELINE.production.behaviour });
     }
 
     /*
