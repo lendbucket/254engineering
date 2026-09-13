@@ -77,6 +77,35 @@ console.log("");
   );
 }
 
+/*
+ * AND THE KEY FAULT PROOF, FOR THE SAME REASON, AFTER THE SAME KIND OF COST.
+ *
+ * 2026-09-13: the operator was locked out of production for four hours because
+ * this file's subject, the second factor, answered a working phone with
+ * "MFA_ENCRYPTION_KEY is configured." A key REPLACED with another valid value
+ * passes every test mfaStatus applies, so the one fault that had happened was
+ * the one the sentence could not describe.
+ *
+ * It runs here rather than in its own audit because it is the challenge path,
+ * which is what this file covers, and because the live half needs the same
+ * development database this audit already holds. It puts one enrolment on
+ * development, reads the three sentences answerChallenge returns, and removes
+ * what it made.
+ */
+{
+  const { checkKeyFault } = await import("./proofs/a-replaced-key-says-so.mjs");
+  const { failed, total, notes } = await checkKeyFault(false);
+  rec(
+    `a replaced key says so and a wrong code still says that (${total} cases)`,
+    failed.length === 0 && total > 15,
+    failed.length
+      ? `${failed.join(" | ")}. This is the 2026-09-13 lockout coming back.`
+      : total > 15
+        ? notes.join("; ")
+        : `only ${total} cases ran, which is too few to mean anything`,
+  );
+}
+
 /* ----------------------------------------------------- the pure half */
 
 const {

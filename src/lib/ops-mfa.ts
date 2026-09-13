@@ -64,6 +64,70 @@ export function mfaConfigured(): boolean {
 }
 
 /**
+ * IS THE KEY THE ONE THIS CIPHERTEXT WAS ENCRYPTED UNDER?
+ *
+ * Phase 13, after the production lockout of 2026-09-13. The question mfaStatus
+ * cannot answer, and the reason four hours went into a wrong diagnosis.
+ *
+ * mfaStatus checks that MFA_ENCRYPTION_KEY is PRESENT and at least 24
+ * characters. Both were true. The value had been REPLACED with a different,
+ * valid value during Vercel work the day before, so every stored secret became
+ * undecryptable while the status sentence went on saying configured.
+ *
+ * WHY THIS NEEDS NO CANARY COLUMN AND NO MIGRATION. The ciphertext already IS
+ * the canary. A stored secret that is well formed, with a key that is present
+ * and long enough, that still will not decrypt, can only mean the key is not
+ * the one it was encrypted under. Adding a column to store a second encrypted
+ * value would be a second copy of a fact the first copy already carries.
+ *
+ * IT IS DELIBERATELY NARROW. It answers only for a row that HAS a secret. It
+ * says nothing about whether a code is right, and it must not: a wrong code
+ * with a good key has to keep reading as a wrong code, or this becomes the
+ * next misleading sentence.
+ */
+export type KeyFault = "missing" | "too_short" | "changed" | null;
+
+export function keyFaultFor(secretCipher: string | null): KeyFault {
+  const secret = process.env.MFA_ENCRYPTION_KEY;
+  if (typeof secret !== "string" || secret.trim().length === 0) return "missing";
+  if (secret.trim().length < MIN_KEY_LENGTH) return "too_short";
+
+  /* No stored secret is not a key fault. It is an account with no enrolment. */
+  if (!secretCipher) return null;
+
+  /*
+   * A cipher that is not three parts is a corrupted or truncated ROW, which is
+   * a different fault from a changed key and must not be reported as one.
+   * decryptSecret folds them together because to IT they mean the same thing;
+   * here they do not.
+   */
+  if (secretCipher.split(".").length !== 3) return null;
+
+  return decryptSecret(secretCipher) === null ? "changed" : null;
+}
+
+/**
+ * The sentence a person gets when the key is the problem.
+ *
+ * A PERSON WHOSE CORRECT CODE IS REFUSED MUST NOT BE TOLD THEIR CODE IS WRONG.
+ * That rule was already written above mfaStatus and it was not enough, because
+ * the sentence it produced for a replaced key was configured.
+ */
+export function keyFaultSentence(fault: Exclude<KeyFault, null>): string {
+  if (fault === "missing") {
+    return "MFA_ENCRYPTION_KEY is not set on this deployment, so no code can be verified. This is a deployment fault rather than a problem with your code or your phone.";
+  }
+  if (fault === "too_short") {
+    return `MFA_ENCRYPTION_KEY is set but shorter than ${MIN_KEY_LENGTH} characters, so it is rejected and no code can be verified. This is a deployment fault rather than a problem with your code or your phone.`;
+  }
+  return (
+    "THE SECOND FACTOR KEY ON THIS DEPLOYMENT IS NOT THE ONE THIS ACCOUNT ENROLLED UNDER. " +
+    "MFA_ENCRYPTION_KEY has been replaced with a different value, which makes the stored secret " +
+    "unreadable and makes every correct code look wrong. Your phone is fine and your code is fine. " +
+    "Restore the previous value, or clear the enrolment and enrol again."
+  );
+}
+/**
  * What is wrong, in a sentence, for the status surface and the sign in screen.
  *
  * A person whose correct code is refused because an environment variable is
@@ -294,8 +358,27 @@ export async function confirmEnrolment(
     return { ok: false, error: "That enrolment has expired. Start again to get a fresh code." };
   }
 
+  /*
+   * THE SAME FAULT, ONE DOOR EARLIER.
+   *
+   * This line had the defect that locked the operator out, and it is worth
+   * fixing even though the window is ten minutes wide: a pending cipher is
+   * written under one key and read back under whatever the deployment holds
+   * when the person types their first code. A redeploy carrying a new key in
+   * between is exactly what happened on 2026-09-12, and the person enrolling
+   * would have been told the key "is configured" while their brand new secret
+   * was unreadable.
+   */
+  const keyFault = keyFaultFor(data.pending_cipher as string);
+  if (keyFault) return { ok: false, error: keyFaultSentence(keyFault) };
+
   const base32 = decryptSecret(data.pending_cipher as string);
-  if (!base32) return { ok: false, error: mfaStatus() };
+  if (!base32) {
+    return {
+      ok: false,
+      error: "The pending enrolment on this account is corrupted and cannot be read. Start the enrolment again.",
+    };
+  }
   const bytes = base32Decode(base32);
   if (!bytes) return { ok: false, error: "The stored secret could not be read. Start the enrolment again." };
 
@@ -370,8 +453,33 @@ export async function answerChallenge(userId: string, answer: string): Promise<C
     return await spendRecoveryCode(userId, cleaned);
   }
 
+  /*
+   * THE LINE THAT CAUSED THE 2026-09-13 LOCKOUT.
+   *
+   * It used to return mfaStatus() here, and for a REPLACED key that sentence is
+   * "MFA_ENCRYPTION_KEY is configured." It went into the red error slot on the
+   * challenge screen and sent four hours in the wrong direction: a positive
+   * status, entirely true, and the least useful true thing the platform could
+   * have said to somebody holding a working phone.
+   *
+   * keyFaultFor asks the question that actually matters, which is whether this
+   * key is the one this ciphertext was written under.
+   */
+  const fault = keyFaultFor(data.secret_cipher as string);
+  if (fault) return { ok: false, error: keyFaultSentence(fault) };
+
   const base32 = decryptSecret(data.secret_cipher as string);
-  if (!base32) return { ok: false, error: mfaStatus() };
+  if (!base32) {
+    /*
+     * Reached only when the stored row is malformed rather than the key wrong,
+     * because keyFaultFor has already answered for the key. Its own sentence,
+     * so the two faults can never be confused again.
+     */
+    return {
+      ok: false,
+      error: "The stored secret on this account is corrupted and cannot be read. It has to be enrolled again.",
+    };
+  }
   const bytes = base32Decode(base32);
   if (!bytes) return { ok: false, error: "The stored secret could not be read." };
 
