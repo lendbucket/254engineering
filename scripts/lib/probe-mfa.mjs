@@ -96,7 +96,7 @@ export async function completeEnrolment(base, cookie) {
   const acknowledged = await fetch(`${base}/api/portal/mfa`, {
     method: "POST",
     headers: { "Content-Type": "application/json", cookie: header },
-    body: JSON.stringify({ action: "codes_saved" }),
+    body: JSON.stringify({ action: "codes_saved", completion: done.completion }),
   });
   const finished = await acknowledged.json().catch(() => null);
   if (!acknowledged.ok || !finished?.ok) {

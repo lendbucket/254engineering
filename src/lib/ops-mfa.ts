@@ -471,29 +471,6 @@ export async function confirmEnrolment(
  */
 export async function acknowledgeRecoveryCodes(
   userId: string,
-  /**
-   * When the session making this call began, in epoch milliseconds, or null
-   * when the caller already holds a full session and this grants nothing.
-   *
-   * ======================================================================
-   * THE BINDING, AND WHY IT IS NOT OPTIONAL FOR A PENDING SESSION.
-   * ======================================================================
-   *
-   * This call upgrades a half authenticated session into a full one without a
-   * code being typed, on the grounds that the code WAS typed a moment ago by
-   * the confirm that produced these recovery codes. That is sound only if the
-   * confirm happened inside the same sign in.
-   *
-   * Without it, an account sitting in "codes issued, never acknowledged" would
-   * be reachable with a password alone, forever, and that state is exactly the
-   * one this whole feature exists to record. The protection would have opened
-   * the hole it was measuring.
-   *
-   * So the enrolment's verified_at has to be LATER than the moment this
-   * session began. A session issued after the enrolment cannot be the one that
-   * made it, and is refused.
-   */
-  sessionBeganAt: number | null,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
@@ -520,18 +497,23 @@ export async function acknowledgeRecoveryCodes(
     return { ok: false, error: "These recovery codes have already been confirmed as saved." };
   }
 
-  /* The binding. See the parameter. */
-  if (sessionBeganAt !== null) {
-    const verified = Date.parse(data.verified_at as string);
-    if (!Number.isFinite(verified) || verified <= sessionBeganAt) {
-      return {
-        ok: false,
-        error:
-          "This second factor was set up in an earlier sign in, so it cannot be completed from here. " +
-          "Enter a code from your authenticator app instead.",
-      };
-    }
-  }
+  /*
+   * THE BINDING IS NOT HERE ANY MORE, AND THAT IS THE POINT.
+   *
+   * It used to compare verified_at against the moment the calling session
+   * began. verified_at comes from the DATABASE clock and the session comes from
+   * the APPLICATION clock, so it was a boundary resting on two unsynchronised
+   * clocks agreeing. It passed standalone twice and went red on the board.
+   *
+   * The binding is now a token the route verifies before calling this, minted
+   * by the confirm that produced these codes. See issueEnrolmentCompletion in
+   * src/lib/ops-session.ts for the whole argument.
+   *
+   * What stays here is what belongs to the RECORD rather than to the session:
+   * there must be an active enrolment, codes must have been issued, and they
+   * must not already be acknowledged. The last of those is what makes a
+   * replayed token find nothing left to do.
+   */
 
   const { error: writeError } = await db
     .from("eng_mfa_enrolments")

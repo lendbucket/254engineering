@@ -3,9 +3,10 @@ import { cookies } from "next/headers";
 import { requestContext } from "@/lib/ops-auth";
 import {
   OPS_COOKIE,
+  issueEnrolmentCompletion,
   issueOpsSession,
   opsCookieOptions,
-  pendingIssuedAt,
+  readEnrolmentCompletion,
   readOpsSession,
   readPendingSession,
 } from "@/lib/ops-session";
@@ -53,6 +54,8 @@ const MFA_SCOPE = "mfa";
 
 type Body = {
   action?: "verify" | "begin" | "confirm" | "codes_saved" | "break_glass";
+  /** The token `confirm` handed back, which binds an acknowledgement to it. */
+  completion?: string;
   code?: string;
   token?: string;
 };
@@ -208,7 +211,18 @@ export async function POST(request: NextRequest) {
      * that opens nothing, and for an optional role is the full one they already
      * had. Neither is granted by this call any more.
      */
-    return NextResponse.json({ ok: true, recoveryCodes: done.recoveryCodes });
+    /*
+     * AND THE TOKEN THAT BINDS THE ACKNOWLEDGEMENT TO THIS CONFIRM.
+     *
+     * Only this call can mint one, and reaching this call required a valid code
+     * from the authenticator app. Somebody holding a stolen password has a
+     * pending session and no way to produce one.
+     */
+    return NextResponse.json({
+      ok: true,
+      recoveryCodes: done.recoveryCodes,
+      completion: issueEnrolmentCompletion(profile.id),
+    });
   }
 
   /* -------------------------------------------------------- codes saved */
@@ -227,17 +241,33 @@ export async function POST(request: NextRequest) {
      * no issued codes, so this cannot be used to mint a session on its own.
      */
     /*
-     * A PENDING SESSION CARRIES THE BINDING; A FULL ONE NEEDS NONE.
+     * THE TOKEN IS THE BINDING, AND IT IS CHECKED BEFORE ANYTHING IS WRITTEN.
      *
-     * From a pending session this call is an upgrade, so the enrolment has to
-     * have happened after this session began. From a full session the person is
-     * already inside and nothing is granted, so the acknowledgement is only a
-     * record.
+     * It proves this acknowledgement belongs to the confirm that produced these
+     * codes, which is the only thing that makes upgrading a pending session
+     * here safe. It must also name THIS account: a token minted for somebody
+     * else is a token for somebody else's enrolment.
+     *
+     * Demanded from a full session too. Nothing is granted in that case, so it
+     * costs that caller only the token it was already handed, and a branch that
+     * skipped the check for one caller is a branch somebody will reach with the
+     * other.
      */
-    const ack = await acknowledgeRecoveryCodes(
-      profile.id,
-      pending ? pendingIssuedAt(pending) : null,
+    const completion = readEnrolmentCompletion(
+      typeof body?.completion === "string" ? body.completion : null,
     );
+    if (!completion || completion.sub !== profile.id) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "This enrolment cannot be completed from here. Start again, or enter a code from your authenticator app.",
+        },
+        { status: 400 },
+      );
+    }
+
+    const ack = await acknowledgeRecoveryCodes(profile.id);
     if (!ack.ok) return NextResponse.json({ ok: false, error: ack.error }, { status: 400 });
 
     await writeAudit({

@@ -74,6 +74,13 @@ export function EnrolForm({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [redirectTo, setRedirectTo] = useState<string>("/portal");
+  /*
+   * The token `confirm` hands back, which binds the acknowledgement below to
+   * the confirm that produced these codes. Held in state and posted straight
+   * back: this component never inspects it and could not, because only the
+   * server holds the key that signed it.
+   */
+  const [completion, setCompletion] = useState<string | null>(null);
 
   async function post(body: Record<string, unknown>) {
     setBusy(true);
@@ -151,7 +158,7 @@ export function EnrolForm({
           type="button"
           disabled={!saved || busy}
           onClick={async () => {
-            const data = await post({ action: "codes_saved" });
+            const data = await post({ action: "codes_saved", completion });
             if (data) window.location.assign((data.redirect as string) ?? redirectTo);
           }}
           className="min-h-[var(--tap-target)] rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[14px] font-semibold text-white disabled:opacity-60"
@@ -179,6 +186,7 @@ export function EnrolForm({
           const data = await post({ action: "confirm", code });
           if (data) {
             setCodes(data.recoveryCodes as string[]);
+            setCompletion(typeof data.completion === "string" ? data.completion : null);
             if (typeof data.redirect === "string") setRedirectTo(data.redirect);
           }
         }}

@@ -56,27 +56,8 @@ const TTL_SECONDS = 12 * 60 * 60;
  * abandoned browser tab is not most of the way in. It is not a working session
  * and must not last like one.
  */
-export const PENDING_TTL_SECONDS = 10 * 60;
+const PENDING_TTL_SECONDS = 10 * 60;
 
-/**
- * WHEN A PENDING SESSION WAS ISSUED, derived from its expiry.
- *
- * The payload carries an expiry and not an issue time, because four fields
- * that can disagree are worse than three that cannot. The issue time is
- * exactly that expiry minus the fixed TTL, so it is recoverable rather than
- * absent, and recovering it here means no caller has to know the arithmetic.
- *
- * ONE CALLER, AND IT IS THE ONE THAT MATTERS. The recovery code
- * acknowledgement upgrades a pending session into a full one without a code
- * being typed, which is safe only if the enrolment it acknowledges happened
- * AFTER this session began. Without that binding, a stolen password would
- * reach a full session on any account left in the "codes issued, never
- * acknowledged" state, which is precisely the state this feature exists to
- * make visible.
- */
-export function pendingIssuedAt(claims: { exp: number }): number {
-  return (claims.exp - PENDING_TTL_SECONDS) * 1000;
-}
 
 const MIN_SECRET_LENGTH = 24;
 
@@ -295,6 +276,95 @@ function readAnyFactor(
  * same site request and Lax stops the cross site form post CSRF depends on.
  * Secure always.
  */
+/**
+ * THE ENROLMENT COMPLETION TOKEN, AND WHY IT REPLACED A TIME COMPARISON.
+ *
+ * ======================================================================
+ * THE BOARD CAUGHT THE FIRST VERSION OF THIS, AND IT WAS A SECURITY
+ * BOUNDARY BUILT ON TWO CLOCKS.
+ * ======================================================================
+ *
+ * Moving the session from `confirm` to the recovery code acknowledgement
+ * created a call that upgrades a half authenticated session into a full one
+ * with no code typed. Sound while the confirm and the acknowledgement are the
+ * same sign in, and unsound the moment they are not, so the two had to be
+ * bound together.
+ *
+ * The first binding compared the enrolment's `verified_at` against the moment
+ * the calling session began, derived from the pending cookie's expiry. It
+ * passed standalone twice and went RED on the board, which is exactly what a
+ * flaky boundary looks like, and the structure says why: `verified_at` is
+ * written by the DATABASE clock through transaction_timestamp(), and the cookie
+ * is minted by the APPLICATION clock through Date.now(). Nothing synchronises
+ * those two. The expiry is also whole seconds, so the derived start time is up
+ * to 999ms early, and every millisecond of that slack is in the attacker's
+ * favour.
+ *
+ * A boundary that depends on two unsynchronised clocks agreeing is not a
+ * boundary. It is a race that usually goes the right way.
+ *
+ * SO THIS COMPARES NO CLOCKS FOR THE BINDING AT ALL. `confirm` mints a token
+ * and only `confirm` can, because minting requires the signing key and the
+ * call that mints it required a valid code from the authenticator app.
+ * `codes_saved` will not complete an enrolment without one. Somebody holding a
+ * stolen password has a pending session and no token, and cannot make one.
+ *
+ * THREE SEGMENTS, NEVER FIVE. A session cookie carries five and readAnyFactor
+ * refuses anything else, so a completion token can never be presented as a
+ * session, and a session can never be presented as a completion token. The
+ * shapes are disjoint by construction rather than by a check somebody has to
+ * remember to write.
+ *
+ * IT IS SINGLE USE, and not by anything in here: the acknowledgement refuses an
+ * enrolment whose codes are already acknowledged, so a replayed token finds
+ * nothing left to do. The expiry below is a second bound rather than the
+ * mechanism, and it compares Date.now() with a value Date.now() produced, which
+ * is one clock.
+ */
+const COMPLETION_TTL_SECONDS = 15 * 60;
+
+/** Mint the token `confirm` hands back. Null when unconfigured. */
+export function issueEnrolmentCompletion(sub: string, now: number = Date.now()): string | null {
+  const key = signingKey();
+  if (!key) return null;
+  const exp = Math.floor(now / 1000) + COMPLETION_TTL_SECONDS;
+  const payload = `${sub}.${exp}`;
+  return `${payload}.${sign(payload, key)}`;
+}
+
+/**
+ * Verify one, and say whose it is.
+ *
+ * Returns null for anything that is not a currently valid, correctly signed
+ * token. There is no partial success, for the same reason readOpsSession has
+ * none: a caller given an "expired but otherwise fine" branch will eventually
+ * take it.
+ */
+export function readEnrolmentCompletion(
+  value: string | undefined | null,
+  now: number = Date.now(),
+): { sub: string } | null {
+  if (!value) return null;
+  const key = signingKey();
+  if (!key) return null;
+
+  const parts = value.split(".");
+  if (parts.length !== 3) return null;
+
+  const [sub, expRaw, mac] = parts;
+  const payload = `${sub}.${expRaw}`;
+  const want = sign(payload, key);
+  const got = Buffer.from(mac);
+  const expect = Buffer.from(want);
+  if (got.length !== expect.length || !timingSafeEqual(got, expect)) return null;
+
+  const exp = Number(expRaw);
+  if (!Number.isFinite(exp) || exp * 1000 <= now) return null;
+  if (!sub) return null;
+
+  return { sub };
+}
+
 export function opsCookieOptions(expiresAt?: Date) {
   return {
     httpOnly: true as const,

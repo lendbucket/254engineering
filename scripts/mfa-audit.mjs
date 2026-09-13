@@ -799,6 +799,11 @@ else process.env.OPS_SESSION_SECRET = HAD;
               `${confirmed.body?.recoveryCodes?.length ?? 0} codes`,
             );
             rec(
+              "and hands back a completion token instead",
+              typeof confirmed.body?.completion === "string" && confirmed.body.completion.split(".").length === 3,
+              "without one nothing below is testing a binding, it is testing an unguarded call",
+            );
+            rec(
               "and does NOT hand over a session",
               confirmed.body?.ok === true && confirmed.cookie === null,
               confirmed.cookie ? "confirm issued a session, so the acknowledgement below governs nothing" : "",
@@ -851,7 +856,10 @@ else process.env.OPS_SESSION_SECRET = HAD;
                 : `refused with ${beforeAck.status}`,
             );
 
-            const saved = await post({ action: "codes_saved" });
+            const saved = await post({
+      action: "codes_saved",
+      completion: confirmed.body?.completion,
+    });
             rec(
               "acknowledging the codes hands over the session",
               saved.body?.ok === true && Boolean(saved.cookie),
@@ -920,13 +928,21 @@ else process.env.OPS_SESSION_SECRET = HAD;
               const s2 = await begun2.json().catch(() => null);
               const bytes2 = s2?.secret ? base32Decode(s2.secret) : null;
 
+              let staleCompletion = null;
               if (bytes2) {
-                await fetch(`${BASE}/api/portal/mfa`, {
+                const c2 = await fetch(`${BASE}/api/portal/mfa`, {
                   method: "POST",
                   headers: { "Content-Type": "application/json", cookie: staleHeader },
                   body: JSON.stringify({ action: "confirm", code: codeForStep(bytes2, stepAt(Date.now())) }),
                 });
+                const b2 = await c2.json().catch(() => null);
+                staleCompletion = typeof b2?.completion === "string" ? b2.completion : null;
               }
+              rec(
+                "the abandoning probe was handed its own completion token",
+                typeof staleCompletion === "string",
+                "the control below needs it, and without it the refusals prove nothing",
+              );
 
               /*
                * A SECOND SIGN IN. This is the attacker's position: the
@@ -952,6 +968,20 @@ else process.env.OPS_SESSION_SECRET = HAD;
               );
 
               if (secondCookie) {
+                /*
+                 * THE ATTACKER'S POSITION, EXACTLY: the password, a pending
+                 * session, and no completion token, because only the confirm
+                 * that produced the codes can mint one and that confirm
+                 * happened in a sign in this caller was not part of.
+                 *
+                 * THE FIRST VERSION OF THIS CHECK WATCHED A CLOCK COMPARISON
+                 * and the board caught it. verified_at is written by the
+                 * database and the session was minted by the application, so
+                 * the boundary rested on two unsynchronised clocks agreeing: it
+                 * passed standalone twice and went red on a board run. What is
+                 * asserted now is a signature nobody without the key can
+                 * produce, which has no timing in it at all.
+                 */
                 const attack = await fetch(`${BASE}/api/portal/mfa`, {
                   method: "POST",
                   headers: { "Content-Type": "application/json", cookie: `eng_ops=${secondCookie}` },
@@ -965,8 +995,56 @@ else process.env.OPS_SESSION_SECRET = HAD;
                     ? "A PASSWORD ALONE REACHED A FULL SESSION. The acknowledgement is a bypass of the second factor."
                     : `refused with ${attack.status}`,
                 );
+
+                /*
+                 * AND NOT WITH SOMEBODY ELSE'S TOKEN EITHER.
+                 *
+                 * The one the ack probe was handed is real, correctly signed
+                 * and unexpired. It names a different account. A check that
+                 * only ever posted an ABSENT token could not tell "the
+                 * signature is verified" from "the token is read and its
+                 * subject ignored", and the second of those is a bypass for
+                 * anybody who can see one response body.
+                 */
+                const stolen = await fetch(`${BASE}/api/portal/mfa`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", cookie: `eng_ops=${secondCookie}` },
+                  body: JSON.stringify({ action: "codes_saved", completion: confirmed.body?.completion }),
+                });
+                const mintedStolen = (stolen.headers.get("set-cookie") ?? "").match(/eng_ops=([^;]+)/);
+                rec(
+                  "and not with a valid token minted for another account",
+                  stolen.status === 400 && !mintedStolen,
+                  mintedStolen
+                    ? "A TOKEN FOR SOMEBODY ELSE COMPLETED THIS ENROLMENT. The signature is checked and the subject is not."
+                    : `refused with ${stolen.status}`,
+                );
+
+                /*
+                 * AND THE CONTROL, WHICH IS WHAT MAKES THE TWO ABOVE EVIDENCE.
+                 *
+                 * This account's OWN token, from its own confirm, must
+                 * complete it. Without this the two refusals are consistent
+                 * with codes_saved being broken for everybody, which would pass
+                 * every assertion here while the feature did not work.
+                 */
+                const own = await fetch(`${BASE}/api/portal/mfa`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", cookie: `eng_ops=${secondCookie}` },
+                  body: JSON.stringify({ action: "codes_saved", completion: staleCompletion }),
+                });
+                const mintedOwn = (own.headers.get("set-cookie") ?? "").match(/eng_ops=([^;]+)/);
+                rec(
+                  "while this account's own token from its own confirm does complete it",
+                  own.status === 200 && Boolean(mintedOwn),
+                  own.status === 200
+                    ? ""
+                    : `HTTP ${own.status}. The refusals above would then prove nothing about the binding.`,
+                );
               } else {
                 rec("and CANNOT acknowledge an earlier enrolment into a full session", false, "no second session");
+                rec("and not with a valid token minted for another account", false, "no second session");
+                rec("while this account's own token from its own confirm does complete it", false, "no second session");
               }
             } else {
               rec("a second sign in on an enrolled account is challenged", false, "no probe");
