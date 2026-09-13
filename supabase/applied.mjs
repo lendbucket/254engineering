@@ -686,7 +686,33 @@ export const APPLIED = [
     behaviour: "a3a7eb9953f60e59555f7fcddd221a7f",
     proves: { table: "eng_incidents" },
     production: "2026-09-13",
-    development: { at: "0042", behaviour: "a3a7eb9953f60e59555f7fcddd221a7f", facts: 824 },
+    /*
+     * CORRECTED 2026-09-13. THE DIGEST HERE WAS THE REPLAY'S, AND IS NOW NULL.
+     *
+     * Found by the read-back check added to schema-ledger-audit the same day,
+     * which asserts that no figure recorded as read back equals the replay's
+     * own. This entry's did. It is the second instance, after 0043, and finding
+     * two is what made it a class rather than an oversight.
+     *
+     * THE PROSE BELOW DISCLOSED IT AT THE TIME, in its last clause: "both
+     * recomputed from a replay rather than typed in from a live database". So
+     * the previous session was honest in the sentence and wrong in the FIELD,
+     * which is the worse half, because the field is what a check reads and the
+     * sentence is what nobody does. A field named for a database carrying
+     * another engine's number is a claim whatever the prose beside it says.
+     *
+     * IT IS NULL RATHER THAN CORRECTED, and that is the honest answer. The
+     * figure cannot be recovered: development is at 0044 now and a live project
+     * cannot be rewound to 0042 to be asked. Writing today's digest here would
+     * be inventing a reading, and inferring one from the chain would be the
+     * same act with arithmetic in front of it.
+     *
+     * THE COUNT SURVIVES AND IS CORRECT. A fact count is portable across
+     * engines, which is the whole reason the stop condition was amended to
+     * judge a live read-back on counts and per kind figures. 824 was true of
+     * development at 0042 and is true of the replay at 0042.
+     */
+    development: { at: "0042", behaviour: null, facts: 824 },
     because:
       "APPLIED TO PRODUCTION 2026-09-13 through apply_migration and read back. Production shape " +
       "11a709155214441ec2b7c3b382f6e17f across 1,030 columns, matching the replay exactly, and 824 behaviour " +
@@ -695,8 +721,10 @@ export const APPLIED = [
       "rather than on the behaviour digest, per the amended stop condition of 2026-09-12. " +
       "It was written under Phase 12 Section 6 overnight limits that forbid applying anything to production. " +
       "Applied to development 2026-09-12 through apply_migration and read back: shape " +
-      "11a709155214441ec2b7c3b382f6e17f across 1,030 columns, behaviour a3a7eb9953f60e59555f7fcddd221a7f " +
-      "across 824 facts, both recomputed from a replay rather than typed in from a live database.",
+      "11a709155214441ec2b7c3b382f6e17f across 1,030 columns and 824 behaviour facts. THE BEHAVIOUR DIGEST " +
+      "FOR DEVELOPMENT IS NOT RECORDED, because it was never read from development: the figure that stood " +
+      "here until 2026-09-13 was the replay's, and it is not recoverable now that development is at 0044. " +
+      "The shape digest and the counts are portable and are the ones above.",
     note:
       "AN INCIDENT IS NOT A FAULT, AND THE TABLE IS EMPTY ON PURPOSE. eng_error_events holds what broke: a " +
       "stack trace, a route, a fingerprint, pruned on a retention schedule. An incident is something that " +
