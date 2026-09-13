@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { OPS_COOKIE, readOpsSession, readPendingSession } from "@/lib/ops-session";
-import { breakGlassConfigured } from "@/lib/ops-mfa-breakglass";
+import { breakGlassConfigured, breakGlassMalformed } from "@/lib/ops-mfa-breakglass";
 import { mfaConfigured, mfaStatus } from "@/lib/ops-mfa";
 import { homeFor } from "@/lib/ops-authz";
 import { Wordmark } from "@/components/brand/Wordmark";
@@ -58,6 +58,20 @@ export default async function MfaChallengePage() {
   const ready = mfaConfigured();
   const breakGlass = breakGlassConfigured();
 
+  /*
+   * A BREAK GLASS THAT IS SET AND DOING NOTHING SAYS SO, HERE.
+   *
+   * On 2026-09-13 the operator set MFA_BREAK_GLASS, redeployed, and found no
+   * link on this screen and no explanation anywhere. A malformed value parses
+   * as unset by design, and the only surface that reported that fact was the
+   * operator observability screen, which needs a full session, which is exactly
+   * what a person at this screen does not have.
+   *
+   * So the diagnostic now appears where the failure appears. It reveals nothing
+   * a correctly set break glass does not already reveal by drawing its link.
+   */
+  const brokenGlass = breakGlassMalformed();
+
   return (
     <main className="portal-surface grid min-h-dvh place-items-center px-4 py-6 sm:py-10">
       <div className="w-full max-w-[420px]">
@@ -82,6 +96,16 @@ export default async function MfaChallengePage() {
               </SystemAlert>
             </div>
           )}
+
+          {brokenGlass ? (
+            <div className="mt-4">
+              <SystemAlert condition="Break glass is malformed." tone="failed">
+                MFA_BREAK_GLASS is set on this deployment but is not in the form it has to be, so
+                it does nothing and no recovery link is offered. It has to read as an email
+                address, then a colon, then a token of at least 24 characters.
+              </SystemAlert>
+            </div>
+          ) : null}
 
           {ready ? <MfaChallengeForm breakGlassOffered={Boolean(breakGlass)} /> : null}
         </div>

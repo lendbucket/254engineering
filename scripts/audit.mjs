@@ -470,6 +470,25 @@ const PHASE_ONE = [
 
 const PHASE_TWO = [
   {
+    /*
+     * PHASE TWO, because it starts its OWN servers: three of them, one after
+     * another, each with a different MFA_BREAK_GLASS. The value is read at
+     * request time but a process environment is fixed when it boots, which is
+     * the same reason using the break glass on Vercel costs a redeploy.
+     *
+     * It goes FIRST in this phase. The three after it each start a next dev,
+     * which is the slow half of the board, and a recovery path that has already
+     * failed in production once should not be the thing that does not get run
+     * when a long board dies.
+     *
+     * It uses `next start` against the build this runner has already made, so
+     * the three boots cost seconds rather than minutes, and it reports COULD
+     * NOT TELL rather than red if there is no build to start.
+     */
+    name: "break-glass-audit",
+    why: "the MFA break glass, actually exercised: the link renders only when the variable is set, and the token clears an enrolment",
+  },
+  {
     name: "compliance-audit",
     why: "whether the gate MAY open at all, which is a different question from what each mode renders",
   },
