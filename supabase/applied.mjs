@@ -685,10 +685,15 @@ export const APPLIED = [
     fingerprint: "11a709155214441ec2b7c3b382f6e17f",
     behaviour: "a3a7eb9953f60e59555f7fcddd221a7f",
     proves: { table: "eng_incidents" },
-    production: null,
+    production: "2026-09-13",
     development: { at: "0042", behaviour: "a3a7eb9953f60e59555f7fcddd221a7f", facts: 824 },
     because:
-      "Phase 12 Section 6 is open and ran under overnight limits that forbid applying anything to production. " +
+      "APPLIED TO PRODUCTION 2026-09-13 through apply_migration and read back. Production shape " +
+      "11a709155214441ec2b7c3b382f6e17f across 1,030 columns, matching the replay exactly, and 824 behaviour " +
+      "facts, also matching: ck 98 to 100, fk 136 to 137, ix 240 to 243, pk and rls 74 to 75, tg 56 to 58, " +
+      "which is what this migration adds and nothing else. JUDGED ON THE COUNT AND THE PER KIND FIGURES " +
+      "rather than on the behaviour digest, per the amended stop condition of 2026-09-12. " +
+      "It was written under Phase 12 Section 6 overnight limits that forbid applying anything to production. " +
       "Applied to development 2026-09-12 through apply_migration and read back: shape " +
       "11a709155214441ec2b7c3b382f6e17f across 1,030 columns, behaviour a3a7eb9953f60e59555f7fcddd221a7f " +
       "across 824 facts, both recomputed from a replay rather than typed in from a live database.",
