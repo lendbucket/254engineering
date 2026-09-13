@@ -367,6 +367,24 @@ What is open, in the order an auditor asks for it:
 incident has occurred. It reaches production on the operator's word, like every
 other migration.
 
+## 0042 IS ON MAIN AND PRODUCTION DOES NOT HAVE IT
+
+**`schema-ledger-audit` is red on this, and it is right.** 0042 was applied to
+development only under Phase 12 Section 6's overnight limits, which forbid
+touching production, and its ledger entry says `production: null` as a decision
+rather than an omission. Section 6 then merged, and merging is the moment a
+pending migration stops being allowed to be pending.
+
+**The operator applies it.** apply_migration against the shared production, read
+back both fingerprints, write the date into `supabase/applied.mjs`. Expected:
+shape `11a709155214441ec2b7c3b382f6e17f` across 1,030 columns and 824 behaviour
+facts. Judge the live read-back on the fact COUNT and the per-kind figures, per
+the amended stop condition of 2026-09-12.
+
+**Neither the ledger nor the check was touched.** Editing either would turn a
+true red into a quiet lie, which is the failure this check was built for after
+0023 diverged the first time. Full context in `docs/phase-13-report.md`.
+
 ### 4. Line endings, and the cause as well as the symptom
 
 Operator ruling, 2026-09-09, after the board on main failed on a check that had
