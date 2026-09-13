@@ -710,6 +710,39 @@ export const APPLIED = [
       "corrections column that everything reads instead. began_at is separate from detected_at because the " +
       "gap between them is how long nobody knew, which is the number an incident review is actually about.",
   },
+  /*
+   * 0043, THE THREE DOORS. Phase 13 Section 1, and pending by the same
+   * instruction 0042 is: this run's limits forbid applying anything to
+   * production.
+   */
+  {
+    file: "0043_an_account_says_which_door_it_came_through.sql", appliedBy: "apply_migration",
+    fingerprint: "ee00c9be2da388e84da117d99e56e503",
+    behaviour: "632d49c00ff4115d6761985d9b83ab9a",
+    proves: { column: { table: "eng_customer_users", name: "origin" } },
+    production: null,
+    development: { at: "0043", behaviour: "632d49c00ff4115d6761985d9b83ab9a", facts: 828 },
+    because:
+      "Phase 13 Section 1 is open and ran under overnight limits that forbid applying anything to " +
+      "production. Applied to development 2026-09-12 through apply_migration and read back: shape " +
+      "ee00c9be2da388e84da117d99e56e503 across 1,032 columns, behaviour 632d49c00ff4115d6761985d9b83ab9a " +
+      "across 828 facts. Two columns, two check constraints and two indexes, which is what it adds and " +
+      "nothing else.",
+    note:
+      "AN ACCOUNT SAYS WHICH DOOR IT CAME THROUGH, AND origin IS NULLABLE ON PURPOSE. Every account that " +
+      "exists today was created before origins were recorded, so null is true of them and a default would " +
+      "invent a fact about how somebody became a customer. That is 0041's reasoning applied again: a " +
+      "document filed before a registration existed was not filed under it. THE ORIGIN IS NOT DERIVED, and " +
+      "the reason is that an inference decays exactly as the platform succeeds: a self service account that " +
+      "places an order ten minutes later becomes indistinguishable from a checkout account, silently. " +
+      "email_verified_at IS A TIMESTAMP RATHER THAN A BOOLEAN, because whether AND when is what somebody " +
+      "asks during an incident and the second costs nothing, which is why suspended_at, used_at and " +
+      "sealed_at are all timestamps here. THE ONE RULE THAT BELONGS IN THE DATABASE: a self service account " +
+      "cannot be active without a proven address, because that is a statement about the ROW rather than " +
+      "about a session. The other two doors are exempt and it is not an inconsistency: an operator created " +
+      "account was opened by somebody who can say who they spoke to, and a checkout account by somebody who " +
+      "paid. Neither is an unproven claim by an anonymous stranger.",
+  },
 ];
 
 /**
@@ -849,6 +882,7 @@ export const BEHAVIOUR_DIVERGENCE = [
       "than production minus whatever nobody wrote down. That is a migration and it is not written here, "  +
       "because the ruling was to declare rather than to converge and converging is a separate decision.",
   },
+
 ];
 
 /** The canary. An empty ledger must never read as a ledger with nothing to say. */
