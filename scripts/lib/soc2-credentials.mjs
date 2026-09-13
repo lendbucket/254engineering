@@ -123,6 +123,8 @@ export const NOT_CREDENTIALS = new Set([
    * credential somebody named badly.
    */
   "BREAK_GLASS_PORT_UNSET", "BREAK_GLASS_PORT_MALFORMED", "BREAK_GLASS_PORT_SET",
+  /* doors-audit starts one server with the sign up launch condition patched. */
+  "DOORS_PORT",
   /* Where soc2-audit points the generator so that proving it runs does not
    * rewrite four tracked artefacts and leave the working tree dirty. */
   "SOC2_OUT_DIR", "SOC2_DOCS_DIR",
