@@ -42,6 +42,17 @@ import { fileURLToPath } from "node:url";
 const CONFIG = "src/config/credentials.ts";
 const READINESS = "src/config/launch-readiness.ts";
 
+/*
+ * THE EIGHTH CONDITION LIVES IN A THIRD FILE.
+ *
+ * Phase 13 added "self service sign up is cleared for production", which the
+ * operator alone lifts by editing src/config/launch-conditions.ts. A fixture
+ * that patched two files while the gate read three would leave every live half
+ * of every audit rendering the prelaunch site, which is what happened twice
+ * already and is why assertGateActuallyOpens exists below.
+ */
+const CONDITIONS = "src/config/launch-conditions.ts";
+
 /** The account holder an audit sees. Unmistakable if it ever leaks into a page. */
 export const FIXTURE_STRIPE_ACCOUNT = "AUDIT-FIXTURE-NOT-A-REAL-STRIPE-ACCOUNT";
 
@@ -119,10 +130,16 @@ export async function withGateConditionsMet(fn) {
    * silently matches nothing is how a fixture starts measuring the prelaunch
    * state while reporting on the live one.
    */
-  const files = [CONFIG, READINESS];
+  const files = [CONFIG, READINESS, CONDITIONS];
   const originals = new Map(files.map((f) => [f, readFileSync(f, "utf8")]));
 
   const patches = [
+    {
+      file: CONDITIONS,
+      find: /cleared: false,/,
+      replace: "cleared: true,",
+      what: "self service sign up being cleared for production",
+    },
     /* --- the registration itself */
     { file: CONFIG, find: /number: "[^"]*",/, replace: `number: "${FIXTURE_FIRM_NUMBER}",`, what: "the registration number" },
     { file: CONFIG, find: /onRecord: false,/, replace: "onRecord: true,", what: "the operating name on the board's record" },

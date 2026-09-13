@@ -867,6 +867,93 @@ export function orderSealed(input: {
 }
 
 /**
+ * THE ACCOUNT EXISTS. Verify the address, then it can do anything.
+ *
+ * Phase 13, Section 0, debt three. The thirteenth template of the approved
+ * email design, classified during the port as describing a real event and then
+ * found to have no event to hang off: `issueCustomerToken` had zero callers, so
+ * there was no moment at which this could be sent. BACKLOG recorded it as
+ * waiting on self service accounts rather than building it anyway, because
+ * inventing an account creation flow to justify a template is the wrong way
+ * round. Phase 13 is that work.
+ *
+ * IT IS TRANSACTIONAL AND CARRIES NO UNSUBSCRIBE. Somebody who just asked for
+ * an account is owed the link that finishes making it, whatever their marketing
+ * preference says, and a footer offering to switch that off would be offering
+ * something this firm must not honour. `MARKETING_TEMPLATES` is the short list
+ * and this is not on it, so email-audit fails if an unsubscribe ever appears.
+ *
+ * THE BUTTON IS THE WHOLE MESSAGE, WHICH IS WHY THE COPY IS SHORT. Everything
+ * this email could say about what the account does is better said by the
+ * account. What it has to do is get one person to click one link before it
+ * expires, and every additional sentence is a reason to read it later.
+ *
+ * WHY IT NAMES THE EXPIRY IN WORDS. A signed link with an unstated lifetime is
+ * a link somebody opens on Monday having read it on Friday, and the failure is
+ * silent: it looks like the platform is broken rather than like the link is
+ * old. The order status link learned this the hard way, and the reasoning is in
+ * CLAUDE.md section 6 under the trap about a 200 that says the link does not
+ * open an order.
+ *
+ * WHY THERE IS NO PASSWORD IN IT, EVER. Two of the three doors set a password
+ * and one does not, and neither variant sends one: the operator never sets or
+ * sees a customer's password, and an emailed password is a credential sitting
+ * in a mailbox forever. The link sets it.
+ */
+export function accountWelcome(input: {
+  customerName: string;
+  customerEmail: string;
+  /**
+   * How the account came to exist. The three doors produce the same record with
+   * a different origin, and the sentence differs because the reader's situation
+   * differs: one of them asked for this thirty seconds ago and one of them was
+   * on the telephone.
+   */
+  origin: "self_service" | "operator_created";
+  /** The signed link. Verifies the address, and sets a password where there is none. */
+  link: string;
+  /** In words, as a person reads them: "7 days", not an ISO timestamp. */
+  expiresIn: string;
+}): RenderedEmail {
+  const selfService = input.origin === "self_service";
+
+  return compose(
+    "account.welcome",
+    "human",
+    selfService ? "Confirm your email address" : "Your account with 254 Engineering Services",
+    {
+      preheader: selfService
+        ? `One link to confirm the address, and the account is ready. It lasts ${input.expiresIn}.`
+        : `An account has been opened for you. The link sets your password and lasts ${input.expiresIn}.`,
+      signed: true,
+      blocks: [
+        { kind: "p", text: `${input.customerName},` },
+        {
+          kind: "p",
+          text: selfService
+            ? "Your account exists. Confirming this address is the last step, and until it is done the account cannot place an order or see anything."
+            : "An account has been opened for you at 254 Engineering Services, following your call. Nobody here has set a password for it and nobody can see one: the link below is how you choose your own.",
+        },
+        {
+          kind: "note",
+          /*
+           * The expiry, and what to do when it has passed, in the same
+           * sentence. Telling somebody a link expired without telling them how
+           * to get another is where they telephone.
+           */
+          text: `This link lasts ${input.expiresIn}. If it has expired by the time you open it, the sign in page will send you a fresh one.`,
+        },
+      ],
+      button: {
+        label: selfService ? "Confirm this address" : "Set your password",
+        url: input.link,
+      },
+    },
+    { to: input.customerEmail },
+  );
+}
+
+/**
  * The engineer could not seal it, and what happens to the money.
  *
  * EVERY FIGURE COMES FROM refundFor, WHICH IS THE ONLY THING THAT KNOWS.
@@ -1516,6 +1603,25 @@ export function queueAlert(input: QueueAlertInput): RenderedEmail {
 export function allTemplatesForAudit(): RenderedEmail[] {
 
   return [
+    /*
+     * BOTH VARIANTS OF THE WELCOME, because the two doors say different things
+     * and a registry carrying one of them would leave the other unrendered,
+     * unscreenshotted, and unchecked for voice.
+     */
+    accountWelcome({
+      customerName: "Sample Customer",
+      customerEmail: "sample@example.com",
+      origin: "self_service",
+      link: "https://254engineering.com/account/set-password?token=SAMPLE",
+      expiresIn: "7 days",
+    }),
+    accountWelcome({
+      customerName: "Sample Customer",
+      customerEmail: "sample@example.com",
+      origin: "operator_created",
+      link: "https://254engineering.com/account/set-password?token=SAMPLE",
+      expiresIn: "7 days",
+    }),
     /*
      * The three a paying customer gets. The sample figures are deliberately
      * obvious, like every other fixture here, and the null lines are not
