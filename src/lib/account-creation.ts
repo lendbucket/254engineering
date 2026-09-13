@@ -56,6 +56,19 @@ export type CreateAccountInput = {
   organisation?: string | null;
   origin: AccountOrigin;
   /**
+   * An existing client to hang the account on, rather than opening a new one.
+   *
+   * THE CHECKOUT DOOR NEEDS THIS AND THE OTHER TWO MUST NOT USE IT. An order
+   * already created a client for the person who placed it, so opening a second
+   * one here would put the same human in this firm's records twice, with their
+   * orders split between the two and no way to tell afterwards which was which.
+   *
+   * Absent for the doors where nobody has ordered anything yet, because there
+   * is nothing to attach to and inventing a link would be worse than making a
+   * row.
+   */
+  clientId?: string | null;
+  /**
    * Who is doing this, for the audit trail.
    *
    * `null` means the platform itself, and the row is attributed to the system
@@ -126,22 +139,41 @@ export async function createCustomerAccount(input: CreateAccountInput): Promise<
    * The order is chosen so that every partial state is inert. Nothing a person
    * can sign into exists until the last insert succeeds.
    */
-  const { data: client, error: clientError } = await db
-    .from("eng_clients")
-    .insert({
-      kind: input.organisation ? "company" : "individual",
-      name: input.organisation?.trim() || displayName,
-      status: "active",
-    })
-    .select("id")
-    .single();
-  if (clientError || !client) {
-    return { ok: false, error: clientError?.message ?? "The client record could not be created." };
+  /*
+   * THE CLIENT, WHICH IS EITHER FOUND OR MADE.
+   *
+   * Found for the checkout door, because placing the order already made one and
+   * a second would split one person's history across two records. Made for the
+   * other two, because nothing exists to attach to yet.
+   *
+   * A clientId that names no row is a caller error rather than a reason to
+   * silently open a new client: that would produce exactly the duplicate this
+   * parameter exists to prevent, in the one case where somebody had tried to
+   * avoid it.
+   */
+  let clientId = input.clientId ?? null;
+  if (clientId) {
+    const { data: found } = await db.from("eng_clients").select("id").eq("id", clientId).maybeSingle();
+    if (!found) return { ok: false, error: "That client does not exist, so the account was not created." };
+  } else {
+    const { data: client, error: clientError } = await db
+      .from("eng_clients")
+      .insert({
+        kind: input.organisation ? "company" : "individual",
+        name: input.organisation?.trim() || displayName,
+        status: "active",
+      })
+      .select("id")
+      .single();
+    if (clientError || !client) {
+      return { ok: false, error: clientError?.message ?? "The client record could not be created." };
+    }
+    clientId = client.id as string;
   }
 
   const { data: account, error: accountError } = await db
     .from("eng_customer_accounts")
-    .insert({ site: "254", client_id: client.id, status: "active" })
+    .insert({ site: "254", client_id: clientId, status: "active" })
     .select("id")
     .single();
   if (accountError || !account) {

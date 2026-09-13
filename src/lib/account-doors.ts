@@ -71,8 +71,29 @@ export const ACCOUNT_DOORS: AccountDoor[] = [
   },
   {
     origin: "order_checkout",
-    what: "The door that already existed. Paying for an order creates the account that owns it.",
-    route: "/api/orders/place",
+    /*
+     * ==================================================================
+     * THIS ENTRY DESCRIBED A DOOR THAT DID NOT EXIST, AND SAID IT DID.
+     * ==================================================================
+     *
+     * It read "the door that already existed. Paying for an order creates the
+     * account that owns it", and named /api/orders/place. Read against the code
+     * on 2026-09-13, every clause of that was false: there is no such route,
+     * checkout creates a CLIENT, an operator later converts the client to an
+     * ACCOUNT, and nothing anywhere had ever created a customer USER.
+     *
+     * It was found by a check written the same afternoon, which asserts that
+     * every declared door names a route on disk, and it went red naming this
+     * one. Worth recording rather than quietly editing: this file is a
+     * DECLARATION, and a declaration that describes something the code does not
+     * do is the exact failure the declared inventory idiom exists to prevent,
+     * committed by an inventory.
+     *
+     * OPERATOR RULING, 2026-09-13: build it for real. So the claim is now true
+     * rather than deleted, and the route named is the one that exists.
+     */
+    what: "Paying for an order opens the account that owns it, so the person who paid can sign in and see everything they have ordered rather than only the order they paid for.",
+    route: "/api/stripe/webhook",
     openedBySelf: true,
     /*
      * A successful payment is a stronger claim on an address than a link

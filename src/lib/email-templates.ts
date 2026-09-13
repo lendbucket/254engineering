@@ -909,22 +909,29 @@ export function accountWelcome(input: {
    * differs: one of them asked for this thirty seconds ago and one of them was
    * on the telephone.
    */
-  origin: "self_service" | "operator_created";
+  origin: "self_service" | "operator_created" | "order_checkout";
   /** The signed link. Verifies the address, and sets a password where there is none. */
   link: string;
   /** In words, as a person reads them: "7 days", not an ISO timestamp. */
   expiresIn: string;
 }): RenderedEmail {
   const selfService = input.origin === "self_service";
+  const fromCheckout = input.origin === "order_checkout";
 
   return compose(
     "account.welcome",
     "human",
-    selfService ? "Confirm your email address" : "Your account with 254 Engineering Services",
+    selfService
+      ? "Confirm your email address"
+      : fromCheckout
+        ? "Your account, and everything you have ordered"
+        : "Your account with 254 Engineering Services",
     {
       preheader: selfService
         ? `One link to confirm the address, and the account is ready. It lasts ${input.expiresIn}.`
-        : `An account has been opened for you. The link sets your password and lasts ${input.expiresIn}.`,
+        : fromCheckout
+          ? `Your order is in hand. This link sets a password so you can see everything in one place. It lasts ${input.expiresIn}.`
+          : `An account has been opened for you. The link sets your password and lasts ${input.expiresIn}.`,
       signed: true,
       blocks: [
         { kind: "p", text: `${input.customerName},` },
@@ -932,7 +939,19 @@ export function accountWelcome(input: {
           kind: "p",
           text: selfService
             ? "Your account exists. Confirming this address is the last step, and until it is done the account cannot place an order or see anything."
-            : "An account has been opened for you at 254 Engineering Services, following your call. Nobody here has set a password for it and nobody can see one: the link below is how you choose your own.",
+            : fromCheckout
+              ? /*
+                 * IT DOES NOT ASK THEM TO DO ANYTHING TO GET THEIR ORDER.
+                 *
+                 * They have already paid and the status link is in the
+                 * confirmation they received separately. This is an offer of
+                 * somewhere to see everything at once, and a person who ignores
+                 * it loses nothing, which is what the sentence has to make
+                 * plain. An email that reads like a required step after a
+                 * payment is one people telephone about.
+                 */
+                "Your order is in hand and the confirmation has the link to follow it. We have also opened an account in your name, so that everything you order is in one place. Choosing a password below is the only step, and nothing is waiting on it."
+              : "An account has been opened for you at 254 Engineering Services, following your call. Nobody here has set a password for it and nobody can see one: the link below is how you choose your own.",
         },
         {
           kind: "note",
@@ -1604,9 +1623,14 @@ export function allTemplatesForAudit(): RenderedEmail[] {
 
   return [
     /*
-     * BOTH VARIANTS OF THE WELCOME, because the two doors say different things
-     * and a registry carrying one of them would leave the other unrendered,
-     * unscreenshotted, and unchecked for voice.
+     * ALL THREE VARIANTS OF THE WELCOME, because the three doors say different
+     * things and a registry carrying two of them would leave the third
+     * unrendered, unscreenshotted, and unchecked for voice.
+     *
+     * The checkout one is the variant most easily got wrong, and the sample is
+     * here so that a person reads it: somebody who has just paid must not be
+     * sent an email that reads like a required step, or they telephone to ask
+     * whether their order is stuck.
      */
     accountWelcome({
       customerName: "Sample Customer",
@@ -1619,6 +1643,13 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       customerName: "Sample Customer",
       customerEmail: "sample@example.com",
       origin: "operator_created",
+      link: "https://254engineering.com/account/set-password?token=SAMPLE",
+      expiresIn: "7 days",
+    }),
+    accountWelcome({
+      customerName: "Sample Customer",
+      customerEmail: "sample@example.com",
+      origin: "order_checkout",
       link: "https://254engineering.com/account/set-password?token=SAMPLE",
       expiresIn: "7 days",
     }),
