@@ -27,6 +27,83 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
+## THE PATHS THAT EXIST ONLY FOR A FAILURE THAT HAS NOT HAPPENED YET
+
+Operator instruction, 2026-09-13, named as the Phase 14 opener. It came out of
+the production MFA lockout, and the question underneath it is sharper than the
+incident: **which paths in this platform exist only for a failure that has not
+happened yet, and are proven by nothing?**
+
+The break glass was one. It was built in Phase 12 Section 1, reviewed,
+documented at length, and never once run. When the operator needed it on
+2026-09-13 the link did not appear, and every check that touched it was green,
+because every one of them read the SOURCE. It is exercised now, by
+`scripts/break-glass-audit.mjs`, which starts three servers with three
+different values of the variable and walks a real enrolment through all three.
+
+The rest of the list is below, and none of them is exercised today.
+
+| Path | What it is for | What proves it now |
+| --- | --- | --- |
+| **The restore** | Rebuilding this schema and its data from a backup | Nothing. `migration-audit` replays the migrations into an empty database, which proves the SHAPE can be rebuilt and says nothing about a restore of data, of buckets, or of the auth schema. |
+| **The queue resume** | Restarting a queue that has stopped, and draining a dead letter backlog | `queue-audit` covers enqueue, claim, retry and the dead letter write. Nothing has ever stopped a queue and started it again. |
+| **The retention resume** | Restarting a retention run that died partway through | Nothing. `retention-audit` covers the floors, the manifest and the dry run. A run interrupted between two tables has never been resumed, and the manifest's behaviour on a half finished run is asserted by no check. |
+| **The break glass** | Recovering an account that has lost its second factor and its codes | **Exercised, 2026-09-13.** 32 checks, three servers, three states of the variable. |
+
+**Why this is a phase rather than four items.** Each of them is cheap to assert
+badly and expensive to assert well, and the badly version is what already
+exists: a check that reads the code and agrees with it. What each needs is a
+harness that puts the system into the failed state and then uses the path, which
+is what break-glass-audit does and what none of the other three has.
+
+**The pattern to look for while building them**, because it is the one that cost
+four hours: the diagnostic for a broken recovery path must not live behind the
+door that path exists to open. `breakGlassStatus()` reported a malformed break
+glass on the operator observability screen, which needs a full session, which is
+exactly what somebody locked out does not have. The same shape is worth checking
+for on the other three before anything else is built.
+
+## A LONG PLAYWRIGHT HEAVY BOARD DIES, AND NOTHING KNOWS WHY
+
+Operator instruction, 2026-09-13, after three suite runs in one session ended
+mid-suite: "If it dies again, report what the suite says and what was running,
+and add to BACKLOG what would make a long Playwright-heavy board survivable."
+
+**What is known.** The server log ended CLEANLY each time, which the runner
+itself says means something killed the process rather than it falling over. The
+run with nothing else running beside it completed. So the operator's ruling,
+that nothing runs beside a board, is the working mitigation and it is a
+mitigation rather than a fix.
+
+**What would make it survivable**, in the order they are worth building:
+
+1. **A per audit timeout with its own verdict.** The runner has no ceiling on a
+   single audit. A Playwright audit that hangs on a selector holds the whole
+   board until somebody looks, and the fifty one minute hang recorded in
+   `scripts/lib/portal-probe.mjs` is the precedent. A timeout that reports
+   COULD NOT TELL for that audit and carries on would turn a dead board into
+   one red row.
+
+2. **Resume from where it stopped.** The suite runs 40 audits and the expensive
+   half is the browsers. A run that died at audit 31 costs its whole cost again.
+   A results file written after each audit, and a flag that skips what already
+   passed, makes a death cheap rather than total.
+
+3. **One browser for the whole phase.** `contrast-audit`, `mobile-audit` and
+   `mfa-audit` each launch their own Chromium and each starts its own server.
+   Three launches and three boots is three chances to lose a process tree on
+   Windows, which is the platform `scripts/lib/dev-server.mjs` already carries
+   two recorded defects about.
+
+4. **Say what died.** The runner prints THE SUITE DID NOT RUN TO COMPLETION and
+   names the server log. It does not name the audit that was running, its
+   elapsed time, or the memory in use. All three are cheap and all three are
+   what somebody asks first.
+
+**Why it is not built.** It is harness work, and every hour of it is an hour not
+spent on the platform the harness measures. It goes here rather than being done
+now because the mitigation works: a board with nothing beside it completes.
+
 ## ONE PORTAL GATE IS DECIDED BY A ROLE NAME, NOT BY A GRANT
 
 Found 2026-09-10 by the overnight sweep's Round 3, which opens one screen each
