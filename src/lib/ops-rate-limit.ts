@@ -51,6 +51,8 @@ import "server-only";
  * waiting: see releaseLock and src/app/api/portal/unlock/route.ts.
  */
 
+import { SIGN_UP_ATTEMPTS_PER_HOUR } from "./account-doors";
+
 const WINDOW_MS = 15 * 60 * 1000;
 
 /** Attempts against one account from one address before it is refused. */
@@ -185,6 +187,69 @@ export function inspectLock(address: string, identity?: string, now: number = Da
 }
 
 /** The caller's address, from the proxy headers. */
+/**
+ * SIGN UP ATTEMPTS, WHICH ARE A DIFFERENT PROBLEM FROM SIGN IN ATTEMPTS.
+ *
+ * Phase 13 Section 1. It lives in this module rather than its own because there
+ * is one bucket map and one pruner, and a second limiter with its own map would
+ * be a second thing to reason about under load and a second thing to get the
+ * eviction wrong in.
+ *
+ * WHY THE WINDOW IS AN HOUR AND NOT FIFTEEN MINUTES.
+ *
+ * Sign in limiting is about somebody guessing a password, which is a fast
+ * attack, so a short window with a low ceiling is right. Sign up limiting is
+ * about somebody walking an address list to learn which addresses already hold
+ * an account here, which is a patient attack: a script happy to wait is not
+ * inconvenienced by fifteen minutes at all. An hour per address is, and it
+ * costs a real person nothing, because a real person signs up once.
+ *
+ * The ceiling is declared in src/lib/account-doors.ts beside the rest of the
+ * door registry and pinned by accounts-audit, so moving it costs two edits.
+ *
+ * THE CALLER MUST NOT SAY THAT IT REFUSED. That is the whole point, and it is
+ * the caller's job rather than this function's: /api/account/sign-up answers
+ * the same sentence whether this returned true or false, because a refusal that
+ * only happens for addresses which exist is an oracle with a delay attached.
+ */
+export function takeSignUpAttempt(
+  address: string,
+  identity: string,
+  now: number = Date.now(),
+): boolean {
+  prune(now);
+
+  const key = `signup:${address}`;
+  const existing = buckets.get(key);
+
+  if (!existing || now - existing.first > SIGN_UP_WINDOW_MS) {
+    buckets.set(key, { count: 1, first: now });
+    return true;
+  }
+
+  existing.count += 1;
+  if (existing.count > SIGN_UP_ATTEMPTS_PER_HOUR) return false;
+
+  /*
+   * AND THE CONNECTION, so one address cannot be used to lock another person's
+   * sign up out from somewhere else.
+   *
+   * A limit keyed only on the address is a denial of service anybody can aim:
+   * five requests naming somebody's address, and that person cannot sign up for
+   * an hour. Keying the second bucket on both means an attacker burns their own
+   * connection's allowance rather than the victim's.
+   */
+  const byConnection = buckets.get(`signup:${address}:${identity}`);
+  if (!byConnection || now - byConnection.first > SIGN_UP_WINDOW_MS) {
+    buckets.set(`signup:${address}:${identity}`, { count: 1, first: now });
+    return true;
+  }
+  byConnection.count += 1;
+  return byConnection.count <= SIGN_UP_ATTEMPTS_PER_HOUR;
+}
+
+const SIGN_UP_WINDOW_MS = 60 * 60 * 1000;
+
 export function clientKey(headers: Headers): string {
   const forwarded = headers.get("x-forwarded-for");
   if (forwarded) return forwarded.split(",")[0]!.trim();

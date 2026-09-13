@@ -93,7 +93,23 @@ export function passwordMatches(password: string, hash: string | null, salt: str
 // ------------------------------------------------------------------- tokens
 
 const TOKEN_BYTES = 32;
-export const CUSTOMER_TOKEN_TTL_HOURS = 72;
+
+/**
+ * HOW LONG A LINK LIVES, AND IT IS ONE NUMBER RATHER THAN TWO.
+ *
+ * This was declared here as 72 and again in src/lib/account-doors.ts as
+ * VERIFICATION_TTL_HOURS, also 72, with VERIFICATION_TTL_WORDS saying "3 days"
+ * beside it for the email to render. Two declarations of one fact, and the
+ * email is the half that would have gone on saying three days after somebody
+ * shortened the token.
+ *
+ * That is the failure the email port found four separate times and the reason
+ * the registry derives the words from the number in the first place. Deriving
+ * the number from the registry too closes the last gap: there is now one place
+ * to edit, and the sentence a person reads moves with it.
+ */
+export { VERIFICATION_TTL_HOURS as CUSTOMER_TOKEN_TTL_HOURS } from "./account-doors";
+import { VERIFICATION_TTL_HOURS } from "./account-doors";
 
 function hashToken(token: string): string {
   return createHash("sha256").update(token, "utf8").digest("hex");
@@ -115,7 +131,7 @@ export async function issueCustomerToken(
     .is("used_at", null);
 
   const token = randomBytes(TOKEN_BYTES).toString("base64url");
-  const expiresAt = new Date(Date.now() + CUSTOMER_TOKEN_TTL_HOURS * 60 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + VERIFICATION_TTL_HOURS * 60 * 60 * 1000);
 
   const { error } = await db.from("eng_customer_auth_tokens").insert({
     customer_user_id: customerUserId,
@@ -209,6 +225,40 @@ export async function setCustomerPassword(
   if (!spent || spent.length === 0) {
     return { ok: false, error: "That link has already been used." };
   }
+
+  /*
+   * ======================================================================
+   * OPENING THE LINK IS WHAT PROVES THE ADDRESS, AND IT IS RECORDED BEFORE
+   * THE ACCOUNT BECOMES ACTIVE.
+   * ======================================================================
+   *
+   * Phase 13 Section 1. Until 0043 this function set status to active and
+   * nothing else, because nothing asked whether the address was real. 0043 adds
+   * a check constraint saying a SELF SERVICE account cannot be active without
+   * email_verified_at, and that constraint is enforced on the statement below.
+   *
+   * So the order is not a preference. Proving first and activating second is
+   * the only order in which a self service account can ever finish setting a
+   * password; the other way round, the database refuses the update and the
+   * person is told their password could not be set, on a link that worked.
+   * That would have been the whole self service door failing at the last step,
+   * for a reason no sentence anywhere would have named.
+   *
+   * IT IS THE SAME EVIDENCE FOR ALL THREE DOORS. The link was mailed to that
+   * address and somebody opened it. Whether the account came from a sign up
+   * form, an operator taking a call, or a checkout, that fact is identical, so
+   * it is recorded identically rather than only where a constraint demands it.
+   *
+   * ONLY WHEN NULL, because the first proof is the one that counts. A second
+   * link opened a year later would otherwise move the date and lose the answer
+   * to "when did this address become real", which is the question the column
+   * exists for.
+   */
+  await db
+    .from("eng_customer_users")
+    .update({ email_verified_at: DB_NOW })
+    .eq("id", inspected.userId)
+    .is("email_verified_at", null);
 
   const { error } = await db
     .from("eng_customer_users")

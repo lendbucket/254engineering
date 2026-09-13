@@ -24,7 +24,8 @@
  * It is pure. No server, no database, no network, so it runs in phase zero.
  */
 
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import { readSource } from "./lib/read-source.mjs";
 import { createHmac } from "node:crypto";
 import { issueOpsSession, readOpsSession, OPS_COOKIE } from "../src/lib/ops-session.ts";
@@ -852,6 +853,214 @@ withEnv({ CUSTOMER_SESSION_SECRET: CUS_SECRET }, () => {
     "and tells a caller not to resubmit after a 503",
     /Do not resubmit/.test(docs),
     "a resubmission after a saved batch would place everything twice",
+  );
+}
+
+// =========================================================================
+// THE THREE DOORS, AND THAT ONLY ONE FUNCTION OPENS ANY OF THEM
+// =========================================================================
+//
+// Phase 13 Section 1. The registry in src/lib/account-doors.ts declares which
+// doors exist, and a registry nothing reads is a list that stops being true
+// without telling anybody, which is the reason surfaces.mjs and applied.mjs
+// both exist.
+//
+// These are PURE, so this audit stays in phase zero. What they cannot do is
+// walk a door, and that is deliberate rather than an omission: the walk needs a
+// server, a database and the launch condition patched, and lives in
+// scripts/doors-audit.mjs. These assert the properties a walk could not see
+// anyway, because a walk exercises the door it was pointed at and says nothing
+// about a fourth one somebody adds next week.
+
+{
+  const doorsSource = codeOnly("src/lib/account-doors.ts");
+  const creationSource = codeOnly("src/lib/account-creation.ts");
+
+  /*
+   * EVERY DECLARED DOOR HAS A ROUTE THAT EXISTS.
+   *
+   * The registry names one route per door so that "which code can create an
+   * account" has an answer a person can read rather than grep for. A named
+   * route that is not on disk makes that answer a lie, and it is the exact
+   * shape surface-audit catches for pages.
+   */
+  const declaredRoutes = [...doorsSource.matchAll(/route:\s*"([^"]+)"/g)].map((m) => m[1]);
+  rec(
+    `the door registry names routes (${declaredRoutes.length})`,
+    declaredRoutes.length >= 2,
+    "a sweep over an empty list passes every run",
+  );
+
+  const missing = declaredRoutes.filter((r) => {
+    const path = `src/app${r}/route.ts`;
+    return !existsSync(path);
+  });
+  rec(
+    "every declared door names a route that exists on disk",
+    missing.length === 0,
+    missing.length ? `DECLARED AND ABSENT: ${missing.join(", ")}` : declaredRoutes.join(", "),
+  );
+
+  /*
+   * AND ONLY ONE FUNCTION INSERTS AN ACCOUNT HOLDER.
+   *
+   * This is the property the whole registry rests on. Three doors producing one
+   * record with an origin recorded is a claim about convergence, and it is true
+   * only while there is one insert. A second one would not fail any check
+   * above: it would simply write rows with no origin, or with an origin nobody
+   * declared, and the registry would go on describing a platform that had
+   * changed underneath it.
+   *
+   * Scanned across src/ rather than asserted about the file that is supposed to
+   * hold it, because the failure is a NEW insert somewhere else and a check
+   * that only reads account-creation.ts cannot see one.
+   */
+  const inserters = [];
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const p = join(dir, entry.name);
+      if (entry.isDirectory()) walk(p);
+      else if (/\.tsx?$/.test(entry.name)) {
+        const text = codeOnly(p);
+        if (/from\(\s*["']eng_customer_users["']\s*\)[\s\S]{0,80}?\.insert\(/.test(text)) {
+          inserters.push(p.split("\\").join("/"));
+        }
+      }
+    }
+  };
+  walk("src");
+
+  rec(
+    "exactly one function in src inserts an account holder",
+    inserters.length === 1 && inserters[0] === "src/lib/account-creation.ts",
+    inserters.length === 0
+      ? "NONE found, so this check is measuring nothing and the pattern has drifted"
+      : inserters.join(", "),
+  );
+
+  /*
+   * AND IT REFUSES AN ORIGIN NOBODY DECLARED.
+   *
+   * doorFor throws rather than returning undefined, which is what makes the
+   * union and the registry unable to drift apart silently. Asserted on the
+   * source because the behaviour is a throw and a test that triggered it would
+   * be testing that throw rather than that the call site reaches it.
+   */
+  rec(
+    "the creation function asks the registry which door it is using",
+    /doorFor\(/.test(creationSource),
+    "without it an origin could be written that no door declares",
+  );
+  rec(
+    "and the registry throws on an origin it does not know",
+    /throw new Error\(/.test(doorsSource),
+    "returning undefined would let a row be written under a door nobody declared",
+  );
+
+  /*
+   * THE DATABASE AGREES WITH THE REGISTRY ABOUT WHICH ORIGINS EXIST.
+   *
+   * 0043 carries a check constraint listing the three. Two lists of one fact,
+   * which is normally the defect; here it is the mechanism, because the
+   * constraint is what holds when somebody writes a row outside this codebase,
+   * and the audit is what notices the two have parted. Adding a door therefore
+   * costs a migration AND a registry entry, made on purpose.
+   */
+  const migration = readSource("supabase/migrations/0043_an_account_says_which_door_it_came_through.sql");
+  const declaredOrigins = [...doorsSource.matchAll(/origin:\s*"([a-z_]+)"/g)].map((m) => m[1]);
+  const unique = [...new Set(declaredOrigins)].sort();
+  const notInMigration = unique.filter((o) => !migration.includes(`'${o}'`));
+  rec(
+    `every declared origin is one the database allows (${unique.length})`,
+    unique.length >= 2 && notInMigration.length === 0,
+    notInMigration.length
+      ? `DECLARED AND REFUSED BY 0043: ${notInMigration.join(", ")}`
+      : unique.join(", "),
+  );
+
+  /*
+   * THE TWO RULINGS, PINNED AS LITERALS.
+   *
+   * Written out here rather than imported, per the standing rule: an audit that
+   * reads its expected value from the module under test compares a value to
+   * itself. The duplication IS the mechanism, and if you are here because this
+   * just went red, the audit is asking whether you meant it.
+   */
+  rec(
+    "the sign up ceiling is still five attempts an hour",
+    /SIGN_UP_ATTEMPTS_PER_HOUR = 5;/.test(doorsSource),
+    "it is what stops an address list being walked to learn who holds an account here",
+  );
+  rec(
+    "a verification link still lasts 72 hours",
+    /VERIFICATION_TTL_HOURS = 72;/.test(doorsSource),
+  );
+  rec(
+    "and the words beside it still say three days",
+    /VERIFICATION_TTL_WORDS = "3 days";/.test(doorsSource),
+    "the number and the sentence are one constant apart, and the email renders the sentence",
+  );
+  rec(
+    "and the token issuer derives its life from that one constant",
+    /VERIFICATION_TTL_HOURS/.test(codeOnly("src/lib/customer-auth.ts")),
+    "a second number here is how an email starts stating a rule the code does not implement",
+  );
+
+  /*
+   * THE LAUNCH CONDITION IS ENFORCED BY THE ROUTE, NOT ONLY BY THE SCREEN.
+   *
+   * The eighth launch condition says self service sign up does not reach
+   * production until the operator lifts it. A screen that hides a form is a
+   * screen. This asserts the ROUTE reads the same answer, because that is what
+   * somebody who reads HTML and posts directly has to get past.
+   */
+  const signUpRoute = codeOnly("src/app/api/account/sign-up/route.ts");
+  rec(
+    "the sign up route refuses while the launch condition is unmet",
+    /selfServiceSignUpOpen\(\)/.test(signUpRoute),
+    "a launch condition nothing consults is a note",
+  );
+  rec(
+    "and the screen reads the same answer rather than its own",
+    /selfServiceSignUpOpen\(\)/.test(codeOnly("src/app/account/sign-up/page.tsx")),
+    "two answers to one question are two answers that will disagree",
+  );
+
+  /*
+   * AND THE SELF SERVICE DOOR NEVER TAKES A PASSWORD.
+   *
+   * A password typed at sign up would have to be held somewhere between the
+   * form and the address being proven, and both honest places to hold it mean
+   * this platform stores a credential for an address nobody has shown they can
+   * open. The link is where a password is chosen.
+   */
+  rec(
+    "the sign up route reads no password from the request",
+    !/body\?\.password/.test(signUpRoute),
+    "a password accepted before the address is proven is a credential for an address nobody owns",
+  );
+  rec(
+    "and the form has no password field",
+    !/type="password"/.test(codeOnly("src/app/account/sign-up/SignUpForm.tsx")),
+  );
+
+  /*
+   * THE OPERATOR DOOR NEVER PUTS THE TOKEN ON A STAFF SCREEN.
+   *
+   * It would be convenient and it makes every future screenshot, support ticket
+   * and shoulder a way into a customer's account. The mail is the channel
+   * because it goes to the address being claimed, which is the mechanism rather
+   * than a preference.
+   */
+  const operatorRoute = codeOnly("src/app/api/portal/accounts/create/route.ts");
+  rec(
+    "the operator door does not return the set password token",
+    !/token:\s*created\.link\.token/.test(operatorRoute) && !/link\.token\s*\}/.test(operatorRoute.split("NextResponse.json({\n    ok: true")[1] ?? ""),
+    "a credential on a staff screen is a credential in every screenshot of it",
+  );
+  rec(
+    "and it is permission gated rather than merely signed in",
+    /can\(actor, "accounts\.manage"\)/.test(operatorRoute),
   );
 }
 

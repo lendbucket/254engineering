@@ -225,6 +225,58 @@ export async function createCustomerAccount(input: CreateAccountInput): Promise<
 }
 
 /**
+ * A FRESH LINK FOR AN ACCOUNT THAT ALREADY EXISTS.
+ *
+ * The self service door answers identically whether an address is new or
+ * already holds an account, and that answer is only honest if the second case
+ * does something useful. This is that something: the existing account is left
+ * exactly as it is, and a fresh set password link goes to its address.
+ *
+ * WHY IT DOES NOT SAY WHETHER IT FOUND ONE, to its caller or to anybody else.
+ * It returns null for an address with no account and for an address it could
+ * not read, and the caller sends the same sentence either way. A caller that
+ * could tell those apart would eventually branch on it, and the branch is the
+ * oracle.
+ *
+ * THE PERSON WHO OWNS THE ADDRESS IS THE ONLY ONE WHO LEARNS ANYTHING, which is
+ * the property that matters: they get a working link, and somebody guessing
+ * addresses gets an identical page and an email they cannot read.
+ */
+export async function issueLinkForExistingAccount(
+  address: string,
+): Promise<{ token: string; displayName: string } | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
+
+  const { data: user } = await db
+    .from("eng_customer_users")
+    .select("id, display_name, status")
+    .eq("email", normaliseAddress(address))
+    .maybeSingle();
+  if (!user) return null;
+
+  /*
+   * A SUSPENDED ACCOUNT GETS NOTHING, and the caller still says the same
+   * sentence. Mailing a working link into an account somebody deliberately
+   * closed would be this door undoing a decision made on another one.
+   */
+  if (user.status === "suspended") return null;
+
+  const issued = await issueCustomerToken(user.id as string, "set_password");
+  if (!issued) return null;
+
+  await recordSystemAudit({
+    action: "customer_account.link_reissued",
+    entityType: "customer_user",
+    entityId: user.id as string,
+    summary:
+      "A sign up attempt named an address that already has an account. Nothing was created and a fresh set password link was sent to it.",
+  });
+
+  return { token: issued.token, displayName: (user.display_name as string) ?? "" };
+}
+
+/**
  * Mark the address proven and let the account act.
  *
  * Called when a set password link is used, which is the moment the address is

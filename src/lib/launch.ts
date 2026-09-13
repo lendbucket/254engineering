@@ -270,6 +270,49 @@ export const LAUNCH_CONDITIONS: LaunchCondition[] = [
  * is the operator's ruling that nobody can list a line that cannot be
  * dispatched.
  */
+/**
+ * MAY THE SELF SERVICE DOOR OPEN AT ALL.
+ *
+ * ======================================================================
+ * A LAUNCH CONDITION THAT NOTHING CONSULTS IS A NOTE.
+ * ======================================================================
+ *
+ * The eighth condition says self service sign up is not cleared to reach
+ * production, and it is the operator's alone to lift. That sentence appears on
+ * the operator's launch screen and in docs/launch-readiness.md, and until this
+ * function existed it changed NOTHING about whether a stranger could open an
+ * account.
+ *
+ * A gate that describes a door without being able to shut it is the shape this
+ * repository keeps finding: a record that is not a check. So the door reads
+ * this, the screen reads this, and the two cannot disagree because there is one
+ * answer.
+ *
+ * IT IS SEPARATE FROM isPrelaunch ON PURPOSE. isPrelaunch answers "may this
+ * firm hold itself out as offering engineering services", which is a
+ * REGULATORY question about copy. This answers "may an anonymous stranger
+ * create an account", which is a question about a session secret shared with
+ * preview deployments. They are unmet together today and they are not the same
+ * condition, and collapsing them would mean lifting one lifted the other.
+ *
+ * THE ROUTE CHECKS IT TOO, not only the screen. A screen that hides a form is a
+ * screen; the route is what a person who reads HTML has to get past.
+ */
+export function selfServiceSignUpOpen(): boolean {
+  return selfServiceSignUp.cleared === true;
+}
+
+/**
+ * Why it is shut, for a person looking at the screen.
+ *
+ * Deliberately says nothing about preview deployments or session secrets. The
+ * reader is somebody who wanted an account, and the reason it is shut is this
+ * firm's business rather than theirs; what they need is what to do instead.
+ */
+export function selfServiceSignUpClosedSentence(): string {
+  return "Accounts are not open for sign up yet. Ring the office or send a message and somebody will open one for you.";
+}
+
 export function approvedProtocolFor(serviceSlug: string) {
   return approvedProtocols.find((p) => p.serviceSlug === serviceSlug) ?? null;
 }
