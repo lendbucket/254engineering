@@ -6,7 +6,7 @@ import { startCheckout } from "./ops-payments";
 import { queueEmail } from "./ops-jobs";
 import { jobPaymentLink } from "./email-templates";
 import { money } from "./ops-money";
-import { isPrelaunch } from "./launch";
+import { isPrelaunch, serviceLineIsOffered } from "./launch";
 import { catalogFor, orderBlockedReason } from "@data/catalog";
 import { referenceForCustomer } from "./ops-files";
 import { paymentOptions } from "./job-intake-rules";
@@ -238,7 +238,7 @@ function termsGap(file: FileForBilling): string | null {
   }
   /* `false` for prelaunch: the gate is refusedBecause's to report, not this
    * function's, and passing true here would mask the fee problem behind it. */
-  const blocked = orderBlockedReason(entry, false);
+  const blocked = orderBlockedReason(entry, false, serviceLineIsOffered(entry.serviceSlug));
   if (blocked) return `${blocked} It cannot be billed by telephone either.`;
   return null;
 }

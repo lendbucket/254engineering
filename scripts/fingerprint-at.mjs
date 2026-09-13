@@ -1,9 +1,32 @@
+/**
+ * BOTH FINGERPRINTS AT ANY POINT IN THE CHAIN, FROM THE FILES ALONE.
+ *
+ * Replays supabase/migrations into an in process Postgres, stopping after each
+ * migration named on the command line, and prints the shape and behaviour
+ * fingerprints it produced. No database and no credentials.
+ *
+ *   npx tsx scripts/fingerprint-at.mjs 0037 0041
+ *
+ * WHAT IT IS FOR. The cutover plan's read-backs are re-derived from this on the
+ * day they run, and it is what found the 2026-09-11 finding that a behaviour
+ * digest cannot byte match a live Supabase project: PGlite is PostgreSQL 18.3
+ * and production is 17.6, so conbin::text renders differently, and the three
+ * function bodies carrying SQL comments are stored on production with those
+ * comments stripped. The reasoning is in supabase/applied.mjs.
+ *
+ * SO COMPARE THE SHAPE DIGEST WHOLE, and compare behaviour against a LIVE
+ * project by the seven portable kinds plus counts and names for ck and fn.
+ * Against another replay, both digests compare whole.
+ *
+ * It lived at the repository root until 2026-09-11, which is where a leftover
+ * looks exactly like a tool.
+ */
 import { PGlite } from "@electric-sql/pglite";
 import { createHash } from "node:crypto";
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
-import { readSource } from "./scripts/lib/read-source.mjs";
-import { SHAPE_SQL, behaviourSqlFull, digestOf } from "./scripts/lib/fingerprints.mjs";
+import { readSource } from "./lib/read-source.mjs";
+import { SHAPE_SQL, behaviourSqlFull, digestOf } from "./lib/fingerprints.mjs";
 const DIR = "supabase/migrations";
 const STUBS = `create schema if not exists auth; create table if not exists auth.users (id uuid primary key, email text, created_at timestamptz not null default now());
 create schema if not exists storage; create table if not exists storage.buckets (id text primary key, name text, public boolean default false, file_size_limit bigint, allowed_mime_types text[]);

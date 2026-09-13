@@ -4,7 +4,7 @@ import { currentCustomer } from "@/lib/customer-auth";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { deliverablesFor, orderBlockedReason } from "@data/catalog";
 import { services } from "@/content/services";
-import { isPrelaunch } from "@/lib/launch";
+import { isPrelaunch, serviceLineIsOffered } from "@/lib/launch";
 import { BulkOrderClient } from "./BulkOrderClient";
 
 export const dynamic = "force-dynamic";
@@ -36,7 +36,7 @@ export default async function BulkOrderPage({
     .map((s) => ({
       service: s,
       deliverables: deliverablesFor(s.slug).filter(
-        (d) => orderBlockedReason(d, prelaunch) === null && d.priceCents !== null,
+        (d) => orderBlockedReason(d, prelaunch, serviceLineIsOffered(d.serviceSlug)) === null && d.priceCents !== null,
       ),
     }))
     .filter((s) => s.deliverables.length > 0);

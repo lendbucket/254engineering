@@ -135,6 +135,10 @@ const ADMIN_PAGES = [
   // A technician's own earnings. Their pay is nobody else's business and it is
   // certainly not a signed out client's.
   "/portal/pay",
+  // Names every condition standing between the firm and trading, including
+  // which are unmet and why. A signed out reader would learn the firm cannot
+  // yet take money and exactly which filing is missing.
+  "/portal/launch",
   /*
    * The retired /admin surface. The FILES are gone as of 2026-09-06 and these
    * stay in the list deliberately: the proxy still redirects the whole prefix to

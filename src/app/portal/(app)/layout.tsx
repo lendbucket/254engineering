@@ -3,6 +3,7 @@ import { ScrollMemory } from "@/components/portal/ScrollMemory";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { RELEASE } from "@/lib/ops-observability";
+import { registrationLine } from "@/lib/launch";
 import { currentActor } from "@/lib/ops-auth";
 import { environmentLabel, mispointing } from "@/lib/db-guard";
 import { MispointedDeployment } from "@/components/portal/Mispointed";
@@ -140,9 +141,25 @@ export default async function PortalLayout({ children }: { children: React.React
           <SidebarNav items={items} />
         </div>
         <div className="border-t border-white/10 px-5 py-4">
+          {/*
+            THE REGISTRATION LINE, NOT A SECOND COPY OF IT.
+
+            This said "Firm registration pending with TBPELS" as a hardcoded
+            sentence, and on 2026-09-10 that became false: TBPELS issued
+            F-29811. It went on saying pending for a day, to the firm's own
+            staff, because it was a second account of a fact that lives in the
+            register.
+
+            Found 2026-09-11 by looking at a screenshot of /portal/launch and
+            reading the rail beside it, which is the only way this class of
+            defect gets found: every check that looked at this page was green,
+            and none of them asked whether the sentence was true.
+
+            registrationLine() is the one answer, and it is the same sentence
+            the public footer and every email footer render.
+          */}
           <p className="text-[12px] leading-[1.5] text-[var(--on-navy-muted)]">
-            Firm registration pending with TBPELS. No engineer of record is yet in responsible
-            charge.
+            {registrationLine()}
           </p>
           {/*
             The version footer the standards file asks for, carrying values the

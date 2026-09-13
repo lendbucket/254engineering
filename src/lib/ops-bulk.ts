@@ -3,7 +3,7 @@ import { DB_NOW } from "./db-now";
 import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import { catalogFor, orderBlockedReason, type CatalogEntry } from "@data/catalog";
-import { isPrelaunch } from "./launch";
+import { isPrelaunch, serviceLineIsOffered } from "./launch";
 import { placeOrder, event } from "./ops-intake";
 import { acceptOnInvoice } from "./ops-payments";
 import { creditDecision } from "./account-credit";
@@ -71,7 +71,7 @@ export function previewBatch(
     return { ok: false, error: "That service does not sell a single deliverable. Choose which one." };
   }
 
-  const blocked = orderBlockedReason(entry, isPrelaunch());
+  const blocked = orderBlockedReason(entry, isPrelaunch(), serviceLineIsOffered(entry.serviceSlug));
   if (blocked) return { ok: false, error: blocked };
 
   return { ok: true, entry, split: splitBatch(entry, properties, twiaSet()) };

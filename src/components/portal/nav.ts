@@ -150,6 +150,23 @@ export const NAV: NavItem[] = [
   { href: "/portal/people", label: "People", short: "People", action: "profiles.list", primary: true, icon: "people" },
   { href: "/portal/queue", label: "Job queue", short: "Queue", action: "jobs.manage", icon: "queue" },
   { href: "/portal/status", label: "Platform status", short: "Status", action: "jobs.manage", icon: "status" },
+  {
+    /*
+     * What stands between the firm and live. Beside platform status because
+     * both answer "what is the state of this thing", and gated on roles.manage
+     * rather than jobs.manage because deciding the firm may trade is the
+     * administrator's act rather than the operator's.
+     *
+     * The status icon is reused deliberately. A new glyph for a screen that is
+     * read a handful of times before launch and then never again is a cost the
+     * icon set does not need to carry.
+     */
+    href: "/portal/launch",
+    label: "Launch readiness",
+    short: "Launch",
+    action: "roles.manage",
+    icon: "status",
+  },
   { href: "/portal/audit", label: "Audit trail", short: "Audit", action: "audit.read", icon: "audit" },
   {
     /*

@@ -5,7 +5,7 @@ import { Container } from "@/components/ui/Container";
 import { OrderFlow } from "@/components/order/OrderFlow";
 import { deliverablesFor, orderBlockedReason } from "@data/catalog";
 import { serviceBySlug } from "@/content/services";
-import { isPrelaunch } from "@/lib/launch";
+import { isPrelaunch, serviceLineIsOffered } from "@/lib/launch";
 
 export const dynamic = "force-dynamic";
 
@@ -50,8 +50,12 @@ export default async function OrderStartPage({ params }: { params: Promise<{ slu
    * can sell a priced thing and a quoted thing, and a quote request stays
    * available when a price has not been published. So the page asks about each.
    */
-  const available = deliverables.filter((d) => orderBlockedReason(d, prelaunch) === null);
-  const blockedReason = orderBlockedReason(deliverables[0], prelaunch);
+  const available = deliverables.filter((d) => orderBlockedReason(d, prelaunch, serviceLineIsOffered(d.serviceSlug)) === null);
+  const blockedReason = orderBlockedReason(
+    deliverables[0],
+    prelaunch,
+    deliverables[0] ? serviceLineIsOffered(deliverables[0].serviceSlug) : false,
+  );
 
   return (
     <Container>

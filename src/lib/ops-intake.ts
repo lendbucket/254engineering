@@ -6,7 +6,7 @@ import { referenceForCustomer } from "./ops-files";
 import { writeAudit } from "./ops-audit";
 import { createClient, createFile, SYSTEM_AUTHOR } from "./ops-crm";
 import { resolveCounty, twiaStatus } from "./ops-counties";
-import { isPrelaunch } from "./launch";
+import { isPrelaunch, serviceLineIsOffered } from "./launch";
 import { catalogFor, deliverablesFor, orderBlockedReason, type CatalogEntry } from "@data/catalog";
 import {
   landingStatusFor,
@@ -249,7 +249,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
       field: "tier",
     };
   }
-  const blocked = orderBlockedReason(entry, isPrelaunch());
+  const blocked = orderBlockedReason(entry, isPrelaunch(), entry ? serviceLineIsOffered(entry.serviceSlug) : false);
   if (!entry || blocked) {
     return { ok: false, error: blocked ?? "That service cannot be ordered.", field: "serviceSlug" };
   }
@@ -580,7 +580,7 @@ export async function requestQuote(input: RequestQuoteInput): Promise<RequestQuo
   const quotable = deliverablesFor(input.serviceSlug).filter((d) => d.orderType === "quote");
   const entry =
     catalogFor(input.serviceSlug, input.tier) ?? (quotable.length === 1 ? quotable[0] : undefined);
-  const blocked = orderBlockedReason(entry, isPrelaunch());
+  const blocked = orderBlockedReason(entry, isPrelaunch(), entry ? serviceLineIsOffered(entry.serviceSlug) : false);
   if (!entry || blocked) {
     return { ok: false, error: blocked ?? "That service is not in the catalog.", field: "serviceSlug" };
   }

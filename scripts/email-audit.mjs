@@ -636,6 +636,17 @@ for (const t of templates) {
     TBPELS_PE_LICENSE: process.env.TBPELS_PE_LICENSE,
   };
   const PENDING = "Firm registration pending";
+  /*
+   * THE PRELAUNCH FOOTER NAMES THE REGISTRANT NOW. Operator ruling,
+   * 2026-09-11: until the board holds the operating name, every footer reads
+   * the registered entity and the number, so the day the gate opens the firm
+   * is already holding out under the registered name.
+   *
+   * Pinned as a literal rather than read from registrationLine(), because an
+   * audit that imported the sentence it is checking would compare a value to
+   * itself. CLAUDE.md section 6.
+   */
+  const REGISTRANT = "254 Services LLC, TBPELS Firm F-29811";
   const seen = {};
 
   /*
@@ -668,8 +679,8 @@ for (const t of templates) {
 
   for (const t of seen.prelaunch) {
     rec(
-      `${t.id}: prelaunch footer states the registration is pending`,
-      (t.html || "").includes(PENDING) && t.text.includes(PENDING),
+      `${t.id}: prelaunch footer names the registrant and the number`,
+      (t.html || "").includes(REGISTRANT) && t.text.includes(REGISTRANT),
     );
   }
   for (const t of seen.live) {
@@ -681,7 +692,7 @@ for (const t of templates) {
     // positive claim is asserted too.
     rec(
       `${t.id}: live footer states the firm registration number`,
-      (t.html || "").includes("TBPELS Firm No.") && t.text.includes("TBPELS Firm No."),
+      (t.html || "").includes("TBPELS Firm") && t.text.includes("TBPELS Firm"),
     );
   }
 }
