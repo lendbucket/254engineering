@@ -36,7 +36,8 @@
  * nobody should have to guess at.
  */
 
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync, unlinkSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const CONFIG = "src/config/credentials.ts";
@@ -197,6 +198,13 @@ export async function withGateConditionsMet(fn) {
   try {
     for (const f of files) writeFileSync(f, patched.get(f));
     process.env.FIRM_PHONE = FIXTURE_PHONE;
+    /*
+     * AND THEN ASK THE GATE, rather than assuming the patches were enough.
+     * The patch list is as current as the day somebody last edited it; this is
+     * derived from the gate itself, so a ninth condition fails here by name.
+     */
+    assertGateActuallyOpens();
+
     return await fn();
   } finally {
     if (hadPhone === undefined) delete process.env.FIRM_PHONE;
@@ -252,6 +260,59 @@ function fixtureProtocols() {
     approvedByLicense: "AUDIT-FIXTURE",
     approvedOn: "2099-12-31",
   }));
+}
+
+/**
+ * Throw unless the gate, read fresh from disk, now opens.
+ *
+ * The derivation half of the fixture. It knows nothing about which conditions
+ * exist; it asks the gate and reports what it said, so a condition added
+ * tomorrow fails here by name rather than silently downgrading every live half
+ * of every audit to the prelaunch state.
+ *
+ * LAUNCH_MODE is set for the child only, because the switch is the caller's to
+ * set and this is asking a different question: given the switch, is anything
+ * ELSE still holding the gate shut.
+ */
+function assertGateActuallyOpens() {
+  const file = `.gate-verify-${process.pid}.mjs`;
+  writeFileSync(
+    file,
+    'process.env.LAUNCH_MODE = "live";\n' +
+      'const m = await import("./src/lib/launch.ts");\n' +
+      'console.log("GATE_BLOCKERS " + JSON.stringify(m.launchBlockers()));\n',
+  );
+
+  try {
+    const tsxCli = fileURLToPath(import.meta.resolve("tsx/cli"));
+    const stdout = execFileSync(process.execPath, [tsxCli, "--conditions=react-server", file], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    const line = stdout.split("\n").find((l) => l.startsWith("GATE_BLOCKERS "));
+    if (!line) {
+      throw new Error(
+        "The gate fixture could not read the gate back after patching. It said: " + stdout.trim().slice(0, 300),
+      );
+    }
+    const blockers = JSON.parse(line.slice("GATE_BLOCKERS ".length));
+    if (blockers.length > 0) {
+      throw new Error(
+        "THE GATE FIXTURE PATCHED EVERY CONDITION IT KNOWS ABOUT AND THE GATE IS STILL SHUT.\n\n" +
+          blockers.map((b) => "  - " + b).join("\n") +
+          "\n\nA condition has been added that this fixture does not satisfy. Every live half of every " +
+          "audit would otherwise have measured the PRELAUNCH state while reporting on the live one, which " +
+          "is what happened on 2026-09-12 and again on 2026-09-13. Add the patch that states the condition " +
+          "above true, beside the others in withGateConditionsMet.",
+      );
+    }
+  } finally {
+    try {
+      unlinkSync(file);
+    } catch {
+      /* Already gone. */
+    }
+  }
 }
 
 /**

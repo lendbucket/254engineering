@@ -997,6 +997,57 @@ absorbing it. The operator upheld it: stopping between 0040 and 0041 would have
 left main describing a schema production lacked, which is the worse state and
 the exact thing this ledger exists to prevent.
 
+**A MIGRATION ON MAIN IS NEVER PENDING.** Operator ruling, 2026-09-13, and it
+closes a gap the operator names as theirs: 0042 was ruled pending, and then a
+merge was approved without ruling what a pending migration becomes at merge.
+
+Either it goes to production in the merge sequence, or it does not merge. **If a
+migration must stay off production, it stays on its branch.**
+
+`schema-ledger-audit` already enforced the consequence and went red the first
+board after Phase 12 Section 6 merged, naming it as the second time merged and
+applied had diverged. What was missing was not the check; it was the rule the
+check was enforcing, which nobody had written down.
+
+The practical shape: an overnight run that is forbidden to touch production
+produces migrations that are correctly pending, and those branches do not merge
+until somebody is at a keyboard to run the production half. A pending migration
+is a reason to hold a merge, not a thing a merge can carry.
+
+**AND A FIXTURE DERIVES THE CONDITIONS RATHER THAN STATING THEM.** Same ruling,
+same day, and it is the fixture lesson one level up.
+
+`withGateConditionsMet` carried a list of the gate's conditions and how to
+satisfy each. That list is exactly as current as the day somebody last edited
+it, and on 2026-09-12 the gate grew a fourth condition while the fixture went on
+patching three. Every live half of every audit then rendered the PRELAUNCH site
+while asserting live things about it, and the gate was working perfectly. The
+same file's header already recorded the identical failure from 2026-09-10, one
+condition earlier.
+
+So the fixture still carries the patches, because it cannot satisfy a condition
+nobody has told it about, and it now **asks the gate whether it actually
+opened** and refuses to run the body if anything is still shut, naming the
+blocker in its own words. A fifth condition fails loudly at the fixture instead
+of quietly downgrading thirteen audits.
+
+Proven the way everything here is proven: a fifth condition was injected and the
+fixture printed it back by name.
+
+**AND AN EDIT TO `supabase/applied.mjs` IS ANCHORED ON THE ARRAY NAME, NEVER ON
+A BRACKET.** Operator ruling, 2026-09-13, recorded as another instance of the
+matcher whose window reached into its neighbour.
+
+A patch adding the 0043 entry found the last `];` in the file and inserted
+before it. That bracket belongs to `BEHAVIOUR_DIVERGENCE`, not to `APPLIED`. The
+module parsed cleanly, loaded cleanly, and was wrong: `schema-ledger-audit`
+reported 43 of 44 compared and named 0043 as having no entry.
+
+It is the same defect as the eight line window that reached into the next query
+block, and the answer is the same one: **locate by the thing you mean, not by
+the nearest punctuation that resembles it.** Find `export const APPLIED = [`,
+then the first `\n];` after it.
+
 **MERGED AND APPLIED ARE DIFFERENT FACTS, AND THE SECOND ONE IS DECLARED.**
 `supabase/applied.mjs` is the ledger: one entry per migration saying whether
 production has it, the fingerprint after it, and what it uniquely puts in the
