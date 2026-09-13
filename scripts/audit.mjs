@@ -489,6 +489,23 @@ const PHASE_TWO = [
     why: "the MFA break glass, actually exercised: the link renders only when the variable is set, and the token clears an enrolment",
   },
   {
+    /*
+     * PHASE TWO, because it patches a launch condition in the SOURCE and then
+     * starts its own `next dev` so the change is compiled. The self service
+     * door is shut by the eighth condition, which is read from a file rather
+     * than an environment variable on purpose, so there is no way to open it
+     * for a run except the way the operator would open it for real.
+     *
+     * It restores the file in a `finally` and verifies the restore, because a
+     * cleared launch condition left in the tree would be read by the next build.
+     *
+     * AFTER break-glass-audit and before the gate crawls, which is where the
+     * other fixture-patching audits sit.
+     */
+    name: "doors-audit",
+    why: "one account per door, walked end to end: three doors, three origins, one creation function",
+  },
+  {
     name: "compliance-audit",
     why: "whether the gate MAY open at all, which is a different question from what each mode renders",
   },

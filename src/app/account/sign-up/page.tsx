@@ -53,8 +53,16 @@ export default async function AccountSignUpPage() {
             Open an account
           </h1>
           <p className="mt-2 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
-            For organisations that expect to order more than once. A single order does not need one:
-            the link emailed at checkout opens it without signing in.
+            {/*
+              THIS SENTENCE WENT OUT OF DATE THE DAY THE THIRD DOOR WAS BUILT.
+              It said a single order does not need an account, which was true
+              while paying created nothing. Paying now opens one, so the honest
+              version says you do not have to come here first rather than
+              implying you never get an account by ordering.
+            */}
+            For organisations that expect to order more than once. You do not have to start here:
+            paying for an order opens an account too, and the link emailed with it works either
+            way.
           </p>
 
           {!open ? (

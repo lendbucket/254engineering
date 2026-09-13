@@ -159,7 +159,23 @@ export async function createCustomerAccount(input: CreateAccountInput): Promise<
     const { data: client, error: clientError } = await db
       .from("eng_clients")
       .insert({
-        kind: input.organisation ? "company" : "individual",
+        /*
+         * "organization", NOT "company", AND THE DATABASE IS THE AUTHORITY.
+         *
+         * eng_clients_kind_check allows exactly 'organization' and
+         * 'individual'. This said "company", which typechecked, built, and was
+         * refused by Postgres the first time a door was walked:
+         *
+         *   new row for relation "eng_clients" violates check constraint
+         *   "eng_clients_kind_check"
+         *
+         * Nothing in TypeScript could have caught it, because the column is
+         * text and the rule lives in the database, which is the right place for
+         * it: convertClientToAccount reads this exact value to decide whether a
+         * client may become an account, and a third spelling would have made
+         * two parts of this platform disagree about what a company is.
+         */
+        kind: input.organisation ? "organization" : "individual",
         name: input.organisation?.trim() || displayName,
         status: "active",
       })
