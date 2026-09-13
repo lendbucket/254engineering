@@ -43,6 +43,31 @@ export type CredentialEnvironments = {
   previewValueDistinct: boolean | null;
   /** What is being done about it, when the answer is not yet settled. */
   pendingFix?: string;
+  /**
+   * WHEN SHARING A VALUE WITH PREVIEW IS A DECISION RATHER THAN A GAP.
+   *
+   * Operator ruling, 2026-09-13. The board used to assert that no identity or
+   * database secret was shared, which made a deliberate decision look
+   * identical to an oversight and left a red the operator had decided not to
+   * act on.
+   *
+   * So a sharing is allowed to be RULED. An undeclared one still fails the
+   * board, which is the property worth keeping: a future sharing nobody
+   * decided is caught, and the board goes green on a true statement rather
+   * than on a red somebody has stopped reading.
+   *
+   * The consequence is stated in full beside the ruling and in
+   * docs/soc2-exceptions.md. It is not softened, because a risk accepted
+   * without its consequence written down is a risk nobody accepted.
+   */
+  sharingRuling?: {
+    /** Who decided. A ruling with no author is a preference. */
+    by: string;
+    /** ISO date. */
+    on: string;
+    /** What follows from it, stated rather than softened. */
+    consequence: string;
+  };
   /** When it was read and by whom. An answer with no provenance is a claim. */
   readOn: string;
 };
@@ -135,8 +160,15 @@ export const CREDENTIALS: Credential[] = [
        * thing this pack exists to prevent.
        */
       previewValueDistinct: false,
-      pendingFix: "Being split, Production value NEVER changed: encryptionKey is sha256 over it, so changing it makes every enrolment undecryptable and the failure looks exactly like a wrong code. Recovery codes are scrypt hashed against the user id and do not depend on it, which is the way back in.",
-      readOn: READ_ON + " Re-read 2026-09-12: still a single entry covering Production and Preview.",
+      /*
+       * SHARED BY OPERATOR RULING, NOT BY OVERSIGHT. 2026-09-13.
+       */
+      sharingRuling: {
+        by: "Robert Reyna, operator",
+        on: "2026-09-13",
+        consequence: "A preview deployment can decrypt production second factor secrets, because the key that decrypts them is the same value. Preview URLs are publicly reachable by anybody holding the link. The production value is never changed, because encryptionKey is sha256 over it and every enrolment's ciphertext is under the current one; recovery codes are scrypt hashed against the user id and do not depend on it, which is the way back in if it ever is.",
+      },
+      readOn: READ_ON + " Re-read 2026-09-12: a single entry covering Production and Preview. RULED 2026-09-13: it stays that way.",
     },
   },
   {
@@ -205,8 +237,15 @@ export const CREDENTIALS: Credential[] = [
        * thing this pack exists to prevent.
        */
       previewValueDistinct: false,
-      pendingFix: "Being split into two entries with different values, Production untouched. Until then a customer cookie minted on any preview deployment is valid on production.",
-      readOn: READ_ON + " Re-read 2026-09-12: still a single entry covering Production and Preview.",
+      /*
+       * SHARED BY OPERATOR RULING, NOT BY OVERSIGHT. 2026-09-13.
+       */
+      sharingRuling: {
+        by: "Robert Reyna, operator",
+        on: "2026-09-13",
+        consequence: "A customer session cookie signed on ANY preview deployment is accepted by production. Preview URLs are publicly reachable by anybody holding the link, so anybody who can reach a preview can mint a session that production will honour as that customer.",
+      },
+      readOn: READ_ON + " Re-read 2026-09-12: a single entry covering Production and Preview. RULED 2026-09-13: it stays that way.",
     },
   },
   {
@@ -233,8 +272,15 @@ export const CREDENTIALS: Credential[] = [
        * thing this pack exists to prevent.
        */
       previewValueDistinct: false,
-      pendingFix: "Being split into two entries with different values, Production untouched. Until then a partner cookie minted on any preview deployment is valid on production.",
-      readOn: READ_ON + " Re-read 2026-09-12: still a single entry covering Production and Preview.",
+      /*
+       * SHARED BY OPERATOR RULING, NOT BY OVERSIGHT. 2026-09-13.
+       */
+      sharingRuling: {
+        by: "Robert Reyna, operator",
+        on: "2026-09-13",
+        consequence: "A partner session cookie signed on ANY preview deployment is accepted by production, with the same reach as the customer one: a partner's own earnings, statements and attribution record.",
+      },
+      readOn: READ_ON + " Re-read 2026-09-12: a single entry covering Production and Preview. RULED 2026-09-13: it stays that way.",
     },
   },
   {
