@@ -528,6 +528,74 @@ So a fixture is priced, dated and complete: every column any figure could sum,
 count or age. The test of a fixture is not whether it inserts a row, it is
 whether removing the filter makes a number move.
 
+**AN ERROR ASSEMBLED FROM A STATUS FUNCTION CAN ONLY NAME THE FAULTS THAT
+FUNCTION CAN SEE, SO THE FAULT IT CANNOT SEE REACHES THE USER AS A LIE.**
+Operator ruling, 2026-09-13, from the production MFA lockout, and it belongs
+beside the fixture lesson because it is the same failure wearing a sentence: the
+fixture decides which figures can move, the inventory decides which surfaces are
+swept, the scan decides which credentials exist, and a status function decides
+which faults can be NAMED.
+
+`answerChallenge` returned `mfaStatus()` when decryption failed. `mfaStatus`
+asks whether `MFA_ENCRYPTION_KEY` is present and at least 24 characters, which
+are the two faults it was written for and the two it can see. A key REPLACED
+with another perfectly valid value passes both, so the screen answered a working
+phone with
+
+    MFA_ENCRYPTION_KEY is configured.
+
+in the red error slot. Entirely true, and the least useful true thing the
+platform could have said. Four hours went into the wrong diagnosis and the
+enrolment was cleared by hand in the end.
+
+**The general form.** A status function enumerates the faults its author thought
+of. Returning it as a user facing error silently promises that the enumeration
+is complete, and the fault outside the enumeration is then reported as the most
+recent thing in the list rather than as unknown. The failure is invisible from
+the call site, from the test, and from the status function, because each of the
+three is correct.
+
+**The fix is a verifier that asks the question the failing operation actually
+failed on**, not a longer status list. `keyFaultFor(secretCipher)` attempts the
+decryption, because whether this key is the one this ciphertext was written
+under is not answerable any other way. It is deliberately narrow: a row with no
+secret is not a key fault, and a cipher that is not three parts is a corrupt row
+rather than a changed key, because folding those together is how the next
+misleading sentence gets written.
+
+**Phase 14 opens with a survey, report only**: every place in this platform where
+a status or configuration function's output is returned as a user facing error.
+Each one is a candidate for the same defect, and the question to ask of each is
+not whether the sentence is true but whether the function that produced it can
+see the fault that would bring somebody to that screen.
+
+**AND THE HOLE A FIX OPENS IS FOUND BY INJECTION-VERIFYING THE FIX, NOT THE
+DEFECT.** Operator ruling, 2026-09-13, recorded as its own instance because it
+is the sharpest argument this repository has yet produced for the injection
+rule.
+
+The recovery code acknowledgement moved the session from `confirm` to a second
+call, so the flow could not complete until somebody said they had saved their
+codes. Correct, and it created a call that upgrades a half authenticated session
+into a full one with no code typed. Sound while the confirm and the
+acknowledgement are the same sign in. Unsound the moment they are not: an
+account left in "codes issued, never acknowledged" would have been reachable
+with a password alone, forever, and that state is precisely the one the feature
+exists to make visible. **The protection would have opened the hole it was
+measuring.**
+
+Nothing about the fix looked wrong. It was found by asking what a check written
+against the NEW code would have to prove, which produced "a second sign in
+cannot acknowledge an earlier enrolment", which is the attack written down. The
+binding then wrote itself: the enrolment's `verified_at` must be later than the
+moment the calling session began, derived from the pending cookie's own expiry.
+
+**So the injection rule has two halves and only one was written down.** Injecting
+the OLD defect proves the check catches what already happened. Injecting the
+FIX, by asking what the new code makes possible that the old code did not, is
+what catches what has not happened yet. The first is verification. The second is
+the only thing that finds a regression nobody has met.
+
 **AND EVERY SCAN SO FAR ASKED WHAT THE CODE READS. A SECRET NOTHING READS WAS
 INVISIBLE TO ALL OF THEM.** Operator ruling, 2026-09-12, recorded beside the
 fixture lesson because it is the same failure one turn further round: the
