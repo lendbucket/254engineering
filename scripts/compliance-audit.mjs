@@ -381,7 +381,7 @@ const {
   }
 }
 
-/* ------------- 5. the five conditions added 2026-09-11, each asserted by id */
+/* ------------- 5. the conditions beyond the first three, each asserted by id */
 
 /*
  * THE IDS ARE PINNED AS A LITERAL LIST, AND THAT IS THE WHOLE MECHANISM.
@@ -389,8 +389,10 @@ const {
  * An audit that iterated LAUNCH_CONDITIONS and checked each one it found would
  * pass just as happily over an array somebody shortened, which is the defect
  * class CLAUDE.md section 6 names: a check that agrees with the thing it
- * checks. So the seven are written out here, and the gate is asserted to carry
- * exactly them, no more and no fewer.
+ * checks. So they are written out here BY ID, and the gate is asserted to carry
+ * exactly them, no more and no fewer. The count is deliberately not stated in
+ * this comment: a number beside a list is a second account of the list, and it
+ * is always the one nobody updates.
  *
  * Removing a condition therefore costs two edits made on purpose, which is the
  * same shape the business rulings in section 6c use.
@@ -403,6 +405,22 @@ const RULED_CONDITIONS = [
   "protocols",
   "phone",
   "recovery",
+  /*
+   * THE EIGHTH, ADDED 2026-09-13, AND THIS RED IS THE MECHANISM WORKING.
+   *
+   * Phase 13 added self service sign up to the gate and this list stayed at
+   * seven, so the first board after it went red naming the extra id. That is
+   * exactly what the paragraph above says this list is for: the gate grew and
+   * the check refused to agree with it until somebody wrote the growth down.
+   *
+   * It is the operator's alone to lift, and it is a decision they have not
+   * made: a customer session signed on any preview deployment is accepted by
+   * production, and preview URLs are publicly reachable. That is tolerable
+   * while every account is one the operator created, and self service sign up
+   * is what turns it into a risk about anybody who can reach a preview URL.
+   * The full reasoning is in src/lib/launch.ts above the condition itself.
+   */
+  "self-service-signup",
 ];
 
 {

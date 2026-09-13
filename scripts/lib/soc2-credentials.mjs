@@ -113,6 +113,16 @@ export const NOT_CREDENTIALS = new Set([
   "AUDIT_KILL_STALE", "AUDIT_LOG_DIR", "AUDIT_PORT", "BASE_URL", "CONTRAST_PORT",
   "LAUNCH_AUDIT_LIVE_PORT", "LAUNCH_AUDIT_PORT", "MOBILE_PORT", "OVERFLOW_SHOW_ALL",
   "PERF_RUNS", "PERF_SAMPLES", "ROUND3_PORT", "SHOTS_PORT", "KEEP_EXISTING", "LOAD_JOBS",
+  /*
+   * break-glass-audit starts three servers one after another, because a
+   * process environment is fixed when it boots and the audit needs three
+   * different values of MFA_BREAK_GLASS. Three ports, three names.
+   *
+   * Named individually rather than excused by a pattern, which is the point of
+   * this list: a rule that forgave anything ending in _PORT would forgive a
+   * credential somebody named badly.
+   */
+  "BREAK_GLASS_PORT_UNSET", "BREAK_GLASS_PORT_MALFORMED", "BREAK_GLASS_PORT_SET",
   /* Where soc2-audit points the generator so that proving it runs does not
    * rewrite four tracked artefacts and leave the working tree dirty. */
   "SOC2_OUT_DIR", "SOC2_DOCS_DIR",
