@@ -243,16 +243,37 @@ export type MfaState = {
   lastUsedAt: string | null;
   /** How many recovery codes remain unspent. */
   recoveryRemaining: number;
+
+  /**
+   * When this account was last handed a set of recovery codes, and when
+   * somebody said they had saved them. Null on every enrolment made before
+   * 2026-09-13, because the platform did not record it.
+   *
+   * ISSUED WITH NO ACKNOWLEDGEMENT is the state worth reading: an account
+   * holding ten codes nobody wrote down, which looks exactly like an account
+   * with a recovery path until the day somebody needs one.
+   */
+  recoveryCodesIssuedAt: string | null;
+  recoveryCodesAcknowledgedAt: string | null;
 };
 
 export async function mfaStateFor(userId: string): Promise<MfaState> {
   const db = supabaseAdmin();
-  const empty: MfaState = { enrolled: false, pendingEnrolment: false, lastUsedAt: null, recoveryRemaining: 0 };
+  const empty: MfaState = {
+    enrolled: false,
+    pendingEnrolment: false,
+    lastUsedAt: null,
+    recoveryRemaining: 0,
+    recoveryCodesIssuedAt: null,
+    recoveryCodesAcknowledgedAt: null,
+  };
   if (!db) return empty;
 
   const { data, error } = await db
     .from("eng_mfa_enrolments")
-    .select("secret_cipher, verified_at, pending_cipher, pending_started_at, last_used_at")
+    .select(
+      "secret_cipher, verified_at, pending_cipher, pending_started_at, last_used_at, recovery_codes_issued_at, recovery_codes_acknowledged_at",
+    )
     .eq("user_id", userId)
     .maybeSingle();
 
@@ -276,6 +297,8 @@ export async function mfaStateFor(userId: string): Promise<MfaState> {
     pendingEnrolment: Boolean(data.pending_cipher),
     lastUsedAt: (data.last_used_at as string | null) ?? null,
     recoveryRemaining: count ?? 0,
+    recoveryCodesIssuedAt: (data.recovery_codes_issued_at as string | null) ?? null,
+    recoveryCodesAcknowledgedAt: (data.recovery_codes_acknowledged_at as string | null) ?? null,
   };
 }
 
@@ -408,11 +431,115 @@ export async function confirmEnrolment(
       pending_started_at: null,
       last_step: check.step,
       last_used_at: DB_NOW,
+
+      /*
+       * THE ISSUE TIME, AND THE ACKNOWLEDGEMENT CLEARED WITH IT.
+       *
+       * A reissue hands out a new set, so an acknowledgement of the OLD set
+       * must not carry over. Leaving it would say somebody had saved codes
+       * that no longer exist, which is worse than saying nothing.
+       */
+      recovery_codes_issued_at: DB_NOW,
+      recovery_codes_acknowledged_at: null,
     })
     .eq("user_id", userId);
   if (activateError) return { ok: false, error: `The enrolment could not be completed: ${activateError.message}` };
 
   return { ok: true, recoveryCodes: codes };
+}
+
+/**
+ * SOMEBODY SAYS THEY HAVE SAVED THE CODES, AND THAT IS WHEN THE FLOW COMPLETES.
+ *
+ * Operator instruction, 2026-09-13: "on enrolment the flow does not complete
+ * until I confirm I have saved them."
+ *
+ * The screen already had a checkbox and a disabled button, and that protected
+ * nothing, because confirmEnrolment had already issued the full session. The
+ * enrolment was complete and the checkbox governed a redirect. So the
+ * acknowledgement is a call now, and the session is issued by THIS step.
+ *
+ * IT IS NOT PROOF, AND THE COLUMN COMMENT SAYS SO. Nothing can prove a person
+ * wrote something down. What it separates is somebody who was asked and
+ * answered from somebody who closed the tab, and an account in the second state
+ * is one whose recovery path nobody has, which is exactly where the operator
+ * was on the day this was ordered.
+ *
+ * It refuses an account with no active enrolment rather than writing a
+ * timestamp onto nothing, because an acknowledgement of codes that were never
+ * issued is a record that would read as reassurance.
+ */
+export async function acknowledgeRecoveryCodes(
+  userId: string,
+  /**
+   * When the session making this call began, in epoch milliseconds, or null
+   * when the caller already holds a full session and this grants nothing.
+   *
+   * ======================================================================
+   * THE BINDING, AND WHY IT IS NOT OPTIONAL FOR A PENDING SESSION.
+   * ======================================================================
+   *
+   * This call upgrades a half authenticated session into a full one without a
+   * code being typed, on the grounds that the code WAS typed a moment ago by
+   * the confirm that produced these recovery codes. That is sound only if the
+   * confirm happened inside the same sign in.
+   *
+   * Without it, an account sitting in "codes issued, never acknowledged" would
+   * be reachable with a password alone, forever, and that state is exactly the
+   * one this whole feature exists to record. The protection would have opened
+   * the hole it was measuring.
+   *
+   * So the enrolment's verified_at has to be LATER than the moment this
+   * session began. A session issued after the enrolment cannot be the one that
+   * made it, and is refused.
+   */
+  sessionBeganAt: number | null,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+
+  const { data, error } = await db
+    .from("eng_mfa_enrolments")
+    .select("secret_cipher, verified_at, recovery_codes_issued_at, recovery_codes_acknowledged_at")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) return { ok: false, error: `The enrolment could not be read: ${error.message}` };
+  if (!data?.secret_cipher || !data.verified_at) {
+    return { ok: false, error: "There is no second factor on this account to acknowledge codes for." };
+  }
+  if (!data.recovery_codes_issued_at) {
+    return { ok: false, error: "No recovery codes have been issued for this account." };
+  }
+
+  /*
+   * ALREADY ACKNOWLEDGED IS NOT AN ERROR WORTH A DIFFERENT SENTENCE, but it is
+   * a refusal: a second acknowledgement would move the timestamp and lose the
+   * one fact the column is for, and it would be a second free upgrade.
+   */
+  if (data.recovery_codes_acknowledged_at) {
+    return { ok: false, error: "These recovery codes have already been confirmed as saved." };
+  }
+
+  /* The binding. See the parameter. */
+  if (sessionBeganAt !== null) {
+    const verified = Date.parse(data.verified_at as string);
+    if (!Number.isFinite(verified) || verified <= sessionBeganAt) {
+      return {
+        ok: false,
+        error:
+          "This second factor was set up in an earlier sign in, so it cannot be completed from here. " +
+          "Enter a code from your authenticator app instead.",
+      };
+    }
+  }
+
+  const { error: writeError } = await db
+    .from("eng_mfa_enrolments")
+    .update({ recovery_codes_acknowledged_at: DB_NOW })
+    .eq("user_id", userId);
+  if (writeError) return { ok: false, error: `It could not be recorded: ${writeError.message}` };
+
+  return { ok: true };
 }
 
 // ---------------------------------------------------------- the challenge

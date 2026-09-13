@@ -721,13 +721,39 @@ export const APPLIED = [
     behaviour: "632d49c00ff4115d6761985d9b83ab9a",
     proves: { column: { table: "eng_customer_users", name: "origin" } },
     production: null,
-    development: { at: "0043", behaviour: "632d49c00ff4115d6761985d9b83ab9a", facts: 828 },
+    /*
+     * CORRECTED 2026-09-13. THIS FIGURE WAS THE REPLAY'S, NOT DEVELOPMENT'S.
+     *
+     * It was written as 632d49c00ff4115d6761985d9b83ab9a, which is what PGlite
+     * produces from the files at 0043, and the entry's own sentence said it had
+     * been read back from development. Development returns
+     * 7178087b458483c508835d46bc9f5ce8 across the same 828 facts, and always
+     * did: three of the nine kinds cannot agree between those two engines, and
+     * all three are declared in BEHAVIOUR_DIVERGENCE below.
+     *
+     *   ck   conbin::text renders differently under PGlite 18.3 and Supabase 17.6
+     *   fn   function bodies are stored on Supabase with SQL comments stripped
+     *   fk   eng_responsible_charge_log_file_id_fkey is unvalidated on
+     *        development and validates clean on an empty replay, which is 0039's
+     *        ruling working exactly as written
+     *
+     * The other six kinds agree byte for byte, and every per kind COUNT agrees.
+     * So the mistake was recording a number rather than taking a reading, and
+     * the reason it was not caught is that the number it recorded was a true
+     * number about a different database.
+     *
+     * THE SHAPE FIGURE ABOVE IS UNAFFECTED and was right: a shape digest is
+     * portable across engines, which is the whole reason there are two.
+     */
+    development: { at: "0043", behaviour: "7178087b458483c508835d46bc9f5ce8", facts: 828 },
     because:
       "Phase 13 Section 1 is open and ran under overnight limits that forbid applying anything to " +
       "production. Applied to development 2026-09-12 through apply_migration and read back: shape " +
-      "ee00c9be2da388e84da117d99e56e503 across 1,032 columns, behaviour 632d49c00ff4115d6761985d9b83ab9a " +
-      "across 828 facts. Two columns, two check constraints and two indexes, which is what it adds and " +
-      "nothing else.",
+      "ee00c9be2da388e84da117d99e56e503 across 1,032 columns, behaviour 7178087b458483c508835d46bc9f5ce8 " +
+      "across 828 facts, in 137 fk, 102 ck, 75 pk, 245 ix, 58 tg, 12 fn, 75 rls, 0 policy and 124 seeded " +
+      "rows. Two columns, two check constraints and two indexes, which is what it adds and nothing else. " +
+      "THE BEHAVIOUR FIGURE HERE WAS WRONG UNTIL 2026-09-13 and is corrected in the note beside the " +
+      "development entry: it carried the replay's digest under development's name.",
     note:
       "AN ACCOUNT SAYS WHICH DOOR IT CAME THROUGH, AND origin IS NULLABLE ON PURPOSE. Every account that " +
       "exists today was created before origins were recorded, so null is true of them and a default would " +
@@ -743,6 +769,37 @@ export const APPLIED = [
       "account was opened by somebody who can say who they spoke to, and a checkout account by somebody who " +
       "paid. Neither is an unproven claim by an anonymous stranger.",
   },
+  {
+    file: "0044_recovery_codes_are_issued_and_acknowledged.sql", appliedBy: "apply_migration",
+    fingerprint: "a2534b7c2b27309e4f67486cb26b91bd",
+    behaviour: "632d49c00ff4115d6761985d9b83ab9a",
+    proves: { column: { table: "eng_mfa_enrolments", name: "recovery_codes_issued_at" } },
+    production: null,
+    development: { at: "0044", behaviour: "7178087b458483c508835d46bc9f5ce8", facts: 828 },
+    because:
+      "Phase 13 is open and production migrations wait for the merge. Applied to development 2026-09-13 " +
+      "through apply_migration and read back: shape a2534b7c2b27309e4f67486cb26b91bd across 1,034 columns, " +
+      "which is 0043's 1,032 plus exactly the two columns this adds. BEHAVIOUR IS UNCHANGED AT 828 FACTS and " +
+      "that is the correct answer rather than a missing reading: two nullable columns with no constraint, no " +
+      "index, no trigger and no default add nothing any of the nine kinds can see. The replay agrees, " +
+      "returning 632d49c00ff4115d6761985d9b83ab9a across 828 facts at both 0043 and 0044. The two figures " +
+      "differ from each other for the three declared reasons in BEHAVIOUR_DIVERGENCE and not for a fourth.",
+    note:
+      "RECOVERY CODES ARE ISSUED AT A TIME, AND SAVING THEM IS A FACT RATHER THAN A DISABLED BUTTON. " +
+      "Operator instruction, 2026-09-13, the third of three ordered after being locked out of production " +
+      "holding no recovery codes. THE SCREEN ALREADY HAD THE CHECKBOX and it protected nothing: the full " +
+      "session was issued by the call that showed the codes, so the acknowledgement governed a redirect the " +
+      "person could perform by typing a URL. confirm now returns the codes and no session, and a second call " +
+      "carrying the acknowledgement is what completes the enrolment. TWO COLUMNS RATHER THAN ONE because " +
+      "issued and acknowledged answer different questions and neither derives from the other: issued with no " +
+      "acknowledgement is an account holding ten codes nobody wrote down, which is indistinguishable from an " +
+      "account with no recovery path until the day somebody needs one. NOT DERIVED FROM eng_mfa_recovery_codes " +
+      "created_at, because a reissue deletes the old set outright and takes those timestamps with it, and " +
+      "because the acknowledgement has no per code home at all. BOTH NULLABLE AND NOT BACKFILLED: every " +
+      "enrolment that exists was made before this was recorded, and inventing an acknowledgement that never " +
+      "happened would be the fabricated assurance this repository refuses everywhere else.",
+  },
+
 ];
 
 /**

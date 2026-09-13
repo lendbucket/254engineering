@@ -56,7 +56,27 @@ const TTL_SECONDS = 12 * 60 * 60;
  * abandoned browser tab is not most of the way in. It is not a working session
  * and must not last like one.
  */
-const PENDING_TTL_SECONDS = 10 * 60;
+export const PENDING_TTL_SECONDS = 10 * 60;
+
+/**
+ * WHEN A PENDING SESSION WAS ISSUED, derived from its expiry.
+ *
+ * The payload carries an expiry and not an issue time, because four fields
+ * that can disagree are worse than three that cannot. The issue time is
+ * exactly that expiry minus the fixed TTL, so it is recoverable rather than
+ * absent, and recovering it here means no caller has to know the arithmetic.
+ *
+ * ONE CALLER, AND IT IS THE ONE THAT MATTERS. The recovery code
+ * acknowledgement upgrades a pending session into a full one without a code
+ * being typed, which is safe only if the enrolment it acknowledges happened
+ * AFTER this session began. Without that binding, a stolen password would
+ * reach a full session on any account left in the "codes issued, never
+ * acknowledged" state, which is precisely the state this feature exists to
+ * make visible.
+ */
+export function pendingIssuedAt(claims: { exp: number }): number {
+  return (claims.exp - PENDING_TTL_SECONDS) * 1000;
+}
 
 const MIN_SECRET_LENGTH = 24;
 

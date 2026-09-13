@@ -67,7 +67,7 @@
 import { existsSync } from "node:fs";
 import { startNextServer } from "./lib/dev-server.mjs";
 import { auditClient } from "./lib/db-target.mjs";
-import { completeEnrolment } from "./lib/probe-mfa.mjs";
+import { completeEnrolment, signInOnly } from "./lib/probe-mfa.mjs";
 import { destroyProbes, PROBE_DOMAIN } from "./lib/portal-probe.mjs";
 import { breakGlassConfigured, breakGlassMatches, breakGlassMalformed } from "../src/lib/ops-mfa-breakglass.ts";
 
@@ -139,16 +139,18 @@ function pureHalf() {
 
 /* ------------------------------------------------------------ the live half */
 
-async function signIn(base, email, password) {
-  const res = await fetch(`${base}/api/portal/session`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
-  const m = (res.headers.get("set-cookie") ?? "").match(/eng_ops=([^;]+)/);
-  const body = await res.json().catch(() => null);
-  return { ok: res.ok && Boolean(m), cookie: m ? m[1] : null, redirect: body?.redirect ?? null };
-}
+/*
+ * THROUGH THE SHARED HELPER, NOT A SECOND SIGN IN PATH.
+ *
+ * This harness needs a sign in that stops at whatever the endpoint hands back,
+ * because its subject is the PENDING state: the challenge screen and the break
+ * glass on it. signInFully would complete an enrolment and hand over a full
+ * session, which is the one thing that would make every check below vacuous.
+ *
+ * mfa-audit scans every script for a direct post to the session endpoint and
+ * went red on the first version of this file, which is the check working.
+ */
+const signIn = signInOnly;
 
 async function challengeScreen(base, cookie) {
   const res = await fetch(`${base}/portal/mfa`, {

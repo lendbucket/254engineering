@@ -35,6 +35,12 @@ import { readSource } from "./lib/read-source.mjs";
 import { join } from "node:path";
 import { routesOf, apisOf, surfacesWhere } from "./lib/surfaces.mjs";
 import { auditClient } from "./lib/db-target.mjs";
+/*
+ * The platform's own TOTP module, for the acknowledgement walk below. The same
+ * trade scripts/lib/probe-mfa.mjs argues at length: RFC 6238's published
+ * vectors are what prove the module, and using it here tests the WIRING.
+ */
+import { base32Decode, codeForStep, stepAt } from "../src/lib/totp.ts";
 
 const BASE = process.env.BASE_URL || "http://localhost:3225";
 
@@ -710,6 +716,288 @@ else process.env.OPS_SESSION_SECRET = HAD;
         } else {
           rec("and CANNOT decline into the portal", false, "no required probe to try it with");
           rec("and is not shown a way out of it", false, "no required probe to try it with");
+        }
+
+        /*
+         * ==================================================================
+         * AN ENROLMENT DOES NOT COMPLETE UNTIL THE CODES ARE ACKNOWLEDGED.
+         * ==================================================================
+         *
+         * Operator instruction, 2026-09-13, after being locked out of
+         * production holding no recovery codes at all.
+         *
+         * The screen already had a checkbox reading "I have saved these codes
+         * somewhere I can reach without my phone" and a continue button
+         * disabled until it was ticked. That looked like a gate and was not
+         * one: `confirm` had already issued the FULL session, so the
+         * acknowledgement governed a redirect somebody could perform by typing
+         * a URL, and nothing recorded whether it had happened.
+         *
+         * WHY THE SESSION IS THE THING ASSERTED. "The flow does not complete"
+         * has to mean something a server decides, or it is a claim about a
+         * disabled attribute. What the server decides is whether this person
+         * holds a session that opens the portal, so that is what is measured,
+         * on both sides of the acknowledgement.
+         *
+         * The three answers are kept apart deliberately: confirmed but not
+         * acknowledged, acknowledged, and never enrolled at all. A fixture
+         * that could not separate the first two would prove neither.
+         */
+        if (db) {
+          /*
+           * ON THE REQUIRED ROLE, AND THE FIRST VERSION OF THIS USED admin.
+           *
+           * It passed every check except the one that mattered and failed that
+           * one honestly: "the portal is still shut before the
+           * acknowledgement" went red, because an OPTIONAL role with no factor
+           * is handed a FULL session at sign in and offered enrolment. That
+           * person is already inside, so nothing the enrolment screen does can
+           * gate them, and the check was measuring a door that was open before
+           * it started.
+           *
+           * The gate only bites where a pending session is what somebody
+           * holds, which is a role that REQUIRES a factor. That is where it is
+           * measured. Worth stating plainly rather than quietly switching
+           * roles: for an optional role the acknowledgement is a RECORD and
+           * not a gate, and no amount of check writing changes that.
+           */
+          const ack = roleMade
+            ? await makeProbe(REQUIRED_ROLE, "ack")
+            : { cookie: null, redirect: null, id: null };
+          if (!ack.cookie) {
+            rec(
+              "a probe could be signed in to walk the acknowledgement",
+              false,
+              roleMade ? "nothing was attempted" : "no required role was created",
+            );
+          } else {
+            const header = `eng_ops=${ack.cookie}`;
+            const post = async (body) => {
+              const res = await fetch(`${BASE}/api/portal/mfa`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", cookie: header },
+                body: JSON.stringify(body),
+              });
+              return {
+                status: res.status,
+                cookie: (res.headers.get("set-cookie") ?? "").match(/eng_ops=([^;]+)/)?.[1] ?? null,
+                body: await res.json().catch(() => null),
+              };
+            };
+
+            const begun = await post({ action: "begin" });
+            rec("an enrolment can be begun", begun.body?.ok === true && Boolean(begun.body?.secret));
+
+            const bytes = begun.body?.secret ? base32Decode(begun.body.secret) : null;
+            const confirmed = bytes
+              ? await post({ action: "confirm", code: codeForStep(bytes, stepAt(Date.now())) })
+              : { status: 0, cookie: null, body: null };
+
+            rec(
+              "confirming a code returns the recovery codes",
+              Array.isArray(confirmed.body?.recoveryCodes) && confirmed.body.recoveryCodes.length > 0,
+              `${confirmed.body?.recoveryCodes?.length ?? 0} codes`,
+            );
+            rec(
+              "and does NOT hand over a session",
+              confirmed.body?.ok === true && confirmed.cookie === null,
+              confirmed.cookie ? "confirm issued a session, so the acknowledgement below governs nothing" : "",
+            );
+
+            const issuedRow = await db
+              .from("eng_mfa_enrolments")
+              .select("recovery_codes_issued_at, recovery_codes_acknowledged_at")
+              .eq("user_id", ack.id)
+              .maybeSingle();
+            rec(
+              "the record notes when the codes were issued",
+              Boolean(issuedRow.data?.recovery_codes_issued_at),
+              issuedRow.data?.recovery_codes_issued_at ?? "nothing was written",
+            );
+            rec(
+              "and does not yet say they were saved",
+              issuedRow.data?.recovery_codes_acknowledged_at === null,
+              issuedRow.data?.recovery_codes_acknowledged_at ?? "",
+            );
+
+            /*
+             * THE CONTROL AND THE MEASUREMENT, in the shape the required role
+             * check above already uses: prove the instrument reads before
+             * trusting what it reads. The account IS enrolled at this point, so
+             * a portal that opened here would mean the acknowledgement is
+             * decoration.
+             */
+            /*
+             * WITH WHATEVER THE FLOW HAS HANDED OVER SO FAR, which is the
+             * pending cookie it came in with unless confirm gave a better one.
+             *
+             * The first version used the incoming cookie only. That proved the
+             * ORIGINAL session stays pending, which is true and is not the
+             * claim: a confirm that handed back a full session would leave this
+             * green while the gate governed nothing. Reading the cookie the
+             * flow actually produces is the only version that cannot pass on
+             * the defect it exists to catch.
+             */
+            const carried = confirmed.cookie ?? ack.cookie;
+            const beforeAck = await fetch(`${BASE}${portalPath}`, {
+              headers: { cookie: `eng_ops=${carried}` },
+              redirect: "manual",
+            });
+            rec(
+              `and the portal is still shut before the acknowledgement (${portalPath})`,
+              beforeAck.status !== 200,
+              beforeAck.status === 200
+                ? "the enrolment completed without anybody saying they had the codes, which is the state this was ordered to end"
+                : `refused with ${beforeAck.status}`,
+            );
+
+            const saved = await post({ action: "codes_saved" });
+            rec(
+              "acknowledging the codes hands over the session",
+              saved.body?.ok === true && Boolean(saved.cookie),
+              saved.body?.error ?? (saved.cookie ? "" : "no session cookie came back"),
+            );
+
+            const ackedRow = await db
+              .from("eng_mfa_enrolments")
+              .select("recovery_codes_acknowledged_at")
+              .eq("user_id", ack.id)
+              .maybeSingle();
+            rec(
+              "and the record notes when",
+              Boolean(ackedRow.data?.recovery_codes_acknowledged_at),
+              ackedRow.data?.recovery_codes_acknowledged_at ?? "nothing was written",
+            );
+
+            if (saved.cookie) {
+              const afterAck = await fetch(`${BASE}${portalPath}`, {
+                headers: { cookie: `eng_ops=${saved.cookie}` },
+                redirect: "manual",
+              });
+              rec(
+                `and THAT session opens the portal (${portalPath})`,
+                afterAck.status === 200,
+                afterAck.status === 200
+                  ? ""
+                  : `status ${afterAck.status}. The gate would then be a wall rather than a step.`,
+              );
+            } else {
+              rec("and THAT session opens the portal", false, "no session came back to try it with");
+            }
+
+            /*
+             * ==============================================================
+             * AND IT IS NOT A WAY PAST THE SECOND FACTOR WITH A PASSWORD.
+             * ==============================================================
+             *
+             * THE HOLE THIS CLOSES WAS OPENED BY THE FIX ABOVE, and it is
+             * worth being exact about that. Moving the session from confirm to
+             * the acknowledgement means a call that upgrades a half
+             * authenticated session into a full one without a code being
+             * typed. Sound, because the code WAS typed a moment earlier by the
+             * confirm that produced the codes.
+             *
+             * Unsound the moment the two are in different sign ins. An account
+             * left in "codes issued, never acknowledged" would then be
+             * reachable with a password alone, forever, and that state is
+             * precisely the one this whole feature exists to make visible. The
+             * protection would have opened the hole it was measuring.
+             *
+             * So the enrolment's verified_at has to be later than the moment
+             * the calling session began. This walks the attack: enrol in one
+             * sign in, abandon before acknowledging, sign in again, and try.
+             */
+            const stale = roleMade
+              ? await makeProbe(REQUIRED_ROLE, "ackstale")
+              : { cookie: null, redirect: null, id: null };
+            if (stale.cookie) {
+              const staleHeader = `eng_ops=${stale.cookie}`;
+              const begun2 = await fetch(`${BASE}/api/portal/mfa`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", cookie: staleHeader },
+                body: JSON.stringify({ action: "begin" }),
+              });
+              const s2 = await begun2.json().catch(() => null);
+              const bytes2 = s2?.secret ? base32Decode(s2.secret) : null;
+
+              if (bytes2) {
+                await fetch(`${BASE}/api/portal/mfa`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", cookie: staleHeader },
+                  body: JSON.stringify({ action: "confirm", code: codeForStep(bytes2, stepAt(Date.now())) }),
+                });
+              }
+
+              /*
+               * A SECOND SIGN IN. This is the attacker's position: the
+               * password, and nothing else. The enrolment is real, the codes
+               * are issued, and nobody has acknowledged them.
+               */
+              const second = await fetch(`${BASE}/api/portal/session`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  email: `mfaprobe-ackstale-${stamp}@mobile-audit.invalid`,
+                  password: `mfaprobe-ackstale-${stamp}-enrolment-screen`,
+                }),
+              });
+              const secondCookie = (second.headers.get("set-cookie") ?? "").match(/eng_ops=([^;]+)/)?.[1] ?? null;
+
+              /* The control: that second sign in really is a pending session. */
+              rec(
+                "a second sign in on an enrolled account is challenged",
+                Boolean(secondCookie) &&
+                  (await second.json().catch(() => null))?.redirect === "/portal/mfa",
+                secondCookie ? "" : "no cookie came back, so the attack below proves nothing",
+              );
+
+              if (secondCookie) {
+                const attack = await fetch(`${BASE}/api/portal/mfa`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", cookie: `eng_ops=${secondCookie}` },
+                  body: JSON.stringify({ action: "codes_saved" }),
+                });
+                const minted = (attack.headers.get("set-cookie") ?? "").match(/eng_ops=([^;]+)/);
+                rec(
+                  "and CANNOT acknowledge an earlier enrolment into a full session",
+                  attack.status === 400 && !minted,
+                  minted
+                    ? "A PASSWORD ALONE REACHED A FULL SESSION. The acknowledgement is a bypass of the second factor."
+                    : `refused with ${attack.status}`,
+                );
+              } else {
+                rec("and CANNOT acknowledge an earlier enrolment into a full session", false, "no second session");
+              }
+            } else {
+              rec("a second sign in on an enrolled account is challenged", false, "no probe");
+              rec("and CANNOT acknowledge an earlier enrolment into a full session", false, "no probe");
+            }
+
+            /*
+             * AND IT IS NOT A SESSION VENDING MACHINE. An account with no
+             * enrolment must not be able to acknowledge its way to a full
+             * session, or the step added to protect recovery codes would be a
+             * way around the second factor.
+             */
+            const bare = roleMade
+              ? await makeProbe(REQUIRED_ROLE, "ackbare")
+              : { cookie: null, redirect: null, id: null };
+            if (bare.cookie) {
+              const res = await fetch(`${BASE}/api/portal/mfa`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", cookie: `eng_ops=${bare.cookie}` },
+                body: JSON.stringify({ action: "codes_saved" }),
+              });
+              const minted = (res.headers.get("set-cookie") ?? "").match(/eng_ops=([^;]+)/);
+              rec(
+                "an account with no enrolment cannot acknowledge its way to a session",
+                res.status === 400 && !minted,
+                minted ? "it minted one" : `refused with ${res.status}`,
+              );
+            } else {
+              rec("an account with no enrolment cannot acknowledge its way to a session", false, "no probe");
+            }
+          }
         }
 
         const { chromium } = await import("playwright");

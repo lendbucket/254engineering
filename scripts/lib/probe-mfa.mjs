@@ -80,15 +80,70 @@ export async function completeEnrolment(base, cookie) {
   }
 
   /*
-   * Confirming returns a FULL session, deliberately: somebody who has just
-   * proved they hold the secret should not be asked to prove it again. So the
-   * cookie to carry forward is the one on this response, not the one we came
-   * in with.
+   * AND THEN THE ACKNOWLEDGEMENT, WHICH IS WHAT COMPLETES AN ENROLMENT.
+   *
+   * Until 2026-09-13 `confirm` returned the full session and the probes took
+   * their cookie off that response. It does not any more: the operator ruled
+   * that the flow does not complete until somebody says they have saved the
+   * recovery codes, so the session is issued by `codes_saved` and that is the
+   * response carrying the cookie.
+   *
+   * The probes walk it rather than being exempted from it, for the reason
+   * argued at the top of this file. Every audit that signs in now exercises the
+   * acknowledgement too, so an enrolment that stops handing over a session at
+   * the right step is a red board rather than a discovery.
    */
-  const minted = (confirmed.headers.get("set-cookie") ?? "").match(/eng_ops=([^;]+)/);
-  if (!minted) return { ok: false, error: "confirm returned no session cookie" };
+  const acknowledged = await fetch(`${base}/api/portal/mfa`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", cookie: header },
+    body: JSON.stringify({ action: "codes_saved" }),
+  });
+  const finished = await acknowledged.json().catch(() => null);
+  if (!acknowledged.ok || !finished?.ok) {
+    return { ok: false, error: `codes_saved failed: ${finished?.error ?? acknowledged.status}` };
+  }
+
+  const minted = (acknowledged.headers.get("set-cookie") ?? "").match(/eng_ops=([^;]+)/);
+  if (!minted) return { ok: false, error: "codes_saved returned no session cookie" };
 
   return { ok: true, cookie: minted[1], recoveryCodes: done.recoveryCodes ?? [] };
+}
+
+/**
+ * SIGN IN AND STOP THERE, WHICH IS THE OTHER THING A PROBE SOMETIMES NEEDS.
+ *
+ * signInFully completes an enrolment, which is exactly wrong for a harness
+ * whose subject is the half authenticated state: the challenge screen, the
+ * break glass, the enrolment offer. Those need the cookie the sign in endpoint
+ * hands back and nothing done to it.
+ *
+ * It lives here rather than being written out in each harness because
+ * mfa-audit scans every script for a direct post to the session endpoint and
+ * says so. That check is right: a second sign in path is how one of them
+ * misses the next change to what a session is. break-glass-audit was the
+ * script that made this necessary, and the alternative was a third entry on
+ * that check's allowlist, which is the answer that makes a check mean less
+ * every time it is used.
+ *
+ * @param {string} base
+ * @param {string} email
+ * @param {string} password
+ * @returns {Promise<{ ok: boolean, cookie: string | null, redirect: string | null, status: number }>}
+ */
+export async function signInOnly(base, email, password) {
+  const res = await fetch(`${base}/api/portal/session`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const cookie = (res.headers.get("set-cookie") ?? "").match(/eng_ops=([^;]+)/)?.[1] ?? null;
+  const body = await res.json().catch(() => null);
+  return {
+    ok: res.ok && Boolean(cookie),
+    cookie,
+    redirect: typeof body?.redirect === "string" ? body.redirect : null,
+    status: res.status,
+  };
 }
 
 /**
@@ -100,16 +155,9 @@ export async function completeEnrolment(base, cookie) {
  * @returns {Promise<{ ok: boolean, cookie: string | null, enrolled: boolean, error?: string }>}
  */
 export async function signInFully(base, email, password) {
-  const res = await fetch(`${base}/api/portal/session`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
+  const signedIn = await signInOnly(base, email, password);
+  if (!signedIn.ok) return { ok: false, cookie: null, enrolled: false, error: `sign in ${signedIn.status}` };
 
-  const m = (res.headers.get("set-cookie") ?? "").match(/eng_ops=([^;]+)/);
-  if (!res.ok || !m) return { ok: false, cookie: null, enrolled: false, error: `sign in ${res.status}` };
-
-  const body = await res.json().catch(() => null);
 
   /*
    * The redirect says what the account still needs, and it is read rather than
@@ -120,11 +168,12 @@ export async function signInFully(base, email, password) {
    * enrolled when compelled would stop exercising this path the moment the
    * last required role became optional, which is what 0025 did.
    */
-  const needsEnrolment = typeof body?.redirect === "string" && body.redirect.startsWith("/portal/mfa/enrol");
+  const needsEnrolment =
+    typeof signedIn.redirect === "string" && signedIn.redirect.startsWith("/portal/mfa/enrol");
 
-  if (!needsEnrolment) return { ok: true, cookie: m[1], enrolled: false };
+  if (!needsEnrolment) return { ok: true, cookie: signedIn.cookie, enrolled: false };
 
-  const enrolled = await completeEnrolment(base, m[1]);
+  const enrolled = await completeEnrolment(base, signedIn.cookie);
   if (!enrolled.ok) return { ok: false, cookie: null, enrolled: false, error: enrolled.error };
 
   return { ok: true, cookie: enrolled.cookie, enrolled: true };
