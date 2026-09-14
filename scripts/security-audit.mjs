@@ -177,6 +177,12 @@ const ADMIN_APIS = [
    * what would have said so either way.
    */
   "/api/portal/accounts/create",
+  /*
+   * Phase 13 Section 2. Sets what one account is charged. A signed out POST
+   * would be a way to discount the firms work to an account of the callers
+   * choosing, which is money, so it is listed the day it ships.
+   */
+  "/api/portal/accounts/pricing",
 
   "/api/portal/people",
   "/api/portal/password",

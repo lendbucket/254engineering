@@ -142,6 +142,10 @@ const EXPECTED = {
    * operator alone.
    */
   "pricing.read":                 { admin: true,  engineer: true,  field_tech: false },
+  /* Phase 13 Section 2. Deciding what ONE account is charged, which is a
+   * different act from reading what the firm charges. Admin alone: an engineer
+   * sees pricing to do their work, not to discount it. */
+  "pricing.write":                { admin: true,  engineer: false, field_tech: false },
   "billing.read":                 { admin: true,  engineer: false, field_tech: false },
   "ledger.read_own":              { admin: true,  engineer: true,  field_tech: true },
   "ledger.read_all":              { admin: true,  engineer: false, field_tech: false },

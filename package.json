@@ -87,7 +87,8 @@
     "soc2-audit": "tsx --conditions=react-server scripts/soc2-audit.mjs",
     "soc2-evidence": "tsx scripts/soc2-evidence.mjs",
     "break-glass-audit": "tsx --conditions=react-server scripts/break-glass-audit.mjs",
-    "doors-audit": "tsx --conditions=react-server scripts/doors-audit.mjs"
+    "doors-audit": "tsx --conditions=react-server scripts/doors-audit.mjs",
+    "trade-pricing-audit": "tsx --conditions=react-server scripts/trade-pricing-audit.mjs"
   },
   "dependencies": {
     "@sentry/nextjs": "^10.73.0",

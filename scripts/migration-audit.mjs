@@ -79,7 +79,7 @@ const EXPECTED_TRIGGERS = 60;
  * declaration was keeping on its own word. eng_claim_jobs is still the only
  * one called directly.
  */
-const EXPECTED_FUNCTIONS = 14;
+const EXPECTED_FUNCTIONS = 15;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });

@@ -862,6 +862,67 @@ export const APPLIED = [
       "implied. THERE IS NO OVERRIDE COLUMN, deliberately, because no override path exists at any role " +
       "and a column for one would be the first half of building it.",
   },
+  {
+    file: "0046_pricing_write_becomes_a_grant.sql", appliedBy: "apply_migration",
+    fingerprint: "6d9f23f8a2cd1aa842a4c9921a21e585",
+    behaviour: "10fa6eb6a92b1dc0aeaf6b21f15bdce9",
+    proves: { grant: { role: "admin", action: "pricing.write" } },
+    production: null,
+    development: { at: "0046", behaviour: null, facts: 844 },
+    because:
+      "Phase 13 Section 2 is open and its limits forbid applying anything to production. Applied to " +
+      "development 2026-09-14 through apply_migration and read back: 118 role grants, one more than the " +
+      "117 before it, and the SHAPE IS UNCHANGED at 6d9f23f8a2cd1aa842a4c9921a21e585 across 1,045 " +
+      "columns because this seeds a row rather than altering anything. The behaviour count moves from " +
+      "843 to 844 for the same reason: a seeded grant is one of the behaviour fingerprint's own facts, " +
+      "which is why that fingerprint exists. THE DEVELOPMENT DIGEST IS NOT RECORDED, because reading it " +
+      "back was not attempted at this point in the run and inventing one is the defect this ledger was " +
+      "corrected for on 2026-09-13. The count was read and is what the stop condition judges on.",
+    note:
+      "SETTING A TRADE PRICE IS ITS OWN GRANT, separate from pricing.read for the reason roles.manage is " +
+      "separate from profiles.update: reading what the firm charges and DECIDING what one account is " +
+      "charged are different acts, and a firm may well want somebody who can see the money without being " +
+      "able to discount it. IT DOES NOT DECIDE WHO MAY OVERRULE A FLOOR, because nobody may: a price " +
+      "below its floor is refused at every role, in the application and again by a check constraint on " +
+      "the row. This grant decides who may negotiate within what the operator has already ruled. Admin " +
+      "alone, matching DEFAULT_ROLES, which roles-audit compares against this migration.",
+  },
+  {
+    file: "0047_superseding_a_trade_price_is_one_act.sql", appliedBy: "apply_migration",
+    fingerprint: "6d9f23f8a2cd1aa842a4c9921a21e585",
+    behaviour: "e59dd37a0f61e86b31895758885b526c",
+    proves: { function: "eng_set_trade_price" },
+    production: null,
+    development: { at: "0047", behaviour: null, facts: 845 },
+    because:
+      "Phase 13 Section 2 is open and its limits forbid applying anything to production. Applied to " +
+      "development 2026-09-14 through apply_migration. The SHAPE IS UNCHANGED at " +
+      "6d9f23f8a2cd1aa842a4c9921a21e585 across 1,045 columns, because it adds a function and alters a " +
+      "foreign key rather than a column. The behaviour count moves 844 to 845 for the function. THE " +
+      "DEVELOPMENT DIGEST IS NOT RECORDED: it was not read back at this point in the run, and inventing " +
+      "one is the defect this ledger was corrected for on 2026-09-13. " +
+      "DEVELOPMENT RECEIVED TWO INTERMEDIATE APPLICATIONS UNDER THIS NUMBER AND ONE UNDER A NAME WITH NO " +
+      "FILE. The function was applied, found wrong by trade-pricing-audit, and replaced twice while the " +
+      "correct ordering was worked out; one of those went in as " +
+      "0047b_supersede_before_insert_inside_the_transaction, which is a name the provider's history now " +
+      "carries and this repository has no file for. It is recorded here rather than left for somebody to " +
+      "find in list_migrations, because a name in the provider's history with no file is exactly the " +
+      "confusion 0025 caused in the other direction. The FINAL state of development is the file in this " +
+      "repository, verified by the audit that found the fault.",
+    note:
+      "NEITHER ORDER WORKS FROM OUTSIDE A TRANSACTION, and that is the finding. Inserting the new price " +
+      "first collides with 0045's partial unique index, which is checked per statement rather than at " +
+      "commit because it is an INDEX: only a deferrable unique CONSTRAINT waits, and a partial uniqueness " +
+      "cannot be declared as one. Superseding first cannot name a successor that does not exist yet, " +
+      "because superseded_at and superseded_by must be set together. THE ANSWER IS TO MINT THE " +
+      "SUCCESSOR'S ID FIRST and let the SELF REFERENCING foreign key defer to commit: update the old row " +
+      "naming an id that is about to exist, insert it, and the key resolves at commit. ONLY THE SELF " +
+      "REFERENCE IS DEFERRED; account_id and set_by_profile_id are unchanged, because neither " +
+      "participates in the chicken and egg and deferring a key that does not need it widens a guarantee " +
+      "for no reason. THE FUNCTION DOES NOT CHECK THE FLOOR, deliberately: the floor lives in TypeScript " +
+      "and its refusal names who ruled it, when and why, none of which can be said from plpgsql. The " +
+      "row's own check constraint still holds on the insert it performs.",
+  },
 
 ];
 
