@@ -265,6 +265,45 @@ Three of those four are about money or about whether somebody was told
 something, which is why the rule is worded the way it is. A design cannot be
 wrong about a colour in a way that costs a refund.
 
+**AND THE RULE IS NOT ONLY ABOUT DESIGNS. A DECLARATION IS ONLY AS TRUE AS THE
+LAST TIME SOMEBODY READ IT AGAINST THE CODE.** Operator ruling, 2026-09-13,
+recorded as the instance that proves this section, because the thing that was
+wrong was not a design drawn by somebody else. It was this repository's own
+declared inventory, and it had been wrong since the moment it was written.
+
+`src/lib/account-doors.ts` declared three doors an account can come through. Its
+third entry read:
+
+    what: "The door that already existed. Paying for an order creates the
+           account that owns it."
+    route: "/api/orders/place"
+
+**Every clause was false.** There is no such route. Checkout creates a CLIENT.
+An operator later converts the client to an ACCOUNT. And nothing anywhere in
+this platform had ever created a customer USER at all, so no account holder
+existed to sign in: `createCustomerAccount` had no caller, and the audit probe
+built the whole chain by hand because the product had no path that did it.
+
+**Nobody had read it against the code, including the session that wrote it.** It
+was written in the same phase, reviewed, committed, and carried past several
+boards, and its falseness was invisible from every direction: the file
+typechecked, the registry was imported and used, and the origins it declared
+were all origins the database allowed.
+
+**The general form, which is the one to carry forward.** Section 2c says a
+DESIGN is unverified until it is read against the code. This is the same
+sentence with the subject widened: **a declaration is unverified until somebody
+reads it against the code, and the declarations this repository writes about
+itself are not exempt.** The declared inventory idiom exists because a list
+nothing reads stops being true without telling anybody. A list that was never
+true is the same failure with no decay required.
+
+**What made it findable was a check rather than a reading, and that is the fix
+worth copying.** `accounts-audit` now asserts that every declared door names a
+route that exists on disk, and it went red naming this one the first time it
+ran. The question to ask of any declaration in this repository is: what would
+have to be true on disk for this to be honest, and does anything assert it.
+
 **THE EXCEPTION, AND IT MATTERS: THE RULE IS NOT "THE DESIGN IS ALWAYS
 WRONG".** Recorded 2026-09-08, from the reporting port. The prototype's
 reports module got absent versus zero RIGHT, and this platform's own file
@@ -678,6 +717,42 @@ the old shape and the new shape both refused and the run reported nothing. The
 fixture was wrong rather than the code. Moving the limit to $800, between the
 truncated $500 and the true $1,200, made the difference visible: granted against
 refused.
+
+**A CHECK WHOSE INJECTION PASSES IS A CHECK PROVEN BY NOTHING, REGARDLESS OF HOW
+MANY GREEN LINES SIT BESIDE IT.** Operator ruling, 2026-09-13, and it is the
+fixture lesson at the level of a walk: the fixture decides which figures can
+move, and a WALK decides which branches can be reached.
+
+Phase 13 Section 1 built a live audit that walks all three account doors end to
+end. It went green at 27 checks, and one of them read
+
+    and releasing again opens nothing further
+
+which is the repeat customer: somebody's second order must reach the account
+their first one opened. Injecting the defect, by disabling the linking branch
+outright, **left all 27 checks green.**
+
+The reason is that the check released the SAME order twice, and the second
+release returns early on `account_id` long before it reaches the question of
+whether this address already has an account. The branch the check was named
+after was never executed. Nothing about the green said so, the check's own
+wording said the opposite, and the walk was the most thorough kind of test this
+repository has.
+
+**So an injection that passes is not a weak result. It is the only result that
+distinguishes a check from a sentence**, and it has to be treated as a red: the
+check is rewritten until the injection fails, or it is deleted. Here the walk
+gained a real repeat customer, a second order from a second client for the same
+address, and the injection then failed naming the consequence a person would
+actually meet: the second order points at no account at all, which is signing in
+and seeing one order out of two.
+
+**Every injection is read for WHICH checks went red, never only for whether the
+run failed.** A run that goes red for the wrong reason is the same defect as one
+that stays green: both mean the check under test was not the thing exercised.
+That half of this rule has cost two findings in two days, the other being a
+combined injection whose cascade made a security check pass for the wrong
+reason.
 
 **AND A MATCHER WITH A WINDOW WIDER THAN THE THING IT MATCHES ATTACHES TO ITS
 NEIGHBOUR.** Same day, same section, in the patch script written to document all
