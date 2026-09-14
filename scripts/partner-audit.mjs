@@ -700,9 +700,31 @@ const terms = (over = {}) => ({
 
 // ---- NON NEGOTIABLE 1: the performing firm is named, in one wording --------
 {
+  /*
+   * THE FIRM, AND FROM 2026-09-13 THAT IS THE REGISTRANT RATHER THAN THE BRAND.
+   *
+   * This pinned "254 Engineering Services" and went red the hour the operator
+   * ruled that the firm trades under its registered name. The red was the
+   * mechanism working: it asked whether the change was meant, and it was.
+   *
+   * WHAT THE OLD CHECK COULD NOT SEE, which is the question a red board is
+   * asking. It pinned A name without asking whether that name was one the board
+   * holds. Telling a PARTNER that 254 Engineering Services is the firm of
+   * record, and will perform and seal their referral, is holding out under a
+   * name TBPELS has no record of, to the one audience contractually relying on
+   * it. The check would have passed on that forever.
+   *
+   * So it gained the negative half below, which is the half that matters.
+   */
   rec(
-    "the performing firm sentence names the firm",
-    /254 Engineering Services/.test(performingFirmLine()),
+    "the performing firm sentence names the registrant",
+    /254 Services LLC/.test(performingFirmLine()),
+    performingFirmLine().slice(0, 80),
+  );
+  rec(
+    "and never the brand, which the board has no record of",
+    !/254 Engineering Services/.test(performingFirmLine()),
+    "naming the brand as the performing firm is holding out under a name the board does not hold, to the audience relying on it",
   );
   rec(
     "and states the registration is pending while the gate is down",

@@ -143,7 +143,18 @@ export async function withGateConditionsMet(fn) {
     },
     /* --- the registration itself */
     { file: CONFIG, find: /number: "[^"]*",/, replace: `number: "${FIXTURE_FIRM_NUMBER}",`, what: "the registration number" },
-    { file: CONFIG, find: /onRecord: false,/, replace: "onRecord: true,", what: "the operating name on the board's record" },
+    {
+      file: CONFIG,
+      find: /onRecord: false,/,
+      replace: "onRecord: true,",
+      /*
+       * ALREADY TRUE SINCE 2026-09-13, when the operator ruled the firm trades
+       * under its registered name. See `already` below for why that is not a
+       * fixture failure.
+       */
+      already: /onRecord: true,/,
+      what: "the operating name on the board's record",
+    },
     /* Far enough out that a fixture cannot expire during a run. */
     { file: CONFIG, find: /expires: "[^"]*",/, replace: 'expires: "2099-12-31",', what: "the expiry" },
 
@@ -172,18 +183,59 @@ export async function withGateConditionsMet(fn) {
     },
   ];
 
+  /*
+   * ======================================================================
+   * A PATCH THAT EDITS NOTHING HAS TWO CAUSES, AND THEY ARE OPPOSITES.
+   * ======================================================================
+   *
+   * This loop threw whenever a pattern matched nothing, on the reasoning in the
+   * message below, which is right: a fixture that edits nothing runs the live
+   * half of an audit against the prelaunch state while reporting on the live
+   * one, and that has happened here twice.
+   *
+   * It could not tell that from the other cause. On 2026-09-13 the operator
+   * CLEARED the operating name condition, so `onRecord: false` was no longer in
+   * the file, and three audits died at the fixture reporting that the shape had
+   * moved. Nothing had moved. The condition was simply already true, which is
+   * the state every condition reaches eventually and the state this fixture
+   * exists to bring about.
+   *
+   * That is "a fixture that cannot separate the two answers proves neither",
+   * one level up: the fixture could not separate its own two failure modes, and
+   * it reported the harmless one as the dangerous one.
+   *
+   * So a patch declares what ALREADY TRUE looks like. Matching neither pattern
+   * is still a throw, and still means the shape has moved. Matching `already`
+   * is a satisfied condition and the fixture says so rather than dying.
+   *
+   * THE BACKSTOP IS UNCHANGED AND IS WHAT MAKES THIS SAFE: assertGateActuallyOpens
+   * below asks the gate whether it opened and refuses to run the body if
+   * anything is still shut, so a patch wrongly believed satisfied fails loudly
+   * at the gate rather than quietly in the audit.
+   */
   const patched = new Map(originals);
+  const alreadyTrue = [];
   for (const p of patches) {
     const before = patched.get(p.file);
     const after = before.replace(p.find, typeof p.replace === "function" ? p.replace() : p.replace);
+
     if (after === before) {
+      if (p.already && p.already.test(before)) {
+        alreadyTrue.push(p.what);
+        continue;
+      }
       throw new Error(
-        `The gate fixture could not state ${p.what} true: its pattern matched nothing in ${p.file}. The ` +
-          "shape has moved, and a fixture that edits nothing runs the live half of an audit against the " +
-          "prelaunch state while reporting on the live one.",
+        `The gate fixture could not state ${p.what} true: its pattern matched nothing in ${p.file}, and ` +
+          "the file does not already state it either. The shape has moved, and a fixture that edits " +
+          "nothing runs the live half of an audit against the prelaunch state while reporting on the " +
+          "live one.",
       );
     }
     patched.set(p.file, after);
+  }
+
+  if (alreadyTrue.length) {
+    console.log(`  [gate-fixture] already true, nothing to patch: ${alreadyTrue.join(", ")}`);
   }
 
   /*
