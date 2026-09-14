@@ -17,6 +17,19 @@ by injecting a violation before it is trusted, and every completion claim is ver
 from a running app. A check that passes while looking at the wrong thing is the recurring defect
 class here. Hunt it.
 
+**Two sentences to have in mind from the first command of a session**, because each has cost a run
+more than once and each is invisible from its own symptom.
+
+**When a patch has landed and behaviour has not changed, the module is bound.** A module level
+constant is read once; a fresh import is not fresh enough, and a query string busts one specifier
+rather than the graph beneath it. Do not go looking for a second cause. The full rule and the
+worked examples are in section 6.
+
+**A finding is a claim until something other than the scratchpad agrees.** A harness prints what
+the harness does, which is evidence about the harness. Before a finding reaches a commit message or
+a report, an audit, a screen, or the product's own guard read in the source has to confirm it. The
+full rule is in section 6.
+
 ## 1. The regulatory gate (this outranks every other consideration)
 
 The firm's TBPELS registration is pending, and no licensed PE is on staff yet. Until both are real:
@@ -511,6 +524,42 @@ The pair with 2026-09-02's lesson is the whole argument: a suite that can be
 pointed at nothing, or killed by its own operator, is a suite whose red means
 two things.
 
+**WHEN A PATCH HAS LANDED AND BEHAVIOUR HAS NOT CHANGED, THE MODULE IS BOUND.**
+Operator ruling, 2026-09-14, moved here from `scripts/lib/gate-fixture.mjs`
+because a lesson recorded in one file is a lesson nobody finds.
+
+That file has carried the explanation since September, in these words: **a fresh
+`import()` is not fresh enough.** A query string busts ONE specifier, and every
+module beneath it keeps the values it was loaded with. A module level constant
+is read once.
+
+**It cost three separate runs in one night**, after being written down once:
+
+- `trade-pricing-audit` patched a floor into `src/config/trade-floors.ts`, re-imported `trade-pricing.ts` with a cache busting query, and read the floor as still pending. Nine checks failed reporting the code refusing correctly.
+- the Section 2 walk patched the same file and read the same stale value.
+- the walk then patched the launch conditions to open the gate, and `previewBatch` went on refusing, because `isPrelaunch()` reads constants bound at first import.
+
+Each time the symptom was identical and each time it looked like the code
+working: **a refusal that is correct for the unpatched state is indistinguishable
+from a refusal that is correct.** That is why it is worth a rule rather than a
+comment.
+
+**THE DIAGNOSTIC, AND IT IS THE THING TO READ FIRST.** A patch has been written
+to disk, the file on disk is right, and behaviour has not moved. Do not look for
+a second cause. **The module is bound.** Re-importing will not unbind it, and
+nor will any flag.
+
+**The answer is a child process**, which has no module graph to invalidate: it
+starts, reads the file as it is at that moment, answers on one prefixed line,
+and exits. `inOpenGateProcess` in the gate fixture is the worked example, and
+`trade-pricing-audit` carries its own for the same reason.
+
+**The general form.** Anything read once at module load is a value a patch
+cannot reach: the launch conditions, the credentials register, the trade floors,
+the door registry, the surface inventory. Anything read at CALL time can be
+patched in process, which is why the environment variable fixtures work and the
+file ones do not.
+
 **THE BOARD IS THE LAST WORD, INCLUDING OVER YOUR OWN VERIFICATION.** Operator
 ruling, 2026-09-10, from a run that fixed three real defects and introduced two
 regressions doing it.
@@ -717,6 +766,45 @@ the old shape and the new shape both refused and the run reported nothing. The
 fixture was wrong rather than the code. Moving the limit to $800, between the
 truncated $500 and the true $1,200, made the difference visible: granted against
 refused.
+
+**NO FINDING REACHES A COMMIT MESSAGE OR A REPORT UNTIL SOMETHING OTHER THAN THE
+SCRATCHPAD HAS CONFIRMED IT.** Operator ruling, 2026-09-14. A finding written up
+before it is checked is a claim nothing supports, in the same class as a figure
+stated as read back when nobody read it.
+
+**The instance.** An overnight walk printed
+
+    batch total        $0.00
+
+for a batch in which every property had been rejected. It was written up as an
+absent-versus-zero defect, a fix was made, and both reached a commit message and
+a phase report before anything examined the claim.
+
+**It was not a defect.** The zero came from the scratchpad walk script printing
+`money(totalCents)` unconditionally. The product guards that block on
+`accepted.length > 0` and never renders it, and `placeBatch` refuses an empty
+split outright with its own sentence. No customer could ever have seen it.
+
+`order-audit` caught the change on the next board:
+
+    FAIL: and its total is zero rather than null
+
+**THE CHECK'S REASON WAS BETTER THAN THE CHANGE WAS**, and it is the part worth
+carrying: **null already meant something else there.** It meant an accepted
+property has no price, so no total can be stated. Reusing it for "nothing was
+accepted" makes two different states indistinguishable, which is **the fixture
+rule applied to a return value**. The split already carried `empty` to say so,
+and the very next check asserted it.
+
+**So a scratchpad's output is evidence about the scratchpad.** Before a finding
+is written down, something that is not the script that produced it has to agree:
+an audit, a screen, the product's own guard read in the source. The three
+artefact-reading findings in the same run were all real precisely because each
+was read off a SCREEN or a PRODUCT path rather than off a harness.
+
+And a correction leaves a trace. The reverted lines carry why in
+`bulk-order.ts`, because a false finding that vanishes is one the next session
+re-makes.
 
 **A CHECK WHOSE INJECTION PASSES IS A CHECK PROVEN BY NOTHING, REGARDLESS OF HOW
 MANY GREEN LINES SIT BESIDE IT.** Operator ruling, 2026-09-13, and it is the
