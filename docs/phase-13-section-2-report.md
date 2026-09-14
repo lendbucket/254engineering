@@ -281,7 +281,39 @@ If you want the pricing screen in the demo sweep, say so and it goes in.
 **The perf gate was not run at both ceilings for the new screen, AND IT RUNS
 BEFORE MERGE.** Operator ruling, 2026-09-14.
 
-The board's `perf-audit` passed, which measures the declared surfaces, and the
-new screen is inside the portal surface and was measured with it. A dedicated
-two-ceiling run was not done. It is the one verification item from the brief
-that is outstanding, and it is a condition of merging rather than a note.
+**AND THE SENTENCE THAT WAS HERE WAS FALSE. Corrected 2026-09-14.** It read:
+
+> The board's `perf-audit` passed, which measures the declared surfaces, and the
+> new screen is inside the portal surface and was measured with it. A dedicated
+> two-ceiling run was not done.
+
+**Both clauses are wrong, and checking took one command.** `perf-audit` does NOT
+derive from the surface inventory. It iterates a hardcoded `ROUTE_BUDGETS` list
+in `scripts/perf-budgets.mjs`, which holds **ten routes, every one of them a
+public marketing page**, and it drives plain Lighthouse with no session:
+
+    /  /services/windstorm-wpi-8  /coverage  /coverage/coastal-bend
+    /windstorm  /windstorm/before-work-begins  /structural-engineer
+    /insights/texas-pe-license-lookup  /careers  /careers/professional-engineer
+
+**Portal routes measured: zero.** So the pricing screen was not measured with the
+portal surface, because the portal surface is not measured. Nothing on this board
+has ever measured the performance of any authenticated screen.
+
+It would not have been measurable even if it were listed: the screen is
+`/portal/accounts/[id]/pricing`, which needs a session and an account id, and
+Lighthouse here gets neither. An unauthenticated fetch would have been redirected
+to the login page and **a green would have been recorded for the login page's
+weight under the pricing screen's name**, which is worse than the gap.
+
+**What this does to the merge condition.** "Run the perf gate at both ceilings"
+cannot be done, because the gate cannot reach the screen. The condition was
+written believing one dedicated run remained; the truth is the screen has never
+been measured once. That is the operator's to re-rule, and the honest options are
+in `BACKLOG.md` under the portal performance entry.
+
+**The general form is already in CLAUDE.md** and this is another instance of it:
+`/portal/queue` reached 38,744 pixels tall and every check looking at it was
+green, because nothing measured what it measured. The same blind spot, found from
+the other end: not a screen no check reads, but a GATE whose subject list quietly
+excludes an entire surface.

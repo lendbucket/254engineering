@@ -50,17 +50,58 @@ and it is worth knowing before the floors are ruled: the whole order path is
 behind the compliance gate, which is shut on four conditions. Ruling the floors
 does not by itself make a trade price reachable by a customer.
 
-**Three decisions are recorded in that report and one of them needs the
-operator.** An account carrying a trade price CANNOT BE DELETED, because the
-price table refuses deletion and the account cascades to it. That is correct for
-a money record and it means a duplicate or mistaken account cannot be removed
-once priced. The alternatives are a soft delete on accounts or losing the money
-record, and choosing between them is the operator's.
+**The account deletion question is ANSWERED and shipped.** It read, until
+2026-09-14, that an account carrying a trade price could not be deleted and that
+choosing between a soft delete and losing the money record was the operator's.
+They chose: **an account is superseded, never removed**, with a reason and an
+actor, and no cascade wins over a money record. It is migration 0048 and
+`src/lib/account-scope.ts`. Nothing is outstanding here.
 
-**What is outstanding from the section's own verification list**, also in that
-report: the perf gate was not run at both ceilings for the new pricing screen,
-and no decision was taken on whether the trade price joins `figure-surfaces`
-for the demonstration sweep.
+**What IS outstanding from the section's own verification list**: whether the
+trade price joins `figure-surfaces` for the demonstration sweep, which is the
+operator's word and has not been given. The report's position is that a trade
+price is not a figure on a report, it is a price on an order, and the order's
+figures are already swept.
+
+## NO PORTAL SCREEN HAS EVER BEEN PERFORMANCE MEASURED, AND A MERGE CONDITION RESTED ON BELIEVING ONE WAS
+
+2026-09-14, found while closing Phase 13. Full account in
+`docs/phase-13-section-2-report.md` under the perf gate item; this is the pointer.
+
+`perf-audit` does not derive from `scripts/lib/surfaces.mjs`. It iterates a
+hardcoded ten route list in `scripts/perf-budgets.mjs`, **every entry a public
+marketing page**, driving Lighthouse with no session. **Portal routes measured:
+zero.** The Phase 13 Section 2 report claimed the new pricing screen "is inside
+the portal surface and was measured with it", and that sentence was false in both
+clauses.
+
+**It is the /portal/queue defect from the other end.** That screen reached 38,744
+pixels tall past a green board because nothing measured its height. This is a
+GATE whose subject list silently excludes an entire surface, which is the same
+blind spot wearing a route list.
+
+**The merge condition cannot be met as written.** "Run the perf gate at both
+ceilings for the new pricing screen" assumed one dedicated run remained. The
+screen has never been measured once, and could not be by this gate: it is
+`/portal/accounts/[id]/pricing`, needing a session and an account id, and an
+unauthenticated Lighthouse run would have recorded the LOGIN page's weight under
+the pricing screen's name.
+
+**Three honest options, and the choice is the operator's:**
+
+1. **Teach `perf-audit` to sign in.** `mobile-audit`, `native-audit` and
+   `mobile-overflow-audit` already reach authenticated portal screens through
+   `scripts/lib/portal-probe.mjs`, so the mechanism exists; what is missing is
+   Lighthouse being given a session and the dynamic route being given an id.
+   Largest, and it closes the gap for every portal screen rather than one.
+2. **Measure the pricing screen the way the queue's height is measured**, in a
+   Playwright audit that already has a session, against a stated budget. Smaller,
+   and it leaves the rest of the portal unmeasured.
+3. **Re-rule the merge condition** to something the harness can actually answer,
+   and record the portal performance gap as accepted for now.
+
+Nothing is built yet. **Phase 13 does not merge on a condition that cannot be
+evaluated**, so this needs a ruling before the merge question is reopened.
 
 ## PHASE 14 RANK 1 IS HALF PROVEN: THE SCHEMA REBUILDS, THE DATA RESTORE IS UNTESTED
 

@@ -280,6 +280,41 @@ second throwaway. Nothing in phase 1 begins until phase 0 is in a report.
 | 0.9 | Destroy T1 and T2 | mine | Both gone; the bill returns to its previous figure |
 | 0.10 | **The dry run report** | mine | Every figure above, and what went wrong, in `docs/`. **GO/NO-GO is your word** |
 
+**0.2 IS RECORDED AS DERIVED, NOT EXECUTED. Operator ruling, 2026-09-14.**
+
+The chain was NOT re-replayed into T1. What was done instead, and it is stronger
+than the execution would have been:
+
+> The files at 0042 and production at 0042 agree on shape, columns and all 824
+> facts from both ends, and the real engine replayed 49 of 49 faithfully tonight
+> with transcription byte-verified.
+
+`scripts/fingerprint-at.mjs 0042` gives `11a709155214441ec2b7c3b382f6e17f` across
+1,030 columns and 824 facts from the FILES alone, and production read back the
+same shape, the same 1,030 columns and the same 824 facts, with per-kind figures
+fk 137, ck 100, pk 75, tg 58, fn 12, ix 243, rls 75, policy 0, 7 roles and 117
+grants, and **zero unvalidated foreign keys**, which is the twelve fact carve-out
+being gone confirmed from the data rather than from the ruling.
+
+**WHAT IT DOES NOT PROVE.** That a real Supabase engine, replaying THIS chain at
+THIS stopping point, produces that result. Tonight's real-engine proof ran 0000
+to 0048, a superset, into `254engineering-rehearsal`; the shape fingerprint is
+portable and was matched at six intermediate checkpoints, but 0042 specifically
+was never applied to a live project and read back. The derivation rests on the
+shape fingerprint being portable, which is stated in section 6b of CLAUDE.md and
+confirmed repeatedly, rather than on an execution.
+
+It is recorded this way rather than marked done because **saying so rather than
+marking it done is the whole standard.** A step reported as executed when it was
+derived is the completion claim this repository treats as the one unforgivable
+failure.
+
+If step 2 is ever in doubt on the day, this is the cheap way to settle it before
+writing anything: run `fingerprint-at.mjs` at the chain's head and compare
+against a live read of production. Both halves take a minute and neither writes.
+
+---
+
 **TWO BLOCKERS IN PHASE 0, BOTH FOUND BEFORE ANY STEP WAS SPENT REACHING THEM.**
 
 **0.4 to 0.6 need T1's service role key, which I cannot obtain.**
