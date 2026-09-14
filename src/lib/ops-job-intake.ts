@@ -431,6 +431,11 @@ async function accountCanInvoice(clientId: string | null): Promise<boolean> {
     .from("eng_customer_accounts")
     .select("id, status, billing_mode, credit_limit_cents")
     .eq("client_id", clientId)
+    /*
+     * A superseded duplicate carries its own credit limit, and taking work
+     * against it would let one organisation owe the firm twice its limit.
+     */
+    .is("superseded_at", null)
     .order("created_at", { ascending: true })
     .limit(1);
 

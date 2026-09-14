@@ -176,6 +176,8 @@ export async function placeBatch(input: {
     .from("eng_customer_accounts")
     .select("id, site, client_id, status, billing_mode, credit_limit_cents, net_days")
     .eq("id", input.accountId)
+    /* No new work is placed on a superseded account. See account-scope. */
+    .is("superseded_at", null)
     .maybeSingle();
   if (!account) return { ok: false, error: "That account does not exist." };
   if (account.site !== input.site) return { ok: false, error: "That account belongs to another brand." };

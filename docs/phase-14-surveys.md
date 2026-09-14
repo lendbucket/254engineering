@@ -10,6 +10,62 @@ the other instances before one of them is the incident.
 
 ---
 
+## THE ONE FINDING THAT IS PHASE 14 WORK WITH ITS OWN GATE
+
+**Operator ruling, 2026-09-14: do not fix this in the Phase 13 branch. Both
+sides have to move together and the credit gate is downstream.**
+
+It is lifted to the top of this document, out of Survey 2, because **the obvious
+fix is the one that creates the third comparison** and anybody arriving at the
+finding will reach for it.
+
+### A statement's issue date and due date come from two different clocks
+
+`src/lib/ops-statements.ts:317` and `:321`, in one statement:
+
+```ts
+const dueAt = new Date(Date.now() + netDays * 86_400_000).toISOString();
+await db.from("eng_statements")
+  .update({ status: "issued", issued_at: DB_NOW, due_at: dueAt })
+```
+
+`issued_at` is the DATABASE clock. `due_at` is the APPLICATION clock, offset by
+the account's net days. **A net-30 window is therefore not thirty days from the
+statement's own recorded issue date**, and the two dates on one document disagree
+about its terms.
+
+### The trap: fixing it the obvious way creates a third comparison
+
+The obvious fix moves `due_at` onto the database clock, so both dates agree.
+
+**That silently breaks `ops-bulk.ts:415`**, which is consistent TODAY:
+
+```ts
+const days = Math.floor((Date.now() - Date.parse(s.due_at)) / 86_400_000);
+```
+
+`due_at` currently comes from the application clock, so this comparison is
+application against application and skew cancels. Move `due_at` to the database
+and this becomes database against application, **and it feeds `creditDecision`,
+which decides whether an account may place further invoiced work.**
+
+So a fix aimed at a cosmetic disagreement between two dates would move the
+cross-clock comparison ONTO the money gate, where the slack decides whether
+somebody can trade.
+
+**Both sides move together or neither moves.** That is why this is a phase with
+its own gate rather than a line in a branch about pricing.
+
+### The third instance, which is the only one that destroys data
+
+`ops-retention.ts:191` builds its deletion cutoff from the application clock and
+compares it against age columns every row of which was written by the database.
+The floor is thirty days and plausible skew is seconds, so nothing is at risk in
+practice. It is named because no later audit can tell a deleted row from a row
+that never existed.
+
+---
+
 ## SURVEY 1: STATUS FUNCTIONS RETURNED AS USER-FACING ERRORS
 
 **The rule this comes from.** An error assembled from a status function can only

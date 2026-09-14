@@ -169,6 +169,8 @@ export async function POST(request: NextRequest) {
     ? await db
         .from("eng_customer_accounts")
         .select("id, client_id, billing_email, billing_contact")
+        /* See src/lib/account-scope.ts: superseded rows are not customers. */
+        .is("superseded_at", null)
         .eq("id", key.accountId)
         .maybeSingle()
     : { data: null };

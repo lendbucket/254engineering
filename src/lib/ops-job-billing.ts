@@ -353,6 +353,11 @@ export async function invoiceAccount(actor: Author, fileId: string): Promise<Bil
     .from("eng_customer_accounts")
     .select("id, status, billing_mode")
     .eq("client_id", file.client_id)
+    /*
+     * A superseded duplicate found by client_id would be billed against instead
+     * of the real account. See src/lib/account-scope.ts.
+     */
+    .is("superseded_at", null)
     .order("created_at", { ascending: true })
     .limit(1);
   if (accountErr) {

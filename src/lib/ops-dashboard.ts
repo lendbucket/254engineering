@@ -1345,6 +1345,14 @@ async function salesDashboard(): Promise<SalesDashboard> {
   if (attrErr) console.error("[dashboard] partner attribution could not be read:", attrErr.message);
   const attributed = attrErr ? null : (attributedRaw ?? []);
 
+  /*
+   * AND SUPERSEDED ROWS ARE NOT ACCOUNTS ON THE BOOKS.
+   *
+   * The comment below records this tile reading "Accounts on the books: 1" over
+   * a seeded client, found in a screenshot. A superseded duplicate is the same
+   * defect with a different cause: one organisation opened twice, counted
+   * twice, and the number is plausible and slightly wrong.
+   */
   const { data: accountsRaw, error: accErr } = await db
     .from("eng_customer_accounts")
     /*
@@ -1369,7 +1377,8 @@ async function salesDashboard(): Promise<SalesDashboard> {
      * question nobody can answer.
      */
     .select("id, status, created_at, eng_clients!inner(name, is_demo), eng_service_orders(placed_at)")
-    .eq("eng_clients.is_demo", false);
+    .eq("eng_clients.is_demo", false)
+    .is("superseded_at", null);
   if (accErr) console.error("[dashboard] accounts could not be read:", accErr.message);
   const accounts = accErr ? null : (accountsRaw ?? []);
 

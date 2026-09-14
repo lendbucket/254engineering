@@ -68,6 +68,8 @@ export async function defaultAnswersFor(clientId: string | null): Promise<FileAn
     .from("eng_customer_accounts")
     .select("default_answers, status")
     .eq("client_id", clientId)
+    /* A superseded duplicate's standing answers are not the customer's. */
+    .is("superseded_at", null)
     .maybeSingle();
 
   if (error) {

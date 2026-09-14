@@ -52,6 +52,12 @@ export default async function AccountPricingPage({
     .from("eng_customer_accounts")
     .select("id, status, client_id")
     .eq("id", id)
+    /*
+     * A superseded account takes no new price. Its existing prices stay
+     * readable, because they are the record of what somebody was charged; what
+     * it cannot do is acquire another.
+     */
+    .is("superseded_at", null)
     .maybeSingle();
   if (!account) notFound();
 

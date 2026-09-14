@@ -367,7 +367,13 @@ async function loadPrincipal(userId: string): Promise<CustomerPrincipal | null> 
 
   const { data: account } = await db
     .from("eng_customer_accounts")
+    /*
+     * A superseded account cannot be signed into. Operator ruling, 2026-09-14:
+     * the row was a duplicate or a mistake, so a session scoped to it would be
+     * a person acting as an organisation that does not separately exist.
+     */
     .select("id, site, client_id, status, billing_mode, credit_limit_cents, net_days")
+    .is("superseded_at", null)
     .eq("id", user.account_id)
     .maybeSingle();
   if (!account) return null;

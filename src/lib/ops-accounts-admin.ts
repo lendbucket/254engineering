@@ -61,6 +61,16 @@ export async function accountRows(): Promise<AccountRow[]> {
    * because they truncate at different sizes and a shared bound would hide
    * which one ran out.
    */
+  /*
+   * SUPERSEDED ACCOUNTS ARE NOT CUSTOMERS. Operator ruling, 2026-09-14: a
+   * duplicate or a typo is superseded rather than deleted, and every read
+   * excludes them by default. A superseded row reappearing in this list is a
+   * second entry for one organisation, which is the thing supersession exists
+   * to remove from view.
+   *
+   * Closed accounts still appear, because a closed account is a real customer
+   * who stopped trading.
+   */
   const accountRead = await readEvery<Record<string, unknown>>((from, to) =>
     db
       .from("eng_customer_accounts")
@@ -206,6 +216,15 @@ export async function convertClientToAccount(
     .select("id")
     .eq("client_id", clientId)
     .eq("site", site)
+    /*
+     * A SUPERSEDED ACCOUNT MUST NOT BLOCK OPENING A NEW ONE.
+     *
+     * This read decides whether a client already has an account. If it counted
+     * superseded rows, the one act supersession exists for, correcting a
+     * duplicate and opening it properly, would be refused by the duplicate it
+     * was correcting.
+     */
+    .is("superseded_at", null)
     .order("created_at", { ascending: true })
     .limit(1);
 

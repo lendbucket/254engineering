@@ -183,6 +183,8 @@ export async function verifyApiKey(presented: string | null): Promise<VerifiedKe
   const { data: account } = await db
     .from("eng_customer_accounts")
     .select("id, status")
+    /* A key belonging to a superseded account opens nothing. See account-scope. */
+    .is("superseded_at", null)
     .eq("id", data.account_id)
     .maybeSingle();
   if (!account || account.status !== "active") return null;

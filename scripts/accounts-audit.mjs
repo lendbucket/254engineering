@@ -857,6 +857,106 @@ withEnv({ CUSTOMER_SESSION_SECRET: CUS_SECRET }, () => {
 }
 
 // =========================================================================
+// A SUPERSEDED ACCOUNT IS NOT A CUSTOMER, AND EVERY READ SAYS SO
+// =========================================================================
+//
+// Operator ruling, 2026-09-14: an account is superseded, never removed, and
+// every read excludes superseded accounts by default with an explicit opt-in,
+// the is_demo shape.
+//
+// The failure this guards is the one src/lib/reporting-scope.ts already records
+// for demonstration records, and it is worth restating because it is identical:
+// forgetting is INVISIBLE. A superseded duplicate reappears in a list, a count
+// or a total and looks entirely ordinary. Nothing crashes and no figure is
+// obviously wrong; there is simply one customer too many.
+
+{
+  const accountReaders = [];
+  const walkSrc = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const p = join(dir, entry.name);
+      if (entry.isDirectory()) walkSrc(p);
+      else if (/\.tsx?$/.test(entry.name)) {
+        const text = codeOnly(p);
+        /*
+         * A READ, not a write. An update or an insert names the row it is
+         * changing and has no business filtering on supersession; only a
+         * SELECT can quietly return one too many.
+         */
+        const reads = text.match(/from\(\s*["']eng_customer_accounts["']\s*\)[\s\S]{0,400}?\.select\(/g) ?? [];
+        if (reads.length > 0) {
+          accountReaders.push({ path: p.split("\\").join("/"), text });
+        }
+      }
+    }
+  };
+  walkSrc("src");
+
+  rec(
+    `there are account reads to check (${accountReaders.length})`,
+    accountReaders.length >= 4,
+    "a sweep over an empty list passes every run",
+  );
+
+  /*
+   * THE DECLARED EXCEPTIONS, each with a reason, like role-cast-audit's
+   * allowlist. A second entry has to argue for itself.
+   */
+  const MAY_SEE_SUPERSEDED = {
+    "src/lib/account-scope.ts":
+      "it IS the scope helper, and supersedeAccount reads the row it is about to mark, which is the one read that must see an unsuperseded row and then a superseded one.",
+    "src/lib/account-creation.ts":
+      "it inserts the account and selects the id back. There is no superseded row to exclude because the row is one statement old.",
+    "src/lib/ops-statements.ts":
+      "IT RESOLVES A MONEY RECORD RATHER THAN A CUSTOMER, and that is the whole distinction the operator ruling turns on. Closing a period and issuing a statement are about work already done and money already owed. An account superseded after that work was billed must still resolve, or superseding a duplicate would orphan the statements the supersession exists to keep intact. Every read that asks whether somebody may ACT excludes superseded rows; this one asks what an account was charged.",
+  };
+
+  const unscoped = accountReaders
+    .filter((r) => !MAY_SEE_SUPERSEDED[r.path])
+    .filter((r) => !/superseded_at/.test(r.text))
+    .map((r) => r.path);
+
+  rec(
+    "every read of an account excludes superseded rows",
+    unscoped.length === 0,
+    unscoped.length
+      ? `READS ACCOUNTS AND NEVER MENTIONS superseded_at: ${unscoped.join(", ")}`
+      : `${accountReaders.length - Object.keys(MAY_SEE_SUPERSEDED).length} scoped, ${Object.keys(MAY_SEE_SUPERSEDED).length} declared exceptions`,
+  );
+
+  /*
+   * AND SUPERSEDED IS NOT CLOSED. Asserted on the source because the two are
+   * one careless edit from being collapsed, and collapsing them loses the
+   * answer to "did this customer leave, or did we open them twice", which is
+   * exactly the question somebody asks when two accounts share a name.
+   */
+  const scopeSource = codeOnly("src/lib/account-scope.ts");
+  rec(
+    "the scope helper never filters on status",
+    !/status/.test(scopeSource.replace(/superseded/g, "")),
+    "a closed account is a real customer who stopped trading and still appears in every list",
+  );
+
+  /*
+   * AND A REASON IS REQUIRED IN THE APPLICATION AS WELL AS THE DATABASE.
+   *
+   * 0048's check constraint requires ten characters. The application refuses
+   * earlier so the operator reads a sentence rather than a constraint
+   * violation, which is the same division retention and the floors already use.
+   */
+  rec(
+    "superseding refuses without a reason, before the database does",
+    /reason\.length < 10/.test(scopeSource),
+    "a soft delete with no reason is a row nobody can interpret",
+  );
+  rec(
+    "and refuses to overwrite a reason that was already given",
+    /already superseded/i.test(readSource("src/lib/account-scope.ts")),
+    "writing a second reason over the first loses the answer the column exists for",
+  );
+}
+
+// =========================================================================
 // THE THREE DOORS, AND THAT ONLY ONE FUNCTION OPENS ANY OF THEM
 // =========================================================================
 //

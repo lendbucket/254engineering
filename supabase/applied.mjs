@@ -923,6 +923,37 @@ export const APPLIED = [
       "and its refusal names who ruled it, when and why, none of which can be said from plpgsql. The " +
       "row's own check constraint still holds on the insert it performs.",
   },
+  {
+    file: "0048_an_account_is_superseded_never_removed.sql", appliedBy: "apply_migration",
+    fingerprint: "f6e3d58df88f192dc1e7eaa1458858a7",
+    behaviour: "947e86920b7577a0ca56fc7c7b3b4365",
+    proves: { column: { table: "eng_customer_accounts", name: "superseded_at" } },
+    production: null,
+    development: { at: "0048", behaviour: null, facts: 850 },
+    because:
+      "Phase 13 Section 2 is open and its limits forbid applying anything to production. Applied to " +
+      "development 2026-09-14 through apply_migration and read back: shape " +
+      "f6e3d58df88f192dc1e7eaa1458858a7 across 1,049 columns, matching the replay exactly. Four columns, " +
+      "one check constraint, one partial index, one trigger and its function, and one foreign key changed " +
+      "from cascade to restrict. THE DEVELOPMENT BEHAVIOUR DIGEST IS NOT RECORDED: it was not read back " +
+      "at this point and inventing one is the defect this ledger was corrected for on 2026-09-13.",
+    note:
+      "AN ACCOUNT IS SUPERSEDED, NEVER REMOVED. Operator ruling, 2026-09-14, answering a question 0045 " +
+      "raised and could not decide: the trade price table refuses DELETE, the account cascaded to it, so " +
+      "an account that genuinely should be removed could not be and the failure arrived as an exception " +
+      "about trade prices to somebody who had asked to delete an account. SUPERSEDED IS NOT CLOSED. " +
+      "status closed means the relationship ended and everything on the account is a true record of work " +
+      "that happened; superseded_at means the ROW was wrong, a duplicate or a typo or an organisation " +
+      "opened twice. Collapsing them loses the answer to 'did this customer leave, or did we open them " +
+      "twice', which is exactly what somebody asks when two accounts share a name. THE REASON AND THE " +
+      "ACTOR MOVE WITH IT, enforced by a check constraint, because a soft delete with no reason is a row " +
+      "nobody can interpret a year later. DELETE IS REFUSED OUTRIGHT rather than left to the child's " +
+      "refusal: relying on the cascade means an account with no trade price CAN be deleted, so the " +
+      "guarantee would hold only for accounts that happen to have been priced, which is a guarantee " +
+      "nobody can state. AND THE TRADE PRICE KEY BECOMES restrict, although the parent now refuses " +
+      "deletion and the cascade is unreachable, because the ruling is that no cascade ever wins over a " +
+      "money record and an unreachable cascade is one edit from winning.",
+  },
 
 ];
 

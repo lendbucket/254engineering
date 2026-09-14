@@ -4,7 +4,22 @@
 
 ---
 
-## THE ONE THING TO RULE THIS MORNING: ELEVEN FLOORS
+## TWO REASONS NOTHING SELLS AT TRADE PRICING, AND THE FLOORS ARE THE SECOND
+
+**FIRST: the whole order path is behind the compliance gate.** Four conditions
+are unmet, so `orderBlockedReason` refuses every order before pricing is
+consulted at all. The first walk of this section could not produce a quote:
+
+    PREVIEW REFUSED: The firm's registration with the Texas Board of
+    Professional Engineers and Land Surveyors is pending. No order can be
+    placed and no payment can be taken until it is active.
+
+**Ruling the floors does not by itself put a trade price in front of a
+customer.** That is stated first because it is the one somebody would otherwise
+discover after ruling eleven numbers.
+
+**SECOND: eleven floors are pending, and that is the one thing to rule this
+morning.**
 
 Not one floor is written by this session, which is the rule this section turns
 on. Every entry in `src/config/trade-floors.ts` is `pending`, and until you rule
@@ -246,8 +261,10 @@ none appeared to be needed**, which is stated rather than claimed as done.
 a report; it is a price on an order, and the order's figures are already swept.
 If you want the pricing screen in the demo sweep, say so and it goes in.
 
-**The perf gate was not run at both ceilings for the new screen.** The board's
-`perf-audit` passed, which measures the declared surfaces; the new screen is
-inside the portal surface and was measured with it. A dedicated two-ceiling run
-was not done and is the one verification item from the brief that is
-outstanding.
+**The perf gate was not run at both ceilings for the new screen, AND IT RUNS
+BEFORE MERGE.** Operator ruling, 2026-09-14.
+
+The board's `perf-audit` passed, which measures the declared surfaces, and the
+new screen is inside the portal surface and was measured with it. A dedicated
+two-ceiling run was not done. It is the one verification item from the brief
+that is outstanding, and it is a condition of merging rather than a note.
