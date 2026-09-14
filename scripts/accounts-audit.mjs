@@ -949,6 +949,46 @@ withEnv({ CUSTOMER_SESSION_SECRET: CUS_SECRET }, () => {
     /reason\.length < 10/.test(scopeSource),
     "a soft delete with no reason is a row nobody can interpret",
   );
+  /*
+   * AND NO HARNESS DELETES A CUSTOMER ACCOUNT.
+   *
+   * 0048 refuses DELETE on every account, and three teardowns went on calling
+   * .delete() and discarding the error. Every probe account leaked and the
+   * board stayed green: 26 accumulated on development in one day before
+   * anybody counted them. Found by counting rows at Phase 14 gate zero, not by
+   * any check.
+   *
+   * ONE CALL IS ALLOWED and it is the one that PROVES the refusal:
+   * trade-pricing-audit asserts that the delete fails. A delete whose error is
+   * asserted is a check; a delete whose error is discarded is a leak.
+   */
+  const scriptFiles = [];
+  const walkScriptDir = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const p = join(dir, entry.name);
+      if (entry.isDirectory()) walkScriptDir(p);
+      else if (entry.name.endsWith(".mjs")) scriptFiles.push(p);
+    }
+  };
+  walkScriptDir("scripts");
+
+  const deleters = [];
+  for (const file of scriptFiles) {
+    const normalised = file.split("\\").join("/");
+    if (normalised === "scripts/trade-pricing-audit.mjs") continue;
+    const text = codeOnly(file);
+    if (text.includes('from("eng_customer_accounts")') && /eng_customer_accounts"\)[\s\S]{0,60}?\.delete\(/.test(text)) {
+      deleters.push(normalised);
+    }
+  }
+  rec(
+    "no harness deletes a customer account",
+    deleters.length === 0,
+    deleters.length
+      ? `DELETES AN ACCOUNT, which 0048 refuses: ${deleters.join(", ")}`
+      : "trade-pricing-audit is the one exception and it ASSERTS the refusal",
+  );
+
   rec(
     "and refuses to overwrite a reason that was already given",
     /already superseded/i.test(readSource("src/lib/account-scope.ts")),

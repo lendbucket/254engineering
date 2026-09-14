@@ -29,6 +29,49 @@ import { signInFully } from "./probe-mfa.mjs";
 /** Obviously fake, and the domain is what teardown sweeps on. */
 export const PROBE_DOMAIN = "audit-probe.invalid";
 
+/** The sentence every superseded probe account carries. */
+const PROBE_SUPERSEDED_REASON =
+  "An audit probe account, superseded at teardown. It cannot be deleted: 0048 refuses DELETE on every account, because a record of what somebody was charged must outlive the account.";
+
+/**
+ * Retire a probe account, which since 0048 means superseding it.
+ *
+ * ======================================================================
+ * THE DELETE STOPPED WORKING AND NOTHING SAID SO.
+ * ======================================================================
+ *
+ * 0048 refuses DELETE on every customer account, because a record of what
+ * somebody was charged must outlive the account. Three teardowns went on
+ * calling `.delete()` and DISCARDING THE ERROR, so every probe account leaked
+ * and the board stayed green: 26 accumulated on development in one day before
+ * anybody counted them.
+ *
+ * It was found at Phase 14's gate zero by counting rows rather than by any
+ * check, which is the same shape as every other finding in that survey: the
+ * thing nobody is looking at.
+ *
+ * SUPERSEDING IS THE SANCTIONED ACT and it is what the operator's ruling says a
+ * retired account becomes. The reason and the actor are required by a check
+ * constraint, so a probe cannot be retired anonymously either.
+ *
+ * It does NOT delete the client beneath it, because an account referencing a
+ * client keeps that client alive and deleting it would fail for a second
+ * reason.
+ */
+export async function supersedeProbeAccount(d, accountId) {
+  if (!accountId) return { ok: false, error: "no account id" };
+  const { error } = await d
+    .from("eng_customer_accounts")
+    .update({
+      superseded_at: new Date().toISOString(),
+      superseded_reason: PROBE_SUPERSEDED_REASON,
+      superseded_by_email: `teardown@${PROBE_DOMAIN}`,
+    })
+    .eq("id", accountId)
+    .is("superseded_at", null);
+  return error ? { ok: false, error: error.message } : { ok: true };
+}
+
 const made = [];
 const partnersMade = [];
 let db = null;
@@ -264,7 +307,7 @@ export async function createCustomerProbe(base, label = "audit") {
     .select("id")
     .single();
   if (uErr || !user) {
-    await d.from("eng_customer_accounts").delete().eq("id", account.id);
+    await supersedeProbeAccount(d, account.id);
     await d.from("eng_clients").delete().eq("id", clientRow.id);
     return null;
   }
@@ -343,7 +386,7 @@ export async function destroyCustomerProbes(label = "audit") {
       .eq("id", id)
       .maybeSingle();
     await d.from("eng_customer_users").delete().eq("account_id", id);
-    await d.from("eng_customer_accounts").delete().eq("id", id);
+    await supersedeProbeAccount(d, id);
     if (account?.client_id) await d.from("eng_clients").delete().eq("id", account.client_id);
   }
   customersMade.length = 0;

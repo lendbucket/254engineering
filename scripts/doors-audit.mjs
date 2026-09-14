@@ -42,7 +42,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { startNextServer } from "./lib/dev-server.mjs";
 import { auditClient } from "./lib/db-target.mjs";
-import { PROBE_DOMAIN } from "./lib/portal-probe.mjs";
+import { PROBE_DOMAIN, supersedeProbeAccount } from "./lib/portal-probe.mjs";
 import { VERIFICATION_TTL_HOURS } from "../src/lib/account-doors.ts";
 
 const PORT = Number(process.env.DOORS_PORT || 3232);
@@ -571,7 +571,8 @@ async function run() {
         .select("client_id")
         .eq("id", row.account_id)
         .maybeSingle();
-      await db.from("eng_customer_accounts").delete().eq("id", row.account_id);
+      /* Since 0048 an account is superseded, never deleted. See portal-probe. */
+      await supersedeProbeAccount(db, row.account_id);
       if (acct?.client_id) await db.from("eng_clients").delete().eq("id", acct.client_id);
     }
     const { data: left } = await db
