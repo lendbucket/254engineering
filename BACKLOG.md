@@ -27,6 +27,60 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
+## ELEVEN TRADE FLOORS AWAIT A RULING, AND NOTHING SELLS AT TRADE PRICING UNTIL THEY DO
+
+Phase 13 Section 2, 2026-09-14. Full reasoning in
+`docs/phase-13-section-2-report.md`; this is the pointer.
+
+Every entry in `src/config/trade-floors.ts` is `pending`. A floor is a decision
+about money and no session writes one, so until the operator rules them no trade
+price can be set on any deliverable, at any value, by anybody. That is a correct
+state rather than a gap.
+
+**There is a second, independent reason nothing sells at trade pricing today**,
+and it is worth knowing before the floors are ruled: the whole order path is
+behind the compliance gate, which is shut on four conditions. Ruling the floors
+does not by itself make a trade price reachable by a customer.
+
+**Three decisions are recorded in that report and one of them needs the
+operator.** An account carrying a trade price CANNOT BE DELETED, because the
+price table refuses deletion and the account cascades to it. That is correct for
+a money record and it means a duplicate or mistaken account cannot be removed
+once priced. The alternatives are a soft delete on accounts or losing the money
+record, and choosing between them is the operator's.
+
+**What is outstanding from the section's own verification list**, also in that
+report: the perf gate was not run at both ceilings for the new pricing screen,
+and no decision was taken on whether the trade price joins `figure-surfaces`
+for the demonstration sweep.
+
+## THE PHASE 14 SURVEYS ARE WRITTEN AND NOTHING IN THEM IS FIXED
+
+2026-09-14. `docs/phase-14-surveys.md` carries three sweeps the operator
+ordered, all report only. This is the pointer; the reasoning and the rankings
+live there.
+
+**Survey 1, status functions returned as user-facing errors.** Nearly empty,
+which is the result. Two sites remain in `src/lib/ops-mfa.ts` and both are
+CURRENTLY complete because each is guarded by the same predicate its status
+function tests. `ops-mfa.ts:341` is the one to fix first: `encryptSecret`
+gaining any third failure mode silently recreates the original lockout defect in
+the original module. `customerSessionStatus()` has no callers at all.
+
+**Survey 2, boundaries comparing clocks across sources.** One real finding on a
+money path: a statement's `issued_at` comes from the database clock and its
+`due_at` from the application clock, in one statement, so a net-30 window is not
+thirty days from the recorded issue date. The retention cutoff is the same shape
+and is the only cross-clock comparison that DESTROYS data. **Fixing the first
+one the obvious way creates a third**, because the overdue-days comparison
+downstream is consistent only while `due_at` stays on the application clock.
+
+**Survey 3, recovery paths proven by nothing.** The operator's eight are
+confirmed, three more are added, and the ranking is Phase 14's order. Ranks 1 to
+3 are the restore, point in time recovery, and the `ALLOW_PRODUCTION_DB`
+permitted path, and all three share the shape that cost four hours in September:
+each is diagnosed from a place you can only reach if the thing already works.
+
 ## THE PATHS THAT EXIST ONLY FOR A FAILURE THAT HAS NOT HAPPENED YET
 
 Operator instruction, 2026-09-13, named as the Phase 14 opener. It came out of
