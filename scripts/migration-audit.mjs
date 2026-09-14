@@ -64,10 +64,10 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * mistake could have been applied to by hand, which is exactly how 0001 stayed
  * broken for a month. A constant has to be changed by a person who noticed.
  */
-const EXPECTED_FINGERPRINT = "a2534b7c2b27309e4f67486cb26b91bd";
-const EXPECTED_COLUMNS = 1034;
-const EXPECTED_TABLES = 75;
-const EXPECTED_TRIGGERS = 58;
+const EXPECTED_FINGERPRINT = "6d9f23f8a2cd1aa842a4c9921a21e585";
+const EXPECTED_COLUMNS = 1045;
+const EXPECTED_TABLES = 76;
+const EXPECTED_TRIGGERS = 60;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the
@@ -79,7 +79,7 @@ const EXPECTED_TRIGGERS = 58;
  * declaration was keeping on its own word. eng_claim_jobs is still the only
  * one called directly.
  */
-const EXPECTED_FUNCTIONS = 12;
+const EXPECTED_FUNCTIONS = 14;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });

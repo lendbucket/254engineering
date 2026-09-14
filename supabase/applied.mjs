@@ -827,6 +827,41 @@ export const APPLIED = [
       "enrolment that exists was made before this was recorded, and inventing an acknowledgement that never " +
       "happened would be the fabricated assurance this repository refuses everywhere else.",
   },
+  {
+    file: "0045_a_trade_price_is_superseded_never_edited.sql", appliedBy: "apply_migration",
+    fingerprint: "6d9f23f8a2cd1aa842a4c9921a21e585",
+    behaviour: "649d781bf5bf79fbc719f3c1c33dc027",
+    proves: { table: "eng_account_trade_prices" },
+    production: null,
+    development: { at: "0045", behaviour: "2974418e3982125cb10a22b4b90d01ea", facts: 843 },
+    because:
+      "Phase 13 Section 2 is open and its limits forbid applying anything to production. Applied to " +
+      "development 2026-09-14 through apply_migration and READ BACK: shape " +
+      "6d9f23f8a2cd1aa842a4c9921a21e585 across 1,045 columns, matching the replay exactly, and 843 " +
+      "behaviour facts, also matching, in fk 137 to 140, ck 102 to 105, pk and rls 75 to 76, ix 245 to " +
+      "248, tg 58 to 60, fn 12 to 14. That is one table with three foreign keys, three check " +
+      "constraints, two indexes beside its primary key, two triggers and their two functions, and " +
+      "nothing else. JUDGED ON THE COUNT AND THE PER KIND FIGURES rather than on the behaviour digest, " +
+      "per the amended stop condition of 2026-09-12: the development digest is " +
+      "2974418e3982125cb10a22b4b90d01ea and the replay's is 649d781bf5bf79fbc719f3c1c33dc027, and they " +
+      "differ for the three declared reasons in BEHAVIOUR_DIVERGENCE and not for a fourth.",
+    note:
+      "A TRADE PRICE IS SUPERSEDED, NEVER EDITED. An UPDATE that moved a price would move the answer to " +
+      "'what did we agree' for every order already placed under it, and no later audit could tell a " +
+      "corrected price from a price that was always that. THE FREEZE IS NARROW ON PURPOSE, guarding every " +
+      "column except superseded_at and superseded_by, because superseding is itself an update and " +
+      "forbidding UPDATE wholesale is how a table ends up with a corrections column everything reads " +
+      "instead. That is 0019's reasoning for eng_partner_ledger_entries applied again. A row may be " +
+      "superseded ONCE: re-superseding would rewrite which price replaced it. floor_cents_at_time IS A " +
+      "COPY OF A FACT THAT LIVES IN A FILE, and the duplication is the point: the file says what the " +
+      "floor IS and the row says what it WAS, and no amount of reading the file recovers the second, so " +
+      "a floor lowered next year cannot make a historical price look as though it had been checked " +
+      "against it. THE DATABASE HOLDS THE HALF IT CAN: price_cents >= floor_cents_at_time makes 'priced " +
+      "below the floor it was checked against' unrepresentable for anything written outside the " +
+      "application, and it cannot tell whether that floor was the real one, which is stated rather than " +
+      "implied. THERE IS NO OVERRIDE COLUMN, deliberately, because no override path exists at any role " +
+      "and a column for one would be the first half of building it.",
+  },
 
 ];
 
