@@ -99,9 +99,25 @@ export function OpenAccountClient() {
         }
       }}
     >
+      {/*
+        THE PANEL ABOVE ALREADY SAYS WHO THIS IS FOR, so this does not.
+
+        The first version opened with "For somebody who has rung and is not yet
+        a customer", directly beneath a panel description reading "From a
+        telephone call, for somebody who is not yet a customer". One fact, two
+        wordings, stacked, which is the shape this repository has a rule about:
+        two accounts of one fact are two accounts that will disagree, and the
+        copy is always the one nobody updates.
+
+        Found by opening the screenshot a second time, after the first reading
+        produced the panel that caused it.
+
+        WHAT SURVIVES IS THE PART THAT IS NOT A REPEAT and is load bearing: the
+        operator never sets a password and cannot see one.
+      */}
       <p className="text-[13.5px] leading-[1.6] text-[var(--secondary)]">
-        For somebody who has rung and is not yet a customer. They choose their own password from a
-        link sent to the address below, so nobody here sets one or can see one.
+        They choose their own password from a link sent to the address below, so nobody here sets
+        one or can see one.
       </p>
 
       <div className="grid gap-3.5 sm:grid-cols-2">

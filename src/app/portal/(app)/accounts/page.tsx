@@ -85,8 +85,28 @@ export default async function AccountsPage() {
             other thing an operator comes here to do, and it is a disclosure
             rather than a form so it costs one line until it is wanted.
           */}
+          {/*
+            IN A PANEL, WITH A TITLE, AND THE SCREENSHOT IS WHAT SAID SO.
+
+            The first version put the control straight onto the page
+            background. Every check was green: no overflow, tap targets fine,
+            contrast fine, and at both widths it worked. Opening the screenshot
+            showed a form with no heading, floating outside the white surface
+            every other block on this screen sits in, beginning mid sentence
+            with "For somebody who has rung". An operator scanning the page had
+            nothing telling them what it was.
+
+            Nothing on the board measures whether a form is labelled, which is
+            the same shape as the queue screen that was 38,744 pixels tall and
+            correct by every question anybody had asked.
+          */}
           <div className="mb-4">
-            <OpenAccountClient />
+            <Panel
+              title="Open an account"
+              description="From a telephone call, for somebody who is not yet a customer."
+            >
+              <OpenAccountClient />
+            </Panel>
           </div>
 
           <Panel
