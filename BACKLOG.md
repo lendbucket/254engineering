@@ -62,6 +62,76 @@ report: the perf gate was not run at both ceilings for the new pricing screen,
 and no decision was taken on whether the trade price joins `figure-surfaces`
 for the demonstration sweep.
 
+## PHASE 14 RANK 1 IS HALF PROVEN: THE SCHEMA REBUILDS, THE DATA RESTORE IS UNTESTED
+
+2026-09-14. Full account in `docs/production-cutover-plan.md` section 1a and
+`docs/phase-14-surveys.md` rank 1. This is the pointer.
+
+All 49 migrations were replayed from nothing into `254engineering-rehearsal`
+against a real PostgreSQL 17.6 Supabase engine, and the result matches the ledger
+and development exactly on both fingerprints and every per-kind figure.
+
+**What is still open: the data half, and it cannot be closed here.** Supabase has
+no cross-project restore, so a backup can only be restored into the project that
+made it, which is production. Nothing has ever proven that a Supabase restore
+produces a working platform, and nothing proves anything about storage buckets or
+the `auth` schema. Rank 1 is downgraded from "nothing is proven" to "the schema
+rebuild is proven", not closed.
+
+## RANK 2 AND RANK 3 ARE BLOCKED ON THE OPERATOR, BY RULING
+
+2026-09-14. Reasoning in `docs/phase-14-surveys.md` under each rank. Pointer only.
+
+**Rank 2, point in time recovery.** The operator ruled that PITR is not to be
+enabled to discover its price, because incurring a cost to learn it is the wrong
+shape; they read the figure off the dashboard. No cost is recorded here rather
+than a guessed one. The exercise, when it runs, runs against the rehearsal
+project and never against production, which is shared with four other
+applications.
+
+**Rank 3, the `ALLOW_PRODUCTION_DB` permitted path.** Needs the production
+service role key, which does not enter the working tree. **Blocked is its correct
+state**, not a gap for a later session to close: a session that found a way to
+exercise it unattended would have defeated the control rather than tested it.
+
+**`254engineering-rehearsal` is NOT deleted until rank 1 AND rank 2 are both
+finished**, by operator ruling. Rank 1 is finished, rank 2 is blocked, so the
+project stays and is declared in `supabase/projects.mjs`.
+
+## AN AUDIT THAT CANNOT OPEN A SCREEN MUST NOT REPORT THAT SCREEN AS PASSING
+
+2026-09-14. `contrast-audit` reported **56 page errors reading "no admin
+session" and zero contrast violations in the same run**: a green printed over 56
+screens nothing had measured. It did not recur on the next board, and per the
+operator's instruction it is recorded as **unexplained** with what was tried,
+**not as a flake**. That record is in `docs/phase-14-surveys.md`.
+
+**The durable defect is separate and is not unexplained.** Whatever caused the
+sign-in failures, an audit whose page load failed must count that page as
+UNMEASURED and say so, rather than contributing a zero to a violation count. It
+is the same shape as the vacuous green CLAUDE.md already records for `routesOf`
+returning an empty array. Not yet fixed.
+
+## A PROJECT IN THE ORGANISATION THAT NO 254 DOCUMENT ACCOUNTS FOR
+
+2026-09-14, found by the standing check the operator ordered after
+`docs/production-cutover-plan.md` was caught recording a project as deleted that
+was still alive. The declaration is `supabase/projects.mjs` and the board check
+is `scripts/project-accountability-audit.mjs`.
+
+The organisation holds **eight** projects; this firm accounts for four. **None of
+the other four holds a single `eng_` table**, checked rather than assumed, so no
+254 data lives outside the declared four.
+
+**One needs an operator ruling: `wattsmith-dedicated` (`coihtvhveabnqedrgpqe`).**
+Created 2026-09-04, five hours after the cutover project and in the same region,
+holding the wattsmith application's own schema. It reads as wattsmith being moved
+off `fsaryeciduszuahgjbly`, the shared project this firm calls production, which
+is the shared tenancy this repository has always flagged, happening from the
+other side and recorded nowhere here. What it means for the cutover plan is the
+operator's to say. The other three predate this work and are different
+businesses.
+
 ## THE PHASE 14 SURVEYS ARE WRITTEN AND NOTHING IN THEM IS FIXED
 
 2026-09-14. `docs/phase-14-surveys.md` carries three sweeps the operator

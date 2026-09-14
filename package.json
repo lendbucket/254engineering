@@ -57,6 +57,7 @@
     "mfa-audit": "tsx --conditions=react-server scripts/mfa-audit.mjs",
     "migration-audit": "tsx --conditions=react-server scripts/migration-audit.mjs",
     "schema-ledger-audit": "tsx scripts/schema-ledger-audit.mjs",
+    "project-accountability-audit": "tsx scripts/project-accountability-audit.mjs",
     "production-schema-check": "tsx scripts/production-schema-check.mjs",
     "intake-audit": "tsx scripts/intake-audit.mjs",
     "partner-audit": "tsx scripts/partner-audit.mjs",

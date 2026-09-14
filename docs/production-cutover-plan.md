@@ -320,7 +320,34 @@ sisters stay quiet.
 
 ## 1. What the rehearsal already proved
 
-Run against `254engineering-rehearsal` in `us-east-1`, since deleted.
+Run against `254engineering-rehearsal` in `us-east-1`.
+
+> **THE SENTENCE THAT USED TO BE HERE SAID "since deleted", AND IT WAS FALSE.**
+> Corrected 2026-09-14. The project `kmiwxtbtqrlorxfogtht` was still alive, still
+> billable, and still holding rows eleven days after this document recorded it as
+> deleted: 239 audit events, 2 order payments, 1 profile and 1 service order, at
+> the schema of migration 0007.
+>
+> Nobody deleted it and nobody checked. The sentence was written in the same pass
+> as the deletion was intended, which is the whole mechanism: a document records
+> what somebody MEANT to do and then reads, forever, as a record of what happened.
+>
+> **THE RULE, and it belongs beside every destructive step in this plan: a
+> document that records a destructive action as done is a claim nothing supports
+> unless something checked.** Deleting, revoking, rotating and decommissioning are
+> the four that matter here, because each one leaves something live and costing
+> money when it silently does not happen, and each one reads identically on the
+> page whether it happened or not.
+>
+> It was found by counting projects in the organisation against the documents that
+> account for them, which is now a standing board check: see
+> `scripts/project-accountability-audit.mjs`. That check exists because this
+> sentence existed.
+
+**AND THE REPLAY WAS RUN AGAIN, AGAINST A REAL ENGINE, ON 2026-09-14.** The table
+below is the September 3 run at migration 0007. The whole chain was replayed into
+the same project from an empty schema on 2026-09-14, all 49 migrations, and the
+result is in section 1a.
 
 | Question | Answer |
 | --- | --- |
@@ -335,6 +362,69 @@ Run against `254engineering-rehearsal` in `us-east-1`, since deleted.
 between two live projects. The rehearsal loaded synthetic rows of the same shape
 and volume. What was being tested is the mechanism that could silently corrupt
 identity, which is the uuid preservation, and that was tested exactly.
+
+---
+
+## 1a. The 2026-09-14 replay, and what it does NOT prove
+
+Phase 14 rank 1. The `eng_` schema in `254engineering-rehearsal` was dropped
+entirely and all 49 migrations, `0000` through `0048`, were replayed into it from
+nothing through `apply_migration`, against **PostgreSQL 17.6 on a real Supabase
+engine** rather than into PGlite, which is the only thing `migration-audit` has
+ever been able to do.
+
+**WHAT IT PROVES.** The files rebuild the whole schema from an empty database on
+the engine production actually runs, and the result is the schema the ledger
+declares:
+
+| | Replay | Development | |
+| --- | --- | --- | --- |
+| Shape fingerprint | `f6e3d58df88f192dc1e7eaa1458858a7` | same | **match** |
+| Columns / tables | 1,049 / 76 | same | **match** |
+| Behaviour facts | 850 | 850 | **match** |
+| `fk` `ck` `pk` `tg` `fn` `ix` `rls` `policy` | 141 106 76 61 16 249 76 0 | identical | **match** |
+| Seeded roles / grants | 7 / 118 | identical, same digests | **match** |
+
+Six intermediate checkpoints were read back against the figures recorded in
+CLAUDE.md as the chain was replayed, and every one matched exactly: 0005, 0007,
+0009-0010, 0018, 0020-0022 and 0027.
+
+**The SQL that ran was the SQL in the files.** `schema_migrations.statements` was
+read back for all 49 and compared against the files on disk, normalised for
+whitespace and statement separators: 49 of 49 identical. That check is the reason
+the result above can be trusted at all, because a replay performed by retyping is
+a replay of whatever was retyped.
+
+**THREE PER-KIND DIGESTS DIFFER FROM DEVELOPMENT AND NONE IS A SCHEMA
+DIFFERENCE.** Each was chased to its cause rather than attributed to the known
+non-portable list:
+
+- **`fk`** One fact. Development carries
+  `eng_responsible_charge_log_file_id_fkey` as NOT VALID because of the 28
+  dangling rows 0039 documents; the replay validated it, because the table is
+  empty. Hashing the 141 keys WITHOUT the validated flag gives
+  `ddf30da3a7ab879b7e8656f8615e2632` on both sides, so every key agrees on table,
+  name, columns and delete and update action.
+- **`ck`** Compared by `pg_get_constraintdef` instead of `conbin`, both sides give
+  `480c51351224be55d5e17f309aadb075` across all 106. The constraints are
+  identical; `conbin` is not stable between two databases.
+- **`fn`** Four of sixteen bodies. They are exactly the four whose bodies contain
+  SQL comments: `eng_claim_jobs`, `eng_forbid_mutation_allow_cascade`,
+  `eng_forbid_sealed_work_delete` and `eng_set_trade_price`. The replay stores
+  them WITH their comments and development stores them stripped. Normalised for
+  comments and whitespace all four hash identically on both sides.
+
+**WHAT IT DOES NOT PROVE, AND THIS IS THE POINT OF PUTTING IT HERE.** It says
+nothing whatever about recovering production's DATA. A migration chain rebuilds a
+schema; it does not restore a row. The replayed project holds 7 roles and 118
+grants, which the migrations seed, and **zero** profiles, audit events, orders,
+payments, accounts and files.
+
+**Supabase has no cross-project restore.** `restore_project` un-pauses a paused
+project; a backup belongs to the project that made it. So "restore production
+into a scratch project and read the rows back" is not an exercise this platform
+can perform at all, and rank 1 could only ever be the schema half of it. The data
+half is rank 2 and is blocked; see `docs/phase-14-surveys.md`.
 
 ---
 

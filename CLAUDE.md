@@ -956,6 +956,38 @@ project would today read as an ordinary development target to `roles-audit` and
 something does, those two constants move first. The full state of that project
 is in `docs/production-cutover-plan.md`, under the deferral notice at the top.
 
+**THERE IS A FOURTH PROJECT, AND THE DOCUMENT THAT SAID IT WAS DELETED WAS
+WRONG.** Operator ruling, 2026-09-14.
+
+`docs/production-cutover-plan.md` said of `254engineering-rehearsal`
+(`kmiwxtbtqrlorxfogtht`), in writing, "since deleted". Eleven days later it was
+alive, billable, and holding 239 audit events, 2 order payments, 1 profile and 1
+service order. Nobody deleted it and nobody checked. The sentence was written in
+the same pass as the deletion was intended.
+
+**A DOCUMENT THAT RECORDS A DESTRUCTIVE ACTION AS DONE IS A CLAIM NOTHING
+SUPPORTS UNLESS SOMETHING CHECKED.** Deleting, revoking, rotating and
+decommissioning are the four that matter, because each one leaves something live
+and costing money when it silently does not happen, and each one reads
+identically on the page whether it happened or not. It is the same failure as a
+green audit over an empty set, wearing prose.
+
+**So the projects are a declared inventory like every other one here.**
+`supabase/projects.mjs` names every project this firm is accountable for and the
+document that explains it, and `scripts/project-accountability-audit.mjs` runs on
+the board. Like `schema-ledger-audit` beside it, **it cannot see the provider**
+and says so: it asserts that every project the REPOSITORY names is declared and
+explained by a document that actually mentions it, and it scans the tracked
+source in REVERSE so a project somebody wires up without telling the declaration
+is found. Listing the organisation is a by hand MCP step, `list_projects`.
+
+The first run of that by hand step found **eight projects where this firm
+accounts for four**. None of the other four holds a single `eng_` table, checked
+rather than assumed. One of them, `wattsmith-dedicated`, was created the day
+after the cutover project and holds the wattsmith application's own schema, which
+reads as wattsmith moving off the shared project this firm calls production;
+that is in `BACKLOG.md` awaiting a ruling.
+
 **Why this exists.** Before the split, every audit run wrote to production:
 roles-audit created accounts there, mobile-overflow-audit signed a probe in
 there, and forms-audit had already once filled production tables with thirty rows
@@ -1203,6 +1235,34 @@ differently by PGlite's PostgreSQL 18.3 and Supabase's 17.6, and the three
 function bodies carrying SQL comments are stored on production with those
 comments stripped. Proven rather than argued, by a check constraint created on
 both sides the same hour from byte identical SQL that hashed two ways.
+
+**BOTH HALVES OF THAT EXPLANATION WERE TOO NARROW, AND THE 2026-09-14 REPLAY
+CORRECTED THEM.** Phase 14 rank 1 replayed all 49 migrations into
+`254engineering-rehearsal` and compared it against development. Both are Supabase
+**PostgreSQL 17.6**, so the version difference cannot be the cause of anything,
+and `ck` and `fn` still disagreed.
+
+- **`conbin` is not stable between two databases AT ALL**, never mind between two
+  engine versions. Compared instead by `pg_get_constraintdef`, all 106 check
+  constraints hashed identically on both sides. So the portable way to compare a
+  check constraint is its DEFINITION, and the version explanation above is a
+  special case of a wider fact rather than the reason.
+- **It is FOUR function bodies, not three, and development strips them too.**
+  `eng_set_trade_price` joined the list when 0047 added it. The four are exactly
+  the four whose bodies contain SQL comments: `eng_claim_jobs`,
+  `eng_forbid_mutation_allow_cascade`, `eng_forbid_sealed_work_delete` and
+  `eng_set_trade_price`. Normalised for comments and whitespace, all four hash
+  identically. The stripping is not a production peculiarity.
+
+**And one real difference hid inside the noise, which is the argument for
+chasing a digest rather than waving at it.** The `fk` digests differed by exactly
+one fact: development carries `eng_responsible_charge_log_file_id_fkey` NOT VALID
+because of the 28 dangling rows 0039 documents, and a freshly replayed database
+validates it because the table is empty. Hashing the 141 keys without the
+validated flag matched on both sides. **That is a genuine, meaningful difference
+between two databases**, and a session that had written the whole digest gap off
+as "the known conbin thing" would have reported three explained differences and
+missed it.
 
 So the rule is:
 

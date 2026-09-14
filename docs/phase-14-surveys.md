@@ -248,6 +248,53 @@ record, its financial record and its sealed-document provenance are gone. Every
 other item on this list is recoverable by hand from the database; this one IS
 the database.
 
+#### RANK 1: THE SCHEMA HALF IS NOW PROVEN. THE DATA HALF IS NOT, AND CANNOT BE HERE.
+
+Run 2026-09-14 against `254engineering-rehearsal` (`kmiwxtbtqrlorxfogtht`) on
+operator ruling. Full account in `docs/production-cutover-plan.md` section 1a.
+
+**SUPABASE HAS NO CROSS-PROJECT RESTORE, and that reframed the exercise before
+it started.** `restore_project` un-pauses a paused project; a backup belongs to
+the project that made it. "Restore production into a scratch project and read
+the rows back" is not something this platform can do at all. So rank 1 became
+the half that can be done: drop the `eng_` schema in the rehearsal project and
+replay all 49 migrations into it from nothing, **against a real PostgreSQL 17.6
+Supabase engine** rather than into PGlite, which is the only thing
+`migration-audit` has ever done.
+
+**What it proved.** The files rebuild the entire schema on the engine production
+runs, and the result is what the ledger declares: shape
+`f6e3d58df88f192dc1e7eaa1458858a7` across 1,049 columns and 76 tables, 850
+behaviour facts, and every per-kind figure identical to development, seeded roles
+and grants included. Six intermediate checkpoints matched CLAUDE.md exactly. The
+SQL that ran was read back out of `schema_migrations` and compared against the
+files on disk: 49 of 49 identical.
+
+Three per-kind digests differ from development and every one was chased to its
+cause; none is a schema difference. One foreign key's validated flag (0039's
+documented dangling rows), `conbin` serialisation on check constraints whose
+definitions are identical, and four function bodies stored with their comments
+here and stripped on development.
+
+**WHAT IT STILL DOES NOT PROVE, WHICH IS THE ORIGINAL QUESTION.** Nothing about
+recovering DATA. A migration chain rebuilds a schema; it does not restore a row.
+The replayed project holds the 7 roles and 118 grants the migrations seed and
+zero profiles, audit events, orders, payments, accounts and files. It also says
+nothing about storage buckets or the `auth` schema.
+
+**So rank 1 is downgraded, not closed.** What was "nothing about it is proven" is
+now "the schema rebuild is proven and the data restore is untested". The
+remaining half needs a real backup restored somewhere, and the only place a
+Supabase backup can be restored is the project that made it, which is production.
+
+**What was destroyed to do it, said plainly.** The rehearsal project held 239
+audit events, 2 order payments, 1 profile and 1 service order from its September
+3 life. Its counts and fingerprint were recorded first, as instructed, and then
+the schema was dropped. **The row CONTENTS were not exported**, only the counts,
+so those rows are gone and not reconstructable. They were rehearsal residue
+rather than firm records, and recording counts without contents was thinner than
+it should have been.
+
 ### 2. Point in time recovery — RANK 2
 
 **What proves it today.** A boolean in `src/config/launch-readiness.ts` stated
@@ -263,6 +310,26 @@ exercising it on production is the thing that cannot be done casually.
 
 **What happens if it fails.** The same as rank 1, minus the window since the
 last backup.
+
+#### RANK 2 IS BLOCKED ON THE OPERATOR'S WORD, 2026-09-14.
+
+**Operator ruling:** "Do not attempt to enable PITR. Discovering a price by
+incurring it is the wrong shape and I will read it off the dashboard myself."
+
+The cost was not obtainable without incurring it. `get_cost` answers for
+projects and branches, not for the point in time recovery add-on, and the only
+way the API would have produced a figure is by turning it on. That is exactly
+the shape the ruling refuses, so **no figure is recorded here rather than a
+guessed one**, and the operator reads it off the dashboard.
+
+**It stays blocked until then.** The exercise, when it runs, runs against the
+rehearsal project and never against production, because a rewind on
+`fsaryeciduszuahgjbly` restores five applications or none.
+
+**The rehearsal project is NOT deleted.** Operator ruling: it goes when rank 1
+and rank 2 are BOTH finished, not before. Rank 1 is finished; rank 2 is blocked.
+So `kmiwxtbtqrlorxfogtht` stays, and it is declared in `supabase/projects.mjs`
+so that it cannot become another project nobody accounts for.
 
 ### 3. The `ALLOW_PRODUCTION_DB` permitted path — RANK 3
 
@@ -280,6 +347,22 @@ asserting a row comes back. It writes nothing.
 **What happens if it fails.** The firm cannot seed its first administrator or
 run an emergency repair, at the moment it needs to, and discovers the guard has
 been over-tightened only then.
+
+#### RANK 3 IS BLOCKED, AND IT STAYS BLOCKED. Operator ruling, 2026-09-14.
+
+**"Rank 3 needs the production service role key and that key does not enter the
+working tree. Blocked, recorded, and it stays blocked until I run it by hand."**
+
+That is not a gap waiting to be closed by a cleverer session. The whole permitted
+path is `ALLOW_PRODUCTION_DB=1` plus a key somebody supplies, and a session that
+found a way to exercise it unattended would have defeated the control rather than
+tested it. **The correct state of this item is blocked**, and the only thing that
+moves it is the operator at a keyboard with the key.
+
+The MCP is not a way round it either. `apply_migration` and `execute_sql` reach
+production through a different credential entirely, so exercising them proves
+nothing about whether `scripts/lib/db-target.mjs` still opens the door it is
+supposed to open.
 
 ### 4. Retention execute mode — RANK 4
 
@@ -355,6 +438,47 @@ fix is in place; **no check drives a refund event through it.**
 `tasks.raise` and `audit.write` and is proven unassignable at compile time. Its
 ability to actually raise a task when the platform needs to tell somebody
 something is exercised by nothing.
+
+### UNEXPLAINED, AND NOT CALLED A FLAKE: contrast-audit's 56 unmeasured screens
+
+**Operator instruction, 2026-09-14:** "If it recurs, chase it. If it does not,
+record it as unexplained with what you tried, and do not call it a flake in the
+report. Fifty-six screens unmeasured while reporting zero violations is the shape
+that matters, even when the cause is transient."
+
+**What happened.** On one board run `contrast-audit` reported **56 page errors
+reading "no admin session"** and, in the same run, **zero contrast violations**.
+Those two facts together are the finding: the audit could not open 56 screens and
+still reported a clean result for them, so a green was printed over a set nothing
+had measured. That is the same shape as the vacuous green already recorded in
+CLAUDE.md, where `routesOf` returned an empty array and fifteen checks passed
+over nothing.
+
+**IT DID NOT RECUR.** Board 16 ran all 52 audits green with 0 FAILs and **zero
+"no admin session" errors**, on the same code, from the same tree.
+
+**What was tried, so the next session does not start from nothing:**
+
+- Re-ran the full board under its own invocation, nothing else touching the
+  repository. Clean.
+- Confirmed the probe account path is the one `scripts/lib/portal-probe.mjs`
+  owns, which was changed the same day by 0048's supersede-rather-than-delete
+  teardown. That change is a plausible neighbour and is **not** established as
+  the cause; the failing run and the fix are not cleanly ordered against each
+  other in the evidence available.
+- Counted probe accounts on development at Phase 14 gate 0, which is how the 27
+  leaked accounts were found. That leak is real and fixed, and whether a
+  saturated probe domain contributed to 56 sign-in failures is **not proven**.
+
+**So the cause is unexplained.** Not transient, not a flake, not "environmental".
+Those words all mean "we stopped looking", and the reason this is written down at
+this length is that the next person to see it should chase it rather than
+recognise it.
+
+**The durable defect underneath it is separate and is NOT unexplained**: an audit
+that cannot open a screen must not report that screen as passing. That is a real
+hole in `contrast-audit` whatever caused the sign-in failures, and it is the part
+that can be fixed without ever reproducing this. It is in `BACKLOG.md`.
 
 ### The ranking, which is Phase 14's order
 

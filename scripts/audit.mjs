@@ -91,6 +91,31 @@ const PHASE_ZERO = [
   },
   {
     /*
+     * A PROJECT NO DOCUMENT ACCOUNTS FOR IS NAMED.
+     *
+     * Operator ruling, 2026-09-14. docs/production-cutover-plan.md said of the
+     * rehearsal project, in writing, "since deleted". Eleven days later it was
+     * alive, billable, and holding 239 audit events, 2 order payments, 1
+     * profile and 1 service order.
+     *
+     * Nobody deleted it and nobody checked. The sentence was written in the
+     * same pass as the deletion was intended, which is the mechanism: a
+     * document records what somebody MEANT to do and then reads forever as a
+     * record of what happened.
+     *
+     * Like schema-ledger-audit beside it, it cannot see the provider and says
+     * so. It asserts that every project the REPOSITORY names is declared and
+     * explained by a document that actually mentions it, and it scans the
+     * tracked source in REVERSE so a project somebody wired up without telling
+     * the declaration is found. Listing the organisation is a by hand MCP step.
+     *
+     * Needs no server, no network and no credentials.
+     */
+    name: "project-accountability-audit",
+    why: "every Supabase project this repository names is declared and explained",
+  },
+  {
+    /*
      * The county map renders the bytes it rendered before.
      *
      * Pure, no server, no network. TexasCountyMap.tsx claimed since 2026-09-04
