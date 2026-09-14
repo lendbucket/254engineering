@@ -6,6 +6,7 @@ import { accountDefaults } from "@/lib/ops-account";
 import { supabaseAdmin, SITE_KEY } from "@/lib/supabase";
 import { isPrelaunch } from "@/lib/launch";
 import type { BulkProperty } from "@/lib/bulk-order";
+import { tradePriceInForce } from "@/lib/trade-pricing";
 
 export const dynamic = "force-dynamic";
 
@@ -131,7 +132,13 @@ export async function POST(request: NextRequest) {
    * rule usable from a script: check, then submit what was accepted.
    */
   if (body?.dryRun === true) {
-    const preview = previewBatch(serviceSlug, tier, properties);
+    /*
+     * THE PREVIEW USES THE AGREED PRICE OR IT IS A DIFFERENT NUMBER FROM THE
+     * BILL. A trade price honoured at checkout and not in the preview is the
+     * same defect as one honoured at checkout and not on the statement.
+     */
+    const agreed = await tradePriceInForce(key.accountId, serviceSlug, tier ?? "standard");
+    const preview = previewBatch(serviceSlug, tier, properties, agreed);
     if (!preview.ok) return answer(409, { ok: false, error: preview.error });
 
     return answer(200, {

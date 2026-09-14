@@ -88,6 +88,20 @@ export function splitBatch(
   entry: CatalogEntry,
   properties: BulkProperty[],
   twiaCounties: Set<string>,
+  /**
+   * The price this account has agreed for this deliverable, or null.
+   *
+   * Passed DOWN rather than looked up here, because this function is pure and
+   * synchronous and a database read inside it would make every caller async to
+   * serve one of them. The lookup happens where the account is known, which is
+   * ops-bulk, and the number arrives as a number.
+   *
+   * It is the same number for every property in the batch, by construction: a
+   * trade price is per account and per deliverable, and a batch is one
+   * deliverable across many properties. A per property agreed price would be a
+   * different feature and is not this one.
+   */
+  agreedPriceCents?: number | null,
 ): BatchSplit {
   const accepted: AcceptedProperty[] = [];
   const rejected: RejectedProperty[] = [];
@@ -164,7 +178,7 @@ export function splitBatch(
     }
 
     const coastal = isCoastal(entry, p.county, twiaCounties);
-    const quote = quoteFor(entry, coastal, p.county);
+    const quote = quoteFor(entry, coastal, p.county, agreedPriceCents ?? null);
 
     /*
      * A quote that could not be computed is a REJECTION, not an accepted
@@ -190,10 +204,28 @@ export function splitBatch(
    * of the ones that do. A partial sum shown as a total is a number a customer
    * would be charged against, and it would be wrong in the flattering direction.
    */
+  /*
+   * AND AN EMPTY BATCH HAS NO TOTAL, WHICH IS NOT A TOTAL OF ZERO.
+   *
+   * Found by walking a trade priced batch and reading the output: both
+   * properties were rejected and the batch reported
+   *
+   *   batch total        $0.00
+   *
+   * which reads as "this batch costs nothing" rather than "nothing was
+   * accepted". It is the absent-versus-zero rule this repository already
+   * applies to a margin with no cost entered and to a report over an empty
+   * period, arriving in the one place a customer looks before committing.
+   *
+   * reduce over an empty array returns the seed, so the zero was arithmetic
+   * rather than a decision. Null already means "no total can be stated", which
+   * is exactly what is true here, and every caller already handles it.
+   */
   const anyUnpriced = accepted.some((a) => !isKnown(a.priceCents));
-  const totalCents = anyUnpriced
-    ? null
-    : accepted.reduce((n, a) => n + (a.priceCents as number), 0);
+  const totalCents =
+    accepted.length === 0 || anyUnpriced
+      ? null
+      : accepted.reduce((n, a) => n + (a.priceCents as number), 0);
 
   return {
     accepted,

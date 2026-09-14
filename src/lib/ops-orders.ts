@@ -111,9 +111,51 @@ export type Quote = {
  * There is no arithmetic here that can turn an absent figure into a number: the
  * total comes from `add`, which returns null the moment any part is unknown.
  */
-export function quoteFor(entry: CatalogEntry, twiaCounty: boolean, countyName?: string): Quote {
+export function quoteFor(
+  entry: CatalogEntry,
+  twiaCounty: boolean,
+  countyName?: string,
+  /**
+   * A trade price agreed with this account, or null for the published price.
+   *
+   * ======================================================================
+   * THE AGREED PRICE REPLACES THE BASE LINE AND SAYS THAT IT HAS.
+   * ======================================================================
+   *
+   * Phase 13 Section 2. The tempting shape is to quietly substitute the number,
+   * which is what a discount usually looks like in software and is wrong here:
+   * the customer then sees a total that does not match the published price with
+   * nothing explaining why, and the first time they check they are looking at
+   * an apparent error.
+   *
+   * So the line is LABELLED as agreed pricing and the published figure is named
+   * in its note. A customer who compares the two is told which is which by the
+   * quote itself.
+   *
+   * WHAT THIS FUNCTION DOES NOT DO IS CHECK A FLOOR. It receives a number that
+   * has already been through setTradePrice, which refused anything below the
+   * floor and again at the row's own check constraint. A second floor check
+   * here would be a third answer to the same question, and the one that drifts.
+   *
+   * THE COASTAL SURCHARGE IS NOT AFFECTED. It is the difference windstorm work
+   * carries rather than part of the price, which is why it has always been its
+   * own named line, and an agreed price on the work does not make that
+   * difference smaller.
+   */
+  agreedPriceCents?: number | null,
+): Quote {
+  const agreed = typeof agreedPriceCents === "number" && agreedPriceCents > 0 ? agreedPriceCents : null;
+
   const lines: PriceLine[] = [
-    { label: entryLabel(entry), note: null, amountCents: entry.priceCents },
+    agreed !== null
+      ? {
+          label: `${entryLabel(entry)} (agreed price)`,
+          note: isKnown(entry.priceCents)
+            ? `Your account has an agreed price for this service. The published price is ${money(entry.priceCents)}.`
+            : "Your account has an agreed price for this service, which is not published.",
+          amountCents: agreed,
+        }
+      : { label: entryLabel(entry), note: null, amountCents: entry.priceCents },
   ];
 
   if (twiaCounty) {
@@ -129,7 +171,17 @@ export function quoteFor(entry: CatalogEntry, twiaCounty: boolean, countyName?: 
   const totalCents = add(...lines.map((l) => l.amountCents));
 
   let unavailable: string | null = null;
-  if (!isKnown(entry.priceCents)) {
+  /*
+   * AN AGREED PRICE MAKES A QUOTED-ONLY DELIVERABLE ORDERABLE, and that is the
+   * point of agreeing one. Two deliverables carry no published price because
+   * the firm quotes them; an account that has been quoted and has the number
+   * recorded is exactly the case this branch must not refuse.
+   *
+   * Everything else about them is unchanged: the floor still had to be ruled,
+   * the price still had to clear it, and the refund terms still had to be
+   * stateable before it could be set at all.
+   */
+  if (agreed === null && !isKnown(entry.priceCents)) {
     unavailable = "A price has not been published for this service yet.";
   } else if (twiaCounty && !isKnown(entry.coastalSurchargeCents)) {
     unavailable =
