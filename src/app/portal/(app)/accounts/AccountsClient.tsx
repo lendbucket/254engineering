@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { money } from "@/lib/ops-money";
 import { Chip } from "@/components/portal/surfaces";
+import Link from "next/link";
 
 type Row = {
   id: string;
@@ -118,6 +119,25 @@ export function AccountsClient({ rows }: { rows: Row[] }) {
                 {r.blockedReason}
               </p>
             ) : null}
+
+            {/*
+              THE WAY IN TO TRADE PRICING, ON EVERY ACCOUNT RATHER THAN ONLY
+              INVOICED ONES.
+
+              The buttons below are invoiced-account acts: closing a period,
+              issuing a statement. A trade price is not. An account paying by
+              card can be quoted an agreed price just as an invoiced one can,
+              and hiding the link for them would be the screen deciding who may
+              be negotiated with.
+            */}
+            <div className="mt-3">
+              <Link
+                href={`/portal/accounts/${r.id}/pricing`}
+                className="inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-[var(--navy)] underline underline-offset-2"
+              >
+                Trade pricing
+              </Link>
+            </div>
 
             {r.billingMode === "invoice" ? (
               <div className="mt-3 flex flex-wrap items-center gap-3">

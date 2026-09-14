@@ -1,7 +1,13 @@
-// @runtime react-server
+// NO @runtime DECLARATION, AND THE BOARD IS WHAT SAID SO.
 //
-// Declared because this audit imports src/config/trade-floors.ts and reads
-// src/lib/trade-pricing.ts, which carries `server-only`.
+// This declared "@runtime react-server" and the board refused to start:
+// scripts/lib/audit-runtime.mjs follows the imports and found nothing
+// server-only. It was right. This file imports the floor register and the
+// catalogue, which are plain modules, and READS src/lib/trade-pricing.ts as
+// text rather than importing it.
+//
+// The CHILD PROCESS it spawns does import that module, and passes the flag
+// itself. A declaration here would have been a flag on the wrong process.
 /**
  * A FLOOR IS THE OPERATOR'S, AND NOTHING SELLS BENEATH ONE.
  *

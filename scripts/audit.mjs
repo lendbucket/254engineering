@@ -149,6 +149,20 @@ const PHASE_ZERO = [
     why: "every surface is declared, and every browser audit derives its list from that declaration",
   },
   {
+    /*
+     * PHASE ZERO, because it needs a database and no server. The live half
+     * spawns its own child processes rather than driving HTTP, for the reason
+     * written at the top of that file: the floor register is a module constant
+     * and a fresh import is not fresh enough.
+     *
+     * It patches ONE floor into src/config/trade-floors.ts for the length of
+     * the run and restores it in a finally, because every real floor is pending
+     * and every live check would otherwise pass over an empty set.
+     */
+    name: "trade-pricing-audit",
+    why: "a floor is the operator's, nothing sells beneath one, and nothing sells at all without one",
+  },
+  {
     // Phase 8 added a second kind of person. This asks whether the two can be
     // confused for each other, which is the failure that would look like a
     // working site right up until a customer opened the review queue.
