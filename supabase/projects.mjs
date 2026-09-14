@@ -106,53 +106,99 @@ export const PROJECTS = [
 export const RETIRED = [];
 
 /**
- * THE REST OF THE ORGANISATION, AS READ ON 2026-09-14.
+ * PROJECTS IN THE ORGANISATION THAT ARE NOT THIS FIRM'S.
  *
- * The organisation holds EIGHT projects and this firm accounts for four. The
- * other four are recorded here rather than ignored, because the operator's
- * ruling is that a project no document accounts for is NAMED, and the way to
- * stop naming one is to account for it.
+ * Operator ruling, 2026-09-14. The organisation holds EIGHT projects and this
+ * firm owns four. The other four belong to Reyna Holdings and are outside this
+ * platform entirely. They are DECLARED rather than ignored, because the ruling
+ * is that a project no document accounts for is named, and the way to stop
+ * naming one is to account for it.
  *
- * **NONE OF THEM HOLDS ANY 254 DATA.** Checked rather than assumed: every one
- * was read for `eng_` tables in `information_schema` and every one returned
- * zero. That is the question that actually mattered, and it now has a dated
- * answer instead of an inference from the project names.
+ * **"EXTERNAL" IS A DECLARATION, NOT A DISMISSAL, AND THE CHECK ENFORCES THAT.**
+ * The obvious abuse of this list is somebody silencing a real finding by moving
+ * a project into it, so the audit refuses an external entry that does not carry
+ * `engTables: 0` and the date somebody actually looked. **An external project
+ * holding a single `eng_` table is a FAIL**, loudly, because a project with this
+ * firm's data in it is this firm's problem whoever owns the account.
  *
- * `wattsmith-dedicated` is the one worth the operator's attention. It was
- * created 2026-09-04, five hours after the cutover project and in the same
- * region, and it holds the wattsmith application's own tables: pricebook,
- * estimates, job completions, franchise inquiries. It reads as somebody moving
- * wattsmith OFF the shared project that 254 calls production, which is the
- * shared tenancy this repository has always flagged, happening from the other
- * side and unrecorded here.
+ * All four were read on 2026-09-14 through `information_schema` and every one
+ * returned zero `eng_` tables. That is the question that mattered, and it has a
+ * dated answer rather than an inference from the project names.
  *
- * These are NOT declared as this firm's, because whether they are is the
- * operator's to say. What is recorded is what was read and when.
+ * **WHAT THIS FILE PREVIOUSLY INFERRED ABOUT `wattsmith-dedicated` WAS WRONG.**
+ * It read as wattsmith being moved off the shared project this firm calls
+ * production, and the operator has said plainly that wattsmith has NOT moved.
+ * **Nothing about the cutover's tenancy argument changed.** The inference is
+ * removed rather than softened, because a wrong sentence left in a declaration
+ * is exactly what section 2c of CLAUDE.md is about, and this one would have
+ * shaped how somebody read the cutover plan.
  */
+export const EXTERNAL = [
+  {
+    ref: "coihtvhveabnqedrgpqe",
+    name: "wattsmith-dedicated",
+    owner: "Reyna Holdings",
+    createdAt: "2026-09-04",
+    publicTables: 18,
+    engTables: 0,
+    checkedAt: "2026-09-14",
+    because:
+      "Holds the wattsmith application's own schema: pricebook, estimates, job completions, " +
+      "franchise inquiries. Outside this firm. Wattsmith has NOT moved off the shared project, " +
+      "so the cutover's tenancy argument is unchanged.",
+  },
+  {
+    ref: "difmjcvfihsbtxpiddos",
+    name: "salontransact",
+    owner: "Reyna Holdings",
+    createdAt: "2026-04-11",
+    publicTables: 39,
+    engTables: 0,
+    checkedAt: "2026-09-14",
+    because: "A different business, predating this work.",
+  },
+  {
+    ref: "bmxxzwhzuqjxkxwxslvh",
+    name: "Salon Envy Website",
+    owner: "Reyna Holdings",
+    createdAt: "2026-04-20",
+    publicTables: 17,
+    engTables: 0,
+    checkedAt: "2026-09-14",
+    because: "A different business, predating this work.",
+  },
+  {
+    ref: "mllfwrdpxjnnzztuccrt",
+    name: "Lone Star Portal",
+    owner: "Reyna Holdings",
+    createdAt: "2026-07-03",
+    publicTables: 30,
+    engTables: 0,
+    checkedAt: "2026-09-14",
+    because: "A different business, predating this work.",
+  },
+];
+
+/** What the organisation held when somebody last looked, and how. */
 export const ORGANISATION_READING = {
   readAt: "2026-09-14",
   readBy: "Supabase MCP list_projects, then information_schema per project",
   organisation: "oowwzggwwukizaomdmui",
   totalProjects: 8,
-  notAccountedForByThisFirm: [
-    {
-      ref: "coihtvhveabnqedrgpqe",
-      name: "wattsmith-dedicated",
-      createdAt: "2026-09-04",
-      publicTables: 18,
-      engTables: 0,
-      note:
-        "Holds the wattsmith application's own schema. Created the day after the cutover project. " +
-        "Reads as wattsmith being moved off the shared project 254 calls production. Needs an operator ruling.",
-    },
-    { ref: "difmjcvfihsbtxpiddos", name: "salontransact", createdAt: "2026-04-11", publicTables: 39, engTables: 0, note: "Predates this work. A different business." },
-    { ref: "bmxxzwhzuqjxkxwxslvh", name: "Salon Envy Website", createdAt: "2026-04-20", publicTables: 17, engTables: 0, note: "Predates this work. A different business." },
-    { ref: "mllfwrdpxjnnzztuccrt", name: "Lone Star Portal", createdAt: "2026-07-03", publicTables: 30, engTables: 0, note: "Predates this work. Unrelated to 254 as far as its schema shows." },
-  ],
 };
 
 /** Every ref this firm is accountable for, retired included. */
 export const REFS = [...PROJECTS, ...RETIRED].map((p) => p.ref);
+
+/**
+ * Every ref DECLARED anywhere here, this firm's and not.
+ *
+ * This is what the reverse scan compares against, and the distinction from
+ * `REFS` is the point: a ref appearing in the source is fine if SOMETHING here
+ * accounts for it, and whether that account says "ours" or "Reyna Holdings,
+ * checked, no eng_ tables" is a different question from whether it exists.
+ */
+export const DECLARED_REFS = [...REFS, ...EXTERNAL.map((p) => p.ref)];
 
 /**
  * The refs that appear in code as constants, and what each is FOR.

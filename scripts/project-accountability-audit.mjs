@@ -28,13 +28,17 @@
  *      and that actually NAMES it. A pointer at a document that does not mention
  *      the project is a pointer nobody can follow, which is the failure one
  *      level in.
- *   2. Every project ref that appears ANYWHERE in the tracked source is in the
- *      declaration. This is the reverse scan, and it is the half that catches a
- *      project somebody wired up without telling this file, exactly as the
- *      environment file scan catches a credential nothing reads.
+ *   2. Every project ref that appears ANYWHERE in the source, tracked or merely
+ *      written, is in the declaration. This is the reverse scan, and it is the
+ *      half that catches a project somebody wired up without telling this file,
+ *      exactly as the environment file scan catches a credential nothing reads.
  *   3. A retired project says when it was confirmed gone AND how. Intending to
  *      delete is not confirming.
- *   4. Nothing is declared twice, and no two entries share a ref.
+ *   4. An EXTERNAL project carries who owns it, when somebody looked, and that
+ *      it holds zero `eng_` tables. External is a declaration rather than a
+ *      dismissal, and a project holding this firm's data cannot be dismissed.
+ *   5. Nothing is declared twice, no two entries share a ref, and nothing is
+ *      declared both ours and external.
  *
  * It prints the by hand command for the half it cannot do, rather than implying
  * it has done it.
@@ -42,7 +46,7 @@
 
 import { readFileSync, existsSync } from "node:fs";
 import { execFileSync } from "node:child_process";
-import { PROJECTS, RETIRED, REFS } from "../supabase/projects.mjs";
+import { PROJECTS, RETIRED, EXTERNAL, REFS, DECLARED_REFS } from "../supabase/projects.mjs";
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -116,6 +120,53 @@ if (RETIRED.length === 0) {
   rec("no project is declared retired (0)", true, "nothing has been confirmed deleted, which is honest");
 }
 
+// -------------------------------------- 3b. external is a declaration, not a dismissal
+
+/*
+ * THE GUARD THAT STOPS THIS LIST BECOMING A WAY TO SILENCE A FINDING.
+ *
+ * Operator ruling, 2026-09-14: a project outside this firm is named as
+ * declared-external rather than unaccounted. The obvious abuse is moving an
+ * awkward project into that list to make the board go quiet, so an external
+ * entry has to carry the thing that makes it dismissible: somebody looked, on a
+ * date, and it holds none of this firm's data.
+ *
+ * An external project with even one eng_ table is a FAIL, because a database
+ * with this firm's records in it is this firm's problem whoever owns the
+ * account it is billed to.
+ */
+for (const e of EXTERNAL) {
+  const documented =
+    Boolean(e.owner) && Boolean(e.checkedAt) && Boolean(e.because) && typeof e.engTables === "number";
+  rec(
+    `external project ${e.name} says who owns it, when it was checked, and what it holds`,
+    documented,
+    documented
+      ? ""
+      : "an external entry carries owner, checkedAt, because and engTables. Without them it is not a " +
+        "declaration, it is a way to stop the board mentioning a project",
+  );
+
+  rec(
+    `external project ${e.name} holds no eng_ table (checked ${e.checkedAt ?? "never"})`,
+    e.engTables === 0,
+    e.engTables === 0
+      ? ""
+      : `it reports ${e.engTables} eng_ tables. A project holding this firm's data is this firm's ` +
+        "problem whoever owns the account, and it cannot be dismissed as external",
+  );
+}
+
+{
+  const ours = new Set(REFS);
+  const bothWays = EXTERNAL.filter((e) => ours.has(e.ref)).map((e) => e.ref);
+  rec(
+    `no project is declared both ours and external (${EXTERNAL.length} external)`,
+    bothWays.length === 0,
+    bothWays.length ? `declared twice, in opposite senses: ${bothWays.join(", ")}` : "",
+  );
+}
+
 // ----------------------------------- 4. the reverse scan, over tracked source
 
 {
@@ -125,7 +176,27 @@ if (RETIRED.length === 0) {
    * the environment file scan: a check derived only from the declaration can
    * find what the declaration already knows.
    */
-  const tracked = execFileSync("git", ["ls-files"], { encoding: "utf8" })
+  /*
+   * TRACKED **AND** UNTRACKED-BUT-NOT-IGNORED, AND THE SECOND HALF IS THERE
+   * BECAUSE ITS ABSENCE COST THIS AUDIT ITS FIRST BOARD.
+   *
+   * The first version listed `git ls-files`, which is tracked files only. This
+   * audit's own declaration, `supabase/projects.mjs`, was still UNTRACKED while
+   * the audit was being written, so the scan could not see the one file in the
+   * repository most certain to contain project refs. It passed four times
+   * locally over a set that excluded itself, and went red on the board the
+   * moment the commit made the file tracked.
+   *
+   * That is this repository's recurring defect wearing a file list: a green
+   * audit is a green audit of the files it read. `--others --exclude-standard`
+   * adds the files git can see but does not yet track, so a declaration is
+   * scanned the moment it is written rather than the moment it is committed.
+   */
+  const tracked = execFileSync(
+    "git",
+    ["ls-files", "--cached", "--others", "--exclude-standard"],
+    { encoding: "utf8" },
+  )
     .split("\n")
     .filter(Boolean)
     .filter((f) => /\.(ts|tsx|mjs|js|md|json|sql|yml|yaml)$/.test(f));
@@ -153,7 +224,7 @@ if (RETIRED.length === 0) {
     }
   }
 
-  const declared = new Set(REFS);
+  const declared = new Set(DECLARED_REFS);
   /*
    * Twenty letter lower case words that are not refs. Listed rather than
    * pattern matched away, because a list somebody has to add to on purpose is
@@ -169,7 +240,7 @@ if (RETIRED.length === 0) {
   const unaccounted = [...found.keys()].filter((r) => !declared.has(r) && !NOT_REFS.has(r));
 
   rec(
-    `every project ref in the tracked source is declared (${found.size} found, ${declared.size} declared)`,
+    `every project ref in the source is declared (${found.size} found, ${REFS.length} ours, ${EXTERNAL.length} external)`,
     unaccounted.length === 0,
     unaccounted.length
       ? unaccounted.map((r) => `${r} is not in supabase/projects.mjs -> ${found.get(r)}`).join(" | ")
@@ -217,4 +288,4 @@ console.log("For the other half, through the Supabase MCP, by hand:");
 console.log("");
 console.log("  list_projects, then compare every ref against supabase/projects.mjs");
 console.log("");
-console.log(`Declared: ${PROJECTS.length} live, ${RETIRED.length} retired.`);
+console.log(`Declared: ${PROJECTS.length} this firm's, ${RETIRED.length} retired, ${EXTERNAL.length} external (Reyna Holdings, no eng_ tables).`);
