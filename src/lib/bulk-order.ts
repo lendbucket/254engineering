@@ -205,26 +205,36 @@ export function splitBatch(
    * would be charged against, and it would be wrong in the flattering direction.
    */
   /*
-   * AND AN EMPTY BATCH HAS NO TOTAL, WHICH IS NOT A TOTAL OF ZERO.
+   * AN EMPTY BATCH HAS A TOTAL OF ZERO, AND `empty` IS WHAT SAYS IT IS EMPTY.
    *
-   * Found by walking a trade priced batch and reading the output: both
-   * properties were rejected and the batch reported
+   * ======================================================================
+   * A CHANGE WAS MADE HERE ON 2026-09-14 AND order-audit REVERTED IT.
+   * ======================================================================
    *
-   *   batch total        $0.00
+   * Walking a trade priced batch printed "batch total $0.00" for a batch where
+   * every property was rejected, and that was written up as a defect of the
+   * absent-versus-zero class. IT WAS NOT ONE. The zero came from the scratchpad
+   * walk script printing money(totalCents) unconditionally; the product guards
+   * that block on accepted.length > 0 and never renders it, and placeBatch
+   * refuses an empty split outright with its own sentence.
    *
-   * which reads as "this batch costs nothing" rather than "nothing was
-   * accepted". It is the absent-versus-zero rule this repository already
-   * applies to a margin with no cost entered and to a report over an empty
-   * period, arriving in the one place a customer looks before committing.
+   * The change made totalCents null when nothing was accepted, and order-audit
+   * caught it:
    *
-   * reduce over an empty array returns the seed, so the zero was arithmetic
-   * rather than a decision. Null already means "no total can be stated", which
-   * is exactly what is true here, and every caller already handles it.
+   *   FAIL: and its total is zero rather than null
+   *
+   * The check was right and the change was wrong. NULL ALREADY MEANS SOMETHING
+   * ELSE HERE: that an accepted property has no price, so a total cannot be
+   * stated. Reusing it for "nothing was accepted" makes two different states
+   * indistinguishable, which is the fixture rule applied to a return value, and
+   * this split already carries `empty` to say so explicitly.
+   *
+   * Recorded rather than quietly reverted, because the false finding reached a
+   * commit message and a report before the board disagreed with it.
    */
   const anyUnpriced = accepted.some((a) => !isKnown(a.priceCents));
-  const totalCents =
-    accepted.length === 0 || anyUnpriced
-      ? null
+  const totalCents = anyUnpriced
+    ? null
       : accepted.reduce((n, a) => n + (a.priceCents as number), 0);
 
   return {

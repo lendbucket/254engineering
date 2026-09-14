@@ -150,10 +150,28 @@ There are two views now: `code` with comments and string contents stripped, and
 `@runtime react-server` and imports nothing server-only; the child process it
 spawns is what imports the server-only module and passes the flag itself.
 
-**5. An empty batch reported a total of $0.00.** Found by reading the walk.
-`reduce` over an empty array returns the seed, so the zero was arithmetic rather
-than a decision. It is the absent-versus-zero rule arriving in the one place a
-customer looks before committing.
+**5. A FINDING THAT WAS WRONG, AND THE BOARD IS WHAT SAID SO.**
+
+The walk printed `batch total $0.00` for a batch where every property was
+rejected, and this report first recorded it as an absent-versus-zero defect. It
+is not one. **The zero came from the scratchpad walk script printing the total
+unconditionally.** The product guards that block on `accepted.length > 0` and
+never renders it, and `placeBatch` refuses an empty split outright with its own
+sentence.
+
+The change made `totalCents` null when nothing was accepted, and `order-audit`
+caught it on the final board:
+
+    FAIL: and its total is zero rather than null
+
+The check was right. **Null already means something else here** — that an
+accepted property has no price, so no total can be stated — and reusing it for
+"nothing was accepted" makes two different states indistinguishable. The split
+already carries `empty` to say so explicitly.
+
+Reverted, with the reasoning left in `bulk-order.ts`, because the false finding
+reached a commit message and this report before the board disagreed with it.
+`order-audit` 507 of 507.
 
 **Injections, each separately:** a price at the floor accepted; one cent below
 refused with the floor named as a figure; a pending floor refusing one cent, the
@@ -176,8 +194,9 @@ run, which is worth saying plainly rather than inventing a finding.
 deliverables as waiting on you and did not say WHERE a floor is ruled. A screen
 that names what it is waiting for and not where it is given reads as broken.
 
-**The walk, reading the output line by line:** two findings. The batch total of
-$0.00 above, and this —
+**The walk, reading the output line by line:** one finding, and one thing that
+looked like a finding and was not. The batch total is corrected above. The real
+one —
 
 **TRADE PRICING IS ENTIRELY BEHIND THE COMPLIANCE GATE.** The first walk could
 not produce a quote at all:
