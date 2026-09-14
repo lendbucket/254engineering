@@ -351,6 +351,56 @@ number would have to grow by 497ms to trouble the remote ceiling, which is a
 large margin, and that is an argument rather than a measurement and is recorded
 as one.
 
+### THE LESSON FROM BUILDING IT: A RULE SOLVED ONCE AND NOT CARRIED ACROSS ONLY HOLDS WHERE SOMEBODY REMEMBERED
+
+**Operator ruling, 2026-09-14, recorded as its own lesson because the useful half
+is not the mistake.**
+
+The new gate's first full run failed nine checks with a median of **Infinity** on
+`/portal/review`, `/portal/protocols` and `/portal/certification`. Every metric,
+every ceiling, all three screens.
+
+Those are exactly the three routes `scripts/lib/surfaces.mjs` declares under
+`roleFor`: review and protocols belong to the **engineer**, certification to the
+**field technician**. The gate had created one staff probe, an admin, and
+measured all three with it. Lighthouse got a page it could not measure and the
+gate reported three portal screens failing everything.
+
+**Reported unexamined, the deliverable would have been "three portal screens are
+broken": a claim about the screens, produced entirely by the instrument.** Under
+their declared roles they measure 2357ms, 2333ms and 2258ms and pass comfortably.
+
+**THE PART THAT MAKES IT USEFUL: `mobile-audit` HAD ALREADY SOLVED THIS.** It has
+keyed its sessions by role since it was written, for this exact reason, in a file
+sitting beside the one being changed. The new gate derived its ROUTES from the
+inventory and did not look at how the audits that already consume that inventory
+USE it.
+
+**A rule solved once in this repository and not carried across is a rule that
+only holds where somebody remembered.** The declared inventory idiom fixed the
+question of which surfaces exist; it did nothing about the question of how to
+open them, because that knowledge lived in one audit's implementation rather than
+in the declaration or in a shared helper.
+
+The general form, and it is the one to carry: when adopting a declaration that
+other code already consumes, **read the existing consumers before writing a new
+one.** The inventory tells you what exists. The consumers tell you what it costs
+to use it, and that is the part that was paid for already.
+
+**A SECOND INSTANCE, IN THE SAME HOUR, FROM THE SAME FILE.** The gate's first
+teardown created a client and account per run and removed both afterwards. It
+could not, and it discarded the error: 0048 refuses DELETE on an account, and the
+superseded account then holds its client under ON DELETE RESTRICT. **Nine
+permanent demonstration pairs accumulated on development before anything counted
+them.**
+
+That is the 0048 teardown lesson exactly, which this repository already carries,
+committed again by code written the same night after reading it. The fix is not a
+more careful teardown: the subject is now found by name and reused, so there is
+nothing to tear down. The nine are `is_demo`, superseded, excluded from every
+account read by `withAccountScope`, and permanent, because the schema is working
+as designed and forcing them out would mean defeating the guarantee on purpose.
+
 **The branch is staged to the merge and NOT merged.** Migrations 0043 through
 0048 are pending, and a migration on main is never pending: the six go to
 production in the merge sequence, in order, each read back against its ledger

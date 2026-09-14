@@ -97,7 +97,13 @@
 import lighthouse from "lighthouse";
 import * as chromeLauncher from "chrome-launcher";
 import { chromium } from "playwright";
-import { METRIC_BUDGETS, ROUTE_BUDGETS, REMOTE_LCP_TARGET } from "./perf-budgets.mjs";
+import {
+  METRIC_BUDGETS,
+  ROUTE_BUDGETS,
+  REMOTE_LCP_TARGET,
+  budgetKbFor,
+  KNOWN_OVER_BUDGET,
+} from "./perf-budgets.mjs";
 /*
  * Pass, fail, and could not tell. In its own module so it can be exercised:
  * this file launches Chrome on load, so anything defined here is unreachable to
@@ -414,25 +420,64 @@ if (SCOPE === "all" && sessions["staff:admin"] && !NO_SESSION) {
     const { auditClient } = await import("./lib/db-target.mjs");
     const db = auditClient("perf-audit", { neverProduction: true });
     if (db) {
-      const stamp = Date.now();
-      const { data: client } = await db
-        .from("eng_clients")
-        .insert({
-          kind: "organization",
-          name: `Perf Probe Pricing Co ${stamp}`,
-          email: `perf.${stamp}@audit-probe.invalid`,
-          status: "active",
-          is_demo: true,
-        })
-        .select("id")
-        .single();
-      if (client?.id) {
-        built.clientId = client.id;
-        const { data: account } = await db
-          .from("eng_customer_accounts")
-          .insert({ site: "254", client_id: client.id, status: "active", billing_mode: "card" })
+      /*
+       * ====================================================================
+       * ONE STABLE SUBJECT, FOUND OR MADE, AND NEVER TORN DOWN.
+       * ====================================================================
+       *
+       * The first version created a fresh client and account per run and tried
+       * to remove both afterwards. It could not, and it DISCARDED THE ERROR.
+       * 0048 refuses DELETE on an account, so the account was superseded
+       * instead, and the client could then never be deleted either, because the
+       * superseded account still references it under ON DELETE RESTRICT.
+       *
+       * Seven runs left seven permanent client and account pairs on development
+       * before anything counted them. That is precisely the defect the 0048
+       * teardown lesson already records, committed again by code written after
+       * reading it, and it is the argument for a fixture that needs no teardown
+       * rather than one whose teardown is careful.
+       *
+       * So the subject is found by name and created only if absent. It is
+       * is_demo, so no figure counts it, and it persists deliberately the way
+       * seed-field-demo's records do.
+       */
+      const PROBE_NAME = "Perf Probe Pricing Co";
+      const { data: existing } = await db
+        .from("eng_customer_accounts")
+        .select("id, client_id, eng_clients!inner(name)")
+        .eq("eng_clients.name", PROBE_NAME)
+        .is("superseded_at", null)
+        .limit(1)
+        .maybeSingle();
+
+      let client = existing ? { id: existing.client_id } : null;
+      let account = existing ? { id: existing.id } : null;
+
+      if (!account) {
+        const madeClient = await db
+          .from("eng_clients")
+          .insert({
+            kind: "organization",
+            name: PROBE_NAME,
+            email: "perf.pricing@audit-probe.invalid",
+            status: "active",
+            is_demo: true,
+          })
           .select("id")
           .single();
+        client = madeClient.data;
+        if (client?.id) {
+          const madeAccount = await db
+            .from("eng_customer_accounts")
+            .insert({ site: "254", client_id: client.id, status: "active", billing_mode: "card" })
+            .select("id")
+            .single();
+          account = madeAccount.data;
+        }
+      }
+
+      if (client?.id) {
+        built.clientId = client.id;
         if (account?.id) {
           built.accountId = account.id;
           SUBJECTS.push({
@@ -704,11 +749,27 @@ for (const route of MEASURED) {
    * one tonight would be a number nobody measured pretending to be a ruling.
    * The figure is recorded so a budget can be set from evidence.
    */
-  if (typeof route.kb === "number") {
+  /*
+   * THE BYTE BUDGET, from the shell plus delta ruling of 2026-09-14 for the
+   * authenticated surfaces and from ROUTE_BUDGETS for the public templates.
+   *
+   * A route with a KNOWN_OVER_BUDGET entry still FAILS. The entry is not a
+   * suppression: it carries the reason the red is already known, so the next
+   * reader does not rediscover it, and removing the entry when the cause is
+   * fixed is the point of having it.
+   */
+  const budget = budgetKbFor(route);
+  const known = KNOWN_OVER_BUDGET[route.path];
+  if (typeof budget === "number") {
+    const within = kb(median.bytes) <= budget;
     rec(
-      `${route.name}: ${kb(median.bytes)}KB within ${route.kb}KB budget`,
-      kb(median.bytes) <= route.kb,
-      route.path,
+      `${route.name}: ${kb(median.bytes)}KB within ${budget}KB budget`,
+      within,
+      within
+        ? route.path
+        : known
+          ? `${route.path}. KNOWN AND UNEXPLAINED since ${known.since}: ${known.reason}`
+          : route.path,
     );
   } else {
     console.error(`  ${route.name}: ${kb(median.bytes)}KB, no byte budget set for this template`);
@@ -732,25 +793,13 @@ try {
  * worse than one that leaves its own.
  */
 /*
- * The constructed pricing subject, retired. The account is SUPERSEDED because
- * 0048 refuses DELETE on one, and the client is removed only after it, because
- * an account referencing a client keeps that client alive.
+ * THE PRICING SUBJECT IS NOT TORN DOWN, AND THAT IS THE FIX RATHER THAN AN
+ * OMISSION. It is found by name and reused; see the block that builds it. The
+ * version that tore it down could not, discarded the error, and left seven
+ * permanent client and account pairs on development across seven runs.
  */
-if (built.accountId || built.clientId) {
-  try {
-    const { auditClient } = await import("./lib/db-target.mjs");
-    const { supersedeProbeAccount } = await import("./lib/portal-probe.mjs");
-    const db = auditClient("perf-audit", { neverProduction: true });
-    if (db) {
-      if (built.accountId) {
-        const result = await supersedeProbeAccount(db, built.accountId);
-        if (!result.ok) console.error(`  the pricing probe account was not retired: ${result.error}`);
-      }
-      if (built.clientId) await db.from("eng_clients").delete().eq("id", built.clientId);
-    }
-  } catch (err) {
-    console.error(`  teardown of the pricing subject failed: ${String(err?.message ?? err)}`);
-  }
+if (built.accountId) {
+  console.error(`  the pricing subject persists by design: account ${built.accountId}`);
 }
 
 for (const [kind, made] of Object.entries(probesMade)) {
@@ -782,7 +831,7 @@ for (const r of rows) {
       .toFixed(3)
       .padStart(5)}  ${String(Math.round(r.median.tbt)).padStart(6)}   ${String(kb(r.median.bytes)).padStart(
       8,
-    )} / ${String(r.kb).padEnd(5)}  ${s("document")}  ${s("script")}  ${s("font")}  ${s("image")}  ${r.path}`,
+    )} / ${String(budgetKbFor(r) ?? "none").padEnd(5)}  ${s("document")}  ${s("script")}  ${s("font")}  ${s("image")}  ${r.path}`,
   );
 }
 

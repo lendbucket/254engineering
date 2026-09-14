@@ -114,6 +114,21 @@ export const NOT_CREDENTIALS = new Set([
   "LAUNCH_AUDIT_LIVE_PORT", "LAUNCH_AUDIT_PORT", "MOBILE_PORT", "OVERFLOW_SHOW_ALL",
   "PERF_RUNS", "PERF_SAMPLES", "ROUND3_PORT", "SHOTS_PORT", "KEEP_EXISTING", "LOAD_JOBS",
   /*
+   * perf-audit's three, added 2026-09-14 when it learned to sign in.
+   *
+   * PERF_SCOPE chooses the cadence: the public templates on every board, the
+   * 52 authenticated screens on demand and before any merge.
+   * PERF_ONLY narrows what is measured while working on one route.
+   * PERF_NO_SESSION withholds every cookie, and exists ONLY to prove the
+   * refusal: a guarded route with no session must fail rather than measure the
+   * login page under that route's name.
+   *
+   * None decides identity and none opens a database. PERF_NO_SESSION is the one
+   * worth a sentence, because a variable that suppresses authentication looks
+   * like a bypass and is the opposite: it makes the gate refuse.
+   */
+  "PERF_SCOPE", "PERF_ONLY", "PERF_NO_SESSION",
+  /*
    * break-glass-audit starts three servers one after another, because a
    * process environment is fixed when it boots and the audit needs three
    * different values of MFA_BREAK_GLASS. Three ports, three names.
