@@ -38,6 +38,8 @@
     "launch-audit": "tsx --conditions=react-server scripts/launch-audit.mjs",
     "preperf-audit": "node scripts/preflight-audit.mjs",
     "perf-audit": "node scripts/perf-audit.mjs",
+    "preperf-audit-auth": "node scripts/preflight-audit.mjs",
+    "perf-audit-auth": "node scripts/perf-audit.mjs --all",
     "audit": "node scripts/audit.mjs",
     "files-audit": "tsx scripts/files-audit.mjs",
     "dispatch-audit": "tsx scripts/dispatch-audit.mjs",

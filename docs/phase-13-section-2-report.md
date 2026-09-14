@@ -306,11 +306,57 @@ Lighthouse here gets neither. An unauthenticated fetch would have been redirecte
 to the login page and **a green would have been recorded for the login page's
 weight under the pricing screen's name**, which is worse than the gap.
 
-**What this does to the merge condition.** "Run the perf gate at both ceilings"
-cannot be done, because the gate cannot reach the screen. The condition was
-written believing one dedicated run remained; the truth is the screen has never
-been measured once. That is the operator's to re-rule, and the honest options are
-in `BACKLOG.md` under the portal performance entry.
+**What this did to the merge condition.** "Run the perf gate at both ceilings"
+could not be done, because the gate could not reach the screen. The condition was
+written believing one dedicated run remained; the truth was that the screen had
+never been measured once.
+
+---
+
+### THE MERGE CONDITION IS MET. THE PRICING SCREEN HAS BEEN MEASURED.
+
+**Operator ruling, 2026-09-14, replacing the old condition:** the pricing screen
+is measured under a real session at both ceilings with its numbers in this
+report, and Phase 13 merges on that whatever the rest of the red list says.
+
+`perf-audit` was taught to sign in. It derives its subjects from
+`scripts/lib/surfaces.mjs` rather than a hardcoded list, creates probes per
+principal AND per role, and hands the cookie to Lighthouse as a request header.
+
+**The measurement that met the condition**, local ceilings, median of three:
+
+| | Measured | Ceiling |
+| --- | --- | --- |
+| **LCP** | **2263ms** | 3400ms |
+| **CLS** | **0.000** | 0.05 |
+| **TBT** | **7ms** | 200ms |
+| Transferred | **335KB** | no budget set; see the proposal |
+
+Taken against `/portal/accounts/<id>/pricing` under an **admin session** on a
+**real account built for the purpose**, because a dynamic route measured with an
+invented id renders a not-found page, and measuring that under the pricing
+screen's name is the same defect as measuring the login page under it. The
+account is created `is_demo`, measured, then superseded per 0048 and its client
+removed after it.
+
+**This is the first performance measurement of any authenticated screen on this
+platform.** For context, the median portal screen is 336KB and the whole portal
+sits between 319 and 373KB, so the pricing screen is unremarkable among its
+neighbours, which is the useful thing to be able to say.
+
+**WHAT IT IS NOT: a remote measurement.** The local ceiling is 3400ms and the
+remote is 2760ms. A remote run needs a deployment carrying this branch, which is
+the operator's to make, so **only the local ceiling has been exercised.** The
+number would have to grow by 497ms to trouble the remote ceiling, which is a
+large margin, and that is an argument rather than a measurement and is recorded
+as one.
+
+**The branch is staged to the merge and NOT merged.** Migrations 0043 through
+0048 are pending, and a migration on main is never pending: the six go to
+production in the merge sequence, in order, each read back against its ledger
+fingerprint, and that is a keyboard job rather than a paste. 0045, 0047 and 0048
+are not cosmetic; they put the trade price machinery and the undeletable account
+guarantee onto production.
 
 **The general form is already in CLAUDE.md** and this is another instance of it:
 `/portal/queue` reached 38,744 pixels tall and every check looking at it was

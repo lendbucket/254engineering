@@ -63,6 +63,90 @@ operator's word and has not been given. The report's position is that a trade
 price is not a figure on a report, it is a price on an order, and the order's
 figures are already swept.
 
+## THE FIRST MEASUREMENT OF EVERY AUTHENTICATED SCREEN, AND WHAT IT FOUND
+
+2026-09-14. `perf-audit` now signs in and derives its subjects from the declared
+inventory. **63 subjects, 192 checks, zero over any ceiling.** LCP, CLS and TBT
+pass everywhere. What follows is what the numbers show, unfixed, for Phase 14.
+
+**THE FIRST RED LIST WAS WRONG AND THE GATE PRODUCED IT.** Nine checks failed
+with a median of `Infinity` on `/portal/review`, `/portal/protocols` and
+`/portal/certification`. Those are exactly the three routes the inventory
+declares under `roleFor`, and the gate had made one admin probe and measured all
+three with it. Reported unexamined, the deliverable would have been "three portal
+screens are broken", a claim about the screens produced entirely by the
+instrument. Under their declared roles they measure 2357ms, 2333ms and 2258ms.
+`mobile-audit` has keyed sessions by role since it was written.
+
+### The byte findings, and a budget proposal to rule
+
+**There is a shell, and it is unmistakable.** Six screens across three
+independent surfaces land at **319 to 320KB**: `portal/login`,
+`portal/set-password`, `partner/login`, `partner/set-password`,
+`account/settings`, `account/home`. That is the Next.js runtime, the fonts and
+the chrome that every screen pays before it renders anything of its own.
+
+| Surface | n | Range | Median | Delta over a 320KB shell |
+| --- | --- | --- | --- | --- |
+| portal | 35 | 319 to 373 | 336 | up to **+53** (`techs`) |
+| partner | 7 | 319 to 328 | 327 | up to **+8** |
+| account | 6 | 317 to 431 | 320 | **+0**, except `login` |
+| order | 2 | 462 to 463 | 463 | **+143** |
+
+**PROPOSED, in the shell plus delta shape, for the operator to rule like a
+floor.** Every number is the observed maximum rather than a rounded guess, and
+zero headroom is deliberate: this file already records that bytes do not vary
+between runs of the same build, so a budget at the observed maximum fails only on
+a real increase.
+
+- **Shell: 320KB.** What every screen pays. Nothing may make the shell heavier
+  without a recorded reason.
+- **Portal delta: 55KB**, so 375KB per portal screen. Observed max 53.
+- **Partner delta: 10KB**, so 330KB. Observed max 8.
+- **Account delta: 5KB**, so 325KB. Observed max 0, `login` excluded as a finding.
+- **Order: its own budget at 465KB.** A different page shape carrying a catalogue
+  and a checkout, and it should not be judged against a portal delta.
+
+### Two real outliers, NOT fixed in this pass
+
+**1. `/account/login` is 431KB. The other two login screens are 319KB.**
+Three screens doing the same job, and the customer one carries **112KB more than
+the staff and partner ones** and is heavier than every one of the 35 portal
+screens. It is the strongest single signal in the whole run. Nothing has been
+changed; what it imports has not been looked at.
+
+**2. The order flow is the heaviest thing on the platform**, 462 and 463KB, and
+it is the surface a paying customer meets. It has never had a byte budget and was
+never measured until tonight.
+
+### Three screens measured by nothing, recorded as COULD NOT TELL
+
+Operator ruling: these stay could not tell, and `/account/sign-up` is not chased
+tonight. Each is a true statement about the instrument rather than a defect
+claim.
+
+- **`/portal/mfa`** and **`/portal/mfa/enrol`** bounce to `/portal/login` on all
+  three runs. Both are screens for somebody MID SIGN IN holding a pending
+  session, and a fully signed in probe has none. **This gate cannot hold that
+  session**, which is probably correct application behaviour and is certainly an
+  honest thing to say rather than a pass.
+- **`/account/sign-up`** bounces to `/account/login`. **Not investigated.**
+
+### The cadence, ruled from a measured figure
+
+The whole gate takes **25 minutes** at 63 subjects and three runs, against the
+public set's **1m15 at one run**. Operator ruling: the public templates stay on
+every board and **the authenticated set runs on demand and BEFORE ANY MERGE**,
+because a forty minute board is a board people stop running, and a gate nobody
+runs is the shape this phase is about.
+
+    PERF_SCOPE=all npx tsx scripts/perf-audit.mjs
+    npm run perf-audit-auth
+
+**The deferral is never a pass.** A board run reports the 52 deferred screens as
+COULD NOT TELL, naming the count and the command, and asserts the deferred set is
+non-empty so it cannot quietly become a silence.
+
 ## NO PORTAL SCREEN HAS EVER BEEN PERFORMANCE MEASURED, AND A MERGE CONDITION RESTED ON BELIEVING ONE WAS
 
 2026-09-14, found while closing Phase 13. Full account in
