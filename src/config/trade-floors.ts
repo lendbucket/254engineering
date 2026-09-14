@@ -79,6 +79,38 @@ export type TradeFloor =
       because: string;
     };
 
+/**
+ * ======================================================================
+ * PENDING IS A RULING, NOT AN OMISSION. Operator decision, 2026-09-14.
+ * ======================================================================
+ *
+ * Every entry below was pending when this file was written because no floor had
+ * been ruled yet. They are pending NOW because the operator looked at all
+ * eleven and decided to leave them pending.
+ *
+ * The distinction matters to whoever reads this next. An unfilled declaration
+ * invites somebody to fill it; a ruled one does not. Nobody is waiting on a
+ * prompt, nothing is half done, and the correct response to finding eleven
+ * pending floors is to leave them alone.
+ *
+ * THE CONSEQUENCE, STATED SO IT IS NOT DISCOVERED
+ * ------------------------------------------------
+ * No trade price can be set on any service, at any value, by anybody.
+ * `setTradePrice` refuses every deliverable, the operator's pricing screen shows
+ * all eleven under "Awaiting a floor", and `trade-pricing-audit` passes over
+ * that state rather than failing on it.
+ *
+ * **TRADE PRICING DOES NOT SELL UNTIL THE OPERATOR RULES THEM. RETAIL PRICING IS
+ * UNAFFECTED.** The catalogue price is what every customer pays today and every
+ * order path is untouched by this file: a deliverable with no floor is quoted at
+ * its published price exactly as it was before Section 2 existed.
+ *
+ * There is a second and independent reason nothing sells at trade pricing, and
+ * it is worth knowing before these are ruled: the whole order path is behind the
+ * compliance gate, which is shut on four conditions. Ruling these eleven does
+ * not by itself put a trade price in front of a customer.
+ */
+
 /** The sentence every unruled deliverable starts with. */
 const AWAITING =
   "No floor has been ruled for this deliverable, so it cannot be sold at trade pricing. A floor is the operator's decision about money and the platform will not derive one from cost or from the catalogue price.";

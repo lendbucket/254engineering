@@ -18,8 +18,25 @@ consulted at all. The first walk of this section could not produce a quote:
 customer.** That is stated first because it is the one somebody would otherwise
 discover after ruling eleven numbers.
 
-**SECOND: eleven floors are pending, and that is the one thing to rule this
-morning.**
+**SECOND: eleven floors are pending, AND THE OPERATOR HAS RULED THAT THEY STAY
+PENDING.**
+
+**Operator decision, 2026-09-14, recorded as a decision rather than an
+omission.** All eleven were put in front of the operator, all eleven were read,
+and the ruling is to leave them unruled for now.
+
+**The consequence:** no trade price can be set on any service, at any value, by
+anybody, so **trade pricing does not sell until the operator rules them.**
+`setTradePrice` refuses every deliverable, the pricing screen shows all eleven
+under "Awaiting a floor", and the audit passes over that state rather than
+failing on it.
+
+**RETAIL PRICING IS UNAFFECTED.** The catalogue price is what every customer
+pays today and every order path is untouched: a deliverable with no floor is
+quoted at its published price exactly as it was before this section existed.
+
+Nobody is waiting on a prompt and nothing is half done. The correct response to
+finding eleven pending floors is to leave them alone.
 
 Not one floor is written by this session, which is the rule this section turns
 on. Every entry in `src/config/trade-floors.ts` is `pending`, and until you rule

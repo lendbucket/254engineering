@@ -32,10 +32,18 @@ duplicating the reasoning is how two accounts of one decision start to disagree.
 Phase 13 Section 2, 2026-09-14. Full reasoning in
 `docs/phase-13-section-2-report.md`; this is the pointer.
 
+**PENDING IS A RULING, NOT AN OMISSION. Operator decision, 2026-09-14.** All
+eleven were put in front of the operator, read, and left pending deliberately.
+Nobody is waiting on a prompt and the correct response to finding them is to
+leave them alone.
+
 Every entry in `src/config/trade-floors.ts` is `pending`. A floor is a decision
-about money and no session writes one, so until the operator rules them no trade
-price can be set on any deliverable, at any value, by anybody. That is a correct
-state rather than a gap.
+about money and no session writes one, so **trade pricing does not sell until
+the operator rules them**: no trade price can be set on any deliverable, at any
+value, by anybody.
+
+**RETAIL PRICING IS UNAFFECTED.** The catalogue price is what every customer
+pays today and every order path is untouched by that file.
 
 **There is a second, independent reason nothing sells at trade pricing today**,
 and it is worth knowing before the floors are ruled: the whole order path is
