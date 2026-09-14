@@ -865,6 +865,58 @@ could catch that, because the script had done exactly what it was told;
 `tsc` caught it, and that is the argument for a compile step over a careful
 script.
 
+**A SCAN THAT READS A TRACKED FILE LIST MEASURES NOTHING ABOUT A FILE THAT IS
+NOT YET TRACKED, AND THE FILE MOST LIKELY TO MATTER IS THE ONE YOU JUST WROTE.**
+Operator ruling, 2026-09-14.
+
+`project-accountability-audit` scans the source in reverse, so a project ref
+somebody wires up without telling the declaration is found. It listed
+`git ls-files`, which is TRACKED files only.
+
+Its own declaration, `supabase/projects.mjs`, was a new untracked file while the
+audit was being written. So the scan could not see **the one file in the
+repository most certain to contain project refs**, and it passed four times over
+a set that excluded itself. Three injections were run against it and all three
+were caught, because each injected into a file that was already tracked.
+
+The commit made the declaration tracked. The board read it on the next run and
+went red, naming four refs recorded there and absent from the declared set. **52
+of 53 audits passed and the one red was the audit added that day.**
+
+It is the vacuous green in a new costume: a green audit is a green audit of the
+FILES IT READ, and a file list is exactly the kind of input nobody thinks of as
+a filter. The fix is `git ls-files --cached --others --exclude-standard`, so a
+declaration is scanned the moment it is WRITTEN rather than the moment it is
+committed, and the regression is an injection that creates an untracked file
+carrying an undeclared ref.
+
+**The general form, and it is worth carrying past this one script:** any check
+whose subject list comes from version control has a blind spot exactly the shape
+of "new work". That is the same span as "the thing being built right now".
+
+**AND A RECORDED EXPLANATION IS A HYPOTHESIS UNTIL SOMETHING RE-CHECKS IT.**
+Operator ruling, 2026-09-14, from the same night, and it is about this file
+rather than about any script.
+
+The live read-back rule in section 6b carried two explanations for why a
+behaviour digest differs from a replay: that `conbin::text` renders differently
+between PGlite's 18.3 and Supabase's 17.6, and that three function bodies are
+stored with comments stripped. Both had been read and trusted for a week. **Both
+were too narrow**, and the Phase 14 rank 1 replay proved it by comparing two
+databases that are BOTH Supabase 17.6, where the version explanation cannot
+apply and the difference appeared anyway.
+
+`conbin` turned out to be unstable between any two databases; the function count
+was four rather than three and development strips them too. And underneath the
+noise sat a real difference the explanation would have hidden: one foreign key
+NOT VALID on one side and validated on the other.
+
+So an explanation written down once is a hypothesis with a date on it. When it
+is used to dismiss a difference, the dismissal has to be re-derived rather than
+cited, because **an explanation that covers the observation is not the same as an
+explanation that is true**, and a wrong one is worse than none: it makes the next
+session stop looking.
+
 **A CHECK THAT FILTERS LIVE DATA FOR A SUBJECT THAT DOES NOT EXIST YET IS
 VACUOUS. BUILD THE SUBJECT.** Operator ruling, 2026-09-09, from the reporting
 paging work. The obvious way to check that a paged expansion still sums the
