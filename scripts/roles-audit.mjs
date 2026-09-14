@@ -1646,28 +1646,73 @@ if (!db) {
          * person creates on the permission screen gets a requirement; one
          * created here has to as well, or it is not the same subject.
          */
-        await db.from("eng_roles").insert({
+        /*
+         * ==============================================================
+         * THE INSERT IS ASSERTED, AND DISCARDING IT COST A BOARD RUN.
+         * ==============================================================
+         *
+         * These three inserts threw their errors away. On 2026-09-14 the first
+         * one failed and the board reported, three statements later:
+         *
+         *   FAIL: the role name injection ran
+         *     (could not profile cap_492250: insert or update on table
+         *      "eng_profiles" violates foreign key constraint
+         *      "eng_profiles_role_fkey")
+         *
+         * Which is a true sentence about a missing role and says nothing about
+         * why the role is missing. The only unique thing on eng_roles is its
+         * primary key, so the insert can only have collided with a row that was
+         * there at that moment, and the error naming it was thrown away.
+         *
+         * THE HEADER OF THIS VERY BLOCK ALREADY RECORDS THIS LESSON for the
+         * mfa_requirement case: a fixture that cannot make its own row has to
+         * say so where it happens, not three checks later in somebody else's
+         * name. It was written about a column and not applied to the insert
+         * beneath it.
+         */
+        const inventedRole = await db.from("eng_roles").insert({
           key: INVENTED,
           name: "Invented Capturer",
           landing_path: "/portal",
           is_system: false,
           mfa_requirement: "optional",
         });
+        if (inventedRole.error) {
+          throw new Error(
+            `the invented role ${INVENTED} could not be created: ${inventedRole.error.message}. ` +
+              "Nothing below measures the certification gate without it.",
+          );
+        }
         madeRoles.push(INVENTED);
-        await db.from("eng_role_grants").insert({ role_key: INVENTED, action: "evidence.capture" });
+
+        const granted = await db
+          .from("eng_role_grants")
+          .insert({ role_key: INVENTED, action: "evidence.capture" });
+        if (granted.error) {
+          throw new Error(
+            `${INVENTED} could not be granted evidence.capture: ${granted.error.message}. ` +
+              "A role with no grants would be refused for the wrong reason.",
+          );
+        }
 
         /*
          * And a role that LOOKS like the old escape hatch. The profile's role
          * column carries a key, so this one is named to sit as close to "admin"
          * as a distinct row can, and holds no grants at all.
          */
-        await db.from("eng_roles").insert({
+        const namedRole = await db.from("eng_roles").insert({
           key: NAMED,
           name: "Administrator Without The Grant",
           landing_path: "/portal",
           is_system: false,
           mfa_requirement: "optional",
         });
+        if (namedRole.error) {
+          throw new Error(
+            `the look alike role ${NAMED} could not be created: ${namedRole.error.message}. ` +
+              "The half of this block about names measures nothing without it.",
+          );
+        }
         madeRoles.push(NAMED);
 
         const openedBy = async (roleKey) => {
