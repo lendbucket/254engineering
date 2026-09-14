@@ -579,7 +579,36 @@ async function run() {
       .from("eng_customer_users")
       .select("id")
       .like("email", `probe-door-%@${PROBE_DOMAIN}`);
-    rec("every probe account is removed", (left ?? []).length === 0, `${(left ?? []).length} left behind`);
+    /*
+     * IT READS ACCOUNT HOLDERS, AND THE NAME NOW SAYS SO.
+     *
+     * This was called "every probe account is removed" and reads
+     * eng_customer_users. That was accurate enough when both went, and stopped
+     * being accurate the hour 0048 made an ACCOUNT undeletable: the sentence
+     * claimed something about a row this query never looks at, and would have
+     * gone on claiming it while accounts piled up.
+     *
+     * The account is superseded rather than removed and that is asserted
+     * separately below, so the two facts have two checks rather than one name.
+     */
+    rec(
+      "every probe account HOLDER is removed",
+      (left ?? []).length === 0,
+      `${(left ?? []).length} left behind`,
+    );
+
+    const { data: stillInUse } = await db
+      .from("eng_customer_accounts")
+      .select("id")
+      .in("id", (strays ?? []).map((r) => r.account_id).filter(Boolean))
+      .is("superseded_at", null);
+    rec(
+      "and every probe account is superseded rather than deleted",
+      (stillInUse ?? []).length === 0,
+      (stillInUse ?? []).length
+        ? `${(stillInUse ?? []).length} still in use, so a teardown discarded its error`
+        : "0048 refuses the delete, so teardown supersedes",
+    );
   }
 }
 
