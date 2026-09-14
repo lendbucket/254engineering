@@ -218,10 +218,29 @@ const {
       : "THE GATE OPENED ON THE SWITCH ALONE, which is the state the ruling forbids",
   );
 
+  /*
+   * AND SOMETHING IS HOLDING IT, NAMED, WHICHEVER CONDITION THAT IS.
+   *
+   * This used to assert that the OPERATING NAME was the condition holding the
+   * gate, which was true from 2026-09-10 until the operator cleared it on
+   * 2026-09-13 by ruling that the firm trades under its registered name.
+   *
+   * WHY THE REPLACEMENT IS NOT SIMPLY LOOSER. Naming one condition made this a
+   * check on which condition happened to be unmet, and that is a fact about
+   * today rather than a property of the gate. The property worth asserting is
+   * the one the ruling of 2026-09-10 actually established: the switch alone
+   * does not open the gate, and whatever holds it says so IN A SENTENCE a
+   * person can act on rather than as a bare false.
+   *
+   * So it asserts there is at least one blocker and that every one of them is a
+   * real sentence. A gate held by an empty string is a gate nobody can clear.
+   */
   rec(
-    "and the operating name is the condition holding it",
-    blockers.some((b) => b.includes("operating name")),
-    blockers.join(" | ") || "no blockers at all",
+    `and the conditions holding it each say why (${blockers.length})`,
+    blockers.length > 0 && blockers.every((b) => typeof b === "string" && b.trim().length > 40),
+    blockers.length === 0
+      ? "NO BLOCKERS AT ALL, so the switch alone would open it"
+      : blockers.map((b) => b.split(".")[0]).join(" | "),
   );
 
   rec(
@@ -269,12 +288,44 @@ const {
    * AND THE CONDITION IS STATED, not merely false. A boolean anybody can flip
    * in a hurry is not a condition; a sentence naming the board's record is.
    */
+  /*
+   * THE OPERATING NAME RECORD, CLEARED, AND STILL A SENTENCE RATHER THAN A FLAG.
+   *
+   * This asserted the condition was FALSE and that its reason named both the
+   * registrant and the name the sites traded under. The operator cleared it on
+   * 2026-09-13, so asserting it is false is now asserting that a decision was
+   * not made.
+   *
+   * WHAT SURVIVES IS THE PROPERTY THAT MATTERED, and it is the one the two
+   * field object was built for: the answer cannot be a bare boolean somebody
+   * flipped in a hurry. Cleared or not, the reason has to name BOTH names, so a
+   * reader can see which name the board holds and which the sites use, and a
+   * future session cannot flip it back without writing down why.
+   *
+   * The registrant is still asserted by literal through ISSUED_TO, which is the
+   * pinned value, so this cannot drift into agreeing with whatever the config
+   * happens to say.
+   */
   rec(
-    "the unmet condition carries the board's record as its reason",
-    operatingNameOnBoardRecord.onRecord === false &&
-      operatingNameOnBoardRecord.because.includes(ISSUED_TO) &&
+    "the operating name record names both the registrant and the brand, whichever way it is set",
+    operatingNameOnBoardRecord.because.includes(ISSUED_TO) &&
       operatingNameOnBoardRecord.because.includes(TRADING_AS),
-    operatingNameOnBoardRecord.because.slice(0, 120),
+    `onRecord: ${operatingNameOnBoardRecord.onRecord}. ${operatingNameOnBoardRecord.because.slice(0, 90)}`,
+  );
+
+  /*
+   * AND IF IT IS CLEARED, IT SAYS THE FIRM TRADES UNDER THE REGISTERED NAME.
+   *
+   * The only route to true that this repository recognises. The alternative
+   * route, an assumed name filed and acknowledged, would be a different
+   * sentence naming the filing, and a cleared record saying neither is a
+   * cleared record nobody can check.
+   */
+  rec(
+    "and a cleared record says which of the two routes cleared it",
+    operatingNameOnBoardRecord.onRecord === false ||
+      /trades under its registered name|assumed name/i.test(operatingNameOnBoardRecord.because),
+    operatingNameOnBoardRecord.onRecord ? "cleared, and the route is named" : "not cleared",
   );
 }
 

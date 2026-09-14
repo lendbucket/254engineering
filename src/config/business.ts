@@ -15,7 +15,30 @@ export const business = {
   /** The public brand. Used in titles, og:site_name, and WebSite schema. */
   name: "254 Engineering Services",
   /** The registered entity. Used in the footer, contracts language, schema. */
-  legalName: "254 Engineering Services LLC",
+  /**
+   * THE ENTITY, AND IT WAS WRONG UNTIL 2026-09-13.
+   *
+   * This read "254 Engineering Services LLC" from the day it was written, and
+   * no such entity exists. TBPELS issued F-29811 to **254 Services LLC**, which
+   * is the firm, and the discrepancy sat recorded and unanswered in
+   * src/config/credentials.ts because only the operator holds the formation
+   * documents.
+   *
+   * Operator ruling, 2026-09-13: the entity is 254 Services LLC, this constant
+   * was wrong, and the firm trades under its registered name. No assumed name
+   * filing is needed, because the board already holds the name the firm
+   * operates under.
+   *
+   * IT IS RENDERED AS THE LEGAL ENTITY to procurement officers on /government,
+   * in the privacy policy, in the terms, in the site footer copyright, in
+   * llms.txt and in the document metadata. Every one of those was naming an
+   * entity that does not exist.
+   *
+   * THE BRAND IS A DIFFERENT FIELD AND A DIFFERENT THING. See `name` above:
+   * 254 Engineering Services survives as the wordmark and the logo, and never
+   * as the legal or firm name in a sentence. Operator ruling, same day.
+   */
+  legalName: "254 Services LLC",
   /** Short form for tight spaces. Never used as the schema name. */
   shortName: "254 Engineering",
 

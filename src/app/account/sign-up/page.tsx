@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Open an account | 254 Engineering Services",
   description:
-    "Open an ordering account with 254 Engineering Services. Choose a password from the link sent to your address, and the account is ready to use.",
+    "Open an ordering account with 254 Services LLC. Choose a password from the link sent to your address, and the account is ready to use.",
   robots: { index: false, follow: false },
 };
 

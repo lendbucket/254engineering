@@ -140,7 +140,7 @@ export const LAUNCH_CONDITIONS: LaunchCondition[] = [
      */
     what: "The board holds the name this firm trades under.",
     whoClears:
-      "The operator files an assumed name for 254 Engineering Services and gets TBPELS acknowledgement of it, or renames the entity.",
+      "Nobody. Cleared 2026-09-13: the firm trades under its registered name, which the board already holds.",
     statedIn: "operatingNameOnBoardRecord in src/config/credentials.ts",
     unmet: () =>
       operatingNameOnBoardRecord.onRecord

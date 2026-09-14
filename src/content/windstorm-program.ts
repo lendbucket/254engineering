@@ -380,7 +380,7 @@ export const windstormPages: WindstormPage[] = [
         title: "Where 254 Engineering Services stands",
         lede: "Stated plainly, because a page about credentials that is vague about its own is not worth reading.",
         body: [
-          "254 Engineering Services does not currently hold a Texas Department of Insurance windstorm appointment, and does not currently offer or perform engineering services. Firm registration with the Texas Board of Professional Engineers and Land Surveyors is pending and no Professional Engineer is yet in responsible charge.",
+          "254 Services LLC does not currently hold a Texas Department of Insurance windstorm appointment, and does not currently offer or perform engineering services. Firm registration with the Texas Board of Professional Engineers and Land Surveyors is pending and no Professional Engineer is yet in responsible charge.",
           "The firm is being built in the Coastal Bend, inside the designated area, around this program specifically. When the registration is issued and an appointment is held, this page will say so and will say when. Until then it says this instead, because a firm that is vague about its own credentials on a page explaining why credentials matter has answered the question anyway.",
         ],
       },
@@ -618,7 +618,7 @@ export const windstormPages: WindstormPage[] = [
         eyebrow: "Where the engineering sits",
         title: "The documents this firm is built around",
         body: [
-          "Everything in this cluster describes a program rather than a service. 254 Engineering Services is built around the documents coastal transactions turn on, including windstorm certification inside the designated area, and is designed to deliver them under a licensed Texas Professional Engineer in responsible charge.",
+          "Everything in this cluster describes a program rather than a service. 254 Services LLC is built around the documents coastal transactions turn on, including windstorm certification inside the designated area, and is designed to deliver them under a licensed Texas Professional Engineer in responsible charge.",
           "None of that is offered or performed today. Firm registration with the Texas Board of Professional Engineers and Land Surveyors is pending, no Professional Engineer is yet in responsible charge, and the firm holds no departmental windstorm appointment. The capability page sets out what the firm is built to deliver once it can.",
         ],
       },

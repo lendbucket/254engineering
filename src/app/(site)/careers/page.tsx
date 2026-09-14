@@ -73,7 +73,7 @@ export default function CareersPage() {
         image={sectionPhotos.careers}
         eyebrow="Careers"
         title="Build a Texas engineering firm from the ground up"
-        lede="254 Engineering Services is a veteran owned firm named for the 254 counties of Texas and built to serve every one of them, on licensed professional judgment and statewide field operations. These are the seats that make that possible."
+        lede="254 Services LLC is a veteran owned firm named for the 254 counties of Texas and built to serve every one of them, on licensed professional judgment and statewide field operations. These are the seats that make that possible."
         crumbs={crumbs}
       >
         {isPrelaunch() ? (

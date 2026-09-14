@@ -283,7 +283,7 @@ export const proximityPages: ProximityPage[] = [
         title: "Where 254 Engineering Services currently stands",
         lede: "A page about verifying credentials should be checkable about its own.",
         body: [
-          "254 Engineering Services is a veteran owned Texas firm, based in Corpus Christi and named for the 254 counties of Texas. Firm registration with the Texas Board of Professional Engineers and Land Surveyors is pending, and no Professional Engineer is yet in responsible charge.",
+          "254 Services LLC is a veteran owned Texas firm, based in Corpus Christi and named for the 254 counties of Texas. Firm registration with the Texas Board of Professional Engineers and Land Surveyors is pending, and no Professional Engineer is yet in responsible charge.",
           "That means the firm does not currently offer or perform engineering services, and nothing on this site should be read as an offer to. Apply the checks on this page to it exactly as you would to anyone else, and the honest current answer is that the registration is not yet issued.",
         ],
       },

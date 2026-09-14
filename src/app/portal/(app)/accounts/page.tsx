@@ -5,6 +5,7 @@ import { accountRows } from "@/lib/ops-accounts-admin";
 import { money } from "@/lib/ops-money";
 import { Chip, EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
 import { AccountsClient } from "./AccountsClient";
+import { OpenAccountClient } from "./OpenAccountClient";
 
 export const dynamic = "force-dynamic";
 
@@ -42,10 +43,23 @@ export default async function AccountsPage() {
       />
 
       {rows.length === 0 ? (
-        <EmptyState
-          title="No ordering accounts yet"
-          body="An account is created by converting an existing client organisation, which keeps every file and document already attached to them."
-        />
+        <>
+          {/*
+            THIS COPY WENT OUT OF DATE THE DAY THE TELEPHONE DOOR WAS BUILT.
+
+            It said an account is created by converting an existing client
+            organisation, full stop, which was true while that was the only
+            path. There are three now, and a screen that names one of them is
+            the same defect as a registry that names a door nobody built.
+          */}
+          <EmptyState
+            title="No ordering accounts yet"
+            body="An account arrives one of three ways: somebody rings and you open one below, somebody pays for an order, or an existing client organisation is converted, which keeps every file and document already attached to them."
+          />
+          <div className="mt-4">
+            <OpenAccountClient />
+          </div>
+        </>
       ) : (
         <>
           {blocked.length > 0 ? (
@@ -62,6 +76,18 @@ export default async function AccountsPage() {
               </ul>
             </div>
           ) : null}
+
+          {/*
+            ABOVE THE LIST AND BELOW THE WARNING.
+
+            The question this screen is opened with is which accounts are stuck,
+            and that warning stays first. Opening an account from a call is the
+            other thing an operator comes here to do, and it is a disclosure
+            rather than a form so it costs one line until it is wanted.
+          */}
+          <div className="mb-4">
+            <OpenAccountClient />
+          </div>
 
           <Panel
             title="Accounts"

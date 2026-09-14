@@ -352,7 +352,7 @@ async function run() {
     );
 
     const liveLegalName = [...live.entries()]
-      .filter(([route, p]) => !route.endsWith(".txt") && !p.text.includes("254 Engineering Services LLC"))
+      .filter(([route, p]) => !route.endsWith(".txt") && !p.text.includes("254 Services LLC"))
       .map(([route]) => route);
     rec(
       "live: the footer renders the legal entity name alongside the firm number",

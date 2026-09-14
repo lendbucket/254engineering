@@ -872,6 +872,33 @@ withEnv({ CUSTOMER_SESSION_SECRET: CUS_SECRET }, () => {
 // anyway, because a walk exercises the door it was pointed at and says nothing
 // about a fourth one somebody adds next week.
 
+/**
+ * The directory whose page.tsx renders a given URL path, or null.
+ *
+ * Walks src/app and strips route groups, which is the one thing a naive join
+ * cannot do. Returns the DIRECTORY rather than the file, because the fetch that
+ * opens a door lives in a client component beside the page every time.
+ */
+function screenDirFor(urlPath) {
+  let found = null;
+  const walk = (dir, url) => {
+    if (found) return;
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (found) return;
+      const p = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        /* A segment in parentheses organises files and appears in no URL. */
+        const next = /^\(.*\)$/.test(entry.name) ? url : `${url}/${entry.name}`;
+        walk(p, next);
+      } else if (entry.name === "page.tsx" && url === urlPath) {
+        found = dir.split("\\").join("/");
+      }
+    }
+  };
+  walk("src/app", "");
+  return found;
+}
+
 {
   const doorsSource = codeOnly("src/lib/account-doors.ts");
   const creationSource = codeOnly("src/lib/account-creation.ts");
@@ -899,6 +926,96 @@ withEnv({ CUSTOMER_SESSION_SECRET: CUS_SECRET }, () => {
     "every declared door names a route that exists on disk",
     missing.length === 0,
     missing.length ? `DECLARED AND ABSENT: ${missing.join(", ")}` : declaredRoutes.join(", "),
+  );
+
+  /*
+   * AND A PERSON CAN REACH THE DOOR THAT WAS BUILT FOR THEM.
+   *
+   * ==================================================================
+   * THE CHECK THAT WOULD HAVE CAUGHT A ROUTE WITH NO SCREEN.
+   * ==================================================================
+   *
+   * The operator door shipped permission gated, audited and walked end to end,
+   * and the only way to reach it was a POST. Every check above was green,
+   * because each was asking whether the ROUTE existed. None was asking whether
+   * the person the door was built for could open it.
+   *
+   * So the registry declares a screen per door, null where nobody clicks it,
+   * and this asserts two things about each non-null one: the file is on disk,
+   * and something in that screen's own directory actually posts to the door's
+   * route. The second half is the one that matters. A screen that exists and
+   * calls nothing is exactly the state this is written after.
+   */
+  const withScreens = [...doorsSource.matchAll(/route:\s*"([^"]+)"[\s\S]{0,400}?screen:\s*("([^"]+)"|null)/g)].map(
+    (m) => ({ route: m[1], screen: m[3] ?? null }),
+  );
+  rec(
+    `every door declares whether a person can reach it (${withScreens.length})`,
+    withScreens.length === declaredRoutes.length,
+    `${withScreens.length} declared against ${declaredRoutes.length} routes`,
+  );
+
+  const screenFaults = [];
+  for (const door of withScreens) {
+    if (!door.screen) continue;
+
+    /*
+     * A URL PATH IS NOT A DIRECTORY PATH, AND THE FIRST VERSION ASSUMED IT WAS.
+     *
+     * /portal/accounts lives at src/app/portal/(app)/accounts, because a
+     * segment in parentheses is a Next route GROUP: it organises files and
+     * appears in no URL. The naive join reported the operator's screen as
+     * missing while looking straight at it, which is this repository's own
+     * recurring defect wearing a path resolver.
+     *
+     * So the mapping is DERIVED by walking for page files and stripping the
+     * groups, rather than stated. Same reason routesOf walks directories
+     * instead of carrying a list: a list is the memory problem one level down.
+     */
+    const dir = screenDirFor(door.screen);
+    if (!dir) {
+      screenFaults.push(`${door.screen} is declared and no page renders it`);
+      continue;
+    }
+
+    /*
+     * SOMETHING IN THAT DIRECTORY POSTS TO THE ROUTE. Read across the whole
+     * directory rather than the page alone, because the fetch lives in a client
+     * component beside it every time, and a check that only read page.tsx would
+     * have gone red on a screen that works.
+     */
+    let reaches = false;
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (!entry.isFile() || !/\.tsx?$/.test(entry.name)) continue;
+      if (codeOnly(join(dir, entry.name)).includes(`"${door.route}"`)) {
+        reaches = true;
+        break;
+      }
+    }
+    if (!reaches) {
+      screenFaults.push(`${door.screen} exists and nothing on it posts to ${door.route}`);
+    }
+  }
+
+  rec(
+    "and every door with a screen has a control on it that opens the door",
+    screenFaults.length === 0,
+    screenFaults.length
+      ? screenFaults.join(" | ")
+      : withScreens.filter((d) => d.screen).map((d) => d.screen).join(", "),
+  );
+
+  /*
+   * AND THE ONE WITH NO SCREEN HAS NO SCREEN, asserted rather than left to fall
+   * out of the loop above. A button that opened an account for somebody who had
+   * not paid would be a different door wearing the checkout door's name, and it
+   * would pass every check here by simply gaining a screen.
+   */
+  const checkoutDoor = withScreens.find((d) => d.route === "/api/stripe/webhook");
+  rec(
+    "and the door a payment opens has no screen, because nobody clicks it",
+    checkoutDoor?.screen === null,
+    checkoutDoor ? `screen: ${checkoutDoor.screen}` : "the checkout door was not found",
   );
 
   /*

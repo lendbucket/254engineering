@@ -59,13 +59,13 @@ export const location = {
   h1: "A Texas Engineering Firm Based in Corpus Christi",
   title: "Corpus Christi Texas Engineering Firm | 254 Engineering",
   description:
-    "Where 254 Engineering Services is based, and what building on the Corpus Christi coast asks of a structure. See the coverage map and join the waitlist.",
+    "Where 254 Services LLC is based, and what building on the Corpus Christi coast asks of a structure. See the coverage map and join the waitlist.",
   summary:
     "The firm is based in Corpus Christi, inside the windstorm catastrophe area, in a city whose limits reach from a limestone bluff to the open Gulf side of two barrier islands.",
 
   /** Why the firm's own position is a fact worth stating rather than filler. */
   position: [
-    "254 Engineering Services is named for the 254 counties of Texas and is built to cover all of them. It is based in Corpus Christi, and that is not an incidental detail about where the mail goes. The Coastal Bend is where the most demanding version of the work sits, and a firm headquartered inside the catastrophe area is answering to the same rules as the structures it is built to certify.",
+    "254 Services LLC is named for the 254 counties of Texas and is built to cover all of them. It is based in Corpus Christi, and that is not an incidental detail about where the mail goes. The Coastal Bend is where the most demanding version of the work sits, and a firm headquartered inside the catastrophe area is answering to the same rules as the structures it is built to certify.",
     "Corpus Christi is the seat of Nueces County, which is one of the fourteen Texas seacoast counties inside the catastrophe area designated by the Texas Department of Insurance. Inside that line, new construction and reroofing require [windstorm inspection and a WPI-8 certificate of compliance](/windstorm) before windstorm coverage can be written through the Texas Windstorm Insurance Association. That requirement is the organizing fact of construction here, and it applies to the firm's own city.",
   ],
 

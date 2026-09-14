@@ -32,6 +32,28 @@ export type AccountDoor = {
   what: string;
   /** The route that may create through this door. One each, deliberately. */
   route: string;
+  /**
+   * The screen a PERSON uses to open this door, or null where nobody clicks it.
+   *
+   * ==================================================================
+   * THIS FIELD EXISTS BECAUSE A DOOR SHIPPED WITHOUT ONE.
+   * ==================================================================
+   *
+   * The operator door was built, permission gated, audited and walked end to
+   * end, and the only way to reach it was a POST. Operator ruling, 2026-09-13:
+   * a door an operator owns and can only open with a POST is not built, and the
+   * telephone path is the one this firm's operator actually uses.
+   *
+   * Declaring it is what lets accounts-audit ask the question nothing was
+   * asking, which is not "does the route exist" but "can the person this door
+   * was built for reach it".
+   *
+   * NULL IS A REAL ANSWER AND NOT AN EXEMPTION. The checkout door is opened by
+   * a payment settling, so there is no screen and there should not be one; a
+   * button that opened an account for somebody who had not paid would be a
+   * different door wearing this one's name.
+   */
+  screen: string | null;
   /** Whether the person who ends up owning the account is the one who opened it. */
   openedBySelf: boolean;
   /**
@@ -51,6 +73,7 @@ export const ACCOUNT_DOORS: AccountDoor[] = [
     origin: "self_service",
     what: "A person creates an account with an address and a password, and proves the address before it can do anything.",
     route: "/api/account/sign-up",
+    screen: "/account/sign-up",
     openedBySelf: true,
     requiresVerificationBeforeActing: true,
     actor: "the person signing up",
@@ -59,6 +82,7 @@ export const ACCOUNT_DOORS: AccountDoor[] = [
     origin: "operator_created",
     what: "An operator takes a call from somebody who is not yet a customer and opens the account from the call, with no order attached. The person receives a set password link, never a password.",
     route: "/api/portal/accounts/create",
+    screen: "/portal/accounts",
     openedBySelf: false,
     /*
      * NOT because the address is proven, but because somebody who can say who
@@ -94,6 +118,8 @@ export const ACCOUNT_DOORS: AccountDoor[] = [
      */
     what: "Paying for an order opens the account that owns it, so the person who paid can sign in and see everything they have ordered rather than only the order they paid for.",
     route: "/api/stripe/webhook",
+    /* No screen, and there must not be one. See the field's own note. */
+    screen: null,
     openedBySelf: true,
     /*
      * A successful payment is a stronger claim on an address than a link

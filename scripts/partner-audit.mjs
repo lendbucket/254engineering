@@ -599,7 +599,7 @@ const terms = (over = {}) => ({
    * hand it a sentence.
    */
   const claim = copyVerdict(
-    "254 Engineering Services performs and seals every engagement referred through this programme.",
+    "254 Services LLC performs and seals every engagement referred through this programme.",
   );
   rec("a present tense service claim cannot be published to partners", claim.ok === false);
   rec(
@@ -620,7 +620,7 @@ const terms = (over = {}) => ({
   rec("an em dash cannot be published", dash.ok === false);
 
   const fine = copyVerdict(
-    "Work referred through this programme will be carried out by 254 Engineering Services, the firm of record on every engagement.",
+    "Work referred through this programme will be carried out by 254 Services LLC, the firm of record on every engagement.",
   );
   rec(
     "and compliant copy passes, so the check is not simply refusing everything",
