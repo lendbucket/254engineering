@@ -170,3 +170,69 @@ budget. It pays the same 107KB prefetch toll as everything else, so 1b would
 also be the largest single lever there. The application stepper's 525ms spread
 over three runs is wider than any other route's and makes its median the least
 trustworthy number in the table.
+
+---
+
+## PART 2. PHASE 14, WHAT COULD RUN UNATTENDED
+
+Ranks 1, 2 and 3 were not attempted, as instructed. Every exercise ran against
+development by name, is committed under `scripts/exercises/`, and says in its
+own header what it proves and what it does not.
+
+| Rank | Exercise | Result | What it proved | What it did not |
+| --- | --- | --- | --- | --- |
+| 4 Retention execute | `retention-execute.mjs` | 18 pass | The executor deletes exactly the planned set, by count and id hash, keeps a dead job past the floor, touches none of 1,327 other rows, and refuses a set that moves. A guard refuses to run if the plan holds any row the fixture did not create, injected and caught. | Who may mint the authority. It was constructed, because `executeAuthority` refuses in prelaunch and the gate is not touched. |
+| 5 Dead-letter resume | `queue-resume.mjs` | 16 pass | A dead job resumes with attempts reset and its error kept, earns its retries back, completes once, cannot be resumed again, and a completed job cannot be put back. Two injections written into rows. | The POST route, its permission check and its audit row. The two-worker race uses one job, so it cannot tell an atomic claim from ordering. |
+| 6 Preview guard | `preview-mispointing.mjs` | 9 pass | The built app under `VERCEL_ENV=preview` with the production URL refuses on the portal and on the cron route, the server log names the guard, the development and production cases are untouched, `true` does not open the hatch, `1` does. | A real Vercel preview. The refusal page answers HTTP 200. |
+| 7 `eng_incidents` | none | not run | | No code path writes an incident, and a live insert would leave a permanent fake incident on development. |
+| 8 Stripe refund | `stripe-refund-webhook.mjs` | 9 pass | A signed refund in Stripe's delivered shape is verified, parsed and reaches the recorder; a forged one is refused; the parse that swallowed four refunds is distinguishable; no payment row written. | Writing a refund against a charge, the delta, idempotency. A charge row can never be removed. |
+| 9 Suspended link | `suspended-account-link.mjs` | 8 pass | A suspended account is issued nothing, an active one is, and lifting the suspension on the fixture issues a link. | The route, which is closed while sign up is not cleared. |
+| 10 System task | `system-raises-task.mjs` | **RED** | **The system principal cannot raise a task.** The database refuses the insert on `eng_tasks_created_by_fkey`: its id is not a profile and no migration makes it one. | |
+| Storage | `docs/storage-backup-proposal.md` | proposal | See below. | Nothing built or spent. |
+
+### Four things the exercises found that no check did
+
+**1. The refusal that exists because of 55 emails read a different clock from the
+claim.** `scripts/lib/queue-drain.mjs` asked this machine's clock whether a job
+was eligible; `eng_claim_jobs` asks the database's. The database runs about 85ms
+ahead, so a foreign job enqueued a moment ago was invisible to the guard and
+claimable by the worker. Measured at this machine's real clock, not only under a
+simulated skew. **Fixed** (`2f55f34`) by asking Postgres's clock, and
+`queue-audit` gained three checks that go red with the fix reverted, exactly one
+of 109.
+
+**2. `customer_account.link_reissued` records contact that may not happen.** The
+trail row says a sign up attempt was made and a link was sent. It is written when
+the token is issued, before anything is queued, and a failed enqueue does not
+throw. The exercise wrote four such rows on development, ids 17809 to 17812,
+where neither was true, and they are permanent. **Ruling needed.**
+
+**3. The system principal's only capability cannot run.** Above. **Ruling
+needed.**
+
+**4. The storage map was nine places, not six, and production's one referenced
+firm file is named from inside a JSON payload.** A production object nothing
+references (193 bytes, 2026-08-28), 98 unreferenced objects and 16 dangling
+pointers on development. Supabase's docs answer 2b's open question: a database
+backup restores the storage rows and not the bytes. Cost from list prices read
+tonight: $0 at today's 155,628 bytes. **Rulings needed** on vendor, retention and
+the `bucket` migration.
+
+### Two things this run got wrong on the way, and how each was caught
+
+- **The first moved-set injection for retention expected a refusal and the
+  product was right to run.** A row appended after planning takes an id above the
+  manifest's range. Rewritten to move a row inside the range, and the appended
+  case is asserted for what it is.
+- **The first resume exercise carried its own copy of the queue guard and was
+  committed while `db-guard-audit` was red on exactly that**, because the audit
+  and the commit shared a command and `tail` ate the exit code. That is the
+  chained command shape CLAUDE.md forbids. Corrected in `75bcd6b`, and every
+  audit since has been run on its own with its exit code printed.
+
+### The artefact for this part
+
+The retention manifests, read back from `eng_retention_runs`, and the four
+`link_reissued` trail rows. The manifests found that the first abandon reason
+read as if a real foreign row had been found; corrected on the rows and in the
+script. The trail rows are finding 2.
