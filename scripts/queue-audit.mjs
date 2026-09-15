@@ -222,6 +222,72 @@ const { count: pendingBefore } = await db
 const runner = makeBatchRunner({ db, created, batchSize: BATCH_SIZE, runBatch, worker: WORKER });
 const nextEligible = runner.nextEligible;
 
+/*
+ * ===========================================================================
+ * THE OWNERSHIP CHECK READS THE CLAIM'S CLOCK, NOT THIS MACHINE'S.
+ *
+ * Found 2026-09-15 by the phase 14 rank 5 exercise: nextEligible compared
+ * run_after against `new Date()` while eng_claim_jobs compares against the
+ * database's now(). With the database ~85ms ahead, a foreign row inserted and
+ * then checked read as not eligible to the guard and claimable to the claim.
+ *
+ * Asserted with THIS PROCESS'S CLOCK SET A MINUTE BEHIND, which is the direction
+ * that hides rows. Three rows this audit does not add to `created`, so the guard
+ * must call them foreign, removed before anything else runs:
+ *
+ *   pending, run_after the database's now   eligible   (the skew case)
+ *   running, lease lapsed an hour ago        eligible   (the claim's OR)
+ *   running, lease an hour in the future     NOT eligible
+ *
+ * Unregistered kind and no_external_effect, so a crash between insert and
+ * removal leaves rows a worker would dead-letter rather than run.
+ * ===========================================================================
+ */
+{
+  const CLOCK_KIND = "queue-audit.clock-probe";
+  const hour = 3_600_000;
+  const { data: probes, error: probeErr } = await db
+    .from("eng_jobs")
+    .insert([
+      { kind: CLOCK_KIND, status: "pending", effect_mode: "no_external_effect", payload: { case: "skew" },
+        run_after: "now" },
+      { kind: CLOCK_KIND, status: "running", effect_mode: "no_external_effect", payload: { case: "lapsed" },
+        run_after: new Date(Date.now() - 2 * hour).toISOString(), leased_until: new Date(Date.now() - hour).toISOString() },
+      { kind: CLOCK_KIND, status: "running", effect_mode: "no_external_effect", payload: { case: "leased" },
+        run_after: new Date(Date.now() - 2 * hour).toISOString(), leased_until: new Date(Date.now() + hour).toISOString() },
+    ])
+    .select("id, payload");
+  if (probeErr) throw new Error(`could not write the clock probes: ${probeErr.message}`);
+  const idOf = (c) => probes.find((p) => p.payload.case === c).id;
+
+  const RealDate = Date;
+  let seen;
+  try {
+    globalThis.Date = class extends RealDate {
+      constructor(...a) { super(...(a.length ? a : [RealDate.now() - 60_000])); }
+      static now() { return RealDate.now() - 60_000; }
+    };
+    seen = new Set((await nextEligible(50)).map((r) => r.id));
+  } finally {
+    globalThis.Date = RealDate;
+    await db.from("eng_jobs").delete().eq("kind", CLOCK_KIND);
+  }
+
+  rec(
+    "with this machine a minute behind the database, the ownership check still sees a job enqueued a moment ago",
+    seen.has(idOf("skew")),
+    "the claim uses the database's clock; a guard on this machine's clock cannot see what the claim will take",
+  );
+  rec(
+    "and a running job whose lease has lapsed, which the claim would take",
+    seen.has(idOf("lapsed")),
+  );
+  rec(
+    "and not a running job whose lease is still held",
+    !seen.has(idOf("leased")),
+  );
+}
+
 let fillerMade = 0;
 
 /** Top the audit's own eligible rows up to a full batch with harmless filler. */
