@@ -54,7 +54,16 @@ export default async function AccountLoginPage({
         </div>
 
         <p className="mt-5 text-center text-[13.5px] text-[var(--secondary)]">
-          <Link href="/" className="underline underline-offset-2">
+          {/*
+            Not prefetched, and deliberately. A viewport Link prefetches its
+            target's payload, and "/" carries the lead form, which validates
+            with the whole of zod in the browser. This one link cost the sign in
+            screen 112KB, measured 2026-09-15 at 431KB against 319KB for the
+            staff and partner screens, which have no link at all. The link still
+            navigates; it just stops paying for the homepage before anybody
+            clicks it.
+          */}
+          <Link href="/" prefetch={false} className="underline underline-offset-2">
             Back to the site
           </Link>
         </p>

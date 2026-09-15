@@ -464,16 +464,22 @@ export const SURFACE_ROUTE_KB = {
  * next person does not spend an hour rediscovering it. Removing an entry when
  * the cause is fixed is the point.
  */
+/*
+ * EMPTY, AND THE ONE ENTRY IT HAD LEFT FOR THE RIGHT REASON. 2026-09-15.
+ *
+ * /account/login's 112KB was one `<Link href="/">` reading "Back to the site".
+ * A Link in the viewport prefetches its target, and "/" carries the lead form,
+ * which validates in the browser with the whole of zod: a 288KB chunk, 65KB
+ * gzipped, plus the homepage's RSC payload. The staff and partner login screens
+ * have no link, which is the whole difference between them.
+ *
+ * Proven before fixing, on fresh builds, through this gate and a recorded
+ * request log: before, the page fetched three prefetches of "/" and three
+ * scripts the other two screens never load, 431KB with 220KB of script; with
+ * prefetch={false} on that one link, no prefetch requests, 316KB with 143KB of
+ * script, inside its 325KB budget. The link still navigates.
+ */
 export const KNOWN_OVER_BUDGET = {
-  "/account/login": {
-    measuredKb: 431,
-    since: "2026-09-14",
-    reason:
-      "112KB heavier than /portal/login and /partner/login, which do the same job at 319KB. " +
-      "What it imports has not been investigated. Declared over budget rather than budgeted at " +
-      "its own weight, because budgeting an unexplained outlier at its observed maximum makes " +
-      "the outlier the standard.",
-  },
 };
 
 /**

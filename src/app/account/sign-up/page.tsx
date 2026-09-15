@@ -84,7 +84,12 @@ export default async function AccountSignUpPage() {
           </Link>
         </p>
         <p className="mt-2 text-center text-[13.5px] text-[var(--secondary)]">
-          <Link href="/" className="underline underline-offset-2">
+          {/*
+            Not prefetched, for the reason given on /account/login: prefetching
+            "/" loads the lead form's zod in the browser. Measured 2026-09-15 at
+            433KB with the prefetch and 316KB without it, signed out.
+          */}
+          <Link href="/" prefetch={false} className="underline underline-offset-2">
             Back to the site
           </Link>
         </p>

@@ -109,11 +109,45 @@ a real increase.
 
 ### Two real outliers, NOT fixed in this pass
 
-**1. `/account/login` is 431KB. The other two login screens are 319KB.**
-Three screens doing the same job, and the customer one carries **112KB more than
-the staff and partner ones** and is heavier than every one of the 35 portal
-screens. It is the strongest single signal in the whole run. Nothing has been
-changed; what it imports has not been looked at.
+**1. RESOLVED 2026-09-15: `/account/login` was 431KB. The other two login screens are 319KB.**
+Three screens doing the same job, and the customer one carried **112KB more than
+the staff and partner ones**. It imported nothing they did not. It carried one
+`<Link href="/">Back to the site</Link>`, and a Link in the viewport prefetches
+its target: three RSC requests for `/` and the homepage's scripts, including the
+lead form's zod. Proven before fixing, on a fresh build, through the gate and a
+recorded request log. With `prefetch={false}` on that one link: **316KB against
+its 325KB budget**, script 220KB to 143KB, no prefetch requests, and the link
+still navigates to `/` (clicked, landed). `/account/sign-up` carried the same
+link and paid the same toll, **433KB to 318KB** signed out; the gate cannot
+reach it with a session and that figure is from the gate's settings run without
+one. `KNOWN_OVER_BUDGET` is empty.
+
+**1b. THE HOMEPAGE'S WEIGHT IS PAID BY EVERY PUBLIC PAGE, NOT FIXED.** Found
+answering which other pages pay the toll. `SiteHeader` puts a Link to `/` and a
+Link to `/waitlist` in the viewport of every public page, and both routes render
+`LeadForm`, which imports `@/lib/forms` and so ships **the whole of zod to the
+browser, a 288KB chunk, 65KB gzipped**, to validate on submit. Sized with the
+gate's own Lighthouse settings by blocking that chunk and the prefetch payloads,
+changing no source:
+
+| Page | As shipped | Without the prefetch toll | Of which zod |
+| --- | --- | --- | --- |
+| `/about` | 438KB | 331KB | script 211 to 143KB |
+| `/services` | 485KB | 379KB | script 211 to 143KB |
+| `/coverage` | 522KB | 416KB | script 211 to 143KB |
+
+So roughly **107KB on every public page: about 68KB of zod and 39KB of RSC
+payload** for `/` and `/waitlist`. `/order` pays the zod part through its Link to
+`/contact`. The 39KB is what prefetching the header costs and buys instant
+navigation; the 68KB buys nothing until somebody presses submit.
+
+**Proposed, not done**, because it changes when validation code arrives:
+`LeadForm` validates only inside its submit handler (`safeParse` at line 52), so
+`await import("@/lib/forms")` there would take zod off every public page and out
+of every prefetch while keeping the same schema and the same messages. The cost
+is one fetch of that chunk on the first submit, which on a slow connection is a
+pause before an inline error. That trade is the operator's to rule, and it
+should be measured on the gate before and after like the login fix was.
 
 **2. The order flow is the heaviest thing on the platform**, 462 and 463KB, and
 it is the surface a paying customer meets. It has never had a byte budget and was
