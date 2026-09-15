@@ -144,6 +144,105 @@ than assumed.
 
 ---
 
+## 2b. STORAGE HAS NO BACKUP AND NO RESTORE, AND THE DEADLINE IS THE FIRST SEALED UPLOAD
+
+**Operator instruction, 2026-09-14, after reading the restore-to-new-project
+dialog and the backups page.** Two statements from Supabase's own interface, not
+inferred:
+
+- restore-to-new-project lists **storage objects and settings** among the things
+  it does NOT transfer, needing manual reconfiguration.
+- the backups page states **storage objects are not in database backups at all.**
+
+So the position is not "storage is restored differently". It is that **nothing
+backs up a storage object and nothing can restore one.** Point in time recovery
+rewinds Postgres and leaves the buckets untouched.
+
+### This is PROSPECTIVE, and saying so is not softening it
+
+Read from production 2026-09-14: **204 storage objects, of which this firm owns
+2**, both in `eng-uploads`. `eng-evidence`, `eng-messages` and `eng-onboarding`
+are all **empty**. The other 202 belong to the four unrelated applications
+sharing the project.
+
+**There are no sealed documents and no evidence photographs yet.** So the honest
+sentence is not "the firm has no backup of the evidence behind a sealed
+engineering document", which would imply such evidence exists. It is:
+
+> **There is no mechanism to back up evidence, and it must exist before the first
+> sealed document does.**
+
+The deadline is the first sealed upload, not tonight. That is the only thing
+about this that is comfortable.
+
+### THE GAP IS WORSE THAN "NO BACKUP", AND THIS IS THE PART TO UNDERSTAND
+
+The pointers are in the database. The things pointed at are not.
+
+`eng_documents` carries `bucket` and `storage_key` and `sealed_at`. That row is
+backed up, and point in time recovery will faithfully restore it. The object it
+names is not backed up and cannot be restored. **So a rewind produces a
+regulatory record that ASSERTS a sealed deliverable exists, pointing at a file
+that does not.** The firm would be left holding a record that is worse than an
+absence, because an absence is visibly an absence and this is a claim.
+
+That asymmetry is the finding. A missing backup loses data. **This loses data and
+keeps the assertion that it was there.**
+
+### WHAT A BACKUP WOULD ACTUALLY HAVE TO COVER
+
+Operator instruction, and it is the reason this entry is longer than "copy the
+buckets". **An object restored with no row pointing at it is as useless as a row
+pointing at nothing.** Three things, and all three or it is not a backup:
+
+**1. The object bytes.** Every object in the five `eng-` buckets.
+
+**2. The object's own metadata.** Path, bucket, size, content type, created time,
+as `storage.objects` holds them. Whether the `storage` schema travels with a
+database backup is **not established** and must be, because "storage objects are
+not in database backups" may mean the bytes, the rows, or both. That is a
+question to answer from the product rather than to assume either way.
+
+**3. THE MAPPING, which is the half nobody thinks of.** Six tables in this schema
+point at storage, and a restore has to bring the pointer and the target into
+agreement:
+
+| Table | Columns | What is lost if the mapping breaks |
+| --- | --- | --- |
+| `eng_documents` | `bucket`, `storage_key` | **The sealed deliverable itself.** The regulatory output. |
+| `eng_evidence_items` | `storage_key`, `thumb_key` | The evidence a seal was granted on. |
+| `eng_order_inputs` | `bucket`, `storage_key` | What a customer supplied at checkout. |
+| `eng_onboarding_items` | `storage_key` | Identity and insurance documents. |
+| `eng_partner_asset_versions` | `bucket`, `storage_key` | What the firm approved a partner to publish. |
+| `eng_partner_submissions` | `bucket`, `storage_key` | What a partner sent for approval. |
+
+**`eng_evidence_items` HAS NO `bucket` COLUMN.** It carries `storage_key` and
+`thumb_key` and nothing that says which bucket they live in: the bucket is a
+convention in application code. So restoring evidence requires knowing that
+convention, and a restore performed by somebody reading only the database cannot
+recover it from the database. That is a real defect in the mapping and it is
+cheaper to fix before there is evidence than after.
+
+### WHAT MUST EXIST BEFORE ANYTHING IS SEALED
+
+Not built, not designed, and deliberately not invented here beyond the shape:
+
+1. **A scheduled copy of the five `eng-` buckets to storage the firm controls**,
+   so the restore path does not depend on the provider being reachable, which is
+   point 2 of step 15 in the cutover plan.
+2. **A reconciliation that runs both ways.** Every `storage_key` in those six
+   tables resolves to an object that exists, AND every object in an `eng-` bucket
+   is referenced by a row. **Neither direction alone is enough**: the first misses
+   orphaned objects, the second misses dangling pointers, and a restore can
+   produce either.
+3. **The bucket recorded on the evidence row**, or the convention recorded
+   somewhere a restore can read.
+
+Nothing here is built. It is in `BACKLOG.md` and ranked in
+`docs/phase-14-surveys.md`.
+
+---
+
 ## 3. What makes this smaller than it sounds, and what does not
 
 **Smaller.** The volume at risk today is genuinely tiny: 2 leads, 1

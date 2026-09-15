@@ -275,7 +275,7 @@ second throwaway. Nothing in phase 1 begins until phase 0 is in a report.
 | 0.4 | Dry run `copy-project.mjs` dev to T1, writing nothing | **BLOCKED ON THE OPERATOR.** See below | Per table counts it INTENDS to copy, compared to dev's own counts. Read the two defects under old steps 5 and 8 first: both let this script report success having done nothing |
 | 0.5 | Copy dev to T1 for real | mine | Every table's row count equals dev's; `eng_profiles` uuids preserved; both fingerprints unchanged from 0.2 |
 | 0.6 | Copy storage | mine | Object count and total bytes per bucket equal dev's, enumerated RECURSIVELY |
-| 0.7 | Back up T1, restore into throwaway **T2** | **BLOCKED. Phase 0 STOPS HERE** until the operator says whether restore-into-a-new-project exists on this plan | Both fingerprints on T2 equal T1's, and every row count equals T1's. **This is the step 15 mechanism, rehearsed** |
+| 0.7 | Back up T1, **restore-to-new-project** into throwaway **T2** | mine, on your cost approval. **The operation EXISTS**, confirmed from the dashboard 2026-09-14 | Both fingerprints on T2 equal T1's, every row count equals T1's, **and the extension list is read back**, because extensions are on the dialog's not-transferred list and `gen_random_uuid()` is the default on nearly every key. **This is the step 15 mechanism, rehearsed** |
 | 0.8 | Point a local build at T1 and complete an MFA challenge with a dev enrolment | **yours** to complete the challenge, mine to stand the build up | A code from your authenticator is accepted against T1 |
 | 0.9 | Destroy T1 and T2 | mine | Both gone; the bill returns to its previous figure |
 | 0.10 | **The dry run report** | mine | Every figure above, and what went wrong, in `docs/`. **GO/NO-GO is your word** |
@@ -335,11 +335,17 @@ variable for the command. It is a throwaway project rather than production, and
 it is a secret either way: it goes in the environment of one invocation and is
 never written to a file in this tree.
 
-**0.7 may not be performable at all, by anybody, through this tooling.**
-`restore_project` takes a project id and nothing else. There is no operation that
-backs up one project and restores it into another. Whether the Supabase dashboard
-offers restore-into-a-new-project on this organisation's plan is the operator's to
-read, and **phase 0 stops at 0.7 until they do.** See the correction at step 15.
+**0.7 IS PERFORMABLE AND WAS THE OPEN QUESTION. IT IS ANSWERED.** The Supabase
+dashboard offers restore-to-new-project; the operator read the dialog on
+2026-09-14. `restore_project` in the MCP takes a project id and nothing else,
+which is why this was in doubt, and that was a fact about the tooling rather than
+about the product. Cost is about $10.18 a month for the clone. **It still needs a
+cost approval before anything is created, and it still stops for that.**
+
+**What it does NOT bring, and the plan now depends on knowing this:** storage
+objects, edge functions, auth settings and API keys, database extensions and
+settings, read replicas. The extension exclusion is the one that bites, because
+`gen_random_uuid()` is the default on nearly every `eng_` primary key.
 
 ---
 
@@ -1159,45 +1165,50 @@ prompted it is still missing.
 
 ---
 
-#### THE CLAIM IN POINT 3 MAY NOT BE TRUE, AND IT IS CORRECTED HERE RATHER THAN RELIED ON
+#### POINT 3 IS REAL. THE OPERATION EXISTS, AND THE OPERATOR READ THE DIALOG.
 
-**Operator ruling, 2026-09-14.** Point 3 says "restore into a scratch project and
-compare". Phase 14 rank 1 went looking for that operation and it does not exist
-in the tooling this platform is driven by: `restore_project` takes a project id
-and nothing else. It un-pauses a paused project. **A Supabase backup belongs to
-the project that made it**, so "restore production into a scratch project" is not
-a thing that can be done from here, and steps 0.7 and 9 inherit the same problem.
+**Confirmed 2026-09-14, from the Supabase dashboard's own restore-to-new-project
+dialog, read before cancelling.** An earlier version of this section said the
+operation might not exist, because `restore_project` in the tooling this platform
+is driven by takes a project id and nothing else. That was true of the MCP and
+false of the product. The alternative wording is deleted rather than left
+hedging, because a plan that offers two futures is a plan nobody can act on.
 
-Whether the Supabase DASHBOARD offers restoring a physical backup into a NEW
-project on this organisation's plan is the operator's to read, and that answer
-decides which of two paragraphs below is the true one. **Until it is answered,
-phase 0 stops at 0.7.**
+**What restore-to-new-project transfers:** the database schema, all data and
+indexes, database roles, permissions and users. Organisation and region are
+unchanged, `us-west-2`. The new project starts at the same compute with 1.5x
+disk, at about **$10.18 a month**.
 
-**IF THAT OPERATION DOES NOT EXIST, THEN STEP 15 IS NOT A RESTORE PATH, AND THIS
-PLAN MUST STOP CALLING IT ONE.** Stated plainly, because the whole reopening rests
-on it:
+**What it explicitly does NOT transfer, listed by the dialog as needing manual
+reconfiguration:** storage objects and settings, edge functions, auth settings
+and API keys, database extensions and settings, read replicas.
 
-> The firm's restore path after the cutover is **the same point in time recovery
-> it has now**, on a project with one tenant instead of five. That is genuinely
-> better: a rewind no longer restores five unrelated applications or none, and the
-> decision stops being shared with four other codebases. **It is not what this
-> plan claims.** It is not a rehearsed restore, it is not a backup that leaves the
-> provider, and nothing in the sequence above proves that a restore produces a
-> working platform. Point 3 would be unproven and point 2 unbuilt.
+**So step 15 point 3 is performable**: clone production into a throwaway, read
+both fingerprints and every irreplaceable row against it, destroy it. That is the
+rehearsed restore this plan has always asked for and never had, and it costs one
+operation and about ten dollars.
 
-The honest consequence: **the cutover would remove a tenancy risk without closing
-the gap the operator reopened the plan to close.** Worth doing on those terms,
-and only on those terms, said out loud so nobody reads step 15 as done.
+**TWO THINGS THE DIALOG'S EXCLUSION LIST MAKES LOAD BEARING, and neither is
+hypothetical.**
 
-Point 2, a dump of the `eng_` schema to storage the firm controls, becomes the
-load bearing item in that case rather than the smallest honest version of a
-larger plan. It does not depend on the provider offering anything.
+**Extensions are not transferred.** Production runs `pgcrypto`, `uuid-ossp`,
+`pg_stat_statements` and `supabase_vault`. `gen_random_uuid()` is the default on
+nearly every `eng_` primary key in this schema. A restored project whose
+extensions did not come with it is a project where inserts fail, and the failure
+would appear at the first write rather than at the restore. **Verify the
+extension list on any clone before believing a single row count from it.**
+
+**Storage objects are not transferred, and separately the backups page states
+storage objects are not in database backups at all.** That is a larger finding
+than this plan and it is written up in `docs/disaster-recovery.md`, ranked in
+Phase 14. In short: the evidence behind a sealed engineering document is a
+storage object, and today nothing backs one up and nothing could restore one.
 
 **What is NOT in doubt** is the schema half. Phase 14 rank 1 replayed all 49
 migrations from nothing into a real PostgreSQL 17.6 Supabase engine on
 2026-09-14 and matched the ledger exactly, so rebuilding the SHAPE from files is
-proven. Rebuilding the ROWS is the half with nothing behind it, and it is the
-half that matters for `eng_audit_events`.
+proven. Rebuilding the ROWS is now performable and still unproven, which is
+exactly what step 15 point 3 exists to close.
 
 ---
 

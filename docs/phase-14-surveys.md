@@ -295,6 +295,41 @@ so those rows are gone and not reconstructable. They were rehearsal residue
 rather than firm records, and recording counts without contents was thinner than
 it should have been.
 
+### 1b. STORAGE HAS NO BACKUP AND NO RESTORE — ABOVE RANK 2, ADDED 2026-09-14
+
+**Operator ruling: this ranks as its own item, above most of what is already on
+this list.** Full account in `docs/disaster-recovery.md` section 2b; this is the
+ranking and the reason.
+
+**What proves it today.** Nothing, and nothing can. Supabase's restore-to-new-
+project dialog lists storage objects among what it does NOT transfer, and the
+backups page states storage objects are not in database backups at all. Both read
+from the product on 2026-09-14, not inferred.
+
+**Why it outranks the items below it.** Every other recovery path on this list
+fails by losing something or by refusing to work. This one fails by **keeping the
+claim and losing the thing**: `eng_documents` carries `bucket`, `storage_key` and
+`sealed_at`, all of which restore faithfully, while the sealed deliverable they
+name does not exist. A rewind produces a regulatory record asserting a sealed
+document that is gone. An absence is visibly an absence; this is a false
+statement on the firm's own record.
+
+**Why it is not rank 1.** It is entirely PROSPECTIVE. Production holds 204
+storage objects of which this firm owns **2**, both in `eng-uploads`;
+`eng-evidence`, `eng-messages` and `eng-onboarding` are empty, and no sealed
+document exists. **The deadline is the first sealed upload, not today.**
+
+**What it needs**, and none of it is built: a scheduled copy of the five `eng-`
+buckets to storage the firm controls; a reconciliation that runs BOTH ways, since
+every `storage_key` must resolve to an object and every object must be referenced
+by a row, and either direction alone misses half the failure; and the bucket
+recorded on `eng_evidence_items`, which today carries `storage_key` and
+`thumb_key` and nothing saying which bucket they are in.
+
+**What happens if it is needed and does not work.** The evidence behind a sealed
+engineering document is gone and the record says it is there. That is the one
+failure on this list that produces a false regulatory claim rather than a gap.
+
 ### 2. Point in time recovery — RANK 2
 
 **What proves it today.** A boolean in `src/config/launch-readiness.ts` stated
