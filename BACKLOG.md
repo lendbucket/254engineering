@@ -63,6 +63,48 @@ operator's word and has not been given. The report's position is that a trade
 price is not a figure on a report, it is a price on an order, and the order's
 figures are already swept.
 
+## SEVENTEEN RENDERED SENTENCES STILL SAY THE FIRM REGISTRATION IS PENDING, NOT FIXED
+
+Found 2026-09-15 while reading the windstorm cluster before writing articles.
+TBPELS issued F-29811 to 254 Services LLC on 2026-09-10, active, and
+`registrationLine()` has rendered it in the footer since. **These still say the
+registration is pending**, as literals, which is the rule in CLAUDE.md section 7
+("a compliance sentence hardcoded anywhere is the defect") at sitewide scale:
+
+- public pages: `/waitlist` (twice, one of them its meta description),
+  `/terms`, `/corpus-christi`, the offer call to action and the prelaunch notice
+  on every gated page, `/careers` via `src/content/careers.ts`, the firm
+  registration insight, `/structural-engineer`, and two windstorm cluster
+  sections (`appointed-engineers`, `twia-coverage`)
+- API refusals a caller reads: `/api/order-flow`, `/api/orders`, `/api/v1/orders`,
+  and the job intake rule in `src/lib/job-intake-rules.ts`
+- staff and partner screens: `RestrictedMode`, partner materials
+
+`compliance-audit` guards only the portal rail, which is why nothing went red.
+Not fixed tonight, for two reasons: what the replacement says is a compliance
+statement for the operator to word (the registration is active and the gate is
+shut on the operating name, which is a different sentence from "pending"), and
+nothing merges or deploys tonight, so production goes on serving these whatever
+the branch says. **Ruling needed**, and the fix should route every one through
+the gate's own sentences rather than replace seventeen literals with seventeen
+new ones.
+
+## THE WINDSTORM CLUSTER DATES THE WPI-8C DIFFERENTLY FROM TDI, NOT FIXED
+
+Found 2026-09-15 re-reading TDI's completed construction page for the coastal
+posts. TDI says "The Texas Windstorm Insurance Association issued completed
+construction certificates (WPI-8C) between January 1, 2017, and May 31, 2020",
+which dates the ISSUING. `src/content/windstorm-program.ts` (the
+`completed-construction` and `buying-and-selling` pages and the header note)
+says the WPI-8-C was for construction COMPLETED between those dates, which dates
+the work, and spells it with a second hyphen TDI does not use. The ten coastal
+posts use TDI's wording. The same page now states plainly that any TBPELS
+licensed engineer can inspect completed construction, which is the question the
+cluster's header records as a conflict between two TDI pages; it should be
+re-read against both pages before that note is changed. Not edited tonight:
+the cluster is reviewed compliance copy and the correction is small enough to
+make deliberately rather than in passing.
+
 ## STORED FILES: A BACKUP PROPOSAL, AND THE MAP IS NINE PLACES NOT SIX
 
 `docs/storage-backup-proposal.md`, 2026-09-15, proposal only, nothing built or

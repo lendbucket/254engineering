@@ -316,6 +316,25 @@ export const ROUTE_BUDGETS = [
   { name: "windstorm cluster", path: "/windstorm/before-work-begins", kb: 540 },
   { name: "proximity cluster", path: "/structural-engineer", kb: 540 },
   { name: "insights post", path: "/insights/texas-pe-license-lookup", kb: 540 },
+  /*
+   * THE TEN COASTAL WINDSTORM POSTS, 2026-09-15, EACH MEASURED ON ITS OWN.
+   *
+   * Operator instruction: every article joins the perf gate's public set, not
+   * only its template. They share the insights post budget because they share
+   * its shape, and they are listed rather than derived so that removing one from
+   * the gate is an edit somebody makes on purpose. It roughly doubles the public
+   * set, which is a cost on every board run and is recorded as one.
+   */
+  { name: "insights post: twia eligibility", path: "/insights/twia-eligibility-requirements", kb: 540 },
+  { name: "insights post: pre 1988 homes", path: "/insights/twia-coverage-homes-built-before-1988", kb: 540 },
+  { name: "insights post: 30 day coverage", path: "/insights/twia-temporary-coverage-inspection-form", kb: 540 },
+  { name: "insights post: certificate of compliance", path: "/insights/windstorm-certificate-of-compliance", kb: 540 },
+  { name: "insights post: ongoing vs completed", path: "/insights/ongoing-vs-completed-improvement", kb: 540 },
+  { name: "insights post: post-construction report", path: "/insights/post-construction-evaluation-report", kb: 540 },
+  { name: "insights post: engineer letter", path: "/insights/engineer-letter-vs-windstorm-certificate", kb: 540 },
+  { name: "insights post: roofers", path: "/insights/windstorm-inspection-for-roofers", kb: 540 },
+  { name: "insights post: roof certification", path: "/insights/roof-certification-vs-wpi-8", kb: 540 },
+  { name: "insights post: inspection vs forensic", path: "/insights/inspection-vs-forensic-report", kb: 540 },
   { name: "careers hub", path: "/careers", kb: 580 },
   {
     name: "application stepper",

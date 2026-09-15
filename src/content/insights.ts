@@ -1,4 +1,5 @@
 import type { Faq } from "./services";
+import { coastalInsights } from "./insights-coastal";
 import type { FigureId } from "@/components/insights/figures";
 
 /**
@@ -662,6 +663,13 @@ export const insights: Insight[] = [
     ],
   },
 ];
+
+/*
+ * The coastal windstorm posts, 2026-09-15, in their own module so this file
+ * stays readable. Spread in rather than exported separately, so the sitemap,
+ * the hub and every audit that reads `insights` see them without being told.
+ */
+insights.push(...coastalInsights);
 
 export function insightBySlug(slug: string): Insight | undefined {
   return insights.find((i) => i.slug === slug);
