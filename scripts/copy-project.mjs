@@ -40,7 +40,6 @@
  * amendment, 2026-09-03.
  */
 
-import fs from "node:fs";
 import { readSource } from "./lib/read-source.mjs";
 import { pairClient } from "./lib/db-target.mjs";
 /*
@@ -55,6 +54,11 @@ import { readEveryRow } from "./lib/read-every-row.mjs";
  * meaningless: see the header of scripts/lib/bucket-walk.mjs.
  */
 import { walkBucket } from "./lib/bucket-walk.mjs";
+/*
+ * Three reads a survey of this file found answering the wrong question. See the
+ * header of scripts/lib/copy-preconditions.mjs for each, with what it measured.
+ */
+import { authUsersMissing, probeTable, tablesDeclaredByMigrations } from "./lib/copy-preconditions.mjs";
 
 /** Sequence statements this run could not execute. Printed, never pretended. */
 const setvals = [];
@@ -441,13 +445,12 @@ async function completenessCheck() {
   const declared = new Set([...TABLES.map((t) => t.name), ...Object.keys(NOT_COPIED)]);
 
   const dir = new URL("../supabase/migrations/", import.meta.url);
-  const fromMigrations = new Set();
-  for (const file of fs.readdirSync(dir).sort()) {
-    if (!file.endsWith(".sql")) continue;
-    const sql = readSource(new URL(file, dir));
-    for (const m of sql.matchAll(/create table if not exists\s+(eng_[a-z0-9_]+)/gi)) {
-      fromMigrations.add(m[1].toLowerCase());
-    }
+  let fromMigrations;
+  try {
+    fromMigrations = tablesDeclaredByMigrations(dir, readSource);
+  } catch (err) {
+    fail(String(err?.message ?? err));
+    return;
   }
 
   if (fromMigrations.size === 0) {
@@ -457,18 +460,31 @@ async function completenessCheck() {
   console.log(`  the migrations declare ${fromMigrations.size} eng_ tables`);
 
   const undeclared = [];
+  const unreadable = [];
   for (const name of [...fromMigrations].sort()) {
     if (declared.has(name)) continue;
-    const { count, error } = await src.from(name).select("*", { count: "exact", head: true });
-    if (error) continue; // Not present on the source. A newer migration than production has.
-    if ((count ?? 0) > 0) undeclared.push(`${name} (${count} rows)`);
+    let probe;
+    try {
+      probe = await probeTable(src, name);
+    } catch (err) {
+      unreadable.push(String(err?.message ?? err));
+      continue;
+    }
+    if (probe.absent) continue; // Not present on the source. A newer migration than production has.
+    if (probe.count > 0) undeclared.push(`${name} (${probe.count} rows)`);
+  }
+
+  if (unreadable.length) {
+    fail(
+      `${unreadable.length} undeclared table(s) could not be read on the source, so whether they hold rows is unknown: ${unreadable.join("; ")}`,
+    );
   }
 
   if (undeclared.length) {
     fail(
       `${undeclared.length} table(s) hold rows on the source and are in neither the copy list nor the declared exclusions: ${undeclared.join(", ")}. Decide about each rather than leaving it out by accident.`,
     );
-  } else {
+  } else if (!unreadable.length) {
     console.log(
       `  every eng_ table holding rows is either copied or declared as not copied (${declared.size} declared)`,
     );
@@ -576,28 +592,41 @@ for (const t of TABLES) {
 
   const firstKey = t.key.split(",")[0];
 
-  const { count: destBefore } = await dst
-    .from(t.name)
-    .select(firstKey, { count: "exact", head: true });
-
-  if (MODE === "apply" && rows.length > 0) {
-    if (t.needsAuthUser) {
-      /*
-       * eng_profiles references auth.users. If the auth rows are not already in
-       * place this insert fails on a foreign key deep in a batch, which is a
-       * confusing way to learn that step 7's SQL was skipped.
-       */
-      const ids = rows.map((r) => r.id);
-      const { data: present } = await dst.from(t.name).select("id").in("id", ids);
-      const have = new Set((present ?? []).map((r) => r.id));
-      const missingAuth = ids.filter((id) => !have.has(id));
-      if (missingAuth.length && destBefore === 0) {
-        console.log(
-          `  ${t.name}: ${missingAuth.length} row(s) need their auth.users row created first (cutover plan step 7). Skipping.`,
-        );
+  /*
+   * eng_profiles references auth.users. If the auth rows are not already in
+   * place this insert fails on a foreign key deep in a batch, which is a
+   * confusing way to learn that step 7's SQL was skipped.
+   *
+   * ASKED OF auth.users, IN EVERY MODE. This read used to query eng_profiles on
+   * the destination, under a guard that fired only when that table was empty,
+   * so on a fresh project it reported every profile as lacking an auth row
+   * whether or not step 7 had run, and skipped the table with a log line rather
+   * than a STOP. See copy-preconditions.mjs. A dry run now answers it too,
+   * because a precondition first exercised by --apply is one first exercised
+   * at the moment the firm changes databases.
+   */
+  if (t.needsAuthUser && rows.length > 0) {
+    let missingAuth;
+    try {
+      missingAuth = await authUsersMissing(dst, rows.map((r) => r.id));
+    } catch (err) {
+      fail(`${t.name}: ${String(err?.message ?? err)}`);
+      continue;
+    }
+    if (missingAuth.length) {
+      const sentence = `${t.name}: ${missingAuth.length} of ${rows.length} row(s) have no auth.users row on the destination (cutover plan step 7 creates them)`;
+      if (MODE === "dry") {
+        console.log(`  NOTE: ${sentence}. --apply will stop here until they exist.`);
+      } else {
+        fail(`${sentence}. Nothing was written to ${t.name}.`);
         continue;
       }
+    } else {
+      console.log(`  ${t.name}: all ${rows.length} auth.users row(s) are present on the destination`);
     }
+  }
+
+  if (MODE === "apply" && rows.length > 0) {
 
     // Chunked, and upserted on the primary key so a re-run is not a duplicate.
     for (let i = 0; i < rows.length; i += 500) {

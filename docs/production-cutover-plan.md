@@ -47,6 +47,27 @@ paging.
 **And a third, found after:** the queue stop reported a depth of 20 when the
 queue held 668, because it read `.limit(20)` and reported the sample's length.
 
+**And the survey that followed, 2026-09-15.** Two bounded reads in one file meant
+reading the rest of it. Every read in `copy-project.mjs` and the two modules it
+leans on was walked, and four more reads were answering a different question
+from the one their output named. None was a cap; all four were the absent versus
+zero family. Each was measured against development before and after, and the
+reasoning is in `scripts/lib/copy-preconditions.mjs`:
+
+| Read | What it said | What it could see |
+| --- | --- | --- |
+| auth precondition for `eng_profiles` | "N row(s) need their auth.users row created first. Skipping." | `eng_profiles` on the destination, never `auth.users`, under a guard that only fired when that table was empty. On a fresh project it skipped profiles whether or not step 7 had run, as a log line rather than a STOP. `--apply` could not have copied profiles to a new project. |
+| completeness probe | "every eng_ table holding rows is either copied or declared" | A HEAD count on a missing table answers 204, no error, count null, which `?? 0` read as empty. The branch commented "not present" was the one an unreadable table took (401 on a bad key), and it dropped that table from the check. |
+| the migration table list | "the migrations declare 76 eng_ tables" | One spelling, `create table if not exists eng_x`. True today for all 76; `create table eng_x` or `public.eng_x` would have been a table never probed. It now asserts it captured every `create table` naming an eng_ table. |
+| `readEveryRow` itself | every row, or a refusal | `count ?? 0` on its first line, so a table MISSING from the source returned `[]` and was copied as empty without a word. It now refuses a null count. |
+
+The storage walk, the byte comparison, the sequence figure, the chunked upsert,
+the cycle repair and the queue sample were read and are sound. **None of the four
+fixes has run inside the script against two projects**, because that needs the
+target key; each was proven on its own against development, old and new side by
+side. The dry run the operator runs at the keyboard is the first time they run
+together.
+
 ### What the dry run proved, and what it did not
 
 **A DRY RUN PROVES THE PLAN, NOT THE APPLY.** It proved the script can reach both

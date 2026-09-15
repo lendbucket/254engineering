@@ -960,6 +960,32 @@ to parse, a glob that matched nothing, a file list that excludes untracked files
 **Ask what the count would be if the mechanism returned nothing, and whether the
 check could tell.**
 
+**AND THE SAME FILE CARRIED THE SAME DEFECT TWENTY LINES AWAY, WRITTEN IN ITS OWN
+SOURCE.** Operator ruling, 2026-09-15, recorded as its own instance.
+
+The queue stop in `copy-project.mjs` read the job queue with `.limit(20)` and
+reported the length of what came back as the depth:
+
+    the job queue holds 20 pending or running job(s) (email.send, report.export)
+
+**The queue held 668, across three kinds.** Twenty of 668, and a whole job kind
+invisible, because none of its rows happened to reach the first twenty. The
+number was precise, it was plausible, and a person reading it would have waited
+a minute for twenty jobs to drain.
+
+Two things make it worth its own entry rather than a footnote to the 1000 cap.
+**This ceiling was not PostgREST's.** It was written in the file, by hand, and
+still read as a measurement, so knowing about silent transport caps would not
+have found it. And **the sample's contents were wrong as well as its size**: a
+list of kinds read off a bounded sample is a claim that those are the kinds,
+and it was missing one.
+
+The rule it produced: **COUNT the thing you report, SAMPLE the thing you
+describe, and never let a sample's length stand in for a count.** A bounded read
+is often the right instinct; reporting its length as the size of the set is the
+defect. And two instances of one defect in one file means surveying the rest of
+the file rather than assuming the other reads are sound.
+
 **A CHECK THAT FILTERS LIVE DATA FOR A SUBJECT THAT DOES NOT EXIST YET IS
 VACUOUS. BUILD THE SUBJECT.** Operator ruling, 2026-09-09, from the reporting
 paging work. The obvious way to check that a paged expansion still sums the
