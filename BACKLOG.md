@@ -149,6 +149,18 @@ is one fetch of that chunk on the first submit, which on a slow connection is a
 pause before an inline error. That trade is the operator's to rule, and it
 should be measured on the gate before and after like the login fix was.
 
+**1c. THE OPEN SANS ITALIC IS PRELOADED ON EVERY SCREEN, NOT FIXED.** 34KB on
+every public, order, partner and account screen, for the one portal component
+`src/app/layout.tsx` loads it for. `next/font` preloads every face in a call.
+Proposal: a second call for the italic with `preload: false`. Composition of
+the order flow and the portal shell, and the smaller candidates (`favicon.ico`
+at 15KB of uncompressed bitmaps, two renditions of the brand mark), are in
+`docs/overnight-2026-09-15.md` Part 1.
+
+**1d. `/coverage/coastal-bend` is 550KB against 560KB**, the tightest budget on
+the site, with LCP at 93 percent of its ceiling. Four other LCP readings sit
+above 90 percent. Warnings, listed in the same report.
+
 **2. The order flow is the heaviest thing on the platform**, 462 and 463KB, and
 it is the surface a paying customer meets. It has never had a byte budget and was
 never measured until tonight.
