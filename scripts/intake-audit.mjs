@@ -130,10 +130,17 @@ console.log("");
 
   rec("under the gate, no payment link may be sent", link?.available === false);
   rec("and no account may be invoiced", invoice?.available === false);
+  /*
+     * Sharpened 2026-09-15 on the operator's registration ruling: the refusal used
+     * to have to NAME THE BOARD, which was the conflation. The registration issued
+     * on 2026-09-10; the true reason is launch mode, so that is what it must say,
+     * and a registration status is what it must not claim.
+   */
   rec(
-    "and both say why, naming the board",
-    /Texas Board of Professional Engineers/.test(link?.because ?? "") &&
-      /Texas Board of Professional Engineers/.test(invoice?.because ?? ""),
+    "and both say why, giving launch mode as the reason and claiming no registration status",
+    [link?.because ?? "", invoice?.because ?? ""].every(
+      (why) => /not yet accepting engagements/i.test(why) && !/registration/i.test(why),
+    ),
     "the intake says why rather than failing silently",
   );
   rec(

@@ -335,9 +335,16 @@ async function run() {
       pre.get("/llms.txt").text.includes(REGISTRANT_LINE),
     );
 
+    /*
+     * Sharpened 2026-09-15 on the operator's registration ruling. This asserted
+     * "Application pending with the Texas Board", which had been false since
+     * F-29811 issued on 2026-09-10. It now asserts the ruled sentence, written
+     * here as a literal, and that the page says nothing is pending.
+     */
     rec(
-      "prelaunch: the capability statement states the registration as pending rather than omitting it",
-      /Application pending with the Texas Board/i.test(pre.get("/government").text),
+      "prelaunch: the capability statement states the registration as the register records it, rather than omitting it",
+      pre.get("/government").text.includes("254 Services LLC is a Texas registered engineering firm, TBPELS Firm Registration F-29811.") &&
+        !/Application pending with the Texas Board/i.test(pre.get("/government").text),
     );
 
     // ---------- live ----------

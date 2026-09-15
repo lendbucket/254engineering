@@ -307,7 +307,7 @@ const otherTech = actor("field_tech", "tech-2");
      */
     rec(
       `and says where its real date comes from`,
-      /set on launch day|one year from issuance|when the policy binds|declarations page|registration certificate/i.test(
+      /set on launch day|one year from issuance|when the policy binds|declarations page|registration certificate|expiry date is on the register/i.test(
         seed?.description ?? "",
       ),
       seed?.description?.slice(0, 50),
