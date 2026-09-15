@@ -44,6 +44,12 @@ import fs from "node:fs";
 import { readSource } from "./lib/read-source.mjs";
 import { pairClient } from "./lib/db-target.mjs";
 /*
+ * Every row or a refusal, never the first thousand. The bare select("*") this
+ * file used would have copied 1000 of 17,500 audit events and printed "agree".
+ * See the header of scripts/lib/read-every-row.mjs.
+ */
+import { readEveryRow } from "./lib/read-every-row.mjs";
+/*
  * The bucket walk lives in its own module so it can be exercised. It was six
  * lines here, and those six lines are what made step 8's verification
  * meaningless: see the header of scripts/lib/bucket-walk.mjs.
@@ -310,9 +316,11 @@ if (problems && MODE === "apply") {
 // ------------------------------------------------------------------- tables
 
 for (const t of TABLES) {
-  const { data: rows, error } = await src.from(t.name).select("*");
-  if (error) {
-    fail(`${t.name}: could not read the source: ${error.message}`);
+  let rows;
+  try {
+    rows = await readEveryRow(src, t.name, "*", { orderBy: t.key.split(",")[0] });
+  } catch (err) {
+    fail(`${t.name}: could not read the source: ${String(err?.message ?? err)}`);
     continue;
   }
 
@@ -390,7 +398,14 @@ for (const t of TABLES) {
    * regulatory problem rather than an inconvenience.
    */
   if (t.byIdSet && MODE !== "dry") {
-    const { data: destRows } = await dst.from(t.name).select(firstKey);
+    /*
+     * PAGED ON BOTH SIDES. This comparison exists because two id sets of the
+     * same size can still differ, and it was capped at 1000 on both sides, so
+     * it printed "id sets identical" over the first thousand of seventeen and a
+     * half thousand. The strictest check in this file was the one the cap made
+     * meaningless.
+     */
+    const destRows = await readEveryRow(dst, t.name, firstKey, { orderBy: firstKey });
     const a = new Set(rows.map((r) => r[firstKey]));
     const b = new Set((destRows ?? []).map((r) => r[firstKey]));
     const onlySource = [...a].filter((x) => !b.has(x));

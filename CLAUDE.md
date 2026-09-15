@@ -917,6 +917,49 @@ cited, because **an explanation that covers the observation is not the same as a
 explanation that is true**, and a wrong one is worse than none: it makes the next
 session stop looking.
 
+**A CHECK MADE VACUOUS BY A CAP IT DOES NOT KNOW ABOUT IS THE WORST KIND,
+BECAUSE ITS OUTPUT NAMES THE RIGOUR IT IS NOT PERFORMING.** Operator ruling,
+2026-09-14, from phase 0's dry run of `copy-project.mjs`.
+
+PostgREST answers an unbounded `select("*")` with **at most 1000 rows**, no
+error, no warning, and nothing in the response saying anything was left behind.
+
+`copy-project.mjs` read its source rows that way and compared the result against
+an EXACT count of the destination. On a table of 17,500 that reads 1000, writes
+1000, counts 1000 at the destination and prints **agree**. It would have copied a
+thousand of seventeen and a half thousand audit events and reported success.
+
+**THE PART THAT MAKES THIS ITS OWN RULE IS WHICH CHECK IT RUINED.**
+`eng_audit_events` is the one table compared by ID SET rather than by count,
+deliberately, because two sets of the same size can differ and that table is the
+firm's regulatory memory. It is the strictest check in the file. **Both sides of
+it were capped at 1000**, so it printed
+
+    id sets identical (1000 ids compared one by one)
+
+while 16,500 rows on each side were never looked at. The sentence is a precise
+description of rigour that did not happen, and it is the sentence somebody would
+quote in an incident review as evidence the copy was sound.
+
+A green over an empty set is recognisably thin. **A green that announces it
+compared seventeen thousand things one by one, having compared a thousand, reads
+as the strongest evidence in the file.** That is why it outranks the other
+vacuous-green instances rather than joining them.
+
+**The fix is the assertion, not the paging.** `scripts/lib/read-every-row.mjs`
+reads the exact count FIRST and refuses to return unless what it assembled equals
+it, so a reintroduced cap, or a row deleted mid-walk, fails loudly instead of
+returning a short list that looks complete. Injection-verified both ways: against
+`eng_audit_events` it returns 17,500 where a bare select returns 1,000, and
+against a client crippled to answer one row per page it refuses with
+"read 2 rows against an exact count of 1327".
+
+**The general form.** Any transport with a silent ceiling makes every check
+downstream of it a check on the ceiling: PostgREST's 1000, a sitemap that failed
+to parse, a glob that matched nothing, a file list that excludes untracked files.
+**Ask what the count would be if the mechanism returned nothing, and whether the
+check could tell.**
+
 **A CHECK THAT FILTERS LIVE DATA FOR A SUBJECT THAT DOES NOT EXIST YET IS
 VACUOUS. BUILD THE SUBJECT.** Operator ruling, 2026-09-09, from the reporting
 paging work. The obvious way to check that a paged expansion still sums the
