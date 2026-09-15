@@ -89,20 +89,18 @@ try {
     `${await tokens(active.id)} token(s), ${await trail(active.id)} trail row(s)`);
 
   /*
-   * READ AS A PERSON WOULD, AND IT IS WRONG. Found 2026-09-15 by this exercise.
-   *
-   * The row says a sign up attempt happened and a link "was sent". This
-   * exercise made no sign up attempt and sent nothing, and the function wrote it
-   * anyway, because the row is written when the TOKEN is issued, before the
-   * route queues any email, and queueEmail can fail without throwing. It is the
-   * `customer_link.issued` defect in CLAUDE.md section 2c: a database write
-   * recorded as contact. Printed rather than failed, because the wording is a
-   * ruling for the operator and the exercise's question is the suspension.
+   * FIXED 2026-09-15 on the operator's ruling, and now a check rather than a
+   * note. This exercise makes no sign up attempt and sends nothing, so a row that
+   * says either is false. Against the old writer it failed; ids 17809 to 17812
+   * are the rows that proved it.
    */
   const { data: row } = await db.from("eng_audit_events").select("id, summary")
     .eq("action", "customer_account.link_reissued").eq("entity_id", active.id).maybeSingle();
-  console.log(`  NOTE: trail row ${row?.id} reads "${row?.summary}"`);
-  console.log("        No sign up attempt was made and nothing was sent. The row claims contact that did not happen.");
+  rec(
+    "the reissue trail row says the link was issued, and claims no sign up attempt and no send",
+    /\bissued\b/i.test(row?.summary ?? "") && !/\bsent\b/i.test(row?.summary ?? "") && !/sign up attempt/i.test(row?.summary ?? ""),
+    `row ${row?.id}: "${row?.summary}"`,
+  );
 
   /*
    * INJECTION: the suspension is the only thing between that account and a

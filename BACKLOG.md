@@ -133,7 +133,15 @@ never sign in), a null creator for platform work with the principal named in
 the trail, or a different key. Also read in the same function and not provable
 until it can insert: the idempotency `LIKE` does not escape `_` or `%` in the key.
 
-## `customer_account.link_reissued` RECORDS CONTACT THAT MAY NOT HAVE HAPPENED, NOT FIXED
+## RESOLVED 2026-09-15: `customer_account.link_reissued` RECORDED CONTACT THAT MAY NOT HAVE HAPPENED
+
+Fixed on the operator ruling. The row now says a link was ISSUED and nothing more, and the sign up route records the enqueue outcome itself as `customer_account.link_email_queued` or `customer_account.link_email_not_queued`, saying queued and never sent. The rank 9 exercise checks the wording, and failed against the old writer.
+
+**KNOWN FALSE ROWS, PERMANENT, ON DEVELOPMENT ONLY.** `eng_audit_events` ids **17809, 17810, 17811, 17812 and 18206** read that a sign up attempt was made and a link was sent. Neither happened: they were written by the exercise. 18206 was written by the verification run against the old code after the fix, which is how the count reached five. They cannot be deleted and are documented here and in `docs/overnight-2026-09-15.md` so nobody reads them as contact.
+
+Not exercised: the route itself, which is closed while self service sign up is not cleared.
+
+### As first recorded
 
 Found 2026-09-15 by the Phase 14 rank 9 exercise, by reading the trail rows it
 wrote. `issueLinkForExistingAccount` in `src/lib/account-creation.ts` writes
