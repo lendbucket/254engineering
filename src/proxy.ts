@@ -119,11 +119,34 @@ const PARTNER_OPEN_PATHS = new Set([
   "/api/partner/set-password",
 ]);
 
+/**
+ * The customer paths reachable with no session.
+ *
+ * SIGN UP JOINED ON 2026-09-13, AND THE WALK IS WHAT FOUND IT MISSING.
+ *
+ * The route was written, the screen was written, both typechecked, both built,
+ * and the first end to end walk answered "Not signed in." A door for people who
+ * do not have an account cannot sit behind a check for having one, and nothing
+ * short of walking it would have said so: every structural check was green,
+ * because each was asking about the route rather than about what stands in
+ * front of it.
+ *
+ * That is this repository's own rule about a green being a green of the thing
+ * it read. The perimeter is a separate thing and it had not been asked.
+ *
+ * IT STAYS SHORT, which is the property that matters here. Four paths became
+ * five, and the five are: sign in, sign up, set a password from an emailed
+ * token, and the two endpoints those post to. An account screen behind an
+ * accidentally open path would show one customer's orders to anybody who
+ * guessed the URL.
+ */
 const CUSTOMER_OPEN_PATHS = new Set([
   "/account/login",
+  "/account/sign-up",
   "/account/set-password",
   "/api/account/session",
   "/api/account/set-password",
+  "/api/account/sign-up",
 ]);
 
 export function proxy(request: NextRequest) {

@@ -60,6 +60,8 @@ export async function accountDefaults(accountId: string): Promise<AccountDefault
   const { data } = await db
     .from("eng_customer_accounts")
     .select("billing_email, billing_contact, preferred_urgency, access_instructions, default_counties")
+    /* See src/lib/account-scope.ts: superseded rows are not customers. */
+    .is("superseded_at", null)
     .eq("id", accountId)
     .maybeSingle();
   if (!data) return null;

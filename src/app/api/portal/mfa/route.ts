@@ -3,12 +3,20 @@ import { cookies } from "next/headers";
 import { requestContext } from "@/lib/ops-auth";
 import {
   OPS_COOKIE,
+  issueEnrolmentCompletion,
   issueOpsSession,
   opsCookieOptions,
+  readEnrolmentCompletion,
   readOpsSession,
   readPendingSession,
 } from "@/lib/ops-session";
-import { answerChallenge, beginEnrolment, confirmEnrolment, mfaStateFor } from "@/lib/ops-mfa";
+import {
+  acknowledgeRecoveryCodes,
+  answerChallenge,
+  beginEnrolment,
+  confirmEnrolment,
+  mfaStateFor,
+} from "@/lib/ops-mfa";
 import { breakGlassMatches, breakGlassConfigured } from "@/lib/ops-mfa-breakglass";
 import { clearEnrolment } from "@/lib/ops-mfa";
 import { writeAudit } from "@/lib/ops-audit";
@@ -45,7 +53,9 @@ export const dynamic = "force-dynamic";
 const MFA_SCOPE = "mfa";
 
 type Body = {
-  action?: "verify" | "begin" | "confirm" | "break_glass";
+  action?: "verify" | "begin" | "confirm" | "codes_saved" | "break_glass";
+  /** The token `confirm` handed back, which binds an acknowledgement to it. */
+  completion?: string;
   code?: string;
   token?: string;
 };
@@ -181,17 +191,97 @@ export async function POST(request: NextRequest) {
     });
 
     /*
+     * ======================================================================
+     * THIS IS WHERE THE FLOW USED TO END, AND IT ENDED TOO EARLY.
+     * ======================================================================
+     *
+     * It used to issue the FULL session here and return the codes alongside it.
+     * The screen then showed the codes with a checkbox reading "I have saved
+     * these codes somewhere I can reach without my phone" and a continue button
+     * disabled until it was ticked, which looked like a gate and was not one:
+     * the session was already in the cookie jar, so the checkbox governed a
+     * redirect the person could perform by typing a URL.
+     *
+     * Operator instruction, 2026-09-13: "on enrolment the flow does not
+     * complete until I confirm I have saved them."
+     *
+     * So this returns the codes and NO session, and the acknowledgement below
+     * is what completes the enrolment. The person is still holding whatever
+     * session they arrived with, which for a required role is a pending one
+     * that opens nothing, and for an optional role is the full one they already
+     * had. Neither is granted by this call any more.
+     */
+    /*
+     * AND THE TOKEN THAT BINDS THE ACKNOWLEDGEMENT TO THIS CONFIRM.
+     *
+     * Only this call can mint one, and reaching this call required a valid code
+     * from the authenticator app. Somebody holding a stolen password has a
+     * pending session and no way to produce one.
+     */
+    return NextResponse.json({
+      ok: true,
+      recoveryCodes: done.recoveryCodes,
+      completion: issueEnrolmentCompletion(profile.id),
+    });
+  }
+
+  /* -------------------------------------------------------- codes saved */
+
+  if (action === "codes_saved") {
+    /*
+     * THE STEP THAT COMPLETES AN ENROLMENT.
+     *
      * Enrolling satisfies the challenge for this sign in. Somebody who has just
      * proved they hold the secret should not immediately be asked to prove it
      * again, and sending them back to a challenge screen would be the platform
-     * doubting a code it accepted a moment ago.
+     * doubting a code it accepted a moment ago. That reasoning is unchanged;
+     * what changed is which call acts on it.
+     *
+     * acknowledgeRecoveryCodes refuses an account with no active enrolment and
+     * no issued codes, so this cannot be used to mint a session on its own.
      */
-    const session = issueOpsSession(profile.id, profile.role, "full");
-    const res = NextResponse.json({
-      ok: true,
-      recoveryCodes: done.recoveryCodes,
-      redirect: homeFor(profile.role),
+    /*
+     * THE TOKEN IS THE BINDING, AND IT IS CHECKED BEFORE ANYTHING IS WRITTEN.
+     *
+     * It proves this acknowledgement belongs to the confirm that produced these
+     * codes, which is the only thing that makes upgrading a pending session
+     * here safe. It must also name THIS account: a token minted for somebody
+     * else is a token for somebody else's enrolment.
+     *
+     * Demanded from a full session too. Nothing is granted in that case, so it
+     * costs that caller only the token it was already handed, and a branch that
+     * skipped the check for one caller is a branch somebody will reach with the
+     * other.
+     */
+    const completion = readEnrolmentCompletion(
+      typeof body?.completion === "string" ? body.completion : null,
+    );
+    if (!completion || completion.sub !== profile.id) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "This enrolment cannot be completed from here. Start again, or enter a code from your authenticator app.",
+        },
+        { status: 400 },
+      );
+    }
+
+    const ack = await acknowledgeRecoveryCodes(profile.id);
+    if (!ack.ok) return NextResponse.json({ ok: false, error: ack.error }, { status: 400 });
+
+    await writeAudit({
+      actor,
+      action: "mfa.recovery_codes_acknowledged",
+      entityType: "profile",
+      entityId: profile.id,
+      summary: `${profile.display_name} confirmed they had saved their recovery codes`,
+      ip,
+      userAgent,
     });
+
+    const session = issueOpsSession(profile.id, profile.role, "full");
+    const res = NextResponse.json({ ok: true, redirect: homeFor(profile.role) });
     if (session) res.cookies.set(OPS_COOKIE, session.value, opsCookieOptions(session.expiresAt));
     return res;
   }

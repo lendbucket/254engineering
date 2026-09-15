@@ -13,8 +13,18 @@
  * WHAT IT ASSERTS
  * ---------------
  * Per route: LCP, CLS, and TBT against the ceilings in perf-budgets.mjs, and
- * total transferred bytes against a per template budget. Budgets and ceilings
- * live in that file with the reasoning; nothing is hardcoded here.
+ * total transferred bytes against a per template budget where one is
+ * calibrated. Budgets and ceilings live in that file with the reasoning.
+ *
+ * WHICH ROUTES, AND THE SESSIONS THEY NEED
+ * ----------------------------------------
+ * The subjects come from scripts/lib/surfaces.mjs, the declared inventory, plus
+ * ROUTE_BUDGETS for the public templates it does not walk. Guarded screens are
+ * measured UNDER A REAL SESSION, made by the same probes every other browser
+ * audit uses. Two refusals carry the weight, and both exist because this gate
+ * measured zero portal screens until 2026-09-14 while a report said otherwise:
+ * a guarded route with no session FAILS rather than recording, and a route that
+ * did not stay on the path asked for is COULD NOT TELL rather than a pass.
  *
  * LIGHTHOUSE VARIES RUN TO RUN, AND THE GATE IS BUILT FOR THAT
  * ------------------------------------------------------------
@@ -87,7 +97,13 @@
 import lighthouse from "lighthouse";
 import * as chromeLauncher from "chrome-launcher";
 import { chromium } from "playwright";
-import { METRIC_BUDGETS, ROUTE_BUDGETS, REMOTE_LCP_TARGET } from "./perf-budgets.mjs";
+import {
+  METRIC_BUDGETS,
+  ROUTE_BUDGETS,
+  REMOTE_LCP_TARGET,
+  budgetKbFor,
+  KNOWN_OVER_BUDGET,
+} from "./perf-budgets.mjs";
 /*
  * Pass, fail, and could not tell. In its own module so it can be exercised:
  * this file launches Chrome on load, so anything defined here is unreachable to
@@ -95,10 +111,64 @@ import { METRIC_BUDGETS, ROUTE_BUDGETS, REMOTE_LCP_TARGET } from "./perf-budgets
  * which taught the same lesson the same week.
  */
 import { verdictFor, stabilityLimit } from "./lib/perf-verdict.mjs";
+import { allPages, measurableSurfaces } from "./lib/surfaces.mjs";
+import {
+  createProbe,
+  createPartnerProbe,
+  createCustomerProbe,
+  destroyProbes,
+  destroyPartnerProbes,
+  destroyCustomerProbes,
+} from "./lib/portal-probe.mjs";
 import { checkVerdictLogic } from "./proofs/perf-verdict-fires-where-it-should.mjs";
 
 const BASE = process.env.BASE_URL || "http://localhost:3225";
 const RUNS = Number(process.env.PERF_RUNS || 3);
+
+/*
+ * A SUBSTRING FILTER, FOR WORKING ON ONE ROUTE AND FOR PROVING THE REFUSALS.
+ *
+ * It narrows what is MEASURED and deliberately does not touch the coverage
+ * check, so nobody can make the surfaces assertion pass by measuring one page.
+ * A filtered run says so in its own output and is never a board run.
+ */
+const ONLY = process.env.PERF_ONLY || "";
+
+/*
+ * THE SESSION CAN BE SUPPRESSED, AND THE ONLY REASON IS TO PROVE THE REFUSAL.
+ *
+ * Set it and every cookie is withheld. A guarded route must then FAIL naming the
+ * missing session rather than measuring the login page it is redirected to. That
+ * is the injection for this file, and it is here rather than in a patch script
+ * because the thing being proved is a refusal, and a refusal somebody has to
+ * hand-edit the file to exercise is a refusal nobody exercises.
+ */
+const NO_SESSION = process.env.PERF_NO_SESSION === "1";
+
+/*
+ * ============================================================================
+ * TWO CADENCES, BECAUSE A FORTY MINUTE BOARD IS A BOARD NOBODY RUNS.
+ * ============================================================================
+ *
+ * Operator ruling, 2026-09-14, from a measured figure rather than a guess. The
+ * authenticated set is 50 screens; at three runs each the whole gate takes
+ * 25 minutes against the public set's four, and it would turn a twenty minute
+ * board into forty.
+ *
+ * In the operator's words: a gate nobody runs is the shape this whole phase is
+ * about. So the public templates stay on every board, and the authenticated set
+ * runs ON DEMAND AND BEFORE ANY MERGE:
+ *
+ *   PERF_SCOPE=all npx tsx scripts/perf-audit.mjs
+ *
+ * THE DEFERRAL IS NEVER A PASS, and that is the part that matters. A board run
+ * reports the authenticated set as COULD NOT TELL, naming how many screens were
+ * not measured and the command that measures them. A green line saying nothing
+ * about the portal is what this file printed for months while measuring zero
+ * portal screens, and it is exactly what must not come back.
+ */
+const SCOPE =
+  process.env.PERF_SCOPE === "all" || process.argv.includes("--all") ? "all" : "public";
 
 /*
  * Which ceilings apply is decided by the host being measured, not by a flag
@@ -110,7 +180,7 @@ const RUNS = Number(process.env.PERF_RUNS || 3);
 const IS_LOCAL = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/.test(BASE);
 const CEILINGS = IS_LOCAL ? METRIC_BUDGETS.local : METRIC_BUDGETS.remote;
 
-const SETTINGS = {
+const BASE_SETTINGS = {
   formFactor: "mobile",
   screenEmulation: { mobile: true, width: 390, height: 844, deviceScaleFactor: 2, disabled: false },
   throttlingMethod: "simulate",
@@ -123,6 +193,19 @@ const SETTINGS = {
     uploadThroughputKbps: 750,
   },
 };
+
+/*
+ * A SESSION RIDES WITH THE REQUEST, WHICH IS THE WHOLE REASON THIS FILE CHANGED.
+ *
+ * Lighthouse drives its own Chrome and does not share Playwright's context, so
+ * the probe's cookie is handed over as a header rather than as browser state.
+ * `extraHeaders` is applied to every request the page makes, which is what a
+ * portal screen needs: the document and the route handlers it calls.
+ */
+function settingsFor(cookie) {
+  if (!cookie) return BASE_SETTINGS;
+  return { ...BASE_SETTINGS, extraHeaders: { Cookie: cookie } };
+}
 
 /*
  * THE GATE CHECKS ITS OWN DECISION RULE BEFORE IT MEASURES ANYTHING.
@@ -152,6 +235,284 @@ const rec = (name, ok, note = "") => out.push({ name, ok, note });
 const recUnstable = (name, note) => out.push({ name, ok: true, unstable: true, note });
 const kb = (bytes) => Math.round(bytes / 1024);
 
+/*
+ * ============================================================================
+ * WHAT THIS GATE MEASURES, AND WHY IT IS NO LONGER A HARDCODED LIST
+ * ============================================================================
+ *
+ * Until 2026-09-14 this file iterated ROUTE_BUDGETS and nothing else: ten
+ * routes, every one a public marketing page, driven with no session.
+ *
+ * PORTAL ROUTES MEASURED: ZERO. No authenticated screen on this platform had
+ * ever had its performance measured, and the Phase 13 Section 2 report asserted
+ * the opposite in writing, which one command disproved.
+ *
+ * It is the /portal/queue defect from the other end. That screen reached 38,744
+ * pixels tall past a green board because nothing measured its height. This was a
+ * GATE whose subject list silently excluded an entire surface.
+ *
+ * So the subjects now come from the DECLARED INVENTORY, the same idiom every
+ * other browser audit follows, and a measurable surface that contributes no
+ * measured route fails the board rather than being quietly absent.
+ *
+ * ROUTE_BUDGETS keeps its job and loses its monopoly: it is the per template
+ * BYTE budget table for the public site, calibrated route by route in
+ * perf-budgets.mjs. Authenticated screens have no byte budget yet and are NOT
+ * given an invented one; their bytes are measured and printed so a budget can be
+ * set from evidence rather than from a guess.
+ */
+const PUBLIC_SUBJECTS = ROUTE_BUDGETS.map((r) => ({ ...r, session: "none", probe: null }));
+
+/*
+ * THE WHOLE INVENTORY, not only the guarded half.
+ *
+ * The order flow is a measurable surface whose routes need no session, and
+ * taking only the guarded pages would leave it measured by nothing while the
+ * coverage check below went red about it. Measuring it is the better answer
+ * than reporting that nobody measures it: those two routes carry a catalogue
+ * and a checkout and are exactly the kind of page that grows quietly.
+ */
+const INVENTORY_SUBJECTS = allPages().map((page) => ({
+  path: page.path,
+  name: page.name,
+  session: page.session,
+  probe: page.probe,
+  role: page.role,
+  surface: page.surface,
+  /* No kb: nothing outside the public site has a calibrated byte budget. */
+}));
+
+const SUBJECTS =
+  SCOPE === "all" ? [...PUBLIC_SUBJECTS, ...INVENTORY_SUBJECTS] : [...PUBLIC_SUBJECTS];
+
+/*
+ * THE SURFACES IDIOM, APPLIED TO PERFORMANCE.
+ *
+ * A surface that exists and is measured by nothing is exactly the hole this
+ * change closes, so it is asserted rather than assumed. Adding a surface without
+ * measuring it is a red board.
+ */
+{
+  const measured = new Set(
+    SUBJECTS.map((x) => x.surface).filter(Boolean),
+  );
+  /* The public site's routes come from the sitemap and are budgeted by hand, so
+   * it is represented by ROUTE_BUDGETS rather than by the walker. */
+  measured.add("public");
+  const missing = measurableSurfaces()
+    .map((sf) => sf.key)
+    .filter((key) => !measured.has(key));
+  if (SCOPE === "all") {
+    rec(
+      `every measurable surface contributes a measured route (${measured.size} surfaces, ${SUBJECTS.length} routes)`,
+      missing.length === 0,
+      missing.length
+        ? `measured by nothing: ${missing.join(", ")}. A surface the performance gate cannot see is a surface whose screens can be any weight at all.`
+        : "",
+    );
+  } else {
+    /*
+     * THE DEFERRED SET IS REPORTED AS NOT MEASURED, ON EVERY BOARD.
+     *
+     * COULD NOT TELL rather than a pass, for the reason UNREACHABLE IS NOT
+     * FAILED gives: it exits zero and it says loudly that it did not run. The
+     * count is asserted so the deferral can never quietly become an empty set,
+     * which is how a skip turns into a silence.
+     */
+    rec(
+      `the deferred authenticated set is not empty (${INVENTORY_SUBJECTS.length} screens)`,
+      INVENTORY_SUBJECTS.length > 0,
+      INVENTORY_SUBJECTS.length === 0
+        ? "the inventory yielded no authenticated screens, so the line below is a deferral of nothing"
+        : "",
+    );
+    recUnstable(
+      `${INVENTORY_SUBJECTS.length} authenticated screens across ${
+        new Set(INVENTORY_SUBJECTS.map((x) => x.surface)).size
+      } surfaces were NOT MEASURED on this run`,
+      "the board measures the public templates only, by ruling, because the whole gate takes 25 minutes. These screens are measured on demand and BEFORE ANY MERGE: PERF_SCOPE=all npx tsx scripts/perf-audit.mjs",
+    );
+  }
+}
+
+/*
+ * THE SESSIONS. One probe per principal, made once and reused across every
+ * route that needs it, then destroyed in teardown.
+ *
+ * A probe that cannot be created is NOT a reason to measure its routes anyway.
+ * See the refusal in the loop: measuring a guarded route with no session
+ * measures the login page under that route's name.
+ */
+/*
+ * KEYED BY PRINCIPAL AND ROLE, BECAUSE THREE PORTAL ROUTES ARE NOT THE ADMIN'S.
+ *
+ * The inventory declares `roleFor`: /portal/review and /portal/protocols belong
+ * to the engineer, /portal/certification to the field technician. The first
+ * version of this change made ONE staff probe, an admin, and measured all three
+ * with it. Lighthouse returned no LCP, no CLS and no TBT at all, and the gate
+ * reported three screens failing every ceiling with a median of Infinity.
+ *
+ * That would have been reported as three broken portal screens. It was the
+ * measurement using the wrong person. mobile-audit has keyed its sessions by
+ * role since it was written, for exactly this reason.
+ */
+const sessions = {};
+const sessionErrors = {};
+
+/** The principal a route needs, as one key: "staff:engineer", "customer:". */
+const sessionKeyOf = (route) => `${route.session}:${route.role ?? ""}`;
+const probesMade = { staff: false, partner: false, customer: false };
+
+{
+  const needed = NO_SESSION || SCOPE !== "all"
+    ? []
+    : [
+        ...new Set(
+          INVENTORY_SUBJECTS.filter((x) => x.session !== "none").map((x) =>
+            sessionKeyOf(x),
+          ),
+        ),
+      ];
+  for (const key of needed) {
+    const [kind, role] = key.split(":");
+    try {
+      if (kind === "staff") {
+        const probe = await createProbe(BASE, role, "perf-audit");
+        probesMade.staff = true;
+        sessions[key] = probe?.cookie ? `eng_ops=${probe.cookie}` : null;
+      } else if (kind === "partner") {
+        const probe = await createPartnerProbe(BASE, "perf-audit");
+        probesMade.partner = true;
+        sessions[key] = probe?.cookie ? `eng_partner=${probe.cookie}` : null;
+      } else if (kind === "customer") {
+        const probe = await createCustomerProbe(BASE, "perf-audit");
+        probesMade.customer = true;
+        sessions[key] = probe?.cookie ? `eng_customer=${probe.cookie}` : null;
+      }
+    } catch (err) {
+      sessionErrors[key] = String(err?.message ?? err).split(String.fromCharCode(10))[0];
+    }
+  }
+}
+
+/*
+ * ============================================================================
+ * THE DYNAMIC SUBJECT, BUILT RATHER THAN INVENTED.
+ * ============================================================================
+ *
+ * `routesOf` skips dynamic segments on purpose, because probing one means
+ * inventing an id. That is right for a walker and it means the trade pricing
+ * screen, `/portal/accounts/[id]/pricing`, is measured by nothing: it is the
+ * screen Phase 13 Section 2 shipped and the one the merge condition names.
+ *
+ * An invented uuid would render a not-found page, and measuring THAT under the
+ * pricing screen's name is the same defect as measuring the login page under
+ * it. So the subject is CONSTRUCTED: a demonstration client and account, made
+ * here, measured, and superseded in teardown.
+ *
+ * It is `is_demo` so no figure counts it, and the account is superseded rather
+ * than deleted because 0048 refuses DELETE on an account: a record of what
+ * somebody was charged outlives the account.
+ */
+const built = { accountId: null, clientId: null };
+if (SCOPE === "all" && sessions["staff:admin"] && !NO_SESSION) {
+  try {
+    const { auditClient } = await import("./lib/db-target.mjs");
+    const db = auditClient("perf-audit", { neverProduction: true });
+    if (db) {
+      /*
+       * ====================================================================
+       * ONE STABLE SUBJECT, FOUND OR MADE, AND NEVER TORN DOWN.
+       * ====================================================================
+       *
+       * The first version created a fresh client and account per run and tried
+       * to remove both afterwards. It could not, and it DISCARDED THE ERROR.
+       * 0048 refuses DELETE on an account, so the account was superseded
+       * instead, and the client could then never be deleted either, because the
+       * superseded account still references it under ON DELETE RESTRICT.
+       *
+       * Seven runs left seven permanent client and account pairs on development
+       * before anything counted them. That is precisely the defect the 0048
+       * teardown lesson already records, committed again by code written after
+       * reading it, and it is the argument for a fixture that needs no teardown
+       * rather than one whose teardown is careful.
+       *
+       * So the subject is found by name and created only if absent. It is
+       * is_demo, so no figure counts it, and it persists deliberately the way
+       * seed-field-demo's records do.
+       */
+      const PROBE_NAME = "Perf Probe Pricing Co";
+      const { data: existing } = await db
+        .from("eng_customer_accounts")
+        .select("id, client_id, eng_clients!inner(name)")
+        .eq("eng_clients.name", PROBE_NAME)
+        .is("superseded_at", null)
+        .limit(1)
+        .maybeSingle();
+
+      let client = existing ? { id: existing.client_id } : null;
+      let account = existing ? { id: existing.id } : null;
+
+      if (!account) {
+        const madeClient = await db
+          .from("eng_clients")
+          .insert({
+            kind: "organization",
+            name: PROBE_NAME,
+            email: "perf.pricing@audit-probe.invalid",
+            status: "active",
+            is_demo: true,
+          })
+          .select("id")
+          .single();
+        client = madeClient.data;
+        if (client?.id) {
+          const madeAccount = await db
+            .from("eng_customer_accounts")
+            .insert({ site: "254", client_id: client.id, status: "active", billing_mode: "card" })
+            .select("id")
+            .single();
+          account = madeAccount.data;
+        }
+      }
+
+      if (client?.id) {
+        built.clientId = client.id;
+        if (account?.id) {
+          built.accountId = account.id;
+          SUBJECTS.push({
+            path: `/portal/accounts/${account.id}/pricing`,
+            name: "portal: accounts/[id]/pricing",
+            session: "staff",
+            probe: "createProbe",
+            role: "admin",
+            surface: "portal",
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.error(`  could not build the pricing subject: ${String(err?.message ?? err)}`);
+  }
+}
+
+/*
+ * THE SUBJECT HAD TO BE BUILT, SO ITS ABSENCE IS A FAILURE RATHER THAN A GAP.
+ *
+ * A run that quietly measured 62 routes instead of 63 would report green while
+ * the one screen the merge condition names went unmeasured, which is the exact
+ * shape this whole change exists to remove.
+ */
+if (SCOPE === "all" && !NO_SESSION) {
+  rec(
+    "the trade pricing screen has a subject to measure",
+    Boolean(built.accountId),
+    built.accountId
+      ? `/portal/accounts/${built.accountId}/pricing`
+      : "no probe account could be built, so the screen Phase 13 Section 2 shipped is measured by nothing",
+  );
+}
+
 const chrome = await chromeLauncher.launch({
   chromePath: chromium.executablePath(),
   chromeFlags: ["--headless=new", "--no-sandbox", "--disable-gpu"],
@@ -159,21 +520,76 @@ const chrome = await chromeLauncher.launch({
 
 const rows = [];
 
-for (const route of ROUTE_BUDGETS) {
+const MEASURED = ONLY ? SUBJECTS.filter((r) => r.path.includes(ONLY)) : SUBJECTS;
+
+if (ONLY) {
+  console.error(`  PERF_ONLY=${ONLY}: measuring ${MEASURED.length} of ${SUBJECTS.length} routes. NOT a board run.`);
+  /*
+   * A FILTER THAT MATCHES NOTHING IS NOT A PASS.
+   *
+   * Caught on this file's own first injection run: a mangled filter selected
+   * zero routes and the gate reported "PASS: 1 checks across 0 templates",
+   * which is the vacuous green this repository keeps finding, produced by the
+   * change that was written to close one. The count is asserted rather than
+   * trusted, exactly as the sitemap walk's was.
+   */
+  rec(
+    `the filter PERF_ONLY=${ONLY} selected routes to measure (${MEASURED.length})`,
+    MEASURED.length > 0,
+    MEASURED.length === 0
+      ? "it matched nothing, so everything below this line is a green over an empty set. On Git Bash a leading slash is rewritten into a Windows path: use PERF_ONLY=portal/clients rather than /portal/clients."
+      : "",
+  );
+}
+if (NO_SESSION) {
+  console.error("  PERF_NO_SESSION=1: every cookie withheld. Guarded routes must REFUSE.");
+}
+
+for (const route of MEASURED) {
+  /*
+   * ==========================================================================
+   * A MEASUREMENT TAKEN WITHOUT A SESSION FAILS. IT DOES NOT RECORD.
+   * ==========================================================================
+   *
+   * Operator ruling, 2026-09-14, and it is the failure this whole change came
+   * from. An unauthenticated request to a portal route is REDIRECTED to the
+   * login screen, which answers 200 and is fast and light. Measuring it would
+   * record the login page's weight under the pricing screen's name: a green
+   * that is not merely vacuous but actively wrong, because it would be cited.
+   *
+   * So a guarded route with no session is a FAIL naming the probe that could
+   * not be made. It is never skipped, because a skip is a route nobody notices
+   * is unmeasured, which is how this gate came to measure zero portal screens.
+   */
+  const cookie = route.session === "none" ? null : sessions[sessionKeyOf(route)];
+  if (route.session !== "none" && !cookie) {
+    rec(
+      `${route.name}: measured under a real session`,
+      false,
+      `no ${route.session}${route.role ? ` (${route.role})` : ""} session was available${
+        sessionErrors[sessionKeyOf(route)] ? `: ${sessionErrors[sessionKeyOf(route)]}` : ""
+      }. REFUSING to measure, because an unauthenticated request to ${route.path} is redirected and would record the login page's weight under this route's name.`,
+    );
+    rows.push({ ...route, failed: true });
+    continue;
+  }
+
   const runs = [];
   for (let i = 0; i < RUNS; i++) {
     try {
       const r = await lighthouse(
         `${BASE}${route.path}`,
         { port: chrome.port, output: "json", logLevel: "error", onlyCategories: ["performance"] },
-        { extends: "lighthouse:default", settings: SETTINGS },
+        { extends: "lighthouse:default", settings: settingsFor(cookie) },
       );
       const a = r.lhr.audits;
+      const landed = r.lhr.finalDisplayedUrl ?? r.lhr.finalUrl ?? "";
       const summary = {};
       for (const item of a["resource-summary"]?.details?.items ?? []) {
         summary[item.resourceType] = item.transferSize;
       }
       runs.push({
+        landed,
         lcp: a["largest-contentful-paint"]?.numericValue ?? Infinity,
         cls: a["cumulative-layout-shift"]?.numericValue ?? Infinity,
         tbt: a["total-blocking-time"]?.numericValue ?? Infinity,
@@ -188,6 +604,56 @@ for (const route of ROUTE_BUDGETS) {
   const ok = runs.filter((r) => !r.error);
   if (ok.length === 0) {
     rec(`${route.name}: measured`, false, runs[0]?.error ?? "no successful run");
+    rows.push({ ...route, failed: true });
+    continue;
+  }
+
+  /*
+   * ==========================================================================
+   * A ROUTE THAT REDIRECTED IS COULD NOT TELL. IT IS NEVER A PASS.
+   * ==========================================================================
+   *
+   * Operator ruling, 2026-09-14. A session can be rejected or expire mid run,
+   * and the symptom is indistinguishable from a fast page: the login screen
+   * loads quickly and would sail under every ceiling.
+   *
+   * This is deliberately NOT a fail. A failure says the page is too slow, and
+   * that is a claim about the page; what happened here is that the page was
+   * never measured. COULD NOT TELL is the honest third answer and the one this
+   * gate already carries for noise.
+   */
+  /*
+   * ANY departure from the requested path counts, not only a landing on a login
+   * screen. A redirect to a dashboard, a not-found, or a tenant chooser is the
+   * same defect: the numbers describe a page nobody asked about. Comparing the
+   * path subsumes the login case rather than enumerating the ways to leave.
+   */
+  const landedPathOf = (value) => {
+    try {
+      return new URL(value).pathname.replace(/\/+$/, "") || "/";
+    } catch {
+      return null;
+    }
+  };
+  const wanted = route.path.replace(/\/+$/, "") || "/";
+  const bounced = ok.filter((r) => {
+    const landedPath = r.landed ? landedPathOf(r.landed) : null;
+    return landedPath !== null && landedPath !== wanted;
+  });
+
+  if (bounced.length) {
+    recUnstable(
+      `${route.name}: NOT MEASURED, the request did not stay on this route`,
+      `asked for ${route.path} and landed on ${
+        (() => {
+          try {
+            return new URL(bounced[0].landed).pathname;
+          } catch {
+            return bounced[0].landed;
+          }
+        })()
+      } on ${bounced.length} of ${ok.length} runs. Whatever was measured is not this screen, so no number from it is reported. A session that is rejected looks exactly like a fast page.`,
+    );
     rows.push({ ...route, failed: true });
     continue;
   }
@@ -275,11 +741,39 @@ for (const route of ROUTE_BUDGETS) {
     median.tbt <= CEILINGS.tbt,
     route.path,
   );
-  rec(
-    `${route.name}: ${kb(median.bytes)}KB within ${route.kb}KB budget`,
-    kb(median.bytes) <= route.kb,
-    route.path,
-  );
+  /*
+   * BYTES ARE GATED ONLY WHERE A BUDGET WAS CALIBRATED.
+   *
+   * The public templates have one, route by route, derived from measurement and
+   * argued in perf-budgets.mjs. Authenticated screens have none, and inventing
+   * one tonight would be a number nobody measured pretending to be a ruling.
+   * The figure is recorded so a budget can be set from evidence.
+   */
+  /*
+   * THE BYTE BUDGET, from the shell plus delta ruling of 2026-09-14 for the
+   * authenticated surfaces and from ROUTE_BUDGETS for the public templates.
+   *
+   * A route with a KNOWN_OVER_BUDGET entry still FAILS. The entry is not a
+   * suppression: it carries the reason the red is already known, so the next
+   * reader does not rediscover it, and removing the entry when the cause is
+   * fixed is the point of having it.
+   */
+  const budget = budgetKbFor(route);
+  const known = KNOWN_OVER_BUDGET[route.path];
+  if (typeof budget === "number") {
+    const within = kb(median.bytes) <= budget;
+    rec(
+      `${route.name}: ${kb(median.bytes)}KB within ${budget}KB budget`,
+      within,
+      within
+        ? route.path
+        : known
+          ? `${route.path}. KNOWN AND UNEXPLAINED since ${known.since}: ${known.reason}`
+          : route.path,
+    );
+  } else {
+    console.error(`  ${route.name}: ${kb(median.bytes)}KB, no byte budget set for this template`);
+  }
   console.error(`  measured ${route.path}`);
 }
 
@@ -287,6 +781,36 @@ try {
   await chrome.kill();
 } catch {
   /* chrome-launcher cannot always remove its temp dir on Windows */
+}
+
+/*
+ * TEARDOWN. Every probe this run made, removed, and the sweep is broader than
+ * the ids created so a crashed earlier run is cleaned up too.
+ *
+ * Guarded by what was actually MADE rather than by what was needed, because
+ * destroying probes for a principal this run never created would sweep away a
+ * concurrent audit's, and a teardown that removes somebody else's fixture is
+ * worse than one that leaves its own.
+ */
+/*
+ * THE PRICING SUBJECT IS NOT TORN DOWN, AND THAT IS THE FIX RATHER THAN AN
+ * OMISSION. It is found by name and reused; see the block that builds it. The
+ * version that tore it down could not, discarded the error, and left seven
+ * permanent client and account pairs on development across seven runs.
+ */
+if (built.accountId) {
+  console.error(`  the pricing subject persists by design: account ${built.accountId}`);
+}
+
+for (const [kind, made] of Object.entries(probesMade)) {
+  if (!made) continue;
+  try {
+    if (kind === "staff") await destroyProbes("perf-audit");
+    if (kind === "partner") await destroyPartnerProbes("perf-audit");
+    if (kind === "customer") await destroyCustomerProbes("perf-audit");
+  } catch (err) {
+    console.error(`  teardown of the ${kind} probe failed: ${String(err?.message ?? err)}`);
+  }
 }
 
 console.log("================ PERFORMANCE ================");
@@ -307,7 +831,7 @@ for (const r of rows) {
       .toFixed(3)
       .padStart(5)}  ${String(Math.round(r.median.tbt)).padStart(6)}   ${String(kb(r.median.bytes)).padStart(
       8,
-    )} / ${String(r.kb).padEnd(5)}  ${s("document")}  ${s("script")}  ${s("font")}  ${s("image")}  ${r.path}`,
+    )} / ${String(budgetKbFor(r) ?? "none").padEnd(5)}  ${s("document")}  ${s("script")}  ${s("font")}  ${s("image")}  ${r.path}`,
   );
 }
 

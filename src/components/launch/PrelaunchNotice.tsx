@@ -29,7 +29,7 @@ export function PrelaunchNotice({ service }: { service?: string }) {
         Opening soon
       </p>
       <p className="mt-2 text-[15px] leading-[1.65] text-slate-fg-muted">
-        254 Engineering Services is not yet accepting engineering work. Firm registration with the
+        254 Services LLC is not yet accepting engineering work. Firm registration with the
         Texas Board of Professional Engineers and Land Surveyors is pending, no engineer of record is
         yet in responsible charge, and this page describes a service the firm is being built to
         deliver.{" "}

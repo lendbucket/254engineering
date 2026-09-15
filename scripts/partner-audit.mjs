@@ -599,7 +599,7 @@ const terms = (over = {}) => ({
    * hand it a sentence.
    */
   const claim = copyVerdict(
-    "254 Engineering Services performs and seals every engagement referred through this programme.",
+    "254 Services LLC performs and seals every engagement referred through this programme.",
   );
   rec("a present tense service claim cannot be published to partners", claim.ok === false);
   rec(
@@ -620,7 +620,7 @@ const terms = (over = {}) => ({
   rec("an em dash cannot be published", dash.ok === false);
 
   const fine = copyVerdict(
-    "Work referred through this programme will be carried out by 254 Engineering Services, the firm of record on every engagement.",
+    "Work referred through this programme will be carried out by 254 Services LLC, the firm of record on every engagement.",
   );
   rec(
     "and compliant copy passes, so the check is not simply refusing everything",
@@ -700,9 +700,31 @@ const terms = (over = {}) => ({
 
 // ---- NON NEGOTIABLE 1: the performing firm is named, in one wording --------
 {
+  /*
+   * THE FIRM, AND FROM 2026-09-13 THAT IS THE REGISTRANT RATHER THAN THE BRAND.
+   *
+   * This pinned "254 Engineering Services" and went red the hour the operator
+   * ruled that the firm trades under its registered name. The red was the
+   * mechanism working: it asked whether the change was meant, and it was.
+   *
+   * WHAT THE OLD CHECK COULD NOT SEE, which is the question a red board is
+   * asking. It pinned A name without asking whether that name was one the board
+   * holds. Telling a PARTNER that 254 Engineering Services is the firm of
+   * record, and will perform and seal their referral, is holding out under a
+   * name TBPELS has no record of, to the one audience contractually relying on
+   * it. The check would have passed on that forever.
+   *
+   * So it gained the negative half below, which is the half that matters.
+   */
   rec(
-    "the performing firm sentence names the firm",
-    /254 Engineering Services/.test(performingFirmLine()),
+    "the performing firm sentence names the registrant",
+    /254 Services LLC/.test(performingFirmLine()),
+    performingFirmLine().slice(0, 80),
+  );
+  rec(
+    "and never the brand, which the board has no record of",
+    !/254 Engineering Services/.test(performingFirmLine()),
+    "naming the brand as the performing firm is holding out under a name the board does not hold, to the audience relying on it",
   );
   rec(
     "and states the registration is pending while the gate is down",

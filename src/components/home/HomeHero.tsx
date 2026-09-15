@@ -63,7 +63,7 @@ export function HomeHero() {
               {/* v5's opening sentence, then the gate aware model sentence. The
                   second half is not hardcoded because it is the sentence that has
                   to change when the registration issues. */}
-              254 Engineering Services is named for the 254 counties of Texas, every one of which it
+              254 Services LLC is named for the 254 counties of Texas, every one of which it
               will serve. {modelSentence()}
             </p>
 

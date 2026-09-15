@@ -36,7 +36,7 @@ export default function AboutPage() {
       <PageHeader
         eyebrow="The firm"
         title="A Texas engineering firm built for all 254 counties"
-        lede="254 Engineering Services is a veteran owned engineering firm serving the whole state of Texas. This page explains how it is put together and why, because the how is the part that determines whether a firm can actually do what it says it covers."
+        lede="254 Services LLC is a veteran owned engineering firm serving the whole state of Texas. This page explains how it is put together and why, because the how is the part that determines whether a firm can actually do what it says it covers."
         crumbs={crumbs}
       />
 

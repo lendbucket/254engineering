@@ -38,6 +38,8 @@
     "launch-audit": "tsx --conditions=react-server scripts/launch-audit.mjs",
     "preperf-audit": "node scripts/preflight-audit.mjs",
     "perf-audit": "node scripts/perf-audit.mjs",
+    "preperf-audit-auth": "node scripts/preflight-audit.mjs",
+    "perf-audit-auth": "node scripts/perf-audit.mjs --all",
     "audit": "node scripts/audit.mjs",
     "files-audit": "tsx scripts/files-audit.mjs",
     "dispatch-audit": "tsx scripts/dispatch-audit.mjs",
@@ -57,6 +59,7 @@
     "mfa-audit": "tsx --conditions=react-server scripts/mfa-audit.mjs",
     "migration-audit": "tsx --conditions=react-server scripts/migration-audit.mjs",
     "schema-ledger-audit": "tsx scripts/schema-ledger-audit.mjs",
+    "project-accountability-audit": "tsx scripts/project-accountability-audit.mjs",
     "production-schema-check": "tsx scripts/production-schema-check.mjs",
     "intake-audit": "tsx scripts/intake-audit.mjs",
     "partner-audit": "tsx scripts/partner-audit.mjs",
@@ -85,7 +88,10 @@
     "retention-audit": "tsx --conditions=react-server scripts/retention-audit.mjs",
     "retention-dry-run": "tsx --conditions=react-server scripts/retention-dry-run.mjs",
     "soc2-audit": "tsx --conditions=react-server scripts/soc2-audit.mjs",
-    "soc2-evidence": "tsx scripts/soc2-evidence.mjs"
+    "soc2-evidence": "tsx scripts/soc2-evidence.mjs",
+    "break-glass-audit": "tsx --conditions=react-server scripts/break-glass-audit.mjs",
+    "doors-audit": "tsx --conditions=react-server scripts/doors-audit.mjs",
+    "trade-pricing-audit": "tsx scripts/trade-pricing-audit.mjs"
   },
   "dependencies": {
     "@sentry/nextjs": "^10.73.0",

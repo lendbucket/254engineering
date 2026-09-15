@@ -6,6 +6,7 @@ import { accountDefaults } from "@/lib/ops-account";
 import { supabaseAdmin, SITE_KEY } from "@/lib/supabase";
 import { isPrelaunch } from "@/lib/launch";
 import type { BulkProperty } from "@/lib/bulk-order";
+import { tradePriceInForce } from "@/lib/trade-pricing";
 
 export const dynamic = "force-dynamic";
 
@@ -131,7 +132,13 @@ export async function POST(request: NextRequest) {
    * rule usable from a script: check, then submit what was accepted.
    */
   if (body?.dryRun === true) {
-    const preview = previewBatch(serviceSlug, tier, properties);
+    /*
+     * THE PREVIEW USES THE AGREED PRICE OR IT IS A DIFFERENT NUMBER FROM THE
+     * BILL. A trade price honoured at checkout and not in the preview is the
+     * same defect as one honoured at checkout and not on the statement.
+     */
+    const agreed = await tradePriceInForce(key.accountId, serviceSlug, tier ?? "standard");
+    const preview = previewBatch(serviceSlug, tier, properties, agreed);
     if (!preview.ok) return answer(409, { ok: false, error: preview.error });
 
     return answer(200, {
@@ -162,6 +169,8 @@ export async function POST(request: NextRequest) {
     ? await db
         .from("eng_customer_accounts")
         .select("id, client_id, billing_email, billing_contact")
+        /* See src/lib/account-scope.ts: superseded rows are not customers. */
+        .is("superseded_at", null)
         .eq("id", key.accountId)
         .maybeSingle()
     : { data: null };

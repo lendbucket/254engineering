@@ -59,7 +59,7 @@ export function organizationSchema() {
     url: business.url,
     email: business.email,
     description:
-      "254 Engineering Services is a veteran owned Texas engineering firm named for the 254 counties of Texas, delivering inspections, sealed letters, certifications, and design through licensed Texas Professional Engineers in responsible charge.",
+      "254 Services LLC is a veteran owned Texas engineering firm named for the 254 counties of Texas, delivering inspections, sealed letters, certifications, and design through licensed Texas Professional Engineers in responsible charge.",
     foundingLocation: {
       "@type": "Place",
       address: { "@type": "PostalAddress", addressRegion: "TX", addressCountry: "US" },

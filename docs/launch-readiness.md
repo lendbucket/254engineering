@@ -17,7 +17,7 @@ reasoning.** They cannot disagree, because the screen computes nothing.
 
 ---
 
-## THE SEVEN CONDITIONS
+## THE CONDITIONS
 
 | id | What must be true | Who clears it | Stated true in |
 | --- | --- | --- | --- |
@@ -28,11 +28,18 @@ reasoning.** They cannot disagree, because the screen computes nothing.
 | `protocols` | Every service line offered at launch has one protocol approved by the engineer of record | The Professional Engineer in responsible charge | `approvedProtocols` in `src/config/launch-readiness.ts` |
 | `phone` | `FIRM_PHONE` is a real number, not a placeholder | The operator, once there is a number somebody answers | `FIRM_PHONE` in the deployment environment |
 | `recovery` | Point in time recovery is enabled on the production project | The operator, in the Supabase dashboard, and states it here with the date | `pointInTimeRecovery` in `src/config/launch-readiness.ts` |
+| `self-service-signup` | Self service sign up is cleared to reach production | The operator, and nobody else, by editing the file | `selfServiceSignUp` in `src/config/launch-conditions.ts` |
 
-**Five of the seven are unmet today.** Two are cleared: `registration`, because F-29811
-is active and unexpired, and `recovery`, enabled 2026-09-10. The operator's screen
-at /portal/launch shows the same split, and it is the authority if these ever
-disagree.
+**Six are unmet today.** Two are cleared: `registration`, because F-29811 is active
+and unexpired, and `recovery`, enabled 2026-09-10. The operator's screen at
+/portal/launch shows the same split, and it is the authority if these ever disagree.
+
+**`self-service-signup` joined on 2026-09-13**, and the board is what noticed: the
+gate grew an eighth condition on the Phase 13 branch and `compliance-audit`'s pinned
+list stayed at seven, so the first board after it went red naming the extra id. Then
+it went red a second time on this document, which is the check working twice: a
+condition that reaches the gate and not the written form is a condition the operator
+reads about nowhere.
 
 ---
 
@@ -139,6 +146,28 @@ use it is never this firm's alone. The reasoning is in
 step 15 is where a restore gets proven and read back, and that plan is deferred,
 so this condition asks only what it can honestly ask: is there a moment to go
 back to.
+
+### `self-service-signup`
+
+**Unmet, and it is the operator's alone to lift.** Not a gap waiting to be closed by
+somebody noticing it: a decision that has not been made.
+
+Three identity secrets are shared between Preview and Production by an operator
+ruling of 2026-09-13, recorded with a name, a date and its consequence in
+`src/config/credential-inventory.ts`. The consequence is that a customer session
+signed on any preview deployment is accepted by production, and preview URLs are
+reachable by anybody holding the link.
+
+That is tolerable while every account on the platform is one the operator created.
+**Self service sign up is what turns it from a risk about a handful of known accounts
+into a risk about anybody who can reach a preview URL**, which is why the condition
+is about the FEATURE rather than about the secret.
+
+**The condition that was written first was the wrong one.** It blocked the gate on
+the sharing, and the operator ruled the sharing stays. A condition that blocks on a
+decision already made is a gate nobody reads, so it was rewritten to block on the
+thing still undecided. Recorded here because a condition that changed shape without
+leaving a trace is one the next reader assumes was always this.
 
 ---
 

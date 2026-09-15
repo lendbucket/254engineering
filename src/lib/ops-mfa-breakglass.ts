@@ -63,6 +63,40 @@ export function breakGlassConfigured(): BreakGlass | null {
   return { email, token };
 }
 
+/**
+ * SET, AND DOING NOTHING.
+ *
+ * ======================================================================
+ * THE SILENCE THAT COST 2026-09-13, WRITTEN OUT.
+ * ======================================================================
+ *
+ * breakGlassConfigured treats a malformed value as unset, which is right: a
+ * half typed value must not become a bypass that matches something
+ * unexpected. What was wrong is that it said so to NOBODY.
+ *
+ * The one surface that reported it, breakGlassStatus, is on the operator's own
+ * observability screen, which needs a FULL session. A person who has lost their
+ * second factor cannot open it. So the diagnostic for a broken break glass was
+ * behind the door the break glass exists to open, and the person standing at
+ * the challenge screen saw a screen with no link on it and nothing anywhere
+ * saying why.
+ *
+ * That is the silent failure the operator named. Whether the production value
+ * was malformed on the night is not something this repository can establish
+ * after the fact, because no record of it was ever written. What IS established
+ * is that if it had been, nothing would have said so, and this is the fix for
+ * that rather than a claim about the cause.
+ *
+ * It reveals nothing. A correctly set break glass already draws a link on this
+ * screen, so a malformed one saying it is malformed tells a reader strictly
+ * less than the working case does.
+ */
+export function breakGlassMalformed(): boolean {
+  const raw = process.env.MFA_BREAK_GLASS;
+  if (typeof raw !== "string" || raw.trim().length === 0) return false;
+  return breakGlassConfigured() === null;
+}
+
 /** For the status surface. A break glass left set is the thing to shout about. */
 export function breakGlassStatus(): string {
   const parsed = breakGlassConfigured();

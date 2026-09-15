@@ -192,6 +192,14 @@ export const RETENTION_POLICY: RetentionEntry[] = [
     },
   },
   { table: "eng_account_properties", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
+  /*
+   * Phase 13 Section 2. A trade price is what a customer was charged, so it is
+   * a money fact rather than telemetry about the machine, and the table refuses
+   * DELETE at the database anyway. Declared kept rather than left undeclared,
+   * because retention-audit fails on a table nobody has ruled on and an
+   * undeclared money table is exactly the shape that ruling exists to catch.
+   */
+  { table: "eng_account_trade_prices", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   {
     table: "eng_alert_state",
     rule: {

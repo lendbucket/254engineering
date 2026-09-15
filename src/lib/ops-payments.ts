@@ -18,6 +18,9 @@ import {
   type ReviewOutcome,
 } from "./ops-orders";
 import { event, issueCustomerLink } from "./ops-intake";
+import { createCustomerAccount } from "./account-creation";
+import { normaliseAddress } from "./email-address";
+import { accountWelcome } from "./email-templates";
 import { customerStatusUrl, customerView, customerWhen } from "./ops-customer";
 import { queueEmail } from "./ops-jobs";
 import { orderConfirmed, orderDeclined, orderSealed, refundFailed } from "./email-templates";
@@ -576,6 +579,159 @@ export async function releaseForFulfilment(
   if (link) {
     await event(orderId, "customer_link.issued", false, "A status link was minted. Nothing has been sent yet.");
     await sendOrderConfirmation(orderId, link.token);
+  }
+
+  /*
+   * AND THE ACCOUNT, AFTER THE CONFIRMATION AND NOT BEFORE.
+   *
+   * The order matters to what lands in the inbox. The confirmation is the email
+   * somebody is waiting for after paying, and the account invitation is an
+   * offer they can ignore; arriving in that order is the difference between a
+   * receipt followed by an offer and an offer followed by a receipt, which is
+   * the shape that gets the receipt marked as spam.
+   *
+   * Both go through the queue, so this is the order they are ENQUEUED in rather
+   * than a guarantee about delivery. That is as much as this platform can
+   * honestly promise, and it is worth doing.
+   */
+  await openAccountForOrder(orderId);
+}
+
+/**
+ * THE CHECKOUT DOOR: paying opens the account that owns the order.
+ *
+ * Phase 13 Section 1, on the operator's ruling of 2026-09-13. The door
+ * registry claimed this already worked and it never had: checkout made a
+ * CLIENT, an operator later turned the client into an ACCOUNT, and nothing
+ * anywhere made a customer USER, so no account holder existed to sign in.
+ *
+ * WHY IT HANGS OFF releaseForFulfilment RATHER THAN off markPaid.
+ *
+ * Release is where a card order and an invoiced order converge, and that
+ * convergence is the reason that function was extracted in the first place.
+ * Hanging this off markPaid would open an account for everybody who paid by
+ * card and for nobody who is invoiced, and the difference would show up as a
+ * B2B customer who cannot sign in, months later, with nothing to point at.
+ *
+ * NOTHING HERE MAY FAIL THE PAYMENT.
+ *
+ * The same rule the confirmation below already follows, and it matters more
+ * here because this runs after the money has moved and the work is released.
+ * Every failure is swallowed into an order event that somebody can read. An
+ * account that did not open is a person who telephones; a payment unwound
+ * because an account did not open is a person who has been charged and has
+ * nothing.
+ *
+ * IT IS IDEMPOTENT, WHICH IS NOT OPTIONAL ON A WEBHOOK.
+ *
+ * Stripe redelivers. markPaid catches the duplicate charge on a unique
+ * constraint and returns early, so this is not usually reached twice, but "not
+ * usually" is not a guarantee and an invoiced order reaches release by another
+ * path entirely. So: an order that already names an account does nothing, and
+ * an address that already holds an account is linked rather than duplicated,
+ * which also covers the case that actually happens, a repeat customer.
+ */
+async function openAccountForOrder(orderId: string): Promise<void> {
+  const db = supabaseAdmin();
+  if (!db) return;
+
+  try {
+    const { data: order } = await db
+      .from("eng_service_orders")
+      .select("id, account_id, client_id, customer_email, customer_name, customer_phone, customer_company")
+      .eq("id", orderId)
+      .maybeSingle();
+    if (!order) return;
+
+    /* Already has one. An invoiced B2B order arrives here that way every time. */
+    if (order.account_id) return;
+
+    const email = typeof order.customer_email === "string" ? order.customer_email.trim() : "";
+    if (!email) {
+      await event(orderId, "account.not_opened", false, "No account was opened: the order carries no customer address.");
+      return;
+    }
+
+    /*
+     * A REPEAT CUSTOMER IS LINKED, NOT DUPLICATED.
+     *
+     * Their second order must reach the account their first one opened, or they
+     * sign in and see one order out of two, which is worse than seeing none
+     * because it looks like the platform lost something.
+     */
+    const { data: existing } = await db
+      .from("eng_customer_users")
+      .select("id, account_id")
+      .eq("email", normaliseAddress(email))
+      .maybeSingle();
+
+    if (existing?.account_id) {
+      await db.from("eng_service_orders").update({ account_id: existing.account_id }).eq("id", orderId);
+      await event(
+        orderId,
+        "account.linked",
+        false,
+        "This address already has an account, so the order was attached to it and no second account was opened.",
+      );
+      return;
+    }
+
+    const created = await createCustomerAccount({
+      email,
+      displayName: (order.customer_name as string) || email,
+      organisation: (order.customer_company as string) || null,
+      phone: (order.customer_phone as string) || null,
+      origin: "order_checkout",
+      /*
+       * The client the order already made. Opening a second one would put the
+       * same person in this firm's records twice with their orders split
+       * between them.
+       */
+      clientId: (order.client_id as string) ?? null,
+      /*
+       * No actor. A payment settling is the platform acting on its own, the
+       * same principal that released the work a few lines above.
+       */
+      actor: null,
+    });
+
+    if (!created.ok) {
+      await event(orderId, "account.not_opened", false, `No account was opened: ${created.error}`);
+      return;
+    }
+
+    await db.from("eng_service_orders").update({ account_id: created.accountId }).eq("id", orderId);
+    await event(
+      orderId,
+      "account.opened",
+      false,
+      "An account was opened for the address on this order, and a link to choose a password was sent.",
+    );
+
+    if (created.link) {
+      const base = process.env.NEXT_PUBLIC_SITE_URL || business.url;
+      await queueEmail(
+        accountWelcome({
+          customerName: (order.customer_name as string) || email,
+          customerEmail: normaliseAddress(email),
+          origin: "order_checkout",
+          link: `${base.replace(/\/$/, "")}/account/set-password?token=${encodeURIComponent(created.link.token)}`,
+          expiresIn: created.link.expiresIn,
+        }),
+      );
+    }
+  } catch (err) {
+    /*
+     * Swallowed into an event rather than thrown. See the note at the top: the
+     * money has moved and the work is released, and an exception escaping here
+     * would tell the caller the payment failed when it did not.
+     */
+    await event(
+      orderId,
+      "account.not_opened",
+      false,
+      `No account was opened: ${err instanceof Error ? err.message : "an unexpected failure"}.`,
+    );
   }
 }
 

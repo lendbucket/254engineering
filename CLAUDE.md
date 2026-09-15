@@ -17,6 +17,19 @@ by injecting a violation before it is trusted, and every completion claim is ver
 from a running app. A check that passes while looking at the wrong thing is the recurring defect
 class here. Hunt it.
 
+**Two sentences to have in mind from the first command of a session**, because each has cost a run
+more than once and each is invisible from its own symptom.
+
+**When a patch has landed and behaviour has not changed, the module is bound.** A module level
+constant is read once; a fresh import is not fresh enough, and a query string busts one specifier
+rather than the graph beneath it. Do not go looking for a second cause. The full rule and the
+worked examples are in section 6.
+
+**A finding is a claim until something other than the scratchpad agrees.** A harness prints what
+the harness does, which is evidence about the harness. Before a finding reaches a commit message or
+a report, an audit, a screen, or the product's own guard read in the source has to confirm it. The
+full rule is in section 6.
+
 ## 1. The regulatory gate (this outranks every other consideration)
 
 The firm's TBPELS registration is pending, and no licensed PE is on staff yet. Until both are real:
@@ -265,6 +278,45 @@ Three of those four are about money or about whether somebody was told
 something, which is why the rule is worded the way it is. A design cannot be
 wrong about a colour in a way that costs a refund.
 
+**AND THE RULE IS NOT ONLY ABOUT DESIGNS. A DECLARATION IS ONLY AS TRUE AS THE
+LAST TIME SOMEBODY READ IT AGAINST THE CODE.** Operator ruling, 2026-09-13,
+recorded as the instance that proves this section, because the thing that was
+wrong was not a design drawn by somebody else. It was this repository's own
+declared inventory, and it had been wrong since the moment it was written.
+
+`src/lib/account-doors.ts` declared three doors an account can come through. Its
+third entry read:
+
+    what: "The door that already existed. Paying for an order creates the
+           account that owns it."
+    route: "/api/orders/place"
+
+**Every clause was false.** There is no such route. Checkout creates a CLIENT.
+An operator later converts the client to an ACCOUNT. And nothing anywhere in
+this platform had ever created a customer USER at all, so no account holder
+existed to sign in: `createCustomerAccount` had no caller, and the audit probe
+built the whole chain by hand because the product had no path that did it.
+
+**Nobody had read it against the code, including the session that wrote it.** It
+was written in the same phase, reviewed, committed, and carried past several
+boards, and its falseness was invisible from every direction: the file
+typechecked, the registry was imported and used, and the origins it declared
+were all origins the database allowed.
+
+**The general form, which is the one to carry forward.** Section 2c says a
+DESIGN is unverified until it is read against the code. This is the same
+sentence with the subject widened: **a declaration is unverified until somebody
+reads it against the code, and the declarations this repository writes about
+itself are not exempt.** The declared inventory idiom exists because a list
+nothing reads stops being true without telling anybody. A list that was never
+true is the same failure with no decay required.
+
+**What made it findable was a check rather than a reading, and that is the fix
+worth copying.** `accounts-audit` now asserts that every declared door names a
+route that exists on disk, and it went red naming this one the first time it
+ran. The question to ask of any declaration in this repository is: what would
+have to be true on disk for this to be honest, and does anything assert it.
+
 **THE EXCEPTION, AND IT MATTERS: THE RULE IS NOT "THE DESIGN IS ALWAYS
 WRONG".** Recorded 2026-09-08, from the reporting port. The prototype's
 reports module got absent versus zero RIGHT, and this platform's own file
@@ -472,6 +524,42 @@ The pair with 2026-09-02's lesson is the whole argument: a suite that can be
 pointed at nothing, or killed by its own operator, is a suite whose red means
 two things.
 
+**WHEN A PATCH HAS LANDED AND BEHAVIOUR HAS NOT CHANGED, THE MODULE IS BOUND.**
+Operator ruling, 2026-09-14, moved here from `scripts/lib/gate-fixture.mjs`
+because a lesson recorded in one file is a lesson nobody finds.
+
+That file has carried the explanation since September, in these words: **a fresh
+`import()` is not fresh enough.** A query string busts ONE specifier, and every
+module beneath it keeps the values it was loaded with. A module level constant
+is read once.
+
+**It cost three separate runs in one night**, after being written down once:
+
+- `trade-pricing-audit` patched a floor into `src/config/trade-floors.ts`, re-imported `trade-pricing.ts` with a cache busting query, and read the floor as still pending. Nine checks failed reporting the code refusing correctly.
+- the Section 2 walk patched the same file and read the same stale value.
+- the walk then patched the launch conditions to open the gate, and `previewBatch` went on refusing, because `isPrelaunch()` reads constants bound at first import.
+
+Each time the symptom was identical and each time it looked like the code
+working: **a refusal that is correct for the unpatched state is indistinguishable
+from a refusal that is correct.** That is why it is worth a rule rather than a
+comment.
+
+**THE DIAGNOSTIC, AND IT IS THE THING TO READ FIRST.** A patch has been written
+to disk, the file on disk is right, and behaviour has not moved. Do not look for
+a second cause. **The module is bound.** Re-importing will not unbind it, and
+nor will any flag.
+
+**The answer is a child process**, which has no module graph to invalidate: it
+starts, reads the file as it is at that moment, answers on one prefixed line,
+and exits. `inOpenGateProcess` in the gate fixture is the worked example, and
+`trade-pricing-audit` carries its own for the same reason.
+
+**The general form.** Anything read once at module load is a value a patch
+cannot reach: the launch conditions, the credentials register, the trade floors,
+the door registry, the surface inventory. Anything read at CALL time can be
+patched in process, which is why the environment variable fixtures work and the
+file ones do not.
+
 **THE BOARD IS THE LAST WORD, INCLUDING OVER YOUR OWN VERIFICATION.** Operator
 ruling, 2026-09-10, from a run that fixed three real defects and introduced two
 regressions doing it.
@@ -527,6 +615,74 @@ reading a screenshot.
 So a fixture is priced, dated and complete: every column any figure could sum,
 count or age. The test of a fixture is not whether it inserts a row, it is
 whether removing the filter makes a number move.
+
+**AN ERROR ASSEMBLED FROM A STATUS FUNCTION CAN ONLY NAME THE FAULTS THAT
+FUNCTION CAN SEE, SO THE FAULT IT CANNOT SEE REACHES THE USER AS A LIE.**
+Operator ruling, 2026-09-13, from the production MFA lockout, and it belongs
+beside the fixture lesson because it is the same failure wearing a sentence: the
+fixture decides which figures can move, the inventory decides which surfaces are
+swept, the scan decides which credentials exist, and a status function decides
+which faults can be NAMED.
+
+`answerChallenge` returned `mfaStatus()` when decryption failed. `mfaStatus`
+asks whether `MFA_ENCRYPTION_KEY` is present and at least 24 characters, which
+are the two faults it was written for and the two it can see. A key REPLACED
+with another perfectly valid value passes both, so the screen answered a working
+phone with
+
+    MFA_ENCRYPTION_KEY is configured.
+
+in the red error slot. Entirely true, and the least useful true thing the
+platform could have said. Four hours went into the wrong diagnosis and the
+enrolment was cleared by hand in the end.
+
+**The general form.** A status function enumerates the faults its author thought
+of. Returning it as a user facing error silently promises that the enumeration
+is complete, and the fault outside the enumeration is then reported as the most
+recent thing in the list rather than as unknown. The failure is invisible from
+the call site, from the test, and from the status function, because each of the
+three is correct.
+
+**The fix is a verifier that asks the question the failing operation actually
+failed on**, not a longer status list. `keyFaultFor(secretCipher)` attempts the
+decryption, because whether this key is the one this ciphertext was written
+under is not answerable any other way. It is deliberately narrow: a row with no
+secret is not a key fault, and a cipher that is not three parts is a corrupt row
+rather than a changed key, because folding those together is how the next
+misleading sentence gets written.
+
+**Phase 14 opens with a survey, report only**: every place in this platform where
+a status or configuration function's output is returned as a user facing error.
+Each one is a candidate for the same defect, and the question to ask of each is
+not whether the sentence is true but whether the function that produced it can
+see the fault that would bring somebody to that screen.
+
+**AND THE HOLE A FIX OPENS IS FOUND BY INJECTION-VERIFYING THE FIX, NOT THE
+DEFECT.** Operator ruling, 2026-09-13, recorded as its own instance because it
+is the sharpest argument this repository has yet produced for the injection
+rule.
+
+The recovery code acknowledgement moved the session from `confirm` to a second
+call, so the flow could not complete until somebody said they had saved their
+codes. Correct, and it created a call that upgrades a half authenticated session
+into a full one with no code typed. Sound while the confirm and the
+acknowledgement are the same sign in. Unsound the moment they are not: an
+account left in "codes issued, never acknowledged" would have been reachable
+with a password alone, forever, and that state is precisely the one the feature
+exists to make visible. **The protection would have opened the hole it was
+measuring.**
+
+Nothing about the fix looked wrong. It was found by asking what a check written
+against the NEW code would have to prove, which produced "a second sign in
+cannot acknowledge an earlier enrolment", which is the attack written down. The
+binding then wrote itself: the enrolment's `verified_at` must be later than the
+moment the calling session began, derived from the pending cookie's own expiry.
+
+**So the injection rule has two halves and only one was written down.** Injecting
+the OLD defect proves the check catches what already happened. Injecting the
+FIX, by asking what the new code makes possible that the old code did not, is
+what catches what has not happened yet. The first is verification. The second is
+the only thing that finds a regression nobody has met.
 
 **AND EVERY SCAN SO FAR ASKED WHAT THE CODE READS. A SECRET NOTHING READS WAS
 INVISIBLE TO ALL OF THEM.** Operator ruling, 2026-09-12, recorded beside the
@@ -611,6 +767,81 @@ fixture was wrong rather than the code. Moving the limit to $800, between the
 truncated $500 and the true $1,200, made the difference visible: granted against
 refused.
 
+**NO FINDING REACHES A COMMIT MESSAGE OR A REPORT UNTIL SOMETHING OTHER THAN THE
+SCRATCHPAD HAS CONFIRMED IT.** Operator ruling, 2026-09-14. A finding written up
+before it is checked is a claim nothing supports, in the same class as a figure
+stated as read back when nobody read it.
+
+**The instance.** An overnight walk printed
+
+    batch total        $0.00
+
+for a batch in which every property had been rejected. It was written up as an
+absent-versus-zero defect, a fix was made, and both reached a commit message and
+a phase report before anything examined the claim.
+
+**It was not a defect.** The zero came from the scratchpad walk script printing
+`money(totalCents)` unconditionally. The product guards that block on
+`accepted.length > 0` and never renders it, and `placeBatch` refuses an empty
+split outright with its own sentence. No customer could ever have seen it.
+
+`order-audit` caught the change on the next board:
+
+    FAIL: and its total is zero rather than null
+
+**THE CHECK'S REASON WAS BETTER THAN THE CHANGE WAS**, and it is the part worth
+carrying: **null already meant something else there.** It meant an accepted
+property has no price, so no total can be stated. Reusing it for "nothing was
+accepted" makes two different states indistinguishable, which is **the fixture
+rule applied to a return value**. The split already carried `empty` to say so,
+and the very next check asserted it.
+
+**So a scratchpad's output is evidence about the scratchpad.** Before a finding
+is written down, something that is not the script that produced it has to agree:
+an audit, a screen, the product's own guard read in the source. The three
+artefact-reading findings in the same run were all real precisely because each
+was read off a SCREEN or a PRODUCT path rather than off a harness.
+
+And a correction leaves a trace. The reverted lines carry why in
+`bulk-order.ts`, because a false finding that vanishes is one the next session
+re-makes.
+
+**A CHECK WHOSE INJECTION PASSES IS A CHECK PROVEN BY NOTHING, REGARDLESS OF HOW
+MANY GREEN LINES SIT BESIDE IT.** Operator ruling, 2026-09-13, and it is the
+fixture lesson at the level of a walk: the fixture decides which figures can
+move, and a WALK decides which branches can be reached.
+
+Phase 13 Section 1 built a live audit that walks all three account doors end to
+end. It went green at 27 checks, and one of them read
+
+    and releasing again opens nothing further
+
+which is the repeat customer: somebody's second order must reach the account
+their first one opened. Injecting the defect, by disabling the linking branch
+outright, **left all 27 checks green.**
+
+The reason is that the check released the SAME order twice, and the second
+release returns early on `account_id` long before it reaches the question of
+whether this address already has an account. The branch the check was named
+after was never executed. Nothing about the green said so, the check's own
+wording said the opposite, and the walk was the most thorough kind of test this
+repository has.
+
+**So an injection that passes is not a weak result. It is the only result that
+distinguishes a check from a sentence**, and it has to be treated as a red: the
+check is rewritten until the injection fails, or it is deleted. Here the walk
+gained a real repeat customer, a second order from a second client for the same
+address, and the injection then failed naming the consequence a person would
+actually meet: the second order points at no account at all, which is signing in
+and seeing one order out of two.
+
+**Every injection is read for WHICH checks went red, never only for whether the
+run failed.** A run that goes red for the wrong reason is the same defect as one
+that stays green: both mean the check under test was not the thing exercised.
+That half of this rule has cost two findings in two days, the other being a
+combined injection whose cascade made a security check pass for the wrong
+reason.
+
 **AND A MATCHER WITH A WINDOW WIDER THAN THE THING IT MATCHES ATTACHES TO ITS
 NEIGHBOUR.** Same day, same section, in the patch script written to document all
 of this. It searched an eight line window for a table name to decide which query
@@ -633,6 +864,58 @@ had just inserted, so it always answered yes and skipped. Nothing in the script
 could catch that, because the script had done exactly what it was told;
 `tsc` caught it, and that is the argument for a compile step over a careful
 script.
+
+**A SCAN THAT READS A TRACKED FILE LIST MEASURES NOTHING ABOUT A FILE THAT IS
+NOT YET TRACKED, AND THE FILE MOST LIKELY TO MATTER IS THE ONE YOU JUST WROTE.**
+Operator ruling, 2026-09-14.
+
+`project-accountability-audit` scans the source in reverse, so a project ref
+somebody wires up without telling the declaration is found. It listed
+`git ls-files`, which is TRACKED files only.
+
+Its own declaration, `supabase/projects.mjs`, was a new untracked file while the
+audit was being written. So the scan could not see **the one file in the
+repository most certain to contain project refs**, and it passed four times over
+a set that excluded itself. Three injections were run against it and all three
+were caught, because each injected into a file that was already tracked.
+
+The commit made the declaration tracked. The board read it on the next run and
+went red, naming four refs recorded there and absent from the declared set. **52
+of 53 audits passed and the one red was the audit added that day.**
+
+It is the vacuous green in a new costume: a green audit is a green audit of the
+FILES IT READ, and a file list is exactly the kind of input nobody thinks of as
+a filter. The fix is `git ls-files --cached --others --exclude-standard`, so a
+declaration is scanned the moment it is WRITTEN rather than the moment it is
+committed, and the regression is an injection that creates an untracked file
+carrying an undeclared ref.
+
+**The general form, and it is worth carrying past this one script:** any check
+whose subject list comes from version control has a blind spot exactly the shape
+of "new work". That is the same span as "the thing being built right now".
+
+**AND A RECORDED EXPLANATION IS A HYPOTHESIS UNTIL SOMETHING RE-CHECKS IT.**
+Operator ruling, 2026-09-14, from the same night, and it is about this file
+rather than about any script.
+
+The live read-back rule in section 6b carried two explanations for why a
+behaviour digest differs from a replay: that `conbin::text` renders differently
+between PGlite's 18.3 and Supabase's 17.6, and that three function bodies are
+stored with comments stripped. Both had been read and trusted for a week. **Both
+were too narrow**, and the Phase 14 rank 1 replay proved it by comparing two
+databases that are BOTH Supabase 17.6, where the version explanation cannot
+apply and the difference appeared anyway.
+
+`conbin` turned out to be unstable between any two databases; the function count
+was four rather than three and development strips them too. And underneath the
+noise sat a real difference the explanation would have hidden: one foreign key
+NOT VALID on one side and validated on the other.
+
+So an explanation written down once is a hypothesis with a date on it. When it
+is used to dismiss a difference, the dismissal has to be re-derived rather than
+cited, because **an explanation that covers the observation is not the same as an
+explanation that is true**, and a wrong one is worse than none: it makes the next
+session stop looking.
 
 **A CHECK THAT FILTERS LIVE DATA FOR A SUBJECT THAT DOES NOT EXIST YET IS
 VACUOUS. BUILD THE SUBJECT.** Operator ruling, 2026-09-09, from the reporting
@@ -724,6 +1007,38 @@ project would today read as an ordinary development target to `roles-audit` and
 `seed-field-demo`. Nothing points at it, so nothing runs against it; the moment
 something does, those two constants move first. The full state of that project
 is in `docs/production-cutover-plan.md`, under the deferral notice at the top.
+
+**THERE IS A FOURTH PROJECT, AND THE DOCUMENT THAT SAID IT WAS DELETED WAS
+WRONG.** Operator ruling, 2026-09-14.
+
+`docs/production-cutover-plan.md` said of `254engineering-rehearsal`
+(`kmiwxtbtqrlorxfogtht`), in writing, "since deleted". Eleven days later it was
+alive, billable, and holding 239 audit events, 2 order payments, 1 profile and 1
+service order. Nobody deleted it and nobody checked. The sentence was written in
+the same pass as the deletion was intended.
+
+**A DOCUMENT THAT RECORDS A DESTRUCTIVE ACTION AS DONE IS A CLAIM NOTHING
+SUPPORTS UNLESS SOMETHING CHECKED.** Deleting, revoking, rotating and
+decommissioning are the four that matter, because each one leaves something live
+and costing money when it silently does not happen, and each one reads
+identically on the page whether it happened or not. It is the same failure as a
+green audit over an empty set, wearing prose.
+
+**So the projects are a declared inventory like every other one here.**
+`supabase/projects.mjs` names every project this firm is accountable for and the
+document that explains it, and `scripts/project-accountability-audit.mjs` runs on
+the board. Like `schema-ledger-audit` beside it, **it cannot see the provider**
+and says so: it asserts that every project the REPOSITORY names is declared and
+explained by a document that actually mentions it, and it scans the tracked
+source in REVERSE so a project somebody wires up without telling the declaration
+is found. Listing the organisation is a by hand MCP step, `list_projects`.
+
+The first run of that by hand step found **eight projects where this firm
+accounts for four**. None of the other four holds a single `eng_` table, checked
+rather than assumed. One of them, `wattsmith-dedicated`, was created the day
+after the cutover project and holds the wattsmith application's own schema, which
+reads as wattsmith moving off the shared project this firm calls production;
+that is in `BACKLOG.md` awaiting a ruling.
 
 **Why this exists.** Before the split, every audit run wrote to production:
 roles-audit created accounts there, mobile-overflow-audit signed a probe in
@@ -973,6 +1288,34 @@ function bodies carrying SQL comments are stored on production with those
 comments stripped. Proven rather than argued, by a check constraint created on
 both sides the same hour from byte identical SQL that hashed two ways.
 
+**BOTH HALVES OF THAT EXPLANATION WERE TOO NARROW, AND THE 2026-09-14 REPLAY
+CORRECTED THEM.** Phase 14 rank 1 replayed all 49 migrations into
+`254engineering-rehearsal` and compared it against development. Both are Supabase
+**PostgreSQL 17.6**, so the version difference cannot be the cause of anything,
+and `ck` and `fn` still disagreed.
+
+- **`conbin` is not stable between two databases AT ALL**, never mind between two
+  engine versions. Compared instead by `pg_get_constraintdef`, all 106 check
+  constraints hashed identically on both sides. So the portable way to compare a
+  check constraint is its DEFINITION, and the version explanation above is a
+  special case of a wider fact rather than the reason.
+- **It is FOUR function bodies, not three, and development strips them too.**
+  `eng_set_trade_price` joined the list when 0047 added it. The four are exactly
+  the four whose bodies contain SQL comments: `eng_claim_jobs`,
+  `eng_forbid_mutation_allow_cascade`, `eng_forbid_sealed_work_delete` and
+  `eng_set_trade_price`. Normalised for comments and whitespace, all four hash
+  identically. The stripping is not a production peculiarity.
+
+**And one real difference hid inside the noise, which is the argument for
+chasing a digest rather than waving at it.** The `fk` digests differed by exactly
+one fact: development carries `eng_responsible_charge_log_file_id_fkey` NOT VALID
+because of the 28 dangling rows 0039 documents, and a freshly replayed database
+validates it because the table is empty. Hashing the 141 keys without the
+validated flag matched on both sides. **That is a genuine, meaningful difference
+between two databases**, and a session that had written the whole digest gap off
+as "the known conbin thing" would have reported three explained differences and
+missed it.
+
 So the rule is:
 
 | | Compared by |
@@ -996,6 +1339,57 @@ session continued to 0041 and wrote it up as a disclosed judgement rather than
 absorbing it. The operator upheld it: stopping between 0040 and 0041 would have
 left main describing a schema production lacked, which is the worse state and
 the exact thing this ledger exists to prevent.
+
+**A MIGRATION ON MAIN IS NEVER PENDING.** Operator ruling, 2026-09-13, and it
+closes a gap the operator names as theirs: 0042 was ruled pending, and then a
+merge was approved without ruling what a pending migration becomes at merge.
+
+Either it goes to production in the merge sequence, or it does not merge. **If a
+migration must stay off production, it stays on its branch.**
+
+`schema-ledger-audit` already enforced the consequence and went red the first
+board after Phase 12 Section 6 merged, naming it as the second time merged and
+applied had diverged. What was missing was not the check; it was the rule the
+check was enforcing, which nobody had written down.
+
+The practical shape: an overnight run that is forbidden to touch production
+produces migrations that are correctly pending, and those branches do not merge
+until somebody is at a keyboard to run the production half. A pending migration
+is a reason to hold a merge, not a thing a merge can carry.
+
+**AND A FIXTURE DERIVES THE CONDITIONS RATHER THAN STATING THEM.** Same ruling,
+same day, and it is the fixture lesson one level up.
+
+`withGateConditionsMet` carried a list of the gate's conditions and how to
+satisfy each. That list is exactly as current as the day somebody last edited
+it, and on 2026-09-12 the gate grew a fourth condition while the fixture went on
+patching three. Every live half of every audit then rendered the PRELAUNCH site
+while asserting live things about it, and the gate was working perfectly. The
+same file's header already recorded the identical failure from 2026-09-10, one
+condition earlier.
+
+So the fixture still carries the patches, because it cannot satisfy a condition
+nobody has told it about, and it now **asks the gate whether it actually
+opened** and refuses to run the body if anything is still shut, naming the
+blocker in its own words. A fifth condition fails loudly at the fixture instead
+of quietly downgrading thirteen audits.
+
+Proven the way everything here is proven: a fifth condition was injected and the
+fixture printed it back by name.
+
+**AND AN EDIT TO `supabase/applied.mjs` IS ANCHORED ON THE ARRAY NAME, NEVER ON
+A BRACKET.** Operator ruling, 2026-09-13, recorded as another instance of the
+matcher whose window reached into its neighbour.
+
+A patch adding the 0043 entry found the last `];` in the file and inserted
+before it. That bracket belongs to `BEHAVIOUR_DIVERGENCE`, not to `APPLIED`. The
+module parsed cleanly, loaded cleanly, and was wrong: `schema-ledger-audit`
+reported 43 of 44 compared and named 0043 as having no entry.
+
+It is the same defect as the eight line window that reached into the next query
+block, and the answer is the same one: **locate by the thing you mean, not by
+the nearest punctuation that resembles it.** Find `export const APPLIED = [`,
+then the first `\n];` after it.
 
 **MERGED AND APPLIED ARE DIFFERENT FACTS, AND THE SECOND ONE IS DECLARED.**
 `supabase/applied.mjs` is the ledger: one entry per migration saying whether

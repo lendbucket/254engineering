@@ -131,6 +131,6 @@ function summarise(findings: CopyFinding[]): string {
  */
 export function performingFirmLine(): string {
   return isPrelaunch()
-    ? "254 Engineering Services is the firm of record for work referred through this programme, and is the firm that will perform and seal it. Firm registration is pending with the Texas Board of Professional Engineers and Land Surveyors."
-    : "254 Engineering Services is the firm of record for work referred through this programme, and is the firm that performs and seals it.";
+    ? "254 Services LLC is the firm of record for work referred through this programme, and is the firm that will perform and seal it. Firm registration is pending with the Texas Board of Professional Engineers and Land Surveyors."
+    : "254 Services LLC is the firm of record for work referred through this programme, and is the firm that performs and seals it.";
 }

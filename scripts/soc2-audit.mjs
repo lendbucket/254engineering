@@ -973,16 +973,84 @@ console.log("");
       : `no environments recorded: ${undeclaredEnvs.join(", ")}`,
   );
 
-  const shared = sensitive
+  /*
+   * =====================================================================
+   * A SHARING MUST BE RULED, NOT ABSENT.
+   * Operator ruling, 2026-09-13.
+   * =====================================================================
+   *
+   * This check used to assert that NO identity or database secret was shared
+   * between Preview and Production. That made a deliberate decision look
+   * identical to an oversight, and it left a red on the board that the operator
+   * had considered and decided not to act on. A red nobody is going to act on is
+   * where the next real failure hides, which is this repository's own rule about
+   * UNREACHABLE IS NOT FAILED, applied to a risk acceptance.
+   *
+   * So the question changed. Not "is anything shared", which is a fact the
+   * operator owns, but "is everything that is shared shared ON PURPOSE, with a
+   * name and a date and the consequence written out".
+   *
+   * WHAT THIS STILL CATCHES, which is the point of keeping it at all: a sharing
+   * nobody ruled on. If a fourth secret starts sharing a value with Preview, or
+   * if somebody removes a ruling and leaves the sharing, the board goes red and
+   * names it. The property that mattered was never "nothing is shared"; it was
+   * "nothing is shared by accident".
+   */
+  const sharedSecrets = sensitive
     .filter((c) => c.environments)
-    .filter((c) => c.environments.preview === "set" && c.environments.previewValueDistinct !== true)
+    .filter((c) => c.environments.preview === "set" && c.environments.previewValueDistinct !== true);
+
+  const unruled = sharedSecrets.filter((c) => !c.environments.sharingRuling).map((c) => c.name);
+  rec(
+    "every secret sharing a value with Preview is shared by a ruling rather than by accident",
+    unruled.length === 0,
+    unruled.length === 0
+      ? sharedSecrets.length === 0
+        ? "none is shared"
+        : `${sharedSecrets.length} shared, every one ruled: ${sharedSecrets.map((c) => c.name).join(", ")}`
+      : `SHARED WITH NO RULING: ${unruled.join(", ")}. A preview URL is reachable by anybody with the link.`,
+  );
+
+  /*
+   * AND A RULING CARRIES A NAME, A DATE, AND THE CONSEQUENCE IN FULL.
+   *
+   * A risk accepted without its consequence written down is a risk nobody
+   * accepted: the next reader sees a flag saying "allowed" and has no way to
+   * judge whether the person who set it knew what they were allowing. The
+   * length floor is crude and it is the thing that stops "fine" being an
+   * acceptable answer.
+   */
+  const thinRulings = sharedSecrets
+    .filter((c) => {
+      const r = c.environments.sharingRuling;
+      return !r || !r.by?.trim() || !r.on?.trim() || (r.consequence ?? "").trim().length < 80;
+    })
     .map((c) => c.name);
   rec(
-    "and none is declared as sharing a value between Preview and Production",
-    shared.length === 0,
-    shared.length === 0
-      ? "every one is absent on Preview or holds a distinct value there"
-      : `SHARED WITH PREVIEW: ${shared.join(", ")}. A preview URL is reachable by anybody with the link.`,
+    "and every ruling names who decided, when, and what follows from it",
+    thinRulings.length === 0,
+    thinRulings.length === 0
+      ? sharedSecrets.length === 0
+        ? "nothing shared, so nothing to rule"
+        : `${sharedSecrets.length} ruling(s), each with an author, a date and a stated consequence`
+      : `a ruling with no author, no date, or no consequence: ${thinRulings.join(", ")}`,
+  );
+
+  /*
+   * AND THE STAFF SESSION SECRET IS NOT AMONG THEM.
+   *
+   * Asserted by NAME rather than falling out of the loop above, because it is
+   * the one the operator ruled stays split and it is the one whose sharing
+   * would reach the firm's own records rather than a customer's. A check that
+   * only counted would go quiet the day this joined the others.
+   */
+  const opsShared = sharedSecrets.some((c) => c.name === "OPS_SESSION_SECRET");
+  rec(
+    "and the staff session secret is not one of them",
+    !opsShared,
+    opsShared
+      ? "OPS_SESSION_SECRET IS SHARED WITH PREVIEW, which would expose staff sessions the way customer ones are"
+      : "OPS_SESSION_SECRET stays split, so staff sessions are not exposed this way",
   );
 
   /*

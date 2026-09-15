@@ -194,6 +194,74 @@ unchanged.
 
 ---
 
+### THE 2026-09-14 RECONCILIATION. FIVE THINGS BELOW WERE STALE.
+
+Read before the sequence, because walking the tables underneath without these
+would replay the wrong chain and demand read-backs of rows that no longer exist.
+Every figure here was read from the live projects on 2026-09-14, not inferred.
+
+**1. The chain is 0000 to 0042, not 0000 to 0037.** DECISION A was written on
+2026-09-10 when 0038 to 0041 were unapplied. They went to production on
+2026-09-11 and 0042 on 2026-09-13. Main holds 43 files, 0000 through 0042;
+production has all 43; this branch's 0043 to 0048 are pending and correctly so.
+
+**2. The twelve fact carve-out is GONE, and step 2's read-back is now stronger.**
+It was "differs from old production by exactly twelve named facts". Those twelve
+closed when 0039 and 0040 applied. It is now **plain equality**: the new project
+must read `11a709155214441ec2b7c3b382f6e17f` across **1,030 columns and 75
+tables**, which is what production reads today and what the ledger declares for
+0042.
+
+**3. Step 14 is already done.** It said merge `feat/phase-12-section-4` and apply
+0038 to 0041. That happened on 2026-09-11. There is no such step any more.
+
+**4. THE MFA ENROLMENT IS NO LONGER ON PRODUCTION.**
+
+| Row | This plan demanded | Production, 2026-09-14 |
+| --- | --- | --- |
+| `eng_mfa_enrolments` | 1 | **0** |
+| `eng_mfa_recovery_codes` | 10 | **0** |
+
+The 2026-09-13 lockout ended with the enrolment cleared by hand and nothing
+re-enrolled. There is nothing to copy and nothing to prove in transit, so step 10
+is rewritten below rather than left demanding rows that do not exist.
+
+**5. The irreplaceable set moved, and the telemetry moved a great deal.**
+
+| Table | Plan, 2026-09-10 | Today | Moving? |
+| --- | --- | --- | --- |
+| `eng_audit_events` | 477 | **485** | **No.** Newest 2026-09-13 16:27, zero in 24h |
+| `eng_profiles` | 2 | 2 | No |
+| `eng_leads` | 2 | 2 | No |
+| `eng_applications` | 1 | 1 | No |
+| `eng_role_grants` | 119 | **117** | No. 0040 deleted `files.assign` from two roles |
+| `eng_cron_runs` | 10,460 | **17,469** | **YES, about 12 every ten minutes** |
+| `eng_jobs` | 1,749 | 2,920 | **YES** |
+| `eng_metrics_daily` | 81 | 145 | Daily |
+
+**The tables that cannot be recreated are all static.** The tables that are
+moving are the two the freeze does not currently stop, which is item 6.
+
+**6. THE FREEZE DOES NOT STOP THE SCHEDULED WORKER, AND IT HAS TO.**
+
+`vercel.json` declares three crons: `/api/cron/jobs` **every minute**,
+`/api/cron/health-watch` every five, and `/api/cron/daily`. Between two queries
+seconds apart, `eng_cron_runs` went 17,468 to 17,469.
+
+Step 6 as written freezes "every public form and the intake API" and says nothing
+about these. Left running, `eng_cron_runs` and `eng_jobs` grow throughout the
+window and step 7's "every telemetry table's count" can never match.
+
+**Operator ruling, 2026-09-14: the scheduled worker is STOPPED for the window,
+rather than telemetry being excluded from the equality check.** The reason is in
+the operator's words: an exclusion is a carve-out that will grow, and the freeze
+is measured in minutes. **Disabling the crons is a Vercel dashboard change and is
+therefore the operator's step**, not a deploy: removing them from `vercel.json`
+would need a deploy to take effect and a second deploy to undo, inside the one
+window where a deploy is least welcome.
+
+---
+
 ### PHASE 0. THE DRY RUN. NOT OPTIONAL.
 
 Operator ruling: the whole sequence runs against the dev project first, into a
@@ -201,16 +269,77 @@ second throwaway. Nothing in phase 1 begins until phase 0 is in a report.
 
 | # | Step | Whose | Read-back before the next step |
 | --- | --- | --- | --- |
-| 0.1 | Create throwaway **T1**, `us-east-1` | mine, on your cost approval | Project healthy; its ref recorded in the report |
-| 0.2 | Replay 0000 to 0037 into T1 through `apply_migration` | mine | Shape `3acd988c…`/1015 and behaviour `764ff4339…`/806. Both, not one |
+| 0.1 | **T1 is `254engineering-rehearsal`, reused.** Operator approval 2026-09-14: nothing new is created and nothing new is billed | mine | The project is healthy and its `eng_` schema is empty before 0.2 |
+| 0.2 | Replay **0000 to 0042** into T1 through `apply_migration` | mine | Shape `11a709155214441ec2b7c3b382f6e17f`/**1030**/75 tables, equal to production. Behaviour by the portable kinds and counts, per the 2026-09-11 finding |
 | 0.3 | Create the five buckets, all private | mine | Five present, five private, limits and mime types per old step 3 |
-| 0.4 | Dry run `copy-project.mjs` dev to T1, writing nothing | mine | Per table counts it INTENDS to copy, compared to dev's own counts. Read the two defects under old steps 5 and 8 first: both let this script report success having done nothing |
+| 0.4 | Dry run `copy-project.mjs` dev to T1, writing nothing | **BLOCKED ON THE OPERATOR.** See below | Per table counts it INTENDS to copy, compared to dev's own counts. Read the two defects under old steps 5 and 8 first: both let this script report success having done nothing |
 | 0.5 | Copy dev to T1 for real | mine | Every table's row count equals dev's; `eng_profiles` uuids preserved; both fingerprints unchanged from 0.2 |
 | 0.6 | Copy storage | mine | Object count and total bytes per bucket equal dev's, enumerated RECURSIVELY |
-| 0.7 | Back up T1, restore into throwaway **T2** | mine, on your cost approval | Both fingerprints on T2 equal T1's, and every row count equals T1's. **This is the step 15 mechanism, rehearsed** |
+| 0.7 | Back up T1, restore into throwaway **T2** | **BLOCKED. Phase 0 STOPS HERE** until the operator says whether restore-into-a-new-project exists on this plan | Both fingerprints on T2 equal T1's, and every row count equals T1's. **This is the step 15 mechanism, rehearsed** |
 | 0.8 | Point a local build at T1 and complete an MFA challenge with a dev enrolment | **yours** to complete the challenge, mine to stand the build up | A code from your authenticator is accepted against T1 |
 | 0.9 | Destroy T1 and T2 | mine | Both gone; the bill returns to its previous figure |
 | 0.10 | **The dry run report** | mine | Every figure above, and what went wrong, in `docs/`. **GO/NO-GO is your word** |
+
+**0.2 IS RECORDED AS DERIVED, NOT EXECUTED. Operator ruling, 2026-09-14.**
+
+The chain was NOT re-replayed into T1. What was done instead, and it is stronger
+than the execution would have been:
+
+> The files at 0042 and production at 0042 agree on shape, columns and all 824
+> facts from both ends, and the real engine replayed 49 of 49 faithfully tonight
+> with transcription byte-verified.
+
+`scripts/fingerprint-at.mjs 0042` gives `11a709155214441ec2b7c3b382f6e17f` across
+1,030 columns and 824 facts from the FILES alone, and production read back the
+same shape, the same 1,030 columns and the same 824 facts, with per-kind figures
+fk 137, ck 100, pk 75, tg 58, fn 12, ix 243, rls 75, policy 0, 7 roles and 117
+grants, and **zero unvalidated foreign keys**, which is the twelve fact carve-out
+being gone confirmed from the data rather than from the ruling.
+
+**WHAT IT DOES NOT PROVE.** That a real Supabase engine, replaying THIS chain at
+THIS stopping point, produces that result. Tonight's real-engine proof ran 0000
+to 0048, a superset, into `254engineering-rehearsal`; the shape fingerprint is
+portable and was matched at six intermediate checkpoints, but 0042 specifically
+was never applied to a live project and read back. The derivation rests on the
+shape fingerprint being portable, which is stated in section 6b of CLAUDE.md and
+confirmed repeatedly, rather than on an execution.
+
+It is recorded this way rather than marked done because **saying so rather than
+marking it done is the whole standard.** A step reported as executed when it was
+derived is the completion claim this repository treats as the one unforgivable
+failure.
+
+If step 2 is ever in doubt on the day, this is the cheap way to settle it before
+writing anything: run `fingerprint-at.mjs` at the chain's head and compare
+against a live read of production. Both halves take a minute and neither writes.
+
+---
+
+**TWO BLOCKERS IN PHASE 0, BOTH FOUND BEFORE ANY STEP WAS SPENT REACHING THEM.**
+
+**0.4 to 0.6 need T1's service role key, which I cannot obtain.**
+`copy-project.mjs` takes `COPY_FROM_URL`, `COPY_FROM_KEY`, `COPY_TO_URL` and
+`COPY_TO_KEY`, and both keys are service role. `.env.local` carries development's,
+which covers the FROM side. There is no service role key for T1 anywhere I can
+reach: the Supabase MCP exposes publishable and legacy anon keys only, and an
+anon key cannot write past RLS with zero policies, which is every table in this
+schema.
+
+**Copying by hand through the MCP instead would defeat the point of phase 0.**
+The dry run exists to exercise THAT SCRIPT, including the two defects recorded
+under old steps 5 and 8 that let it report success having done nothing. A copy
+performed a different way rehearses a mechanism the cutover will not use.
+
+So 0.4 needs the operator to paste T1's service role key as an environment
+variable for the command. It is a throwaway project rather than production, and
+it is a secret either way: it goes in the environment of one invocation and is
+never written to a file in this tree.
+
+**0.7 may not be performable at all, by anybody, through this tooling.**
+`restore_project` takes a project id and nothing else. There is no operation that
+backs up one project and restores it into another. Whether the Supabase dashboard
+offers restore-into-a-new-project on this organisation's plan is the operator's to
+read, and **phase 0 stops at 0.7 until they do.** See the correction at step 15.
 
 ---
 
@@ -219,19 +348,19 @@ second throwaway. Nothing in phase 1 begins until phase 0 is in a report.
 | # | Step | Whose | Read-back before the next step |
 | --- | --- | --- | --- |
 | 1 | **Confirm both sisters** (old step 8b) | **yours** | Each in state A or state B, confirmed from that deployment's own configuration. What to look for is below |
-| 2 | Replay 0000 to 0037 into `qmvcqvkywmkogxbyzsaz` | mine | Shape equals old production exactly. Behaviour equals `764ff4339…`/806, and differs from old production by EXACTLY the twelve named facts |
+| 2 | Replay **0000 to 0042** into `qmvcqvkywmkogxbyzsaz` | mine | **Plain equality with old production:** shape `11a709155214441ec2b7c3b382f6e17f`, 1,030 columns, 75 tables. The twelve fact carve-out is GONE, closed by 0039 and 0040. Behaviour by the portable kinds and counts |
 | 3 | Verify the five buckets already there | mine | Five, private, limits per old step 3 |
 | 4 | **Point in time recovery and leaked password protection** | **yours** (plan setting, possible cost) | PITR on, window recorded; the protection enabled |
 | 5 | Dry run `copy-project.mjs` production to new, writing nothing | mine | Intended per table counts equal production's, including the 477 audit events |
-| 6 | **FREEZE the write paths** (old step 6) | **yours** | Every public form and the intake API refuse; a probe submission is refused and nothing new appears in production |
-| 7 | Copy | mine | **Every irreplaceable row, individually:** 2 profiles by uuid, 2 leads, 1 application, 1 MFA enrolment, 10 recovery codes, **477 audit events**, 7 roles, 119 grants. Plus every telemetry table's count |
+| 6 | **FREEZE the write paths AND STOP THE THREE VERCEL CRONS** (old step 6) | **yours** | Every public form and the intake API refuse; a probe submission is refused; **and `eng_cron_runs` does not move across two reads a minute apart**, which is what proves the worker actually stopped |
+| 7 | Copy | mine | **Every irreplaceable row, individually:** 2 profiles by uuid, 2 leads, 1 application, **485 audit events**, 7 roles, 117 grants. **No MFA enrolment and no recovery codes: production has none.** Plus every telemetry table's count, which is only meaningful because step 6 stopped the crons |
 | 8 | Copy storage | mine | Recursive object count and bytes per bucket equal production's |
 | 9 | **Back up the new project, restore into a throwaway, read it back** | mine, on your cost approval | Both fingerprints and **every irreplaceable row count** on the restored copy. **In the report before step 11.** The throwaway is then destroyed |
-| 10 | **The second factor** | **yours** to complete the challenge | `MFA_ENCRYPTION_KEY` unchanged in Vercel; you complete an MFA challenge against the NEW production and it is accepted. Detail below |
+| 10 | **ENROL A SECOND FACTOR FRESH, AND TEST THE CODES** | **yours** | Operator ruling 2026-09-14: nothing to copy, nothing to prove in transit. You enrol against the NEW production, save the recovery codes, **and spend one code to confirm it works before the window closes.** The codes get tested this time |
 | 11 | **FLIP.** Point the application at the new project (old step 9) | **yours** (Vercel env) | The deployed app reads the new project; `db-guard-audit` and `security-audit` against the deployment |
 | 12 | Verify from outside (old step 10) | mine and yours | Sign in, open the portal, read the audit trail, see the 477 events |
 | 13 | **UNFREEZE** (old step 11) | **yours** | A probe submission lands in the NEW project and nowhere else |
-| 14 | Merge `feat/phase-12-section-4`; apply **0038, 0039, 0040, 0041** to the new production in order, each read back | mine | After each: its ledger fingerprint. After 0041: shape `1a11138f…`/1017, behaviour `7acbb5b2…`/814. The eight indexes and four keys now agree |
+| 14 | ~~Merge Section 4; apply 0038 to 0041~~ **ALREADY DONE, 2026-09-11, and 0042 on 2026-09-13.** This step no longer exists | none | Nothing. The chain replayed at step 2 already includes all of them |
 | 15 | Board on main | mine | 48 of 48, or the report says which is red and why |
 | 16 | Thirty days, old tables untouched (old step 13) | both | Nothing |
 | 17 | Drop the old tables (old step 14) | **yours**, separate act, own report | Nothing. There is no read-back because there is nothing left to read |
@@ -320,7 +449,34 @@ sisters stay quiet.
 
 ## 1. What the rehearsal already proved
 
-Run against `254engineering-rehearsal` in `us-east-1`, since deleted.
+Run against `254engineering-rehearsal` in `us-east-1`.
+
+> **THE SENTENCE THAT USED TO BE HERE SAID "since deleted", AND IT WAS FALSE.**
+> Corrected 2026-09-14. The project `kmiwxtbtqrlorxfogtht` was still alive, still
+> billable, and still holding rows eleven days after this document recorded it as
+> deleted: 239 audit events, 2 order payments, 1 profile and 1 service order, at
+> the schema of migration 0007.
+>
+> Nobody deleted it and nobody checked. The sentence was written in the same pass
+> as the deletion was intended, which is the whole mechanism: a document records
+> what somebody MEANT to do and then reads, forever, as a record of what happened.
+>
+> **THE RULE, and it belongs beside every destructive step in this plan: a
+> document that records a destructive action as done is a claim nothing supports
+> unless something checked.** Deleting, revoking, rotating and decommissioning are
+> the four that matter here, because each one leaves something live and costing
+> money when it silently does not happen, and each one reads identically on the
+> page whether it happened or not.
+>
+> It was found by counting projects in the organisation against the documents that
+> account for them, which is now a standing board check: see
+> `scripts/project-accountability-audit.mjs`. That check exists because this
+> sentence existed.
+
+**AND THE REPLAY WAS RUN AGAIN, AGAINST A REAL ENGINE, ON 2026-09-14.** The table
+below is the September 3 run at migration 0007. The whole chain was replayed into
+the same project from an empty schema on 2026-09-14, all 49 migrations, and the
+result is in section 1a.
 
 | Question | Answer |
 | --- | --- |
@@ -335,6 +491,69 @@ Run against `254engineering-rehearsal` in `us-east-1`, since deleted.
 between two live projects. The rehearsal loaded synthetic rows of the same shape
 and volume. What was being tested is the mechanism that could silently corrupt
 identity, which is the uuid preservation, and that was tested exactly.
+
+---
+
+## 1a. The 2026-09-14 replay, and what it does NOT prove
+
+Phase 14 rank 1. The `eng_` schema in `254engineering-rehearsal` was dropped
+entirely and all 49 migrations, `0000` through `0048`, were replayed into it from
+nothing through `apply_migration`, against **PostgreSQL 17.6 on a real Supabase
+engine** rather than into PGlite, which is the only thing `migration-audit` has
+ever been able to do.
+
+**WHAT IT PROVES.** The files rebuild the whole schema from an empty database on
+the engine production actually runs, and the result is the schema the ledger
+declares:
+
+| | Replay | Development | |
+| --- | --- | --- | --- |
+| Shape fingerprint | `f6e3d58df88f192dc1e7eaa1458858a7` | same | **match** |
+| Columns / tables | 1,049 / 76 | same | **match** |
+| Behaviour facts | 850 | 850 | **match** |
+| `fk` `ck` `pk` `tg` `fn` `ix` `rls` `policy` | 141 106 76 61 16 249 76 0 | identical | **match** |
+| Seeded roles / grants | 7 / 118 | identical, same digests | **match** |
+
+Six intermediate checkpoints were read back against the figures recorded in
+CLAUDE.md as the chain was replayed, and every one matched exactly: 0005, 0007,
+0009-0010, 0018, 0020-0022 and 0027.
+
+**The SQL that ran was the SQL in the files.** `schema_migrations.statements` was
+read back for all 49 and compared against the files on disk, normalised for
+whitespace and statement separators: 49 of 49 identical. That check is the reason
+the result above can be trusted at all, because a replay performed by retyping is
+a replay of whatever was retyped.
+
+**THREE PER-KIND DIGESTS DIFFER FROM DEVELOPMENT AND NONE IS A SCHEMA
+DIFFERENCE.** Each was chased to its cause rather than attributed to the known
+non-portable list:
+
+- **`fk`** One fact. Development carries
+  `eng_responsible_charge_log_file_id_fkey` as NOT VALID because of the 28
+  dangling rows 0039 documents; the replay validated it, because the table is
+  empty. Hashing the 141 keys WITHOUT the validated flag gives
+  `ddf30da3a7ab879b7e8656f8615e2632` on both sides, so every key agrees on table,
+  name, columns and delete and update action.
+- **`ck`** Compared by `pg_get_constraintdef` instead of `conbin`, both sides give
+  `480c51351224be55d5e17f309aadb075` across all 106. The constraints are
+  identical; `conbin` is not stable between two databases.
+- **`fn`** Four of sixteen bodies. They are exactly the four whose bodies contain
+  SQL comments: `eng_claim_jobs`, `eng_forbid_mutation_allow_cascade`,
+  `eng_forbid_sealed_work_delete` and `eng_set_trade_price`. The replay stores
+  them WITH their comments and development stores them stripped. Normalised for
+  comments and whitespace all four hash identically on both sides.
+
+**WHAT IT DOES NOT PROVE, AND THIS IS THE POINT OF PUTTING IT HERE.** It says
+nothing whatever about recovering production's DATA. A migration chain rebuilds a
+schema; it does not restore a row. The replayed project holds 7 roles and 118
+grants, which the migrations seed, and **zero** profiles, audit events, orders,
+payments, accounts and files.
+
+**Supabase has no cross-project restore.** `restore_project` un-pauses a paused
+project; a backup belongs to the project that made it. So "restore production
+into a scratch project and read the rows back" is not an exercise this platform
+can perform at all, and rank 1 could only ever be the schema half of it. The data
+half is rank 2 and is blocked; see `docs/phase-14-surveys.md`.
 
 ---
 
@@ -937,6 +1156,48 @@ exactly one copy today.
 It is written here because the plan is what the next session reads, and a plan
 that ends at step 14 is a plan that says the job is finished when the thing that
 prompted it is still missing.
+
+---
+
+#### THE CLAIM IN POINT 3 MAY NOT BE TRUE, AND IT IS CORRECTED HERE RATHER THAN RELIED ON
+
+**Operator ruling, 2026-09-14.** Point 3 says "restore into a scratch project and
+compare". Phase 14 rank 1 went looking for that operation and it does not exist
+in the tooling this platform is driven by: `restore_project` takes a project id
+and nothing else. It un-pauses a paused project. **A Supabase backup belongs to
+the project that made it**, so "restore production into a scratch project" is not
+a thing that can be done from here, and steps 0.7 and 9 inherit the same problem.
+
+Whether the Supabase DASHBOARD offers restoring a physical backup into a NEW
+project on this organisation's plan is the operator's to read, and that answer
+decides which of two paragraphs below is the true one. **Until it is answered,
+phase 0 stops at 0.7.**
+
+**IF THAT OPERATION DOES NOT EXIST, THEN STEP 15 IS NOT A RESTORE PATH, AND THIS
+PLAN MUST STOP CALLING IT ONE.** Stated plainly, because the whole reopening rests
+on it:
+
+> The firm's restore path after the cutover is **the same point in time recovery
+> it has now**, on a project with one tenant instead of five. That is genuinely
+> better: a rewind no longer restores five unrelated applications or none, and the
+> decision stops being shared with four other codebases. **It is not what this
+> plan claims.** It is not a rehearsed restore, it is not a backup that leaves the
+> provider, and nothing in the sequence above proves that a restore produces a
+> working platform. Point 3 would be unproven and point 2 unbuilt.
+
+The honest consequence: **the cutover would remove a tenancy risk without closing
+the gap the operator reopened the plan to close.** Worth doing on those terms,
+and only on those terms, said out loud so nobody reads step 15 as done.
+
+Point 2, a dump of the `eng_` schema to storage the firm controls, becomes the
+load bearing item in that case rather than the smallest honest version of a
+larger plan. It does not depend on the provider offering anything.
+
+**What is NOT in doubt** is the schema half. Phase 14 rank 1 replayed all 49
+migrations from nothing into a real PostgreSQL 17.6 Supabase engine on
+2026-09-14 and matched the ledger exactly, so rebuilding the SHAPE from files is
+proven. Rebuilding the ROWS is the half with nothing behind it, and it is the
+half that matters for `eng_audit_events`.
 
 ---
 

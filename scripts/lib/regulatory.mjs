@@ -68,6 +68,31 @@ export const NEGATION_GUARD = String.raw`(?<!\b(?:not|never|cannot|no|nor)\s)`;
 export const CONDITIONAL_GUARD = String.raw`(?<!\b(?:when|once|if|until|unless|before|after|whenever|while)\s(?:the\s|a\s|an\s|its\s|their\s|this\s)?)`;
 
 /**
+ * EVERY NAME THIS FIRM AND ITS SIBLINGS TRADE UNDER, AS ONE ALTERNATION.
+ *
+ * ======================================================================
+ * A RENAME MUST NOT BE ABLE TO BLIND THESE PATTERNS.
+ * ======================================================================
+ *
+ * The brand was written as a literal in two patterns below. On 2026-09-13 the
+ * operator ruled that the firm trades under its REGISTERED name, 254 Services
+ * LLC, and the site copy changed accordingly. Had these literals not changed
+ * with it, both patterns would have gone on matching a name no sentence uses
+ * any more, and voice-audit would have reported green over present-tense
+ * service claims made under the new one.
+ *
+ * That is a regulatory check going silently blind, which is worse than the
+ * misstatement it exists to catch: the misstatement is visible to anybody
+ * reading the page, and the blind check is visible to nobody.
+ *
+ * BOTH NAMES STAY. The old one is still the brand on the wordmark, the page
+ * titles and og:site_name, so a claim can still be written under it, and a
+ * pattern that stopped looking for it would have the same hole pointed the
+ * other way.
+ */
+const FIRM_NAMES = "254 Services LLC|254 Engineering Services|Sealed Engineering|StampMyPlans|the firm";
+
+/**
  * Claims no engineering firm may make, in any gate state, ever.
  *
  * Guaranteeing an approval or an opinion in advance is a professional conduct
@@ -118,7 +143,7 @@ export const PRESENT_TENSE_OFFER = [
    */
   {
     pattern: new RegExp(
-      `${CONDITIONAL_GUARD}\\b(?:254 Engineering Services|Sealed Engineering|StampMyPlans|the firm)\\s+(?:currently\\s+)?(?:performs|provides|delivers|issues|seals|stamps|inspects|certifies)\\b`,
+      `${CONDITIONAL_GUARD}\\b(?:${FIRM_NAMES})\\s+(?:currently\\s+)?(?:performs|provides|delivers|issues|seals|stamps|inspects|certifies)\\b`,
       "i",
     ),
     why: "third person service claim, naming the firm",
@@ -181,7 +206,7 @@ export const PRESENT_TENSE_SEALING = [
    */
   {
     pattern: new RegExp(
-      `${CONDITIONAL_GUARD}\\b(?:engineering (?:work|services?)|inspections?|reviews?|sealed (?:work|deliverables?))[^.]{0,60}?\\b(?:is|are)\\s+(?:carried out|performed|undertaken|conducted|completed)\\b(?!\\s+by\\s+(?!254 Engineering Services|Sealed Engineering|StampMyPlans|the firm|our\\b|us\\b|a licensed|licensed|staff))`,
+      `${CONDITIONAL_GUARD}\\b(?:engineering (?:work|services?)|inspections?|reviews?|sealed (?:work|deliverables?))[^.]{0,60}?\\b(?:is|are)\\s+(?:carried out|performed|undertaken|conducted|completed)\\b(?!\\s+by\\s+(?!${FIRM_NAMES}|our\\b|us\\b|a licensed|licensed|staff))`,
       "i",
     ),
     why: "states the engineering is being carried out now, passive",

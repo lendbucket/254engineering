@@ -169,6 +169,21 @@ const ADMIN_APIS = [
   "/api/account/settings",
   "/api/account/statements",
 
+  /*
+   * Phase 13 Section 1. Opens a customer account from a telephone call, so a
+   * signed out POST would be a way to create accounts in this firm's name and
+   * send set password mail to addresses of the caller's choosing. Listed the
+   * day it shipped rather than on the next board, and the coverage check is
+   * what would have said so either way.
+   */
+  "/api/portal/accounts/create",
+  /*
+   * Phase 13 Section 2. Sets what one account is charged. A signed out POST
+   * would be a way to discount the firms work to an account of the callers
+   * choosing, which is money, so it is listed the day it ships.
+   */
+  "/api/portal/accounts/pricing",
+
   "/api/portal/people",
   "/api/portal/password",
   // Never listed since Phase 1 shipped it. Found by the coverage check below on
@@ -334,6 +349,22 @@ const OPEN_BY_DESIGN = new Set([
   "/api/partner/set-password",
   "/api/account/session",
   "/api/account/set-password",
+
+  /*
+   * SIGN UP, PHASE 13, AND IT IS A FRONT DOOR BY THE SAME DEFINITION.
+   *
+   * A route for people who do not have an account cannot sit behind a check for
+   * having one. It is open in the same sense the three pairs above are, and it
+   * is guarded instead by two things this audit exercises elsewhere: a rate
+   * limit that answers identically whether it refused, and the eighth launch
+   * condition, which keeps the route answering 404 until the operator lifts it.
+   *
+   * THE OPERATOR DOOR IS NOT HERE, deliberately. /api/portal/accounts/create
+   * opens an account on somebody's behalf and belongs in ADMIN_APIS with the
+   * rest of the portal, which is where it is listed.
+   */
+  "/account/sign-up",
+  "/api/account/sign-up",
 ]);
 
 /**

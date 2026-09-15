@@ -27,6 +27,377 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
+## ELEVEN TRADE FLOORS AWAIT A RULING, AND NOTHING SELLS AT TRADE PRICING UNTIL THEY DO
+
+Phase 13 Section 2, 2026-09-14. Full reasoning in
+`docs/phase-13-section-2-report.md`; this is the pointer.
+
+**PENDING IS A RULING, NOT AN OMISSION. Operator decision, 2026-09-14.** All
+eleven were put in front of the operator, read, and left pending deliberately.
+Nobody is waiting on a prompt and the correct response to finding them is to
+leave them alone.
+
+Every entry in `src/config/trade-floors.ts` is `pending`. A floor is a decision
+about money and no session writes one, so **trade pricing does not sell until
+the operator rules them**: no trade price can be set on any deliverable, at any
+value, by anybody.
+
+**RETAIL PRICING IS UNAFFECTED.** The catalogue price is what every customer
+pays today and every order path is untouched by that file.
+
+**There is a second, independent reason nothing sells at trade pricing today**,
+and it is worth knowing before the floors are ruled: the whole order path is
+behind the compliance gate, which is shut on four conditions. Ruling the floors
+does not by itself make a trade price reachable by a customer.
+
+**The account deletion question is ANSWERED and shipped.** It read, until
+2026-09-14, that an account carrying a trade price could not be deleted and that
+choosing between a soft delete and losing the money record was the operator's.
+They chose: **an account is superseded, never removed**, with a reason and an
+actor, and no cascade wins over a money record. It is migration 0048 and
+`src/lib/account-scope.ts`. Nothing is outstanding here.
+
+**What IS outstanding from the section's own verification list**: whether the
+trade price joins `figure-surfaces` for the demonstration sweep, which is the
+operator's word and has not been given. The report's position is that a trade
+price is not a figure on a report, it is a price on an order, and the order's
+figures are already swept.
+
+## THE FIRST MEASUREMENT OF EVERY AUTHENTICATED SCREEN, AND WHAT IT FOUND
+
+2026-09-14. `perf-audit` now signs in and derives its subjects from the declared
+inventory. **63 subjects, 192 checks, zero over any ceiling.** LCP, CLS and TBT
+pass everywhere. What follows is what the numbers show, unfixed, for Phase 14.
+
+**THE FIRST RED LIST WAS WRONG AND THE GATE PRODUCED IT.** Nine checks failed
+with a median of `Infinity` on `/portal/review`, `/portal/protocols` and
+`/portal/certification`. Those are exactly the three routes the inventory
+declares under `roleFor`, and the gate had made one admin probe and measured all
+three with it. Reported unexamined, the deliverable would have been "three portal
+screens are broken", a claim about the screens produced entirely by the
+instrument. Under their declared roles they measure 2357ms, 2333ms and 2258ms.
+`mobile-audit` has keyed sessions by role since it was written.
+
+### The byte findings, and a budget proposal to rule
+
+**There is a shell, and it is unmistakable.** Six screens across three
+independent surfaces land at **319 to 320KB**: `portal/login`,
+`portal/set-password`, `partner/login`, `partner/set-password`,
+`account/settings`, `account/home`. That is the Next.js runtime, the fonts and
+the chrome that every screen pays before it renders anything of its own.
+
+| Surface | n | Range | Median | Delta over a 320KB shell |
+| --- | --- | --- | --- | --- |
+| portal | 35 | 319 to 373 | 336 | up to **+53** (`techs`) |
+| partner | 7 | 319 to 328 | 327 | up to **+8** |
+| account | 6 | 317 to 431 | 320 | **+0**, except `login` |
+| order | 2 | 462 to 463 | 463 | **+143** |
+
+**PROPOSED, in the shell plus delta shape, for the operator to rule like a
+floor.** Every number is the observed maximum rather than a rounded guess, and
+zero headroom is deliberate: this file already records that bytes do not vary
+between runs of the same build, so a budget at the observed maximum fails only on
+a real increase.
+
+- **Shell: 320KB.** What every screen pays. Nothing may make the shell heavier
+  without a recorded reason.
+- **Portal delta: 55KB**, so 375KB per portal screen. Observed max 53.
+- **Partner delta: 10KB**, so 330KB. Observed max 8.
+- **Account delta: 5KB**, so 325KB. Observed max 0, `login` excluded as a finding.
+- **Order: its own budget at 465KB.** A different page shape carrying a catalogue
+  and a checkout, and it should not be judged against a portal delta.
+
+### Two real outliers, NOT fixed in this pass
+
+**1. `/account/login` is 431KB. The other two login screens are 319KB.**
+Three screens doing the same job, and the customer one carries **112KB more than
+the staff and partner ones** and is heavier than every one of the 35 portal
+screens. It is the strongest single signal in the whole run. Nothing has been
+changed; what it imports has not been looked at.
+
+**2. The order flow is the heaviest thing on the platform**, 462 and 463KB, and
+it is the surface a paying customer meets. It has never had a byte budget and was
+never measured until tonight.
+
+### Three screens measured by nothing, recorded as COULD NOT TELL
+
+Operator ruling: these stay could not tell, and `/account/sign-up` is not chased
+tonight. Each is a true statement about the instrument rather than a defect
+claim.
+
+- **`/portal/mfa`** and **`/portal/mfa/enrol`** bounce to `/portal/login` on all
+  three runs. Both are screens for somebody MID SIGN IN holding a pending
+  session, and a fully signed in probe has none. **This gate cannot hold that
+  session**, which is probably correct application behaviour and is certainly an
+  honest thing to say rather than a pass.
+- **`/account/sign-up`** bounces to `/account/login`. **Not investigated.**
+
+### The cadence, ruled from a measured figure
+
+The whole gate takes **25 minutes** at 63 subjects and three runs, against the
+public set's **1m15 at one run**. Operator ruling: the public templates stay on
+every board and **the authenticated set runs on demand and BEFORE ANY MERGE**,
+because a forty minute board is a board people stop running, and a gate nobody
+runs is the shape this phase is about.
+
+    PERF_SCOPE=all npx tsx scripts/perf-audit.mjs
+    npm run perf-audit-auth
+
+**The deferral is never a pass.** A board run reports the 52 deferred screens as
+COULD NOT TELL, naming the count and the command, and asserts the deferred set is
+non-empty so it cannot quietly become a silence.
+
+## NO PORTAL SCREEN HAS EVER BEEN PERFORMANCE MEASURED, AND A MERGE CONDITION RESTED ON BELIEVING ONE WAS
+
+2026-09-14, found while closing Phase 13. Full account in
+`docs/phase-13-section-2-report.md` under the perf gate item; this is the pointer.
+
+`perf-audit` does not derive from `scripts/lib/surfaces.mjs`. It iterates a
+hardcoded ten route list in `scripts/perf-budgets.mjs`, **every entry a public
+marketing page**, driving Lighthouse with no session. **Portal routes measured:
+zero.** The Phase 13 Section 2 report claimed the new pricing screen "is inside
+the portal surface and was measured with it", and that sentence was false in both
+clauses.
+
+**It is the /portal/queue defect from the other end.** That screen reached 38,744
+pixels tall past a green board because nothing measured its height. This is a
+GATE whose subject list silently excludes an entire surface, which is the same
+blind spot wearing a route list.
+
+**The merge condition cannot be met as written.** "Run the perf gate at both
+ceilings for the new pricing screen" assumed one dedicated run remained. The
+screen has never been measured once, and could not be by this gate: it is
+`/portal/accounts/[id]/pricing`, needing a session and an account id, and an
+unauthenticated Lighthouse run would have recorded the LOGIN page's weight under
+the pricing screen's name.
+
+**Three honest options, and the choice is the operator's:**
+
+1. **Teach `perf-audit` to sign in.** `mobile-audit`, `native-audit` and
+   `mobile-overflow-audit` already reach authenticated portal screens through
+   `scripts/lib/portal-probe.mjs`, so the mechanism exists; what is missing is
+   Lighthouse being given a session and the dynamic route being given an id.
+   Largest, and it closes the gap for every portal screen rather than one.
+2. **Measure the pricing screen the way the queue's height is measured**, in a
+   Playwright audit that already has a session, against a stated budget. Smaller,
+   and it leaves the rest of the portal unmeasured.
+3. **Re-rule the merge condition** to something the harness can actually answer,
+   and record the portal performance gap as accepted for now.
+
+Nothing is built yet. **Phase 13 does not merge on a condition that cannot be
+evaluated**, so this needs a ruling before the merge question is reopened.
+
+## PHASE 14 RANK 1 IS HALF PROVEN: THE SCHEMA REBUILDS, THE DATA RESTORE IS UNTESTED
+
+2026-09-14. Full account in `docs/production-cutover-plan.md` section 1a and
+`docs/phase-14-surveys.md` rank 1. This is the pointer.
+
+All 49 migrations were replayed from nothing into `254engineering-rehearsal`
+against a real PostgreSQL 17.6 Supabase engine, and the result matches the ledger
+and development exactly on both fingerprints and every per-kind figure.
+
+**What is still open: the data half, and it cannot be closed here.** Supabase has
+no cross-project restore, so a backup can only be restored into the project that
+made it, which is production. Nothing has ever proven that a Supabase restore
+produces a working platform, and nothing proves anything about storage buckets or
+the `auth` schema. Rank 1 is downgraded from "nothing is proven" to "the schema
+rebuild is proven", not closed.
+
+## RANK 2 AND RANK 3 ARE BLOCKED ON THE OPERATOR, BY RULING
+
+2026-09-14. Reasoning in `docs/phase-14-surveys.md` under each rank. Pointer only.
+
+**Rank 2, point in time recovery.** The operator ruled that PITR is not to be
+enabled to discover its price, because incurring a cost to learn it is the wrong
+shape; they read the figure off the dashboard. No cost is recorded here rather
+than a guessed one. The exercise, when it runs, runs against the rehearsal
+project and never against production, which is shared with four other
+applications.
+
+**Rank 3, the `ALLOW_PRODUCTION_DB` permitted path.** Needs the production
+service role key, which does not enter the working tree. **Blocked is its correct
+state**, not a gap for a later session to close: a session that found a way to
+exercise it unattended would have defeated the control rather than tested it.
+
+**`254engineering-rehearsal` is NOT deleted until rank 1 AND rank 2 are both
+finished**, by operator ruling. Rank 1 is finished, rank 2 is blocked, so the
+project stays and is declared in `supabase/projects.mjs`.
+
+## AN AUDIT THAT CANNOT OPEN A SCREEN MUST NOT REPORT THAT SCREEN AS PASSING
+
+2026-09-14. `contrast-audit` reported **56 page errors reading "no admin
+session" and zero contrast violations in the same run**: a green printed over 56
+screens nothing had measured. It did not recur on the next board, and per the
+operator's instruction it is recorded as **unexplained** with what was tried,
+**not as a flake**. That record is in `docs/phase-14-surveys.md`.
+
+**The durable defect is separate and is not unexplained.** Whatever caused the
+sign-in failures, an audit whose page load failed must count that page as
+UNMEASURED and say so, rather than contributing a zero to a violation count. It
+is the same shape as the vacuous green CLAUDE.md already records for `routesOf`
+returning an empty array. Not yet fixed.
+
+## A PROJECT IN THE ORGANISATION THAT NO 254 DOCUMENT ACCOUNTS FOR
+
+2026-09-14, found by the standing check the operator ordered after
+`docs/production-cutover-plan.md` was caught recording a project as deleted that
+was still alive. The declaration is `supabase/projects.mjs` and the board check
+is `scripts/project-accountability-audit.mjs`.
+
+The organisation holds **eight** projects; this firm accounts for four. **None of
+the other four holds a single `eng_` table**, checked rather than assumed, so no
+254 data lives outside the declared four.
+
+**One needs an operator ruling: `wattsmith-dedicated` (`coihtvhveabnqedrgpqe`).**
+Created 2026-09-04, five hours after the cutover project and in the same region,
+holding the wattsmith application's own schema. It reads as wattsmith being moved
+off `fsaryeciduszuahgjbly`, the shared project this firm calls production, which
+is the shared tenancy this repository has always flagged, happening from the
+other side and recorded nowhere here. What it means for the cutover plan is the
+operator's to say. The other three predate this work and are different
+businesses.
+
+## THE PHASE 14 SURVEYS ARE WRITTEN AND NOTHING IN THEM IS FIXED
+
+2026-09-14. `docs/phase-14-surveys.md` carries three sweeps the operator
+ordered, all report only. This is the pointer; the reasoning and the rankings
+live there.
+
+**Survey 1, status functions returned as user-facing errors.** Nearly empty,
+which is the result. Two sites remain in `src/lib/ops-mfa.ts` and both are
+CURRENTLY complete because each is guarded by the same predicate its status
+function tests. `ops-mfa.ts:341` is the one to fix first: `encryptSecret`
+gaining any third failure mode silently recreates the original lockout defect in
+the original module. `customerSessionStatus()` has no callers at all.
+
+**Survey 2, boundaries comparing clocks across sources.** One real finding on a
+money path: a statement's `issued_at` comes from the database clock and its
+`due_at` from the application clock, in one statement, so a net-30 window is not
+thirty days from the recorded issue date. The retention cutoff is the same shape
+and is the only cross-clock comparison that DESTROYS data. **Fixing the first
+one the obvious way creates a third**, because the overdue-days comparison
+downstream is consistent only while `due_at` stays on the application clock.
+
+**Survey 3, recovery paths proven by nothing.** The operator's eight are
+confirmed, three more are added, and the ranking is Phase 14's order. Ranks 1 to
+3 are the restore, point in time recovery, and the `ALLOW_PRODUCTION_DB`
+permitted path, and all three share the shape that cost four hours in September:
+each is diagnosed from a place you can only reach if the thing already works.
+
+## THE PATHS THAT EXIST ONLY FOR A FAILURE THAT HAS NOT HAPPENED YET
+
+Operator instruction, 2026-09-13, named as the Phase 14 opener. It came out of
+the production MFA lockout, and the question underneath it is sharper than the
+incident: **which paths in this platform exist only for a failure that has not
+happened yet, and are proven by nothing?**
+
+The break glass was one. It was built in Phase 12 Section 1, reviewed,
+documented at length, and never once run. When the operator needed it on
+2026-09-13 the link did not appear, and every check that touched it was green,
+because every one of them read the SOURCE. It is exercised now, by
+`scripts/break-glass-audit.mjs`, which starts three servers with three
+different values of the variable and walks a real enrolment through all three.
+
+The rest of the list is below, and none of them is exercised today.
+
+| Path | What it is for | What proves it now |
+| --- | --- | --- |
+| **The restore** | Rebuilding this schema and its data from a backup | Nothing. `migration-audit` replays the migrations into an empty database, which proves the SHAPE can be rebuilt and says nothing about a restore of data, of buckets, or of the auth schema. |
+| **The queue resume** | Restarting a queue that has stopped, and draining a dead letter backlog | `queue-audit` covers enqueue, claim, retry and the dead letter write. Nothing has ever stopped a queue and started it again. |
+| **The retention resume** | Restarting a retention run that died partway through | Nothing. `retention-audit` covers the floors, the manifest and the dry run. A run interrupted between two tables has never been resumed, and the manifest's behaviour on a half finished run is asserted by no check. |
+| **The break glass** | Recovering an account that has lost its second factor and its codes | **Exercised, 2026-09-13.** 32 checks, three servers, three states of the variable. |
+
+**Why this is a phase rather than four items.** Each of them is cheap to assert
+badly and expensive to assert well, and the badly version is what already
+exists: a check that reads the code and agrees with it. What each needs is a
+harness that puts the system into the failed state and then uses the path, which
+is what break-glass-audit does and what none of the other three has.
+
+**The pattern to look for while building them**, because it is the one that cost
+four hours: the diagnostic for a broken recovery path must not live behind the
+door that path exists to open. `breakGlassStatus()` reported a malformed break
+glass on the operator observability screen, which needs a full session, which is
+exactly what somebody locked out does not have. The same shape is worth checking
+for on the other three before anything else is built.
+
+## A LONG PLAYWRIGHT HEAVY BOARD DIES, AND NOTHING KNOWS WHY
+
+Operator instruction, 2026-09-13, after three suite runs in one session ended
+mid-suite: "If it dies again, report what the suite says and what was running,
+and add to BACKLOG what would make a long Playwright-heavy board survivable."
+
+**What is known.** The server log ended CLEANLY each time, which the runner
+itself says means something killed the process rather than it falling over. The
+run with nothing else running beside it completed. So the operator's ruling,
+that nothing runs beside a board, is the working mitigation and it is a
+mitigation rather than a fix.
+
+**What would make it survivable**, in the order they are worth building:
+
+1. **A per audit timeout with its own verdict.** The runner has no ceiling on a
+   single audit. A Playwright audit that hangs on a selector holds the whole
+   board until somebody looks, and the fifty one minute hang recorded in
+   `scripts/lib/portal-probe.mjs` is the precedent. A timeout that reports
+   COULD NOT TELL for that audit and carries on would turn a dead board into
+   one red row.
+
+2. **Resume from where it stopped.** The suite runs 40 audits and the expensive
+   half is the browsers. A run that died at audit 31 costs its whole cost again.
+   A results file written after each audit, and a flag that skips what already
+   passed, makes a death cheap rather than total.
+
+3. **One browser for the whole phase.** `contrast-audit`, `mobile-audit` and
+   `mfa-audit` each launch their own Chromium and each starts its own server.
+   Three launches and three boots is three chances to lose a process tree on
+   Windows, which is the platform `scripts/lib/dev-server.mjs` already carries
+   two recorded defects about.
+
+4. **Say what died.** The runner prints THE SUITE DID NOT RUN TO COMPLETION and
+   names the server log. It does not name the audit that was running, its
+   elapsed time, or the memory in use. All three are cheap and all three are
+   what somebody asks first.
+
+**Why it is not built.** It is harness work, and every hour of it is an hour not
+spent on the platform the harness measures. It goes here rather than being done
+now because the mitigation works: a board with nothing beside it completes.
+
+### A MILDER RELATIVE, 2026-09-14, AND IT IS RECORDED AS UNEXPLAINED
+
+**Not the same event, and the difference is the useful part.** The board RAN TO
+COMPLETION: all 53 audits ran, 52 passed, and `mobile-overflow-audit` reported
+**COULD NOT MEASURE** because its live half lost the server mid run. The suite
+did not print `THE SUITE DID NOT RUN TO COMPLETION`; it scored the audit it could
+not trust, carried on, and exited 1.
+
+**That is item 1 of the list above, working.** A single audit losing the server
+became one row rather than a dead board. The graceful degradation this entry asks
+to be built already exists for an audit whose live half cannot reach a server,
+and it is worth knowing that before building the timeout, because the shape is
+proven.
+
+**It did not recur.** The immediate re-run, environment verified clean first,
+zero node processes and no held ports, passed all 53.
+
+**What was tried, and what is NOT established.** Recorded as UNEXPLAINED rather
+than as a flake, under the operator's standing instruction for `contrast-audit`.
+
+- The environment was confirmed clean before the re-run: `netstat` showed nothing
+  on the audit ports, `tasklist` showed zero `node.exe`.
+- **A server was killed BY HAND immediately before the failing board.** The kill
+  reported terminating PID 23056, "child process of PID 17936", and the parent
+  wrapper was never confirmed dead. This file already records that `npx` wraps
+  the real server and that killing one of the pair can leave the other. **That is
+  a plausible contributor and it is not established**, because the board was
+  started only after the port was verified free.
+- `mobile-overflow-audit` is one of the audits that GREW on 2026-09-14: it walks
+  every sitemap route plus 52 pages from the surface inventory at two widths, so
+  it is among the heaviest Playwright consumers on the board. Resource exhaustion
+  late in a long run is plausible and is **not established** either.
+
+Two plausible causes, neither demonstrated, and the honest state is that nobody
+knows which. It is written down at this length so the next occurrence is
+recognised as a third instance rather than investigated from nothing.
+
 ## ONE PORTAL GATE IS DECIDED BY A ROLE NAME, NOT BY A GRANT
 
 Found 2026-09-10 by the overnight sweep's Round 3, which opens one screen each
@@ -366,6 +737,24 @@ What is open, in the order an auditor asks for it:
 **0042 is on development only.** The incident table ships empty because no
 incident has occurred. It reaches production on the operator's word, like every
 other migration.
+
+## 0042 IS ON MAIN AND PRODUCTION DOES NOT HAVE IT
+
+**`schema-ledger-audit` is red on this, and it is right.** 0042 was applied to
+development only under Phase 12 Section 6's overnight limits, which forbid
+touching production, and its ledger entry says `production: null` as a decision
+rather than an omission. Section 6 then merged, and merging is the moment a
+pending migration stops being allowed to be pending.
+
+**The operator applies it.** apply_migration against the shared production, read
+back both fingerprints, write the date into `supabase/applied.mjs`. Expected:
+shape `11a709155214441ec2b7c3b382f6e17f` across 1,030 columns and 824 behaviour
+facts. Judge the live read-back on the fact COUNT and the per-kind figures, per
+the amended stop condition of 2026-09-12.
+
+**Neither the ledger nor the check was touched.** Editing either would turn a
+true red into a quiet lie, which is the failure this check was built for after
+0023 diverged the first time. Full context in `docs/phase-13-report.md`.
 
 ### 4. Line endings, and the cause as well as the symptom
 

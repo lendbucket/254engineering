@@ -2,6 +2,7 @@ import "server-only";
 import { DB_NOW } from "./db-now";
 import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
+import { tradePriceInForce } from "./trade-pricing";
 import { catalogFor, orderBlockedReason, type CatalogEntry } from "@data/catalog";
 import { isPrelaunch, serviceLineIsOffered } from "./launch";
 import { placeOrder, event } from "./ops-intake";
@@ -60,11 +61,23 @@ function twiaSet(): Set<string> {
   return new Set<string>(FIRST_TIER_COASTAL);
 }
 
-/** What the customer is shown before they commit. Writes nothing. */
+/**
+ * What the customer is shown before they commit. Writes nothing.
+ *
+ * THE AGREED PRICE IS SHOWN IN THE PREVIEW OR THE PREVIEW IS A DIFFERENT
+ * NUMBER FROM THE BILL.
+ *
+ * Phase 13 Section 2. A trade price honoured at checkout and not in the preview
+ * is the same defect as one honoured at checkout and not on the statement: the
+ * customer agrees to one figure and is charged another, and the direction
+ * happens to be in their favour here, which makes it harder to notice rather
+ * than less wrong.
+ */
 export function previewBatch(
   serviceSlug: string,
   tier: string | undefined,
   properties: BulkProperty[],
+  agreedPriceCents?: number | null,
 ): { ok: true; entry: CatalogEntry; split: BatchSplit } | { ok: false; error: string } {
   const entry = catalogFor(serviceSlug, tier);
   if (!entry) {
@@ -74,7 +87,7 @@ export function previewBatch(
   const blocked = orderBlockedReason(entry, isPrelaunch(), serviceLineIsOffered(entry.serviceSlug));
   if (blocked) return { ok: false, error: blocked };
 
-  return { ok: true, entry, split: splitBatch(entry, properties, twiaSet()) };
+  return { ok: true, entry, split: splitBatch(entry, properties, twiaSet(), agreedPriceCents ?? null) };
 }
 
 export async function placeBatch(input: {
@@ -131,7 +144,20 @@ export async function placeBatch(input: {
    * created and then refused would leave rows for work the firm cannot lawfully
    * take, ten at a time.
    */
-  const preview = previewBatch(input.serviceSlug, input.tier, input.properties);
+  /*
+   * THE AGREED PRICE, LOOKED UP WHERE THE ACCOUNT IS KNOWN.
+   *
+   * Fetched here rather than inside splitBatch, which is pure and synchronous:
+   * a database read in there would make every caller async to serve one of
+   * them, including the preview the site renders.
+   *
+   * Null when this account has no agreed price for this deliverable, and null
+   * is not zero: quoteFor then uses the published price, which is what an
+   * account without an agreement pays.
+   */
+  const agreed = await tradePriceInForce(input.accountId, input.serviceSlug, input.tier ?? "standard");
+
+  const preview = previewBatch(input.serviceSlug, input.tier, input.properties, agreed);
   if (!preview.ok) return { ok: false, error: preview.error };
 
   const { entry, split } = preview;
@@ -150,6 +176,8 @@ export async function placeBatch(input: {
     .from("eng_customer_accounts")
     .select("id, site, client_id, status, billing_mode, credit_limit_cents, net_days")
     .eq("id", input.accountId)
+    /* No new work is placed on a superseded account. See account-scope. */
+    .is("superseded_at", null)
     .maybeSingle();
   if (!account) return { ok: false, error: "That account does not exist." };
   if (account.site !== input.site) return { ok: false, error: "That account belongs to another brand." };

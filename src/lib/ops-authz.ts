@@ -267,6 +267,19 @@ export type Action =
   | "documents.read"
   // money
   | "pricing.read"
+  /*
+   * SETTING A TRADE PRICE FOR AN ACCOUNT. Phase 13 Section 2.
+   *
+   * Its own action rather than folding into accounts.manage or pricing.read,
+   * for the reason roles.manage is its own action: reading what the firm
+   * charges and DECIDING what one account is charged are different acts, and a
+   * firm may well want somebody who can see the money without being able to
+   * discount it.
+   *
+   * Admin only today. It cannot set a price below a floor at any role, so this
+   * grant decides who may negotiate rather than who may overrule.
+   */
+  | "pricing.write"
   | "billing.read"
   | "ledger.read_own"
   | "ledger.read_all"
@@ -399,7 +412,7 @@ const MATRIX: Record<Role, Action[]> = {
      * reaching delivered while registration is pending.
      */
     "documents.deliver", "documents.read",
-    "pricing.read", "billing.read", "ledger.read_own", "ledger.read_all", "ledger.approve",
+    "pricing.read", "pricing.write", "billing.read", "ledger.read_own", "ledger.read_all", "ledger.approve",
     "payments.reconcile", "payments.charge", "payments.refund", "accounts.manage", "jobs.manage",
     "partners.manage",
     "roles.manage",

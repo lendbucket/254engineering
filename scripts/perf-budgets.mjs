@@ -385,3 +385,105 @@ export const ROUTE_BUDGETS = [
     lcp: 3660,
   },
 ];
+
+/*
+ * ============================================================================
+ * THE AUTHENTICATED SURFACES: A SHELL, AND WHAT EACH SCREEN ADDS TO IT.
+ * ============================================================================
+ *
+ * OPERATOR RULING, 2026-09-14, and it is ruled the way a floor is ruled rather
+ * than tuned the way a threshold is tuned.
+ *
+ * No authenticated screen on this platform had ever been measured until that
+ * day. The first full run measured 50 of them, and the shape in the numbers was
+ * not subtle: SIX SCREENS ACROSS THREE INDEPENDENT SURFACES land at 319 to
+ * 320KB. portal/login, portal/set-password, partner/login, partner/set-password,
+ * account/settings and account/home. That is the Next.js runtime, the fonts and
+ * the chrome every screen pays before it renders anything of its own.
+ *
+ * So the budget is a SHELL plus a per surface DELTA rather than a number per
+ * screen. A number per screen would be fifty numbers nobody could defend and
+ * would hide the one fact worth knowing, which is how much a screen adds.
+ *
+ * THE OBSERVED SPREAD, median of three, local, 2026-09-14:
+ *
+ *   portal    35 screens   319 to 373   median 336   heaviest: techs, +53
+ *   partner    7 screens   319 to 328   median 327   heaviest: materials, +8
+ *   account    6 screens   317 to 431   median 320   see the exception below
+ *   order      2 screens   462 to 463                a different page shape
+ *
+ * ZERO HEADROOM IS DELIBERATE, AND THE REASON IS IN THIS FILE ALREADY.
+ * The header records that bytes do not vary between runs of the same build at
+ * all, unlike LCP. A budget set at the observed maximum therefore cannot fail on
+ * noise: it fails only when something really got bigger, which is the whole job.
+ * Every number below is an observed maximum rounded up to the next five.
+ */
+export const SHELL_KB = 320;
+
+/** What a screen on each surface may add to the shell. */
+export const SURFACE_DELTA_KB = {
+  portal: 55,
+  partner: 10,
+  account: 5,
+};
+
+/*
+ * The order flow gets its own number rather than a delta.
+ *
+ * It is a different page shape from an app screen: a catalogue and a checkout,
+ * and it is the surface a paying customer actually meets. Judging it against a
+ * portal delta would be comparing two unlike things, and nobody has claimed it
+ * does less work than it appears to. 465 is its observed maximum of 463, up.
+ */
+export const SURFACE_ROUTE_KB = {
+  order: 465,
+};
+
+/*
+ * ============================================================================
+ * DECLARED OVER BUDGET, WITH THE REASON. NOT EXEMPT.
+ * ============================================================================
+ *
+ * OPERATOR RULING, 2026-09-14, and it is the sharpest decision in this block.
+ *
+ * `/account/login` measured 431KB. The staff and partner login screens, doing
+ * the same job, measured 319KB. It is 112KB heavier than both and heavier than
+ * every one of the 35 portal screens.
+ *
+ * The obvious move is to give it a budget at its observed maximum, which is what
+ * every other number here does. The operator refused it, in these words:
+ * budgeting it at its observed maximum would make an unexplained outlier the
+ * standard.
+ *
+ * So it carries the ordinary account budget, it FAILS against it, and the
+ * failure is EXPECTED AND DOCUMENTED rather than mysterious. The board carries
+ * it as a true red until somebody finds out what those 112KB are.
+ *
+ * This is not a suppression list and must never become one. An entry here does
+ * not stop a route failing; it explains WHY the red is already known, so the
+ * next person does not spend an hour rediscovering it. Removing an entry when
+ * the cause is fixed is the point.
+ */
+export const KNOWN_OVER_BUDGET = {
+  "/account/login": {
+    measuredKb: 431,
+    since: "2026-09-14",
+    reason:
+      "112KB heavier than /portal/login and /partner/login, which do the same job at 319KB. " +
+      "What it imports has not been investigated. Declared over budget rather than budgeted at " +
+      "its own weight, because budgeting an unexplained outlier at its observed maximum makes " +
+      "the outlier the standard.",
+  },
+};
+
+/**
+ * The byte budget for a route derived from the inventory, or null where none is
+ * set and the figure is only recorded.
+ */
+export function budgetKbFor(route) {
+  if (typeof route.kb === "number") return route.kb;
+  if (!route.surface) return null;
+  if (SURFACE_ROUTE_KB[route.surface]) return SURFACE_ROUTE_KB[route.surface];
+  const delta = SURFACE_DELTA_KB[route.surface];
+  return typeof delta === "number" ? SHELL_KB + delta : null;
+}

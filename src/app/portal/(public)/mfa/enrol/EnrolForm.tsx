@@ -16,8 +16,15 @@ import { useState } from "react";
  * -------------------------------------------------------------
  * Not a later step somebody can skip. An enrolment that completes without them
  * is the state that turns a lost phone into a lost account, so the two happen
- * in one call and the codes are shown once, here, with the continue button
- * behind an acknowledgement.
+ * in one call and the codes are shown once, here.
+ *
+ * AND THE ACKNOWLEDGEMENT IS A CALL, NOT A DISABLED BUTTON. Until 2026-09-13
+ * the continue button was disabled until the checkbox was ticked and then
+ * navigated, while the full session had already been issued by the call that
+ * produced the codes. The gate governed a redirect. It now posts
+ * `codes_saved`, the server records when it happened, and THAT response
+ * carries the session. Operator instruction, after being locked out of
+ * production holding no codes at all.
  *
  * THE QR IS THE PRIMARY PATH, AND THE TYPED SECRET IS THE FALLBACK
  * ----------------------------------------------------------------
@@ -67,6 +74,13 @@ export function EnrolForm({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [redirectTo, setRedirectTo] = useState<string>("/portal");
+  /*
+   * The token `confirm` hands back, which binds the acknowledgement below to
+   * the confirm that produced these codes. Held in state and posted straight
+   * back: this component never inspects it and could not, because only the
+   * server holds the key that signed it.
+   */
+  const [completion, setCompletion] = useState<string | null>(null);
 
   async function post(body: Record<string, unknown>) {
     setBusy(true);
@@ -99,7 +113,7 @@ export function EnrolForm({
         <p className="text-[13.5px] leading-[1.6] text-[var(--navy)]">
           Your second factor is on. Save these recovery codes somewhere that is not the phone
           holding your authenticator app. Each one works once, and this is the only time they are
-          shown.
+          shown: nothing here can show them again, because only a hash of each one is stored.
         </p>
 
         <ul className="grid grid-cols-2 gap-x-4 gap-y-1 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface-muted,#f7f8f9)] p-3 font-mono text-[14px] text-[var(--navy)]">
@@ -118,14 +132,44 @@ export function EnrolForm({
           <span>I have saved these codes somewhere I can reach without my phone.</span>
         </label>
 
+        {error ? (
+          <p
+            role="alert"
+            className="rounded-[var(--radius-control)] border border-[var(--red-border)] bg-[var(--red-bg)] px-3 py-2.5 text-[13.5px] leading-[1.55] text-[var(--red)]"
+          >
+            {error}
+          </p>
+        ) : null}
+
+        {/*
+          THIS BUTTON COMPLETES THE ENROLMENT. IT DID NOT USED TO.
+
+          It called window.location.assign, which means the checkbox above it
+          governed a redirect and nothing else: the full session had already
+          been issued by the call that produced these codes, so somebody who
+          typed a URL was in, codes unsaved, with nothing recording that.
+
+          Operator instruction, 2026-09-13, after being locked out of production
+          with no recovery codes: the flow does not complete until the
+          confirmation arrives. So it posts the acknowledgement, the server
+          records when it happened, and the session comes back on that response.
+        */}
         <button
           type="button"
-          disabled={!saved}
-          onClick={() => window.location.assign(redirectTo)}
+          disabled={!saved || busy}
+          onClick={async () => {
+            const data = await post({ action: "codes_saved", completion });
+            if (data) window.location.assign((data.redirect as string) ?? redirectTo);
+          }}
           className="min-h-[var(--tap-target)] rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[14px] font-semibold text-white disabled:opacity-60"
         >
-          Continue to the portal
+          {busy ? "Finishing" : "I have saved them, finish setting up"}
         </button>
+
+        <p className="text-[13px] leading-[1.55] text-[var(--secondary)]">
+          Your second factor is already on. This last step records that you have the codes, and it
+          is what finishes signing you in.
+        </p>
       </div>
     );
   }
@@ -142,6 +186,7 @@ export function EnrolForm({
           const data = await post({ action: "confirm", code });
           if (data) {
             setCodes(data.recoveryCodes as string[]);
+            setCompletion(typeof data.completion === "string" ? data.completion : null);
             if (typeof data.redirect === "string") setRedirectTo(data.redirect);
           }
         }}

@@ -36,11 +36,23 @@
  * nobody should have to guess at.
  */
 
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync, unlinkSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const CONFIG = "src/config/credentials.ts";
 const READINESS = "src/config/launch-readiness.ts";
+
+/*
+ * THE EIGHTH CONDITION LIVES IN A THIRD FILE.
+ *
+ * Phase 13 added "self service sign up is cleared for production", which the
+ * operator alone lifts by editing src/config/launch-conditions.ts. A fixture
+ * that patched two files while the gate read three would leave every live half
+ * of every audit rendering the prelaunch site, which is what happened twice
+ * already and is why assertGateActuallyOpens exists below.
+ */
+const CONDITIONS = "src/config/launch-conditions.ts";
 
 /** The account holder an audit sees. Unmistakable if it ever leaks into a page. */
 export const FIXTURE_STRIPE_ACCOUNT = "AUDIT-FIXTURE-NOT-A-REAL-STRIPE-ACCOUNT";
@@ -119,13 +131,30 @@ export async function withGateConditionsMet(fn) {
    * silently matches nothing is how a fixture starts measuring the prelaunch
    * state while reporting on the live one.
    */
-  const files = [CONFIG, READINESS];
+  const files = [CONFIG, READINESS, CONDITIONS];
   const originals = new Map(files.map((f) => [f, readFileSync(f, "utf8")]));
 
   const patches = [
+    {
+      file: CONDITIONS,
+      find: /cleared: false,/,
+      replace: "cleared: true,",
+      what: "self service sign up being cleared for production",
+    },
     /* --- the registration itself */
     { file: CONFIG, find: /number: "[^"]*",/, replace: `number: "${FIXTURE_FIRM_NUMBER}",`, what: "the registration number" },
-    { file: CONFIG, find: /onRecord: false,/, replace: "onRecord: true,", what: "the operating name on the board's record" },
+    {
+      file: CONFIG,
+      find: /onRecord: false,/,
+      replace: "onRecord: true,",
+      /*
+       * ALREADY TRUE SINCE 2026-09-13, when the operator ruled the firm trades
+       * under its registered name. See `already` below for why that is not a
+       * fixture failure.
+       */
+      already: /onRecord: true,/,
+      what: "the operating name on the board's record",
+    },
     /* Far enough out that a fixture cannot expire during a run. */
     { file: CONFIG, find: /expires: "[^"]*",/, replace: 'expires: "2099-12-31",', what: "the expiry" },
 
@@ -154,18 +183,59 @@ export async function withGateConditionsMet(fn) {
     },
   ];
 
+  /*
+   * ======================================================================
+   * A PATCH THAT EDITS NOTHING HAS TWO CAUSES, AND THEY ARE OPPOSITES.
+   * ======================================================================
+   *
+   * This loop threw whenever a pattern matched nothing, on the reasoning in the
+   * message below, which is right: a fixture that edits nothing runs the live
+   * half of an audit against the prelaunch state while reporting on the live
+   * one, and that has happened here twice.
+   *
+   * It could not tell that from the other cause. On 2026-09-13 the operator
+   * CLEARED the operating name condition, so `onRecord: false` was no longer in
+   * the file, and three audits died at the fixture reporting that the shape had
+   * moved. Nothing had moved. The condition was simply already true, which is
+   * the state every condition reaches eventually and the state this fixture
+   * exists to bring about.
+   *
+   * That is "a fixture that cannot separate the two answers proves neither",
+   * one level up: the fixture could not separate its own two failure modes, and
+   * it reported the harmless one as the dangerous one.
+   *
+   * So a patch declares what ALREADY TRUE looks like. Matching neither pattern
+   * is still a throw, and still means the shape has moved. Matching `already`
+   * is a satisfied condition and the fixture says so rather than dying.
+   *
+   * THE BACKSTOP IS UNCHANGED AND IS WHAT MAKES THIS SAFE: assertGateActuallyOpens
+   * below asks the gate whether it opened and refuses to run the body if
+   * anything is still shut, so a patch wrongly believed satisfied fails loudly
+   * at the gate rather than quietly in the audit.
+   */
   const patched = new Map(originals);
+  const alreadyTrue = [];
   for (const p of patches) {
     const before = patched.get(p.file);
     const after = before.replace(p.find, typeof p.replace === "function" ? p.replace() : p.replace);
+
     if (after === before) {
+      if (p.already && p.already.test(before)) {
+        alreadyTrue.push(p.what);
+        continue;
+      }
       throw new Error(
-        `The gate fixture could not state ${p.what} true: its pattern matched nothing in ${p.file}. The ` +
-          "shape has moved, and a fixture that edits nothing runs the live half of an audit against the " +
-          "prelaunch state while reporting on the live one.",
+        `The gate fixture could not state ${p.what} true: its pattern matched nothing in ${p.file}, and ` +
+          "the file does not already state it either. The shape has moved, and a fixture that edits " +
+          "nothing runs the live half of an audit against the prelaunch state while reporting on the " +
+          "live one.",
       );
     }
     patched.set(p.file, after);
+  }
+
+  if (alreadyTrue.length) {
+    console.log(`  [gate-fixture] already true, nothing to patch: ${alreadyTrue.join(", ")}`);
   }
 
   /*
@@ -180,6 +250,13 @@ export async function withGateConditionsMet(fn) {
   try {
     for (const f of files) writeFileSync(f, patched.get(f));
     process.env.FIRM_PHONE = FIXTURE_PHONE;
+    /*
+     * AND THEN ASK THE GATE, rather than assuming the patches were enough.
+     * The patch list is as current as the day somebody last edited it; this is
+     * derived from the gate itself, so a ninth condition fails here by name.
+     */
+    assertGateActuallyOpens();
+
     return await fn();
   } finally {
     if (hadPhone === undefined) delete process.env.FIRM_PHONE;
@@ -235,6 +312,59 @@ function fixtureProtocols() {
     approvedByLicense: "AUDIT-FIXTURE",
     approvedOn: "2099-12-31",
   }));
+}
+
+/**
+ * Throw unless the gate, read fresh from disk, now opens.
+ *
+ * The derivation half of the fixture. It knows nothing about which conditions
+ * exist; it asks the gate and reports what it said, so a condition added
+ * tomorrow fails here by name rather than silently downgrading every live half
+ * of every audit to the prelaunch state.
+ *
+ * LAUNCH_MODE is set for the child only, because the switch is the caller's to
+ * set and this is asking a different question: given the switch, is anything
+ * ELSE still holding the gate shut.
+ */
+function assertGateActuallyOpens() {
+  const file = `.gate-verify-${process.pid}.mjs`;
+  writeFileSync(
+    file,
+    'process.env.LAUNCH_MODE = "live";\n' +
+      'const m = await import("./src/lib/launch.ts");\n' +
+      'console.log("GATE_BLOCKERS " + JSON.stringify(m.launchBlockers()));\n',
+  );
+
+  try {
+    const tsxCli = fileURLToPath(import.meta.resolve("tsx/cli"));
+    const stdout = execFileSync(process.execPath, [tsxCli, "--conditions=react-server", file], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    const line = stdout.split("\n").find((l) => l.startsWith("GATE_BLOCKERS "));
+    if (!line) {
+      throw new Error(
+        "The gate fixture could not read the gate back after patching. It said: " + stdout.trim().slice(0, 300),
+      );
+    }
+    const blockers = JSON.parse(line.slice("GATE_BLOCKERS ".length));
+    if (blockers.length > 0) {
+      throw new Error(
+        "THE GATE FIXTURE PATCHED EVERY CONDITION IT KNOWS ABOUT AND THE GATE IS STILL SHUT.\n\n" +
+          blockers.map((b) => "  - " + b).join("\n") +
+          "\n\nA condition has been added that this fixture does not satisfy. Every live half of every " +
+          "audit would otherwise have measured the PRELAUNCH state while reporting on the live one, which " +
+          "is what happened on 2026-09-12 and again on 2026-09-13. Add the patch that states the condition " +
+          "above true, beside the others in withGateConditionsMet.",
+      );
+    }
+  } finally {
+    try {
+      unlinkSync(file);
+    } catch {
+      /* Already gone. */
+    }
+  }
 }
 
 /**

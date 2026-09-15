@@ -112,7 +112,7 @@ export const metadata: Metadata = {
     template: "%s",
   },
   description:
-    "254 Engineering Services is a veteran owned Texas engineering firm named for the 254 counties of Texas, serving every one of them.",
+    "254 Services LLC is a veteran owned Texas engineering firm named for the 254 counties of Texas, serving every one of them.",
   applicationName: business.name,
   authors: [{ name: business.legalName, url: business.url }],
   creator: business.legalName,

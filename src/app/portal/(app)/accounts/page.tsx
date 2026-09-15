@@ -5,6 +5,7 @@ import { accountRows } from "@/lib/ops-accounts-admin";
 import { money } from "@/lib/ops-money";
 import { Chip, EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
 import { AccountsClient } from "./AccountsClient";
+import { OpenAccountClient } from "./OpenAccountClient";
 
 export const dynamic = "force-dynamic";
 
@@ -42,10 +43,23 @@ export default async function AccountsPage() {
       />
 
       {rows.length === 0 ? (
-        <EmptyState
-          title="No ordering accounts yet"
-          body="An account is created by converting an existing client organisation, which keeps every file and document already attached to them."
-        />
+        <>
+          {/*
+            THIS COPY WENT OUT OF DATE THE DAY THE TELEPHONE DOOR WAS BUILT.
+
+            It said an account is created by converting an existing client
+            organisation, full stop, which was true while that was the only
+            path. There are three now, and a screen that names one of them is
+            the same defect as a registry that names a door nobody built.
+          */}
+          <EmptyState
+            title="No ordering accounts yet"
+            body="An account arrives one of three ways: somebody rings and you open one below, somebody pays for an order, or an existing client organisation is converted, which keeps every file and document already attached to them."
+          />
+          <div className="mt-4">
+            <OpenAccountClient />
+          </div>
+        </>
       ) : (
         <>
           {blocked.length > 0 ? (
@@ -62,6 +76,38 @@ export default async function AccountsPage() {
               </ul>
             </div>
           ) : null}
+
+          {/*
+            ABOVE THE LIST AND BELOW THE WARNING.
+
+            The question this screen is opened with is which accounts are stuck,
+            and that warning stays first. Opening an account from a call is the
+            other thing an operator comes here to do, and it is a disclosure
+            rather than a form so it costs one line until it is wanted.
+          */}
+          {/*
+            IN A PANEL, WITH A TITLE, AND THE SCREENSHOT IS WHAT SAID SO.
+
+            The first version put the control straight onto the page
+            background. Every check was green: no overflow, tap targets fine,
+            contrast fine, and at both widths it worked. Opening the screenshot
+            showed a form with no heading, floating outside the white surface
+            every other block on this screen sits in, beginning mid sentence
+            with "For somebody who has rung". An operator scanning the page had
+            nothing telling them what it was.
+
+            Nothing on the board measures whether a form is labelled, which is
+            the same shape as the queue screen that was 38,744 pixels tall and
+            correct by every question anybody had asked.
+          */}
+          <div className="mb-4">
+            <Panel
+              title="Open an account"
+              description="From a telephone call, for somebody who is not yet a customer."
+            >
+              <OpenAccountClient />
+            </Panel>
+          </div>
 
           <Panel
             title="Accounts"

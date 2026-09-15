@@ -55,8 +55,8 @@ export default async function WaitlistPage({
         title={prelaunch ? "Join the 254 Engineering Services waitlist" : "The firm is now open"}
         lede={
           prelaunch
-            ? "254 Engineering Services is not yet accepting engineering work. Firm registration with the Texas Board of Professional Engineers and Land Surveyors is pending, and until it is active the firm cannot offer or perform engineering services in Texas. That is a straightforward legal requirement and this firm is not going to work around it."
-            : "Firm registration is active and 254 Engineering Services is accepting work. If you joined the waitlist you will already have heard from us."
+            ? "254 Services LLC is not yet accepting engineering work. Firm registration with the Texas Board of Professional Engineers and Land Surveyors is pending, and until it is active the firm cannot offer or perform engineering services in Texas. That is a straightforward legal requirement and this firm is not going to work around it."
+            : "Firm registration is active and 254 Services LLC is accepting work. If you joined the waitlist you will already have heard from us."
         }
         crumbs={crumbs}
       />

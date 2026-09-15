@@ -88,6 +88,20 @@ export function splitBatch(
   entry: CatalogEntry,
   properties: BulkProperty[],
   twiaCounties: Set<string>,
+  /**
+   * The price this account has agreed for this deliverable, or null.
+   *
+   * Passed DOWN rather than looked up here, because this function is pure and
+   * synchronous and a database read inside it would make every caller async to
+   * serve one of them. The lookup happens where the account is known, which is
+   * ops-bulk, and the number arrives as a number.
+   *
+   * It is the same number for every property in the batch, by construction: a
+   * trade price is per account and per deliverable, and a batch is one
+   * deliverable across many properties. A per property agreed price would be a
+   * different feature and is not this one.
+   */
+  agreedPriceCents?: number | null,
 ): BatchSplit {
   const accepted: AcceptedProperty[] = [];
   const rejected: RejectedProperty[] = [];
@@ -164,7 +178,7 @@ export function splitBatch(
     }
 
     const coastal = isCoastal(entry, p.county, twiaCounties);
-    const quote = quoteFor(entry, coastal, p.county);
+    const quote = quoteFor(entry, coastal, p.county, agreedPriceCents ?? null);
 
     /*
      * A quote that could not be computed is a REJECTION, not an accepted
@@ -190,10 +204,38 @@ export function splitBatch(
    * of the ones that do. A partial sum shown as a total is a number a customer
    * would be charged against, and it would be wrong in the flattering direction.
    */
+  /*
+   * AN EMPTY BATCH HAS A TOTAL OF ZERO, AND `empty` IS WHAT SAYS IT IS EMPTY.
+   *
+   * ======================================================================
+   * A CHANGE WAS MADE HERE ON 2026-09-14 AND order-audit REVERTED IT.
+   * ======================================================================
+   *
+   * Walking a trade priced batch printed "batch total $0.00" for a batch where
+   * every property was rejected, and that was written up as a defect of the
+   * absent-versus-zero class. IT WAS NOT ONE. The zero came from the scratchpad
+   * walk script printing money(totalCents) unconditionally; the product guards
+   * that block on accepted.length > 0 and never renders it, and placeBatch
+   * refuses an empty split outright with its own sentence.
+   *
+   * The change made totalCents null when nothing was accepted, and order-audit
+   * caught it:
+   *
+   *   FAIL: and its total is zero rather than null
+   *
+   * The check was right and the change was wrong. NULL ALREADY MEANS SOMETHING
+   * ELSE HERE: that an accepted property has no price, so a total cannot be
+   * stated. Reusing it for "nothing was accepted" makes two different states
+   * indistinguishable, which is the fixture rule applied to a return value, and
+   * this split already carries `empty` to say so explicitly.
+   *
+   * Recorded rather than quietly reverted, because the false finding reached a
+   * commit message and a report before the board disagreed with it.
+   */
   const anyUnpriced = accepted.some((a) => !isKnown(a.priceCents));
   const totalCents = anyUnpriced
     ? null
-    : accepted.reduce((n, a) => n + (a.priceCents as number), 0);
+      : accepted.reduce((n, a) => n + (a.priceCents as number), 0);
 
   return {
     accepted,

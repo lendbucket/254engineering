@@ -6,6 +6,7 @@ import { creditDecision } from "@/lib/account-credit";
 import { SITE_KEY } from "@/lib/supabase";
 import { accountDefaults } from "@/lib/ops-account";
 import type { BulkProperty } from "@/lib/bulk-order";
+import { tradePriceInForce } from "@/lib/trade-pricing";
 
 export const dynamic = "force-dynamic";
 
@@ -67,7 +68,13 @@ export async function POST(request: NextRequest) {
 
   // ------------------------------------------------------------- preview
   if (action === "preview") {
-    const preview = previewBatch(serviceSlug, tier, properties);
+    /*
+     * THE PREVIEW USES THE AGREED PRICE OR IT IS A DIFFERENT NUMBER FROM THE
+     * BILL. A trade price honoured at checkout and not in the preview is the
+     * same defect as one honoured at checkout and not on the statement.
+     */
+    const agreed = await tradePriceInForce(me.accountId, serviceSlug, tier ?? "standard");
+    const preview = previewBatch(serviceSlug, tier, properties, agreed);
     if (!preview.ok) return NextResponse.json({ ok: false, error: preview.error }, { status: 409 });
 
     /*

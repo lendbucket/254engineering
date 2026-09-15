@@ -91,6 +91,31 @@ const PHASE_ZERO = [
   },
   {
     /*
+     * A PROJECT NO DOCUMENT ACCOUNTS FOR IS NAMED.
+     *
+     * Operator ruling, 2026-09-14. docs/production-cutover-plan.md said of the
+     * rehearsal project, in writing, "since deleted". Eleven days later it was
+     * alive, billable, and holding 239 audit events, 2 order payments, 1
+     * profile and 1 service order.
+     *
+     * Nobody deleted it and nobody checked. The sentence was written in the
+     * same pass as the deletion was intended, which is the mechanism: a
+     * document records what somebody MEANT to do and then reads forever as a
+     * record of what happened.
+     *
+     * Like schema-ledger-audit beside it, it cannot see the provider and says
+     * so. It asserts that every project the REPOSITORY names is declared and
+     * explained by a document that actually mentions it, and it scans the
+     * tracked source in REVERSE so a project somebody wired up without telling
+     * the declaration is found. Listing the organisation is a by hand MCP step.
+     *
+     * Needs no server, no network and no credentials.
+     */
+    name: "project-accountability-audit",
+    why: "every Supabase project this repository names is declared and explained",
+  },
+  {
+    /*
      * The county map renders the bytes it rendered before.
      *
      * Pure, no server, no network. TexasCountyMap.tsx claimed since 2026-09-04
@@ -147,6 +172,20 @@ const PHASE_ZERO = [
      */
     name: "surface-audit",
     why: "every surface is declared, and every browser audit derives its list from that declaration",
+  },
+  {
+    /*
+     * PHASE ZERO, because it needs a database and no server. The live half
+     * spawns its own child processes rather than driving HTTP, for the reason
+     * written at the top of that file: the floor register is a module constant
+     * and a fresh import is not fresh enough.
+     *
+     * It patches ONE floor into src/config/trade-floors.ts for the length of
+     * the run and restores it in a finally, because every real floor is pending
+     * and every live check would otherwise pass over an empty set.
+     */
+    name: "trade-pricing-audit",
+    why: "a floor is the operator's, nothing sells beneath one, and nothing sells at all without one",
   },
   {
     // Phase 8 added a second kind of person. This asks whether the two can be
@@ -469,6 +508,42 @@ const PHASE_ONE = [
 ];
 
 const PHASE_TWO = [
+  {
+    /*
+     * PHASE TWO, because it starts its OWN servers: three of them, one after
+     * another, each with a different MFA_BREAK_GLASS. The value is read at
+     * request time but a process environment is fixed when it boots, which is
+     * the same reason using the break glass on Vercel costs a redeploy.
+     *
+     * It goes FIRST in this phase. The three after it each start a next dev,
+     * which is the slow half of the board, and a recovery path that has already
+     * failed in production once should not be the thing that does not get run
+     * when a long board dies.
+     *
+     * It uses `next start` against the build this runner has already made, so
+     * the three boots cost seconds rather than minutes, and it reports COULD
+     * NOT TELL rather than red if there is no build to start.
+     */
+    name: "break-glass-audit",
+    why: "the MFA break glass, actually exercised: the link renders only when the variable is set, and the token clears an enrolment",
+  },
+  {
+    /*
+     * PHASE TWO, because it patches a launch condition in the SOURCE and then
+     * starts its own `next dev` so the change is compiled. The self service
+     * door is shut by the eighth condition, which is read from a file rather
+     * than an environment variable on purpose, so there is no way to open it
+     * for a run except the way the operator would open it for real.
+     *
+     * It restores the file in a `finally` and verifies the restore, because a
+     * cleared launch condition left in the tree would be read by the next build.
+     *
+     * AFTER break-glass-audit and before the gate crawls, which is where the
+     * other fixture-patching audits sit.
+     */
+    name: "doors-audit",
+    why: "one account per door, walked end to end: three doors, three origins, one creation function",
+  },
   {
     name: "compliance-audit",
     why: "whether the gate MAY open at all, which is a different question from what each mode renders",

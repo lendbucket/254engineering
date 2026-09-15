@@ -223,10 +223,26 @@ console.log("");
   if (!db) {
     console.log("  COULD NOT TELL: no database, so the accounts tile was not checked against one.");
   } else {
+    /*
+     * AND SUPERSEDED ROWS ARE NOT ACCOUNTS ON THE BOOKS EITHER.
+     *
+     * This asked one question, "is the client a demonstration", and the tile
+     * began asking two on 2026-09-14 when 0048 added supersession: a duplicate
+     * or a typo is not an account, whoever its client is.
+     *
+     * The board caught the disagreement immediately, tile 4 against 8, which is
+     * the two-places mechanism working. THE INDEPENDENT QUERY IS STILL
+     * INDEPENDENT: it arrives at the same answer by writing both conditions out
+     * here rather than by calling what the dashboard calls, which is the
+     * distinction section 6 draws between deriving and importing.
+     */
     const { count: real } = await db
       .from("eng_customer_accounts")
       .select("id, eng_clients!inner(is_demo)", { count: "exact", head: true })
-      .eq("eng_clients.is_demo", false);
+      .eq("eng_clients.is_demo", false)
+      .is("superseded_at", null);
+    /* Deliberately unscoped in BOTH senses, so the check above can tell a
+     * scoped tile from an unscoped one. */
     const { count: everything } = await db
       .from("eng_customer_accounts")
       .select("id", { count: "exact", head: true });

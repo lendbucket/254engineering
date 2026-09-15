@@ -530,6 +530,129 @@ rec(`there are migrations to check (${files.length})`, files.length > 0);
   }
 
   /*
+   * ======================================================================
+   * A FIGURE RECORDED AS READ BACK MUST NOT BE THE REPLAY'S OWN FIGURE.
+   * ======================================================================
+   *
+   * Operator ruling, 2026-09-13, after 0043 was found carrying the replay's
+   * behaviour digest under development's name, beneath a sentence saying it had
+   * been read back from development. The operator's words: that is a claim
+   * nothing supported, in the ledger, which is the one file that must never
+   * carry one.
+   *
+   * WHY THIS IS CHECKABLE WITH NO CREDENTIAL, which is the part that makes it
+   * a check rather than a procedure. A live Supabase project CANNOT return the
+   * replay's behaviour digest, and the reasons are declared in
+   * BEHAVIOUR_DIVERGENCE and in supabase/applied.mjs:
+   *
+   *   ck   conbin::text is an internal node tree serialisation, rendered
+   *        differently by PGlite's PostgreSQL 18.3 and Supabase's 17.6
+   *   fn   function bodies are stored on Supabase with SQL comments stripped
+   *   fk   eng_responsible_charge_log_file_id_fkey is enforced and UNVALIDATED
+   *        on development since 0039, and validates clean on an empty replay
+   *
+   * Three of the nine kinds, every one of them present at every point in the
+   * chain from 0039 onward. So a live figure that EQUALS the replay's is not a
+   * coincidence and is not a database that happens to agree. It is a number
+   * somebody copied from the line above it.
+   *
+   * WHAT THIS CANNOT DO, and it is stated rather than implied. It cannot
+   * confirm that a figure which DIFFERS from the replay was genuinely read: a
+   * different wrong number would pass. It catches the specific failure that
+   * happened, which is the one with a mechanism behind it, and the honest
+   * description of the rest is unverifiable after the fact, because a live
+   * database cannot be rewound to the migration an old entry names.
+   *
+   * The counts are deliberately NOT compared this way. A fact count IS portable
+   * across engines, so a live count equal to the replay's is expected and
+   * correct, and failing on it would be failing on the thing that works.
+   */
+  {
+    const claimed = [];
+    for (const e of APPLIED) {
+      if (e.development?.behaviour) claimed.push({ file: e.file, where: "development", at: e.development.at, digest: e.development.behaviour });
+      if (e.production && typeof e.production === "object" && e.production.behaviour) {
+        claimed.push({ file: e.file, where: "production", at: e.production.at, digest: e.production.behaviour });
+      }
+    }
+    /*
+     * The baseline declares two of its own, and they are the same kind of claim.
+     *
+     * LABELLED IN LOWER CASE ON PURPOSE. The first version wrote the constant's
+     * own name as a quoted literal, and soc2-audit's string lookup scan went red
+     * on it: that scan treats any quoted SCREAMING_SNAKE token as a credential
+     * somebody reads by name, which is exactly the shape that hid ADMIN_PASSPHRASE
+     * and two others. The scan is right and this label was the thing that was
+     * wrong, so the label changed rather than the scan.
+     */
+    if (BEHAVIOUR_BASELINE.development?.behaviour) {
+      claimed.push({ file: "the behaviour baseline", where: "development", at: BEHAVIOUR_BASELINE.development.at, digest: BEHAVIOUR_BASELINE.development.behaviour });
+    }
+    if (BEHAVIOUR_BASELINE.production?.behaviour) {
+      claimed.push({ file: "the behaviour baseline", where: "production", at: BEHAVIOUR_BASELINE.production.at, digest: BEHAVIOUR_BASELINE.production.behaviour });
+    }
+
+    /*
+     * A FLOOR, because a sweep over an empty list passes forever and this
+     * repository has been caught by exactly that shape more than once.
+     */
+    rec(
+      `there are read-back figures to check (${claimed.length})`,
+      claimed.length >= 3,
+      claimed.length >= 3 ? "" : "a check over an empty list passes every run and means nothing",
+    );
+
+    /*
+     * THE REPLAY DIGEST AT EACH MIGRATION A FIGURE NAMES, and only at those.
+     *
+     * Computed at every migration in the first version, which threw on 0000:
+     * behaviourSqlFull's last two branches read eng_roles and eng_role_grants,
+     * and those tables do not exist until 0018. The neighbouring check has the
+     * same shape and only ever queried where an entry declared a figure, which
+     * is why it never met this. Asking only at the points somebody named is
+     * both cheaper and the only version that can run at all.
+     */
+    const wanted = new Set(claimed.map((c) => String(c.at ?? "").slice(0, 4)));
+    const replayAt = new Map();
+    const db4 = new PGlite();
+    await db4.exec(STUBS);
+    for (const file of files) {
+      await db4.exec(readSource(join(DIR, file)));
+      if (!wanted.has(file.slice(0, 4))) continue;
+      const r = await db4.query(behaviourSqlFull());
+      replayAt.set(file.slice(0, 4), createHash("md5").update(digestOf(r.rows)).digest("hex"));
+    }
+    await db4.close();
+
+    const copied = [];
+    const unresolvable = [];
+    for (const c of claimed) {
+      const key = String(c.at ?? "").slice(0, 4);
+      const replay = replayAt.get(key);
+      if (!replay) {
+        unresolvable.push(`${c.file} ${c.where} names "${c.at}", which is no migration in the chain`);
+        continue;
+      }
+      if (c.digest === replay) {
+        copied.push(`${c.file} ${c.where} at ${c.at}: ${c.digest} IS the replay's own digest`);
+      }
+    }
+
+    rec(
+      "every read-back figure names a migration in the chain",
+      unresolvable.length === 0,
+      unresolvable.join(" | "),
+    );
+    rec(
+      `no figure recorded as read back is the replay's own (${claimed.length} checked)`,
+      copied.length === 0,
+      copied.length
+        ? `${copied.join(" | ")}. A live project cannot return the replay's digest: ck, fn and fk diverge at every point in the chain. This figure was copied, not read.`
+        : "",
+    );
+  }
+
+  /*
    * THE DECLARED DIVERGENCE IS CHECKED AGAINST THE MIGRATIONS, BOTH WAYS.
    *
    * BEHAVIOUR_DIVERGENCE describes live databases this audit cannot reach, and

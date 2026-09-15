@@ -37,6 +37,7 @@ import {
   QR_VERSION_CAPACITIES,
 } from "../../src/lib/qr.ts";
 import { otpauthUri, newTotpSecret } from "../../src/lib/totp.ts";
+import { MAX_EMAIL_LENGTH, emailRefusal } from "../../src/lib/email-address.ts";
 
 /**
  * Runs the cases and reports what happened.
@@ -235,17 +236,42 @@ function bitmap(matrix, scale = 4, quiet = 4) {
   say("\nTHE LONGEST ADDRESS THE PLATFORM ACCEPTS");
 {
   /*
-   * The platform sets no limit of its own: eng_profiles.email is `text` and no
-   * input carries a maxLength, so the ceiling is the standard's. RFC 5321
-   * allows 64 octets of local part and 255 of domain, 320 with the @.
+   * THE PLATFORM NOW SETS ITS OWN LIMIT, AND THIS READS IT.
    *
-   * This is the case the whole extension exists for. Before it, this address
-   * produced a 500 at enrolment.
+   * This comment used to say the platform set no limit of its own. That was
+   * true, and it was the half of the MFA lockout ruling left undone: extend the
+   * encoder AND cap the accepted address. Phase 13 closed it, because self
+   * service sign up makes the addresses arbitrary, and an unbounded input
+   * reaching a fixed capacity encoder is the same failure waiting at a
+   * different length.
+   *
+   * The constant is IMPORTED rather than repeated. A copy here would let the
+   * declared cap move while this proof went on testing the old one, which is
+   * the drift CLAUDE.md section 6 names.
+   *
+   * The cap is RFC 5321's maximum: 64 octets of local part, 255 of domain, 320
+   * with the @. This is the case the whole extension exists for. Before it,
+   * this address produced a 500 at enrolment.
    */
   const local = "a".repeat(64);
   const domain = `${"b".repeat(251)}.com`;
   const longest = `${local}@${domain}`;
-  rec("the address under test is the RFC 5321 maximum", longest.length === 320, `${longest.length} characters`);
+  rec(
+    "the address under test is exactly the cap the platform declares",
+    longest.length === MAX_EMAIL_LENGTH,
+    `${longest.length} characters against a declared cap of ${MAX_EMAIL_LENGTH}`,
+  );
+  /*
+   * AND THE CAP IS ENFORCED, not merely declared. Without this the proof would
+   * show that the encoder handles 320 characters while the platform quietly
+   * accepted 400, which is the gap this debt was about.
+   */
+  const oneTooLong = `${local}x@${domain}`;
+  rec(
+    "and the platform refuses one character more",
+    emailRefusal(oneTooLong) !== null,
+    emailRefusal(oneTooLong) ?? "IT WAS ACCEPTED, so the encoder can be handed something longer than it was proved against",
+  );
 
   const uri = otpauthUri(newTotpSecret().base32, longest, "254 Engineering Services");
   rec(

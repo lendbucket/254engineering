@@ -686,7 +686,33 @@ export const APPLIED = [
     behaviour: "a3a7eb9953f60e59555f7fcddd221a7f",
     proves: { table: "eng_incidents" },
     production: "2026-09-13",
-    development: { at: "0042", behaviour: "a3a7eb9953f60e59555f7fcddd221a7f", facts: 824 },
+    /*
+     * CORRECTED 2026-09-13. THE DIGEST HERE WAS THE REPLAY'S, AND IS NOW NULL.
+     *
+     * Found by the read-back check added to schema-ledger-audit the same day,
+     * which asserts that no figure recorded as read back equals the replay's
+     * own. This entry's did. It is the second instance, after 0043, and finding
+     * two is what made it a class rather than an oversight.
+     *
+     * THE PROSE BELOW DISCLOSED IT AT THE TIME, in its last clause: "both
+     * recomputed from a replay rather than typed in from a live database". So
+     * the previous session was honest in the sentence and wrong in the FIELD,
+     * which is the worse half, because the field is what a check reads and the
+     * sentence is what nobody does. A field named for a database carrying
+     * another engine's number is a claim whatever the prose beside it says.
+     *
+     * IT IS NULL RATHER THAN CORRECTED, and that is the honest answer. The
+     * figure cannot be recovered: development is at 0044 now and a live project
+     * cannot be rewound to 0042 to be asked. Writing today's digest here would
+     * be inventing a reading, and inferring one from the chain would be the
+     * same act with arithmetic in front of it.
+     *
+     * THE COUNT SURVIVES AND IS CORRECT. A fact count is portable across
+     * engines, which is the whole reason the stop condition was amended to
+     * judge a live read-back on counts and per kind figures. 824 was true of
+     * development at 0042 and is true of the replay at 0042.
+     */
+    development: { at: "0042", behaviour: null, facts: 824 },
     because:
       "APPLIED TO PRODUCTION 2026-09-13 through apply_migration and read back. Production shape " +
       "11a709155214441ec2b7c3b382f6e17f across 1,030 columns, matching the replay exactly, and 824 behaviour " +
@@ -695,8 +721,10 @@ export const APPLIED = [
       "rather than on the behaviour digest, per the amended stop condition of 2026-09-12. " +
       "It was written under Phase 12 Section 6 overnight limits that forbid applying anything to production. " +
       "Applied to development 2026-09-12 through apply_migration and read back: shape " +
-      "11a709155214441ec2b7c3b382f6e17f across 1,030 columns, behaviour a3a7eb9953f60e59555f7fcddd221a7f " +
-      "across 824 facts, both recomputed from a replay rather than typed in from a live database.",
+      "11a709155214441ec2b7c3b382f6e17f across 1,030 columns and 824 behaviour facts. THE BEHAVIOUR DIGEST " +
+      "FOR DEVELOPMENT IS NOT RECORDED, because it was never read from development: the figure that stood " +
+      "here until 2026-09-13 was the replay's, and it is not recoverable now that development is at 0044. " +
+      "The shape digest and the counts are portable and are the ones above.",
     note:
       "AN INCIDENT IS NOT A FAULT, AND THE TABLE IS EMPTY ON PURPOSE. eng_error_events holds what broke: a " +
       "stack trace, a route, a fingerprint, pruned on a retention schedule. An incident is something that " +
@@ -710,6 +738,229 @@ export const APPLIED = [
       "corrections column that everything reads instead. began_at is separate from detected_at because the " +
       "gap between them is how long nobody knew, which is the number an incident review is actually about.",
   },
+  /*
+   * 0043, THE THREE DOORS. Phase 13 Section 1, and pending by the same
+   * instruction 0042 is: this run's limits forbid applying anything to
+   * production.
+   */
+  {
+    file: "0043_an_account_says_which_door_it_came_through.sql", appliedBy: "apply_migration",
+    fingerprint: "ee00c9be2da388e84da117d99e56e503",
+    behaviour: "632d49c00ff4115d6761985d9b83ab9a",
+    proves: { column: { table: "eng_customer_users", name: "origin" } },
+    production: "2026-09-14",
+    /*
+     * CORRECTED 2026-09-13. THIS FIGURE WAS THE REPLAY'S, NOT DEVELOPMENT'S.
+     *
+     * It was written as 632d49c00ff4115d6761985d9b83ab9a, which is what PGlite
+     * produces from the files at 0043, and the entry's own sentence said it had
+     * been read back from development. Development returns
+     * 7178087b458483c508835d46bc9f5ce8 across the same 828 facts, and always
+     * did: three of the nine kinds cannot agree between those two engines, and
+     * all three are declared in BEHAVIOUR_DIVERGENCE below.
+     *
+     *   ck   conbin::text renders differently under PGlite 18.3 and Supabase 17.6
+     *   fn   function bodies are stored on Supabase with SQL comments stripped
+     *   fk   eng_responsible_charge_log_file_id_fkey is unvalidated on
+     *        development and validates clean on an empty replay, which is 0039's
+     *        ruling working exactly as written
+     *
+     * The other six kinds agree byte for byte, and every per kind COUNT agrees.
+     * So the mistake was recording a number rather than taking a reading, and
+     * the reason it was not caught is that the number it recorded was a true
+     * number about a different database.
+     *
+     * THE SHAPE FIGURE ABOVE IS UNAFFECTED and was right: a shape digest is
+     * portable across engines, which is the whole reason there are two.
+     */
+    development: { at: "0043", behaviour: "7178087b458483c508835d46bc9f5ce8", facts: 828 },
+    because:
+      "APPLIED TO PRODUCTION 2026-09-14 through apply_migration, operator at the keyboard, and READ BACK: shape ee00c9be2da388e84da117d99e56e503 across 1,032 columns and 75 tables, matching this entry exactly. Both declared columns present. The 485 audit events were read after it and unchanged. THE SENTENCE BELOW PREDATES THAT and is kept as the reasoning that was true while the branch was open. " +
+      "Phase 13 Section 1 is open and ran under overnight limits that forbid applying anything to " +
+      "production. Applied to development 2026-09-12 through apply_migration and read back: shape " +
+      "ee00c9be2da388e84da117d99e56e503 across 1,032 columns, behaviour 7178087b458483c508835d46bc9f5ce8 " +
+      "across 828 facts, in 137 fk, 102 ck, 75 pk, 245 ix, 58 tg, 12 fn, 75 rls, 0 policy and 124 seeded " +
+      "rows. Two columns, two check constraints and two indexes, which is what it adds and nothing else. " +
+      "THE BEHAVIOUR FIGURE HERE WAS WRONG UNTIL 2026-09-13 and is corrected in the note beside the " +
+      "development entry: it carried the replay's digest under development's name.",
+    note:
+      "AN ACCOUNT SAYS WHICH DOOR IT CAME THROUGH, AND origin IS NULLABLE ON PURPOSE. Every account that " +
+      "exists today was created before origins were recorded, so null is true of them and a default would " +
+      "invent a fact about how somebody became a customer. That is 0041's reasoning applied again: a " +
+      "document filed before a registration existed was not filed under it. THE ORIGIN IS NOT DERIVED, and " +
+      "the reason is that an inference decays exactly as the platform succeeds: a self service account that " +
+      "places an order ten minutes later becomes indistinguishable from a checkout account, silently. " +
+      "email_verified_at IS A TIMESTAMP RATHER THAN A BOOLEAN, because whether AND when is what somebody " +
+      "asks during an incident and the second costs nothing, which is why suspended_at, used_at and " +
+      "sealed_at are all timestamps here. THE ONE RULE THAT BELONGS IN THE DATABASE: a self service account " +
+      "cannot be active without a proven address, because that is a statement about the ROW rather than " +
+      "about a session. The other two doors are exempt and it is not an inconsistency: an operator created " +
+      "account was opened by somebody who can say who they spoke to, and a checkout account by somebody who " +
+      "paid. Neither is an unproven claim by an anonymous stranger.",
+  },
+  {
+    file: "0044_recovery_codes_are_issued_and_acknowledged.sql", appliedBy: "apply_migration",
+    fingerprint: "a2534b7c2b27309e4f67486cb26b91bd",
+    behaviour: "632d49c00ff4115d6761985d9b83ab9a",
+    proves: { column: { table: "eng_mfa_enrolments", name: "recovery_codes_issued_at" } },
+    production: "2026-09-14",
+    development: { at: "0044", behaviour: "7178087b458483c508835d46bc9f5ce8", facts: 828 },
+    because:
+      "APPLIED TO PRODUCTION 2026-09-14 through apply_migration and READ BACK: shape a2534b7c2b27309e4f67486cb26b91bd across 1,034 columns, matching exactly. WORTH KNOWING LATER: production held ZERO mfa enrolments and ZERO recovery codes when this applied, because the 2026-09-13 lockout ended with the enrolment cleared by hand. The columns are correct and empty. THE SENTENCE BELOW PREDATES THAT. " +
+      "Phase 13 is open and production migrations wait for the merge. Applied to development 2026-09-13 " +
+      "through apply_migration and read back: shape a2534b7c2b27309e4f67486cb26b91bd across 1,034 columns, " +
+      "which is 0043's 1,032 plus exactly the two columns this adds. BEHAVIOUR IS UNCHANGED AT 828 FACTS and " +
+      "that is the correct answer rather than a missing reading: two nullable columns with no constraint, no " +
+      "index, no trigger and no default add nothing any of the nine kinds can see. The replay agrees, " +
+      "returning 632d49c00ff4115d6761985d9b83ab9a across 828 facts at both 0043 and 0044. The two figures " +
+      "differ from each other for the three declared reasons in BEHAVIOUR_DIVERGENCE and not for a fourth.",
+    note:
+      "RECOVERY CODES ARE ISSUED AT A TIME, AND SAVING THEM IS A FACT RATHER THAN A DISABLED BUTTON. " +
+      "Operator instruction, 2026-09-13, the third of three ordered after being locked out of production " +
+      "holding no recovery codes. THE SCREEN ALREADY HAD THE CHECKBOX and it protected nothing: the full " +
+      "session was issued by the call that showed the codes, so the acknowledgement governed a redirect the " +
+      "person could perform by typing a URL. confirm now returns the codes and no session, and a second call " +
+      "carrying the acknowledgement is what completes the enrolment. TWO COLUMNS RATHER THAN ONE because " +
+      "issued and acknowledged answer different questions and neither derives from the other: issued with no " +
+      "acknowledgement is an account holding ten codes nobody wrote down, which is indistinguishable from an " +
+      "account with no recovery path until the day somebody needs one. NOT DERIVED FROM eng_mfa_recovery_codes " +
+      "created_at, because a reissue deletes the old set outright and takes those timestamps with it, and " +
+      "because the acknowledgement has no per code home at all. BOTH NULLABLE AND NOT BACKFILLED: every " +
+      "enrolment that exists was made before this was recorded, and inventing an acknowledgement that never " +
+      "happened would be the fabricated assurance this repository refuses everywhere else.",
+  },
+  {
+    file: "0045_a_trade_price_is_superseded_never_edited.sql", appliedBy: "apply_migration",
+    fingerprint: "6d9f23f8a2cd1aa842a4c9921a21e585",
+    behaviour: "649d781bf5bf79fbc719f3c1c33dc027",
+    proves: { table: "eng_account_trade_prices" },
+    production: "2026-09-14",
+    development: { at: "0045", behaviour: "2974418e3982125cb10a22b4b90d01ea", facts: 843 },
+    because:
+      "APPLIED TO PRODUCTION 2026-09-14 through apply_migration and READ BACK: shape 6d9f23f8a2cd1aa842a4c9921a21e585 across 1,045 columns and 76 tables, matching exactly. eng_account_trade_prices exists with both triggers, the freeze and the delete refusal. THE SENTENCE BELOW PREDATES THAT. " +
+      "Phase 13 Section 2 is open and its limits forbid applying anything to production. Applied to " +
+      "development 2026-09-14 through apply_migration and READ BACK: shape " +
+      "6d9f23f8a2cd1aa842a4c9921a21e585 across 1,045 columns, matching the replay exactly, and 843 " +
+      "behaviour facts, also matching, in fk 137 to 140, ck 102 to 105, pk and rls 75 to 76, ix 245 to " +
+      "248, tg 58 to 60, fn 12 to 14. That is one table with three foreign keys, three check " +
+      "constraints, two indexes beside its primary key, two triggers and their two functions, and " +
+      "nothing else. JUDGED ON THE COUNT AND THE PER KIND FIGURES rather than on the behaviour digest, " +
+      "per the amended stop condition of 2026-09-12: the development digest is " +
+      "2974418e3982125cb10a22b4b90d01ea and the replay's is 649d781bf5bf79fbc719f3c1c33dc027, and they " +
+      "differ for the three declared reasons in BEHAVIOUR_DIVERGENCE and not for a fourth.",
+    note:
+      "A TRADE PRICE IS SUPERSEDED, NEVER EDITED. An UPDATE that moved a price would move the answer to " +
+      "'what did we agree' for every order already placed under it, and no later audit could tell a " +
+      "corrected price from a price that was always that. THE FREEZE IS NARROW ON PURPOSE, guarding every " +
+      "column except superseded_at and superseded_by, because superseding is itself an update and " +
+      "forbidding UPDATE wholesale is how a table ends up with a corrections column everything reads " +
+      "instead. That is 0019's reasoning for eng_partner_ledger_entries applied again. A row may be " +
+      "superseded ONCE: re-superseding would rewrite which price replaced it. floor_cents_at_time IS A " +
+      "COPY OF A FACT THAT LIVES IN A FILE, and the duplication is the point: the file says what the " +
+      "floor IS and the row says what it WAS, and no amount of reading the file recovers the second, so " +
+      "a floor lowered next year cannot make a historical price look as though it had been checked " +
+      "against it. THE DATABASE HOLDS THE HALF IT CAN: price_cents >= floor_cents_at_time makes 'priced " +
+      "below the floor it was checked against' unrepresentable for anything written outside the " +
+      "application, and it cannot tell whether that floor was the real one, which is stated rather than " +
+      "implied. THERE IS NO OVERRIDE COLUMN, deliberately, because no override path exists at any role " +
+      "and a column for one would be the first half of building it.",
+  },
+  {
+    file: "0046_pricing_write_becomes_a_grant.sql", appliedBy: "apply_migration",
+    fingerprint: "6d9f23f8a2cd1aa842a4c9921a21e585",
+    behaviour: "10fa6eb6a92b1dc0aeaf6b21f15bdce9",
+    proves: { grant: { role: "admin", action: "pricing.write" } },
+    production: "2026-09-14",
+    development: { at: "0046", behaviour: null, facts: 844 },
+    because:
+      "APPLIED TO PRODUCTION 2026-09-14 through apply_migration and READ BACK: 118 role grants against 117 before, admin/pricing.write present, and THE SHAPE UNCHANGED at 6d9f23f8a2cd1aa842a4c9921a21e585, which is what this entry predicted for a migration that seeds a row. THE SENTENCE BELOW PREDATES THAT. " +
+      "Phase 13 Section 2 is open and its limits forbid applying anything to production. Applied to " +
+      "development 2026-09-14 through apply_migration and read back: 118 role grants, one more than the " +
+      "117 before it, and the SHAPE IS UNCHANGED at 6d9f23f8a2cd1aa842a4c9921a21e585 across 1,045 " +
+      "columns because this seeds a row rather than altering anything. The behaviour count moves from " +
+      "843 to 844 for the same reason: a seeded grant is one of the behaviour fingerprint's own facts, " +
+      "which is why that fingerprint exists. THE DEVELOPMENT DIGEST IS NOT RECORDED, because reading it " +
+      "back was not attempted at this point in the run and inventing one is the defect this ledger was " +
+      "corrected for on 2026-09-13. The count was read and is what the stop condition judges on.",
+    note:
+      "SETTING A TRADE PRICE IS ITS OWN GRANT, separate from pricing.read for the reason roles.manage is " +
+      "separate from profiles.update: reading what the firm charges and DECIDING what one account is " +
+      "charged are different acts, and a firm may well want somebody who can see the money without being " +
+      "able to discount it. IT DOES NOT DECIDE WHO MAY OVERRULE A FLOOR, because nobody may: a price " +
+      "below its floor is refused at every role, in the application and again by a check constraint on " +
+      "the row. This grant decides who may negotiate within what the operator has already ruled. Admin " +
+      "alone, matching DEFAULT_ROLES, which roles-audit compares against this migration.",
+  },
+  {
+    file: "0047_superseding_a_trade_price_is_one_act.sql", appliedBy: "apply_migration",
+    fingerprint: "6d9f23f8a2cd1aa842a4c9921a21e585",
+    behaviour: "e59dd37a0f61e86b31895758885b526c",
+    proves: { function: "eng_set_trade_price" },
+    production: "2026-09-14",
+    development: { at: "0047", behaviour: null, facts: 845 },
+    because:
+      "APPLIED TO PRODUCTION 2026-09-14 through apply_migration and READ BACK: eng_set_trade_price exists, the self referencing key reads condeferrable true, 15 eng_ functions, and THE SHAPE UNCHANGED, because it adds a function and alters a key rather than a column. THE SENTENCE BELOW PREDATES THAT. " +
+      "Phase 13 Section 2 is open and its limits forbid applying anything to production. Applied to " +
+      "development 2026-09-14 through apply_migration. The SHAPE IS UNCHANGED at " +
+      "6d9f23f8a2cd1aa842a4c9921a21e585 across 1,045 columns, because it adds a function and alters a " +
+      "foreign key rather than a column. The behaviour count moves 844 to 845 for the function. THE " +
+      "DEVELOPMENT DIGEST IS NOT RECORDED: it was not read back at this point in the run, and inventing " +
+      "one is the defect this ledger was corrected for on 2026-09-13. " +
+      "DEVELOPMENT RECEIVED TWO INTERMEDIATE APPLICATIONS UNDER THIS NUMBER AND ONE UNDER A NAME WITH NO " +
+      "FILE. The function was applied, found wrong by trade-pricing-audit, and replaced twice while the " +
+      "correct ordering was worked out; one of those went in as " +
+      "0047b_supersede_before_insert_inside_the_transaction, which is a name the provider's history now " +
+      "carries and this repository has no file for. It is recorded here rather than left for somebody to " +
+      "find in list_migrations, because a name in the provider's history with no file is exactly the " +
+      "confusion 0025 caused in the other direction. The FINAL state of development is the file in this " +
+      "repository, verified by the audit that found the fault.",
+    note:
+      "NEITHER ORDER WORKS FROM OUTSIDE A TRANSACTION, and that is the finding. Inserting the new price " +
+      "first collides with 0045's partial unique index, which is checked per statement rather than at " +
+      "commit because it is an INDEX: only a deferrable unique CONSTRAINT waits, and a partial uniqueness " +
+      "cannot be declared as one. Superseding first cannot name a successor that does not exist yet, " +
+      "because superseded_at and superseded_by must be set together. THE ANSWER IS TO MINT THE " +
+      "SUCCESSOR'S ID FIRST and let the SELF REFERENCING foreign key defer to commit: update the old row " +
+      "naming an id that is about to exist, insert it, and the key resolves at commit. ONLY THE SELF " +
+      "REFERENCE IS DEFERRED; account_id and set_by_profile_id are unchanged, because neither " +
+      "participates in the chicken and egg and deferring a key that does not need it widens a guarantee " +
+      "for no reason. THE FUNCTION DOES NOT CHECK THE FLOOR, deliberately: the floor lives in TypeScript " +
+      "and its refusal names who ruled it, when and why, none of which can be said from plpgsql. The " +
+      "row's own check constraint still holds on the insert it performs.",
+  },
+  {
+    file: "0048_an_account_is_superseded_never_removed.sql", appliedBy: "apply_migration",
+    fingerprint: "f6e3d58df88f192dc1e7eaa1458858a7",
+    behaviour: "947e86920b7577a0ca56fc7c7b3b4365",
+    proves: { column: { table: "eng_customer_accounts", name: "superseded_at" } },
+    production: "2026-09-14",
+    development: { at: "0048", behaviour: null, facts: 850 },
+    because:
+      "APPLIED TO PRODUCTION 2026-09-14 through apply_migration and READ BACK: shape f6e3d58df88f192dc1e7eaa1458858a7 across 1,049 columns and 76 tables, matching this entry, development, AND the real engine replay into 254engineering-rehearsal, all three. superseded_at present, the no delete trigger attached, and eng_account_trade_prices.account_id reads confdeltype r for RESTRICT. EVERY IRREPLACEABLE ROW READ BACK AFTER THE LAST MIGRATION OF THE SEQUENCE: 485 audit events, 2 profiles, 2 leads, 1 application, 118 grants. THE SENTENCE BELOW PREDATES THAT. " +
+      "Phase 13 Section 2 is open and its limits forbid applying anything to production. Applied to " +
+      "development 2026-09-14 through apply_migration and read back: shape " +
+      "f6e3d58df88f192dc1e7eaa1458858a7 across 1,049 columns, matching the replay exactly. Four columns, " +
+      "one check constraint, one partial index, one trigger and its function, and one foreign key changed " +
+      "from cascade to restrict. THE DEVELOPMENT BEHAVIOUR DIGEST IS NOT RECORDED: it was not read back " +
+      "at this point and inventing one is the defect this ledger was corrected for on 2026-09-13.",
+    note:
+      "AN ACCOUNT IS SUPERSEDED, NEVER REMOVED. Operator ruling, 2026-09-14, answering a question 0045 " +
+      "raised and could not decide: the trade price table refuses DELETE, the account cascaded to it, so " +
+      "an account that genuinely should be removed could not be and the failure arrived as an exception " +
+      "about trade prices to somebody who had asked to delete an account. SUPERSEDED IS NOT CLOSED. " +
+      "status closed means the relationship ended and everything on the account is a true record of work " +
+      "that happened; superseded_at means the ROW was wrong, a duplicate or a typo or an organisation " +
+      "opened twice. Collapsing them loses the answer to 'did this customer leave, or did we open them " +
+      "twice', which is exactly what somebody asks when two accounts share a name. THE REASON AND THE " +
+      "ACTOR MOVE WITH IT, enforced by a check constraint, because a soft delete with no reason is a row " +
+      "nobody can interpret a year later. DELETE IS REFUSED OUTRIGHT rather than left to the child's " +
+      "refusal: relying on the cascade means an account with no trade price CAN be deleted, so the " +
+      "guarantee would hold only for accounts that happen to have been priced, which is a guarantee " +
+      "nobody can state. AND THE TRADE PRICE KEY BECOMES restrict, although the parent now refuses " +
+      "deletion and the cascade is unreachable, because the ruling is that no cascade ever wins over a " +
+      "money record and an unreachable cascade is one edit from winning.",
+  },
+
 ];
 
 /**
@@ -849,6 +1100,7 @@ export const BEHAVIOUR_DIVERGENCE = [
       "than production minus whatever nobody wrote down. That is a migration and it is not written here, "  +
       "because the ruling was to declare rather than to converge and converging is a separate decision.",
   },
+
 ];
 
 /** The canary. An empty ledger must never read as a ledger with nothing to say. */

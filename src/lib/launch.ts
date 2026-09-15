@@ -11,6 +11,7 @@ import {
 } from "@/config/launch-readiness";
 import { contact } from "@/config/contact";
 import { services } from "@/content/services";
+import { selfServiceSignUp } from "@/config/launch-conditions";
 
 /**
  * The compliance gate.
@@ -139,7 +140,7 @@ export const LAUNCH_CONDITIONS: LaunchCondition[] = [
      */
     what: "The board holds the name this firm trades under.",
     whoClears:
-      "The operator files an assumed name for 254 Engineering Services and gets TBPELS acknowledgement of it, or renames the entity.",
+      "Nobody. Cleared 2026-09-13: the firm trades under its registered name, which the board already holds.",
     statedIn: "operatingNameOnBoardRecord in src/config/credentials.ts",
     unmet: () =>
       operatingNameOnBoardRecord.onRecord
@@ -203,6 +204,49 @@ export const LAUNCH_CONDITIONS: LaunchCondition[] = [
   },
 
   {
+    /*
+     * ======================================================================
+     * THE EIGHTH CONDITION, AND IT IS NOT THE ONE IT STARTED AS.
+     * ======================================================================
+     *
+     * Phase 13 added a condition to the gate about the three identity secrets
+     * shared between Preview and Production, because self service sign up means
+     * anybody can mint a customer session and a shared preview secret turns that
+     * into anybody minting a production one.
+     *
+     * Between writing it and rebasing it, the operator RULED that the sharing
+     * stays: a decision they weighed rather than a gap waiting to be closed. So
+     * a condition that blocked the gate on the sharing would now hold it shut
+     * forever on something already decided, which is how a gate stops being read.
+     *
+     * The operator was explicit that these are TWO decisions and only one is
+     * made: "sign up does not reach production until I lift it. That is a
+     * different decision from this one and I have not made it."
+     *
+     * So the condition that survives is about the FEATURE, not the secret. The
+     * sharing is recorded in src/config/credential-inventory.ts with a name, a
+     * date and its consequence in full, and soc2-audit asserts every sharing is
+     * ruled rather than that none exists.
+     *
+     * WHAT IT STILL PROTECTS. A customer session signed on any preview
+     * deployment is accepted by production, and preview URLs are publicly
+     * reachable. That is tolerable while every account is one the operator
+     * created. Self service sign up is the thing that turns it from a risk about
+     * a handful of known accounts into a risk about anybody who can reach a
+     * preview URL, which is why this condition exists and why it is the
+     * operator's alone to lift.
+     */
+    id: "self-service-signup",
+    what: "Self service sign up is cleared to reach production.",
+    whoClears: "The operator, and nobody else, by editing the file.",
+    statedIn: "selfServiceSignUp in src/config/launch-conditions.ts",
+    unmet: () =>
+      selfServiceSignUp.cleared
+        ? null
+        : `Self service sign up is not cleared for production. ${selfServiceSignUp.because}`,
+  },
+
+  {
     id: "recovery",
     what: "Point in time recovery is enabled on the production project.",
     whoClears: "The operator, in the Supabase dashboard, and states it here with the date.",
@@ -226,6 +270,49 @@ export const LAUNCH_CONDITIONS: LaunchCondition[] = [
  * is the operator's ruling that nobody can list a line that cannot be
  * dispatched.
  */
+/**
+ * MAY THE SELF SERVICE DOOR OPEN AT ALL.
+ *
+ * ======================================================================
+ * A LAUNCH CONDITION THAT NOTHING CONSULTS IS A NOTE.
+ * ======================================================================
+ *
+ * The eighth condition says self service sign up is not cleared to reach
+ * production, and it is the operator's alone to lift. That sentence appears on
+ * the operator's launch screen and in docs/launch-readiness.md, and until this
+ * function existed it changed NOTHING about whether a stranger could open an
+ * account.
+ *
+ * A gate that describes a door without being able to shut it is the shape this
+ * repository keeps finding: a record that is not a check. So the door reads
+ * this, the screen reads this, and the two cannot disagree because there is one
+ * answer.
+ *
+ * IT IS SEPARATE FROM isPrelaunch ON PURPOSE. isPrelaunch answers "may this
+ * firm hold itself out as offering engineering services", which is a
+ * REGULATORY question about copy. This answers "may an anonymous stranger
+ * create an account", which is a question about a session secret shared with
+ * preview deployments. They are unmet together today and they are not the same
+ * condition, and collapsing them would mean lifting one lifted the other.
+ *
+ * THE ROUTE CHECKS IT TOO, not only the screen. A screen that hides a form is a
+ * screen; the route is what a person who reads HTML has to get past.
+ */
+export function selfServiceSignUpOpen(): boolean {
+  return selfServiceSignUp.cleared === true;
+}
+
+/**
+ * Why it is shut, for a person looking at the screen.
+ *
+ * Deliberately says nothing about preview deployments or session secrets. The
+ * reader is somebody who wanted an account, and the reason it is shut is this
+ * firm's business rather than theirs; what they need is what to do instead.
+ */
+export function selfServiceSignUpClosedSentence(): string {
+  return "Accounts are not open for sign up yet. Ring the office or send a message and somebody will open one for you.";
+}
+
 export function approvedProtocolFor(serviceSlug: string) {
   return approvedProtocols.find((p) => p.serviceSlug === serviceSlug) ?? null;
 }
@@ -252,6 +339,7 @@ export function launchBlockers(): string[] {
 export function launchReadiness(): { condition: LaunchCondition; blocker: string | null }[] {
   return LAUNCH_CONDITIONS.map((condition) => ({ condition, blocker: condition.unmet() }));
 }
+
 
 /**
  * The active firm registration, or null.

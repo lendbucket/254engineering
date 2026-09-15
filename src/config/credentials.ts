@@ -156,14 +156,31 @@ export const legalEntityMatchesRegistrant: {
   registrantOnRecord: string;
   because: string;
 } = {
-  resolved: false,
-  legalNameOnSite: "254 Engineering Services LLC",
+  /*
+   * ANSWERED 2026-09-13, BY THE ONLY PERSON WHO COULD ANSWER IT.
+   *
+   * It was recorded rather than guessed because only the operator holds the
+   * formation documents, and the guess available at the time would have been
+   * wrong: the site's name was the invented one and the board's was real.
+   *
+   * OPERATOR RULING: the entity is 254 Services LLC. business.legalName was
+   * wrong. The firm trades under its registered name, so no assumed name filing
+   * is needed and the board already holds the name the firm operates under.
+   *
+   * KEPT RATHER THAN DELETED, with resolved true. A discrepancy that vanishes
+   * looks like one nobody ever found, and the next reader meeting a legal name
+   * that changed in one commit with no explanation would have to reconstruct
+   * why from the git history. That is this file's own standing practice.
+   */
+  resolved: true,
+  legalNameOnSite: "254 Services LLC",
   registrantOnRecord: "254 Services LLC",
   because:
-    "The site states its legal entity is 254 Engineering Services LLC and TBPELS issued F-29811 to 254 " +
-    "Services LLC. One of those is wrong, or there are two entities. The operator holds the formation " +
-    "documents and this is theirs to answer; it is recorded rather than guessed because /government names " +
-    "the legal entity to procurement officers.",
+    "ANSWERED 2026-09-13 by the operator, who holds the formation documents: the entity is 254 Services " +
+    "LLC, and business.legalName was wrong. It had said 254 Engineering Services LLC since it was written " +
+    "and no such entity exists. The two names now agree because the invented one was corrected to the real " +
+    "one, not because a filing changed anything. 254 Engineering Services survives as the brand wordmark " +
+    "and logo and is never the legal or firm name in a sentence.",
 };
 
 export const operatingNameOnBoardRecord: {
@@ -171,11 +188,38 @@ export const operatingNameOnBoardRecord: {
   /** What the board's record says, or why it does not yet say it. */
   because: string;
 } = {
-  onRecord: false,
+  /*
+   * CLEARED 2026-09-13, AND THE REASON IS NOT THAT A FILING HAPPENED.
+   *
+   * The condition asks whether the board holds the name this firm operates
+   * under. It was unmet because the sites held out as 254 Engineering Services
+   * and F-29811 is issued to 254 Services LLC.
+   *
+   * OPERATOR RULING: the firm trades under its REGISTERED name. So the name the
+   * firm operates under is 254 Services LLC, the board has held it since
+   * 2026-09-10, and no assumed name filing is needed or will be made. The
+   * mismatch was resolved by correcting the sites rather than by asking the
+   * board for anything.
+   *
+   * WHAT HAD TO BE TRUE ON DISK BEFORE THIS WAS SET, because a flag set over a
+   * false state is this repository own recurring defect: 27 sentences across
+   * src and data now name 254 Services LLC where they named the brand, and the
+   * regulatory patterns in scripts/lib/regulatory.mjs learned the new name in
+   * the same commit, so voice-audit did not go blind on the way past.
+   *
+   * THE BRAND SURVIVES AND IS NOT THE FIRM NAME. 254 Engineering Services is
+   * the wordmark, the logo, the page title suffix and og:site_name. It is never
+   * the legal or firm name in a sentence, and compliance-audit still refuses to
+   * let F-29811 appear beside it.
+   */
+  onRecord: true,
   because:
-    "F-29811 is issued to 254 Services LLC. The sites hold out as 254 Engineering Services, and the board " +
-    "has no record of that name. This becomes true when the entity is renamed or an assumed name is filed " +
-    "and recorded with the board, and this sentence says which.",
+    "CLEARED 2026-09-13 by operator ruling. The firm trades under its registered name: F-29811 is issued " +
+    "to 254 Services LLC and that is now the name the firm operates and holds out under, so the board " +
+    "already holds it and no assumed name filing is needed. It was unmet because the sites held out as " +
+    "254 Engineering Services, which the board has no record of; that was resolved by correcting the " +
+    "sites rather than by a filing. The brand survives as the wordmark, the logo and the page titles, " +
+    "and never as the legal or firm name in a sentence.",
 };
 
 /**
