@@ -129,6 +129,12 @@ export const NOT_CREDENTIALS = new Set([
    */
   "PERF_SCOPE", "PERF_ONLY", "PERF_NO_SESSION",
   /*
+   * The phase 14 exercises, 2026-09-15. SHOTS is a directory the preview
+   * mispointing exercise writes its two screenshots into when set. It names a
+   * folder on this machine and nothing else.
+   */
+  "SHOTS",
+  /*
    * break-glass-audit starts three servers one after another, because a
    * process environment is fixed when it boots and the audit needs three
    * different values of MFA_BREAK_GLASS. Three ports, three names.
