@@ -19,11 +19,15 @@
  *
  * WHY THIS CANNOT CLAIM REAL WORK
  * -------------------------------
- * `runBatch` claims ANY eligible kind. Development's queue was drained on
- * 2026-09-15 and holds nothing pending or running, and this refuses to call the
- * worker unless that is still true immediately beforehand, so the only thing a
- * batch can take is the job this exercise wrote. Its handler reaches nothing
- * outside, and the job is enqueued `no_external_effect` besides.
+ * `runBatch` claims ANY eligible kind. Every batch here goes through
+ * `scripts/lib/queue-drain.mjs`, the one refusal the 2026-09-09 emails
+ * produced: nothing starts while outward work is waiting live, and no batch
+ * runs unless every row it would take was written by this run.
+ *
+ * The first version of this file carried its own copy of that guard, a count of
+ * pending jobs of other kinds. `db-guard-audit` refused it on the board, naming
+ * the 55 emails, and it was right to: a second copy of the safety mechanism is
+ * the thing that mechanism was consolidated to stop.
  *
  * INJECTIONS, BOTH HALVES
  * -----------------------
@@ -36,7 +40,9 @@
 process.loadEnvFile?.(".env.local");
 
 import { auditClient, refOf, DEVELOPMENT_REF } from "../lib/db-target.mjs";
-import { enqueue, runBatch, retryDeadJob, registerJob, loadHandlers } from "../../src/lib/ops-jobs.ts";
+import { refuseIfOutwardWorkIsWaiting, makeBatchRunner } from "../lib/queue-drain.mjs";
+import { enqueue, runBatch, retryDeadJob, registerJob, loadHandlers, registeredKinds, handlerFor } from "../../src/lib/ops-jobs.ts";
+import { BATCH_SIZE } from "../../src/lib/job-rules.ts";
 
 const KIND = "queue.resume.exercise";
 const WORKER = "queue-resume-exercise";
@@ -80,23 +86,32 @@ registerJob(KIND, {
 });
 
 const made = [];
+const created = new Set();
+
+await refuseIfOutwardWorkIsWaiting({
+  db,
+  outwardKinds: registeredKinds().filter((k) => handlerFor(k)?.reachesOutside === true),
+  label: "the queue resume exercise",
+});
+const runner = makeBatchRunner({ db, created, batchSize: BATCH_SIZE, runBatch, worker: WORKER });
 const row = async (id) =>
   (await db.from("eng_jobs").select("id, status, attempts, max_attempts, last_error, finished_at").eq("id", id).single()).data;
 
-async function quietQueue() {
-  const { count, error } = await db
-    .from("eng_jobs")
-    .select("id", { count: "exact", head: true })
-    .in("status", ["pending", "running"])
-    .neq("kind", KIND);
-  if (error || typeof count !== "number") throw new Error(`could not count the queue: ${error?.message ?? "null count"}`);
-  if (count !== 0) throw new Error(`${count} real job(s) are pending or running, so a batch could claim them. Stopping before the worker runs.`);
+/* The worker, only through the shared refusal. A refused batch is a stop, never a skip. */
+let batches = 0;
+async function batch() {
+  batches += 1;
+  const report = await runner.ourBatch(`b${batches}`);
+  if (report === null) throw new Error(`the shared refusal stopped a batch: ${runner.lastRefusal}`);
+  return report;
 }
 
-/* The worker, but only over a queue holding nothing except this exercise. */
-async function batch() {
-  await quietQueue();
-  return runBatch(WORKER);
+/* Two workers at once, for the race checks, behind the same ownership check a batch gets. */
+async function racingBatches() {
+  const eligible = await runner.nextEligible(BATCH_SIZE);
+  const foreign = eligible.filter((r) => !created.has(r.id));
+  if (foreign.length) throw new Error(`a racing batch would take ${foreign.length} row(s) this run does not own`);
+  return Promise.all([runBatch(`${WORKER}-a`), runBatch(`${WORKER}-b`)]);
 }
 
 /* Backoff puts a retried job minutes into the future. The exercise owns the row, so it brings it forward. */
@@ -106,6 +121,7 @@ async function newJob(maxAttempts) {
   const r = await enqueue(KIND, { exercise: "2026-09-15" }, { maxAttempts, effectMode: "no_external_effect" });
   if (!r.ok) throw new Error(`enqueue refused: ${r.error}`);
   made.push(r.id);
+  created.add(r.id);
   return r.id;
 }
 
@@ -119,8 +135,7 @@ async function killJob(id) {
 }
 
 try {
-  await quietQueue();
-  rec("development's queue holds no real pending or running job, so the worker can only claim this exercise", true);
+  rec("the shared refusal let the exercise start: no outward work is waiting live on development", true);
 
   // ---------------------------------------------------- into the dead letter
   const id = await newJob(2);
@@ -164,7 +179,7 @@ try {
 
   /* And it is not run twice: not by a later batch, not by two workers at once, not by a resume. */
   const settled = invocations.get(id);
-  const [a, b] = await Promise.all([runBatch(`${WORKER}-a`), runBatch(`${WORKER}-b`)]);
+  const [a, b] = await racingBatches();
   rec("a completed job is not run again, by one batch or by two racing", invocations.get(id) === settled && a.claimed + b.claimed === 0,
     `${a.claimed + b.claimed} claimed`);
   const resurrect = await retryDeadJob(id);
@@ -176,8 +191,7 @@ try {
   await retryDeadJob(racer);
   behaviour = "done";
   const beforeRace = invocations.get(racer);
-  await quietQueue();
-  const [r1, r2] = await Promise.all([runBatch(`${WORKER}-a`), runBatch(`${WORKER}-b`)]);
+  const [r1, r2] = await racingBatches();
   rec("two workers racing for a resumed job run it once between them",
     invocations.get(racer) === beforeRace + 1 && r1.claimed + r2.claimed === 1 && (await row(racer)).status === "done",
     `claimed ${r1.claimed} and ${r2.claimed}, ran ${invocations.get(racer) - beforeRace} time(s)`);
@@ -218,6 +232,7 @@ try {
   if (made.length) await db.from("eng_jobs").delete().in("id", made);
   const { count: residue } = await db.from("eng_jobs").select("id", { count: "exact", head: true }).eq("kind", KIND);
   console.log("");
+  rec("no batch consumed a pending row this run did not own", runner.leaks.length === 0, runner.leaks.join("; ") || "pending never fell by more than the run offered");
   rec("teardown: no job this exercise wrote is left", residue === 0, `${residue} left, ${made.length} written`);
   console.log(`\n${failures ? "FAIL" : "PASS"}: ${failures} failure(s).`);
   process.exit(failures ? 1 : 0);
