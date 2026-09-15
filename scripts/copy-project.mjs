@@ -74,43 +74,178 @@ const PRODUCTION_REF = "fsaryeciduszuahgjbly";
  * it refuses UPDATE and DELETE, and a row missing from it is a regulatory
  * problem rather than an inconvenience. It is verified by id set, not by count.
  */
+/*
+ * ============================================================================
+ * WHAT MOVES, DERIVED AGAINST THE SCHEMA RATHER THAN REMEMBERED.
+ * ============================================================================
+ *
+ * Every eng_ table the migrations declare is in THIS list or in NOT_COPIED with
+ * a reason, and completenessCheck() below fails the run if one is in neither.
+ * That check is why this list is now right: it caught 42 tables holding rows on
+ * the source that a hand maintained list had never been told about, and the
+ * list had been stale since roughly half the platform was built.
+ *
+ * ON THE DAY IT WAS REBUILT the production source held rows in eleven tables and
+ * exactly ONE of them was undeclared: eng_incidents, one row, the firm's only
+ * incident record. The 42 was a development artefact. The one was the loss.
+ *
+ * THE ORDER IS DEPENDENCY ORDER AND WAS COMPUTED, NOT CHOSEN. A Tarjan walk over
+ * pg_constraint found exactly one cycle in the whole graph, eng_profiles against
+ * eng_onboardings, both sides nullable. It is broken at profiles, which about
+ * thirty tables reference, and closed by the second pass at the end.
+ *
+ * RESERVED TO THE OPERATOR: twelve tables carry a record of money moved,
+ * licensure exercised, or consent given, and their disposition is not a
+ * session's to decide. They are marked RESERVED in their own comment. Adding a
+ * table to that class is the operator's call, and five were added on 2026-09-14
+ * after a session flagged them rather than deciding them.
+ */
 const TABLES = [
+  /* Business record carried across by the cutover. */
+  { name: "eng_partners", key: "id" },
+  /* Business record carried across by the cutover. */
   { name: "eng_leads", key: "id" },
-  { name: "eng_applications", key: "id" },
-  { name: "eng_onboardings", key: "id" },
-  { name: "eng_onboarding_items", key: "id" },
+  /* Business record carried across by the cutover. */
   { name: "eng_profiles", key: "id", needsAuthUser: true },
-  { name: "eng_auth_tokens", key: "id" },
+  /* Business record carried across by the cutover. */
   { name: "eng_clients", key: "id" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_customer_accounts", key: "id" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_account_api_keys", key: "id" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_account_properties", key: "id" },
+  /* RESERVED TO THE OPERATOR, added 2026-09-14. What a customer was charged. */
+  { name: "eng_account_trade_prices", key: "id" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_applications", key: "id" },
+  /* Business record carried across by the cutover. */
   { name: "eng_contacts", key: "id" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_protocol_templates", key: "id" },
+  /* Business record carried across by the cutover. */
   { name: "eng_files", key: "id" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_assignments", key: "id" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_audit_events", key: "id", sequence: "eng_audit_events_id_seq", byIdSet: true },
+  /* Business record carried across by the cutover. */
+  { name: "eng_auth_tokens", key: "id" },
+  /* Append only. What makes a certification evidence rather than a claim. */
+  { name: "eng_certification_attempts", key: "id" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_certifications", key: "id" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_credentials", key: "id" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_order_batches", key: "id" },
+  /* RESERVED TO THE OPERATOR. Money owed by a customer. */
+  { name: "eng_statements", key: "id" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_service_orders", key: "id" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_quote_requests", key: "id" },
+  /* Long lived signed links, stored hashed. Dropping these kills every open customer order link, which nobody notices until a customer rings. */
+  { name: "eng_customer_access", key: "id" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_customer_users", key: "id" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_tasks", key: "id" },
+  /* RESERVED TO THE OPERATOR. What a person asked about their own data. */
+  { name: "eng_deletion_requests", key: "id" },
+  /* The sealed deliverable record, including which registration it was filed under. */
+  { name: "eng_documents", key: "id" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_protocol_items", key: "id" },
+  /* The evidence a seal was granted on. */
+  { name: "eng_evidence_items", key: "id" },
+  /* Business record carried across by the cutover. */
   { name: "eng_fee_schedule", key: "id" },
-
-  /*
-   * THE THREE THAT WERE MISSING UNTIL 2026-09-07, AND WHY THEY ARE HERE NOW.
-   *
-   * All three arrived in 0011 and 0012, after this list was written, and
-   * nothing noticed the list had stopped describing the database. Production
-   * held 853 job rows, 5,101 cron runs and 39 metric days that this script
-   * would have left behind without mentioning them.
-   *
-   * Two are telemetry and losing their history would have been defensible. It
-   * would not have been a DECISION, which is the part that made it a defect.
-   * eng_jobs is not telemetry while it holds live work: a pending row at the
-   * copy moment is scheduled work that silently never runs.
-   *
-   * eng_jobs and eng_cron_runs are bigserial, so they carry a sequence that has
-   * to be moved with them. eng_metrics_daily is NOT: its primary key is
-   * (day, metric), which makes it naturally idempotent and needs no sequence.
-   * That distinction was stated wrongly in the first report of this finding and
-   * is corrected here, because "all three are bigserial" is the kind of tidy
-   * sentence that turns into a broken sequence at cutover.
-   */
-  { name: "eng_jobs", key: "id", sequence: "eng_jobs_id_seq" },
-  { name: "eng_cron_runs", key: "id", sequence: "eng_cron_runs_id_seq" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_file_events", key: "id", sequence: "eng_file_events_id_seq" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_file_inputs", key: "id" },
+  /* OPERATOR RULING 2026-09-14. The firm's only incident record, written by hand about something that affected a person. A cutover that silently drops it is the defect class this build exists to prevent. */
+  { name: "eng_incidents", key: "id" },
+  /* RESERVED TO THE OPERATOR. Consent given, or withdrawn. */
+  { name: "eng_marketing_suppressions", key: "email" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_threads", key: "id" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_messages", key: "id", sequence: "eng_messages_id_seq" },
+  /* Business record carried across by the cutover. */
   { name: "eng_metrics_daily", key: "day,metric" },
-
-  { name: "eng_audit_events", key: "id", byIdSet: true },
+  /* Ciphertext survives the move because MFA_ENCRYPTION_KEY is an environment variable and does not travel with the database. */
+  { name: "eng_mfa_enrolments", key: "user_id" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_mfa_recovery_codes", key: "id" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_notification_prefs", key: "profile_id,kind" },
+  /* emailed_at and email_error are the record of whether somebody was actually told. */
+  { name: "eng_notifications", key: "id", sequence: "eng_notifications_id_seq" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_onboardings", key: "id" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_onboarding_items", key: "id" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_order_events", key: "id", sequence: "eng_order_events_id_seq" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_order_inputs", key: "id" },
+  /* RESERVED TO THE OPERATOR. Money moved. */
+  { name: "eng_order_payments", key: "id" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_partner_agreements", key: "version" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_partner_users", key: "id" },
+  /* Append only. The record that a partner agreed not to present as an engineering firm. */
+  { name: "eng_partner_acceptances", key: "id" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_partner_assets", key: "id" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_partner_asset_versions", key: "id" },
+  /* RESERVED TO THE OPERATOR, added 2026-09-14. Money going out. */
+  { name: "eng_partner_statements", key: "id" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_partner_terms", key: "id" },
+  /* RESERVED TO THE OPERATOR, added 2026-09-14. Money owed to a third party. */
+  { name: "eng_partner_entries", key: "id" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_partner_submissions", key: "id" },
+  /* Every partner touch including the ones that lost. A dispute is settled by showing the touch that beat theirs. */
+  { name: "eng_partner_touches", key: "id", sequence: "eng_partner_touches_id_seq" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_review_sessions", key: "id" },
+  /* RESERVED TO THE OPERATOR. What an engineer is owed. */
+  { name: "eng_production_ledger", key: "id" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_protocol_questions", key: "id" },
+  /* RESERVED TO THE OPERATOR. Licensure exercised: which Professional Engineer was in responsible charge of what. */
+  { name: "eng_responsible_charge_log", key: "id", sequence: "eng_responsible_charge_log_id_seq" },
+  /* The accountability record for every deletion. Kept forever by ruling, and refuses DELETE. */
+  { name: "eng_retention_runs", key: "id" },
+  /* RESERVED TO THE OPERATOR. What a customer was billed, line by line. */
+  { name: "eng_statement_lines", key: "id" },
+  /* RESERVED TO THE OPERATOR, added 2026-09-14. Money owed to a technician, the same class as the production ledger. */
+  { name: "eng_tech_pay_ledger", key: "id" },
+  /* Business record carried across by the cutover. */
+  { name: "eng_thread_participants", key: "thread_id,profile_id" },
+  /* RESERVED TO THE OPERATOR, added 2026-09-14. The hours a person is paid for. */
+  { name: "eng_time_log", key: "id" },
+  /*
+   * THE SECOND PASS, AND THE ONLY ONE IN THIS LIST.
+   *
+   * eng_profiles and eng_onboardings reference each other: 0003 gave a profile
+   * an onboarding_id and an onboarding a profile_id, both nullable. That is the
+   * single cycle in this schema's foreign key graph, found by a Tarjan walk over
+   * pg_constraint rather than by reading, and there is no total order that
+   * satisfies it.
+   *
+   * So profiles land FIRST, because about thirty tables reference them and one
+   * references onboardings, and the profile rows are upserted AGAIN here once
+   * onboardings exist, which fills onboarding_id. The upsert is on the primary
+   * key, so the second pass is idempotent and costs one statement.
+   */
+  { name: "eng_profiles", key: "id", secondPass: true },
 ];
 
 /**
@@ -123,8 +258,28 @@ const TABLES = [
  * stops the copy rather than quietly dropping it.
  */
 const NOT_COPIED = {
-  eng_roles: "Seeded by 0018. The destination already holds all seven from the migration replay.",
-  eng_role_grants: "Seeded by 0018 and 0021. The destination already holds all 111.",
+  eng_roles:
+    "Seeded by 0018. The destination already holds all seven from the migration replay.",
+  eng_role_grants:
+    "Seeded by 0018, 0021, 0027, 0029, 0030 and 0046. The destination already holds all 118 from the replay.",
+  eng_jobs:
+    "Telemetry, and one of only two tables retention may delete from. The queue is DRAINED before the cutover, so every job worth keeping has run: a copied job is either finished history or a pending job that would run a second time against a different database. Operator ruling 2026-09-14.",
+  eng_cron_runs:
+    "Telemetry, the other table retention may delete from. eng_metrics_daily is the rollup that OUTLIVES it and IS copied, which is why 0032 makes the rollup kept_forever. CONSEQUENCE, recorded rather than discovered: the status page reads the most recent run per cron name, so on day one it shows no history and reads as never run until the first new run lands, within a minute.",
+  eng_account_api_requests:
+    "The rate limit window and usage telemetry. Regenerates from the first request.",
+  eng_error_types:
+    "Fault telemetry, prunable by declaration.",
+  eng_error_events:
+    "Fault telemetry, prunable by declaration.",
+  eng_alert_state:
+    "One row per thing that can alert, holding a cooldown. Regenerates on the first alert.",
+  eng_customer_auth_tokens:
+    "Short lived set password and reset links. Reissued after the flip, the same treatment staff tokens get at step 12.",
+  eng_partner_tokens:
+    "Short lived set password links. Reissued after the flip.",
+  eng_orders:
+    "The LEGACY intake table reconstructed in 0000. Zero rows on production, nothing in this repository writes it, and no eng_files row references it. 0006's header argues at length why it was not repurposed.",
 };
 
 const BUCKETS = [
