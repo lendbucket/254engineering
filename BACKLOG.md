@@ -63,6 +63,16 @@ operator's word and has not been given. The report's position is that a trade
 price is not a figure on a report, it is a price on an order, and the order's
 figures are already swept.
 
+## STORED FILES: A BACKUP PROPOSAL, AND THE MAP IS NINE PLACES NOT SIX
+
+`docs/storage-backup-proposal.md`, 2026-09-15, proposal only, nothing built or
+spent. Answers 2b's open question from Supabase's docs (the `storage.objects`
+rows are in a database backup, the bytes are not), corrects 2b's six-table map
+to nine places including a JSON path in `eng_applications.payload`, measures a
+production object nothing references and 114 disagreements on development, and
+prices a copy from published list prices. **Rulings needed**: vendor, retention
+of deleted objects at the destination, and the `bucket` migration.
+
 ## THE SYSTEM PRINCIPAL CANNOT RAISE A TASK: ITS ID IS NOT A PROFILE, NOT FIXED
 
 Found 2026-09-15 by the Phase 14 rank 10 exercise,
