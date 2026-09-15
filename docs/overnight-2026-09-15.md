@@ -440,3 +440,128 @@ declare. Red on the shipped code naming `updated_at`, green on the fix.
 - **The articles skipped the research phase** section 8 requires. On your
   instruction, disclosed in the file, but the approval gate was not honoured.
 - **Production was read** for counts and sizes. Nothing was written there.
+
+---
+
+## THE OPERATOR'S RULINGS OF 2026-09-15, ACTED ON
+
+### 1. Registration wording: DONE
+
+Every sentence renders `registrationStatement()`, built from the register:
+"254 Services LLC is a Texas registered engineering firm, TBPELS Firm
+Registration F-29811." The three order API refusals and the phone intake rule
+say "The firm is not yet accepting engagements.", which is launch mode and never
+registration. **The count was not seventeen.** That number came from one grep.
+The sweep and then the new check brought it to 43 replacements, 41 of them
+sentences a person or a caller reads. `compliance-audit` now fails any source
+stating a registration status the register does not support, in both
+directions, and was proven both ways. Commit `65c890e`.
+
+### 2. Notification preferences: RECORDED
+
+In CLAUDE.md section 6, beside the fixture lesson, as a rule tested with its
+input handed to it. Commit `d6a9914`. The fix is `0504646`.
+
+### 3. The system account raising tasks: DONE, AND THE CHOICE STATED
+
+**The requirement changed; the principal did not get a profile.** A platform
+task has `created_by` null, `source_key` `system:<key>` under 0005's unique index,
+and the principal named in the audit row. A profile was rejected because
+`eng_profiles.id` references `auth.users`, which would give a principal that must
+never sign in a sign-in identity, and because it is a migration that would hold
+the merge. Idempotency is now equality on the key rather than a LIKE that treated
+`_` as a wildcard. The exercise is green, and red against the old function.
+Commit `d6d3fdf`.
+
+### 4. The false audit rows: CODE FIXED, ROWS NAMED
+
+The reissue row now says the link was issued, and the sign up route records
+whether the email was queued, as queued, never sent.
+
+**KNOWN FALSE ROWS, PERMANENT, DEVELOPMENT ONLY.** `eng_audit_events` ids
+**17809, 17810, 17811, 17812 and 18206** say a sign up attempt was made and a set
+password link was sent. Neither happened. All five were written by the rank 9
+exercise. **The fifth, 18206, was written today**, by the verification run
+against the old code after the fix, which is how four became five. Commit
+`f204e8c`.
+
+### 5. The articles, against the Ahrefs pull: RETARGETED
+
+| Post | As written, did it serve a measured term? | Now targets |
+| --- | --- | --- |
+| `twia-eligibility-requirements` | Partly: "TWIA" led the title | **twia insurance** 250 / KD5, with **twia** 1500 / KD2 |
+| `twia-temporary-coverage-inspection-form` | No | **Replaced** by `texas-windstorm-certificate-lookup`, the one page for all six search and lookup terms (410 a month). Its content moved into the eligibility post |
+| `windstorm-certificate-of-compliance` | Yes, "windstorm certificate" 200 / KD10 | **texas windstorm certificate** 150 / KD12, plus windstorm certificate and twia certification |
+| `windstorm-inspection-for-roofers` | Yes, "windstorm inspection", but that collides with the live `/windstorm` hub | **windstorm inspector** 30 / KD9 |
+| `roof-certification-vs-wpi-8` | "roof certification", which `/services/roof-inspections` owns | **roof certification for insurance** 60 / KD20 |
+| `twia-coverage-homes-built-before-1988`, `ongoing-vs-completed-improvement`, `post-construction-evaluation-report`, `engineer-letter-vs-windstorm-certificate`, `inspection-vs-forensic-report` | No | Unchanged. **No measured demand.** Supporting pages |
+
+Measured terms deliberately left with existing pages rather than chased: wpi-8
+(the service page), roof certification and its cost, form and inspection
+variants (the service page, and there are no price facts to write about cost),
+foundation certification (the service page), windstorm engineer (the appointed
+engineers page), structural engineer corpus christi (`/corpus-christi`). No
+eleventh post was written. Highest cross-brand similarity is 0.51, under the
+0.55 watch line. Commit `cca7c7b`.
+
+**One correction found on the way.** Last night's backlog entry said the
+windstorm cluster dates the WPI-8C differently from TDI. TDI's own pages date it
+two different ways, and TWIA's a third. The cluster matches one of them. Entry
+corrected, and the lookup page quotes all three.
+
+### 6. Zod on submit: DONE
+
+On the gate, fresh builds: every public page is 64 to 65KB lighter, script 211KB
+to 147KB, `/coverage/coastal-bend` 551 to 486 against 560. In a browser: no zod
+before submit, the same inline errors after it, and a stated message when the
+chunk cannot load. Reading `useFormPost` before the build found `fail()` forced
+the form-level message to null, which would have hidden that message. Commit
+`8dc6ced`.
+
+### 7. The commit made while an audit was red: A MECHANICAL PROPOSAL
+
+**The shape to make impossible:** one command runs an audit, pipes its output
+through something that discards the exit code, and then commits.
+`npx tsx scripts/db-guard-audit.mjs | tail -1 && git add ... && git commit` is
+exactly instance five. The earlier instances were a board chained into a commit,
+and a command run beside a board.
+
+**Layer one, where the mistake is made: a Claude Code PreToolUse hook**, committed
+in `.claude/settings.json`, that inspects every Bash command before it runs and
+refuses two shapes outright:
+
+- a command containing `git commit` that also runs anything under `scripts/`, or
+  `npm run`, or `tsx`. A commit gets its own command, always.
+- a command containing `npm run audit` that contains anything else apart from
+  redirecting its own output to a file.
+
+It is a string rule and deliberately blunt. It would have refused instance five,
+and instances three and four, before a single process started. It cannot be
+forgotten, because it runs whether or not anybody remembers the rule.
+
+**Layer two, for any committer and any terminal: a git pre-commit hook**, committed
+under `.githooks/` and switched on by a `prepare` script setting `core.hooksPath`.
+
+- It refuses while an audit lock exists with a live PID. The suite runner and the
+  preflight that already runs before every npm audit script would write that
+  lock, so a commit from a second terminal mid-board is refused.
+- It refuses when the most recent recorded run of any audit, **against this exact
+  working tree**, exited non-zero, and names the audit.
+
+**What layer two cannot see, stated now.** An audit invoked directly with
+`npx tsx scripts/x-audit.mjs` bypasses the npm pre hook and records nothing.
+Instance five was exactly that invocation. Closing it means each audit records
+its own exit, a small change repeated across 53 files. That is why layer one is
+the primary proposal: it catches the command before anything runs. Neither layer
+is built; both change how commits and the harness behave, which is your call.
+
+---
+
+## ALSO FROM TODAY
+
+- **Stripe, read before the Production keys were added.** Two variables only,
+  `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`. The webhook is
+  `https://254engineering.com/api/stripe/webhook`, handling
+  `checkout.session.completed`, `checkout.session.expired` and `charge.refunded`.
+  Nothing detects keys from mismatched accounts. **A gap:** statement checkout
+  never asks the launch gate. `BACKLOG.md`, ruling needed.

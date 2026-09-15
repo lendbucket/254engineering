@@ -63,7 +63,24 @@ operator's word and has not been given. The report's position is that a trade
 price is not a figure on a report, it is a price on an order, and the order's
 figures are already swept.
 
-## SEVENTEEN RENDERED SENTENCES STILL SAY THE FIRM REGISTRATION IS PENDING, NOT FIXED
+## STATEMENT CHECKOUT DOES NOT CHECK THE LAUNCH GATE, NOT FIXED
+
+Found 2026-09-15 reading the Stripe integration for the operator before the
+Production keys were added. `startStatementCheckout` in `src/lib/ops-statements.ts`,
+reached from `POST /api/account/statements`, checks that the payment provider is
+configured, that the statement exists, is awaiting payment and adds up, and that
+the account has a billing email. **It never asks `isPrelaunch()`.** The order
+routes and `startCheckout` callers are gated; this one is gated only by whether a
+statement exists. Production held zero statements, orders, batches and payments
+when read, so nothing can be charged through it today. The first statement issued
+while the gate is shut, with live keys present, could be paid. A ruling on whether
+a statement is an engagement the gate governs, then one line and a check.
+
+## RESOLVED 2026-09-15: RENDERED SENTENCES SAID THE FIRM REGISTRATION WAS PENDING
+
+Fixed on the operator ruling. Every site renders `registrationStatement()` from the register, the order refusals render `notYetAcceptingEngagements()`, and `compliance-audit` fails any source under `src` stating a registration status the register does not support, in both directions. **The count was not seventeen.** That figure came from one grep; the sweep and then the new check brought it to 43 replacements: 41 sentences a person or a caller reads, on public pages, in APIs, on portal and partner screens, in seal refusals, a report note and a seeded task, plus the demo seed script and one operator script message.
+
+### As first recorded
 
 Found 2026-09-15 while reading the windstorm cluster before writing articles.
 TBPELS issued F-29811 to 254 Services LLC on 2026-09-10, active, and
