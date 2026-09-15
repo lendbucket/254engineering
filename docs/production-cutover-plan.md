@@ -4,6 +4,99 @@ Written 2026-09-03.
 
 ---
 
+## PARKED, DELIBERATELY, 2026-09-15. READ THIS FIRST.
+
+**Nothing has been applied. Nothing is half done. This is a park, not an
+abandonment**, and it names the step it resumes at.
+
+### Where it stands
+
+**It resumes at PHASE 0 STEP 0.4**, the dry run of `copy-project.mjs`, which has
+been prepared and cannot be run without the operator.
+
+| Step | State |
+| --- | --- |
+| 0.1 T1 | **Done.** `254engineering-rehearsal` reused, nothing created, nothing new billed |
+| 0.2 Replay | **DERIVED, NOT EXECUTED.** See the entry below the phase 0 table |
+| 0.3 Buckets | **Done.** Five on T1, all private, mirroring development, verified by column and by the public URL an outsider would try |
+| **0.4 Dry run** | **BLOCKED ON THE OPERATOR.** Needs the target's service role key, which does not enter a session |
+| 0.5, 0.6 | Not started. Behind 0.4 |
+| 0.7 Restore clone | **DEFERRED, NOT SKIPPED.** Approved in principle at about $10.18 a month, refused for the night. Operator's in the dashboard, this session's for the read-back |
+| Phase 1 | **Not started. Not to be started without the operator present** |
+
+### What phase 0 established
+
+**The copy script had never run against anything.** Step 8c says so in writing.
+Running it found two hard stops that reading it had not, in a file whose parts
+were all individually verified.
+
+**Stop one: the copy list was stale since roughly half the platform was built.**
+14 tables listed, 76 declared by the migrations. `completenessCheck` caught it
+because it derives candidates from `supabase/migrations` on disk rather than from
+memory. Now 65 copied, 11 excluded, **76 of 76 declared, zero undeclared**, in a
+dependency order computed by a Tarjan walk over `pg_constraint` rather than
+chosen, with the single cycle in the whole graph handled as its own named step.
+
+**Stop two: the copy read at most 1000 rows and called it the table.** It would
+have copied 1,000 of 17,500 audit events and printed `agree`. The strictest check
+in the file, the id-by-id comparison on the regulatory memory, was capped on both
+sides and printed that it had compared a thousand ids one by one. Fixed by
+`scripts/lib/read-every-row.mjs`, whose guard is the assertion rather than the
+paging.
+
+**And a third, found after:** the queue stop reported a depth of 20 when the
+queue held 668, because it read `.limit(20)` and reported the sample's length.
+
+### What the dry run proved, and what it did not
+
+**A DRY RUN PROVES THE PLAN, NOT THE APPLY.** It proved the script can reach both
+projects, enumerate the schema, count what it intends to copy, and refuse. It
+proved the paging fix against real data, 17,500 rather than 1,000.
+
+**It proved nothing about writing.** No row has been inserted anywhere. The
+upsert path, the auth.users precondition, the sequence setvals, the storage copy
+and the id set comparison after a write are all unexercised. `--apply` has never
+run against anything.
+
+### Dispositions, ruled 2026-09-14 and 2026-09-15
+
+**By the operator:** all twelve reserved tables are COPY. The seven they named,
+plus five this session flagged rather than decided and they then reserved, being
+the same class: money moved, licensure exercised, consent given. `eng_incidents`
+is COPY by explicit ruling, being the firm's only incident record. `eng_jobs` and
+`eng_cron_runs` are EXCLUDED and drained rather than copied.
+
+**By this session, accepted:** the remaining 46 copies and 7 exclusions, each
+with its reason in `scripts/copy-project.mjs`.
+
+### What is blocked, and on whom
+
+| Blocked | On whom | Why |
+| --- | --- | --- |
+| 0.4, 0.5, 0.6 | **Operator** | The target's service role key. It does not enter a session and is supplied at the keyboard for one command |
+| 0.7 | **Operator** | A dashboard operation. The MCP's `restore_project` only un-pauses. Plus the spend |
+| Step 6 freeze, step 11 flip, step 13 unfreeze | **Operator** | Vercel, and the three crons |
+| The whole of phase 1 | **Operator present** | Hard stops before step 6 and step 13 |
+
+### Two things that would otherwise be misread
+
+**THE QUEUE STOP IS A DEVELOPMENT CONDITION, NOT A CUTOVER BLOCKER.**
+Production's pending queue is EMPTY and was throughout. The 668 jobs were
+development telemetry accumulated because development has no cron running. "The
+dry run was blocked on the queue" would read as a risk to the flip, and there is
+no such risk.
+
+**THE TARGET IS NOT SETTLED.** This session recommended running the exercise
+against the rehearsal and then deleting it, which gives the operator one Supabase
+project for 254 and never writes to prod. The operator asked about running it
+against `254engineering-prod` instead; that is answered in the phase 0 blockers
+section and needs a decision before 0.4 runs, because prod is at **0023** and the
+copy would fail against a schema nineteen migrations short.
+
+**`254engineering-rehearsal` stays until the operator deletes it.**
+
+---
+
 ## REOPENED BY DECISION, 2026-09-10. NOTHING HAS BEEN TOUCHED.
 
 **Operator ruling.** The cutover moves ahead of Section 6. The reason, in the
