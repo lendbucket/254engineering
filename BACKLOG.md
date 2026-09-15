@@ -63,6 +63,20 @@ operator's word and has not been given. The report's position is that a trade
 price is not a figure on a report, it is a price on an order, and the order's
 figures are already swept.
 
+## THE SYSTEM PRINCIPAL CANNOT RAISE A TASK: ITS ID IS NOT A PROFILE, NOT FIXED
+
+Found 2026-09-15 by the Phase 14 rank 10 exercise,
+`scripts/exercises/system-raises-task.mjs`, which is red on purpose.
+`raiseSystemTask` inserts `eng_tasks.created_by = 00000000-0000-4000-8000-000000005957`,
+`eng_tasks_created_by_fkey` references `eng_profiles(id)`, no such profile exists
+on development, and no migration seeds one. The database refused the insert.
+Nothing calls `raiseSystemTask` today, so nothing has failed yet; the first
+schedule that relies on the principal's `tasks.raise` will. **Ruling needed**:
+a seeded profile (which needs an `auth.users` row for a principal that must
+never sign in), a null creator for platform work with the principal named in
+the trail, or a different key. Also read in the same function and not provable
+until it can insert: the idempotency `LIKE` does not escape `_` or `%` in the key.
+
 ## `customer_account.link_reissued` RECORDS CONTACT THAT MAY NOT HAVE HAPPENED, NOT FIXED
 
 Found 2026-09-15 by the Phase 14 rank 9 exercise, by reading the trail rows it
