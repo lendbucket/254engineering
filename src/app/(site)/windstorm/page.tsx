@@ -131,8 +131,8 @@ export default function WindstormHubPage() {
             , inside the designated area.
           </p>
           <p className="mt-6 text-[1.02rem] leading-[1.75] text-slate-muted">
-            What 254 Services LLC is built to deliver on windstorm work, once its
-            registration is issued, is set out on the{" "}
+            What 254 Services LLC is built to deliver on windstorm work, once it
+            opens for work, is set out on the{" "}
             <Link href="/services/windstorm-wpi-8" className="underline underline-offset-4">
               windstorm capability page
             </Link>

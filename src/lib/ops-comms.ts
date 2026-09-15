@@ -377,7 +377,7 @@ export const COMPLIANCE_SEEDS: ComplianceSeed[] = [
     key: "tbpels_registration_renewal",
     title: "Renew the TBPELS firm registration",
     description:
-      "Renewal falls one year from issuance, so the date is set on launch day when the certificate arrives. Registration is pending as this task is seeded, and the firm cannot offer engineering services without it.",
+      "Renew before the registration expires. The expiry date is on the register in src/config/credentials.ts, and the firm cannot offer engineering services without an active registration.",
     recurrence: "annually",
     priority: "urgent",
     anchor: null,

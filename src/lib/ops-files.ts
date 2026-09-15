@@ -268,9 +268,9 @@ export function canTransition(
     return {
       ok: false,
       reason:
-        `The firm cannot ${to === "sealed" ? "seal" : "deliver"} work yet. Firm registration with ` +
-        "the Texas Board of Professional Engineers and Land Surveyors is pending and no Professional " +
-        "Engineer is in responsible charge. The file can be prepared to this point and no further.",
+        `The firm cannot ${to === "sealed" ? "seal" : "deliver"} work yet. It is not yet accepting ` +
+        "engagements and no Professional Engineer is in responsible charge. The file can be prepared " +
+        "to this point and no further.",
     };
   }
 

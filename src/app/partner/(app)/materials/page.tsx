@@ -199,7 +199,7 @@ export default async function PartnerMaterials() {
         <p className="max-w-[74ch] text-[13.5px] leading-[1.65] text-[var(--ink)]">
           Approved wording is wording the firm has checked against the same rules its own website is
           held to. Using it as written means you are not making a claim the firm could not make
-          itself, which is the thing that matters while its registration is pending.
+          itself, which is the thing that matters while it is not yet accepting engagements.
         </p>
         <p className="mt-3 max-w-[74ch] text-[13.5px] leading-[1.65] text-[var(--ink)]">
           What this cannot do is police what is published elsewhere, and nothing here should be read

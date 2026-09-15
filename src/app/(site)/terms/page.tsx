@@ -6,6 +6,7 @@ import { Prose } from "@/components/ui/primitives";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { business } from "@/config/business";
+import { registrationStatement } from "@/lib/launch";
 
 export const metadata: Metadata = buildMetadata({
   title: "Terms of Use and Site Conditions | 254 Engineering",
@@ -67,11 +68,10 @@ export default function TermsPage() {
 
               <h2>Firm registration status</h2>
               <p>
-                The firm&apos;s registration with the Texas Board of Professional Engineers and Land
-                Surveyors is pending. Until that registration is active, this firm does not offer or
-                perform engineering services in Texas, and no page of this website should be read as
-                an offer to do so. The footer of every page states the current status, and it changes
-                when the status does.
+                {registrationStatement()} Until the firm opens for work, it does not offer or perform
+                engineering services in Texas, and no page of this website should be read as an offer
+                to do so. The footer of every page states the registration, and it changes when the
+                register does.
               </p>
 
               <h2>No guaranteed outcomes</h2>

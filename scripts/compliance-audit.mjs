@@ -717,6 +717,92 @@ const RULED_CONDITIONS = [
   );
 }
 
+/* ------------------------------------------------------------------------
+ * NO SURFACE STATES A REGISTRATION STATUS THE REGISTER DOES NOT SUPPORT.
+ *
+ * Operator ruling, 2026-09-15. TBPELS issued F-29811 on 2026-09-10 and more
+ * than twenty rendered sentences went on saying the registration was pending,
+ * on public pages, in order API refusals, in seal refusals and on staff
+ * screens, because each was a literal and this file guarded only the portal
+ * rail. They now render `registrationStatement()`, and the order refusals
+ * render `notYetAcceptingEngagements()`, which is about launch mode and never
+ * about registration.
+ *
+ * Checked in both directions against the REGISTER, which is the declaration:
+ * with an active registration, no source may carry a sentence saying it is
+ * pending or not yet issued; with none, no source may call the firm registered.
+ * The one exemption is registrationLine() and registrationStatement() in
+ * launch.ts, whose branches are chosen by the register itself.
+ * ------------------------------------------------------------------------ */
+{
+  const { readdirSync, statSync } = await import("node:fs");
+  const { registrationStatement, notYetAcceptingEngagements } = await import("../src/lib/launch.ts");
+  const hasActive = verifiedFirmRegistrations.some(
+    (r) => r.status === "active" && r.expires >= new Date().toISOString().slice(0, 10),
+  );
+
+  /* The ruled sentences, written out, because an audit does not import its expectation. */
+  const RULED = "254 Services LLC is a Texas registered engineering firm, TBPELS Firm Registration F-29811.";
+  rec(
+    "the registration sentence is exactly the ruled one, built from the register",
+    registrationStatement() === RULED,
+    registrationStatement() ?? "null",
+  );
+  rec(
+    "and the launch mode refusal says nothing about registration",
+    notYetAcceptingEngagements() === "The firm is not yet accepting engagements.",
+    notYetAcceptingEngagements(),
+  );
+
+  const UNISSUED = [
+    /registration[^.;"`]{0,80}\bpending\b/i,
+    /\bpending with (?:the )?(?:TBPELS|Texas Board)/i,
+    /application pending with the Texas Board/i,
+    /registration (?:is )?not yet (?:issued|active)/i,
+    /(?:once|when|until) (?:its |the |firm )?registration (?:is )?(?:issued|issues|active)\b/i,
+    /\bnot yet registered\b/i,
+  ];
+  const ISSUED = [/Texas registered engineering firm/i, /TBPELS Firm Registration F-/i];
+
+  const files = [];
+  const walk = (dir) => {
+    for (const name of readdirSync(dir)) {
+      const full = `${dir}/${name}`;
+      if (statSync(full).isDirectory()) walk(full);
+      else if (/\.(ts|tsx)$/.test(name)) files.push(full);
+    }
+  };
+  walk("src");
+
+  const launchExempt = (file, text) => {
+    if (file !== "src/lib/launch.ts") return text;
+    return text
+      .replace(/export function registrationLine\(\)[\s\S]*?\n}\n/, "")
+      .replace(/export function registrationStatement\(\)[\s\S]*?\n}\n/, "");
+  };
+
+  const hits = [];
+  for (const file of files) {
+    const text = launchExempt(file, codeOnly(readSource(file)));
+    for (const pattern of hasActive ? UNISSUED : ISSUED) {
+      const m = text.match(pattern);
+      if (m) hits.push(`${file}: "${m[0]}"`);
+    }
+  }
+  rec(
+    "the sweep had source to read",
+    files.length > 100,
+    `${files.length} .ts and .tsx files under src (if this were zero the check below would pass over nothing)`,
+  );
+  rec(
+    hasActive
+      ? "no surface says the registration is pending or not yet issued, because the register holds an active one"
+      : "no surface calls the firm registered, because the register holds no active registration",
+    hits.length === 0,
+    hits.length ? hits.join("; ") : `${files.length} files read against the register`,
+  );
+}
+
 /* ----------------------------------------------------------------- verdict */
 
 console.log("");

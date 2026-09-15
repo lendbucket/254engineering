@@ -3,7 +3,7 @@ import { placeOrder, requestQuote } from "@/lib/ops-intake";
 import { startCheckout } from "@/lib/ops-payments";
 import { signOrderUpload } from "@/lib/order-uploads";
 import { SITE_KEY } from "@/lib/supabase";
-import { isPrelaunch } from "@/lib/launch";
+import { isPrelaunch, notYetAcceptingEngagements } from "@/lib/launch";
 import { attributeOrder, VISITOR_COOKIE } from "@/lib/ops-partners";
 
 export const dynamic = "force-dynamic";
@@ -67,8 +67,7 @@ export async function POST(request: NextRequest) {
       {
         ok: false,
         prelaunch: true,
-        error:
-          "The firm is not taking orders yet. Registration with the Texas Board of Professional Engineers and Land Surveyors is pending.",
+        error: notYetAcceptingEngagements(),
       },
       { status: 409 },
     );

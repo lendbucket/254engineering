@@ -836,7 +836,7 @@ export async function pipelineReport(period = periodOf(), scope: FigureScope = "
   let cycle: Count = null;
   let cycleRows: FigureRow[] = [];
   let cycleNote =
-    "Sealed orders only, from payment to seal. Nothing has been sealed, which is expected until the registration is active.";
+    "Sealed orders only, from payment to seal. Nothing has been sealed, which is expected until the firm opens for work.";
 
   const withFiles = all.filter((o) => o.file_id && o.paid_at);
   if (withFiles.length > 0) {

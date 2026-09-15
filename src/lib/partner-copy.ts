@@ -3,7 +3,7 @@ import {
   NEVER_CLAIMS,
 } from "../../scripts/lib/regulatory.mjs";
 import { BANNED_PHRASES } from "../../scripts/lib/voice-blocklist.mjs";
-import { isPrelaunch } from "./launch";
+import { isPrelaunch, registrationStatement } from "./launch";
 
 /**
  * Whether a piece of partner marketing copy may be published.
@@ -112,7 +112,7 @@ function summarise(findings: CopyFinding[]): string {
   const regulated = findings.filter((f) => f.kind === "regulated" || f.kind === "never");
   if (regulated.length > 0) {
     return (
-      `This says something the firm's own website may not say while its registration is pending: ` +
+      `This says something the firm's own website may not say while the firm is not yet accepting engagements: ` +
       `${regulated.map((f) => `"${f.match}" (${f.why})`).join(", ")}. ` +
       `A partner surface is held to the same rule as the public site, because the licence at risk is the same licence.`
     );
@@ -131,6 +131,6 @@ function summarise(findings: CopyFinding[]): string {
  */
 export function performingFirmLine(): string {
   return isPrelaunch()
-    ? "254 Services LLC is the firm of record for work referred through this programme, and is the firm that will perform and seal it. Firm registration is pending with the Texas Board of Professional Engineers and Land Surveyors."
+    ? ["254 Services LLC is the firm of record for work referred through this programme, and is the firm that will perform and seal it.", registrationStatement()].filter(Boolean).join(" ")
     : "254 Services LLC is the firm of record for work referred through this programme, and is the firm that performs and seals it.";
 }

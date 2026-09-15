@@ -74,7 +74,7 @@ export default async function IntakePage() {
 
       {isPrelaunch() ? (
         <RestrictedMode
-          also="A job can be taken, priced and dispatched. It cannot be charged for: no payment link and no invoice until registration is active. Open it unpaid and the file will say so."
+          also="A job can be taken, priced and dispatched. It cannot be charged for: no payment link and no invoice until the firm opens for work. Open it unpaid and the file will say so."
         />
       ) : null}
 

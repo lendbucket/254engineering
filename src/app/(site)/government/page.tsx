@@ -11,7 +11,7 @@ import { Section, SectionHead } from "@/components/ui/section";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { business, samRegistration } from "@/config/business";
-import { tbpelsFirmNumber } from "@/lib/launch";
+import { registrationStatement, tbpelsFirmNumber } from "@/lib/launch";
 import { services } from "@/content/services";
 import { regions } from "@/content/regions";
 import { sealedDeliverableSentence } from "@/content/model-copy";
@@ -157,12 +157,10 @@ export default function GovernmentPage() {
                     ? `Registered with the Texas Board of Professional Engineers and Land Surveyors. TBPELS Firm No. ${firmNumber}.`
                     : (
                         <>
-                          Application pending with the Texas Board of Professional Engineers and
-                          Land Surveyors. The firm is not offering or performing engineering
-                          services until the registration is active, and this page will carry the
-                          firm number when it issues. What that registration is, and why an
-                          unregistered entity may not describe itself as an engineering firm, is
-                          set out in{" "}
+                          {registrationStatement()} The firm is not offering or performing
+                          engineering services until it opens for work. What that registration is,
+                          and why an unregistered entity may not describe itself as an engineering
+                          firm, is set out in{" "}
                           <Link
                             href="/insights/texas-engineering-firm-registration"
                             className="text-slate underline decoration-brass/60 underline-offset-4 hover:decoration-brass"
@@ -247,7 +245,7 @@ export default function GovernmentPage() {
                 </p>
                 <p className="mt-3 text-[0.95rem] leading-[1.7] text-slate-muted">
                   A one page capability statement in the format contracting officers file will be
-                  published here once the firm registration is active and the SAM identifiers are
+                  published here once the firm opens for work and the SAM identifiers are
                   confirmed. Until then a contracting officer can request the current version by
                   email and will receive it with the pending items marked as pending.
                 </p>

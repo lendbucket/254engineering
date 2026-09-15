@@ -1,4 +1,4 @@
-import { peInResponsibleCharge } from "@/lib/launch";
+import { peInResponsibleCharge, registrationStatement } from "@/lib/launch";
 
 /**
  * The careers hub copy, as content rather than as markup.
@@ -227,7 +227,13 @@ export function careersFaqs(): { q: string; a: string }[] {
       q: "Is the firm registered and practising today?",
       a: pe
         ? "Yes. The firm is registered with the Texas Board of Professional Engineers and Land Surveyors and a licensed engineer is in responsible charge."
-        : "Not yet, and this is stated plainly because it affects your decision. Firm registration with the Texas Board of Professional Engineers and Land Surveyors is pending, and a Texas firm registration requires an engineer in responsible charge to be named. The selected engineer is named on that application, so you would be joining at the point the firm becomes able to practise rather than after it. No work is being sealed today.",
+        : [
+            "Not practising yet, and this is stated plainly because it affects your decision.",
+            registrationStatement(),
+            "No engineer is yet in responsible charge and no work is being sealed today, so you would be joining at the point the firm becomes able to practise rather than after it.",
+          ]
+            .filter(Boolean)
+            .join(" "),
     },
   ];
 }

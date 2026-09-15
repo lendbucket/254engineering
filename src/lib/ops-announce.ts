@@ -56,8 +56,7 @@ export type Recipient = { name: string; email: string };
 export function announcementBlockedReason(): string | null {
   if (isPrelaunch()) {
     return (
-      "The firm's registration with the Texas Board of Professional Engineers and Land Surveyors " +
-      "is pending. The launch announcement says the firm is open for orders, which is a present " +
+      "The firm is not yet accepting engagements. The launch announcement says the firm is open for orders, which is a present " +
       "tense service claim and is not true today. It cannot be sent until the gate lifts."
     );
   }

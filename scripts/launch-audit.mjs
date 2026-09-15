@@ -296,7 +296,7 @@ async function run() {
 
     rec(
       "prelaunch: the waitlist page states plainly that work is not being accepted",
-      /not yet accepting engineering work/i.test(pre.get("/waitlist").text),
+      /not yet accepting engagements/i.test(pre.get("/waitlist").text),
     );
 
     // ---------- the engineer of record gate ----------
@@ -518,8 +518,8 @@ async function run() {
 
     const why = announcementBlockedReason();
     rec(
-      "the announcement says it is blocked in prelaunch",
-      typeof why === "string" && /registration/i.test(why),
+      "the announcement says it is blocked in prelaunch, by launch mode and not by a registration status",
+      typeof why === "string" && /not yet accepting engagements/i.test(why) && !/registration/i.test(why),
       why ?? "it reported nothing blocking it",
     );
 
@@ -536,8 +536,8 @@ async function run() {
     );
 
     rec(
-      "and the refusal names the registration rather than failing vaguely",
-      attempted.ok === false && /registration/i.test(attempted.error),
+      "and the refusal gives launch mode as the reason rather than failing vaguely or claiming a registration status",
+      attempted.ok === false && /not yet accepting engagements/i.test(attempted.error) && !/registration/i.test(attempted.error),
       attempted.ok ? "" : attempted.error.slice(0, 90),
     );
   } catch (err) {

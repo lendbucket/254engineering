@@ -1,6 +1,6 @@
 import { Container } from "@/components/ui/Container";
 import { business, samRegistration } from "@/config/business";
-import { peInResponsibleCharge, tbpelsFirmNumber } from "@/lib/launch";
+import { peInResponsibleCharge, registrationStatement, tbpelsFirmNumber } from "@/lib/launch";
 
 /**
  * The credentials strip.
@@ -23,7 +23,7 @@ export function CredentialsStrip() {
       label: "Firm registration",
       value: firmNumber
         ? `TBPELS Firm No. ${firmNumber}`
-        : "Pending with the Texas Board of Professional Engineers and Land Surveyors",
+        : (registrationStatement() ?? "No firm registration is on record"),
     },
     {
       // The second gate, stated on its own line rather than folded into the

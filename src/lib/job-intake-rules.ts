@@ -74,8 +74,10 @@ export function paymentOptions(input: {
   priced: boolean;
 }): PaymentOption[] {
   const gate =
-    "The firm's registration with the Texas Board of Professional Engineers and Land Surveyors " +
-    "is pending. No payment can be taken until it is active.";
+    /* A literal, because a client component imports this module and launch.ts
+     * does not belong in a browser bundle. It states launch mode, never
+     * registration, in the same words notYetAcceptingEngagements() uses. */
+    "The firm is not yet accepting engagements. No payment can be taken until it opens for work.";
 
   return [
     {

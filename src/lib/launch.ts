@@ -414,6 +414,38 @@ export function peInResponsibleCharge(): boolean {
  * firm registration number to appear on the firm's public representations once
  * it exists.
  */
+/**
+ * THE REGISTRATION, AS A SENTENCE, READ OFF THE REGISTER. Operator ruling,
+ * 2026-09-15.
+ *
+ * Seventeen places were reported as saying the registration was pending, as
+ * literals, for five days after TBPELS issued F-29811; a full sweep found more.
+ * Every one of them now renders this, so the sentence changes when the register
+ * does and cannot be left behind by it.
+ *
+ * It says what the register records and nothing else. Not that the firm is
+ * accepting work, not that anything is in force beyond the registration: the
+ * launch gate governs those, separately, through `notYetAcceptingEngagements`.
+ * With no active registration on record it returns null, and a caller says
+ * nothing about registration rather than inventing a status.
+ */
+export function registrationStatement(): string | null {
+  const registration = activeFirmRegistration();
+  if (!registration) return null;
+  return `${registration.issuedTo} is a Texas registered engineering firm, TBPELS Firm Registration ${registration.number}.`;
+}
+
+/**
+ * WHY THE FIRM IS NOT TAKING WORK, WHICH IS LAUNCH MODE AND NOT REGISTRATION.
+ *
+ * The order refusals used to give registration as the reason, which conflated
+ * two facts: a registration issued, and the gate stayed shut for other reasons.
+ * Callers use this only inside an `isPrelaunch()` branch.
+ */
+export function notYetAcceptingEngagements(): string {
+  return "The firm is not yet accepting engagements.";
+}
+
 export function registrationLine(): string {
   /*
    * THE REGISTRATION IS STATED WHILE THE GATE IS SHUT, AND THAT IS A CHANGE.

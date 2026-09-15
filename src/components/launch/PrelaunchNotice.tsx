@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { isPrelaunch } from "@/lib/launch";
+import { isPrelaunch, notYetAcceptingEngagements, registrationStatement } from "@/lib/launch";
 
 /**
  * The service page disclosure.
@@ -29,10 +29,9 @@ export function PrelaunchNotice({ service }: { service?: string }) {
         Opening soon
       </p>
       <p className="mt-2 text-[15px] leading-[1.65] text-slate-fg-muted">
-        254 Services LLC is not yet accepting engineering work. Firm registration with the
-        Texas Board of Professional Engineers and Land Surveyors is pending, no engineer of record is
-        yet in responsible charge, and this page describes a service the firm is being built to
-        deliver.{" "}
+        {[notYetAcceptingEngagements(), registrationStatement()].filter(Boolean).join(" ")} No engineer
+        of record is yet in responsible charge, and this page describes a service the firm is being
+        built to deliver.{" "}
         <Link
           href={waitlistHref}
           className="font-medium text-slate-fg underline decoration-brass underline-offset-4 transition-colors hover:text-brass-light"

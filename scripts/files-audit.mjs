@@ -99,7 +99,7 @@ const GATED = { prelaunch: true };
     }
   }
   rec(
-    `no role can reach sealed or delivered while the registration is pending (${ROLES.length} roles x ${FILE_STATUSES.length} statuses)`,
+    `no role can reach sealed or delivered while the firm is prelaunch (${ROLES.length} roles x ${FILE_STATUSES.length} statuses)`,
     leaks === 0,
     leaks ? `${leaks} leaks` : "",
   );
@@ -119,10 +119,20 @@ const GATED = { prelaunch: true };
 
   // And the refusal has to explain itself, or an operator will read it as a bug.
   const refusal = canTransition(engineer, "under_review", "sealed", GATED);
+  /*
+   * It used to have to NAME THE REGISTRATION, and that is what the 2026-09-15
+   * ruling removed: the registration issued on 2026-09-10 and the refusal went on
+   * giving "registration pending" as the reason, which was false. The true
+   * reasons are launch mode and nobody in responsible charge, so those are what
+   * it must name, and a registration status is what it must not claim.
+   */
   rec(
-    "the gate's refusal names the registration rather than saying no",
-    !refusal.ok && /registration/i.test(refusal.reason) && /Professional Engineer/i.test(refusal.reason),
-    refusal.ok ? "it allowed it" : refusal.reason.slice(0, 60),
+    "the gate's refusal gives its real reasons, launch mode and responsible charge, rather than saying no",
+    !refusal.ok &&
+      /not yet accepting engagements/i.test(refusal.reason) &&
+      /Professional Engineer/i.test(refusal.reason) &&
+      !/registration/i.test(refusal.reason),
+    refusal.ok ? "it allowed it" : refusal.reason.slice(0, 90),
   );
 
   // The same move must work once the firm is registered, or the gate is just a wall.

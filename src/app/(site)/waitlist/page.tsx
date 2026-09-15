@@ -6,12 +6,12 @@ import { Eyebrow, Rule } from "@/components/ui/primitives";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { services } from "@/content/services";
-import { isPrelaunch } from "@/lib/launch";
+import { isPrelaunch, notYetAcceptingEngagements, registrationStatement } from "@/lib/launch";
 
 export const metadata: Metadata = buildMetadata({
   title: "Texas Engineering Services Waitlist | 254 Engineering",
   description:
-    "Firm registration with the Texas Board of Professional Engineers and Land Surveyors is pending. Join the waitlist and hear directly when it is active.",
+    "254 Services LLC is not yet accepting engagements. Join the waitlist to hear directly from the firm, before any general announcement, when it opens for work.",
   path: "/waitlist",
   // Not indexed. This page exists to serve the prelaunch CTA, and it becomes a
   // redirect the day the firm opens. A page with a planned death should not be
@@ -55,8 +55,8 @@ export default async function WaitlistPage({
         title={prelaunch ? "Join the 254 Engineering Services waitlist" : "The firm is now open"}
         lede={
           prelaunch
-            ? "254 Services LLC is not yet accepting engineering work. Firm registration with the Texas Board of Professional Engineers and Land Surveyors is pending, and until it is active the firm cannot offer or perform engineering services in Texas. That is a straightforward legal requirement and this firm is not going to work around it."
-            : "Firm registration is active and 254 Services LLC is accepting work. If you joined the waitlist you will already have heard from us."
+            ? [notYetAcceptingEngagements(), registrationStatement()].filter(Boolean).join(" ")
+            : "254 Services LLC is accepting work. If you joined the waitlist you will already have heard from us."
         }
         crumbs={crumbs}
       />
@@ -72,7 +72,7 @@ export default async function WaitlistPage({
                 {[
                   {
                     title: "You hear first, and directly",
-                    body: "When registration is active you get a message from a person telling you the firm is open and what it can take. That happens before any general announcement.",
+                    body: "When the firm opens for work you get a message from a person telling you so and what it can take. That happens before any general announcement.",
                   },
                   {
                     title: "Nothing else is sent to you",

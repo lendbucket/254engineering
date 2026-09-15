@@ -136,7 +136,7 @@ export default function LocationPage() {
         <SectionHead
           eyebrow="Capability"
           title="What the firm is built to deliver"
-          lede="Stated as capability, because the registration is pending and nothing here is offered yet."
+          lede="Stated as capability, because nothing here is offered yet."
           onDark
         />
         <div className="mt-8 max-w-[68ch]">
@@ -239,7 +239,7 @@ export default function LocationPage() {
       {/* 9, dark */}
       <OfferCta
         headline="Be first when the doors open"
-        body="The waitlist is how the firm will tell you the registration is issued and the work is open."
+        body="The waitlist is how the firm will tell you the work is open."
       />
     </>
   );
