@@ -361,6 +361,43 @@ mitigation rather than a fix.
 spent on the platform the harness measures. It goes here rather than being done
 now because the mitigation works: a board with nothing beside it completes.
 
+### A MILDER RELATIVE, 2026-09-14, AND IT IS RECORDED AS UNEXPLAINED
+
+**Not the same event, and the difference is the useful part.** The board RAN TO
+COMPLETION: all 53 audits ran, 52 passed, and `mobile-overflow-audit` reported
+**COULD NOT MEASURE** because its live half lost the server mid run. The suite
+did not print `THE SUITE DID NOT RUN TO COMPLETION`; it scored the audit it could
+not trust, carried on, and exited 1.
+
+**That is item 1 of the list above, working.** A single audit losing the server
+became one row rather than a dead board. The graceful degradation this entry asks
+to be built already exists for an audit whose live half cannot reach a server,
+and it is worth knowing that before building the timeout, because the shape is
+proven.
+
+**It did not recur.** The immediate re-run, environment verified clean first,
+zero node processes and no held ports, passed all 53.
+
+**What was tried, and what is NOT established.** Recorded as UNEXPLAINED rather
+than as a flake, under the operator's standing instruction for `contrast-audit`.
+
+- The environment was confirmed clean before the re-run: `netstat` showed nothing
+  on the audit ports, `tasklist` showed zero `node.exe`.
+- **A server was killed BY HAND immediately before the failing board.** The kill
+  reported terminating PID 23056, "child process of PID 17936", and the parent
+  wrapper was never confirmed dead. This file already records that `npx` wraps
+  the real server and that killing one of the pair can leave the other. **That is
+  a plausible contributor and it is not established**, because the board was
+  started only after the port was verified free.
+- `mobile-overflow-audit` is one of the audits that GREW on 2026-09-14: it walks
+  every sitemap route plus 52 pages from the surface inventory at two widths, so
+  it is among the heaviest Playwright consumers on the board. Resource exhaustion
+  late in a long run is plausible and is **not established** either.
+
+Two plausible causes, neither demonstrated, and the honest state is that nobody
+knows which. It is written down at this length so the next occurrence is
+recognised as a third instance rather than investigated from nothing.
+
 ## ONE PORTAL GATE IS DECIDED BY A ROLE NAME, NOT BY A GRANT
 
 Found 2026-09-10 by the overnight sweep's Round 3, which opens one screen each
