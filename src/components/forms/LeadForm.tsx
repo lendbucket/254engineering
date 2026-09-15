@@ -4,7 +4,22 @@ import { useRef, type FormEvent } from "react";
 import { FormError, Honeypot, Select, TextArea, TextInput } from "./fields";
 import { readForm, useFormPost } from "./useFormPost";
 import { buttonClass } from "@/components/ui/primitives";
-import { contactSchema, fieldErrors, waitlistSchema } from "@/lib/forms";
+/*
+ * THE SCHEMA IS LOADED ON SUBMIT, NOT WITH THE PAGE. Operator ruling,
+ * 2026-09-15.
+ *
+ * `@/lib/forms` is zod, the whole of it: a 288KB chunk, 65KB gzipped. Imported
+ * at the top of this file it shipped with every page that renders the form, and
+ * because the site header prefetches `/` and `/waitlist`, both of which render
+ * it, every public page paid for it before anybody touched a field. Measured
+ * with the perf gate's settings: about 68KB of every public page's weight.
+ *
+ * Validation only ever happened inside onSubmit, so loading it there changes
+ * nothing about what is checked or what a person is told. What it changes is
+ * when the code arrives: the first submit fetches the chunk, and a connection
+ * that cannot fetch it is told so rather than left with a button that did
+ * nothing.
+ */
 
 /**
  * The contact and waitlist form.
@@ -49,6 +64,14 @@ export function LeadForm({
 
     // The same schema the route validates against, so a field cannot be required
     // in one place and optional in the other.
+    let forms: typeof import("@/lib/forms");
+    try {
+      forms = await import("@/lib/forms");
+    } catch {
+      fail({}, "The form could not be checked, which usually means the connection dropped. Try again in a moment.");
+      return;
+    }
+    const { contactSchema, fieldErrors, waitlistSchema } = forms;
     const parsed = (isWaitlist ? waitlistSchema : contactSchema).safeParse(values);
     if (!parsed.success) {
       fail(fieldErrors(parsed.error));

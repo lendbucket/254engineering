@@ -221,7 +221,9 @@ link and paid the same toll, **433KB to 318KB** signed out; the gate cannot
 reach it with a session and that figure is from the gate's settings run without
 one. `KNOWN_OVER_BUDGET` is empty.
 
-**1b. THE HOMEPAGE'S WEIGHT IS PAID BY EVERY PUBLIC PAGE, NOT FIXED.** Found
+**1b. RESOLVED 2026-09-15, operator approved: zod now loads on submit.** Gate, one run, fresh builds: every public page 64 to 65KB lighter, script 211KB to 147KB, `/` 502 to 438, `/coverage/coastal-bend` 551 to 486 against 560. `/careers/professional-engineer` unchanged at 471, because its application stepper imports zod itself. Proven in a browser: no zod chunk before submit, the same inline errors after it, and a stated message when the chunk cannot load.
+
+**As first recorded, 1b. THE HOMEPAGE'S WEIGHT IS PAID BY EVERY PUBLIC PAGE, NOT FIXED.** Found
 answering which other pages pay the toll. `SiteHeader` puts a Link to `/` and a
 Link to `/waitlist` in the viewport of every public page, and both routes render
 `LeadForm`, which imports `@/lib/forms` and so ships **the whole of zod to the

@@ -39,8 +39,10 @@ export function useFormPost(endpoint: string) {
    * The server still validates everything. A form is an HTTP endpoint and anyone
    * can post to it, so this is the fast path, never the gate.
    */
-  const fail = useCallback((errors: Record<string, string>) => {
-    setState({ status: "error", errors, message: null });
+  /* A form level message is optional, for a failure that belongs to no field:
+   * the lead form uses it when the validation code itself cannot be loaded. */
+  const fail = useCallback((errors: Record<string, string>, message: string | null = null) => {
+    setState({ status: "error", errors, message });
   }, []);
 
   const submit = useCallback(
