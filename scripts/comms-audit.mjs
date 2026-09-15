@@ -425,6 +425,67 @@ const otherTech = actor("field_tech", "tech-2");
   rec("a malformed due date is not overdue", !isOverdue("not-a-date", NOW));
 }
 
+// =====================================================================
+// A PREFERENCE READ THAT CANNOT RUN SENDS WHAT SOMEBODY TURNED OFF.
+// =====================================================================
+/*
+ * Found 2026-09-15 in the suite's own server log, not by any check:
+ *
+ *   [notify] could not read the preference for message.received:
+ *   column eng_notification_prefs.updated_at does not exist
+ *
+ * preferenceFor ordered by updated_at, which the table has never had. Every read
+ * errored, returned null, and raise() fell back to the kind's default channels,
+ * so a person who had turned email off was emailed anyway. Everything above in
+ * this file tests channelsFor with a preference HANDED to it, which is why it
+ * stayed green: the rule was right and the read feeding it never worked.
+ *
+ * So the columns the product's queries on that table name are checked against
+ * the columns the migrations DECLARE for it. The declaration is the migrations,
+ * never the code under test.
+ */
+{
+  const { readdirSync, readFileSync } = await import("node:fs");
+  const declared = new Set();
+  for (const file of readdirSync("supabase/migrations").filter((f) => f.endsWith(".sql")).sort()) {
+    const sql = readFileSync(`supabase/migrations/${file}`, "utf8");
+    const create = sql.match(/create table if not exists eng_notification_prefs \(([\s\S]*?)\n\);/);
+    if (create) {
+      for (const line of create[1].split("\n")) {
+        const m = line.trim().match(/^([a-z_][a-z0-9_]*)\s+(?!key\b)[a-z]/);
+        if (m && m[1] !== "primary") declared.add(m[1]);
+      }
+    }
+    for (const m of sql.matchAll(/alter table eng_notification_prefs\s+add column(?: if not exists)?\s+([a-z_][a-z0-9_]*)/g)) {
+      declared.add(m[1]);
+    }
+  }
+
+  const notify = readFileSync("src/lib/ops-notify.ts", "utf8");
+  const used = new Set();
+  for (const chain of notify.matchAll(/\.from\("eng_notification_prefs"\)([\s\S]*?);/g)) {
+    const body = chain[1];
+    for (const m of body.matchAll(/\.select\("([^"]*)"/g)) m[1].split(",").forEach((c) => used.add(c.trim()));
+    for (const m of body.matchAll(/\.(?:eq|neq|is|in|order|gt|gte|lt|lte)\("([a-z_]+)"/g)) used.add(m[1]);
+    for (const m of body.matchAll(/onConflict:\s*"([^"]+)"/g)) m[1].split(",").forEach((c) => used.add(c.trim()));
+    for (const m of body.matchAll(/^\s*([a-z_]+):/gm)) if (m[1] !== "onConflict" && m[1] !== "ascending") used.add(m[1]);
+  }
+
+  const unknown = [...used].filter((c) => c && !declared.has(c));
+  rec(
+    "the migrations declare the notification preference table's columns",
+    declared.size >= 5,
+    `${[...declared].join(", ")} (if this were empty every column below would read as unknown)`,
+  );
+  rec(
+    "and every column the preference reads and writes name is one the table has",
+    used.size > 0 && unknown.length === 0,
+    unknown.length
+      ? `${unknown.join(", ")} not declared, so that read errors and raise() falls back to defaults a person may have turned off`
+      : `${used.size} columns named, all declared`,
+  );
+}
+
 console.log("============ TASKS, THREADS, NOTIFICATIONS ============");
 console.log("who can see a conversation, and what reaches somebody outside the app\n");
 for (const r of out) console.log(`  ${r.ok ? "PASS" : "FAIL"}: ${r.name}${r.note ? ` (${r.note})` : ""}`);
