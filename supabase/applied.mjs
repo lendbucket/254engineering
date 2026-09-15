@@ -748,7 +748,7 @@ export const APPLIED = [
     fingerprint: "ee00c9be2da388e84da117d99e56e503",
     behaviour: "632d49c00ff4115d6761985d9b83ab9a",
     proves: { column: { table: "eng_customer_users", name: "origin" } },
-    production: null,
+    production: "2026-09-14",
     /*
      * CORRECTED 2026-09-13. THIS FIGURE WAS THE REPLAY'S, NOT DEVELOPMENT'S.
      *
@@ -775,6 +775,7 @@ export const APPLIED = [
      */
     development: { at: "0043", behaviour: "7178087b458483c508835d46bc9f5ce8", facts: 828 },
     because:
+      "APPLIED TO PRODUCTION 2026-09-14 through apply_migration, operator at the keyboard, and READ BACK: shape ee00c9be2da388e84da117d99e56e503 across 1,032 columns and 75 tables, matching this entry exactly. Both declared columns present. The 485 audit events were read after it and unchanged. THE SENTENCE BELOW PREDATES THAT and is kept as the reasoning that was true while the branch was open. " +
       "Phase 13 Section 1 is open and ran under overnight limits that forbid applying anything to " +
       "production. Applied to development 2026-09-12 through apply_migration and read back: shape " +
       "ee00c9be2da388e84da117d99e56e503 across 1,032 columns, behaviour 7178087b458483c508835d46bc9f5ce8 " +
@@ -802,9 +803,10 @@ export const APPLIED = [
     fingerprint: "a2534b7c2b27309e4f67486cb26b91bd",
     behaviour: "632d49c00ff4115d6761985d9b83ab9a",
     proves: { column: { table: "eng_mfa_enrolments", name: "recovery_codes_issued_at" } },
-    production: null,
+    production: "2026-09-14",
     development: { at: "0044", behaviour: "7178087b458483c508835d46bc9f5ce8", facts: 828 },
     because:
+      "APPLIED TO PRODUCTION 2026-09-14 through apply_migration and READ BACK: shape a2534b7c2b27309e4f67486cb26b91bd across 1,034 columns, matching exactly. WORTH KNOWING LATER: production held ZERO mfa enrolments and ZERO recovery codes when this applied, because the 2026-09-13 lockout ended with the enrolment cleared by hand. The columns are correct and empty. THE SENTENCE BELOW PREDATES THAT. " +
       "Phase 13 is open and production migrations wait for the merge. Applied to development 2026-09-13 " +
       "through apply_migration and read back: shape a2534b7c2b27309e4f67486cb26b91bd across 1,034 columns, " +
       "which is 0043's 1,032 plus exactly the two columns this adds. BEHAVIOUR IS UNCHANGED AT 828 FACTS and " +
@@ -832,9 +834,10 @@ export const APPLIED = [
     fingerprint: "6d9f23f8a2cd1aa842a4c9921a21e585",
     behaviour: "649d781bf5bf79fbc719f3c1c33dc027",
     proves: { table: "eng_account_trade_prices" },
-    production: null,
+    production: "2026-09-14",
     development: { at: "0045", behaviour: "2974418e3982125cb10a22b4b90d01ea", facts: 843 },
     because:
+      "APPLIED TO PRODUCTION 2026-09-14 through apply_migration and READ BACK: shape 6d9f23f8a2cd1aa842a4c9921a21e585 across 1,045 columns and 76 tables, matching exactly. eng_account_trade_prices exists with both triggers, the freeze and the delete refusal. THE SENTENCE BELOW PREDATES THAT. " +
       "Phase 13 Section 2 is open and its limits forbid applying anything to production. Applied to " +
       "development 2026-09-14 through apply_migration and READ BACK: shape " +
       "6d9f23f8a2cd1aa842a4c9921a21e585 across 1,045 columns, matching the replay exactly, and 843 " +
@@ -867,9 +870,10 @@ export const APPLIED = [
     fingerprint: "6d9f23f8a2cd1aa842a4c9921a21e585",
     behaviour: "10fa6eb6a92b1dc0aeaf6b21f15bdce9",
     proves: { grant: { role: "admin", action: "pricing.write" } },
-    production: null,
+    production: "2026-09-14",
     development: { at: "0046", behaviour: null, facts: 844 },
     because:
+      "APPLIED TO PRODUCTION 2026-09-14 through apply_migration and READ BACK: 118 role grants against 117 before, admin/pricing.write present, and THE SHAPE UNCHANGED at 6d9f23f8a2cd1aa842a4c9921a21e585, which is what this entry predicted for a migration that seeds a row. THE SENTENCE BELOW PREDATES THAT. " +
       "Phase 13 Section 2 is open and its limits forbid applying anything to production. Applied to " +
       "development 2026-09-14 through apply_migration and read back: 118 role grants, one more than the " +
       "117 before it, and the SHAPE IS UNCHANGED at 6d9f23f8a2cd1aa842a4c9921a21e585 across 1,045 " +
@@ -892,9 +896,10 @@ export const APPLIED = [
     fingerprint: "6d9f23f8a2cd1aa842a4c9921a21e585",
     behaviour: "e59dd37a0f61e86b31895758885b526c",
     proves: { function: "eng_set_trade_price" },
-    production: null,
+    production: "2026-09-14",
     development: { at: "0047", behaviour: null, facts: 845 },
     because:
+      "APPLIED TO PRODUCTION 2026-09-14 through apply_migration and READ BACK: eng_set_trade_price exists, the self referencing key reads condeferrable true, 15 eng_ functions, and THE SHAPE UNCHANGED, because it adds a function and alters a key rather than a column. THE SENTENCE BELOW PREDATES THAT. " +
       "Phase 13 Section 2 is open and its limits forbid applying anything to production. Applied to " +
       "development 2026-09-14 through apply_migration. The SHAPE IS UNCHANGED at " +
       "6d9f23f8a2cd1aa842a4c9921a21e585 across 1,045 columns, because it adds a function and alters a " +
@@ -928,9 +933,10 @@ export const APPLIED = [
     fingerprint: "f6e3d58df88f192dc1e7eaa1458858a7",
     behaviour: "947e86920b7577a0ca56fc7c7b3b4365",
     proves: { column: { table: "eng_customer_accounts", name: "superseded_at" } },
-    production: null,
+    production: "2026-09-14",
     development: { at: "0048", behaviour: null, facts: 850 },
     because:
+      "APPLIED TO PRODUCTION 2026-09-14 through apply_migration and READ BACK: shape f6e3d58df88f192dc1e7eaa1458858a7 across 1,049 columns and 76 tables, matching this entry, development, AND the real engine replay into 254engineering-rehearsal, all three. superseded_at present, the no delete trigger attached, and eng_account_trade_prices.account_id reads confdeltype r for RESTRICT. EVERY IRREPLACEABLE ROW READ BACK AFTER THE LAST MIGRATION OF THE SEQUENCE: 485 audit events, 2 profiles, 2 leads, 1 application, 118 grants. THE SENTENCE BELOW PREDATES THAT. " +
       "Phase 13 Section 2 is open and its limits forbid applying anything to production. Applied to " +
       "development 2026-09-14 through apply_migration and read back: shape " +
       "f6e3d58df88f192dc1e7eaa1458858a7 across 1,049 columns, matching the replay exactly. Four columns, " +
