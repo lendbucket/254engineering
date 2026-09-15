@@ -542,7 +542,7 @@ export const windstormPages: WindstormPage[] = [
         title: "Certificate history is searchable before anyone is committed",
         lede: "This costs nothing and is the single highest value fifteen minutes in a coastal transaction.",
         body: [
-          "Certificates issued for a property can be searched, so the windstorm record can be examined during the option period rather than discovered during underwriting. What is being looked for is not simply whether a certificate exists but whether the certificates present account for the improvements visible on the building.",
+          "[Certificates issued for a property can be searched](/insights/texas-windstorm-certificate-lookup), so the windstorm record can be examined during the option period rather than discovered during underwriting. What is being looked for is not simply whether a certificate exists but whether the certificates present account for the improvements visible on the building.",
           "[A roof that is obviously newer than the house, with no corresponding certificate](/insights/roof-certification-vs-wpi-8), is the classic finding. So is an enclosed patio, a replaced garage door, or a window package that postdates the original construction.",
           "For work completed between January 1, 2017 and May 31, 2020, the certificate came from the Texas Windstorm Insurance Association as a WPI-8-C rather than from the department. A search of departmental records alone will not surface it, and its absence there is not proof that the work was uncertified.",
         ],

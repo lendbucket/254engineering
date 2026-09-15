@@ -80,6 +80,18 @@ const SRC = {
     label: "Texas Department of Insurance, Completed Construction Certificates",
     url: "https://www.tdi.texas.gov/wind/completed-construction-certificates.html",
   },
+  tdiIndex: {
+    label: "Texas Department of Insurance, Windstorm Inspection Program",
+    url: "https://www.tdi.texas.gov/wind/index.html",
+  },
+  tdiSearch: {
+    label: "Texas Department of Insurance, Windstorm Certificate Search",
+    url: "https://appscenter.tdi.texas.gov/windstorm/p/searchForAppl",
+  },
+  twiaLookup: {
+    label: "Texas Windstorm Insurance Association, Windstorm Certificates Issued by TWIA",
+    url: "https://www.twia.org/wpi-8-lookup/",
+  },
   rule137_33: {
     label: "22 Tex. Admin. Code § 137.33, Sealing Procedures",
     url: "http://txrules.elaws.us/rule/title22_chapter137_sec.137.33",
@@ -98,14 +110,14 @@ export const coastalInsights: Insight[] = [
   // ------------------------------------------------------------------------ 1
   {
     slug: "twia-eligibility-requirements",
-    title: "TWIA Eligibility Requirements Explained | 254 Engineering",
-    h1: "TWIA eligibility requirements, read from the Insurance Code",
+    title: "TWIA Insurance Eligibility Requirements | 254 Engineering",
+    h1: "TWIA insurance eligibility, read from the Insurance Code",
     description:
-      "What Texas Insurance Code section 2210.258 requires before TWIA may insure coastal work, and the two exceptions it allows. Read the statute behind binding.",
+      "What Texas Insurance Code section 2210.258 requires before TWIA insurance can be written on coastal work, and the exceptions it allows. Read the statute.",
     summary:
       "Whether coastal work can be insured through the association is not an underwriting preference. It is a sentence in section 2210.258, and it has two exceptions an agent should know by heart.",
     eyebrow: "Windstorm law",
-    primaryKeyword: "twia eligibility requirements",
+    primaryKeyword: "twia insurance",
     datePublished: DATE,
     dateModified: DATE,
     body: [
@@ -164,7 +176,11 @@ export const coastalInsights: Insight[] = [
       { kind: "h2", text: "Exception two: thirty days on an inspection form" },
       {
         kind: "p",
-        text: "Subsection (d) allows a policy term of no more than 30 days for a structure that is otherwise insurable, where an inspection verification form or another inspection form adopted by the department has issued, while the applicant seeks the certificate. It is a bridge with a fixed length, and how it fits a real schedule is set out on [the thirty day coverage page](/insights/twia-temporary-coverage-inspection-form).",
+        text: "Subsection (d) allows a policy term of no more than 30 days for a structure that is otherwise insurable, where an inspection verification form or another inspection form adopted by the department has issued, while the applicant seeks the certificate. It is a bridge with a fixed length, and it is a department document that has to exist: an engineer's letter, a contractor's invoice or a city permit card is not an inspection form adopted by the department.",
+      },
+      {
+        kind: "p",
+        text: "Thirty days goes quickly on a coastal job. The department's inspection process page says its inspectors try to inspect within 48 hours of the requested date, excluding weekends and holidays, and that non-compliant work gets a notice posted at the job and a reinspection after correction. A deficiency found late in the sequence spends days of a term that has already started. The subsection also does not say whether a second term may follow the first, and this page does not guess: that belongs to the association's own procedure.",
       },
       { kind: "h2", text: "What an agent can establish before binding" },
       {
@@ -189,6 +205,7 @@ export const coastalInsights: Insight[] = [
       cite("ins2210_251", "That a department certificate demonstrates compliance and is evidence of insurability of the structure by the association."),
       cite("ins2210_003", "The definition of catastrophe area and the fourteen first tier coastal counties."),
       cite("ins2210_2515", "The section under which the department issues certificates of compliance."),
+      cite("tdiProcess", "The 48 hour inspection target, the posted notice for non-compliant work, and reinspection after correction."),
     ],
     faqs: [
       {
@@ -198,6 +215,10 @@ export const coastalInsights: Insight[] = [
       {
         q: "Does the private market exception apply to commercial buildings?",
         a: "Subsection (c) is written for a residential structure. It does not extend that exception to other structures.",
+      },
+      {
+        q: "Can TWIA temporary coverage be extended past 30 days?",
+        a: "Section 2210.258(d) limits the term to no more than 30 days and is silent on whether another term may follow. That question belongs to the association's own procedure rather than to the statute.",
       },
     ],
   },
@@ -293,81 +314,120 @@ export const coastalInsights: Insight[] = [
   },
 
   // ------------------------------------------------------------------------ 3
+  /*
+   * THE LOOKUP PAGE, REPLACING THE 30 DAY COVERAGE POST. Operator ruling,
+   * 2026-09-15, from an Ahrefs pull: the search and lookup terms are one cluster
+   * of six (windstorm certificate search 100, tdi windstorm certificate 80,
+   * texas windstorm certificate lookup 70, texas windstorm certificate search 70,
+   * windstorm certificate lookup 50, tdi windstorm certificate search 40), to be
+   * served by ONE page built like the PE licence lookup, and no eleventh post.
+   * The 30 day post measured nothing, so its slot is this page and its content
+   * lives on in the eligibility post's section on subsection (d).
+   *
+   * Sources read 2026-09-15: TDI's windstorm index page for the two search links
+   * and their wording, TDI's certificate search page itself (raw HTML, for its
+   * fields, its result columns and its sentence about the TWIA window), and
+   * TWIA's lookup page. The WPI-8C window is described three ways by those
+   * pages, and the note below quotes all three rather than choosing one.
+   */
   {
-    slug: "twia-temporary-coverage-inspection-form",
-    title: "TWIA 30 Day Coverage on an Inspection Form | 254 Engineering",
-    h1: "TWIA 30 day coverage while a windstorm certificate is pending",
+    slug: "texas-windstorm-certificate-lookup",
+    title: "Texas Windstorm Certificate Lookup | 254 Engineering",
+    h1: "Texas windstorm certificate lookup: the TDI search, the TWIA window, and what neither proves",
     description:
-      "How Insurance Code section 2210.258(d) allows a TWIA term of no more than 30 days on a department inspection form, and what it cannot bridge. Read the details.",
+      "Search the TDI windstorm certificate database by address or number, find a WPI-8C through TWIA, and see what a result can and cannot tell you.",
     summary:
-      "Between the last inspection and the certificate there can be a gap a closing cannot wait for. The statute gives the association one narrow way across it, and it is exactly thirty days wide.",
+      "There are two places to look, and the one a coastal file needs depends on when the work was certified. Neither one says anything about the roof as it is today.",
     eyebrow: "Windstorm law",
-    primaryKeyword: "twia 30 day temporary coverage",
+    primaryKeyword: "texas windstorm certificate lookup",
     datePublished: DATE,
     dateModified: DATE,
     body: [
       {
         kind: "p",
-        text: "Section 2210.258(b) of the Insurance Code does not let the Texas Windstorm Insurance Association insure covered coastal work until a certificate of compliance has issued. Subsection (d) is the one door in that wall designed for timing rather than for a category of property.",
+        text: "A windstorm certificate search is usually run in a hurry: an agent binding coverage, a buyer inside the option period, a title file that needs a document by Friday. The search itself takes a minute. Reading what it returns, and what it cannot return, is where the time goes.",
       },
-      { kind: "h2", text: "What subsection (d) says" },
+      { kind: "h2", text: "The department's search answers the first question" },
       {
         kind: "p",
-        text: "The association may insure the structure for a policy term not to exceed 30 days if an inspection verification form, or another inspection form adopted by the department, has been issued for the structure. The purpose is written into the sentence: providing temporary coverage while an applicant seeks to secure a certificate of compliance. And there is a condition at the end that is easy to read past. The structure has to be otherwise insurable property.",
-      },
-      { kind: "h2", text: "Three conditions, each doing work" },
-      {
-        kind: "p",
-        text: "The form has to exist. It is a department form, issued through the inspection process, which means the inspection record has to have reached a point where the department's process produces it.",
+        text: "The Texas Department of Insurance links its search from the windstorm program's own page, in these words: search for a WPI-8 or WPI-8E certificate of compliance, issued by TDI for ongoing or completed construction. That is the database for the certificates the department itself issues, which is every certificate under section 2210.2515 of the Insurance Code.",
       },
       {
         kind: "p",
-        text: "The term has a ceiling rather than a target. Thirty days is the most the subsection allows for that term.",
+        text: "It offers two ways in. One takes an application or certificate number. The other takes an address, as a street number and a street name, with a required choice of city, ZIP or county. Results come back as a table, one row per application, with the application ID and type, the certificate number, the status, the building and its location, the inspection types, the application date, the certificate of compliance date and the address. Each row opens to its application details, and a certificate can be printed from there.",
+      },
+      { kind: "h2", text: "A number finds one thing; an address can find several" },
+      {
+        kind: "p",
+        text: "A certificate number points at one certificate. An address can return several applications, because a certificate records an improvement rather than a building, and a coastal house can collect them over the years: the original construction, a replacement roof, a window package, an enclosed porch.",
       },
       {
         kind: "p",
-        text: "And the coverage is temporary by design, tied to an applicant who is seeking the certificate. It is not a route around one.",
+        text: "That is also why a single certificate in the results is not the end of the search. The question is whether the certificates listed account for the work visible on the building. How to read the record against the house in front of you is set out on [the page about windstorm certificates at closing](/windstorm/buying-and-selling).",
       },
-      { kind: "h2", text: "What the form is not" },
+      { kind: "h2", text: "The WPI-8C, which the department's search sends elsewhere" },
       {
         kind: "p",
-        text: "An engineer's letter describing the work is not an inspection form adopted by the department, however carefully it is written or sealed. Neither is a contractor's invoice, a permit card from the city, or a set of photographs. The subsection names a department document, and the difference between a professional's statement and a department record is worked through on [the page on engineer letters and windstorm certificates](/insights/engineer-letter-vs-windstorm-certificate).",
-      },
-      { kind: "h2", text: "Fitting thirty days to a real job" },
-      {
-        kind: "p",
-        text: "On ongoing work the pieces are sequenced. The department's own page says its inspectors try to conduct inspections within 48 hours of the requested date, excluding weekends and holidays, and that where work does not comply the inspector posts a notice at the job describing the problems and returns to reinspect after they are corrected. A deficiency found late in the sequence is time taken from a thirty day term that has already started.",
+        text: "The department's search page opens with a sentence directing anyone looking for a completed construction certificate issued by the Texas Windstorm Insurance Association between January 2017 and May 2020 to the association instead. Those are the WPI-8C certificates, and they are not in the department's results.",
       },
       {
         kind: "p",
-        text: "Completed work is a different shape of problem. Where nobody inspected the work while it was open, the route is a sealed post-construction evaluation report under section 2210.2515(c), and the documentation that report needs may take longer to assemble than a thirty day term allows. The report and what it asks of the engineer are covered on [the post-construction evaluation report page](/insights/post-construction-evaluation-report).",
-      },
-      { kind: "h2", text: "A closing inside the term" },
-      {
-        kind: "p",
-        text: "For a coastal sale the arithmetic is unforgiving. A buyer in Port Aransas or Rockport whose lender needs wind coverage in place at closing is relying on the certificate arriving inside the term, and the reliable way to avoid that dependence is to look at the [windstorm record during the option period](/windstorm/buying-and-selling) rather than in the last week.",
+        text: "The association's lookup takes a property address and a city, county or ZIP. It lists the certificates it holds and offers a request for a copy: its own page says that on request it will send you a copy of the certificate.",
       },
       {
         kind: "note",
-        title: "What the subsection does not say",
+        title: "One window, described three ways",
         body: [
-          "Section 2210.258(d) sets a term of no more than 30 days. It does not say whether a second term may follow the first, and this page does not guess. Whether the association will write another temporary term on the same structure is a question for the association's own procedure.",
+          "The department's windstorm page describes the WPI-8C as issued by TWIA for construction completed between January 2017 and May 2020. The department's completed construction certificates page says TWIA issued completed construction certificates between January 1, 2017 and May 31, 2020. The association's lookup page says TWIA accepted applications for WPI-8Cs from January 1, 2017 to May 31, 2020.",
+          "Those are three different dates to measure against: when the work finished, when the certificate issued, and when the application arrived. All three pages were read on the date of this post, and they are quoted rather than reconciled. For work near either end of the window, search both places.",
+        ],
+      },
+      { kind: "h2", text: "What a result establishes, and what it does not" },
+      {
+        kind: "p",
+        text: "A certificate found in the department's search is a strong document.",
+      },
+      {
+        kind: "p",
+        text: "Section 2210.251(g) says it demonstrates compliance with the applicable building code under the plan of operation and is evidence of insurability of the structure by the association, and section 2210.2515(k) says the department may not rescind it once issued.",
+      },
+      {
+        kind: "p",
+        text: "It is also narrow. It records that particular work was inspected and found compliant when it was done. It says nothing about the condition of that work today, nothing about improvements made since, and nothing about flood. The difference between a certificate and an opinion about a roof's condition is worked through on [the page comparing a roof certification for insurance with a WPI-8](/insights/roof-certification-vs-wpi-8).",
+      },
+      {
+        kind: "p",
+        text: "An empty result is weaker evidence than it looks in both directions. It does not prove the work was never certified, since a WPI-8C sits with the association and an address can be entered in more than one way, and it does not prove the work cannot be certified now, since section 2210.2515(c) provides a route for a completed improvement through a licensed engineer's sealed report.",
+      },
+      { kind: "h2", text: "A short checklist" },
+      {
+        kind: "ul",
+        items: [
+          "Search the department's database by certificate number if you have one, and by address as well.",
+          "Try the address both with and without a unit or suffix, and with the county as well as the city.",
+          "If the work could fall in the 2017 to 2020 window, search the association's lookup too.",
+          "List the improvements visible on the building and match each one to a certificate.",
+          "Print the certificate details for the file rather than relying on a screenshot of the results table.",
+          "Treat a certificate as a record of work when it was done, not as a statement about the building now.",
         ],
       },
     ],
     sources: [
-      cite("ins2210_258", "The rule that the association may not insure until a certificate issues, and the 30 day term on a department inspection form while an applicant seeks the certificate."),
-      cite("tdiProcess", "The 48 hour inspection target, the notice posted at the job for non-compliant work, and reinspection after correction."),
-      cite("ins2210_2515", "The sealed post-construction evaluation report route for a completed improvement."),
+      cite("tdiIndex", "The department's search link and its description, and its description of the WPI-8C as issued by TWIA for construction completed between January 2017 and May 2020."),
+      cite("tdiSearch", "The search fields, the result columns, the printable certificate, and the sentence directing WPI-8C searches for January 2017 to May 2020 to the association."),
+      cite("twiaLookup", "The association's lookup fields, the request for a copy, and that TWIA accepted applications for WPI-8Cs from January 1, 2017 to May 31, 2020."),
+      cite("tdiCompleted", "That TWIA issued completed construction certificates between January 1, 2017 and May 31, 2020."),
+      cite("ins2210_251", "That a department certificate demonstrates compliance and is evidence of insurability by the association."),
+      cite("ins2210_2515", "That the department may not rescind a certificate once issued, and the completed improvement route."),
     ],
     faqs: [
       {
-        q: "Can TWIA temporary coverage be extended past 30 days?",
-        a: "Section 2210.258(d) limits the term to no more than 30 days and is silent on whether another term may follow. That question belongs to the association's own procedure rather than to the statute.",
+        q: "Where do I look up a Texas windstorm certificate?",
+        a: "The Texas Department of Insurance links a certificate search from its windstorm page, for WPI-8 and WPI-8E certificates it issued. It searches by application or certificate number, or by address. For a WPI-8C from the 2017 to 2020 window, the department's search page directs you to the Texas Windstorm Insurance Association's lookup.",
       },
       {
-        q: "Is an engineer's letter enough to get the 30 day term?",
-        a: "The subsection requires an inspection verification form or another inspection form adopted by the department. A letter from an engineer is not a department form.",
+        q: "Does an empty search mean the house has no windstorm certificate?",
+        a: "Not on its own. A WPI-8C from the 2017 to 2020 window is held by the association rather than the department, an address can be entered more than one way, and an improvement finished without a certificate can still go through the completed improvement route in section 2210.2515(c).",
       },
     ],
   },
@@ -375,20 +435,20 @@ export const coastalInsights: Insight[] = [
   // ------------------------------------------------------------------------ 4
   {
     slug: "windstorm-certificate-of-compliance",
-    title: "Windstorm Certificate of Compliance Law | 254 Engineering",
-    h1: "Windstorm certificate of compliance: what section 2210.2515 actually requires",
+    title: "Texas Windstorm Certificate Requirements | 254 Engineering",
+    h1: "Texas windstorm certificate: what section 2210.2515 actually requires",
     description:
-      "The Insurance Code section behind the WPI-8: notice before work, who may inspect, the six month limit, and why it cannot be rescinded. Read the statute.",
+      "The law behind the Texas windstorm certificate: notice before work, who may inspect, the six month limit, and why it cannot be rescinded. Read the statute.",
     summary:
       "The WPI-8 is the department's form. The obligations behind it are in section 2210.2515, and two of them, the six month limit and the bar on rescission, are rarely mentioned until they matter.",
     eyebrow: "Windstorm law",
-    primaryKeyword: "windstorm certificate of compliance",
+    primaryKeyword: "texas windstorm certificate",
     datePublished: DATE,
     dateModified: DATE,
     body: [
       {
         kind: "p",
-        text: "Everybody on the coast calls it the WPI-8. The Insurance Code calls it a certificate of compliance, and section 2210.2515 is where the department's authority to issue one is written down. The forms implement the section, and reading the section answers questions the forms never raise.",
+        text: "Everybody on the coast calls it the WPI-8, and plenty of people look for it as TWIA certification, though the certificate the association relies on today is issued by the department. The Insurance Code calls it a certificate of compliance, and section 2210.2515 is where the department's authority to issue one is written down. The forms implement the section, and reading the section answers questions the forms never raise.",
       },
       { kind: "h2", text: "Notice comes before the work" },
       {
@@ -670,7 +730,7 @@ export const coastalInsights: Insight[] = [
       { kind: "h2", text: "The thirty day term does not take a letter either" },
       {
         kind: "p",
-        text: "Section 2210.258(d) allows association coverage for no more than 30 days where an inspection verification form or another inspection form adopted by the department has issued. The subsection is specific about the kind of document. How that bridge works is on [the page about 30 day coverage on an inspection form](/insights/twia-temporary-coverage-inspection-form).",
+        text: "Section 2210.258(d) allows association coverage for no more than 30 days where an inspection verification form or another inspection form adopted by the department has issued. The subsection is specific about the kind of document. How that bridge works is set out on [the TWIA insurance eligibility page](/insights/twia-eligibility-requirements).",
       },
       { kind: "h2", text: "Where letters still matter" },
       {
@@ -708,14 +768,14 @@ export const coastalInsights: Insight[] = [
   // ------------------------------------------------------------------------ 8
   {
     slug: "windstorm-inspection-for-roofers",
-    title: "Windstorm Inspection for Coastal Roofers | 254 Engineering",
-    h1: "Windstorm inspection for roofers: the paperwork that has to exist before tear off",
+    title: "Windstorm Inspector Rules for Roofers | 254 Engineering",
+    h1: "Windstorm inspector rules for roofers: the paperwork before tear off",
     description:
-      "What a roofer needs for a windstorm certificate: notice before work, an inspection that sees the deck, deficiency notices, and the six month limit. Read it.",
+      "Who a Texas windstorm inspector can be, what a roofer files before tear off, what a posted deficiency notice means, and the six month limit. Read the rules.",
     summary:
       "For a roofer on the coast the certificate is decided by paperwork on either side of the job and by one inspection in the middle of it. Here is what the statute and the department say about each.",
     eyebrow: "Windstorm law",
-    primaryKeyword: "windstorm inspection for roofers",
+    primaryKeyword: "windstorm inspector",
     datePublished: DATE,
     dateModified: DATE,
     body: [
@@ -737,10 +797,10 @@ export const coastalInsights: Insight[] = [
         kind: "p",
         text: "The city permit is a separate track. Corpus Christi, Portland, and Rockport each run their own building department, and satisfying one of those does nothing for the windstorm program, or the other way around.",
       },
-      { kind: "h2", text: "Who comes out, and when" },
+      { kind: "h2", text: "Who can be the windstorm inspector, and when they come" },
       {
         kind: "p",
-        text: "The department's page says a TDI inspector or an appointed Texas licensed professional engineer must inspect construction and repair work, and that TDI inspectors can inspect all non-structural work including most repairs, alterations, and re-roofs. Section 2210.254 says a windstorm inspection may be performed only by a qualified inspector who has been approved and appointed or employed by the department.",
+        text: "The department's page says a TDI inspector or an appointed Texas licensed professional engineer must inspect construction and repair work, and that TDI inspectors can inspect all non-structural work including most repairs, alterations, and re-roofs. Section 2210.254 says a windstorm inspection may be performed only by a qualified inspector who has been approved and appointed or employed by the department, which is what the statute means by a windstorm inspector: a person the department qualified by training or experience, a licensed professional engineer, or an inspector holding the code body and coastal construction certifications that section lists.",
       },
       {
         kind: "p",
@@ -796,20 +856,20 @@ export const coastalInsights: Insight[] = [
   // ------------------------------------------------------------------------ 9
   {
     slug: "roof-certification-vs-wpi-8",
-    title: "Roof Certification vs a WPI-8 Certificate | 254 Engineering",
-    h1: "Roof certification vs a WPI-8 certificate when a coastal house is bound or sold",
+    title: "Roof Certification for Insurance vs WPI-8 | 254 Engineering",
+    h1: "Roof certification for insurance, and why it is not a WPI-8",
     description:
-      "A roof certification and a WPI-8 share a word and little else. See who issues each, what each proves, and why neither replaces the other at binding or sale.",
+      "A roof certification for insurance and a WPI-8 share a word and little else. See who issues each, what each proves, and why neither replaces the other.",
     summary:
       "On a coastal sale somebody asks for the roof certification, and somebody else hands over a WPI-8, and both think the question is answered. They are answers to two different questions.",
     eyebrow: "Windstorm law",
-    primaryKeyword: "roof certification vs wpi-8",
+    primaryKeyword: "roof certification for insurance",
     datePublished: DATE,
     dateModified: DATE,
     body: [
       {
         kind: "p",
-        text: "The word certification is doing too much work on the coast. It is used for a professional opinion about the condition of a roof, and it is used for the department's certificate of compliance for the work that put the roof there. An agent binding coverage and a title file being assembled can each end up holding the wrong one.",
+        text: "The word certification is doing too much work on the coast. It is used for a professional opinion about the condition of a roof, and it is used for the department's certificate of compliance for the work that put the roof there. An agent asked for a roof certification for insurance, and a title file being assembled, can each end up holding the wrong one.",
       },
       { kind: "h2", text: "The roof certification: an opinion about condition" },
       {

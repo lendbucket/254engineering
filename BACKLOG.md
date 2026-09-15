@@ -89,7 +89,11 @@ the branch says. **Ruling needed**, and the fix should route every one through
 the gate's own sentences rather than replace seventeen literals with seventeen
 new ones.
 
-## THE WINDSTORM CLUSTER DATES THE WPI-8C DIFFERENTLY FROM TDI, NOT FIXED
+## THE WPI-8C WINDOW IS DATED THREE WAYS BY TDI AND TWIA, NOT FIXED
+
+**CORRECTED 2026-09-15, same day, and the first version below was too narrow.** It said the cluster disagrees with TDI. Reading TDI again for the lookup page found TDI disagrees with itself: its windstorm index page says the WPI-8-C was "issued by TWIA for construction completed between January 2017 and May 2020", which is the cluster's wording; its completed construction page says TWIA issued the certificates between those dates; and TWIA's own lookup page says TWIA accepted applications from January 1, 2017 to May 31, 2020. Three dates to measure against. The cluster matches one TDI page, so it is not wrong; it is one of three. `/insights/texas-windstorm-certificate-lookup` quotes all three. The live cluster should do the same rather than choose, which is the operator's call.
+
+### As first recorded, now known too narrow
 
 Found 2026-09-15 re-reading TDI's completed construction page for the coastal
 posts. TDI says "The Texas Windstorm Insurance Association issued completed

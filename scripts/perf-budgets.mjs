@@ -327,7 +327,7 @@ export const ROUTE_BUDGETS = [
    */
   { name: "insights post: twia eligibility", path: "/insights/twia-eligibility-requirements", kb: 540 },
   { name: "insights post: pre 1988 homes", path: "/insights/twia-coverage-homes-built-before-1988", kb: 540 },
-  { name: "insights post: 30 day coverage", path: "/insights/twia-temporary-coverage-inspection-form", kb: 540 },
+  { name: "insights post: certificate lookup", path: "/insights/texas-windstorm-certificate-lookup", kb: 540 },
   { name: "insights post: certificate of compliance", path: "/insights/windstorm-certificate-of-compliance", kb: 540 },
   { name: "insights post: ongoing vs completed", path: "/insights/ongoing-vs-completed-improvement", kb: 540 },
   { name: "insights post: post-construction report", path: "/insights/post-construction-evaluation-report", kb: 540 },
