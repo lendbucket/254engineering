@@ -115,7 +115,11 @@ production object nothing references and 114 disagreements on development, and
 prices a copy from published list prices. **Rulings needed**: vendor, retention
 of deleted objects at the destination, and the `bucket` migration.
 
-## THE SYSTEM PRINCIPAL CANNOT RAISE A TASK: ITS ID IS NOT A PROFILE, NOT FIXED
+## RESOLVED 2026-09-15: THE SYSTEM PRINCIPAL COULD NOT RAISE A TASK, ITS ID WAS NOT A PROFILE
+
+Operator ruled fix it and let the session choose. The REQUIREMENT changed: a platform task now has `created_by` null, is named by `source_key = system:<key>` under 0005 unique index, and the principal is named in the audit row. A seeded profile was rejected because it needs an `auth.users` sign-in identity for a principal that must never sign in, and a migration that would hold the merge. `scripts/exercises/system-raises-task.mjs` is green, and red against the old function. The LIKE wildcard issue below is gone with it: the key is matched by equality.
+
+### As first recorded
 
 Found 2026-09-15 by the Phase 14 rank 10 exercise,
 `scripts/exercises/system-raises-task.mjs`, which is red on purpose.

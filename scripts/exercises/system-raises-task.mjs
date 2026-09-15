@@ -8,29 +8,32 @@
  *   npx tsx --conditions=react-server scripts/exercises/system-raises-task.mjs
  *
  * `SYSTEM_ACTOR` holds `tasks.raise` and is proven unassignable at compile
- * time. Whether it can actually raise a task was exercised by nothing, and
- * `raiseSystemTask` has no caller anywhere in the source today.
+ * time. Whether it could actually raise a task was exercised by nothing, and
+ * `raiseSystemTask` has no caller in the source today.
  *
- * Against development. A task it manages to raise is removed afterwards
- * (eng_tasks has no delete refusal); the audit row that goes with it cannot be.
- *
- * THIS EXERCISE IS RED, AND THE RED IS THE FINDING. 2026-09-15, first run:
+ * THE FIRST RUN OF THIS FILE, 2026-09-15, WAS RED, AND THAT WAS THE FINDING:
  *
  *     insert or update on table "eng_tasks" violates foreign key constraint
  *     "eng_tasks_created_by_fkey"
  *
- * `eng_tasks.created_by` references `eng_profiles(id)`, the principal's id is
- * not a profile on development, and no migration seeds one. So the capability
- * the principal is declared to hold cannot be exercised, and the first schedule
- * that relies on it will fail at the insert. It stays red until the operator
- * rules on the shape of the fix, because making it green by writing a profile
- * row by hand would prove a database nobody else has.
+ * The function wrote created_by = the principal's id, which is not a profile.
+ * Operator ruling the same day: fix it, choosing between giving the principal
+ * what the table requires and changing the requirement. The requirement
+ * changed; the reasoning is above raiseSystemTask in src/lib/system-work.ts.
+ * The platform's task now has no creator row, is named by source_key
+ * `system:<key>` under 0005's unique index, and the principal is named in the
+ * audit trail.
  *
- * A SECOND THING READ, NOT PROVEN, because nothing gets far enough to test it:
- * idempotency matches `description LIKE '%[system:<key>]%'` with the key
- * unescaped, and `_` and `%` are LIKE wildcards, so a key containing `_` would
- * also match a different key's open task and report `already` for work never
- * raised.
+ * What this proves, against development:
+ *   - the platform can raise a task, and the row and the trail name it
+ *   - a second raise of the same key finds the first
+ *   - two raises racing for one key produce one row
+ *   - keys differing only where LIKE would have wildcarded are distinct
+ *   - INJECTION: the insert the old code made is still refused by the database,
+ *     so a regression to it fails here rather than in production
+ *
+ * Every task it raises it removes (eng_tasks refuses nothing). The `task.raise`
+ * audit rows cannot be removed, and each names its title, which begins EXERCISE.
  */
 
 process.loadEnvFile?.(".env.local");
@@ -38,8 +41,10 @@ process.loadEnvFile?.(".env.local");
 import { auditClient, refOf, DEVELOPMENT_REF } from "../lib/db-target.mjs";
 import { raiseSystemTask } from "../../src/lib/system-work.ts";
 
-/* The principal's id, written as a literal: an exercise does not import its expectation. */
+/* Written as literals: an exercise does not import its expectation. */
 const SYSTEM_ID = "00000000-0000-4000-8000-000000005957";
+const SYSTEM_EMAIL = "the-platform@system.invalid";
+const RUN = Date.now().toString(36);
 
 let failures = 0;
 const rec = (name, ok, detail) => {
@@ -54,29 +59,64 @@ if (refOf(process.env.SUPABASE_URL ?? "") !== DEVELOPMENT_REF) {
 const db = auditClient("system raises task exercise", { neverProduction: true });
 console.log("system principal raises a task, against development\n");
 
-const raised = [];
-try {
-  const { data: profile } = await db.from("eng_profiles").select("id").eq("id", SYSTEM_ID).maybeSingle();
-  console.log(`  the principal's id ${profile ? "IS" : "is NOT"} a row in eng_profiles, and eng_tasks.created_by references eng_profiles`);
+const raised = new Set();
+const title = (what) => `EXERCISE 2026-09-15: ${what}`;
+const task = async (id) =>
+  (await db.from("eng_tasks").select("id, created_by, assignee_id, source_key, title").eq("id", id).maybeSingle()).data;
 
-  const first = await raiseSystemTask({
-    title: "EXERCISE 2026-09-15: the platform raising a task",
-    description: "Written by the Phase 14 rank 10 exercise on development and removed by it.",
-    key: "exercise-rank-10",
-  });
-  if (first.ok) raised.push(first.id);
-  rec("the platform can raise a task in its own name", first.ok === true && first.already === false,
-    first.ok ? `task ${first.id}` : first.error);
+try {
+  const key = `exercise-rank-10-${RUN}`;
+  const first = await raiseSystemTask({ title: title("the platform raising a task"), description: "Removed by the exercise.", key });
+  if (first.ok) raised.add(first.id);
+  rec("the platform can raise a task in its own name", first.ok === true && first.already === false, first.ok ? first.id : first.error);
 
   if (first.ok) {
-    const again = await raiseSystemTask({ title: "EXERCISE 2026-09-15: the platform raising a task", key: "exercise-rank-10" });
-    rec("a second raise with the same key finds the first", again.ok && again.already && again.id === first.id);
+    const row = await task(first.id);
+    rec("with no creator row, unassigned, and named by its source key",
+      row?.created_by === null && row?.assignee_id === null && row?.source_key === `system:${key}`,
+      `created_by ${row?.created_by}, source_key ${row?.source_key}`);
+
+    const { data: trail } = await db.from("eng_audit_events").select("actor_id, actor_email, action")
+      .eq("action", "task.raise").eq("entity_id", first.id);
+    rec("and the audit trail names the principal", trail?.length === 1 && trail[0].actor_email === SYSTEM_EMAIL && trail[0].actor_id === SYSTEM_ID,
+      trail?.[0] ? `${trail[0].actor_email}` : "no trail row");
+
+    const again = await raiseSystemTask({ title: title("the platform raising a task"), key });
+    rec("a second raise with the same key finds the first", again.ok && again.already === true && again.id === first.id);
   }
+
+  const raceKey = `exercise-race-${RUN}`;
+  const [r1, r2] = await Promise.all([
+    raiseSystemTask({ title: title("race one"), key: raceKey }),
+    raiseSystemTask({ title: title("race two"), key: raceKey }),
+  ]);
+  for (const r of [r1, r2]) if (r.ok) raised.add(r.id);
+  const { count: raceRows } = await db.from("eng_tasks").select("id", { count: "exact", head: true }).eq("source_key", `system:${raceKey}`);
+  rec("two raises racing for one key produce one row", r1.ok && r2.ok && r1.id === r2.id && raceRows === 1,
+    `${raceRows} row(s), ${[r1, r2].filter((r) => r.ok && r.already).length} answered already`);
+
+  const underscore = await raiseSystemTask({ title: title("key with an underscore"), key: `exercise_like_${RUN}` });
+  const letter = await raiseSystemTask({ title: title("key with a letter where the underscore was"), key: `exerciseXlike_${RUN}` });
+  for (const r of [underscore, letter]) if (r.ok) raised.add(r.id);
+  rec("keys that differ only where LIKE would have wildcarded are two tasks", underscore.ok && letter.ok && underscore.id !== letter.id && !letter.already,
+    letter.ok ? (letter.already ? "the second was answered as the first" : "distinct") : letter.error);
+
+  /* INJECTION: exactly the insert the old code made. It must still be refused. */
+  const { data: oldShape, error: oldError } = await db.from("eng_tasks")
+    .insert({ title: title("the old insert"), created_by: SYSTEM_ID, priority: "normal" })
+    .select("id").maybeSingle();
+  if (oldShape?.id) raised.add(oldShape.id);
+  rec("INJECTION: the old insert, created_by the principal's id, is refused by the database",
+    Boolean(oldError) && /eng_tasks_created_by_fkey/.test(oldError.message),
+    oldError ? oldError.message.slice(0, 90) : "IT WAS ACCEPTED, so the principal's id is now a profile somewhere");
 } catch (err) {
   failures += 1;
   console.log(`  STOP: ${err.message}`);
 } finally {
-  if (raised.length) await db.from("eng_tasks").delete().in("id", raised);
+  if (raised.size) await db.from("eng_tasks").delete().in("id", [...raised]);
+  const { count } = await db.from("eng_tasks").select("id", { count: "exact", head: true }).in("id", [...raised]);
+  console.log("");
+  rec("teardown: no task this exercise raised is left", (count ?? 0) === 0, `${raised.size} raised, ${count ?? 0} left`);
 }
 
 console.log(`\n${failures ? "FAIL" : "PASS"}: ${failures} failure(s).`);
