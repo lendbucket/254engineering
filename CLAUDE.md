@@ -616,6 +616,41 @@ So a fixture is priced, dated and complete: every column any figure could sum,
 count or age. The test of a fixture is not whether it inserts a row, it is
 whether removing the filter makes a number move.
 
+**A RULE TESTED WITH ITS INPUT HANDED TO IT SAYS NOTHING ABOUT THE READ THAT
+FEEDS IT IN PRODUCTION.** Operator ruling, 2026-09-15: "the defect class at its
+purest". Recorded beside the fixture lesson because it is the same failure with
+the fixture removed entirely: the check supplied the input itself, so the only
+code that could fail was never run.
+
+`raise()` decides a notification's channels with `channelsFor(kind, role,
+preference)`, and the preference comes from `preferenceFor()`, which read
+`eng_notification_prefs` ordered by `updated_at`. **The table has never had an
+`updated_at` column.** Every read errored, `preferenceFor` returned null, and
+`channelsFor` fell back to the kind's defaults, so **a person who turned email off
+was emailed anyway**, on development and on production, which share the schema.
+
+`comms-audit` asserted the channel rule exhaustively, and every assertion was
+right, because every one of them called `channelsFor` with a preference the test
+built by hand. The rule was correct and the read that feeds it had never once
+succeeded. It was introduced by `2d7a37f`, a fix whose purpose was to stop
+discarding that very error, and the fix made the error permanent while logging it
+faithfully. **It was found by reading the audit suite's own server log on a green
+board**, where the line had been printed on every run.
+
+The ordering existed to pick "the newest of two rows" for one person and kind. The
+primary key is `(profile_id, kind)`; there can be no second row. So the clause
+guarded a state the schema forbids, on a column the schema does not have, and the
+comment above it named the exact failure it caused as the one it prevented.
+
+**The general form.** A pure function with a hand-built input proves the function.
+It proves nothing about whether production can construct that input. For every
+rule tested that way, ask what reads its input in production and whether anything
+has watched that read succeed. The check that closes this one reads the columns
+the product's queries name against the columns the MIGRATIONS declare, which is a
+declaration, never the code under test, and it went red on the shipped code naming
+`updated_at`. And read the server log of a green board, because a logged error is
+not a failed audit.
+
 **AN ERROR ASSEMBLED FROM A STATUS FUNCTION CAN ONLY NAME THE FAULTS THAT
 FUNCTION CAN SEE, SO THE FAULT IT CANNOT SEE REACHES THE USER AS A LIE.**
 Operator ruling, 2026-09-13, from the production MFA lockout, and it belongs
