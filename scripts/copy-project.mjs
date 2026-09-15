@@ -487,27 +487,66 @@ async function completenessCheck() {
  * The window is short and the queue drains in a minute, so the correct action
  * on a failure here is to wait, not to force it.
  * ------------------------------------------------------------------------- */
+/*
+ * ============================================================================
+ * THE DEPTH IS COUNTED. THE KINDS ARE SAMPLED. THEY ARE NOT THE SAME READ.
+ * ============================================================================
+ *
+ * This check read the queue with `.limit(20)` and then reported `live.length` as
+ * the depth, so it announced
+ *
+ *     the job queue holds 20 pending or running job(s) (email.send, report.export)
+ *
+ * when the queue actually held 668 across THREE kinds. Understated by 33x, and
+ * the third kind was invisible because it did not appear in the first twenty
+ * rows. Operator finding, 2026-09-15.
+ *
+ * IT IS THE 1000 CAP AGAIN, TWENTY LINES AWAY, and in one respect it is worse:
+ * that cap was PostgREST's and silent, while this one is written in the source
+ * and was still reported as a depth. The bounded read was the right instinct,
+ * because nobody wants to pull a hundred thousand queued rows to learn the queue
+ * is busy. Reporting the size of the sample as the size of the queue was the
+ * defect.
+ *
+ * So the two questions are asked separately, which is the general form: COUNT
+ * the thing you are reporting, SAMPLE the thing you are describing, and never
+ * let the sample's length stand in for the count.
+ */
 async function queueCheck() {
-  const { data, error } = await src
+  const { count, error: countError } = await src
     .from("eng_jobs")
-    .select("id, kind, status")
-    .in("status", ["pending", "running"])
-    .limit(20);
+    .select("id", { count: "exact", head: true })
+    .in("status", ["pending", "running"]);
 
-  if (error) {
-    fail(`could not read the job queue to check it is quiet: ${error.message}`);
+  if (countError) {
+    fail(`could not count the job queue to check it is quiet: ${countError.message}`);
     return;
   }
 
-  const live = data ?? [];
-  if (live.length === 0) {
+  const depth = count ?? 0;
+  if (depth === 0) {
     console.log("  the job queue holds nothing pending or running");
     return;
   }
 
-  const kinds = [...new Set(live.map((j) => j.kind))].join(", ");
+  /*
+   * A bounded sample, ONLY to name the kinds. It is deliberately larger than the
+   * old limit and still bounded, and the sentence below says it is a sample so
+   * nobody reads the kind list as exhaustive.
+   */
+  const { data: sample } = await src
+    .from("eng_jobs")
+    .select("kind")
+    .in("status", ["pending", "running"])
+    .limit(500);
+
+  const kinds = [...new Set((sample ?? []).map((j) => j.kind))].sort();
+  const exhaustive = (sample ?? []).length >= depth;
+
   fail(
-    `the job queue holds ${live.length} pending or running job(s) (${kinds}). Wait for it to drain and run this again. A job copied mid flight is work that silently never runs.`,
+    `the job queue holds ${depth} pending or running job(s). Kinds ${
+      exhaustive ? "" : "seen in a sample of the first 500: "
+    }${kinds.join(", ")}. Drain it and run this again. A job copied mid flight is work that silently never runs.`,
   );
 }
 
