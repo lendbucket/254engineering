@@ -63,6 +63,10 @@ operator's word and has not been given. The report's position is that a trade
 price is not a figure on a report, it is a price on an order, and the order's
 figures are already swept.
 
+## QUEUE-AUDIT INFLATES THE ATTEMPTS OF JOBS IT DOES NOT OWN, NOT FIXED
+
+Observed 2026-09-15 while checking what a run under the old queue guard touched. `queue-audit`'s direct claim tests call `eng_claim_jobs`, which sweeps up whatever backlog is eligible, and then put those rows back to pending. The claim increments `attempts`, and the restore at line 562 does not reset it (the one at line 575 does). Development's leftover pending jobs carry 13 to 16 attempts each. Nothing runs on them and nothing is sent: they sit at pending, with no error and no `finished_at`. But a job restored past its `max_attempts` dead-letters on its first real failure. Development only, since the audit never runs against production. The fix is to restore `attempts` to the value read before the claim.
+
 ## STATEMENT CHECKOUT DOES NOT CHECK THE LAUNCH GATE, NOT FIXED
 
 Found 2026-09-15 reading the Stripe integration for the operator before the

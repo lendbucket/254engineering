@@ -261,13 +261,38 @@ const nextEligible = runner.nextEligible;
   const idOf = (c) => probes.find((p) => p.payload.case === c).id;
 
   const RealDate = Date;
+  /*
+   * SIZED FROM THE QUEUE, NOT FROM A GUESS. The first version read nextEligible(50)
+   * and went red on a board where development held 76 pending jobs from earlier
+   * audits: every one of them had an older run_after than a probe enqueued "now",
+   * so the first fifty were all somebody else's and the probe was fifty first.
+   * The guard was right to return them; the check assumed an empty queue. So the
+   * read is sized to everything the database calls eligible, counted on its own
+   * clock, and a queue past PostgREST's thousand row ceiling is reported rather
+   * than read short.
+   */
+  const { count: eligibleNow, error: eligibleErr } = await db
+    .from("eng_jobs")
+    .select("id", { count: "exact", head: true })
+    .lte("run_after", "now")
+    .or("status.eq.pending,and(status.eq.running,leased_until.lt.now)");
+  if (eligibleErr || typeof eligibleNow !== "number") {
+    throw new Error(`could not count the eligible queue: ${eligibleErr?.message ?? "null count"}`);
+  }
+  const readSize = eligibleNow + 5;
+  rec(
+    "the queue is small enough for the clock check to read all of it",
+    readSize <= 1000,
+    `${eligibleNow} eligible, including the three probes; the check reads ${readSize}`,
+  );
+
   let seen;
   try {
     globalThis.Date = class extends RealDate {
       constructor(...a) { super(...(a.length ? a : [RealDate.now() - 60_000])); }
       static now() { return RealDate.now() - 60_000; }
     };
-    seen = new Set((await nextEligible(50)).map((r) => r.id));
+    seen = new Set((await nextEligible(Math.min(readSize, 1000))).map((r) => r.id));
   } finally {
     globalThis.Date = RealDate;
     await db.from("eng_jobs").delete().eq("kind", CLOCK_KIND);
