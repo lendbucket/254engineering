@@ -63,6 +63,27 @@ operator's word and has not been given. The report's position is that a trade
 price is not a figure on a report, it is a price on an order, and the order's
 figures are already swept.
 
+## `customer_account.link_reissued` RECORDS CONTACT THAT MAY NOT HAVE HAPPENED, NOT FIXED
+
+Found 2026-09-15 by the Phase 14 rank 9 exercise, by reading the trail rows it
+wrote. `issueLinkForExistingAccount` in `src/lib/account-creation.ts` writes
+
+    A sign up attempt named an address that already has an account. Nothing was
+    created and a fresh set password link was sent to it.
+
+at the moment it issues the TOKEN. The email is queued afterwards, by the
+caller, and `queueEmail` returns a failure rather than throwing, so a failed
+enqueue leaves a row in the append only trail saying a link was sent. The row
+also asserts a sign up attempt, which is true of today's one caller and is a
+statement about the caller written inside the callee.
+
+It is the `customer_link.issued` defect in CLAUDE.md section 2c. Not live today:
+the only caller, `POST /api/account/sign-up`, is closed until self service sign
+up is cleared. Development's trail now carries four such rows written by the
+exercise, ids 17809 to 17812, where no sign up happened and nothing was sent;
+they cannot be removed. **Ruling needed** on the shape of the fix: word the row
+as issued, and have the route record the enqueue result, is the obvious one.
+
 ## THE FIRST MEASUREMENT OF EVERY AUTHENTICATED SCREEN, AND WHAT IT FOUND
 
 2026-09-14. `perf-audit` now signs in and derives its subjects from the declared
