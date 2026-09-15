@@ -11,12 +11,78 @@
 //      explicit assertion rather than a proxy.
 //
 //   BASE_URL=http://localhost:3225 node scripts/seo-audit.mjs
+import { readFileSync, readdirSync } from "node:fs";
 import { readSource } from "./lib/read-source.mjs";
 import { chromium } from "playwright";
 import * as chromeLauncher from "chrome-launcher";
 import lighthouse from "lighthouse";
 
 const BASE = process.env.BASE_URL || "http://localhost:3225";
+
+/*
+ * ==========================================================================
+ * THE STORED NUMBER IS READ IN TWO PLACES AND DERIVED EVERYWHERE ELSE.
+ * ==========================================================================
+ *
+ * The rendered assertion further down catches a display string reaching the
+ * JSON-LD of a page this audit fetches. It cannot catch a NEW consumer that
+ * emits the raw value somewhere this audit never looks: an email footer, an API
+ * response, a PDF. This is that guard, one level earlier.
+ *
+ * WHY AN ALLOWLIST OF FILES RATHER THAN A RULE ABOUT EMITTING. "Emits the raw
+ * value" is the property that actually matters and it is not mechanically
+ * detectable: telHref reads contact.phone raw and is CORRECT, because it strips
+ * and rebuilds. So the checkable proxy is WHERE the raw value may be read at
+ * all, and it is a proxy, which is said here rather than implied.
+ *
+ *   src/config/contact.ts  the three derivers. This is the one place that is
+ *                          allowed to know what the stored shape is.
+ *   src/lib/launch.ts      the gate's validator, which must see the raw value
+ *                          because its whole job is judging whether the stored
+ *                          string is a real number or a placeholder.
+ *
+ * Anything else reading it is a consumer that has not gone through a deriver,
+ * which is how schema.tsx published a display string as the firm's
+ * machine-readable number until 2026-09-14.
+ */
+{
+  const ALLOWED_RAW_PHONE_READERS = ["src/config/contact.ts", "src/lib/launch.ts"];
+
+  /* Block comments and line comments, so a mention in prose is not a consumer. */
+  const stripComments = (text) =>
+    text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+
+  const walk = (dir, out = []) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = `${dir}/${entry.name}`;
+      if (entry.isDirectory()) walk(full, out);
+      else if (/\.(ts|tsx)$/.test(entry.name)) out.push(full);
+    }
+    return out;
+  };
+
+  const offenders = [];
+  for (const file of walk("src")) {
+    const rel = file.split("\\").join("/");
+    if (ALLOWED_RAW_PHONE_READERS.some((a) => rel.endsWith(a))) continue;
+    if (stripComments(readFileSync(file, "utf8")).includes("contact.phone")) offenders.push(rel);
+  }
+
+  if (offenders.length) {
+    console.log("");
+    console.log("FAIL: the stored phone number is read outside the two places allowed to read it:");
+    for (const o of offenders) console.log("  " + o);
+    console.log("");
+    console.log("  Call a deriver instead: e164Phone() for anything a machine reads,");
+    console.log("  displayPhone() for anything a person reads, telHref() for a link.");
+    console.log("  src/config/contact.ts stores E.164 and derives every other form from it,");
+    console.log("  and a consumer that reads the raw value is a consumer that can publish");
+    console.log("  whatever happens to be in the environment variable.");
+    process.exitCode = 1;
+  } else {
+    console.log("PASS: the stored phone number is read only by its derivers and the launch gate.");
+  }
+}
 
 /*
  * The playbook 3.4 bands, both ends enforced.
@@ -180,6 +246,37 @@ for (const route of routes) {
   if (!types.includes("BreadcrumbList")) problems.push(`${route}: no BreadcrumbList schema`);
   if (!types.includes("ProfessionalService")) problems.push(`${route}: no Organization schema`);
   if (!types.includes("WebSite")) problems.push(`${route}: no WebSite schema`);
+
+  /*
+   * ========================================================================
+   * A MACHINE-READABLE NUMBER IS E.164 OR IT IS NOT PUBLISHED.
+   * ========================================================================
+   *
+   * Operator ruling, 2026-09-14. `schema.tsx` emitted `contact.phone` RAW into
+   * the JSON-LD `telephone` property, so whatever string sat in the environment
+   * variable became the firm's machine-readable number.
+   *
+   * IT WAS THE ONLY SURFACE THAT COULD BE WRONG WITHOUT LOOKING WRONG.
+   * `displayPhone` and `telHref` both strip and rebuild, so a display string set
+   * by mistake still renders as `(281) 940-4490` and still dials correctly. The
+   * site is perfect and the structured data is a display string, and nobody
+   * reads JSON-LD by eye, so no screenshot could ever find it.
+   *
+   * This asserts the RENDERED output rather than the source, because what a
+   * consumer receives is the only thing that matters and the source can be
+   * correct while the render is not.
+   */
+  for (const node of meta.jsonLd.filter(Boolean)) {
+    const tel = node.telephone;
+    if (tel === undefined || tel === null) continue;
+    if (!/^\+1\d{10}$/.test(String(tel))) {
+      problems.push(
+        `${route}: schema telephone is "${tel}", which is not E.164. ` +
+          "src/config/contact.ts stores E.164 and derives every display form from it; " +
+          "a display string here is published to every machine that reads this page.",
+      );
+    }
+  }
 
   if (title) {
     if (!titles.has(title)) titles.set(title, []);

@@ -46,6 +46,42 @@ const env = (key: string): string | null => {
   return v && v.trim() ? v.trim() : null;
 };
 
+/**
+ * ============================================================================
+ * THE NAP RECORD. ONE SOURCE FOR NAME, ADDRESS AND PHONE, IN BOTH FORMS.
+ * ============================================================================
+ *
+ * Operator instruction, 2026-09-14, written down before the Google Business
+ * Profile is set up rather than reconstructed afterwards.
+ *
+ * NAP consistency means the same value in every place a machine or a person can
+ * read it: the site, the schema.org markup, email footers, the capability
+ * statement, and the listing. Two forms exist and they are NOT alternatives,
+ * they are the same fact written for two audiences.
+ *
+ *   MACHINE-READABLE, and what is STORED:     +12819404490
+ *     FIRM_PHONE, schema.org `telephone`, every `tel:` href. E.164.
+ *
+ *   HUMAN-READABLE, and DERIVED, never typed: (281) 940-4490
+ *     Site copy, email footers, the capability statement, the Google Business
+ *     Profile. Exactly what `displayPhone()` below produces, so the site and the
+ *     listing agree character for character.
+ *
+ * **THE HUMAN FORM IS NEVER STORED ANYWHERE IN THIS REPOSITORY.** It is derived
+ * from the stored E.164 value on every render. That is the whole design and it
+ * is why the number cannot drift between surfaces: there is one value, and the
+ * rest are functions of it.
+ *
+ * WHEN SETTING THE LISTING BY HAND, the form to type into the Google Business
+ * Profile is the HUMAN one, because that is what the site renders and a listing
+ * that disagrees with the site on punctuation is a NAP mismatch even though
+ * both dial the same number.
+ *
+ * Name and address are the other two thirds and are not settled here: the legal
+ * name is 254 Services LLC, the brand wordmark is 254 Engineering Services, and
+ * which one a listing carries is the operator's decision. See the operating name
+ * condition in src/lib/launch.ts, which is why the compliance gate is shut.
+ */
 export const contact = {
   /**
    * E.164 for schema and tel: links. Display formatting is derived, never
@@ -128,6 +164,35 @@ export function telHref(): string | null {
   const digits = contact.phone.replace(/\D/g, "");
   if (digits.length < 10) return null;
   return `tel:+${digits.length === 10 ? "1" : ""}${digits}`;
+}
+
+/**
+ * THE NUMBER IN E.164, DERIVED, FOR ANYTHING A MACHINE READS.
+ *
+ * The header of this file has always said the stored value is E.164 and that
+ * display formatting is derived so the two cannot drift. Every consumer honoured
+ * that except one: `schema.tsx` emitted `contact.phone` RAW into the JSON-LD
+ * `telephone` property, so whatever string happened to be in the environment
+ * variable was published as the firm's machine-readable number.
+ *
+ * WHY THAT WAS THE DANGEROUS ONE. `displayPhone` and `telHref` both strip and
+ * rebuild, so a display string set by mistake still renders and still dials
+ * correctly, and the site looks perfect. The only surface that was wrong was the
+ * one nobody reads by eye. It is the hardcoded compliance sentence from
+ * 2026-09-12 with the failure inverted: there the human copy was stale and a
+ * screenshot caught it; here the human copy is right and the machine copy is
+ * wrong, and no screenshot can ever catch that.
+ *
+ * Returns null on anything it does not understand, for the same reason
+ * `displayPhone` does: a half normalised number in a machine-readable field is
+ * worse than no field at all, because a consumer will believe it.
+ */
+export function e164Phone(): string | null {
+  if (!contact.phone) return null;
+  const digits = contact.phone.replace(/\D/g, "");
+  const ten = digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
+  if (ten.length !== 10) return null;
+  return `+1${ten}`;
 }
 
 /**

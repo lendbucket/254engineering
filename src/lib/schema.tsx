@@ -1,6 +1,7 @@
 import { business } from "@/config/business";
 import {
   contact,
+  e164Phone,
   founder,
   geoSchema,
   hasGeo,
@@ -91,7 +92,14 @@ export function organizationSchema() {
      * here says engineer.
      */
     founder: { "@type": "Person", name: founder.name },
-    ...(contact.phone ? { telephone: contact.phone } : {}),
+    /*
+     * DERIVED, NEVER THE STORED STRING. This line read
+     * `telephone: contact.phone` until 2026-09-14 and published whatever was in
+     * the environment variable, so a display string set by mistake became the
+     * firm's machine-readable number while every human-readable surface stayed
+     * correct. See e164Phone in src/config/contact.ts.
+     */
+    ...(e164Phone() ? { telephone: e164Phone() } : {}),
     ...(hasPostalAddress() ? { address: postalAddressSchema() } : {}),
     ...(hasGeo() ? { geo: geoSchema() } : {}),
     ...(contact.hours ? { openingHours: contact.hours.split(",").map((h) => h.trim()) } : {}),

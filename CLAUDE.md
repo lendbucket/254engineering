@@ -1647,6 +1647,37 @@ the audits that still fail red standalone are listed in `BACKLOG.md`.
   The general form, which is the same one section 6b makes about the ledger and
   section 6 makes about declared inventories: **a fact with two accounts has two
   accounts that will disagree, and the copy is always the one nobody updates.**
+
+  **THE SAME SHAPE WITH THE FAILURE INVERTED, 2026-09-14, AND THE INVERSION IS
+  THE PART WORTH KEEPING.** Operator ruling, recorded as an instance of the rule
+  above.
+
+  `src/config/contact.ts` has always said the firm's telephone number is stored
+  in E.164 and that "display formatting is derived, never stored, so the two
+  cannot drift". Every consumer honoured that except one: `schema.tsx` emitted
+  `contact.phone` RAW into the JSON-LD `telephone` property.
+
+  So when `FIRM_PHONE` was first set to `(281) 940-4490`, a display string, the
+  site rendered `(281) 940-4490`, the `tel:` links dialled `+12819404490`, and
+  the launch gate passed. **Every human-readable surface was correct**, because
+  `displayPhone` and `telHref` both strip and rebuild. The structured data
+  published to every machine that reads the page was a display string.
+
+  **The portal sidebar case was found by opening a screenshot. This one could not
+  have been**, and that is the inversion: there the human copy was stale and a
+  person could see it; here the human copy is right and **the machine-readable
+  copy is wrong, and nobody reads JSON-LD by eye.** A fact with two accounts has
+  two accounts that will disagree, and the one that drifts is whichever nobody
+  looks at, which is not always the one a screenshot would show.
+
+  Fixed by `e164Phone()` in `contact.ts`, which derives like its two siblings,
+  and by `schema.tsx` calling it. Two checks in `seo-audit`, both
+  injection-verified by reverting the fix and rebuilding: the RENDERED one
+  asserts every JSON-LD `telephone` matches E.164, and a SOURCE guard asserts
+  that `contact.phone` is read only in `contact.ts`, where the derivers live, and
+  in `launch.ts`, whose job is judging the raw value. The second is a stated
+  PROXY: "emits the raw value" is the property that matters and is not
+  mechanically detectable, since `telHref` reads it raw and is correct.
 - Completion claims verified from disk and from the running app, not from intent.
 - Judgment calls disclosed in the report, not buried.
 - **The confession rule: a completion report that is not true is the one unforgivable failure
