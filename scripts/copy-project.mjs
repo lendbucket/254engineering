@@ -231,22 +231,39 @@ const TABLES = [
   { name: "eng_thread_participants", key: "thread_id,profile_id" },
   /* RESERVED TO THE OPERATOR, added 2026-09-14. The hours a person is paid for. */
   { name: "eng_time_log", key: "id" },
-  /*
-   * THE SECOND PASS, AND THE ONLY ONE IN THIS LIST.
-   *
-   * eng_profiles and eng_onboardings reference each other: 0003 gave a profile
-   * an onboarding_id and an onboarding a profile_id, both nullable. That is the
-   * single cycle in this schema's foreign key graph, found by a Tarjan walk over
-   * pg_constraint rather than by reading, and there is no total order that
-   * satisfies it.
-   *
-   * So profiles land FIRST, because about thirty tables reference them and one
-   * references onboardings, and the profile rows are upserted AGAIN here once
-   * onboardings exist, which fills onboarding_id. The upsert is on the primary
-   * key, so the second pass is idempotent and costs one statement.
-   */
-  { name: "eng_profiles", key: "id", secondPass: true },
 ];
+
+/*
+ * ============================================================================
+ * THE CYCLE REPAIR. ITS OWN STEP, BECAUSE IT IS NOT A TABLE IN THE PLAN.
+ * ============================================================================
+ *
+ * eng_profiles and eng_onboardings reference each other: 0003 gave a profile an
+ * onboarding_id and an onboarding a profile_id, both nullable. That is the
+ * single cycle in this schema's whole foreign key graph, found by a Tarjan walk
+ * over pg_constraint rather than by reading it, and there is no total order that
+ * satisfies it. Profiles land FIRST, because about thirty tables reference them
+ * and one references onboardings, so a profile's onboarding_id cannot be
+ * satisfied at the moment it is written.
+ *
+ * THIS WAS A SECOND eng_profiles ROW IN TABLES AND THAT WAS WRONG. Operator
+ * finding, 2026-09-15: the plan then listed 66 rows for 65 tables, and a
+ * duplicate is exactly what a reader's eye slides over. It would not have
+ * collided, because the write is an upsert on the primary key rather than an
+ * insert, but "it happens to be safe" is not the same as "it can be counted".
+ *
+ * So the repair is a NAMED STEP that runs after the table loop, prints its own
+ * line, and is counted separately. One upsert, idempotent, on rows that are
+ * already there.
+ */
+const CYCLE_REPAIR = {
+  table: "eng_profiles",
+  key: "id",
+  column: "onboarding_id",
+  because:
+    "eng_profiles.onboarding_id points at eng_onboardings, which is copied after profiles " +
+    "because the two reference each other. This fills it once both tables are in.",
+};
 
 /**
  * Tables this script deliberately does NOT copy, each with the reason.
@@ -382,6 +399,45 @@ let manual = 0;
  * remembers to add it here.
  * ------------------------------------------------------------------------- */
 async function completenessCheck() {
+  /*
+   * NO TABLE APPEARS TWICE IN THE PLAN. Operator ruling, 2026-09-15, after
+   * eng_profiles was found listed first and last: the plan printed 66 rows for
+   * 65 tables and the duplicate was the cycle repair wearing a table's clothes.
+   *
+   * It was safe, because the write is an upsert on the primary key rather than
+   * an insert, and that is exactly why it needed a check rather than a reader:
+   * a duplicate that does not break anything is one nobody will ever notice,
+   * and the next one might be a table listed twice by accident with two
+   * different keys.
+   *
+   * Both directions, because they fail differently. A table in TABLES twice is
+   * a plan nobody can count. A table in TABLES *and* NOT_COPIED is a plan that
+   * contradicts itself, and whichever the reader saw first is the answer they
+   * would take away.
+   */
+  const seen = new Map();
+  const dupes = [];
+  for (const t of TABLES) {
+    seen.set(t.name, (seen.get(t.name) ?? 0) + 1);
+    if (seen.get(t.name) === 2) dupes.push(t.name);
+  }
+  if (dupes.length) {
+    fail(
+      `${dupes.length} table(s) appear more than once in the copy plan: ${dupes.join(", ")}. ` +
+        "A plan with a duplicate cannot be counted, and a reader's eye slides over it.",
+    );
+  } else {
+    console.log(`  no table appears twice in the plan (${TABLES.length} entries, all distinct)`);
+  }
+
+  const bothWays = TABLES.map((t) => t.name).filter((n) => NOT_COPIED[n]);
+  if (bothWays.length) {
+    fail(
+      `${bothWays.join(", ")} is in BOTH the copy list and the declared exclusions. ` +
+        "The plan contradicts itself and whichever a reader saw first is the answer they would take away.",
+    );
+  }
+
   const declared = new Set([...TABLES.map((t) => t.name), ...Object.keys(NOT_COPIED)]);
 
   const dir = new URL("../supabase/migrations/", import.meta.url);
@@ -571,6 +627,36 @@ for (const t of TABLES) {
       );
     } else {
       console.log(`  ${"".padEnd(22)} id sets identical (${a.size} ids compared one by one)`);
+    }
+  }
+}
+
+// -------------------------------------------------------------- cycle repair
+
+/*
+ * Counted and printed separately from the plan, because it is not a table being
+ * copied: it is one column being filled on rows that are already there. See the
+ * CYCLE_REPAIR declaration for why the cycle exists and why it is broken here.
+ */
+{
+  const r = CYCLE_REPAIR;
+  const withValue = await readEveryRow(src, r.table, `${r.key},${r.column}`, { orderBy: r.key });
+  const needing = withValue.filter((row) => row[r.column] !== null && row[r.column] !== undefined);
+
+  if (needing.length === 0) {
+    console.log(
+      `  cycle repair      ${r.table}.${r.column}: nothing to fill, every source row is null`,
+    );
+  } else if (MODE === "dry") {
+    console.log(
+      `  cycle repair      ${r.table}.${r.column}: would fill ${needing.length} row(s) after ${r.column.replace("_id", "s")} land`,
+    );
+  } else {
+    const { error } = await dst.from(r.table).upsert(needing, { onConflict: r.key });
+    if (error) {
+      fail(`cycle repair on ${r.table}.${r.column} failed: ${error.message}`);
+    } else {
+      console.log(`  cycle repair      ${r.table}.${r.column}: filled ${needing.length} row(s)`);
     }
   }
 }
