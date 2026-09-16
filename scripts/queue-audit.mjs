@@ -220,6 +220,39 @@ const { count: pendingBefore } = await db
  * would be moving a solution to a problem one caller does not have.
  */
 const runner = makeBatchRunner({ db, created, batchSize: BATCH_SIZE, runBatch, worker: WORKER });
+
+/*
+ * PUT A SWEPT UP BACKLOG ROW BACK AS IT WAS, ATTEMPTS INCLUDED.
+ *
+ * Operator ruling, 2026-09-15. eng_claim_jobs takes the oldest eligible work of
+ * ANY kind, so a direct claim here sweeps up whatever the queue is carrying.
+ * Those rows were put back to pending with their lease cleared, and their
+ * attempts left one higher, on every run: development's leftovers had reached 13
+ * to 16 attempts. Nothing ran on them and nothing was sent, and that is not the
+ * hazard. The hazard is a job pushed past its max_attempts, which then dies for
+ * good on its first real failure, weeks later, with nothing connecting it to the
+ * audit that spent its retries.
+ *
+ * The claim returns each row AFTER incrementing, so the value to restore is the
+ * one it returned minus one. Rows this run created are not restored: they belong
+ * to the run and its teardown removes them.
+ */
+async function restoreStrays(claimedRows, keepId) {
+  const strays = (claimedRows ?? []).filter((r) => r.id !== keepId);
+  for (const row of strays) {
+    await db
+      .from("eng_jobs")
+      .update({
+        status: "pending",
+        leased_by: null,
+        leased_until: null,
+        attempts: Math.max(0, Number(row.attempts) - 1),
+      })
+      .eq("id", row.id);
+    created.delete(row.id);
+  }
+  return strays.length;
+}
 const nextEligible = runner.nextEligible;
 
 /*
@@ -506,6 +539,8 @@ console.log("--- the claim, and the lease while it is held");
     rec("eng_claim_jobs answers", !error, error?.message ?? "");
 
     const mine = (claimed ?? []).find((r) => r.id === queued.id);
+    /* Anything else this claim took goes back as it was, attempts included. */
+    await restoreStrays(claimed, queued.id);
     rec(
       "and it returns the probe rather than the backlog",
       Boolean(mine),
@@ -555,18 +590,11 @@ console.log("--- the claim, and the lease while it is held");
        * A probe run must not leave 10 unrelated jobs marked running with a lease
        * this process is about to forget about.
        */
-      const strays = (second ?? []).filter((r) => r.id !== queued.id).map((r) => r.id);
-      if (strays.length) {
-        await db
-          .from("eng_jobs")
-          .update({ status: "pending", leased_by: null, leased_until: null })
-          .in("id", strays);
-        for (const id of strays) created.delete(id);
-      }
+      const restored = await restoreStrays(second, queued.id);
       rec(
-        "and the backlog it swept up was put back",
+        "and the backlog it swept up was put back as it was, attempts included",
         true,
-        `${strays.length} unrelated job(s) restored to pending; their attempts count is one higher and that is a real claim that really happened`,
+        `${restored} unrelated job(s) restored to pending with the attempt this claim spent given back`,
       );
 
       /* Release ours so the runBatch pass below is not competing with it. */
@@ -1087,14 +1115,8 @@ console.log("--- the failure paths");
       );
     }
 
-    /* Put the backlog this claim swept up back. */
-    const strays = (claimed ?? []).filter((r) => r.id !== inserted.id).map((r) => r.id);
-    if (strays.length) {
-      await db
-        .from("eng_jobs")
-        .update({ status: "pending", leased_by: null, leased_until: null })
-        .in("id", strays);
-    }
+    /* Put the backlog this claim swept up back, attempts included. */
+    await restoreStrays(claimed, inserted.id);
 
     /*
      * AND ANOTHER WORKER FINISHES IT. The reclaim above proves the job becomes

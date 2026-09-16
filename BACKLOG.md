@@ -63,7 +63,13 @@ operator's word and has not been given. The report's position is that a trade
 price is not a figure on a report, it is a price on an order, and the order's
 figures are already swept.
 
-## QUEUE-AUDIT INFLATES THE ATTEMPTS OF JOBS IT DOES NOT OWN, NOT FIXED
+## RESOLVED 2026-09-15: QUEUE-AUDIT INFLATED THE ATTEMPTS OF JOBS IT DOES NOT OWN
+
+Fixed on the operator ruling: a job pushed past its limit fails permanently on its first real error, weeks later, with nothing connecting it to the audit that spent its retries. `restoreStrays()` now puts a swept up row back as it was, attempts included, at all three claim sites (one of which restored nothing at all before). The claim returns each row after incrementing, so the value restored is the returned one minus one. Proven on development: five foreign jobs at 18, 18, 16, 16, 16 attempts before a full run and the same five values after, where every earlier run added one.
+
+**The leftovers already inflated are not repaired.** Those rows were created by earlier audit runs, not by this one, and rewriting rows a run did not create is outside the standing permission. On development only; they are pending, and a real failure would dead-letter them at once.
+
+### As first recorded
 
 Observed 2026-09-15 while checking what a run under the old queue guard touched. `queue-audit`'s direct claim tests call `eng_claim_jobs`, which sweeps up whatever backlog is eligible, and then put those rows back to pending. The claim increments `attempts`, and the restore at line 562 does not reset it (the one at line 575 does). Development's leftover pending jobs carry 13 to 16 attempts each. Nothing runs on them and nothing is sent: they sit at pending, with no error and no `finished_at`. But a job restored past its `max_attempts` dead-letters on its first real failure. Development only, since the audit never runs against production. The fix is to restore `attempts` to the value read before the claim.
 
