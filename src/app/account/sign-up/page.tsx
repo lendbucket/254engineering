@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { currentCustomer } from "@/lib/customer-auth";
 import { customerSessionConfigured } from "@/lib/customer-session";
-import { selfServiceSignUpClosedSentence, selfServiceSignUpOpen } from "@/lib/launch";
+import { firmName, selfServiceSignUpClosedSentence, selfServiceSignUpOpen } from "@/lib/launch";
 import { SignUpForm } from "./SignUpForm";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Open an account | 254 Engineering Services",
   description:
-    "Open an ordering account with 254 Services LLC. Choose a password from the link sent to your address, and the account is ready to use.",
+    `Open an ordering account with ${firmName()}. Choose a password from the link sent to your address, and the account is ready to use.`,
   robots: { index: false, follow: false },
 };
 

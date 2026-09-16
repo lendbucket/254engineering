@@ -90,7 +90,29 @@ export const CONDITIONAL_GUARD = String.raw`(?<!\b(?:when|once|if|until|unless|b
  * pattern that stopped looking for it would have the same hole pointed the
  * other way.
  */
-const FIRM_NAMES = "254 Services LLC|254 Engineering Services|Sealed Engineering|StampMyPlans|the firm";
+/*
+ * AND EVERY NAME THE FIRM HAS HELD OR IS ABOUT TO HOLD STAYS IN THIS LIST.
+ * Operator ruling, 2026-09-15, recorded as a known hazard of renaming rather
+ * than as a note.
+ *
+ * These patterns decide what `voice-audit` can SEE. A rename that changes
+ * `issuedTo` in the register without adding the new name here does not make the
+ * audit fail: it makes the audit stop matching, so it goes on passing while it
+ * has stopped looking at anything. That is the vacuous green in its purest
+ * form, and it would arrive on the one commit where the copy is most in flux.
+ *
+ * It happened once already, in the opposite direction, on 2026-09-13: the name
+ * moved to 254 Services LLC and these patterns learned it in the same commit,
+ * which is the only reason the audit was still measuring afterwards.
+ *
+ * 254 Engineering LLC is here BEFORE any sentence uses it. The Secretary of
+ * State amendment is effective 2026-09-16 and the copy does not move until
+ * TBPELS reissues F-29811, so this entry matches nothing today and is not dead:
+ * it is the audit being able to see the rename on the day it happens rather
+ * than the day somebody remembers.
+ */
+const FIRM_NAMES =
+  "254 Services LLC|254 Engineering LLC|254 Engineering Services|Sealed Engineering|StampMyPlans|the firm";
 
 /**
  * Claims no engineering firm may make, in any gate state, ever.

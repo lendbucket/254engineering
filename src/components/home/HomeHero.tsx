@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { TexasCountyMap } from "@/components/map/TexasCountyMap";
 import { modelSentence } from "@/content/model-copy";
-import { isPrelaunch } from "@/lib/launch";
+import { firmName, isPrelaunch } from "@/lib/launch";
 import { services } from "@/content/services";
 import { regions } from "@/content/regions";
 
@@ -63,7 +63,7 @@ export function HomeHero() {
               {/* v5's opening sentence, then the gate aware model sentence. The
                   second half is not hardcoded because it is the sentence that has
                   to change when the registration issues. */}
-              254 Services LLC is named for the 254 counties of Texas, every one of which it
+              {firmName()} is named for the 254 counties of Texas, every one of which it
               will serve. {modelSentence()}
             </p>
 

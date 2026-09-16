@@ -1,5 +1,6 @@
 import { business } from "@/config/business";
 import { roleLabel as roleLabelFor, type RoleKey } from "./ops-authz";
+import { firmName } from "./launch";
 import { emailIdentity, fromHeader, type SenderPurpose } from "@/config/email-identity";
 import {
   OUTCOME_HEADLINE,
@@ -925,7 +926,7 @@ export function accountWelcome(input: {
       ? "Confirm your email address"
       : fromCheckout
         ? "Your account, and everything you have ordered"
-        : "Your account with 254 Services LLC",
+        : `Your account with ${firmName()}`,
     {
       preheader: selfService
         ? `One link to confirm the address, and the account is ready. It lasts ${input.expiresIn}.`
@@ -951,7 +952,7 @@ export function accountWelcome(input: {
                  * payment is one people telephone about.
                  */
                 "Your order is in hand and the confirmation has the link to follow it. We have also opened an account in your name, so that everything you order is in one place. Choosing a password below is the only step, and nothing is waiting on it."
-              : "An account has been opened for you at 254 Services LLC, following your call. Nobody here has set a password for it and nobody can see one: the link below is how you choose your own.",
+              : `An account has been opened for you at ${firmName()}, following your call. Nobody here has set a password for it and nobody can see one: the link below is how you choose your own.`,
         },
         {
           kind: "note",

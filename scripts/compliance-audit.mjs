@@ -74,6 +74,7 @@ const {
   verifiedFirmRegistrations,
   operatingNameOnBoardRecord,
   legalEntityMatchesRegistrant,
+  secretaryOfStateAmendment,
 } = await import("../src/config/credentials.ts");
 
 /* ------------ 0. the legal entity name, which is a SECOND name discrepancy */
@@ -312,6 +313,40 @@ const {
       operatingNameOnBoardRecord.because.includes(TRADING_AS),
     `onRecord: ${operatingNameOnBoardRecord.onRecord}. ${operatingNameOnBoardRecord.because.slice(0, 90)}`,
   );
+
+  /*
+   * AND WHILE A RENAME IS IN FLIGHT, THE RECORD NAMES THE NAME THE STATE HOLDS.
+   * Operator ruling, 2026-09-15.
+   *
+   * The Secretary of State amendment creates a third name, and a reader of this
+   * record has to be able to tell all three apart: the board's, the state's, and
+   * the brand. The check above already forces the first and the third. This
+   * forces the second for as long as the amendment is on file and the board has
+   * not caught up, which is exactly the window where a reader is most likely to
+   * confuse them.
+   *
+   * It is derived from the amendment's own presence rather than pinned to a
+   * date, so it stops applying by itself when `issuedTo` becomes the new name
+   * and the two records agree again.
+   */
+  {
+    const renameInFlight = secretaryOfStateAmendment.newName !== ISSUED_TO;
+    rec(
+      renameInFlight
+        ? "a rename is on file, so the record also names the entity name the state holds"
+        : "no rename is in flight: the board and the state hold the same name",
+      !renameInFlight ||
+        operatingNameOnBoardRecord.because.includes(secretaryOfStateAmendment.newName),
+      renameInFlight
+        ? `state: ${secretaryOfStateAmendment.newName} (effective ${secretaryOfStateAmendment.effective}, file ${secretaryOfStateAmendment.fileNumber}); board: ${ISSUED_TO}`
+        : `both hold ${ISSUED_TO}`,
+    );
+    rec(
+      "and while it is in flight the board's record has not been quietly updated to the new name",
+      !renameInFlight || !verifiedFirmRegistrations.some((r) => r.issuedTo === secretaryOfStateAmendment.newName),
+      `registrations name: ${verifiedFirmRegistrations.map((r) => r.issuedTo).join(", ") || "none"}`,
+    );
+  }
 
   /*
    * AND IF IT IS CLEARED, IT SAYS THE FIRM TRADES UNDER THE REGISTERED NAME.
@@ -800,6 +835,60 @@ const RULED_CONDITIONS = [
       : "no surface calls the firm registered, because the register holds no active registration",
     hits.length === 0,
     hits.length ? hits.join("; ") : `${files.length} files read against the register`,
+  );
+
+  /* --------------------------------------------------------------------------
+   * AND THE FIRM'S NAME IS DERIVED, NOT TYPED. Operator ruling, 2026-09-15.
+   *
+   * The sweep above proves the registration SENTENCE derives. Until today the
+   * firm's NAME did not: it was a literal in twenty rendered sentences, so
+   * renaming the firm cost twenty seven edits and the audits pinning those
+   * literals could only catch an accidental change, never a deliberate one.
+   *
+   * This is the check that makes `firmName()` real. A deriver nothing enforces
+   * is a deriver the next sentence quietly ignores, which is how the name got
+   * written twenty times in the first place.
+   *
+   * The name is the audit's OWN pinned literal, never read from the register,
+   * because an audit that imports its expectation from the thing it audits
+   * cannot disagree with anything. The register is asserted separately to still
+   * state it, which names a drifted register as a drifted register.
+   *
+   * THE EXEMPT SET IS TWO CONFIG FILES AND IS ASSERTED, so it cannot quietly
+   * grow to cover the next file somebody types the name into.
+   * ---------------------------------------------------------------------- */
+  const NAME_MAY_BE_TYPED_IN = ["src/config/credentials.ts", "src/config/business.ts"];
+  const { firmName } = await import("../src/lib/launch.ts");
+
+  rec(
+    "firmName() returns the registrant the board holds, pinned here as a literal",
+    firmName() === ISSUED_TO,
+    `${firmName()} (pinned: ${ISSUED_TO})`,
+  );
+  rec(
+    "and the register still states it, so a drift is named rather than absorbed",
+    verifiedFirmRegistrations.some((r) => r.issuedTo === ISSUED_TO),
+    verifiedFirmRegistrations.map((r) => r.issuedTo).join(", ") || "none",
+  );
+
+  const typed = [];
+  for (const file of files) {
+    if (NAME_MAY_BE_TYPED_IN.includes(file)) continue;
+    const text = codeOnly(readSource(file));
+    if (text.includes(ISSUED_TO)) typed.push(file);
+  }
+  rec(
+    `no source outside the config writes "${ISSUED_TO}" as a literal, so reissuance is one value`,
+    typed.length === 0,
+    typed.length
+      ? `${typed.join("; ")} (render firmName() instead)`
+      : `${files.length - NAME_MAY_BE_TYPED_IN.length} files read`,
+  );
+  rec(
+    "and the files allowed to type it are exactly the two config files",
+    NAME_MAY_BE_TYPED_IN.length === 2 &&
+      NAME_MAY_BE_TYPED_IN.every((f) => files.includes(f)),
+    NAME_MAY_BE_TYPED_IN.join(", "),
   );
 }
 

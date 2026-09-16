@@ -6,12 +6,12 @@ import { Eyebrow, Rule } from "@/components/ui/primitives";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { services } from "@/content/services";
-import { isPrelaunch, notYetAcceptingEngagements, registrationStatement } from "@/lib/launch";
+import { firmName, isPrelaunch, notYetAcceptingEngagements, registrationStatement } from "@/lib/launch";
 
 export const metadata: Metadata = buildMetadata({
   title: "Texas Engineering Services Waitlist | 254 Engineering",
   description:
-    "254 Services LLC is not yet accepting engagements. Join the waitlist to hear directly from the firm, before any general announcement, when it opens for work.",
+    `${firmName()} is not yet accepting engagements. Join the waitlist to hear directly from the firm, before any general announcement, when it opens for work.`,
   path: "/waitlist",
   // Not indexed. This page exists to serve the prelaunch CTA, and it becomes a
   // redirect the day the firm opens. A page with a planned death should not be
@@ -56,7 +56,7 @@ export default async function WaitlistPage({
         lede={
           prelaunch
             ? [notYetAcceptingEngagements(), registrationStatement()].filter(Boolean).join(" ")
-            : "254 Services LLC is accepting work. If you joined the waitlist you will already have heard from us."
+            : `${firmName()} is accepting work. If you joined the waitlist you will already have heard from us.`
         }
         crumbs={crumbs}
       />

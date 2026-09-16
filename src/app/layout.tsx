@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Archivo, Open_Sans } from "next/font/google";
 import "./globals.css";
 import { business } from "@/config/business";
+import { firmName } from "@/lib/launch";
 
 /**
  * THE APPROVED DESIGN'S FACES.
@@ -112,7 +113,7 @@ export const metadata: Metadata = {
     template: "%s",
   },
   description:
-    "254 Services LLC is a veteran owned Texas engineering firm named for the 254 counties of Texas, serving every one of them.",
+    `${firmName()} is a veteran owned Texas engineering firm named for the 254 counties of Texas, serving every one of them.`,
   applicationName: business.name,
   authors: [{ name: business.legalName, url: business.url }],
   creator: business.legalName,

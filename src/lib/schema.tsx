@@ -8,7 +8,7 @@ import {
   hasPostalAddress,
   postalAddressSchema,
 } from "@/config/contact";
-import { isPrelaunch, tbpelsFirmNumber } from "./launch";
+import { firmName, isPrelaunch, tbpelsFirmNumber } from "./launch";
 
 /**
  * Structured data for the whole brand family.
@@ -60,7 +60,7 @@ export function organizationSchema() {
     url: business.url,
     email: business.email,
     description:
-      "254 Services LLC is a veteran owned Texas engineering firm named for the 254 counties of Texas, delivering inspections, sealed letters, certifications, and design through licensed Texas Professional Engineers in responsible charge.",
+      `${firmName()} is a veteran owned Texas engineering firm named for the 254 counties of Texas, delivering inspections, sealed letters, certifications, and design through licensed Texas Professional Engineers in responsible charge.`,
     foundingLocation: {
       "@type": "Place",
       address: { "@type": "PostalAddress", addressRegion: "TX", addressCountry: "US" },

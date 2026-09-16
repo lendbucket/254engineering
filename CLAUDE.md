@@ -47,6 +47,65 @@ The firm's TBPELS registration is pending, and no licensed PE is on staff yet. U
 - "Engineer", "engineering", and "sealed" are regulated terms in Texas. Treat every sentence
   containing them as load bearing.
 
+**THE ENTITY WAS RENAMED ON 2026-09-16, AND NOTHING ON THE SITE MOVED.**
+Operator ruling, 2026-09-15, and it is the cleanest statement of what this gate
+is actually about.
+
+The Secretary of State amendment is filed and stamped: **254 Engineering LLC**,
+formerly 254 Services LLC, effective **2026-09-16**, file number **806765419**.
+The amendment and the duplicate certificate form go to TBPELS on the 16th.
+
+**THE GATE'S CONDITION IS THE BOARD'S RECORD, NOT THE STATE'S**, and those are
+different facts. TBPELS still holds F-29811 in the name 254 Services LLC, so
+every rendered sentence goes on naming 254 Services LLC until the board reissues.
+Nothing about the copy changes, and nothing about the gate opens.
+
+`operatingNameOnBoardRecord` **flipped back to false**, because its recorded
+reason was "the firm trades under its registered name" and the rename makes that
+sentence false. Leaving it true would have been a flag whose own stated reason
+contradicts the world, which is the failure this gate exists to prevent rather
+than an exception to it. It reopens the 2026-09-10 state and closes on
+reissuance. It is set at FILING rather than by a date comparison, because a
+compliance state that flips with no deploy and no audit trail is refused
+outright here; the cost is one day of reading false, erring toward shut.
+
+**THREE NAMES ARE NOW IN PLAY AND EACH IS A DIFFERENT FACT.** The board holds
+254 Services LLC. The state holds 254 Engineering LLC. 254 Engineering Services
+is the brand on the wordmark, the logo and the page titles, and is never the
+legal or firm name in a sentence. `compliance-audit` asserts the record names
+all three.
+
+**A KNOWN, ACCEPTED WINDOW, WRITTEN DOWN RATHER THAN DISCOVERED.** From
+2026-09-16 the site names an entity the STATE no longer holds, while the BOARD's
+record agrees with every sentence. That is the correct trade, because holding
+the copy still is what stops the sites claiming a name TBPELS has never
+registered, which is the exact misstatement the gate exists to prevent. It
+closes on reissuance. `business.legalName` is deliberately left at the old name
+for the same reason: stale against the state, true against the board, on purpose.
+
+**AND THE NAME IS NOW DERIVED, WHICH MAKES REISSUANCE ONE VALUE.** `firmName()`
+in `src/lib/launch.ts` reads `issuedTo` off the register, and twenty rendered
+sentences that used to type the name now call it. It is the FOURTH deriver of
+this exact shape, after `registrationLine()`, `e164Phone()` and
+`registrationStatement()`, each of which exists because one fact had two
+accounts and the copy was the one nobody updated. The audits that pinned those
+twenty literals caught an accidental change and did nothing for a deliberate
+one, which is why the last rename cost twenty seven edits.
+
+Two checks, because they ask different questions. `compliance-audit` scans all
+386 source files and fails if anything outside the two config files types the
+name, with the exempt set asserted so it cannot quietly grow.
+`scripts/proofs/the-firm-name-is-one-value.mjs` patches the register on disk,
+reads the world **in a child process** because a module level constant is read
+once, and asserts the render actually moves. Injection-verified both ways.
+
+**THE HAZARD OF DOING THE RENAME, AND IT HAS BITTEN ONCE.**
+`scripts/lib/regulatory.mjs` carries the firm name in the patterns `voice-audit`
+matches on. A rename that does not teach it the new name does not fail the
+audit: it makes the audit stop matching, so it passes while looking at nothing,
+on the one commit where the copy is most in flux. It learned 254 Engineering LLC
+in the same commit as the deriver, before any sentence uses it.
+
 **THE FIRM REGISTRATION ISSUED ON 2026-09-10, AND THE GATE DID NOT OPEN.**
 
 TBPELS issued **F-29811** to **254 Services LLC**, active, expiring
@@ -565,6 +624,17 @@ real payloads to the hook's own entry point and exits non-zero on any wrong
 answer. Six refused, ten allowed. Then live, in the session that wrote it: a
 real Bash call combining a commit with `npm run` came back refused, and
 `git status` came back normally.
+
+**AND THE COMMIT THAT BUILT IT BROKE A WRITTEN RULE.** `95be4d7` carried both
+the instance five record and the "count from one search" record in one CLAUDE.md
+change, while its message describes only the first. That is one commit doing two
+things, against the commit-per-change rule four lines further down this file.
+
+It is funnier than it is serious, and it is the entire argument in one line: the
+commit that built the mechanical guard against breaking written rules broke a
+written rule, written down, in the file it was editing, by the session that had
+just finished reading it. **A rule you are actively thinking about is still a
+rule you can break. That is what mechanical beats written means.**
 
 **AND ITS FIRST REAL USE FOUND A DEFECT IN IT, WHICH IS THE ARGUMENT FOR THE
 WHOLE PRACTICE.** The first version blanked quoted strings rather than replacing

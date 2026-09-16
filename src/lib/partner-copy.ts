@@ -3,7 +3,7 @@ import {
   NEVER_CLAIMS,
 } from "../../scripts/lib/regulatory.mjs";
 import { BANNED_PHRASES } from "../../scripts/lib/voice-blocklist.mjs";
-import { isPrelaunch, registrationStatement } from "./launch";
+import { firmName, isPrelaunch, registrationStatement } from "./launch";
 
 /**
  * Whether a piece of partner marketing copy may be published.
@@ -131,6 +131,6 @@ function summarise(findings: CopyFinding[]): string {
  */
 export function performingFirmLine(): string {
   return isPrelaunch()
-    ? ["254 Services LLC is the firm of record for work referred through this programme, and is the firm that will perform and seal it.", registrationStatement()].filter(Boolean).join(" ")
-    : "254 Services LLC is the firm of record for work referred through this programme, and is the firm that performs and seals it.";
+    ? [`${firmName()} is the firm of record for work referred through this programme, and is the firm that will perform and seal it.`, registrationStatement()].filter(Boolean).join(" ")
+    : `${firmName()} is the firm of record for work referred through this programme, and is the firm that performs and seals it.`;
 }

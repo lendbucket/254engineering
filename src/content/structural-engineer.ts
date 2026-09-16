@@ -47,7 +47,7 @@
  * description. No fee figures anywhere: engineering fees vary by scope and a
  * number on this page would be invented.
  */
-import { registrationStatement } from "@/lib/launch";
+import { firmName, registrationStatement } from "@/lib/launch";
 
 
 export type ProximitySection = {
@@ -285,7 +285,7 @@ export const proximityPages: ProximityPage[] = [
         title: "Where 254 Engineering Services currently stands",
         lede: "A page about verifying credentials should be checkable about its own.",
         body: [
-          ["254 Services LLC is a veteran owned Texas firm, based in Corpus Christi and named for the 254 counties of Texas.", registrationStatement(), "No Professional Engineer is yet in responsible charge."].filter(Boolean).join(" "),
+          [`${firmName()} is a veteran owned Texas firm, based in Corpus Christi and named for the 254 counties of Texas.`, registrationStatement(), "No Professional Engineer is yet in responsible charge."].filter(Boolean).join(" "),
           "That means the firm does not currently offer or perform engineering services, and nothing on this site should be read as an offer to. Apply the checks on this page to it exactly as you would to anyone else, starting with the registration number above.",
         ],
       },

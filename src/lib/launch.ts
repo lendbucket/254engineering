@@ -9,6 +9,7 @@ import {
   pointInTimeRecovery,
   placeholderPhonePatterns,
 } from "@/config/launch-readiness";
+import { business } from "@/config/business";
 import { contact } from "@/config/contact";
 import { services } from "@/content/services";
 import { selfServiceSignUp } from "@/config/launch-conditions";
@@ -433,6 +434,50 @@ export function registrationStatement(): string | null {
   const registration = activeFirmRegistration();
   if (!registration) return null;
   return `${registration.issuedTo} is a Texas registered engineering firm, TBPELS Firm Registration ${registration.number}.`;
+}
+
+/**
+ * THE FIRM'S NAME IN A SENTENCE, READ OFF THE BOARD'S RECORD. Operator ruling,
+ * 2026-09-15.
+ *
+ * THE ARGUMENT FOR IT IS ITS OWN HISTORY. This is the fourth deriver of this
+ * exact shape: `registrationLine()`, `e164Phone()`, `registrationStatement()`,
+ * and now this. Each exists because one fact had two accounts and the copy was
+ * the one nobody updated. The name was the last fact still written as a
+ * literal, in twenty rendered sentences, and renaming the firm on 2026-09-13
+ * cost twenty seven edits. The audits pinning those literals catch an
+ * ACCIDENTAL change and do nothing for a deliberate one, which is the gap: a
+ * pin makes a rename expensive rather than safe.
+ *
+ * IT READS THE REGISTRANT, NOT THE ENTITY, AND THAT IS THE WHOLE DESIGN.
+ * Operator ruling, 2026-09-15, on the Secretary of State amendment: the
+ * compliance gate is about what the BOARD's record says, and the state's record
+ * is a different fact. The entity became 254 Engineering LLC on 2026-09-16 and
+ * TBPELS still holds F-29811 in the name 254 Services LLC, so every sentence
+ * naming the firm goes on saying what the board holds until the certificate is
+ * reissued. Sourcing this from the registration is what makes that true
+ * mechanically rather than by remembering.
+ *
+ * So reissuance is ONE VALUE: `issuedTo` in the register, and every rendered
+ * sentence, both email templates, the JSON-LD block and the report export
+ * header follow it. `compliance-audit` asserts that no source outside the
+ * config writes the name as a literal, because a deriver nothing enforces is a
+ * deriver the next sentence quietly ignores.
+ *
+ * THE HAZARD OF ACTUALLY DOING THE RENAME, RECORDED HERE BECAUSE IT HAS BITTEN
+ * ONCE. `scripts/lib/regulatory.mjs` carries the firm name in the patterns
+ * `voice-audit` matches on. It learned the name in the same commit last time,
+ * and if it does not, the audit goes blind on the way past: it keeps passing
+ * while it has stopped looking at anything. Whoever changes `issuedTo` changes
+ * those patterns in the same commit.
+ *
+ * The fallback is the legal entity, for the state this repository was in before
+ * 2026-09-10, when no registration was on record and the pages still had to
+ * name the firm.
+ */
+export function firmName(): string {
+  const registration = activeFirmRegistration();
+  return registration ? registration.issuedTo : business.legalName;
 }
 
 /**
