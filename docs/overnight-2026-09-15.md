@@ -661,6 +661,90 @@ on a measurement. It did not recur in run 3 and nothing was changed to address
 it. **Unexplained**, and recorded here rather than absorbed. It belongs with the
 long Playwright heavy board entry already in `BACKLOG.md`.
 
+## THE LATER RULINGS: THE MONEY GATE, THE QUEUE, AND THE RENAME
+
+These reached commits and `BACKLOG.md` before they reached this file, which the
+operator caught. They are recorded here because a report that omits what was
+ruled is the report, not the backlog, that somebody reads later.
+
+### Statement checkout and the launch gate: DONE, `2bee6ba`
+
+Fixed the day a live Stripe secret key went on Production, because the only
+thing between that path and a real charge was that production holds no
+statements, which is data rather than a control.
+
+**Which paths exist, and which were already checking. The honest answer is none
+of the three.**
+
+| Path | Gate before | Gate now |
+| --- | --- | --- |
+| `startCheckout` | Upstream only, in the order routes and `orderBlockedReason` | `chargesBlockedReason()`, first statement |
+| `startBatchCheckout` | Upstream only, same two places | `chargesBlockedReason()`, first statement |
+| `startStatementCheckout` | **Nothing** | `chargesBlockedReason()`, first statement |
+
+Two were COVERED by a guard upstream, which is not the same as asking, and is
+exactly what a new caller misses. One was covered by an absence of data. Each
+now asks before the database or the provider is touched.
+
+`money-audit` **derives** the set rather than listing it: every function in
+`src/lib` whose body calls `createCheckout(` must call the gate, with a floor so
+an empty set cannot pass. A fourth charge path turns the board red and names it.
+The two refund paths, `cancelAndRefund` and `settleDecision`, are asserted NOT
+to ask, because money going back must still move; a gate that blocked refunds
+would trap a customer's money. That assertion is the half worth having, since
+"add the gate everywhere" would have been the wrong fix and an audit would have
+enforced it happily.
+
+### queue-audit inflating foreign jobs: DONE, `51bce23`
+
+`restoreStrays()` puts a swept up row back as it was, attempts included, at all
+three claim sites, one of which restored nothing at all. Proven on development:
+five foreign jobs at 18, 18, 16, 16, 16 before a full run and the same five
+after, where every earlier run added one. Rows already inflated are left alone,
+because rewriting rows a run did not create is outside the standing permission.
+
+### The Secretary of State amendment, and why no sentence moved
+
+Filed and stamped: **254 Engineering LLC**, formerly 254 Services LLC, effective
+**2026-09-16**, file number **806765419**.
+
+**Nothing on the site changed, and that is the ruling rather than an oversight.**
+The gate's condition is the board's record and TBPELS still holds F-29811 in the
+old name, so every rendered sentence goes on naming 254 Services LLC until the
+certificate is reissued. `operatingNameOnBoardRecord` flipped back to **false**,
+because its recorded reason, "the firm trades under its registered name", is
+false from the 16th, and a flag whose stated reason contradicts the world is the
+failure this gate exists to prevent. Set at filing rather than by a date
+comparison, so no compliance state flips without a deploy; it reads false one
+day early, erring toward shut.
+
+**The answer to "is a rename one configuration value" was no, and now it is
+yes.** The registration SENTENCE derived. The firm's NAME did not: it was a
+literal in **20 rendered sentences across 14 files**, which is why the last
+rename cost 27 edits. `firmName()` now reads `issuedTo` off the register and all
+20 call it. It is the fourth deriver of this shape after `registrationLine()`,
+`e164Phone()` and `registrationStatement()`, and the argument for building it
+was that finding this defect a third time and paying the 27 edits again would be
+choosing to find it a fourth.
+
+Two checks, asking different questions: `compliance-audit` scans all 386 source
+files and fails if anything outside the two config files types the name, with
+the exempt set asserted so it cannot grow quietly;
+`scripts/proofs/the-firm-name-is-one-value.mjs` patches the register on disk and
+reads the world **in a child process**, because a module level constant is read
+once, and asserts the render actually moves. Both injection-verified.
+
+`scripts/lib/regulatory.mjs` learned 254 Engineering LLC in the same commit,
+before any sentence uses it. That is recorded as a hazard rather than a
+footnote: a rename that does not teach those patterns makes `voice-audit` stop
+matching, so it passes while looking at nothing, on the commit where the copy is
+most in flux.
+
+**The accepted window, written down rather than discovered.** From 2026-09-16
+the site names an entity the state no longer holds while the board's record
+agrees. `business.legalName` is deliberately left at the old name for the same
+reason. It closes on reissuance.
+
 ## ALSO FROM TODAY
 
 - **Stripe, read before the Production keys were added.** Two variables only,
