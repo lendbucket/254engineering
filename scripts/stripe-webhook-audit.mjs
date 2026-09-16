@@ -39,6 +39,9 @@ console.log("============ THE STRIPE WEBHOOK REGISTRATION ============");
 console.log("");
 
 const { stripeWebhookEndpoint } = await import("../src/config/stripe-webhook.ts");
+const { stripeConsole } = await import("../src/config/stripe-console.ts");
+const { verifiedFirmRegistrations } = await import("../src/config/credentials.ts");
+const { e164Phone } = await import("../src/config/contact.ts");
 
 /* ---------------------------------------------- 1. the declaration, on disk */
 
@@ -91,6 +94,73 @@ rec(
   stripeWebhookEndpoint.verified.trim().length > 40,
   stripeWebhookEndpoint.verified.slice(0, 80),
 );
+
+/* ------------------------- 1b. what the console holds, as somebody read it */
+
+/*
+ * A DECLARATION OF A CONSOLE NOTHING HERE CAN READ. These checks do not ask
+ * Stripe anything; they assert the record is present, shaped right, and still
+ * agrees with the facts this repository DOES own. That is the whole value of
+ * writing a console down: it can now go stale visibly.
+ */
+rec(
+  "somebody recorded what the Stripe console holds, with a date and a name",
+  /^\d{4}-\d{2}-\d{2}$/.test(stripeConsole.readOn) && stripeConsole.readBy.trim().length > 20,
+  `read ${stripeConsole.readOn} by ${stripeConsole.readBy.slice(0, 40)}`,
+);
+rec(
+  "and the account it was read from is an account id",
+  /^acct_[A-Za-z0-9]+$/.test(stripeConsole.accountId),
+  stripeConsole.accountId,
+);
+
+/*
+ * THE ONE FIELD WITH A RULE ON IT, AND IT MAKES "IN THE SAME SITTING"
+ * MECHANICAL. Stripe's legal business name is matched against the EIN and must
+ * be the registrant the BOARD holds. When issuedTo becomes the new name at
+ * reissuance, this goes red naming the Stripe field as stale, and stays red
+ * until somebody changes it in the console and updates the declaration.
+ */
+const registrant = verifiedFirmRegistrations.find((r) => r.status === "active")?.issuedTo ?? null;
+rec(
+  "the Stripe legal business name is the registrant the board holds",
+  Boolean(registrant) && stripeConsole.legalBusinessName === registrant,
+  stripeConsole.legalBusinessName === registrant
+    ? `both say "${registrant}"`
+    : `Stripe says "${stripeConsole.legalBusinessName}", the board's record says "${registrant}". Change it in the Stripe console and update src/config/stripe-console.ts in the same sitting.`,
+);
+rec(
+  "and the record says what must change there and what triggers it",
+  stripeConsole.whatMustChange.includes("TBPELS") && stripeConsole.whatMustChange.length > 80,
+  stripeConsole.whatMustChange.slice(0, 60),
+);
+
+/*
+ * The support phone against the number this platform derives. Two accounts of
+ * one fact, one of them in a console, which is exactly the shape that drifts.
+ */
+/*
+ * UNREACHABLE IS NOT FAILED, and this is the case that proves why the rule
+ * matters. `e164Phone()` derives from FIRM_PHONE, which is an environment
+ * variable, so on a machine without it the platform has no number to compare
+ * and the honest answer is that nothing was compared. Failing here would put a
+ * permanent red on every developer's board for a fact nobody can see locally,
+ * and a red everybody learns to ignore is where the next real failure hides.
+ */
+const platformPhone = e164Phone();
+if (!platformPhone) {
+  tell.push(
+    "The Stripe support phone was NOT compared: FIRM_PHONE is not set here, so this platform has no " +
+      "number to compare it against. The console declares " +
+      `${stripeConsole.supportPhone}. This half runs wherever FIRM_PHONE is configured.`,
+  );
+} else {
+  rec(
+    "the Stripe support phone is the number this platform publishes",
+    stripeConsole.supportPhone === platformPhone,
+    `Stripe ${stripeConsole.supportPhone}, platform ${platformPhone}`,
+  );
+}
 
 /* ------------------------------------------------ 2. what Stripe says, live */
 
@@ -163,6 +233,19 @@ if (!key) {
      * endpoint list is a configuration that will never deliver.
      */
     const keyIsLive = key.startsWith("sk_live_") || key.startsWith("rk_live_");
+    /*
+     * THE BASELINE, AND THE REASON THE OPERATOR ASKED FOR THE ID TO BE
+     * RECORDED. Printing the account makes every run a pass with a number in
+     * its note. Asserting it means a key swapped to a DIFFERENT account turns
+     * this red and names both ids, which is the thing a pass could never say.
+     */
+    rec(
+      "the account the key reached is the account that was confirmed and declared",
+      account.id === stripeConsole.accountId,
+      account.id === stripeConsole.accountId
+        ? `${account.id}, confirmed ${stripeWebhookEndpoint.liveConfirmedOn ?? "never"}`
+        : `the key reached ${account.id}; src/config/stripe-console.ts declares ${stripeConsole.accountId}`,
+    );
     rec(
       `the key is a ${keyIsLive ? "live" : "test"} key and the endpoints listed are its own mode`,
       true,

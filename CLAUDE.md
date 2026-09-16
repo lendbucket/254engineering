@@ -883,6 +883,43 @@ deciding identity or opening a database is declared as shared. **It cannot read
 Vercel and says so.** What it buys is that a future sharing becomes a deliberate
 edit to a reviewed file rather than a dropdown nobody opens again.
 
+**THIRD INSTANCE, 2026-09-16, AND IT IS NOW A PATTERN RATHER THAN TWO STORIES.**
+Operator ruling. **The sharpest finding of three consecutive days has been in a
+console no audit in this repository can read, and the operator found all three
+by opening it.**
+
+| When | Console | What was found |
+| --- | --- | --- |
+| 2026-09-12 | Vercel | `CUSTOMER_SESSION_SECRET` on All Environments, so a cookie minted on any preview was valid on production |
+| 2026-09-12 | Vercel | `PARTNER_SESSION_SECRET` and `MFA_ENCRYPTION_KEY` shared across Production and Preview, while `OPS_SESSION_SECRET` was already split |
+| 2026-09-16 | Stripe | The account's public business name and statement descriptor, both CUSTOMER FACING, naming the firm on a checkout page and a card statement, outside `firmName()` and outside this repository |
+
+**The answer is the same every time, and that is what makes it a rule: a
+declaration of what the console holds, DATED and ATTRIBUTED.** Not a check,
+because no check can reach it. A person reads the console, writes down what it
+says and when, and that record becomes a fact this repository can hold, compare
+against, and go visibly stale.
+
+`src/config/credential-inventory.ts` does it for Vercel and says outright that it
+cannot read it. `src/config/stripe-console.ts` does it for Stripe and says the
+same.
+
+**AND A DECLARATION EARNS ITS KEEP BY BEING ASSERTED AGAINST SOMETHING THE
+REPOSITORY DOES OWN.** A console record nothing compares is a note. The Stripe
+one carries three comparisons: the legal business name must equal the registrant
+on the board's record, the support phone must equal what `e164Phone()` derives,
+and the account id must equal the account the live audit actually reached. The
+first is the valuable one, because it makes an instruction mechanical: the
+operator's ruling was that Stripe's legal name changes "in the same sitting as
+`issuedTo`", and asserting the equality means the board goes RED at reissuance
+naming the Stripe field as stale, rather than depending on anybody remembering.
+Injection-verified by moving `issuedTo` and watching it name both values and the
+file to edit.
+
+**The general form, and it is the question to ask of any external console:**
+what does this system hold that nothing here can see, who last looked, and is
+there anything in the repository it can be compared against.
+
 **TWO MORE INSTANCES, 2026-09-10, AND THEY ARE THE SAME THING FROM BOTH ENDS.**
 Operator ruling: a check that measures nothing and a screen no check reads are
 the same failure. One is a green over an empty set; the other is an empty set of

@@ -36,6 +36,17 @@ export const stripeWebhookEndpoint: {
   registeredEvents: string[];
   /** Who registered it, when, and against which account. Never left empty. */
   verified: string;
+  /**
+   * ISO date the LIVE half of stripe-webhook-audit last confirmed this against
+   * the account, or null if it never has.
+   *
+   * THE ACCOUNT ID IS NOT REPEATED HERE. It lives once, in stripe-console.ts,
+   * and the audit asserts the account it reached equals that one. Two accounts
+   * of one fact are two accounts that will disagree, which this repository has
+   * now written down about the ledger, the compliance sentence, the
+   * registration line and the firm name.
+   */
+  liveConfirmedOn: string | null;
 } = {
   path: "/api/stripe/webhook",
   url: "https://254engineering.com/api/stripe/webhook",
@@ -48,4 +59,17 @@ export const stripeWebhookEndpoint: {
     "Registered by the operator on 2026-09-16 against the live 254 account, with STRIPE_WEBHOOK_SECRET " +
     "taken from the same account as STRIPE_SECRET_KEY in the same sitting. The live half of " +
     "stripe-webhook-audit confirms this against the account the key belongs to.",
+
+  /*
+   * CONFIRMED AT THE KEYBOARD 2026-09-16, 11 of 11 checks: one endpoint,
+   * enabled, at the declared URL, subscribed to exactly the three handled
+   * events and nothing extra, live mode on both sides, against the account
+   * declared in stripe-console.ts.
+   *
+   * That run closed the SILENT case, which is the one where the endpoint is
+   * registered in another account and this platform is never called at all.
+   * Recording the date turns a pass into a baseline: the next run has something
+   * to disagree with rather than only its own green.
+   */
+  liveConfirmedOn: "2026-09-16",
 };
