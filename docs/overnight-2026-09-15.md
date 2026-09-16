@@ -548,12 +548,25 @@ Everything else is a blunt substring rule, including a `cd` in front of a board
 run: the Bash working directory persists, so `cd` is its own command. The guard
 fails closed, testing the raw command when quoting cannot be resolved.
 
-**Proven both ways rather than assumed.** Nine command shapes piped to the
-hook's own entry point: instances three, four and five refused by name; a bare
-board, a board redirected to a file, a plain commit, a commit whose message
-names `scripts/queue-audit.mjs`, and a standalone audit all allowed. Then live,
-in this session: a real Bash call combining a commit with `npm run` came back
-refused, and `git status` came back normally.
+**Proven both ways rather than assumed.**
+`scripts/proofs/the-commit-guard-refuses-the-shape.mjs` feeds sixteen real
+payloads to the hook's own entry point and exits non-zero on any wrong answer:
+six refused, including instances three, four and five by name and an unbalanced
+quote failing closed; ten allowed, including a plain commit and a commit whose
+message names both `scripts/queue-audit.mjs` and the board. Then live, in this
+session: a real Bash call combining a commit with `npm run` came back refused,
+and `git status` came back normally.
+
+**Its first real use found a defect in it, and that is worth more than the ten
+green lines were.** The first version blanked quoted strings rather than
+replacing them, so `npm run audit > "<a path with a space>" 2>&1` became a
+redirection with no target, and **the guard refused the board run written to
+close this session.** Ten hand-picked shapes had passed; the first command
+actually typed did not. Fixed by substituting a placeholder word so the SHAPE of
+the command survives, and that case is now one of the sixteen. The proof file
+also builds the two dangerous words by concatenation, because a shell one liner
+carrying them whole is itself refused: the first version of the proof was
+written inline and the guard refused it.
 
 ### 7 as first proposed, kept for the reasoning
 

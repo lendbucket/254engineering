@@ -559,12 +559,23 @@ front of a board run: the Bash working directory persists between commands, so
 `cd` is its own command. The guard fails closed, testing the raw command when
 quoting cannot be resolved.
 
-Proven in both directions rather than assumed. Nine command shapes piped to the
-hook's own entry point: instances three, four and five refused by name, a bare
-board and a board redirected to a file allowed, a plain commit allowed, a commit
-whose message names `scripts/queue-audit.mjs` allowed, an audit run on its own
-allowed. Then live, in the session that wrote it: a real Bash call combining a
-commit with `npm run` came back refused, and `git status` came back normally.
+Proven in both directions rather than assumed, by
+`scripts/proofs/the-commit-guard-refuses-the-shape.mjs`, which feeds sixteen
+real payloads to the hook's own entry point and exits non-zero on any wrong
+answer. Six refused, ten allowed. Then live, in the session that wrote it: a
+real Bash call combining a commit with `npm run` came back refused, and
+`git status` came back normally.
+
+**AND ITS FIRST REAL USE FOUND A DEFECT IN IT, WHICH IS THE ARGUMENT FOR THE
+WHOLE PRACTICE.** The first version blanked quoted strings rather than replacing
+them, so `npm run audit > "<a path with a space>" 2>&1` became a redirection
+with no target and the board-alone shape stopped matching its own output file.
+**The guard refused the very board run written to close the session.** Ten
+hand-picked shapes had passed; the first command anybody actually typed did not.
+The fix is a placeholder word instead of a blank, so the SHAPE of the command
+survives, and that case is now one of the sixteen. The general form is the one
+this file already makes about fixtures: a check is only as good as the inputs it
+was given, and the input worth having is the real one.
 
 **WHEN A PATCH HAS LANDED AND BEHAVIOUR HAS NOT CHANGED, THE MODULE IS BOUND.**
 Operator ruling, 2026-09-14, moved here from `scripts/lib/gate-fixture.mjs`

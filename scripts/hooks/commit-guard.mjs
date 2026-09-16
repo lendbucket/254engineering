@@ -26,11 +26,14 @@
  *   5. An audit piped through `tail`, which discarded its exit code, chained
  *      into the commit that then landed red (2026-09-15, commit 8b6d396).
  *
- * ON THE BLUNTNESS. Rule 1 is tested against the command with quoted strings
- * removed, so a commit MESSAGE naming a script is not a refusal. That is the
- * only softening: it refuses exactly the shape "one command both runs something
- * and commits", which is the shape that cost the run, rather than refusing a
- * sentence about it. Everything else is a substring rule on purpose.
+ * ON THE BLUNTNESS. Both rules are tested against the command with quoted
+ * strings and heredoc bodies replaced by a placeholder word, so a commit
+ * MESSAGE naming a script is not a refusal. That is the only softening: it
+ * refuses exactly the shape "one command both runs something and commits",
+ * which is the shape that cost the run, rather than refusing a sentence about
+ * it. Everything else is a substring rule on purpose, including a `cd` in front
+ * of a board run: the Bash working directory persists between commands, so `cd`
+ * is its own command.
  *
  * Fails closed. If the payload cannot be parsed, or quoting cannot be resolved,
  * the raw command is tested instead of being waved through.
@@ -49,24 +52,33 @@ const BOARD_ALONE =
 const BOARD_MENTIONED = /\bnpm\s+run\s+audit\b/;
 
 /**
- * Remove quoted strings and heredoc bodies so a commit message cannot trip a
- * rule about what the command RUNS. Returns null when quoting is unbalanced,
- * which is the signal to test the raw command instead.
+ * Replace quoted strings and heredoc bodies with a placeholder WORD, so a
+ * commit message cannot trip a rule about what the command RUNS. Returns null
+ * when quoting is unbalanced, which is the signal to test the raw command
+ * instead.
+ *
+ * It is a word rather than a space because the first real use of this hook
+ * refused `npm run audit > "<path>" 2>&1`: blanking the quoted path left a
+ * redirection with no target, so the board-alone shape no longer matched its
+ * own output file. A placeholder keeps the SHAPE of the command intact, which
+ * is the only thing these rules are about.
  */
+const QUOTED = "q";
+
 export function stripQuoted(command) {
   let out = "";
   let i = 0;
   while (i < command.length) {
     const c = command[i];
     if (c === "\\" && i + 1 < command.length) {
-      out += "  ";
+      out += QUOTED;
       i += 2;
       continue;
     }
     if (c === "'" || c === '"') {
       const close = command.indexOf(c, i + 1);
       if (close === -1) return null;
-      out += " ";
+      out += QUOTED;
       i = close + 1;
       continue;
     }
@@ -80,7 +92,7 @@ export function stripQuoted(command) {
       }
       const end = command.indexOf(`\n${tag[2]}`, i);
       if (end === -1) return null;
-      out += " ";
+      out += QUOTED;
       i = end + 1 + tag[2].length;
       continue;
     }
