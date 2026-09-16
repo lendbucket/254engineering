@@ -10,6 +10,7 @@ import {
   placeholderPhonePatterns,
 } from "@/config/launch-readiness";
 import { business } from "@/config/business";
+import { stripeAccountBlockedReason } from "./stripe-account";
 import { contact } from "@/config/contact";
 import { services } from "@/content/services";
 import { selfServiceSignUp } from "@/config/launch-conditions";
@@ -512,6 +513,20 @@ export function notYetAcceptingEngagements(): string {
  * customer's money, which is the opposite of what it is for.
  */
 export function chargesBlockedReason(): string | null {
+  /*
+   * A PROVEN STRIPE ACCOUNT MISMATCH STOPS NEW CHARGES. Operator ruling,
+   * 2026-09-16, and it is checked BEFORE the launch gate on purpose: it is true
+   * in both modes, and it is the one that costs a customer money rather than
+   * costing the firm a sale.
+   *
+   * It blocks only on a definitive `resource_missing`. An outage, a timeout or
+   * any other error reads as "could not tell" and blocks nothing, because a
+   * check that shuts the firm on a transient error is its own defect. The
+   * reasoning is in stripe-account.ts.
+   */
+  const mismatch = stripeAccountBlockedReason();
+  if (mismatch) return mismatch;
+
   if (!isPrelaunch()) return null;
   return `${notYetAcceptingEngagements()} No payment can be taken until it opens for work.`;
 }

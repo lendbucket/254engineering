@@ -5492,3 +5492,45 @@ instance five. Closing it means every audit recording its own exit against the
 tree it read, which is a small change repeated across 53 files, and that is the
 work this entry is holding. Until it exists, layer two would answer "no failing
 run recorded" for exactly the runs most likely to be failing.
+
+## RULED AND BUILT 2026-09-16: THE TWO STRIPE CREDENTIALS ARE COMPARED, AND THE DURABLE HALF OF THE BLOCK IS NOT
+
+Built on the operator's ruling the day the webhook was registered on the live
+account. Nothing had ever compared the account behind `STRIPE_SECRET_KEY` with
+the account behind `STRIPE_WEBHOOK_SECRET`, and a mismatch presents as a
+customer paying, Stripe showing the charge, and the order never leaving
+`awaiting_payment`.
+
+| Layer | Where | Cost | What it catches |
+| --- | --- | --- | --- |
+| **One** | `scripts/stripe-webhook-audit.mjs`, on the board | 0 calls without a key, 2 with | The webhook registered in the wrong account, which sends NOTHING |
+| **Two** | `modeDisagreement`, in the adapter | 0 calls | The key and the endpoint in different modes. Loud, never blocks |
+| **Three** | `confirmStripeAccount`, in the route | 1 call per process | A definitive `resource_missing`, which blocks charges |
+
+A proven mismatch is wired into `chargesBlockedReason`, ahead of the launch
+gate, and blocks **only** on `resource_missing`. An outage, a timeout or any
+other error reads as could not tell and blocks nothing, because taking money the
+platform cannot record is worse than not trading for an hour, and a check that
+shuts the firm on a network blip costs the second thing for no reason. Proven
+both ways by `scripts/proofs/a-mismatched-stripe-account-stops-charges.mjs`,
+including injecting the widened catch that is the natural drift.
+
+**WHAT IS NOT BUILT, AND IT IS THE DURABLE HALF OF THE BLOCK.** The layer three
+verdict lives in module state, so it is per process. A mismatch proven in the
+WEBHOOK process is not visible to a CHECKOUT process, which means the block is
+per instance rather than platform wide. The durable signals are the system task
+and the alert, which are raised once and stay raised, so nothing is silent; what
+is missing is the automatic refusal in every other instance.
+
+Closing it properly needs a row keyed by the account id and a hash of the
+signing secret, which needs a migration. **A migration on a branch that cannot
+be applied to production is pending, and a pending migration holds a merge**, so
+it is recorded here rather than half built. It wants a session with the operator
+at a keyboard to run the production half.
+
+**Layer one is deliberately NOT a launch condition**, by the same ruling. The
+gate's `stripeAccount` condition is proven by a charge and its refund, which
+proves the whole path end to end including the webhook arriving; layer one
+proves something weaker and is continuous rather than a one time proof. Two
+conditions for one fact is how clearing one starts to look like progress while
+the other quietly holds.

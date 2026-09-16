@@ -52,6 +52,7 @@
     "reporting-audit": "tsx --conditions=react-server scripts/reporting-audit.mjs",
     "demo-audit": "tsx --conditions=react-server scripts/demo-audit.mjs",
     "money-audit": "tsx scripts/money-audit.mjs",
+    "stripe-webhook-audit": "tsx scripts/stripe-webhook-audit.mjs",
     "order-audit": "tsx scripts/order-audit.mjs",
     "seed-field-demo": "tsx --conditions=react-server scripts/seed-field-demo.mjs",
     "db-guard-audit": "tsx scripts/db-guard-audit.mjs",

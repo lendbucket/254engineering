@@ -1,6 +1,8 @@
 import "server-only";
 import Stripe from "stripe";
 import { LIVE_KEY_EXPLANATION, LIVE_KEY_FIX, LIVE_KEY_HEADLINE, liveKeyOffProduction } from "./db-guard";
+import { modeDisagreement, establishAccountVerdict } from "./stripe-account";
+import { raiseSystemTask } from "./system-work";
 import type {
   CheckoutRequest,
   CheckoutSession,
@@ -226,6 +228,28 @@ export function stripeProvider(): PaymentProvider {
        */
       const event = stripe().webhooks.constructEvent(rawBody, signature, secret);
 
+      /*
+       * LAYER TWO OF THE ACCOUNT CONSISTENCY CHECK. Free, every webhook, no API
+       * call. Operator ruling, 2026-09-16.
+       *
+       * The key's mode comes off its prefix and the event's off livemode. A
+       * disagreement means the signing secret belongs to an endpoint in the
+       * other mode, so no event will ever match a session this key created.
+       *
+       * LOUD, AND IT DOES NOT BLOCK. Blocking is reserved for the definitive
+       * test in layer three, by ruling, because this one cannot tell a wrong
+       * mode in the SAME account from a wrong account.
+       */
+      const modeFault = modeDisagreement(event.livemode);
+      if (modeFault) {
+        console.error(`[stripe] ACCOUNT CONSISTENCY: ${modeFault}`);
+        void raiseSystemTask({
+          key: "stripe-webhook-mode-mismatch",
+          title: "Stripe key and webhook signing secret are in different modes",
+          description: modeFault,
+        }).catch(() => {});
+      }
+
       if (event.type === "checkout.session.completed") {
         const session = event.data.object as Stripe.Checkout.Session;
         const intent =
@@ -316,4 +340,49 @@ export function stripeProvider(): PaymentProvider {
       return null;
     },
   };
+}
+
+
+/**
+ * LAYER THREE OF THE ACCOUNT CONSISTENCY CHECK. Operator ruling, 2026-09-16.
+ *
+ * One call, once per process, on the first verified webhook. It fetches the
+ * event's OWN object with the SECRET KEY: found means the key's account owns
+ * what the webhook just described, so the two credentials are one account. A
+ * definitive `resource_missing` means that account has never heard of it,
+ * which is only true across accounts.
+ *
+ * Every other outcome, including an outage and a timeout, leaves the verdict
+ * unknown and blocks nothing. That is the ruling, and it is the third verdict
+ * this build uses everywhere else.
+ *
+ * WHY THE ROUTE CALLS THIS RATHER THAN readEvent DOING IT. readEvent is sync
+ * and this is one network call; putting it inside the signature boundary would
+ * either block verification on Stripe being up or be fired and forgotten, and
+ * the route is where the result can be acted on.
+ */
+export async function confirmStripeAccount(event: PaymentEvent): Promise<void> {
+  const fetchOwnObject = () => {
+    if (event.kind === "charge.refunded") {
+      return stripe().paymentIntents.retrieve(event.chargeRef);
+    }
+    return stripe().checkout.sessions.retrieve(event.sessionRef);
+  };
+
+  const result = await establishAccountVerdict(fetchOwnObject);
+  if (!result.changed) return;
+
+  if (result.verdict === "different") {
+    console.error(`[stripe] ACCOUNT MISMATCH: ${result.note}. New charges are stopped.`);
+    void raiseSystemTask({
+      key: "stripe-account-mismatch",
+      title: "Stripe secret key and webhook signing secret are different accounts",
+      description:
+        `${result.note}. New charges are stopped on this instance. Take STRIPE_SECRET_KEY and ` +
+        "STRIPE_WEBHOOK_SECRET from the same account's dashboard in one sitting, then redeploy.",
+    }).catch(() => {});
+    return;
+  }
+
+  console.log(`[stripe] account consistency: ${result.note}`);
 }

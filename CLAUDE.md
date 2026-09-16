@@ -1161,6 +1161,40 @@ or it is not offered.** One search is one search. The extent of a thing in this
 repository is established by a sweep that derives its own subject list, or by a
 check that asserts the property, and those are the two numbers worth reporting.
 
+**AND THE SHARPEST ONE YET: THE FAILURE THAT SENDS NOTHING AT ALL, SO EVERY
+CHECK ON THE ARRIVAL PATH IS GREEN FOR THE REASON THAT MATTERED.** Operator
+ruling, 2026-09-16, from the Stripe webhook.
+
+Nothing compared the account behind `STRIPE_SECRET_KEY` with the account behind
+`STRIPE_WEBHOOK_SECRET`. The obvious place to check is the webhook handler,
+where both credentials meet, and two of the three layers built do exactly that.
+
+**But the worst version of the mismatch produces no webhook.** If the key is
+account A and the URL is registered only in account B, then **A never calls
+us**: no 400, no log line, no event, nothing to inspect. The customer pays,
+Stripe shows the charge, and the order sits at `awaiting_payment` forever. Every
+check on the arrival path is green, and each one is correct, because the subject
+never arrives.
+
+**It outranks the earlier vacuous-green instances rather than joining them**, and
+the reason is where the green comes from. A green over an empty set is at least
+an empty set somebody could count. A green over an event that was never sent has
+nothing to count at all: the harness is not looking at the wrong thing, it is
+waiting to be called by a system that has no idea it exists.
+
+The fix is the only shape that can work: **a check that asks the question
+without waiting to be called.** `scripts/stripe-webhook-audit.mjs` asks the
+key's own account whether it has an endpoint at our URL, enabled, subscribed to
+the events the handler branches on, with the event list PARSED out of the
+adapter rather than typed, so a fourth handled event nobody registered turns it
+red and names it. It runs on the board with no credentials and reports
+`COULD NOT TELL` for the live half, which needs the key.
+
+**The general form, and it is the question to ask of any integration:** what
+does this failure look like if the other system simply stops calling, and is
+there anything on our side that would notice. If the answer is that every check
+lives on the inbound path, there is no check.
+
 **A CHECK THAT FILTERS LIVE DATA FOR A SUBJECT THAT DOES NOT EXIST YET IS
 VACUOUS. BUILD THE SUBJECT.** Operator ruling, 2026-09-09, from the reporting
 paging work. The obvious way to check that a paged expansion still sums the
