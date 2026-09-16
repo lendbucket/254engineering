@@ -413,6 +413,10 @@ declare. Red on the shipped code naming `updated_at`, green on the fix.
 | 2, on `bbbb5ba` | **All 53 audits pass.** |
 | 3, on the commit adding this report | Runs after this file is committed, on the tree as it will be left. Its result is in the session's closing message, because writing it here would change the tree it measured. |
 
+**Three further boards were run on the ruling work that followed.** Two were red
+and both reds were mine. They are below, under THE THREE BOARD RUNS AFTER THE
+RULINGS.
+
 ---
 
 ## ONE ARTEFACT PER PART THAT FOUND WHAT NO CHECK DID
@@ -518,7 +522,40 @@ chunk cannot load. Reading `useFormPost` before the build found `fail()` forced
 the form-level message to null, which would have hidden that message. Commit
 `8dc6ced`.
 
-### 7. The commit made while an audit was red: A MECHANICAL PROPOSAL
+### 7. The commit made while an audit was red: LAYER ONE IS BUILT
+
+**Built and committed, `95be4d7`.** A Claude Code `PreToolUse` hook on the Bash
+tool, `.claude/settings.json` calling `scripts/hooks/commit-guard.mjs`. It reads
+the command before anything runs and refuses a command that contains
+`git commit` and also runs anything under `scripts/`, any `npm run`, or any
+`tsx`; and a command that contains `npm run audit` and anything else at all,
+apart from redirecting its own output to a file.
+
+**Why layer one is the answer, in the operator's words and this run's.** Layer
+two, the git `pre-commit` hook, refuses on a RECORDED failing run, and **an
+audit invoked directly with `npx tsx scripts/x-audit.mjs` runs no npm pre hook
+and records nothing.** Instance five was exactly that invocation. Layer two
+would have found no record, found no failure, and allowed the commit. Layer one
+never reads a record: it reads the command. That is the gap, and it is the
+reason the second layer alone would not have caught instance five. It is stated
+in `CLAUDE.md` section 6 under instance five, in the commit message, and in
+`BACKLOG.md`, which holds layer two against the 53 file change it needs first.
+
+**One softening, deliberate.** Rule one is tested against the command with
+quoted strings and heredoc bodies removed, so a commit MESSAGE naming a script
+is not a refusal. That makes the rule about the shape rather than about wording.
+Everything else is a blunt substring rule, including a `cd` in front of a board
+run: the Bash working directory persists, so `cd` is its own command. The guard
+fails closed, testing the raw command when quoting cannot be resolved.
+
+**Proven both ways rather than assumed.** Nine command shapes piped to the
+hook's own entry point: instances three, four and five refused by name; a bare
+board, a board redirected to a file, a plain commit, a commit whose message
+names `scripts/queue-audit.mjs`, and a standalone audit all allowed. Then live,
+in this session: a real Bash call combining a commit with `npm run` came back
+refused, and `git status` came back normally.
+
+### 7 as first proposed, kept for the reasoning
 
 **The shape to make impossible:** one command runs an audit, pipes its output
 through something that discards the exit code, and then commits.
@@ -556,6 +593,60 @@ the primary proposal: it catches the command before anything runs. Neither layer
 is built; both change how commits and the harness behave, which is your call.
 
 ---
+
+## THE THREE BOARD RUNS AFTER THE RULINGS, AND THE TWO FIXES THEY FORCED
+
+Three full boards were run on the ruling work, each on its own invocation with
+nothing else touching the repository. **Two of the three were red, and both reds
+were mine rather than the harness being wrong.**
+
+| Run | Log | Result |
+| --- | --- | --- |
+| 1, after rulings 1 to 6 landed | `board-rulings.log` | **4 of 53 failed**: `intake-audit`, `comms-audit`, `roles-audit`, `launch-audit` |
+| 2, after fix one | `board-final2.log` | **2 of 53 failed**: `queue-audit`, `mobile-audit` |
+| 3, after fix two | `board-final3.log` | **All 53 audits pass.** |
+
+### Fix one: four audits pinned the sentence the ruling deleted
+
+Each of the four was asserting the OLD registration wording as a literal, which
+is the two edits made on purpose mechanism working exactly as designed. The
+four checks that went red, quoted from the log:
+
+    intake-audit   FAIL: and both say why, naming the board
+    comms-audit    FAIL: and says where its real date comes from
+    roles-audit    FAIL: and the refusal names the registration rather than his role
+    launch-audit   FAIL: prelaunch: the capability statement states the
+                         registration as pending rather than omitting it
+
+Each was 1 failing check of 106, 108, 187 and its own total respectively, which
+is the signature of a pin rather than a break. **None was loosened to pass on
+both spellings**, because that converts a check into a check on nothing. Each
+was sharpened twice over: to require the new truth by name, and to FORBID any
+source stating a registration status the register does not support. The second
+half is the check the operator asked for, and it is the one that can catch a
+sentence nobody has written yet.
+
+### Fix two: my own queue-audit check assumed an empty queue
+
+    queue-audit  FAIL: with this machine a minute behind the database, the
+                 ownership check still sees a job enqueued a moment ago
+
+The clock checks written for ruling 3 sized their reads against a queue with
+nothing in it. Development held **76 pending jobs**, so the check read a page of
+somebody else's backlog and judged the harness by it. **The harness was right
+and my check was wrong.** The skew, lapsed and held checks now size their read
+from the eligible count rather than from a constant. Reproduced first, then
+fixed, then proven both ways: red against the old sizing, green against the new.
+
+### The one red in run 2 that was NOT fixed, and is not called a flake
+
+    portal: techs @390: error: page.goto: Timeout 90000ms exceeded.
+
+`mobile-audit` could not open `/portal/techs` at 390 within ninety seconds, so
+that screen reported `hscroll=FAIL taps=FAIL clip=FAIL` on an error rather than
+on a measurement. It did not recur in run 3 and nothing was changed to address
+it. **Unexplained**, and recorded here rather than absorbed. It belongs with the
+long Playwright heavy board entry already in `BACKLOG.md`.
 
 ## ALSO FROM TODAY
 
