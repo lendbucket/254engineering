@@ -5468,3 +5468,27 @@ is real, available today, and the more interesting thing to show.
 
 `KEEP_EXISTING=1` tops up instead of rebuilding, spelled the way
 `ALLOW_PRODUCTION_DB` is, for somebody mid demonstration.
+
+## LAYER TWO OF THE COMMIT GUARD IS NOT BUILT, AND 53 AUDITS RECORD NOTHING
+
+Layer one shipped on the operator's ruling of 2026-09-15 and is committed: a
+Claude Code `PreToolUse` hook on Bash, `.claude/settings.json` calling
+`scripts/hooks/commit-guard.mjs`, refusing a command that both commits and runs
+something, and refusing a board run with anything beside it. The full reasoning,
+the five instances behind it, and why layer one rather than layer two is the
+answer are in `CLAUDE.md` section 6 under instance five.
+
+**What is NOT built, and what it would need first.** Layer two is a git
+`pre-commit` hook under `.githooks/`, switched on by a `prepare` script setting
+`core.hooksPath`, refusing a commit while an audit lock holds a live PID and
+refusing a commit when the last recorded run of any audit against this exact
+working tree exited non-zero. It is the layer that covers any committer and any
+terminal, including one Claude Code is not driving.
+
+**It cannot be built as stated today.** It reads a record of how each audit
+exited, and **an audit invoked directly with `npx tsx scripts/x-audit.mjs` runs
+no npm pre hook and records nothing.** That is the invocation that produced
+instance five. Closing it means every audit recording its own exit against the
+tree it read, which is a small change repeated across 53 files, and that is the
+work this entry is holding. Until it exists, layer two would answer "no failing
+run recorded" for exactly the runs most likely to be failing.

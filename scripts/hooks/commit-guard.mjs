@@ -1,0 +1,157 @@
+#!/usr/bin/env node
+/**
+ * LAYER ONE OF THE COMMIT GUARD. Operator ruling, 2026-09-15.
+ *
+ * A Claude Code PreToolUse hook on the Bash tool. It reads the command before
+ * anything runs and refuses two shapes outright:
+ *
+ *   1. A command that contains `git commit` AND also runs something: anything
+ *      under `scripts/`, any `npm run`, or any `tsx`. A commit gets its own
+ *      command, always.
+ *   2. A command that contains `npm run audit` and anything else at all, apart
+ *      from redirecting its own output to a file.
+ *
+ * WHY IT IS A HOOK AND NOT A GIT HOOK. A git pre-commit hook is layer two, and
+ * layer two alone would not have caught instance five. Instance five was
+ * `npx tsx scripts/db-guard-audit.mjs | tail -1 && git add ... && git commit`,
+ * and an audit invoked directly with `npx tsx` runs no npm pre hook and RECORDS
+ * NOTHING. A git hook that refuses on the last recorded failing run has nothing
+ * to read. This hook reads the command itself, so it refuses before a single
+ * process starts, whether or not anything was recorded and whether or not
+ * anybody remembers the rule.
+ *
+ * The five instances this exists to make impossible:
+ *   3. A generator run beside a board killed the board (2026-09-12).
+ *   4. `git commit ... && npm run audit` made the build guard kill its caller.
+ *   5. An audit piped through `tail`, which discarded its exit code, chained
+ *      into the commit that then landed red (2026-09-15, commit 8b6d396).
+ *
+ * ON THE BLUNTNESS. Rule 1 is tested against the command with quoted strings
+ * removed, so a commit MESSAGE naming a script is not a refusal. That is the
+ * only softening: it refuses exactly the shape "one command both runs something
+ * and commits", which is the shape that cost the run, rather than refusing a
+ * sentence about it. Everything else is a substring rule on purpose.
+ *
+ * Fails closed. If the payload cannot be parsed, or quoting cannot be resolved,
+ * the raw command is tested instead of being waved through.
+ */
+
+const RUNS_SOMETHING = [
+  { pattern: /scripts\//, what: "runs something under scripts/" },
+  { pattern: /\bnpm\s+run\b/, what: "runs an npm script" },
+  { pattern: /\btsx\b/, what: "runs tsx" },
+];
+
+/** `npm run audit` alone, with nothing but its own redirections after it. */
+const BOARD_ALONE =
+  /^\s*npm\s+run\s+audit\s*(?:(?:1|2)?>>?\s*[^\s|&;<>]+\s*|2>&1\s*|1>&2\s*)*$/;
+
+const BOARD_MENTIONED = /\bnpm\s+run\s+audit\b/;
+
+/**
+ * Remove quoted strings and heredoc bodies so a commit message cannot trip a
+ * rule about what the command RUNS. Returns null when quoting is unbalanced,
+ * which is the signal to test the raw command instead.
+ */
+export function stripQuoted(command) {
+  let out = "";
+  let i = 0;
+  while (i < command.length) {
+    const c = command[i];
+    if (c === "\\" && i + 1 < command.length) {
+      out += "  ";
+      i += 2;
+      continue;
+    }
+    if (c === "'" || c === '"') {
+      const close = command.indexOf(c, i + 1);
+      if (close === -1) return null;
+      out += " ";
+      i = close + 1;
+      continue;
+    }
+    if (c === "<" && command.slice(i, i + 2) === "<<") {
+      const rest = command.slice(i + 2);
+      const tag = rest.match(/^-?\s*(['"]?)([A-Za-z_][A-Za-z0-9_]*)\1/);
+      if (!tag) {
+        out += c;
+        i += 1;
+        continue;
+      }
+      const end = command.indexOf(`\n${tag[2]}`, i);
+      if (end === -1) return null;
+      out += " ";
+      i = end + 1 + tag[2].length;
+      continue;
+    }
+    out += c;
+    i += 1;
+  }
+  return out;
+}
+
+export function verdict(command) {
+  if (typeof command !== "string" || command.trim() === "") return null;
+
+  const stripped = stripQuoted(command) ?? command;
+
+  if (/\bgit\s+commit\b/.test(stripped)) {
+    const also = RUNS_SOMETHING.find((r) => r.pattern.test(stripped));
+    if (also) {
+      return [
+        `This command commits and ${also.what} in one invocation.`,
+        "A commit gets its own command. The audit or script runs first, on its",
+        "own, and its exit code is read before anything is committed.",
+        "This is the fifth instance of that rule and the reason this hook exists:",
+        "on 2026-09-15 an audit was piped through tail, which discarded its exit",
+        "code, and the commit chained after it landed while the audit was red.",
+        "Run the two as two commands.",
+      ].join(" ");
+    }
+  }
+
+  if (BOARD_MENTIONED.test(stripped) && !BOARD_ALONE.test(stripped.trim())) {
+    return [
+      "The board is invoked on its own, with nothing chained to it and nothing",
+      "else running against the repository. A board run takes twenty minutes and",
+      "a command beside it has killed one already. Output may be redirected to a",
+      "file and nothing else. Run `npm run audit` as its own command.",
+    ].join(" ");
+  }
+
+  return null;
+}
+
+function deny(reason) {
+  process.stdout.write(
+    JSON.stringify({
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        permissionDecision: "deny",
+        permissionDecisionReason: reason,
+      },
+    }),
+  );
+}
+
+async function main() {
+  let raw = "";
+  for await (const chunk of process.stdin) raw += chunk;
+
+  let command;
+  try {
+    command = JSON.parse(raw)?.tool_input?.command;
+  } catch {
+    // An unparseable payload is not a licence to allow. Nothing to test, so
+    // nothing is refused, but say so rather than exiting silently.
+    process.stderr.write("commit-guard: could not parse the hook payload\n");
+    return;
+  }
+
+  const refusal = verdict(command);
+  if (refusal) deny(refusal);
+}
+
+// The check is exercised through this entry point rather than by importing
+// verdict(), so what is proven is the thing the hook actually runs.
+await main();

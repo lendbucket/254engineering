@@ -524,6 +524,48 @@ The pair with 2026-09-02's lesson is the whole argument: a suite that can be
 pointed at nothing, or killed by its own operator, is a suite whose red means
 two things.
 
+**INSTANCE FIVE, AND IT IS THE LAST ONE THIS RULE GETS AS PROSE. THE FIFTH IS
+WHY THE SIXTH IS MECHANICALLY IMPOSSIBLE.** Operator ruling, 2026-09-15.
+
+The command was
+
+    npx tsx scripts/db-guard-audit.mjs | tail -1 && git add ... && git commit
+
+and `tail` discarded the audit's exit code, so the `&&` saw a success that had
+not happened. Commit `8b6d396` landed with `db-guard-audit` red. It was
+corrected in `75bcd6b`. Four lines in this file already said not to do it.
+
+**A fifth instance of a written rule is not a reason to write it a sixth time.**
+The operator's ruling was to build something mechanical, and it is committed:
+
+| Layer | What it is | What it refuses |
+| --- | --- | --- |
+| **One, built** | A Claude Code `PreToolUse` hook on Bash, `.claude/settings.json` calling `scripts/hooks/commit-guard.mjs` | A command containing `git commit` that also runs anything under `scripts/`, any `npm run`, or any `tsx`. A command containing `npm run audit` and anything else at all, apart from redirecting its own output to a file. |
+| **Two, not built** | A git `pre-commit` hook under `.githooks/`, switched on by `core.hooksPath` | A commit while an audit lock holds a live PID, and a commit when the last recorded run of any audit against this exact tree exited non-zero. |
+
+**WHY LAYER ONE IS THE ANSWER AND LAYER TWO ALONE WOULD NOT HAVE CAUGHT THIS
+ONE.** A git hook can only refuse on something that was RECORDED. Layer two
+would read an audit's last recorded exit, and **an audit invoked directly with
+`npx tsx scripts/x-audit.mjs` runs no npm pre hook and records nothing.**
+Instance five was exactly that invocation. Layer two would have found no record,
+found no failure, and allowed the commit. Layer one never looks at a record: it
+reads the command itself and refuses before a single process starts.
+
+Rule one is tested against the command with quoted strings and heredoc bodies
+removed, so a commit MESSAGE naming a script is not a refusal. That is the only
+softening, and it is what makes the rule about the shape rather than about
+wording. Everything else is a substring rule on purpose, including the `cd` in
+front of a board run: the Bash working directory persists between commands, so
+`cd` is its own command. The guard fails closed, testing the raw command when
+quoting cannot be resolved.
+
+Proven in both directions rather than assumed. Nine command shapes piped to the
+hook's own entry point: instances three, four and five refused by name, a bare
+board and a board redirected to a file allowed, a plain commit allowed, a commit
+whose message names `scripts/queue-audit.mjs` allowed, an audit run on its own
+allowed. Then live, in the session that wrote it: a real Bash call combining a
+commit with `npm run` came back refused, and `git status` came back normally.
+
 **WHEN A PATCH HAS LANDED AND BEHAVIOUR HAS NOT CHANGED, THE MODULE IS BOUND.**
 Operator ruling, 2026-09-14, moved here from `scripts/lib/gate-fixture.mjs`
 because a lesson recorded in one file is a lesson nobody finds.
@@ -1020,6 +1062,23 @@ describe, and never let a sample's length stand in for a count.** A bounded read
 is often the right instinct; reporting its length as the size of the set is the
 defect. And two instances of one defect in one file means surveying the rest of
 the file rather than assuming the other reads are sound.
+
+**AND A COUNT FROM ONE SEARCH IS A CLAIM. IT READS AS A SURVEY.** Operator
+ruling, 2026-09-15, and it is the same family as the 1000 cap and the twenty of
+668: a bounded look reported as a total.
+
+The registration wording sweep was reported to the operator as **seventeen**
+sentences to replace. That figure came from a single grep for one phrasing.
+When the replacement was actually made, and then when a check was written to
+assert the property in both directions across every source file, the number was
+**43**, of which 41 are sentences a person or a caller reads. Nothing about the
+first figure looked like a sample. It was a precise count of what one pattern
+matched, presented as the size of the problem.
+
+**The rule: a figure offered as the extent of something says what produced it,
+or it is not offered.** One search is one search. The extent of a thing in this
+repository is established by a sweep that derives its own subject list, or by a
+check that asserts the property, and those are the two numbers worth reporting.
 
 **A CHECK THAT FILTERS LIVE DATA FOR A SUBJECT THAT DOES NOT EXIST YET IS
 VACUOUS. BUILD THE SUBJECT.** Operator ruling, 2026-09-09, from the reporting
