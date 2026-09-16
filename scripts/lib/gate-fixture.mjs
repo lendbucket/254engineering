@@ -171,8 +171,7 @@ export async function withGateConditionsMet(fn) {
      */
     {
       file: CONFIG,
-      find: /(status: "active",s*
-s*)expires: "[^"]*",/,
+      find: /(status: "active",[\s\S]*?)expires: "[^"]*",/,
       replace: '$1expires: "2099-12-31",',
       what: "the registration expiry",
     },
