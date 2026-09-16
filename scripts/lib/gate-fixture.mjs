@@ -155,8 +155,47 @@ export async function withGateConditionsMet(fn) {
       already: /onRecord: true,/,
       what: "the operating name on the board's record",
     },
-    /* Far enough out that a fixture cannot expire during a run. */
-    { file: CONFIG, find: /expires: "[^"]*",/, replace: 'expires: "2099-12-31",', what: "the expiry" },
+    /*
+     * Far enough out that a fixture cannot expire during a run.
+     *
+     * ANCHORED ON THE LINE ABOVE IT RATHER THAN ON `expires` ALONE, and that is
+     * not fussiness. VerifiedEngineer gained an `expires` on 2026-09-16 and
+     * `verifiedEngineers` is declared EARLIER in credentials.ts than
+     * `verifiedFirmRegistrations`. The old pattern only kept working because the
+     * engineer's expiry is currently `null` and therefore unquoted; the moment
+     * the operator records a real date, the first match would be the ENGINEER's
+     * and this fixture would silently stop extending the registration.
+     *
+     * That is the matcher whose window reaches into its neighbour, which this
+     * repository has now met three times. Match the thing you mean.
+     */
+    {
+      file: CONFIG,
+      find: /(status: "active",s*
+s*)expires: "[^"]*",/,
+      replace: '$1expires: "2099-12-31",',
+      what: "the registration expiry",
+    },
+
+    /*
+     * --- an engineer of record, active.
+     *
+     * REPLACES THE TBPELS_PE_LICENSE ENVIRONMENT VARIABLE, retired 2026-09-16
+     * when the licence number moved into the register. peInResponsibleCharge()
+     * now reads `activeEngineer()`, which is a module constant, so a fixture
+     * cannot reach it with an environment variable: it has to patch the file,
+     * which is what this list already does for every other register fact.
+     *
+     * The licence number is NOT touched. Only the expiry moves, because an
+     * engineer with an unrecorded expiry is deliberately not in responsible
+     * charge and the live half of the audits needs one who is.
+     */
+    {
+      file: CONFIG,
+      find: /expires: null,/,
+      replace: 'expires: "2099-12-31",',
+      what: "an engineer of record with a current licence",
+    },
 
     /* --- the Stripe account, connected and proven */
     { file: READINESS, find: /connected: false,/, replace: "connected: true,", what: "the Stripe account being connected" },

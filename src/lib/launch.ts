@@ -1,6 +1,8 @@
 import {
   verifiedFirmRegistrations,
+  verifiedEngineers,
   operatingNameOnBoardRecord,
+  type VerifiedEngineer,
   type VerifiedFirmRegistration,
 } from "@/config/credentials";
 import {
@@ -405,7 +407,34 @@ export function tbpelsFirmNumber(): string | null {
  */
 export function peInResponsibleCharge(): boolean {
   if (isPrelaunch()) return false;
-  return Boolean(process.env.TBPELS_PE_LICENSE?.trim());
+  return activeEngineer() !== null;
+}
+
+/**
+ * THE ENGINEER THE REGISTER HOLDS, ACTIVE BY THE SAME DEFINITION THE FIRM
+ * REGISTRATION USES. Operator ruling, 2026-09-16.
+ *
+ * It mirrors `activeFirmRegistration()` on purpose, because the two questions
+ * are the same question about different credentials, and two definitions of the
+ * word active is how an audit and a gate end up disagreeing. That already
+ * happened once: a register check filtered on status alone while the gate
+ * checked the expiry, and only an injection found it.
+ *
+ * AN UNRECORDED EXPIRY IS NOT ACTIVE. `expires: null` means nobody has written
+ * the date down, which is a different state from "current" and must not read as
+ * it. Sealing rests on this being true, so the unknown answer is the shut one.
+ *
+ * THE LICENCE NUMBER HAS ONE HOME, and this is why the function reads a file
+ * rather than an environment variable. `TBPELS_PE_LICENSE` was retired on
+ * 2026-09-16: a variable can differ between a build and a deployment, which is
+ * the same defect the 2026-09-10 ruling removed for the firm registration
+ * number, and the fourth instance of one fact with two homes in a fortnight.
+ */
+export function activeEngineer(): VerifiedEngineer | null {
+  const today = new Date().toISOString().slice(0, 10);
+  return (
+    verifiedEngineers.find((e) => typeof e.expires === "string" && e.expires >= today) ?? null
+  );
 }
 
 /**

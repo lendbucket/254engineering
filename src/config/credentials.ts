@@ -30,6 +30,23 @@ export type VerifiedEngineer = {
   /** Texas PE licence number, digits only. */
   licenseNumber: string;
   disciplines: string[];
+  /**
+   * ISO date the licence expires, or NULL meaning NOT YET RECORDED.
+   *
+   * Added 2026-09-16 on the operator's ruling, and the asymmetry it closes is
+   * the argument: a firm registration has always carried `expires` and
+   * `activeFirmRegistration()` refuses a lapsed one, while an engineer carried
+   * no expiry at all. The register would therefore have held a PE whose licence
+   * expired years ago with nothing anywhere noticing, and every sealed letter
+   * this firm ever issues rests on that licence being active.
+   *
+   * NULL IS NOT "FINE". It means nobody has recorded the date yet, and
+   * `activeEngineer()` refuses to treat such an entry as in responsible charge,
+   * which errs toward shut on a gate that only ever shuts things.
+   * compliance-audit names it as unrecorded rather than letting the absence
+   * read as an answer.
+   */
+  expires: string | null;
   /** Who checked it, and when. Free text, but never left empty. */
   verified: string;
 };
@@ -60,7 +77,40 @@ export type VerifiedFirmRegistration = {
  * licence number may render anywhere, and the audit enforces that rather than
  * trusting it.
  */
-export const verifiedEngineers: VerifiedEngineer[] = [];
+/*
+ * THE REGISTER IS THE ONE HOME OF A LICENCE NUMBER. Operator ruling,
+ * 2026-09-16, and it is the FOURTH instance in a fortnight of one fact having
+ * two homes.
+ *
+ * `peInResponsibleCharge()` used to read a `TBPELS_PE_LICENSE` environment
+ * variable. That was harmless while no PE existed and became a live defect the
+ * moment a real number entered this file, because a variable can differ between
+ * a build and a deployment while this file cannot. It is the same defect the
+ * 2026-09-10 ruling removed for the firm registration number, wearing a
+ * different name.
+ *
+ * The variable is retired in src/config/credential-inventory.ts, the gate reads
+ * this register, and compliance-audit refuses any source that reads the
+ * variable again.
+ */
+export const verifiedEngineers: VerifiedEngineer[] = [
+  {
+    name: "Aman Dhakal",
+    licenseNumber: "143295",
+    disciplines: ["Civil"],
+    /*
+     * PENDING, AND DELIBERATELY NOT GUESSED. The operator is reading it off the
+     * licence copy. Until it is recorded, `activeEngineer()` does not treat this
+     * entry as a PE in responsible charge, so recording the number cannot
+     * accidentally assert something nobody has verified.
+     */
+    expires: null,
+    verified:
+      "Licence number supplied by the operator 2026-09-16, from the engineer of record who signed " +
+      "254-RC-001 v1.0 on 2026-09-14. The expiration date is pending: the operator is taking it from the " +
+      "licence copy held in the firm's compliance file, which protocol 254-RC-001 section 5 requires.",
+  },
+];
 
 /**
  * Firm registrations that may appear on this site.

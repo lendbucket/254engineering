@@ -51,7 +51,6 @@ const LIVE_PORT = Number(process.env.LAUNCH_AUDIT_LIVE_PORT || 3228);
 /** A stand-in firm number for the live run. Never rendered anywhere else. */
 const TEST_FIRM_NUMBER = FIXTURE_FIRM_NUMBER;
 /** Stand-in PE licence for the live run. Same reasoning as the firm number. */
-const TEST_PE_LICENSE = "AUDIT-FIXTURE-NOT-A-REAL-LICENCE";
 
 const ROUTES = [
   "/",
@@ -144,7 +143,6 @@ async function run() {
     const pre = await crawlMode("prelaunch", PRELAUNCH_PORT, {
       LAUNCH_MODE: "prelaunch",
       TBPELS_FIRM_NUMBER: "",
-      TBPELS_PE_LICENSE: "",
     });
     // Live means both gates open: a registration AND an engineer of record. The
     // in-between state, registered but nobody able to seal, is real and is
@@ -166,7 +164,6 @@ async function run() {
     const live = await withGateConditionsMet(() =>
       crawlMode("live", LIVE_PORT, {
         LAUNCH_MODE: "live",
-        TBPELS_PE_LICENSE: TEST_PE_LICENSE,
         /*
          * The gate grew a phone condition on 2026-09-11, and a spawned server
          * reads it from its own environment rather than from the patched

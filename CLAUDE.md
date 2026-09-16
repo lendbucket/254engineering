@@ -1963,6 +1963,45 @@ the audits that still fail red standalone are listed in `BACKLOG.md`.
   section 6 makes about declared inventories: **a fact with two accounts has two
   accounts that will disagree, and the copy is always the one nobody updates.**
 
+  **FOURTH INSTANCE IN A FORTNIGHT, 2026-09-16, AND IT IS NOW THE MOST
+  FREQUENTLY RECURRING DEFECT IN THIS BUILD.** Operator ruling, recorded as a
+  count rather than as a fourth story, because the answer has been identical
+  every time.
+
+  | | The fact | Its two homes | The one home now |
+  | --- | --- | --- | --- |
+  | 2026-09-10 | The firm registration number | `TBPELS_FIRM_NUMBER` and the register | `verifiedFirmRegistrations` |
+  | 2026-09-12 | The portal's compliance sentence | A literal in the sidebar and `registrationLine()` | `registrationLine()` |
+  | 2026-09-14 | The firm's telephone number | `contact.phone` raw in `schema.tsx` and the derivers | `e164Phone()` |
+  | 2026-09-15 | The firm's name | A literal in twenty rendered sentences and the register | `firmName()` |
+  | 2026-09-16 | The PE licence number | `TBPELS_PE_LICENSE` and the register | `verifiedEngineers` |
+
+  **THE 2026-09-16 ONE IS THE INSTRUCTIVE ONE, because the defect was dormant
+  and became live without anybody touching the code.** `peInResponsibleCharge()`
+  had read `TBPELS_PE_LICENSE` since it was written, and that was harmless for
+  as long as the register was EMPTY: one home held nothing, so two homes could
+  not disagree. The moment a real licence number was recorded, the second home
+  existed and the two could differ between a build and a deployment.
+
+  **So the question to ask is not only "does this fact have two homes today".**
+  It is "will it, the first time somebody fills in the empty one". A register
+  with nothing in it hides this defect perfectly.
+
+  The answer each time: one home, a deriver that reads it, and a check that
+  refuses the second home coming back. Here `activeEngineer()` mirrors
+  `activeFirmRegistration()` exactly, the variable is recorded as retired with
+  its date and reason, and `compliance-audit` fails on any source under `src`
+  that reads the name again. Injection-verified by putting the variable back:
+  that check went red naming the file.
+
+  **AND AN UNKNOWN IS NOT A PASS.** `expires: null` on an engineer means nobody
+  has recorded the date, which is a different state from current, and
+  `activeEngineer()` refuses it. Sealing rests on that licence being active, so
+  the unknown answer is the shut one. The register had carried no expiry for an
+  engineer at all until this ruling, while a firm registration has always had
+  one, which meant a PE whose licence lapsed years ago would have sat there with
+  nothing noticing.
+
   **THE SAME SHAPE WITH THE FAILURE INVERTED, 2026-09-14, AND THE INVERSION IS
   THE PART WORTH KEEPING.** Operator ruling, recorded as an instance of the rule
   above.

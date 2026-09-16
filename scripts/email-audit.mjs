@@ -633,7 +633,6 @@ for (const t of templates) {
   const original = {
     LAUNCH_MODE: process.env.LAUNCH_MODE,
     TBPELS_FIRM_NUMBER: process.env.TBPELS_FIRM_NUMBER,
-    TBPELS_PE_LICENSE: process.env.TBPELS_PE_LICENSE,
   };
   const PENDING = "Firm registration pending";
   /*
@@ -664,14 +663,12 @@ for (const t of templates) {
    */
   const renderIn = async (mode) => {
     process.env.LAUNCH_MODE = mode;
-    process.env.TBPELS_PE_LICENSE = mode === "live" ? "AUDIT-FIXTURE-NOT-A-REAL-LICENCE" : "";
     const mod = await import(`../src/lib/email-templates.ts?mode=${mode}-${Date.now()}`);
     return mod.allTemplatesForAudit();
   };
 
   seen.prelaunch = await renderIn("prelaunch");
   seen.live = await inOpenGateProcess(`
-    process.env.TBPELS_PE_LICENSE = "AUDIT-FIXTURE-NOT-A-REAL-LICENCE";
     const mod = await import("./src/lib/email-templates.ts");
     answer(mod.allTemplatesForAudit());
   `);

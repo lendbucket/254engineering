@@ -72,6 +72,7 @@ console.log("");
 
 const {
   verifiedFirmRegistrations,
+  verifiedEngineers,
   operatingNameOnBoardRecord,
   legalEntityMatchesRegistrant,
   secretaryOfStateAmendment,
@@ -126,6 +127,91 @@ const {
     "and it stays true of the values as they are today, not as they were when written",
     actuallyMatch || legalEntityMatchesRegistrant.because.includes(registrant ?? "~none~"),
     "the sentence names the registrant currently on record",
+  );
+}
+
+/* ------------------------- 0b. the engineer register, and its one home */
+
+/*
+ * THE LICENCE NUMBER HAS ONE HOME. Operator ruling, 2026-09-16, recorded as the
+ * FOURTH instance in a fortnight of one fact with two homes.
+ *
+ * peInResponsibleCharge() read TBPELS_PE_LICENSE from the environment. That was
+ * harmless while no PE existed and became a live defect the moment 143295
+ * entered the register, because a variable can differ between a build and a
+ * deployment while a file cannot. Same defect as the firm registration number
+ * before the 2026-09-10 ruling; same answer.
+ */
+{
+  const PE_LICENSE = "143295";
+
+  rec(
+    "the engineer of record is in the register, with the licence number pinned here as a literal",
+    verifiedEngineers.some((e) => e.licenseNumber === PE_LICENSE),
+    verifiedEngineers.map((e) => `${e.name} ${e.licenseNumber}`).join("; ") || "the register is empty",
+  );
+
+  /*
+   * AN UNRECORDED EXPIRY IS NAMED, NOT ABSORBED. null means nobody has written
+   * the date down, which is a different state from current. This check does not
+   * fail on it: recording the number before the date is a legitimate state the
+   * operator is in today. It reports WHICH engineers are in it, so the absence
+   * is visible in the run rather than silently fine.
+   */
+  const unrecorded = verifiedEngineers.filter((e) => e.expires === null).map((e) => e.name);
+  const lapsed = verifiedEngineers
+    .filter((e) => typeof e.expires === "string" && e.expires < new Date().toISOString().slice(0, 10))
+    .map((e) => `${e.name} expired ${e.expires}`);
+
+  rec(
+    "no engineer in the register holds a licence recorded as already expired",
+    lapsed.length === 0,
+    lapsed.join("; ") || `${verifiedEngineers.length} engineer(s), none lapsed`,
+  );
+  rec(
+    "and every engineer whose expiry is unrecorded is named, because an unknown expiry is not a current licence",
+    true,
+    unrecorded.length
+      ? `expiry NOT YET RECORDED for: ${unrecorded.join(", ")}. activeEngineer() does not treat these as in responsible charge.`
+      : "every engineer has a recorded expiry",
+  );
+
+  /*
+   * And the gate agrees. An engineer with no recorded expiry must not read as a
+   * PE in responsible charge, which is the shut direction on the one credential
+   * every sealed letter rests on.
+   */
+  const { activeEngineer } = await import("../src/lib/launch.ts");
+  rec(
+    "the gate does not treat an engineer with an unrecorded expiry as in responsible charge",
+    unrecorded.length === 0 || activeEngineer() === null,
+    activeEngineer() ? `activeEngineer() returns ${activeEngineer()?.name}` : "activeEngineer() returns null",
+  );
+
+  /*
+   * THE VARIABLE IS GONE AND MAY NOT COME BACK. The reverse of the usual scan:
+   * this refuses a NAME rather than requiring one.
+   */
+  const { readdirSync: rd, statSync: st } = await import("node:fs");
+  const srcFiles = [];
+  const walkSrc = (dir) => {
+    for (const name of rd(dir)) {
+      const full = `${dir}/${name}`;
+      if (st(full).isDirectory()) walkSrc(full);
+      else if (/.(ts|tsx)$/.test(name)) srcFiles.push(full);
+    }
+  };
+  walkSrc("src");
+  rec(
+    "the retirement sweep had source to read",
+    srcFiles.length > 100,
+    `${srcFiles.length} files (if this were zero the check below would pass over nothing)`,
+  );
+  const readsTheVariable = srcFiles.filter((file) => codeOnly(readSource(file)).includes("TBPELS_PE_LICENSE"));
+  rec(
+    "no source reads TBPELS_PE_LICENSE, because the register is the one home of a licence number",
+    readsTheVariable.length === 0,
+    readsTheVariable.join("; ") || "retired 2026-09-16, recorded in scripts/lib/soc2-credentials.mjs",
   );
 }
 
@@ -857,7 +943,28 @@ const RULED_CONDITIONS = [
    * THE EXEMPT SET IS TWO CONFIG FILES AND IS ASSERTED, so it cannot quietly
    * grow to cover the next file somebody types the name into.
    * ---------------------------------------------------------------------- */
-  const NAME_MAY_BE_TYPED_IN = ["src/config/credentials.ts", "src/config/business.ts"];
+  /*
+   * THE THIRD EXEMPTION IS NOT A LOOSENING, AND THE BOARD CAUGHT IT THE ONLY
+   * WAY IT COULD. Operator ruling, 2026-09-16.
+   *
+   * src/config/stripe-console.ts records what the STRIPE CONSOLE holds, read by
+   * a person. Its `legalBusinessName` is an observation of an external system,
+   * not a sentence this platform renders, and it MUST be able to disagree with
+   * the register: `stripe-webhook-audit` asserts that field equals the
+   * registrant, and that is the check which makes "change it in the same
+   * sitting as issuedTo" mechanical.
+   *
+   * SO DERIVING IT WOULD BE THE DEFECT. If this file called firmName(), the
+   * equality check would compare a value to itself and pass forever, which is
+   * exactly what CLAUDE.md forbids: an audit never imports its expectation from
+   * the thing it audits. The check below therefore also asserts this file does
+   * NOT import the deriver, so the exemption cannot quietly become vacuous.
+   */
+  const NAME_MAY_BE_TYPED_IN = [
+    "src/config/credentials.ts",
+    "src/config/business.ts",
+    "src/config/stripe-console.ts",
+  ];
   const { firmName } = await import("../src/lib/launch.ts");
 
   rec(
@@ -885,10 +992,15 @@ const RULED_CONDITIONS = [
       : `${files.length - NAME_MAY_BE_TYPED_IN.length} files read`,
   );
   rec(
-    "and the files allowed to type it are exactly the two config files",
-    NAME_MAY_BE_TYPED_IN.length === 2 &&
+    "and the files allowed to type it are exactly the three config files, two that hold it and one that observes it",
+    NAME_MAY_BE_TYPED_IN.length === 3 &&
       NAME_MAY_BE_TYPED_IN.every((f) => files.includes(f)),
     NAME_MAY_BE_TYPED_IN.join(", "),
+  );
+  rec(
+    "and the console record does not derive the name, so it can still disagree with the register",
+    !/firmName/.test(readSource("src/config/stripe-console.ts")),
+    "src/config/stripe-console.ts records what Stripe holds; deriving it would make the same-sitting check compare a value to itself",
   );
 }
 
