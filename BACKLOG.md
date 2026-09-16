@@ -5534,3 +5534,59 @@ proves the whole path end to end including the webhook arriving; layer one
 proves something weaker and is continuous rather than a one time proof. Two
 conditions for one fact is how clearing one starts to look like progress while
 the other quietly holds.
+
+## /portal/accounts RENDERS IN 50 SECONDS, AND THREE BOARDS CALLED IT A DEAD SERVER
+
+Found 2026-09-16 by reading the dev server's own log after two audits reported
+COULD NOT TELL. **It is a product defect, not board flakiness, and it has been
+invisible behind an infrastructure verdict for at least three runs.**
+
+**The evidence, from the server rather than from the harness.** Six requests
+across two ports, every one of them:
+
+    GET /portal/accounts 200 in 50s (next.js: 7ms, proxy.ts: 5ms, application-code: 50s)
+
+It answers **200**. It is not a compile, not the proxy, not Next. It is fifty
+seconds of application code, consistently, and a person opening that screen sits
+in front of it for the whole minute.
+
+**THE HARNESS'S OWN EXPLANATION IS WRONG, AND THAT IS THE WORSE HALF.** When an
+audit cannot navigate, the suite prints that the server "went away mid run" and
+that its log "ends cleanly when something killed it". On this board there were
+**zero** connection refusals and the server was serving other routes throughout.
+A reader following that sentence goes looking for a dead server that never died,
+which is an explanation covering the observation without being true.
+
+**Two different failures have been filed as one.** The existing entry, A LONG
+PLAYWRIGHT HEAVY BOARD DIES, is real: `contrast-audit` on an earlier board today
+did die, with `ERR_CONNECTION_REFUSED` and an orphan left holding port 3224 that
+then blocked a build. This is NOT that. Conflating them is why nobody has looked
+for this one.
+
+| | Symptom | Server |
+| --- | --- | --- |
+| The dying board | `ERR_CONNECTION_REFUSED`, orphan holds the port | Dead |
+| **This** | `page.goto: Timeout` on one named screen | Alive, answering 200 in 50s |
+
+**The likely cause, stated as a HYPOTHESIS because nothing has re-checked it.**
+`accountRows()` in `src/lib/ops-accounts-admin.ts` is four `readEvery` reads:
+every customer account, every client named by one, **every service order
+belonging to any of them**, and every active customer user. Each pages until the
+exact count is satisfied, by design, because a partial count is a wrong count and
+these figures are billed on. On a database with real order volume that is a lot
+of round trips to render a list. Nobody has profiled it; the 50 seconds is
+measured, the cause is not.
+
+**What it is NOT.** It is not the 1000-row cap and it is not an absent-versus-zero
+defect. The reads are correct. The screen is slow because it is correct in an
+expensive way, which is the honest version and the reason the fix needs thought
+rather than a `.limit()`.
+
+**Also unmeasured because of it:** `mobile-overflow-audit` (225 combinations
+clean, 1 never loaded) and `native-audit` (500 checks clean, 1 screen never
+loaded). Both are otherwise green. `/portal/techs` timed out at 90s on an
+earlier board the same day and is probably the same shape, unverified.
+
+Not fixed: it is a portal screen on the money path's edge, outside the roof
+protocol scope this branch is for, and it wants a ruling on whether the list
+may be paged or the counts derived differently.
