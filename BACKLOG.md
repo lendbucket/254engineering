@@ -67,7 +67,11 @@ figures are already swept.
 
 Observed 2026-09-15 while checking what a run under the old queue guard touched. `queue-audit`'s direct claim tests call `eng_claim_jobs`, which sweeps up whatever backlog is eligible, and then put those rows back to pending. The claim increments `attempts`, and the restore at line 562 does not reset it (the one at line 575 does). Development's leftover pending jobs carry 13 to 16 attempts each. Nothing runs on them and nothing is sent: they sit at pending, with no error and no `finished_at`. But a job restored past its `max_attempts` dead-letters on its first real failure. Development only, since the audit never runs against production. The fix is to restore `attempts` to the value read before the claim.
 
-## STATEMENT CHECKOUT DOES NOT CHECK THE LAUNCH GATE, NOT FIXED
+## RESOLVED 2026-09-15: STATEMENT CHECKOUT DID NOT CHECK THE LAUNCH GATE
+
+Fixed on the operator ruling the day a live Stripe secret key went on Production, because the mitigation (production holds no statements) was data rather than a control. `chargesBlockedReason()` in `launch.ts` is the one question, and all three functions that reach the payment provider ask it before touching the database: `startCheckout`, `startBatchCheckout`, `startStatementCheckout`. `money-audit` DERIVES that set by reading every function in `src/lib` whose body calls `createCheckout(`, so a fourth charge path without the gate turns it red and names the function. Refunds are asserted NOT to ask it, because money going back must still move.
+
+### As first recorded
 
 Found 2026-09-15 reading the Stripe integration for the operator before the
 Production keys were added. `startStatementCheckout` in `src/lib/ops-statements.ts`,

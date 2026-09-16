@@ -446,6 +446,31 @@ export function notYetAcceptingEngagements(): string {
   return "The firm is not yet accepting engagements.";
 }
 
+/**
+ * THE ONE QUESTION EVERY PATH THAT CAN TAKE MONEY ASKS. Operator ruling,
+ * 2026-09-15, the day a live Stripe secret key went on Production.
+ *
+ * Until then the gate sat upstream of two of the three charge paths, in the
+ * order routes and in `orderBlockedReason`, and `startStatementCheckout` had
+ * none at all: it checked that the provider was configured, that the statement
+ * was awaiting payment and added up, and charged. Nothing was exposed only
+ * because production held no statements, which is a fact about today's data
+ * rather than a control.
+ *
+ * So the question moves to the three functions that actually reach the payment
+ * provider, where it cannot be skipped by a new caller, and `money-audit`
+ * enumerates them from the source rather than from a list: every function whose
+ * body calls `createCheckout(` must also call this.
+ *
+ * REFUNDS DELIBERATELY DO NOT ASK. Money going back to somebody must keep
+ * working while the gate is shut; a gate that blocked refunds would trap a
+ * customer's money, which is the opposite of what it is for.
+ */
+export function chargesBlockedReason(): string | null {
+  if (!isPrelaunch()) return null;
+  return `${notYetAcceptingEngagements()} No payment can be taken until it opens for work.`;
+}
+
 export function registrationLine(): string {
   /*
    * THE REGISTRATION IS STATED WHILE THE GATE IS SHUT, AND THAT IS A CHANGE.
