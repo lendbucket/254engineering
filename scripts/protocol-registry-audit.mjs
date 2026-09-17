@@ -1,0 +1,318 @@
+/**
+ * DOES THE PORTAL SAY WHAT THE SIGNED PROTOCOL SAYS, IN BOTH DIRECTIONS?
+ *
+ *   npx tsx scripts/protocol-registry-audit.mjs
+ *
+ * THE RULE THIS AUDIT EXISTS FOR. The document is the authority and the portal
+ * is its implementation.
+ *
+ *   Anything in the portal that is not in the document is a defect.
+ *   Anything in the document the portal silently drops is a WORSE defect.
+ *
+ * The second is worse because it is invisible: a question nobody asks leaves no
+ * trace, while an invented question at least appears on a screen somebody can
+ * read.
+ *
+ * DERIVED FROM A DECLARATION, CHECKED AGAINST THE DOCUMENT. The declaration is
+ * src/content/protocols/rc-001*.ts. The document is the PDF itself, read with
+ * pdftotext at run time. Neither is a hand list, and the audit never compares
+ * the declaration to itself: every text assertion is against the extracted
+ * document.
+ *
+ * WHEN pdftotext IS NOT INSTALLED the document half reports COULD NOT TELL and
+ * the structural half still runs. Unreachable is not failed, and it says loudly
+ * which half did not run.
+ */
+import { existsSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+
+const out = [];
+const rec = (name, ok, note = "") => out.push({ name, ok, note });
+const tell = [];
+
+console.log("");
+console.log("========== 254-RC-001 AGAINST ITS SIGNED DOCUMENT ==========");
+console.log("");
+
+const { RC001, RC001_ENFORCED, RC001_AMBIGUITIES } = await import(
+  "../src/content/protocols/rc-001.ts"
+);
+const { verifiedFirmRegistrations } = await import("../src/config/credentials.ts");
+
+/* ------------------------------------------- 1. the declaration is coherent */
+
+const numbers = RC001.intakeQuestions.map((q) => q.number);
+rec(
+  "the intake questions are numbered 1 to 16 with no gap and no repeat",
+  numbers.length === 16 && new Set(numbers).size === 16 && Math.min(...numbers) === 1 && Math.max(...numbers) === 16,
+  `${numbers.length} questions: ${numbers.join(",")}`,
+);
+
+const flagNumbers = RC001.intakeQuestions.filter((q) => q.flag).map((q) => q.number).sort((a, b) => a - b);
+rec(
+  "the flag questions are exactly 8 to 12, because a yes on one routes to the engineer before dispatch",
+  JSON.stringify(flagNumbers) === JSON.stringify([8, 9, 10, 11, 12]),
+  `flags: ${flagNumbers.join(",")}`,
+);
+
+rec(
+  "exactly one upload is required outright, and it is the photo of the front of the property",
+  RC001.intakeUploads.filter((u) => u.tier === "required").length === 1 &&
+    RC001.intakeUploads.find((u) => u.tier === "required")?.key === "front-of-property",
+  RC001.intakeUploads.map((u) => `${u.key}:${u.tier}`).join(", "),
+);
+
+const itemKeys = RC001.checklist.map((i) => i.key);
+rec(
+  "every checklist item has a unique key",
+  new Set(itemKeys).size === itemKeys.length,
+  `${itemKeys.length} items`,
+);
+const declaredSections = new Set(RC001.sections.map((s) => s.key));
+const orphanSections = [...new Set(RC001.checklist.map((i) => i.section))].filter((s) => !declaredSections.has(s));
+rec(
+  "every checklist item sits under a declared section",
+  orphanSections.length === 0,
+  orphanSections.join(", ") || `${declaredSections.size} sections`,
+);
+const emptySections = RC001.sections.filter((s) => !RC001.checklist.some((i) => i.section === s.key));
+rec(
+  "and every declared section has at least one item, so a heading cannot survive its content",
+  emptySections.length === 0,
+  emptySections.map((s) => s.heading).join(", ") || "all sections populated",
+);
+
+rec(
+  "the five determinations are present and no others",
+  RC001.determinations.length === 5 &&
+    JSON.stringify(RC001.determinations.map((d) => d.key)) ===
+      JSON.stringify(["pass", "revise", "repairs-required", "site-revisit", "decline"]),
+  RC001.determinations.map((d) => d.key).join(", "),
+);
+rec(
+  "every determination carries at least one criterion, so none is a heading with nothing under it",
+  RC001.determinations.every((d) => d.criteria.length > 0),
+  RC001.determinations.map((d) => `${d.key}:${d.criteria.length}`).join(" "),
+);
+
+/*
+ * An unsettled threshold must carry the question it raises. A number recorded
+ * as unsettled with nothing to ask is a note nobody can act on.
+ */
+const unsettledWithoutQuestion = RC001.thresholds.filter((t) => !t.settled && !t.question);
+rec(
+  "every threshold the document leaves open carries the question it raises for the engineer",
+  unsettledWithoutQuestion.length === 0,
+  `${RC001.thresholds.filter((t) => !t.settled).length} of ${RC001.thresholds.length} unsettled, all with questions`,
+);
+rec(
+  "and every ambiguity names where in the document it lives",
+  RC001_AMBIGUITIES.every((a) => a.at && a.question),
+  `${RC001_AMBIGUITIES.length} questions for the engineer`,
+);
+rec(
+  "every enforced rule names where the document states it",
+  RC001_ENFORCED.every((r) => r.at && r.rule) &&
+    new Set(RC001_ENFORCED.map((r) => r.key)).size === RC001_ENFORCED.length,
+  `${RC001_ENFORCED.length} rules`,
+);
+
+/* --------------------------- 2. the firm name against the board's register */
+
+/*
+ * RULING 3, 2026-09-16. A protocol whose document names the firm in a name the
+ * board's register does not hold is FLAGGED, so a future protocol cannot arrive
+ * with the same defect unnoticed.
+ *
+ * It asserts the RECORD rather than the absence. A check that simply failed
+ * while the names differ would be a permanent red until reissuance, and the
+ * operator ruled the document stands exactly as signed. So an unresolved
+ * difference passes as long as it is written down with both names, and it FAILS
+ * the moment the register moves and the protocol has not been reissued.
+ */
+{
+  const registrant = verifiedFirmRegistrations.find((r) => r.status === "active")?.issuedTo ?? null;
+  const matches = RC001.firmNameOnDocument === registrant;
+
+  rec(
+    "the protocol's firm name either matches the board's register or the difference is recorded",
+    matches || RC001.naming.matchesBoardRegister === false,
+    matches
+      ? `both say "${registrant}"`
+      : `document says "${RC001.firmNameOnDocument}", the board's register says "${registrant}", recorded as a known difference`,
+  );
+  rec(
+    "and the record names both names, so nobody resolves it by editing one string",
+    matches ||
+      (RC001.naming.because.includes(RC001.firmNameOnDocument) &&
+        RC001.naming.because.includes(RC001.naming.registrantWhenRecorded)),
+    matches ? "no difference to record" : "the record names the document's name and the registrant",
+  );
+
+  /*
+   * THE REISSUANCE TRIGGER, AND IT IS THE MECHANICAL HALF OF THE OPERATOR'S
+   * "IN THE SAME SITTING". The record was written while the board held
+   * 254 Services LLC. If the register now holds a DIFFERENT name, TBPELS has
+   * reissued and 254-RC-001 owes its v1.1. Staying at v1.0 is then a stale
+   * record rather than a known difference, and this goes red naming what is
+   * owed.
+   */
+  const registerMoved = registrant !== null && registrant !== RC001.naming.registrantWhenRecorded;
+  rec(
+    registerMoved
+      ? "the register has moved, so the protocol must be reissued with the corrected name"
+      : "the register still holds the name this difference was recorded against",
+    !registerMoved || RC001.version !== "1.0",
+    registerMoved
+      ? `the board now holds "${registrant}" and 254-RC-001 is still v${RC001.version} naming "${RC001.firmNameOnDocument}". Reissue as v1.1 with the legal name corrected, in the same sitting as issuedTo.`
+      : `recorded against "${RC001.naming.registrantWhenRecorded}", register holds "${registrant}"`,
+  );
+}
+
+/* ---------------------------- 3. both directions, against the document text */
+
+const pdf = RC001.sourceFile;
+rec("the signed document is in the repository", existsSync(pdf), pdf);
+
+const pdftotext = spawnSync("pdftotext", ["-layout", pdf, "-"], { encoding: "utf8" });
+if (pdftotext.error || pdftotext.status !== 0) {
+  tell.push(
+    "The DOCUMENT half did not run: pdftotext is not available here, so nothing compared this " +
+      "declaration against the signed PDF. That is the half proving the portal neither invents nor " +
+      "drops anything. Install poppler-utils and re-run before trusting the mapping.",
+  );
+} else {
+  /*
+   * Normalised for comparison only: the PDF's layout inserts line breaks and
+   * runs of spaces inside sentences, so a raw includes() would fail on wording
+   * that is present and correctly transcribed. Case and punctuation are kept.
+   */
+  const norm = (s) => s.replace(/\s+/g, " ").trim();
+
+  /*
+   * COMPARED WITH WHITESPACE REMOVED ENTIRELY, and the reason is an extraction
+   * artifact rather than laziness.
+   *
+   * pdftotext breaks a line inside a hyphenated word and leaves a space behind:
+   * the document's "close-up each occurrence" comes back as "close- up each
+   * occurrence". Collapsing runs of spaces does not repair that, and a check
+   * that failed on it would be reporting a defect in poppler as a defect in the
+   * transcription.
+   *
+   * Removing whitespace keeps the comparison strict in the way that matters:
+   * every character is still compared, in order, so a changed word, a dropped
+   * clause or a reworded criterion still fails. What it stops caring about is
+   * where the PDF happened to wrap.
+   */
+  const squash = (s) => s.replace(/\s+/g, "");
+  const doc = squash(pdftotext.stdout);
+
+  rec(
+    "the extraction produced a document to read",
+    doc.length > 10000,
+    `${doc.length} characters (if this were small the checks below would pass over nothing)`,
+  );
+
+  /* ---- direction one: nothing in the declaration that is not in the document */
+  const missingQuestions = RC001.intakeQuestions.filter((q) => !doc.includes(squash(q.ask)));
+  rec(
+    "every intake question in the declaration appears in the signed document, word for word",
+    missingQuestions.length === 0,
+    missingQuestions.map((q) => `Q${q.number}`).join(", ") || `${RC001.intakeQuestions.length} matched`,
+  );
+
+  const missingCriteria = [];
+  for (const d of RC001.determinations) {
+    for (const c of d.criteria) if (!doc.includes(squash(c))) missingCriteria.push(`${d.key}: ${c.slice(0, 40)}`);
+  }
+  rec(
+    "every determination criterion appears in the signed document, word for word",
+    missingCriteria.length === 0,
+    missingCriteria.join(" | ") || `${RC001.determinations.reduce((n, d) => n + d.criteria.length, 0)} criteria matched`,
+  );
+
+  const missingProcedure = RC001.photoProcedure.filter((p) => !doc.includes(squash(p.text)));
+  rec(
+    "the photo procedure appears in the signed document, word for word",
+    missingProcedure.length === 0,
+    missingProcedure.map((p) => `step ${p.step}`).join(", ") || "all three steps matched",
+  );
+
+  const missingThresholds = RC001.thresholds.filter((t) => !doc.includes(squash(t.states)));
+  rec(
+    "every threshold is quoted from the document rather than computed",
+    missingThresholds.length === 0,
+    missingThresholds.map((t) => t.key).join(", ") || `${RC001.thresholds.length} matched`,
+  );
+
+  rec(
+    "the document number, version and issue date are the document's own",
+    doc.includes(RC001.documentNumber) && doc.includes(squash("Version 1.0")) && doc.includes(squash("September 14, 2026")),
+    `${RC001.documentNumber}, v${RC001.version}, ${RC001.issueDate}`,
+  );
+
+  /* ---- direction two: nothing in the document the declaration silently drops */
+
+  /*
+   * The document's Appendix B lines are its own "[ ]" checkboxes. Counting them
+   * out of the document and comparing to the declaration is what catches a
+   * DROPPED item, which is the defect no screen can show.
+   */
+  const raw = pdftotext.stdout;
+  const appendixB = raw.slice(raw.indexOf("Appendix B."), raw.indexOf("Appendix C."));
+  const boxes = [...appendixB.matchAll(/\[\s?\]\s*([^\n]+)/g)].map((m) => norm(m[1]));
+  const boxesWithoutPhotoTag = boxes.map((b) => squash(b.replace(/\[PHOTO\]\s*$/, "")));
+
+  rec(
+    "the document's own Appendix B checkboxes were found, so this direction reads something",
+    boxes.length > 30,
+    `${boxes.length} checkbox lines in the document`,
+  );
+
+  /*
+   * A dropped item is a checkbox line in the document that no declared item
+   * accounts for. Matched on a distinctive leading fragment rather than the
+   * whole line, because the declaration strips the document's own "[PHOTO]"
+   * marker and its punctuation varies.
+   */
+  const declaredLabels = RC001.checklist.map((i) => squash(i.label).toLowerCase());
+  const unaccounted = boxesWithoutPhotoTag.filter((line) => {
+    const head = line.toLowerCase().slice(0, 24);
+    return !declaredLabels.some((l) => l.slice(0, 24) === head || l.includes(head) || head.includes(l.slice(0, 24)));
+  });
+  rec(
+    "no checkbox line in the document is missing from the declaration",
+    unaccounted.length === 0,
+    unaccounted.slice(0, 4).join(" | ") || `${boxes.length} document lines all accounted for`,
+  );
+
+  /*
+   * And the same question asked the other way for the counts and the
+   * temperature, because those are the captures the document is most explicit
+   * about and the easiest to render as a note rather than a value.
+   */
+  rec(
+    "the seal-bond ambient temperature is a capture on its item rather than a loose note",
+    RC001.checklist.find((i) => i.key === "shingle-seal-bond")?.capture?.kind === "temperature" &&
+      doc.includes(squash("Ambient temperature during seal-bond check")),
+    "section 8 says the result is not meaningful without it",
+  );
+}
+
+/* ----------------------------------------------------------------- verdict */
+
+console.log("");
+for (const r of out) console.log(`  ${r.ok ? "PASS" : "FAIL"}: ${r.name}${r.note ? ` (${r.note})` : ""}`);
+for (const t of tell) console.log(`  COULD NOT TELL: ${t}`);
+console.log("");
+
+const failed = out.filter((r) => !r.ok);
+if (failed.length === 0) {
+  console.log(`PASS: ${out.length} checks.${tell.length ? " The document half did not run; see above." : ""}`);
+  process.exitCode = 0;
+} else {
+  console.log(`FAIL: ${failed.length} of ${out.length} checks.`);
+  console.log("");
+  console.log("The document is the authority. A portal that drops one of its items drops it silently.");
+  process.exitCode = 1;
+}
