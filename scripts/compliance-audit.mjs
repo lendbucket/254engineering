@@ -177,15 +177,61 @@ const {
   );
 
   /*
-   * And the gate agrees. An engineer with no recorded expiry must not read as a
-   * PE in responsible charge, which is the shut direction on the one credential
-   * every sealed letter rests on.
+   * THE RULE IS EXERCISED ON CONSTRUCTED VALUES, NOT ON THE REGISTER AS IT
+   * HAPPENS TO BE TODAY. Changed 2026-09-16, the day a real expiry was recorded.
+   *
+   * Until then the register held an engineer with no expiry, so a check could
+   * assert "an unrecorded expiry is not current" by looking at live data. The
+   * moment the operator read the date off the roster, nothing was in that state
+   * and the check began passing over an empty set. It would have been exercised
+   * for the first time on the day somebody adds a second engineer without a
+   * date, which is the one day nobody is watching it.
+   *
+   * So it calls the pure rule with the three answers that matter. True or false
+   * today and every day, whatever the register holds.
    */
-  const { activeEngineer } = await import("../src/lib/launch.ts");
+  const { activeEngineer, licenceIsCurrent } = await import("../src/lib/launch.ts");
+  const TODAY = "2026-09-16";
   rec(
-    "the gate does not treat an engineer with an unrecorded expiry as in responsible charge",
+    "an unrecorded licence expiry is never current, asked of the rule rather than of the register",
+    licenceIsCurrent(null, TODAY) === false && licenceIsCurrent("", TODAY) === false,
+    "null and empty both answer false",
+  );
+  rec(
+    "and a lapsed one is not current, and a future one is",
+    licenceIsCurrent("2020-01-01", TODAY) === false &&
+      licenceIsCurrent("2028-01-31", TODAY) === true &&
+      licenceIsCurrent(TODAY, TODAY) === true,
+    "expiry day itself still counts as current",
+  );
+  rec(
+    "and the gate reads that same rule rather than a second copy of it",
     unrecorded.length === 0 || activeEngineer() === null,
     activeEngineer() ? `activeEngineer() returns ${activeEngineer()?.name}` : "activeEngineer() returns null",
+  );
+
+  /*
+   * THE BRANCH AND THE COMPETENCE ARE DIFFERENT FACTS. Operator ruling,
+   * 2026-09-16. Texas restricts practice by competence rather than by branch,
+   * so an engineer whose licence says Civil and who will seal structural work
+   * only must have BOTH recorded. A record carrying one of them is wrong in
+   * whichever direction it omits.
+   */
+  const withoutCompetence = verifiedEngineers.filter((e) => !e.sealsOnly || e.sealsOnly.length === 0);
+  rec(
+    "every engineer records what he will seal, separately from the branch on his licence",
+    withoutCompetence.length === 0,
+    verifiedEngineers.map((e) => `${e.name}: branch ${e.disciplines.join("/")}, seals ${e.sealsOnly.join("/")}`).join("; ") || "no engineers",
+  );
+  rec(
+    "and the roster read is attributed to a person and a date, because nothing here can read the roster",
+    verifiedEngineers.every((e) => /\d{4}-\d{2}-\d{2}/.test(e.verified) && e.employersOnRoster.length > 0),
+    verifiedEngineers.map((e) => `${e.name}: ${e.employersOnRoster.length} employer(s) on the roster`).join("; "),
+  );
+  rec(
+    "and this firm appears on the engineer's own roster entry, which is the registration reflected from his side",
+    verifiedEngineers.every((e) => e.employersOnRoster.includes(ISSUED_TO)),
+    verifiedEngineers.map((e) => e.employersOnRoster.join(", ")).join(" | "),
   );
 
   /*
@@ -960,11 +1006,28 @@ const RULED_CONDITIONS = [
    * the thing it audits. The check below therefore also asserts this file does
    * NOT import the deriver, so the exemption cannot quietly become vacuous.
    */
+  /*
+   * THE FOURTH ENTRY IS THE SAME KIND AS THE THIRD, AND FOR THE SAME REASON.
+   *
+   * src/content/protocols/rc-001.ts records the name the board's register held
+   * ON THE DAY the protocol's naming discrepancy was written down. Like the
+   * Stripe console record, it is an OBSERVATION and must be able to disagree
+   * with the register: `protocol-registry-audit` fires its reissuance trigger
+   * precisely when the register no longer matches this recorded value.
+   *
+   * Deriving it would make that trigger unfireable, which is the same defect as
+   * an audit importing its expectation from the thing it audits. The check
+   * below asserts that neither observation file imports the deriver, so the
+   * exemption cannot quietly become vacuous.
+   */
   const NAME_MAY_BE_TYPED_IN = [
     "src/config/credentials.ts",
     "src/config/business.ts",
     "src/config/stripe-console.ts",
+    "src/content/protocols/rc-001.ts",
   ];
+  /** The exempt files that OBSERVE the name rather than holding it. */
+  const OBSERVERS = ["src/config/stripe-console.ts", "src/content/protocols/rc-001.ts"];
   const { firmName } = await import("../src/lib/launch.ts");
 
   rec(
@@ -992,15 +1055,23 @@ const RULED_CONDITIONS = [
       : `${files.length - NAME_MAY_BE_TYPED_IN.length} files read`,
   );
   rec(
-    "and the files allowed to type it are exactly the three config files, two that hold it and one that observes it",
-    NAME_MAY_BE_TYPED_IN.length === 3 &&
+    "and the files allowed to type it are exactly four, two that hold the name and two that observe it",
+    NAME_MAY_BE_TYPED_IN.length === 4 &&
       NAME_MAY_BE_TYPED_IN.every((f) => files.includes(f)),
     NAME_MAY_BE_TYPED_IN.join(", "),
   );
+  /*
+   * MATCHED ON THE CALL, NOT THE SUBSTRING. The first version tested /firmName/
+   * and reddened on rc-001.ts because that file has a FIELD named
+   * firmNameOnDocument. It is the matcher whose window is wider than the thing
+   * it matches, which this repository has met four times now: what is forbidden
+   * here is CALLING the deriver, so the pattern names the call.
+   */
+  const derivingObservers = OBSERVERS.filter((f) => /\bfirmName\s*\(/.test(readSource(f)));
   rec(
-    "and the console record does not derive the name, so it can still disagree with the register",
-    !/firmName/.test(readSource("src/config/stripe-console.ts")),
-    "src/config/stripe-console.ts records what Stripe holds; deriving it would make the same-sitting check compare a value to itself",
+    "and no observation record derives the name, so each can still disagree with the register",
+    derivingObservers.length === 0,
+    derivingObservers.join(", ") || "stripe-console records what Stripe holds, rc-001 records what the register held when; deriving either would make its trigger compare a value to itself",
   );
 }
 
