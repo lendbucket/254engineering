@@ -169,6 +169,78 @@ rec(
   );
 }
 
+/* ------------------------ 2a. the discipline gate, exercised as a rule */
+
+/*
+ * A SERVICE LINE IS OFFERABLE ONLY WHEN AN ACTIVE ENGINEER SEALS WHAT ITS
+ * PROTOCOL REQUIRES. Operator ruling, 2026-09-16.
+ *
+ * EXERCISED ON CONSTRUCTED VALUES, not on the register as it happens to be.
+ * Today there is one engineer and one protocol, and that protocol has not
+ * declared its discipline, so every live case lands on the same branch. A check
+ * that only looked at live data would prove one branch of four and be exercised
+ * on the others for the first time the day somebody adds an engineer.
+ */
+{
+  const { lineBlocks, linesAwaitingDiscipline } = await import("../src/lib/protocol-gate.ts");
+  const { PROTOCOLS } = await import("../src/content/protocols/index.ts");
+  const { services } = await import("../src/content/services.ts");
+  const TODAY = "2026-09-16";
+
+  const structural = { name: "A", sealsOnly: ["structural"], expires: "2028-01-31" };
+  const lapsed = { name: "B", sealsOnly: ["structural"], expires: "2020-01-01" };
+  const undated = { name: "C", sealsOnly: ["structural"], expires: null };
+  const civilOnly = { name: "D", sealsOnly: ["civil"], expires: "2028-01-31" };
+  const declared = [{ serviceSlug: "x", documentNumber: "TEST-1", requiresDiscipline: "structural" }];
+  const undeclared = [{ serviceSlug: "x", documentNumber: "TEST-1", requiresDiscipline: null }];
+
+  rec(
+    "a line whose protocol declares a discipline an active engineer seals is offerable",
+    lineBlocks(["x"], declared, [structural], TODAY).length === 0,
+    "declared structural, engineer seals structural, licence current",
+  );
+  rec(
+    "and a line with no protocol at all is blocked, saying so",
+    lineBlocks(["y"], declared, [structural], TODAY)[0]?.because.includes("No protocol exists"),
+    lineBlocks(["y"], declared, [structural], TODAY)[0]?.because ?? "not blocked",
+  );
+  rec(
+    "and a protocol that has not declared its discipline blocks its line rather than being guessed at",
+    lineBlocks(["x"], undeclared, [structural], TODAY)[0]?.because.includes("does not declare the discipline"),
+    lineBlocks(["x"], undeclared, [structural], TODAY)[0]?.because ?? "not blocked",
+  );
+  rec(
+    "and a discipline no engineer seals blocks the line",
+    lineBlocks(["x"], declared, [civilOnly], TODAY)[0]?.because.includes("no engineer on record seals that"),
+    lineBlocks(["x"], declared, [civilOnly], TODAY)[0]?.because ?? "not blocked",
+  );
+  rec(
+    "and an engineer who seals it but holds no current licence blocks it, with a different sentence",
+    lineBlocks(["x"], declared, [lapsed], TODAY)[0]?.because.includes("hold no current licence") &&
+      lineBlocks(["x"], declared, [undated], TODAY)[0]?.because.includes("hold no current licence"),
+    "a lapsed licence and an unrecorded expiry both block, and neither reads as nobody seals it",
+  );
+  rec(
+    "and one covering engineer among several is enough, so the rule survives a second engineer",
+    lineBlocks(["x"], declared, [civilOnly, lapsed, structural], TODAY).length === 0,
+    "four engineers, one of them covering and current",
+  );
+
+  /*
+   * THE LIST FOR THE ENGINEER. Reported rather than asserted: every line
+   * awaiting a discipline is a question for him, and the count is printed so
+   * the report can carry it without anybody counting by hand.
+   */
+  const awaiting = linesAwaitingDiscipline(services.map((x) => x.slug), PROTOCOLS);
+  rec(
+    "every service line awaiting a declared discipline is named, so the list can go to the engineer",
+    true,
+    awaiting.length === 0
+      ? "every line has a protocol declaring its discipline"
+      : `${awaiting.length} of ${services.length} awaiting: ${awaiting.join(", ")}`,
+  );
+}
+
 /* ------------------- 2b. the intake surface derives from the same document */
 
 /*

@@ -1077,8 +1077,46 @@ combined injection whose cascade made a security check pass for the wrong
 reason.
 
 **AND A MATCHER WITH A WINDOW WIDER THAN THE THING IT MATCHES ATTACHES TO ITS
-NEIGHBOUR.** Same day, same section, in the patch script written to document all
-of this. It searched an eight line window for a table name to decide which query
+NEIGHBOUR. FOURTH INSTANCE 2026-09-16, AND IT IS NOW ONE OF THE TWO RECURRING
+DEFECTS IN THIS BUILD**, beside one fact with two homes. Operator ruling.
+
+| When | The matcher | What it attached to instead |
+| --- | --- | --- |
+| 2026-09-13 | An eight line window searched for a table name | The next query block, so three reasons landed on the wrong reads |
+| 2026-09-13 | The last `];` in `supabase/applied.mjs` | `BEHAVIOUR_DIVERGENCE`, not `APPLIED` |
+| 2026-09-16 | `/expires: "[^"]*",/` in the gate fixture | Latent: `verifiedEngineers` is declared earlier than the registration, so it would have taken the ENGINEER's expiry the day one was recorded |
+| 2026-09-16 | `/firmName/` in `compliance-audit` | The FIELD `firmNameOnDocument`, so a record that merely names the deriver read as calling it |
+
+**The fourth is the one to carry, because nothing was broken when it was
+written.** The pattern was looking for a CALL and matched a NAME. Both spellings
+contain the thing being searched for, and only one of them is the thing being
+forbidden.
+
+**The rule, unchanged and now with four instances behind it: match the thing you
+mean.** A call is `name(`, not `name`. A field is the line adjacent to it, not
+the nearest punctuation that resembles it. Where adjacency is not enough, locate
+by explicit position and ASSERT the target before writing.
+
+**AND A TOOLING RULE RATHER THAN A LESSON: NO INLINE SCRIPT MAY CARRY A
+BACKSLASH.** Operator ruling, 2026-09-16, after the shell ate regex escapes
+three times in one session.
+
+`node -e` and heredocs in this environment do not deliver backslashes intact.
+`\s` arrives as `s`, `\n` arrives as a real newline that breaks a regex literal
+across two lines, and `\b` arrives as a literal backspace byte. Each of those
+happened, and two of them reached disk:
+
+- `\d` in `stripe-webhook-audit`, so a date pattern matched nothing and its check failed on a correct record.
+- `\s*\n\s*` in `gate-fixture`, so the file stopped parsing and the board reported three content failures for one syntax error.
+- `\b...\(` in `compliance-audit`, which wrote a backspace character into the source.
+
+**So: anything containing a backslash is written with the editor, or written to
+a file first and then run.** Not because inline scripts are bad, but because
+this particular pipeline is lossy in a way that produces plausible, silent
+wrongness rather than an error.
+
+**AND THE ORIGINAL INSTANCE, 2026-09-13**, in the patch script written to
+document all of this. It searched an eight line window for a table name to decide which query
 a comment belonged above, and these queries sit in three line blocks, so one
 block's window reached into the next and three reasons landed on the wrong
 reads. It is the recurring defect of this repository wearing a code generator: a

@@ -28,6 +28,23 @@ export const RC001 = {
   serviceSlug: "roof-inspections",
 
   /**
+   * THE DISCIPLINE THIS PROTOCOL REQUIRES, AND IT IS NOT DECLARED YET.
+   *
+   * Operator ruling, 2026-09-16: a protocol declares the discipline it requires
+   * and it is never inferred from the service line's name. Whether a roof
+   * certification is structural work is the engineer's answer, not a reading of
+   * the word "roof", and this session is not going to supply it by guessing.
+   *
+   * NULL BLOCKS THE LINE, which is the conservative direction and is the point.
+   * roof-inspections stays a waitlist until Aman states what 254-RC-001
+   * requires, and the block says exactly that rather than refusing vaguely.
+   *
+   * He signed this protocol and declares his competence structural only, so the
+   * likely answer is structural. Likely is not declared.
+   */
+  requiresDiscipline: null as string | null,
+
+  /**
    * The file this declaration was transcribed from, and its digest, so the
    * declaration cannot drift onto a different document without saying so.
    */
