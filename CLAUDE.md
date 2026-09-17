@@ -417,6 +417,42 @@ their verdict beside them so nobody rebuilds them by accident.
 
 Voice: direct, declarative, specific. An expert explaining plainly. Not direct response.
 
+**AND NONE OF IT APPLIES TO A SIGNED DOCUMENT. TRANSCRIPTION IS VERBATIM.**
+Operator ruling, 2026-09-16.
+
+These are laws on strings THIS FIRM WRITES. A signed engineering document is not
+copy; it is the authority a protocol implements and an engineer put his seal
+behind. **Altering it to match a writing preference is an alteration of the
+authority**, and the fact that the alteration is small is what makes it
+dangerous: nobody reviewing the diff would call a comma a change of meaning.
+
+**The instance, and it happened within an hour of the document arriving.**
+254-RC-001 v1.0 uses ASCII double hyphens throughout, as in
+`Shingle roofs -- SEAL-BOND`. Transcribing Appendix B and Appendix C into
+`src/content/protocols/`, the dash rule fired reflexively and 21 checklist
+labels and 9 determination criteria came out with commas in place of the
+document's own punctuation.
+
+**It bought nothing.** `placeholder-audit` flags `[‒–—―]`, the long dashes. A
+double hyphen was never in scope, so the house style did not even require the
+change that was made in its name. `protocol-registry-audit` caught all thirty by
+comparing the transcription against the PDF itself, which is the argument for
+building that check BEFORE the screens rather than after.
+
+**The rule.** Where a document somebody signed is transcribed into this
+repository, its text is carried exactly, punctuation included, and the check
+that proves it compares against the document rather than against a second copy
+of the transcription. If the house style and the document disagree, the document
+wins and the disagreement is recorded. The foundation protocol and every
+protocol after it arrives under this rule.
+
+**The one thing that may be repaired is an EXTRACTION artifact**, which is not
+the document. `pdftotext` breaks a line inside a hyphenated word and leaves a
+space behind, so `close-up` comes back as `close- up`. That is a defect in
+poppler, and the comparison ignores whitespace entirely rather than the
+transcription carrying the artifact forward. Every character is still compared,
+in order.
+
 ## 4. Technical SEO baseline (mandatory, audited)
 
 - Titles 50 to 60 characters including the brand suffix, keyword front loaded, brand-pipe suffix.
