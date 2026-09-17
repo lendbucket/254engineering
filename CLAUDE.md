@@ -1023,6 +1023,33 @@ split outright with its own sentence. No customer could ever have seen it.
 
     FAIL: and its total is zero rather than null
 
+**AND THE SAME LESSON IN A STATUS COLUMN, 2026-09-16, WHICH IS WHERE IT IS
+EASIEST TO MISS.** Operator ruling, recorded as its own instance.
+
+`eng_protocol_templates` had carried `status in ('draft', 'published',
+'retired')` since 0001. Then 254-RC-001 v1.0 arrived: **signed by the engineer
+of record, dated, in force as a document, and not yet approved in the
+platform**, because only he can do that and only through his own account.
+
+None of the three words is true of it. `published` claims an approval nobody
+gave. `retired` is absurd. **`draft` is the one somebody reaches for, and it is
+a lie about the thing the whole system rests on**, because draft means the
+engineer has not signed.
+
+**A STATUS VOCABULARY THAT LACKS A WORD FOR THE SITUATION YOU ARE IN MAKES
+SOMEBODY CHOOSE THE NEAREST LIE.** That is the general form, and it is the same
+defect as a null meaning two things: the shortage is in the vocabulary, and the
+cost is paid by whoever later reads the value and believes it.
+
+0049 adds `awaiting_engineer` and **three check constraints**, because a word
+with no constraint behind it is a convention somebody forgets: a row carrying a
+signature date cannot sit in draft, a row in `awaiting_engineer` can hold no
+approver and no publication date so it cannot claim to be in force, and a
+published row must name who approved it and when.
+
+**The tell, in both instances: somebody is deciding which existing value is
+"closest".** That question has no good answer. Add the word.
+
 **THE CHECK'S REASON WAS BETTER THAN THE CHANGE WAS**, and it is the part worth
 carrying: **null already meant something else there.** It meant an accepted
 property has no price, so no total can be stated. Reusing it for "nothing was
