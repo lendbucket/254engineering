@@ -1142,6 +1142,38 @@ a file first and then run.** Not because inline scripts are bad, but because
 this particular pipeline is lossy in a way that produces plausible, silent
 wrongness rather than an error.
 
+**AND A SECOND TOOLING RULE: A GREP IN A CONDITIONAL IS A KNOWN HAZARD, NOT A
+MISTAKE TO AVOID BY CARE.** Operator ruling, 2026-09-17, on the third instance
+of an exit code being read as something other than what it said.
+
+| | What was run | What the exit code meant | What it was read as |
+| --- | --- | --- | --- |
+| 2026-09-15 | `npx tsx scripts/db-guard-audit.mjs \| tail -1 && git commit` | `tail` succeeded | the audit passed |
+| 2026-09-16 | `grep ... && git commit` | nothing matched | the command failed, so skip the commit |
+| 2026-09-17 | `grep -P "[\x{2013}]" \|\| echo "no long dashes"` | the pattern would not compile | there are no long dashes |
+
+**The shape, and it is one shape rather than three anecdotes. `grep` answers
+with THREE values and `&&` is two valued.** Zero is matched, one is did not
+match, two is could not run at all. A conditional has only a true branch and a
+false branch, so one of the three answers is always folded into another, and
+WHICH one it folds into depends on which operator was typed. With `||` the
+could-not-run folds into the reassuring branch and prints a sentence asserting
+the thing it failed to check.
+
+**It is `unreachable is not failed` at the level of a shell command.** An audit
+that cannot measure says `COULD NOT TELL` and says so loudly. A grep that cannot
+run says nothing, and the shell answers on its behalf, in the affirmative.
+
+**The answer is mechanical, because care has already been tried and has already
+failed three times.** All three were written by a session that knew the rule
+about exit codes, and the second was written in the same week as the first. So:
+**a grep whose answer is a verdict about content is not put in a conditional and
+is not chained to anything.** It is run on its own and its OUTPUT is read, or
+the check is written in something that can tell the three outcomes apart and
+say which one it got. The third instance above was re-run that way and answered
+`added lines: 42, lines with an en or em dash: 0`, which is a measurement rather
+than the absence of an error.
+
 **AND THE ORIGINAL INSTANCE, 2026-09-13**, in the patch script written to
 document all of this. It searched an eight line window for a table name to decide which query
 a comment belonged above, and these queries sit in three line blocks, so one
