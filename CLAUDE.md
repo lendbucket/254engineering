@@ -2006,6 +2006,48 @@ plausible cause **nobody has profiled**, and a screen whose figures are billed
 on does not get a decision made on a guess. The hypothesis is recorded as a
 hypothesis; the ruling waits for the profile.
 
+**AND THE SAME DAY, THE SAME CODE, MEASURED FINE. THE STALL IS INTERMITTENT
+RATHER THAN DETERMINISTIC, WHICH CHANGES WHAT A PROFILE HAS TO DO.** Operator
+ruling, 2026-09-17, hours after the paragraph above was written.
+
+`overnight/2026-09-15` merged into main as `62a1b63`, carrying 38 commits and
+not one line touching that screen. The board on main then returned **54 of 54**,
+and both audits that had been unable to measure `/portal/accounts` measured it:
+`mobile-overflow-audit` across 226 route and width combinations,
+`native-audit` at 514 checks, with the screen appearing in `native-audit`'s own
+per route table reading document overflow 0px and tables 0. **Nothing was
+fixed between the two runs.**
+
+So both readings stand and neither cancels the other. The fifty seconds of
+application time on the branch run was real and was read off the server's own
+log. What is now known is that it does not happen every time.
+
+**The consequence is for the profile, and it is the whole reason this is
+recorded rather than shrugged at.** A deterministic stall can be profiled by
+opening the screen and watching, and the instrument can be attached after the
+symptom is seen. An intermittent one cannot: the instrumentation has to already
+be running when a stall arrives, because the run that stalls is not the run
+somebody chose. **A profile of a healthy render is not evidence about a stall,
+and it reads exactly like one.** The candidate causes widen with it, from the
+query alone to anything carrying state between runs.
+
+**AND A PREDICTION STATED IN ADVANCE AND FALSIFIED IS WORTH MORE THAN ONE THAT
+HOLDS.** Operator ruling, same day, and it is the mechanism that found the
+paragraph above rather than a remark about it.
+
+The board on main was predicted, in writing, before it ran: 52 of 54, zero FAIL
+lines, those two blocked. It came back 54 of 54. **The falsified half is the
+only part of that exchange that carried information.** Had the prediction held,
+it would have confirmed something already believed and taught nothing.
+
+**What matters is that without the prediction there was nothing to falsify.** A
+board returning 54 of 54 reads as a green board, and a green board invites no
+questions at all. The intermittency was findable only because a specific
+different result had been written down first and the difference had to be
+accounted for. So: **say what the run will do before running it, in terms
+specific enough to be wrong**, and when it is wrong, the gap is the finding.
+A prediction offered only after the result is not a prediction.
+
 **UNREACHABLE IS NOT FAILED.** Operator ruling, 2026-09-08. An audit whose
 live half cannot run because no server is answering reports a third verdict,
 `COULD NOT TELL`, and exits zero. It is the same three way answer the perf
