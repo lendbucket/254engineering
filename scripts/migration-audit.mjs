@@ -64,8 +64,16 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * mistake could have been applied to by hand, which is exactly how 0001 stayed
  * broken for a month. A constant has to be changed by a person who noticed.
  */
-const EXPECTED_FINGERPRINT = "f6e3d58df88f192dc1e7eaa1458858a7";
-const EXPECTED_COLUMNS = 1049;
+/*
+ * Moved 2026-09-16 by 0049, which adds ten columns to eng_protocol_templates
+ * and four check constraints. 1,049 to 1,059 is exactly those ten, and the
+ * behaviour digest moves to c82264709f118e7155cf6cb32c9e5594 across 854 facts,
+ * read off the replay rather than predicted.
+ *
+ * Changed by a person who noticed, which is what this constant is for.
+ */
+const EXPECTED_FINGERPRINT = "4004dc9066393203e04dc717db979596";
+const EXPECTED_COLUMNS = 1059;
 const EXPECTED_TABLES = 76;
 const EXPECTED_TRIGGERS = 61;
 /**
