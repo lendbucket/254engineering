@@ -418,6 +418,46 @@ if (!KEEP_EXISTING) {
   console.error("  administrator: Demo Administrator");
 }
 
+/*
+ * A DEMONSTRATION ENGINEER, AND THE NAME SAYS SO IN CAPITALS.
+ *
+ * Added 2026-09-16 on the operator's ruling. The protocol block below already
+ * looked this profile up and it had never been created, so `engineerId` was
+ * null on every run.
+ *
+ * It exists now because 0049 requires a published protocol to name who approved
+ * it, and a demonstration protocol needs a demonstration approver. The operator
+ * ruled a demonstration approval is allowed if it is MARKED as a demonstration,
+ * and nothing about this row reads as a real engineer: the display name says
+ * DEMONSTRATION, the address is example.com, and the licence string below could
+ * not be mistaken for a Texas PE number.
+ */
+{
+  const email = "demo.engineer@example.com";
+  const { data: existingRows, error: existingErr } = await db
+    .from("eng_profiles").select("id").eq("email", email)
+    .order("created_at", { ascending: true }).limit(1);
+  if (existingErr) throw new Error(`eng_profiles: could not look for ${email}: ${existingErr.message}`);
+  const existing = (existingRows ?? [])[0] ?? null;
+  let id = existing?.id ?? null;
+  if (!id) {
+    const { data: created, error } = await db.auth.admin.createUser({
+      email,
+      password: DEMO_PASSWORD,
+      email_confirm: true,
+    });
+    if (error) throw new Error(`auth ${email}: ${error.message}`);
+    id = created.user.id;
+  } else {
+    await db.auth.admin.updateUserById(id, { password: DEMO_PASSWORD });
+  }
+  await db.from("eng_profiles").upsert(
+    { id, email, display_name: "Demo Engineer, DEMONSTRATION ONLY", role: "engineer", status: "active" },
+    { onConflict: "id" },
+  );
+  console.error("  engineer: Demo Engineer, DEMONSTRATION ONLY");
+}
+
 // --- the technicians -------------------------------------------------------
 
 const techIds = [];
@@ -507,17 +547,86 @@ const { data: publishedRows, error: publishedErr } = await db
 if (publishedErr) throw new Error(`eng_protocol_templates: ${publishedErr.message}`);
 const published = (publishedRows ?? [])[0] ?? null;
 
+/*
+ * THE DEMONSTRATION APPROVER, AND THE LICENCE STRING CANNOT BE MISTAKEN FOR ONE.
+ *
+ * 0049 requires a published protocol to name who approved it, when, and under
+ * which licence. A demonstration protocol gets a demonstration approval, marked
+ * as one, which is the operator's ruling of 2026-09-16.
+ */
+const DEMO_PROTOCOL_NAME = "Windstorm evidence, coastal, DEMONSTRATION ONLY";
+const DEMO_PROTOCOL_SUMMARY =
+  "DEMONSTRATION DATA. What a technician captures on a windstorm inspection in the designated area. " +
+  "Approved by a demonstration engineer so the dispatch flow can be walked; no Professional Engineer " +
+  "has approved a windstorm protocol, and 254-WP-001 is listed as a Draft in Appendix D of 254-RC-001.";
+const DEMO_LICENSE = "DEMONSTRATION-NOT-A-REAL-LICENCE";
+
+const { data: engineerRows, error: engineerLookupErr } = await db
+  .from("eng_profiles").select("id").eq("email", "demo.engineer@example.com")
+  .order("created_at", { ascending: true }).limit(1);
+if (engineerLookupErr) throw new Error(`eng_profiles: ${engineerLookupErr.message}`);
+const demoEngineerId = (engineerRows ?? [])[0]?.id ?? null;
+if (!demoEngineerId) throw new Error("the demonstration engineer was not created, so nothing may approve a protocol");
+
+const demoApproval = {
+  status: "published",
+  approved_by: demoEngineerId,
+  approved_at: new Date().toISOString(),
+  approved_by_license: DEMO_LICENSE,
+  published_at: new Date().toISOString(),
+};
+
+/*
+ * REPAIR INSIDE THIS FIXTURE'S OWN DOMAIN, which is the destroyProbes
+ * precedent: a fixture owner sweeps its whole domain rather than only the ids
+ * it made this run, so what a crashed or older run left behind is cleaned up
+ * too.
+ *
+ * WHAT WAS LEFT BEHIND, AND WHY IT MATTERS. Every run of this script before
+ * 2026-09-16 inserted this protocol as `published` with NO approver and no
+ * author. Published means in force, and a protocol in force is one an engineer
+ * of record approved. Nothing in this platform should have been able to say a
+ * protocol was in force that no engineer approved, and 0049 now makes it
+ * impossible; this repairs the rows that predate it.
+ *
+ * It is also the reason the operator ruled on the seeder's own law: a fixture
+ * that lies CONVINCINGLY is worse than one that lies obviously. That row
+ * carried a real service slug and a status asserting the firm's regulatory
+ * posture, with nothing marking it as demonstration data.
+ */
+{
+  const { data: unapproved, error: unapprovedErr } = await db
+    .from("eng_protocol_templates")
+    .select("id")
+    .eq("service_slug", SERVICE)
+    /*
+     * ANY row in this fixture's domain with no approver, whatever its status.
+     * Filtering on published alone would miss a row somebody had to move to
+     * draft to let 0049 apply, and this script is the only thing that writes a
+     * windstorm protocol on development, so the domain is its own.
+     */
+    .is("approved_by", null);
+  if (unapprovedErr) throw new Error(`eng_protocol_templates: ${unapprovedErr.message}`);
+  for (const row of unapproved ?? []) {
+    const { error } = await db
+      .from("eng_protocol_templates")
+      .update({ ...demoApproval, name: DEMO_PROTOCOL_NAME, summary: DEMO_PROTOCOL_SUMMARY })
+      .eq("id", row.id);
+    if (error) throw new Error(`protocol repair ${row.id}: ${error.message}`);
+    console.error(`  protocol: repaired ${row.id}, which claimed to be in force with no approver`);
+  }
+}
+
 let protocolId = published?.id ?? null;
 if (!protocolId) {
   const { data: template, error } = await db
     .from("eng_protocol_templates")
     .insert({
       service_slug: SERVICE,
-      name: "Windstorm evidence, coastal",
+      name: DEMO_PROTOCOL_NAME,
       version: 1,
-      status: "published",
-      summary: "What a technician captures on a windstorm inspection in the designated area.",
-      published_at: new Date().toISOString(),
+      summary: DEMO_PROTOCOL_SUMMARY,
+      ...demoApproval,
     })
     .select("id")
     .single();

@@ -983,9 +983,16 @@ export const APPLIED = [
       "NOTHING IS APPROVED BY IT. The approval is an act by a named engineer in his own session; a " +
       "seeder performing it would be the forgery this platform refuses to build. " +
       "Replayed into the in process engine and read back: shape 4004dc9066393203e04dc717db979596 across " +
-      "1,059 columns, behaviour c82264709f118e7155cf6cb32c9e5594 across 854 facts. THE DEVELOPMENT " +
-      "BEHAVIOUR DIGEST IS NOT RECORDED because it has not been read back from development, and " +
-      "inventing one is the defect this ledger was corrected for on 2026-09-13.",
+      "1,059 columns, behaviour c82264709f118e7155cf6cb32c9e5594 across 854 facts. " +
+      "APPLIED TO DEVELOPMENT 2026-09-17 through apply_migration and READ BACK rather than assumed: " +
+      "shape 4004dc9066393203e04dc717db979596 across 1,059 columns, matching the replay exactly. " +
+      "IT WAS REFUSED ON THE FIRST ATTEMPT, which is the constraint doing its job on first contact with " +
+      "a real database: eng_protocol_templates held a windstorm protocol at status published with no " +
+      "approver and no author, seeded by seed-field-demo since 2026-09-02. Published means in force, and " +
+      "no engineer had approved it. The row was moved to draft on the operator's ruling authorising the " +
+      "repair, and seed-field-demo now owns it and republishes it with a marked demonstration approval. " +
+      "THE DEVELOPMENT BEHAVIOUR DIGEST IS NOT RECORDED because it has not been read back from " +
+      "development, and inventing one is the defect this ledger was corrected for on 2026-09-13.",
   },
 ];
 
