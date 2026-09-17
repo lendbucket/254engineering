@@ -433,7 +433,10 @@ dangerous: nobody reviewing the diff would call a comma a change of meaning.
 labels and 9 determination criteria came out with commas in place of the
 document's own punctuation.
 
-**It bought nothing.** `placeholder-audit` flags `[‒–—―]`, the long dashes. A
+**It bought nothing.** `placeholder-audit` flags the four long dash characters
+(figure, en, em and horizontal bar) and nothing else; its pattern is
+`LONG_DASH` in that file, written out there rather than quoted here so this
+sentence does not carry the very characters it describes. A
 double hyphen was never in scope, so the house style did not even require the
 change that was made in its name. `protocol-registry-audit` caught all thirty by
 comparing the transcription against the PDF itself, which is the argument for
