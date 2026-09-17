@@ -421,11 +421,19 @@ if (!KEEP_EXISTING) {
 /*
  * A DEMONSTRATION ENGINEER, AND THE NAME SAYS SO IN CAPITALS.
  *
- * Added 2026-09-16 on the operator's ruling. The protocol block below already
- * looked this profile up and it had never been created, so `engineerId` was
- * null on every run.
+ * Added 2026-09-17 on the operator's ruling, and one claim made when it was
+ * written was WRONG and is corrected here rather than quietly fixed.
  *
- * It exists now because 0049 requires a published protocol to name who approved
+ * It was written saying this profile "had never been created, so engineerId was
+ * null on every run". Development was then read: demo.engineer@example.com has
+ * existed since 2026-09-03, role engineer, status active. Something created it
+ * and this script was not it, so the lookup below has been finding a real row
+ * all along. The block is still correct and still wanted, because a fixture
+ * that DEPENDS on a profile some other run happened to leave behind is a
+ * fixture that breaks the first time somebody starts from an empty database.
+ * It creates the profile when it is absent and updates it when it is not.
+ *
+ * It matters because 0049 requires a published protocol to name who approved
  * it, and a demonstration protocol needs a demonstration approver. The operator
  * ruled a demonstration approval is allowed if it is MARKED as a demonstration,
  * and nothing about this row reads as a real engineer: the display name says

@@ -754,6 +754,29 @@ if (!db) {
  * WHEREVER IT CAME FROM. This does not ask who wrote the row. A protocol in
  * force with no approver fails the board whatever produced it, which is the
  * only version of the check that would have caught the one that was there.
+ *
+ * WHICH OF THESE THREE IS PROVEN, AND WHICH IS NOT. Operator ruling,
+ * 2026-09-17: a board check is proven by a violating row created inside the
+ * check's own fixture domain, never by opening a hole in the database
+ * everything else relies on. Proving it the wrong way is worse than recording
+ * it unproven.
+ *
+ *   PROVEN. The demonstration marking check. A seeded shaped row, no document
+ *   number, unmarked name, was inserted on development, turned this check red
+ *   naming the row, and was deleted again by the run that created it. The first
+ *   attempt FAILED TO FAIL because the fixture's own summary contained the word
+ *   "demonstration", which is the check working and the fixture being wrong.
+ *
+ *   NOT PROVEN, AND IT CANNOT BE. The other two. 0049 makes both states
+ *   impossible to insert: a published row with no approver and a signed
+ *   document in draft are refused by check constraints. So no fixture can
+ *   create the violation, and there is nothing to inject.
+ *
+ * That is not a reason to delete them. They catch what the constraint cannot
+ * see: a row that PREDATES the constraint, which is exactly the row that was
+ * there, and a restore from a backup taken before it. The constraint stops new
+ * ones; these notice old ones. Recorded unproven rather than described as
+ * verified.
  */
 {
   const { data: protocols, error } = await db
