@@ -2,6 +2,7 @@ import "server-only";
 import { csv } from "./csv";
 import { formatFigure, type Figure, type Report } from "./ops-reports";
 import { moneyCell } from "./ops-money";
+import { firmName } from "./launch";
 
 
 /**
@@ -102,7 +103,7 @@ export function reportCsv(
   );
 
   const preamble: [string, unknown][] = [
-    ["254 Services LLC", report.title],
+    [firmName(), report.title],
     ["Period", report.period],
     ["Assembled", on.toISOString()],
     ["Assembled for", `${by.email} (${by.role})`],

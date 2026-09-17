@@ -73,39 +73,48 @@ export async function raiseSystemTask(input: {
   if (!title) return { ok: false, error: "A task needs a title." };
 
   /*
-   * IDEMPOTENT, BECAUSE A SCHEDULE REPEATS.
+   * THIS FUNCTION COULD NOT RAISE A TASK UNTIL 2026-09-15, AND THE FIX CHANGES
+   * THE REQUIREMENT RATHER THAN THE PRINCIPAL.
    *
-   * A monthly access review that ran twice because a cron fired twice would
-   * leave two identical tasks, and the operator would attest one and wonder
-   * about the other. The key is carried in the description rather than in a new
-   * column, because this is the first caller and a column added for one caller
-   * is a column the next one uses differently.
+   * It inserted `created_by: SYSTEM_ACTOR.id`. eng_tasks.created_by references
+   * eng_profiles(id), and the principal's id is not a profile anywhere, so the
+   * database refused every insert (eng_tasks_created_by_fkey), found by the
+   * Phase 14 rank 10 exercise. Nothing called it, so nothing had failed yet.
    *
-   * Open tasks only: last month's completed review must not stop this month's
-   * being raised.
+   * Two ways out, and the operator ruled that this session chooses. Seeding a
+   * profile was rejected: eng_profiles.id references auth.users(id), so the
+   * platform would need a sign-in identity, which is exactly what a principal
+   * that must never sign in should not have, and seeding it is a migration that
+   * would hold the merge until production has it. So the platform's task has
+   * NO creator row, which created_by already allows, and it is named in two
+   * places that need no profile: `source_key` carries `system:<key>`, and the
+   * audit trail row below carries the principal's id and email.
+   *
+   * IDEMPOTENT ON THE KEY, BY EQUALITY, UNDER A UNIQUE INDEX. 0005 made
+   * eng_tasks.source_key unique for exactly this, platform-created tasks. The
+   * old version matched `description LIKE '%[system:key]%'`, which treated `_`
+   * and `%` in a key as wildcards; equality cannot. The contract that follows:
+   * a key names ONE piece of work, so a recurring duty puts its period in the
+   * key ("access-review:2026-10"). A completed task with the same key is that
+   * work, already done, and is answered as `already`.
    */
-  const marker = `[system:${input.key}]`;
-  const { data: existing } = await db
-    .from("eng_tasks")
-    .select("id")
-    .eq("created_by", SYSTEM_ACTOR.id)
-    .is("completed_at", null)
-    .like("description", `%${marker}%`)
-    .limit(1);
+  const sourceKey = `system:${input.key}`;
+  const find = () => db.from("eng_tasks").select("id").eq("source_key", sourceKey).limit(1);
 
+  const { data: existing, error: findError } = await find();
+  if (findError) return { ok: false, error: `Could not check for an existing task: ${findError.message}` };
   if (existing && existing.length > 0) {
     return { ok: true, id: existing[0].id as string, already: true };
   }
-
-  const description = [input.description?.trim(), marker].filter(Boolean).join("\n\n");
 
   const { data, error } = await db
     .from("eng_tasks")
     .insert({
       title,
-      description,
+      description: input.description?.trim() || null,
       assignee_id: null,
-      created_by: SYSTEM_ACTOR.id,
+      created_by: null,
+      source_key: sourceKey,
       due_at: input.dueAt || null,
       priority: "normal",
       file_id: null,
@@ -114,6 +123,11 @@ export async function raiseSystemTask(input: {
     .select("id")
     .single();
 
+  /* Two raises racing for one key: the unique index lets one in, and the other finds it. */
+  if (error?.code === "23505") {
+    const { data: winner } = await find();
+    if (winner && winner.length > 0) return { ok: true, id: winner[0].id as string, already: true };
+  }
   if (error || !data) return { ok: false, error: error?.message ?? "Could not raise the task." };
 
   await recordSystemAudit({

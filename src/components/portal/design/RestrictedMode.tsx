@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { isPrelaunch } from "@/lib/launch";
+import { isPrelaunch, registrationStatement } from "@/lib/launch";
 import { SystemAlert } from "./Primitives";
 
 /**
@@ -50,8 +50,8 @@ export function RestrictedMode({ also }: { also?: ReactNode } = {}) {
 
   return (
     <SystemAlert condition="Restricted mode.">
-      Firm registration is pending with TBPELS. Sealing and order intake are disabled until an
-      engineer of record is in responsible charge.
+      {registrationStatement()} Sealing and order intake are disabled until an engineer of record is
+      in responsible charge.
       {also ? <span className="mt-1.5 block">{also}</span> : null}
     </SystemAlert>
   );

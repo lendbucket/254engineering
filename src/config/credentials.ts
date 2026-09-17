@@ -30,6 +30,23 @@ export type VerifiedEngineer = {
   /** Texas PE licence number, digits only. */
   licenseNumber: string;
   disciplines: string[];
+  /**
+   * ISO date the licence expires, or NULL meaning NOT YET RECORDED.
+   *
+   * Added 2026-09-16 on the operator's ruling, and the asymmetry it closes is
+   * the argument: a firm registration has always carried `expires` and
+   * `activeFirmRegistration()` refuses a lapsed one, while an engineer carried
+   * no expiry at all. The register would therefore have held a PE whose licence
+   * expired years ago with nothing anywhere noticing, and every sealed letter
+   * this firm ever issues rests on that licence being active.
+   *
+   * NULL IS NOT "FINE". It means nobody has recorded the date yet, and
+   * `activeEngineer()` refuses to treat such an entry as in responsible charge,
+   * which errs toward shut on a gate that only ever shuts things.
+   * compliance-audit names it as unrecorded rather than letting the absence
+   * read as an answer.
+   */
+  expires: string | null;
   /** Who checked it, and when. Free text, but never left empty. */
   verified: string;
 };
@@ -60,7 +77,40 @@ export type VerifiedFirmRegistration = {
  * licence number may render anywhere, and the audit enforces that rather than
  * trusting it.
  */
-export const verifiedEngineers: VerifiedEngineer[] = [];
+/*
+ * THE REGISTER IS THE ONE HOME OF A LICENCE NUMBER. Operator ruling,
+ * 2026-09-16, and it is the FOURTH instance in a fortnight of one fact having
+ * two homes.
+ *
+ * `peInResponsibleCharge()` used to read a `TBPELS_PE_LICENSE` environment
+ * variable. That was harmless while no PE existed and became a live defect the
+ * moment a real number entered this file, because a variable can differ between
+ * a build and a deployment while this file cannot. It is the same defect the
+ * 2026-09-10 ruling removed for the firm registration number, wearing a
+ * different name.
+ *
+ * The variable is retired in src/config/credential-inventory.ts, the gate reads
+ * this register, and compliance-audit refuses any source that reads the
+ * variable again.
+ */
+export const verifiedEngineers: VerifiedEngineer[] = [
+  {
+    name: "Aman Dhakal",
+    licenseNumber: "143295",
+    disciplines: ["Civil"],
+    /*
+     * PENDING, AND DELIBERATELY NOT GUESSED. The operator is reading it off the
+     * licence copy. Until it is recorded, `activeEngineer()` does not treat this
+     * entry as a PE in responsible charge, so recording the number cannot
+     * accidentally assert something nobody has verified.
+     */
+    expires: null,
+    verified:
+      "Licence number supplied by the operator 2026-09-16, from the engineer of record who signed " +
+      "254-RC-001 v1.0 on 2026-09-14. The expiration date is pending: the operator is taking it from the " +
+      "licence copy held in the firm's compliance file, which protocol 254-RC-001 section 5 requires.",
+  },
+];
 
 /**
  * Firm registrations that may appear on this site.
@@ -183,6 +233,56 @@ export const legalEntityMatchesRegistrant: {
     "and logo and is never the legal or firm name in a sentence.",
 };
 
+/**
+ * THE ENTITY WAS RENAMED AT THE SECRETARY OF STATE, AND THE BOARD DOES NOT KNOW
+ * YET. Operator ruling, 2026-09-15, recorded the day the stamped amendment came
+ * back.
+ *
+ * This is a STATE record, not a BOARD record, and the difference is the whole
+ * reason it gets its own constant instead of being written into the registration
+ * above. The compliance gate asks what TBPELS holds. The Secretary of State can
+ * rename the entity tomorrow and TBPELS still holds F-29811 in the old name
+ * until it reissues, so nothing about this filing moves a rendered sentence.
+ *
+ * AND THAT PRODUCES A KNOWN, ACCEPTED WINDOW, WRITTEN DOWN RATHER THAN LEFT TO
+ * BE DISCOVERED. Operator ruling, same day.
+ *
+ *   From 2026-09-16, every sentence on this site names 254 Services LLC. The
+ *   board's record agrees with those sentences. The Secretary of State's record
+ *   does not, because the entity is now 254 Engineering LLC.
+ *
+ * It is the correct trade and it is deliberate: the board's record is what the
+ * compliance gate is about, and holding the copy still is what stops the sites
+ * from claiming a name TBPELS has never registered, which is the exact
+ * misstatement this whole gate exists to prevent. It CLOSES when TBPELS
+ * reissues F-29811 in the new name, which is one edit to `issuedTo` above,
+ * because `firmName()` in src/lib/launch.ts derives every one of those
+ * sentences from it.
+ *
+ * `business.legalName` in src/config/business.ts is deliberately NOT moved to
+ * the new name while this window is open, for the same reason and by the same
+ * ruling. It is stale against the state and true against the board, on purpose.
+ */
+export const secretaryOfStateAmendment: {
+  newName: string;
+  formerName: string;
+  /** ISO date the amendment takes effect. */
+  effective: string;
+  /** The file number on the stamped certificate. */
+  fileNumber: string;
+  /** What has been sent to TBPELS, and what is still owed. */
+  boardNotified: string;
+} = {
+  newName: "254 Engineering LLC",
+  formerName: "254 Services LLC",
+  effective: "2026-09-16",
+  fileNumber: "806765419",
+  boardNotified:
+    "Filed and stamped, recorded by the operator 2026-09-15. The amendment and the duplicate certificate " +
+    "form go to TBPELS on 2026-09-16. F-29811 is still issued to 254 Services LLC until the board reissues " +
+    "it, and no surface changes until it does.",
+};
+
 export const operatingNameOnBoardRecord: {
   onRecord: boolean;
   /** What the board's record says, or why it does not yet say it. */
@@ -212,14 +312,48 @@ export const operatingNameOnBoardRecord: {
    * the legal or firm name in a sentence, and compliance-audit still refuses to
    * let F-29811 appear beside it.
    */
-  onRecord: true,
+  /*
+   * REOPENED 2026-09-15, BY THE RENAME, AND THE REASON IS THE POINT.
+   *
+   * It was cleared on 2026-09-13 with the reason "the firm trades under its
+   * registered name". The Secretary of State amendment above makes the firm
+   * 254 Engineering LLC on 2026-09-16, so from that date that recorded reason is
+   * FALSE: the name the firm operates under is not the name the board holds.
+   *
+   * OPERATOR RULING: it flips false, and the argument is that leaving it true
+   * would be a flag whose own stated reason contradicts the world, which is the
+   * failure this gate exists to prevent rather than an exception to it. The
+   * record should be true rather than convenient.
+   *
+   * This is the 2026-09-10 state reopened by a filing instead of by a
+   * discovery, and it closes the same way it closed before: when the board
+   * holds the operating name, which now means when TBPELS reissues F-29811 as
+   * 254 Engineering LLC.
+   *
+   * SET AT FILING RATHER THAN ON THE EFFECTIVE DATE, AND THAT IS A DISCLOSED
+   * JUDGEMENT. A date comparison here would flip a compliance state with no
+   * deploy and no audit trail, which section 1 of CLAUDE.md refuses outright, so
+   * it is a constant somebody edited on purpose. The cost is that it reads false
+   * for one day while it is still arguably true. That errs toward SHUT on a gate
+   * that only ever shuts things, which is the safe direction to be wrong in.
+   *
+   * NOTHING ELSE MOVES. No copy changes, because `firmName()` reads the
+   * registrant rather than the entity. The gate was already shut on other
+   * conditions, so the practical state of the platform is unchanged; what
+   * changes is that the record now says something true.
+   */
+  onRecord: false,
   because:
-    "CLEARED 2026-09-13 by operator ruling. The firm trades under its registered name: F-29811 is issued " +
-    "to 254 Services LLC and that is now the name the firm operates and holds out under, so the board " +
-    "already holds it and no assumed name filing is needed. It was unmet because the sites held out as " +
-    "254 Engineering Services, which the board has no record of; that was resolved by correcting the " +
-    "sites rather than by a filing. The brand survives as the wordmark, the logo and the page titles, " +
-    "and never as the legal or firm name in a sentence.",
+    "REOPENED 2026-09-15 by the Secretary of State amendment: the entity becomes 254 Engineering LLC on " +
+    "2026-09-16, file number 806765419, and TBPELS still holds F-29811 in the name 254 Services LLC, so " +
+    "the board does not hold the name the firm operates under. It closes when the board reissues the " +
+    "registration in the new name; the amendment and the duplicate certificate form go to TBPELS on " +
+    "2026-09-16. It had been cleared on 2026-09-13 on the reason that the firm traded under its " +
+    "registered name, which the rename makes false. Three names are now in play and each is a different " +
+    "fact: the board holds 254 Services LLC, the state holds 254 Engineering LLC from 2026-09-16, and " +
+    "254 Engineering Services remains the brand on the wordmark, the logo and the page titles, never the " +
+    "legal or firm name in a sentence. Every rendered sentence names the one the BOARD holds, through " +
+    "firmName(), which is why the rename moves no copy.",
 };
 
 /**

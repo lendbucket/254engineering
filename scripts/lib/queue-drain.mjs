@@ -116,23 +116,39 @@ export function makeBatchRunner({ db, created, batchSize, runBatch, worker }) {
 
   /** Rows eligible right now, in the order eng_claim_jobs would take them. */
   async function nextEligible(limit) {
-    const nowIso = new Date().toISOString();
-    const { data } = await db
+    /*
+     * THE DATABASE'S CLOCK, BECAUSE THE CLAIM USES THE DATABASE'S CLOCK.
+     *
+     * Found 2026-09-15 by the phase 14 rank 5 exercise. This read compared
+     * run_after and leased_until against `new Date()`, this machine's clock,
+     * while eng_claim_jobs compares both against pg_catalog.now(). Whenever the
+     * database is AHEAD of the machine, a row the claim will take is a row this
+     * guard cannot see, so a foreign job enqueued inside that window passes the
+     * ownership check and is claimed. Measured: the database ran about 85ms
+     * ahead, and a foreign row inserted and then checked read as 0 foreign
+     * eligible to this guard and 1 claimable to the database. db-now.ts records
+     * the same machine once running 85 SECONDS apart from it.
+     *
+     * "now" is DB_NOW's spelling: Postgres evaluates the literal on its own
+     * clock, so the comparison happens where the claim's does.
+     *
+     * AND THE OR IS EXPRESSED RATHER THAN OVER-READ. The old shape read
+     * limit * 4 rows and filtered leases in JavaScript, which is a bounded read
+     * standing in for a set: forty unexpired running rows sorting first would
+     * have hidden an eligible pending row behind them. The claim's WHERE clause
+     * is `pending, or running with a lapsed lease`, and PostgREST can say that.
+     */
+    const { data, error } = await db
       .from("eng_jobs")
       .select("id, kind, status, run_after, leased_until, effect_mode")
-      .lte("run_after", nowIso)
-      .in("status", ["pending", "running"])
+      .lte("run_after", "now")
+      .or("status.eq.pending,and(status.eq.running,leased_until.lt.now)")
       .order("run_after", { ascending: true })
       .order("id", { ascending: true })
-      .limit(limit * 4);
-    /*
-     * A running row is only eligible once its lease has run out. Mirrored from
-     * eng_claim_jobs rather than assumed, and over-read then filtered because
-     * PostgREST cannot express the OR the function's WHERE clause has.
-     */
-    return (data ?? [])
-      .filter((r) => r.status === "pending" || (r.leased_until && Date.parse(r.leased_until) < Date.now()))
-      .slice(0, limit);
+      .limit(limit);
+    /* An unreadable queue is not an empty one, and empty is what lets a batch run. */
+    if (error) throw new Error(`the ownership check could not read the queue: ${error.message}`);
+    return data ?? [];
   }
 
   /**

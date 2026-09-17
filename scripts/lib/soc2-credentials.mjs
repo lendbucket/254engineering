@@ -66,6 +66,23 @@
  */
 export const RETIRED = [
   /*
+   * RETIRED THE DAY A REAL LICENCE NUMBER FIRST EXISTED, which is the whole
+   * point: it was harmless while the register was empty.
+   *
+   * peInResponsibleCharge() read this variable to decide whether a PE was in
+   * responsible charge. The moment 143295 entered verifiedEngineers there were
+   * two homes for one fact, and a variable can differ between a build and a
+   * deployment while the register cannot. It is the same defect the 2026-09-10
+   * ruling removed for the firm registration number, and the fourth instance of
+   * one fact with two homes in a fortnight.
+   */
+  {
+    name: "TBPELS_PE_LICENSE",
+    retired: "2026-09-16",
+    why:
+      "Held the PE licence number and gated peInResponsibleCharge(). Retired on the operator ruling when the number moved into verifiedEngineers in src/config/credentials.ts, which is the one home. The gate now reads the register and requires a recorded, unexpired expiry, so an unknown expiry reads as shut rather than as fine. compliance-audit refuses any source that reads this name again.",
+  },
+  /*
    * FOUND BY THE REVERSE SCAN ON ITS FIRST RUN, which is the check existing for
    * the reason it was written. Both were set in .env.local and read by no code
    * anywhere, so every forward scan was blind to them exactly as it was to
@@ -128,6 +145,12 @@ export const NOT_CREDENTIALS = new Set([
    * like a bypass and is the opposite: it makes the gate refuse.
    */
   "PERF_SCOPE", "PERF_ONLY", "PERF_NO_SESSION",
+  /*
+   * The phase 14 exercises, 2026-09-15. SHOTS is a directory the preview
+   * mispointing exercise writes its two screenshots into when set. It names a
+   * folder on this machine and nothing else.
+   */
+  "SHOTS",
   /*
    * break-glass-audit starts three servers one after another, because a
    * process environment is fixed when it boots and the audit needs three

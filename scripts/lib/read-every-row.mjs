@@ -64,7 +64,19 @@ export async function readEveryRow(client, table, columns = "*", options = {}) {
     throw new Error(`${table}: could not count before reading: ${countError.message}`);
   }
 
-  const expected = count ?? 0;
+  /*
+   * A NULL COUNT IS NOT A ZERO. Measured 2026-09-15: a HEAD count against a
+   * table that does not exist answers status 204, no error, count null. This
+   * line was `count ?? 0`, so a table missing from the source read as an empty
+   * table and the copy moved nothing from it without a word. The strictest
+   * reader in the file had the absent versus zero defect on its first line.
+   */
+  if (typeof count !== "number") {
+    throw new Error(
+      `${table}: the exact count came back null with no error, which is what a table that does not exist answers. Refusing to read that as empty.`,
+    );
+  }
+  const expected = count;
   if (expected === 0) return [];
 
   /*
@@ -110,5 +122,6 @@ export async function exactCount(client, table, column = "*") {
     .from(table)
     .select(column, { count: "exact", head: true });
   if (error) throw new Error(`${table}: count failed: ${error.message}`);
-  return count ?? 0;
+  if (typeof count !== "number") throw new Error(`${table}: count came back null, which is not zero.`);
+  return count;
 }

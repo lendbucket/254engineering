@@ -4,7 +4,7 @@ import { previewBatch, placeBatch, accountBalance } from "@/lib/ops-bulk";
 import { startBatchCheckout } from "@/lib/ops-payments";
 import { accountDefaults } from "@/lib/ops-account";
 import { supabaseAdmin, SITE_KEY } from "@/lib/supabase";
-import { isPrelaunch } from "@/lib/launch";
+import { isPrelaunch, notYetAcceptingEngagements } from "@/lib/launch";
 import type { BulkProperty } from "@/lib/bulk-order";
 import { tradePriceInForce } from "@/lib/trade-pricing";
 
@@ -103,8 +103,7 @@ export async function POST(request: NextRequest) {
   if (isPrelaunch()) {
     return answer(409, {
       ok: false,
-      error:
-        "The firm is not taking orders yet. Registration with the Texas Board of Professional Engineers and Land Surveyors is pending.",
+      error: notYetAcceptingEngagements(),
       prelaunch: true,
     });
   }

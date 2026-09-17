@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { business } from "@/config/business";
-import { createCustomerAccount, issueLinkForExistingAccount } from "@/lib/account-creation";
+import { createCustomerAccount, issueLinkForExistingAccount, recordLinkEmailQueued } from "@/lib/account-creation";
 import { VERIFICATION_TTL_WORDS, doorFor } from "@/lib/account-doors";
 import { emailRefusal, normaliseAddress } from "@/lib/email-address";
 import { accountWelcome } from "@/lib/email-templates";
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
   if (!created.ok && created.error === "already_exists") {
     const issued = await issueLinkForExistingAccount(address);
     if (issued) {
-      await queueEmail(
+      const queued = await queueEmail(
         accountWelcome({
           customerName: issued.displayName || displayName.trim(),
           customerEmail: address,
@@ -149,6 +149,7 @@ export async function POST(request: NextRequest) {
           expiresIn: VERIFICATION_TTL_WORDS,
         }),
       );
+      await recordLinkEmailQueued(issued.customerUserId, queued);
     }
     return NextResponse.json({ ok: true, message: SENT });
   }
@@ -166,7 +167,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (created.link) {
-    await queueEmail(
+    const queued = await queueEmail(
       accountWelcome({
         customerName: displayName.trim(),
         customerEmail: address,
@@ -175,6 +176,7 @@ export async function POST(request: NextRequest) {
         expiresIn: created.link.expiresIn,
       }),
     );
+    await recordLinkEmailQueued(created.customerUserId, queued);
   }
 
   return NextResponse.json({ ok: true, message: SENT });

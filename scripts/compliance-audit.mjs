@@ -72,8 +72,10 @@ console.log("");
 
 const {
   verifiedFirmRegistrations,
+  verifiedEngineers,
   operatingNameOnBoardRecord,
   legalEntityMatchesRegistrant,
+  secretaryOfStateAmendment,
 } = await import("../src/config/credentials.ts");
 
 /* ------------ 0. the legal entity name, which is a SECOND name discrepancy */
@@ -125,6 +127,91 @@ const {
     "and it stays true of the values as they are today, not as they were when written",
     actuallyMatch || legalEntityMatchesRegistrant.because.includes(registrant ?? "~none~"),
     "the sentence names the registrant currently on record",
+  );
+}
+
+/* ------------------------- 0b. the engineer register, and its one home */
+
+/*
+ * THE LICENCE NUMBER HAS ONE HOME. Operator ruling, 2026-09-16, recorded as the
+ * FOURTH instance in a fortnight of one fact with two homes.
+ *
+ * peInResponsibleCharge() read TBPELS_PE_LICENSE from the environment. That was
+ * harmless while no PE existed and became a live defect the moment 143295
+ * entered the register, because a variable can differ between a build and a
+ * deployment while a file cannot. Same defect as the firm registration number
+ * before the 2026-09-10 ruling; same answer.
+ */
+{
+  const PE_LICENSE = "143295";
+
+  rec(
+    "the engineer of record is in the register, with the licence number pinned here as a literal",
+    verifiedEngineers.some((e) => e.licenseNumber === PE_LICENSE),
+    verifiedEngineers.map((e) => `${e.name} ${e.licenseNumber}`).join("; ") || "the register is empty",
+  );
+
+  /*
+   * AN UNRECORDED EXPIRY IS NAMED, NOT ABSORBED. null means nobody has written
+   * the date down, which is a different state from current. This check does not
+   * fail on it: recording the number before the date is a legitimate state the
+   * operator is in today. It reports WHICH engineers are in it, so the absence
+   * is visible in the run rather than silently fine.
+   */
+  const unrecorded = verifiedEngineers.filter((e) => e.expires === null).map((e) => e.name);
+  const lapsed = verifiedEngineers
+    .filter((e) => typeof e.expires === "string" && e.expires < new Date().toISOString().slice(0, 10))
+    .map((e) => `${e.name} expired ${e.expires}`);
+
+  rec(
+    "no engineer in the register holds a licence recorded as already expired",
+    lapsed.length === 0,
+    lapsed.join("; ") || `${verifiedEngineers.length} engineer(s), none lapsed`,
+  );
+  rec(
+    "and every engineer whose expiry is unrecorded is named, because an unknown expiry is not a current licence",
+    true,
+    unrecorded.length
+      ? `expiry NOT YET RECORDED for: ${unrecorded.join(", ")}. activeEngineer() does not treat these as in responsible charge.`
+      : "every engineer has a recorded expiry",
+  );
+
+  /*
+   * And the gate agrees. An engineer with no recorded expiry must not read as a
+   * PE in responsible charge, which is the shut direction on the one credential
+   * every sealed letter rests on.
+   */
+  const { activeEngineer } = await import("../src/lib/launch.ts");
+  rec(
+    "the gate does not treat an engineer with an unrecorded expiry as in responsible charge",
+    unrecorded.length === 0 || activeEngineer() === null,
+    activeEngineer() ? `activeEngineer() returns ${activeEngineer()?.name}` : "activeEngineer() returns null",
+  );
+
+  /*
+   * THE VARIABLE IS GONE AND MAY NOT COME BACK. The reverse of the usual scan:
+   * this refuses a NAME rather than requiring one.
+   */
+  const { readdirSync: rd, statSync: st } = await import("node:fs");
+  const srcFiles = [];
+  const walkSrc = (dir) => {
+    for (const name of rd(dir)) {
+      const full = `${dir}/${name}`;
+      if (st(full).isDirectory()) walkSrc(full);
+      else if (/.(ts|tsx)$/.test(name)) srcFiles.push(full);
+    }
+  };
+  walkSrc("src");
+  rec(
+    "the retirement sweep had source to read",
+    srcFiles.length > 100,
+    `${srcFiles.length} files (if this were zero the check below would pass over nothing)`,
+  );
+  const readsTheVariable = srcFiles.filter((file) => codeOnly(readSource(file)).includes("TBPELS_PE_LICENSE"));
+  rec(
+    "no source reads TBPELS_PE_LICENSE, because the register is the one home of a licence number",
+    readsTheVariable.length === 0,
+    readsTheVariable.join("; ") || "retired 2026-09-16, recorded in scripts/lib/soc2-credentials.mjs",
   );
 }
 
@@ -312,6 +399,40 @@ const {
       operatingNameOnBoardRecord.because.includes(TRADING_AS),
     `onRecord: ${operatingNameOnBoardRecord.onRecord}. ${operatingNameOnBoardRecord.because.slice(0, 90)}`,
   );
+
+  /*
+   * AND WHILE A RENAME IS IN FLIGHT, THE RECORD NAMES THE NAME THE STATE HOLDS.
+   * Operator ruling, 2026-09-15.
+   *
+   * The Secretary of State amendment creates a third name, and a reader of this
+   * record has to be able to tell all three apart: the board's, the state's, and
+   * the brand. The check above already forces the first and the third. This
+   * forces the second for as long as the amendment is on file and the board has
+   * not caught up, which is exactly the window where a reader is most likely to
+   * confuse them.
+   *
+   * It is derived from the amendment's own presence rather than pinned to a
+   * date, so it stops applying by itself when `issuedTo` becomes the new name
+   * and the two records agree again.
+   */
+  {
+    const renameInFlight = secretaryOfStateAmendment.newName !== ISSUED_TO;
+    rec(
+      renameInFlight
+        ? "a rename is on file, so the record also names the entity name the state holds"
+        : "no rename is in flight: the board and the state hold the same name",
+      !renameInFlight ||
+        operatingNameOnBoardRecord.because.includes(secretaryOfStateAmendment.newName),
+      renameInFlight
+        ? `state: ${secretaryOfStateAmendment.newName} (effective ${secretaryOfStateAmendment.effective}, file ${secretaryOfStateAmendment.fileNumber}); board: ${ISSUED_TO}`
+        : `both hold ${ISSUED_TO}`,
+    );
+    rec(
+      "and while it is in flight the board's record has not been quietly updated to the new name",
+      !renameInFlight || !verifiedFirmRegistrations.some((r) => r.issuedTo === secretaryOfStateAmendment.newName),
+      `registrations name: ${verifiedFirmRegistrations.map((r) => r.issuedTo).join(", ") || "none"}`,
+    );
+  }
 
   /*
    * AND IF IT IS CLEARED, IT SAYS THE FIRM TRADES UNDER THE REGISTERED NAME.
@@ -714,6 +835,172 @@ const RULED_CONDITIONS = [
     "and it is reachable from the portal navigation",
     /\/portal\/launch/.test(codeOnly(readSource("src/components/portal/nav.ts"))),
     "a screen nothing links to is a screen nobody opens",
+  );
+}
+
+/* ------------------------------------------------------------------------
+ * NO SURFACE STATES A REGISTRATION STATUS THE REGISTER DOES NOT SUPPORT.
+ *
+ * Operator ruling, 2026-09-15. TBPELS issued F-29811 on 2026-09-10 and more
+ * than twenty rendered sentences went on saying the registration was pending,
+ * on public pages, in order API refusals, in seal refusals and on staff
+ * screens, because each was a literal and this file guarded only the portal
+ * rail. They now render `registrationStatement()`, and the order refusals
+ * render `notYetAcceptingEngagements()`, which is about launch mode and never
+ * about registration.
+ *
+ * Checked in both directions against the REGISTER, which is the declaration:
+ * with an active registration, no source may carry a sentence saying it is
+ * pending or not yet issued; with none, no source may call the firm registered.
+ * The one exemption is registrationLine() and registrationStatement() in
+ * launch.ts, whose branches are chosen by the register itself.
+ * ------------------------------------------------------------------------ */
+{
+  const { readdirSync, statSync } = await import("node:fs");
+  const { registrationStatement, notYetAcceptingEngagements } = await import("../src/lib/launch.ts");
+  const hasActive = verifiedFirmRegistrations.some(
+    (r) => r.status === "active" && r.expires >= new Date().toISOString().slice(0, 10),
+  );
+
+  /* The ruled sentences, written out, because an audit does not import its expectation. */
+  const RULED = "254 Services LLC is a Texas registered engineering firm, TBPELS Firm Registration F-29811.";
+  rec(
+    "the registration sentence is exactly the ruled one, built from the register",
+    registrationStatement() === RULED,
+    registrationStatement() ?? "null",
+  );
+  rec(
+    "and the launch mode refusal says nothing about registration",
+    notYetAcceptingEngagements() === "The firm is not yet accepting engagements.",
+    notYetAcceptingEngagements(),
+  );
+
+  const UNISSUED = [
+    /registration[^.;"`]{0,80}\bpending\b/i,
+    /\bpending with (?:the )?(?:TBPELS|Texas Board)/i,
+    /application pending with the Texas Board/i,
+    /registration (?:is )?not yet (?:issued|active)/i,
+    /(?:once|when|until) (?:its |the |firm )?registration (?:is )?(?:issued|issues|active)\b/i,
+    /\bnot yet registered\b/i,
+  ];
+  const ISSUED = [/Texas registered engineering firm/i, /TBPELS Firm Registration F-/i];
+
+  const files = [];
+  const walk = (dir) => {
+    for (const name of readdirSync(dir)) {
+      const full = `${dir}/${name}`;
+      if (statSync(full).isDirectory()) walk(full);
+      else if (/\.(ts|tsx)$/.test(name)) files.push(full);
+    }
+  };
+  walk("src");
+
+  const launchExempt = (file, text) => {
+    if (file !== "src/lib/launch.ts") return text;
+    return text
+      .replace(/export function registrationLine\(\)[\s\S]*?\n}\n/, "")
+      .replace(/export function registrationStatement\(\)[\s\S]*?\n}\n/, "");
+  };
+
+  const hits = [];
+  for (const file of files) {
+    const text = launchExempt(file, codeOnly(readSource(file)));
+    for (const pattern of hasActive ? UNISSUED : ISSUED) {
+      const m = text.match(pattern);
+      if (m) hits.push(`${file}: "${m[0]}"`);
+    }
+  }
+  rec(
+    "the sweep had source to read",
+    files.length > 100,
+    `${files.length} .ts and .tsx files under src (if this were zero the check below would pass over nothing)`,
+  );
+  rec(
+    hasActive
+      ? "no surface says the registration is pending or not yet issued, because the register holds an active one"
+      : "no surface calls the firm registered, because the register holds no active registration",
+    hits.length === 0,
+    hits.length ? hits.join("; ") : `${files.length} files read against the register`,
+  );
+
+  /* --------------------------------------------------------------------------
+   * AND THE FIRM'S NAME IS DERIVED, NOT TYPED. Operator ruling, 2026-09-15.
+   *
+   * The sweep above proves the registration SENTENCE derives. Until today the
+   * firm's NAME did not: it was a literal in twenty rendered sentences, so
+   * renaming the firm cost twenty seven edits and the audits pinning those
+   * literals could only catch an accidental change, never a deliberate one.
+   *
+   * This is the check that makes `firmName()` real. A deriver nothing enforces
+   * is a deriver the next sentence quietly ignores, which is how the name got
+   * written twenty times in the first place.
+   *
+   * The name is the audit's OWN pinned literal, never read from the register,
+   * because an audit that imports its expectation from the thing it audits
+   * cannot disagree with anything. The register is asserted separately to still
+   * state it, which names a drifted register as a drifted register.
+   *
+   * THE EXEMPT SET IS TWO CONFIG FILES AND IS ASSERTED, so it cannot quietly
+   * grow to cover the next file somebody types the name into.
+   * ---------------------------------------------------------------------- */
+  /*
+   * THE THIRD EXEMPTION IS NOT A LOOSENING, AND THE BOARD CAUGHT IT THE ONLY
+   * WAY IT COULD. Operator ruling, 2026-09-16.
+   *
+   * src/config/stripe-console.ts records what the STRIPE CONSOLE holds, read by
+   * a person. Its `legalBusinessName` is an observation of an external system,
+   * not a sentence this platform renders, and it MUST be able to disagree with
+   * the register: `stripe-webhook-audit` asserts that field equals the
+   * registrant, and that is the check which makes "change it in the same
+   * sitting as issuedTo" mechanical.
+   *
+   * SO DERIVING IT WOULD BE THE DEFECT. If this file called firmName(), the
+   * equality check would compare a value to itself and pass forever, which is
+   * exactly what CLAUDE.md forbids: an audit never imports its expectation from
+   * the thing it audits. The check below therefore also asserts this file does
+   * NOT import the deriver, so the exemption cannot quietly become vacuous.
+   */
+  const NAME_MAY_BE_TYPED_IN = [
+    "src/config/credentials.ts",
+    "src/config/business.ts",
+    "src/config/stripe-console.ts",
+  ];
+  const { firmName } = await import("../src/lib/launch.ts");
+
+  rec(
+    "firmName() returns the registrant the board holds, pinned here as a literal",
+    firmName() === ISSUED_TO,
+    `${firmName()} (pinned: ${ISSUED_TO})`,
+  );
+  rec(
+    "and the register still states it, so a drift is named rather than absorbed",
+    verifiedFirmRegistrations.some((r) => r.issuedTo === ISSUED_TO),
+    verifiedFirmRegistrations.map((r) => r.issuedTo).join(", ") || "none",
+  );
+
+  const typed = [];
+  for (const file of files) {
+    if (NAME_MAY_BE_TYPED_IN.includes(file)) continue;
+    const text = codeOnly(readSource(file));
+    if (text.includes(ISSUED_TO)) typed.push(file);
+  }
+  rec(
+    `no source outside the config writes "${ISSUED_TO}" as a literal, so reissuance is one value`,
+    typed.length === 0,
+    typed.length
+      ? `${typed.join("; ")} (render firmName() instead)`
+      : `${files.length - NAME_MAY_BE_TYPED_IN.length} files read`,
+  );
+  rec(
+    "and the files allowed to type it are exactly the three config files, two that hold it and one that observes it",
+    NAME_MAY_BE_TYPED_IN.length === 3 &&
+      NAME_MAY_BE_TYPED_IN.every((f) => files.includes(f)),
+    NAME_MAY_BE_TYPED_IN.join(", "),
+  );
+  rec(
+    "and the console record does not derive the name, so it can still disagree with the register",
+    !/firmName/.test(readSource("src/config/stripe-console.ts")),
+    "src/config/stripe-console.ts records what Stripe holds; deriving it would make the same-sitting check compare a value to itself",
   );
 }
 

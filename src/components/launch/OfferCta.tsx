@@ -1,6 +1,6 @@
 import { ButtonLink, Eyebrow } from "@/components/ui/primitives";
 import { Container } from "@/components/ui/Container";
-import { isPrelaunch } from "@/lib/launch";
+import { isPrelaunch, notYetAcceptingEngagements, registrationStatement } from "@/lib/launch";
 import { displayPhone, telHref } from "@/config/contact";
 
 /**
@@ -67,7 +67,7 @@ export function OfferCta({
             <p className="mt-5 text-[1.02rem] leading-[1.7] text-slate-fg-muted">
               {body ??
                 (prelaunch
-                  ? "254 Services LLC is not yet accepting engineering work. Firm registration with the Texas Board of Professional Engineers and Land Surveyors is pending. Join the waitlist and you will hear from us directly when it is active, before any general announcement."
+                  ? [notYetAcceptingEngagements(), registrationStatement(), "Join the waitlist and you will hear from us directly when it opens for work, before any general announcement."].filter(Boolean).join(" ")
                   : "Send the address, the scope, and the date it has to be in hand. You will get a straight answer on whether it is work this firm should take and what it involves.")}
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">

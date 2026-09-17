@@ -199,13 +199,25 @@ pointing at nothing.** Three things, and all three or it is not a backup:
 
 **2. The object's own metadata.** Path, bucket, size, content type, created time,
 as `storage.objects` holds them. Whether the `storage` schema travels with a
-database backup is **not established** and must be, because "storage objects are
-not in database backups" may mean the bytes, the rows, or both. That is a
-question to answer from the product rather than to assume either way.
+database backup was **not established** when this was written.
+
+**ANSWERED 2026-09-15, and it is the worse answer.** Supabase's documentation
+states the metadata lives in `storage.buckets` and `storage.objects` in Postgres
+and that database backups include only that metadata, not the objects. So the
+rows ARE restored and the bytes are not: after a rewind the storage schema itself
+lists files that no longer exist. Quotes and sources in
+`docs/storage-backup-proposal.md` section 1.
 
 **3. THE MAPPING, which is the half nobody thinks of.** Six tables in this schema
 point at storage, and a restore has to bring the pointer and the target into
-agreement:
+agreement.
+
+**CORRECTED 2026-09-15: it is nine places, not six, and the six below are
+incomplete in the direction that matters.** `eng_credentials.storage_key`,
+`eng_messages.attachments` and the upload paths inside `eng_applications.payload`
+were missing. The last is where production's only referenced firm file is named.
+The full table, with which carry a bucket, is `docs/storage-backup-proposal.md`
+section 3. The six as first written:
 
 | Table | Columns | What is lost if the mapping breaks |
 | --- | --- | --- |

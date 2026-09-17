@@ -1,4 +1,6 @@
 import type { Faq } from "./services";
+import { coastalInsights } from "./insights-coastal";
+import { registrationStatement } from "@/lib/launch";
 import type { FigureId } from "@/components/insights/figures";
 
 /**
@@ -310,15 +312,20 @@ export const insights: Insight[] = [
       { kind: "h2", text: "Why this site is written the way it is" },
       {
         kind: "p",
-        text: "This firm's registration with the Texas Board of Professional Engineers and Land Surveyors is pending, and no engineer of record has been appointed. Under section 1001.405(e) that is not a formality to be worked around with careful phrasing while the paperwork clears.",
+        text: [
+          registrationStatement(),
+          "No engineer of record has been appointed, and under section 1001.405(e) a registration alone is not the whole of what the statute asks: it reserves the representation for an entity actively engaged in the practice, with a full time licensed engineer supervising it.",
+        ]
+          .filter(Boolean)
+          .join(" "),
       },
       {
         kind: "p",
-        text: "So the service pages on this site describe what each document is, what standard governs it, and who ordinarily needs one. They do not say that the firm is performing that work, because the statute reserves that representation for a registered entity that is actively engaged in the practice with a full time licensed engineer supervising it. The whole gate is one function in the codebase and one environment variable, and it moves when the board issues the registration and not before.",
+        text: "So the service pages on this site describe what each document is, what standard governs it, and who ordinarily needs one. They do not say that the firm is performing that work, because the statute reserves that representation for a registered entity that is actively engaged in the practice with a full time licensed engineer supervising it. The gate is one function in the codebase, and it does not open on a registration alone: every condition it names, including an engineer in responsible charge, has to be stated true first.",
       },
       {
         kind: "p",
-        text: "A reader is entitled to weigh that. It is stated on [the page about this firm](/about) as well, and the position is the same in both places: the capability is described, the present tense claim is not made, and the registration number will appear on the site when the board issues one rather than in advance of it.",
+        text: "A reader is entitled to weigh that. It is stated on [the page about this firm](/about) as well, and the position is the same in both places: the capability is described, the present tense claim is not made, and the registration number the board issued appears in the footer of every page beside the name it was issued to.",
       },
 
       { kind: "h2", text: "How to check a firm registration" },
@@ -662,6 +669,13 @@ export const insights: Insight[] = [
     ],
   },
 ];
+
+/*
+ * The coastal windstorm posts, 2026-09-15, in their own module so this file
+ * stays readable. Spread in rather than exported separately, so the sitemap,
+ * the hub and every audit that reads `insights` see them without being told.
+ */
+insights.push(...coastalInsights);
 
 export function insightBySlug(slug: string): Insight | undefined {
   return insights.find((i) => i.slug === slug);

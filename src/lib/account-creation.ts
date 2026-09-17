@@ -292,7 +292,7 @@ export async function createCustomerAccount(input: CreateAccountInput): Promise<
  */
 export async function issueLinkForExistingAccount(
   address: string,
-): Promise<{ token: string; displayName: string } | null> {
+): Promise<{ token: string; displayName: string; customerUserId: string } | null> {
   const db = supabaseAdmin();
   if (!db) return null;
 
@@ -313,15 +313,55 @@ export async function issueLinkForExistingAccount(
   const issued = await issueCustomerToken(user.id as string, "set_password");
   if (!issued) return null;
 
+  /*
+   * ISSUED, AND NOTHING ELSE, BECAUSE ISSUING IS ALL THIS FUNCTION DID.
+   *
+   * Until 2026-09-15 this row said "A sign up attempt named an address ... and a
+   * fresh set password link was SENT to it". It was written here, when the token
+   * is issued, before the caller had queued any email, and queueEmail reports a
+   * failure without throwing. So the append only trail could say a link was sent
+   * that never left, and it asserted a sign up attempt, which is a fact about the
+   * caller written inside the callee. The Phase 14 rank 9 exercise proved it by
+   * writing four such rows on development, ids 17809 to 17812, where no sign up
+   * happened and nothing was sent. Those rows cannot be removed; they are named
+   * as known false in docs/overnight-2026-09-15.md. Operator ruling: fix the code
+   * that writes it.
+   *
+   * The enqueue outcome is recorded by the caller that performs it, through
+   * recordLinkEmailQueued below, so each row states only what its writer knows.
+   */
   await recordSystemAudit({
     action: "customer_account.link_reissued",
     entityType: "customer_user",
     entityId: user.id as string,
     summary:
-      "A sign up attempt named an address that already has an account. Nothing was created and a fresh set password link was sent to it.",
+      "A fresh set password link was issued for an existing account. Nothing was created. Whether an email carrying it was queued is recorded separately, by the caller that queues it.",
   });
 
-  return { token: issued.token, displayName: (user.display_name as string) ?? "" };
+  return { token: issued.token, displayName: (user.display_name as string) ?? "", customerUserId: user.id as string };
+}
+
+/**
+ * What happened when a set password link was handed to the queue, recorded by
+ * the code that did the handing.
+ *
+ * "Queued", never "sent": the queue accepting a job is not a message leaving,
+ * and the email job records the provider's acceptance on its own row when that
+ * happens. A failed enqueue is written as a failure, because a trail that is
+ * silent about a link nobody received reads as a link that went.
+ */
+export async function recordLinkEmailQueued(
+  customerUserId: string,
+  result: { ok: true; id: number; duplicate: boolean } | { ok: false; error: string },
+): Promise<void> {
+  await recordSystemAudit({
+    action: result.ok ? "customer_account.link_email_queued" : "customer_account.link_email_not_queued",
+    entityType: "customer_user",
+    entityId: customerUserId,
+    summary: result.ok
+      ? `An email carrying the set password link was queued${result.id > 0 ? ` as job ${result.id}` : ""}${result.duplicate ? ", matching one already waiting" : ""}. Queued is not sent; the job records delivery.`
+      : `The email carrying the set password link could not be queued, so it was not sent: ${result.error}`,
+  });
 }
 
 /**

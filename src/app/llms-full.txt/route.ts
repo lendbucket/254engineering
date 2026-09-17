@@ -1,7 +1,7 @@
 import { business, samRegistration } from "@/config/business";
 import { services } from "@/content/services";
 import { regions } from "@/content/regions";
-import { registrationLine } from "@/lib/launch";
+import { registrationLine, registrationStatement } from "@/lib/launch";
 import { responsibleChargeCopy, specialistsCopy, turnaroundCopy } from "@/content/model-copy";
 
 /**
@@ -132,7 +132,7 @@ URL: ${business.url}/careers
 
 - No guaranteed outcomes. Nothing promises an engineering opinion, a certification, a permit approval, or a lender or insurer decision in advance of the work.
 - No insurance claim solicitation. This firm does not act as a public adjuster and does not advise on claim value or policy coverage. Forensic work is a factual determination prepared to the same standard whichever party commissioned it.
-- No fabricated credentials. Registration status is stated as it currently stands, including where it is pending.
+- No fabricated credentials. Registration is stated exactly as the register records it: ${registrationStatement() ?? "no firm registration is on record"}
 - Reviews and ratings: none are published, because none exist yet.
 `);
 

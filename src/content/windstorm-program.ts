@@ -69,6 +69,7 @@
  */
 
 import { FIRST_TIER_COASTAL, FIRST_TIER_COUNT } from "./windstorm";
+import { firmName, registrationStatement } from "@/lib/launch";
 
 /*
  * The county sentence is BUILT from the list rather than typed out.
@@ -250,7 +251,7 @@ export const windstormPages: WindstormPage[] = [
         title: "The department issues the certificate",
         body: [
           "Once all required inspections are approved, TDI issues the WPI-8 certificate of compliance. The certificate is issued by the department itself, on the strength of the inspection record, and it is what makes the building eligible for wind and hail coverage through the Texas Windstorm Insurance Association.",
-          "This is the distinction that causes trouble at closing. An engineer's letter, however well written, is not the certificate. The document a carrier or a title company is looking for is the one the department issued.",
+          "This is the distinction that causes trouble at closing. [An engineer's letter, however well written, is not the certificate](/insights/engineer-letter-vs-windstorm-certificate). The document a carrier or a title company is looking for is the one the department issued.",
         ],
       },
       {
@@ -292,7 +293,7 @@ export const windstormPages: WindstormPage[] = [
         title: "WPI-2E in, WPI-8E out",
         lede: "Completed construction has its own application and its own certificate.",
         body: [
-          "Where a structure was finished without windstorm inspection, the path is the completed construction route rather than the ordinary one. It runs on a signed WPI-2E application together with a sealed post-construction inspection report and supporting documentation, submitted to the Texas Department of Insurance.",
+          "Where a structure was finished without windstorm inspection, the path is the completed construction route rather than the ordinary one. It runs on a signed WPI-2E application together with [a sealed post-construction inspection report](/insights/post-construction-evaluation-report) and supporting documentation, submitted to the Texas Department of Insurance.",
           "What the department issues at the end of it is a WPI-8E rather than a WPI-8. The two are different documents recording different things: one records that the work was watched as it happened, the other records an engineer's sealed conclusion about work that was not.",
         ],
       },
@@ -380,8 +381,8 @@ export const windstormPages: WindstormPage[] = [
         title: "Where 254 Engineering Services stands",
         lede: "Stated plainly, because a page about credentials that is vague about its own is not worth reading.",
         body: [
-          "254 Services LLC does not currently hold a Texas Department of Insurance windstorm appointment, and does not currently offer or perform engineering services. Firm registration with the Texas Board of Professional Engineers and Land Surveyors is pending and no Professional Engineer is yet in responsible charge.",
-          "The firm is being built in the Coastal Bend, inside the designated area, around this program specifically. When the registration is issued and an appointment is held, this page will say so and will say when. Until then it says this instead, because a firm that is vague about its own credentials on a page explaining why credentials matter has answered the question anyway.",
+          [`${firmName()} does not currently hold a Texas Department of Insurance windstorm appointment, and does not currently offer or perform engineering services.`, registrationStatement(), "No Professional Engineer is yet in responsible charge."].filter(Boolean).join(" "),
+          "The firm is being built in the Coastal Bend, inside the designated area, around this program specifically. When an appointment is held, this page will say so and will say when. Until then it says this instead, because a firm that is vague about its own credentials on a page explaining why credentials matter has answered the question anyway.",
         ],
       },
     ],
@@ -432,7 +433,7 @@ export const windstormPages: WindstormPage[] = [
         lede: "Everything the inspection cares about is exposed briefly and then covered for twenty years.",
         body: [
           "On a re-roof, the things that determine wind performance are the deck, its attachment, and how the new covering is fastened. All of it is visible for a short window in the middle of the job and invisible immediately afterwards.",
-          "A crew that tears off on a Tuesday and dries in on a Wednesday has given the program a one day window to see the work. When that window is missed, the job is not uncertified because it was bad. It is uncertified because it was fast.",
+          "A crew that tears off on a Tuesday and dries in on a Wednesday has given the program [a one day window to see the work](/insights/windstorm-inspection-for-roofers). When that window is missed, the job is not uncertified because it was bad. It is uncertified because it was fast.",
         ],
       },
       {
@@ -541,8 +542,8 @@ export const windstormPages: WindstormPage[] = [
         title: "Certificate history is searchable before anyone is committed",
         lede: "This costs nothing and is the single highest value fifteen minutes in a coastal transaction.",
         body: [
-          "Certificates issued for a property can be searched, so the windstorm record can be examined during the option period rather than discovered during underwriting. What is being looked for is not simply whether a certificate exists but whether the certificates present account for the improvements visible on the building.",
-          "A roof that is obviously newer than the house, with no corresponding certificate, is the classic finding. So is an enclosed patio, a replaced garage door, or a window package that postdates the original construction.",
+          "[Certificates issued for a property can be searched](/insights/texas-windstorm-certificate-lookup), so the windstorm record can be examined during the option period rather than discovered during underwriting. What is being looked for is not simply whether a certificate exists but whether the certificates present account for the improvements visible on the building.",
+          "[A roof that is obviously newer than the house, with no corresponding certificate](/insights/roof-certification-vs-wpi-8), is the classic finding. So is an enclosed patio, a replaced garage door, or a window package that postdates the original construction.",
           "For work completed between January 1, 2017 and May 31, 2020, the certificate came from the Texas Windstorm Insurance Association as a WPI-8-C rather than from the department. A search of departmental records alone will not surface it, and its absence there is not proof that the work was uncertified.",
         ],
       },
@@ -601,7 +602,7 @@ export const windstormPages: WindstormPage[] = [
         eyebrow: "The link",
         title: "The certificate is the eligibility document",
         body: [
-          "TDI issues the WPI-8 once all required inspections are approved, and that certificate is what makes the building eligible for wind and hail coverage through the association. The chain runs from the application, through the inspections, to the department's certificate, and only then to coverage.",
+          "TDI issues the WPI-8 once all required inspections are approved, and that certificate is what makes the building [eligible for wind and hail coverage through the association](/insights/twia-eligibility-requirements). The chain runs from the application, through the inspections, to the department's certificate, and only then to coverage.",
           "Each link is held by a different party, which is why the process resists being hurried by any one of them. A contractor cannot accelerate the department, and the department does not answer to a closing date.",
         ],
       },
@@ -610,7 +611,7 @@ export const windstormPages: WindstormPage[] = [
         title: "What the certificate is not",
         lede: "It is an eligibility document about specific work, and it is easy to over-read.",
         body: [
-          "A certificate records that particular work was inspected and found compliant. It is not a warranty of the structure's condition, not a statement about the parts of the building it did not cover, and not a substitute for the building department's own permit and inspection process, which runs alongside it.",
+          "[A certificate records that particular work was inspected and found compliant](/insights/inspection-vs-forensic-report). It is not a warranty of the structure's condition, not a statement about the parts of the building it did not cover, and not a substitute for the building department's own permit and inspection process, which runs alongside it.",
           "It also says nothing about flood. Wind and water are separate perils with separate coverage and separate documentation, and coastal property routinely needs to satisfy both. A structure fully certified for windstorm can sit in a mapped flood zone with an elevation problem nobody has looked at.",
         ],
       },
@@ -618,8 +619,8 @@ export const windstormPages: WindstormPage[] = [
         eyebrow: "Where the engineering sits",
         title: "The documents this firm is built around",
         body: [
-          "Everything in this cluster describes a program rather than a service. 254 Services LLC is built around the documents coastal transactions turn on, including windstorm certification inside the designated area, and is designed to deliver them under a licensed Texas Professional Engineer in responsible charge.",
-          "None of that is offered or performed today. Firm registration with the Texas Board of Professional Engineers and Land Surveyors is pending, no Professional Engineer is yet in responsible charge, and the firm holds no departmental windstorm appointment. The capability page sets out what the firm is built to deliver once it can.",
+          `Everything in this cluster describes a program rather than a service. ${firmName()} is built around the documents coastal transactions turn on, including windstorm certification inside the designated area, and is designed to deliver them under a licensed Texas Professional Engineer in responsible charge.`,
+          ["None of that is offered or performed today.", registrationStatement(), "No Professional Engineer is yet in responsible charge, and the firm holds no departmental windstorm appointment. The capability page sets out what the firm is built to deliver once it can."].filter(Boolean).join(" "),
         ],
       },
     ],

@@ -51,7 +51,6 @@ const LIVE_PORT = Number(process.env.LAUNCH_AUDIT_LIVE_PORT || 3228);
 /** A stand-in firm number for the live run. Never rendered anywhere else. */
 const TEST_FIRM_NUMBER = FIXTURE_FIRM_NUMBER;
 /** Stand-in PE licence for the live run. Same reasoning as the firm number. */
-const TEST_PE_LICENSE = "AUDIT-FIXTURE-NOT-A-REAL-LICENCE";
 
 const ROUTES = [
   "/",
@@ -144,7 +143,6 @@ async function run() {
     const pre = await crawlMode("prelaunch", PRELAUNCH_PORT, {
       LAUNCH_MODE: "prelaunch",
       TBPELS_FIRM_NUMBER: "",
-      TBPELS_PE_LICENSE: "",
     });
     // Live means both gates open: a registration AND an engineer of record. The
     // in-between state, registered but nobody able to seal, is real and is
@@ -166,7 +164,6 @@ async function run() {
     const live = await withGateConditionsMet(() =>
       crawlMode("live", LIVE_PORT, {
         LAUNCH_MODE: "live",
-        TBPELS_PE_LICENSE: TEST_PE_LICENSE,
         /*
          * The gate grew a phone condition on 2026-09-11, and a spawned server
          * reads it from its own environment rather than from the patched
@@ -296,7 +293,7 @@ async function run() {
 
     rec(
       "prelaunch: the waitlist page states plainly that work is not being accepted",
-      /not yet accepting engineering work/i.test(pre.get("/waitlist").text),
+      /not yet accepting engagements/i.test(pre.get("/waitlist").text),
     );
 
     // ---------- the engineer of record gate ----------
@@ -335,9 +332,16 @@ async function run() {
       pre.get("/llms.txt").text.includes(REGISTRANT_LINE),
     );
 
+    /*
+     * Sharpened 2026-09-15 on the operator's registration ruling. This asserted
+     * "Application pending with the Texas Board", which had been false since
+     * F-29811 issued on 2026-09-10. It now asserts the ruled sentence, written
+     * here as a literal, and that the page says nothing is pending.
+     */
     rec(
-      "prelaunch: the capability statement states the registration as pending rather than omitting it",
-      /Application pending with the Texas Board/i.test(pre.get("/government").text),
+      "prelaunch: the capability statement states the registration as the register records it, rather than omitting it",
+      pre.get("/government").text.includes("254 Services LLC is a Texas registered engineering firm, TBPELS Firm Registration F-29811.") &&
+        !/Application pending with the Texas Board/i.test(pre.get("/government").text),
     );
 
     // ---------- live ----------
@@ -518,8 +522,8 @@ async function run() {
 
     const why = announcementBlockedReason();
     rec(
-      "the announcement says it is blocked in prelaunch",
-      typeof why === "string" && /registration/i.test(why),
+      "the announcement says it is blocked in prelaunch, by launch mode and not by a registration status",
+      typeof why === "string" && /not yet accepting engagements/i.test(why) && !/registration/i.test(why),
       why ?? "it reported nothing blocking it",
     );
 
@@ -536,8 +540,8 @@ async function run() {
     );
 
     rec(
-      "and the refusal names the registration rather than failing vaguely",
-      attempted.ok === false && /registration/i.test(attempted.error),
+      "and the refusal gives launch mode as the reason rather than failing vaguely or claiming a registration status",
+      attempted.ok === false && /not yet accepting engagements/i.test(attempted.error) && !/registration/i.test(attempted.error),
       attempted.ok ? "" : attempted.error.slice(0, 90),
     );
   } catch (err) {

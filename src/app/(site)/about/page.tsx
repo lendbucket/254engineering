@@ -10,6 +10,7 @@ import { SectionHead } from "@/components/ui/section";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { business } from "@/config/business";
+import { firmName } from "@/lib/launch";
 import {
   centralReviewCopy,
   responsibleChargeCopy,
@@ -36,7 +37,7 @@ export default function AboutPage() {
       <PageHeader
         eyebrow="The firm"
         title="A Texas engineering firm built for all 254 counties"
-        lede="254 Services LLC is a veteran owned engineering firm serving the whole state of Texas. This page explains how it is put together and why, because the how is the part that determines whether a firm can actually do what it says it covers."
+        lede={`${firmName()} is a veteran owned engineering firm serving the whole state of Texas. This page explains how it is put together and why, because the how is the part that determines whether a firm can actually do what it says it covers.`}
         crumbs={crumbs}
       />
 

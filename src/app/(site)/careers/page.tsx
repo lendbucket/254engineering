@@ -6,7 +6,7 @@ import { sectionPhotos } from "@/content/photos";
 import { CardGrid, cardCell, Rule, SectionHeading } from "@/components/ui/primitives";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema, faqSchema, jobPostingSchema } from "@/lib/schema";
-import { isPrelaunch } from "@/lib/launch";
+import { firmName, isPrelaunch } from "@/lib/launch";
 import { openPositions, positionDescription, schemaPositions } from "@data/positions";
 import {
   careersFaqs,
@@ -73,7 +73,7 @@ export default function CareersPage() {
         image={sectionPhotos.careers}
         eyebrow="Careers"
         title="Build a Texas engineering firm from the ground up"
-        lede="254 Services LLC is a veteran owned firm named for the 254 counties of Texas and built to serve every one of them, on licensed professional judgment and statewide field operations. These are the seats that make that possible."
+        lede={`${firmName()} is a veteran owned firm named for the 254 counties of Texas and built to serve every one of them, on licensed professional judgment and statewide field operations. These are the seats that make that possible.`}
         crumbs={crumbs}
       >
         {isPrelaunch() ? (

@@ -4,7 +4,7 @@ import { currentCustomer } from "@/lib/customer-auth";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { deliverablesFor, orderBlockedReason } from "@data/catalog";
 import { services } from "@/content/services";
-import { isPrelaunch, serviceLineIsOffered } from "@/lib/launch";
+import { isPrelaunch, notYetAcceptingEngagements, registrationStatement, serviceLineIsOffered } from "@/lib/launch";
 import { BulkOrderClient } from "./BulkOrderClient";
 
 export const dynamic = "force-dynamic";
@@ -63,7 +63,7 @@ export default async function BulkOrderPage({
           </h2>
           <p className="mt-3 text-[1rem] leading-[1.7] text-[var(--secondary)]">
             {prelaunch
-              ? "254 Services LLC is not yet accepting engineering work. Firm registration with the Texas Board of Professional Engineers and Land Surveyors is pending."
+              ? [notYetAcceptingEngagements(), registrationStatement()].filter(Boolean).join(" ")
               : "Every service on this account is quoted rather than fixed price, so each one is a conversation rather than a submission."}
           </p>
           <Link

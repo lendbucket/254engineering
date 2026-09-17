@@ -335,6 +335,20 @@ const PHASE_ZERO = [
     why: "an absent figure is never a zero, and a missing evidence item is never omitted",
   },
   {
+    /*
+     * Pure without a key, live with one. Layer one of the Stripe account
+     * consistency check, and the only layer that fires on SILENCE: a webhook
+     * registered in the wrong account means that account never calls us at all,
+     * so every check that runs on a webhook is green for the reason that
+     * mattered. The credential free half compares the events the handler
+     * branches on, parsed out of the adapter, against the declaration. The live
+     * half needs the key and reports COULD NOT TELL without it, which is what
+     * happens on the board.
+     */
+    name: "stripe-webhook-audit",
+    why: "the account behind the key is the account that will call this platform",
+  },
+  {
     // Pure: the order catalog, the price a customer is shown, and the refund
     // rule. The refund rule is thirty lines and every one of them is a
     // professional ethics decision the operator ruled on, so it is checked

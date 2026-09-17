@@ -47,6 +47,65 @@ The firm's TBPELS registration is pending, and no licensed PE is on staff yet. U
 - "Engineer", "engineering", and "sealed" are regulated terms in Texas. Treat every sentence
   containing them as load bearing.
 
+**THE ENTITY WAS RENAMED ON 2026-09-16, AND NOTHING ON THE SITE MOVED.**
+Operator ruling, 2026-09-15, and it is the cleanest statement of what this gate
+is actually about.
+
+The Secretary of State amendment is filed and stamped: **254 Engineering LLC**,
+formerly 254 Services LLC, effective **2026-09-16**, file number **806765419**.
+The amendment and the duplicate certificate form go to TBPELS on the 16th.
+
+**THE GATE'S CONDITION IS THE BOARD'S RECORD, NOT THE STATE'S**, and those are
+different facts. TBPELS still holds F-29811 in the name 254 Services LLC, so
+every rendered sentence goes on naming 254 Services LLC until the board reissues.
+Nothing about the copy changes, and nothing about the gate opens.
+
+`operatingNameOnBoardRecord` **flipped back to false**, because its recorded
+reason was "the firm trades under its registered name" and the rename makes that
+sentence false. Leaving it true would have been a flag whose own stated reason
+contradicts the world, which is the failure this gate exists to prevent rather
+than an exception to it. It reopens the 2026-09-10 state and closes on
+reissuance. It is set at FILING rather than by a date comparison, because a
+compliance state that flips with no deploy and no audit trail is refused
+outright here; the cost is one day of reading false, erring toward shut.
+
+**THREE NAMES ARE NOW IN PLAY AND EACH IS A DIFFERENT FACT.** The board holds
+254 Services LLC. The state holds 254 Engineering LLC. 254 Engineering Services
+is the brand on the wordmark, the logo and the page titles, and is never the
+legal or firm name in a sentence. `compliance-audit` asserts the record names
+all three.
+
+**A KNOWN, ACCEPTED WINDOW, WRITTEN DOWN RATHER THAN DISCOVERED.** From
+2026-09-16 the site names an entity the STATE no longer holds, while the BOARD's
+record agrees with every sentence. That is the correct trade, because holding
+the copy still is what stops the sites claiming a name TBPELS has never
+registered, which is the exact misstatement the gate exists to prevent. It
+closes on reissuance. `business.legalName` is deliberately left at the old name
+for the same reason: stale against the state, true against the board, on purpose.
+
+**AND THE NAME IS NOW DERIVED, WHICH MAKES REISSUANCE ONE VALUE.** `firmName()`
+in `src/lib/launch.ts` reads `issuedTo` off the register, and twenty rendered
+sentences that used to type the name now call it. It is the FOURTH deriver of
+this exact shape, after `registrationLine()`, `e164Phone()` and
+`registrationStatement()`, each of which exists because one fact had two
+accounts and the copy was the one nobody updated. The audits that pinned those
+twenty literals caught an accidental change and did nothing for a deliberate
+one, which is why the last rename cost twenty seven edits.
+
+Two checks, because they ask different questions. `compliance-audit` scans all
+386 source files and fails if anything outside the two config files types the
+name, with the exempt set asserted so it cannot quietly grow.
+`scripts/proofs/the-firm-name-is-one-value.mjs` patches the register on disk,
+reads the world **in a child process** because a module level constant is read
+once, and asserts the render actually moves. Injection-verified both ways.
+
+**THE HAZARD OF DOING THE RENAME, AND IT HAS BITTEN ONCE.**
+`scripts/lib/regulatory.mjs` carries the firm name in the patterns `voice-audit`
+matches on. A rename that does not teach it the new name does not fail the
+audit: it makes the audit stop matching, so it passes while looking at nothing,
+on the one commit where the copy is most in flux. It learned 254 Engineering LLC
+in the same commit as the deriver, before any sentence uses it.
+
 **THE FIRM REGISTRATION ISSUED ON 2026-09-10, AND THE GATE DID NOT OPEN.**
 
 TBPELS issued **F-29811** to **254 Services LLC**, active, expiring
@@ -524,6 +583,70 @@ The pair with 2026-09-02's lesson is the whole argument: a suite that can be
 pointed at nothing, or killed by its own operator, is a suite whose red means
 two things.
 
+**INSTANCE FIVE, AND IT IS THE LAST ONE THIS RULE GETS AS PROSE. THE FIFTH IS
+WHY THE SIXTH IS MECHANICALLY IMPOSSIBLE.** Operator ruling, 2026-09-15.
+
+The command was
+
+    npx tsx scripts/db-guard-audit.mjs | tail -1 && git add ... && git commit
+
+and `tail` discarded the audit's exit code, so the `&&` saw a success that had
+not happened. Commit `8b6d396` landed with `db-guard-audit` red. It was
+corrected in `75bcd6b`. Four lines in this file already said not to do it.
+
+**A fifth instance of a written rule is not a reason to write it a sixth time.**
+The operator's ruling was to build something mechanical, and it is committed:
+
+| Layer | What it is | What it refuses |
+| --- | --- | --- |
+| **One, built** | A Claude Code `PreToolUse` hook on Bash, `.claude/settings.json` calling `scripts/hooks/commit-guard.mjs` | A command containing `git commit` that also runs anything under `scripts/`, any `npm run`, or any `tsx`. A command containing `npm run audit` and anything else at all, apart from redirecting its own output to a file. |
+| **Two, not built** | A git `pre-commit` hook under `.githooks/`, switched on by `core.hooksPath` | A commit while an audit lock holds a live PID, and a commit when the last recorded run of any audit against this exact tree exited non-zero. |
+
+**WHY LAYER ONE IS THE ANSWER AND LAYER TWO ALONE WOULD NOT HAVE CAUGHT THIS
+ONE.** A git hook can only refuse on something that was RECORDED. Layer two
+would read an audit's last recorded exit, and **an audit invoked directly with
+`npx tsx scripts/x-audit.mjs` runs no npm pre hook and records nothing.**
+Instance five was exactly that invocation. Layer two would have found no record,
+found no failure, and allowed the commit. Layer one never looks at a record: it
+reads the command itself and refuses before a single process starts.
+
+Rule one is tested against the command with quoted strings and heredoc bodies
+removed, so a commit MESSAGE naming a script is not a refusal. That is the only
+softening, and it is what makes the rule about the shape rather than about
+wording. Everything else is a substring rule on purpose, including the `cd` in
+front of a board run: the Bash working directory persists between commands, so
+`cd` is its own command. The guard fails closed, testing the raw command when
+quoting cannot be resolved.
+
+Proven in both directions rather than assumed, by
+`scripts/proofs/the-commit-guard-refuses-the-shape.mjs`, which feeds sixteen
+real payloads to the hook's own entry point and exits non-zero on any wrong
+answer. Six refused, ten allowed. Then live, in the session that wrote it: a
+real Bash call combining a commit with `npm run` came back refused, and
+`git status` came back normally.
+
+**AND THE COMMIT THAT BUILT IT BROKE A WRITTEN RULE.** `95be4d7` carried both
+the instance five record and the "count from one search" record in one CLAUDE.md
+change, while its message describes only the first. That is one commit doing two
+things, against the commit-per-change rule four lines further down this file.
+
+It is funnier than it is serious, and it is the entire argument in one line: the
+commit that built the mechanical guard against breaking written rules broke a
+written rule, written down, in the file it was editing, by the session that had
+just finished reading it. **A rule you are actively thinking about is still a
+rule you can break. That is what mechanical beats written means.**
+
+**AND ITS FIRST REAL USE FOUND A DEFECT IN IT, WHICH IS THE ARGUMENT FOR THE
+WHOLE PRACTICE.** The first version blanked quoted strings rather than replacing
+them, so `npm run audit > "<a path with a space>" 2>&1` became a redirection
+with no target and the board-alone shape stopped matching its own output file.
+**The guard refused the very board run written to close the session.** Ten
+hand-picked shapes had passed; the first command anybody actually typed did not.
+The fix is a placeholder word instead of a blank, so the SHAPE of the command
+survives, and that case is now one of the sixteen. The general form is the one
+this file already makes about fixtures: a check is only as good as the inputs it
+was given, and the input worth having is the real one.
+
 **WHEN A PATCH HAS LANDED AND BEHAVIOUR HAS NOT CHANGED, THE MODULE IS BOUND.**
 Operator ruling, 2026-09-14, moved here from `scripts/lib/gate-fixture.mjs`
 because a lesson recorded in one file is a lesson nobody finds.
@@ -615,6 +738,41 @@ reading a screenshot.
 So a fixture is priced, dated and complete: every column any figure could sum,
 count or age. The test of a fixture is not whether it inserts a row, it is
 whether removing the filter makes a number move.
+
+**A RULE TESTED WITH ITS INPUT HANDED TO IT SAYS NOTHING ABOUT THE READ THAT
+FEEDS IT IN PRODUCTION.** Operator ruling, 2026-09-15: "the defect class at its
+purest". Recorded beside the fixture lesson because it is the same failure with
+the fixture removed entirely: the check supplied the input itself, so the only
+code that could fail was never run.
+
+`raise()` decides a notification's channels with `channelsFor(kind, role,
+preference)`, and the preference comes from `preferenceFor()`, which read
+`eng_notification_prefs` ordered by `updated_at`. **The table has never had an
+`updated_at` column.** Every read errored, `preferenceFor` returned null, and
+`channelsFor` fell back to the kind's defaults, so **a person who turned email off
+was emailed anyway**, on development and on production, which share the schema.
+
+`comms-audit` asserted the channel rule exhaustively, and every assertion was
+right, because every one of them called `channelsFor` with a preference the test
+built by hand. The rule was correct and the read that feeds it had never once
+succeeded. It was introduced by `2d7a37f`, a fix whose purpose was to stop
+discarding that very error, and the fix made the error permanent while logging it
+faithfully. **It was found by reading the audit suite's own server log on a green
+board**, where the line had been printed on every run.
+
+The ordering existed to pick "the newest of two rows" for one person and kind. The
+primary key is `(profile_id, kind)`; there can be no second row. So the clause
+guarded a state the schema forbids, on a column the schema does not have, and the
+comment above it named the exact failure it caused as the one it prevented.
+
+**The general form.** A pure function with a hand-built input proves the function.
+It proves nothing about whether production can construct that input. For every
+rule tested that way, ask what reads its input in production and whether anything
+has watched that read succeed. The check that closes this one reads the columns
+the product's queries name against the columns the MIGRATIONS declare, which is a
+declaration, never the code under test, and it went red on the shipped code naming
+`updated_at`. And read the server log of a green board, because a logged error is
+not a failed audit.
 
 **AN ERROR ASSEMBLED FROM A STATUS FUNCTION CAN ONLY NAME THE FAULTS THAT
 FUNCTION CAN SEE, SO THE FAULT IT CANNOT SEE REACHES THE USER AS A LIE.**
@@ -724,6 +882,43 @@ whether a Preview value is distinct, and `soc2-audit` asserts that no secret
 deciding identity or opening a database is declared as shared. **It cannot read
 Vercel and says so.** What it buys is that a future sharing becomes a deliberate
 edit to a reviewed file rather than a dropdown nobody opens again.
+
+**THIRD INSTANCE, 2026-09-16, AND IT IS NOW A PATTERN RATHER THAN TWO STORIES.**
+Operator ruling. **The sharpest finding of three consecutive days has been in a
+console no audit in this repository can read, and the operator found all three
+by opening it.**
+
+| When | Console | What was found |
+| --- | --- | --- |
+| 2026-09-12 | Vercel | `CUSTOMER_SESSION_SECRET` on All Environments, so a cookie minted on any preview was valid on production |
+| 2026-09-12 | Vercel | `PARTNER_SESSION_SECRET` and `MFA_ENCRYPTION_KEY` shared across Production and Preview, while `OPS_SESSION_SECRET` was already split |
+| 2026-09-16 | Stripe | The account's public business name and statement descriptor, both CUSTOMER FACING, naming the firm on a checkout page and a card statement, outside `firmName()` and outside this repository |
+
+**The answer is the same every time, and that is what makes it a rule: a
+declaration of what the console holds, DATED and ATTRIBUTED.** Not a check,
+because no check can reach it. A person reads the console, writes down what it
+says and when, and that record becomes a fact this repository can hold, compare
+against, and go visibly stale.
+
+`src/config/credential-inventory.ts` does it for Vercel and says outright that it
+cannot read it. `src/config/stripe-console.ts` does it for Stripe and says the
+same.
+
+**AND A DECLARATION EARNS ITS KEEP BY BEING ASSERTED AGAINST SOMETHING THE
+REPOSITORY DOES OWN.** A console record nothing compares is a note. The Stripe
+one carries three comparisons: the legal business name must equal the registrant
+on the board's record, the support phone must equal what `e164Phone()` derives,
+and the account id must equal the account the live audit actually reached. The
+first is the valuable one, because it makes an instruction mechanical: the
+operator's ruling was that Stripe's legal name changes "in the same sitting as
+`issuedTo`", and asserting the equality means the board goes RED at reissuance
+naming the Stripe field as stale, rather than depending on anybody remembering.
+Injection-verified by moving `issuedTo` and watching it name both values and the
+file to edit.
+
+**The general form, and it is the question to ask of any external console:**
+what does this system hold that nothing here can see, who last looked, and is
+there anything in the repository it can be compared against.
 
 **TWO MORE INSTANCES, 2026-09-10, AND THEY ARE THE SAME THING FROM BOTH ENDS.**
 Operator ruling: a check that measures nothing and a screen no check reads are
@@ -959,6 +1154,83 @@ downstream of it a check on the ceiling: PostgREST's 1000, a sitemap that failed
 to parse, a glob that matched nothing, a file list that excludes untracked files.
 **Ask what the count would be if the mechanism returned nothing, and whether the
 check could tell.**
+
+**AND THE SAME FILE CARRIED THE SAME DEFECT TWENTY LINES AWAY, WRITTEN IN ITS OWN
+SOURCE.** Operator ruling, 2026-09-15, recorded as its own instance.
+
+The queue stop in `copy-project.mjs` read the job queue with `.limit(20)` and
+reported the length of what came back as the depth:
+
+    the job queue holds 20 pending or running job(s) (email.send, report.export)
+
+**The queue held 668, across three kinds.** Twenty of 668, and a whole job kind
+invisible, because none of its rows happened to reach the first twenty. The
+number was precise, it was plausible, and a person reading it would have waited
+a minute for twenty jobs to drain.
+
+Two things make it worth its own entry rather than a footnote to the 1000 cap.
+**This ceiling was not PostgREST's.** It was written in the file, by hand, and
+still read as a measurement, so knowing about silent transport caps would not
+have found it. And **the sample's contents were wrong as well as its size**: a
+list of kinds read off a bounded sample is a claim that those are the kinds,
+and it was missing one.
+
+The rule it produced: **COUNT the thing you report, SAMPLE the thing you
+describe, and never let a sample's length stand in for a count.** A bounded read
+is often the right instinct; reporting its length as the size of the set is the
+defect. And two instances of one defect in one file means surveying the rest of
+the file rather than assuming the other reads are sound.
+
+**AND A COUNT FROM ONE SEARCH IS A CLAIM. IT READS AS A SURVEY.** Operator
+ruling, 2026-09-15, and it is the same family as the 1000 cap and the twenty of
+668: a bounded look reported as a total.
+
+The registration wording sweep was reported to the operator as **seventeen**
+sentences to replace. That figure came from a single grep for one phrasing.
+When the replacement was actually made, and then when a check was written to
+assert the property in both directions across every source file, the number was
+**43**, of which 41 are sentences a person or a caller reads. Nothing about the
+first figure looked like a sample. It was a precise count of what one pattern
+matched, presented as the size of the problem.
+
+**The rule: a figure offered as the extent of something says what produced it,
+or it is not offered.** One search is one search. The extent of a thing in this
+repository is established by a sweep that derives its own subject list, or by a
+check that asserts the property, and those are the two numbers worth reporting.
+
+**AND THE SHARPEST ONE YET: THE FAILURE THAT SENDS NOTHING AT ALL, SO EVERY
+CHECK ON THE ARRIVAL PATH IS GREEN FOR THE REASON THAT MATTERED.** Operator
+ruling, 2026-09-16, from the Stripe webhook.
+
+Nothing compared the account behind `STRIPE_SECRET_KEY` with the account behind
+`STRIPE_WEBHOOK_SECRET`. The obvious place to check is the webhook handler,
+where both credentials meet, and two of the three layers built do exactly that.
+
+**But the worst version of the mismatch produces no webhook.** If the key is
+account A and the URL is registered only in account B, then **A never calls
+us**: no 400, no log line, no event, nothing to inspect. The customer pays,
+Stripe shows the charge, and the order sits at `awaiting_payment` forever. Every
+check on the arrival path is green, and each one is correct, because the subject
+never arrives.
+
+**It outranks the earlier vacuous-green instances rather than joining them**, and
+the reason is where the green comes from. A green over an empty set is at least
+an empty set somebody could count. A green over an event that was never sent has
+nothing to count at all: the harness is not looking at the wrong thing, it is
+waiting to be called by a system that has no idea it exists.
+
+The fix is the only shape that can work: **a check that asks the question
+without waiting to be called.** `scripts/stripe-webhook-audit.mjs` asks the
+key's own account whether it has an endpoint at our URL, enabled, subscribed to
+the events the handler branches on, with the event list PARSED out of the
+adapter rather than typed, so a fourth handled event nobody registered turns it
+red and names it. It runs on the board with no credentials and reports
+`COULD NOT TELL` for the live half, which needs the key.
+
+**The general form, and it is the question to ask of any integration:** what
+does this failure look like if the other system simply stops calling, and is
+there anything on our side that would notice. If the answer is that every check
+lives on the inbound path, there is no check.
 
 **A CHECK THAT FILTERS LIVE DATA FOR A SUBJECT THAT DOES NOT EXIST YET IS
 VACUOUS. BUILD THE SUBJECT.** Operator ruling, 2026-09-09, from the reporting
@@ -1690,6 +1962,45 @@ the audits that still fail red standalone are listed in `BACKLOG.md`.
   The general form, which is the same one section 6b makes about the ledger and
   section 6 makes about declared inventories: **a fact with two accounts has two
   accounts that will disagree, and the copy is always the one nobody updates.**
+
+  **FOURTH INSTANCE IN A FORTNIGHT, 2026-09-16, AND IT IS NOW THE MOST
+  FREQUENTLY RECURRING DEFECT IN THIS BUILD.** Operator ruling, recorded as a
+  count rather than as a fourth story, because the answer has been identical
+  every time.
+
+  | | The fact | Its two homes | The one home now |
+  | --- | --- | --- | --- |
+  | 2026-09-10 | The firm registration number | `TBPELS_FIRM_NUMBER` and the register | `verifiedFirmRegistrations` |
+  | 2026-09-12 | The portal's compliance sentence | A literal in the sidebar and `registrationLine()` | `registrationLine()` |
+  | 2026-09-14 | The firm's telephone number | `contact.phone` raw in `schema.tsx` and the derivers | `e164Phone()` |
+  | 2026-09-15 | The firm's name | A literal in twenty rendered sentences and the register | `firmName()` |
+  | 2026-09-16 | The PE licence number | `TBPELS_PE_LICENSE` and the register | `verifiedEngineers` |
+
+  **THE 2026-09-16 ONE IS THE INSTRUCTIVE ONE, because the defect was dormant
+  and became live without anybody touching the code.** `peInResponsibleCharge()`
+  had read `TBPELS_PE_LICENSE` since it was written, and that was harmless for
+  as long as the register was EMPTY: one home held nothing, so two homes could
+  not disagree. The moment a real licence number was recorded, the second home
+  existed and the two could differ between a build and a deployment.
+
+  **So the question to ask is not only "does this fact have two homes today".**
+  It is "will it, the first time somebody fills in the empty one". A register
+  with nothing in it hides this defect perfectly.
+
+  The answer each time: one home, a deriver that reads it, and a check that
+  refuses the second home coming back. Here `activeEngineer()` mirrors
+  `activeFirmRegistration()` exactly, the variable is recorded as retired with
+  its date and reason, and `compliance-audit` fails on any source under `src`
+  that reads the name again. Injection-verified by putting the variable back:
+  that check went red naming the file.
+
+  **AND AN UNKNOWN IS NOT A PASS.** `expires: null` on an engineer means nobody
+  has recorded the date, which is a different state from current, and
+  `activeEngineer()` refuses it. Sealing rests on that licence being active, so
+  the unknown answer is the shut one. The register had carried no expiry for an
+  engineer at all until this ruling, while a firm registration has always had
+  one, which meant a PE whose licence lapsed years ago would have sat there with
+  nothing noticing.
 
   **THE SAME SHAPE WITH THE FAILURE INVERTED, 2026-09-14, AND THE INVERSION IS
   THE PART WORTH KEEPING.** Operator ruling, recorded as an instance of the rule

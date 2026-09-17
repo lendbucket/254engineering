@@ -1,4 +1,5 @@
 import "server-only";
+import { chargesBlockedReason } from "./launch";
 import { DB_NOW } from "./db-now";
 import { readEvery } from "./bounded-read";
 import { orderForFile as liveOrderForFile } from "./order-for-file";
@@ -86,6 +87,17 @@ export type CheckoutResult =
  * agreed. The order is what they agreed to.
  */
 export async function startCheckout(orderId: string): Promise<CheckoutResult> {
+  /*
+   * THE GATE, ASKED HERE RATHER THAN UPSTREAM. See chargesBlockedReason in
+   * launch.ts: every function that reaches the payment provider asks it, and
+   * money-audit enumerates them from the source.
+   */
+  const blocked = chargesBlockedReason();
+  if (blocked) {
+    console.error(`[payments] startCheckout refused: ${blocked}`);
+    return { ok: false, error: blocked };
+  }
+
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The order system is not configured." };
 
@@ -171,6 +183,17 @@ export async function startCheckout(orderId: string): Promise<CheckoutResult> {
  * lands inside the property it belongs to, because that is where it was earned.
  */
 export async function startBatchCheckout(batchId: string): Promise<CheckoutResult> {
+  /*
+   * THE GATE, ASKED HERE RATHER THAN UPSTREAM. See chargesBlockedReason in
+   * launch.ts: every function that reaches the payment provider asks it, and
+   * money-audit enumerates them from the source.
+   */
+  const blocked = chargesBlockedReason();
+  if (blocked) {
+    console.error(`[payments] startBatchCheckout refused: ${blocked}`);
+    return { ok: false, error: blocked };
+  }
+
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The order system is not configured." };
 

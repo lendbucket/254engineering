@@ -1,4 +1,4 @@
-import { peInResponsibleCharge } from "@/lib/launch";
+import { firmName, peInResponsibleCharge, registrationStatement } from "@/lib/launch";
 
 /**
  * The careers hub copy, as content rather than as markup.
@@ -174,7 +174,7 @@ export function standardsAndIntegrity(): { heading: string; body: string }[] {
 /* ------------------------------------------------------- equal opportunity */
 
 export const equalOpportunity = [
-  "Applications are read by a person and considered on the qualifications the role actually requires. 254 Services LLC does not discriminate on race, color, religion, sex, sexual orientation, gender identity, national origin, age, disability, genetic information, veteran status, or any other basis protected by federal or Texas law.",
+  `Applications are read by a person and considered on the qualifications the role actually requires. ${firmName()} does not discriminate on race, color, religion, sex, sexual orientation, gender identity, national origin, age, disability, genetic information, veteran status, or any other basis protected by federal or Texas law.`,
   "The firm is veteran owned, which is a statement about who owns it and not a preference applied to hiring.",
   "If you need an accommodation at any point in the process, say so in the application or in reply to any message from the firm, and it will be arranged.",
   "The application asks for nothing sensitive. No social security number, no date of birth, no identity documents, and no bank details are collected by this website. A background check may be requested later in the process, and if it is, it is handled directly with you rather than through a form.",
@@ -227,7 +227,13 @@ export function careersFaqs(): { q: string; a: string }[] {
       q: "Is the firm registered and practising today?",
       a: pe
         ? "Yes. The firm is registered with the Texas Board of Professional Engineers and Land Surveyors and a licensed engineer is in responsible charge."
-        : "Not yet, and this is stated plainly because it affects your decision. Firm registration with the Texas Board of Professional Engineers and Land Surveyors is pending, and a Texas firm registration requires an engineer in responsible charge to be named. The selected engineer is named on that application, so you would be joining at the point the firm becomes able to practise rather than after it. No work is being sealed today.",
+        : [
+            "Not practising yet, and this is stated plainly because it affects your decision.",
+            registrationStatement(),
+            "No engineer is yet in responsible charge and no work is being sealed today, so you would be joining at the point the firm becomes able to practise rather than after it.",
+          ]
+            .filter(Boolean)
+            .join(" "),
     },
   ];
 }

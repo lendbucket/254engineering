@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { registrationStatement } from "@/lib/launch";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { RestrictedMode } from "@/components/portal/design";
 import { inspectToken, MIN_PASSWORD_LENGTH } from "@/lib/ops-auth";
@@ -97,8 +98,7 @@ export default async function SetPasswordPage({
         </div>
 
         <p className="mt-4 text-center text-[12px] leading-[1.6] text-[var(--secondary)] sm:mt-5">
-          Firm registration pending with the Texas Board of Professional Engineers and Land
-          Surveyors. No engineer of record is yet in responsible charge.
+          {registrationStatement()} No engineer of record is yet in responsible charge.
         </p>
       </div>
     </main>

@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { placeOrder, requestQuote, siteFromKey } from "@/lib/ops-intake";
 import { startCheckout } from "@/lib/ops-payments";
-import { isPrelaunch } from "@/lib/launch";
+import { isPrelaunch, notYetAcceptingEngagements } from "@/lib/launch";
 
 export const dynamic = "force-dynamic";
 
@@ -89,8 +89,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         ok: false,
-        error:
-          "The firm's registration with the Texas Board of Professional Engineers and Land Surveyors is pending. No order can be placed and no payment can be taken until it is active.",
+        error: `${notYetAcceptingEngagements()} No order can be placed and no payment can be taken until it opens for work.`,
         prelaunch: true,
       },
       { status: 409 },

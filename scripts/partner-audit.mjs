@@ -727,8 +727,9 @@ const terms = (over = {}) => ({
     "naming the brand as the performing firm is holding out under a name the board does not hold, to the audience relying on it",
   );
   rec(
-    "and states the registration is pending while the gate is down",
-    /registration is pending/i.test(performingFirmLine()),
+    "and states the registration exactly as the register records it, while the gate is down",
+    performingFirmLine().includes("254 Services LLC is a Texas registered engineering firm, TBPELS Firm Registration F-29811.") &&
+      !/pending/i.test(performingFirmLine()),
   );
   rec(
     "and it is not itself a claim the firm could not make",

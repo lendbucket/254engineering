@@ -220,7 +220,7 @@ for (const site of SITES) {
     for (const hit of findClaims(seen.text, ALL_REGULATED)) {
       findings.push(
         `${site.name}${route}: THE COMPLIANCE GATE. ${hit.why} ("${hit.match}"). ` +
-          "The firm's TBPELS registration is pending and no licensed PE is on staff, so nothing on any of " +
+          "The launch gate is shut and no licensed PE is on staff, so nothing on any of " +
           "these sites may state or imply that engineering services are currently offered or performed.",
       );
     }

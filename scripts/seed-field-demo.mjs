@@ -47,6 +47,7 @@
  */
 import { newPartnerPasswordRecord } from "../src/lib/partner-auth.ts";
 import { publishAsset } from "../src/lib/ops-partner-assets.ts";
+import { registrationStatement } from "../src/lib/launch.ts";
 import { sweepLegacyResidue } from "./lib/probe-ledger.mjs";
 import { auditClient, describeTarget } from "./lib/db-target.mjs";
 
@@ -1169,8 +1170,8 @@ console.error("");
         body:
           "Engineering work referred through this programme will be carried out by 254 Engineering Services, " +
           "a Texas firm serving all 254 counties. They contract with the client, hold the engagement, " +
-          "and are the firm of record on every deliverable. Firm registration is pending with the Texas " +
-          "Board of Professional Engineers and Land Surveyors.",
+          "and are the firm of record on every deliverable. " +
+          (registrationStatement() ?? ""),
       },
       {
         slug: "what-a-referral-is",

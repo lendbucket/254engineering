@@ -1,6 +1,8 @@
 import {
   verifiedFirmRegistrations,
+  verifiedEngineers,
   operatingNameOnBoardRecord,
+  type VerifiedEngineer,
   type VerifiedFirmRegistration,
 } from "@/config/credentials";
 import {
@@ -9,6 +11,8 @@ import {
   pointInTimeRecovery,
   placeholderPhonePatterns,
 } from "@/config/launch-readiness";
+import { business } from "@/config/business";
+import { stripeAccountBlockedReason } from "./stripe-account";
 import { contact } from "@/config/contact";
 import { services } from "@/content/services";
 import { selfServiceSignUp } from "@/config/launch-conditions";
@@ -403,7 +407,34 @@ export function tbpelsFirmNumber(): string | null {
  */
 export function peInResponsibleCharge(): boolean {
   if (isPrelaunch()) return false;
-  return Boolean(process.env.TBPELS_PE_LICENSE?.trim());
+  return activeEngineer() !== null;
+}
+
+/**
+ * THE ENGINEER THE REGISTER HOLDS, ACTIVE BY THE SAME DEFINITION THE FIRM
+ * REGISTRATION USES. Operator ruling, 2026-09-16.
+ *
+ * It mirrors `activeFirmRegistration()` on purpose, because the two questions
+ * are the same question about different credentials, and two definitions of the
+ * word active is how an audit and a gate end up disagreeing. That already
+ * happened once: a register check filtered on status alone while the gate
+ * checked the expiry, and only an injection found it.
+ *
+ * AN UNRECORDED EXPIRY IS NOT ACTIVE. `expires: null` means nobody has written
+ * the date down, which is a different state from "current" and must not read as
+ * it. Sealing rests on this being true, so the unknown answer is the shut one.
+ *
+ * THE LICENCE NUMBER HAS ONE HOME, and this is why the function reads a file
+ * rather than an environment variable. `TBPELS_PE_LICENSE` was retired on
+ * 2026-09-16: a variable can differ between a build and a deployment, which is
+ * the same defect the 2026-09-10 ruling removed for the firm registration
+ * number, and the fourth instance of one fact with two homes in a fortnight.
+ */
+export function activeEngineer(): VerifiedEngineer | null {
+  const today = new Date().toISOString().slice(0, 10);
+  return (
+    verifiedEngineers.find((e) => typeof e.expires === "string" && e.expires >= today) ?? null
+  );
 }
 
 /**
@@ -414,6 +445,121 @@ export function peInResponsibleCharge(): boolean {
  * firm registration number to appear on the firm's public representations once
  * it exists.
  */
+/**
+ * THE REGISTRATION, AS A SENTENCE, READ OFF THE REGISTER. Operator ruling,
+ * 2026-09-15.
+ *
+ * Seventeen places were reported as saying the registration was pending, as
+ * literals, for five days after TBPELS issued F-29811; a full sweep found more.
+ * Every one of them now renders this, so the sentence changes when the register
+ * does and cannot be left behind by it.
+ *
+ * It says what the register records and nothing else. Not that the firm is
+ * accepting work, not that anything is in force beyond the registration: the
+ * launch gate governs those, separately, through `notYetAcceptingEngagements`.
+ * With no active registration on record it returns null, and a caller says
+ * nothing about registration rather than inventing a status.
+ */
+export function registrationStatement(): string | null {
+  const registration = activeFirmRegistration();
+  if (!registration) return null;
+  return `${registration.issuedTo} is a Texas registered engineering firm, TBPELS Firm Registration ${registration.number}.`;
+}
+
+/**
+ * THE FIRM'S NAME IN A SENTENCE, READ OFF THE BOARD'S RECORD. Operator ruling,
+ * 2026-09-15.
+ *
+ * THE ARGUMENT FOR IT IS ITS OWN HISTORY. This is the fourth deriver of this
+ * exact shape: `registrationLine()`, `e164Phone()`, `registrationStatement()`,
+ * and now this. Each exists because one fact had two accounts and the copy was
+ * the one nobody updated. The name was the last fact still written as a
+ * literal, in twenty rendered sentences, and renaming the firm on 2026-09-13
+ * cost twenty seven edits. The audits pinning those literals catch an
+ * ACCIDENTAL change and do nothing for a deliberate one, which is the gap: a
+ * pin makes a rename expensive rather than safe.
+ *
+ * IT READS THE REGISTRANT, NOT THE ENTITY, AND THAT IS THE WHOLE DESIGN.
+ * Operator ruling, 2026-09-15, on the Secretary of State amendment: the
+ * compliance gate is about what the BOARD's record says, and the state's record
+ * is a different fact. The entity became 254 Engineering LLC on 2026-09-16 and
+ * TBPELS still holds F-29811 in the name 254 Services LLC, so every sentence
+ * naming the firm goes on saying what the board holds until the certificate is
+ * reissued. Sourcing this from the registration is what makes that true
+ * mechanically rather than by remembering.
+ *
+ * So reissuance is ONE VALUE: `issuedTo` in the register, and every rendered
+ * sentence, both email templates, the JSON-LD block and the report export
+ * header follow it. `compliance-audit` asserts that no source outside the
+ * config writes the name as a literal, because a deriver nothing enforces is a
+ * deriver the next sentence quietly ignores.
+ *
+ * THE HAZARD OF ACTUALLY DOING THE RENAME, RECORDED HERE BECAUSE IT HAS BITTEN
+ * ONCE. `scripts/lib/regulatory.mjs` carries the firm name in the patterns
+ * `voice-audit` matches on. It learned the name in the same commit last time,
+ * and if it does not, the audit goes blind on the way past: it keeps passing
+ * while it has stopped looking at anything. Whoever changes `issuedTo` changes
+ * those patterns in the same commit.
+ *
+ * The fallback is the legal entity, for the state this repository was in before
+ * 2026-09-10, when no registration was on record and the pages still had to
+ * name the firm.
+ */
+export function firmName(): string {
+  const registration = activeFirmRegistration();
+  return registration ? registration.issuedTo : business.legalName;
+}
+
+/**
+ * WHY THE FIRM IS NOT TAKING WORK, WHICH IS LAUNCH MODE AND NOT REGISTRATION.
+ *
+ * The order refusals used to give registration as the reason, which conflated
+ * two facts: a registration issued, and the gate stayed shut for other reasons.
+ * Callers use this only inside an `isPrelaunch()` branch.
+ */
+export function notYetAcceptingEngagements(): string {
+  return "The firm is not yet accepting engagements.";
+}
+
+/**
+ * THE ONE QUESTION EVERY PATH THAT CAN TAKE MONEY ASKS. Operator ruling,
+ * 2026-09-15, the day a live Stripe secret key went on Production.
+ *
+ * Until then the gate sat upstream of two of the three charge paths, in the
+ * order routes and in `orderBlockedReason`, and `startStatementCheckout` had
+ * none at all: it checked that the provider was configured, that the statement
+ * was awaiting payment and added up, and charged. Nothing was exposed only
+ * because production held no statements, which is a fact about today's data
+ * rather than a control.
+ *
+ * So the question moves to the three functions that actually reach the payment
+ * provider, where it cannot be skipped by a new caller, and `money-audit`
+ * enumerates them from the source rather than from a list: every function whose
+ * body calls `createCheckout(` must also call this.
+ *
+ * REFUNDS DELIBERATELY DO NOT ASK. Money going back to somebody must keep
+ * working while the gate is shut; a gate that blocked refunds would trap a
+ * customer's money, which is the opposite of what it is for.
+ */
+export function chargesBlockedReason(): string | null {
+  /*
+   * A PROVEN STRIPE ACCOUNT MISMATCH STOPS NEW CHARGES. Operator ruling,
+   * 2026-09-16, and it is checked BEFORE the launch gate on purpose: it is true
+   * in both modes, and it is the one that costs a customer money rather than
+   * costing the firm a sale.
+   *
+   * It blocks only on a definitive `resource_missing`. An outage, a timeout or
+   * any other error reads as "could not tell" and blocks nothing, because a
+   * check that shuts the firm on a transient error is its own defect. The
+   * reasoning is in stripe-account.ts.
+   */
+  const mismatch = stripeAccountBlockedReason();
+  if (mismatch) return mismatch;
+
+  if (!isPrelaunch()) return null;
+  return `${notYetAcceptingEngagements()} No payment can be taken until it opens for work.`;
+}
+
 export function registrationLine(): string {
   /*
    * THE REGISTRATION IS STATED WHILE THE GATE IS SHUT, AND THAT IS A CHANGE.

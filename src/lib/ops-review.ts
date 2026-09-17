@@ -175,9 +175,8 @@ export function canReview(
     return {
       ok: false,
       reason:
-        "The firm cannot seal work yet. Firm registration with the Texas Board of Professional " +
-        "Engineers and Land Surveyors is pending and no Professional Engineer is in responsible " +
-        "charge. Declining to seal is open to an engineer in responsible charge and is not " +
+        "The firm cannot seal work yet. It is not yet accepting engagements and no Professional " +
+        "Engineer is in responsible charge. Declining to seal is open to an engineer in responsible charge and is not " +
         "blocked by the gate, which is deliberate.",
     };
   }

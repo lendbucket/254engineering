@@ -63,6 +63,140 @@ operator's word and has not been given. The report's position is that a trade
 price is not a figure on a report, it is a price on an order, and the order's
 figures are already swept.
 
+## RESOLVED 2026-09-15: QUEUE-AUDIT INFLATED THE ATTEMPTS OF JOBS IT DOES NOT OWN
+
+Fixed on the operator ruling: a job pushed past its limit fails permanently on its first real error, weeks later, with nothing connecting it to the audit that spent its retries. `restoreStrays()` now puts a swept up row back as it was, attempts included, at all three claim sites (one of which restored nothing at all before). The claim returns each row after incrementing, so the value restored is the returned one minus one. Proven on development: five foreign jobs at 18, 18, 16, 16, 16 attempts before a full run and the same five values after, where every earlier run added one.
+
+**The leftovers already inflated are not repaired.** Those rows were created by earlier audit runs, not by this one, and rewriting rows a run did not create is outside the standing permission. On development only; they are pending, and a real failure would dead-letter them at once.
+
+### As first recorded
+
+Observed 2026-09-15 while checking what a run under the old queue guard touched. `queue-audit`'s direct claim tests call `eng_claim_jobs`, which sweeps up whatever backlog is eligible, and then put those rows back to pending. The claim increments `attempts`, and the restore at line 562 does not reset it (the one at line 575 does). Development's leftover pending jobs carry 13 to 16 attempts each. Nothing runs on them and nothing is sent: they sit at pending, with no error and no `finished_at`. But a job restored past its `max_attempts` dead-letters on its first real failure. Development only, since the audit never runs against production. The fix is to restore `attempts` to the value read before the claim.
+
+## RESOLVED 2026-09-15: STATEMENT CHECKOUT DID NOT CHECK THE LAUNCH GATE
+
+Fixed on the operator ruling the day a live Stripe secret key went on Production, because the mitigation (production holds no statements) was data rather than a control. `chargesBlockedReason()` in `launch.ts` is the one question, and all three functions that reach the payment provider ask it before touching the database: `startCheckout`, `startBatchCheckout`, `startStatementCheckout`. `money-audit` DERIVES that set by reading every function in `src/lib` whose body calls `createCheckout(`, so a fourth charge path without the gate turns it red and names the function. Refunds are asserted NOT to ask it, because money going back must still move.
+
+### As first recorded
+
+Found 2026-09-15 reading the Stripe integration for the operator before the
+Production keys were added. `startStatementCheckout` in `src/lib/ops-statements.ts`,
+reached from `POST /api/account/statements`, checks that the payment provider is
+configured, that the statement exists, is awaiting payment and adds up, and that
+the account has a billing email. **It never asks `isPrelaunch()`.** The order
+routes and `startCheckout` callers are gated; this one is gated only by whether a
+statement exists. Production held zero statements, orders, batches and payments
+when read, so nothing can be charged through it today. The first statement issued
+while the gate is shut, with live keys present, could be paid. A ruling on whether
+a statement is an engagement the gate governs, then one line and a check.
+
+## RESOLVED 2026-09-15: RENDERED SENTENCES SAID THE FIRM REGISTRATION WAS PENDING
+
+Fixed on the operator ruling. Every site renders `registrationStatement()` from the register, the order refusals render `notYetAcceptingEngagements()`, and `compliance-audit` fails any source under `src` stating a registration status the register does not support, in both directions. **The count was not seventeen.** That figure came from one grep; the sweep and then the new check brought it to 43 replacements: 41 sentences a person or a caller reads, on public pages, in APIs, on portal and partner screens, in seal refusals, a report note and a seeded task, plus the demo seed script and one operator script message.
+
+### As first recorded
+
+Found 2026-09-15 while reading the windstorm cluster before writing articles.
+TBPELS issued F-29811 to 254 Services LLC on 2026-09-10, active, and
+`registrationLine()` has rendered it in the footer since. **These still say the
+registration is pending**, as literals, which is the rule in CLAUDE.md section 7
+("a compliance sentence hardcoded anywhere is the defect") at sitewide scale:
+
+- public pages: `/waitlist` (twice, one of them its meta description),
+  `/terms`, `/corpus-christi`, the offer call to action and the prelaunch notice
+  on every gated page, `/careers` via `src/content/careers.ts`, the firm
+  registration insight, `/structural-engineer`, and two windstorm cluster
+  sections (`appointed-engineers`, `twia-coverage`)
+- API refusals a caller reads: `/api/order-flow`, `/api/orders`, `/api/v1/orders`,
+  and the job intake rule in `src/lib/job-intake-rules.ts`
+- staff and partner screens: `RestrictedMode`, partner materials
+
+`compliance-audit` guards only the portal rail, which is why nothing went red.
+Not fixed tonight, for two reasons: what the replacement says is a compliance
+statement for the operator to word (the registration is active and the gate is
+shut on the operating name, which is a different sentence from "pending"), and
+nothing merges or deploys tonight, so production goes on serving these whatever
+the branch says. **Ruling needed**, and the fix should route every one through
+the gate's own sentences rather than replace seventeen literals with seventeen
+new ones.
+
+## THE WPI-8C WINDOW IS DATED THREE WAYS BY TDI AND TWIA, NOT FIXED
+
+**CORRECTED 2026-09-15, same day, and the first version below was too narrow.** It said the cluster disagrees with TDI. Reading TDI again for the lookup page found TDI disagrees with itself: its windstorm index page says the WPI-8-C was "issued by TWIA for construction completed between January 2017 and May 2020", which is the cluster's wording; its completed construction page says TWIA issued the certificates between those dates; and TWIA's own lookup page says TWIA accepted applications from January 1, 2017 to May 31, 2020. Three dates to measure against. The cluster matches one TDI page, so it is not wrong; it is one of three. `/insights/texas-windstorm-certificate-lookup` quotes all three. The live cluster should do the same rather than choose, which is the operator's call.
+
+### As first recorded, now known too narrow
+
+Found 2026-09-15 re-reading TDI's completed construction page for the coastal
+posts. TDI says "The Texas Windstorm Insurance Association issued completed
+construction certificates (WPI-8C) between January 1, 2017, and May 31, 2020",
+which dates the ISSUING. `src/content/windstorm-program.ts` (the
+`completed-construction` and `buying-and-selling` pages and the header note)
+says the WPI-8-C was for construction COMPLETED between those dates, which dates
+the work, and spells it with a second hyphen TDI does not use. The ten coastal
+posts use TDI's wording. The same page now states plainly that any TBPELS
+licensed engineer can inspect completed construction, which is the question the
+cluster's header records as a conflict between two TDI pages; it should be
+re-read against both pages before that note is changed. Not edited tonight:
+the cluster is reviewed compliance copy and the correction is small enough to
+make deliberately rather than in passing.
+
+## STORED FILES: A BACKUP PROPOSAL, AND THE MAP IS NINE PLACES NOT SIX
+
+`docs/storage-backup-proposal.md`, 2026-09-15, proposal only, nothing built or
+spent. Answers 2b's open question from Supabase's docs (the `storage.objects`
+rows are in a database backup, the bytes are not), corrects 2b's six-table map
+to nine places including a JSON path in `eng_applications.payload`, measures a
+production object nothing references and 114 disagreements on development, and
+prices a copy from published list prices. **Rulings needed**: vendor, retention
+of deleted objects at the destination, and the `bucket` migration.
+
+## RESOLVED 2026-09-15: THE SYSTEM PRINCIPAL COULD NOT RAISE A TASK, ITS ID WAS NOT A PROFILE
+
+Operator ruled fix it and let the session choose. The REQUIREMENT changed: a platform task now has `created_by` null, is named by `source_key = system:<key>` under 0005 unique index, and the principal is named in the audit row. A seeded profile was rejected because it needs an `auth.users` sign-in identity for a principal that must never sign in, and a migration that would hold the merge. `scripts/exercises/system-raises-task.mjs` is green, and red against the old function. The LIKE wildcard issue below is gone with it: the key is matched by equality.
+
+### As first recorded
+
+Found 2026-09-15 by the Phase 14 rank 10 exercise,
+`scripts/exercises/system-raises-task.mjs`, which is red on purpose.
+`raiseSystemTask` inserts `eng_tasks.created_by = 00000000-0000-4000-8000-000000005957`,
+`eng_tasks_created_by_fkey` references `eng_profiles(id)`, no such profile exists
+on development, and no migration seeds one. The database refused the insert.
+Nothing calls `raiseSystemTask` today, so nothing has failed yet; the first
+schedule that relies on the principal's `tasks.raise` will. **Ruling needed**:
+a seeded profile (which needs an `auth.users` row for a principal that must
+never sign in), a null creator for platform work with the principal named in
+the trail, or a different key. Also read in the same function and not provable
+until it can insert: the idempotency `LIKE` does not escape `_` or `%` in the key.
+
+## RESOLVED 2026-09-15: `customer_account.link_reissued` RECORDED CONTACT THAT MAY NOT HAVE HAPPENED
+
+Fixed on the operator ruling. The row now says a link was ISSUED and nothing more, and the sign up route records the enqueue outcome itself as `customer_account.link_email_queued` or `customer_account.link_email_not_queued`, saying queued and never sent. The rank 9 exercise checks the wording, and failed against the old writer.
+
+**KNOWN FALSE ROWS, PERMANENT, ON DEVELOPMENT ONLY.** `eng_audit_events` ids **17809, 17810, 17811, 17812 and 18206** read that a sign up attempt was made and a link was sent. Neither happened: they were written by the exercise. 18206 was written by the verification run against the old code after the fix, which is how the count reached five. They cannot be deleted and are documented here and in `docs/overnight-2026-09-15.md` so nobody reads them as contact.
+
+Not exercised: the route itself, which is closed while self service sign up is not cleared.
+
+### As first recorded
+
+Found 2026-09-15 by the Phase 14 rank 9 exercise, by reading the trail rows it
+wrote. `issueLinkForExistingAccount` in `src/lib/account-creation.ts` writes
+
+    A sign up attempt named an address that already has an account. Nothing was
+    created and a fresh set password link was sent to it.
+
+at the moment it issues the TOKEN. The email is queued afterwards, by the
+caller, and `queueEmail` returns a failure rather than throwing, so a failed
+enqueue leaves a row in the append only trail saying a link was sent. The row
+also asserts a sign up attempt, which is true of today's one caller and is a
+statement about the caller written inside the callee.
+
+It is the `customer_link.issued` defect in CLAUDE.md section 2c. Not live today:
+the only caller, `POST /api/account/sign-up`, is closed until self service sign
+up is cleared. Development's trail now carries four such rows written by the
+exercise, ids 17809 to 17812, where no sign up happened and nothing was sent;
+they cannot be removed. **Ruling needed** on the shape of the fix: word the row
+as issued, and have the route record the enqueue result, is the obvious one.
+
 ## THE FIRST MEASUREMENT OF EVERY AUTHENTICATED SCREEN, AND WHAT IT FOUND
 
 2026-09-14. `perf-audit` now signs in and derives its subjects from the declared
@@ -109,11 +243,59 @@ a real increase.
 
 ### Two real outliers, NOT fixed in this pass
 
-**1. `/account/login` is 431KB. The other two login screens are 319KB.**
-Three screens doing the same job, and the customer one carries **112KB more than
-the staff and partner ones** and is heavier than every one of the 35 portal
-screens. It is the strongest single signal in the whole run. Nothing has been
-changed; what it imports has not been looked at.
+**1. RESOLVED 2026-09-15: `/account/login` was 431KB. The other two login screens are 319KB.**
+Three screens doing the same job, and the customer one carried **112KB more than
+the staff and partner ones**. It imported nothing they did not. It carried one
+`<Link href="/">Back to the site</Link>`, and a Link in the viewport prefetches
+its target: three RSC requests for `/` and the homepage's scripts, including the
+lead form's zod. Proven before fixing, on a fresh build, through the gate and a
+recorded request log. With `prefetch={false}` on that one link: **316KB against
+its 325KB budget**, script 220KB to 143KB, no prefetch requests, and the link
+still navigates to `/` (clicked, landed). `/account/sign-up` carried the same
+link and paid the same toll, **433KB to 318KB** signed out; the gate cannot
+reach it with a session and that figure is from the gate's settings run without
+one. `KNOWN_OVER_BUDGET` is empty.
+
+**1b. RESOLVED 2026-09-15, operator approved: zod now loads on submit.** Gate, one run, fresh builds: every public page 64 to 65KB lighter, script 211KB to 147KB, `/` 502 to 438, `/coverage/coastal-bend` 551 to 486 against 560. `/careers/professional-engineer` unchanged at 471, because its application stepper imports zod itself. Proven in a browser: no zod chunk before submit, the same inline errors after it, and a stated message when the chunk cannot load.
+
+**As first recorded, 1b. THE HOMEPAGE'S WEIGHT IS PAID BY EVERY PUBLIC PAGE, NOT FIXED.** Found
+answering which other pages pay the toll. `SiteHeader` puts a Link to `/` and a
+Link to `/waitlist` in the viewport of every public page, and both routes render
+`LeadForm`, which imports `@/lib/forms` and so ships **the whole of zod to the
+browser, a 288KB chunk, 65KB gzipped**, to validate on submit. Sized with the
+gate's own Lighthouse settings by blocking that chunk and the prefetch payloads,
+changing no source:
+
+| Page | As shipped | Without the prefetch toll | Of which zod |
+| --- | --- | --- | --- |
+| `/about` | 438KB | 331KB | script 211 to 143KB |
+| `/services` | 485KB | 379KB | script 211 to 143KB |
+| `/coverage` | 522KB | 416KB | script 211 to 143KB |
+
+So roughly **107KB on every public page: about 68KB of zod and 39KB of RSC
+payload** for `/` and `/waitlist`. `/order` pays the zod part through its Link to
+`/contact`. The 39KB is what prefetching the header costs and buys instant
+navigation; the 68KB buys nothing until somebody presses submit.
+
+**Proposed, not done**, because it changes when validation code arrives:
+`LeadForm` validates only inside its submit handler (`safeParse` at line 52), so
+`await import("@/lib/forms")` there would take zod off every public page and out
+of every prefetch while keeping the same schema and the same messages. The cost
+is one fetch of that chunk on the first submit, which on a slow connection is a
+pause before an inline error. That trade is the operator's to rule, and it
+should be measured on the gate before and after like the login fix was.
+
+**1c. THE OPEN SANS ITALIC IS PRELOADED ON EVERY SCREEN, NOT FIXED.** 34KB on
+every public, order, partner and account screen, for the one portal component
+`src/app/layout.tsx` loads it for. `next/font` preloads every face in a call.
+Proposal: a second call for the italic with `preload: false`. Composition of
+the order flow and the portal shell, and the smaller candidates (`favicon.ico`
+at 15KB of uncompressed bitmaps, two renditions of the brand mark), are in
+`docs/overnight-2026-09-15.md` Part 1.
+
+**1d. `/coverage/coastal-bend` is 550KB against 560KB**, the tightest budget on
+the site, with LCP at 93 percent of its ceiling. Four other LCP readings sit
+above 90 percent. Warnings, listed in the same report.
 
 **2. The order flow is the heaviest thing on the platform**, 462 and 463KB, and
 it is the surface a paying customer meets. It has never had a byte budget and was
@@ -5286,3 +5468,125 @@ is real, available today, and the more interesting thing to show.
 
 `KEEP_EXISTING=1` tops up instead of rebuilding, spelled the way
 `ALLOW_PRODUCTION_DB` is, for somebody mid demonstration.
+
+## LAYER TWO OF THE COMMIT GUARD IS NOT BUILT, AND 53 AUDITS RECORD NOTHING
+
+Layer one shipped on the operator's ruling of 2026-09-15 and is committed: a
+Claude Code `PreToolUse` hook on Bash, `.claude/settings.json` calling
+`scripts/hooks/commit-guard.mjs`, refusing a command that both commits and runs
+something, and refusing a board run with anything beside it. The full reasoning,
+the five instances behind it, and why layer one rather than layer two is the
+answer are in `CLAUDE.md` section 6 under instance five.
+
+**What is NOT built, and what it would need first.** Layer two is a git
+`pre-commit` hook under `.githooks/`, switched on by a `prepare` script setting
+`core.hooksPath`, refusing a commit while an audit lock holds a live PID and
+refusing a commit when the last recorded run of any audit against this exact
+working tree exited non-zero. It is the layer that covers any committer and any
+terminal, including one Claude Code is not driving.
+
+**It cannot be built as stated today.** It reads a record of how each audit
+exited, and **an audit invoked directly with `npx tsx scripts/x-audit.mjs` runs
+no npm pre hook and records nothing.** That is the invocation that produced
+instance five. Closing it means every audit recording its own exit against the
+tree it read, which is a small change repeated across 53 files, and that is the
+work this entry is holding. Until it exists, layer two would answer "no failing
+run recorded" for exactly the runs most likely to be failing.
+
+## RULED AND BUILT 2026-09-16: THE TWO STRIPE CREDENTIALS ARE COMPARED, AND THE DURABLE HALF OF THE BLOCK IS NOT
+
+Built on the operator's ruling the day the webhook was registered on the live
+account. Nothing had ever compared the account behind `STRIPE_SECRET_KEY` with
+the account behind `STRIPE_WEBHOOK_SECRET`, and a mismatch presents as a
+customer paying, Stripe showing the charge, and the order never leaving
+`awaiting_payment`.
+
+| Layer | Where | Cost | What it catches |
+| --- | --- | --- | --- |
+| **One** | `scripts/stripe-webhook-audit.mjs`, on the board | 0 calls without a key, 2 with | The webhook registered in the wrong account, which sends NOTHING |
+| **Two** | `modeDisagreement`, in the adapter | 0 calls | The key and the endpoint in different modes. Loud, never blocks |
+| **Three** | `confirmStripeAccount`, in the route | 1 call per process | A definitive `resource_missing`, which blocks charges |
+
+A proven mismatch is wired into `chargesBlockedReason`, ahead of the launch
+gate, and blocks **only** on `resource_missing`. An outage, a timeout or any
+other error reads as could not tell and blocks nothing, because taking money the
+platform cannot record is worse than not trading for an hour, and a check that
+shuts the firm on a network blip costs the second thing for no reason. Proven
+both ways by `scripts/proofs/a-mismatched-stripe-account-stops-charges.mjs`,
+including injecting the widened catch that is the natural drift.
+
+**WHAT IS NOT BUILT, AND IT IS THE DURABLE HALF OF THE BLOCK.** The layer three
+verdict lives in module state, so it is per process. A mismatch proven in the
+WEBHOOK process is not visible to a CHECKOUT process, which means the block is
+per instance rather than platform wide. The durable signals are the system task
+and the alert, which are raised once and stay raised, so nothing is silent; what
+is missing is the automatic refusal in every other instance.
+
+Closing it properly needs a row keyed by the account id and a hash of the
+signing secret, which needs a migration. **A migration on a branch that cannot
+be applied to production is pending, and a pending migration holds a merge**, so
+it is recorded here rather than half built. It wants a session with the operator
+at a keyboard to run the production half.
+
+**Layer one is deliberately NOT a launch condition**, by the same ruling. The
+gate's `stripeAccount` condition is proven by a charge and its refund, which
+proves the whole path end to end including the webhook arriving; layer one
+proves something weaker and is continuous rather than a one time proof. Two
+conditions for one fact is how clearing one starts to look like progress while
+the other quietly holds.
+
+## /portal/accounts RENDERS IN 50 SECONDS, AND THREE BOARDS CALLED IT A DEAD SERVER
+
+Found 2026-09-16 by reading the dev server's own log after two audits reported
+COULD NOT TELL. **It is a product defect, not board flakiness, and it has been
+invisible behind an infrastructure verdict for at least three runs.**
+
+**The evidence, from the server rather than from the harness.** Six requests
+across two ports, every one of them:
+
+    GET /portal/accounts 200 in 50s (next.js: 7ms, proxy.ts: 5ms, application-code: 50s)
+
+It answers **200**. It is not a compile, not the proxy, not Next. It is fifty
+seconds of application code, consistently, and a person opening that screen sits
+in front of it for the whole minute.
+
+**THE HARNESS'S OWN EXPLANATION IS WRONG, AND THAT IS THE WORSE HALF.** When an
+audit cannot navigate, the suite prints that the server "went away mid run" and
+that its log "ends cleanly when something killed it". On this board there were
+**zero** connection refusals and the server was serving other routes throughout.
+A reader following that sentence goes looking for a dead server that never died,
+which is an explanation covering the observation without being true.
+
+**Two different failures have been filed as one.** The existing entry, A LONG
+PLAYWRIGHT HEAVY BOARD DIES, is real: `contrast-audit` on an earlier board today
+did die, with `ERR_CONNECTION_REFUSED` and an orphan left holding port 3224 that
+then blocked a build. This is NOT that. Conflating them is why nobody has looked
+for this one.
+
+| | Symptom | Server |
+| --- | --- | --- |
+| The dying board | `ERR_CONNECTION_REFUSED`, orphan holds the port | Dead |
+| **This** | `page.goto: Timeout` on one named screen | Alive, answering 200 in 50s |
+
+**The likely cause, stated as a HYPOTHESIS because nothing has re-checked it.**
+`accountRows()` in `src/lib/ops-accounts-admin.ts` is four `readEvery` reads:
+every customer account, every client named by one, **every service order
+belonging to any of them**, and every active customer user. Each pages until the
+exact count is satisfied, by design, because a partial count is a wrong count and
+these figures are billed on. On a database with real order volume that is a lot
+of round trips to render a list. Nobody has profiled it; the 50 seconds is
+measured, the cause is not.
+
+**What it is NOT.** It is not the 1000-row cap and it is not an absent-versus-zero
+defect. The reads are correct. The screen is slow because it is correct in an
+expensive way, which is the honest version and the reason the fix needs thought
+rather than a `.limit()`.
+
+**Also unmeasured because of it:** `mobile-overflow-audit` (225 combinations
+clean, 1 never loaded) and `native-audit` (500 checks clean, 1 screen never
+loaded). Both are otherwise green. `/portal/techs` timed out at 90s on an
+earlier board the same day and is probably the same shape, unverified.
+
+Not fixed: it is a portal screen on the money path's edge, outside the roof
+protocol scope this branch is for, and it wants a ruling on whether the list
+may be paged or the counts derived differently.

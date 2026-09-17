@@ -8,6 +8,7 @@ import {
   recordExternalRefund,
 } from "@/lib/ops-payments";
 import { markStatementPaid } from "@/lib/ops-statements";
+import { confirmStripeAccount } from "@/lib/payments-stripe";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +54,21 @@ export async function POST(request: NextRequest) {
     );
     return NextResponse.json({ ok: false }, { status: 400 });
   }
+
+  /*
+   * LAYER THREE OF THE ACCOUNT CONSISTENCY CHECK, once per process, on the
+   * first webhook this process verifies. Operator ruling, 2026-09-16.
+   *
+   * Awaited rather than fired and forgotten, because a proven mismatch stops
+   * new charges and a verdict that lands after the response is a verdict the
+   * next request does not have. It is one call and only on the first webhook
+   * per process; every later webhook returns immediately.
+   *
+   * It never throws into this route: establishAccountVerdict swallows every
+   * error into "could not tell" by design, so Stripe being down cannot turn a
+   * good webhook into a 500.
+   */
+  if (parsed) await confirmStripeAccount(parsed);
 
   /*
    * The adapter has already logged which event this was and why it went

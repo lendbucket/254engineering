@@ -583,6 +583,72 @@ const rec = (name, ok, note = "") => out.push({ name, ok, note });
   );
 }
 
+// =====================================================================
+// EVERY PATH THAT CAN TAKE MONEY ASKS THE GATE, AND THE SET IS ENUMERATED.
+// =====================================================================
+/*
+ * Operator ruling, 2026-09-15, the day a live Stripe secret key went on
+ * Production. Until then `startStatementCheckout` charged without ever asking
+ * the launch gate: it was protected only by production holding no statements,
+ * which is a fact about today's data rather than a control. The other two charge
+ * paths were gated upstream, in the order routes and in `orderBlockedReason`,
+ * which is a convention a new caller can miss.
+ *
+ * THE SET IS DERIVED, NOT LISTED. A hand written list of money paths is exactly
+ * the thing that goes stale the day somebody adds the fourth one. So every
+ * function in src/lib whose body reaches the payment provider's createCheckout
+ * is found by reading the source, and each one must call chargesBlockedReason().
+ * Adding a charge path without the gate turns this red and names the function.
+ *
+ * Refunds are deliberately outside it: money going back must keep working while
+ * the gate is shut. That is asserted below rather than left as an absence.
+ */
+{
+  const files = readdirSync("src/lib")
+    .filter((f) => f.endsWith(".ts"))
+    .map((f) => join("src/lib", f));
+
+  const chargePaths = [];
+  const refundPaths = [];
+  for (const file of files) {
+    const src = readSource(file);
+    /* Function bodies, by their export line and the first line that closes at column zero. */
+    for (const m of src.matchAll(/export async function (\w+)\(([\s\S]*?)\n}\n/g)) {
+      const [, name, body] = m;
+      if (/\bcreateCheckout\(/.test(body)) chargePaths.push({ file, name, body });
+      if (/provider\.refund\(/.test(body)) refundPaths.push({ file, name, body });
+    }
+  }
+
+  rec(
+    "the source names at least one path that reaches the payment provider",
+    chargePaths.length >= 3,
+    chargePaths.map((p) => `${p.name} (${p.file.replace("src/lib/", "")})`).join(", ") ||
+      "NONE FOUND, so every check below would pass over an empty set",
+  );
+
+  const ungated = chargePaths.filter((p) => !/chargesBlockedReason\(\)/.test(p.body));
+  rec(
+    "and every one of them asks chargesBlockedReason before it charges",
+    chargePaths.length > 0 && ungated.length === 0,
+    ungated.length
+      ? `${ungated.map((p) => `${p.name} in ${p.file}`).join(", ")} can take money without asking the gate`
+      : `${chargePaths.length} charge paths, all gated`,
+  );
+
+  rec(
+    "the gate itself is one function, read from launch.ts",
+    /export function chargesBlockedReason\(\): string \| null \{/.test(readSource("src/lib/launch.ts")),
+    "a second copy is a second answer that will drift",
+  );
+
+  rec(
+    "and refunds are NOT gated, because money going back must still move",
+    refundPaths.length > 0 && refundPaths.every((p) => !/chargesBlockedReason\(\)/.test(p.body)),
+    refundPaths.map((p) => p.name).join(", ") || "no refund path found",
+  );
+}
+
 console.log("============ MONEY, BINDER, AND EXPORTS ============");
 console.log("an absent figure is never a zero, and a missing item is never omitted\n");
 for (const r of out) console.log(`  ${r.ok ? "PASS" : "FAIL"}: ${r.name}${r.note ? ` (${r.note})` : ""}`);

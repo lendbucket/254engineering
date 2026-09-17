@@ -220,7 +220,131 @@ const { count: pendingBefore } = await db
  * would be moving a solution to a problem one caller does not have.
  */
 const runner = makeBatchRunner({ db, created, batchSize: BATCH_SIZE, runBatch, worker: WORKER });
+
+/*
+ * PUT A SWEPT UP BACKLOG ROW BACK AS IT WAS, ATTEMPTS INCLUDED.
+ *
+ * Operator ruling, 2026-09-15. eng_claim_jobs takes the oldest eligible work of
+ * ANY kind, so a direct claim here sweeps up whatever the queue is carrying.
+ * Those rows were put back to pending with their lease cleared, and their
+ * attempts left one higher, on every run: development's leftovers had reached 13
+ * to 16 attempts. Nothing ran on them and nothing was sent, and that is not the
+ * hazard. The hazard is a job pushed past its max_attempts, which then dies for
+ * good on its first real failure, weeks later, with nothing connecting it to the
+ * audit that spent its retries.
+ *
+ * The claim returns each row AFTER incrementing, so the value to restore is the
+ * one it returned minus one. Rows this run created are not restored: they belong
+ * to the run and its teardown removes them.
+ */
+async function restoreStrays(claimedRows, keepId) {
+  const strays = (claimedRows ?? []).filter((r) => r.id !== keepId);
+  for (const row of strays) {
+    await db
+      .from("eng_jobs")
+      .update({
+        status: "pending",
+        leased_by: null,
+        leased_until: null,
+        attempts: Math.max(0, Number(row.attempts) - 1),
+      })
+      .eq("id", row.id);
+    created.delete(row.id);
+  }
+  return strays.length;
+}
 const nextEligible = runner.nextEligible;
+
+/*
+ * ===========================================================================
+ * THE OWNERSHIP CHECK READS THE CLAIM'S CLOCK, NOT THIS MACHINE'S.
+ *
+ * Found 2026-09-15 by the phase 14 rank 5 exercise: nextEligible compared
+ * run_after against `new Date()` while eng_claim_jobs compares against the
+ * database's now(). With the database ~85ms ahead, a foreign row inserted and
+ * then checked read as not eligible to the guard and claimable to the claim.
+ *
+ * Asserted with THIS PROCESS'S CLOCK SET A MINUTE BEHIND, which is the direction
+ * that hides rows. Three rows this audit does not add to `created`, so the guard
+ * must call them foreign, removed before anything else runs:
+ *
+ *   pending, run_after the database's now   eligible   (the skew case)
+ *   running, lease lapsed an hour ago        eligible   (the claim's OR)
+ *   running, lease an hour in the future     NOT eligible
+ *
+ * Unregistered kind and no_external_effect, so a crash between insert and
+ * removal leaves rows a worker would dead-letter rather than run.
+ * ===========================================================================
+ */
+{
+  const CLOCK_KIND = "queue-audit.clock-probe";
+  const hour = 3_600_000;
+  const { data: probes, error: probeErr } = await db
+    .from("eng_jobs")
+    .insert([
+      { kind: CLOCK_KIND, status: "pending", effect_mode: "no_external_effect", payload: { case: "skew" },
+        run_after: "now" },
+      { kind: CLOCK_KIND, status: "running", effect_mode: "no_external_effect", payload: { case: "lapsed" },
+        run_after: new Date(Date.now() - 2 * hour).toISOString(), leased_until: new Date(Date.now() - hour).toISOString() },
+      { kind: CLOCK_KIND, status: "running", effect_mode: "no_external_effect", payload: { case: "leased" },
+        run_after: new Date(Date.now() - 2 * hour).toISOString(), leased_until: new Date(Date.now() + hour).toISOString() },
+    ])
+    .select("id, payload");
+  if (probeErr) throw new Error(`could not write the clock probes: ${probeErr.message}`);
+  const idOf = (c) => probes.find((p) => p.payload.case === c).id;
+
+  const RealDate = Date;
+  /*
+   * SIZED FROM THE QUEUE, NOT FROM A GUESS. The first version read nextEligible(50)
+   * and went red on a board where development held 76 pending jobs from earlier
+   * audits: every one of them had an older run_after than a probe enqueued "now",
+   * so the first fifty were all somebody else's and the probe was fifty first.
+   * The guard was right to return them; the check assumed an empty queue. So the
+   * read is sized to everything the database calls eligible, counted on its own
+   * clock, and a queue past PostgREST's thousand row ceiling is reported rather
+   * than read short.
+   */
+  const { count: eligibleNow, error: eligibleErr } = await db
+    .from("eng_jobs")
+    .select("id", { count: "exact", head: true })
+    .lte("run_after", "now")
+    .or("status.eq.pending,and(status.eq.running,leased_until.lt.now)");
+  if (eligibleErr || typeof eligibleNow !== "number") {
+    throw new Error(`could not count the eligible queue: ${eligibleErr?.message ?? "null count"}`);
+  }
+  const readSize = eligibleNow + 5;
+  rec(
+    "the queue is small enough for the clock check to read all of it",
+    readSize <= 1000,
+    `${eligibleNow} eligible, including the three probes; the check reads ${readSize}`,
+  );
+
+  let seen;
+  try {
+    globalThis.Date = class extends RealDate {
+      constructor(...a) { super(...(a.length ? a : [RealDate.now() - 60_000])); }
+      static now() { return RealDate.now() - 60_000; }
+    };
+    seen = new Set((await nextEligible(Math.min(readSize, 1000))).map((r) => r.id));
+  } finally {
+    globalThis.Date = RealDate;
+    await db.from("eng_jobs").delete().eq("kind", CLOCK_KIND);
+  }
+
+  rec(
+    "with this machine a minute behind the database, the ownership check still sees a job enqueued a moment ago",
+    seen.has(idOf("skew")),
+    "the claim uses the database's clock; a guard on this machine's clock cannot see what the claim will take",
+  );
+  rec(
+    "and a running job whose lease has lapsed, which the claim would take",
+    seen.has(idOf("lapsed")),
+  );
+  rec(
+    "and not a running job whose lease is still held",
+    !seen.has(idOf("leased")),
+  );
+}
 
 let fillerMade = 0;
 
@@ -415,6 +539,8 @@ console.log("--- the claim, and the lease while it is held");
     rec("eng_claim_jobs answers", !error, error?.message ?? "");
 
     const mine = (claimed ?? []).find((r) => r.id === queued.id);
+    /* Anything else this claim took goes back as it was, attempts included. */
+    await restoreStrays(claimed, queued.id);
     rec(
       "and it returns the probe rather than the backlog",
       Boolean(mine),
@@ -464,18 +590,11 @@ console.log("--- the claim, and the lease while it is held");
        * A probe run must not leave 10 unrelated jobs marked running with a lease
        * this process is about to forget about.
        */
-      const strays = (second ?? []).filter((r) => r.id !== queued.id).map((r) => r.id);
-      if (strays.length) {
-        await db
-          .from("eng_jobs")
-          .update({ status: "pending", leased_by: null, leased_until: null })
-          .in("id", strays);
-        for (const id of strays) created.delete(id);
-      }
+      const restored = await restoreStrays(second, queued.id);
       rec(
-        "and the backlog it swept up was put back",
+        "and the backlog it swept up was put back as it was, attempts included",
         true,
-        `${strays.length} unrelated job(s) restored to pending; their attempts count is one higher and that is a real claim that really happened`,
+        `${restored} unrelated job(s) restored to pending with the attempt this claim spent given back`,
       );
 
       /* Release ours so the runBatch pass below is not competing with it. */
@@ -996,14 +1115,8 @@ console.log("--- the failure paths");
       );
     }
 
-    /* Put the backlog this claim swept up back. */
-    const strays = (claimed ?? []).filter((r) => r.id !== inserted.id).map((r) => r.id);
-    if (strays.length) {
-      await db
-        .from("eng_jobs")
-        .update({ status: "pending", leased_by: null, leased_until: null })
-        .in("id", strays);
-    }
+    /* Put the backlog this claim swept up back, attempts included. */
+    await restoreStrays(claimed, inserted.id);
 
     /*
      * AND ANOTHER WORKER FINISHES IT. The reclaim above proves the job becomes

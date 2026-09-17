@@ -1548,9 +1548,19 @@ if (!db) {
         sealed.ok === false,
         "an engineer with an account is not a firm with a registration",
       );
+      /*
+       * Sharpened 2026-09-15 on the operator's registration ruling: the refusal used
+       * to have to NAME THE BOARD, which was the conflation. The registration issued
+       * on 2026-09-10; the true reason is launch mode, so that is what it must say,
+       * and a registration status is what it must not claim.
+       */
       rec(
-        "and the refusal names the registration rather than his role",
-        sealed.ok === false && /Texas Board of Professional Engineers/.test(sealed.reason ?? ""),
+        "and the refusal gives launch mode and responsible charge rather than his role, and claims no registration status",
+        sealed.ok === false &&
+          /not yet accepting engagements/i.test(sealed.reason ?? "") &&
+          /Professional Engineer/.test(sealed.reason ?? "") &&
+          !/registration/i.test(sealed.reason ?? ""),
+        sealed.reason ?? "",
       );
       rec(
         "but he can take a complete package and decline it",

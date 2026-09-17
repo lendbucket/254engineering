@@ -1,4 +1,5 @@
 import "server-only";
+import { chargesBlockedReason } from "./launch";
 import { DB_NOW } from "./db-now";
 import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
@@ -342,6 +343,17 @@ export async function issueStatement(
 export async function startStatementCheckout(
   statementId: string,
 ): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  /*
+   * THE GATE, ASKED HERE RATHER THAN UPSTREAM. See chargesBlockedReason in
+   * launch.ts: every function that reaches the payment provider asks it, and
+   * money-audit enumerates them from the source.
+   */
+  const blocked = chargesBlockedReason();
+  if (blocked) {
+    console.error(`[payments] startStatementCheckout refused: ${blocked}`);
+    return { ok: false, error: blocked };
+  }
+
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The order system is not configured." };
 
