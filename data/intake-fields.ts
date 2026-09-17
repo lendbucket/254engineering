@@ -1,4 +1,5 @@
 import { catalogFor, type CatalogEntry, type RequiredInput } from "./catalog";
+import { rc001IntakeFields } from "./protocol-fields";
 
 /**
  * WHAT A JOB NEEDS, DEFINED ONCE.
@@ -329,6 +330,9 @@ const ACCESS: IntakeField[] = [
 /** Every universal field, in the order a person should be asked. */
 export const INTAKE_FIELDS: IntakeField[] = [...PARTIES, ...DOCUMENT, ...PROPERTY, ...ACCESS];
 
+/** Every field an approved protocol requires, derived from its signed document. */
+export const PROTOCOL_FIELDS: IntakeField[] = [...rc001IntakeFields()];
+
 function appliesTo(field: IntakeField, entry: CatalogEntry): boolean {
   if (field.applies === "all") return true;
   if (field.applies === "field") return entry.orderType === "field";
@@ -371,7 +375,15 @@ export function fieldsFor(serviceSlug: string, tier: string): IntakeField[] {
   const entry = catalogFor(serviceSlug, tier);
   if (!entry) return [];
 
-  const universal = INTAKE_FIELDS.filter((f) => appliesTo(f, entry));
+  /*
+   * A PROTOCOL SIGNED BY THE ENGINEER OF RECORD ADDS ITS OWN QUESTIONS, and
+   * they are DERIVED from the signed document rather than listed here. See
+   * data/protocol-fields.ts. 254-RC-001 is the first; the rest arrive the same
+   * way, so this function does not grow a branch per protocol.
+   */
+  const protocol = PROTOCOL_FIELDS.filter((f) => appliesTo(f, entry));
+
+  const universal = [...INTAKE_FIELDS, ...protocol].filter((f) => appliesTo(f, entry));
   const specific = entry.requiredInputs.map(fromCatalog);
 
   /*

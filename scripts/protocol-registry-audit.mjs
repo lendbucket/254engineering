@@ -169,6 +169,107 @@ rec(
   );
 }
 
+/* ------------------- 2b. the intake surface derives from the same document */
+
+/*
+ * THE ONE FIELD DEFINITION, AND THE PROTOCOL DERIVES INTO IT. A second list of
+ * roof questions living in a form would be the two-homes defect this repository
+ * has now ruled on four times in a fortnight, so these checks assert the
+ * derivation rather than the existence of the fields.
+ */
+{
+  const { fieldsFor } = await import("../data/intake-fields.ts");
+  const { rc001RoutesToEngineer, rc001MissingUploads, rc001FlagFieldIds } = await import(
+    "../data/protocol-fields.ts"
+  );
+
+  const fields = fieldsFor(RC001.serviceSlug, "standard");
+  const ids = new Set(fields.map((f) => f.id));
+
+  const missingQ = RC001.intakeQuestions.filter((q) => !ids.has(`rc001_q${q.number}`));
+  rec(
+    "every intake question the document asks reaches the one field definition",
+    missingQ.length === 0 && fields.length > 0,
+    missingQ.map((q) => `Q${q.number}`).join(", ") || `${fields.length} fields for ${RC001.serviceSlug}`,
+  );
+
+  const missingU = RC001.intakeUploads.filter((u) => !ids.has(`rc001_upload_${u.key}`));
+  rec(
+    "and every upload it requires",
+    missingU.length === 0,
+    missingU.map((u) => u.key).join(", ") || `${RC001.intakeUploads.length} uploads`,
+  );
+
+  /*
+   * The other direction: a field carrying a protocol id that the document does
+   * not account for is an invented question on a real form.
+   */
+  const accounted = new Set([
+    ...RC001.intakeQuestions.map((q) => `rc001_q${q.number}`),
+    ...RC001.intakeQuestions.filter((q) => q.flag).map((q) => `rc001_q${q.number}_detail`),
+    ...RC001.intakeUploads.map((u) => `rc001_upload_${u.key}`),
+  ]);
+  const invented = [...ids].filter((id) => id.startsWith("rc001_") && !accounted.has(id));
+  rec(
+    "and no protocol field exists that the document does not account for",
+    invented.length === 0,
+    invented.join(", ") || `${accounted.size} accounted`,
+  );
+
+  rec(
+    "the flag field ids are exactly the document's questions 8 to 12",
+    JSON.stringify(rc001FlagFieldIds()) === JSON.stringify(["rc001_q8", "rc001_q9", "rc001_q10", "rc001_q11", "rc001_q12"]),
+    rc001FlagFieldIds().join(", "),
+  );
+
+  /*
+   * A yes on ANY flag routes, tested one at a time. Testing them together would
+   * pass even if only one were wired, which is the fixture lesson: a check that
+   * cannot separate the answers proves none of them.
+   */
+  const notRouting = RC001.intakeQuestions
+    .filter((q) => q.flag)
+    .filter((q) => !rc001RoutesToEngineer({ [`rc001_q${q.number}`]: "Yes" }).routes)
+    .map((q) => `Q${q.number}`);
+  rec(
+    "a yes on any one flag question routes the job to the engineer before dispatch",
+    notRouting.length === 0,
+    notRouting.join(", ") || "all five route on their own",
+  );
+  rec(
+    "and a job with no flags answered yes does not route",
+    rc001RoutesToEngineer({ rc001_q8: "No", rc001_q9: "No", rc001_q10: "No", rc001_q11: "No", rc001_q12: "No" }).routes === false,
+    "five noes do not route",
+  );
+
+  rec(
+    "the required upload is missing until it is given",
+    rc001MissingUploads({}).length === 1,
+    rc001MissingUploads({}).join("; "),
+  );
+  rec(
+    "and an adverse report becomes required once question 11 is yes, because the document says it must be uploaded",
+    rc001MissingUploads({ "rc001_upload_front-of-property": "x", rc001_q11: "Yes" }).length === 1 &&
+      rc001MissingUploads({ "rc001_upload_front-of-property": "x", rc001_q11: "No" }).length === 0,
+    "required on yes, not required on no",
+  );
+
+  /*
+   * Section 6 again: the purpose and the recipient are recorded exactly as
+   * given. A select here would normalise the one fact the letter is addressed
+   * for, which is the defect the rule exists to prevent.
+   */
+  const normalised = RC001.intakeQuestions
+    .filter((q) => q.verbatim)
+    .filter((q) => fields.find((f) => f.id === `rc001_q${q.number}`)?.kind === "select")
+    .map((q) => `Q${q.number}`);
+  rec(
+    "the questions the document records verbatim are free text, never a dropdown",
+    normalised.length === 0,
+    normalised.join(", ") || "purpose and recipient are free text",
+  );
+}
+
 /* ---------------------------- 3. both directions, against the document text */
 
 const pdf = RC001.sourceFile;
