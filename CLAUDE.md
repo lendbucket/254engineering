@@ -1972,6 +1972,40 @@ throughout. The TOTP pair was the sharpest, because advertising eight digits
 in the QR while the generator emits six locks out every already enrolled
 account at their next sign in, on a phone that is working perfectly.
 
+**AND A BOARD IS BLOCKED BY A FINDING ON THE BRANCH, NEVER BY AN AUDIT THAT
+COULD NOT MEASURE SOMETHING THE BRANCH DID NOT TOUCH.** Operator ruling,
+2026-09-17, the first time "not green" meant "could not measure" rather than
+"found something".
+
+`feat/roof-protocol`'s first board returned **53 of 55 passed and not one FAIL
+line of any kind**. The two that could not measure, `mobile-overflow-audit` and
+`native-audit`, were both blocked by `/portal/accounts` exceeding a 45 second
+navigation timeout at 360, 390 and desktop, with zero connection refusals. That
+screen takes fifty seconds of application code to render, is recorded in
+`BACKLOG.md` with the server's own log as evidence, **is on main already**, and
+has nothing to do with the branch.
+
+**So the question to ask of a board that is not green is WHICH KIND of not
+green.** A finding on the branch stops the branch. An audit that could not
+measure something the branch never touched stops nothing, because every branch
+will fail it identically until the underlying defect is fixed, and holding work
+behind it buys nothing.
+
+**The two are told apart by reading, not by the exit code.** Both leave the
+suite non zero. One prints `FAIL` with a check name; the other prints
+`COULD NOT TELL` with a route and a reason. `unreachable is not failed` is the
+same idea one level down, at a single audit; this is it at the board.
+
+**What the rule does NOT license.** Absorbing a could-not-measure. It is
+recorded, it names the screen, and the underlying defect keeps its backlog entry
+until somebody rules on it. What changes is only whether it holds a merge.
+
+**AND WHEN IT COMES BACK FOR A RULING, IT COMES WITH A MEASUREMENT.** Same
+ruling. `accountRows()` paging every service order belonging to any account is a
+plausible cause **nobody has profiled**, and a screen whose figures are billed
+on does not get a decision made on a guess. The hypothesis is recorded as a
+hypothesis; the ruling waits for the profile.
+
 **UNREACHABLE IS NOT FAILED.** Operator ruling, 2026-09-08. An audit whose
 live half cannot run because no server is answering reports a third verdict,
 `COULD NOT TELL`, and exits zero. It is the same three way answer the perf
