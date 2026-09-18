@@ -44,7 +44,13 @@ const crumbs = [
 ];
 
 export const metadata: Metadata = buildMetadata({
-  title: "How a Sealed Engineering Certification Works | 254 Engineering",
+  /*
+   * 55 characters. The first draft was 62, over the 60 ceiling, and
+   * buildMetadata truncated it to "...Works | 254", which publishes a title
+   * whose brand suffix has been cut in half. I measured three other titles on
+   * this branch and not this one.
+   */
+  title: "How a Sealed Engineering Letter Works | 254 Engineering",
   description:
     "What happens between your first call and a sealed letter: the engineer's protocol, the technician's checklist, the five determinations, and what the letter will not say.",
   path: "/process",
@@ -122,7 +128,7 @@ export default function ProcessPage() {
             <SectionHeading
               eyebrow="The five steps"
               title="What happens, in order"
-              lede="The same five on every service line. What you do is on the left, what we do is on the right."
+              lede="The same five on every service line. A line opens once the engineer of record has approved its written protocol, and the firm quotes work and takes enquiries on every line today."
             />
             <ol className="mt-11 flex flex-col gap-5">
               {processSteps.map((step) => (

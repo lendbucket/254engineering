@@ -110,7 +110,7 @@ export const proximityHub: {
    */
   title: "Texas Structural Engineer, Sealed Reports | 254 Engineering",
   description:
-    "A registered Texas engineering firm for structural inspections and sealed reports. What the work covers, what a report will not say, and what it costs.",
+    "A registered Texas engineering firm for structural inspections and sealed reports. What the work covers, what a report will not say, and see the prices.",
   summary:
     "A structural engineer answers one question: what is holding this up, and is it enough. This is what the work covers at this firm, what a sealed report will and will not tell you, and what it costs.",
 

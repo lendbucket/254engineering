@@ -67,7 +67,7 @@ const faqs = [
 export const metadata: Metadata = buildMetadata({
   title: "Structural Engineer Cost in Texas | 254 Engineering",
   description:
-    "What a structural engineer costs in Texas, with this firm's fixed price per service line, what changes it, and why most firms will not quote before a visit.",
+    "What a structural engineer costs in Texas, with a fixed price per service line and what changes it. See every published price before you call the firm.",
   path: "/structural-engineer/cost",
 });
 

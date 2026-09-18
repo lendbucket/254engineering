@@ -250,6 +250,46 @@ function byPrincipal() {
 assertNavigationVerdictHolds();
 
 const findings = [];
+
+/*
+ * RENDERED HEIGHT PER ROUTE AT 390, RECORDED RATHER THAN JUDGED.
+ * Operator ruling, 2026-09-18.
+ *
+ * Nothing on this board has ever measured how tall a screen is, and that blind
+ * spot let /portal/queue reach 38,744 pixels while every check that looked at
+ * it stayed green and every one of them was right. It was found by opening a
+ * screenshot, which is not a mechanism.
+ *
+ * The ceiling is PROPOSED FROM THESE NUMBERS rather than picked, the way the
+ * byte budgets were, so this collects and reports and fails on nothing yet.
+ */
+const heights = [];
+
+/**
+ * Print what was measured, tallest first, with the arithmetic a ceiling would
+ * be argued from. It asserts nothing.
+ */
+function reportHeights() {
+  if (heights.length === 0) return;
+  const sorted = [...heights].sort((a, b) => b.height - a.height);
+  const values = sorted.map((h) => h.height);
+  const median = values[Math.floor(values.length / 2)];
+  const mean = Math.round(values.reduce((s, v) => s + v, 0) / values.length);
+
+  console.log("");
+  console.log("=== RENDERED HEIGHT AT 390, RECORDED, NOT JUDGED ===");
+  console.log(`  ${values.length} route(s). median ${median}px, mean ${mean}px, tallest ${values[0]}px.`);
+  console.log("  The twelve tallest:");
+  for (const h of sorted.slice(0, 12)) {
+    /*
+     * Screens are quoted in phone viewports as well as pixels, because 12,000
+     * pixels means nothing to a reader and thirty screens of scrolling means
+     * something immediately. 844 is the iPhone 14 viewport height at 390 wide.
+     */
+    console.log(`    ${String(h.height).padStart(6)}px  ${(h.height / 844).toFixed(1).padStart(5)} screens  ${h.route}`);
+  }
+  console.log("  No ceiling is enforced. The operator rules one from these numbers.");
+}
 const checks = [];
 /*
  * ROUTES THAT NEVER LOADED. Not findings, not failed checks: a third list, for
@@ -485,6 +525,33 @@ async function run() {
               reportedInner: window.innerWidth,
               regionScroll: region ? region.scrollWidth : null,
               regionClient: region ? region.clientWidth : null,
+              /*
+               * HEIGHT, ADDED 2026-09-18 ON THE OPERATOR'S RULING, AND THE
+               * REASON IS A SCREEN THAT WENT TO 38,744 PIXELS PAST A GREEN
+               * BOARD.
+               *
+               * /portal/queue printed eight dead letter job payloads, each one
+               * a whole rendered HTML email, and became 7,462 words on one
+               * screen. Every check that looked at that page was green and all
+               * of them were right: no horizontal scroll, tap targets fine,
+               * contrast fine. NOTHING ON THE BOARD MEASURED HOW TALL A SCREEN
+               * IS, so it was unusable and correct by every question anybody
+               * had asked. It was found by opening a screenshot.
+               *
+               * This audit already scrolls every route to the bottom at 390 to
+               * catch lazy content, so the measurement is free: the page is
+               * already loaded, already scrolled, already at phone width.
+               *
+               * IT RECORDS RATHER THAN FAILS, and that is deliberate. The
+               * operator ruled that the ceiling is proposed FROM the
+               * measurements rather than picked, the way the byte budgets were.
+               * A number invented tonight would be a budget nobody agreed to,
+               * enforced against pages nobody has read.
+               */
+              height: Math.max(
+                document.documentElement.scrollHeight,
+                document.body.scrollHeight,
+              ),
             };
           });
 
@@ -565,6 +632,18 @@ async function run() {
         }
 
         checks.push({ name: `${route} @${width}`, ok, detail });
+        /*
+         * The height, recorded at 390 only. A phone is where length hurts: the
+         * same content at 1280 is two or three columns and a third of the
+         * scroll, so a ceiling derived from desktop would be a ceiling that
+         * never binds.
+         */
+        if (width === 390) {
+          heights.push({
+            route,
+            height: Math.max(top.height ?? 0, bottom.height ?? 0),
+          });
+        }
         await page.close();
     }
   }
@@ -659,6 +738,7 @@ if (findings.length === 0 && failed.length === 0) {
    * did not, and exits on the third code, because a green board over a half
    * that never ran is the other way to lie about the same run.
    */
+  reportHeights();
   if (unmeasured.length) {
     console.log(
       `\nCOULD NOT TELL: ${checks.length} combination(s) measured and clean, ${unmeasured.length} never loaded.`,
@@ -669,6 +749,7 @@ if (findings.length === 0 && failed.length === 0) {
     process.exitCode = 0;
   }
 } else {
+  reportHeights();
   for (const f of findings) console.log(`  - ${f}`);
   console.log(
     `\nFAIL: ${findings.length} overflow finding(s) and ${failed.length} failed check(s) across ${checks.length} checks.` +
