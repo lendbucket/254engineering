@@ -5591,6 +5591,29 @@ Not fixed: it is a portal screen on the money path's edge, outside the roof
 protocol scope this branch is for, and it wants a ruling on whether the list
 may be paged or the counts derived differently.
 
+**IT IS INTERMITTENT, AND THE COUNT IS THREE. Operator ruling, 2026-09-17.**
+
+| Board | Tree | `/portal/accounts` |
+| --- | --- | --- |
+| `feat/roof-protocol`, first | before the rebase | **stall**, 45s timeout, 0 refusals |
+| `main`, after the overnight merge | `62a1b63` | **clean**, measured at every width |
+| `feat/roof-protocol`, rebased | onto `62a1b63` | **stall** at 360 and 390, 0 refusals |
+
+**Nothing was fixed between the second and the third.** The fifty seconds in the
+evidence above was read off the server's own log and is real; what is now known
+is that it does not happen every run. A count of three is recorded here and **no
+theory is attached to it**, because the `accountRows()` hypothesis above is still
+a hypothesis and a second unverified explanation would only make the first harder
+to dislodge.
+
+**WHAT THE INTERMITTENCY CHANGES IS THE PROFILE, WHICH IS WHY IT IS WORTH
+RECORDING RATHER THAN SHRUGGING AT.** A deterministic stall can be instrumented
+after somebody sees it. An intermittent one cannot, because the run that stalls
+is not the run anybody chose. **A profile of a healthy render is not evidence
+about a stall, and it reads exactly like one.** So the instrument has to be
+running before the stall arrives, and the ruling is to profile a stall in hand
+rather than to go looking for one.
+
 ## THE DEMO SEEDER MINTS A PUBLISHED PROTOCOL NOBODY APPROVED, AND IT BLOCKS 0049
 
 Found 2026-09-16 applying 0049 to development, which refused:
