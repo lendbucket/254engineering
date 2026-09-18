@@ -70,6 +70,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     entry("/structural-engineer", 0.9, "monthly"),
     ...proximityPages.map((p) => entry(`/structural-engineer/${p.slug}`, 0.8, "monthly")),
     entry("/structural-engineer/cost", 0.8, "monthly"),
+    entry("/what-is-a-structural-engineer", 0.8, "monthly"),
     entry("/government", 0.9, "monthly"),
     entry("/careers", 0.8, "monthly"),
     ...openPositions().map((p) => entry(`/careers/${p.slug}`, 0.7, "monthly")),
