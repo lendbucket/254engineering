@@ -83,10 +83,18 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * checks it failed on named the old figure and the new one side by side, which
  * is the whole reason it is a constant rather than a fetch.
  */
-const EXPECTED_FINGERPRINT = "9ea2049c0f7e4fd0028c88048abf9866";
-const EXPECTED_COLUMNS = 1085;
-const EXPECTED_TABLES = 77;
-const EXPECTED_TRIGGERS = 61;
+/*
+ * Moved again 2026-09-18 by 0051, which adds eng_checklist_exceptions and
+ * eng_determinations: two tables, 18 columns, four check constraints and one
+ * trigger. 1,085 to 1,103 is exactly those 18, 77 tables to 79 is the two, and
+ * 61 triggers to 62 is the append only guard on a determination. The behaviour
+ * digest moves to e141b2f324c511c07b1239589e516b42 across 880 facts, read off
+ * the replay rather than predicted.
+ */
+const EXPECTED_FINGERPRINT = "aa53ea353a4128696a23e03feadd1e48";
+const EXPECTED_COLUMNS = 1103;
+const EXPECTED_TABLES = 79;
+const EXPECTED_TRIGGERS = 62;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the

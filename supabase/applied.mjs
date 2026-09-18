@@ -1046,6 +1046,42 @@ export const APPLIED = [
       "facts. NOT YET APPLIED TO DEVELOPMENT EITHER, so no development digest is recorded and none is " +
       "invented, which is the defect this ledger was corrected for on 2026-09-13.",
   },
+
+  {
+    file: "0051_a_job_carries_its_determination.sql", appliedBy: "apply_migration",
+    fingerprint: "aa53ea353a4128696a23e03feadd1e48",
+    behaviour: "e141b2f324c511c07b1239589e516b42",
+    proves: { column: { table: "eng_determinations", name: "relied_on_item_keys" } },
+    production: null,
+    development: { at: "0051", behaviour: null, facts: 880 },
+    because:
+      "PENDING. Tonight's limits forbid production and it has not been applied to development either, " +
+      "so no development digest is recorded and none is invented. " +
+      "WHAT IT ADDS: two tables, 18 columns, four check constraints and one trigger, for the two things " +
+      "a job could not previously carry. " +
+      "eng_checklist_exceptions records an Appendix B item that could NOT be observed, or does not " +
+      "apply, with the reason. Section 7 of the signed protocol says no item is estimated, assumed or " +
+      "left blank, and an evidence table can only record what WAS captured: the absence of a row meant " +
+      "both 'not done yet' and 'could not be done', which is one null meaning two things, the oldest " +
+      "lesson in this repository. The reason is constrained to three characters after trimming, so a " +
+      "technician cannot satisfy the rule with a space bar. " +
+      "eng_determinations records one of Appendix C's five, with relied_on_item_keys and " +
+      "relied_on_evidence_ids NOT NULL and constrained non-empty, because a determination naming " +
+      "nothing it relied on is an opinion with no record behind it and the protocol exists so somebody " +
+      "can be asked years later what the engineer actually looked at. The engineer is named, restricted " +
+      "on delete, and the table carries eng_forbid_mutation_allow_cascade, reusing the function 0001 " +
+      "wrote for this class rather than minting a second answer to one question. " +
+      "NOTHING HERE IS DUPLICATED FROM eng_evidence_items, which has recorded captures with their time, " +
+      "location and accuracy since 0001 and is untouched. " +
+      "AND IT DELIBERATELY DOES NOT ENFORCE COMPLETENESS. 'Complete or properly excepted' is a rule " +
+      "about the protocol's item list, which lives in the signed document and its transcription rather " +
+      "than in the database; Postgres cannot know 254-RC-001 has 51 items nor which apply to a metal " +
+      "roof. A constraint that looked like it enforced completeness and did not would be worse than " +
+      "none, so the rule is enforced against the registry in the library and this schema makes the " +
+      "evidence of it recordable and unforgeable. " +
+      "Replayed and read back: shape aa53ea353a4128696a23e03feadd1e48 across 1,103 columns and 79 " +
+      "tables, 62 triggers, behaviour e141b2f324c511c07b1239589e516b42 across 880 facts.",
+  },
 ];
 
 /**
