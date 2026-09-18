@@ -59,6 +59,50 @@ would agree because one was copied from the other.
 red, it is red for a reason written down here, and the reason is not that
 somebody forgot.
 
+## THE ROOF PAGE PROMISES REMAINING SERVICE LIFE AND THE PROCESS PAGE REFUSES IT
+
+Found 2026-09-18 while retargeting the roof page. **Two of the operator's own
+sources disagree about what the firm will put a seal on, and this is not a
+wording difference.**
+
+`src/content/services.ts` says a roof certification states remaining service
+life, in six places, including the deliverable itself:
+
+> a signed and sealed letter ... stating the scope of the inspection, the
+> conditions observed, **the opinion of remaining service life**, and the
+> limitations that opinion carries
+
+and it names, as a buyer, "lenders and loan officers who need remaining service
+life stated before a file can close".
+
+`docs/254-site-copy.md`, which the operator approved and which `/process` now
+renders, says the opposite in as many words:
+
+> It does not estimate how many years are left. It does not forecast future
+> performance ... an engineer who tells you otherwise is telling you something
+> he cannot stand behind.
+>
+> If your carrier requires a remaining life figure, call us before you order.
+
+**BOTH ARE HIS AND THE NEWER ONE IS EXPLICIT**, which is why this was not
+resolved by a session at three in the morning. It is a claim about what may be
+sealed, which the standing rules reserve to the operator, and resolving it
+changes what the firm sells: if the process page is right, a carrier asking for
+a remaining life figure is told no, and one named buyer segment on the roof page
+goes with it.
+
+**What was done and what was not.** The nine service descriptions had "Join the
+waitlist" as their call to action and that is ruled out, so all nine now read
+"See the price"; every one stayed inside the 140 to 160 character budget. The
+roof page was retargeted onto "roof certification" using the approved copy's own
+H1. **The remaining service life claims were left exactly as they are**, because
+changing six sentences about what an engineer will opine on is not a
+retargeting decision.
+
+**The ruling needed:** does a roof certification from this firm state remaining
+service life, or only observed condition? Whichever it is, one of the two
+documents is wrong and should be corrected rather than left to disagree.
+
 ## THE SITE REBUILD: APPROVED COPY, RETARGETED KEYWORDS, AND THE GATE UNDER IT
 
 Opened 2026-09-17. Three documents, each carrying open work, pointed at from

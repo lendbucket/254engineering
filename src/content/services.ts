@@ -47,10 +47,10 @@ export const services: Service[] = [
     slug: "roof-inspections",
     name: "Roof Inspections and Certifications",
     shortName: "Roof Certifications",
-    h1: "Roof Inspections and Certifications in Texas",
-    title: "Roof Inspection and Certification | 254 Engineering",
+    h1: "Roof Certification in Texas, Sealed by a Licensed Engineer",
+    title: "Roof Certification in Texas, Sealed | 254 Engineering",
     description:
-      "A roof certification is a sealed engineering opinion on condition and remaining service life. What the inspection covers and who orders one. Join the waitlist.",
+      "A roof certification is a sealed engineering opinion on condition and remaining service life. What the inspection covers and who orders one. See the price.",
     summary:
       "A sealed engineering opinion on the condition of a roof and the service life it can reasonably be expected to have left, issued after a documented field inspection.",
     what: [
@@ -103,7 +103,7 @@ export const services: Service[] = [
     h1: "Windstorm WPI-8 Certifications in Texas",
     title: "Texas Windstorm WPI-8 Certification | 254 Engineering",
     description:
-      "How WPI-8 windstorm certification works on the Texas coast, which counties require one, and what a TDI appointed engineer inspects. Join the waitlist.",
+      "How WPI-8 windstorm certification works on the Texas coast, which counties require one, and what a TDI appointed engineer inspects. See the price.",
     summary:
       "The windstorm certificate of compliance required in the Texas coastal catastrophe area, inspected and submitted by an engineer appointed by the Texas Department of Insurance.",
     what: [
@@ -156,7 +156,7 @@ export const services: Service[] = [
     h1: "Foundation Inspections and Certifications in Texas",
     title: "Foundation Inspection and Certification | 254 Engineering",
     description:
-      "A sealed engineering opinion on how a foundation is performing, based on floor elevation measurement and a documented site inspection. Join the waitlist.",
+      "A sealed engineering opinion on how a foundation is performing, based on floor elevation measurement and a documented site inspection. See the price.",
     summary:
       "A sealed engineering opinion on how a foundation is performing, supported by floor elevation measurement and a documented inspection of the structure, the drainage, and the site.",
     what: [
@@ -209,7 +209,7 @@ export const services: Service[] = [
     h1: "Solar Structural Letters for Texas Installations",
     title: "Solar Structural Engineering in Texas | 254 Engineering",
     description:
-      "The sealed structural review a Texas jurisdiction requires before a rooftop solar permit, covering framing capacity and wind loading. Join the waitlist.",
+      "The sealed structural review a Texas jurisdiction requires before a rooftop solar permit, covering framing capacity and wind loading. See the price.",
     summary:
       "The sealed structural review most Texas jurisdictions require before a rooftop solar permit is issued: framing capacity, attachment detail, and wind loading for the site.",
     what: [
@@ -257,7 +257,7 @@ export const services: Service[] = [
     h1: "What Lenders Require on a Manufactured Home Foundation",
     title: "Manufactured Home Foundation Certification | 254 Engineering",
     description:
-      "The engineer's foundation certification an FHA, VA, or USDA loan requires on a manufactured home in Texas, and what it confirms. Join the waitlist.",
+      "The engineer's foundation certification an FHA, VA, or USDA loan requires on a manufactured home in Texas, and what it confirms. See the price.",
     summary:
       "The engineer's foundation certification required before an FHA, VA, or USDA loan will close on a manufactured home, measured against the HUD permanent foundations guide.",
     what: [
@@ -310,7 +310,7 @@ export const services: Service[] = [
     h1: "Structural Letters for Permits in Texas",
     title: "Structural Letters for Texas Permits | 254 Engineering",
     description:
-      "The sealed structural letter a Texas building department requires for wall removal, beam sizing, and small structural alterations. Join the waitlist.",
+      "The sealed structural letter a Texas building department requires for wall removal, beam sizing, and small structural alterations. See the price.",
     summary:
       "The sealed letter a building department asks for when an alteration affects structure: wall removal, a new opening, a header or beam, or a change a plans examiner has questioned.",
     what: [
@@ -359,7 +359,7 @@ export const services: Service[] = [
     h1: "Engineered Repair Specifications in Texas",
     title: "Engineered Repair Specifications | 254 Engineering",
     description:
-      "A sealed repair specification defines what is repaired and how, so contractors bid the same scope and a building department can permit it. Join the waitlist.",
+      "A sealed repair specification defines what is repaired and how, so contractors bid the same scope and a building department can permit it. See the price.",
     summary:
       "A sealed document that defines exactly what is repaired and how it is repaired, so every contractor bids the same scope and a building department can permit the work.",
     what: [
@@ -408,7 +408,7 @@ export const services: Service[] = [
     h1: "Residential and Light Commercial Design in Texas",
     title: "Residential and Light Commercial Design | 254 Engineering",
     description:
-      "Sealed structural design for Texas homes, additions, and light commercial buildings: foundations for expansive soil and framing plans. Join the waitlist.",
+      "Sealed structural design for Texas homes, additions, and light commercial buildings: foundations for expansive soil and framing plans. See the price.",
     summary:
       "Sealed structural design for homes, additions, and light commercial buildings: foundation design for the soil on site, framing plans, and drawings a permit office can review.",
     what: [
@@ -457,7 +457,7 @@ export const services: Service[] = [
     h1: "Forensic and Insurance Engineering in Texas",
     title: "Forensic and Insurance Engineering | 254 Engineering",
     description:
-      "Independent engineering investigation into the cause and extent of damage to a structure, documented to one standard for every party. Join the waitlist.",
+      "Independent engineering investigation into the cause and extent of damage to a structure, documented to one standard for every party. See the price.",
     summary:
       "Independent investigation into the cause and extent of damage to a structure, documented to one standard whichever party asked the question.",
     what: [
