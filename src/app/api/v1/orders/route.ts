@@ -4,7 +4,7 @@ import { previewBatch, placeBatch, accountBalance } from "@/lib/ops-bulk";
 import { startBatchCheckout } from "@/lib/ops-payments";
 import { accountDefaults } from "@/lib/ops-account";
 import { supabaseAdmin, SITE_KEY } from "@/lib/supabase";
-import { isPrelaunch, notYetAcceptingEngagements } from "@/lib/launch";
+import { isOpen, notYetAcceptingEngagements } from "@/lib/launch";
 import type { BulkProperty } from "@/lib/bulk-order";
 import { tradePriceInForce } from "@/lib/trade-pricing";
 
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
    * the API exactly as it applies to the website: no order of any kind while
    * registration is pending.
    */
-  if (isPrelaunch()) {
+  if (!isOpen()) {
     return answer(409, {
       ok: false,
       error: notYetAcceptingEngagements(),

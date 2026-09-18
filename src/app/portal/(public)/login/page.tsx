@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { registrationStatement } from "@/lib/launch";
+import { registrationLine } from "@/lib/launch";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { currentActor } from "@/lib/ops-auth";
 import { homeFor } from "@/lib/ops-authz";
@@ -110,7 +110,7 @@ export default async function PortalLoginPage({
         </div>
 
         <p className="mt-4 text-center text-[12px] leading-[1.6] text-[var(--secondary)] sm:mt-5">
-          {registrationStatement()} No engineer of record is yet in responsible charge.
+          {registrationLine()}
         </p>
       </div>
     </main>

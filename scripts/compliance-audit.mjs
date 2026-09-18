@@ -73,6 +73,7 @@ console.log("");
 const {
   verifiedFirmRegistrations,
   verifiedEngineers,
+  verifiedCredentials,
   operatingNameOnBoardRecord,
   legalEntityMatchesRegistrant,
   secretaryOfStateAmendment,
@@ -261,6 +262,150 @@ const {
   );
 }
 
+/* ------- 0c. no credential is asserted unless the register holds it, dated */
+
+/*
+ * OPERATOR RULING, 2026-09-17, AFTER THE SAM FINDING.
+ *
+ * Nothing on this site asserts a registration, a certification or an
+ * appointment unless `verifiedCredentials` holds it, with a date somebody
+ * checked it and a reference a reader could check it against.
+ *
+ * WHY THE PATTERNS INCLUDE THE NEGATIVE AND THE "IN PROGRESS" FORMS, which is
+ * the half that would otherwise be lost. The SAM defect was a boolean whose
+ * TRUE branch said "registered" and whose FALSE branch said "registration is in
+ * progress". Switching the flag off would have replaced a false claim with a
+ * different false claim, because a registration that has not been started is
+ * not in progress. A check that only refused the word "registered" would have
+ * passed the repaired site.
+ *
+ * WHY THE REGISTER ITSELF IS THE ONLY EXEMPTION, asserted rather than assumed.
+ * The register has to name SAM in order to record that the firm does NOT hold
+ * it, which is the ruling: the record says why nothing renders. Every other
+ * file under src is refused, and comments are stripped first, so the paragraphs
+ * explaining this removal do not trip the check that enforces it.
+ */
+{
+  const CREDENTIAL_CLAIMS = [
+    { pattern: /SAM\.gov/i, what: "a SAM.gov registration" },
+    { pattern: /\bSAM registered\b/i, what: "a SAM registration" },
+    { pattern: /System for Award Management/i, what: "a SAM registration" },
+    { pattern: /\bCAGE code\b/i, what: "a CAGE code" },
+    { pattern: /Unique Entity Identifier/i, what: "a Unique Entity Identifier" },
+    { pattern: /\bSDVOSB\b/i, what: "an SDVOSB certification" },
+    {
+      pattern: /Service Disabled Veteran Owned Small Business/i,
+      what: "an SDVOSB certification",
+    },
+    {
+      pattern: /registration is in progress|registration in progress/i,
+      what: "a registration said to be under way",
+    },
+  ];
+
+  /* The register is the one file allowed to name a credential the firm lacks. */
+  const REGISTER = "src/config/credentials.ts";
+
+  const { readdirSync: rd2, statSync: st2 } = await import("node:fs");
+  const files = [];
+  const walk = (dir) => {
+    for (const name of rd2(dir)) {
+      const full = `${dir}/${name}`;
+      if (st2(full).isDirectory()) walk(full);
+      else if (/\.(ts|tsx)$/.test(name)) files.push(full);
+    }
+  };
+  walk("src");
+  walk("data");
+
+  const offenders = [];
+  for (const file of files) {
+    if (file === REGISTER) continue;
+    const code = codeOnly(readSource(file));
+    for (const claim of CREDENTIAL_CLAIMS) {
+      if (claim.pattern.test(code)) offenders.push(`${file} asserts ${claim.what}`);
+    }
+  }
+
+  rec(
+    "no source outside the register asserts a credential, including as in progress",
+    offenders.length === 0,
+    offenders.join("; ") || `${files.length} files scanned, ${CREDENTIAL_CLAIMS.length} claim shapes`,
+  );
+
+  /*
+   * The register's own shape. A held credential with no identifier and no
+   * reference is the thing this ruling exists to prevent: a claim with an edit
+   * point rather than a claim somebody checked.
+   */
+  const unverifiable = verifiedCredentials.filter(
+    (c) => c.held && (!c.identifier || !c.reference || !/^\d{4}-\d{2}-\d{2}$/.test(c.verifiedOn)),
+  );
+  rec(
+    "every credential the register holds carries an identifier, a date and a reference",
+    unverifiable.length === 0,
+    unverifiable.map((c) => c.name).join("; ") ||
+      `${verifiedCredentials.filter((c) => c.held).length} held, ${verifiedCredentials.length} recorded`,
+  );
+
+  /*
+   * And the one that is NOT held is recorded rather than deleted, with a date
+   * and a reason, which is the operator's ruling. A credential that vanishes
+   * from the record is one the next session re-adds by hand.
+   */
+  const sam = verifiedCredentials.find((c) => /SAM/i.test(c.name));
+  rec(
+    "SAM is recorded as not held, with the date somebody established that and why",
+    Boolean(sam) &&
+      sam.held === false &&
+      /^\d{4}-\d{2}-\d{2}$/.test(sam.verifiedOn) &&
+      sam.verified.length > 80,
+    sam ? `held ${sam.held}, established ${sam.verifiedOn}` : "no SAM record in the register",
+  );
+
+  /*
+   * THE TDI APPOINTMENT, WHICH THE RULING NAMES, AND WHY THIS ONE IS ASSERTED
+   * RATHER THAN BANNED.
+   *
+   * The windstorm pages disclose that no engineer here holds a Texas Department
+   * of Insurance windstorm appointment. That disclosure is owed: a WPI-8 on
+   * ongoing construction is inspected by an appointed engineer, so a reader on
+   * that page needs it before they enquire. Banning the phrase the way SAM is
+   * banned would delete the disclosure and call it compliance.
+   *
+   * So the check reads the REGISTER and requires the render to agree with it,
+   * in whichever direction the register points. Not held means the sentence
+   * must be there. Held means it must be gone, because a firm that has the
+   * appointment and still says it does not is telling a different lie.
+   */
+  const tdi = verifiedCredentials.find((c) => /TDI|Department of Insurance/i.test(c.issuer + c.name));
+  const windstorm = readSource("src/content/windstorm-program.ts");
+  const disclosesAbsence = windstorm.includes(
+    "does not currently hold a Texas Department of Insurance windstorm appointment",
+  );
+  rec(
+    tdi && !tdi.held
+      ? "the windstorm pages disclose that no TDI appointment is held, because the register says none is"
+      : "the windstorm pages no longer disclose an absent TDI appointment, because the register holds one",
+    Boolean(tdi) && (tdi.held ? !disclosesAbsence : disclosesAbsence),
+    tdi
+      ? `register: held ${tdi.held}; page discloses the absence: ${disclosesAbsence}`
+      : "no TDI record in the register, so nothing decides what the page should say",
+  );
+
+  /*
+   * The retired declaration cannot come back. Same shape as the
+   * TBPELS_PE_LICENSE check above it, and for the same reason: the defect was
+   * one fact with a home nobody was checking.
+   */
+  const readsRetired = files.filter((f) => codeOnly(readSource(f)).includes("samRegistration"));
+  rec(
+    "no source reads the retired samRegistration declaration",
+    readsRetired.length === 0,
+    readsRetired.join("; ") || "retired 2026-09-17, recorded in src/config/business.ts",
+  );
+}
+
 /* ------------------------------------------------ 1. the register, in one place */
 
 {
@@ -411,10 +556,27 @@ const {
       !new RegExp(`${FIRM_NUMBER}[^.]{0,40}${TRADING_AS}`).test(line),
     `the board has no record of "${TRADING_AS}", so its number may not appear beside it`,
   );
+  /*
+   * AND IT NO LONGER CONFESSES, WHICH IS THE OPERATOR'S RULING OF 2026-09-17.
+   *
+   * This check used to assert the footer SAID "no engineer of record is in
+   * responsible charge". That sentence was true and had to be there for as long
+   * as it was true. An engineer of record is now on the register, active, so
+   * asserting the confession would be asserting that the firm keeps saying
+   * something false about itself.
+   *
+   * WHAT REPLACES IT IS STRICTER RATHER THAN ABSENT, and that is the point: a
+   * check that is deleted when the thing it guarded becomes true leaves the
+   * surface unguarded. The footer states the registrant and the number and
+   * NOTHING ELSE, which is what the operator asked for, so this asserts the
+   * absence of the two sentence shapes that would put a claim back into it.
+   */
   rec(
-    "and still says no engineer of record is in responsible charge",
-    /no engineer of record/i.test(line),
-    "a registration alone does not let a firm seal anything, and the footer says so",
+    "and states the registration without confessing or claiming anything else",
+    !/no engineer of record/i.test(line) &&
+      !/not (yet )?(offering|performing|accepting)/i.test(line) &&
+      !/opening soon/i.test(line),
+    line.slice(0, 96),
   );
 
   /*
@@ -530,6 +692,41 @@ const {
    *
    * Found by looking at a screenshot. Checked here so it cannot come back.
    */
+  /*
+   * AND THE TWO SURFACES THIS CHECK DID NOT COVER, WHERE THE SAME DEFECT CAME
+   * BACK. Operator ruling, 2026-09-17: extend the check or the sentence returns
+   * a third time.
+   *
+   * CLAUDE.md records the 2026-09-12 defect: the portal sidebar carried "No
+   * engineer of record is yet in responsible charge." as a literal, and it went
+   * on saying pending to the firm's own staff for a day after TBPELS issued.
+   * The fix asserted that the SIDEBAR renders registrationLine() and carries no
+   * sentence of its own.
+   *
+   * /portal/login and /portal/set-password carried the identical literal and
+   * were never covered, so when the engineer of record became real on
+   * 2026-09-17 both screens went on telling every person signing in that there
+   * was no engineer. Found by sweeping the source for the sentence rather than
+   * by any check.
+   *
+   * The general form, which is why this is worth eleven lines: a check written
+   * against the surface where a defect was FOUND protects that surface. The
+   * defect belongs to the SENTENCE, and the sentence can live anywhere.
+   */
+  for (const screen of [
+    "src/app/portal/(public)/login/page.tsx",
+    "src/app/portal/(public)/set-password/page.tsx",
+  ]) {
+    const src = codeOnly(readSource(screen));
+    rec(
+      `${screen.split("/").slice(-2)[0]} states the registration through the deriver and carries no compliance sentence of its own`,
+      src.includes("registrationLine()") &&
+        !/no engineer of record/i.test(src) &&
+        !/registration (is )?pending/i.test(src),
+      screen,
+    );
+  }
+
   const portalLayout = codeOnly(readSource("src/app/portal/(app)/layout.tsx"));
   rec(
     "the portal rail renders the registration line rather than its own sentence",
@@ -618,7 +815,24 @@ const {
 const RULED_CONDITIONS = [
   "switch",
   "registration",
-  "operating-name",
+  /*
+   * THE NINTH, AND A RENAME, BOTH ON 2026-09-17, AND BOTH COST TWO EDITS ON
+   * PURPOSE.
+   *
+   * `operating-name` became `trading-name`. It used to gate everything on
+   * whether the board held the name the firm trades under; it now decides which
+   * NAME the trading copy uses and blocks nothing, because `firmName()` derives
+   * the name from the board's own record and the hole it guarded is filled by
+   * construction. Renaming it here is the second of the two edits, which is the
+   * mechanism this list exists to impose.
+   *
+   * `engineer-of-record` is new. It was never a condition, and the reason is
+   * worth keeping: `peInResponsibleCharge()` returned false whenever the gate
+   * was shut, so a condition built on it would have been false BECAUSE the gate
+   * was shut. That circularity was removed in the same commit that added this.
+   */
+  "trading-name",
+  "engineer-of-record",
   "stripe",
   "protocols",
   "phone",

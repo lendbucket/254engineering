@@ -1,6 +1,6 @@
 import { cell } from "./csv";
 import { can, type Actor, type Action, type LicensedAction, may } from "./ops-authz";
-import { isPrelaunch } from "./launch";
+import { isOpen } from "./launch";
 import type { FileStatus } from "./ops-files";
 
 /**
@@ -170,7 +170,7 @@ export function canReview(
     };
   }
 
-  const prelaunch = now.prelaunch ?? isPrelaunch();
+  const prelaunch = now.prelaunch ?? !isOpen();
   if (prelaunch && action === "seal") {
     return {
       ok: false,

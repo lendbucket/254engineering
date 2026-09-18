@@ -1,5 +1,5 @@
 import "server-only";
-import { isPrelaunch } from "./launch";
+import { isOpen } from "./launch";
 import { business } from "@/config/business";
 import { queueEmail } from "./ops-jobs";
 import { launchAnnouncement } from "./email-templates";
@@ -54,7 +54,7 @@ export type Recipient = { name: string; email: string };
  * queueing mail.
  */
 export function announcementBlockedReason(): string | null {
-  if (isPrelaunch()) {
+  if (!isOpen()) {
     return (
       "The firm is not yet accepting engagements. The launch announcement says the firm is open for orders, which is a present " +
       "tense service claim and is not true today. It cannot be sent until the gate lifts."

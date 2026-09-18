@@ -1,4 +1,4 @@
-import { business, samRegistration } from "@/config/business";
+import { business } from "@/config/business";
 import { services } from "@/content/services";
 import { regions } from "@/content/regions";
 import { registrationLine, registrationStatement } from "@/lib/launch";
@@ -53,10 +53,6 @@ Texas has 254 counties, more than any other state, and they are not one place. A
 - Legal entity: ${business.legalName}, a Texas limited liability company.
 - Texas engineering firm registration: see current status above.
 - Veteran ownership: veteran owned at entity level.
-- SDVOSB certification: pending. The firm is not currently certified and does not represent itself as an SDVOSB for set aside purposes.
-- SAM.gov registration: ${samRegistration.registered ? "registered" : "in progress"}.
-- Unique Entity Identifier: ${samRegistration.uei ?? "not published; available to a contracting officer on request."}
-- CAGE code: ${samRegistration.cage ?? "not published; available to a contracting officer on request."}
 - NAICS codes: ${business.naics.map((n) => `${n.code} (${n.label})`).join(", ")}.
 - Procurement posture: qualifications based selection under Texas Government Code Chapter 2254. On-call, task order, and indefinite delivery agreements suit the model. No price-led proposals for professional engineering services.
 `);
@@ -79,11 +75,7 @@ ${service.whoOrders.map((w) => `- ${w}`).join("\n")}
 ### The deliverable
 
 ${service.deliverable.map((d) => `- ${d}`).join("\n")}
-
-### Turnaround
-
-${turnaroundCopy(service.turnaround)}
-
+${turnaroundCopy(service.turnaround) ? `\n### Turnaround\n\n${turnaroundCopy(service.turnaround)}\n` : ""}
 ### Questions
 
 ${service.faqs.map((f) => `Q: ${f.q}\nA: ${f.a}`).join("\n\n")}

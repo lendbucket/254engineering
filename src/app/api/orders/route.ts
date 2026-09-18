@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { placeOrder, requestQuote, siteFromKey } from "@/lib/ops-intake";
 import { startCheckout } from "@/lib/ops-payments";
-import { isPrelaunch, notYetAcceptingEngagements } from "@/lib/launch";
+import { isOpen, notYetAcceptingEngagements } from "@/lib/launch";
 
 export const dynamic = "force-dynamic";
 
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
    * are: a preview configured to take orders and quietly refusing them looks
    * identical from outside to one nobody configured.
    */
-  if (isPrelaunch()) {
+  if (!isOpen()) {
     console.error(
       "[orders] refused: the compliance gate is closed on this deployment. LAUNCH_MODE is not live.",
     );

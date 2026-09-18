@@ -27,6 +27,78 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
+## `launch-audit` IS KNOWINGLY RED, AND REWRITING IT BEFORE THE COPY EXISTS WOULD BE WORSE
+
+Opened 2026-09-17, as a disclosed judgement rather than an omission.
+
+`launch-audit` runs the site in each mode and asserts what that mode must say,
+must not say, and may never say. Eight of its assertions went red when the gate
+became three states, and every one of them is a PRELAUNCH expectation the
+operator has ruled out of existence:
+
+    prelaunch: every service surface carries the opening soon treatment
+    prelaunch: every service surface routes its CTA to the waitlist
+    prelaunch: every page states plainly that no engineer of record is in place
+
+**Two separate problems, and only one of them is about assertions.**
+
+**It can no longer REACH prelaunch.** It forced the mode with
+`LAUNCH_MODE=prelaunch`, and that variable now gates `open` alone. Reaching
+prelaunch means making a TRADING condition unmet, which is a register patch in a
+child process, the mirror of what `withGateConditionsMet` already does to open
+the gate. That is real work and it is the smaller half.
+
+**The larger half is that its trading assertions do not exist yet.** The audit's
+whole job is to assert what each mode must SAY. The trading copy is Part 3 and
+has not been written. Rewriting the audit first would mean inventing the
+sentences in the audit and then writing pages to match them, which is the
+audit-imports-its-expectation defect built deliberately: the check and the copy
+would agree because one was copied from the other.
+
+**So it is rewritten after Part 3, against copy that exists.** Until then it is
+red, it is red for a reason written down here, and the reason is not that
+somebody forgot.
+
+## THE SITE REBUILD: APPROVED COPY, RETARGETED KEYWORDS, AND THE GATE UNDER IT
+
+Opened 2026-09-17. Three documents, each carrying open work, pointed at from
+here rather than copied.
+
+**`docs/254-site-copy.md`** is the approved copy the rebuild is written against,
+supplied by the operator. Three placeholders in it are blank on purpose and are
+owed by him: the turnaround per service line, the price per line, and the
+expanded five steps on the process page. Turnaround renders as nothing until he
+supplies it, because inventing one is forbidden.
+
+**`docs/254-seo-revision.md`** supersedes the keyword targeting. Where the two
+disagree, the revision wins on which page leads with which term and the copy
+wins on voice.
+
+**`docs/keyword-mapping.md`** maps the eleven keyword targets against the pages
+that exist. It carries **two items the operator owes a ruling on**.
+
+The first is a conflict with standing law. The SEO revision's target 11 asks each
+coverage page to lead with "structural engineer <city>", and CLAUDE.md section 5
+forbids city geo pages outright as the doorway trap, with `/corpus-christi` the
+one deliberate exception because the firm is there. The coverage pages are the
+eight REGIONS, not cities. CLAUDE.md outranks a build prompt, so no city page was
+minted; the proposal is that regions take "structural engineer <region>",
+`/corpus-christi` honestly takes its city term, and Houston, Dallas, San Antonio
+and Austin wait for a ruling.
+
+The second is a collision inside the TWIA cluster: `/windstorm/twia-coverage` and
+ten insights articles both want "twia" at 1,500 a month. The proposal is that the
+articles keep the informational terms and the service page keeps the
+transactional ones, checked page by page during the build.
+
+**`docs/gate-call-sites.md`** is the enumeration of all 41 `isPrelaunch()` sites
+classified before the boolean became three states, and the eleven dependants of
+`peInResponsibleCharge()`. It carries one item still needing a ruling:
+`src/lib/partner-copy.ts:97` applies the REGULATED voice patterns only while
+prelaunch, so under `trading` the check switches itself off at exactly the moment
+the copy starts making present tense claims. It needs rewriting rather than
+reclassifying, and it was flagged rather than changed.
+
 ## ELEVEN TRADE FLOORS AWAIT A RULING, AND NOTHING SELLS AT TRADE PRICING UNTIL THEY DO
 
 Phase 13 Section 2, 2026-09-14. Full reasoning in
@@ -5591,20 +5663,44 @@ Not fixed: it is a portal screen on the money path's edge, outside the roof
 protocol scope this branch is for, and it wants a ruling on whether the list
 may be paged or the counts derived differently.
 
-**IT IS INTERMITTENT, AND THE COUNT IS THREE. Operator ruling, 2026-09-17.**
+**IT IS INTERMITTENT, AND THE COUNT IS FOUR. Operator ruling, 2026-09-17.**
 
 | Board | Tree | `/portal/accounts` |
 | --- | --- | --- |
 | `feat/roof-protocol`, first | before the rebase | **stall**, 45s timeout, 0 refusals |
 | `main`, after the overnight merge | `62a1b63` | **clean**, measured at every width |
 | `feat/roof-protocol`, rebased | onto `62a1b63` | **stall** at 360 and 390, 0 refusals |
+| `main`, after the roof merge | `6e7df88` | **stall** at 360 and 390, 0 refusals |
 
-**Nothing was fixed between the second and the third.** The fifty seconds in the
+**One clean run in four, and nothing was changed between any of them.** It is
+worth saying which way round that is, because "it fails sometimes" and "it works
+sometimes" are the same observation with different implications for a customer:
+three of four boards could not load the screen at all inside 45 seconds. The
+fifty seconds in the
 evidence above was read off the server's own log and is real; what is now known
 is that it does not happen every run. A count of three is recorded here and **no
 theory is attached to it**, because the `accountRows()` hypothesis above is still
 a hypothesis and a second unverified explanation would only make the first harder
 to dislodge.
+
+**AND `/portal/clients` IS THE SAME FAMILY, FOUND 2026-09-17 BY `native-audit`.**
+Operator ruling: record it here rather than fix it tonight.
+
+    FAIL: /portal/clients: the list is bounded (255 row(s))
+
+**255 rows rendered into one screen, unbounded.** It is not the same symptom as
+its neighbour, which times out rather than returning, and it is the same
+underlying shape: a portal list that renders everything the database has because
+nobody decided what it should render instead. The queue screen already cost this
+repository a 38,744 pixel page for the same reason, and that one was found by
+opening a screenshot rather than by a check.
+
+**Not fixed tonight, and the reason is the operator's.** A screen nobody has
+profiled does not get a `.limit()` bolted onto it at two in the morning, because
+the figures on these screens are billed on and a bounded read reported as a
+total is the defect this file already records twice. It wants the same treatment
+as its neighbour: a measurement first, then a ruling on whether the list pages
+or the counts are derived differently.
 
 **WHAT THE INTERMITTENCY CHANGES IS THE PROFILE, WHICH IS WHY IT IS WORTH
 RECORDING RATHER THAN SHRUGGING AT.** A deterministic stall can be instrumented

@@ -1,5 +1,5 @@
 import { Container } from "@/components/ui/Container";
-import { business, samRegistration } from "@/config/business";
+import { business } from "@/config/business";
 import { peInResponsibleCharge, registrationStatement, tbpelsFirmNumber } from "@/lib/launch";
 
 /**
@@ -34,27 +34,32 @@ export function CredentialsStrip() {
         ? "A licensed Texas Professional Engineer is in responsible charge"
         : "No engineer of record is yet in responsible charge. No work is being sealed",
     },
-    {
-      label: "Ownership",
-      value: "Veteran owned",
-    },
-    {
-      label: "Federal contracting",
-      value: samRegistration.registered
-        ? "Registered in SAM.gov for federal and state contracting"
-        : "SAM.gov registration in progress",
-    },
-    {
-      label: "Small business status",
-      value: "Service Disabled Veteran Owned Small Business certification pending",
-    },
+    /*
+     * THREE OF THE FIVE CAME OUT ON 2026-09-17, AND THE REASONS DIFFER.
+     *
+     * "Federal contracting" asserted a SAM.gov registration the firm has never
+     * held, and its false branch said "registration in progress", which asserts
+     * one has been started. Both are untrue, so the line is gone rather than
+     * switched.
+     *
+     * "Small business status" said an SDVOSB certification was pending. The
+     * firm has not applied. The careful sentence on /government that followed
+     * it, saying the firm does not represent itself as an SDVOSB for set aside
+     * purposes, went with it: nobody writes a disclaimer about a status they
+     * have no relationship with, so the pair still reads as a claim.
+     *
+     * "Ownership: Veteran owned" is TRUE and came out anyway. This strip is
+     * labelled as credentials in its own accessible name, and a true fact about
+     * the owner sitting in a credential list is read as a credential. It is now
+     * prose on /about, where it says the same thing and claims nothing.
+     */
   ];
 
   return (
     <section aria-label={`${business.name} credentials`} className="border-b border-limestone-line">
       <Container>
         <div className="py-12 sm:py-14">
-          <ul className="grid gap-8 sm:grid-cols-2 lg:grid-cols-5 lg:gap-8">
+          <ul className="grid gap-8 sm:grid-cols-2 lg:gap-8">
             {items.map((item) => (
               <li key={item.label}>
                 <span aria-hidden="true" className="block h-px w-8 bg-brass" />

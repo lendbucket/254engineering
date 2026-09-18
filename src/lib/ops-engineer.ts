@@ -7,7 +7,7 @@ import { can, type Actor, holdsLicence, licenceRefusal } from "./ops-authz";
 import { transitionFile } from "./ops-crm";
 import { jobView } from "./ops-field";
 import { raise } from "./ops-notify";
-import { isPrelaunch } from "./launch";
+import { isOpen } from "./launch";
 import {
   ACTION_TARGET,
   canReview,
@@ -362,7 +362,7 @@ export async function decideReview(
     assignedEngineerId: actor.id,
   };
 
-  const verdict = canReview(actor, subject, action, reason, { prelaunch: isPrelaunch() });
+  const verdict = canReview(actor, subject, action, reason, { prelaunch: !isOpen() });
   if (!verdict.ok) return { ok: false, error: verdict.reason };
 
   const now = new Date();

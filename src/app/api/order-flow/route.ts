@@ -3,7 +3,7 @@ import { placeOrder, requestQuote } from "@/lib/ops-intake";
 import { startCheckout } from "@/lib/ops-payments";
 import { signOrderUpload } from "@/lib/order-uploads";
 import { SITE_KEY } from "@/lib/supabase";
-import { isPrelaunch, notYetAcceptingEngagements } from "@/lib/launch";
+import { isOpen, notYetAcceptingEngagements } from "@/lib/launch";
 import { attributeOrder, VISITOR_COOKIE } from "@/lib/ops-partners";
 
 export const dynamic = "force-dynamic";
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
    * say one clear thing to a person; there because that is where it is actually
    * enforced.
    */
-  if (isPrelaunch()) {
+  if (!isOpen()) {
     return NextResponse.json(
       {
         ok: false,

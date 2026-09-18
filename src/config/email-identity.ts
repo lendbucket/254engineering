@@ -1,4 +1,5 @@
 import { business } from "./business";
+import { postalAddressLine } from "./contact";
 
 /**
  * Who each outbound email comes from, and who signs it.
@@ -144,6 +145,18 @@ export function signatureLines(): string[] {
  * omits the line rather than rendering an empty row.
  */
 export function mailingAddressLine(): string | null {
-  const raw = process.env.MAIL_FROM_ADDRESS_LINE?.trim();
-  return raw && raw.length > 0 ? raw : null;
+  /*
+   * DERIVED, NOT A SECOND HOME. Operator ruling, 2026-09-18: one source for the
+   * firm's address, derived everywhere, the same as the phone and the firm
+   * name.
+   *
+   * This read MAIL_FROM_ADDRESS_LINE, which was the firm's address written out
+   * as a sentence in an environment variable, while `contact.street` and
+   * friends held the same fact for the schema node. Both were empty, so they
+   * could not disagree, which is exactly how this defect hides: the PE licence
+   * number was harmless for the same reason until a real number was recorded.
+   *
+   * MAIL_FROM_ADDRESS_LINE is retired in src/config/credential-inventory.ts.
+   */
+  return postalAddressLine();
 }

@@ -6,7 +6,7 @@ import { startCheckout } from "./ops-payments";
 import { queueEmail } from "./ops-jobs";
 import { jobPaymentLink } from "./email-templates";
 import { money } from "./ops-money";
-import { isPrelaunch, serviceLineIsOffered } from "./launch";
+import { isOpen, serviceLineIsOffered } from "./launch";
 import { catalogFor, orderBlockedReason } from "@data/catalog";
 import { referenceForCustomer } from "./ops-files";
 import { paymentOptions } from "./job-intake-rules";
@@ -250,7 +250,7 @@ function termsGap(file: FileForBilling): string | null {
  * happen, so a hand crafted request reaches the same refusal a person sees.
  */
 function refusedBecause(intent: "link_sent" | "invoiced", accountCanInvoice: boolean, priced: boolean) {
-  const option = paymentOptions({ prelaunch: isPrelaunch(), accountCanInvoice, priced }).find(
+  const option = paymentOptions({ prelaunch: !isOpen(), accountCanInvoice, priced }).find(
     (o) => o.intent === intent,
   );
   return option?.available ? null : (option?.because ?? "That payment route is not available.");
