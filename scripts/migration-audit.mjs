@@ -72,9 +72,20 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  *
  * Changed by a person who noticed, which is what this constant is for.
  */
-const EXPECTED_FINGERPRINT = "4004dc9066393203e04dc717db979596";
-const EXPECTED_COLUMNS = 1059;
-const EXPECTED_TABLES = 76;
+/*
+ * Moved again 2026-09-18 by 0050, which adds eng_design_inquiries: one table,
+ * 26 columns and four check constraints. 1,059 to 1,085 is exactly those 26,
+ * and 76 tables to 77 is the one. The behaviour digest moves to
+ * 61cea197e8bde99fdae5c2ca7c2ae1a1 across 863 facts, read off the replay rather
+ * than predicted.
+ *
+ * Changed by a person who noticed, which is what this constant is for. The four
+ * checks it failed on named the old figure and the new one side by side, which
+ * is the whole reason it is a constant rather than a fetch.
+ */
+const EXPECTED_FINGERPRINT = "9ea2049c0f7e4fd0028c88048abf9866";
+const EXPECTED_COLUMNS = 1085;
+const EXPECTED_TABLES = 77;
 const EXPECTED_TRIGGERS = 61;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner

@@ -1012,6 +1012,40 @@ export const APPLIED = [
       "THE DEVELOPMENT BEHAVIOUR DIGEST IS NOT RECORDED because it has not been read back from " +
       "development, and inventing one is the defect this ledger was corrected for on 2026-09-13.",
   },
+
+  {
+    file: "0050_a_design_inquiry_is_not_an_order.sql", appliedBy: "apply_migration",
+    fingerprint: "9ea2049c0f7e4fd0028c88048abf9866",
+    behaviour: "61cea197e8bde99fdae5c2ca7c2ae1a1",
+    proves: { column: { table: "eng_design_inquiries", name: "respond_by" } },
+    production: null,
+    development: { at: "0050", behaviour: null, facts: 863 },
+    because:
+      "PENDING, AND DELIBERATELY SO. Tonight's limits forbid applying anything to production, and a " +
+      "migration on a feature branch may be pending while a migration on main may not. It does not " +
+      "merge until somebody is at a keyboard to run the production half. " +
+      "WHAT IT ADDS: eng_design_inquiries, one table and four check constraints, for the design brief " +
+      "the public site takes. " +
+      "WHY ITS OWN TABLE RATHER THAN eng_leads: a lead is a contact, with a name, an email and a free " +
+      "text message, and this is a BRIEF of eleven defined answers, three of which decide whether the " +
+      "firm takes the work at all. The three flags are an open insurance claim, active litigation and " +
+      "a prior adverse report, each of which changes what the work IS, and the specification says the " +
+      "customer is told in the first conversation rather than after paying. A column can be " +
+      "constrained; a key inside a jsonb blob cannot. That follows 0016's reasoning about " +
+      "eng_file_inputs and eng_order_inputs duplicating shape on purpose. " +
+      "THE 24 HOUR PROMISE IS A COLUMN RATHER THAN A CONVENTION. respond_by is not null and defaults " +
+      "to 24 hours, and responded_at is separate and nullable, because 'we said we would' and 'we " +
+      "did' are two facts and folding them into one is how a queue starts lying. A constraint requires " +
+      "responded_at and responded_by to move together, so a record cannot say somebody was contacted " +
+      "without saying who contacted them: that is the customer_link.issued defect in different " +
+      "columns. " +
+      "IT NEVER PRODUCES AN ORDER AND NEVER QUOTES A PRICE. Design is hourly with a minimum " +
+      "engagement and a fixed fee quoted from the engineer's own estimate, and no form can price that. " +
+      "Replayed into the in process engine and read back: shape 9ea2049c0f7e4fd0028c88048abf9866 " +
+      "across 1,085 columns and 77 tables, behaviour 61cea197e8bde99fdae5c2ca7c2ae1a1 across 863 " +
+      "facts. NOT YET APPLIED TO DEVELOPMENT EITHER, so no development digest is recorded and none is " +
+      "invented, which is the defect this ledger was corrected for on 2026-09-13.",
+  },
 ];
 
 /**
