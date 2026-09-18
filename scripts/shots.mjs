@@ -19,6 +19,7 @@ const OUT = path.join(process.cwd(), "screenshots");
 const ROUTES = [
   "/",
   "/about",
+  "/process",
   "/services",
   "/services/roof-inspections",
   "/services/windstorm-wpi-8",

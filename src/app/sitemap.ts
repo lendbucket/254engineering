@@ -57,6 +57,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     entry("/", 1, "monthly"),
     entry("/about", 0.9, "monthly"),
+    entry("/process", 0.9, "monthly"),
     entry("/services", 0.9, "monthly"),
     ...services.map((s) => entry(`/services/${s.slug}`, 0.8, "monthly")),
     entry("/coverage", 0.9, "monthly"),
