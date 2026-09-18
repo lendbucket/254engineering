@@ -77,12 +77,42 @@ export const proximityHub: {
   sections: ProximitySection[];
   faqs: { q: string; a: string }[];
 } = {
-  h1: "What a Structural Engineer Does, and When You Need One",
-  title: "What a Structural Engineer Actually Does | 254 Engineering",
+  /*
+   * ==========================================================================
+   * RETARGETED 2026-09-18, AND THE CANNIBALISATION WAS ALREADY LIVE.
+   * ==========================================================================
+   *
+   * This page is the pillar of the largest cluster on the site: "structural
+   * engineer" at 18,000 a month, difficulty 0, commercial intent. Its H1 read
+   * "What a Structural Engineer Does, and When You Need One" and its title read
+   * "What a Structural Engineer Actually Does", which are the INFORMATIONAL
+   * terms, and the SEO revision asks for those on a separate page.
+   *
+   * So the pillar was handing an 18,000 a month commercial term to a page that
+   * opened by defining the job, and it was competing with its own child,
+   * /structural-engineer/when-you-need-one, whose slug is the second half of
+   * the old H1. Two pages on one query before a third was built.
+   *
+   * The H1 now leads with the commercial term as a sentence rather than a
+   * keyword string, and the informational angle moves to its own page. The
+   * child keeps "when you need one", which is the narrowest of the three and
+   * the only one that should carry that phrasing.
+   *
+   * The full mapping, with the two rulings it still owes the operator, is in
+   * docs/keyword-mapping.md.
+   */
+  h1: "Structural Engineers in Texas, and What a Sealed Report Tells You",
+  /*
+   * 59 characters and 151, counted rather than eyeballed. The first draft of
+   * this title was 46, which is under the 50 character floor seo-audit
+   * enforces, and the first description was 175, over the 160 ceiling. Both
+   * were measured before they shipped rather than found by the board.
+   */
+  title: "Texas Structural Engineer, Sealed Reports | 254 Engineering",
   description:
-    "What structural engineers do, how they differ from inspectors and contractors, and what a sealed report will and will not tell you. See the coverage map.",
+    "A registered Texas engineering firm for structural inspections and sealed reports. What the work covers, what a report will not say, and what it costs.",
   summary:
-    "Most people who go looking for a structural engineer are not sure that is what they need. This is what the work actually is, and how it differs from the people who are easier to find.",
+    "A structural engineer answers one question: what is holding this up, and is it enough. This is what the work covers at this firm, what a sealed report will and will not tell you, and what it costs.",
 
   sections: [
     {
