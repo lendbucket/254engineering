@@ -27,6 +27,29 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
+## THE SITE REBUILD: APPROVED COPY, RETARGETED KEYWORDS, AND THE GATE UNDER IT
+
+Opened 2026-09-17. Three documents, each carrying open work, pointed at from
+here rather than copied.
+
+**`docs/254-site-copy.md`** is the approved copy the rebuild is written against,
+supplied by the operator. Three placeholders in it are blank on purpose and are
+owed by him: the turnaround per service line, the price per line, and the
+expanded five steps on the process page. Turnaround renders as nothing until he
+supplies it, because inventing one is forbidden.
+
+**`docs/254-seo-revision.md`** supersedes the keyword targeting. Where the two
+disagree, the revision wins on which page leads with which term and the copy
+wins on voice.
+
+**`docs/gate-call-sites.md`** is the enumeration of all 41 `isPrelaunch()` sites
+classified before the boolean became three states, and the eleven dependants of
+`peInResponsibleCharge()`. It carries one item still needing a ruling:
+`src/lib/partner-copy.ts:97` applies the REGULATED voice patterns only while
+prelaunch, so under `trading` the check switches itself off at exactly the moment
+the copy starts making present tense claims. It needs rewriting rather than
+reclassifying, and it was flagged rather than changed.
+
 ## ELEVEN TRADE FLOORS AWAIT A RULING, AND NOTHING SELLS AT TRADE PRICING UNTIL THEY DO
 
 Phase 13 Section 2, 2026-09-14. Full reasoning in
