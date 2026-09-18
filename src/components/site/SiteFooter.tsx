@@ -2,7 +2,9 @@ import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { business } from "@/config/business";
-import { isPrelaunch, registrationLine } from "@/lib/launch";
+import { registrationLine } from "@/lib/launch";
+import { displayPhone, hasPostalAddress, telHref } from "@/config/contact";
+import { mailingAddressLine } from "@/config/email-identity";
 import { services } from "@/content/services";
 import { regions } from "@/content/regions";
 import type { ReactNode } from "react";
@@ -54,10 +56,41 @@ export function SiteFooter() {
         <div className="grid gap-9 pt-[clamp(44px,6vw,68px)] sm:grid-cols-2 lg:grid-cols-4 lg:gap-10">
           <div>
             <Wordmark onDark height={74} />
-            <p className="mt-4 max-w-[34ch] text-[14.5px] leading-[1.7]">
-              A Texas engineering firm named for the 254 counties of Texas.
-              {isPrelaunch() ? " Opening soon." : ""}
-            </p>
+            {/*
+              THE IDENTITY BLOCK. Operator ruling, 2026-09-17, after looking at
+              this footer twice and calling it the wrong thing both times.
+
+              What came out: "A Texas engineering firm named for the 254 counties
+              of Texas. Opening soon." A registered firm's footer says who it is
+              and how to reach it. It does not describe itself in a sentence a
+              brochure would use, and it does not say when it might open.
+
+              What is here instead is how to reach the firm. The registrant and
+              the board's number are stated ONCE, in the centred block below,
+              which is v5's treatment and the block compliance-audit reads.
+
+              The first draft of this put registrationLine() here as well, so the
+              footer said "254 Services LLC, TBPELS Firm F-29811" twice, once in
+              each column. A registration stated twice on one page reads as a
+              firm insisting, and the second copy is the one that goes stale.
+            */}
+            {/*
+              The address renders only when one is configured, and none is. An
+              invented street address on a firm's own footer is the same class of
+              defect as an invented credential, and harder to retract because
+              directories copy it.
+            */}
+            {hasPostalAddress() ? (
+              <p className="mt-3 text-[14px] leading-[1.65]">{mailingAddressLine()}</p>
+            ) : null}
+            {displayPhone() ? (
+              <a
+                href={telHref() ?? undefined}
+                className="mt-3 flex min-h-[44px] items-center text-[15px] font-semibold text-brass transition-colors hover:text-brass-light"
+              >
+                {displayPhone()}
+              </a>
+            ) : null}
             {/*
               THE BADGE ROW IS GONE, BOTH OF THEM. Operator ruling, 2026-09-17.
 
@@ -110,9 +143,6 @@ export function SiteFooter() {
             >
               {business.email}
             </a>
-            <p className="mt-3 text-[14px] leading-[1.65]">
-              Capability statement available on request.
-            </p>
           </div>
         </div>
 
