@@ -1348,6 +1348,14 @@ if (!db) {
          * opening it sees production and not revenue. */
         "/portal/reports",
         "/portal/protocols",
+        /*
+         * The protocol he signed. An engineer of record reading his own
+         * protocol is the whole point of the document, and refusing it would be
+         * the access control equivalent of a firm keeping its standards from
+         * the person accountable for them. It gates on protocols.author, which
+         * is a licensed capability rather than a grant.
+         */
+        "/portal/protocols/rc-001",
         "/portal/review",
         // Ordinary working surfaces an engineer holds by grant, not by licence.
         "/portal/files",

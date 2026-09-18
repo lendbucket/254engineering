@@ -88,7 +88,9 @@ Build or retarget these. Where a page already exists, retarget it rather than cr
 
 **10. The lookup page.** texas windstorm certificate lookup, windstorm certificate search, tdi windstorm certificate search and their variants, roughly 350 a month at KD 2 to 9, all on one page, built the way the existing PE license lookup page is built.
 
-**11. Local pages.** structural engineer houston is 250 at KD 24 with a $6.00 CPC, and every metro has an equivalent. The coverage pages already exist. Each one targets "structural engineer <city>" as its primary term rather than a generic coverage sentence.
+**11. Local pages. CORRECTED 2026-09-18 BY THE OPERATOR.** The original target asked each coverage page to lead with "structural engineer <city>". CLAUDE.md section 5 forbids city geo pages outright as the doorway trap, names /corpus-christi as the single deliberate exception because the firm is actually there, and the coverage pages are the eight REGIONS rather than cities.
+
+Operator ruling: **regions plus Corpus Christi.** Standing law outranks a build prompt, and this revision is corrected rather than the rule bent. Each REGION page may lead with "structural engineer" plus its own region name, which is honest and is not a doorway because those pages already carry substance that could not be find-and-replaced. /corpus-christi may honestly take "structural engineer corpus christi" because the firm is there. Houston, Dallas, San Antonio and Austin get no page.
 
 ## HOW EACH PAGE IS OPTIMISED
 

@@ -98,6 +98,7 @@ const ADMIN_PAGES = [
   "/portal/clients",
   "/portal/techs",
   "/portal/protocols",
+  "/portal/protocols/rc-001",
   "/portal/onboarding",
   "/portal/certification",
   "/portal/charge-log",
