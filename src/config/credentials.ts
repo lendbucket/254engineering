@@ -413,6 +413,131 @@ export const operatingNameOnBoardRecord: {
 };
 
 /**
+ * ============================================================================
+ * EVERY OTHER CREDENTIAL THIS FIRM MIGHT CLAIM, HELD OR NOT.
+ * ============================================================================
+ *
+ * Operator ruling, 2026-09-17, after the SAM finding. The TBPELS registration
+ * and the PE licence have registers above. Everything else a firm can claim, a
+ * federal registration, a small business certification, a TDI appointment, had
+ * no register at all, so each one was a boolean or a sentence sitting in the
+ * component that rendered it.
+ *
+ * THE RULE THIS FILE NOW CARRIES, AND IT IS THE GENERAL ONE: nothing on this
+ * site asserts a registration, a certification or an appointment unless this
+ * register holds it, with a date somebody checked it and a reference a reader
+ * could check it against. `compliance-audit` enforces it by scanning the source
+ * rather than by trusting this comment.
+ *
+ * "IN PROGRESS" IS A CLAIM AND GETS THE SAME TREATMENT. That is the half a
+ * careless reading loses. The SAM defect was not only that the site said
+ * "registered"; it was that the false branch of the same boolean said
+ * "registration in progress", which asserts that a registration has been
+ * STARTED. Turning the claim off would have replaced one untrue sentence with
+ * another. So `held: false` renders NOTHING, and there is deliberately no
+ * "pending" state for anything in this register: a firm either holds a
+ * credential or says nothing about it.
+ *
+ * A DISCLAIMER ABOUT A CERTIFICATION YOU HAVE NOT APPLIED FOR STILL IMPLIES YOU
+ * APPLIED. Operator ruling, same day, on the SDVOSB line. `/government` carried
+ * "certification is pending" followed by a careful sentence saying the firm does
+ * not represent itself as an SDVOSB for set aside purposes. The second sentence
+ * is honest and the pair is still a claim, because nobody writes a disclaimer
+ * about a status they have no relationship with. Both halves came out.
+ *
+ * WHEN ONE BECOMES REAL, IT COMES BACK FROM HERE. Operator ruling: on
+ * re-registration under 254 Engineering LLC after TBPELS reissues, a credential
+ * returns by being recorded in this array and rendering from it. Never as a
+ * hand placed badge, an image, or a literal in a component. That is how the
+ * first one got onto the site.
+ */
+export type HeldCredential = {
+  /** The credential as a reader would name it. */
+  name: string;
+  /** The body that issues it. */
+  issuer: string;
+  /**
+   * Whether the firm HOLDS it today. Nothing renders unless this is true, and
+   * there is no third state: not held means the site is silent, never "pending"
+   * and never "in progress".
+   */
+  held: boolean;
+  /** The identifier exactly as the issuer prints it. Null when not held. */
+  identifier: string | null;
+  /** ISO date somebody checked this against the issuer's own record. */
+  verifiedOn: string;
+  /** Where a reader could check it themselves. Null when not held. */
+  reference: string | null;
+  /** Who checked, what they saw, and what would change it. Never empty. */
+  verified: string;
+};
+
+export const verifiedCredentials: HeldCredential[] = [
+  {
+    name: "TDI windstorm inspector appointment",
+    issuer: "Texas Department of Insurance",
+    /*
+     * NOT HELD, AND IT IS RECORDED HERE BECAUSE THE RULING NAMES IT. The
+     * windstorm pages already disclose the absence, which they must: a WPI-8 on
+     * ongoing construction is inspected by a TDI appointed engineer, so a
+     * reader on that page is entitled to know before they enquire.
+     *
+     * The disclosure is the NEGATIVE form and `compliance-audit` asserts it
+     * stays negative, rather than banning the phrase outright. Banning it would
+     * delete a disclosure the reader needs; asserting the shape means flipping
+     * it into a claim turns the board red.
+     */
+    held: false,
+    identifier: null,
+    verifiedOn: "2026-09-17",
+    reference: null,
+    verified:
+      "No engineer at this firm holds a Texas Department of Insurance windstorm inspector " +
+      "appointment as of 2026-09-17. The windstorm pages state the absence plainly. This becomes a " +
+      "held credential only when an appointed engineer is on the roster and the appointment number " +
+      "is recorded here from TDI's own record.",
+  },
+  {
+    name: "SAM.gov registration",
+    issuer: "System for Award Management, U.S. General Services Administration",
+    /*
+     * NOT REGISTERED, AND REGISTRATION HAS NOT BEEN STARTED. Operator
+     * statement, 2026-09-17: "The firm is not registered and registration has
+     * not been started, so neither registered nor in progress is true."
+     *
+     * WHAT WAS ON THE SITE UNTIL THIS RULING, because a defect that vanishes
+     * without a trace is one the next session re-makes. `samRegistration.registered`
+     * was true and rendered in SIX places: a footer badge on every page, a
+     * homepage capability tile, the homepage credibility strip, the /government
+     * registrations row, and the SAM line in llms-full.txt, which is published
+     * for machines to read. Two further rows offered a contracting officer the
+     * firm's UEI and CAGE code "on request", identifiers that do not exist.
+     *
+     * The declaration that carried it said of itself, in writing, that it was
+     * asserted on the operator's instruction and had never been checked, and
+     * that a procurement officer could refute it in fifteen seconds. It sat on
+     * the one page written for the readers most able to check it.
+     */
+    held: false,
+    identifier: null,
+    verifiedOn: "2026-09-17",
+    reference: null,
+    verified:
+      "The operator stated on 2026-09-17 that 254 has never been registered in SAM and that no " +
+      "registration has been started. Nothing renders. This becomes a held credential only when the " +
+      "firm is actually registered, which is expected to be under 254 Engineering LLC after TBPELS " +
+      "reissues F-29811, and when the UEI and CAGE code are recorded here from the SAM record itself.",
+  },
+];
+
+/** The credentials that may be rendered: held, identified, and referenced. */
+export function heldCredentials(): HeldCredential[] {
+  return verifiedCredentials.filter(
+    (c) => c.held && c.identifier !== null && c.reference !== null,
+  );
+}
+
+/**
  * Strings that look like credentials, are not, and are allowed.
  *
  * Each needs a reason. These are matched as literals against the matched text,

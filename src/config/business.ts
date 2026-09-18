@@ -103,26 +103,24 @@ export const business = {
   ],
 } as const;
 
-/**
- * SAM.gov registration identifiers.
+/*
+ * ============================================================================
+ * RETIRED 2026-09-17: `samRegistration`.
+ * ============================================================================
  *
- * OWNER VERIFICATION: both values are withheld from rendered output until Robert
- * confirms the registration is active and the identifiers are correct. A UEI on
- * a public page is checked by procurement officers against SAM, and a wrong one
- * reads as a firm that does not know its own registration.
+ * It declared `registered: true` and was read by six render sites. The firm has
+ * never been registered in SAM and registration has not been started, so the
+ * site carried a false federal credential, including on `/government`, the one
+ * page written for readers who can check it in fifteen seconds.
  *
- * Set them here and they render on /government automatically.
+ * IT IS RETIRED RATHER THAN SET TO FALSE, and that is the whole lesson. Its
+ * false branch was not silence: it rendered "SAM.gov registration is in
+ * progress", which asserts a registration has been started. A boolean whose
+ * both branches are claims cannot express "we say nothing about this", so the
+ * shape was wrong rather than the value.
+ *
+ * ITS REPLACEMENT is `verifiedCredentials` in src/config/credentials.ts, where
+ * a credential is held or absent, and a held one carries an identifier, a date
+ * somebody checked it, and a reference a reader could check it against.
+ * `compliance-audit` refuses any source under src that names this symbol again.
  */
-export const samRegistration = {
-  /**
-   * Whether the site may state that the firm is registered in SAM.gov.
-   *
-   * OWNER VERIFICATION: this is asserted on Robert's instruction and has not been
-   * checked against SAM by this build. A procurement officer can confirm or
-   * refute it in about fifteen seconds, so it is either true or it is worse than
-   * saying nothing. Set to false and the claim disappears from every page.
-   */
-  registered: true,
-  uei: null as string | null,
-  cage: null as string | null,
-} as const;

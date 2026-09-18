@@ -10,7 +10,7 @@ import { Rule, SectionHeading } from "@/components/ui/primitives";
 import { Section, SectionHead } from "@/components/ui/section";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
-import { business, samRegistration } from "@/config/business";
+import { business } from "@/config/business";
 import { registrationStatement, tbpelsFirmNumber } from "@/lib/launch";
 import { services } from "@/content/services";
 import { regions } from "@/content/regions";
@@ -172,41 +172,56 @@ export default function GovernmentPage() {
                       )
                 }
               />
-              <RegistrationRow
-                term="Veteran ownership"
-                detail="Veteran owned at entity level."
-              />
-              <RegistrationRow
-                term="SDVOSB certification"
-                detail="Service Disabled Veteran Owned Small Business certification is pending. The firm is not currently certified and does not represent itself as an SDVOSB for set aside purposes."
-              />
-              <RegistrationRow
-                term="SAM.gov registration"
-                detail={
-                  samRegistration.registered
-                    ? "Registered in the System for Award Management for federal and state contracting."
-                    : "System for Award Management registration is in progress."
-                }
-              />
-              <RegistrationRow
-                term="Unique Entity Identifier"
-                detail={
-                  samRegistration.uei ??
-                  "Withheld from this page until the identifier has been confirmed against the active SAM.gov record. Available on request to a contracting officer in the meantime."
-                }
-              />
-              <RegistrationRow
-                term="CAGE code"
-                detail={
-                  samRegistration.cage ??
-                  "Withheld from this page until the code has been confirmed against the active SAM.gov record. Available on request to a contracting officer in the meantime."
-                }
-              />
+              {/*
+                FIVE ROWS CAME OUT OF THIS LIST ON 2026-09-17, AND THE LEDE
+                ABOVE HAD ALREADY DESCRIBED THE DEFECT: "a capability statement
+                that overstates a registration is checkable in about fifteen
+                seconds by the person reading it, and it costs more than the
+                credential was worth." It was sitting above four of them.
+
+                SAM.gov: the firm has never been registered and no registration
+                has been started, so neither branch of that row was true.
+
+                Unique Entity Identifier and CAGE code: both rows told a
+                contracting officer the identifier was "available on request".
+                With no SAM registration there is no UEI and no CAGE, so the
+                sentence invited the one reader most able to check to ask for a
+                number that does not exist. That was the worst line on the site.
+
+                SDVOSB: the certification is not pending, because the firm has
+                not applied. The careful second sentence went with the first;
+                nobody disclaims a status they have no relationship with, so the
+                pair still reads as a claim to have started.
+
+                Veteran ownership: TRUE, and moved rather than deleted. A row in
+                a registrations list is a credential shape whatever the words
+                say, so it is now prose beneath this list.
+              */}
               <RegistrationRow
                 term="Point of contact"
                 detail={business.email}
               />
             </dl>
+
+            {/*
+              Veteran ownership as prose rather than as a row. Operator ruling,
+              2026-09-17: it is a fact about who owns the firm, not a
+              certification anybody granted, and it may be stated plainly
+              anywhere it cannot be mistaken for one.
+            */}
+            {/*
+              ONE SENTENCE, AND THE SECOND ONE WAS DELETED BEFORE IT SHIPPED.
+              The first draft of this paragraph added "It holds no small business
+              certification and no federal contracting registration, and it will
+              say so here when it does." That is true, and it is still a
+              statement ABOUT SAM, which the ruling forbids: silence was the
+              instruction, not a more honest claim. A negative about a credential
+              is a credential sentence, and it invites the follow up question the
+              silence exists to avoid.
+            */}
+            <p className="mt-9 max-w-[70ch] text-[0.97rem] leading-[1.72] text-slate-muted">
+              The firm is veteran owned at entity level.
+            </p>
           </div>
         </Container>
       </section>

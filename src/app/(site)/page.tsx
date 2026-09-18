@@ -3,7 +3,6 @@ import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { HomeHero } from "@/components/home/HomeHero";
 import {
-  BuildingIcon,
   ClipboardCheckIcon,
   ClockIcon,
   CredibilityStrip,
@@ -20,7 +19,6 @@ import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { services } from "@/content/services";
 import { regions } from "@/content/regions";
 import { FIRST_TIER_COASTAL, FIRST_TIER_COUNT } from "@/content/windstorm";
-import { samRegistration } from "@/config/business";
 import { responsibleChargeCopy, specialistsCopy } from "@/content/model-copy";
 import { isPrelaunch } from "@/lib/launch";
 
@@ -65,7 +63,7 @@ export default function HomePage() {
 
       <HomeHero />
 
-      <CredibilityStrip samRegistered={samRegistration.registered} />
+      <CredibilityStrip />
 
       {/* Services */}
       <Section id="services" tone="sunk">
@@ -193,12 +191,18 @@ export default function HomePage() {
         />
         <div className="mt-8 flex flex-wrap items-center gap-[clamp(24px,4vw,56px)]">
           <div className="grid flex-1 basis-[340px] gap-3.5 sm:grid-cols-2">
+            {/*
+              "Veteran owned status" and "SAM registered" came off on
+              2026-09-17. The second was a federal registration the firm has
+              never held. The first is true and came off because a tile in a
+              capability grid asserts a status a body has conferred, which is
+              what the word "status" in that label was doing.
+
+              The two that remain describe how the firm works rather than what
+              it has been granted.
+            */}
             <CapabilityTile icon={ClipboardCheckIcon} label="Qualifications based selection" />
             <CapabilityTile icon={ClockIcon} label="On call engineering availability" />
-            <CapabilityTile icon={StarIcon} label="Veteran owned status" />
-            {samRegistration.registered ? (
-              <CapabilityTile icon={BuildingIcon} label="SAM registered" />
-            ) : null}
           </div>
           <div className="max-w-[420px] flex-1 basis-[280px] rounded-[4px] bg-slate p-[clamp(24px,3vw,32px)] text-slate-fg">
             {/* Explicit, for the same reason as the hero h1. */}

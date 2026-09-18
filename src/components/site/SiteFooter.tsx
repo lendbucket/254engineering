@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { Wordmark } from "@/components/brand/Wordmark";
-import { business, samRegistration } from "@/config/business";
+import { business } from "@/config/business";
 import { isPrelaunch, registrationLine } from "@/lib/launch";
 import { services } from "@/content/services";
 import { regions } from "@/content/regions";
@@ -27,14 +27,23 @@ import type { ReactNode } from "react";
  * the same function carries the TBPELS firm number into the same block with no
  * markup change, which is the property the gate exists to have.
  *
- * SAM REGISTERED IS A CLAIM AND IS GATED LIKE ONE
- * -----------------------------------------------
- * v5 prints a "SAM registered" badge unconditionally. BACKLOG records that the
- * flag is true on the operator's instruction and has never been checked against
- * the live SAM record, which is also why the UEI and CAGE are withheld from
- * /government. The badge is therefore rendered through `samRegistration`, so
- * setting that flag false removes the claim from every surface at once rather
- * than leaving a hardcoded one behind in new markup.
+ * THE BADGES ARE GONE AND THE GATING THAT WAS SUPPOSED TO PROTECT THEM IS THE
+ * REASON WHY
+ * ----------------------------------------------------------------------------
+ * This comment used to argue that the "SAM registered" badge was safe because it
+ * rendered through `samRegistration`, so one flag would remove the claim from
+ * every surface at once. The mechanism worked exactly as described. It was
+ * pointed at a flag that was never true.
+ *
+ * A claim routed through a declaration is not a verified claim. It is a claim
+ * with one edit point, which is worth having and is not the same thing. What
+ * was missing was anything asserting that the declaration matched the world,
+ * and the declaration said so about itself in its own comment for weeks.
+ *
+ * No credential renders here now. `verifiedCredentials` in
+ * src/config/credentials.ts holds the ones the firm actually has, with a date
+ * and a reference, and `compliance-audit` refuses a credential claim in any
+ * component.
  */
 export function SiteFooter() {
   const year = new Date().getFullYear();
@@ -49,10 +58,17 @@ export function SiteFooter() {
               A Texas engineering firm named for the 254 counties of Texas.
               {isPrelaunch() ? " Opening soon." : ""}
             </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Badge>Veteran owned</Badge>
-              {samRegistration.registered ? <Badge>SAM registered</Badge> : null}
-            </div>
+            {/*
+              THE BADGE ROW IS GONE, BOTH OF THEM. Operator ruling, 2026-09-17.
+
+              The SAM badge claimed a federal registration the firm does not
+              hold. "Veteran owned" is TRUE, and it came off anyway, because a
+              badge is the shape a credential takes: a reader parses a row of
+              badges as things an authority has granted, and a true statement
+              about the owner sitting beside a false one about the government
+              borrows its costume. It belongs in prose, and that is where it now
+              lives.
+            */}
           </div>
 
           <FooterColumn title="Explore">
@@ -138,13 +154,12 @@ export function SiteFooter() {
   );
 }
 
-function Badge({ children }: { children: ReactNode }) {
-  return (
-    <span className="rounded-[2px] border border-white/25 px-2.5 py-[5px] text-[12px] font-semibold tracking-[0.06em] text-[#dce2eb] uppercase">
-      {children}
-    </span>
-  );
-}
+/*
+ * `Badge` was deleted with the badge row rather than left behind unused. A
+ * credential badge component sitting in the file is the thing somebody reaches
+ * for the next time a claim needs somewhere to go, and this whole ruling exists
+ * because a badge was easy to place.
+ */
 
 function FooterColumn({ title, children }: { title: string; children: ReactNode }) {
   return (

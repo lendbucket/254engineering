@@ -25,22 +25,35 @@ import {
 
 /* ------------------------------------------------------------------ credibility */
 
+/*
+ * TWO OF THESE FOUR CAME OUT ON 2026-09-17, AND ONLY ONE OF THEM WAS FALSE.
+ *
+ * "SAM registered for government contracting" claimed a federal registration
+ * the firm has never held. "Veteran owned" is true and came out anyway, because
+ * an icon tile in a credibility strip is read as a credential, and the ruling is
+ * that only a credential the register holds may take that shape. It is now a
+ * sentence in prose, where it says the same true thing without borrowing the
+ * authority of the row it was sitting in.
+ *
+ * The two that remain are both checkable: the registration is F-29811 on the
+ * board's record, and the coverage claim is asserted by `coverage-audit` against
+ * an independent list of all 254 counties.
+ */
 const CREDIBILITY = [
-  { icon: StarIcon, label: "Veteran owned" },
   { icon: ShieldCheckIcon, label: "Licensed Texas Professional Engineers in responsible charge" },
   { icon: PinIcon, label: "Serving all 254 Texas counties" },
-  { icon: BuildingIcon, label: "SAM registered for government contracting" },
 ] as const;
 
-export function CredibilityStrip({ samRegistered }: { samRegistered: boolean }) {
-  // The SAM claim is a credential and is gated, not printed. See the note in
-  // SiteFooter for why.
-  const items = CREDIBILITY.filter((c) => samRegistered || !c.label.startsWith("SAM"));
+export function CredibilityStrip() {
+  const items = CREDIBILITY;
 
   return (
     <section className="border-b border-[#e5e8ec] bg-white">
       <Container>
-        <div className="grid gap-5 py-[clamp(24px,4vw,36px)] sm:grid-cols-2 lg:grid-cols-4 lg:gap-x-8">
+        {/* Two columns rather than four, because two claims survived the
+            credential ruling and a four column grid with two items in it reads
+            as a row that lost something. */}
+        <div className="grid gap-5 py-[clamp(24px,4vw,36px)] sm:grid-cols-2 lg:gap-x-8">
           {items.map(({ icon: Icon, label }) => (
             <div key={label} className="flex items-center gap-3.5">
               <Icon size={34} className="shrink-0 text-slate" />
