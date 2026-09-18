@@ -22,8 +22,27 @@
 // gate the CTA has to be waitlist or notify language, and order language on a
 // service surface is a finding.
 const BASE = process.env.BASE_URL || "http://localhost:3225";
-const MODE = (process.env.LAUNCH_MODE || "prelaunch").trim().toLowerCase();
-const GATE_ACTIVE = MODE !== "live";
+/*
+ * THE MODE COMES FROM THE GATE. Same defect as voice-audit and found the same
+ * way: this audit carried its own copy of the compliance gate, derived from
+ * LAUNCH_MODE, which has not been the whole gate since 2026-09-10 and now gates
+ * `open` alone. It was asserting waitlist language on a site that has no
+ * waitlist.
+ */
+import "./lib/load-env.mjs";
+const { launchMode } = await import("../src/lib/launch.ts");
+const MODE = launchMode();
+/*
+ * AND THE CONSTANT MEANS SOMETHING DIFFERENT HERE THAN IN voice-audit, WHICH IS
+ * WHY BOTH ARE WRITTEN OUT RATHER THAN SHARED.
+ *
+ * There it governs whether a regulated CLAIM is a failure, and the conservative
+ * answer holds through trading. Here it governs whether the honest call to
+ * action is the WAITLIST, and under trading it is not: the firm takes enquiries
+ * and quotes, the operator has ruled the waitlist out of the site entirely, and
+ * expecting waitlist wording would fail every page for having the right CTA.
+ */
+const GATE_ACTIVE = MODE === "prelaunch";
 
 /**
  * Routes that legitimately carry no call to action.
@@ -67,7 +86,21 @@ function pageBody(html) {
 // converts by routing to the position, which is where the application lives.
 // The pattern used to require an exact /careers and so reported the rebuilt hub
 // as having no conversion path at all, which was a finding about the audit.
-const CTA_HREF = /<a[^>]+href="(\/waitlist[^"]*|\/contact|\/careers(?:\/[a-z-]+)?|#apply)"[^>]*>/gi;
+/*
+ * AN ORDER LINK AND A TELEPHONE LINK ARE CONVERSION PATHS TOO, AND THIS PATTERN
+ * COULD NOT SEE EITHER. Found 2026-09-17 when nine service pages were reported
+ * as having no conversion path at all while each carried an order button.
+ *
+ * The report was wrong and the pages were worse than the report: they had a CTA
+ * and it led to a page that refuses, because no line has an approved protocol.
+ * Both facts were invisible here, one because the pattern did not match an
+ * order href and the other because no check asked where a CTA goes.
+ *
+ * `tel:` is included because on this site it is a first class call to action,
+ * rendered as a button beside the primary one, and for a contractor on a roof
+ * it is the likeliest path of the two.
+ */
+const CTA_HREF = /<a[^>]+href="(\/waitlist[^"]*|\/contact|\/order\/start\/[a-z0-9-]+|tel:[^"]+|\/careers(?:\/[a-z-]+)?|#apply)"[^>]*>/gi;
 const FORM = /<form\b/i;
 const WAITLIST_LANGUAGE = /join the waitlist|get notified|notify me|hear from us|opening soon/i;
 const ORDER_LANGUAGE = /\border (?:a|an|your)\b|\bbuy now\b|\bschedule (?:an|your) inspection\b|\bstart your order\b/i;

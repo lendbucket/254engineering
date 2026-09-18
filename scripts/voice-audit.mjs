@@ -33,8 +33,46 @@ import {
 } from "./lib/voice-blocklist.mjs";
 
 const BASE = process.env.BASE_URL || "http://localhost:3225";
-const MODE = (process.env.LAUNCH_MODE || "prelaunch").trim().toLowerCase();
-const GATE_ACTIVE = MODE !== "live";
+/*
+ * THE MODE COMES FROM THE GATE, NOT FROM AN ENVIRONMENT VARIABLE.
+ * Operator ruling, 2026-09-17, found when this audit printed "prelaunch gate
+ * ACTIVE" while the server it was scanning was serving `trading`.
+ *
+ * This line read `process.env.LAUNCH_MODE || "prelaunch"`. That was correct in
+ * September, when LAUNCH_MODE was the entire gate. It stopped being correct on
+ * 2026-09-10, when the gate became seven conditions, and became actively wrong
+ * on 2026-09-17, when LAUNCH_MODE was narrowed to gate `open` alone.
+ *
+ * So this audit carried its own copy of the compliance gate, and the copy
+ * disagreed with the real one. That is the defect CLAUDE.md names about screens
+ * with their own copy of the logic, wearing an audit: a second implementation
+ * of the gate is a second answer to what the site may say.
+ *
+ * TWO CHANGES MAKE IT ONE ANSWER. It asks `launchMode()`, and it loads
+ * `.env.local` first so it reads the same environment `next build` does. Without
+ * the second, the gate here would answer prelaunch on a machine where the server
+ * answers trading, which is how this was found.
+ */
+import "./lib/load-env.mjs";
+const { launchMode } = await import("../src/lib/launch.ts");
+const MODE = launchMode();
+/*
+ * REGULATED CLAIMS ARE FAILURES UNTIL THE FIRM IS OPEN, WHICH IS THE
+ * CONSERVATIVE SIDE OF A SPLIT THE OPERATOR HAS NOT RULED YET.
+ *
+ * The patterns refuse present tense claims about SEALING and performing
+ * engineering. Under `trading` the firm may say it is registered and may quote,
+ * and it still cannot seal anything, because no protocol is approved. Some of
+ * these patterns are about registration and are now satisfied; others are about
+ * sealing and are not. Splitting them is the operator's ruling and the question
+ * is in front of him with the sentences attached.
+ *
+ * Until he answers, this stays shut through trading. `!== "live"` would have
+ * been the same answer by accident, since "live" is no longer a mode at all, and
+ * an accident that gives the right answer is the thing this repository spends
+ * its time removing.
+ */
+const GATE_ACTIVE = MODE !== "open";
 
 /**
  * Routes exempt from the structural checks, with a reason.
