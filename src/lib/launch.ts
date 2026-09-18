@@ -412,6 +412,39 @@ export function approvedProtocolFor(serviceSlug: string) {
 }
 
 /**
+ * IS THIS FIRM SEALING ANYTHING YET?
+ *
+ * ADDED 2026-09-17 BECAUSE THE BOARD CAUGHT WHAT MY ENUMERATION DID NOT, and
+ * that is the argument for it rather than a note beside it.
+ *
+ * Removing the circularity from `peInResponsibleCharge()` made it answer true,
+ * correctly: an engineer with a current licence is on the register. Six
+ * rendered sentences read that fact and flipped to the present tense, and every
+ * one of them claims work is being SEALED now:
+ *
+ *   "Every opinion, letter, certification, and drawing is reviewed and sealed"
+ *   "Every deliverable is reviewed and sealed by a Texas licensed PE"
+ *   "A licensed Texas Professional Engineer reviews the record"
+ *
+ * Nothing is being sealed. No protocol is approved, so `ops-review` refuses the
+ * seal action on every line. The copy would have claimed a thing the platform
+ * itself refuses, which is the exact disagreement between a page and the code
+ * that section 2c exists to prevent.
+ *
+ * THE FIX IS THE PREDICATE, NOT THE SENTENCE. Whether an engineer EXISTS and
+ * whether the firm can SEAL are two facts, and the copy was reading the first
+ * to answer the second. An engineer in responsible charge with no approved
+ * protocol can seal nothing, which is precisely the firm's position today.
+ *
+ * I had classified eleven dependants of `peInResponsibleCharge()` and named
+ * three that must not flip. It was six. Verification tests what its author
+ * already thought of; the board is what tests the rest.
+ */
+export function sealingIsAvailable(): boolean {
+  return peInResponsibleCharge() && approvedProtocols.length > 0;
+}
+
+/**
  * Is this service line offered, or is it a waitlist?
  *
  * One function, so the order flow, the service pages and the gate cannot answer

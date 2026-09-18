@@ -1,4 +1,4 @@
-import { isPrelaunch, peInResponsibleCharge } from "@/lib/launch";
+import { isPrelaunch, peInResponsibleCharge, sealingIsAvailable } from "@/lib/launch";
 
 /**
  * Every sentence on this site that describes a licensed engineer doing
@@ -40,9 +40,9 @@ export function modelSentence(): string {
 
 /** The responsible charge paragraph, used on the homepage and the about page. */
 export function responsibleChargeCopy(): string {
-  return peInResponsibleCharge()
+  return sealingIsAvailable()
     ? "Every opinion, letter, certification, and drawing is reviewed and sealed by a Texas licensed Professional Engineer who takes responsible charge of it. That is a legal obligation attached to a person, and it is not delegable to a process or to a company."
-    : "Every opinion, letter, certification, and drawing will be reviewed and sealed by a Texas licensed Professional Engineer who takes responsible charge of it. That is a legal obligation attached to a person, and it is not delegable to a process or to a company. No engineer of record is in place yet, so nothing is being sealed today.";
+    : "Every opinion, letter, certification, and drawing will be reviewed and sealed by a Texas licensed Professional Engineer who takes responsible charge of it. That is a legal obligation attached to a person, and it is not delegable to a process or to a company. The engineer of record is in place. Each service line opens when he has approved its written protocol, and none is sealing work yet.";
 }
 
 /** The central review paragraph, which used to imply engineers already on staff. */
@@ -89,14 +89,14 @@ export function specialistsCopy(): string {
 
 /** How a deliverable is described as reaching its sealed state. */
 export function sealedDeliverableSentence(): string {
-  return peInResponsibleCharge()
+  return sealingIsAvailable()
     ? "Every deliverable is reviewed and sealed by a Texas licensed Professional Engineer in responsible charge."
-    : "Every deliverable is intended to be reviewed and sealed by a Texas licensed Professional Engineer in responsible charge. No engineer of record is in place yet, and no work is being sealed.";
+    : "Every deliverable is intended to be reviewed and sealed by a Texas licensed Professional Engineer in responsible charge. The engineer of record is in place, and a line opens once he has approved its written protocol.";
 }
 
 /** The engineering review step in the four step process description. */
 export function reviewStepCopy(): string {
-  return peInResponsibleCharge()
+  return sealingIsAvailable()
     ? "A licensed Texas Professional Engineer reviews the record, forms the opinion, and takes responsible charge of it. Field work gathers evidence. It does not reach conclusions."
     : "A licensed Texas Professional Engineer will review the record, form the opinion, and take responsible charge of it. Field work gathers evidence. It does not reach conclusions.";
 }
