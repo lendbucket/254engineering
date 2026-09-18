@@ -266,8 +266,47 @@ const findings = [];
 const heights = [];
 
 /**
- * Print what was measured, tallest first, with the arithmetic a ceiling would
- * be argued from. It asserts nothing.
+ * ============================================================================
+ * THE HEIGHT CEILINGS. Operator ruling, 2026-09-18, from the measurements.
+ * ============================================================================
+ *
+ * Proposed from a run over 111 routes rather than picked: median 7,246px, mean
+ * 5,421px, tallest 19,241px, and the twelfth tallest 10,469px.
+ *
+ * TWO CEILINGS RATHER THAN ONE, AND THE REASON IS WHAT THE DATA DID NOT
+ * CONTAIN. Not one portal screen appeared in the twelve tallest. Every tall
+ * page is long form public content, and the defect that prompted the whole
+ * measurement was /portal/queue at 38,744px, which is an APPLICATION screen.
+ * Those are different budgets the same way the byte budgets are per template.
+ *
+ * The operator's own words on accepting it: an operator screen taking eleven
+ * screens of scrolling is a usability defect, and an article taking fourteen is
+ * ordinary reading.
+ *
+ *   PUBLIC CONTENT   16,000px   about 19 phone screens
+ *   APPLICATION      9,000px    about 10.7 phone screens
+ *
+ * 16,000 sits clear of normal long form and below /coverage alone, so ONE page
+ * has to justify itself rather than twelve having to argue. 9,000 binds nothing
+ * in the portal today and would have caught the queue by a factor of four.
+ *
+ * MEASURED AT 390 ONLY. A phone is where length hurts; the same content at 1280
+ * is two or three columns and a third of the scroll, so a desktop ceiling would
+ * never bind.
+ */
+const HEIGHT_CEILINGS = { public: 16_000, application: 9_000 };
+const SCREEN = 844;
+
+/** Which ceiling a route answers to. */
+function ceilingFor(route) {
+  return /^\/(portal|partner|account)(\/|$)/.test(route)
+    ? { limit: HEIGHT_CEILINGS.application, kind: "application" }
+    : { limit: HEIGHT_CEILINGS.public, kind: "public content" };
+}
+
+/**
+ * Print what was measured, tallest first, with the arithmetic the ceiling was
+ * argued from, and fail anything over its own ceiling.
  */
 function reportHeights() {
   if (heights.length === 0) return;
@@ -286,9 +325,29 @@ function reportHeights() {
      * pixels means nothing to a reader and thirty screens of scrolling means
      * something immediately. 844 is the iPhone 14 viewport height at 390 wide.
      */
-    console.log(`    ${String(h.height).padStart(6)}px  ${(h.height / 844).toFixed(1).padStart(5)} screens  ${h.route}`);
+    console.log(`    ${String(h.height).padStart(6)}px  ${(h.height / SCREEN).toFixed(1).padStart(5)} screens  ${h.route}`);
   }
-  console.log("  No ceiling is enforced. The operator rules one from these numbers.");
+
+  /*
+   * AND THE CEILING IS ENFORCED FROM HERE. A finding rather than a note,
+   * because a measurement nobody fails on is a measurement that drifts.
+   */
+  const over = sorted
+    .map((h) => ({ ...h, ...ceilingFor(h.route) }))
+    .filter((h) => h.height > h.limit);
+
+  for (const h of over) {
+    findings.push(
+      `${h.route} @390: ${h.height}px tall, which is ${(h.height / SCREEN).toFixed(1)} phone screens, ` +
+        `over the ${h.limit}px ceiling for ${h.kind} by ${h.height - h.limit}px. ` +
+        `Nothing else on this board measures height: /portal/queue reached 38,744px past a green board.`,
+    );
+  }
+  console.log(
+    over.length === 0
+      ? `  Every route is inside its ceiling (${HEIGHT_CEILINGS.public}px content, ${HEIGHT_CEILINGS.application}px application).`
+      : `  ${over.length} route(s) over ceiling.`,
+  );
 }
 const checks = [];
 /*
@@ -732,13 +791,24 @@ console.log("");
  */
 sayCouldNotTell(unmeasured, "horizontal overflow");
 
+/*
+ * THE HEIGHTS ARE REPORTED AND JUDGED BEFORE THE VERDICT IS TAKEN, and the
+ * ordering is load bearing rather than tidy.
+ *
+ * The first version of this called reportHeights() inside both branches of the
+ * verdict below, so a route over its ceiling pushed a finding into a list that
+ * had already been counted. The run would have printed the finding and exited
+ * zero: a check that reports a defect and passes, which is worse than not
+ * checking, because the line scrolls past in a green run.
+ */
+reportHeights();
+
 if (findings.length === 0 && failed.length === 0) {
   /*
    * A clean run over routes that never loaded is not a pass. It says how many
    * did not, and exits on the third code, because a green board over a half
    * that never ran is the other way to lie about the same run.
    */
-  reportHeights();
   if (unmeasured.length) {
     console.log(
       `\nCOULD NOT TELL: ${checks.length} combination(s) measured and clean, ${unmeasured.length} never loaded.`,
@@ -749,7 +819,6 @@ if (findings.length === 0 && failed.length === 0) {
     process.exitCode = 0;
   }
 } else {
-  reportHeights();
   for (const f of findings) console.log(`  - ${f}`);
   console.log(
     `\nFAIL: ${findings.length} overflow finding(s) and ${failed.length} failed check(s) across ${checks.length} checks.` +

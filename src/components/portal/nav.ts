@@ -107,6 +107,14 @@ export const NAV: NavItem[] = [
   { href: "/portal/partners", label: "Partners", short: "Partners", action: "partners.manage", icon: "partners" },
   { href: "/portal/billing", label: "Billing", short: "Money", action: "billing.read", icon: "billing" },
   /*
+   * The price book, on pricing.write rather than a new capability. A price book
+   * IS pricing, and minting a second grant for the same authority is how two
+   * answers to one question start to exist. It shares the grant with trade
+   * pricing deliberately: the person who may set what a line sells for is the
+   * person who may read what it makes.
+   */
+  { href: "/portal/pricebook", label: "Price book", short: "Prices", action: "pricing.write", icon: "billing" },
+  /*
    * Reports, gated on reports.production rather than reports.revenue.
    *
    * A nav item carries ONE action and the screen behind it allows any of four,
