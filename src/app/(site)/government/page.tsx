@@ -11,6 +11,7 @@ import { Section, SectionHead } from "@/components/ui/section";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { business } from "@/config/business";
+import { hasPostalAddress, postalAddressLine } from "@/config/contact";
 import { registrationStatement, tbpelsFirmNumber } from "@/lib/launch";
 import { services } from "@/content/services";
 import { regions } from "@/content/regions";
@@ -197,6 +198,16 @@ export default function GovernmentPage() {
                 a registrations list is a credential shape whatever the words
                 say, so it is now prose beneath this list.
               */}
+              {/*
+                THE PLACE OF BUSINESS, WHICH IS THE FIRST THING A CONTRACTING
+                OFFICER CHECKS. Operator, 2026-09-18. Derived from the one
+                declaration in src/config/contact.ts, so this row, the schema
+                node, the footer and every email footer state the same address
+                or none of them do.
+              */}
+              {hasPostalAddress() ? (
+                <RegistrationRow term="Principal place of business" detail={postalAddressLine() ?? ""} />
+              ) : null}
               <RegistrationRow
                 term="Point of contact"
                 detail={business.email}

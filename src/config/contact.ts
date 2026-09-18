@@ -93,16 +93,35 @@ export const contact = {
   phone: env("FIRM_PHONE"),
 
   /**
-   * The street address of the firm's place of business.
+   * ==========================================================================
+   * THE FIRM'S PLACE OF BUSINESS. Operator, 2026-09-18.
+   * ==========================================================================
    *
-   * OWNER VERIFICATION: this must be an address where the firm can receive mail
-   * and, for a Google Business Profile, one that can accept a verification
-   * postcard. A residential address published here is published permanently.
+   * 5601 South Padre Island Drive, Suite E, Corpus Christi, TX 78412. Supplied
+   * by the operator, who confirmed it matches the support address Stripe holds.
+   *
+   * DECLARED RATHER THAN READ FROM THE ENVIRONMENT, AND THAT IS A DELIBERATE
+   * DEPARTURE FROM THE INSTRUCTION'S LETTER. The operator said to treat it "the
+   * same as the phone", and the phone is four environment variables. Two
+   * reasons not to copy that here, both of which this repository has already
+   * paid for:
+   *
+   * 1. An environment variable can differ between a build and a deployment,
+   *    which is the exact defect that moved the TBPELS firm number and then the
+   *    PE licence number out of the environment and into a register. A firm's
+   *    address is the same kind of fact: one somebody checks against an
+   *    external record.
+   * 2. Practically, an environment variable means the address does not appear
+   *    in production until somebody edits Vercel, and the instruction was to
+   *    render it. Declared here, it deploys with the code.
+   *
+   * `founder` below is the precedent and its reasoning is identical: not
+   * environment driven, because it is already public.
    */
-  street: env("FIRM_STREET"),
-  street2: env("FIRM_STREET_2"),
-  city: env("FIRM_CITY"),
-  postalCode: env("FIRM_POSTAL_CODE"),
+  street: "5601 South Padre Island Drive",
+  street2: "Suite E",
+  city: "Corpus Christi",
+  postalCode: "78412",
 
   /**
    * Coordinates of that address, for LocalBusiness geo.
@@ -213,6 +232,32 @@ export function postalAddressSchema() {
     postalCode: contact.postalCode,
     addressCountry: "US",
   };
+}
+
+/**
+ * The address on one line, for a footer, an email, or a capability statement.
+ *
+ * ONE HOME, DERIVED EVERYWHERE, WHICH IS THE OPERATOR'S INSTRUCTION AND CLOSES
+ * A DEFECT THAT WAS ALREADY PRESENT. The firm's address had TWO homes before
+ * this: `contact.street` and friends, read by the schema node, and
+ * `mailingAddressLine()` in src/config/email-identity.ts, read from
+ * MAIL_FROM_ADDRESS_LINE and rendered into every email footer.
+ *
+ * Neither was set, so the two could not yet disagree. That is precisely the
+ * shape CLAUDE.md records about the PE licence number: a fact with two homes is
+ * harmless while both are empty and becomes a live defect the first time
+ * somebody fills one in. Today is that day, and filling in only one of them
+ * would have put the firm's address in the schema and a different sentence, or
+ * nothing at all, in the emails.
+ *
+ * This is the fifth instance of one fact with two homes in a fortnight.
+ */
+export function postalAddressLine(): string | null {
+  if (!hasPostalAddress()) return null;
+  return [
+    [contact.street, contact.street2].filter(Boolean).join(", "),
+    `${contact.city}, TX ${contact.postalCode}`,
+  ].join(", ");
 }
 
 /** The GeoCoordinates node, or null. */

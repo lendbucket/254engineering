@@ -3,8 +3,8 @@ import { Container } from "@/components/ui/Container";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { business } from "@/config/business";
 import { registrationLine } from "@/lib/launch";
-import { displayPhone, hasPostalAddress, telHref } from "@/config/contact";
-import { mailingAddressLine } from "@/config/email-identity";
+import { displayPhone, hasPostalAddress, postalAddressLine, telHref } from "@/config/contact";
+
 import { services } from "@/content/services";
 import { regions } from "@/content/regions";
 import type { ReactNode } from "react";
@@ -75,13 +75,14 @@ export function SiteFooter() {
               firm insisting, and the second copy is the one that goes stale.
             */}
             {/*
-              The address renders only when one is configured, and none is. An
-              invented street address on a firm's own footer is the same class of
-              defect as an invented credential, and harder to retract because
-              directories copy it.
+              The address, supplied by the operator on 2026-09-18 and declared
+              once in src/config/contact.ts. It is still rendered conditionally,
+              because the condition is what stopped an invented address being
+              published for the weeks before there was a real one, and that
+              guard is worth keeping for the next fact that arrives late.
             */}
             {hasPostalAddress() ? (
-              <p className="mt-3 text-[14px] leading-[1.65]">{mailingAddressLine()}</p>
+              <p className="mt-3 text-[14px] leading-[1.65]">{postalAddressLine()}</p>
             ) : null}
             {displayPhone() ? (
               <a
