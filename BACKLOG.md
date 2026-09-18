@@ -5634,6 +5634,25 @@ theory is attached to it**, because the `accountRows()` hypothesis above is stil
 a hypothesis and a second unverified explanation would only make the first harder
 to dislodge.
 
+**AND `/portal/clients` IS THE SAME FAMILY, FOUND 2026-09-17 BY `native-audit`.**
+Operator ruling: record it here rather than fix it tonight.
+
+    FAIL: /portal/clients: the list is bounded (255 row(s))
+
+**255 rows rendered into one screen, unbounded.** It is not the same symptom as
+its neighbour, which times out rather than returning, and it is the same
+underlying shape: a portal list that renders everything the database has because
+nobody decided what it should render instead. The queue screen already cost this
+repository a 38,744 pixel page for the same reason, and that one was found by
+opening a screenshot rather than by a check.
+
+**Not fixed tonight, and the reason is the operator's.** A screen nobody has
+profiled does not get a `.limit()` bolted onto it at two in the morning, because
+the figures on these screens are billed on and a bounded read reported as a
+total is the defect this file already records twice. It wants the same treatment
+as its neighbour: a measurement first, then a ruling on whether the list pages
+or the counts are derived differently.
+
 **WHAT THE INTERMITTENCY CHANGES IS THE PROFILE, WHICH IS WHY IT IS WORTH
 RECORDING RATHER THAN SHRUGGING AT.** A deterministic stall can be instrumented
 after somebody sees it. An intermittent one cannot, because the run that stalls

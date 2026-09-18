@@ -692,6 +692,41 @@ const {
    *
    * Found by looking at a screenshot. Checked here so it cannot come back.
    */
+  /*
+   * AND THE TWO SURFACES THIS CHECK DID NOT COVER, WHERE THE SAME DEFECT CAME
+   * BACK. Operator ruling, 2026-09-17: extend the check or the sentence returns
+   * a third time.
+   *
+   * CLAUDE.md records the 2026-09-12 defect: the portal sidebar carried "No
+   * engineer of record is yet in responsible charge." as a literal, and it went
+   * on saying pending to the firm's own staff for a day after TBPELS issued.
+   * The fix asserted that the SIDEBAR renders registrationLine() and carries no
+   * sentence of its own.
+   *
+   * /portal/login and /portal/set-password carried the identical literal and
+   * were never covered, so when the engineer of record became real on
+   * 2026-09-17 both screens went on telling every person signing in that there
+   * was no engineer. Found by sweeping the source for the sentence rather than
+   * by any check.
+   *
+   * The general form, which is why this is worth eleven lines: a check written
+   * against the surface where a defect was FOUND protects that surface. The
+   * defect belongs to the SENTENCE, and the sentence can live anywhere.
+   */
+  for (const screen of [
+    "src/app/portal/(public)/login/page.tsx",
+    "src/app/portal/(public)/set-password/page.tsx",
+  ]) {
+    const src = codeOnly(readSource(screen));
+    rec(
+      `${screen.split("/").slice(-2)[0]} states the registration through the deriver and carries no compliance sentence of its own`,
+      src.includes("registrationLine()") &&
+        !/no engineer of record/i.test(src) &&
+        !/registration (is )?pending/i.test(src),
+      screen,
+    );
+  }
+
   const portalLayout = codeOnly(readSource("src/app/portal/(app)/layout.tsx"));
   rec(
     "the portal rail renders the registration line rather than its own sentence",

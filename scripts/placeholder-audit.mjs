@@ -31,6 +31,11 @@
 //      src/config/credentials.ts. Engineering is a regulated profession in
 //      Texas, and a plausible looking licence number written in as a placeholder
 //      is indistinguishable from a real one to every reader except the board.
+/*
+ * FIRST, AND THE ORDER IS LOAD BEARING. contact.ts reads process.env at module
+ * load, so the environment has to exist before this import list reaches it.
+ */
+import "./lib/load-env.mjs";
 import { credentialAllowlist, permittedCredentialStrings } from "../src/config/credentials.ts";
 import { contact } from "../src/config/contact.ts";
 
