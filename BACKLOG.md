@@ -5591,15 +5591,20 @@ Not fixed: it is a portal screen on the money path's edge, outside the roof
 protocol scope this branch is for, and it wants a ruling on whether the list
 may be paged or the counts derived differently.
 
-**IT IS INTERMITTENT, AND THE COUNT IS THREE. Operator ruling, 2026-09-17.**
+**IT IS INTERMITTENT, AND THE COUNT IS FOUR. Operator ruling, 2026-09-17.**
 
 | Board | Tree | `/portal/accounts` |
 | --- | --- | --- |
 | `feat/roof-protocol`, first | before the rebase | **stall**, 45s timeout, 0 refusals |
 | `main`, after the overnight merge | `62a1b63` | **clean**, measured at every width |
 | `feat/roof-protocol`, rebased | onto `62a1b63` | **stall** at 360 and 390, 0 refusals |
+| `main`, after the roof merge | `6e7df88` | **stall** at 360 and 390, 0 refusals |
 
-**Nothing was fixed between the second and the third.** The fifty seconds in the
+**One clean run in four, and nothing was changed between any of them.** It is
+worth saying which way round that is, because "it fails sometimes" and "it works
+sometimes" are the same observation with different implications for a customer:
+three of four boards could not load the screen at all inside 45 seconds. The
+fifty seconds in the
 evidence above was read off the server's own log and is real; what is now known
 is that it does not happen every run. A count of three is recorded here and **no
 theory is attached to it**, because the `accountRows()` hypothesis above is still
