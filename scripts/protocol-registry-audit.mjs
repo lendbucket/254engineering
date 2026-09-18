@@ -411,6 +411,52 @@ if (pdftotext.error || pdftotext.status !== 0) {
     missingProcedure.map((p) => `step ${p.step}`).join(", ") || "all three steps matched",
   );
 
+  /*
+   * THE ENFORCED RULES, WORD FOR WORD, AND THIS CHECK DID NOT EXIST UNTIL
+   * 2026-09-18. Found by injecting a falsified rule and watching the audit pass.
+   *
+   * Every other part of this declaration was compared against the PDF:
+   * questions, criteria, photo procedure, thresholds, checklist items. The
+   * ENFORCED rules were checked only for having a key and a place, which is a
+   * check on shape and not on truth. So the one part of the registry the
+   * platform is supposed to be unable to break was the one part that could say
+   * anything at all.
+   *
+   * It matters more than the others rather than less. These are the sentences a
+   * check derives from, so a transcription error here does not stay a
+   * transcription error: it becomes a rule the platform enforces against copy,
+   * with the document's authority and none of its words.
+   */
+  /*
+   * A RULE ATTRIBUTED TO THE DOCUMENT IS HELD TO THE DOCUMENT'S WORDS. A rule
+   * attributed to standing law is not, and says so in its own `at`.
+   *
+   * That distinction is not a loophole, it is the finding. One rule used to
+   * read "the engineer issues a sealed letter. The platform stores it and never
+   * composes one" with an `at` of "section 11; CLAUDE.md standing law", which
+   * made it a quotation from neither source. The document says nothing about
+   * what the platform composes, and CLAUDE.md says nothing about a pass
+   * determination. Splitting them is what lets each be checked against the
+   * thing it actually came from.
+   */
+  const fromDocument = RC001_ENFORCED.filter((r) => /section|Appendix/.test(r.at));
+  const missingRules = fromDocument.filter((r) => !doc.includes(squash(r.rule)));
+  rec(
+    "every enforced rule attributed to the document appears in it, word for word",
+    missingRules.length === 0,
+    missingRules.map((r) => r.key).join(", ") || `${fromDocument.length} of ${RC001_ENFORCED.length} rules matched`,
+  );
+  /*
+   * And the ones that are NOT from the document are few and named, so the
+   * exemption cannot quietly grow into the whole list.
+   */
+  const notFromDocument = RC001_ENFORCED.filter((r) => !/section|Appendix/.test(r.at));
+  rec(
+    "and the rules that do not come from the document are named and countable",
+    notFromDocument.length <= 2,
+    notFromDocument.map((r) => `${r.key} (${r.at})`).join("; ") || "all rules are quotations",
+  );
+
   const missingThresholds = RC001.thresholds.filter((t) => !doc.includes(squash(t.states)));
   rec(
     "every threshold is quoted from the document rather than computed",

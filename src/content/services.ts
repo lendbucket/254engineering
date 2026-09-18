@@ -50,23 +50,23 @@ export const services: Service[] = [
     h1: "Roof Certification in Texas, Sealed by a Licensed Engineer",
     title: "Roof Certification in Texas, Sealed | 254 Engineering",
     description:
-      "A roof certification is a sealed engineering opinion on condition and remaining service life. What the inspection covers and who orders one. See the price.",
+      "A roof certification is a sealed opinion on the observed condition of a roof on the date it was inspected. What it covers, who orders one, and what it costs.",
     summary:
-      "A sealed engineering opinion on the condition of a roof and the service life it can reasonably be expected to have left, issued after a documented field inspection.",
+      "A sealed engineering opinion on the condition of a roof as it stood on the date it was inspected, issued after a documented field inspection to a written protocol.",
     what: [
-      "A roof certification is a written opinion, signed and sealed by a licensed Texas Professional Engineer, on the present condition of a roof covering and the structure beneath it. It follows a field inspection carried out to a written protocol, and it states what was observed, what those observations mean, and how much service life the roof can reasonably be expected to have left.",
+      "A roof certification is a written opinion, signed and sealed by a licensed Texas Professional Engineer, on the present condition of a roof covering and the structure beneath it. It follows a field inspection carried out to a written protocol, and it states what was observed, what those observations mean, and the limitations the opinion carries. It does not estimate how many years the roof has left, and the reason is in the protocol the engineer signed: a remaining life figure is a forecast rather than an observation.",
       "The inspection is non destructive. A technician documents the covering type and how it was installed, flashing and penetrations, drainage and ponding, the condition of the decking where it can be observed, and any evidence of prior repair or storm damage. Photographs are keyed to locations, so the reviewing engineer can see what the technician saw rather than take a conclusion on trust.",
       "The engineer is the author of the opinion. Field work gathers evidence. The licensed engineer in responsible charge reviews that evidence, forms the opinion, and applies the seal. Keeping those two roles distinct is what allows one consistent standard to hold across a state with 254 counties in it.",
     ],
     whoOrders: [
-      "Lenders and loan officers who need remaining service life stated before a file can close",
+      "Lenders and loan officers who need a sealed condition opinion before a file can close. If a checklist demands a remaining life figure in years, say so before ordering and you will be told honestly whether this letter meets it",
       "Insurance carriers and agents underwriting or renewing a property policy",
       "Buyers and sellers resolving a roof question raised by a general home inspection",
       "Property managers and commercial owners documenting the condition of a portfolio",
       "Roofing contractors whose customer has been asked for an engineer's opinion",
     ],
     deliverable: [
-      "A signed and sealed letter on firm letterhead, addressed to the party who needs it, stating the scope of the inspection, the conditions observed, the opinion of remaining service life, and the limitations that opinion carries.",
+      "A signed and sealed letter on firm letterhead, addressed to the party who needs it, stating the scope of the inspection, the date, the conditions observed, the engineer's opinion of that condition, and the limitations the opinion carries.",
       "A photographic record keyed to the observations, so an underwriter or a loan officer can read the letter without arranging a second visit.",
       "A PDF suitable for upload to a loan file, a carrier portal, or a closing package.",
     ],
@@ -75,15 +75,15 @@ export const services: Service[] = [
     faqs: [
       {
         q: "What is the difference between a roof inspection and a roof certification?",
-        a: "The inspection is the field work. The certification is the sealed engineering opinion that follows it. A roofing contractor can inspect a roof and give you a quote. Only a licensed Professional Engineer can issue a sealed opinion on condition and expected remaining service life, and that seal is usually what a lender or a carrier is actually asking for.",
+        a: "The inspection is the field work. The certification is the sealed engineering opinion that follows it. A roofing contractor can inspect a roof and give you a quote. Only a licensed Professional Engineer can issue a sealed opinion on the condition observed, and that seal is usually what a lender or a carrier is actually asking for.",
       },
       {
         q: "How long is a roof certification good for?",
         a: "It states a condition observed on a particular date, so it does not expire on its own. Most lenders and carriers treat one as current for six to twelve months. A significant storm between the inspection and the closing will normally prompt a fresh look regardless of the date on the letter.",
       },
       {
-        q: "Does a certification guarantee the roof will last that long?",
-        a: "No. It is a professional opinion of remaining service life based on what was observed, stated together with its limitations. An engineer cannot warrant a roof, and a document that claims to warrant one is not an engineering opinion.",
+        q: "Will the letter say how many years the roof has left?",
+        a: "No. It states the condition observed on the date of the inspection, with the limitations that opinion carries. A remaining life figure is a forecast rather than an observation, and the protocol the engineer of record signed removes it deliberately. If a carrier or a lender requires a years figure, say so before ordering and you will be told honestly whether this letter meets their requirement.",
       },
       {
         q: "Does the inspection include the attic?",
