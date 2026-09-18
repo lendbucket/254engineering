@@ -1174,6 +1174,44 @@ say which one it got. The third instance above was re-run that way and answered
 `added lines: 42, lines with an en or em dash: 0`, which is a measurement rather
 than the absence of an error.
 
+**A RULE YOU WROTE THIS MORNING DOES NOT PROTECT YOU THIS AFTERNOON. THAT IS WHY
+THE GUARD IS MECHANICAL AND WHY THE HOOK EXISTS.** Operator ruling, 2026-09-18,
+recorded as ONE entry from two incidents on one day, by the session that wrote
+both of the rules it broke.
+
+**The morning.** The grep exit code hazard above was written up, committed, and
+given a checker run from a file rather than inline, because a `||` had fired on
+a grep ERROR and printed a reassuring sentence about a check that never ran.
+
+**The afternoon, hours later, same session.** A standalone audit was run as
+
+    BASE_URL=... node scripts/mobile-overflow-audit.mjs 2>&1 | grep -A 20 ... | head -24
+
+and the run reported **exit code 0 while the audit had failed**. The exit code
+belonged to `head`. It is the 2026-09-15 `tail` instance exactly, in a session
+that had written the rule about it that morning and could quote it.
+
+**And the same afternoon, in the check being built at the time.** The new page
+height ceiling called its report function inside BOTH branches of the verdict,
+after the findings had already been counted. A route over its ceiling would have
+**printed the finding and exited zero**: a check that reports a defect and
+passes, which is worse than no check at all, because the line scrolls past in a
+green run and everybody trusts the green. It was caught by reading the control
+flow before trusting it, not by any check.
+
+**So the entry is not "be careful with exit codes".** It is that being careful
+is not a mechanism, and that knowing a rule, having written it down, having
+committed it hours earlier, and being able to recite it, are all compatible with
+breaking it before the day is out. The same point is already made once in this
+file by the commit that built the mechanical commit guard and broke the
+commit-per-change rule while doing it. This is the second time, which makes it a
+pattern rather than a joke.
+
+**What follows from it, practically.** A rule that matters gets a hook, an
+audit, or a file that runs it, and the written form is the explanation rather
+than the protection. Anything still enforced by memory is enforced by nothing on
+a long day.
+
 **AND THE ORIGINAL INSTANCE, 2026-09-13**, in the patch script written to
 document all of this. It searched an eight line window for a table name to decide which query
 a comment belonged above, and these queries sit in three line blocks, so one

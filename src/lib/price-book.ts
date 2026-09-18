@@ -107,6 +107,14 @@ export function marginForJob(input: MarginInput): MarginVerdict {
        * A line has an estimating default and this function is not estimating.
        * Quietly using it would turn a plan into a record, which is the one
        * thing the whole design is arranged to prevent.
+       *
+       * AND THE REASON IT WOULD BE SO HARD TO CATCH IS THE REASON IT MATTERS:
+       * the default would be RIGHT OFTEN ENOUGH THAT NOBODY WOULD NOTICE THE
+       * TIMES IT WAS NOT. Most roof certifications are a pass at tier 1, so a
+       * substituted default would agree with reality on most jobs and be wrong
+       * on exactly the ones worth looking at, the job that went to repairs and
+       * cost the engineer twice as much. A figure that is usually right is the
+       * worst kind of wrong figure, because it earns the trust it then spends.
        */
       const fallback = defaultTierFor(input.serviceSlug);
       return {
