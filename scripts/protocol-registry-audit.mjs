@@ -447,8 +447,14 @@ if (pdftotext.error || pdftotext.status !== 0) {
     missingRules.map((r) => r.key).join(", ") || `${fromDocument.length} of ${RC001_ENFORCED.length} rules matched`,
   );
   /*
-   * And the ones that are NOT from the document are few and named, so the
-   * exemption cannot quietly grow into the whole list.
+   * And the ones that are NOT from the document are few and named.
+   *
+   * AN EXEMPTION THAT NOBODY COUNTS BECOMES THE RULE. Operator ruling,
+   * 2026-09-18. A verbatim check with an unbounded escape hatch is a verbatim
+   * check in name only: every rule that failed it would acquire an `at` naming
+   * standing law, one at a time, each change reasonable on its own, until the
+   * check covered nothing. Counting them is what keeps the exemption an
+   * exception.
    */
   const notFromDocument = RC001_ENFORCED.filter((r) => !/section|Appendix/.test(r.at));
   rec(
@@ -515,6 +521,92 @@ if (pdftotext.error || pdftotext.status !== 0) {
     RC001.checklist.find((i) => i.key === "shingle-seal-bond")?.capture?.kind === "temperature" &&
       doc.includes(squash("Ambient temperature during seal-bond check")),
     "section 8 says the result is not meaningful without it",
+  );
+}
+
+/* ------ 5. no rendered sentence promises what the protocol excludes */
+
+/*
+ * ===========================================================================
+ * THE DELIVERABLE MAY NOT BE DESCRIBED IN TERMS ITS PROTOCOL EXCLUDES.
+ * Operator ruling, 2026-09-18.
+ * ===========================================================================
+ *
+ * WHY IT EXISTS. services.ts said in six places that a roof certification
+ * states remaining service life, including in the deliverable itself and in a
+ * named buyer segment. 254-RC-001 section 11, signed by the engineer of record
+ * on 09/14/2026, says the letter states observed condition only and does not
+ * estimate remaining service life. The two disagreed for three days and nothing
+ * on the board could see it, because no check compared what the site PROMISES
+ * against what the governing protocol PERMITS.
+ *
+ * DERIVED, NOT A HAND LIST, which is the operator's requirement and the only
+ * version worth having. The excluded phrases are extracted from the protocol's
+ * own exclusion sentence, which is itself checked word for word against the
+ * signed PDF above. So the chain is: the engineer's signature, the PDF, the
+ * verbatim check, this extraction, the copy. A hand list would break that chain
+ * at its first link and would go stale the day a protocol is reissued.
+ *
+ * THE EXTRACTION, AND ITS LIMIT STATED PLAINLY. The sentence has the shape
+ * "It does not X, Y, or Z", so the clause after "does not" is split on commas
+ * and "or", and the leading verb is dropped to leave the thing itself:
+ * "estimate remaining service life" becomes "remaining service life". That is
+ * mechanical rather than clever, and it will not catch a promise phrased in
+ * words the protocol does not use. It catches the promise phrased in the
+ * protocol's OWN words, which is what the six sentences did.
+ */
+{
+  const { readSource } = await import("./lib/read-source.mjs");
+
+  /*
+   * Rules that state what the DELIVERABLE does not do, which is narrower than
+   * rules containing "does not".
+   *
+   * The first version matched the latter and produced four junk phrases out of
+   * seven, from rules where "does not" means something else entirely: "An item
+   * that does not apply to the property is marked with the reason it does not
+   * apply" yielded "to the property is marked with the reason it". A junk
+   * phrase in a forbidden list is not harmless noise, it is a false positive
+   * waiting for the day some page legitimately uses those words, and a check
+   * that cries wolf is one somebody switches off.
+   */
+  const exclusions = RC001_ENFORCED.filter(
+    (r) => /\bdoes not\b/.test(r.rule) && /\bthe letter\b/i.test(r.rule),
+  );
+
+  const forbidden = [];
+  for (const rule of exclusions) {
+    const after = rule.rule.split(/\bdoes not\b/)[1] ?? "";
+    for (const raw of after.split(/,| or /)) {
+      const clause = raw.replace(/[.]/g, "").trim();
+      if (clause.length < 8) continue;
+      /* Drop the leading verb to leave the thing itself. */
+      const phrase = clause.split(/\s+/).slice(1).join(" ").trim();
+      if (phrase.length >= 8) forbidden.push({ phrase, from: rule.key });
+    }
+  }
+
+  rec(
+    "the protocol's exclusions yield phrases to check the copy against",
+    forbidden.length > 0,
+    forbidden.map((f) => `"${f.phrase}"`).join(", ") || "no exclusion rule found, so this check is measuring nothing",
+  );
+
+  /*
+   * The copy for the line this protocol governs. One file today, named rather
+   * than globbed, because a glob that matched nothing would pass silently and
+   * that is the failure this whole audit exists to prevent.
+   */
+  const copy = readSource("src/content/services.ts").toLowerCase();
+  const promised = forbidden.filter((f) => copy.includes(f.phrase.toLowerCase()));
+
+  rec(
+    `no rendered sentence describes the deliverable in terms ${RC001.documentNumber} excludes`,
+    promised.length === 0,
+    promised.length
+      ? promised.map((p) => `"${p.phrase}" (excluded by ${p.from})`).join("; ") +
+          ". The signed protocol says the letter does not do this. A page that promises it is promising something the engineer will not seal."
+      : `${forbidden.length} excluded phrase(s) checked against the service copy`,
   );
 }
 

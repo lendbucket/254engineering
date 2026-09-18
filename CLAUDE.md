@@ -1174,6 +1174,56 @@ say which one it got. The third instance above was re-run that way and answered
 `added lines: 42, lines with an en or em dash: 0`, which is a measurement rather
 than the absence of an error.
 
+**A REGISTRY WAS VERIFIED EVERYWHERE EXCEPT THE ENTRY THAT WOULD BE QUOTED, AND
+THE ENTRY THAT WOULD BE QUOTED WAS THE ONE THAT COULD SAY ANYTHING.** Operator
+ruling, 2026-09-18.
+
+**VERIFICATION THAT STOPS AT THE BOUNDARY OF WHAT IS ENFORCEABLE HAS VERIFIED
+THE WRONG THINGS.**
+
+`src/content/protocols/rc-001.ts` is the transcription of a protocol signed by
+the engineer of record, and `protocol-registry-audit` compares it against the
+PDF in both directions: every intake question, every determination criterion,
+every checklist item, every threshold, the photo procedure, all word for word
+with whitespace stripped. It is one of the most thoroughly proven declarations
+in this repository.
+
+**`RC001_ENFORCED` was checked for having a key and a place.** Not for being
+what the document says. That array is the one a CHECK would quote, because it
+holds the rules the platform is supposed to make unbreakable, and it was the one
+part of the registry that could contain any sentence at all.
+
+**It was found by injection rather than by reading.** A rule was transcribed from
+section 11, the audit passed, and only then was the transcription falsified to
+see whether the green meant anything. It did not. The check added in response
+immediately found **six existing rules that were paraphrases rather than
+quotations**, and two were worse than paraphrases: one merged two sentences from
+different sections into a sentence the document does not contain, and one mixed
+the protocol with CLAUDE.md standing law, making it a quotation from neither
+source. The document says nothing about what the platform composes; CLAUDE.md
+says nothing about a pass determination.
+
+**What it cost while nobody could see it.** `services.ts` promised that a roof
+certification states remaining service life, in six places including the
+deliverable and a named buyer segment. Section 11 says the letter states
+observed condition only. **Two sources of truth about what the firm will put a
+seal on, one approved by the operator and one written before the protocol
+existed, disagreed for three days with nothing able to notice.**
+
+**AND THE EXEMPTION IS COUNTED, BECAUSE AN EXEMPTION NOBODY COUNTS BECOMES THE
+RULE.** One rule legitimately comes from standing law rather than the document,
+so the verbatim check skips it. A second check asserts how many such rules there
+are. Without it, every rule that failed the verbatim check would acquire an
+attribution to standing law, one at a time, each change reasonable on its own,
+until the check covered nothing.
+
+**THE GENERAL FORM, AND IT IS OWED A SURVEY.** Anywhere a declaration is checked
+for SHAPE rather than CONTENT, and the content is what a check will later act
+on. The shape check passes forever, the content is never compared to anything,
+and the first thing to quote it inherits whatever was typed. Ask of every
+declaration: is this verified against the thing it claims to describe, or only
+against itself.
+
 **A RULE YOU WROTE THIS MORNING DOES NOT PROTECT YOU THIS AFTERNOON. THAT IS WHY
 THE GUARD IS MECHANICAL AND WHY THE HOOK EXISTS.** Operator ruling, 2026-09-18,
 recorded as ONE entry from two incidents on one day, by the session that wrote
