@@ -78,11 +78,22 @@ export default function HomePage() {
         </ul>
       </Section>
 
-      {/* How it works */}
+      {/*
+        THE PROCESS BLOCK, RETITLED AND POINTED AT THE PAGE THAT CARRIES IT.
+        Operator ruling, 2026-09-18.
+
+        The approved copy's third home page block is "The 254 Process", five
+        steps, same five every time. The full five with what the customer does
+        and what the firm does live at /process, so this block states the three
+        that differentiate the firm and links to the rest rather than repeating
+        it. Two accounts of one process are two accounts that will disagree,
+        which is the rule this repository applies to facts and applies here to a
+        sequence.
+      */}
       <Section id="process" tone="navy">
         <SectionHead
-          title="How It Works"
-          lede="Serving a state this size is an organizational problem before it is a technical one. The answer is to separate the two things that do not scale the same way."
+          title="The 254 Process"
+          lede="Every job runs through the same five steps, on every service line. The engineer writes the protocol before the line opens, and the job is judged against it rather than against how the afternoon went."
           onDark
         />
         <div className="mt-9 flex flex-wrap gap-[clamp(20px,3vw,28px)]">
@@ -99,6 +110,14 @@ export default function HomePage() {
             body={responsibleChargeCopy()}
           />
           <ProcessStep n="3" title="One review process, statewide" icon={ClockIcon} body={specialistsCopy()} />
+        </div>
+        <div className="mt-9">
+          <Link
+            href="/process"
+            className="inline-block rounded-[3px] bg-brass px-6 py-3.5 text-[15px] font-bold text-slate-ink transition-colors hover:bg-brass-light"
+          >
+            Read the five steps
+          </Link>
         </div>
       </Section>
 
@@ -206,9 +225,18 @@ export default function HomePage() {
           </div>
           <div className="max-w-[420px] flex-1 basis-[280px] rounded-[4px] bg-slate p-[clamp(24px,3vw,32px)] text-slate-fg">
             {/* Explicit, for the same reason as the hero h1. */}
+            {/*
+              "Capability statement available on request" came off on
+              2026-09-18, on the operator's list of sentences that leave the
+              site. It promised a document nobody had asked for and nobody had
+              written, and it made a procurement officer send an email to find
+              out what the firm does instead of reading the page that says so.
+              The page exists, so the card points at it.
+            */}
             <h3 className="font-display text-[20px] font-bold text-slate-fg">Capability statement</h3>
             <p className="mt-2.5 text-[14.5px] leading-[1.65] text-slate-fg-muted">
-              Available on request for procurement teams and institutional buyers.
+              Registrations, NAICS codes, procurement posture and the firm&apos;s principal place
+              of business, on one page.
             </p>
             <Link
               href="/government"
