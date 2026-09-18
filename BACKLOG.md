@@ -5688,6 +5688,45 @@ Operator ruling: record it here rather than fix it tonight.
 
     FAIL: /portal/clients: the list is bounded (255 row(s))
 
+### THE ROW COUNT IS THE REAL FINDING, AND THE UNBOUNDED LIST ONLY MADE IT VISIBLE
+
+Three consecutive boards reported **255, then 262, then 269**. Exactly seven per
+board run, which is not a growing business.
+
+Read off development rather than inferred, by grouping the most recent rows:
+**every board leaves seven client rows behind.** Three `probe-customer`, one
+`probe-door-checkout`, one `probe-pricing`, and **two named "Audit Probe Company"
+with `is_demo` FALSE and no email at all**.
+
+**THE TWO UNMARKED ONES ARE THE DEFECT. The other five are litter.**
+`doors-audit` drives the product's REAL doors, `/api/account/sign-up` and
+`/api/portal/accounts/create`, which is what that audit is for and is the only
+honest way to test a door. Those routes create a client the way a real customer
+does, so the row is not marked as a demonstration, because from the product's
+point of view it is not one. The teardown then deletes the two clients the audit
+inserted DIRECTLY and cannot delete the two the product made for it.
+
+So development carries a growing population of client rows that are
+**indistinguishable from real clients by the one flag everything filters on**.
+`demo-audit` asserts nothing seeded is counted in a figure, and these rows are
+not seeded in a way it can see. That is the Phase 12 defect, where a sales tile
+counted a seeded client and was found in a screenshot.
+
+274 rows today, 212 marked demonstration, so 62 are not, and an unknown number of
+those 62 are probes.
+
+**THE FIX IS TEARDOWN, NOT MARKING.** The product must not know an audit is
+driving it; making sign up accept an `is_demo` flag would be a hole in the real
+door for the convenience of a test. `destroyProbes` is the model already here:
+sweep the whole probe domain rather than the ids one run made, so a crashed
+earlier run is cleaned up too. The sweep key is the name "Audit Probe Company",
+which no real client will carry.
+
+**Not fixed in the pass that found it**, because the delete has to be verified
+against the foreign keys hanging off a client and `doors-audit` needs a running
+server to exercise. Recorded with the evidence so nobody rediscovers the
+arithmetic.
+
 **255 rows rendered into one screen, unbounded.** It is not the same symptom as
 its neighbour, which times out rather than returning, and it is the same
 underlying shape: a portal list that renders everything the database has because
