@@ -53,7 +53,31 @@ import { selfServiceSignUp } from "@/config/launch-conditions";
  * scripts/launch-audit.mjs exercises both modes against `next dev` for the same
  * reason: dev renders per request, so one build can be audited in both states.
  */
-export type LaunchMode = "prelaunch" | "live";
+/**
+ * ===========================================================================
+ * THREE STATES, NOT TWO. Operator ruling, 2026-09-17.
+ * ===========================================================================
+ *
+ * The firm is registered with TBPELS as F-29811, active, it has an engineer of
+ * record on the register, and it has ruled prices. It accepts enquiries and
+ * quotes work. None of that was expressible with a boolean, so the site went on
+ * apologising for things that had stopped being true.
+ *
+ * What remains true is that no document can be sealed until the engineer
+ * approves a protocol IN THE PLATFORM, and none is approved. So "open" is not
+ * one event either: a line opens when its own protocol is approved.
+ *
+ *   prelaunch   the firm may not represent that it performs engineering
+ *   trading     registered, engineer of record, present tense, prices,
+ *               enquiries and quotes. No online order and no card.
+ *   open        orders, per line, where that line's protocol is approved
+ *
+ * WHY THE MIDDLE STATE IS THE WHOLE POINT. A boolean forced every question to
+ * be answered by the same answer: whether the firm may say it is registered,
+ * whether it may quote, and whether it may take a card were one fact. They are
+ * three, and two of them have been true for a week.
+ */
+export type LaunchMode = "prelaunch" | "trading" | "open";
 
 /**
  * ===========================================================================
@@ -85,6 +109,24 @@ export type LaunchCondition = {
   /** Where it is stated true, exactly enough to open the file and edit it. */
   statedIn: string;
   /**
+   * WHICH STATE THIS CONDITION GATES. Operator ruling, 2026-09-17.
+   *
+   *   trading   the firm may not hold itself out at all until this is met
+   *   open      the firm may trade, and may not take orders until this is met
+   *   naming    gates NOTHING. It decides which name the trading copy uses.
+   *
+   * The third value exists because of `trading-name`, and it is the honest
+   * shape rather than a convenience. That condition used to gate everything on
+   * whether the board held the name the firm trades under. It no longer does,
+   * because every rendered sentence derives the name from the board's own
+   * record, so the thing it was protecting is protected by construction. It
+   * still belongs on the operator's screen, because a reissuance changes what
+   * the copy says. A condition that blocks nothing and is deleted is a fact
+   * nobody watches; a condition that blocks nothing and is labelled as such is
+   * a fact on a screen.
+   */
+  gates: "trading" | "open" | "naming";
+  /**
    * The sentence a reader gets when it is not met, or null when it is.
    *
    * A SENTENCE AND NOT A BOOLEAN, which is the whole design. What somebody needs
@@ -112,6 +154,7 @@ export type LaunchCondition = {
 export const LAUNCH_CONDITIONS: LaunchCondition[] = [
   {
     id: "switch",
+    gates: "open",
     what: "The operator has thrown the switch.",
     whoClears: "The operator, in the deployment environment.",
     statedIn: "LAUNCH_MODE=live",
@@ -120,7 +163,33 @@ export const LAUNCH_CONDITIONS: LaunchCondition[] = [
   },
 
   {
+    /*
+     * THE ENGINEER OF RECORD, ADDED 2026-09-17 ON THE OPERATOR'S RULING.
+     *
+     * It was never a condition, which is strange only until you see why: the
+     * gate had `peInResponsibleCharge()`, and that function returned false
+     * whenever the gate was shut. A condition built on it would have been
+     * false BECAUSE the gate was shut, which is a gate that cannot open. The
+     * circularity is removed in the same commit as this condition is added.
+     *
+     * An unrecorded expiry is not active, which `activeEngineer()` enforces, so
+     * this condition answers no for a licence nobody has checked rather than
+     * yes for one nobody has looked at.
+     */
+    id: "engineer-of-record",
+    gates: "trading",
+    what: "A licensed Professional Engineer with a current licence is on the register.",
+    whoClears: "The operator, by recording the engineer and the licence expiry he read off the roster.",
+    statedIn: "verifiedEngineers in src/config/credentials.ts",
+    unmet: () =>
+      activeEngineer()
+        ? null
+        : "No engineer with a current, recorded licence is on the register in src/config/credentials.ts. An unrecorded expiry counts as not current, because sealing rests on the licence being active.",
+  },
+
+  {
     id: "registration",
+    gates: "trading",
     /*
      * A registration the board actually issued, read from the register rather
      * than from the environment. An environment variable can differ between a
@@ -136,15 +205,31 @@ export const LAUNCH_CONDITIONS: LaunchCondition[] = [
   },
 
   {
-    id: "operating-name",
+    id: "trading-name",
+    gates: "naming",
     /*
-     * AND THE BOARD HOLDS THE NAME THIS FIRM TRADES UNDER. The condition this
-     * ruling exists for: a registration in one name does not authorise holding
-     * out under another.
+     * RENAMED AND REFRAMED 2026-09-17, ON THE OPERATOR'S RULING, AND THE OLD
+     * NAME IS THE REASON IT HAD TO BE RENAMED.
+     *
+     * As `operating-name` it gated everything, on the principle that a
+     * registration in one name does not authorise holding out under another.
+     * That principle is unchanged and is now enforced somewhere better: every
+     * rendered sentence naming the firm calls `firmName()`, which reads
+     * `issuedTo` off the board's own record, so the site cannot hold out under
+     * a name the board does not have. The condition was guarding a hole that
+     * got filled by the deriver.
+     *
+     * What it still decides is WHICH NAME the trading copy uses, which changes
+     * the day TBPELS reissues F-29811 as 254 Engineering LLC. That is worth a
+     * line on the operator's screen and is not a reason to keep the firm shut.
+     *
+     * It keeps its id stable enough to be pinned and changes it deliberately,
+     * which costs two edits: this one and the pinned list in compliance-audit.
+     * That is the mechanism working rather than friction.
      */
-    what: "The board holds the name this firm trades under.",
+    what: "Which name the trading copy uses, which is the name on the board's record.",
     whoClears:
-      "Nobody. Cleared 2026-09-13: the firm trades under its registered name, which the board already holds.",
+      "TBPELS, by reissuing F-29811 in the new name. Until then the copy names the registrant, which is correct and is not a blocker.",
     statedIn: "operatingNameOnBoardRecord in src/config/credentials.ts",
     unmet: () =>
       operatingNameOnBoardRecord.onRecord
@@ -154,6 +239,7 @@ export const LAUNCH_CONDITIONS: LaunchCondition[] = [
 
   {
     id: "stripe",
+    gates: "open",
     what: "A live Stripe account belonging to 254, proven by one real charge and its refund.",
     whoClears: "The operator connects the account and makes the charge and the refund.",
     statedIn: "stripeAccount in src/config/launch-readiness.ts",
@@ -171,6 +257,7 @@ export const LAUNCH_CONDITIONS: LaunchCondition[] = [
 
   {
     id: "protocols",
+    gates: "open",
     /*
      * The condition that decides what may be SOLD rather than what may be said.
      * A line with no approved protocol cannot be dispatched, so offering it is
@@ -191,6 +278,7 @@ export const LAUNCH_CONDITIONS: LaunchCondition[] = [
 
   {
     id: "phone",
+    gates: "trading",
     what: "FIRM_PHONE is a real number, not a placeholder.",
     whoClears: "The operator, once there is a number somebody answers.",
     statedIn: "FIRM_PHONE in the deployment environment",
@@ -241,6 +329,7 @@ export const LAUNCH_CONDITIONS: LaunchCondition[] = [
      * operator's alone to lift.
      */
     id: "self-service-signup",
+    gates: "open",
     what: "Self service sign up is cleared to reach production.",
     whoClears: "The operator, and nobody else, by editing the file.",
     statedIn: "selfServiceSignUp in src/config/launch-conditions.ts",
@@ -252,6 +341,7 @@ export const LAUNCH_CONDITIONS: LaunchCondition[] = [
 
   {
     id: "recovery",
+    gates: "open",
     what: "Point in time recovery is enabled on the production project.",
     whoClears: "The operator, in the Supabase dashboard, and states it here with the date.",
     statedIn: "pointInTimeRecovery in src/config/launch-readiness.ts",
@@ -331,8 +421,37 @@ export function serviceLineIsOffered(serviceSlug: string): boolean {
   return approvedProtocolFor(serviceSlug) !== null;
 }
 
+/**
+ * What stands between the firm and TRADING: holding itself out as a registered
+ * firm, describing services in the present tense, publishing prices, and taking
+ * enquiries. Not orders and not money.
+ */
+export function tradingBlockers(): string[] {
+  return LAUNCH_CONDITIONS.filter((c) => c.gates === "trading")
+    .map((c) => c.unmet())
+    .filter((s): s is string => s !== null);
+}
+
+/**
+ * What stands between the firm and OPEN, which is everything above plus the
+ * money path, the switch, and a protocol per line. Naming conditions are
+ * excluded by construction: they gate nothing.
+ */
+export function openBlockers(): string[] {
+  return LAUNCH_CONDITIONS.filter((c) => c.gates !== "naming")
+    .map((c) => c.unmet())
+    .filter((s): s is string => s !== null);
+}
+
+/**
+ * Kept as the name every existing caller knows, and it answers the OPEN
+ * question, which is what it always answered. Reading it as "is anything at all
+ * still shut" is the mistake this rename was designed to make impossible, and
+ * the reason `tradingBlockers()` sits above it with a different name rather
+ * than as a flag on this one.
+ */
 export function launchBlockers(): string[] {
-  return LAUNCH_CONDITIONS.map((c) => c.unmet()).filter((s): s is string => s !== null);
+  return openBlockers();
 }
 
 /**
@@ -364,12 +483,36 @@ export function activeFirmRegistration(): VerifiedFirmRegistration | null {
  * missing variable, an empty one, and a typo.
  */
 export function launchMode(): LaunchMode {
-  return launchBlockers().length === 0 ? "live" : "prelaunch";
+  if (tradingBlockers().length > 0) return "prelaunch";
+  if (openBlockers().length > 0) return "trading";
+  return "open";
 }
 
-/** True while the firm may not represent that it is performing engineering work. */
+/**
+ * True while the firm may not represent that it is performing engineering work.
+ *
+ * THIS IS NARROWER THAN IT WAS, AND THAT IS THE ENTIRE POINT OF THE RULING.
+ * Until 2026-09-17 it meant "anything at all is still shut", so it was used to
+ * suppress the order button AND the present tense AND the prices. Those are
+ * three questions. Use `isOpen()` for the money and the orders, and this only
+ * for whether the firm may describe itself as practising at all.
+ *
+ * Every one of the 36 call sites was classified before this changed, in
+ * docs/gate-call-sites.md, because a boolean widened to three states silently
+ * keeps its old meaning at every site nobody reclassified.
+ */
 export function isPrelaunch(): boolean {
   return launchMode() === "prelaunch";
+}
+
+/** Registered, engineer of record, present tense, prices, enquiries and quotes. */
+export function isTrading(): boolean {
+  return launchMode() !== "prelaunch";
+}
+
+/** Orders and money. A LINE is open only if its protocol is also approved. */
+export function isOpen(): boolean {
+  return launchMode() === "open";
 }
 
 /**
@@ -406,7 +549,27 @@ export function tbpelsFirmNumber(): string | null {
  * requiring the number means the gate cannot be opened by optimism.
  */
 export function peInResponsibleCharge(): boolean {
-  if (isPrelaunch()) return false;
+  /*
+   * THE CIRCULARITY IS GONE. Operator ruling, 2026-09-17.
+   *
+   * This used to begin `if (isPrelaunch()) return false`. Whether a licensed
+   * engineer is in responsible charge is a fact about the REGISTER and has
+   * nothing to do with the launch mode, and reading the mode here made it
+   * false BECAUSE the gate was shut. Once it became a condition of opening,
+   * that is a gate that cannot open: the fact would have been false until the
+   * gate lifted, and the gate would not lift until the fact was true.
+   *
+   * WHATEVER THE OLD BRANCH WAS PROTECTING BELONGS AT THE SURFACES. His ruling,
+   * and it was right: the protection is that no sentence claims the firm is
+   * currently sealing. That is now gated on the protocol per line, which is
+   * what actually decides whether anything can be sealed, rather than on a fact
+   * about a person's licence.
+   *
+   * Three of this function's eleven dependants would have asserted something
+   * false the moment it answered honestly. They were found by enumerating the
+   * dependants first, which the operator required, and are fixed in this same
+   * commit rather than after it. See docs/gate-call-sites.md.
+   */
   return activeEngineer() !== null;
 }
 

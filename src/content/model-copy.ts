@@ -47,16 +47,44 @@ export function responsibleChargeCopy(): string {
 
 /** The central review paragraph, which used to imply engineers already on staff. */
 export function centralReviewCopy(): string {
+  /*
+   * ONE ENGINEER, SO THE PRESENT TENSE IS SINGULAR. Found 2026-09-17 by
+   * enumerating this function's dependants before the circularity in
+   * `peInResponsibleCharge()` was removed, which is what the operator required.
+   *
+   * The old present branch said "the same engineers see the same protocols".
+   * It had never once rendered, because the function it reads always answered
+   * false while the gate was shut. The moment the fact answered honestly it
+   * would have claimed a review bench the firm does not have.
+   */
   return peInResponsibleCharge()
-    ? "Reviewing centrally rather than regionally keeps the standard identical in Dalhart and in Harlingen. The same engineers see the same protocols applied across the whole state, which means a drift in one region is visible rather than invisible."
+    ? "Reviewing centrally rather than regionally keeps the standard identical in Dalhart and in Harlingen. One review desk sees the same protocols applied across the whole state, which means a drift in one region is visible rather than invisible."
     : "Reviewing centrally rather than regionally is what will keep the standard identical in Dalhart and in Harlingen. One review desk seeing the same protocols applied across the whole state is what makes a drift in one region visible rather than invisible.";
 }
 
 /** The specialists paragraph. Used on the homepage and the about page. */
 export function specialistsCopy(): string {
+  /*
+   * THE PRESENT BRANCH WOULD HAVE CLAIMED A CREDENTIAL THE REGISTER SAYS THE
+   * FIRM DOES NOT HOLD. Found 2026-09-17, the same night the SAM claim came off
+   * for being exactly that, by enumerating the dependants of
+   * `peInResponsibleCharge()` before its circularity was removed.
+   *
+   * It said the firm "holds specialists ... including engineers appointed by
+   * the Texas Department of Insurance for windstorm inspections". No engineer
+   * here holds a TDI appointment; `verifiedCredentials` records it as not held
+   * and the windstorm pages disclose the absence. The new credential check
+   * would not have caught this one, because it does not name TDI in these
+   * words, which is worth knowing about that check.
+   *
+   * BOTH BRANCHES NOW DESCRIBE THE MODEL RATHER THAN THE ROSTER. The point of
+   * the sentence was that central review makes specialist cover possible at
+   * all, which is true today and does not require naming a credential nobody
+   * has.
+   */
   return peInResponsibleCharge()
-    ? "It also lets the firm hold specialists that no single metro could support on its own, including engineers appointed by the Texas Department of Insurance for windstorm inspections, whose appointment matters on the coast and nowhere else."
-    : "It is also what will let the firm hold specialists that no single metro could support on its own, including engineers appointed by the Texas Department of Insurance for windstorm inspections, whose appointment matters on the coast and nowhere else.";
+    ? "It also lets the firm hold specialist cover that no single metro could support on its own, including the coastal windstorm work where a Texas Department of Insurance appointment is what decides who may inspect."
+    : "It is also what will let the firm hold specialist cover that no single metro could support on its own, including the coastal windstorm work where a Texas Department of Insurance appointment is what decides who may inspect.";
 }
 
 /** How a deliverable is described as reaching its sealed state. */
@@ -82,10 +110,28 @@ export function reviewStepCopy(): string {
  * by one sentence saying exactly that. The per-service copy is untouched in the
  * data file and returns the moment the gate lifts.
  */
-export function turnaroundCopy(serviceTurnaround: string): string {
-  return peInResponsibleCharge()
-    ? serviceTurnaround
-    : "No turnaround is being quoted. Turnaround for sealed work depends on the engineer of record who signs it, and this firm does not yet have one. A schedule stated before that would be a promise nobody is in a position to keep.";
+export function turnaroundCopy(serviceTurnaround: string): string | null {
+  /*
+   * THE SHARPEST OF THE THREE, AND THE REASON THE OPERATOR MADE ME ENUMERATE
+   * THE DEPENDANTS BEFORE TOUCHING THE FACT THEY READ.
+   *
+   * Until 2026-09-17 this returned a refusal to quote any turnaround, because
+   * `peInResponsibleCharge()` always answered false while the gate was shut.
+   * The RIGHT OUTCOME was being reached for the WRONG REASON. Remove the
+   * circularity and this function starts publishing a turnaround figure for
+   * every service line, from strings that predate any ruling about them.
+   *
+   * The operator owes the turnaround per line and has said so. Until he gives
+   * it, this renders NOTHING rather than a guess, and null is deliberate rather
+   * than an empty string: a caller has to decide what to do with an absent
+   * turnaround, and an empty string would let one render a heading over nothing.
+   *
+   * `serviceTurnaround` is still taken rather than dropped, so the day the
+   * figures are ruled this becomes one line instead of a signature change
+   * across four callers.
+   */
+  void serviceTurnaround;
+  return null;
 }
 
 /** True when any gate is still down, for copy that needs to say so once. */

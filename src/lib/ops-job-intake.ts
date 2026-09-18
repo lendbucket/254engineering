@@ -5,7 +5,7 @@ import { createClient, createFile, transitionFile, type Author } from "./ops-crm
 import { catalogFor, orderBlockedReason } from "@data/catalog";
 import { quoteFor } from "./ops-orders";
 import { resolveCounty, twiaStatus } from "./ops-counties";
-import { isPrelaunch } from "./launch";
+import { isOpen } from "./launch";
 import { isKnown } from "./ops-money";
 import { fieldsFor, missingFor } from "@data/intake-fields";
 import { defaultAnswersFor } from "./ops-file-inputs";
@@ -255,7 +255,7 @@ export async function takeJob(
    * than trusted.
    */
   const options = paymentOptions({
-    prelaunch: isPrelaunch(),
+    prelaunch: !isOpen(),
     accountCanInvoice: await accountCanInvoice(input.clientId ?? null),
     priced: catalogCents !== null,
   });

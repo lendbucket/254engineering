@@ -8,7 +8,7 @@ import {
   hasPostalAddress,
   postalAddressSchema,
 } from "@/config/contact";
-import { firmName, isPrelaunch, tbpelsFirmNumber } from "./launch";
+import { firmName, isOpen, tbpelsFirmNumber } from "./launch";
 
 /**
  * Structured data for the whole brand family.
@@ -161,10 +161,18 @@ export function serviceSchema(params: { name: string; description: string; path:
     serviceType: params.name,
     provider: { "@id": ORG_ID },
     areaServed: { "@type": "State", name: "Texas" },
-    // While registration is pending the firm is not offering the service, so the
-    // node describes what the service is and stops short of an availability
-    // claim. `offers` appears only in live mode.
-    ...(isPrelaunch() ? {} : { offers: { "@type": "Offer", availability: "https://schema.org/InStock" } }),
+    /*
+     * InStock IS AN ORDERABILITY CLAIM, SO IT FOLLOWS ORDERS RATHER THAN THE
+     * FIRM'S STATUS. Reclassified 2026-09-17 with the three state gate.
+     *
+     * It used to appear whenever the site was not prelaunch. Under `trading`
+     * the firm describes its services in the present tense and quotes them, and
+     * still takes no order on any line, so publishing InStock to every machine
+     * that reads this page would assert something no visitor could act on. It
+     * is the JSON-LD version of the defect the phone number had: the human copy
+     * is right and nobody reads the structured data by eye.
+     */
+    ...(isOpen() ? { offers: { "@type": "Offer", availability: "https://schema.org/InStock" } } : {}),
   };
 }
 

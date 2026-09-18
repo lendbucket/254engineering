@@ -4,7 +4,7 @@ import { can } from "@/lib/ops-authz";
 import { TEXAS_COUNTIES } from "@/lib/ops-counties";
 import { services } from "@/content/services";
 import { CATALOG } from "@data/catalog";
-import { isPrelaunch } from "@/lib/launch";
+import { isOpen } from "@/lib/launch";
 import { PageHead } from "@/components/portal/surfaces";
 import { RestrictedMode } from "@/components/portal/design";
 import { IntakeClient } from "./IntakeClient";
@@ -72,7 +72,7 @@ export default async function IntakePage() {
         lede="Everything for a job taken by telephone, on one screen. The file, the price and the payment decision are recorded together."
       />
 
-      {isPrelaunch() ? (
+      {!isOpen() ? (
         <RestrictedMode
           also="A job can be taken, priced and dispatched. It cannot be charged for: no payment link and no invoice until the firm opens for work. Open it unpaid and the file will say so."
         />
@@ -82,7 +82,7 @@ export default async function IntakePage() {
         lines={lines}
         deliverables={deliverables}
         counties={[...TEXAS_COUNTIES]}
-        prelaunch={isPrelaunch()}
+        prelaunch={!isOpen()}
       />
     </div>
   );

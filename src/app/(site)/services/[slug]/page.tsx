@@ -148,14 +148,23 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
                 ))}
               </ul>
 
-              <div className="mt-10 rounded-[3px] border border-limestone-line bg-limestone-raised p-6">
-                <p className="font-sans text-[0.7rem] font-semibold tracking-[0.18em] text-brass-ink uppercase">
-                  Turnaround
-                </p>
-                <p className="mt-3 text-[0.96rem] leading-[1.7] text-slate-muted">
-                  {turnaroundCopy(service.turnaround)}
-                </p>
-              </div>
+              {/*
+                THE WHOLE BLOCK GOES WHEN THERE IS NO TURNAROUND TO STATE, not
+                just its text. A heading reading "Turnaround" above an empty
+                paragraph tells a reader the firm has one and would not say it,
+                which is worse than silence. The operator owes the figure per
+                line; until then this renders nothing at all.
+              */}
+              {turnaroundCopy(service.turnaround) ? (
+                <div className="mt-10 rounded-[3px] border border-limestone-line bg-limestone-raised p-6">
+                  <p className="font-sans text-[0.7rem] font-semibold tracking-[0.18em] text-brass-ink uppercase">
+                    Turnaround
+                  </p>
+                  <p className="mt-3 text-[0.96rem] leading-[1.7] text-slate-muted">
+                    {turnaroundCopy(service.turnaround)}
+                  </p>
+                </div>
+              ) : null}
             </div>
         </div>
       </Section>

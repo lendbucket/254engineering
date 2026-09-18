@@ -23,7 +23,8 @@ reasoning.** They cannot disagree, because the screen computes nothing.
 | --- | --- | --- | --- |
 | `switch` | The operator has thrown the switch | The operator, in the deployment environment | `LAUNCH_MODE=live` |
 | `registration` | An active, unexpired firm registration is on record | TBPELS issues it; the operator records it | `verifiedFirmRegistrations` in `src/config/credentials.ts` |
-| `operating-name` | The board holds the name this firm trades under | The operator files an assumed name and gets TBPELS acknowledgement, or renames the entity | `operatingNameOnBoardRecord` in `src/config/credentials.ts` |
+| `trading-name` | Which name the trading copy uses, which is the name on the board record | TBPELS, by reissuing F-29811 in the new name. Gates nothing | `operatingNameOnBoardRecord` in `src/config/credentials.ts` |
+| `engineer-of-record` | A licensed Professional Engineer with a current licence is on the register | The operator, by recording the engineer and the expiry he read off the roster | `verifiedEngineers` in `src/config/credentials.ts` |
 | `stripe` | A live Stripe account belonging to 254, proven by one real charge and its refund | The operator connects the account and makes the charge and the refund | `stripeAccount` in `src/config/launch-readiness.ts` |
 | `protocols` | Every service line offered at launch has one protocol approved by the engineer of record | The Professional Engineer in responsible charge | `approvedProtocols` in `src/config/launch-readiness.ts` |
 | `phone` | `FIRM_PHONE` is a real number, not a placeholder | The operator, once there is a number somebody answers | `FIRM_PHONE` in the deployment environment |
@@ -59,7 +60,7 @@ variable can differ between a build and the deployment serving it. Expiry is
 checked rather than trusted: F-29811 expires **2027-07-31**, and a site that
 goes on printing a lapsed number is making a claim it cannot support.
 
-### `operating-name`
+### `trading-name`
 
 **This is the one holding the gate today.** TBPELS issued F-29811 to **254
 Services LLC**. All three sites hold out as **254 Engineering Services**. A

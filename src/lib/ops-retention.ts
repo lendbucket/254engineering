@@ -3,7 +3,7 @@ import { DB_NOW } from "./db-now";
 import { createHash } from "node:crypto";
 import { supabaseAdmin } from "./supabase";
 import { readEvery } from "./bounded-read";
-import { isPrelaunch } from "./launch";
+import { isOpen } from "./launch";
 import { deletableEntries, ruleFor, type RetentionRule } from "./retention-policy";
 import type { Actor } from "./ops-authz";
 
@@ -96,7 +96,7 @@ export function executeAuthority(
    * a uuid. Null is the honest answer when it does not. */
   actorEmail: string | null = null,
 ): { ok: true; authority: RetentionAuthority } | { ok: false; because: string } {
-  if (isPrelaunch()) {
+  if (!isOpen()) {
     return {
       ok: false,
       because:

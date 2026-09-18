@@ -1,4 +1,4 @@
-import { isPrelaunch } from "./launch";
+import { isOpen } from "./launch";
 import type { Actor } from "./ops-authz";
 import { can, type AuthzSubject, type Action, type LicensedAction, may } from "./ops-authz";
 
@@ -263,7 +263,7 @@ export function canTransition(
     };
   }
 
-  const prelaunch = now.prelaunch ?? isPrelaunch();
+  const prelaunch = now.prelaunch ?? !isOpen();
   if (prelaunch && GATED_STATUSES.includes(to)) {
     return {
       ok: false,

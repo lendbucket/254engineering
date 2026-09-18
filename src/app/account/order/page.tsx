@@ -4,7 +4,7 @@ import { currentCustomer } from "@/lib/customer-auth";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { deliverablesFor, orderBlockedReason } from "@data/catalog";
 import { services } from "@/content/services";
-import { isPrelaunch, notYetAcceptingEngagements, registrationStatement, serviceLineIsOffered } from "@/lib/launch";
+import { isOpen, notYetAcceptingEngagements, registrationStatement, serviceLineIsOffered } from "@/lib/launch";
 import { BulkOrderClient } from "./BulkOrderClient";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +25,7 @@ export default async function BulkOrderPage({
   if (!me) redirect("/account/login");
 
   const { service } = await searchParams;
-  const prelaunch = isPrelaunch();
+  const prelaunch = !isOpen();
 
   /*
    * Only lines that can actually be ordered in bulk. A quote only deliverable

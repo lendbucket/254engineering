@@ -556,10 +556,27 @@ const {
       !new RegExp(`${FIRM_NUMBER}[^.]{0,40}${TRADING_AS}`).test(line),
     `the board has no record of "${TRADING_AS}", so its number may not appear beside it`,
   );
+  /*
+   * AND IT NO LONGER CONFESSES, WHICH IS THE OPERATOR'S RULING OF 2026-09-17.
+   *
+   * This check used to assert the footer SAID "no engineer of record is in
+   * responsible charge". That sentence was true and had to be there for as long
+   * as it was true. An engineer of record is now on the register, active, so
+   * asserting the confession would be asserting that the firm keeps saying
+   * something false about itself.
+   *
+   * WHAT REPLACES IT IS STRICTER RATHER THAN ABSENT, and that is the point: a
+   * check that is deleted when the thing it guarded becomes true leaves the
+   * surface unguarded. The footer states the registrant and the number and
+   * NOTHING ELSE, which is what the operator asked for, so this asserts the
+   * absence of the two sentence shapes that would put a claim back into it.
+   */
   rec(
-    "and still says no engineer of record is in responsible charge",
-    /no engineer of record/i.test(line),
-    "a registration alone does not let a firm seal anything, and the footer says so",
+    "and states the registration without confessing or claiming anything else",
+    !/no engineer of record/i.test(line) &&
+      !/not (yet )?(offering|performing|accepting)/i.test(line) &&
+      !/opening soon/i.test(line),
+    line.slice(0, 96),
   );
 
   /*
@@ -763,7 +780,24 @@ const {
 const RULED_CONDITIONS = [
   "switch",
   "registration",
-  "operating-name",
+  /*
+   * THE NINTH, AND A RENAME, BOTH ON 2026-09-17, AND BOTH COST TWO EDITS ON
+   * PURPOSE.
+   *
+   * `operating-name` became `trading-name`. It used to gate everything on
+   * whether the board held the name the firm trades under; it now decides which
+   * NAME the trading copy uses and blocks nothing, because `firmName()` derives
+   * the name from the board's own record and the hole it guarded is filled by
+   * construction. Renaming it here is the second of the two edits, which is the
+   * mechanism this list exists to impose.
+   *
+   * `engineer-of-record` is new. It was never a condition, and the reason is
+   * worth keeping: `peInResponsibleCharge()` returned false whenever the gate
+   * was shut, so a condition built on it would have been false BECAUSE the gate
+   * was shut. That circularity was removed in the same commit that added this.
+   */
+  "trading-name",
+  "engineer-of-record",
   "stripe",
   "protocols",
   "phone",

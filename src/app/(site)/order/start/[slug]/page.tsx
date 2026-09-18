@@ -5,7 +5,7 @@ import { Container } from "@/components/ui/Container";
 import { OrderFlow } from "@/components/order/OrderFlow";
 import { deliverablesFor, orderBlockedReason } from "@data/catalog";
 import { serviceBySlug } from "@/content/services";
-import { isPrelaunch, serviceLineIsOffered } from "@/lib/launch";
+import { isOpen, serviceLineIsOffered } from "@/lib/launch";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +43,7 @@ export default async function OrderStartPage({ params }: { params: Promise<{ slu
 
   if (!service || deliverables.length === 0) notFound();
 
-  const prelaunch = isPrelaunch();
+  const prelaunch = !isOpen();
 
   /*
    * Blocked for the first deliverable is not blocked for all of them: a line

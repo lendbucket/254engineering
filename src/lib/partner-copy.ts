@@ -3,7 +3,7 @@ import {
   NEVER_CLAIMS,
 } from "../../scripts/lib/regulatory.mjs";
 import { BANNED_PHRASES } from "../../scripts/lib/voice-blocklist.mjs";
-import { firmName, isPrelaunch, registrationStatement } from "./launch";
+import { firmName, isOpen, registrationStatement } from "./launch";
 
 /**
  * Whether a piece of partner marketing copy may be published.
@@ -94,7 +94,25 @@ export function copyVerdict(text: string): CopyVerdict {
     }
   };
 
-  if (isPrelaunch()) check(REGULATED, "regulated");
+  /*
+   * THE CHECK THAT WOULD HAVE SWITCHED ITSELF OFF. Found 2026-09-17 while
+   * classifying the gate's call sites, and it is the sharpest thing that
+   * enumeration produced.
+   *
+   * REGULATED refuses present tense claims about sealing and performing
+   * engineering. Gated on `isPrelaunch()`, it stopped applying the moment the
+   * firm reached `trading`, which is exactly the moment partner copy starts
+   * making present tense claims. The check would have gone quiet at the only
+   * time it mattered.
+   *
+   * It is now gated on `!isOpen()`, which is the conservative direction and is
+   * reversible: the patterns refuse claims about SEALING, and nothing can be
+   * sealed until a protocol is approved, so they should keep applying
+   * throughout trading. The operator owes a ruling on whether the REGULATED set
+   * should be split, since some of its patterns are about registration rather
+   * than about sealing and those are now satisfied. Recorded in BACKLOG.
+   */
+  if (!isOpen()) check(REGULATED, "regulated");
   check(NEVER, "never");
   check(BANNED, "voice");
   check(STYLE, "style");
@@ -130,7 +148,14 @@ function summarise(findings: CopyFinding[]): string {
  * how three wordings of one fact start to drift.
  */
 export function performingFirmLine(): string {
-  return isPrelaunch()
+  /*
+   * "WILL PERFORM AND SEAL" HOLDS THROUGH TRADING, because sealing is what this
+   * sentence promises and nothing can be sealed until a protocol is approved.
+   * Gated on the firm's status it would have flipped to "performs and seals it"
+   * the moment the firm started quoting, which is a claim about a capability
+   * the platform itself refuses.
+   */
+  return !isOpen()
     ? [`${firmName()} is the firm of record for work referred through this programme, and is the firm that will perform and seal it.`, registrationStatement()].filter(Boolean).join(" ")
     : `${firmName()} is the firm of record for work referred through this programme, and is the firm that performs and seals it.`;
 }

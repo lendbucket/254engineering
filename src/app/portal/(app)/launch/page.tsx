@@ -66,10 +66,18 @@ export default async function LaunchReadinessPage() {
 
       <Panel
         title="The gate"
+        /*
+          THREE STATES, SO THREE SENTENCES. A screen that renders two answers
+          for a three valued fact folds two of them together, and the two it
+          would fold are "the firm may describe itself as practising" and "the
+          firm may take money", which is the distinction the ruling exists for.
+        */
         description={
-          mode === "live"
-            ? "launchMode() answers live. The sites may hold the firm out as offering engineering services."
-            : "launchMode() answers prelaunch. No surface may state that the firm currently offers or performs engineering services, whatever LAUNCH_MODE is set to."
+          mode === "open"
+            ? "launchMode() answers open. Every condition is met: the firm may hold itself out, quote, and take orders on any line whose protocol is approved."
+            : mode === "trading"
+              ? "launchMode() answers trading. The firm is registered, has an engineer of record, and may describe its services in the present tense, publish prices, and take enquiries. It takes no online order and no card, and no line is orderable until its protocol is approved."
+              : "launchMode() answers prelaunch. No surface may state that the firm currently offers or performs engineering services, whatever LAUNCH_MODE is set to."
         }
       >
         <ul className="flex flex-col gap-4">
