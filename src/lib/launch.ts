@@ -432,9 +432,29 @@ export function peInResponsibleCharge(): boolean {
  */
 export function activeEngineer(): VerifiedEngineer | null {
   const today = new Date().toISOString().slice(0, 10);
-  return (
-    verifiedEngineers.find((e) => typeof e.expires === "string" && e.expires >= today) ?? null
-  );
+  return verifiedEngineers.find((e) => licenceIsCurrent(e.expires, today)) ?? null;
+}
+
+/**
+ * IS A LICENCE CURRENT, AS A PURE RULE.
+ *
+ * Extracted from `activeEngineer` on 2026-09-16, the day a real expiry was
+ * recorded, and the reason is the vacuous-green rule rather than tidiness.
+ *
+ * While the register held one engineer with `expires: null`, a check could
+ * assert that an unrecorded expiry is not current by looking at the live
+ * register. The moment the operator read the date off the TBPELS roster, no
+ * engineer was in that state any more, and the check began passing over an
+ * empty set: true today, and exercised for the first time on the day somebody
+ * adds a second engineer without a date.
+ *
+ * So the RULE is exercisable without the register being in any particular
+ * state. `compliance-audit` calls this with null, with a past date and with a
+ * future one, which makes it true or false today and every day.
+ */
+export function licenceIsCurrent(expires: string | null, todayISO: string): boolean {
+  if (typeof expires !== "string" || expires === "") return false;
+  return expires >= todayISO;
 }
 
 /**

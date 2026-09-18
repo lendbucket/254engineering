@@ -417,6 +417,45 @@ their verdict beside them so nobody rebuilds them by accident.
 
 Voice: direct, declarative, specific. An expert explaining plainly. Not direct response.
 
+**AND NONE OF IT APPLIES TO A SIGNED DOCUMENT. TRANSCRIPTION IS VERBATIM.**
+Operator ruling, 2026-09-16.
+
+These are laws on strings THIS FIRM WRITES. A signed engineering document is not
+copy; it is the authority a protocol implements and an engineer put his seal
+behind. **Altering it to match a writing preference is an alteration of the
+authority**, and the fact that the alteration is small is what makes it
+dangerous: nobody reviewing the diff would call a comma a change of meaning.
+
+**The instance, and it happened within an hour of the document arriving.**
+254-RC-001 v1.0 uses ASCII double hyphens throughout, as in
+`Shingle roofs -- SEAL-BOND`. Transcribing Appendix B and Appendix C into
+`src/content/protocols/`, the dash rule fired reflexively and 21 checklist
+labels and 9 determination criteria came out with commas in place of the
+document's own punctuation.
+
+**It bought nothing.** `placeholder-audit` flags the four long dash characters
+(figure, en, em and horizontal bar) and nothing else; its pattern is
+`LONG_DASH` in that file, written out there rather than quoted here so this
+sentence does not carry the very characters it describes. A
+double hyphen was never in scope, so the house style did not even require the
+change that was made in its name. `protocol-registry-audit` caught all thirty by
+comparing the transcription against the PDF itself, which is the argument for
+building that check BEFORE the screens rather than after.
+
+**The rule.** Where a document somebody signed is transcribed into this
+repository, its text is carried exactly, punctuation included, and the check
+that proves it compares against the document rather than against a second copy
+of the transcription. If the house style and the document disagree, the document
+wins and the disagreement is recorded. The foundation protocol and every
+protocol after it arrives under this rule.
+
+**The one thing that may be repaired is an EXTRACTION artifact**, which is not
+the document. `pdftotext` breaks a line inside a hyphenated word and leaves a
+space behind, so `close-up` comes back as `close- up`. That is a defect in
+poppler, and the comparison ignores whitespace entirely rather than the
+transcription carrying the artifact forward. Every character is still compared,
+in order.
+
 ## 4. Technical SEO baseline (mandatory, audited)
 
 - Titles 50 to 60 characters including the brand suffix, keyword front loaded, brand-pipe suffix.
@@ -984,6 +1023,33 @@ split outright with its own sentence. No customer could ever have seen it.
 
     FAIL: and its total is zero rather than null
 
+**AND THE SAME LESSON IN A STATUS COLUMN, 2026-09-16, WHICH IS WHERE IT IS
+EASIEST TO MISS.** Operator ruling, recorded as its own instance.
+
+`eng_protocol_templates` had carried `status in ('draft', 'published',
+'retired')` since 0001. Then 254-RC-001 v1.0 arrived: **signed by the engineer
+of record, dated, in force as a document, and not yet approved in the
+platform**, because only he can do that and only through his own account.
+
+None of the three words is true of it. `published` claims an approval nobody
+gave. `retired` is absurd. **`draft` is the one somebody reaches for, and it is
+a lie about the thing the whole system rests on**, because draft means the
+engineer has not signed.
+
+**A STATUS VOCABULARY THAT LACKS A WORD FOR THE SITUATION YOU ARE IN MAKES
+SOMEBODY CHOOSE THE NEAREST LIE.** That is the general form, and it is the same
+defect as a null meaning two things: the shortage is in the vocabulary, and the
+cost is paid by whoever later reads the value and believes it.
+
+0049 adds `awaiting_engineer` and **three check constraints**, because a word
+with no constraint behind it is a convention somebody forgets: a row carrying a
+signature date cannot sit in draft, a row in `awaiting_engineer` can hold no
+approver and no publication date so it cannot claim to be in force, and a
+published row must name who approved it and when.
+
+**The tell, in both instances: somebody is deciding which existing value is
+"closest".** That question has no good answer. Add the word.
+
 **THE CHECK'S REASON WAS BETTER THAN THE CHANGE WAS**, and it is the part worth
 carrying: **null already meant something else there.** It meant an accepted
 property has no price, so no total can be stated. Reusing it for "nothing was
@@ -1038,8 +1104,78 @@ combined injection whose cascade made a security check pass for the wrong
 reason.
 
 **AND A MATCHER WITH A WINDOW WIDER THAN THE THING IT MATCHES ATTACHES TO ITS
-NEIGHBOUR.** Same day, same section, in the patch script written to document all
-of this. It searched an eight line window for a table name to decide which query
+NEIGHBOUR. FOURTH INSTANCE 2026-09-16, AND IT IS NOW ONE OF THE TWO RECURRING
+DEFECTS IN THIS BUILD**, beside one fact with two homes. Operator ruling.
+
+| When | The matcher | What it attached to instead |
+| --- | --- | --- |
+| 2026-09-13 | An eight line window searched for a table name | The next query block, so three reasons landed on the wrong reads |
+| 2026-09-13 | The last `];` in `supabase/applied.mjs` | `BEHAVIOUR_DIVERGENCE`, not `APPLIED` |
+| 2026-09-16 | `/expires: "[^"]*",/` in the gate fixture | Latent: `verifiedEngineers` is declared earlier than the registration, so it would have taken the ENGINEER's expiry the day one was recorded |
+| 2026-09-16 | `/firmName/` in `compliance-audit` | The FIELD `firmNameOnDocument`, so a record that merely names the deriver read as calling it |
+
+**The fourth is the one to carry, because nothing was broken when it was
+written.** The pattern was looking for a CALL and matched a NAME. Both spellings
+contain the thing being searched for, and only one of them is the thing being
+forbidden.
+
+**The rule, unchanged and now with four instances behind it: match the thing you
+mean.** A call is `name(`, not `name`. A field is the line adjacent to it, not
+the nearest punctuation that resembles it. Where adjacency is not enough, locate
+by explicit position and ASSERT the target before writing.
+
+**AND A TOOLING RULE RATHER THAN A LESSON: NO INLINE SCRIPT MAY CARRY A
+BACKSLASH.** Operator ruling, 2026-09-16, after the shell ate regex escapes
+three times in one session.
+
+`node -e` and heredocs in this environment do not deliver backslashes intact.
+`\s` arrives as `s`, `\n` arrives as a real newline that breaks a regex literal
+across two lines, and `\b` arrives as a literal backspace byte. Each of those
+happened, and two of them reached disk:
+
+- `\d` in `stripe-webhook-audit`, so a date pattern matched nothing and its check failed on a correct record.
+- `\s*\n\s*` in `gate-fixture`, so the file stopped parsing and the board reported three content failures for one syntax error.
+- `\b...\(` in `compliance-audit`, which wrote a backspace character into the source.
+
+**So: anything containing a backslash is written with the editor, or written to
+a file first and then run.** Not because inline scripts are bad, but because
+this particular pipeline is lossy in a way that produces plausible, silent
+wrongness rather than an error.
+
+**AND A SECOND TOOLING RULE: A GREP IN A CONDITIONAL IS A KNOWN HAZARD, NOT A
+MISTAKE TO AVOID BY CARE.** Operator ruling, 2026-09-17, on the third instance
+of an exit code being read as something other than what it said.
+
+| | What was run | What the exit code meant | What it was read as |
+| --- | --- | --- | --- |
+| 2026-09-15 | `npx tsx scripts/db-guard-audit.mjs \| tail -1 && git commit` | `tail` succeeded | the audit passed |
+| 2026-09-16 | `grep ... && git commit` | nothing matched | the command failed, so skip the commit |
+| 2026-09-17 | `grep -P "[\x{2013}]" \|\| echo "no long dashes"` | the pattern would not compile | there are no long dashes |
+
+**The shape, and it is one shape rather than three anecdotes. `grep` answers
+with THREE values and `&&` is two valued.** Zero is matched, one is did not
+match, two is could not run at all. A conditional has only a true branch and a
+false branch, so one of the three answers is always folded into another, and
+WHICH one it folds into depends on which operator was typed. With `||` the
+could-not-run folds into the reassuring branch and prints a sentence asserting
+the thing it failed to check.
+
+**It is `unreachable is not failed` at the level of a shell command.** An audit
+that cannot measure says `COULD NOT TELL` and says so loudly. A grep that cannot
+run says nothing, and the shell answers on its behalf, in the affirmative.
+
+**The answer is mechanical, because care has already been tried and has already
+failed three times.** All three were written by a session that knew the rule
+about exit codes, and the second was written in the same week as the first. So:
+**a grep whose answer is a verdict about content is not put in a conditional and
+is not chained to anything.** It is run on its own and its OUTPUT is read, or
+the check is written in something that can tell the three outcomes apart and
+say which one it got. The third instance above was re-run that way and answered
+`added lines: 42, lines with an en or em dash: 0`, which is a measurement rather
+than the absence of an error.
+
+**AND THE ORIGINAL INSTANCE, 2026-09-13**, in the patch script written to
+document all of this. It searched an eight line window for a table name to decide which query
 a comment belonged above, and these queries sit in three line blocks, so one
 block's window reached into the next and three reasons landed on the wrong
 reads. It is the recurring defect of this repository wearing a code generator: a
@@ -1867,6 +2003,82 @@ and eighty, changing what the firm pays partners, with the board green
 throughout. The TOTP pair was the sharpest, because advertising eight digits
 in the QR while the generator emits six locks out every already enrolled
 account at their next sign in, on a phone that is working perfectly.
+
+**AND A BOARD IS BLOCKED BY A FINDING ON THE BRANCH, NEVER BY AN AUDIT THAT
+COULD NOT MEASURE SOMETHING THE BRANCH DID NOT TOUCH.** Operator ruling,
+2026-09-17, the first time "not green" meant "could not measure" rather than
+"found something".
+
+`feat/roof-protocol`'s first board returned **53 of 55 passed and not one FAIL
+line of any kind**. The two that could not measure, `mobile-overflow-audit` and
+`native-audit`, were both blocked by `/portal/accounts` exceeding a 45 second
+navigation timeout at 360, 390 and desktop, with zero connection refusals. That
+screen takes fifty seconds of application code to render, is recorded in
+`BACKLOG.md` with the server's own log as evidence, **is on main already**, and
+has nothing to do with the branch.
+
+**So the question to ask of a board that is not green is WHICH KIND of not
+green.** A finding on the branch stops the branch. An audit that could not
+measure something the branch never touched stops nothing, because every branch
+will fail it identically until the underlying defect is fixed, and holding work
+behind it buys nothing.
+
+**The two are told apart by reading, not by the exit code.** Both leave the
+suite non zero. One prints `FAIL` with a check name; the other prints
+`COULD NOT TELL` with a route and a reason. `unreachable is not failed` is the
+same idea one level down, at a single audit; this is it at the board.
+
+**What the rule does NOT license.** Absorbing a could-not-measure. It is
+recorded, it names the screen, and the underlying defect keeps its backlog entry
+until somebody rules on it. What changes is only whether it holds a merge.
+
+**AND WHEN IT COMES BACK FOR A RULING, IT COMES WITH A MEASUREMENT.** Same
+ruling. `accountRows()` paging every service order belonging to any account is a
+plausible cause **nobody has profiled**, and a screen whose figures are billed
+on does not get a decision made on a guess. The hypothesis is recorded as a
+hypothesis; the ruling waits for the profile.
+
+**AND THE SAME DAY, THE SAME CODE, MEASURED FINE. THE STALL IS INTERMITTENT
+RATHER THAN DETERMINISTIC, WHICH CHANGES WHAT A PROFILE HAS TO DO.** Operator
+ruling, 2026-09-17, hours after the paragraph above was written.
+
+`overnight/2026-09-15` merged into main as `62a1b63`, carrying 38 commits and
+not one line touching that screen. The board on main then returned **54 of 54**,
+and both audits that had been unable to measure `/portal/accounts` measured it:
+`mobile-overflow-audit` across 226 route and width combinations,
+`native-audit` at 514 checks, with the screen appearing in `native-audit`'s own
+per route table reading document overflow 0px and tables 0. **Nothing was
+fixed between the two runs.**
+
+So both readings stand and neither cancels the other. The fifty seconds of
+application time on the branch run was real and was read off the server's own
+log. What is now known is that it does not happen every time.
+
+**The consequence is for the profile, and it is the whole reason this is
+recorded rather than shrugged at.** A deterministic stall can be profiled by
+opening the screen and watching, and the instrument can be attached after the
+symptom is seen. An intermittent one cannot: the instrumentation has to already
+be running when a stall arrives, because the run that stalls is not the run
+somebody chose. **A profile of a healthy render is not evidence about a stall,
+and it reads exactly like one.** The candidate causes widen with it, from the
+query alone to anything carrying state between runs.
+
+**AND A PREDICTION STATED IN ADVANCE AND FALSIFIED IS WORTH MORE THAN ONE THAT
+HOLDS.** Operator ruling, same day, and it is the mechanism that found the
+paragraph above rather than a remark about it.
+
+The board on main was predicted, in writing, before it ran: 52 of 54, zero FAIL
+lines, those two blocked. It came back 54 of 54. **The falsified half is the
+only part of that exchange that carried information.** Had the prediction held,
+it would have confirmed something already believed and taught nothing.
+
+**What matters is that without the prediction there was nothing to falsify.** A
+board returning 54 of 54 reads as a green board, and a green board invites no
+questions at all. The intermittency was findable only because a specific
+different result had been written down first and the difference had to be
+accounted for. So: **say what the run will do before running it, in terms
+specific enough to be wrong**, and when it is wrong, the gap is the finding.
+A prediction offered only after the result is not a prediction.
 
 **UNREACHABLE IS NOT FAILED.** Operator ruling, 2026-09-08. An audit whose
 live half cannot run because no server is answering reports a third verdict,

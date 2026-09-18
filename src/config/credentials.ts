@@ -29,7 +29,31 @@ export type VerifiedEngineer = {
   name: string;
   /** Texas PE licence number, digits only. */
   licenseNumber: string;
+  /**
+   * The branch TBPELS granted the licence in, as the roster prints it.
+   *
+   * NOT what he may seal. Texas restricts practice by competence rather than by
+   * branch, so this is the board's fact and `sealsOnly` is the firm's.
+   */
   disciplines: string[];
+  /**
+   * What this engineer will actually seal, and therefore what the firm may hold
+   * out. Narrower than the branch wherever the engineer says so.
+   *
+   * Operator ruling, 2026-09-16: the firm declares structural and nothing else
+   * while he is the only engineer, and the service lines are limited to
+   * structural work until a second engineer is added.
+   */
+  sealsOnly: string[];
+  /** ISO date the licence was granted, as the roster prints it. */
+  granted: string;
+  /** The roster's own status word. "Active" is the only one that may seal. */
+  status: string;
+  /**
+   * Every employer the TBPELS roster lists for this engineer, unedited.
+   * This firm appearing here is the registration reflected on his own record.
+   */
+  employersOnRoster: string[];
   /**
    * ISO date the licence expires, or NULL meaning NOT YET RECORDED.
    *
@@ -97,18 +121,50 @@ export const verifiedEngineers: VerifiedEngineer[] = [
   {
     name: "Aman Dhakal",
     licenseNumber: "143295",
+    /*
+     * THE BRANCH ON THE LICENCE AND THE COMPETENCE HE WILL SEAL ARE DIFFERENT
+     * FACTS, AND BOTH BELONG IN THE RECORD. Operator ruling, 2026-09-16.
+     *
+     * TBPELS grants a licence in a BRANCH, and his is Civil. Texas does not
+     * restrict practice by branch; it restricts it by COMPETENCE, which is the
+     * engineer's own judgement about what he is qualified to seal and is the
+     * thing the Practice Act actually binds.
+     *
+     * He confirmed on 2026-09-16 that his focus, experience and expertise are
+     * structural only. So `disciplines` records the branch the board granted,
+     * and `sealsOnly` records what this firm will hold out and he will seal.
+     * Recording only one of them would be wrong in both directions: the branch
+     * alone overstates what he will take, and the competence alone loses what
+     * the board's record says.
+     */
     disciplines: ["Civil"],
+    sealsOnly: ["structural"],
     /*
      * PENDING, AND DELIBERATELY NOT GUESSED. The operator is reading it off the
      * licence copy. Until it is recorded, `activeEngineer()` does not treat this
      * entry as a PE in responsible charge, so recording the number cannot
      * accidentally assert something nobody has verified.
      */
-    expires: null,
+    expires: "2028-01-31",
+    granted: "2021-12-09",
+    status: "Active",
+    /*
+     * THE ROSTER ALREADY NAMES THIS FIRM AS ONE OF HIS EMPLOYERS, which is the
+     * firm registration reflected on the engineer's own record rather than only
+     * on the firm's. It is compliance evidence in the direction nobody usually
+     * looks: the board's record of the PERSON agreeing with the board's record
+     * of the FIRM.
+     *
+     * Recorded as the roster lists them, including the employer that is not this
+     * firm, because an edited list is not what the roster says.
+     */
+    employersOnRoster: ["254 Services LLC", "Williams Scotsman Inc."],
     verified:
-      "Licence number supplied by the operator 2026-09-16, from the engineer of record who signed " +
-      "254-RC-001 v1.0 on 2026-09-14. The expiration date is pending: the operator is taking it from the " +
-      "licence copy held in the firm's compliance file, which protocol 254-RC-001 section 5 requires.",
+      "Read from the TBPELS roster on 2026-09-16 by the operator: DHAKAL, AMAN, PE# 143295, status " +
+      "Active, branch Civil, granted 12-09-2021, expires 01-31-2028, employers 254 Services LLC and " +
+      "Williams Scotsman Inc. He signed 254-RC-001 v1.0 on 2026-09-14 as Engineer of Record, and " +
+      "confirmed on 2026-09-16 that his focus, experience and expertise are structural only. Nothing " +
+      "here can read the roster; this is what a person read, on a date, and said.",
   },
 ];
 

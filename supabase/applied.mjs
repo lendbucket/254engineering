@@ -961,6 +961,57 @@ export const APPLIED = [
       "money record and an unreachable cascade is one edit from winning.",
   },
 
+  {
+    file: "0049_a_signed_protocol_is_not_a_draft.sql", appliedBy: "apply_migration",
+    fingerprint: "4004dc9066393203e04dc717db979596",
+    behaviour: "c82264709f118e7155cf6cb32c9e5594",
+    proves: { column: { table: "eng_protocol_templates", name: "document_signed_at" } },
+    production: "2026-09-17",
+    development: { at: "0049", behaviour: null, facts: 854 },
+    because:
+      "APPLIED TO PRODUCTION 2026-09-17 through apply_migration on the operator's word, at the keyboard, " +
+      "and READ BACK rather than assumed: shape 4004dc9066393203e04dc717db979596 across 1,059 columns, " +
+      "matching the replay AND development exactly. All four check constraints read back by " +
+      "pg_get_constraintdef, which is the portable comparison: the status vocabulary carries " +
+      "awaiting_engineer, and signed_is_not_draft, awaiting_is_not_in_force and published_is_approved " +
+      "are all present with the definitions this file declares. eng_protocol_templates holds 20 columns " +
+      "and 0 rows. " +
+      "PRODUCTION DID NOT REFUSE IT, AND THE REASON IS WORTH RECORDING rather than being read as the " +
+      "constraint being weaker than it looked. Development refused it on a row seed-field-demo had " +
+      "written; that seeder carries neverProduction standing, so production has never held a protocol " +
+      "row at all. The table was checked for the offending shape BEFORE the migration was applied, not " +
+      "after, because a pre-check answers the question while there is still a choice. " +
+      "EVERY IRREPLACEABLE ROW READ BACK AFTER: 486 audit events, 2 profiles, 2 leads, 1 application, " +
+      "118 grants. Four of those five match the 0048 read-back exactly. Audit events moved from 485 to " +
+      "486, which is an append only table on a live deployment and is what that table is supposed to do; " +
+      "it is stated rather than rounded to 'unchanged'. " +
+      "THE SENTENCE BELOW PREDATES THAT AND IS KEPT, because a pending entry that vanishes on being " +
+      "applied is a decision with no trace. " +
+      "PENDING, AND IT STAYS PENDING UNTIL A KEYBOARD. The roof protocol branch forbids applying " +
+      "anything to production, so this is declared rather than applied, and a migration on a feature " +
+      "branch may be pending while a migration on main may not. It does not merge until somebody is at " +
+      "a keyboard to run the production half. " +
+      "WHAT IT ADDS: ten columns on eng_protocol_templates and four check constraints. The status " +
+      "vocabulary gains 'awaiting_engineer', because 254-RC-001 v1.0 is SIGNED by the engineer of " +
+      "record and not yet approved in the platform, and none of draft, published or retired is true of " +
+      "that. Draft means he has not signed. The constraints make the distinction unforgettable: a row " +
+      "carrying document_signed_at cannot sit in draft, a row in awaiting_engineer carries no approver " +
+      "and no published_at so it cannot claim to be in force and cannot be dispatched against, and a " +
+      "published row must name who approved it and when. " +
+      "NOTHING IS APPROVED BY IT. The approval is an act by a named engineer in his own session; a " +
+      "seeder performing it would be the forgery this platform refuses to build. " +
+      "Replayed into the in process engine and read back: shape 4004dc9066393203e04dc717db979596 across " +
+      "1,059 columns, behaviour c82264709f118e7155cf6cb32c9e5594 across 854 facts. " +
+      "APPLIED TO DEVELOPMENT 2026-09-17 through apply_migration and READ BACK rather than assumed: " +
+      "shape 4004dc9066393203e04dc717db979596 across 1,059 columns, matching the replay exactly. " +
+      "IT WAS REFUSED ON THE FIRST ATTEMPT, which is the constraint doing its job on first contact with " +
+      "a real database: eng_protocol_templates held a windstorm protocol at status published with no " +
+      "approver and no author, seeded by seed-field-demo since 2026-09-02. Published means in force, and " +
+      "no engineer had approved it. The row was moved to draft on the operator's ruling authorising the " +
+      "repair, and seed-field-demo now owns it and republishes it with a marked demonstration approval. " +
+      "THE DEVELOPMENT BEHAVIOUR DIGEST IS NOT RECORDED because it has not been read back from " +
+      "development, and inventing one is the defect this ledger was corrected for on 2026-09-13.",
+  },
 ];
 
 /**

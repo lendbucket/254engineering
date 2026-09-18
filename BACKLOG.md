@@ -5590,3 +5590,62 @@ earlier board the same day and is probably the same shape, unverified.
 Not fixed: it is a portal screen on the money path's edge, outside the roof
 protocol scope this branch is for, and it wants a ruling on whether the list
 may be paged or the counts derived differently.
+
+## THE DEMO SEEDER MINTS A PUBLISHED PROTOCOL NOBODY APPROVED, AND IT BLOCKS 0049
+
+Found 2026-09-16 applying 0049 to development, which refused:
+
+    check constraint "eng_protocol_templates_published_is_approved_ck"
+    is violated by some row
+
+**One row, and it is a fixture.** `eng_protocol_templates` holds
+`windstorm-wpi-8`, "Windstorm evidence, coastal", **status published**,
+`authored_by` null, `published_at` set, created 2026-09-02 by
+`scripts/seed-field-demo.mjs` at its protocol block, which inserts
+`status: "published"` with no approver and no author.
+
+**Published means in force.** A protocol in force is one an engineer of record
+approved, and no engineer approved this. Anything reading the database for the
+current published protocol of a service would have used it. That is the exact
+state 0049 was written to make impossible, and the migration found it on its
+first contact with a real database, which is the argument for the constraint.
+
+**It is not obviously fake, which is the part that matters.** Standing law says
+everything `seed-field-demo` writes is obviously fake by design: Demo names,
+example.com addresses, streets that do not exist. This row carries a real
+service slug, a plausible name, and a status that asserts something about the
+firm's regulatory posture. Nothing marks it as a demonstration.
+
+**A second falseness on top.** Appendix D of 254-RC-001 lists 254-WP-001, the
+windstorm protocol, as a **Draft**. So development claims a published windstorm
+protocol while the firm's own signed reference list says no such protocol is in
+force.
+
+### Why it is not fixed here
+
+The row was created by an earlier run of another script, not by this one, and
+the standing permission covers rows a run created itself. Editing or deleting
+somebody else's row is outside it, so nothing was touched.
+
+**0049 is therefore NOT applied to development.** It replays clean, it is
+declared pending in the ledger, and development is unchanged.
+
+### What would fix it, for a ruling
+
+The operator ruled that a demonstration approval is allowed if it is MARKED as
+a demonstration. So `seed-field-demo` should approve its protocol with the
+`demo.engineer@example.com` profile it already looks up, name the row as a
+demonstration, and repair an existing unapproved published row inside its own
+fixture domain, which is the `destroyProbes` precedent: a fixture owner may
+sweep its own domain including what a crashed earlier run left.
+
+That was not built tonight because it is a shared fixture several audits depend
+on, the demo engineer profile is looked up rather than created and may not
+exist, and changing it late in a long session risks turning green audits red for
+something off the critical path.
+
+### What is blocked by it
+
+`scripts/seed-roof-protocol.mjs` is written, dry-run clean, and cannot insert
+254-RC-001 until development has 0049. So no protocol row exists yet, nothing
+is in `awaiting_engineer`, and the approval screen has nothing to show.

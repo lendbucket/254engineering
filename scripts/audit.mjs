@@ -349,6 +349,17 @@ const PHASE_ZERO = [
     why: "the account behind the key is the account that will call this platform",
   },
   {
+    /*
+     * Pure, and it reads the signed PDF at run time rather than a copy of it.
+     * The document is the authority and the portal is its implementation, so
+     * this proves the mapping BOTH ways: nothing in the declaration that the
+     * document does not say, and no checkbox line in the document that the
+     * declaration drops. The second is the one no screen could show.
+     */
+    name: "protocol-registry-audit",
+    why: "the portal neither invents nor drops anything the engineer signed",
+  },
+  {
     // Pure: the order catalog, the price a customer is shown, and the refund
     // rule. The refund rule is thirty lines and every one of them is a
     // professional ethics decision the operator ruled on, so it is checked

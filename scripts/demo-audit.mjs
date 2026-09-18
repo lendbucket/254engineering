@@ -729,6 +729,107 @@ if (!db) {
   }
 }
 
+/* ------------- a seeded row may never assert a regulatory state unmarked */
+
+/*
+ * NOTHING THIS SEEDER WRITES MAY ASSERT A REGULATORY STATE WITHOUT SAYING IT IS
+ * A DEMONSTRATION. Operator ruling, 2026-09-17.
+ *
+ * THE FINDING BEHIND IT. seed-field-demo inserted a protocol at status
+ * 'published' with no approver and no author, and had done since 2026-09-02.
+ * Published means IN FORCE, and a protocol in force is one an engineer of
+ * record approved. Nothing in this platform should have been able to say a
+ * protocol was in force that no engineer approved.
+ *
+ * It was found by 0049's check constraint refusing to apply to development, not
+ * by any audit, which is why this check exists.
+ *
+ * AND THE SEEDER'S OWN LAW IS THAT ITS ROWS ARE VISIBLY DEMONSTRATION DATA:
+ * Demo names, example.com addresses, streets that do not exist. That row
+ * carried a REAL service slug, a plausible name, and a status asserting the
+ * firm's regulatory posture, with nothing marking it. A fixture that lies
+ * convincingly is worse than one that lies obviously, because the obvious one
+ * is caught by the first person who reads it.
+ *
+ * WHEREVER IT CAME FROM. This does not ask who wrote the row. A protocol in
+ * force with no approver fails the board whatever produced it, which is the
+ * only version of the check that would have caught the one that was there.
+ *
+ * WHICH OF THESE THREE IS PROVEN, AND WHICH IS NOT. Operator ruling,
+ * 2026-09-17: a board check is proven by a violating row created inside the
+ * check's own fixture domain, never by opening a hole in the database
+ * everything else relies on. Proving it the wrong way is worse than recording
+ * it unproven.
+ *
+ *   PROVEN. The demonstration marking check. A seeded shaped row, no document
+ *   number, unmarked name, was inserted on development, turned this check red
+ *   naming the row, and was deleted again by the run that created it. The first
+ *   attempt FAILED TO FAIL because the fixture's own summary contained the word
+ *   "demonstration", which is the check working and the fixture being wrong.
+ *
+ *   NOT PROVEN, AND IT CANNOT BE. The other two. 0049 makes both states
+ *   impossible to insert: a published row with no approver and a signed
+ *   document in draft are refused by check constraints. So no fixture can
+ *   create the violation, and there is nothing to inject.
+ *
+ * That is not a reason to delete them. They catch what the constraint cannot
+ * see: a row that PREDATES the constraint, which is exactly the row that was
+ * there, and a restore from a backup taken before it. The constraint stops new
+ * ones; these notice old ones. Recorded unproven rather than described as
+ * verified.
+ */
+{
+  const { data: protocols, error } = await db
+    .from("eng_protocol_templates")
+    .select(
+      "id, service_slug, name, summary, status, approved_by, approved_at, published_at, document_signed_at, document_number",
+    );
+
+  if (error) {
+    rec("protocols could be read", false, error.message);
+  } else {
+    const rows = protocols ?? [];
+    rec(
+      "there are protocol rows to check",
+      rows.length > 0,
+      `${rows.length} row(s) (if this were zero the checks below would pass over nothing)`,
+    );
+
+    const inForceUnapproved = rows.filter(
+      (p) => p.status === "published" && (!p.approved_by || !p.approved_at),
+    );
+    rec(
+      "no protocol is in force without naming who approved it, wherever the row came from",
+      inForceUnapproved.length === 0,
+      inForceUnapproved.map((p) => `${p.service_slug}: ${p.name}`).join("; ") ||
+        `${rows.filter((p) => p.status === "published").length} published, all approved`,
+    );
+
+    const signedDraft = rows.filter((p) => p.document_signed_at && p.status === "draft");
+    rec(
+      "and no signed document sits in draft, because draft means the engineer has not signed",
+      signedDraft.length === 0,
+      signedDraft.map((p) => p.name).join("; ") || "none",
+    );
+
+    /*
+     * The demonstration marking, asked of the rows the seeder owns. A real
+     * protocol carries a document number; a seeded one does not, which is what
+     * separates them without this check needing a list of fixture names.
+     */
+    const seeded = rows.filter((p) => !p.document_number);
+    const unmarked = seeded.filter(
+      (p) => !/DEMONSTRATION/i.test(p.name ?? "") && !/DEMONSTRATION/i.test(p.summary ?? ""),
+    );
+    rec(
+      "every protocol row with no signed document behind it says it is a demonstration",
+      unmarked.length === 0,
+      unmarked.map((p) => `${p.service_slug}: ${p.name}`).join("; ") ||
+        `${seeded.length} seeded row(s), all marked`,
+    );
+  }
+}
+
 // ------------------------------------------------------------------ verdict
 
 for (const r of out) console.log(`  ${r.ok ? "PASS" : "FAIL"}: ${r.name}${r.note ? ` (${r.note})` : ""}`);

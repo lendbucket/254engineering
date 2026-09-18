@@ -191,9 +191,20 @@ export async function withGateConditionsMet(fn) {
      */
     {
       file: CONFIG,
-      find: /expires: null,/,
-      replace: 'expires: "2099-12-31",',
-      what: "an engineer of record with a current licence",
+      /*
+       * ANCHORED ON THE LICENCE NUMBER, and re-anchored on 2026-09-16 when the
+       * operator read the real expiry off the TBPELS roster.
+       *
+       * This used to find `expires: null,` because the date was unknown. That
+       * anchor stopped existing the moment a date was recorded, and a fixture
+       * patch that finds nothing throws rather than passing quietly, which is
+       * how this was caught. It is also why the patch still exists at all: the
+       * real expiry is 2028-01-31, and a fixture that depends on a real date
+       * not having passed is a fixture that breaks by itself in January 2028.
+       */
+      find: /(licenseNumber: "143295",[\s\S]*?)expires: "[^"]*",/,
+      replace: '$1expires: "2099-12-31",',
+      what: "an engineer of record whose licence cannot expire mid run",
     },
 
     /* --- the Stripe account, connected and proven */
