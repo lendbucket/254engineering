@@ -1224,6 +1224,31 @@ and the first thing to quote it inherits whatever was typed. Ask of every
 declaration: is this verified against the thing it claims to describe, or only
 against itself.
 
+**AND A CHECK AT THE RIGHT MOMENT DOES NOT COVER THE GAP BETWEEN MOMENTS.**
+Operator ruling, 2026-09-18, and it is the fifth instance this week of a known
+rule failing for want of a mechanical guard rather than for want of knowing it.
+
+**What happened.** After a merge, nineteen commits were made directly on `main`,
+two of them carrying pending migrations. `schema-ledger-audit` caught it
+afterwards and named the rule: **a migration on main is never pending.**
+
+**What makes it worth an entry is that the existing rule was obeyed.** This file
+says to read the branch off git before every MERGE, and that was done: the
+branch was checked immediately before the merge and was correct. **Nothing
+checks before every COMMIT**, and a long unattended run is exactly where the gap
+between those two moments opens. The rule was known, the check was honoured, and
+the drift happened in between.
+
+**So the guard moved to the commit.** Layer one of the commit hook now refuses a
+commit that adds a migration while on `main`, alongside the two rules it already
+carries. Nothing was pushed, `origin/main` was untouched, and the nineteen
+commits were moved onto a branch with `main` reset to the merge.
+
+**The general form.** When a rule is enforced at one moment in a workflow, ask
+what happens in the interval before the next enforcement. A check before a merge
+protects the merge. It does not protect the fifty commits that precede the next
+one, and on a long run that interval is where all the work is.
+
 **A RULE YOU WROTE THIS MORNING DOES NOT PROTECT YOU THIS AFTERNOON. THAT IS WHY
 THE GUARD IS MECHANICAL AND WHY THE HOOK EXISTS.** Operator ruling, 2026-09-18,
 recorded as ONE entry from two incidents on one day, by the session that wrote
