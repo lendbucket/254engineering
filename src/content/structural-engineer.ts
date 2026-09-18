@@ -182,6 +182,73 @@ export const proximityHub: {
 };
 
 export const proximityPages: ProximityPage[] = [
+  /*
+   * ADDED 2026-09-18 for target 2 of the SEO revision: "structural engineer
+   * inspection", with "structural engineer home inspection" and "structural
+   * inspection" supporting it, roughly 1,900 a month at difficulty 0.
+   *
+   * It is a child rather than a competitor to the pillar. The pillar answers
+   * what a structural engineer is and what the firm does; this answers what
+   * actually happens when one inspects a house, which is the question behind
+   * that search. Neither carries the other's H1.
+   */
+  {
+    slug: "inspection",
+    name: "What a structural inspection involves",
+    question: "What actually happens when a structural engineer inspects a house?",
+    h1: "Structural Engineer Inspection: What Actually Happens",
+    title: "Structural Engineer Inspection in Texas | 254 Engineering",
+    description:
+      "What a structural engineer looks at, what you get afterwards, and how it differs from a home inspection. Prices are published before you call the firm.",
+    summary:
+      "A structural inspection is not a longer home inspection. It is a narrower piece of work with a written question behind it, and the answer arrives as a document somebody else is going to rely on.",
+    sections: [
+      {
+        eyebrow: "The difference that matters",
+        title: "A home inspection is broad, a structural inspection is deep",
+        lede: "They are different trades answering different questions, and confusing them wastes a visit.",
+        body: [
+          "A home inspector walks the whole property and reports on everything visible: the roof covering, the water heater, the outlets, the grading. The report is wide, shallow by design, and written for a buyer deciding whether to proceed. It is not sealed, and it does not reach an engineering conclusion.",
+          "A structural inspection starts from a question. Is this crack evidence of movement. Can this wall come out. Will this slab carry what is about to be put on it. The engineer looks at the load path that answers the question and largely ignores the rest of the house, because the rest of the house is not what was asked about.",
+          "The output is different too. A home inspection report lists observations. An engineer's letter states an opinion, carries a seal, and names the person responsible for it.",
+        ],
+      },
+      {
+        eyebrow: "On the day",
+        title: "What the visit actually covers",
+        lede: "Specific, and shorter than most people expect.",
+        body: [
+          "The technician works the checklist the engineer wrote for that service line, in order, photographing each item wide and close, with a ruler in frame wherever a measurement governs. Crack widths are measured rather than described. Floors are checked for slope against a reference rather than by feel.",
+          "Where something cannot be observed, it is recorded as not observed with the reason, rather than left blank. A blank in an evidence package reads as fine to everybody who opens it later, and it is the one thing an incomplete inspection must not be allowed to say.",
+          "Access decides the length more than the size of the house does. A crawl space that can be entered, an attic hatch that is not behind stored boxes, and a roof that can be safely walked are the three things that turn a long visit into a short one.",
+        ],
+      },
+      {
+        eyebrow: "Afterwards",
+        title: "The engineer reviews the evidence, not the house",
+        lede: "This is the part that distinguishes a protocol driven firm from a single engineer with a clipboard.",
+        body: [
+          "The engineer of record reads the completed package against criteria he wrote before your job existed, and records one of five determinations: it passes, the package needs more, repairs are required, a return visit is needed, or the firm declines.",
+          "If the package is not good enough, it comes back to the firm rather than to you, and you are not charged for the re-inspection. That is only possible because the criteria are written down. An engineer judging his own visit from memory has nothing to send anything back against.",
+          "What you receive is a sealed letter stating the property, the date, what was examined, how the evidence was collected, and the observed condition on that date. It does not forecast, and it does not estimate remaining life.",
+        ],
+      },
+    ],
+    faqs: [
+      {
+        q: "Is a structural inspection the same as a structural engineer letter?",
+        a: "The inspection is the visit and the letter is the deliverable. Most people asking for one want both, and the price published for each service line covers the inspection and the sealed letter together unless the page says otherwise.",
+      },
+      {
+        q: "Can you inspect from photographs I already have?",
+        a: "No. The engineer's protocol requires evidence collected by the firm's own technician, timestamped and located by the firm's app. Photographs from other devices are not accepted, and that is what makes the letter defensible when somebody challenges it.",
+      },
+      {
+        q: "My home inspector said to get a structural engineer. What do I tell you?",
+        a: "Send the inspector's report and tell us which item prompted it. That is usually enough to say in the first conversation whether it is a question an engineer should be asked, and occasionally the honest answer is that it is not.",
+      },
+    ],
+  },
   {
     slug: "when-you-need-one",
     name: "When you actually need an engineer",
