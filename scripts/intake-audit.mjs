@@ -367,9 +367,26 @@ console.log("");
    * draw; this decides what may be recorded, and a hand crafted body must reach
    * the same refusal the screen shows.
    */
+  /*
+   * THE SHAPE CHANGED ON 2026-09-17 AND THE BEHAVIOUR DID NOT. The gate became
+   * three states, and whether the firm may take MONEY is gated on open rather
+   * than on whether it may describe itself as practising. Named exactly rather
+   * than loosened to accept both spellings.
+   */
   rec(
     "the server re-checks the payment gate rather than trusting the screen",
-    /paymentOptions\(\{/.test(intake) && /isPrelaunch\(\)/.test(intake),
+    /paymentOptions\(\{/.test(intake) && /!isOpen\(\)/.test(intake),
+  );
+  /*
+   * AND THE SECOND CHECK, FOR WHAT THE FIRST COULD NOT SEE: which gate. Under
+   * one boolean there was only one to ask. Under three, a payment path that
+   * asked the trading question would offer a payment link the moment the firm
+   * started quoting, with no Stripe account proven by a charge and a refund.
+   */
+  rec(
+    "and it asks the money question rather than the trading one",
+    !/isPrelaunch\(\)/.test(intake),
+    "trading takes enquiries and quotes; it takes no card",
   );
 
   const route = codeOnly("src/app/api/portal/files/route.ts");
@@ -407,8 +424,13 @@ console.log("");
   );
   rec(
     "the gate is asked through paymentOptions, not re-implemented",
-    /paymentOptions\(\{/.test(billing) && /isPrelaunch\(\)/.test(billing),
+    /paymentOptions\(\{/.test(billing) && /!isOpen\(\)/.test(billing),
     "a second implementation of the gate is a second answer to whether the firm may take money",
+  );
+  rec(
+    "and billing asks the money question rather than the trading one",
+    !/isPrelaunch\(\)/.test(billing),
+    "a billing path gated on trading would offer a payment link the day the firm started quoting",
   );
 
   /*

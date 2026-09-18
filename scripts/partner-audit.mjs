@@ -691,10 +691,34 @@ const terms = (over = {}) => ({
     "and does not define regulated patterns of its own",
     !/PRESENT_TENSE|sealed by|we seal/i.test(copyModule.replace(/import[^;]+;/g, "")),
   );
+  /*
+   * THE CONDITION CHANGED ON 2026-09-17 AND THE REASON IS WORTH THE COMMENT.
+   *
+   * It asserted `if (isPrelaunch()) check(REGULATED`. Gated that way, the
+   * regulated patterns stopped applying the moment the firm reached `trading`,
+   * which is exactly the moment partner copy starts making present tense
+   * claims. The check would have gone quiet at the only time it mattered.
+   *
+   * It is now gated on `!isOpen()`, which is the conservative direction: the
+   * patterns refuse claims about SEALING, and nothing can be sealed until a
+   * protocol is approved. The operator has the split question and has ruled
+   * that the conservative default stands until he answers it.
+   */
   rec(
-    "the regulated check is conditional on the gate and the never claims are not",
-    /if \(isPrelaunch\(\)\) check\(REGULATED/.test(copyModule) && /check\(NEVER, "never"\)/.test(copyModule),
-    "a service claim becomes true on registration day; a guaranteed approval never does",
+    "the regulated check applies until the firm is open, and the never claims always",
+    /if \(!isOpen\(\)\) check\(REGULATED/.test(copyModule) && /check\(NEVER, "never"\)/.test(copyModule),
+    "a claim about sealing becomes true when a protocol is approved; a guaranteed approval never does",
+  );
+  /*
+   * THE SECOND CHECK, FOR WHAT THE FIRST COULD NOT SEE: that the regulated set
+   * is gated on something that is still shut. A check gated on a condition that
+   * has already been satisfied is a check that has switched itself off, and
+   * from the outside it is indistinguishable from a check that passes.
+   */
+  rec(
+    "and it is not gated on a question the firm has already answered yes to",
+    !/isPrelaunch\(\)/.test(copyModule),
+    "the firm is trading; a regulated check gated on prelaunch is a check that no longer runs",
   );
 }
 

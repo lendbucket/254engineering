@@ -778,15 +778,40 @@ withEnv({ CUSTOMER_SESSION_SECRET: CUS_SECRET }, () => {
     "a branch here tells somebody a revoked key was once real",
   );
 
-  // The compliance gate applies to the API exactly as to the website.
+  /*
+   * THE GATE APPLIES TO THE API EXACTLY AS TO THE WEBSITE, AND THE SHAPE IT
+   * ASKS FOR CHANGED ON 2026-09-17.
+   *
+   * This asserted `if (isPrelaunch())`. The gate became three states that day,
+   * and taking an order is gated on OPEN rather than on whether the firm may
+   * describe itself as practising. Nothing about the behaviour of this route
+   * changed; the question it asks did.
+   *
+   * The pattern is made to name the NEW shape exactly rather than loosened to
+   * accept both, per the rule in CLAUDE.md: a check that passes on the old
+   * spelling and the new one is a check on neither.
+   */
   rec(
-    "the API is closed by the compliance gate",
-    /if \(isPrelaunch\(\)\) \{/.test(route),
+    "the API is closed unless the firm is OPEN, not merely trading",
+    /if \(!isOpen\(\)\) \{/.test(route),
     "the condition itself, because a disabled branch still contains the call",
   );
   rec(
     "and the gate is checked before anything is created",
-    route.indexOf("isPrelaunch()") < route.indexOf("placeBatch("),
+    route.indexOf("!isOpen()") < route.indexOf("placeBatch("),
+  );
+  /*
+   * THE SECOND CHECK, FOR WHAT THE FIRST COULD NOT SEE. The old one could not
+   * tell WHICH gate was being asked, only that some gate was. Under one boolean
+   * that distinction did not exist. Under three states it is the whole
+   * question, and the wrong answer here is the expensive one: a route gated on
+   * `isPrelaunch()` would start accepting orders the moment the firm began
+   * quoting, with no protocol approved and no way to charge.
+   */
+  rec(
+    "and it does not ask the trading question, which would open ordering too early",
+    !/isPrelaunch\(\)/.test(route),
+    "isPrelaunch answers whether the firm may describe itself as practising, which is not whether it may take an order",
   );
 
   // Rate limiting, and where it lives.
