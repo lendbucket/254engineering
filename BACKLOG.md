@@ -74,6 +74,23 @@ supplies it, because inventing one is forbidden.
 disagree, the revision wins on which page leads with which term and the copy
 wins on voice.
 
+**`docs/keyword-mapping.md`** maps the eleven keyword targets against the pages
+that exist. It carries **two items the operator owes a ruling on**.
+
+The first is a conflict with standing law. The SEO revision's target 11 asks each
+coverage page to lead with "structural engineer <city>", and CLAUDE.md section 5
+forbids city geo pages outright as the doorway trap, with `/corpus-christi` the
+one deliberate exception because the firm is there. The coverage pages are the
+eight REGIONS, not cities. CLAUDE.md outranks a build prompt, so no city page was
+minted; the proposal is that regions take "structural engineer <region>",
+`/corpus-christi` honestly takes its city term, and Houston, Dallas, San Antonio
+and Austin wait for a ruling.
+
+The second is a collision inside the TWIA cluster: `/windstorm/twia-coverage` and
+ten insights articles both want "twia" at 1,500 a month. The proposal is that the
+articles keep the informational terms and the service page keeps the
+transactional ones, checked page by page during the build.
+
 **`docs/gate-call-sites.md`** is the enumeration of all 41 `isPrelaunch()` sites
 classified before the boolean became three states, and the eleven dependants of
 `peInResponsibleCharge()`. It carries one item still needing a ruling:
