@@ -5727,6 +5727,78 @@ against the foreign keys hanging off a client and `doors-audit` needs a running
 server to exercise. Recorded with the evidence so nobody rediscovers the
 arithmetic.
 
+### THE FOREIGN KEYS WERE CHECKED, AND THE PROPOSED FIX IS IMPOSSIBLE
+
+Operator instruction, 2026-09-18: check what cascades before writing the
+teardown. Read off development. Six foreign keys point at `eng_clients`:
+
+| Child | On delete |
+| --- | --- |
+| `eng_contacts` | CASCADE |
+| `eng_tasks` | CASCADE |
+| `eng_documents` | SET NULL, plus a no-delete trigger on sealed work |
+| `eng_service_orders` | SET NULL, plus the attribution freeze |
+| `eng_files` | RESTRICT |
+| **`eng_customer_accounts`** | **RESTRICT, plus `eng_forbid_account_delete`** |
+
+**Deleting a probe client is not merely blocked, it is blocked BY DESIGN and
+the design is right.** Migration 0048 made an account superseded and never
+removed. So a client with a customer account cannot be deleted, and the account
+cannot be deleted either, and that is the guarantee the platform is supposed to
+have.
+
+**The scale makes it decisive rather than a corner case.** Development holds 274
+clients and **268 customer accounts**. Close to every client has an undeletable
+account attached, so the teardown I proposed would fail on almost all of them
+rather than on two per run.
+
+**And the SET NULL pair is worse than the failure.** If a delete did succeed,
+`eng_service_orders` and `eng_documents` do not go with it: they survive with a
+null `client_id`. A probe order that becomes an order belonging to NOBODY is a
+row in the money path with no owner, which is a worse artefact than the client
+row it was cleaning up.
+
+**SO THE ANSWER IS SUPERSESSION AND MARKING, NOT DELETION**, and both mechanisms
+already exist:
+
+1. After driving a real door, the audit **updates the client it caused to
+   `is_demo: true`**. It knows the email it used, so it can find the row. This
+   puts no flag in the product's door: the route behaved exactly as it does in
+   production, and the audit marks its own leavings afterwards.
+2. The customer account is **superseded** through `superseded_at`, which is what
+   0048 built for an account that goes away.
+
+That is better than what was proposed yesterday, and the foreign key check is
+what produced it.
+
+### THE GENERAL CASE, WHICH IS THE PART WORTH KEEPING
+
+Operator ruling, 2026-09-18:
+
+**An audit that drives a real product route creates real records. Every such
+audit owes a teardown that knows what the ROUTE created, not only what the audit
+inserted.**
+
+The distinction is invisible from inside the audit. `doors-audit` tears down
+carefully and completely for the rows it wrote with its own client, and those
+are not the rows that survive. What survives is what the product made on its
+behalf, which the audit never held an id for.
+
+**The survey, and it corrected itself.** Six audits drive real routes with POST:
+`doors-audit`, `mfa-audit`, `sister-intake-audit`, `forms-audit`,
+`security-audit` and `careers-audit`. Counting deletes against posts suggested
+`careers-audit` was the worst offender: four posts and no deletes at all.
+
+**Then the row counts were read, and they said otherwise.** Development holds 2
+applications and 0 leads. `careers-audit` and `forms-audit` leak nothing. The
+grep was a proxy for the thing rather than the thing, which is the defect this
+repository keeps finding, and the correction is the reason the survey is worth
+more than the count.
+
+**What actually accumulates is clients and customer accounts, and only
+`doors-audit` creates those.** 274 and 268 against 6 service orders, 1 customer
+user, 2 applications and 0 leads.
+
 **255 rows rendered into one screen, unbounded.** It is not the same symptom as
 its neighbour, which times out rather than returning, and it is the same
 underlying shape: a portal list that renders everything the database has because
