@@ -966,9 +966,27 @@ export const APPLIED = [
     fingerprint: "4004dc9066393203e04dc717db979596",
     behaviour: "c82264709f118e7155cf6cb32c9e5594",
     proves: { column: { table: "eng_protocol_templates", name: "document_signed_at" } },
-    production: null,
+    production: "2026-09-17",
     development: { at: "0049", behaviour: null, facts: 854 },
     because:
+      "APPLIED TO PRODUCTION 2026-09-17 through apply_migration on the operator's word, at the keyboard, " +
+      "and READ BACK rather than assumed: shape 4004dc9066393203e04dc717db979596 across 1,059 columns, " +
+      "matching the replay AND development exactly. All four check constraints read back by " +
+      "pg_get_constraintdef, which is the portable comparison: the status vocabulary carries " +
+      "awaiting_engineer, and signed_is_not_draft, awaiting_is_not_in_force and published_is_approved " +
+      "are all present with the definitions this file declares. eng_protocol_templates holds 20 columns " +
+      "and 0 rows. " +
+      "PRODUCTION DID NOT REFUSE IT, AND THE REASON IS WORTH RECORDING rather than being read as the " +
+      "constraint being weaker than it looked. Development refused it on a row seed-field-demo had " +
+      "written; that seeder carries neverProduction standing, so production has never held a protocol " +
+      "row at all. The table was checked for the offending shape BEFORE the migration was applied, not " +
+      "after, because a pre-check answers the question while there is still a choice. " +
+      "EVERY IRREPLACEABLE ROW READ BACK AFTER: 486 audit events, 2 profiles, 2 leads, 1 application, " +
+      "118 grants. Four of those five match the 0048 read-back exactly. Audit events moved from 485 to " +
+      "486, which is an append only table on a live deployment and is what that table is supposed to do; " +
+      "it is stated rather than rounded to 'unchanged'. " +
+      "THE SENTENCE BELOW PREDATES THAT AND IS KEPT, because a pending entry that vanishes on being " +
+      "applied is a decision with no trace. " +
       "PENDING, AND IT STAYS PENDING UNTIL A KEYBOARD. The roof protocol branch forbids applying " +
       "anything to production, so this is declared rather than applied, and a migration on a feature " +
       "branch may be pending while a migration on main may not. It does not merge until somebody is at " +
