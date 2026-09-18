@@ -7,6 +7,7 @@ import { PrelaunchNotice } from "@/components/launch/PrelaunchNotice";
 import { OfferCta } from "@/components/launch/OfferCta";
 import { CardGrid, cardCell, SectionHeading } from "@/components/ui/primitives";
 import { Section, SectionHead } from "@/components/ui/section";
+import { CountyFinder } from "@/components/site/CountyFinder";
 import { TexasCountyMap } from "@/components/map/TexasCountyMap";
 import { RegionKey } from "@/components/map/RegionKey";
 import { buildMetadata } from "@/lib/seo";
@@ -115,28 +116,71 @@ export default function CoveragePage() {
               lede="Every county in Texas, with the region it belongs to. There are no county pages, deliberately: a page per county would be 254 near-identical documents, which is doorway content and is worth less than nothing to the person reading it."
             />
 
-            <ul className="mt-11 grid gap-x-8 gap-y-0 sm:grid-cols-2 lg:grid-cols-3">
-              {allCounties.map((county) => {
-                const region = regionOfCounty[county];
-                return (
-                  <li
-                    key={county}
-                    className="flex items-center justify-between gap-3 border-b border-limestone-line"
-                  >
-                    <span className="py-2.5 text-[0.94rem] text-slate">{county}</span>
-                    {/* The padding is on the link rather than the row, so the
-                        region name is a 44px tall target instead of a 19px one.
-                        There are 254 of these and every one was too small. */}
-                    <Link
-                      href={`/coverage/${region.slug}`}
-                      className="flex min-h-[44px] shrink-0 items-center font-sans text-[0.8rem] text-slate-muted underline decoration-limestone-line underline-offset-4 transition-colors hover:text-slate hover:decoration-brass"
+            {/*
+              PAGED RATHER THAN EXEMPTED. Operator ruling, 2026-09-18, after
+              this page measured 19,241px at 390, which is 22.8 phone screens
+              and the only route over the height ceiling he had just set.
+
+              He refused an exemption: "254 counties is inherent length only if
+              the page has to list all 254 at once, and it does not. A reader is
+              looking for one county."
+
+              The 254 row list that used to render here unconditionally was the
+              whole excess: at phone width it is one column, 254 rows deep, and
+              it alone is roughly eleven thousand pixels. The regions above
+              answer browsing, the finder answers looking something up, and the
+              full list is one tap away rather than gone.
+            */}
+            <CountyFinder
+              counties={allCounties.map((county) => ({
+                name: county,
+                regionName: regionOfCounty[county].name,
+                regionSlug: regionOfCounty[county].slug,
+              }))}
+            />
+
+            {/*
+              A NATIVE DISCLOSURE, SERVER RENDERED, HOLDING ALL 254.
+
+              This is the half that keeps the claim honest. `coverage-audit`
+              asserts the hub lists every one of the 254 counties in its VISIBLE
+              TEXT, and it is right to: the page claims all 254 and a claim
+              whose evidence appears only after JavaScript runs is a weaker
+              claim. Putting the list behind client state would have broken that
+              check for a real reason while looking like a layout decision.
+
+              A collapsed `details` does not lay its content out, so it
+              contributes nothing to scrollHeight and the page comes back inside
+              its ceiling. It needs no JavaScript, it is one tap, and a screen
+              reader announces it as expandable rather than hiding it.
+            */}
+            <details className="group mt-8 border-t border-limestone-line pt-6">
+              <summary className="flex min-h-[44px] cursor-pointer list-none items-center font-sans text-[0.9rem] font-semibold text-brass-ink underline decoration-brass/50 underline-offset-4 hover:decoration-brass">
+                Show all {allCounties.length} counties
+              </summary>
+              <ul className="mt-6 grid gap-x-8 gap-y-0 sm:grid-cols-2 lg:grid-cols-3">
+                {allCounties.map((county) => {
+                  const region = regionOfCounty[county];
+                  return (
+                    <li
+                      key={county}
+                      className="flex items-center justify-between gap-3 border-b border-limestone-line"
                     >
-                      {region.name}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
+                      <span className="py-2.5 text-[0.94rem] text-slate">{county}</span>
+                      {/* The padding is on the link rather than the row, so the
+                          region name is a 44px tall target instead of a 19px
+                          one. There are 254 of these. */}
+                      <Link
+                        href={`/coverage/${region.slug}`}
+                        className="flex min-h-[44px] shrink-0 items-center font-sans text-[0.8rem] text-slate-muted underline decoration-limestone-line underline-offset-4 transition-colors hover:text-slate hover:decoration-brass"
+                      >
+                        {region.name}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </details>
 
             <p className="mt-10 text-[0.92rem] leading-[1.7] text-slate-muted">
               {allCounties.length} counties listed. That number is not a claim typed into a page: it
