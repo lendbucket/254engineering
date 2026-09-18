@@ -1394,6 +1394,27 @@ if (!db) {
         "/portal/queue",
         "/portal/status",
         /*
+         * THE PRICE BOOK, AND IT IS REFUSED FOR A DIFFERENT REASON FROM
+         * EVERYTHING ELSE ON THIS LIST. Operator ruling, 2026-09-18.
+         *
+         * The others are refused because an engineer is a licensed
+         * professional rather than an administrator, and a licence is not a
+         * seniority ranking. That reasoning would stop applying the day
+         * somebody made the engineer an administrator.
+         *
+         * This one would still apply. In his words: an engineer holding
+         * review.queue has no business reading what the firm makes on his own
+         * determinations. The tier a job attracts is HIS determination, and it
+         * decides what he is paid; a screen showing him the margin that turns
+         * on that judgement puts a number in front of the person making the
+         * judgement the number depends on.
+         *
+         * THAT IS INDEPENDENCE RATHER THAN ACCESS CONTROL, and it generalises:
+         * any future screen showing money against an engineer's own work is
+         * refused to that engineer for this reason, whatever role he holds.
+         */
+        "/portal/pricebook",
+        /*
          * Launch readiness. Gated on roles.manage, which an engineer does not
          * hold: deciding the firm may trade is the administrator's act. The
          * engineer's own gate is a different one, peInResponsibleCharge, and

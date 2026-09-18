@@ -109,6 +109,14 @@ const ADMIN_PAGES = [
   // Behind the perimeter for the same reason billing is: a signed out visitor
   // reaching it would read the firm's position straight off the page.
   "/portal/reports",
+  /*
+   * The price book. Behind the perimeter for the same reason billing and
+   * reports are, and more so: it carries the firm's cost base, the engineer's
+   * pay tiers from an executed employment agreement, and the margin on every
+   * line. A signed out visitor reaching it would read what the firm makes on
+   * each job and what it pays the person who signs them.
+   */
+  "/portal/pricebook",
   // Every address that has asked the firm to stop writing to them, and why.
   // A list of people who did not want to hear from a company, reachable signed
   // out, is a list somebody else can use for exactly what it records.
