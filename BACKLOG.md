@@ -27,6 +27,38 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
+## `launch-audit` IS KNOWINGLY RED, AND REWRITING IT BEFORE THE COPY EXISTS WOULD BE WORSE
+
+Opened 2026-09-17, as a disclosed judgement rather than an omission.
+
+`launch-audit` runs the site in each mode and asserts what that mode must say,
+must not say, and may never say. Eight of its assertions went red when the gate
+became three states, and every one of them is a PRELAUNCH expectation the
+operator has ruled out of existence:
+
+    prelaunch: every service surface carries the opening soon treatment
+    prelaunch: every service surface routes its CTA to the waitlist
+    prelaunch: every page states plainly that no engineer of record is in place
+
+**Two separate problems, and only one of them is about assertions.**
+
+**It can no longer REACH prelaunch.** It forced the mode with
+`LAUNCH_MODE=prelaunch`, and that variable now gates `open` alone. Reaching
+prelaunch means making a TRADING condition unmet, which is a register patch in a
+child process, the mirror of what `withGateConditionsMet` already does to open
+the gate. That is real work and it is the smaller half.
+
+**The larger half is that its trading assertions do not exist yet.** The audit's
+whole job is to assert what each mode must SAY. The trading copy is Part 3 and
+has not been written. Rewriting the audit first would mean inventing the
+sentences in the audit and then writing pages to match them, which is the
+audit-imports-its-expectation defect built deliberately: the check and the copy
+would agree because one was copied from the other.
+
+**So it is rewritten after Part 3, against copy that exists.** Until then it is
+red, it is red for a reason written down here, and the reason is not that
+somebody forgot.
+
 ## THE SITE REBUILD: APPROVED COPY, RETARGETED KEYWORDS, AND THE GATE UNDER IT
 
 Opened 2026-09-17. Three documents, each carrying open work, pointed at from
