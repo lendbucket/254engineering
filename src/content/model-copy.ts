@@ -1,4 +1,5 @@
 import { isOpen, isPrelaunch, peInResponsibleCharge, sealingIsAvailable } from "@/lib/launch";
+import { PUBLISHED_TURNAROUND } from "@/config/turnaround";
 
 /**
  * Every sentence on this site that describes a licensed engineer doing
@@ -176,8 +177,9 @@ export function turnaroundCopy(serviceTurnaround: string): string | null {
  */
 export function publishedTurnaround(serviceSlug: string): string | null {
   if (!isOpen()) return null;
-  if (serviceSlug !== "roof-inspections") return null;
-  return `Ten business days from order to sealed letter in your hands.`;
+  const ruled = PUBLISHED_TURNAROUND[serviceSlug];
+  if (!ruled) return null;
+  return `${ruled.publishedDays} business days from order to the sealed document in your hands.`;
 }
 
 /** True when any gate is still down, for copy that needs to say so once. */

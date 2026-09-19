@@ -33,7 +33,9 @@ const {
   REVISIT_AFTER_JOBS,
   totalDays,
   shareOf,
+  PUBLISHED_TURNAROUND,
 } = await import("../src/config/turnaround.ts");
+const { services } = await import("../src/content/services.ts");
 const { turnaroundCopy, publishedTurnaround } = await import("../src/content/model-copy.ts");
 const { isOpen } = await import("../src/lib/launch.ts");
 
@@ -141,6 +143,69 @@ rec(
   );
 }
 
+
+/* ------------- 3. a line publishes a figure only when it has one */
+
+/*
+ * OPERATOR RULING, 2026-09-19. The nine per service strings promise sealing
+ * "within a few business days" and predate any ruling. They stay silent, and
+ * they do not come back when the gate opens: "publishing nine unruled promises
+ * in one deploy because a gate lifted is exactly the drift the gate exists to
+ * prevent."
+ *
+ * So a line publishes a turnaround when it is in the registry with segments
+ * and a figure asserted against them, and not otherwise. This is that rule.
+ */
+{
+  const ruled = Object.keys(PUBLISHED_TURNAROUND);
+  rec(
+    "the published registry holds at least one line, so the checks below are not over an empty set",
+    ruled.length > 0,
+    ruled.join(", ") || "empty",
+  );
+
+  /*
+   * EVERY ENTRY CARRIES ITS OWN ARITHMETIC, not just the one written out
+   * above. The eighth line added next month gets the same check without
+   * anybody remembering to write one.
+   */
+  const bad = [];
+  for (const [slug, line] of Object.entries(PUBLISHED_TURNAROUND)) {
+    const t = totalDays(line.segments);
+    if (line.segments.length === 0) bad.push(slug + ": no segments");
+    else if (line.publishedDays < t.max) bad.push(slug + ": publishes " + line.publishedDays + " over a worst case of " + t.max);
+    else if (line.publishedDays > t.max + 3) bad.push(slug + ": padded " + (line.publishedDays - t.max) + " days over its worst case");
+  }
+  rec(
+    "and every ruled line covers its own segments without being padded",
+    bad.length === 0,
+    bad.join(" | ") || ruled.length + " line(s) check out",
+  );
+
+  /*
+   * AND EVERY SLUG IN THE REGISTRY IS A REAL SERVICE LINE. A figure ruled for
+   * a line that does not exist is a figure nothing renders and nobody
+   * maintains, and it would sail past every check above.
+   */
+  const unknown = ruled.filter((slug) => !services.some((x) => x.slug === slug));
+  rec(
+    "and every ruled line is a service the firm actually offers",
+    unknown.length === 0,
+    unknown.join(", ") || "all known",
+  );
+
+  /*
+   * THE SILENT ONES ARE COUNTED RATHER THAN ASSUMED. Seven lines publish no
+   * turnaround today, and if that count ever reaches zero by somebody wiring
+   * the old strings back in, this line says so.
+   */
+  const silent = services.filter((x) => !PUBLISHED_TURNAROUND[x.slug]);
+  rec(
+    "and the lines with no ruled figure publish nothing, counted rather than assumed",
+    silent.every((x) => publishedTurnaround(x.slug) === null),
+    silent.length + " of " + services.length + " lines publish no turnaround, awaiting a ruled figure",
+  );
+}
 /* ----------------------------------------------------------------- verdict */
 
 console.log("");

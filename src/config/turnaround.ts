@@ -114,6 +114,57 @@ export const ROOF_CERTIFICATION_SEGMENTS: Segment[] = [
 export const ROOF_CERTIFICATION_PUBLISHED_DAYS = 10;
 
 /**
+ * ===========================================================================
+ * A LINE PUBLISHES A TURNAROUND WHEN IT HAS ONE, AND NOT BECAUSE A GATE MOVED.
+ * Operator ruling, 2026-09-19.
+ * ===========================================================================
+ *
+ * Nine per service strings in src/content/services.ts promise sealing "within a
+ * few business days". They predate any ruling about turnaround, and they are
+ * the shape of promise the measured figure replaced.
+ *
+ * The obvious thing when the gate opens is to start returning them, and the
+ * operator ruled it out in advance rather than after somebody did it:
+ *
+ *   "They stay silent. Do not return them at gate-open. Publishing nine unruled
+ *    promises in one deploy because a gate lifted is exactly the drift the gate
+ *    exists to prevent."
+ *
+ * THE RULE, WHICH IS WHAT THIS REGISTRY MAKES MECHANICAL. A line publishes a
+ * turnaround when, and only when, it appears here with segments and a figure
+ * asserted against them. Aman gives the engineer side number, the operator adds
+ * the firm's segments, and the sum is checked. Until then the line publishes
+ * nothing, whatever the gate says and whatever the old string reads.
+ *
+ * So this is deliberately a REGISTRY rather than a constant per line: adding a
+ * line means adding segments, which means somebody has stated a number and
+ * attached their name to it. There is no shape here that lets a figure arrive
+ * without one.
+ */
+export type LineTurnaround = {
+  segments: Segment[];
+  /** End to end, in business days, asserted against the segments. */
+  publishedDays: number;
+};
+
+export const PUBLISHED_TURNAROUND: Record<string, LineTurnaround> = {
+  "roof-inspections": {
+    segments: ROOF_CERTIFICATION_SEGMENTS,
+    publishedDays: ROOF_CERTIFICATION_PUBLISHED_DAYS,
+  },
+  /*
+   * THE OTHER SEVEN ARE ABSENT AND THAT ABSENCE IS THE RECORD. Not commented
+   * out, not set to null, not carrying a placeholder: a line with no ruled
+   * figure has no entry, and `publishedTurnaround` answers null for it. An
+   * entry with a null figure would be a slot somebody fills in a hurry.
+   *
+   * Design is absent for a different reason and it is not waiting on a number:
+   * it is quoted per job from the engineer's estimate, so DESIGN_WORKING_DAYS
+   * is a working figure for whoever quotes rather than a promise to publish.
+   */
+};
+
+/**
  * Design, which is quoted per job.
  *
  * TEN BUSINESS DAYS IS A WORKING FIGURE RATHER THAN A PUBLISHED PROMISE, and
