@@ -27,6 +27,38 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
+## A RULING IS OWED: THERE IS NO STATUS FOR A FILE WAITING ON AN OWNER TO DO REPAIRS
+
+Opened 2026-09-19, while building the determination write path. Not a defect: a
+word the vocabulary does not have, which is the thing 0049 made this repository
+careful about.
+
+Appendix C of 254-RC-001 names five determinations. Four of them map onto a
+review action this platform already has. **REPAIRS REQUIRED maps onto nothing.**
+
+The document: "Certification withheld and a repair list issued. Certification
+proceeds only after repairs are verified on revisit." So the file is not going
+back to the technician, because nothing is wrong with the evidence. It is not
+going back through dispatch yet, because the revisit happens after the property
+OWNER has had work done, which may be weeks. It is not refused, because
+certification is withheld rather than declined. And it is plainly not sealed.
+
+Every status this platform has would be a false statement about that file.
+
+**What is built.** `DETERMINATION_ACTION` in `src/lib/ops-review.ts` maps it to
+`null`, `actionForDetermination` refuses with the reason in full, and the review
+screen prints that reason where the action would be. The determination is
+recorded; the file stays where it is. `protocol-run-audit` fails the day
+somebody quietly maps it to revisions, which is the edit this entry exists to
+make visible.
+
+**What is owed.** A ruling, and then probably a status. The shape that looks
+right from here is a `repairs_pending` status the file sits in, with the repair
+list attached, and a path back into dispatch when the owner says the work is
+done. That is a workflow with a customer in it, not a rename, which is why it is
+a sitting rather than a patch. 0049's rule is the one to apply: add the word
+rather than overload the one nearby.
+
 ## AN APPROVAL IS ATOMIC AND ITS AUDIT ROW IS NOT, AND THE TWO FIXES ARE BOTH WRONG
 
 Opened 2026-09-19, while building the approval bridge. A disclosed asymmetry

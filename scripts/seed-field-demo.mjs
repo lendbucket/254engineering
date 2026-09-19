@@ -576,13 +576,44 @@ if (engineerLookupErr) throw new Error(`eng_profiles: ${engineerLookupErr.messag
 const demoEngineerId = (engineerRows ?? [])[0]?.id ?? null;
 if (!demoEngineerId) throw new Error("the demonstration engineer was not created, so nothing may approve a protocol");
 
+/*
+ * AFTER 0052 THERE IS ONE DOOR, AND THIS FIXTURE GOES THROUGH IT LIKE ANYTHING
+ * ELSE. Changed 2026-09-19.
+ *
+ * This used to insert a template with status 'published' and update older rows
+ * to published directly. 0052 refuses both: a template cannot be created
+ * already in force, and it cannot reach 'published' except from inside
+ * eng_approve_protocol, because the approval and the seeding of its items are
+ * one act. That is the point of the migration and this fixture is not an
+ * exception to it.
+ *
+ * The old shape is kept here as the values the door is CALLED with rather than
+ * the values written, so what this seeder claims about its demonstration
+ * protocol is still in one place.
+ *
+ * WHY THIS IS STILL WITHIN THE OPERATOR'S LIMIT. The limit is that no protocol
+ * is approved on the engineer's behalf, "including a development fixture that
+ * could be mistaken for the real thing". This seeder carries neverProduction
+ * standing, the approver is a Demo engineer at example.com who does not exist,
+ * and the protocol is named as a demonstration. Nothing here could be mistaken
+ * for 254-RC-001 being approved, and routing it through the door makes even the
+ * fixture unable to produce an in-force protocol with no items.
+ */
 const demoApproval = {
-  status: "published",
-  approved_by: demoEngineerId,
-  approved_at: new Date().toISOString(),
-  approved_by_license: DEMO_LICENSE,
-  published_at: new Date().toISOString(),
+  status: "awaiting_engineer",
+  document_signed_at: new Date().toISOString().slice(0, 10),
 };
+
+/** Put a demonstration template in force the only way anything can. */
+async function approveDemoProtocol(templateId) {
+  const { error } = await db.rpc("eng_approve_protocol", {
+    p_template_id: templateId,
+    p_approved_by: demoEngineerId,
+    p_license: DEMO_LICENSE,
+    p_items: PROTOCOL_ITEMS.map((i, index) => ({ sort_order: index, ...i })),
+  });
+  if (error) throw new Error(`protocol approval ${templateId}: ${error.message}`);
+}
 
 /*
  * REPAIR INSIDE THIS FIXTURE'S OWN DOMAIN, which is the destroyProbes
@@ -616,11 +647,19 @@ const demoApproval = {
     .is("approved_by", null);
   if (unapprovedErr) throw new Error(`eng_protocol_templates: ${unapprovedErr.message}`);
   for (const row of unapproved ?? []) {
+    /*
+     * The repair now steps the row BACK to awaiting_engineer and puts it
+     * through the door, rather than updating it into force. A row that reached
+     * 'published' with no approver is a row that got there the way 0052 now
+     * forbids, so repairing it by the same route would be repairing it into the
+     * same shape.
+     */
     const { error } = await db
       .from("eng_protocol_templates")
       .update({ ...demoApproval, name: DEMO_PROTOCOL_NAME, summary: DEMO_PROTOCOL_SUMMARY })
       .eq("id", row.id);
     if (error) throw new Error(`protocol repair ${row.id}: ${error.message}`);
+    await approveDemoProtocol(row.id);
     console.error(`  protocol: repaired ${row.id}, which claimed to be in force with no approver`);
   }
 }
@@ -640,10 +679,15 @@ if (!protocolId) {
     .single();
   if (error) throw new Error(`protocol: ${error.message}`);
   protocolId = template.id;
-  await db.from("eng_protocol_items").insert(
-    PROTOCOL_ITEMS.map((i) => ({ ...i, template_id: protocolId })),
-  );
-  console.error(`  protocol: 1 published with ${PROTOCOL_ITEMS.length} items`);
+  /*
+   * The items are seeded BY the approval rather than inserted beside it. This
+   * used to be two writes, and after 0052 the second one would be refused
+   * anyway once the template was in force. One call is also the honest shape:
+   * a protocol in force whose items arrived separately is a protocol that
+   * existed in force with none.
+   */
+  await approveDemoProtocol(protocolId);
+  console.error(`  protocol: 1 approved through the door with ${PROTOCOL_ITEMS.length} items`);
 } else {
   console.error("  protocol: already published");
 }
