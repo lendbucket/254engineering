@@ -91,6 +91,108 @@ export async function reviewQueue(actor: Actor | null): Promise<QueueRow[]> {
   return (data ?? []) as QueueRow[];
 }
 
+// ------------------------------------------------- waiting on the owners
+
+/**
+ * THE FILES THE FIRM IS NOT WORKING ON, AND HAS NOT FINISHED WITH.
+ *
+ * WHY THIS SCREEN IS WHAT MAKES THE NO-TIMER DECISION SAFE RATHER THAN
+ * NEGLIGENT. Operator ruling, 2026-09-19.
+ *
+ * A file in `repairs_required` does not age out and cannot reach `closed`,
+ * because a homeowner who takes four months to afford a roof repair has not
+ * abandoned anything and a firm that closes his file is the one who failed.
+ * The cost of that ruling is real and it is not a data cost: nothing chases
+ * these. If the owner never rings back, nobody notices.
+ *
+ * The answer is VISIBILITY RATHER THAN EXPIRY. A status that quietly closed
+ * itself would turn "waiting" into "forgotten" while looking tidy. A list turns
+ * it into "waiting, and we can see for how long", which is what lets somebody
+ * ring in month three instead of finding them in year two.
+ *
+ * OLDEST FIRST, for the reason the review queue is oldest first: a list sorted
+ * newest first is one where the awkward case somebody keeps skipping sinks out
+ * of sight. Here the oldest is by definition the one most likely to have been
+ * forgotten.
+ *
+ * NO FIGURES ON IT, AND THAT IS THE ENGINEER PRINCIPLE RATHER THAN AN OVERSIGHT.
+ * An engineer reaches this screen because these are files HE withheld
+ * certification on, which is his accountability. What a job is worth, what
+ * anybody is paid and what the firm makes on it are not on it and must not be
+ * added: "a number in his head near an engineering judgement is the thing to
+ * avoid", and this screen sits closer to an engineering judgement than most.
+ */
+export type WaitingRow = {
+  id: string;
+  file_number: string;
+  property_address: string;
+  city: string | null;
+  county: string;
+  service_slug: string;
+  repairs_required_at: string | null;
+  /** How many of the repair list's items are still open, and how many there were. */
+  openItems: number;
+  totalItems: number;
+};
+
+export async function waitingOnOwners(actor: Actor | null): Promise<WaitingRow[]> {
+  const db = supabaseAdmin();
+  if (!db || !holdsLicence(actor, "review.queue")) return [];
+
+  const { data: files } = await db
+    .from("eng_files")
+    .select("id, file_number, property_address, city, county, service_slug, repairs_required_at")
+    .eq("status", "repairs_required")
+    .eq("is_demo", false)
+    .order("repairs_required_at", { ascending: true, nullsFirst: true })
+    .limit(200);
+
+  const rows = (files ?? []) as Omit<WaitingRow, "openItems" | "totalItems">[];
+  if (rows.length === 0) return [];
+
+  /*
+   * The repair items for exactly these files, counted here rather than by a
+   * query per row. A list screen that issues one query per row is the shape
+   * that makes /portal/accounts take fifty seconds.
+   */
+  const { data: items } = await db
+    .from("eng_repair_items")
+    .select("file_id, closed_at")
+    .in(
+      "file_id",
+      rows.map((r) => r.id),
+    );
+
+  const byFile = new Map<string, { open: number; total: number }>();
+  for (const item of (items ?? []) as { file_id: string; closed_at: string | null }[]) {
+    const seen = byFile.get(item.file_id) ?? { open: 0, total: 0 };
+    seen.total += 1;
+    if (item.closed_at === null) seen.open += 1;
+    byFile.set(item.file_id, seen);
+  }
+
+  return rows.map((r) => ({
+    ...r,
+    openItems: byFile.get(r.id)?.open ?? 0,
+    totalItems: byFile.get(r.id)?.total ?? 0,
+  }));
+}
+
+/**
+ * How long a file has been waiting, in whole days, or null if nobody stamped it.
+ *
+ * NULL IS A REAL ANSWER AND THE SCREEN SAYS SO. A file that reached this status
+ * before 0053 stamped the column, or by a path that forgot to, has an UNKNOWN
+ * age rather than an age of zero. Rendering a missing timestamp as "today" would
+ * put the oldest file at the top of the list reading as the newest.
+ */
+export function daysWaiting(since: string | null, now: Date = new Date()): number | null {
+  if (!since) return null;
+  const started = new Date(since).getTime();
+  if (Number.isNaN(started)) return null;
+  return Math.max(0, Math.floor((now.getTime() - started) / 86_400_000));
+}
+
 // -------------------------------------------------------------- the package
 
 export type EvidenceView = {

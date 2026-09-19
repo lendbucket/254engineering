@@ -90,6 +90,24 @@ export const NAV: NavItem[] = [
   },
   { href: "/portal/review", label: "Review queue", short: "Review", action: "review.queue", primary: true, icon: "review" },
   {
+    /*
+     * Files waiting on an owner to have repairs done. Behind the same licensed
+     * capability as the review queue, because it is the other half of the same
+     * job: the queue is what is waiting on the firm, this is what the firm is
+     * waiting on somebody else for.
+     *
+     * NOT primary. It is a list nobody needs to open daily, and the whole
+     * reason it exists is that these files are not urgent and must not be
+     * forgotten. A badge demanding attention every day on files that are
+     * legitimately months away is how somebody learns to ignore it.
+     */
+    href: "/portal/waiting",
+    label: "Waiting on owners",
+    short: "Waiting",
+    action: "review.queue",
+    icon: "review",
+  },
+  {
     // An engineer's own regulatory record. Their licence stands on it, so it is
     // one tap away rather than behind a menu.
     href: "/portal/charge-log",

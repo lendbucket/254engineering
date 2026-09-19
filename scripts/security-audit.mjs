@@ -88,6 +88,10 @@ const ADMIN_PAGES = [
   "/portal/audit",
   "/portal/profile",
   "/portal/review",
+  /* Files waiting on an owner to have repairs done. Behind the same licensed
+   * capability as the review queue, and closed to a signed out caller like
+   * every other portal page. */
+  "/portal/waiting",
   "/portal/jobs",
   "/portal/files",
   // Phase 12 Section 4, Section 1. Names every technician who could be offered

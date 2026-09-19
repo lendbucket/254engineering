@@ -1481,6 +1481,17 @@ if (!db) {
          */
         "/portal/protocols/rc-001",
         "/portal/review",
+        /*
+         * Files he withheld certification on, waiting on owners to have
+         * repairs done. His accountability rather than the firm's commerce: a
+         * roof he found active leaks on, still unrepaired after five months, is
+         * a fact about his own decision.
+         *
+         * It carries NO FIGURES, deliberately and by the principle above. What
+         * the job is worth and what anybody is paid stay off a screen he reads
+         * while looking at a list of roofs he refused to certify.
+         */
+        "/portal/waiting",
         // Ordinary working surfaces an engineer holds by grant, not by licence.
         "/portal/files",
         "/portal/clients",
