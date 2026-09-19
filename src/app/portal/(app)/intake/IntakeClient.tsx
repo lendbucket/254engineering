@@ -591,7 +591,7 @@ export function IntakeClient({
               onChange={(e) => {
                 setServiceSlug(e.target.value);
                 const only = deliverables.filter((d) => d.serviceSlug === e.target.value);
-                /* Seven of the nine lines sell exactly one thing. Choosing it
+                /* Most lines sell exactly one thing. Choosing it
                    for the operator saves a tap on every one of those calls. */
                 setTier(only.length === 1 ? only[0].tier : "");
               }}

@@ -88,7 +88,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
 
         It used to be an eyebrow, a rule, and a column of prose with no heading
         at all, which is the device the homepage never uses. The heading is
-        derived from the service name so it is true for all nine pages and there
+        derived from the service name so it is true for every service page and there
         is no ninefold copy to keep in step.
 
         The reading column is capped at 68 characters rather than filling eight

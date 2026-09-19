@@ -56,8 +56,8 @@ export default async function ReviewPage({
    * cannot look ready on one screen and incomplete on another.
    *
    * This is the ADMINISTRATIVE half only. What evidence an engineer needs
-   * before sealing is the protocol's business and eight of nine service lines
-   * do not have one yet; what a document needs in order to be issued to the
+   * before sealing is the protocol's business and all but one service line
+   * still has no protocol; what a document needs in order to be issued to the
    * right party is knowable now, and missing it is what causes a reissue.
    */
   const outstanding = selected

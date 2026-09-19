@@ -17,7 +17,7 @@ import { CARD_LINK, IconTile } from "@/components/ui/section";
  * WHY THE ICON AND THE TAG LIVE HERE AND NOT ON THE HOMEPAGE
  * ----------------------------------------------------------
  * Section 2 built this for the homepage and kept the icon map and the tag map in
- * `app/page.tsx`. The services hub then rendered the same nine services as plain
+ * `app/page.tsx`. The services hub then rendered the same services as plain
  * bordered cards with no mark and no category, so the two most important lists
  * of the same nine things did not look like the same nine things.
  *
