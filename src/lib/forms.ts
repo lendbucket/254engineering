@@ -65,6 +65,55 @@ export const contactSchema = z.object({
   referrer: trimmed(500).optional(),
 });
 
+/**
+ * THE DESIGN INQUIRY. Eleven defined answers, three of which decide whether the
+ * firm takes the work at all.
+ *
+ * THE FOUR VOCABULARIES ARE THE DATABASE'S, TYPED OUT RATHER THAN IMPORTED, and
+ * that duplication is the mechanism rather than an oversight. 0050 constrains
+ * `asking_as`, `work_kind` and `deliverable` with check constraints. If this
+ * schema derived from the same constant, a fifth value added in one place would
+ * be accepted in both and nothing would disagree. Written twice, adding one
+ * costs two edits made on purpose, and a mismatch is a 422 rather than a
+ * constraint violation at the database.
+ *
+ * THE THREE FLAGS ARE REQUIRED BOOLEANS WITH NO DEFAULT, which is the absent
+ * versus zero rule on the three questions that matter most. "Nobody answered"
+ * and "they said no" are different facts, and a form that defaulted them to
+ * false would record the second when it meant the first, on exactly the
+ * questions that decide whether the firm declines the work.
+ */
+const ASKING_AS = ["owner", "builder", "architect", "engineer"] as const;
+const WORK_KIND = ["new_construction", "addition", "repair", "remediation"] as const;
+const DELIVERABLE = ["sealed_plans", "sealed_letter", "repair_specification", "design_review"] as const;
+
+export const designInquirySchema = z.object({
+  name: requiredText("your name"),
+  email,
+  phone,
+  askingAs: z.enum(ASKING_AS, { message: "Tell us which of these you are." }),
+  workKind: z.enum(WORK_KIND, { message: "Tell us what kind of work this is." }),
+  deliverable: z.enum(DELIVERABLE, { message: "Tell us what you need produced." }),
+  propertyAddress: requiredText("the property address"),
+  jurisdiction: trimmed(200).optional(),
+  squareFeet: z.coerce.number().int().positive().max(10_000_000).optional(),
+  storeys: z.coerce.number().int().positive().max(200).optional(),
+  drawings: trimmed(2000).optional(),
+  soilReport: z.boolean().optional(),
+  permitStatus: trimmed(200).optional(),
+  deadline: trimmed(300).optional(),
+  /*
+   * No .optional() and no .default(). A missing flag fails validation and the
+   * message says which, rather than being quietly recorded as "no".
+   */
+  openInsuranceClaim: z.boolean({ message: "Answer whether there is an open insurance claim." }),
+  activeLitigation: z.boolean({ message: "Answer whether there is active or threatened litigation." }),
+  priorAdverseReport: z.boolean({ message: "Answer whether a prior adverse report exists." }),
+  company: honeypot,
+  landingPath: trimmed(300).optional(),
+  referrer: trimmed(500).optional(),
+});
+
 export const waitlistSchema = z.object({
   name: requiredText("your name"),
   email,

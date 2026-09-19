@@ -76,6 +76,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...openPositions().map((p) => entry(`/careers/${p.slug}`, 0.7, "monthly")),
     entry("/insights", 0.8, "monthly"),
     ...insights.map((i) => entry(`/insights/${i.slug}`, 0.7, "monthly", i.dateModified)),
+    /* The design brief. Indexed: it is how somebody with a project finds the
+     * firm, and unlike the waitlist it does not become a redirect when the
+     * gate opens. */
+    entry("/design-inquiry", 0.8, "monthly"),
     entry("/contact", 0.7, "yearly"),
     entry("/privacy", 0.3, "yearly"),
     entry("/terms", 0.3, "yearly"),

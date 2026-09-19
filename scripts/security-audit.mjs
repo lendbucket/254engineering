@@ -92,6 +92,9 @@ const ADMIN_PAGES = [
    * capability as the review queue, and closed to a signed out caller like
    * every other portal page. */
   "/portal/waiting",
+  /* Design briefs and the reply each was promised. Behind files.list like the
+   * other working surfaces, and closed to a signed out caller. */
+  "/portal/inquiries",
   "/portal/jobs",
   "/portal/files",
   // Phase 12 Section 4, Section 1. Names every technician who could be offered
@@ -203,6 +206,7 @@ const ADMIN_APIS = [
   // its first run, which is the argument for the coverage check.
   "/api/portal/files",
   "/api/portal/field",
+  "/api/portal/inquiries",
   "/api/portal/review",
   "/api/portal/comms",
   "/api/portal/onboarding",

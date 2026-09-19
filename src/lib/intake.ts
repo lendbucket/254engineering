@@ -110,6 +110,80 @@ export async function insertLead(row: LeadRow): Promise<WriteResult> {
   return error ? { ok: false, error: error.message } : { ok: true };
 }
 
+/**
+ * A DESIGN INQUIRY. A brief rather than a contact, which is why it is not a
+ * lead: 0050 argues the distinction at length and it comes down to eleven
+ * defined answers, three of which decide whether the firm takes the work.
+ *
+ * WHAT THIS FUNCTION DOES NOT DO, AND BOTH ARE THE SPECIFICATION. It never
+ * produces an order, and it never quotes a price. Design is hourly with a fixed
+ * fee quoted from the engineer's estimate, and no form can turn that into a
+ * number.
+ *
+ * IT ALSO DOES NOT RAISE A TASK, and that is the operator's ruling from
+ * 2026-09-18 rather than a gap: a public route minting a staff task would mean
+ * an unauthenticated request acting as a privileged principal, which is a
+ * bigger door than this feature is worth. The row carries `respond_by`, and an
+ * operator raises the task from it.
+ */
+export type DesignInquiryRow = {
+  name: string;
+  email: string;
+  phone?: string;
+  askingAs: string;
+  workKind: string;
+  deliverable: string;
+  propertyAddress: string;
+  jurisdiction?: string;
+  squareFeet?: number;
+  storeys?: number;
+  drawings?: string;
+  soilReport?: boolean;
+  permitStatus?: string;
+  deadline?: string;
+  openInsuranceClaim: boolean;
+  activeLitigation: boolean;
+  priorAdverseReport: boolean;
+  landingPath?: string;
+  referrer?: string;
+  userAgent?: string;
+};
+
+export async function insertDesignInquiry(row: DesignInquiryRow): Promise<WriteResult> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "Supabase is not configured" };
+
+  const { error } = await db.from("eng_design_inquiries").insert({
+    name: row.name,
+    email: row.email,
+    phone: row.phone || null,
+    asking_as: row.askingAs,
+    work_kind: row.workKind,
+    deliverable: row.deliverable,
+    property_address: row.propertyAddress,
+    jurisdiction: row.jurisdiction || null,
+    square_feet: row.squareFeet ?? null,
+    storeys: row.storeys ?? null,
+    drawings: row.drawings || null,
+    /*
+     * ?? rather than ||, because false is an answer. `row.soilReport || null`
+     * would record "there is no soil report" as "nobody said", which is the
+     * absent versus zero defect in one character.
+     */
+    soil_report: row.soilReport ?? null,
+    permit_status: row.permitStatus || null,
+    deadline: row.deadline || null,
+    open_insurance_claim: row.openInsuranceClaim,
+    active_litigation: row.activeLitigation,
+    prior_adverse_report: row.priorAdverseReport,
+    landing_path: row.landingPath || null,
+    referrer: row.referrer || null,
+    user_agent: row.userAgent || null,
+  });
+
+  return error ? { ok: false, error: error.message } : { ok: true };
+}
+
 export type ApplicationRow = {
   role: "professional_engineer" | "field_technician";
   name?: string;

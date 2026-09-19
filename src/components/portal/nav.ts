@@ -88,6 +88,16 @@ export const NAV: NavItem[] = [
     action: "ledger.read_own",
     icon: "pay",
   },
+  {
+    /* Design briefs and the reply each was promised. Behind files.list, which
+     * is the ordinary working grant, because answering an enquiry is intake
+     * rather than engineering. */
+    href: "/portal/inquiries",
+    label: "Design briefs",
+    short: "Briefs",
+    action: "files.list",
+    icon: "files",
+  },
   { href: "/portal/review", label: "Review queue", short: "Review", action: "review.queue", primary: true, icon: "review" },
   {
     /*

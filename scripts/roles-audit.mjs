@@ -1532,6 +1532,13 @@ if (!db) {
          * are the firm's commercial business; a licence is not a reason to do
          * either, which is the same line the reports entry draws.
          */
+        /*
+         * Design briefs. Commercial intake: who is asking, what they want built
+         * and when somebody must ring them back. An engineer scopes the work
+         * once it is a job; deciding whether to pursue an enquiry is the
+         * firm's business, and the principle keeps him away from it.
+         */
+        "/portal/inquiries",
         "/portal/files/dispatch",
         "/portal/partners/disputes",
         /*
