@@ -98,7 +98,7 @@ export const location = {
    * about capability rather than a service being performed today.
    */
   capability: [
-    "The firm is built around the documents that coastal transactions actually turn on: windstorm certification for construction inside the catastrophe area, roof condition and certification work for lenders and carriers, foundation evaluation where the soils argue with the slab, forensic investigation after a named storm, and repair specifications written so that damage can be scoped, bid, and permitted rather than argued about.",
+    "The firm is built around the documents that coastal transactions actually turn on: windstorm certification for construction inside the catastrophe area, roof condition and certification work for lenders and carriers, foundation evaluation where the soils argue with the slab, and repair specifications written so that damage can be scoped, bid, and permitted rather than argued about.",
     "All of it is designed to be delivered under a licensed Texas Professional Engineer in responsible charge. Until the firm's registration with the Texas Board of Professional Engineers and Land Surveyors is issued and a Professional Engineer is in responsible charge, none of it is offered or performed, and no page on this site says otherwise.",
   ],
 } as const;

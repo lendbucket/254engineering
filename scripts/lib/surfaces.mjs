@@ -130,6 +130,10 @@ export const SURFACES = [
     roleFor: {
       "/portal/review": "engineer",
       "/portal/protocols": "engineer",
+      /* Files he withheld certification on. Gated on holdsLicence like the
+       * review queue, so an administrator probe is refused and the browser
+       * audits would report the page as broken rather than the probe. */
+      "/portal/waiting": "engineer",
       "/portal/jobs": "field_tech",
       "/portal/certification": "field_tech",
     },

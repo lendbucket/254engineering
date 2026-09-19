@@ -1,7 +1,6 @@
 import Link from "next/link";
 import {
   DesignIcon,
-  ForensicIcon,
   FoundationIcon,
   ManufacturedHomeIcon,
   RoofIcon,
@@ -46,7 +45,6 @@ const SERVICE_ICONS: Record<string, typeof RoofIcon> = {
   "structural-letters": SealedLetterIcon,
   "repair-specifications": SpecIcon,
   "residential-light-commercial-design": DesignIcon,
-  "forensic-engineering": ForensicIcon,
 };
 
 const SERVICE_TAGS: Record<string, string> = {
@@ -58,7 +56,6 @@ const SERVICE_TAGS: Record<string, string> = {
   "structural-letters": "Permitting",
   "repair-specifications": "Sealed letter",
   "residential-light-commercial-design": "Design",
-  "forensic-engineering": "Investigation",
 };
 
 export function ServiceCard({

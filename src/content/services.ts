@@ -450,58 +450,6 @@ export const services: Service[] = [
     ],
   },
 
-  {
-    slug: "forensic-engineering",
-    name: "Forensic and Insurance Engineering",
-    shortName: "Forensic Engineering",
-    h1: "Forensic and Insurance Engineering in Texas",
-    title: "Forensic and Insurance Engineering | 254 Engineering",
-    description:
-      "Independent engineering investigation into the cause and extent of damage to a structure, documented to one standard for every party. See the price.",
-    summary:
-      "Independent investigation into the cause and extent of damage to a structure, documented to one standard whichever party asked the question.",
-    what: [
-      "Forensic engineering answers a question about something that already happened. A structure is damaged or has performed poorly, and somebody needs to know why, how far the damage extends, and what the evidence actually supports. The output is a factual determination, reasoned from observation and measurement.",
-      "The obligation runs to the facts rather than to the party who ordered the report. An owner, a carrier, a contractor, and an attorney can all ask the same question about the same building, and a competent investigation returns the same answer to each of them. A firm whose conclusions correlate with who is paying is not performing engineering, and the report will not survive the first serious challenge to it.",
-      "Typical questions include the cause and extent of storm, wind, hail, and water damage, whether observed distress is construction related or the result of foundation movement, whether a failure originated in design, in workmanship, or in maintenance, and how far a damaged assembly has to be repaired to be sound. The investigation records what was observed, the methods used, the evidence relied on, and where the evidence stops.",
-    ],
-    whoOrders: [
-      "Property owners and managers who need the cause of damage established",
-      "Insurance carriers, adjusters, and independent adjusting firms",
-      "Attorneys in construction defect and property damage matters",
-      "Contractors and builders responding to an allegation about their work",
-      "Condominium and homeowner associations investigating building performance",
-    ],
-    deliverable: [
-      "A signed and sealed report stating the scope of the investigation, the observations, the methods and measurements used, the conclusions, and the limits of what the evidence supports.",
-      "A photographic and measurement record adequate for another engineer to follow the reasoning and reach their own view.",
-      "Where the matter proceeds, deposition and testimony by the engineer who performed the work and signed the report.",
-    ],
-    turnaround:
-      "Investigations are scoped individually, because the field work can range from a single visit to repeated observation during destructive exposure. A schedule and a scope are agreed in writing before the investigation begins.",
-    faqs: [
-      {
-        q: "Can an engineer investigate for either the owner or the carrier?",
-        a: "Yes, and the report should read the same either way. The engineer's duty is to the facts and to the public, and the party who commissioned the work does not change what the structure did. Where an engineer cannot be impartial about a matter, the correct response is to decline it.",
-      },
-      {
-        q: "Will a report determine what an insurance claim is worth?",
-        a: "No. Valuation and coverage are the adjuster's and the carrier's determinations under the policy. The engineering question is what happened, how far it extends, and what the repair requires. Those are separate questions and mixing them serves nobody.",
-      },
-      {
-        q: "How soon after damage should an investigation happen?",
-        a: "Generally as soon as the site is safe and before repairs alter the evidence. Emergency mitigation should not be delayed for an engineer, but the condition should be photographed thoroughly before anything is removed, because a repaired assembly cannot be investigated afterward.",
-      },
-      {
-        q: "Is destructive testing part of an investigation?",
-        a: "Sometimes it is the only way to answer the question, and it is always agreed with the owner in advance, planned, documented, and limited to what the question requires. Opening a wall is evidence gathering, not demolition, and it is treated that way.",
-      },
-      {
-        q: "Can the engineer testify about the report?",
-        a: "The engineer who performed the investigation and signed the report is the one who can speak to it. That is one reason field work and review are documented to a written protocol: a report that cannot be explained under examination was not worth issuing.",
-      },
-    ],
-  },
 ];
 
 export const serviceBySlug = (slug: string): Service | undefined =>

@@ -80,7 +80,7 @@ export const regions: Region[] = [
     emphasis: [
       { slug: "windstorm-wpi-8", why: "Required across the seven seacoast counties in this region." },
       { slug: "roof-inspections", why: "Storm exposure makes roof condition the recurring question for lenders and carriers." },
-      { slug: "forensic-engineering", why: "Wind and water damage cause questions follow every named storm." },
+      { slug: "foundation-inspections", why: "Shrink swell soils and storm driven water make foundation performance a standing coastal question." },
       { slug: "repair-specifications", why: "Post storm repair has to be scoped before it can be bid or permitted." },
     ],
     counties: [
@@ -120,7 +120,7 @@ export const regions: Region[] = [
       { slug: "foundation-inspections", why: "The most expansive soils in the state make foundation performance the standing question." },
       { slug: "windstorm-wpi-8", why: "Required in five counties here and in Harris County east of State Highway 146." },
       { slug: "structural-letters", why: "Dense municipal permitting means alterations routinely need a sealed letter." },
-      { slug: "forensic-engineering", why: "Storm, water, and movement damage questions are constant across the region." },
+      { slug: "repair-specifications", why: "Damage has to be scoped in writing before it can be bid, permitted, or argued about." },
     ],
     counties: [
       "Austin", "Brazoria", "Chambers", "Colorado", "Fort Bend", "Galveston", "Hardin", "Harris",

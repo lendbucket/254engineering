@@ -35,7 +35,6 @@
  *   structural letter for permit                   550
  *   WPI-8E windstorm evaluation                    850
  *   repair specification                           900
- *   forensic and custom                            quote only
  *   coastal surcharge, first tier counties          75
  *   inspection fee retained on decline after a visit 175
  *
@@ -702,46 +701,6 @@ export const CATALOG: CatalogEntry[] = [
         help: "A permit hearing, a closing, a start on site.",
         kind: "date",
         required: false,
-      },
-    ],
-    turnaround: "A person scopes this and comes back with a quote. Nothing is charged until you accept one.",
-    receives: ["A written quote with a defined scope", "No charge until you accept it"],
-  },
-  {
-    serviceSlug: "forensic-engineering",
-    tier: "standard",
-    name: "Forensic investigation",
-    orderType: "quote",
-    priceCents: null,
-    coastalSurchargeCents: null,
-    inspectionFeeCents: null,
-    protocolServiceSlug: null,
-    qualifiers: [
-      ADDRESS_QUALIFIER,
-      {
-        id: "litigation",
-        prompt: "Is this connected to a claim, a dispute, or litigation?",
-        help: "It changes how the work is scoped and what the engineer's obligations are. It does not change whether the firm will do it.",
-        options: ["Yes", "No", "Not yet, but it might be"],
-        disqualifyOn: [],
-        disqualifiedMessage: "",
-      },
-    ],
-    requiredInputs: [
-      {
-        id: "matter",
-        label: "What happened, and what is in dispute",
-        help: "In your own words. Dates matter.",
-        kind: "text",
-        required: true,
-      },
-      {
-        id: "documents",
-        label: "Anything already produced about it",
-        help: "Reports, claim correspondence, photographs, pleadings.",
-        kind: "file",
-        required: false,
-        accepts: "PDF or images",
       },
     ],
     turnaround: "A person scopes this and comes back with a quote. Nothing is charged until you accept one.",

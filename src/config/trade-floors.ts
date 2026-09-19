@@ -137,7 +137,6 @@ export const TRADE_FLOORS: Record<string, TradeFloor> = {
 
   /* ------------------------------------------------- quoted, no published price */
   "residential-light-commercial-design/custom-package": { state: "pending", because: AWAITING },
-  "forensic-engineering/standard": { state: "pending", because: AWAITING },
 };
 
 /** The key a deliverable is declared under. One shape, so nothing improvises one. */
