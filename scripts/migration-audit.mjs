@@ -91,10 +91,23 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * digest moves to e141b2f324c511c07b1239589e516b42 across 880 facts, read off
  * the replay rather than predicted.
  */
+/*
+ * 0052 adds NO columns and NO tables, and that is worth saying rather than
+ * leaving as three unchanged numbers. It is entirely functions and triggers:
+ * the approval door, the two guards that make it the only door, the deferred
+ * assertion that a protocol in force holds its items, and the freeze on those
+ * items. A migration that changes behaviour without changing shape leaves the
+ * shape fingerprint untouched, which is the same thing 0008 did when it pinned
+ * the search_paths.
+ *
+ * 62 triggers to 66 is exactly those four. 16 functions to 21 is the five they
+ * are built from, eng_approve_protocol being the second in this schema after
+ * eng_claim_jobs that is called directly rather than by a trigger.
+ */
 const EXPECTED_FINGERPRINT = "aa53ea353a4128696a23e03feadd1e48";
 const EXPECTED_COLUMNS = 1103;
 const EXPECTED_TABLES = 79;
-const EXPECTED_TRIGGERS = 62;
+const EXPECTED_TRIGGERS = 66;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the
@@ -106,7 +119,7 @@ const EXPECTED_TRIGGERS = 62;
  * declaration was keeping on its own word. eng_claim_jobs is still the only
  * one called directly.
  */
-const EXPECTED_FUNCTIONS = 16;
+const EXPECTED_FUNCTIONS = 21;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -830,6 +843,207 @@ if (failedAt === null) {
     await refused("delete from eng_marketing_suppressions where email = 'probe@example.com'"),
     "deleting the row does not undo the asking, it resumes the writing",
   );
+
+  /*
+   * =========================================================================
+   * 0052: AN APPROVAL AND ITS ITEMS ARE ONE ACT.
+   * =========================================================================
+   *
+   * WHY THIS IS EXERCISED HERE AND NOWHERE ELSE, WHICH IS A RULING RATHER THAN
+   * A CONVENIENCE. The operator's standing limit is that no protocol is
+   * approved on the engineer's behalf by any path, "including a development
+   * fixture that could be mistaken for the real thing". A live audit that
+   * approves a protocol on development would leave a row saying a named
+   * engineer put a service line in force, and eng_protocol_templates.approved_by
+   * is ON DELETE RESTRICT, so it would be there for good.
+   *
+   * This database is built in process from the migration files and thrown away
+   * at the end of the run. Nothing here can be mistaken for the real thing,
+   * because nothing here survives the process. It is the same reasoning 0019's
+   * partner ledger guarantees are exercised under, written down again because
+   * the reason is what makes it allowed.
+   *
+   * The approver is a probe profile, and it is a probe in the obvious way
+   * rather than the plausible way.
+   */
+  {
+    /*
+     * A FAILED TRANSACTION BLOCK LEAVES THE SESSION ABORTED, and every read
+     * after it then errors with "current transaction is aborted" rather than
+     * answering. The first version of this section had no rollback and the
+     * whole audit died on the NEXT query, several checks later, naming a select
+     * that was fine. Rolling back explicitly keeps a refusal a refusal.
+     */
+    const attemptTxn = async (sql) => {
+      const err = await attempt(sql);
+      if (err) await attempt("rollback");
+      return err;
+    };
+
+    const T = "'00000000-0000-4000-8000-0000000000c1'";
+    const ENG = "'00000000-0000-4000-8000-0000000000c9'";
+    const ITEMS = `'[
+      {"sort_order":0,"item_key":"probe-a","kind":"photo","label":"A probe item","required":true},
+      {"sort_order":1,"item_key":"probe-b","kind":"note","label":"A second probe item","required":true}
+    ]'::jsonb`;
+
+    await db.exec(`
+      insert into auth.users (id) values (${ENG});
+      insert into eng_profiles (id, email, display_name, role)
+      values (${ENG}, 'probe-engineer@example.com', 'Probe Engineer, not a real person', 'engineer');
+
+      insert into eng_protocol_templates (id, service_slug, name, version, status, document_signed_at)
+      values (${T}, 'probe-service', 'A probe protocol', 1, 'awaiting_engineer', '2026-01-01');
+
+      /*
+       * A DRAFT IS INSERTED BY NAME rather than looked for, because the first
+       * version of the unsigned check read "where status = draft limit 1" and
+       * the replay holds no draft at all. It passed, and it passed on "no
+       * protocol template null" rather than on the status refusal it is named
+       * after. An injection that goes red for the wrong reason is the same
+       * defect as one that stays green, and so is a pass.
+       */
+      insert into eng_protocol_templates (id, service_slug, name, version, status)
+      values ('00000000-0000-4000-8000-0000000000c3', 'probe-draft', 'An unsigned draft', 1, 'draft');
+
+      /*
+       * AND THIS TEMPLATE IS GIVEN AN ITEM BEFORE ANYBODY TRIES TO PUBLISH IT
+       * BY HAND, which is the whole point of the next check and was missing
+       * from its first version.
+       *
+       * Without an item, the stray UPDATE below is refused by the DEFERRED
+       * assertion, because a template reaching published with no items fails at
+       * commit whatever door it came through. The check was named for the
+       * one-door trigger and was answered by a different guard, and removing
+       * the one-door trigger left it green. With an item present, the deferred
+       * assertion is satisfied and the only thing standing between this UPDATE
+       * and a protocol in force is the guard under test.
+       */
+      insert into eng_protocol_items (template_id, sort_order, item_key, kind, label, required)
+      values (${T}, 0, 'seeded-before-approval', 'note', 'Present before anybody approves', true);
+    `);
+
+    const strayUpdate = await attempt(`update eng_protocol_templates set status = 'published', published_at = now(),
+                     approved_by = ${ENG}, approved_at = now(), approved_by_license = 'PROBE'
+                     where id = ${T}`);
+    rec(
+      "a protocol cannot be put in force by an UPDATE, which is how it was put in force yesterday",
+      strayUpdate !== null && strayUpdate.includes("eng_approve_protocol"),
+      strayUpdate ?? "the UPDATE went through, so the door is a convenience",
+    );
+
+    /*
+     * BORN IN FORCE, WITH ITS ITEMS, for the same reason: an insert of a
+     * published template with no items is refused by the deferred assertion, so
+     * the items are written in the same transaction and the only guard left is
+     * the one this check is named after.
+     */
+    const bornInForce = await attemptTxn(`
+      begin;
+      insert into eng_protocol_templates (id, service_slug, name, version, status, approved_by, approved_at, published_at, approved_by_license)
+      values ('00000000-0000-4000-8000-0000000000c4', 'probe-born', 'Born in force', 1, 'published', ${ENG}, now(), now(), 'PROBE');
+      insert into eng_protocol_items (template_id, sort_order, item_key, kind, label, required)
+      values ('00000000-0000-4000-8000-0000000000c4', 0, 'born-a', 'note', 'An item', true);
+      commit;
+    `);
+    rec(
+      "nor created already in force, which is the shape a seeder reaches for",
+      bornInForce !== null && bornInForce.includes("already in force"),
+      bornInForce ?? "it was created in force, so a seeder can put a service line on sale",
+    );
+
+    /*
+     * THE DOOR'S OWN REFUSAL, TOLD APART FROM THE DEFERRED ONE BY WHAT IT SAYS.
+     *
+     * Both guards make an empty approval impossible, and that redundancy is
+     * deliberate. But they are not interchangeable to the person who called it:
+     * the door names the seeding and says an approval seeds items, while the
+     * deferred assertion names a row id at commit. Removing the door's guard
+     * left this check green until it asked which mechanism answered, because
+     * "the transaction aborted" was true either way.
+     */
+    const seedsNothing = await attempt(`select eng_approve_protocol(${T}, ${ENG}, 'PROBE', '[]'::jsonb)`);
+    rec(
+      "and the door refuses an approval that seeds nothing, in its own words",
+      seedsNothing !== null && seedsNothing.includes("seeds the protocol items"),
+      seedsNothing ?? "an approved protocol whose items do not exist is approved in name only",
+    );
+
+    const unsigned = await attempt(
+      `select eng_approve_protocol('00000000-0000-4000-8000-0000000000c3', ${ENG}, 'PROBE', ${ITEMS})`,
+    );
+    rec(
+      "and refuses to approve a protocol the engineer has not signed",
+      unsigned !== null && unsigned.includes("awaiting_engineer"),
+      unsigned ?? "it approved an unsigned draft",
+    );
+
+    const approved = await attempt(`select eng_approve_protocol(${T}, ${ENG}, 'PROBE', ${ITEMS})`);
+    rec(
+      "the door itself opens, and the items arrive with the approval",
+      approved === null,
+      approved ?? "approved in one call",
+    );
+
+    /*
+     * AND THE SEEDING IS WHAT ARRIVED, not merely that something did. A door
+     * that reports success having written nothing is the vacuous green this
+     * repository keeps finding, so the rows are counted rather than assumed.
+     */
+    const seeded = await db.query(
+      `select count(*)::int as n, count(*) filter (where required)::int as req
+         from eng_protocol_items where template_id = ${T}`,
+    );
+    rec(
+      "and it wrote the items rather than reporting that it had",
+      seeded.rows[0].n === 2 && seeded.rows[0].req === 2,
+      `${seeded.rows[0].n} items, ${seeded.rows[0].req} required`,
+    );
+
+    const inForce = await db.query(
+      `select status, approved_by is not null as named, published_at is not null as dated
+         from eng_protocol_templates where id = ${T}`,
+    );
+    rec(
+      "and the template is in force, named and dated, which 0049 requires of it",
+      inForce.rows[0].status === "published" && inForce.rows[0].named && inForce.rows[0].dated,
+      `${inForce.rows[0].status}, named ${inForce.rows[0].named}, dated ${inForce.rows[0].dated}`,
+    );
+
+    rec(
+      "a protocol in force cannot then have its items removed",
+      await refused(`delete from eng_protocol_items where template_id = ${T}`),
+      "an approval that can be hollowed out afterwards is an approval with a hole in it",
+    );
+    rec(
+      "nor edited under a technician who is working them",
+      await refused(`update eng_protocol_items set label = 'Something else' where template_id = ${T}`),
+      "a submission gate that moves while somebody is clearing it, on a roof, on a phone",
+    );
+
+    /*
+     * THE DEFERRED ASSERTION, WHICH NEEDS A TRANSACTION TO BE VISIBLE AT ALL.
+     * Inside the approval transaction the items may be written in any order, so
+     * the question is asked at COMMIT. A transaction that reaches 'published'
+     * with no items must therefore fail at COMMIT rather than at the UPDATE,
+     * and that is a different moment worth exercising rather than assuming.
+     */
+    const deferredVerdict = await attemptTxn(`
+      begin;
+      insert into eng_protocol_templates (id, service_slug, name, version, status, document_signed_at)
+      values ('00000000-0000-4000-8000-0000000000c2', 'probe-empty', 'An empty approval', 1, 'awaiting_engineer', '2026-01-01');
+      select set_config('eng.approving', '00000000-0000-4000-8000-0000000000c2', true);
+      update eng_protocol_templates set status = 'published', published_at = now(),
+             approved_by = ${ENG}, approved_at = now(), approved_by_license = 'PROBE'
+       where id = '00000000-0000-4000-8000-0000000000c2';
+      commit;
+    `);
+    rec(
+      "and a transaction that reaches published with no items fails at COMMIT",
+      deferredVerdict !== null,
+      deferredVerdict ?? "it committed, so the deferred assertion is not asking anything",
+    );
+  }
 }
 
 await db.close();
