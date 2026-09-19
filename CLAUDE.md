@@ -1124,6 +1124,51 @@ mean.** A call is `name(`, not `name`. A field is the line adjacent to it, not
 the nearest punctuation that resembles it. Where adjacency is not enough, locate
 by explicit position and ASSERT the target before writing.
 
+**A FIX THAT CURES THE CASE IN FRONT OF YOU AND NOT THE SHAPE BEHIND IT WILL
+MEET YOU AGAIN, AND FOUR HOURS IS HOW LONG IT TOOK.** Operator ruling,
+2026-09-19.
+
+**The morning.** Four audits reported `/portal/protocols/rc-001` as broken while
+`roles-audit`, in the same run, reported an engineer opening it with HTTP 200.
+Both were right. The browser audits probe with `defaultRole`, which is admin,
+and the page is gated on `holdsLicence`, which an administrator does not hold:
+the probe was refused and the refusal was reported as a defect in the PAGE.
+
+The fix was to make `roleFor` inherit down a path, matched on a segment
+boundary, so a nested route is opened by whoever opens its parent. That was
+correct, it was proven both ways, and it closed the case.
+
+**The afternoon, same session.** `/portal/waiting` shipped, a new screen gated
+the same way, and the next board reported it as broken in four audits for
+exactly the same reason. **The inheritance fix could not help: `/portal/waiting`
+is TOP LEVEL, so there is no parent to inherit from.**
+
+**The instance was cured. The class was not.** And the class is this
+repository's most frequent defect wearing yet another costume: one fact with two
+homes. `roles-audit`'s lists say which screens are the engineer's; `roleFor`
+says which principal opens each; nothing compared them, so they could disagree,
+and the second time they did it was on a screen written by the session that had
+fixed the first.
+
+**The fix that closes the class derives the answer from the thing that actually
+decides**, which is neither list. It is the GUARD IN THE PAGE: `surface-audit`
+now asserts that any portal screen whose source calls `holdsLicence` carries a
+`roleFor` entry naming a principal that can open it. It went red naming
+`/portal/waiting` on its first run, and it carries its own vacuity check,
+because a version of it that matched no screens would pass forever.
+
+**THE GENERAL FORM, AND IT IS THE QUESTION TO ASK OF EVERY FIX IN THIS
+REPOSITORY. When a check catches something, ask whether the fix closes the
+INSTANCE or the CLASS, and say which you chose.** Both are legitimate answers. A
+deadline, a blast radius, or a shape nobody understands yet can all make the
+instance the right call. What is not legitimate is making that choice without
+noticing it, because an instance fix recorded as a class fix is a hazard
+everybody now believes is handled.
+
+The tell is the same every time: the fix names a specific thing. A route, a
+column, a file. Ask what the general version of that thing is, and whether
+anything would notice the next member of the set.
+
 **AND A TOOLING RULE RATHER THAN A LESSON: NO INLINE SCRIPT MAY CARRY A
 BACKSLASH.** Operator ruling, 2026-09-16, after the shell ate regex escapes
 three times in one session.
