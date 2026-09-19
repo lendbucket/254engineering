@@ -94,7 +94,8 @@
     "break-glass-audit": "tsx --conditions=react-server scripts/break-glass-audit.mjs",
     "doors-audit": "tsx --conditions=react-server scripts/doors-audit.mjs",
     "trade-pricing-audit": "tsx scripts/trade-pricing-audit.mjs",
-    "price-book-audit": "tsx scripts/price-book-audit.mjs"
+    "price-book-audit": "tsx scripts/price-book-audit.mjs",
+    "protocol-run-audit": "tsx scripts/protocol-run-audit.mjs"
   },
   "dependencies": {
     "@sentry/nextjs": "^10.73.0",

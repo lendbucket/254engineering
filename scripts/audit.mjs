@@ -200,6 +200,10 @@ const PHASE_ZERO = [
      * figure would be right often enough that nobody would notice the times it
      * was not.
      */
+    name: "protocol-run-audit",
+    why: "a job cannot be submitted incomplete, which is the sentence the process page makes to customers",
+  },
+  {
     name: "price-book-audit",
     why: "a price is ruled by the operator, and a margin is computed from what happened rather than from the plan",
   },
