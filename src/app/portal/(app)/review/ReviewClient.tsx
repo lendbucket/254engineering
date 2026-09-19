@@ -26,6 +26,7 @@ const CONFIRM: Record<ReviewAction, string> = {
   seal: "Seal this file",
   revisions: "Send it back",
   site_visit: "Send for a site visit",
+  repairs: "Withhold and issue the repair list",
   refuse: "Decline to seal",
 };
 
@@ -33,6 +34,8 @@ const HELP: Record<ReviewAction, string> = {
   seal: "Certifies that you reviewed the evidence this protocol required and stand behind the conclusion.",
   revisions: "Goes back to the technician who holds it, with what you need.",
   site_visit: "Goes back through dispatch as a new visit. The current technician is released.",
+  repairs:
+    "Certification is withheld and the owner gets a repair list. The file waits on them, for as long as it takes, and comes back through dispatch when the work is done. It cannot be sealed until every item on the list is verified one by one.",
   refuse:
     "You examined this package and will not certify it. The reason goes to the client, to your responsible charge log, and to whoever opens the file next. You are paid for the review either way.",
 };
@@ -140,10 +143,16 @@ function DeterminationStep({
                     </li>
                   ))}
                 </ul>
+                {/*
+                  * The fallback sentence is unreachable today, because all five
+                  * determinations map since 0053. It is kept for a sixth added
+                  * to Appendix C, which would arrive here with no action and
+                  * should say so rather than showing a blank line.
+                  */}
                 <p className="mt-2 text-[13.5px] leading-[1.5] font-semibold text-[var(--navy)]">
                   {follows
                     ? `This records as ${ACTION_LABEL[follows].toLowerCase()}.`
-                    : "This platform has no status for a file waiting on an owner to have repairs done, so the determination is recorded and the file stays where it is. That is a ruling the firm owes, not a decision to make here."}
+                    : "This platform has no action for this determination yet, so it would be recorded and the file would stay where it is. That is a ruling the firm owes rather than a decision to make here."}
                 </p>
               </>
             ) : null}
@@ -179,6 +188,7 @@ export function DecisionPanel({
   const [determination, setDetermination] = useState<Determination | null>(null);
   const [reliedOn, setReliedOn] = useState<string[]>([]);
   const [determinationNote, setDeterminationNote] = useState("");
+  const [repairList, setRepairList] = useState("");
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -224,9 +234,23 @@ export function DecisionPanel({
     .filter((i) => reliedOn.includes(i.itemKey))
     .flatMap((i) => i.captures.map((c) => c.id));
 
+  /*
+   * Split on lines and trimmed HERE rather than on the server alone, so the
+   * count under the box is the count that will be written. A screen that says
+   * "3 items" and writes 2 because one was whitespace is a screen the engineer
+   * cannot check his own decision against.
+   */
+  const repairRequirements = repairList
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length >= 3);
+
   const determinationReady =
     !governed ||
-    (determination !== null && reliedOn.length > 0 && reliedEvidenceIds.length > 0);
+    (determination !== null &&
+      reliedOn.length > 0 &&
+      reliedEvidenceIds.length > 0 &&
+      (determination !== "repairs-required" || repairRequirements.length > 0));
 
   return (
     <div>
@@ -328,6 +352,44 @@ export function DecisionPanel({
                 rows={3}
                 className="mt-1.5 w-full rounded-[3px] border border-[var(--border)] bg-white px-3 py-2.5 text-[16px] leading-[1.5] text-[var(--navy)] outline-none focus:border-slate"
               />
+
+              {/*
+                * THE REPAIR LIST, ONE REQUIREMENT PER LINE, AND THE LINES ARE
+                * THE POINT RATHER THAN A CONVENIENCE.
+                *
+                * Each becomes its own row, and each is closed on its own at the
+                * revisit, because Appendix C says certification proceeds only
+                * after repairs are verified item by item. A single paragraph
+                * cannot be half closed, so a paragraph would push the judgement
+                * back into whoever reads it on the day.
+                */}
+              {determination === "repairs-required" ? (
+                <div className="mt-4 border-t border-[var(--border)] pt-4">
+                  <label
+                    htmlFor="repair-list"
+                    className="block text-[13.5px] font-semibold text-[var(--navy)]"
+                  >
+                    The repair list, one requirement per line
+                  </label>
+                  <p className="mt-1 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+                    Each line becomes an item the technician verifies separately on the revisit. This
+                    file cannot be sealed until every one of them is closed, so anything written here
+                    is something you are requiring before you will certify.
+                  </p>
+                  <textarea
+                    id="repair-list"
+                    value={repairList}
+                    onChange={(e) => setRepairList(e.target.value)}
+                    rows={5}
+                    className="mt-1.5 w-full rounded-[3px] border border-[var(--border)] bg-white px-3 py-2.5 text-[16px] leading-[1.5] text-[var(--navy)] outline-none focus:border-slate"
+                  />
+                  <p className="mt-1.5 text-[13.5px] leading-[1.5] text-[var(--secondary)]">
+                    {repairRequirements.length === 0
+                      ? "Nothing yet. Repairs required issues a repair list, so this cannot be empty."
+                      : `${repairRequirements.length} item${repairRequirements.length === 1 ? "" : "s"}, each closed on its own at the revisit.`}
+                  </p>
+                </div>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -444,6 +506,7 @@ export function DecisionPanel({
                       reliedOnItemKeys: reliedOn,
                       reliedOnEvidenceIds: reliedEvidenceIds,
                       determinationNote: determinationNote.trim() || null,
+                      repairRequirements,
                     }),
                   });
                   const body = (await res.json().catch(() => null)) as {

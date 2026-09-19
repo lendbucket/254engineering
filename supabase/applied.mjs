@@ -1141,6 +1141,51 @@ export const APPLIED = [
       "the deferred assertion answered a question a different guard was named for, and the fixtures " +
       "were sharpened until each refusal names its own guard.",
   },
+  {
+    file: "0053_a_file_can_be_waiting_on_an_owner.sql", appliedBy: "apply_migration",
+    fingerprint: "257175e8e5ff6dc855afd5a3607752c5",
+    behaviour: "5d9821e62f331e895c7b818e80d0b994",
+    proves: { column: { table: "eng_files", name: "repairs_required_at" } },
+    production: null,
+    development: { at: "0053", behaviour: null, facts: 908 },
+    because:
+      "PENDING, and it stays on feat/protocol-screens with 0050, 0051 and 0052 until somebody is at " +
+      "a keyboard for the production half. A migration on main is never pending. " +
+      "WHAT IT ADDS: a word, a table, and an impossibility. Shape moves to " +
+      "257175e8e5ff6dc855afd5a3607752c5 across 1,116 columns, which is exactly thirteen more: " +
+      "repairs_required_at on eng_files, and the twelve columns of eng_repair_items. 79 tables to 80. " +
+      "66 triggers to 69 and 21 functions to 25. Behaviour moves to " +
+      "5d9821e62f331e895c7b818e80d0b994 across 908 facts. " +
+      "WHY IT EXISTS. Appendix C of 254-RC-001 has five determinations and this platform had four " +
+      "review actions, so REPAIRS REQUIRED mapped to nothing for one day and the write path refused " +
+      "with the reason rather than picking. The operator ruled it the THIRD instance of one lesson, " +
+      "after the null that meant both no-price and nothing-accepted, and the signed protocol that had " +
+      "to be called a draft: a status vocabulary that lacks a word for the situation makes somebody " +
+      "choose the nearest lie. All four candidates were lies. The evidence is not deficient so it is " +
+      "not revisions_requested; the revisit is not due yet so it is not needs_dispatch; certification " +
+      "is withheld rather than declined so it is not refused; and closing it would be the firm " +
+      "recording a homeowner saving up for a roof repair as an abandonment. " +
+      "THE REPAIR LIST IS ROWS RATHER THAN A TEXT COLUMN, on the operator's sentence that every item " +
+      "must be individually closed. A free text list cannot be partially closed, so it would push the " +
+      "judgement back into somebody's head, which is the thing being removed. " +
+      "AND THERE IS NO CONDITIONAL CERTIFICATION, made UNREPRESENTABLE rather than checked, which was " +
+      "the operator's word. A file cannot BE sealed while any repair item against it is open. The " +
+      "guard is on the FILE rather than on the review path, so it holds for routes nobody has written " +
+      "yet, and it fires from the repair item side as well, which is the direction a check on the " +
+      "review path would never see: adding a repair list to an already sealed file. " +
+      "Replayed and read back, with ten guarantees exercised in the replayed database and nowhere " +
+      "else, because a live fixture that seals a file would put a sealed deliverable on a real " +
+      "database under a probe engineer's name. They include the half that proves the guard is not " +
+      "simply refusing everything: with every item closed, the file seals. " +
+      "TWO THINGS THE REPLAY CAUGHT THAT READING THE SQL DID NOT. One trigger function reading " +
+      "`case tg_table_name when 'eng_files' then new.id else new.file_id end` was refused by plpgsql " +
+      "before a row was touched, because the expression forces BOTH record fields to be type resolved " +
+      "at plan time and eng_files has no file_id. It is now a rule function taking a file id plus two " +
+      "three-line triggers, so neither touches a column its own table lacks. And a check asserted the " +
+      "refusal said 'no conditional certification', which it does say, just past the 130 character " +
+      "clip the fixture applies to an error. A check on wording is a check on wording even when the " +
+      "wording is right.",
+  },
 ];
 
 /**

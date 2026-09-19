@@ -29,7 +29,7 @@ const { RC001 } = await import("../src/content/protocols/rc-001.ts");
 const { RC001_CHECKLIST } = await import("../src/content/protocols/rc-001-checklist.ts");
 const { RC001_DETERMINATIONS } = await import("../src/content/protocols/rc-001-decisions.ts");
 const { checklistState } = await import("../src/lib/ops-evidence.ts");
-const { DETERMINATION_ACTION, actionForDetermination, reliedOnVerdict } = await import("../src/lib/ops-review.ts");
+const { ACTION_TARGET, DETERMINATION_ACTION, actionForDetermination, reliedOnVerdict } = await import("../src/lib/ops-review.ts");
 
 /* ------------------------------------------------ 1. which items apply */
 
@@ -385,24 +385,47 @@ if (conditional.length > 0) {
       "no determination the document does not name",
   );
 
+  /*
+   * EVERY DETERMINATION NOW MAPS, AND THIS CHECK CHANGED SHAPE WHEN IT DID.
+   *
+   * Until 2026-09-19 it asserted that repairs-required mapped to NOTHING, and
+   * that was the right check while the firm owed a ruling: the gap was
+   * deliberate and a check is how a deliberate gap stays deliberate. 0053
+   * closed it, so the check had to move, and the rule about a red board when an
+   * implementation deliberately changes applies to the check's author as much
+   * as to anybody: the answer is a SHARPER check, never a looser one.
+   *
+   * So it no longer asks whether one entry is null. It asks the property that
+   * would actually be violated if somebody collapsed repairs back onto
+   * revisions in six months: no two determinations may land a file in the same
+   * status. Five determinations, five distinct destinations. That is stronger
+   * than the check it replaces, because the old one could not have noticed
+   * revise and repairs-required both pointing at revisions_requested.
+   */
   const unmapped = mapped.filter(([, a]) => a === null).map(([k]) => k);
   rec(
-    "repairs-required still maps to no action, because the firm owes a ruling on it",
-    unmapped.length === 1 && unmapped[0] === "repairs-required",
-    unmapped.length === 0
-      ? "something now maps it, and the platform has no status for a file waiting on an owner"
-      : `unmapped: ${unmapped.join(", ")}`,
+    "every determination in Appendix C now has an action, including repairs-required",
+    unmapped.length === 0,
+    unmapped.length === 0 ? `${mapped.length} mapped` : `unmapped: ${unmapped.join(", ")}`,
   );
 
-  const verdict = actionForDetermination("repairs-required");
+  const targets = mapped.map(([k, a]) => [k, ACTION_TARGET[a]]);
+  const distinct = new Set(targets.map(([, t]) => t));
   rec(
-    "and asking for it refuses with the reason rather than picking the nearest lie",
-    verdict.ok === false && verdict.reason.includes("no status"),
-    verdict.ok ? "it returned an action" : verdict.reason.slice(0, 80),
+    "and no two of them land the file in the same status, so none is borrowing another's word",
+    distinct.size === targets.length,
+    targets.map(([k, t]) => `${k}=${t}`).join(", "),
+  );
+
+  const repairs = actionForDetermination("repairs-required");
+  rec(
+    "repairs-required lands on a status of its own rather than the nearest lie",
+    repairs.ok === true && ACTION_TARGET[repairs.action] === "repairs_required",
+    repairs.ok ? `${repairs.action} -> ${ACTION_TARGET[repairs.action]}` : repairs.reason,
   );
   const passes = actionForDetermination("pass");
   rec(
-    "while a determination that does map answers with its action",
+    "while a determination that was never in doubt still answers with its action",
     passes.ok === true && passes.action === "seal",
     passes.ok ? passes.action : passes.reason,
   );

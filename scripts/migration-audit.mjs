@@ -104,10 +104,24 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * are built from, eng_approve_protocol being the second in this schema after
  * eng_claim_jobs that is called directly rather than by a trigger.
  */
-const EXPECTED_FINGERPRINT = "aa53ea353a4128696a23e03feadd1e48";
-const EXPECTED_COLUMNS = 1103;
-const EXPECTED_TABLES = 79;
-const EXPECTED_TRIGGERS = 66;
+/*
+ * Moved again 2026-09-19 by 0053, which gives the platform a word for a file
+ * waiting on a property owner to have repairs done, and the table that holds
+ * what he was asked to repair.
+ *
+ * 1,103 to 1,116 is exactly thirteen: `repairs_required_at` on eng_files, and
+ * the twelve columns of eng_repair_items. 79 tables to 80 is the one. 66
+ * triggers to 69 is the freeze on a repair item plus the two halves of the
+ * no-conditional-certification guard, which fires from the file side and from
+ * the repair item side because a list added to an already sealed file is the
+ * direction a check written on the review path would never see. 21 functions to
+ * 25 is those three plus the rule itself, which takes a file id so that neither
+ * trigger function has to touch a column its own table does not have.
+ */
+const EXPECTED_FINGERPRINT = "257175e8e5ff6dc855afd5a3607752c5";
+const EXPECTED_COLUMNS = 1116;
+const EXPECTED_TABLES = 80;
+const EXPECTED_TRIGGERS = 69;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the
@@ -119,7 +133,7 @@ const EXPECTED_TRIGGERS = 66;
  * declaration was keeping on its own word. eng_claim_jobs is still the only
  * one called directly.
  */
-const EXPECTED_FUNCTIONS = 21;
+const EXPECTED_FUNCTIONS = 25;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -1042,6 +1056,123 @@ if (failedAt === null) {
       "and a transaction that reaches published with no items fails at COMMIT",
       deferredVerdict !== null,
       deferredVerdict ?? "it committed, so the deferred assertion is not asking anything",
+    );
+
+    /*
+     * =====================================================================
+     * 0053: THERE IS NO CONDITIONAL CERTIFICATION.
+     * =====================================================================
+     *
+     * Exercised here for the same reason the approval door is: these are
+     * guarantees about SEALING, and a live fixture that seals a file on
+     * development would put a sealed engineering deliverable on a real database
+     * under a probe engineer's name, on a table that refuses deletes. This
+     * database is built from the files and thrown away.
+     */
+    const F = "'00000000-0000-4000-8000-0000000000f1'";
+    const CL = "'00000000-0000-4000-8000-0000000000f2'";
+    const DET = "'00000000-0000-4000-8000-0000000000f3'";
+
+    await db.exec(`
+      insert into eng_clients (id, kind, name) values (${CL}, 'individual', 'Probe Client, not a real person');
+      insert into eng_files (id, client_id, file_number, property_address, county, service_slug, status)
+      values (${F}, ${CL}, '254-PROBE-0053', '1 Probe Street', 'Nueces', 'roof-certification', 'under_review');
+      insert into eng_evidence_items (id, file_id, item_key, kind)
+      values ('00000000-0000-4000-8000-0000000000f4', ${F}, 'probe', 'note');
+      insert into eng_determinations (id, file_id, protocol_document, determination, relied_on_item_keys, relied_on_evidence_ids, engineer_id)
+      values (${DET}, ${F}, '254-RC-001', 'repairs-required', array['probe'], array['00000000-0000-4000-8000-0000000000f4'::uuid], ${ENG});
+    `);
+
+    rec(
+      "a file can be waiting on an owner, which is a word the vocabulary did not have",
+      (await attempt(`update eng_files set status = 'repairs_required', repairs_required_at = now() where id = ${F}`)) === null,
+      "not in review, not sealed, not declined, not abandoned",
+    );
+
+    rec(
+      "a repair requirement of whitespace is a requirement of nothing",
+      await refused(`insert into eng_repair_items (file_id, determination_id, requirement, raised_by)
+                     values (${F}, ${DET}, '   ', ${ENG})`),
+      "the same rule 0051 put on an exception's reason, and for the same reason",
+    );
+
+    await db.exec(`
+      insert into eng_repair_items (id, file_id, determination_id, sort_order, requirement, raised_by)
+      values ('00000000-0000-4000-8000-0000000000f5', ${F}, ${DET}, 0, 'Reseal the flashing at the rear penetration', ${ENG}),
+             ('00000000-0000-4000-8000-0000000000f6', ${F}, ${DET}, 1, 'Replace the creased tabs on the west plane', ${ENG});
+    `);
+
+    const sealWithOpen = await attempt(
+      `update eng_files set status = 'sealed', sealed_at = now() where id = ${F}`,
+    );
+    rec(
+      "and it cannot be sealed while a repair item is open",
+      /*
+       * MATCHED ON A PHRASE THAT SURVIVES THE TRUNCATION. `attempt` clips an
+       * error at 130 characters, and the first version of this asserted
+       * "no conditional certification", which the refusal does say and which
+       * falls just past the clip. The check went red on a guard that had worked
+       * perfectly. A check on wording is a check on wording even when the
+       * wording is right.
+       */
+      sealWithOpen !== null && sealWithOpen.includes("open repair item"),
+      sealWithOpen ?? "it sealed with an open repair list, which the protocol does not permit",
+    );
+
+    /*
+     * CLOSING ONE OF TWO IS NOT CLOSING THE LIST, which is the operator's
+     * sentence made mechanical: every item on that list individually closed.
+     */
+    await db.exec(`update eng_repair_items set closed_at = now(), closed_by = ${ENG}
+                   where id = '00000000-0000-4000-8000-0000000000f5'`);
+    const sealWithOne = await attempt(
+      `update eng_files set status = 'sealed', sealed_at = now() where id = ${F}`,
+    );
+    rec(
+      "and closing one of two is not closing the list",
+      sealWithOne !== null,
+      sealWithOne ?? "one item closed was enough, so the list is being read as a single flag",
+    );
+
+    rec(
+      "a closed repair item does not reopen",
+      await refused(`update eng_repair_items set closed_at = null, closed_by = null
+                     where id = '00000000-0000-4000-8000-0000000000f5'`),
+      "a repair wrongly verified is a new determination, not an edit under a letter",
+    );
+    rec(
+      "and what the engineer required cannot be rewritten",
+      await refused(`update eng_repair_items set requirement = 'Something easier'
+                     where id = '00000000-0000-4000-8000-0000000000f6'`),
+      "only the closing of an item may be recorded",
+    );
+    rec(
+      "nor removed, because it is the record of why certification was withheld",
+      await refused(`delete from eng_repair_items where id = '00000000-0000-4000-8000-0000000000f6'`),
+      "it is closed, never deleted",
+    );
+
+    await db.exec(`update eng_repair_items set closed_at = now(), closed_by = ${ENG}
+                   where id = '00000000-0000-4000-8000-0000000000f6'`);
+    const sealedAtLast = await attempt(
+      `update eng_files set status = 'sealed', sealed_at = now() where id = ${F}`,
+    );
+    rec(
+      "and with every item closed it seals, which is the half that proves the guard is not just refusing everything",
+      sealedAtLast === null,
+      sealedAtLast ?? "certification proceeds only after repairs are verified, and then it proceeds",
+    );
+
+    /*
+     * THE DIRECTION A CHECK ON THE REVIEW PATH WOULD NEVER SEE. Nothing in the
+     * workflow adds a repair item to a sealed file, which is exactly why it is
+     * worth making impossible before somebody writes the path that would.
+     */
+    rec(
+      "and a repair list cannot be added to a file that is already sealed",
+      await refused(`insert into eng_repair_items (file_id, determination_id, requirement, raised_by)
+                     values (${F}, ${DET}, 'Something noticed after the seal', ${ENG})`),
+      "the guard fires from the repair item side too, not only from the file",
     );
   }
 }

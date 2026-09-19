@@ -597,6 +597,31 @@ export const RETENTION_POLICY: RetentionEntry[] = [
   { table: "eng_protocol_questions", rule: { kind: "not_a_record", because: "Part of a protocol template. Configuration an engineer authors." } },
   { table: "eng_protocol_templates", rule: { kind: "not_a_record", because: "What a service requires captured. Configuration an engineer authors, referenced by files with ON DELETE RESTRICT." } },
   { table: "eng_quote_requests", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
+  /*
+   * 0053. What an engineer required before he would certify.
+   *
+   * KEPT FOREVER, and it is the same class as a determination rather than a
+   * judgement call. A repair item is the record of a condition a licensed
+   * engineer found and refused to certify around, and of who verified that it
+   * had been put right. Somebody asked years later what was wrong with this
+   * roof before the letter was issued is asking for exactly these rows.
+   *
+   * The database already refuses: eng_freeze_repair_item forbids DELETE and
+   * permits only the three closing columns to be written, so retention could
+   * not touch it whatever this file said.
+   */
+  {
+    table: "eng_repair_items",
+    rule: {
+      kind: "kept_forever",
+      because:
+        REFUSES_DELETE("eng_freeze_repair_item") +
+        " It is the record of a condition an engineer would not certify around, and of who verified " +
+        "the repair. A file cannot be sealed while any of these is open, so deleting one would be " +
+        "deleting the thing standing between a property and a seal.",
+      ruledBy: "0053, and the trigger",
+    },
+  },
   {
     table: "eng_responsible_charge_log",
     rule: {

@@ -42,6 +42,20 @@ export type FileStatus =
   | "evidence_submitted"
   | "under_review"
   | "revisions_requested"
+  /**
+   * CERTIFICATION WITHHELD, WAITING ON THE PROPERTY OWNER. 0053.
+   *
+   * Appendix C of 254-RC-001, REPAIRS REQUIRED: "Certification withheld and a
+   * repair list issued. Certification proceeds only after repairs are verified
+   * on revisit."
+   *
+   * The firm is not working on this file and has not finished with it. It is
+   * waiting on somebody outside the firm, and the four words somebody would
+   * otherwise reach for are each false about it: the evidence is not deficient,
+   * the revisit is not due yet, certification is withheld rather than declined,
+   * and nobody has abandoned anything.
+   */
+  | "repairs_required"
   | "refused"
   | "sealed"
   | "delivered"
@@ -56,6 +70,7 @@ export const FILE_STATUSES: FileStatus[] = [
   "evidence_submitted",
   "under_review",
   "revisions_requested",
+  "repairs_required",
   "refused",
   "sealed",
   "delivered",
@@ -71,6 +86,7 @@ export const STATUS_LABEL: Record<FileStatus, string> = {
   evidence_submitted: "Evidence submitted",
   under_review: "Under review",
   revisions_requested: "Revisions requested",
+  repairs_required: "Repairs required",
   refused: "Declined to seal",
   sealed: "Sealed",
   delivered: "Delivered",
@@ -87,6 +103,10 @@ export const STATUS_TONE: Record<FileStatus, "neutral" | "good" | "warn" | "bad"
   evidence_submitted: "warn",
   under_review: "warn",
   revisions_requested: "bad",
+  /* Warn rather than bad. Nothing has gone wrong: an engineer made a decision
+   * and somebody is having work done. A red chip on a file waiting four months
+   * for a roofer teaches everybody to ignore red chips. */
+  repairs_required: "warn",
   refused: "bad",
   sealed: "good",
   delivered: "good",
@@ -132,8 +152,35 @@ const TRANSITIONS: Record<FileStatus, FileStatus[]> = {
    * acts next: revisions are for the technician already holding the file, a
    * site visit is a new journey through dispatch.
    */
-  under_review: ["sealed", "refused", "revisions_requested", "needs_dispatch", "evidence_submitted", "cancelled"],
+  under_review: [
+    "sealed",
+    "refused",
+    "revisions_requested",
+    "repairs_required",
+    "needs_dispatch",
+    "evidence_submitted",
+    "cancelled",
+  ],
   revisions_requested: ["evidence_in_progress", "evidence_submitted", "under_review", "cancelled"],
+  /*
+   * WAITING ON THE OWNER, AND IT LEAVES BY EXACTLY ONE ORDINARY DOOR.
+   *
+   * needs_dispatch, because the revisit is a new journey through dispatch like
+   * any other, which is the same reasoning site_visit already follows. The
+   * difference is WHEN: a site visit is due now, and this one is due when the
+   * owner says the work is done.
+   *
+   * IT CANNOT GO STRAIGHT TO closed, AND THAT IS THE OPERATOR'S RULING RATHER
+   * than an omission. "A homeowner who takes four months to afford a roof
+   * repair has not abandoned anything, and a firm that closes his file is the
+   * one who failed." Closing it would need somebody to cancel it, which is a
+   * deliberate act with its own audit row, rather than a tidy-up.
+   *
+   * It cannot go back to under_review either. There is nothing new to review
+   * until the revisit brings evidence, and a file bouncing between review and
+   * repairs with no new evidence is a review count that means nothing.
+   */
+  repairs_required: ["needs_dispatch", "cancelled"],
   /*
    * A licensed engineer examined this package and would not certify it. The
    * file is closed out and the client told; it does not go back into review by
@@ -302,6 +349,13 @@ export function availableTransitions(
 export const STATUS_TIMESTAMP: Partial<Record<FileStatus, string>> = {
   dispatched: "dispatched_at",
   refused: "refused_at",
+  /*
+   * 0053. The moment the firm stopped waiting on its own work and started
+   * waiting on somebody outside it. Stamped here rather than derived from the
+   * event log, because it is the figure that answers "how long has this person
+   * been holding a repair list", and that question gets asked of a screen.
+   */
+  repairs_required: "repairs_required_at",
   evidence_submitted: "evidence_submitted_at",
   sealed: "sealed_at",
   delivered: "delivered_at",

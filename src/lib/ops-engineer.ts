@@ -380,6 +380,18 @@ export type DeterminationInput = {
   reliedOnItemKeys: string[];
   reliedOnEvidenceIds: string[];
   note: string | null;
+  /**
+   * What the owner must have repaired, one requirement per entry.
+   *
+   * Carried on the determination rather than beside it because 0053 makes
+   * `determination_id` NOT NULL on a repair item: a requirement with no
+   * determination behind it is a demand nobody is accountable for.
+   *
+   * Empty for every determination except REPAIRS REQUIRED, and required for
+   * that one, because "certification withheld and a repair list issued" without
+   * a list is the withholding with the reason left out.
+   */
+  repairRequirements: string[];
 };
 
 export async function decideReview(
@@ -437,6 +449,33 @@ export async function decideReview(
      * asked separately: what arrives is checked against what the determination
      * implies, and a disagreement is refused by name.
      */
+    /*
+     * A WITHHOLDING WITH NO LIST IS THE WITHHOLDING WITH ITS REASON LEFT OUT.
+     *
+     * Refused here rather than at the database, because 0053 cannot express
+     * "this determination needs rows in another table": the constraint it CAN
+     * express, and does, is the one that matters more, that a file cannot be
+     * sealed while any of those rows is open. This is the sentence a person
+     * gets; that is the impossibility.
+     */
+    const requirements = (determination.repairRequirements ?? [])
+      .map((r) => r.trim())
+      .filter((r) => r.length >= 3);
+    if (determination.determination === "repairs-required" && requirements.length === 0) {
+      return {
+        ok: false,
+        error:
+          "Repairs required issues a repair list, and none was given. Each item is verified on its " +
+          "own at the revisit, so each one has to be written on its own.",
+      };
+    }
+    if (determination.determination !== "repairs-required" && requirements.length > 0) {
+      return {
+        ok: false,
+        error: `A repair list belongs to a determination of repairs-required, and this one is ${determination.determination}.`,
+      };
+    }
+
     const implied = actionForDetermination(determination.determination);
     if (!implied.ok) return { ok: false, error: implied.reason };
     if (implied.action !== action) {
@@ -470,20 +509,57 @@ export async function decideReview(
    * row on a file that is no longer under review.
    */
   if (governing && determination) {
-    const { error: detError } = await db.from("eng_determinations").insert({
-      file_id: fileId,
-      protocol_document: governing,
-      determination: determination.determination,
-      relied_on_item_keys: determination.reliedOnItemKeys,
-      relied_on_evidence_ids: determination.reliedOnEvidenceIds,
-      note: determination.note?.trim() || null,
-      engineer_id: actor.id,
-    });
-    if (detError) {
+    const { data: detRow, error: detError } = await db
+      .from("eng_determinations")
+      .insert({
+        file_id: fileId,
+        protocol_document: governing,
+        determination: determination.determination,
+        relied_on_item_keys: determination.reliedOnItemKeys,
+        relied_on_evidence_ids: determination.reliedOnEvidenceIds,
+        note: determination.note?.trim() || null,
+        engineer_id: actor.id,
+      })
+      .select("id")
+      .single();
+    if (detError || !detRow) {
       return {
         ok: false,
-        error: `The determination did not write: ${detError.message}. Nothing has moved, so decide again.`,
+        error: `The determination did not write: ${detError?.message ?? "no row came back"}. Nothing has moved, so decide again.`,
       };
+    }
+
+    /*
+     * THE REPAIR LIST, WRITTEN BEFORE THE FILE MOVES, for the same reason the
+     * determination is: nothing here depends on the transition, so a failure
+     * leaves the file where it was and the engineer decides again.
+     *
+     * The ORDER within this block matters and is the opposite of the intuitive
+     * one. If the file moved first and the list failed, the owner would have a
+     * file withheld against a repair list that does not exist, which is the
+     * worst of the three possible states.
+     */
+    const repairs = (determination.repairRequirements ?? [])
+      .map((r) => r.trim())
+      .filter((r) => r.length >= 3);
+    if (repairs.length > 0) {
+      const { error: repairError } = await db.from("eng_repair_items").insert(
+        repairs.map((requirement, index) => ({
+          file_id: fileId,
+          determination_id: detRow.id,
+          sort_order: index,
+          requirement,
+          raised_by: actor.id,
+        })),
+      );
+      if (repairError) {
+        return {
+          ok: false,
+          error:
+            `The determination was recorded and the repair list did not write: ${repairError.message}. ` +
+            "The file has not moved. Decide again, and expect the determination to appear twice in the record.",
+        };
+      }
     }
   }
 
@@ -509,7 +585,22 @@ export async function decideReview(
       .update({ revision_count: pkg.file.revision_count + 1 })
       .eq("id", fileId);
   }
-  if (action === "site_visit") {
+  /*
+   * A FILE WAITING ON AN OWNER RELEASES ITS TECHNICIAN, for the same reason a
+   * site visit does and with a longer fuse.
+   *
+   * Nobody is working this file and nobody will for weeks or months. Leaving a
+   * technician named on it puts a job on their list they cannot act on, and
+   * when the revisit finally comes it may well go to somebody else entirely,
+   * which would leave the record showing two technicians on one file with no
+   * account of the handover.
+   *
+   * The load count was checked rather than assumed: candidateTechs counts only
+   * dispatched, evidence_in_progress and revisions_requested, so a parked file
+   * was never going to make a technician look busy. This is about the job list
+   * they read, not the ranking.
+   */
+  if (action === "site_visit" || action === "repairs") {
     /*
      * A site visit is a new journey. The file goes back through dispatch, so the
      * technician who held it is released rather than left assigned to a file

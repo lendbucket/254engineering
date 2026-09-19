@@ -81,14 +81,24 @@ import type { Determination } from "@/content/protocols/rc-001-decisions";
  * messages here read that way on purpose.
  */
 
-export type ReviewAction = "seal" | "revisions" | "site_visit" | "refuse";
+/**
+ * `repairs` joined the four on 2026-09-19, and it is the one the platform could
+ * not say before.
+ *
+ * Appendix C has five determinations and this module had four actions, so
+ * REPAIRS REQUIRED mapped to nothing and the write path refused rather than
+ * picking the nearest lie. 0053 gives the file a status for it, and this gives
+ * the engineer a way to reach it.
+ */
+export type ReviewAction = "seal" | "revisions" | "site_visit" | "repairs" | "refuse";
 
-export const REVIEW_ACTIONS: ReviewAction[] = ["seal", "revisions", "site_visit", "refuse"];
+export const REVIEW_ACTIONS: ReviewAction[] = ["seal", "revisions", "site_visit", "repairs", "refuse"];
 
 export const ACTION_LABEL: Record<ReviewAction, string> = {
   seal: "Seal and deliver",
   revisions: "Send back for revisions",
   site_visit: "Send back for a site visit",
+  repairs: "Withhold certification, issue a repair list",
   refuse: "Decline to seal",
 };
 
@@ -105,6 +115,13 @@ export const ACTION_TARGET: Record<ReviewAction, FileStatus> = {
   seal: "sealed",
   revisions: "revisions_requested",
   site_visit: "needs_dispatch",
+  /*
+   * NOT needs_dispatch, AND THAT IS THE WHOLE POINT OF 0053. A site visit is
+   * due now. This revisit is due when the owner has had work done, which may
+   * be months, and a file sitting in the dispatch queue that long is a queue
+   * that has stopped being one.
+   */
+  repairs: "repairs_required",
   refuse: "refused",
 };
 
@@ -113,6 +130,7 @@ const ACTION_PERMISSION: Record<ReviewAction, Action | LicensedAction> = {
   seal: "documents.seal",
   revisions: "review.decide",
   site_visit: "review.decide",
+  repairs: "review.decide",
   refuse: "review.decide",
 };
 
@@ -130,6 +148,12 @@ export const REQUIRES_REASON: Record<ReviewAction, boolean> = {
   seal: false,
   revisions: true,
   site_visit: true,
+  /*
+   * The repair LIST is the substance and it is rows rather than prose, but the
+   * note still goes to the client alongside it, and a repair list arriving with
+   * no covering sentence reads as a demand rather than a finding.
+   */
+  repairs: true,
   refuse: true,
 };
 
@@ -357,6 +381,7 @@ export const OUTCOME_LABEL: Record<ReviewAction, string> = {
   seal: "Sealed",
   revisions: "Sent back for revisions",
   site_visit: "Sent back for a site visit",
+  repairs: "Certification withheld pending repairs",
   refuse: "Declined to seal",
 };
 
@@ -511,24 +536,26 @@ export const DETERMINATION_ACTION: Record<Determination, ReviewAction | null> = 
   pass: "seal",
   revise: "revisions",
   /*
-   * REPAIRS REQUIRED MAPS TO NOTHING, AND THAT IS A FINDING RATHER THAN A HOLE
-   * SOMEBODY FORGOT TO FILL.
+   * THIS WAS NULL FOR ONE DAY, AND THE NULL IS WHAT PRODUCED THE STATUS.
    *
    * The document: "Certification withheld and a repair list issued.
    * Certification proceeds only after repairs are verified on revisit." The
    * file is not going back to the technician, because nothing is wrong with the
    * evidence. It is not going back through dispatch yet, because the revisit
-   * happens after the OWNER has had work done, which may be weeks. It is not
+   * happens after the OWNER has had work done, which may be months. It is not
    * refused, because certification is withheld rather than declined.
    *
-   * The platform has no status for "withheld, waiting on the property owner",
-   * and the four it has are each a lie about this state. 0049 wrote the rule
-   * this follows: a status vocabulary that lacks a word for the situation makes
-   * somebody choose the nearest lie, and the answer is to add the word rather
-   * than overload the one nearby. Adding it is a ruling, so this stays null and
-   * the write path refuses with the reason rather than picking.
+   * So for a day this mapped to nothing, the write path refused with the reason
+   * written out, and the gap was a ruling the firm owed rather than a hole
+   * somebody forgot to fill. The operator ruled it on 2026-09-19 and named it
+   * the third instance of one lesson: a status vocabulary that lacks a word for
+   * the situation makes somebody choose the nearest lie. 0053 adds the word.
+   *
+   * KEPT AS A COMMENT RATHER THAN DELETED, because the reasoning is what stops
+   * somebody collapsing this back onto revisions the next time the five and the
+   * five look like four and a spare.
    */
-  "repairs-required": null,
+  "repairs-required": "repairs",
   "site-revisit": "site_visit",
   decline: "refuse",
 };
@@ -548,13 +575,21 @@ export type DeterminationVerdict =
 export function actionForDetermination(determination: Determination): DeterminationVerdict {
   const action = DETERMINATION_ACTION[determination];
   if (action) return { ok: true, action };
+  /*
+   * EVERY DETERMINATION MAPS TODAY, so this branch is unreachable from the five
+   * in the registry, and it is kept rather than removed. A sixth determination
+   * added to Appendix C would arrive here with no action, and the honest
+   * outcome is a refusal naming it rather than a crash or a silent nearest
+   * guess. protocol-run-audit asserts the map is exhaustive in both directions,
+   * so this branch stays unreachable by check rather than by hope.
+   */
   return {
     ok: false,
     reason:
-      "Repairs required withholds certification and issues a repair list, and the revisit happens " +
-      "after the owner has had the work done. This platform has no status for a file waiting on an " +
-      "owner, and every status it does have would be a false statement about this one. The " +
-      "determination is recorded; the file stays where it is until that status exists.",
+      `${determination} has no action in this platform, so the file cannot be moved on it. ` +
+      "The determination is a professional judgement and the platform's answer to it is a " +
+      "workflow decision somebody has to make deliberately, rather than the nearest existing " +
+      "status borrowed for the occasion.",
   };
 }
 

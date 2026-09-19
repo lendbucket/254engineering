@@ -56,6 +56,9 @@ export async function POST(request: NextRequest) {
           ? body.reliedOnEvidenceIds.map(String)
           : [],
         note: body?.determinationNote ? String(body.determinationNote) : null,
+        repairRequirements: Array.isArray(body?.repairRequirements)
+          ? body.repairRequirements.map(String)
+          : [],
       };
     }
 

@@ -27,37 +27,79 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
-## A RULING IS OWED: THERE IS NO STATUS FOR A FILE WAITING ON AN OWNER TO DO REPAIRS
+## RESOLVED 2026-09-19: THERE IS NOW A STATUS FOR A FILE WAITING ON AN OWNER
 
-Opened 2026-09-19, while building the determination write path. Not a defect: a
-word the vocabulary does not have, which is the thing 0049 made this repository
-careful about.
+Opened and closed the same day. Recorded rather than deleted, because the
+reasoning is what stops somebody collapsing the status back onto revisions the
+next time five determinations and four actions look like four and a spare.
 
-Appendix C of 254-RC-001 names five determinations. Four of them map onto a
-review action this platform already has. **REPAIRS REQUIRED maps onto nothing.**
+### As first recorded
 
-The document: "Certification withheld and a repair list issued. Certification
-proceeds only after repairs are verified on revisit." So the file is not going
-back to the technician, because nothing is wrong with the evidence. It is not
-going back through dispatch yet, because the revisit happens after the property
-OWNER has had work done, which may be weeks. It is not refused, because
-certification is withheld rather than declined. And it is plainly not sealed.
+Appendix C names five determinations and the platform had four review actions,
+so **REPAIRS REQUIRED mapped onto nothing.** Every existing status would have
+been a false statement about a file whose certification is withheld pending
+repairs the property owner has to arrange. `DETERMINATION_ACTION` mapped it to
+`null`, the write path refused with the reason written out, and a check failed
+the day somebody quietly mapped it to revisions.
 
-Every status this platform has would be a false statement about that file.
+### The ruling, and what it produced
 
-**What is built.** `DETERMINATION_ACTION` in `src/lib/ops-review.ts` maps it to
-`null`, `actionForDetermination` refuses with the reason in full, and the review
-screen prints that reason where the action would be. The determination is
-recorded; the file stays where it is. `protocol-run-audit` fails the day
-somebody quietly maps it to revisions, which is the edit this entry exists to
-make visible.
+The operator ruled it the **third instance** of one lesson, after the null that
+meant both "no price" and "nothing accepted" and the signed protocol that had to
+be called a draft: a status vocabulary that lacks a word makes somebody choose
+the nearest lie. Add the word.
 
-**What is owed.** A ruling, and then probably a status. The shape that looks
-right from here is a `repairs_pending` status the file sits in, with the repair
-list attached, and a path back into dispatch when the owner says the work is
-done. That is a workflow with a customer in it, not a rename, which is why it is
-a sitting rather than a patch. 0049's rule is the one to apply: add the word
-rather than overload the one nearby.
+0053 adds `repairs_required`, the `eng_repair_items` table holding the list one
+requirement per row, and the impossibility the operator asked for rather than a
+check: **a file cannot BE sealed while any repair item against it is open.** The
+guard sits on the file rather than the review path, so it holds for routes
+nobody has written, and it fires from the repair item side too, which is the
+direction a review-path check would never see.
+
+### THE ONE THING DECIDED RATHER THAN ASKED, AND WHAT IT COSTS
+
+The operator asked whether a file in `repairs_required` ages, and what happens
+to one nobody comes back to, with the instinct that it should stay open forever.
+
+**Decided: it does not age out. No timer, no automatic close.** The operator's
+sentence is the ruling and the code follows it: a homeowner who takes four
+months to afford a roof repair has not abandoned anything, and a firm that
+closes his file is the one who failed. `repairs_required` can reach only
+`needs_dispatch`, for the revisit, and `cancelled`, which is a deliberate act
+with its own audit row rather than a tidy-up. It cannot reach `closed` at all.
+
+**The costs, measured rather than guessed.** Two that were worth fearing turned
+out not to exist, and both were checked by reading the query rather than
+reasoning about it:
+
+- **Technician ranking: no cost.** `candidateTechs` counts open jobs as
+  `dispatched`, `evidence_in_progress` and `revisions_requested` only. A parked
+  file never made anybody look busy, so it cannot quietly starve a technician of
+  offers.
+- **Overdue and due-soon tiles: no cost.** Both filter on `TECH_OPEN_STATUSES`,
+  which this status is not in, so a file waiting on an owner never reads as
+  late. That matters: a permanent overdue count is how an overdue count stops
+  being read.
+
+**One real cost, and it is fixed.** The file kept its `assigned_tech_id`. A
+technician would have carried a job on their list for months that they cannot
+act on, and if the revisit went to somebody else the record would show two
+technicians with no account of the handover. `decideReview` now releases the
+technician and withdraws the accepted assignment on `repairs`, exactly as it
+already did on `site_visit`.
+
+**One cost that remains, and it cannot be engineered away by a timer.** A file
+in `repairs_required` is invisible unless somebody goes looking. Nothing chases
+it. If the owner never calls back, nobody notices, and the answer to that is
+**visibility rather than expiry**: a list of files waiting on owners, oldest
+first, reading the age off `repairs_required_at`, so the firm can ring somebody
+in month three rather than discover them in year two. Waiting is not the same as
+forgotten, and a status that quietly closed itself would convert the first into
+the second while looking tidy.
+
+That list is **not built**. It is the next thing this status wants and it is a
+screen rather than a rule, so it is recorded here rather than bolted onto the
+migration that created the state.
 
 ## AN APPROVAL IS ATOMIC AND ITS AUDIT ROW IS NOT, AND THE TWO FIXES ARE BOTH WRONG
 
