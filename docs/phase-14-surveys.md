@@ -535,3 +535,66 @@ the door that path exists to open. `breakGlassStatus()` reported a malformed
 break glass on a screen requiring a full session, which is exactly what somebody
 locked out does not have. **Ranks 1, 2 and 3 all have this shape today**: each is
 diagnosed from a place you can only reach if the thing already works.
+
+---
+
+## SURVEY 4: DECLARATIONS CHECKED FOR SHAPE RATHER THAN CONTENT
+
+**Opened 2026-09-18 by the operator, from the protocol registry.**
+
+`protocol-registry-audit` compared every intake question, determination
+criterion, checklist item, threshold and photo procedure step against the signed
+PDF, word for word. `RC001_ENFORCED` was checked for having a key and a place.
+**That array is the one a check would quote**, because it holds the rules the
+platform must make unbreakable, and it was the one part of the registry that
+could contain any sentence at all.
+
+The operator's sentence, and it is the survey's question: **a registry was
+verified everywhere except the entry that would be quoted, and the entry that
+would be quoted was the one that could say anything. Verification that stops at
+the boundary of what is enforceable has verified the wrong things.**
+
+**What to look for.** Anywhere a declaration is checked for SHAPE rather than
+CONTENT, and the content is what something will later act on. The shape check
+passes forever, the content is never compared to anything, and the first thing
+to quote it inherits whatever was typed. The question to ask of each: is this
+verified against the thing it claims to describe, or only against itself.
+
+Candidates named at the time and not yet examined: `surfaces.mjs`,
+`credential-inventory.ts`, `supabase/projects.mjs`, `account-doors.ts`,
+`launch-readiness.ts`, and the `at` fields throughout the protocol registry,
+which name sections nothing checks exist.
+
+## THE OPEN QUESTION BESIDE IT: NOTHING DETECTS DUPLICATION OF CORRECT LOGIC
+
+**Recorded 2026-09-19 as an open question rather than a lesson, on the
+operator's instruction, because there is no proposal yet and a bad mechanism
+would be worse than none.**
+
+**The instance.** `checklistState` in `src/lib/ops-evidence.ts` has decided
+whether an evidence package may be submitted since Phase 2, with named blockers,
+and `/portal/jobs/[id]` calls it. On 2026-09-19 a second implementation,
+`submitVerdict` in `src/lib/protocol-run.ts`, was written to answer the same
+question, by the session that had recorded one-fact-two-homes five times that
+week and had just added a commit hook to stop a different instance of the class.
+
+**Why nothing caught it, and this is the whole difficulty.** Both were correct.
+Both were tested. They agreed on every input. **Two right answers to one
+question is not a contradiction that any check can detect**, because there is
+nothing to disagree with. It becomes a defect only later, when somebody changes
+one of them and the wrong caller keeps the old answer, and at that point it
+presents as a completely different bug in a completely different place.
+
+It was found by reading the existing surface before building a second one, which
+is a habit rather than a mechanism.
+
+**Why it belongs with survey 4.** Both are failures of the same kind: a check
+that is looking at the right subject and asking a question that cannot fail. The
+shape check cannot fail on wrong content. Nothing at all asks whether a second
+correct implementation exists.
+
+**What is NOT proposed, and why.** A duplicate-logic detector on names or
+signatures would fire constantly on legitimate similarity and would be switched
+off within a week, which is the failure mode this repository already knows well:
+a red everybody learns to ignore is where the next real failure hides. Left
+unsolved deliberately.
