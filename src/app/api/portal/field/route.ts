@@ -9,7 +9,7 @@ import {
   createProtocol,
   declineOffer,
   deleteCapture,
-  publishProtocol,
+  approveProtocol,
   recordCapture,
   removeProtocolItem,
   sendOffers,
@@ -119,9 +119,18 @@ export async function POST(request: NextRequest) {
     return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
   }
 
-  if (action === "publish_protocol") {
-    const result = await publishProtocol(actor, String(body?.id ?? ""), context);
-    return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
+  /*
+   * APPROVE, NOT PUBLISH, AND THE OLD ACTION NAME IS GONE RATHER THAN ALIASED.
+   *
+   * publish_protocol called a function that had been unable to succeed since
+   * 0049 reached production: it set no approver and the database refused every
+   * call. Keeping the old name pointed at the new act would leave a caller
+   * asking for a publication and getting an approval, which are the two facts
+   * launch-readiness.ts is at pains to keep apart.
+   */
+  if (action === "approve_protocol") {
+    const result = await approveProtocol(actor, String(body?.id ?? ""), context);
+    return result.ok ? NextResponse.json({ ok: true, items: result.items }) : bad(result.error);
   }
 
   // -------------------------------------------------------------- dispatch

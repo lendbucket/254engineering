@@ -15,6 +15,7 @@
  * package.
  */
 import "./lib/load-env.mjs";
+import { readFileSync } from "node:fs";
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -23,7 +24,8 @@ console.log("");
 console.log("============ WORKING A PROTOCOL ON A JOB ============");
 console.log("");
 
-const { itemsFor, protocolItemRows } = await import("../src/lib/protocol-run.ts");
+const { itemsFor, protocolItemRows, protocolItemRowsFor } = await import("../src/lib/protocol-run.ts");
+const { RC001 } = await import("../src/content/protocols/rc-001.ts");
 const { RC001_CHECKLIST } = await import("../src/content/protocols/rc-001-checklist.ts");
 const { checklistState } = await import("../src/lib/ops-evidence.ts");
 
@@ -143,6 +145,79 @@ if (conditional.length > 0) {
     "and the ruler requirement reaches the technician rather than staying in the registry",
     rulerRows.length === rulerItems,
     `${rulerRows.length} of ${rulerItems} carry it`,
+  );
+}
+
+/* ------ 1c. the second condition is structural: a caller cannot supply items */
+
+/*
+ * THE OPERATOR'S SECOND CONDITION WAS THAT THE ROWS DERIVE FROM THE REGISTRY,
+ * and 0052 says plainly that it cannot enforce that: Postgres cannot know
+ * 254-RC-001 has 51 items. What the database enforces is that the rows arrive
+ * only through eng_approve_protocol. What makes the ROWS right is that nothing
+ * can hand that function a checklist.
+ *
+ * So this is a SOURCE guard, and it is a stated PROXY rather than a proof. The
+ * property that matters is "no checklist a person typed can reach the seeding",
+ * which is not mechanically decidable. What is decidable is that the only
+ * argument ever passed as p_items is the registry deriver's return value, and
+ * that approveProtocol takes no items parameter for a caller to fill.
+ *
+ * It is the same shape as seo-audit's guard that contact.phone is read only
+ * where the derivers live, and it is recorded as a proxy for the same reason.
+ */
+{
+  const field = readFileSync("src/lib/ops-field.ts", "utf8");
+
+  const rpcCalls = [...field.matchAll(/p_items:\s*([A-Za-z0-9_.()]+)/g)].map((m) => m[1]);
+  rec(
+    "the only thing ever passed as the seeded items is the registry deriver's answer",
+    rpcCalls.length === 1 && rpcCalls[0] === "items",
+    rpcCalls.join(", ") || "nothing passes p_items at all, so this check is measuring nothing",
+  );
+  rec(
+    "and that value is read from the registry rather than from the request",
+    /const items = protocolItemRowsFor\(documentNumber\);/.test(field),
+    "protocolItemRowsFor(documentNumber)",
+  );
+
+  /*
+   * AND THE DOOR TAKES NO ITEMS ARGUMENT, which is what stops the previous two
+   * checks from being true today and false the first time somebody adds a
+   * parameter "for the foundation protocol".
+   */
+  const signature = field.match(/export async function approveProtocol\(([\s\S]*?)\): Promise/);
+  rec(
+    "and approveProtocol takes no checklist for a caller to fill",
+    Boolean(signature) && !/item/i.test(signature[1]),
+    signature ? signature[1].replace(/\s+/g, " ").trim().slice(0, 90) : "approveProtocol was not found",
+  );
+
+  /*
+   * THE FUNCTION IT REPLACED IS GONE RATHER THAN LEFT BESIDE IT. publishProtocol
+   * had been unable to succeed since 0049 reached production, and a dead path
+   * left in place is the second home this repository keeps finding.
+   */
+  rec(
+    "and the path it replaced is gone rather than left beside it",
+    !/export async function publishProtocol/.test(field),
+    "publishProtocol set no approver and the database refused every call",
+  );
+
+  /*
+   * A PROTOCOL THE REGISTRY DOES NOT HOLD DERIVES NOTHING, asserted on the rule
+   * rather than on the one document that exists, so it stays true when a second
+   * protocol is added.
+   */
+  rec(
+    "a document number the registry does not hold derives no items at all",
+    protocolItemRowsFor("254-XX-999") === null && protocolItemRowsFor(null) === null,
+    "nothing is invented for a protocol this platform holds no signed document for",
+  );
+  rec(
+    "while the one it does hold derives the whole signed checklist",
+    protocolItemRowsFor(RC001.documentNumber)?.length === RC001_CHECKLIST.length,
+    `${RC001.documentNumber}: ${protocolItemRowsFor(RC001.documentNumber)?.length ?? 0} items`,
   );
 }
 

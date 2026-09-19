@@ -200,6 +200,26 @@ export function protocolItemRows(): ProtocolItemRow[] {
   }));
 }
 
+/**
+ * The registry's items for a protocol named by its DOCUMENT NUMBER, or null.
+ *
+ * NULL IS THE IMPORTANT ANSWER HERE. A protocol row in the database whose
+ * document number this repository has never heard of is not a protocol whose
+ * items can be derived from a signed document, and the approval refuses it
+ * rather than seeding something plausible. That is the operator's second
+ * condition read strictly: the rows derive from the registry, so a protocol
+ * outside the registry has no rows to derive.
+ *
+ * It is a lookup rather than a map because there is one entry today, and a map
+ * keyed on a string that only ever holds one key reads as more generality than
+ * exists. `PROTOCOLS` in src/content/protocols/index.ts is the declared
+ * inventory; this asks it rather than carrying a second list.
+ */
+export function protocolItemRowsFor(documentNumber: string | null): ProtocolItemRow[] | null {
+  if (documentNumber === null) return null;
+  return documentNumber === RC001.documentNumber ? protocolItemRows() : null;
+}
+
 /*
  * ===========================================================================
  * THE SUBMIT GATE IS NOT HERE, AND IT WAS, FOR TWO COMMITS.

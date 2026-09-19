@@ -33,6 +33,9 @@ import {
   type EvidenceKind,
   type ProtocolItem,
 } from "./ops-evidence";
+import { protocolItemRowsFor } from "./protocol-run";
+import { verifiedEngineers } from "@/config/credentials";
+import { licenceIsCurrent } from "./launch";
 
 /**
  * The field layer: protocols, offers, evidence, and what a technician is owed.
@@ -67,16 +70,37 @@ export type ProtocolTemplateRow = {
   service_slug: string;
   name: string;
   version: number;
-  status: "draft" | "published" | "retired";
+  /*
+   * 0049 added awaiting_engineer, and this union did not learn it until the
+   * approval path was built. A status the database can hold and the type cannot
+   * name is the same defect as `role` being typed as the three-role union while
+   * the comment above it said it was not one: the type is the thing being
+   * believed, and the code branches on it.
+   */
+  status: "draft" | "awaiting_engineer" | "published" | "retired";
   summary: string | null;
   published_at: string | null;
   authored_by: string | null;
+  /** 0049. The protocol as the signed paper numbers it, or null. */
+  document_number: string | null;
+  /** 0049. Declared by the engineer, never inferred from the service line name. */
+  requires_discipline: string | null;
+  approved_by: string | null;
+  approved_at: string | null;
+  approved_by_license: string | null;
 };
 
 export type ProtocolWithItems = ProtocolTemplateRow & { items: ProtocolItem[] };
 
-const TEMPLATE_COLUMNS =
-  "id, created_at, service_slug, name, version, status, summary, published_at, authored_by";
+/*
+ * ONE STRING LITERAL, NOT A CONCATENATION, AND THAT IS LOAD BEARING RATHER
+ * THAN A FORMATTING CHOICE. supabase-js reads this list as a TEMPLATE LITERAL
+ * TYPE to work out the row shape. Splitting it across two lines with a `+`
+ * makes it a plain string, the inference collapses to GenericStringError, and
+ * every cast on a template read starts failing to compile. Found by doing it.
+ */
+// prettier-ignore
+const TEMPLATE_COLUMNS = "id, created_at, service_slug, name, version, status, summary, published_at, authored_by, document_number, requires_discipline, approved_by, approved_at, approved_by_license";
 
 const ITEM_COLUMNS =
   "id, template_id, sort_order, item_key, kind, label, instructions, required, unit, min_value, max_value, min_count";
@@ -330,61 +354,177 @@ export async function removeProtocolItem(
 }
 
 /**
- * Publish a protocol, which is the moment it becomes usable by dispatch.
+ * ===========================================================================
+ * APPROVING A PROTOCOL, WHICH IS THE MOMENT IT BECOMES USABLE BY DISPATCH.
+ * ===========================================================================
  *
- * An empty protocol cannot be published. A file working an empty checklist would
- * have a submission gate with nothing in it, and ops-evidence refuses to submit
- * one for exactly that reason, so a technician would be handed a job they can
- * never finish.
+ * THIS REPLACES `publishProtocol`, WHICH HAD BEEN UNABLE TO SUCCEED SINCE 0049
+ * REACHED PRODUCTION ON 2026-09-17, and that is worth writing down rather than
+ * quietly fixing.
+ *
+ * It updated status to 'published' and set `published_at`, and it set no
+ * approver. 0049 added `eng_protocol_templates_published_is_approved_ck`, which
+ * requires a published row to name who approved it and when. Every call was
+ * refused by the database. `seed-field-demo` was taught the approval columns in
+ * the same week and this path was not: one fact with two homes, and the one
+ * nobody looked at is the one that drifted.
+ *
+ * Nothing on the board could see it, and nothing should have been able to.
+ * Approving a protocol is an act by a named engineer in his own session, so
+ * there is no live fixture that performs one and the operator's limits say
+ * outright there must not be. It was found by reading this file against the
+ * migration.
+ *
+ * WHAT THIS FUNCTION IS. Operator ruling, 2026-09-19: "Seed the 51 items on
+ * approval. That is not approving on his behalf; it is his approval taking
+ * effect. A protocol that is approved and whose items do not exist is approved
+ * in name only."
+ *
+ * So the approval and the seeding are one call into one transaction, and 0052's
+ * `eng_approve_protocol` is that transaction. The checks below are NOT the
+ * enforcement. Every one of them is also enforced in the database, and this
+ * function exists to give a person a sentence rather than a constraint name.
+ * If these two ever disagree, the database wins and the screen is wrong.
+ *
+ * THE ITEMS ARE NEVER A PARAMETER, which is the operator's second condition
+ * made structural rather than trusted. A caller cannot supply a checklist. The
+ * rows are derived here from the registry, which is verified verbatim against
+ * the signed PDF by `protocol-registry-audit`, and the mapping is asserted in
+ * both directions by `protocol-run-audit`.
  */
-export async function publishProtocol(
+export async function approveProtocol(
   actor: Actor & { email: string },
   id: string,
   context: Context = {},
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<{ ok: true; items: number } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  if (!holdsLicence(actor, "protocols.publish")) return { ok: false, error: licenceRefusal("Publishing a protocol") };
+  if (!holdsLicence(actor, "protocols.publish")) return { ok: false, error: licenceRefusal("Approving a protocol") };
 
   const template = await getProtocol(actor, id);
   if (!template) return { ok: false, error: "That protocol does not exist." };
-  if (template.status === "published") return { ok: false, error: "That protocol is already published." };
-  if (template.items.length === 0) {
-    return { ok: false, error: "A protocol with no items cannot be published. A technician could never finish it." };
-  }
-  if (!template.items.some((i) => i.required)) {
+  if (template.status === "published") return { ok: false, error: "That protocol is already in force." };
+  if (template.status === "draft") {
     return {
       ok: false,
-      error: "Every item in this protocol is optional, so the submission gate would let an empty package through.",
+      error:
+        "That protocol is a draft, which means the engineer has not signed the document. " +
+        "Record the signature date first.",
+    };
+  }
+  if (template.status !== "awaiting_engineer") {
+    return { ok: false, error: `A protocol is approved from awaiting_engineer, and this one is ${template.status}.` };
+  }
+
+  /*
+   * THE APPROVER IS THE ENGINEER ON THE REGISTER, READ OFF HIS OWN PROFILE.
+   *
+   * Holding `protocols.publish` is not enough and never was. That grant says
+   * the platform lets this account approve; the register says Texas lets this
+   * person be answerable for it. An administrator holding the grant approving a
+   * service line for sale is exactly the thing launch-readiness.ts refuses in
+   * writing, and until now nothing enforced it.
+   *
+   * The licence is read from the PROFILE rather than taken from the actor,
+   * because the actor carries a role and a grant set and no licence, and a
+   * licence number typed into a form would be the second home this repository
+   * keeps finding.
+   */
+  const { data: profile } = await db
+    .from("eng_profiles")
+    .select("license_number, display_name")
+    .eq("id", actor.id)
+    .maybeSingle();
+  const licence = ((profile?.license_number as string | null) ?? "").trim();
+  const onRegister = licence ? verifiedEngineers.find((e) => e.licenseNumber === licence) ?? null : null;
+  if (!onRegister) {
+    return {
+      ok: false,
+      error:
+        "Only an engineer on the firm's register may approve a protocol, and this account carries no " +
+        "licence number that the register holds. Approving a service line for sale is an act somebody " +
+        "is answerable for by name.",
+    };
+  }
+  if (!licenceIsCurrent(onRegister.expires, new Date().toISOString().slice(0, 10))) {
+    return {
+      ok: false,
+      error: `The register has no current expiry for licence ${licence}, and an unrecorded expiry is not a current licence.`,
     };
   }
 
-  // Retire the previous published version of the same service line in the same
-  // breath. Two published versions is an ambiguity dispatch would have to guess
-  // its way out of.
-  await db
-    .from("eng_protocol_templates")
-    .update({ status: "retired" })
-    .eq("service_slug", template.service_slug)
-    .eq("status", "published");
+  /*
+   * AND HIS DECLARED COMPETENCE COVERS WHAT THE PROTOCOL REQUIRES. The rule is
+   * protocol-gate's, called rather than restated, because a second copy of it
+   * here is a second answer to one question.
+   */
+  const required = template.requires_discipline;
+  if (required === null) {
+    return {
+      ok: false,
+      error:
+        "This protocol has not declared the discipline it requires, so nothing can check that the " +
+        "approving engineer covers it. Whether this is structural work is the engineer's answer rather " +
+        "than a reading of the service line's name.",
+    };
+  }
+  if (!onRegister.sealsOnly.includes(required)) {
+    return {
+      ok: false,
+      error:
+        `This protocol requires competence in ${required}, and the register records that ` +
+        `${onRegister.name} seals ${onRegister.sealsOnly.join(", ") || "nothing"}.`,
+    };
+  }
 
-  const { error } = await db
-    .from("eng_protocol_templates")
-    .update({ status: "published", published_at: DB_NOW })
-    .eq("id", id)
-    .eq("status", "draft");
+  /*
+   * THE ITEMS, DERIVED. A protocol row whose document number this repository
+   * does not hold has no signed checklist to derive from, and seeding it with
+   * something plausible is the forgery the whole gate exists to prevent.
+   */
+  const documentNumber = template.document_number;
+  const items = protocolItemRowsFor(documentNumber);
+  if (items === null || items.length === 0) {
+    return {
+      ok: false,
+      error:
+        documentNumber === null
+          ? "This protocol row names no document number, so its items cannot be derived from a signed document."
+          : `${documentNumber} is not in this platform's protocol registry, so its items cannot be derived ` +
+            "from the signed document. Nothing will be invented for it.",
+    };
+  }
+
+  const { error } = await db.rpc("eng_approve_protocol", {
+    p_template_id: id,
+    p_approved_by: actor.id,
+    p_license: licence,
+    p_items: items,
+  });
   if (error) return { ok: false, error: error.message };
 
+  /*
+   * THE AUDIT ROW IS WRITTEN AFTER THE TRANSACTION RATHER THAN INSIDE IT, and
+   * that is a known asymmetry rather than an oversight. eng_audit_events is
+   * append only and a failed approval writes nothing, so the risk is a
+   * successful approval whose audit row fails to write, which leaves the
+   * approval real and unlogged. Moving the audit into the function would fix
+   * that and would put the audit trail's shape inside a migration, where the
+   * writeAudit helper's redaction rules cannot reach it. Recorded in BACKLOG.md
+   * rather than decided here.
+   */
   await writeAudit({
     actor,
-    action: "protocol.publish",
+    action: "protocol.approve",
     entityType: "protocol",
     entityId: id,
-    summary: `Published ${template.name} v${template.version} for ${template.service_slug}`,
+    summary:
+      `Approved ${template.name} v${template.version} for ${template.service_slug}, ` +
+      `${documentNumber}, and seeded its ${items.length} items`,
     diff: safeDiff(diffOf({ status: template.status }, { status: "published" })),
     ...context,
   });
-  return { ok: true };
+  return { ok: true, items: items.length };
 }
 
 /** The one published protocol for a service line, or nothing. */

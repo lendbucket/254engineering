@@ -27,6 +27,36 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
+## AN APPROVAL IS ATOMIC AND ITS AUDIT ROW IS NOT, AND THE TWO FIXES ARE BOTH WRONG
+
+Opened 2026-09-19, while building the approval bridge. A disclosed asymmetry
+rather than a defect, because it is a decision nobody has made rather than a
+mistake somebody made.
+
+0052's `eng_approve_protocol` seeds the 51 items and records the approval in one
+transaction, so those two facts cannot disagree. `approveProtocol` in
+`src/lib/ops-field.ts` then calls `writeAudit` AFTER that transaction has
+committed. A failed approval writes nothing, so the exposure is one sided and
+narrow: an approval that succeeds and whose audit row fails to write leaves a
+service line in force with nothing in `eng_audit_events` saying who put it there.
+
+That is a regulatory record, which is why it is written down rather than
+shrugged at. The firm's answer to "who approved this and when" would be the
+template row's own `approved_by`, which is true and is not the audit trail.
+
+**Both obvious fixes are worse, which is why this is open rather than done.**
+Moving the audit INSERT inside the SQL function makes the audit trail's shape a
+thing migrations write, out of reach of `writeAudit`'s redaction rules and of
+the actor context every other audit row is built from. Wrapping the whole thing
+in an application level transaction is not available: PostgREST has no
+transaction spanning two calls, which is the reason the seeding is a function in
+the first place.
+
+The likely answer is a third thing, an outbox row written inside the same
+transaction and drained by the job queue, and that is a shape decision for a
+sitting rather than a patch. Nothing about the approval is unsafe today; what is
+missing is a guarantee that the record of it is as durable as the act.
+
 ## `launch-audit` IS KNOWINGLY RED, AND REWRITING IT BEFORE THE COPY EXISTS WOULD BE WORSE
 
 Opened 2026-09-17, as a disclosed judgement rather than an omission.
