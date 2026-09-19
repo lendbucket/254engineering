@@ -634,7 +634,7 @@ function AbsenceControl({
   );
 
   return (
-    <div className="mt-3 rounded-[4px] border border-[var(--border)] bg-[var(--surface-muted,#f7f7f5)] p-3">
+    <div className="mt-3 rounded-[4px] border border-[var(--border)] bg-[var(--canvas)] p-3">
       <p className="text-[13.5px] leading-[1.5] font-semibold text-[var(--navy)]">
         Which is it?
       </p>

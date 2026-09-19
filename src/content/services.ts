@@ -50,7 +50,7 @@ export const services: Service[] = [
     h1: "Roof Certification in Texas, Sealed by a Licensed Engineer",
     title: "Roof Certification in Texas, Sealed | 254 Engineering",
     description:
-      "A roof certification is a sealed opinion on the observed condition of a roof on the date it was inspected. What it covers, who orders one, and what it costs.",
+      "A roof certification is a sealed opinion on the observed condition of a roof on the date it was inspected. Read what it covers, who orders one, and the cost.",
     summary:
       "A sealed engineering opinion on the condition of a roof as it stood on the date it was inspected, issued after a documented field inspection to a written protocol.",
     what: [

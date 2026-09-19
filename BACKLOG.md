@@ -5799,6 +5799,14 @@ Operator ruling: record it here rather than fix it tonight.
 Three consecutive boards reported **255, then 262, then 269**. Exactly seven per
 board run, which is not a growing business.
 
+**2026-09-19: 292, and the arithmetic still holds.** 269 to 292 is 23, which is
+not a multiple of seven, and that is worth writing down rather than rounding
+off: the seven a board leaves is the figure for a board that RUNS TO COMPLETION,
+and several runs since have been standalone audits or boards that stopped part
+way. The rate is unchanged as far as anything here can tell, and nobody should
+read 23 as a change in behaviour without counting the runs that produced it.
+The screen is still unpaged and this is still recorded rather than fixed.
+
 Read off development rather than inferred, by grouping the most recent rows:
 **every board leaves seven client rows behind.** Three `probe-customer`, one
 `probe-door-checkout`, one `probe-pricing`, and **two named "Audit Probe Company"

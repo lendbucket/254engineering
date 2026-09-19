@@ -242,6 +242,24 @@ export const RETENTION_POLICY: RetentionEntry[] = [
     },
   },
   { table: "eng_certifications", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
+  /*
+   * 0051. What a technician could NOT observe, and why.
+   *
+   * KEPT WITH THE FILE RATHER THAN ON ITS OWN CLOCK, because it is part of the
+   * evidence package an engineer weighed. Section 7 of 254-RC-001 makes a
+   * recorded absence one of the two honest outcomes for an item, so deleting
+   * these while keeping the photographs would leave a package that reads as
+   * complete with no account of the items nobody could reach. That is a worse
+   * record than either keeping or deleting the whole thing.
+   */
+  {
+    table: "eng_checklist_exceptions",
+    rule: {
+      kind: "kept_pending_counsel",
+      because:
+        "Part of the evidence package, and the half that explains the gaps in it. " + COUNSEL,
+    },
+  },
   {
     table: "eng_clients",
     rule: {
@@ -286,6 +304,42 @@ export const RETENTION_POLICY: RetentionEntry[] = [
         "outlives whatever is decided about the records it concerns, and it says so on the screen " +
         "that takes it rather than only here.",
       ruledBy: "operator, 2026-09-09, and 0036",
+    },
+  },
+  /*
+   * 0050. Somebody asked whether the firm could do a piece of design work.
+   *
+   * An inquiry is personal data about a person who may never become a client,
+   * which is exactly the shape counsel is being asked about for the contact and
+   * lead tables, so it joins them rather than getting a floor invented for it
+   * here.
+   */
+  {
+    table: "eng_design_inquiries",
+    rule: {
+      kind: "kept_pending_counsel",
+      because: "An enquiry from somebody who may never become a client. " + COUNSEL,
+    },
+  },
+  /*
+   * 0051. The engineer of record's determination on a job.
+   *
+   * KEPT FOREVER, and it is not a judgement call. This is the record of a
+   * professional opinion given under a signed protocol, naming the items and
+   * the photographs it rested on, and the reason the table exists at all is
+   * that somebody may ask years later what the engineer actually looked at. The
+   * migration puts eng_forbid_mutation_allow_cascade on it, so retention could
+   * not touch it whatever this file said.
+   */
+  {
+    table: "eng_determinations",
+    rule: {
+      kind: "kept_forever",
+      because:
+        REFUSES_DELETE("eng_forbid_mutation_allow_cascade") +
+        " It is a professional opinion given under a signed protocol, and the protocol exists so " +
+        "somebody can be asked years later what the engineer relied on.",
+      ruledBy: "0051, and the trigger",
     },
   },
   {

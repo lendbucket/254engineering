@@ -1331,12 +1331,49 @@ if (!db) {
      * coverage check in security-audit, which is what caught /api/portal/roles.
      */
     {
+      /*
+       * NESTED PAGES COUNT, AND THEY DID NOT UNTIL 2026-09-19.
+       *
+       * This read one level of directories, so the subject list was every
+       * TOP LEVEL portal screen and nothing below it. The claim lists below
+       * already named `/portal/protocols/rc-001`, which is two levels down, so
+       * the "still exists" check compared a two level claim against a one level
+       * list and reported a page that plainly exists as missing. The same board
+       * printed `an engineer can open /portal/protocols/rc-001 (HTTP 200)` four
+       * lines later.
+       *
+       * The coverage half was the more serious of the two. Seven nested screens
+       * had no ruling about whether an engineer sees them and the check could
+       * not see that, which is the vacuous green in its usual costume: a green
+       * over a subject list narrower than the thing it claims to cover.
+       *
+       * DYNAMIC ROUTES ARE EXCLUDED AND THAT IS STATED RATHER THAN SILENT. A
+       * segment in brackets needs a real record id to open, the probe has no
+       * way to mint one, and a ruling about a page nothing can fetch would be a
+       * ruling nothing verifies. They are listed in the report below so the
+       * exclusion is countable rather than invisible.
+       */
       const dir = "src/app/portal/(app)";
-      const onDisk = fs
-        .readdirSync(dir, { withFileTypes: true })
-        .filter((e) => e.isDirectory() && !e.name.startsWith("[") && !e.name.startsWith("("))
-        .map((e) => "/portal/" + e.name)
-        .sort();
+      const walk = (d, prefix) => {
+        const found = [];
+        for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+          if (!e.isDirectory() || e.name.startsWith("(")) continue;
+          const here = `${prefix}/${e.name}`;
+          if (fs.existsSync(`${d}/${e.name}/page.tsx`)) found.push(here);
+          found.push(...walk(`${d}/${e.name}`, here));
+        }
+        return found;
+      };
+      const allRoutes = walk(dir, "/portal").sort();
+      const dynamic = allRoutes.filter((p) => p.includes("["));
+      const onDisk = allRoutes.filter((p) => !p.includes("["));
+      rec(
+        "the dynamic portal routes are excluded from this ruling, and counted",
+        dynamic.length > 0,
+        dynamic.length > 0
+          ? `${dynamic.length} need a record id the probe cannot mint: ${dynamic.join(", ")}`
+          : "none found, which means the walk is not reaching them and the exclusion is measuring nothing",
+      );
 
       /*
        * The two the licence is FOR. Both are licensed capabilities rather than
@@ -1387,6 +1424,18 @@ if (!db) {
        */
       const ENGINEER_REFUSED = [
         "/portal/people",
+        /*
+         * The two nested screens the widened walk brought into view, and both
+         * rulings are READ OFF THE GRANTS rather than decided here.
+         *
+         * Dispatch gates on `offers.dispatch` and the disputes screen on
+         * `partners.manage`, and DEFAULT_ROLES gives an engineer neither.
+         * Offering a job to a technician and settling what a partner is owed
+         * are the firm's commercial business; a licence is not a reason to do
+         * either, which is the same line the reports entry draws.
+         */
+        "/portal/files/dispatch",
+        "/portal/partners/disputes",
         /*
          * Applications carry a candidate's resume and licence behind signed
          * links. An engineer holds a licence, not a hiring role, and the screen

@@ -311,6 +311,40 @@ export function apisOf(surface, { root = process.cwd() } = {}) {
  * probe rather than the cookie, because the probe is the thing an audit has to
  * create and a list that hid that would be a list an audit could not use.
  */
+/**
+ * WHICH PRINCIPAL OPENS THIS ROUTE, INHERITING DOWN THE PATH.
+ *
+ * `roleFor` was an EXACT match, and the board found what that costs the first
+ * time a nested page was added under a screen only one role can open.
+ * `/portal/protocols` is declared engineer; `/portal/protocols/rc-001` was not
+ * declared at all, so it fell through to the admin default, and an admin does
+ * not hold the engineer LICENCE the page requires.
+ *
+ * The audits then reported it as a defect in the PAGE. mobile-overflow printed
+ * `/portal/protocols/rc-001 @360 (not 200)` twice and the height table recorded
+ * HTTP 404, while roles-audit, four hundred lines earlier in the same run,
+ * printed `an engineer can open /portal/protocols/rc-001 (HTTP 200)`. Both were
+ * right. The page was fine and the probe was wrong, and nothing said so.
+ *
+ * A child route is opened by whoever opens its parent, which is what the app's
+ * own guards do: the rc-001 page carries the same holdsLicence check its index
+ * does. So the lookup walks up the path rather than demanding an entry per
+ * page, and a nested screen added tomorrow is measured by the right principal
+ * without anybody remembering this file exists.
+ *
+ * MATCHED ON A SEGMENT BOUNDARY, never as a bare prefix. `/portal/review` must
+ * not capture a future `/portal/reviewers`, which is the matcher-attaches-to-
+ * its-neighbour defect this repository has recorded four times.
+ */
+export function roleForRoute(surface, path) {
+  const declared = surface.roleFor ?? {};
+  if (declared[path]) return declared[path];
+  for (const [prefix, role] of Object.entries(declared)) {
+    if (path.startsWith(`${prefix}/`)) return role;
+  }
+  return surface.defaultRole ?? null;
+}
+
 export function allPages({ root = process.cwd() } = {}) {
   const out = [];
   for (const surface of measurableSurfaces()) {
@@ -320,7 +354,7 @@ export function allPages({ root = process.cwd() } = {}) {
         path,
         session: surface.session,
         probe: surface.probe,
-        role: surface.roleFor?.[path] ?? surface.defaultRole ?? null,
+        role: roleForRoute(surface, path),
         shell: Boolean(surface.shell),
         name: `${surface.key}: ${path.replace(`${surface.prefix}`, "").replace(/^\//, "") || "home"}`,
       });
