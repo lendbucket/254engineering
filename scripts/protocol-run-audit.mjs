@@ -23,8 +23,9 @@ console.log("");
 console.log("============ WORKING A PROTOCOL ON A JOB ============");
 console.log("");
 
-const { itemsFor, runView, submitVerdict } = await import("../src/lib/protocol-run.ts");
+const { itemsFor } = await import("../src/lib/protocol-run.ts");
 const { RC001_CHECKLIST } = await import("../src/content/protocols/rc-001-checklist.ts");
+const { checklistState } = await import("../src/lib/ops-evidence.ts");
 
 /* ------------------------------------------------ 1. which items apply */
 
@@ -64,85 +65,100 @@ if (conditional.length > 0) {
   );
 }
 
-/* --------------------------------- 2. the three states, and absent is one */
+/* ----------- 2. the gate, which lives in ops-evidence and not in a second file */
+
+/*
+ * THE GATE IS checklistState AND THERE IS ONLY ONE OF IT.
+ *
+ * This audit briefly tested a second implementation in protocol-run.ts, written
+ * two commits earlier by a session that had recorded one-fact-two-homes five
+ * times that week. Both were correct and both agreed, which is why nothing
+ * would have caught it: two right answers to one question is not a
+ * contradiction anything can detect, until somebody changes one of them.
+ *
+ * So these exercise the REAL gate, the one /portal/jobs/[id] calls.
+ */
+const item = (key, required = true) => ({
+  id: key,
+  itemKey: key,
+  kind: "note",
+  label: key,
+  required,
+  instructions: null,
+});
+const capture = (key) => ({ itemKey: key, kind: "note", valueText: "seen" });
 
 {
-  const view = runView({ covering: null, evidenceByItem: {}, exceptionsByItem: {} });
+  const state = checklistState([item("a"), item("b")], []);
   rec(
-    "a job with nothing recorded has every item outstanding, not passed",
-    view.outstanding === view.applicable && view.captured === 0 && view.excepted === 0,
-    `${view.outstanding} outstanding of ${view.applicable}`,
+    "a job with nothing captured cannot be submitted, and the blockers name the items",
+    state.canSubmit === false && state.blockers.length === 2,
+    state.blockers.join("; ").slice(0, 70),
   );
+}
 
-  const verdict = submitVerdict(view);
+{
+  const state = checklistState([item("a"), item("b")], [capture("a"), capture("b")]);
   rec(
-    "and it cannot be submitted",
-    verdict.ok === false,
-    verdict.ok ? "it was allowed" : `${verdict.outstanding.length} named`,
+    "a job with everything captured can be submitted",
+    state.canSubmit === true,
+    `${state.requiredDone} of ${state.requiredTotal}`,
   );
+}
+
+{
+  const state = checklistState([item("a"), item("b")], [capture("a")]);
+  rec(
+    "one missing required item refuses the whole package",
+    state.canSubmit === false && state.blockers.length === 1,
+    state.blockers[0] ?? "no blocker named",
+  );
+}
+
+/* ------------------- 3. an exception satisfies an item, and says it did */
+
+/*
+ * SECTION 7 OF THE SIGNED PROTOCOL: "the technician records each item that could
+ * not be observed and the reason. No item is estimated, assumed, or left blank."
+ *
+ * Until 2026-09-19 an item was satisfied or it was not, so a roof that genuinely
+ * could not be walked left a technician with nothing to record but a blank,
+ * which is the one outcome the document rules out. The platform was quietly
+ * asking for it.
+ */
+{
+  const exception = {
+    itemKey: "b",
+    reason: "roof too steep to walk safely, inspected from ladder level",
+    kind: "not_observed",
+  };
+  const state = checklistState([item("a"), item("b")], [capture("a")], [exception]);
+  rec(
+    "an item recorded as not observed, with a reason, satisfies the checklist",
+    state.canSubmit === true,
+    `${state.requiredDone} of ${state.requiredTotal}`,
+  );
+  const excepted = state.items.find((s) => s.item.itemKey === "b");
   /*
-   * THE REFUSAL NAMES THE ITEMS. A refusal that only counts sends somebody
-   * scrolling, which is the difference between a guard and an obstacle.
+   * AND IT IS DISTINGUISHABLE FROM A PHOTOGRAPH, which is the half that
+   * matters. Appendix C asks the engineer to weigh the package; an absence
+   * recorded as an absence is a different input from an observation, and
+   * folding them into one boolean would hide that from the person whose seal
+   * goes on the letter.
    */
   rec(
-    "and the refusal names the outstanding items rather than counting them",
-    verdict.ok === false && verdict.outstanding.length === view.applicable,
-    verdict.ok ? "no refusal" : `first: ${verdict.outstanding[0]}`,
+    "and the engineer can tell it apart from a captured one",
+    Boolean(excepted?.exception) && excepted?.exception?.reason === exception.reason,
+    excepted?.exception ? `carries: ${excepted.exception.kind}` : "the exception is invisible",
+  );
+  const captured = state.items.find((s) => s.item.itemKey === "a");
+  rec(
+    "while a genuinely captured item carries no exception",
+    captured?.satisfied === true && captured?.exception === undefined,
+    "a photograph and a recorded absence are different facts",
   );
 }
 
-/* ------------------------------------- 3. complete by capture, and by exception */
-
-{
-  const items = itemsFor(null);
-  const everything = Object.fromEntries(items.map((i) => [i.key, ["evidence-id"]]));
-  const view = runView({ covering: null, evidenceByItem: everything, exceptionsByItem: {} });
-  const verdict = submitVerdict(view);
-  rec(
-    "a package with every item captured may be submitted",
-    verdict.ok === true,
-    verdict.ok ? `${verdict.captured} captured` : verdict.because.slice(0, 60),
-  );
-}
-
-{
-  const items = itemsFor(null);
-  const exceptions = Object.fromEntries(
-    items.map((i) => [i.key, { reason: "no safe attic access on this property", kind: "not_observed" }]),
-  );
-  const view = runView({ covering: null, evidenceByItem: {}, exceptionsByItem: exceptions });
-  const verdict = submitVerdict(view);
-  rec(
-    "and a package where every item is properly excepted may be submitted too",
-    verdict.ok === true,
-    verdict.ok ? `${verdict.excepted} excepted` : verdict.because.slice(0, 60),
-  );
-}
-
-/* ------------------------------ 4. ONE missing item is enough to refuse */
-
-{
-  const items = itemsFor(null);
-  const allButOne = Object.fromEntries(items.slice(1).map((i) => [i.key, ["evidence-id"]]));
-  const view = runView({ covering: null, evidenceByItem: allButOne, exceptionsByItem: {} });
-  const verdict = submitVerdict(view);
-  rec(
-    "one missing item out of fifty one refuses the whole package",
-    verdict.ok === false && verdict.outstanding.length === 1,
-    verdict.ok ? "it was allowed" : `outstanding: ${verdict.outstanding[0]}`,
-  );
-  /*
-   * THE CASE THAT MATTERS MOST, because it is the one a tired person would
-   * argue about. A package that is fifty out of fifty one is not nearly
-   * complete, it is incomplete, and the engineer's determination rests on the
-   * whole package rather than most of it.
-   */
-  rec(
-    "and it names the one rather than reporting a percentage",
-    verdict.ok === false && /[A-Za-z]/.test(verdict.outstanding[0] ?? ""),
-    "a percentage invites a judgement the protocol does not allow",
-  );
-}
 
 /* ----------------------------------------------------------------- verdict */
 
@@ -152,7 +168,7 @@ console.log("");
 
 const failed = out.filter((r) => !r.ok);
 if (failed.length === 0) {
-  console.log(`PASS: ${out.length} checks. A job cannot be submitted incomplete.`);
+  console.log(`PASS: ${out.length} checks. A job cannot be submitted incomplete, and an absence is recorded as one.`);
   process.exitCode = 0;
 } else {
   console.log(`FAIL: ${failed.length} of ${out.length} checks.`);

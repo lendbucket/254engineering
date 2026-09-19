@@ -113,42 +113,34 @@ export function runView(input: {
   };
 }
 
-export type SubmitVerdict =
-  | { ok: true; applicable: number; captured: number; excepted: number }
-  | { ok: false; because: string; outstanding: string[] };
-
-/**
- * MAY THIS PACKAGE BE SUBMITTED?
+/*
+ * ===========================================================================
+ * THE SUBMIT GATE IS NOT HERE, AND IT WAS, FOR TWO COMMITS.
+ * ===========================================================================
  *
- * The one question the technician's screen asks, and the platform's answer to
- * the sentence the process page makes to customers: "Our technician cannot
- * submit the job incomplete. The app will not let him."
+ * This file shipped a submitVerdict that refused a package with anything
+ * outstanding. checklistState in src/lib/ops-evidence.ts has computed exactly
+ * that since Phase 2, with named blockers, and it is what the technician's
+ * screen at /portal/jobs/[id] already calls.
  *
- * IT NAMES THE OUTSTANDING ITEMS RATHER THAN COUNTING THEM. A refusal that says
- * "3 items outstanding" sends somebody scrolling; one that names them is a
- * refusal they can act on, which is the difference between a guard and an
- * obstacle.
+ * So for two commits this repository carried TWO implementations of "may this
+ * package be submitted", written by the session that had recorded
+ * one-fact-two-homes five times that week and had just added a hook to stop a
+ * different instance of the same class.
+ *
+ * IT WAS FOUND BY READING THE EXISTING SURFACE BEFORE BUILDING A SECOND ONE,
+ * which is the only reason it was found at all. Nothing on the board would have
+ * caught it: both implementations were correct, both were tested, and they
+ * agreed. Two right answers to one question is not a contradiction anything can
+ * detect, right up until somebody changes one of them.
+ *
+ * The gate stays in ops-evidence, where the caller already is. What was
+ * genuinely missing was the EXCEPTION, and that went into ops-evidence too
+ * rather than being kept here as a parallel notion of satisfied.
+ *
+ * WHAT REMAINS IN THIS FILE IS THE ONE THING ops-evidence CANNOT DO: decide
+ * which of the SIGNED protocol's items apply to a job. That is a question about
+ * the document rather than about the rows a job was dispatched against.
+ * ops-evidence takes its item list as given, and something has to produce that
+ * list from the protocol, with the covering qualifier applied.
  */
-export function submitVerdict(view: RunView): SubmitVerdict {
-  const outstanding = view.items
-    .filter((r) => r.status.state === "outstanding")
-    .map((r) => r.item.label);
-
-  if (outstanding.length > 0) {
-    return {
-      ok: false,
-      outstanding,
-      because:
-        `${outstanding.length} of ${view.applicable} items on ${view.protocolDocument} are neither captured nor excepted. ` +
-        "Every item is photographed, measured, or recorded as not observed with the reason. " +
-        "No item is estimated, assumed, or left blank, which is section 7 of the protocol the engineer signed.",
-    };
-  }
-
-  return {
-    ok: true,
-    applicable: view.applicable,
-    captured: view.captured,
-    excepted: view.excepted,
-  };
-}

@@ -49,11 +49,41 @@ export type CapturedItem = {
   storageKey?: string | null;
 };
 
+/**
+ * AN ITEM THE TECHNICIAN COULD NOT OBSERVE, WITH THE REASON.
+ * Added 2026-09-19, from section 7 of 254-RC-001.
+ *
+ * "The technician records each item that could not be observed and the reason.
+ * No item is estimated, assumed, or left blank." Section 8 adds the second
+ * kind: "An item that does not apply to the property is marked with the reason
+ * it does not apply."
+ *
+ * Until this existed, an item was satisfied or it was not, and a roof that
+ * genuinely could not be walked left the technician with nothing to record
+ * except a blank. A blank is the thing the protocol forbids, so the platform
+ * was quietly asking for the one outcome the document rules out.
+ *
+ * Stored in eng_checklist_exceptions by 0051, which constrains the reason to
+ * survive trimming so it cannot be satisfied with a space bar.
+ */
+export type ItemException = {
+  itemKey: string;
+  reason: string;
+  kind: "not_observed" | "not_applicable";
+};
+
 export type ItemStatus = {
   item: ProtocolItem;
   captured: number;
   satisfied: boolean;
   problem: string | null;
+  /**
+   * Set when the item is satisfied by a recorded exception rather than by
+   * evidence. Named rather than folded into `satisfied`, because "we
+   * photographed it" and "we recorded why we could not" are different facts and
+   * the engineer reviewing the package needs to tell them apart.
+   */
+  exception?: ItemException;
 };
 
 /** Is one protocol item satisfied by what has been captured against it? */
@@ -152,8 +182,32 @@ export type ChecklistState = {
  * the protocol decided they were, and a platform that quietly required them
  * would be overruling the person in responsible charge.
  */
-export function checklistState(items: ProtocolItem[], captures: CapturedItem[]): ChecklistState {
-  const statuses = items.map((item) => itemStatus(item, captures));
+export function checklistState(
+  items: ProtocolItem[],
+  captures: CapturedItem[],
+  /*
+   * EXCEPTIONS ARE OPTIONAL SO EVERY EXISTING CALLER IS UNCHANGED, and the
+   * default is an empty list rather than undefined-means-ignore: a job with no
+   * exceptions recorded has none, which is a real answer.
+   */
+  exceptions: ItemException[] = [],
+): ChecklistState {
+  const byKey = new Map(exceptions.map((e) => [e.itemKey, e]));
+  const statuses = items.map((item) => {
+    const status = itemStatus(item, captures);
+    if (status.satisfied) return status;
+    const exception = byKey.get(item.itemKey);
+    /*
+     * AN EXCEPTION SATISFIES THE ITEM AND SAYS SO, rather than being a second
+     * kind of pass nobody can see. The engineer's review reads `exception` to
+     * know that this item is a recorded absence rather than a photograph, which
+     * is exactly the distinction Appendix C asks him to weigh.
+     */
+    if (exception) {
+      return { ...status, satisfied: true, problem: null, exception };
+    }
+    return status;
+  });
   const required = statuses.filter((s) => s.item.required);
   const blockers = required
     .filter((s) => !s.satisfied)
