@@ -9,6 +9,7 @@ import {
   createProtocol,
   declineOffer,
   deleteCapture,
+  closeRepairItem,
   recordException,
   withdrawException,
   approveProtocol,
@@ -247,6 +248,22 @@ export async function POST(request: NextRequest) {
       context,
     );
     return result.ok ? NextResponse.json({ ok: true, id: result.id }) : bad(result.error);
+  }
+
+  if (action === "close_repair_item") {
+    const result = await closeRepairItem(
+      actor,
+      String(body?.fileId ?? ""),
+      String(body?.repairItemId ?? ""),
+      {
+        note: body?.note ? String(body.note) : null,
+        evidenceId: body?.evidenceId ? String(body.evidenceId) : null,
+      },
+      context,
+    );
+    return result.ok
+      ? NextResponse.json({ ok: true, remaining: result.remaining })
+      : bad(result.error);
   }
 
   if (action === "withdraw_exception") {

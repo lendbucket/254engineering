@@ -693,6 +693,195 @@ function AbsenceControl({
   );
 }
 
+/**
+ * THE REPAIR LIST ON THE REVISIT, AND WHY IT SITS ABOVE THE CHECKLIST.
+ *
+ * A technician dispatched back to a property after repairs is there for one
+ * reason, and it is not the standard Appendix B sweep. Appendix C's SITE
+ * REVISIT heading says the capture list is "an engineer-specified capture list,
+ * which is not the standard Appendix B list", and the criterion for a repairs
+ * revisit is "return after repairs to verify each item on the repair list".
+ *
+ * So the list he was sent for goes first, and the checklist is underneath it.
+ * Putting the fifty one item checklist on top and the four repairs below would
+ * bury the entire purpose of the journey.
+ *
+ * ONE ITEM AT A TIME, AND NO VERIFY ALL. The operator's ruling is that a file
+ * cannot be sealed without every item individually closed, and a button that
+ * closed four at once is that rule with the word individually taken out. Four
+ * taps is the point.
+ */
+export function RepairList({
+  fileId,
+  repairs,
+  captures,
+  readOnly,
+}: {
+  fileId: string;
+  repairs: {
+    id: string;
+    requirement: string;
+    closedAt: string | null;
+    closedNote: string | null;
+  }[];
+  captures: { id: string; itemKey: string }[];
+  readOnly: boolean;
+}) {
+  const router = useRouter();
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [note, setNote] = useState("");
+  const [evidenceId, setEvidenceId] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (repairs.length === 0) return null;
+  const open = repairs.filter((r) => r.closedAt === null).length;
+
+  async function verify(id: string) {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/portal/field", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "close_repair_item",
+          fileId,
+          repairItemId: id,
+          note: note.trim() || null,
+          evidenceId: evidenceId || null,
+        }),
+      });
+      const body = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+      if (!res.ok || !body?.ok) {
+        setError(body?.error ?? "That did not work.");
+        return;
+      }
+      setOpenId(null);
+      setNote("");
+      setEvidenceId("");
+      router.refresh();
+    } catch {
+      setError("The network dropped that. Try again when you have signal.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mb-6 rounded-[4px] border border-[var(--gold)] bg-[var(--gold-wash)] p-4">
+      <p className="portal-kicker text-[var(--gold-deep)]">Repairs to verify</p>
+      <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--ink)]">
+        {open === 0
+          ? "Every repair on this list has been verified. The engineer decides from here."
+          : `The engineer withheld certification until these are done. ${open} still to verify, one at a time. This file cannot be sealed until every one of them is closed.`}
+      </p>
+
+      <ol className="mt-3 flex flex-col gap-2">
+        {repairs.map((r, i) => (
+          <li key={r.id} className="rounded-[3px] border border-[var(--border)] bg-white p-3">
+            <p className="text-[15px] leading-[1.35] font-semibold text-[var(--navy)]">
+              {i + 1}. {r.requirement}
+            </p>
+            {r.closedAt !== null ? (
+              <>
+                <p className="mt-1 text-[13.5px] font-semibold text-[var(--green)]">Verified</p>
+                {r.closedNote ? (
+                  <p className="mt-0.5 max-w-[65ch] text-[13.5px] leading-[1.5] text-[var(--secondary)]">
+                    &ldquo;{r.closedNote}&rdquo;
+                  </p>
+                ) : null}
+              </>
+            ) : readOnly ? (
+              <p className="mt-1 text-[13.5px] text-[var(--secondary)]">Not yet verified.</p>
+            ) : openId === r.id ? (
+              <div className="mt-2.5">
+                <label
+                  htmlFor={`repair-note-${r.id}`}
+                  className="block text-[13.5px] font-semibold text-[var(--navy)]"
+                >
+                  What you saw
+                </label>
+                <textarea
+                  id={`repair-note-${r.id}`}
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  rows={2}
+                  className="mt-1.5 w-full rounded-[3px] border border-[var(--border)] bg-white p-2.5 text-[16px] leading-[1.5] text-[var(--navy)]"
+                />
+
+                {captures.length > 0 ? (
+                  <>
+                    <label
+                      htmlFor={`repair-photo-${r.id}`}
+                      className="mt-2.5 block text-[13.5px] font-semibold text-[var(--navy)]"
+                    >
+                      The photograph that shows it (optional)
+                    </label>
+                    <select
+                      id={`repair-photo-${r.id}`}
+                      value={evidenceId}
+                      onChange={(e) => setEvidenceId(e.target.value)}
+                      className="mt-1.5 min-h-[44px] w-full rounded-[3px] border border-[var(--border)] bg-white px-2.5 text-[16px] text-[var(--navy)]"
+                    >
+                      <option value="">None</option>
+                      {captures.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.itemKey}
+                        </option>
+                      ))}
+                    </select>
+                  </>
+                ) : null}
+
+                <div className="mt-2.5 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={busy || (evidenceId === "" && note.trim().length < 3)}
+                    onClick={() => void verify(r.id)}
+                    className="inline-flex min-h-[44px] items-center rounded-[3px] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {busy ? "Recording" : "Record it verified"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpenId(null);
+                      setNote("");
+                      setEvidenceId("");
+                    }}
+                    className="inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] px-4 text-[13.5px] font-semibold text-[var(--navy)]"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setOpenId(r.id);
+                  setNote("");
+                  setEvidenceId("");
+                }}
+                className="mt-2 inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] px-3 text-[13.5px] font-semibold text-[var(--navy)]"
+              >
+                Verify this one
+              </button>
+            )}
+          </li>
+        ))}
+      </ol>
+
+      {error ? (
+        <p role="alert" className="mt-3 text-[13.5px] leading-[1.5] font-semibold text-[var(--red)]">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 function CaptureControl({
   item,
   onCapture,

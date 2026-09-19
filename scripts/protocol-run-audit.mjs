@@ -493,6 +493,72 @@ if (conditional.length > 0) {
   );
 }
 
+/* --------- 1g. the lock has a key, and the key is checked like the lock */
+
+/*
+ * 0053 MADE IT IMPOSSIBLE TO SEAL A FILE WITH AN OPEN REPAIR ITEM AND SHIPPED
+ * WITH NOTHING ABLE TO CLOSE ONE.
+ *
+ * For one commit a file could enter repairs_required, go back through dispatch
+ * for the revisit, and never reach a seal by any path. It was reported as a gap
+ * rather than found later, which is the only reason it is a footnote instead of
+ * an incident.
+ *
+ * These assert the key exists and carries the same guards as the other two
+ * field write paths. Source guards, so a stated PROXY: they prove the checks
+ * are written, not that a live revisit exercises them. What proves the whole
+ * chain is the replayed database in migration-audit, where a file with two
+ * repair items refuses to seal, refuses again with one of two closed, and seals
+ * when both are closed.
+ */
+{
+  const field = readFileSync("src/lib/ops-field.ts", "utf8");
+
+  rec(
+    "the platform can close a repair item at all, which for one commit it could not",
+    /export async function closeRepairItem\(/.test(field),
+    "0053 made an unsealable state reachable and left no way out of it",
+  );
+
+  const body = field.split("export async function closeRepairItem(")[1]?.split("\nexport ")[0] ?? "";
+  rec(
+    "and closing one carries the offer check the other field writes carry",
+    /assigned_tech_id !== actor\.id/.test(body),
+    "a technician who lost the race must not verify repairs on somebody else's job",
+  );
+  rec(
+    "and a repair can only be verified against evidence captured for this file",
+    /view\.captures\.some\(\(c\) => c\.id === input\.evidenceId\)/.test(body),
+    "the foreign key says the id is a real capture, never that it is about THIS property",
+  );
+  rec(
+    "and a verification with neither a photograph nor a word is refused",
+    /input\.evidenceId === null && \(note === null \|\| note\.length < 3\)/.test(body),
+    "a repair marked verified with nothing behind it is a tick",
+  );
+  /*
+   * THE RACE, WHICH IS THE ONE A READ-THEN-WRITE ALWAYS HAS. jobView is a read
+   * from a moment ago, so two technicians on one revisit can both pass the
+   * open check. The write carries the condition itself.
+   */
+  rec(
+    "and the write itself refuses an item that is already closed, not just the read",
+    /\.is\("closed_at", null\)/.test(body),
+    "two technicians on one revisit both pass a check that read the row a moment ago",
+  );
+
+  /*
+   * AND NO CLOSE ALL. The operator's ruling is that a file cannot be sealed
+   * without every item individually closed, and a bulk close is that rule with
+   * the word individually removed.
+   */
+  rec(
+    "and nothing closes a whole list at once",
+    !/closeRepairItems\b|close_all_repairs|\.in\("id", repairItemIds/.test(field),
+    "individually closed is the ruling, so four repairs is four acts",
+  );
+}
+
 /* ----------- 2. the gate, which lives in ops-evidence and not in a second file */
 
 /*

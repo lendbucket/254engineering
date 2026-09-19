@@ -7,7 +7,7 @@ import { progressLabel } from "@/lib/ops-evidence";
 import { services } from "@/content/services";
 import { STATUS_LABEL, type FileStatus } from "@/lib/ops-files";
 import { Chip, PageHead } from "@/components/portal/surfaces";
-import { Checklist } from "./CaptureClient";
+import { Checklist, RepairList } from "./CaptureClient";
 
 export const dynamic = "force-dynamic";
 
@@ -83,6 +83,25 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
           </p>
         </div>
       ) : null}
+
+      {/*
+        * ABOVE THE CHECKLIST, because a technician sent back after repairs is
+        * there for this list and not for the standard sweep. Appendix C says
+        * the revisit carries an engineer-specified capture list rather than
+        * Appendix B, and burying four repairs under fifty one checklist items
+        * would hide the purpose of the journey.
+        */}
+      <RepairList
+        fileId={view.file.id}
+        readOnly={closed}
+        repairs={view.repairs.map((r) => ({
+          id: r.id,
+          requirement: r.requirement,
+          closedAt: r.closed_at,
+          closedNote: r.closed_note,
+        }))}
+        captures={view.captures.map((c) => ({ id: c.id, itemKey: c.item_key }))}
+      />
 
       {view.protocol ? (
         <Checklist

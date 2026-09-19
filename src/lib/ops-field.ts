@@ -1128,6 +1128,11 @@ export type JobView = {
    * the package needs the rows themselves, with who recorded each and when.
    */
   exceptions: ExceptionRow[];
+  /**
+   * The repair list, when one has been issued. Empty on every file that has
+   * never had certification withheld, which is almost all of them.
+   */
+  repairs: RepairItemRow[];
   state: ChecklistState;
   offer: { id: string; amountCents: number | null; state: OfferState } | null;
 };
@@ -1139,6 +1144,25 @@ export type ExceptionRow = {
   reason: string;
   recorded_by: string;
   recorded_at: string;
+};
+
+/**
+ * What the engineer required before he will certify, and whether it is done.
+ *
+ * CARRIED ON THE JOB VIEW so the technician on the revisit and the engineer at
+ * review read the same rows. 0053 makes a file unsealable while any of these is
+ * open, so a screen that showed a different list from the one the database is
+ * counting would be a screen that says a file is ready when it cannot be.
+ */
+export type RepairItemRow = {
+  id: string;
+  sort_order: number;
+  requirement: string;
+  item_key: string | null;
+  closed_at: string | null;
+  closed_by: string | null;
+  closed_note: string | null;
+  verified_by_evidence_id: string | null;
 };
 
 /**
@@ -1207,8 +1231,27 @@ export async function jobView(actor: Actor | null, fileId: string): Promise<JobV
     .eq("file_id", fileId)
     .order("recorded_at");
 
+  /*
+   * THE REPAIR LIST, READ FOR EVERY JOB RATHER THAN ONLY FOR A REVISIT.
+   *
+   * It would be cheaper to read it only when the file is in repairs_required or
+   * came from it, and that cheapness is exactly the branch that goes wrong: a
+   * file dispatched for a revisit is in needs_dispatch and then dispatched, so
+   * the condition would have to enumerate which statuses can follow a
+   * withholding, and it would be wrong the first time somebody adds one.
+   *
+   * The list is empty for almost every file, which is one indexed read
+   * returning nothing.
+   */
+  const { data: repairRows } = await db
+    .from("eng_repair_items")
+    .select("id, sort_order, requirement, item_key, closed_at, closed_by, closed_note, verified_by_evidence_id")
+    .eq("file_id", fileId)
+    .order("sort_order");
+
   const rows = (captures ?? []) as EvidenceRow[];
   const exceptions = (exceptionRows ?? []) as ExceptionRow[];
+  const repairs = (repairRows ?? []) as RepairItemRow[];
   const captured: CapturedItem[] = rows.map((r) => ({
     itemKey: r.item_key,
     kind: r.kind,
@@ -1222,6 +1265,7 @@ export async function jobView(actor: Actor | null, fileId: string): Promise<JobV
     protocol,
     captures: rows,
     exceptions,
+    repairs,
     state: checklistState(
       protocol?.items ?? [],
       captured,
@@ -1520,6 +1564,133 @@ export async function withdrawException(
     .eq("file_id", fileId)
     .eq("item_key", itemKey);
   return error ? { ok: false, error: error.message } : { ok: true };
+}
+
+/**
+ * ===========================================================================
+ * VERIFYING A REPAIR ON THE REVISIT. THE KEY TO 0053'S LOCK.
+ * ===========================================================================
+ *
+ * 0053 made it impossible to seal a file while any repair item is open, and
+ * shipped with nothing able to close one. That was a lock with no key: a file
+ * could enter repairs_required, go back through dispatch for the revisit, and
+ * never reach a seal by any path. It was reported as a gap rather than
+ * discovered, and this is the other half.
+ *
+ * THE TECHNICIAN CLOSES THEM, NOT THE ENGINEER, and that is a decision worth
+ * stating because it could reasonably go the other way. Appendix C's SITE
+ * REVISIT criterion is explicit: "Repairs required, return after repairs to
+ * verify each item on the repair list." The return trip IS the verification.
+ * An engineer closing items from his desk would make the revisit verify
+ * nothing, and the engineer still cannot seal without reviewing the package, so
+ * nothing that matters is delegated: what changes is only who records the
+ * observation, which is the same division the whole platform already runs on.
+ *
+ * ONE ITEM AT A TIME, AND NO "CLOSE ALL". The operator's ruling was that a file
+ * cannot be sealed without every item on the list individually closed, and a
+ * button that closes six at once is that rule with the individually removed.
+ * Six taps is the point rather than an oversight.
+ */
+export async function closeRepairItem(
+  actor: Actor & { email: string },
+  fileId: string,
+  repairItemId: string,
+  input: { note: string | null; evidenceId: string | null },
+  context: Context = {},
+): Promise<{ ok: true; remaining: number } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  if (!can(actor, "evidence.capture") && !can(actor, "evidence.review")) {
+    return { ok: false, error: "Your role cannot verify a repair." };
+  }
+
+  const view = await jobView(actor, fileId);
+  if (!view) return { ok: false, error: "That job is not yours." };
+
+  /*
+   * THE SAME OFFER CHECK recordCapture AND recordException CARRY, for the same
+   * reason and deliberately not abbreviated. A technician who lost the race to
+   * accept could otherwise mark somebody else's repairs verified, and a
+   * verified repair is a stronger claim than a photograph: it is the thing
+   * standing between a property and a seal.
+   */
+  if (actor.role === "field_tech" && view.file.assigned_tech_id !== actor.id) {
+    return {
+      ok: false,
+      error: view.file.assigned_tech_id
+        ? "Another technician accepted this revisit first."
+        : "Accept this revisit before verifying repairs on it.",
+    };
+  }
+
+  const item = view.repairs.find((r) => r.id === repairItemId);
+  if (!item) return { ok: false, error: "That repair item does not belong to this file." };
+  if (item.closed_at !== null) {
+    return { ok: false, error: "That repair is already recorded as verified." };
+  }
+
+  /*
+   * EVIDENCE, WHERE THERE IS ANY, MUST BELONG TO THIS FILE. The database cannot
+   * ask this: its foreign key says the id is a real evidence row, not that it
+   * is a row about THIS property. A repair closed against another job's
+   * photograph is the worst record this table could hold, and it is exactly the
+   * check that only the application can make.
+   */
+  if (input.evidenceId !== null) {
+    const known = view.captures.some((c) => c.id === input.evidenceId);
+    if (!known) {
+      return { ok: false, error: "A repair can only be verified against evidence captured for this file." };
+    }
+  }
+
+  const note = input.note?.trim() || null;
+  /*
+   * A VERIFICATION WITH NEITHER A PHOTOGRAPH NOR A WORD IS A TICK. Section 7's
+   * spirit applied one layer out: the technician says what he saw, or points at
+   * the frame that shows it. Either is enough and neither is optional.
+   */
+  if (input.evidenceId === null && (note === null || note.length < 3)) {
+    return {
+      ok: false,
+      error:
+        "Say what you saw, or attach the photograph that shows it. A repair marked verified with " +
+        "nothing behind it is the tick the protocol does not allow.",
+    };
+  }
+
+  const { error } = await db
+    .from("eng_repair_items")
+    .update({
+      closed_at: DB_NOW,
+      closed_by: actor.id,
+      closed_note: note,
+      verified_by_evidence_id: input.evidenceId,
+    })
+    .eq("id", repairItemId)
+    .eq("file_id", fileId)
+    /*
+     * AND ONLY IF IT IS STILL OPEN. The check above read the row through
+     * jobView, which is a read from a moment ago; two technicians on one
+     * revisit could both pass it. This makes the write itself the decision, so
+     * the second one changes nothing rather than overwriting who verified it.
+     */
+    .is("closed_at", null);
+  if (error) return { ok: false, error: error.message };
+
+  const remaining = view.repairs.filter((r) => r.closed_at === null && r.id !== repairItemId).length;
+
+  await writeAudit({
+    actor,
+    action: "repair.verified",
+    entityType: "file",
+    entityId: fileId,
+    summary:
+      `Verified a repair on ${view.file.file_number}: ${item.requirement}. ` +
+      `${remaining} still open.`,
+    ...context,
+  });
+
+  return { ok: true, remaining };
 }
 
 export async function deleteCapture(
