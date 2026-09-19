@@ -5807,6 +5807,13 @@ way. The rate is unchanged as far as anything here can tell, and nobody should
 read 23 as a change in behaviour without counting the runs that produced it.
 The screen is still unpaged and this is still recorded rather than fixed.
 
+**And the very next board confirmed it: 299, which is exactly seven more.** The
+paragraph above was written between two board runs and predicted nothing
+explicitly, but it did make a claim, that the rate was unchanged and that 23 was
+an artefact of counting runs rather than a change in behaviour. One completed
+board later the count moved by precisely seven. That is the claim tested rather
+than repeated, which is the only reason it is worth writing down twice.
+
 Read off development rather than inferred, by grouping the most recent rows:
 **every board leaves seven client rows behind.** Three `probe-customer`, one
 `probe-door-checkout`, one `probe-pricing`, and **two named "Audit Probe Company"
