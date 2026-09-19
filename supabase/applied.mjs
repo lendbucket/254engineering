@@ -1050,7 +1050,7 @@ export const APPLIED = [
   {
     file: "0051_a_job_carries_its_determination.sql", appliedBy: "apply_migration",
     fingerprint: "aa53ea353a4128696a23e03feadd1e48",
-    behaviour: "e141b2f324c511c07b1239589e516b42",
+    behaviour: "9b345f45ce25d2cc08a905c752255348",
     proves: { column: { table: "eng_determinations", name: "relied_on_item_keys" } },
     production: null,
     development: { at: "0051", behaviour: null, facts: 880 },
@@ -1080,12 +1080,18 @@ export const APPLIED = [
       "none, so the rule is enforced against the registry in the library and this schema makes the " +
       "evidence of it recordable and unforgeable. " +
       "Replayed and read back: shape aa53ea353a4128696a23e03feadd1e48 across 1,103 columns and 79 " +
-      "tables, 62 triggers, behaviour e141b2f324c511c07b1239589e516b42 across 880 facts.",
+      "tables, 62 triggers, behaviour 9b345f45ce25d2cc08a905c752255348 across 880 facts. " +
+      "THE DIGEST MOVED ON 2026-09-19 WITHOUT THE MIGRATION BEING REAPPLIED ANYWHERE, because its " +
+      "determination vocabulary was corrected before it had run: it paraphrased two of Appendix C's " +
+      "five, REVISE as package_incomplete and SITE REVISIT as return_visit. The fact count is " +
+      "unchanged at 880 and the shape is untouched; one check constraint's definition differs. " +
+      "Production, development and the cutover project were all read that day and none holds " +
+      "eng_determinations, which is what makes editing it right rather than forbidden.",
   },
   {
     file: "0052_an_approval_and_its_items_are_one_act.sql", appliedBy: "apply_migration",
     fingerprint: "aa53ea353a4128696a23e03feadd1e48",
-    behaviour: "6f2f38cb592b2cb90f673edbf5414ef5",
+    behaviour: "6404e2e8de33bff848e94b67da7addc4",
     proves: { function: "eng_approve_protocol" },
     production: null,
     development: { at: "0052", behaviour: null, facts: 889 },
@@ -1099,7 +1105,7 @@ export const APPLIED = [
       "production half. Tonight's limits forbid production, and a migration on main is never pending. " +
       "WHAT IT ADDS: no columns and no tables. Five functions and four triggers, so the SHAPE " +
       "fingerprint is unchanged at aa53ea353a4128696a23e03feadd1e48 across 1,103 columns and the " +
-      "behaviour digest moves to 6f2f38cb592b2cb90f673edbf5414ef5 across 889 facts, which is exactly " +
+      "behaviour digest moves to 6404e2e8de33bff848e94b67da7addc4 across 889 facts, which is exactly " +
       "the nine. That is the same signature 0008 had when it pinned the search_paths: a migration that " +
       "changes what the database DOES without changing what it HOLDS. " +
       "WHY IT EXISTS. The operator ruled that the 51 items of 254-RC-001 are seeded when the engineer " +

@@ -114,9 +114,43 @@ create table if not exists eng_determinations (
 
 alter table eng_determinations
   drop constraint if exists eng_determinations_value_ck;
+/*
+ * THE FIVE ARE THE DOCUMENT'S FIVE, SPELLED AS THE DOCUMENT SPELLS THEM.
+ * Corrected 2026-09-19, before this migration had run anywhere.
+ *
+ * It first read 'pass', 'package_incomplete', 'repairs_required',
+ * 'return_visit', 'decline'. Appendix C of 254-RC-001 v1.0 heads them PASS,
+ * REVISE, REPAIRS REQUIRED, SITE REVISIT and DECLINE, and
+ * src/content/protocols/rc-001-decisions.ts carries those verbatim because
+ * protocol-registry-audit compares that file against the signed PDF character
+ * by character.
+ *
+ * So two of the five had been PARAPHRASED on their way into a check
+ * constraint: REVISE became package_incomplete and SITE REVISIT became
+ * return_visit. Both readings are plausible and neither is the document. The
+ * consequence is the one this repository keeps meeting: the engineer chooses
+ * REVISE in the words he signed, the row says package_incomplete, and somebody
+ * asked years later what he determined has to know a translation nobody wrote
+ * down. Worse, REVISE's criteria include "Exception used where the condition
+ * plainly applied", which is not an incomplete package at all, so the
+ * paraphrase is not even a synonym.
+ *
+ * The vocabulary is now one fact with one home, and protocol-run-audit asserts
+ * this constraint's list equals the registry's keys, so a sixth determination
+ * or a re-spelling cannot land in one place only.
+ *
+ * EDITING A MIGRATION RATHER THAN CORRECTING IT WITH A LATER ONE IS ALLOWED
+ * HERE AND ONLY HERE. The rule is that a migration which has RUN is never
+ * edited, because a migration that changes after it has run is one nobody can
+ * reason about. This one has run nowhere: production, development and the
+ * cutover project were all read on 2026-09-19 and none holds
+ * eng_determinations. A corrective migration would have altered a constraint
+ * that has never existed in any database, which is a worse record than the
+ * edit.
+ */
 alter table eng_determinations
   add constraint eng_determinations_value_ck
-  check (determination in ('pass', 'package_incomplete', 'repairs_required', 'return_visit', 'decline'));
+  check (determination in ('pass', 'revise', 'repairs-required', 'site-revisit', 'decline'));
 
 alter table eng_determinations
   drop constraint if exists eng_determinations_relied_on_ck;

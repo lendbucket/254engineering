@@ -6,15 +6,20 @@ import { writeAudit } from "./ops-audit";
 import { can, type Actor, holdsLicence, licenceRefusal } from "./ops-authz";
 import { transitionFile } from "./ops-crm";
 import { jobView } from "./ops-field";
+import { protocolItemRowsFor } from "./protocol-run";
+import type { Determination } from "@/content/protocols/rc-001-decisions";
 import { raise } from "./ops-notify";
 import { isOpen } from "./launch";
 import {
+  ACTION_LABEL,
   ACTION_TARGET,
+  actionForDetermination,
   canReview,
   chargeLogRow,
   minutesBetween,
   monthlyExportCsv,
   periodOf,
+  reliedOnVerdict,
   type ExportRow,
   type ReviewAction,
   type ReviewSubject,
@@ -108,6 +113,15 @@ export type EvidenceView = {
   }[];
   satisfied: boolean;
   problem: string | null;
+  /**
+   * Set when the item was satisfied by a recorded absence rather than by
+   * evidence. Appendix C asks the engineer to weigh the package, and "we
+   * photographed it" and "we recorded why we could not" are different inputs to
+   * that judgement. REVISE's criteria include "Exception used where the
+   * condition plainly applied", which he cannot apply if the screen hides which
+   * items were excepted.
+   */
+  exception: { kind: "not_observed" | "not_applicable"; reason: string } | null;
 };
 
 export type PackageView = {
@@ -125,6 +139,12 @@ export type PackageView = {
     refusal_reason: string | null;
   };
   protocolName: string | null;
+  /**
+   * The protocol document number, or null. Read rather than the template name,
+   * because the registry is keyed on the DOCUMENT and the name is a label
+   * somebody typed.
+   */
+  protocolDocument: string | null;
   items: EvidenceView[];
   complete: boolean;
   blockers: string[];
@@ -182,6 +202,9 @@ export async function packageFor(actor: Actor | null, fileId: string): Promise<P
     instructions: status.item.instructions ?? null,
     satisfied: status.satisfied,
     problem: status.problem,
+    exception: status.exception
+      ? { kind: status.exception.kind, reason: status.exception.reason }
+      : null,
     captures: view.captures
       .filter((c) => c.item_key === status.item.itemKey)
       .map((c) => ({
@@ -226,6 +249,7 @@ export async function packageFor(actor: Actor | null, fileId: string): Promise<P
   return {
     file: file as PackageView["file"],
     protocolName: view.protocol ? `${view.protocol.name} v${view.protocol.version}` : null,
+    protocolDocument: view.protocol?.document_number ?? null,
     items,
     ...(await completeness(fileId, view)),
     session: session
@@ -343,18 +367,85 @@ export type DecisionResult =
  * its own, for the reason files-audit taught: a rule here is a rule the suite
  * cannot see.
  */
+/**
+ * WHAT THE ENGINEER CONCLUDED, AND WHAT HE LOOKED AT TO CONCLUDE IT.
+ *
+ * Appendix C: "One determination is recorded per review." So this rides the
+ * decision rather than being a second call somebody could forget: a review that
+ * moved a file and left no determination is precisely the record the protocol
+ * exists to prevent.
+ */
+export type DeterminationInput = {
+  determination: Determination;
+  reliedOnItemKeys: string[];
+  reliedOnEvidenceIds: string[];
+  note: string | null;
+};
+
 export async function decideReview(
   actor: Actor & { email: string },
   fileId: string,
   action: ReviewAction,
   reason: string | null,
   context: Context = {},
+  determination: DeterminationInput | null = null,
 ): Promise<DecisionResult> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
 
   const pkg = await packageFor(actor, fileId);
   if (!pkg) return { ok: false, error: "That file does not exist, or is not yours to review." };
+
+  /*
+   * =====================================================================
+   * THE DETERMINATION, WHICH IS REQUIRED WHEN A SIGNED PROTOCOL GOVERNS.
+   * =====================================================================
+   *
+   * REQUIRED RATHER THAN OFFERED, and the condition is the protocol rather than
+   * a setting. A file worked to 254-RC-001 was worked to a document whose
+   * Appendix C says one determination is recorded per review, and a review that
+   * skips it has not followed the protocol the letter will rest on.
+   *
+   * Files with no registry protocol are not forced through this, because
+   * inventing an Appendix C for a service line that has no signed document
+   * would be the fabrication the whole gate exists to prevent. The condition is
+   * read from the protocol's document number, so the first day a second
+   * protocol is registered, its files are covered with no change here.
+   */
+  const governing = protocolItemRowsFor(pkg.protocolDocument) === null ? null : pkg.protocolDocument;
+
+  if (governing && !determination) {
+    return {
+      ok: false,
+      error: `${governing} requires one determination per review. Record what you concluded and what you relied on.`,
+    };
+  }
+
+  if (governing && determination) {
+    const relied = reliedOnVerdict({
+      itemKeys: determination.reliedOnItemKeys,
+      evidenceIds: determination.reliedOnEvidenceIds,
+      protocolItemKeys: pkg.items.map((i) => i.itemKey),
+      fileEvidenceIds: pkg.items.flatMap((i) => i.captures.map((c) => c.id)),
+    });
+    if (!relied.ok) return { ok: false, error: relied.reason };
+
+    /*
+     * THE ACTION IS DERIVED FROM THE DETERMINATION RATHER THAN ACCEPTED BESIDE
+     * IT. A determination of PASS with an action of "decline to seal" is a
+     * contradiction the record should not be able to hold, so the two are not
+     * asked separately: what arrives is checked against what the determination
+     * implies, and a disagreement is refused by name.
+     */
+    const implied = actionForDetermination(determination.determination);
+    if (!implied.ok) return { ok: false, error: implied.reason };
+    if (implied.action !== action) {
+      return {
+        ok: false,
+        error: `A determination of ${determination.determination} is ${ACTION_LABEL[implied.action].toLowerCase()}, and this review asked for ${ACTION_LABEL[action].toLowerCase()}.`,
+      };
+    }
+  }
 
   const subject: ReviewSubject = {
     status: pkg.file.status as ReviewSubject["status"],
@@ -364,6 +455,37 @@ export async function decideReview(
 
   const verdict = canReview(actor, subject, action, reason, { prelaunch: !isOpen() });
   if (!verdict.ok) return { ok: false, error: verdict.reason };
+
+  /*
+   * WRITTEN BEFORE THE FILE MOVES, WHICH IS THE OPPOSITE ORDER TO THE
+   * RESPONSIBLE CHARGE LOG BELOW, AND DELIBERATELY SO.
+   *
+   * That log is written after, and the comment beside it explains the cost: if
+   * it fails, the file has moved and the regulatory record is short a row, and
+   * the function shouts about it. This one is written FIRST because it can be:
+   * it depends on nothing the transition produces. A determination that failed
+   * to write leaves the file exactly where it was, so the engineer simply
+   * decides again. The append only trigger means a retry cannot produce two
+   * determinations for one review either, because the second one would be a new
+   * row on a file that is no longer under review.
+   */
+  if (governing && determination) {
+    const { error: detError } = await db.from("eng_determinations").insert({
+      file_id: fileId,
+      protocol_document: governing,
+      determination: determination.determination,
+      relied_on_item_keys: determination.reliedOnItemKeys,
+      relied_on_evidence_ids: determination.reliedOnEvidenceIds,
+      note: determination.note?.trim() || null,
+      engineer_id: actor.id,
+    });
+    if (detError) {
+      return {
+        ok: false,
+        error: `The determination did not write: ${detError.message}. Nothing has moved, so decide again.`,
+      };
+    }
+  }
 
   const now = new Date();
   const session = pkg.session;

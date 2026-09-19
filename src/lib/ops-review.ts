@@ -2,6 +2,7 @@ import { cell } from "./csv";
 import { can, type Actor, type Action, type LicensedAction, may } from "./ops-authz";
 import { isOpen } from "./launch";
 import type { FileStatus } from "./ops-files";
+import type { Determination } from "@/content/protocols/rc-001-decisions";
 
 /**
  * Engineer review: the four things a licensed engineer may do with a package,
@@ -485,4 +486,113 @@ export const BRISK_REVIEW_MINUTES = 3;
 
 export function isBriskReview(minutes: number | null): boolean {
   return minutes !== null && minutes < BRISK_REVIEW_MINUTES;
+}
+
+/**
+ * ===========================================================================
+ * APPENDIX C: THE ENGINEER'S DETERMINATION, WHICH IS NOT THE PLATFORM'S ACTION.
+ * ===========================================================================
+ *
+ * 254-RC-001 Appendix C: "Applied by the engineer to each evidence package. One
+ * determination is recorded per review." It names five. This platform has four
+ * review ACTIONS, and they are a different thing, so both exist rather than one
+ * being folded into the other.
+ *
+ * WHY THEY ARE TWO FACTS. A determination is the professional judgement made
+ * under a signed protocol, and it is what a board would ask about years later:
+ * what did the engineer conclude, and on what. An action is what the software
+ * then does to the file. Collapsing them would mean the regulatory record was a
+ * workflow state, which is the same mistake as reading a queue status as an
+ * opinion.
+ *
+ * THE MAP IS DECLARED, NEVER INFERRED, and one entry is deliberately null.
+ */
+export const DETERMINATION_ACTION: Record<Determination, ReviewAction | null> = {
+  pass: "seal",
+  revise: "revisions",
+  /*
+   * REPAIRS REQUIRED MAPS TO NOTHING, AND THAT IS A FINDING RATHER THAN A HOLE
+   * SOMEBODY FORGOT TO FILL.
+   *
+   * The document: "Certification withheld and a repair list issued.
+   * Certification proceeds only after repairs are verified on revisit." The
+   * file is not going back to the technician, because nothing is wrong with the
+   * evidence. It is not going back through dispatch yet, because the revisit
+   * happens after the OWNER has had work done, which may be weeks. It is not
+   * refused, because certification is withheld rather than declined.
+   *
+   * The platform has no status for "withheld, waiting on the property owner",
+   * and the four it has are each a lie about this state. 0049 wrote the rule
+   * this follows: a status vocabulary that lacks a word for the situation makes
+   * somebody choose the nearest lie, and the answer is to add the word rather
+   * than overload the one nearby. Adding it is a ruling, so this stays null and
+   * the write path refuses with the reason rather than picking.
+   */
+  "repairs-required": null,
+  "site-revisit": "site_visit",
+  decline: "refuse",
+};
+
+export type DeterminationVerdict =
+  | { ok: true; action: ReviewAction }
+  | { ok: false; reason: string };
+
+/**
+ * What the platform does about a determination, or why it cannot.
+ *
+ * PURE, AND THE ACTION IS DERIVED RATHER THAN CHOSEN ALONGSIDE IT. An engineer
+ * who determines PASS and an action of "decline to seal" is a contradiction the
+ * record should never be able to hold, and the way to make it unholdable is to
+ * stop asking the question twice.
+ */
+export function actionForDetermination(determination: Determination): DeterminationVerdict {
+  const action = DETERMINATION_ACTION[determination];
+  if (action) return { ok: true, action };
+  return {
+    ok: false,
+    reason:
+      "Repairs required withholds certification and issues a repair list, and the revisit happens " +
+      "after the owner has had the work done. This platform has no status for a file waiting on an " +
+      "owner, and every status it does have would be a false statement about this one. The " +
+      "determination is recorded; the file stays where it is until that status exists.",
+  };
+}
+
+/**
+ * Is what the engineer says he relied on actually a record of anything?
+ *
+ * 0051 refuses an empty array at the database, because a determination naming
+ * nothing it relied on is an opinion with no record behind it. This asks the
+ * same question early so the engineer gets a sentence, and asks one more the
+ * database cannot: that the keys are items of THIS file's protocol and the
+ * evidence ids are captures of THIS file. A determination citing another
+ * property's photograph is the worst record this table could hold.
+ */
+export function reliedOnVerdict(input: {
+  itemKeys: string[];
+  evidenceIds: string[];
+  protocolItemKeys: string[];
+  fileEvidenceIds: string[];
+}): ReviewVerdict {
+  if (input.itemKeys.length === 0) {
+    return { ok: false, reason: "Name the checklist items this determination rests on." };
+  }
+  if (input.evidenceIds.length === 0) {
+    return { ok: false, reason: "Name the photographs or readings this determination rests on." };
+  }
+  const strayKeys = input.itemKeys.filter((k) => !input.protocolItemKeys.includes(k));
+  if (strayKeys.length > 0) {
+    return {
+      ok: false,
+      reason: `${strayKeys.join(", ")} ${strayKeys.length === 1 ? "is not an item" : "are not items"} of this file's protocol.`,
+    };
+  }
+  const strayEvidence = input.evidenceIds.filter((id) => !input.fileEvidenceIds.includes(id));
+  if (strayEvidence.length > 0) {
+    return {
+      ok: false,
+      reason: "A determination can only rest on evidence captured for this file.",
+    };
+  }
+  return { ok: true };
 }

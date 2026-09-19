@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { currentActor, requestContext } from "@/lib/ops-auth";
-import { decideReview, monthlyExport, openReview, recordTime } from "@/lib/ops-engineer";
+import { decideReview, monthlyExport, openReview, recordTime, type DeterminationInput } from "@/lib/ops-engineer";
+import { RC001_DETERMINATIONS, type Determination } from "@/content/protocols/rc-001-decisions";
 import { REVIEW_ACTIONS, type ReviewAction } from "@/lib/ops-review";
 
 /**
@@ -32,12 +33,39 @@ export async function POST(request: NextRequest) {
   if (action === "decide") {
     const decision = String(body?.decision ?? "");
     if (!REVIEW_ACTIONS.includes(decision as ReviewAction)) return bad("Unknown review decision.");
+    /*
+     * THE DETERMINATION IS VALIDATED AGAINST THE REGISTRY HERE, not cast and
+     * hoped for. RC001_DETERMINATIONS is the verbatim transcription of Appendix
+     * C, so a body carrying a sixth word is refused by the document's own list
+     * rather than reaching a check constraint.
+     *
+     * Absent is not the same as invalid: a file with no signed protocol needs
+     * no determination, and decideReview decides which is which. So a missing
+     * determination passes through as null and a malformed one is refused.
+     */
+    let determination: DeterminationInput | null = null;
+    if (body?.determination) {
+      const value = String(body.determination);
+      if (!RC001_DETERMINATIONS.some((d) => d.key === value)) {
+        return bad("That is not one of the five determinations in Appendix C.");
+      }
+      determination = {
+        determination: value as Determination,
+        reliedOnItemKeys: Array.isArray(body?.reliedOnItemKeys) ? body.reliedOnItemKeys.map(String) : [],
+        reliedOnEvidenceIds: Array.isArray(body?.reliedOnEvidenceIds)
+          ? body.reliedOnEvidenceIds.map(String)
+          : [],
+        note: body?.determinationNote ? String(body.determinationNote) : null,
+      };
+    }
+
     const result = await decideReview(
       actor,
       String(body?.fileId ?? ""),
       decision as ReviewAction,
       body?.reason ? String(body.reason) : null,
       context,
+      determination,
     );
     return result.ok
       ? NextResponse.json({

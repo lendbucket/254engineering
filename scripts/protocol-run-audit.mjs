@@ -27,7 +27,9 @@ console.log("");
 const { itemsFor, protocolItemRows, protocolItemRowsFor } = await import("../src/lib/protocol-run.ts");
 const { RC001 } = await import("../src/content/protocols/rc-001.ts");
 const { RC001_CHECKLIST } = await import("../src/content/protocols/rc-001-checklist.ts");
+const { RC001_DETERMINATIONS } = await import("../src/content/protocols/rc-001-decisions.ts");
 const { checklistState } = await import("../src/lib/ops-evidence.ts");
+const { DETERMINATION_ACTION, actionForDetermination, reliedOnVerdict } = await import("../src/lib/ops-review.ts");
 
 /* ------------------------------------------------ 1. which items apply */
 
@@ -293,6 +295,178 @@ if (conditional.length > 0) {
     "and a job carries them out to the engineer as rows, not folded into a boolean",
     /exceptions: ExceptionRow\[\];/.test(field),
     "a photograph and a recorded absence are different facts at review",
+  );
+}
+
+/* ---- 1e. Appendix C has five, and the database and the registry agree which */
+
+/*
+ * A CONSTRAINT THAT PARAPHRASES A SIGNED DOCUMENT IS THE DEFECT, AND IT WAS
+ * LIVE UNTIL 2026-09-19.
+ *
+ * 0051's check constraint read 'pass', 'package_incomplete', 'repairs_required',
+ * 'return_visit', 'decline'. The document heads them PASS, REVISE, REPAIRS
+ * REQUIRED, SITE REVISIT, DECLINE. Two of the five had been reworded on their
+ * way into SQL, so the engineer would have chosen REVISE and the row would have
+ * said package_incomplete, and the mapping existed nowhere.
+ *
+ * It was found by reading the migration against the registry while building the
+ * write path, which is section 2c's rule: a declaration is unverified until
+ * somebody reads it against the code. Nothing could have caught it, because
+ * both files were internally consistent and neither referred to the other.
+ *
+ * This is what refers them to each other. The migration's list is PARSED rather
+ * than retyped, so the check cannot drift from the thing it checks, and the
+ * expected side is the registry, which protocol-registry-audit verifies against
+ * the PDF character by character.
+ */
+{
+  const migration = readFileSync(
+    "supabase/migrations/0051_a_job_carries_its_determination.sql",
+    "utf8",
+  );
+  const clause = migration.match(/check \(determination in \(([^)]*)\)\)/);
+  const inSql = clause
+    ? clause[1].split(",").map((s) => s.trim().replace(/^'|'$/g, "")).filter(Boolean)
+    : [];
+  const inRegistry = RC001_DETERMINATIONS.map((d) => d.key);
+
+  rec(
+    "the migration's determination vocabulary was found at all",
+    inSql.length > 0,
+    inSql.length > 0 ? `${inSql.length} values parsed` : "the check constraint could not be parsed, so nothing below means anything",
+  );
+  rec(
+    "Appendix C has five determinations and the database accepts exactly those five",
+    inSql.length === inRegistry.length && inRegistry.every((k) => inSql.includes(k)),
+    inSql.join(", "),
+  );
+  rec(
+    "and it accepts nothing the document does not name",
+    inSql.every((v) => inRegistry.includes(v)),
+    inSql.filter((v) => !inRegistry.includes(v)).join(", ") || "no value the document does not name",
+  );
+}
+
+/* ------- 1f. the determination: what the engineer concluded, and on what */
+
+/*
+ * THE DETERMINATION AND THE ACTION ARE TWO FACTS AND THE MAP BETWEEN THEM IS
+ * DECLARED. Appendix C names five determinations; this platform has four review
+ * actions; they overlap and they are not the same thing. A determination is the
+ * professional judgement a board would ask about, an action is what the
+ * software does to the file, and collapsing them would make the regulatory
+ * record a workflow state.
+ *
+ * ONE OF THE FIVE MAPS TO NOTHING, AND THAT IS ASSERTED RATHER THAN TOLERATED
+ * QUIETLY. REPAIRS REQUIRED withholds certification and issues a repair list,
+ * and the revisit happens after the OWNER has had work done. The platform has
+ * no status for a file waiting on an owner, and each of the four it has would
+ * be a false statement about that file. 0049's rule applies: a status
+ * vocabulary that lacks a word makes somebody choose the nearest lie, and the
+ * answer is to add the word rather than overload the one nearby. Until the firm
+ * rules on it, the determination is recorded and the file does not move.
+ *
+ * The check below fails the day somebody quietly maps it to revisions, which is
+ * the edit this section exists to make visible.
+ */
+{
+  const mapped = RC001_DETERMINATIONS.map((d) => [d.key, DETERMINATION_ACTION[d.key]]);
+
+  rec(
+    "every determination in Appendix C has an entry in the action map",
+    mapped.every(([, a]) => a !== undefined),
+    mapped.filter(([, a]) => a === undefined).map(([k]) => k).join(", ") || `${mapped.length} entries`,
+  );
+  rec(
+    "and the map holds nothing the document does not name",
+    Object.keys(DETERMINATION_ACTION).every((k) => RC001_DETERMINATIONS.some((d) => d.key === k)),
+    Object.keys(DETERMINATION_ACTION).filter((k) => !RC001_DETERMINATIONS.some((d) => d.key === k)).join(", ") ||
+      "no determination the document does not name",
+  );
+
+  const unmapped = mapped.filter(([, a]) => a === null).map(([k]) => k);
+  rec(
+    "repairs-required still maps to no action, because the firm owes a ruling on it",
+    unmapped.length === 1 && unmapped[0] === "repairs-required",
+    unmapped.length === 0
+      ? "something now maps it, and the platform has no status for a file waiting on an owner"
+      : `unmapped: ${unmapped.join(", ")}`,
+  );
+
+  const verdict = actionForDetermination("repairs-required");
+  rec(
+    "and asking for it refuses with the reason rather than picking the nearest lie",
+    verdict.ok === false && verdict.reason.includes("no status"),
+    verdict.ok ? "it returned an action" : verdict.reason.slice(0, 80),
+  );
+  const passes = actionForDetermination("pass");
+  rec(
+    "while a determination that does map answers with its action",
+    passes.ok === true && passes.action === "seal",
+    passes.ok ? passes.action : passes.reason,
+  );
+
+  /*
+   * A DETERMINATION RESTS ON SOMETHING OF THIS FILE'S, and the database can
+   * only check that the arrays are non-empty. That a cited item belongs to this
+   * protocol, and a cited photograph to this file, is a question only the
+   * application can ask, so it is asked and asserted here.
+   */
+  rec(
+    "a determination citing another file's photograph is refused",
+    reliedOnVerdict({
+      itemKeys: ["a"],
+      evidenceIds: ["from-another-file"],
+      protocolItemKeys: ["a"],
+      fileEvidenceIds: ["this-file"],
+    }).ok === false,
+    "a determination can only rest on evidence captured for this file",
+  );
+  rec(
+    "and one citing an item that is not in this protocol is refused by name",
+    (() => {
+      const v = reliedOnVerdict({
+        itemKeys: ["not-an-item"],
+        evidenceIds: ["this-file"],
+        protocolItemKeys: ["a"],
+        fileEvidenceIds: ["this-file"],
+      });
+      return v.ok === false && v.reason.includes("not-an-item");
+    })(),
+    "the sentence names the item rather than saying the form is invalid",
+  );
+  rec(
+    "and one that rests on nothing at all is refused, which 0051 also refuses",
+    reliedOnVerdict({ itemKeys: [], evidenceIds: [], protocolItemKeys: ["a"], fileEvidenceIds: ["x"] }).ok === false,
+    "an opinion with no record behind it",
+  );
+  rec(
+    "while a determination resting on this file's own evidence is allowed",
+    reliedOnVerdict({
+      itemKeys: ["a"],
+      evidenceIds: ["this-file"],
+      protocolItemKeys: ["a", "b"],
+      fileEvidenceIds: ["this-file", "other"],
+    }).ok === true,
+    "the rule refuses the wrong thing and not everything",
+  );
+
+  /*
+   * AND THE WRITE PATH REQUIRES ONE WHEN A SIGNED PROTOCOL GOVERNS. A source
+   * guard, stated as a proxy: what it proves is that decideReview refuses
+   * rather than that a live review does.
+   */
+  const engineer = readFileSync("src/lib/ops-engineer.ts", "utf8");
+  rec(
+    "a review of a protocol-governed file refuses without a determination",
+    /if \(governing && !determination\)/.test(engineer),
+    "Appendix C: one determination is recorded per review",
+  );
+  rec(
+    "and the action it records is derived from the determination rather than accepted beside it",
+    /const implied = actionForDetermination\(determination\.determination\);/.test(engineer),
+    "a determination of pass beside an action of decline is a record that should not exist",
   );
 }
 
