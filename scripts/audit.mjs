@@ -204,6 +204,16 @@ const PHASE_ZERO = [
     why: "a job cannot be submitted incomplete, which is the sentence the process page makes to customers",
   },
   {
+    /*
+     * The published promise against the segments behind it. Arithmetic, plus
+     * the operator's own hold: the figure exists from 2026-09-19 and reaches a
+     * page only when the firm is OPEN, because a delivery promise from a firm
+     * with no technician is a promise about fulfilment it cannot make.
+     */
+    name: "turnaround-audit",
+    why: "the published figure covers the parts behind it, and does not reach a page before the firm is open",
+  },
+  {
     name: "price-book-audit",
     why: "a price is ruled by the operator, and a margin is computed from what happened rather than from the plan",
   },
