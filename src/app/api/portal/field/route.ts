@@ -9,6 +9,8 @@ import {
   createProtocol,
   declineOffer,
   deleteCapture,
+  recordException,
+  withdrawException,
   approveProtocol,
   recordCapture,
   removeProtocolItem,
@@ -223,6 +225,32 @@ export async function POST(request: NextRequest) {
 
   if (action === "delete_capture") {
     const result = await deleteCapture(actor, String(body?.fileId ?? ""), String(body?.captureId ?? ""));
+    return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
+  }
+
+  /*
+   * THE KIND IS VALIDATED HERE RATHER THAN CAST, which the two branches above
+   * do not do and should. "not_observed" and "not_applicable" are different
+   * claims about a property, and a body carrying neither would otherwise reach
+   * the database and be refused by a check constraint, which is a constraint
+   * name where a sentence belongs.
+   */
+  if (action === "record_exception") {
+    const kind = String(body?.kind ?? "");
+    if (kind !== "not_observed" && kind !== "not_applicable") {
+      return bad("An item is either one that could not be observed or one that does not apply.");
+    }
+    const result = await recordException(
+      actor,
+      String(body?.fileId ?? ""),
+      { itemKey: String(body?.itemKey ?? ""), kind, reason: String(body?.reason ?? "") },
+      context,
+    );
+    return result.ok ? NextResponse.json({ ok: true, id: result.id }) : bad(result.error);
+  }
+
+  if (action === "withdraw_exception") {
+    const result = await withdrawException(actor, String(body?.fileId ?? ""), String(body?.itemKey ?? ""));
     return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
   }
 

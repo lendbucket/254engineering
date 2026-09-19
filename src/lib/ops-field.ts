@@ -1121,8 +1121,24 @@ export type JobView = {
   };
   protocol: ProtocolWithItems | null;
   captures: EvidenceRow[];
+  /*
+   * The items the technician recorded as unobservable or inapplicable, with
+   * their reasons. CARRIED SEPARATELY FROM `state` on purpose: `state` folds an
+   * exception into `satisfied` so the gate can open, and the engineer reviewing
+   * the package needs the rows themselves, with who recorded each and when.
+   */
+  exceptions: ExceptionRow[];
   state: ChecklistState;
   offer: { id: string; amountCents: number | null; state: OfferState } | null;
+};
+
+export type ExceptionRow = {
+  id: string;
+  item_key: string;
+  kind: "not_observed" | "not_applicable";
+  reason: string;
+  recorded_by: string;
+  recorded_at: string;
 };
 
 /**
@@ -1168,7 +1184,31 @@ export async function jobView(actor: Actor | null, fileId: string): Promise<JobV
     .eq("file_id", fileId)
     .order("created_at");
 
+  /*
+   * THE EXCEPTIONS ARE READ HERE, AND THIS READ IS THE WHOLE POINT OF THE
+   * FEATURE RATHER THAN A DETAIL OF IT.
+   *
+   * `checklistState` has taken an exceptions argument since 2026-09-19 and it
+   * defaults to an empty list. A default like that is exactly the shape of the
+   * comms-audit incident: the rule was asserted exhaustively with hand built
+   * inputs, every assertion was right, and the READ that feeds it in production
+   * had never once succeeded, so a person who turned email off was emailed
+   * anyway. Here the equivalent failure is silent and worse: the technician
+   * records why the roof could not be walked, the gate never sees it, and the
+   * package stays blocked with a blocker naming an item that has been answered.
+   *
+   * So this read exists before anything writes an exception, and
+   * `protocol-run-audit` asserts that jobView supplies it rather than only that
+   * checklistState accepts it.
+   */
+  const { data: exceptionRows } = await db
+    .from("eng_checklist_exceptions")
+    .select("id, item_key, kind, reason, recorded_by, recorded_at")
+    .eq("file_id", fileId)
+    .order("recorded_at");
+
   const rows = (captures ?? []) as EvidenceRow[];
+  const exceptions = (exceptionRows ?? []) as ExceptionRow[];
   const captured: CapturedItem[] = rows.map((r) => ({
     itemKey: r.item_key,
     kind: r.kind,
@@ -1181,7 +1221,12 @@ export async function jobView(actor: Actor | null, fileId: string): Promise<JobV
     file: file as JobView["file"],
     protocol,
     captures: rows,
-    state: checklistState(protocol?.items ?? [], captured),
+    exceptions,
+    state: checklistState(
+      protocol?.items ?? [],
+      captured,
+      exceptions.map((e) => ({ itemKey: e.item_key, reason: e.reason, kind: e.kind })),
+    ),
     offer: offer
       ? {
           id: offer.id as string,
@@ -1317,6 +1362,164 @@ export async function recordCapture(
   }
 
   return { ok: true, id: data.id };
+}
+
+/**
+ * ===========================================================================
+ * RECORDING AN ITEM THAT COULD NOT BE OBSERVED, WITH THE REASON.
+ * ===========================================================================
+ *
+ * SECTION 7 OF 254-RC-001: "the technician records each item that could not be
+ * observed and the reason. No item is estimated, assumed, or left blank."
+ * Section 8 adds the second kind: "An item that does not apply to the property
+ * is marked with the reason it does not apply."
+ *
+ * Until this existed an item was captured or it was outstanding, so a roof that
+ * genuinely could not be walked left a technician with nothing to record but a
+ * blank, and the platform was quietly asking for the one outcome the signed
+ * document rules out. The pressure that produces is the thing to see: a
+ * technician who cannot submit and cannot honestly capture will photograph
+ * SOMETHING, and that photograph reaches an engineer's review as an
+ * observation.
+ *
+ * THE TWO KINDS ARE NOT INTERCHANGEABLE AND THE CALLER CHOOSES. "I could not
+ * see it" and "there is none here" are different facts about a property, and
+ * Appendix C asks the engineer to weigh them differently. Folding them into one
+ * word would be the overloaded null this repository keeps finding.
+ */
+export type ExceptionInput = {
+  itemKey: string;
+  kind: "not_observed" | "not_applicable";
+  reason: string;
+};
+
+export async function recordException(
+  actor: Actor & { email: string },
+  fileId: string,
+  input: ExceptionInput,
+  context: Context = {},
+): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  if (!can(actor, "evidence.capture") && !can(actor, "evidence.review")) {
+    return { ok: false, error: "Your role cannot record against a checklist." };
+  }
+
+  const view = await jobView(actor, fileId);
+  if (!view) return { ok: false, error: "That job is not yours." };
+
+  /*
+   * THE SAME OFFER CHECK recordCapture CARRIES, for the same reason and not by
+   * accident. jobView opens to anybody the file was offered to so they can read
+   * the checklist before accepting; writing against it is a different act. A
+   * technician who lost the race could otherwise mark items not applicable on a
+   * job that is not theirs, and an exception is a stronger claim about a
+   * property than a photograph is.
+   */
+  if (actor.role === "field_tech" && view.file.assigned_tech_id !== actor.id) {
+    return {
+      ok: false,
+      error: view.file.assigned_tech_id
+        ? "Another technician accepted this job first."
+        : "Accept this job before recording against it.",
+    };
+  }
+
+  if (["evidence_submitted", "under_review", "sealed", "delivered", "closed", "cancelled"].includes(view.file.status)) {
+    return { ok: false, error: "This file has left the field. Recording is closed on it." };
+  }
+
+  const item = view.protocol?.items.find((i) => i.itemKey === input.itemKey);
+  if (!item) return { ok: false, error: "That item is not in this file's protocol." };
+
+  /*
+   * A REASON OF SPACES IS A BLANK WITH EXTRA STEPS, and the length is the
+   * database's rule read back rather than a second one invented here. 0051
+   * checks `length(btrim(reason)) >= 3`. This refuses the same shape early so
+   * the technician gets a sentence instead of a constraint name, and if the two
+   * ever disagree the database wins.
+   */
+  const reason = input.reason.trim();
+  if (reason.length < 3) {
+    return {
+      ok: false,
+      error: `Say why ${item.label} could not be recorded. The reason goes to the engineer who signs the letter.`,
+    };
+  }
+
+  /*
+   * AN EXCEPTION ON AN ITEM THAT IS ALREADY CAPTURED IS A CONTRADICTION, and it
+   * is refused here rather than resolved. ops-evidence treats an exception as
+   * satisfying an item only when it is NOT already satisfied, so the two would
+   * not fight; but the record would then hold a photograph of a thing and a
+   * note saying it could not be seen, and somebody reading the package years
+   * later has no way to know which the technician meant.
+   */
+  const already = view.state.items.find((s) => s.item.itemKey === input.itemKey);
+  if (already?.satisfied && !already.exception) {
+    return {
+      ok: false,
+      error: `${item.label} is already captured. Remove the capture first if it was recorded in error.`,
+    };
+  }
+
+  /*
+   * One per item, upserted on the unique index 0051 created, so a technician
+   * correcting their own wording does not accumulate two reasons for one
+   * absence. The engineer reads one answer per item or none.
+   */
+  const { data, error } = await db
+    .from("eng_checklist_exceptions")
+    .upsert(
+      {
+        file_id: fileId,
+        item_key: item.itemKey,
+        kind: input.kind,
+        reason,
+        recorded_by: actor.id,
+        recorded_at: DB_NOW,
+      },
+      { onConflict: "file_id,item_key" },
+    )
+    .select("id")
+    .single();
+  if (error || !data) return { ok: false, error: error?.message ?? "Could not record that." };
+
+  if (view.file.status === "dispatched") {
+    await transitionFile(actor, fileId, "evidence_in_progress", "First checklist entry recorded.", context);
+  }
+
+  return { ok: true, id: data.id };
+}
+
+/**
+ * Withdraw an exception, which is what happens when the technician gets back on
+ * the roof and can see the thing after all.
+ *
+ * Deleting is right here and is NOT the general rule in this schema. An
+ * exception is a working record of a job in the field, in the same class as a
+ * capture, which `deleteCapture` already removes on the same conditions. It is
+ * not a regulatory fact until the package is submitted, and after that this
+ * refuses along with everything else, because the file has left the field.
+ */
+export async function withdrawException(
+  actor: Actor & { email: string },
+  fileId: string,
+  itemKey: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  const view = await jobView(actor, fileId);
+  if (!view) return { ok: false, error: "That job is not yours." };
+  if (view.file.status !== "evidence_in_progress" && view.file.status !== "revisions_requested") {
+    return { ok: false, error: "Entries can only be withdrawn while the file is still in the field." };
+  }
+  const { error } = await db
+    .from("eng_checklist_exceptions")
+    .delete()
+    .eq("file_id", fileId)
+    .eq("item_key", itemKey);
+  return error ? { ok: false, error: error.message } : { ok: true };
 }
 
 export async function deleteCapture(

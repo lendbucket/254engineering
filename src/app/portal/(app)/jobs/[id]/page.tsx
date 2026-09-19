@@ -109,6 +109,11 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
             valueNumber: c.value_number === null ? null : Number(c.value_number),
             storageKey: c.storage_key,
           }))}
+          exceptions={view.exceptions.map((e) => ({
+            itemKey: e.item_key,
+            kind: e.kind,
+            reason: e.reason,
+          }))}
         />
       ) : (
         <div className="rounded-[4px] border border-[var(--border)] bg-white px-4 py-4">

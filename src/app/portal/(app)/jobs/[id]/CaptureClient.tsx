@@ -4,11 +4,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   checklistState,
-  itemStatus,
   newCaptureId,
   progressLabel,
   type CapturedItem,
   type EvidenceKind,
+  type ItemException,
   type ProtocolItem,
 } from "@/lib/ops-evidence";
 import { dequeue, enqueue, flushOne, markAttempt, pendingFor, positionOrNull, type QueuedCapture } from "@/lib/offline-queue";
@@ -67,16 +67,24 @@ const KIND_VERB: Record<EvidenceKind, string> = {
   note: "Write the note",
 };
 
+type ServerException = {
+  itemKey: string;
+  kind: "not_observed" | "not_applicable";
+  reason: string;
+};
+
 export function Checklist({
   fileId,
   items,
   captures,
+  exceptions,
   protocolName,
   readOnly,
 }: {
   fileId: string;
   items: Item[];
   captures: ServerCapture[];
+  exceptions: ServerException[];
   protocolName: string;
   readOnly: boolean;
 }) {
@@ -196,7 +204,35 @@ export function Checklist({
     [captures, queue],
   );
 
-  const state = useMemo(() => checklistState(protocolItems, captured), [protocolItems, captured]);
+  /**
+   * Everything recorded as an absence: on the server, plus anything still
+   * queued, for the same reason a queued photograph counts. A technician who
+   * has typed the reason has answered the item, and showing it as outstanding
+   * until the signal returns would invite them to answer it twice.
+   */
+  const recordedAbsences: ItemException[] = useMemo(
+    () => [
+      ...exceptions.map((e) => ({ itemKey: e.itemKey, kind: e.kind, reason: e.reason })),
+      ...queue
+        .filter((q) => q.exception)
+        .map((q) => ({ itemKey: q.itemKey, kind: q.exception!.kind, reason: q.exception!.reason })),
+    ],
+    [exceptions, queue],
+  );
+
+  /*
+   * THE EXCEPTIONS ARE PASSED, AND THIS IS THE SAME WIRING THE SERVER NEEDED.
+   *
+   * checklistState's third argument defaults to an empty list, so a caller that
+   * forgets it gets a gate that silently cannot see an absence. Two callers
+   * compute this state, here and in jobView, and BOTH had to be taught. A
+   * default that reads as "none recorded" is indistinguishable from "nobody
+   * asked", which is the overloaded null this repository keeps meeting.
+   */
+  const state = useMemo(
+    () => checklistState(protocolItems, captured, recordedAbsences),
+    [protocolItems, captured, recordedAbsences],
+  );
 
   async function capture(item: Item, payload: { blob?: Blob; text?: string; value?: number }) {
     setError(null);
@@ -225,6 +261,68 @@ export function Checklist({
       setError("This phone would not store that locally. Stay in signal and it will upload directly.");
     }
     if (navigator.onLine) void flush();
+  }
+
+  /**
+   * Record why an item could not be done. Section 7 of the signed protocol: no
+   * item is estimated, assumed, or left blank.
+   *
+   * It goes through the same queue as a capture, so it survives a reload and a
+   * dead patch of signal. Nothing about this path is faster than a capture on
+   * purpose: the technician has stopped to type a sentence either way, and the
+   * one thing that must not be quick is recording an absence by accident.
+   */
+  async function recordAbsence(item: Item, kind: "not_observed" | "not_applicable", reason: string) {
+    setError(null);
+    const entry: QueuedCapture = {
+      id: newCaptureId(),
+      fileId,
+      itemKey: item.itemKey,
+      kind: item.kind,
+      exception: { kind, reason },
+      capturedAt: new Date().toISOString(),
+      attempts: 0,
+    };
+    try {
+      await enqueue(entry);
+      await refreshQueue();
+    } catch {
+      setError("This phone would not store that locally. Stay in signal and it will send directly.");
+    }
+    if (navigator.onLine) void flush();
+  }
+
+  /**
+   * Take it back, which is what happens when the technician gets onto the roof
+   * after all.
+   *
+   * A queued absence is dropped from the queue; a recorded one is withdrawn on
+   * the server. Both are the same act to the person doing it, and the two
+   * branches exist because the row is in two different places.
+   */
+  async function withdrawAbsence(item: Item) {
+    setError(null);
+    const queued = queue.find((q) => q.itemKey === item.itemKey && q.exception);
+    if (queued) {
+      await dequeue(queued.id);
+      await refreshQueue();
+      return;
+    }
+    try {
+      const res = await fetch("/api/portal/field", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "withdraw_exception", fileId, itemKey: item.itemKey }),
+      });
+      const body = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+      if (!res.ok || !body?.ok) {
+        setError(body?.error ?? "That did not work.");
+        return;
+      }
+      router.refresh();
+    } catch {
+      setError("The network dropped that. Try again when you have signal.");
+    }
   }
 
   async function submit() {
@@ -303,11 +401,19 @@ export function Checklist({
 
       <ol className="flex flex-col gap-3">
         {items.map((item, index) => {
-          const status = itemStatus(
-            protocolItems[index],
-            captured.filter((c) => c.itemKey === item.itemKey),
-          );
-          const mine = queue.filter((q) => q.itemKey === item.itemKey);
+          /*
+           * READ OFF THE ONE STATE RATHER THAN RECOMPUTED PER ROW.
+           *
+           * This called itemStatus again for each item, which was a second
+           * answer to the question the gate had just answered, and it went
+           * wrong the moment exceptions existed: the row would have shown an
+           * item as outstanding while the submit button, reading the state that
+           * knows about absences, said the package was ready. Two right answers
+           * to one question, until one of them learns something the other has
+           * not.
+           */
+          const status = state.items[index];
+          const mine = queue.filter((q) => q.itemKey === item.itemKey && !q.exception);
           const needed = item.kind === "photo" ? Math.max(1, item.minCount ?? 1) : 1;
 
           return (
@@ -332,13 +438,30 @@ export function Checklist({
                       {item.instructions}
                     </p>
                   ) : null}
+                  {/*
+                    * AN ABSENCE READS AS AN ABSENCE, NEVER AS "CAPTURED".
+                    *
+                    * Both open the gate, and they are not the same fact. The
+                    * engineer weighs a recorded absence differently from a
+                    * photograph, and a technician who sees "Captured" beside an
+                    * item they never saw will assume somebody else did it.
+                    */}
                   <p className="mt-1.5 text-[13.5px] font-semibold text-[var(--secondary)]">
-                    {status.satisfied
-                      ? item.kind === "photo" && needed > 1
-                        ? `${status.captured} of ${needed} captured`
-                        : "Captured"
-                      : status.problem}
+                    {status.exception
+                      ? status.exception.kind === "not_applicable"
+                        ? "Marked as not applicable"
+                        : "Marked as could not be observed"
+                      : status.satisfied
+                        ? item.kind === "photo" && needed > 1
+                          ? `${status.captured} of ${needed} captured`
+                          : "Captured"
+                        : status.problem}
                   </p>
+                  {status.exception ? (
+                    <p className="mt-1 max-w-[65ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+                      &ldquo;{status.exception.reason}&rdquo;
+                    </p>
+                  ) : null}
                 </div>
               </div>
 
@@ -359,8 +482,24 @@ export function Checklist({
                 </ul>
               ) : null}
 
-              {readOnly ? null : (
-                <CaptureControl item={item} onCapture={(payload) => void capture(item, payload)} />
+              {readOnly ? null : status.exception ? (
+                <button
+                  type="button"
+                  onClick={() => void withdrawAbsence(item)}
+                  className="mt-3 inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] px-3 text-[13.5px] font-semibold text-[var(--navy)]"
+                >
+                  I can record this after all
+                </button>
+              ) : (
+                <>
+                  <CaptureControl item={item} onCapture={(payload) => void capture(item, payload)} />
+                  {status.satisfied ? null : (
+                    <AbsenceControl
+                      label={item.label}
+                      onRecord={(kind, reason) => void recordAbsence(item, kind, reason)}
+                    />
+                  )}
+                </>
               )}
             </li>
           );
@@ -436,6 +575,124 @@ export function Checklist({
  * is a file picker, which is what an administrator attaching something on behalf
  * of a technician needs, so one element serves both without a branch.
  */
+/**
+ * RECORDING WHY AN ITEM COULD NOT BE DONE.
+ *
+ * DESIGNED AGAINST BEING EASY, which is the opposite of everything else on this
+ * screen. Capture is one tap because a technician with gloves on is doing it
+ * fifty one times. This is three deliberate acts, closed by default, because
+ * the failure mode it guards is not a slow technician: it is a quick one
+ * clearing the last four items on the way to the truck.
+ *
+ * Section 7 of the signed protocol is the whole reason it exists at all. "The
+ * technician records each item that could not be observed and the reason. No
+ * item is estimated, assumed, or left blank." Before this, a roof that could not
+ * be walked left them with nothing honest to do, and the pressure of a gate
+ * that will not open is what produces a photograph of something else.
+ *
+ * The two kinds are separate buttons rather than a dropdown. "I could not see
+ * it" and "there is none here" are different claims about a property and the
+ * engineer weighs them differently, so the technician chooses one and the
+ * screen never picks a default.
+ */
+function AbsenceControl({
+  label,
+  onRecord,
+}: {
+  label: string;
+  onRecord: (kind: "not_observed" | "not_applicable", reason: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [kind, setKind] = useState<"not_observed" | "not_applicable" | null>(null);
+  const [reason, setReason] = useState("");
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="mt-2 inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-[var(--secondary)] underline underline-offset-4"
+      >
+        I cannot record this one
+      </button>
+    );
+  }
+
+  const chip = (value: "not_observed" | "not_applicable", text: string) => (
+    <button
+      type="button"
+      onClick={() => setKind(value)}
+      aria-pressed={kind === value}
+      className={`inline-flex min-h-[44px] flex-1 items-center justify-center rounded-[3px] border px-3 text-[13.5px] font-semibold ${
+        kind === value
+          ? "border-[var(--navy)] bg-[var(--navy)] text-white"
+          : "border-[var(--border)] bg-white text-[var(--navy)]"
+      }`}
+    >
+      {text}
+    </button>
+  );
+
+  return (
+    <div className="mt-3 rounded-[4px] border border-[var(--border)] bg-[var(--surface-muted,#f7f7f5)] p-3">
+      <p className="text-[13.5px] leading-[1.5] font-semibold text-[var(--navy)]">
+        Which is it?
+      </p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {chip("not_observed", "Could not see it")}
+        {chip("not_applicable", "Does not apply here")}
+      </div>
+
+      <label htmlFor={`why-${label}`} className="mt-3 block text-[13.5px] font-semibold text-[var(--navy)]">
+        Why
+      </label>
+      <p className="mt-0.5 text-[13.5px] leading-[1.5] text-[var(--secondary)]">
+        The engineer reads this before signing. Say what you saw and what stopped you.
+      </p>
+      <textarea
+        id={`why-${label}`}
+        value={reason}
+        onChange={(e) => setReason(e.target.value)}
+        rows={3}
+        className="mt-1.5 w-full rounded-[3px] border border-[var(--border)] bg-white p-2.5 text-[16px] leading-[1.5] text-[var(--navy)]"
+      />
+
+      <div className="mt-2.5 flex flex-wrap gap-2">
+        <button
+          type="button"
+          disabled={kind === null || reason.trim().length < 3}
+          onClick={() => {
+            if (kind === null) return;
+            onRecord(kind, reason.trim());
+            setOpen(false);
+            setKind(null);
+            setReason("");
+          }}
+          className="inline-flex min-h-[44px] items-center rounded-[3px] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Record this
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(false);
+            setKind(null);
+            setReason("");
+          }}
+          className="inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] px-4 text-[13.5px] font-semibold text-[var(--navy)]"
+        >
+          Cancel
+        </button>
+      </div>
+      {kind !== null && reason.trim().length > 0 && reason.trim().length < 3 ? (
+        <p className="mt-2 text-[13.5px] leading-[1.5] text-[var(--secondary)]">
+          A few words at least. This goes on the record beside the engineer&rsquo;s seal.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 function CaptureControl({
   item,
   onCapture,

@@ -221,6 +221,81 @@ if (conditional.length > 0) {
   );
 }
 
+/* -- 1d. the read that feeds the gate, which is the half a pure check cannot see */
+
+/*
+ * A RULE TESTED WITH ITS INPUT HANDED TO IT SAYS NOTHING ABOUT THE READ THAT
+ * FEEDS IT IN PRODUCTION. That is CLAUDE.md's standing law and it is the exact
+ * shape of the hazard here, so it is asserted rather than trusted.
+ *
+ * `checklistState(items, captures, exceptions = [])` has a DEFAULT on its third
+ * argument, which means a caller that never learned about exceptions compiles,
+ * runs, and silently computes a gate that cannot see an absence. The technician
+ * types why the roof could not be walked, the gate never hears it, and the
+ * package stays blocked by a blocker naming an item that has been answered.
+ *
+ * There were TWO callers and both had to be taught: jobView on the server and
+ * the Checklist component on the phone. The second was found by looking rather
+ * than by anything failing, because nothing fails.
+ *
+ * WHAT THIS IS AND IS NOT. It is a source check and therefore a stated PROXY:
+ * it proves every call site passes a third argument, not that the argument
+ * holds the right rows. What would prove the whole chain is a live walk that
+ * records an exception against a real file on development and watches the gate
+ * open, and that is not built tonight. The gap is named here rather than
+ * papered over.
+ */
+{
+  const callers = [
+    ["src/lib/ops-field.ts", "the server gate, which is what actually refuses a submission"],
+    ["src/app/portal/(app)/jobs/[id]/CaptureClient.tsx", "the technician's phone, which is what disables the button"],
+  ];
+
+  for (const [path, why] of callers) {
+    const body = readFileSync(path, "utf8");
+    const calls = [...body.matchAll(/checklistState\(([\s\S]*?)\)\s*[,;)]/g)].map((m) => m[1]);
+    const everyCallHasThree = calls.length > 0 && calls.every((args) => args.split(",").length >= 3);
+    rec(
+      `${path.split("/").pop()} passes the recorded absences to the gate`,
+      everyCallHasThree,
+      calls.length === 0 ? "it does not call checklistState at all, so this check is measuring nothing" : why,
+    );
+  }
+
+  /*
+   * AND THE READ EXISTS AT ALL. The check above would pass if jobView passed an
+   * empty array it had invented, which is the one way to satisfy a shape check
+   * while answering nothing.
+   */
+  const field = readFileSync("src/lib/ops-field.ts", "utf8");
+
+  /*
+   * SCOPED TO jobView'S OWN BODY, and the first version was not. It searched
+   * the whole file for a read of eng_checklist_exceptions near a file_id, and
+   * ops-field.ts has three: jobView's, recordException's upsert, and
+   * withdrawException's delete. Deleting the READ entirely left the check green
+   * on withdrawException's query, which is the matcher whose window reached
+   * into its neighbour, recorded in CLAUDE.md, met again.
+   *
+   * The body is taken from the function's own declaration to the start of the
+   * next top level declaration, so "near" is replaced by "inside".
+   */
+  const jobViewBody =
+    field.split("export async function jobView(")[1]?.split("\n/**")[0] ?? "";
+  rec(
+    "and the rows it passes are read from the table, inside jobView itself",
+    jobViewBody.length > 0 && /\.from\("eng_checklist_exceptions"\)/.test(jobViewBody),
+    jobViewBody.length === 0
+      ? "jobView was not found, so this check is measuring nothing"
+      : "jobView selects the exceptions for this file",
+  );
+  rec(
+    "and a job carries them out to the engineer as rows, not folded into a boolean",
+    /exceptions: ExceptionRow\[\];/.test(field),
+    "a photograph and a recorded absence are different facts at review",
+  );
+}
+
 /* ----------- 2. the gate, which lives in ops-evidence and not in a second file */
 
 /*
