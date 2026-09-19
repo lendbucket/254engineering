@@ -113,6 +113,93 @@ export function runView(input: {
   };
 }
 
+/**
+ * ===========================================================================
+ * THE BRIDGE: THE SIGNED PROTOCOL'S ITEMS AS eng_protocol_items ROWS.
+ * ===========================================================================
+ *
+ * Operator ruling, 2026-09-19, on seeding the 51 items when the engineer
+ * approves the protocol: "That is not approving on his behalf; it is his
+ * approval taking effect. A protocol that is approved and whose items do not
+ * exist is approved in name only, and the rows are created by his act rather
+ * than before it."
+ *
+ * HIS SECOND CONDITION IS WHY THIS FUNCTION EXISTS RATHER THAN A HAND WRITTEN
+ * SEED: the rows derive from the registry, which is verified verbatim against
+ * the signed PDF, so what a technician is dispatched against is what the
+ * engineer signed rather than a re-typing of it.
+ *
+ * WHERE DRIFT COULD STILL ENTER, STATED PLAINLY. The registry and
+ * eng_protocol_items have different shapes, so this is a MAPPING, and a mapping
+ * is a place a transcription can go wrong even when both ends are correct.
+ * `protocol-run-audit` asserts the round trip: every registry item appears
+ * exactly once, every key survives, and the count matches. That check is the
+ * point of separating this function out rather than inlining it in the seeder.
+ *
+ * THE KIND IS DERIVED FROM WHAT THE DOCUMENT ASKS FOR, not chosen. An item the
+ * document marks [PHOTO] is a photo item; one carrying a capture prompt is the
+ * kind that prompt implies; the rest are notes. Nothing here invents a
+ * requirement the document does not state.
+ */
+export type ProtocolItemRow = {
+  sort_order: number;
+  item_key: string;
+  kind: "photo" | "measurement" | "reading" | "document" | "note";
+  label: string;
+  instructions: string | null;
+  required: boolean;
+  unit: string | null;
+  min_value: number | null;
+  max_value: number | null;
+  min_count: number | null;
+};
+
+function kindFor(item: ChecklistItem): ProtocolItemRow["kind"] {
+  if (item.photo) return "photo";
+  if (item.capture?.kind === "count") return "measurement";
+  if (item.capture?.kind === "temperature") return "reading";
+  return "note";
+}
+
+/**
+ * Every item of the signed protocol, as rows, in document order.
+ *
+ * EVERY ITEM IS REQUIRED, AND THAT IS THE DOCUMENT'S POSITION RATHER THAN A
+ * CONVENIENCE. Section 7: "No item is estimated, assumed, or left blank." An
+ * item a technician may silently skip is exactly the blank the protocol
+ * forbids. What the document allows instead is an EXCEPTION with a reason,
+ * which `ops-evidence` treats as satisfying the item, so nothing here needs an
+ * optional tier to let a job finish honestly.
+ */
+export function protocolItemRows(): ProtocolItemRow[] {
+  return RC001_CHECKLIST.map((item, index) => ({
+    sort_order: index,
+    item_key: item.key,
+    kind: kindFor(item),
+    label: item.label,
+    /*
+     * The instruction carries what the document asks for beyond the label: a
+     * ruler in frame, one capture per occurrence, and the capture prompt. It is
+     * assembled from the item's own flags rather than written out, so a flag
+     * that changes in the registry changes what the technician is told.
+     */
+    instructions:
+      [
+        item.ruler ? "Ruler in frame." : null,
+        item.perOccurrence ? "One capture per occurrence." : null,
+        item.capture ? `Record: ${item.capture.prompt}` : null,
+        item.coveringOnly ? `Applies to ${item.coveringOnly} coverings only.` : null,
+      ]
+        .filter(Boolean)
+        .join(" ") || null,
+    required: true,
+    unit: item.capture?.kind === "temperature" ? "F" : null,
+    min_value: null,
+    max_value: null,
+    min_count: null,
+  }));
+}
+
 /*
  * ===========================================================================
  * THE SUBMIT GATE IS NOT HERE, AND IT WAS, FOR TWO COMMITS.

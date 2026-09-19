@@ -23,7 +23,7 @@ console.log("");
 console.log("============ WORKING A PROTOCOL ON A JOB ============");
 console.log("");
 
-const { itemsFor } = await import("../src/lib/protocol-run.ts");
+const { itemsFor, protocolItemRows } = await import("../src/lib/protocol-run.ts");
 const { RC001_CHECKLIST } = await import("../src/content/protocols/rc-001-checklist.ts");
 const { checklistState } = await import("../src/lib/ops-evidence.ts");
 
@@ -62,6 +62,87 @@ if (conditional.length > 0) {
     "and an unknown covering is never shorter than a known one",
     all.length >= forCovering.length,
     `${all.length} unknown, ${forCovering.length} for ${covering}`,
+  );
+}
+
+/* ------------- 1b. the bridge: the signed items as rows, round tripped */
+
+/*
+ * THE MAPPING IS WHERE DRIFT COULD STILL ENTER even though both ends are
+ * correct, which is why it is a separate function with its own check rather
+ * than inlined in a seeder. The operator's condition on approval seeding was
+ * that the rows derive from the registry, so what a technician is dispatched
+ * against is what the engineer signed rather than a re-typing of it. These
+ * assert the round trip rather than trusting it.
+ */
+{
+  const rows = protocolItemRows();
+
+  rec(
+    "every item in the signed protocol becomes exactly one row",
+    rows.length === RC001_CHECKLIST.length,
+    `${rows.length} rows from ${RC001_CHECKLIST.length} items`,
+  );
+
+  const rowKeys = rows.map((r) => r.item_key);
+  const registryKeys = RC001_CHECKLIST.map((i) => i.key);
+  /*
+   * THE NOTE NAMES THE FIRST DISAGREEMENT rather than describing the lengths.
+   * It said "keys and order match" beside its own FAIL when the injection
+   * reversed the list, because it was computed from the two lengths and a
+   * reordering does not change a length. A sentence that contradicts the verdict
+   * beside it is the reassuring false negative this repository keeps finding.
+   */
+  const firstDrift = registryKeys.findIndex((k, i) => rowKeys[i] !== k);
+  rec(
+    "and every key survives the mapping, in document order",
+    JSON.stringify(rowKeys) === JSON.stringify(registryKeys),
+    firstDrift === -1 && rowKeys.length === registryKeys.length
+      ? `${rowKeys.length} keys, same order`
+      : `first disagreement at ${firstDrift}: expected ${registryKeys[firstDrift]}, got ${rowKeys[firstDrift] ?? "nothing"}`,
+  );
+  rec(
+    "and no key is duplicated, which the unique index would refuse anyway",
+    new Set(rowKeys).size === rowKeys.length,
+    `${new Set(rowKeys).size} distinct`,
+  );
+
+  const labelMismatch = rows.filter(
+    (r, i) => r.label !== RC001_CHECKLIST[i].label,
+  );
+  rec(
+    "and every label is the document's line rather than a paraphrase",
+    labelMismatch.length === 0,
+    labelMismatch.map((r) => r.item_key).join(", ") || `${rows.length} labels carried through`,
+  );
+
+  /*
+   * EVERY ITEM IS REQUIRED, AND THAT IS THE DOCUMENT'S POSITION. Section 7 says
+   * no item is estimated, assumed or left blank, so an item a technician may
+   * silently skip is the blank the protocol forbids. The honest way to finish a
+   * job without an observation is an exception with a reason, not an optional
+   * item.
+   */
+  rec(
+    "every row is required, because an optional item is the blank section 7 forbids",
+    rows.every((r) => r.required === true),
+    `${rows.filter((r) => r.required).length} of ${rows.length}`,
+  );
+
+  const photoRows = rows.filter((r) => r.kind === "photo").length;
+  const photoItems = RC001_CHECKLIST.filter((i) => i.photo).length;
+  rec(
+    "and an item the document marks for a photograph maps to a photo row",
+    photoRows === photoItems,
+    `${photoRows} photo rows, ${photoItems} marked in the document`,
+  );
+
+  const rulerRows = rows.filter((r) => (r.instructions ?? "").includes("Ruler in frame"));
+  const rulerItems = RC001_CHECKLIST.filter((i) => i.ruler).length;
+  rec(
+    "and the ruler requirement reaches the technician rather than staying in the registry",
+    rulerRows.length === rulerItems,
+    `${rulerRows.length} of ${rulerItems} carry it`,
   );
 }
 
