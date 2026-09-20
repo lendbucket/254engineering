@@ -73,9 +73,7 @@
  * since the day it was written.
  */
 
-import { deliverablePriceCents, minimumEngagementCents, money } from "@/config/prices";
-import { TECHNICIAN_CALL_CENTS } from "@/config/cost-inputs";
-import { engineerPayCents, tierForDeliverable } from "@/config/engineer-pay";
+import { minimumEngagementCents, money } from "@/config/prices";
 
 export type TradeFloor =
   | {
@@ -205,34 +203,20 @@ export type TradeFloor =
 const BY = "the operator";
 const ON = "2026-09-20";
 
-/**
- * The sentence a held deliverable carries, COMPUTED from the price and the cost
- * rather than typed.
+/*
+ * `heldOnTier` WAS HERE AND WENT WITH THE RULING THAT EMPTIED IT.
  *
- * The two held lines are held because the tier assignment makes them
- * unsellable, and saying so means naming a price and a cost. Typing either
- * would put a third home in a file that exists to stop exactly that, and would
- * go stale the moment the tier question is answered. So it is derived, and when
- * Aman rules the tier this sentence changes by itself.
+ * It computed the sentence a held deliverable carried, from the price and the
+ * cost, for the two lines held on the tier question. Both were ruled on
+ * 2026-09-20 and nothing is held any more, so it computed a sentence about a
+ * state that no longer occurs.
+ *
+ * Operator ruling, and it is the reason this paragraph exists rather than the
+ * function: **dead code that computes a sentence about a state that no longer
+ * occurs is a thing somebody reads and believes.** It is worse than an unused
+ * constant, because it looks like a live explanation of a live case, and the
+ * next reader has no way to tell that nothing calls it.
  */
-function heldOnTier(serviceSlug: string, tier: string): string {
-  const priceCents = deliverablePriceCents(serviceSlug, tier);
-  const payTier = tierForDeliverable(serviceSlug, tier);
-  if (priceCents === null || payTier === null) {
-    return "This deliverable is held pending a tier assignment, and neither its price nor its tier can be read, which is a drift the board fails on rather than a decision.";
-  }
-  const costCents = TECHNICIAN_CALL_CENTS + engineerPayCents(payTier);
-  const marginCents = priceCents - costCents;
-  const verdict =
-    marginCents < 0
-      ? `loses ${money(-marginCents)} at list before any discount`
-      : `leaves ${money(marginCents)} at list before any discount`;
-  return (
-    `No floor is ruled for this deliverable because its tier assignment makes it unsellable at trade pricing, which is a question for the engineer of record rather than a pricing decision. ` +
-    `At tier ${payTier} it costs ${money(costCents)}, a technician call of ${money(TECHNICIAN_CALL_CENTS)} plus ${money(engineerPayCents(payTier))} of engineer production, against a list price of ${money(priceCents)}, so it ${verdict}. ` +
-    `A floor beneath a price that cannot carry its own cost would be a number with nothing behind it.`
-  );
-}
 
 /**
  * Why a design deliverable is owed no floor, COMPUTED from the price book so
@@ -274,8 +258,12 @@ export const TRADE_FLOORS: Record<string, TradeFloor> = {
     on: ON,
   },
   "foundation-inspections/standard": {
-    state: "pending",
-    because: heldOnTier("foundation-inspections", "standard"),
+    state: "set",
+    floorCents: 42_500,
+    because:
+      "Foundation certification. Held briefly on 2026-09-20 while its tier mapping read tier 2, at which its cost left almost nothing at list, and ruled the same day when the mapping was corrected to tier 1. That mapping is provisional: no job has run, so it is revisited after ten real ones against recorded time, and this floor is revisited with it.",
+    by: BY,
+    on: ON,
   },
   "manufactured-home-foundation-certifications/standard": {
     state: "set",
@@ -301,8 +289,12 @@ export const TRADE_FLOORS: Record<string, TradeFloor> = {
     on: ON,
   },
   "repair-specifications/standard": {
-    state: "pending",
-    because: heldOnTier("repair-specifications", "standard"),
+    state: "set",
+    floorCents: 32_500,
+    because:
+      "Repair specification. Held briefly on 2026-09-20 while its tier mapping read tier 2, at which its cost exceeded its list price and it lost money before any discount, and ruled the same day when the mapping was corrected to tier 1. That mapping is provisional: no job has run, so it is revisited after ten real ones against recorded time, and this floor is revisited with it.",
+    by: BY,
+    on: ON,
   },
 
   /* ------------------------------------ hourly with a minimum, so no floor */

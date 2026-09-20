@@ -60,18 +60,47 @@ import { TRADE_FLOORS, floorKey } from "../src/config/trade-floors.ts";
 const FLOORS_FILE = "src/config/trade-floors.ts";
 
 /*
- * THE TWO DELIBERATELY HELD DELIVERABLES, WHICH IS WHAT THIS FIXTURE MAY TOUCH.
- * One is patched to a fixture floor to exercise the floor itself; the other is
- * left pending to exercise the refusal. Both are held on the same open tier
- * question, so neither is a decision this run writes over.
+ * =========================================================================
+ * THE DAY THE LAST PENDING FLOOR WAS RULED, THE CHECK PROVING PENDING WORKS
+ * STOPPED HAVING ANYTHING TO PROVE. Operator ruling, 2026-09-20.
+ * =========================================================================
+ *
+ * This fixture used to find a pending floor and patch it to a set one. On
+ * 2026-09-20 the operator ruled the last two, so **every floor is now set and
+ * there is no pending entry anywhere.** The pending checks below would have
+ * gone on printing three green lines over a subject that no longer exists.
+ *
+ * **EVERY CHECK WHOSE SUBJECT IS A TRANSITIONAL STATE HAS THAT PROPERTY, AND IT
+ * EXPIRES AT THE MOMENT OF SUCCESS.** The pending-floor check was at its most
+ * valuable while floors were unruled, and became vacuous the day the firm
+ * finished the thing it was watching. Nothing about the green says so. It is
+ * the vacuous green with a clock on it: not a check pointed at the wrong thing,
+ * but a check pointed at something the firm was deliberately trying to stop
+ * having. Others in this repository share the shape and are owed a survey: the
+ * prelaunch half of every gated check, `awaiting_engineer` on the protocol
+ * status column, the pending entries in the schema ledger, and
+ * `operatingNameOnBoardRecord`.
+ *
+ * So the subject is BUILT rather than found, which is what this file's header
+ * already says about the fixture floor. Two real deliverables are patched for
+ * the length of the run, one down to `pending` and one across to a fixture
+ * floor, and both are restored in a `finally` that fails the run loudly if the
+ * file is not put back.
+ *
+ * **PATCHING A RULED FLOOR IS WRITING OVER A DECISION ABOUT MONEY**, briefly,
+ * and the operator ruled it a cost worth paying when the alternative is a check
+ * that can never fail. The loud restore is what makes it safe, so do not
+ * weaken it.
  */
 const FIXTURE_SLUG = "repair-specifications";
 const FIXTURE_TIER = "standard";
 const FIXTURE_FLOOR = 30000;
 
-/** Left pending on purpose, so the pending refusal has a real subject. */
+/** Patched DOWN to pending for the run, so the pending refusal has a subject. */
 const PENDING_SLUG = "foundation-inspections";
 const PENDING_TIER = "standard";
+const PENDING_BECAUSE =
+  "AUDIT FIXTURE. Not a ruling. Written by trade-pricing-audit to give the pending refusal a subject, and removed at the end of the run.";
 
 /** Owed no floor at all, which is a third answer and not a pending one. */
 const NO_FLOOR_SLUG = "residential-light-commercial-design";
@@ -127,13 +156,40 @@ const say = (l) => console.log(l);
     unowned.length ? `A FLOOR WITH NO AUTHOR: ${unowned.join(", ")}` : "",
   );
 
+  /*
+   * AND EVERY ENTRY SAYS WHY, WHATEVER STATE IT IS IN.
+   *
+   * This used to ask it of the PENDING entries only, which was right while all
+   * ten were pending and became vacuous on 2026-09-20 when the last two were
+   * ruled: `every` over an empty list is true, so the check would have passed
+   * for ever without reading a single sentence. A filter whose subject the firm
+   * is deliberately emptying is a check with an expiry date on it.
+   *
+   * Asked of ALL of them, it cannot empty, and it covers the two new states.
+   */
   const pending = Object.entries(TRADE_FLOORS).filter(([, v]) => v.state === "pending");
+  const silent = Object.entries(TRADE_FLOORS)
+    .filter(([, v]) => (v.because ?? "").trim().length <= 40)
+    .map(([k]) => k);
   rec(
-    `and every pending entry says what it is waiting for (${pending.length} pending)`,
-    pending.every(([, v]) => (v.because ?? "").trim().length > 40),
-    pending.length === declared.length
-      ? "all of them, which is the correct state until the operator rules"
-      : `${pending.length} of ${declared.length}`,
+    `every entry says why it is in the state it is in (${declared.length} entries, ${pending.length} pending)`,
+    declared.length > 5 && silent.length === 0,
+    silent.length === 0
+      ? `${declared.length} checked, none of them silent`
+      : `NO REASON GIVEN: ${silent.join(", ")}`,
+  );
+
+  /*
+   * AND EVERY STATE THE TYPE ALLOWS IS EXERCISED BY A REAL ENTRY, or the
+   * register is not the thing this audit thinks it is testing. `pending` is
+   * deliberately absent from this list: it is a transitional state the firm has
+   * now left, and the fixture builds it rather than the register carrying one.
+   */
+  const states = new Set(Object.values(TRADE_FLOORS).map((v) => v.state));
+  rec(
+    "the register carries both settled states, set and minimum-engagement",
+    states.has("set") && states.has("minimum-engagement"),
+    [...states].sort().join(", "),
   );
 }
 
@@ -288,23 +344,47 @@ function patchFloorIn() {
    * that attaches to its neighbour, five instances of which are recorded in
    * CLAUDE.md. Failing loudly on a reshape is the behaviour worth keeping.
    */
-  const key =
-    `  "${floorKey(FIXTURE_SLUG, FIXTURE_TIER)}": {\n` +
-    `    state: "pending",\n` +
-    `    because: heldOnTier("${FIXTURE_SLUG}", "${FIXTURE_TIER}"),\n` +
-    `  },`;
-  if (!original.includes(key)) {
-    throw new Error(
-      `${FLOORS_FILE} does not carry ${floorKey(FIXTURE_SLUG, FIXTURE_TIER)} as pending in the shape this ` +
-        "fixture knows, so it does not know what it is patching. Either the operator has ruled that floor, " +
-        "in which case this fixture should target another pending one, or the shape changed.",
-    );
-  }
-  const replacement =
+  /*
+   * BOTH SUBJECTS ARE BUILT FROM RULED ENTRIES, WHICH IS WHAT A `set` REGISTER
+   * LEAVES AVAILABLE. Each is located by its KEY LINE and replaced from that
+   * line to the line that closes it, and the line that closes it is ASSERTED to
+   * be the two space `  },` rather than assumed, because a window that runs to
+   * the next brace it happens to find is the matcher that attaches to its
+   * neighbour.
+   */
+  const replaceEntry = (text, key, replacement) => {
+    const opener = `  "${key}": {`;
+    const start = text.indexOf(opener);
+    if (start === -1) {
+      throw new Error(
+        `${FLOORS_FILE} does not carry ${key} as a multi line entry, so this fixture does not know what it ` +
+          "is patching. Either the register was reshaped or that deliverable is gone.",
+      );
+    }
+    const end = text.indexOf("\n  },", start);
+    if (end === -1) {
+      throw new Error(`${FLOORS_FILE}: ${key} is not closed by a two space brace, so its extent cannot be established.`);
+    }
+    const extent = text.slice(start, end + "\n  },".length);
+    if (extent.includes('": {', opener.length)) {
+      throw new Error(`${FLOORS_FILE}: the span taken for ${key} reaches into the entry after it. Refusing to write.`);
+    }
+    return text.slice(0, start) + replacement + text.slice(end + "\n  },".length);
+  };
+
+  const setEntry =
     `  "${floorKey(FIXTURE_SLUG, FIXTURE_TIER)}": { state: "set", floorCents: ${FIXTURE_FLOOR}, ` +
     `because: "AUDIT FIXTURE. Not a floor. Written by trade-pricing-audit and removed at the end of the run.", ` +
     `by: "AUDIT FIXTURE, NOT THE OPERATOR", on: "2099-12-31" },`;
-  writeFileSync(FLOORS_FILE, original.replace(key, replacement));
+  const pendingEntry =
+    `  "${floorKey(PENDING_SLUG, PENDING_TIER)}": { state: "pending", because: ${JSON.stringify(PENDING_BECAUSE)} },`;
+
+  let patched = replaceEntry(original, floorKey(FIXTURE_SLUG, FIXTURE_TIER), setEntry);
+  patched = replaceEntry(patched, floorKey(PENDING_SLUG, PENDING_TIER), pendingEntry);
+  if (patched === original) {
+    throw new Error(`${FLOORS_FILE} was not changed by the fixture, so everything below would measure the real register.`);
+  }
+  writeFileSync(FLOORS_FILE, patched);
 
   return () => {
     writeFileSync(FLOORS_FILE, original);
@@ -413,19 +493,31 @@ answer(out);
      * hands a person exactly what the register says, not that either contains
      * some particular phrase.
      */
-    const declaredPending = TRADE_FLOORS[floorKey(PENDING_SLUG, PENDING_TIER)];
-    rec(
-      "the deliverable used for the pending case is actually pending",
-      declaredPending?.state === "pending",
-      declaredPending?.state ?? "MISSING, so everything below is vacuous",
-    );
+    /*
+     * THE EXPECTATION IS THE FIXTURE'S OWN SENTENCE, NOT THE REGISTER'S.
+     *
+     * `TRADE_FLOORS` was imported at the top of this file and is bound to the
+     * register as it was BEFORE the patch, which since 2026-09-20 has no
+     * pending entry at all. The child process read the patched file. Comparing
+     * against the parent's copy would compare the product's answer against a
+     * state the product never saw, and would fail on correct behaviour.
+     *
+     * This is the module binding rule from the other side: the hazard is
+     * usually a patch that cannot be seen, and here it is a patch the child
+     * sees and the parent does not.
+     */
     result.pending.forEach((r, i) => {
       rec(
         `a pending floor refuses ${labels[i]}`,
-        r?.ok === false && String(r.error) === declaredPending?.because,
-        r?.ok ? "IT WAS ACCEPTED" : "",
+        r?.ok === false && String(r.error) === PENDING_BECAUSE,
+        r?.ok ? "IT WAS ACCEPTED" : String(r?.error ?? "").slice(0, 70),
       );
     });
+    rec(
+      "and the register itself carries no pending floor for the fixture to have found",
+      Object.values(TRADE_FLOORS).every((v) => v.state !== "pending"),
+      "every floor is ruled, which is why this subject is built rather than found",
+    );
 
     say("");
     say("2b. and a deliverable owed no floor refuses for a DIFFERENT reason");
@@ -451,9 +543,7 @@ answer(out);
     });
     rec(
       "and the two refusals do not say the same thing",
-      Boolean(declaredPending?.because) &&
-        Boolean(declaredNoFloor?.because) &&
-        declaredPending.because !== declaredNoFloor.because,
+      Boolean(declaredNoFloor?.because) && PENDING_BECAUSE !== declaredNoFloor.because,
       "a settled decision and an outstanding one must not read alike, which is why the word was added",
     );
     /*
@@ -474,10 +564,8 @@ answer(out);
      */
     rec(
       "and the one owed no floor is signed and dated, which a pending entry cannot be",
-      Boolean(declaredNoFloor?.by?.trim()) &&
-        Boolean(declaredNoFloor?.on?.trim()) &&
-        declaredPending?.by === undefined,
-      `owed no floor: ruled by ${declaredNoFloor?.by ?? "nobody"} on ${declaredNoFloor?.on ?? "no date"}; pending carries no author because nobody has decided`,
+      Boolean(declaredNoFloor?.by?.trim()) && Boolean(declaredNoFloor?.on?.trim()),
+      `owed no floor: ruled by ${declaredNoFloor?.by ?? "nobody"} on ${declaredNoFloor?.on ?? "no date"}; a pending entry carries no author because nobody has decided`,
     );
 
     say("");

@@ -92,15 +92,52 @@ export const ENGINEER_DESIGN_HOURLY_CENTS = 10_000;
  * same key the trade floors sit on, so the ruling is a row rather than an
  * exception and `engineerPayCents` reaches it like any other.
  */
+/*
+ * =========================================================================
+ * THE MAPPING IS PROVISIONAL AND THE PAY AMOUNTS ARE NOT. Operator ruling,
+ * 2026-09-20, and the distinction is the whole entry.
+ * =========================================================================
+ *
+ * `ENGINEER_TIER_CENTS` above is what the engineer of record is paid at each
+ * tier. Those figures are in the EXECUTED AGREEMENT and are not a session's to
+ * touch, not the operator's to drift, and not provisional in any sense.
+ *
+ * **WHICH TIER A DELIVERABLE ATTRACTS IS A DIFFERENT KIND OF FACT.** It is the
+ * operator's estimate of how much engineering a determination takes, and the
+ * operator has recorded it as PROVISIONAL for a reason that should be read
+ * before anybody changes it:
+ *
+ *   **NOBODY KNOWS HOW LONG THESE DETERMINATIONS TAKE, BECAUSE NONE HAS BEEN
+ *   DONE.** Not one job has run through this platform. Every number here is an
+ *   estimate of work nobody has performed yet, and an estimate that has never
+ *   met a real job is a guess with a table around it.
+ *
+ * **IT IS REVISITED AFTER TEN REAL JOBS, AGAINST RECORDED TIME.** Not against
+ * anybody's estimate, including the engineer's and including the one written
+ * here. That is the condition, and it is written down so the revisit happens
+ * because the condition was met rather than because somebody remembered.
+ *
+ * **AND THE ENGINEER WAS NOT ASKED, WHICH WAS DELIBERATE.** The operator's
+ * ruling: asking him to grade his own work before any job has run is the wrong
+ * way round. His pay per tier is agreed; how many tiers of work a repair
+ * specification is, is the firm's judgement about its own product, and it is
+ * answered by timing ten of them.
+ *
+ * On 2026-09-20 `foundation-inspections` and `repair-specifications` moved from
+ * tier 2 to tier 1. At tier 2 they cost $435 against list prices of $495 and
+ * $395, so one left $60 and the other lost money before any discount, and both
+ * trade floors were held because of it. At tier 1 they cost $260 and their
+ * floors are $425 and $325.
+ */
 export const TIER_BY_DELIVERABLE: Record<string, PayTier> = {
   "roof-inspections/standard": 1,
   "structural-letters/standard": 1,
   "solar-structural-letters/standard": 1,
-  "foundation-inspections/standard": 2,
+  "foundation-inspections/standard": 1,
   "manufactured-home-foundation-certifications/standard": 2,
   "windstorm-wpi-8/completed": 2,
   "windstorm-wpi-8/ongoing": 3,
-  "repair-specifications/standard": 2,
+  "repair-specifications/standard": 1,
 };
 
 /** What the engineer is paid for a job at a given tier, in cents. */

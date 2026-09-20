@@ -27,6 +27,43 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
+## SURVEY OWED: WHICH CHECKS EXPIRE WHEN THE FIRM SUCCEEDS
+
+Operator ruling, 2026-09-20, from the trade floor pass. Report only, no fix
+implied until the survey says what is there.
+
+**What produced it.** `trade-pricing-audit` proved that a pending floor refuses
+a trade price at any value, and it found its subject by patching a real pending
+entry. The operator ruled the last two floors that day, so every floor is now
+set and **there is no pending entry anywhere**. Three checks would have gone on
+printing green over a subject that had ceased to exist, and a fourth, "every
+pending entry says what it is waiting for", became `every` over an empty list,
+which is true for ever without reading a sentence. Both were fixed in that pass:
+the subject is built rather than found, and the second check asks its question
+of every entry so its subject cannot empty.
+
+**The general shape, which is why this is a survey and not one fix.** A check
+whose subject is a TRANSITIONAL state expires at the moment of success. It is
+the inverse of "build the subject": that rule is about a subject that does not
+exist yet, this is about one the firm is working to stop having. Nothing about
+the green says so, and the expiry arrives as a reward rather than as a fault.
+The reasoning is in CLAUDE.md section 6, above the build-the-subject entry.
+
+**What to look at, and none of these has been checked yet.**
+
+| Candidate | Expires when |
+| --- | --- |
+| The `prelaunch` half of every gated check | the compliance gate opens |
+| `awaiting_engineer` on the protocol status column | the engineer of record approves a protocol |
+| The pending entries in `supabase/applied.mjs` | production catches up with main |
+| `operatingNameOnBoardRecord` reading false | TBPELS reissues in the operating name |
+| `COULD NOT TELL` on the Stripe live half | `STRIPE_SECRET_KEY` reaches a board run |
+
+**The question to ask of each:** if the firm succeeds completely at what it is
+currently trying to do, does this check still have anything to look at, and if
+not, what should it assert instead. An answer of "nothing, and it should be
+deleted" is a legitimate outcome; an answer of "it keeps passing" is the defect.
+
 ## RESOLVED 2026-09-19: THERE IS NOW A STATUS FOR A FILE WAITING ON AN OWNER
 
 Opened and closed the same day. Recorded rather than deleted, because the

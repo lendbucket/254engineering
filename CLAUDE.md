@@ -1678,6 +1678,44 @@ does this failure look like if the other system simply stops calling, and is
 there anything on our side that would notice. If the answer is that every check
 lives on the inbound path, there is no check.
 
+**AND THE SAME THING WITH A CLOCK ON IT: A CHECK WHOSE SUBJECT IS A
+TRANSITIONAL STATE EXPIRES AT THE MOMENT OF SUCCESS.** Operator ruling,
+2026-09-20, and it is the entry below inverted, which is why it sits above it.
+
+The entry below is about a subject that does not exist YET. This is about one
+that will stop existing ON PURPOSE, because the firm is working to leave it.
+
+**The instance.** `trade-pricing-audit` proved that a pending floor refuses a
+trade price at any value, and found its subject by patching a real pending
+entry. On 2026-09-20 the operator ruled the last two floors. **Every floor is
+now set, there is no pending entry anywhere, and those three checks would have
+gone on printing green over a subject that no longer exists.** The same run
+carried a second one: "every pending entry says what it is waiting for" became
+`every` over an empty list, which is true for ever without reading a sentence.
+
+**Nothing about either green says so.** It is not a check pointed at the wrong
+thing; it is a check pointed at something the firm was deliberately trying to
+stop having, and succeeding is what breaks it.
+
+**The answer is the one below, build the subject, with one addition.** The
+fixture now patches a RULED entry down to pending for the length of the run.
+That is writing over a decision about money, briefly, and the operator ruled it
+a cost worth paying when the alternative is a check that can never fail: **the
+loud restore is what makes it safe**, so it verifies the file is back and fails
+the run if it is not. The second check was rewritten to ask its question of
+EVERY entry rather than of the pending ones, so its subject cannot empty.
+
+**AND IT IS OWED A SURVEY, because several checks here share the shape.** The
+`prelaunch` half of every gated check expires when the gate opens.
+`awaiting_engineer` on the protocol status column expires when Aman approves.
+The pending entries in the schema ledger expire when production catches up.
+`operatingNameOnBoardRecord` expires at reissuance. Each is a check whose
+verdict is about a state the firm is trying to leave, and each needs an answer
+for what it asserts afterwards. In `BACKLOG.md`.
+
+**The question to ask of any check: if the firm succeeds completely at what it
+is currently trying to do, does this check still have anything to look at?**
+
 **A CHECK THAT FILTERS LIVE DATA FOR A SUBJECT THAT DOES NOT EXIST YET IS
 VACUOUS. BUILD THE SUBJECT.** Operator ruling, 2026-09-09, from the reporting
 paging work. The obvious way to check that a paged expansion still sums the
