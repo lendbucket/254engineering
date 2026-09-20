@@ -73,6 +73,10 @@
  * since the day it was written.
  */
 
+import { deliverablePriceCents, minimumEngagementCents, money } from "@/config/prices";
+import { TECHNICIAN_CALL_CENTS } from "@/config/cost-inputs";
+import { engineerPayCents, tierForDeliverable } from "@/config/engineer-pay";
+
 export type TradeFloor =
   | {
       state: "set";
@@ -95,6 +99,46 @@ export type TradeFloor =
        * flipping a flag.
        */
       because: string;
+    }
+  | {
+      /**
+       * =================================================================
+       * NOT SOLD AT A FIXED PRICE, SO NO FLOOR IS OWED. Operator ruling,
+       * 2026-09-20.
+       * =================================================================
+       *
+       * **A STATUS VOCABULARY THAT LACKS A WORD FOR THE SITUATION YOU ARE IN
+       * MAKES SOMEBODY CHOOSE THE NEAREST LIE**, and this type had two words
+       * for three situations. Design is hourly at $225 with a minimum
+       * engagement, so there is no fixed price for a floor to sit beneath.
+       *
+       * `pending` is the nearest available word and it is false in the way that
+       * costs most: it says a ruling is OWED. Anybody reading three design
+       * deliverables marked pending would go looking for a floor to rule, find
+       * that the operator had already ruled, and either invent one or ask a
+       * question that has been answered. `set` is worse, because it would need
+       * a number, and any number invented here is a floor beneath a price that
+       * does not exist.
+       *
+       * This is the fourth time this repository has met that shape, after the
+       * protocol status column, the absent-versus-zero batch total and the
+       * order-blocked sentence that would have told a design customer "a price
+       * has not been published" about a price that is published and hourly. The
+       * tell is the same every time: somebody is deciding which existing value
+       * is CLOSEST. The answer is to add the word.
+       *
+       * **THE MINIMUM IS NOT REPEATED HERE.** It is read from `prices.ts` by
+       * `minimumEngagementFor` below, because a new state that immediately
+       * becomes a seventh home for the $2,000 would be this file making the
+       * mistake it was just written to record.
+       */
+      state: "minimum-engagement";
+      /** Why no floor is owed, in the operator's terms. */
+      because: string;
+      /** Who ruled it. */
+      by: string;
+      /** When, as YYYY-MM-DD. */
+      on: string;
     };
 
 /**
@@ -142,9 +186,13 @@ export type TradeFloor =
  * not by itself put a trade price in front of a customer.
  */
 
-/** The sentence every unruled deliverable starts with. */
-const AWAITING =
-  "No floor has been ruled for this deliverable, so it cannot be sold at trade pricing. A floor is the operator's decision about money and the platform will not derive one from cost or from the catalogue price.";
+/*
+ * AWAITING is gone, and its going is worth a line. It was the sentence every
+ * unruled deliverable carried, identical on all ten, which was honest while
+ * nothing had been ruled and became a way of saying nothing the moment two of
+ * them were held for a specific, statable reason. The two held entries now say
+ * WHY they are held, computed from the price and the cost.
+ */
 
 /**
  * One entry per catalogue deliverable, keyed `serviceSlug/tier`.
@@ -154,22 +202,128 @@ const AWAITING =
  * floors belong to WPI-8, which is one key covering two different jobs, so the
  * pass waits on that split rather than landing partly.
  */
+const BY = "the operator";
+const ON = "2026-09-20";
+
+/**
+ * The sentence a held deliverable carries, COMPUTED from the price and the cost
+ * rather than typed.
+ *
+ * The two held lines are held because the tier assignment makes them
+ * unsellable, and saying so means naming a price and a cost. Typing either
+ * would put a third home in a file that exists to stop exactly that, and would
+ * go stale the moment the tier question is answered. So it is derived, and when
+ * Aman rules the tier this sentence changes by itself.
+ */
+function heldOnTier(serviceSlug: string, tier: string): string {
+  const priceCents = deliverablePriceCents(serviceSlug, tier);
+  const payTier = tierForDeliverable(serviceSlug, tier);
+  if (priceCents === null || payTier === null) {
+    return "This deliverable is held pending a tier assignment, and neither its price nor its tier can be read, which is a drift the board fails on rather than a decision.";
+  }
+  const costCents = TECHNICIAN_CALL_CENTS + engineerPayCents(payTier);
+  const marginCents = priceCents - costCents;
+  const verdict =
+    marginCents < 0
+      ? `loses ${money(-marginCents)} at list before any discount`
+      : `leaves ${money(marginCents)} at list before any discount`;
+  return (
+    `No floor is ruled for this deliverable because its tier assignment makes it unsellable at trade pricing, which is a question for the engineer of record rather than a pricing decision. ` +
+    `At tier ${payTier} it costs ${money(costCents)}, a technician call of ${money(TECHNICIAN_CALL_CENTS)} plus ${money(engineerPayCents(payTier))} of engineer production, against a list price of ${money(priceCents)}, so it ${verdict}. ` +
+    `A floor beneath a price that cannot carry its own cost would be a number with nothing behind it.`
+  );
+}
+
+/**
+ * Why a design deliverable is owed no floor, COMPUTED from the price book so
+ * the minimum engagement has one home.
+ */
+function noFixedPriceFloor(serviceSlug: string): string {
+  const minimum = minimumEngagementCents(serviceSlug);
+  const stated = minimum === null ? "a minimum engagement" : money(minimum);
+  return (
+    `This deliverable is not sold at a fixed price, so there is no fixed price for a floor to sit beneath. ` +
+    `The line is hourly and quoted from the engineer's estimate of the hours before any work starts, and the protection is the minimum engagement of ${stated} rather than a floor. ` +
+    `Nothing is owed here and nobody is waiting on a ruling.`
+  );
+}
+
 export const TRADE_FLOORS: Record<string, TradeFloor> = {
   /* ---------------------------------------------------------- field orders */
-  "roof-inspections/standard": { state: "pending", because: AWAITING },
-  "windstorm-wpi-8/standard": { state: "pending", because: AWAITING },
-  "foundation-inspections/standard": { state: "pending", because: AWAITING },
-  "manufactured-home-foundation-certifications/standard": { state: "pending", because: AWAITING },
+  "roof-inspections/standard": {
+    state: "set",
+    floorCents: 42_500,
+    because: "Roof certification. Ruled with the trade floors of 2026-09-20.",
+    by: BY,
+    on: ON,
+  },
+  "windstorm-wpi-8/completed": {
+    state: "set",
+    floorCents: 65_000,
+    because:
+      "WPI-8 completed construction, one visit to a finished structure. Ruled with the trade floors of 2026-09-20, and the reason there are two WPI-8 entries here rather than one.",
+    by: BY,
+    on: ON,
+  },
+  "windstorm-wpi-8/ongoing": {
+    state: "set",
+    floorCents: 92_500,
+    because:
+      "WPI-8 ongoing construction, staged attendance while the work is open, which is tier 3 rather than tier 2. Ruled with the trade floors of 2026-09-20.",
+    by: BY,
+    on: ON,
+  },
+  "foundation-inspections/standard": {
+    state: "pending",
+    because: heldOnTier("foundation-inspections", "standard"),
+  },
+  "manufactured-home-foundation-certifications/standard": {
+    state: "set",
+    floorCents: 59_500,
+    because: "Manufactured home foundation certification. Ruled with the trade floors of 2026-09-20.",
+    by: BY,
+    on: ON,
+  },
 
   /* ----------------------------------------------------------- desk orders */
-  "solar-structural-letters/standard": { state: "pending", because: AWAITING },
-  "structural-letters/standard": { state: "pending", because: AWAITING },
-  "repair-specifications/standard": { state: "pending", because: AWAITING },
-  "residential-light-commercial-design/beam-header-sizing": { state: "pending", because: AWAITING },
-  "residential-light-commercial-design/carport-patio-plan-set": { state: "pending", because: AWAITING },
+  "solar-structural-letters/standard": {
+    state: "set",
+    floorCents: 32_500,
+    because: "Solar structural letter, desktop. Ruled with the trade floors of 2026-09-20.",
+    by: BY,
+    on: ON,
+  },
+  "structural-letters/standard": {
+    state: "set",
+    floorCents: 29_500,
+    because: "Structural letter, desktop. Ruled with the trade floors of 2026-09-20.",
+    by: BY,
+    on: ON,
+  },
+  "repair-specifications/standard": {
+    state: "pending",
+    because: heldOnTier("repair-specifications", "standard"),
+  },
 
-  /* ------------------------------------------------- quoted, no published price */
-  "residential-light-commercial-design/custom-package": { state: "pending", because: AWAITING },
+  /* ------------------------------------ hourly with a minimum, so no floor */
+  "residential-light-commercial-design/beam-header-sizing": {
+    state: "minimum-engagement",
+    because: noFixedPriceFloor("residential-light-commercial-design"),
+    by: BY,
+    on: ON,
+  },
+  "residential-light-commercial-design/carport-patio-plan-set": {
+    state: "minimum-engagement",
+    because: noFixedPriceFloor("residential-light-commercial-design"),
+    by: BY,
+    on: ON,
+  },
+  "residential-light-commercial-design/custom-package": {
+    state: "minimum-engagement",
+    because: noFixedPriceFloor("residential-light-commercial-design"),
+    by: BY,
+    on: ON,
+  },
 };
 
 /** The key a deliverable is declared under. One shape, so nothing improvises one. */

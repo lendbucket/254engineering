@@ -1,4 +1,4 @@
-import { priceFor, money } from "@/config/prices";
+import { priceFor, money, headlinePriceCents } from "@/config/prices";
 import {
   ENGINEER_DESIGN_HOURLY_CENTS,
   defaultTierFor,
@@ -193,19 +193,38 @@ export function estimateForLine(serviceSlug: string): EstimateVerdict {
     };
   }
 
+  /*
+   * THE LINE IS ESTIMATED AT THE DELIVERABLE ITS PAGE LEADS WITH.
+   *
+   * `price.cents` was one number per line until 2026-09-20, when WPI-8 split
+   * into completed and ongoing construction at $795 and $995. A per LINE
+   * estimate has to pick one, and the honest pick is the one the page leads
+   * with, which is the same deliverable `defaultTierFor` reads its tier from.
+   * Revenue and cost therefore describe the same job rather than the headline
+   * of one and the tier of another.
+   */
+  const revenueCents = headlinePriceCents(price);
+  if (revenueCents === null) {
+    return {
+      ok: false,
+      because:
+        "This line states prices per deliverable and none is marked as the one its page leads with, so there is no single figure to estimate against.",
+    };
+  }
+
   const technicianCents = TECHNICIAN_CALL_CENTS;
   const engineerCents = engineerPayCents(tier);
   const costCents = technicianCents + engineerCents;
-  const netCents = price.cents - costCents;
+  const netCents = revenueCents - costCents;
 
   return {
     ok: true,
-    revenueCents: price.cents,
+    revenueCents,
     technicianCents,
     engineerCents,
     costCents,
     netCents,
-    marginPct: Math.round((netCents / price.cents) * 1000) / 10,
+    marginPct: Math.round((netCents / revenueCents) * 1000) / 10,
     assumedTier: tier,
     assumedVisits: 1,
   };

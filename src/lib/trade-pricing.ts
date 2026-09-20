@@ -75,6 +75,18 @@ export function tradePricingRefusal(serviceSlug: string, tier: string): string |
   if (floor.state === "pending") return floor.because;
 
   /*
+   * AND A DELIVERABLE THAT IS NOT SOLD AT A FIXED PRICE CANNOT CARRY A TRADE
+   * PRICE EITHER. Added 2026-09-20 with the third floor state.
+   *
+   * This refusal reads almost the same as the pending one and means something
+   * different, which is the entire reason the state exists: pending says a
+   * ruling is owed, this says the question has been answered and no floor is
+   * coming. The screen shows them in different groups for that reason, so
+   * nobody works through a list trying to rule a floor that is not owed.
+   */
+  if (floor.state === "minimum-engagement") return floor.because;
+
+  /*
    * AND THE REFUND TERMS MUST BE STATEABLE.
    *
    * Operator's rule: "Every quoted trade price carries its refund disclosure

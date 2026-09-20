@@ -23,10 +23,22 @@
  *
  * WHY THIS AUDIT CARRIES ITS OWN FIXTURE FLOOR, SAID PLAINLY
  * ----------------------------------------------------------
- * Every floor in src/config/trade-floors.ts is `pending`, because not one has
- * been ruled. So no deliverable can be trade priced at all, and every live check
- * below would pass over an empty set: each refusal would fire for the PENDING
- * reason rather than the reason it is written to test.
+ * Every floor in src/config/trade-floors.ts was `pending` when this was
+ * written, because not one had been ruled. So no deliverable could be trade
+ * priced at all, and every live check below would have passed over an empty
+ * set: each refusal would fire for the PENDING reason rather than the reason it
+ * is written to test.
+ *
+ * SIX FLOORS WERE RULED ON 2026-09-20 AND THE FIXTURE STAYS, which is the
+ * interesting part. A real floor would make these checks pass, and they would
+ * then be measuring the operator's numbers rather than the mechanism: the day
+ * somebody re-rules a floor, the audit moves with it and nobody notices what
+ * stopped being tested. The fixture floor is a number this audit owns, so the
+ * checks say the same thing whatever the operator rules.
+ *
+ * It now patches one of the two entries the operator deliberately HELD, which
+ * is also the only kind of entry it is safe to patch: patching a ruled floor
+ * would mean writing over a decision about money for the length of a run.
  *
  * That is "a check that filters live data for a subject that does not exist yet
  * is vacuous; build the subject". The live half patches ONE floor into the
@@ -46,9 +58,24 @@ import { CATALOG } from "../data/catalog.ts";
 import { TRADE_FLOORS, floorKey } from "../src/config/trade-floors.ts";
 
 const FLOORS_FILE = "src/config/trade-floors.ts";
-const FIXTURE_SLUG = "structural-letters";
+
+/*
+ * THE TWO DELIBERATELY HELD DELIVERABLES, WHICH IS WHAT THIS FIXTURE MAY TOUCH.
+ * One is patched to a fixture floor to exercise the floor itself; the other is
+ * left pending to exercise the refusal. Both are held on the same open tier
+ * question, so neither is a decision this run writes over.
+ */
+const FIXTURE_SLUG = "repair-specifications";
 const FIXTURE_TIER = "standard";
-const FIXTURE_FLOOR = 40000;
+const FIXTURE_FLOOR = 30000;
+
+/** Left pending on purpose, so the pending refusal has a real subject. */
+const PENDING_SLUG = "foundation-inspections";
+const PENDING_TIER = "standard";
+
+/** Owed no floor at all, which is a third answer and not a pending one. */
+const NO_FLOOR_SLUG = "residential-light-commercial-design";
+const NO_FLOOR_TIER = "beam-header-sizing";
 
 const results = [];
 let failures = 0;
@@ -248,16 +275,33 @@ async function inChildProcess(source) {
 
 function patchFloorIn() {
   const original = readFileSync(FLOORS_FILE, "utf8");
-  const key = `"${floorKey(FIXTURE_SLUG, FIXTURE_TIER)}": { state: "pending", because: AWAITING },`;
+  /*
+   * MATCHED AS THE WHOLE ENTRY, EXACTLY AS IT IS SPELLED.
+   *
+   * This threw on 2026-09-20 and was right to: the entry had been reshaped and
+   * the audit said so in its own words, "either the operator has ruled that
+   * floor, in which case this fixture should target another pending one, or the
+   * shape changed". Both had happened.
+   *
+   * It stays an exact match rather than becoming a regex over a window. A
+   * window that reaches from a key to the next closing brace is the matcher
+   * that attaches to its neighbour, five instances of which are recorded in
+   * CLAUDE.md. Failing loudly on a reshape is the behaviour worth keeping.
+   */
+  const key =
+    `  "${floorKey(FIXTURE_SLUG, FIXTURE_TIER)}": {\n` +
+    `    state: "pending",\n` +
+    `    because: heldOnTier("${FIXTURE_SLUG}", "${FIXTURE_TIER}"),\n` +
+    `  },`;
   if (!original.includes(key)) {
     throw new Error(
-      `${FLOORS_FILE} does not carry ${floorKey(FIXTURE_SLUG, FIXTURE_TIER)} as pending, so this fixture ` +
-        "does not know what it is patching. Either the operator has ruled that floor, in which case this " +
-        "fixture should target another pending one, or the shape changed.",
+      `${FLOORS_FILE} does not carry ${floorKey(FIXTURE_SLUG, FIXTURE_TIER)} as pending in the shape this ` +
+        "fixture knows, so it does not know what it is patching. Either the operator has ruled that floor, " +
+        "in which case this fixture should target another pending one, or the shape changed.",
     );
   }
   const replacement =
-    `"${floorKey(FIXTURE_SLUG, FIXTURE_TIER)}": { state: "set", floorCents: ${FIXTURE_FLOOR}, ` +
+    `  "${floorKey(FIXTURE_SLUG, FIXTURE_TIER)}": { state: "set", floorCents: ${FIXTURE_FLOOR}, ` +
     `because: "AUDIT FIXTURE. Not a floor. Written by trade-pricing-audit and removed at the end of the run.", ` +
     `by: "AUDIT FIXTURE, NOT THE OPERATOR", on: "2099-12-31" },`;
   writeFileSync(FLOORS_FILE, original.replace(key, replacement));
@@ -322,7 +366,12 @@ out.below = await setTradePrice({ accountId, serviceSlug: SLUG, tier: TIER, pric
 
 out.pending = [];
 for (const value of [1, FLOOR, 10000000]) {
-  out.pending.push(await setTradePrice({ accountId, serviceSlug: "roof-inspections", tier: "standard", priceCents: value, actor }));
+  out.pending.push(await setTradePrice({ accountId, serviceSlug: ${JSON.stringify(PENDING_SLUG)}, tier: ${JSON.stringify(PENDING_TIER)}, priceCents: value, actor }));
+}
+
+out.noFloorOwed = [];
+for (const value of [1, FLOOR, 10000000]) {
+  out.noFloorOwed.push(await setTradePrice({ accountId, serviceSlug: ${JSON.stringify(NO_FLOOR_SLUG)}, tier: ${JSON.stringify(NO_FLOOR_TIER)}, priceCents: value, actor }));
 }
 
 out.raised = await setTradePrice({ accountId, serviceSlug: SLUG, tier: TIER, priceCents: FLOOR + 5000, actor });
@@ -347,13 +396,89 @@ answer(out);
     say("");
     say("2. a pending floor refuses at any value");
     const labels = ["one cent", "the fixture floor", "one hundred thousand dollars"];
+
+    /*
+     * THE REFUSAL IS COMPARED AGAINST THE DECLARED REASON RATHER THAN AGAINST
+     * WORDS TYPED HERE.
+     *
+     * It used to test `/no floor has been ruled/i`, which was a check on the
+     * WORDING of a sentence that was identical on all ten entries. Two of them
+     * now say why they are held, computed from the price and the cost, and that
+     * sentence changes by itself the day the tier question is answered. A
+     * literal here would go red on a correct change.
+     *
+     * Deriving the expectation from TRADE_FLOORS is the declared inventory
+     * idiom rather than importing an expectation from the code under test: the
+     * register is the DECLARATION, and what is asserted is that the product
+     * hands a person exactly what the register says, not that either contains
+     * some particular phrase.
+     */
+    const declaredPending = TRADE_FLOORS[floorKey(PENDING_SLUG, PENDING_TIER)];
+    rec(
+      "the deliverable used for the pending case is actually pending",
+      declaredPending?.state === "pending",
+      declaredPending?.state ?? "MISSING, so everything below is vacuous",
+    );
     result.pending.forEach((r, i) => {
       rec(
         `a pending floor refuses ${labels[i]}`,
-        r?.ok === false && /no floor has been ruled/i.test(String(r.error)),
+        r?.ok === false && String(r.error) === declaredPending?.because,
         r?.ok ? "IT WAS ACCEPTED" : "",
       );
     });
+
+    say("");
+    say("2b. and a deliverable owed no floor refuses for a DIFFERENT reason");
+    /*
+     * THE THIRD STATE, ADDED 2026-09-20. `pending` says a ruling is owed;
+     * `minimum-engagement` says the question is answered and no floor is
+     * coming. A check that only asserted "it refuses" would pass identically on
+     * both and could not tell a settled decision from an outstanding one, which
+     * is the entire reason the word was added.
+     */
+    const declaredNoFloor = TRADE_FLOORS[floorKey(NO_FLOOR_SLUG, NO_FLOOR_TIER)];
+    rec(
+      "the deliverable used for it is declared as owed no floor",
+      declaredNoFloor?.state === "minimum-engagement",
+      declaredNoFloor?.state ?? "MISSING, so everything below is vacuous",
+    );
+    result.noFloorOwed.forEach((r, i) => {
+      rec(
+        `a deliverable owed no floor refuses ${labels[i]}`,
+        r?.ok === false && String(r.error) === declaredNoFloor?.because,
+        r?.ok ? "IT WAS ACCEPTED" : "",
+      );
+    });
+    rec(
+      "and the two refusals do not say the same thing",
+      Boolean(declaredPending?.because) &&
+        Boolean(declaredNoFloor?.because) &&
+        declaredPending.because !== declaredNoFloor.because,
+      "a settled decision and an outstanding one must not read alike, which is why the word was added",
+    );
+    /*
+     * SIXTH INSTANCE OF A MATCHER MATCHING A NAME WHEN IT MEANS SOMETHING ELSE,
+     * AND IT WAS IN THIS CHECK, ON A NEGATION.
+     *
+     * The first version asserted the no-floor sentence does not say "waiting on
+     * a ruling". That sentence ends "Nothing is owed here and nobody is waiting
+     * on a ruling", so the pattern matched the very clause that makes the point,
+     * and the check went red on prose that was exactly right.
+     *
+     * It was also the wrong mechanism. Sniffing prose for forbidden words is a
+     * check on WORDING, which this repository has ruled against twice. The
+     * structural property is better and cannot be written around: a settled
+     * ruling names WHO decided and WHEN, and a pending entry has nobody to
+     * name. That is the difference between an answer and an absence, and it is
+     * in the type rather than in a sentence.
+     */
+    rec(
+      "and the one owed no floor is signed and dated, which a pending entry cannot be",
+      Boolean(declaredNoFloor?.by?.trim()) &&
+        Boolean(declaredNoFloor?.on?.trim()) &&
+        declaredPending?.by === undefined,
+      `owed no floor: ruled by ${declaredNoFloor?.by ?? "nobody"} on ${declaredNoFloor?.on ?? "no date"}; pending carries no author because nobody has decided`,
+    );
 
     say("");
     say("3. supersession, and what an order was quoted under");

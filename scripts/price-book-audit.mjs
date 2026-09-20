@@ -23,10 +23,14 @@ console.log("");
 console.log("================ THE PRICE BOOK ================");
 console.log("");
 
-const { servicePrices, WPI8_ONGOING_CENTS, priceFor, money } = await import("../src/config/prices.ts");
-const { ENGINEER_TIER_CENTS, ENGINEER_DESIGN_HOURLY_CENTS, DEFAULT_TIER_BY_LINE } = await import(
+const { servicePrices, priceFor, money, deliverablePriceCents, headlinePriceCents, priceSentence } = await import(
+  "../src/config/prices.ts"
+);
+const { ENGINEER_TIER_CENTS, ENGINEER_DESIGN_HOURLY_CENTS, TIER_BY_DELIVERABLE } = await import(
   "../src/config/engineer-pay.ts"
 );
+const { CATALOG } = await import("../data/catalog.ts");
+const { readFileSync } = await import("node:fs");
 const { TECHNICIAN_CALL_CENTS, CARD_PROCESSING_RATE } = await import("../src/config/cost-inputs.ts");
 const { marginForJob, estimateForLine } = await import("../src/lib/price-book.ts");
 const { services } = await import("../src/content/services.ts");
@@ -50,8 +54,8 @@ for (const [slug, cents] of Object.entries(RULED_PRICES)) {
   const price = servicePrices[slug];
   rec(
     `${slug} is ruled at ${money(cents)}`,
-    price?.kind === "fixed" && price.cents === cents,
-    price ? `${price.kind} ${price.kind === "fixed" ? money(price.cents) : ""}` : "no entry",
+    price?.kind === "fixed" && headlinePriceCents(price) === cents,
+    price ? `${price.kind} ${price.kind === "fixed" ? money(headlinePriceCents(price) ?? 0) : ""}` : "no entry",
   );
 }
 
@@ -66,10 +70,22 @@ for (const [slug, cents] of Object.entries(RULED_PRICES)) {
       ? `${money(design.rateCents)} per hour, minimum ${money(design.minimumCents)}`
       : "not hourly",
   );
+  /*
+   * WPI-8 ONGOING, READ OFF THE DELIVERABLE RATHER THAN OFF A LOOSE CONSTANT.
+   * It was `WPI8_ONGOING_CENTS`, an exception sitting beside a line-keyed
+   * table. The line split into two deliverables on 2026-09-20 and the constant
+   * retired into the one that carries it.
+   */
   rec(
     "WPI-8 ongoing construction is ruled at its own price",
-    WPI8_ONGOING_CENTS === RULED_WPI8_ONGOING,
-    money(WPI8_ONGOING_CENTS),
+    deliverablePriceCents("windstorm-wpi-8", "ongoing") === RULED_WPI8_ONGOING,
+    money(deliverablePriceCents("windstorm-wpi-8", "ongoing") ?? 0),
+  );
+  rec(
+    "and completed construction is the cheaper of the two, which is what the page leads with",
+    deliverablePriceCents("windstorm-wpi-8", "completed") === RULED_PRICES["windstorm-wpi-8"] &&
+      servicePrices["windstorm-wpi-8"]?.headlineTier === "completed",
+    `${money(deliverablePriceCents("windstorm-wpi-8", "completed") ?? 0)} leads`,
   );
 }
 
@@ -95,11 +111,11 @@ rec(
     orphans.length === 0,
     orphans.join(", ") || `${Object.keys(servicePrices).length} priced of ${slugs.size} lines`,
   );
-  const tierOrphans = Object.keys(DEFAULT_TIER_BY_LINE).filter((s) => !slugs.has(s));
+  const tierOrphans = Object.keys(TIER_BY_DELIVERABLE).filter((k) => !slugs.has(k.split("/")[0]));
   rec(
-    "and every line with an estimating tier exists too",
+    "and every deliverable with a pay tier belongs to a service line that exists",
     tierOrphans.length === 0,
-    tierOrphans.join(", ") || `${Object.keys(DEFAULT_TIER_BY_LINE).length} with a tier`,
+    tierOrphans.join(", ") || `${Object.keys(TIER_BY_DELIVERABLE).length} with a tier`,
   );
 }
 
@@ -112,8 +128,29 @@ rec("engineer tier 3 is ruled at $525", ENGINEER_TIER_CENTS[3] === 52_500, money
 rec(
   "design pays the engineer $100 an hour and takes no tier",
   ENGINEER_DESIGN_HOURLY_CENTS === 10_000 &&
-    DEFAULT_TIER_BY_LINE["residential-light-commercial-design"] === undefined,
+    Object.keys(TIER_BY_DELIVERABLE).every((k) => !k.startsWith("residential-light-commercial-design/")),
   money(ENGINEER_DESIGN_HOURLY_CENTS),
+);
+/*
+ * AND THE TWO WPI-8 DELIVERABLES ARE PAID DIFFERENTLY, WHICH IS THE WHOLE
+ * REASON THE MAP IS KEYED ON DELIVERABLES.
+ *
+ * The operator ruled tier 2 for completed construction and tier 3 for ongoing
+ * on 2026-09-18. That ruling lived in `WPI8_ONGOING_TIER`, a constant beside a
+ * line-keyed map, and NOTHING EVER READ IT: it was written down, correct, and
+ * inert for two days. These two lines are what make it reachable, and they are
+ * pinned as literals for the reason section 6c gives, so moving either costs a
+ * deliberate second edit.
+ */
+rec(
+  "WPI-8 completed construction is tier 2",
+  TIER_BY_DELIVERABLE["windstorm-wpi-8/completed"] === 2,
+  String(TIER_BY_DELIVERABLE["windstorm-wpi-8/completed"]),
+);
+rec(
+  "and ongoing construction is tier 3, which the line-keyed map could not say",
+  TIER_BY_DELIVERABLE["windstorm-wpi-8/ongoing"] === 3,
+  String(TIER_BY_DELIVERABLE["windstorm-wpi-8/ongoing"]),
 );
 /*
  * CARD PROCESSING HAS NO RATE AND THE BOOK SAYS SO. A number appearing here is
@@ -246,6 +283,138 @@ const BASE = {
     "and an hourly line cannot be estimated per line either",
     estimateForLine("residential-light-commercial-design").ok === false,
     "what it makes depends on the hours estimated for that job",
+  );
+}
+
+/*
+ * =========================================================================
+ * 5. ONE HOME, AND THIS IS THE HALF THAT DID NOT EXIST. Operator ruling,
+ * 2026-09-20.
+ * =========================================================================
+ *
+ * **THIS AUDIT WAS GREEN WHILE THE SITE PUBLISHED ONE PRICE AND A CARD WAS
+ * CHARGED ANOTHER, ON EVERY PRICED LINE.** It imported `prices.ts`, asserted
+ * every ruled figure was correctly stated there, and every assertion was true.
+ * It had never read `data/catalog.ts`, which is what the order flow, the v1
+ * API, bulk ordering, intake and `ops-payments` actually charge from. An audit
+ * named after the price book never compared the price book to the thing that
+ * takes the money.
+ *
+ * The widest gap was repair specifications: $395 advertised, $900 charged. The
+ * gaps followed no rule, $5 to $505, so it was drift rather than a transform,
+ * and it would have gone on drifting because nothing was looking.
+ *
+ * The operator's ruling was that the mechanism matters more than the
+ * correction. Three checks, and the third is the one whose absence let this run.
+ */
+
+/* 5a. The catalogue types no price at all. */
+{
+  const source = readFileSync("data/catalog.ts", "utf8");
+  const literals = source
+    .split("\n")
+    .map((line, i) => [i + 1, line])
+    .filter(([, line]) => /^\s{4}priceCents:/.test(line));
+  rec(
+    "the catalogue types no price of its own",
+    literals.length === 0,
+    literals.length === 0
+      ? "every entry is declared without one and CATALOG fills it from the price book"
+      : `A PRICE IS TYPED IN THE CATALOGUE at line(s) ${literals.map(([n]) => n).join(", ")}`,
+  );
+}
+
+/* 5b. Every catalogue deliverable resolves through the one function. */
+{
+  const mismatched = CATALOG.filter(
+    (e) => e.priceCents !== deliverablePriceCents(e.serviceSlug, e.tier),
+  ).map((e) => `${e.serviceSlug}/${e.tier}`);
+  rec(
+    `every catalogue deliverable takes its price from the price book (${CATALOG.length} deliverables)`,
+    CATALOG.length > 5 && mismatched.length === 0,
+    mismatched.length === 0
+      ? `${CATALOG.length} compared, none stating a price of its own`
+      : `DISAGREES WITH THE PRICE BOOK: ${mismatched.join(", ")}`,
+  );
+
+  /*
+   * AND A DELIVERABLE WHOSE LINE IS PRICED MUST RESOLVE TO A NUMBER. Null has
+   * three sources and only two are answers: an hourly line and an unpriced
+   * line are quoted, but a deliverable whose line states prices for OTHER
+   * tiers and not this one is a drift that would reach a customer as "quoted".
+   */
+  const unresolved = CATALOG.filter((e) => {
+    const price = priceFor(e.serviceSlug);
+    return price?.kind === "fixed" && deliverablePriceCents(e.serviceSlug, e.tier) === null;
+  }).map((e) => `${e.serviceSlug}/${e.tier}`);
+  rec(
+    "and no deliverable on a priced line falls through to quoted",
+    unresolved.length === 0,
+    unresolved.length === 0
+      ? "a fixed line prices every deliverable it sells"
+      : `PRICED LINE, UNPRICED DELIVERABLE: ${unresolved.join(", ")}`,
+  );
+}
+
+/*
+ * 5c. THE CHECK WHOSE ABSENCE LET IT RUN. The number the site publishes and the
+ * number the order flow charges, per line, with the count asserted.
+ *
+ * The count matters as much as the comparison: a version of this that derived
+ * its subject from an empty list, or from a filter that happened to match
+ * nothing, would print a green line about agreement it never tested. That is
+ * the vacuous green this repository has met at a sitemap, a glob, a file list
+ * and a 1000 row cap.
+ */
+/*
+ * AND THE FIRST VERSION OF THIS CHECK WAS TAUTOLOGICAL, WHICH IS WORTH MORE
+ * WRITTEN DOWN THAN QUIETLY FIXED.
+ *
+ * It compared the catalogue's `priceCents` against `headlinePriceCents`. Both
+ * are now derived from the same `byTier` map, so they agree by construction and
+ * the check could not fail for any edit anybody could make. It printed
+ * "7 lines compared, every one agreeing" and proved nothing at all.
+ *
+ * That is the hazard of fixing a two-homes defect: the comparison that WOULD
+ * have caught it becomes vacuous the moment there is one home, and it goes on
+ * printing a reassuring line. A green that names the rigour it is not
+ * performing is the worst kind, and this one had the shape exactly.
+ *
+ * So the comparison runs against the PINNED LITERALS at the top of this file,
+ * which is the section 6c mechanism: a ruled figure is stated in the code and
+ * again as a literal in the audit, so changing one costs two deliberate edits.
+ * Those literals are independent of the derivation and CAN disagree with it,
+ * which is what makes this a check rather than a sentence.
+ */
+{
+  const pricedLines = Object.entries(servicePrices).filter(([, p]) => p.kind === "fixed");
+  const disagreements = [];
+  for (const [slug, price] of pricedLines) {
+    const ruled = RULED_PRICES[slug];
+    if (ruled === undefined) {
+      disagreements.push(`${slug}: priced in the book and pinned nowhere in this audit`);
+      continue;
+    }
+    const headline = CATALOG.find((e) => e.serviceSlug === slug && e.tier === price.headlineTier);
+    if (!headline) {
+      disagreements.push(`${slug}: the price book leads with "${price.headlineTier}", which the catalogue does not sell`);
+      continue;
+    }
+    if (headline.priceCents !== ruled) {
+      disagreements.push(
+        `${slug}: the operator ruled ${money(ruled)} and the order flow charges ${money(headline.priceCents ?? 0)}`,
+      );
+    }
+    if (priceSentence(slug) !== money(ruled)) {
+      disagreements.push(`${slug}: the service page says ${priceSentence(slug)} against a ruled ${money(ruled)}`);
+    }
+  }
+  rec(
+    `what the site publishes and what the order flow charges are both the ruled figure (${pricedLines.length} priced lines)`,
+    pricedLines.length >= 7 && disagreements.length === 0,
+    disagreements.length === 0
+      ? `${pricedLines.length} lines compared against their pinned rulings, page and checkout alike`
+      : disagreements.join("; "),
   );
 }
 

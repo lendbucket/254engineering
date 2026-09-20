@@ -1085,6 +1085,37 @@ published row must name who approved it and when.
 **The tell, in both instances: somebody is deciding which existing value is
 "closest".** That question has no good answer. Add the word.
 
+**THIRD AND FOURTH INSTANCES, 2026-09-20, BOTH IN THE SAME HOUR AND BOTH ABOUT
+MONEY.** Operator ruling.
+
+`TradeFloor` had two states, `set` and `pending`. Design is hourly at $225 with
+a $2,000 minimum engagement, so **there is no fixed price for a floor to sit
+beneath**, and neither word is true of it. `set` needs a number, and any number
+invented there is a floor under a price that does not exist. `pending` says a
+ruling is OWED, so anybody reading three design deliverables marked pending
+would go looking for a decision the operator had already made, and either invent
+one or ask a question that has been answered.
+
+The word added is `minimum-engagement`, and it carries `by` and `on` like `set`
+does, because **a settled decision has an author and an absence does not.** That
+structural difference is what the audit asserts, rather than sniffing the prose
+for forbidden phrases: the first version of that check tested that the sentence
+does not say "waiting on a ruling", and the sentence ends "nobody is waiting on
+a ruling", so the matcher fired on the very clause that makes the point. Sixth
+instance of a matcher matching a name when it means something else, inside the
+check written to prove the new word, on a negation.
+
+**The fourth instance is the one that would have reached a customer.**
+`orderBlockedReason` answers a null price with "a price has not been published
+for this service yet". Design's price IS published: it is hourly. Making the
+design deliverables null-priced desk orders would have put that false sentence
+in front of a buyer. The vocabulary already had the right word, `orderType:
+"quote"`, which `custom-package` used; reaching for the nearest AVAILABLE word
+rather than the nearest TRUE one is the same failure from the other side.
+
+**So the rule gains a second half. Add the word, and before you do, check
+whether the vocabulary already has it somewhere else in the file.**
+
 **THE CHECK'S REASON WAS BETTER THAN THE CHANGE WAS**, and it is the part worth
 carrying: **null already meant something else there.** It meant an accepted
 property has no price, so no total can be stated. Reusing it for "nothing was
@@ -2466,6 +2497,56 @@ the audits that still fail red standalone are listed in `BACKLOG.md`.
   | 2026-09-14 | The firm's telephone number | `contact.phone` raw in `schema.tsx` and the derivers | `e164Phone()` |
   | 2026-09-15 | The firm's name | A literal in twenty rendered sentences and the register | `firmName()` |
   | 2026-09-16 | The PE licence number | `TBPELS_PE_LICENSE` and the register | `verifiedEngineers` |
+  | 2026-09-20 | **Every price the firm charges** | `src/config/prices.ts` and `data/catalog.ts` | `deliverablePriceCents()` |
+
+  **THE SIXTH IS THE WORST OF THEM, AND IT IS THE FIRST WHERE THE CLAIM AND THE
+  DEFECT WERE IN THE SAME FILE.** Operator ruling, 2026-09-20.
+
+  `prices.ts` opens by naming itself the FIFTH fact to get this treatment and
+  says, in its own words, that "the number a customer is charged and the number
+  the margin is computed against cannot drift". It said so while `data/catalog.ts`
+  held a second copy of every price, and **every single one disagreed**: the site
+  published $549 for a roof inspection and a card was charged $600; repair
+  specifications were advertised at $395 and charged at $900. The gaps followed
+  no rule, $5 to $505, so it was drift rather than a deliberate transform.
+
+  **A FILE THAT CLAIMS THE TREATMENT HAS TO EARN IT.** The claim was written in
+  good faith by a session that had just removed this shape from four other facts,
+  and it was false on the day it was written, because the second home already
+  existed and nobody looked for it. **So the question to ask of any "one home"
+  claim is not whether the deriver exists. It is what else in the repository
+  holds that same fact today**, asked by a check rather than by reading.
+
+  **WHY NOTHING CAUGHT IT, WHICH IS THE PART TO CARRY.** `price-book-audit`
+  imported `prices.ts` and asserted every ruled figure was correctly stated
+  there. Every assertion was true. It had never read the catalogue, which is
+  what `OrderFlow`, the v1 API, bulk ordering, intake and `ops-payments` charge
+  from. **An audit named after the price book never compared the price book to
+  the thing that takes the money.** A check derived from one home can only ever
+  see that home.
+
+  The answer is the usual one and one extra. The catalogue declares its
+  deliverables with no price and fills `priceCents` from the price book, so the
+  two cannot disagree; design falls out as quoted because its line is hourly,
+  which makes the operator's ruling mechanical rather than typed. **And the
+  check that closes it compares the charged figure against a PINNED LITERAL
+  rather than against the deriver**, for a reason worth its own line below.
+
+  **AND THE FIRST CHECK WRITTEN TO CLOSE IT WAS TAUTOLOGICAL. FIXING A TWO-HOMES
+  DEFECT MAKES THE COMPARISON THAT WOULD HAVE CAUGHT IT VACUOUS.** Same day.
+
+  The obvious check is "the published price equals the charged price". The
+  moment there is one home, both sides derive from it, they agree by
+  construction, and the check cannot fail for any edit anybody could make. It
+  printed `7 lines compared, every one agreeing` and proved nothing.
+
+  **That is a green that names the rigour it is not performing**, the class this
+  file already records at a 1000 row cap and a sitemap that failed to parse, and
+  it is generated BY the fix rather than surviving it. So the comparison runs
+  against the section 6c pinned literals, which are independent of the
+  derivation and can disagree with it. Injection-verified three ways: a price
+  literal typed back into the catalogue, a price book moved off its pinned
+  ruling, and a deliverable its line does not price.
 
   **THE 2026-09-16 ONE IS THE INSTRUCTIVE ONE, because the defect was dormant
   and became live without anybody touching the code.** `peInResponsibleCharge()`

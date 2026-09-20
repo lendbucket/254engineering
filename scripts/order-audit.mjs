@@ -30,7 +30,9 @@
  * read by anything that renders, and are deliberately absurd round figures so
  * nobody mistakes one for a decision.
  */
+import { readFileSync } from "node:fs";
 import { readSource } from "./lib/read-source.mjs";
+import { deliverablePriceCents, minimumEngagementCents } from "../src/config/prices.ts";
 import {
   CATALOG,
   catalogFor,
@@ -131,25 +133,36 @@ const answerAll = (entry, pick = () => 0) =>
    */
   const design = deliverablesFor("residential-light-commercial-design");
   rec("residential design sells three deliverables", design.length === 3, `${design.length}`);
+  /*
+   * ALL THREE ARE QUOTED SINCE 2026-09-20, AND THE TWO FIXED PRICES THAT WERE
+   * HERE ARE THE REASON.
+   *
+   * This asserted beam and header sizing at $750 and the carport plan set at
+   * $1,500, which were the operator's 2026-09-03 figures and were correct when
+   * written. `src/config/prices.ts` has always said this line is hourly at $225
+   * with a $2,000 MINIMUM ENGAGEMENT, the point below which the firm does not
+   * take the work, and **both fixed prices sat under it**. Checkout was selling
+   * two engagements the price book says the firm declines, and this audit was
+   * asserting that it did.
+   *
+   * The check that replaces them is the one that would have caught it: no
+   * deliverable on an hourly line may carry a price at all, so the question of
+   * whether it clears the minimum cannot arise.
+   */
   rec(
-    "two of them fixed price and one quoted",
-    design.filter((d) => d.orderType === "desk").length === 2 &&
-      design.filter((d) => d.orderType === "quote").length === 1,
+    "all three are quoted, because the line is hourly with a minimum engagement",
+    design.every((d) => d.orderType === "quote"),
     design.map((d) => `${d.tier}:${d.orderType}`).join(" "),
   );
   rec(
-    "beam and header sizing is 750",
-    design.find((d) => d.tier === "beam-header-sizing")?.priceCents === 75000,
-    money(design.find((d) => d.tier === "beam-header-sizing")?.priceCents),
+    "and not one of them carries a price",
+    design.every((d) => d.priceCents === null),
+    design.map((d) => `${d.tier}:${d.priceCents === null ? "quoted" : money(d.priceCents)}`).join(" "),
   );
   rec(
-    "the carport and patio cover plan set is 1500",
-    design.find((d) => d.tier === "carport-patio-plan-set")?.priceCents === 150000,
-    money(design.find((d) => d.tier === "carport-patio-plan-set")?.priceCents),
-  );
-  rec(
-    "and the custom package carries no price",
-    design.find((d) => d.tier === "custom-package")?.priceCents === null,
+    "and no design deliverable is published below the firm's own minimum engagement",
+    design.every((d) => d.priceCents === null || d.priceCents >= (minimumEngagementCents("residential-light-commercial-design") ?? Infinity)),
+    `minimum ${money(minimumEngagementCents("residential-light-commercial-design"))}, and a fixed price under it is an engagement the price book declines`,
   );
 
   /*
@@ -163,11 +176,32 @@ const answerAll = (entry, pick = () => 0) =>
   );
   rec(
     "and naming the tier resolves it",
-    catalogFor("residential-light-commercial-design", "beam-header-sizing")?.priceCents === 75000,
+    catalogFor("residential-light-commercial-design", "beam-header-sizing")?.name === "Beam and header sizing",
   );
+  /*
+   * THE PRICE IS READ FROM THE PRICE BOOK RATHER THAN TYPED HERE, since
+   * 2026-09-20. Typing 54900 would make this audit a second account of a figure
+   * whose whole point is that it has one home. What is being tested is that the
+   * lookup RESOLVES without a tier on a single deliverable line, so the check
+   * asks about resolution and compares the price to its one source.
+   */
   rec(
     "a single deliverable line still resolves without a tier",
-    catalogFor("roof-inspections")?.priceCents === 60000,
+    catalogFor("roof-inspections")?.priceCents === deliverablePriceCents("roof-inspections", "standard"),
+    money(catalogFor("roof-inspections")?.priceCents),
+  );
+  /*
+   * AND WPI-8 NO LONGER RESOLVES WITHOUT ONE, WHICH IS NEW AND IS CORRECT.
+   * It split into completed and ongoing construction on 2026-09-20, so it is a
+   * multi deliverable line now and the lookup must refuse to guess between a
+   * $795 job and a $995 one.
+   */
+  rec(
+    "and WPI-8 refuses to resolve without a tier now that it sells two jobs",
+    catalogFor("windstorm-wpi-8") === undefined &&
+      catalogFor("windstorm-wpi-8", "completed") !== undefined &&
+      catalogFor("windstorm-wpi-8", "ongoing") !== undefined,
+    "charging somebody for one visit when they bought staged attendance is what this prevents",
   );
   rec(
     "an unknown tier resolves to nothing rather than the wrong thing",
@@ -728,9 +762,26 @@ const answerAll = (entry, pick = () => 0) =>
    * other way: a figure with no attribution is one a later session cannot tell
    * from an invented one.
    */
+  /*
+   * THE ATTRIBUTION MOVED WITH THE PRICES, AND BOTH HALVES ARE ASSERTED.
+   *
+   * This checked that the catalogue header says the prices are the operator's.
+   * The catalogue no longer HOLDS prices, so that sentence would now be a claim
+   * about somebody else's file. What it must say instead is where its prices
+   * come from, and the file they come from must carry the attribution.
+   *
+   * Dropping the check rather than moving it was the tempting option and the
+   * wrong one: the protection is that a figure with no attribution cannot be
+   * told from an invented one, and that protection has to follow the figure.
+   */
   rec(
-    "the catalog records that the prices are the operator's",
-    /THE PRICES ARE THE OPERATOR'S/.test(src),
+    "the catalog records that it holds no prices and names where they come from",
+    /NO LONGER HOLDS PRICES/.test(src) && /config\/prices/.test(src),
+    "a file that quietly stopped holding prices would leave a reader looking in the wrong place",
+  );
+  rec(
+    "and the price book records that the prices are the operator's",
+    /THE MARKETED PRICES\. Operator ruling/.test(readFileSync("src/config/prices.ts", "utf8")),
     "a price with no attribution cannot be told from an invented one",
   );
   rec(
@@ -1410,9 +1461,30 @@ const answerAll = (entry, pick = () => 0) =>
   rec("and none of them says something generic",
     !split.rejected.some((r) => /rejected|invalid|error/i.test(r.reason)),
     "a reason a customer cannot act on is not a reason");
+  /*
+   * THE BASE IS READ FROM THE ONE HOME AND THE SURCHARGE IS PINNED, WHICH IS A
+   * DIVISION OF LABOUR RATHER THAN A LOOSENING. Changed 2026-09-20.
+   *
+   * These lines pinned 60000, 67500 and 127500, which were the roof price and
+   * its coastal variant. The roof price moved to $549 and all three went red on
+   * arithmetic that was perfectly correct.
+   *
+   * What is under test HERE is bulk-order's arithmetic: that a batch totals its
+   * accepted properties only, and that the surcharge is per property rather
+   * than per batch. Restating the price is how this audit became a third
+   * account of a figure that is supposed to have one. Whether the price is the
+   * RULED price is asserted in `price-book-audit` against a pinned literal,
+   * which is where a money ruling belongs.
+   *
+   * The surcharge stays a literal, because it is its own operator ruling and
+   * nothing else in this check would notice it changing.
+   */
+  const ROOF_BASE = deliverablePriceCents("roof-inspections", "standard");
+  const COASTAL_SURCHARGE = 7500;
+
   rec("the total is for the seven only",
-    split.totalCents === 7 * 60000,
-    String(split.totalCents));
+    split.totalCents === 7 * ROOF_BASE,
+    `${split.totalCents} against seven at ${money(ROOF_BASE)}`);
 
   // The summary names the split rather than summarising it away.
   const summary = splitSummary(split);
@@ -1449,13 +1521,13 @@ const answerAll = (entry, pick = () => 0) =>
   // The coastal surcharge applies per property, not per batch.
   const mixed = splitBatch(roof, [good("I1", "Bexar"), good("C1", "Nueces")], TWIA);
   rec("a coastal property in a batch carries the surcharge",
-    mixed.accepted.find((a) => a.ref === "C1").priceCents === 67500,
-    String(mixed.accepted.find((a) => a.ref === "C1").priceCents));
+    mixed.accepted.find((a) => a.ref === "C1").priceCents === ROOF_BASE + COASTAL_SURCHARGE,
+    `${mixed.accepted.find((a) => a.ref === "C1").priceCents} against ${money(ROOF_BASE)} plus ${money(COASTAL_SURCHARGE)}`);
   rec("and an inland one in the same batch does not",
-    mixed.accepted.find((a) => a.ref === "I1").priceCents === 60000,
-    String(mixed.accepted.find((a) => a.ref === "I1").priceCents));
+    mixed.accepted.find((a) => a.ref === "I1").priceCents === ROOF_BASE,
+    `${mixed.accepted.find((a) => a.ref === "I1").priceCents} against ${money(ROOF_BASE)}`);
   rec("and the batch total is the sum of the two",
-    mixed.totalCents === 127500, String(mixed.totalCents));
+    mixed.totalCents === 2 * ROOF_BASE + COASTAL_SURCHARGE, String(mixed.totalCents));
 
   /*
    * The shares are what a refund of one property out of a batch works from,

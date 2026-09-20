@@ -1,3 +1,5 @@
+import { priceFor } from "@/config/prices";
+
 /**
  * ===========================================================================
  * ENGINEER PRODUCTION PAY. Operator ruling, 2026-09-18.
@@ -69,37 +71,59 @@ export const ENGINEER_DESIGN_HOURLY_CENTS = 10_000;
  * operator has ruled no price for it, so estimating it would be inventing both
  * halves. Design is absent because it is hourly.
  */
-export const DEFAULT_TIER_BY_LINE: Record<string, PayTier> = {
-  "roof-inspections": 1,
-  "structural-letters": 1,
-  "solar-structural-letters": 1,
-  "foundation-inspections": 2,
-  "manufactured-home-foundation-certifications": 2,
-  "windstorm-wpi-8": 2,
-  "repair-specifications": 2,
-};
-
 /*
- * WPI-8 ONGOING CONSTRUCTION IS TIER 3 AND IT IS NOT A SERVICE LINE.
+ * =========================================================================
+ * KEYED BY DELIVERABLE SINCE 2026-09-20, AND `WPI8_ONGOING_TIER` IS GONE.
+ * =========================================================================
  *
- * The line `windstorm-wpi-8` sells two different pieces of work: completed
- * construction, which is one visit to a finished structure, and ongoing
- * construction, which is staged attendance while the work is open. The operator
- * ruled tier 2 for the first and tier 3 for the second.
+ * This map was keyed by LINE, and carried this note beside it:
  *
- * The map above is keyed by LINE, so it cannot express that, and the honest
- * answer is that the line's default is the commoner of the two while the job's
- * actual tier decides what is paid. The estimate is allowed to be approximate
- * for exactly the reason the tier lives on the job.
+ *   "WPI-8 ONGOING CONSTRUCTION IS TIER 3 AND IT IS NOT A SERVICE LINE. The
+ *    map above is keyed by LINE, so it cannot express that, and the honest
+ *    answer is that the line's default is the commoner of the two while the
+ *    job's actual tier decides what is paid."
+ *
+ * So the ruling lived in `WPI8_ONGOING_TIER`, a constant beside the map.
+ * **Nothing ever read it.** A tier 3 ruling sat in this file being true and
+ * reaching no calculation, which is the quietest way a rule can fail: it was
+ * written down, it was correct, and it was inert.
+ *
+ * It is keyed by DELIVERABLE now, the same key the catalogue prices on and the
+ * same key the trade floors sit on, so the ruling is a row rather than an
+ * exception and `engineerPayCents` reaches it like any other.
  */
-export const WPI8_ONGOING_TIER: PayTier = 3;
+export const TIER_BY_DELIVERABLE: Record<string, PayTier> = {
+  "roof-inspections/standard": 1,
+  "structural-letters/standard": 1,
+  "solar-structural-letters/standard": 1,
+  "foundation-inspections/standard": 2,
+  "manufactured-home-foundation-certifications/standard": 2,
+  "windstorm-wpi-8/completed": 2,
+  "windstorm-wpi-8/ongoing": 3,
+  "repair-specifications/standard": 2,
+};
 
 /** What the engineer is paid for a job at a given tier, in cents. */
 export function engineerPayCents(tier: PayTier): number {
   return ENGINEER_TIER_CENTS[tier];
 }
 
-/** The estimating default for a line, or null when the operator has ruled none. */
+/** The tier a DELIVERABLE is paid at, or null when the operator has ruled none. */
+export function tierForDeliverable(serviceSlug: string, tier: string): PayTier | null {
+  return TIER_BY_DELIVERABLE[`${serviceSlug}/${tier}`] ?? null;
+}
+
+/**
+ * The estimating default for a LINE, or null when the operator has ruled none.
+ *
+ * DERIVED FROM THE HEADLINE DELIVERABLE rather than stated, so a line selling
+ * two jobs estimates at the one its page leads with and there is no second
+ * place to edit. WPI-8 estimates at tier 2, completed construction, which is
+ * what the old line-keyed map said and now says for a reason a reader can
+ * follow rather than by being the commoner of two.
+ */
 export function defaultTierFor(serviceSlug: string): PayTier | null {
-  return DEFAULT_TIER_BY_LINE[serviceSlug] ?? null;
+  const price = priceFor(serviceSlug);
+  if (!price || price.kind !== "fixed") return null;
+  return tierForDeliverable(serviceSlug, price.headlineTier);
 }

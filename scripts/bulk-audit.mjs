@@ -526,7 +526,17 @@ if (ids.length > 0) {
    * convenience. Exercised through splitBatch itself with a real catalog entry.
    */
   const { catalogFor } = await import("../data/catalog.ts");
-  const entry = catalogFor("windstorm-wpi-8");
+  /*
+   * THE TIER IS NAMED SINCE 2026-09-20, AND OMITTING IT WAS NEVER SAFE.
+   *
+   * `catalogFor` returns undefined rather than the first match when a line
+   * sells several deliverables, which is a deliberate refusal to guess. WPI-8
+   * split into completed and ongoing construction that day and this call went
+   * from working to returning undefined, which is the affordance doing its job:
+   * it did not quietly start pricing the county check against whichever entry
+   * happened to be first.
+   */
+  const entry = catalogFor("windstorm-wpi-8", "completed");
   const twia = new Set(["Nueces", "Aransas"]);
   const answers = (entry?.qualifiers ?? []).map((q) => ({ qualifierId: q.id, optionIndex: 0 }));
 

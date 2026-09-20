@@ -75,7 +75,31 @@ export default async function AccountPricingPage({
   );
 
   const priceable = board.filter((b) => b.refusal === null);
-  const awaiting = board.filter((b) => b.refusal !== null);
+
+  /*
+   * THREE GROUPS RATHER THAN TWO, SINCE 2026-09-20.
+   *
+   * A refused deliverable used to mean one thing, so one panel headed "Awaiting
+   * a floor" was honest. It now means two: a floor nobody has ruled yet, and a
+   * deliverable that is not sold at a fixed price and is owed no floor at all.
+   *
+   * Folding the second into the first would put three design deliverables under
+   * a heading saying they are waiting on the operator, which is the exact
+   * sentence the new state was added to stop anybody writing. Somebody reading
+   * that list would go looking for a ruling that has already been made.
+   */
+  const awaiting = board.filter((b) => b.refusal !== null && b.floor?.state === "pending");
+  const noFloorOwed = board.filter((b) => b.refusal !== null && b.floor?.state === "minimum-engagement");
+
+  /*
+   * AND ANYTHING REFUSED FOR A REASON THAT IS NEITHER. A deliverable the
+   * register has never heard of, or one whose refund terms cannot be stated,
+   * is a DRIFT rather than a pricing state, and it must not disappear between
+   * two filters that do not cover it. It gets its own group saying so.
+   */
+  const refusedForDrift = board.filter(
+    (b) => b.refusal !== null && b.floor?.state !== "pending" && b.floor?.state !== "minimum-engagement",
+  );
 
   return (
     <>
@@ -94,7 +118,7 @@ export default async function AccountPricingPage({
       {priceable.length === 0 ? (
         <EmptyState
           title="Nothing can be trade priced yet"
-          body="Every deliverable is waiting on a floor, and a floor is the operator's decision about money. Until one is ruled, no trade price can be set on anything. The full list is below."
+          body="No deliverable currently carries a floor it can be priced against. A floor is the operator's decision about money, and some deliverables are owed no floor at all because they are not sold at a fixed price. The full list, grouped by which of those it is, is below."
         />
       ) : (
         <Panel
@@ -153,9 +177,71 @@ export default async function AccountPricingPage({
                       {b.catalogueCents === null ? "Quoted, no published price" : `Published ${money(b.catalogueCents)}`}
                     </span>
                   </div>
-                  <p className="mt-1 text-[13px] leading-[1.55] text-[var(--secondary)]">
+                  <p className="mt-1 font-mono text-[12px] leading-[1.55] text-[var(--secondary)]">
                     {b.serviceSlug}/{b.tier}
                   </p>
+                  {/*
+                    AND WHY IT IS HELD, WHICH THE FIRST VERSION DID NOT SHOW.
+                    Every entry carried the same sentence while nothing was
+                    ruled, so there was nothing to show. Two are now held for a
+                    stated reason computed from the price and the cost, and a
+                    list that names them without it sends the reader to the file
+                    to find out something the screen already knows.
+                  */}
+                  {b.refusal ? (
+                    <p className="mt-1 text-[13px] leading-[1.55] text-[var(--secondary)]">{b.refusal}</p>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </Panel>
+        </div>
+      ) : null}
+
+      {noFloorOwed.length > 0 ? (
+        <div className="mt-4">
+          <Panel
+            title={`Not sold at a fixed price (${noFloorOwed.length})`}
+            description="No floor is owed on these and none is coming. They are quoted from an estimate of the hours, and the minimum engagement is the protection rather than a floor."
+          >
+            <ul className="divide-y divide-[var(--border)]">
+              {noFloorOwed.map((b) => (
+                <li key={`${b.serviceSlug}/${b.tier}`} className="py-3 first:pt-0 last:pb-0">
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                    <span className="text-[14px] font-semibold text-[var(--navy)]">{b.name}</span>
+                    <span className="text-[13px] text-[var(--secondary)]">Quoted from hours</span>
+                  </div>
+                  <p className="mt-1 font-mono text-[12px] leading-[1.55] text-[var(--secondary)]">
+                    {b.serviceSlug}/{b.tier}
+                  </p>
+                  {b.refusal ? (
+                    <p className="mt-1 text-[13px] leading-[1.55] text-[var(--secondary)]">{b.refusal}</p>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </Panel>
+        </div>
+      ) : null}
+
+      {refusedForDrift.length > 0 ? (
+        <div className="mt-4">
+          <Panel
+            title={`Refused for a reason that is not a floor (${refusedForDrift.length})`}
+            description="These are refused by something other than the floor register, which is a drift rather than a pricing state. The board fails on it."
+          >
+            <ul className="divide-y divide-[var(--border)]">
+              {refusedForDrift.map((b) => (
+                <li key={`${b.serviceSlug}/${b.tier}`} className="py-3 first:pt-0 last:pb-0">
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                    <span className="text-[14px] font-semibold text-[var(--navy)]">{b.name}</span>
+                  </div>
+                  <p className="mt-1 font-mono text-[12px] leading-[1.55] text-[var(--secondary)]">
+                    {b.serviceSlug}/{b.tier}
+                  </p>
+                  {b.refusal ? (
+                    <p className="mt-1 text-[13px] leading-[1.55] text-[var(--secondary)]">{b.refusal}</p>
+                  ) : null}
                 </li>
               ))}
             </ul>

@@ -18,42 +18,37 @@
  * receive at the end.
  *
  * ----------------------------------------------------------------------------
- * THE PRICES ARE THE OPERATOR'S, SET ON 2026-09-03
+ * THIS FILE NO LONGER HOLDS PRICES. `src/config/prices.ts` DOES.
+ * Operator ruling, 2026-09-20.
  * ----------------------------------------------------------------------------
- * Every price here was given by the operator. None was derived, estimated, or
- * carried over from another firm's published rates. That distinction is the
- * whole reason this file shipped with every price null until today: a price is
- * a commercial decision and inventing one would have put a fabricated figure on
- * three public websites and into a checkout.
+ * Every price is read from there when `CATALOG` is built, so the number a card
+ * is charged is the number the site publishes. The long note that used to sit
+ * here recited the operator's 2026-09-03 ruling verbatim in dollars, and by
+ * 2026-09-20 **every figure in it was wrong**: 600, 650, 650, 550, 850, 900 and
+ * 450 against a price book that had moved to 549, 495, 645, 395, 795, 395 and
+ * 445. It is not reproduced, because a second account of a price is the exact
+ * thing this change removes, and a superseded one written out as a quotation is
+ * worse than none: it reads as authority.
  *
- * The ruling, verbatim in dollars:
+ * What survives from that ruling and still matters: the coastal surcharge of
+ * $75 on first tier counties, and the $175 inspection fee retained on a decline
+ * after a visit. Both are still held here as fields on the entries, because
+ * neither is a price for a deliverable and neither lives in the price book.
  *
- *   solar structural letter                        450
- *   roof certification letter                      600
- *   foundation certification                       650
- *   manufactured home foundation certification     650
- *   structural letter for permit                   550
- *   WPI-8E windstorm evaluation                    850
- *   repair specification                           900
- *   coastal surcharge, first tier counties          75
- *   inspection fee retained on decline after a visit 175
+ * The principle underneath it is unchanged and is why the file shipped with
+ * every price null for a month: **a price is a commercial decision, and
+ * inventing one would put a fabricated figure on three public websites and into
+ * a checkout.** Deriving one from the price book is not inventing it. Deriving
+ * one from cost, or from a sibling, still would be.
  *
- * TWO PRICES IN THAT RULING HAVE NOWHERE TO GO YET
- * ------------------------------------------------
- * "beam and header sizing 750" and "carport and patio cover plan set 1500" are
- * not in this catalog and not in src/content/services.ts. They are products
- * rather than restatements of the nine service lines the sites publish, and
- * adding a catalog entry for a service page that does not exist would fail
- * order-audit's rule that every entry names a real service.
- *
- * They are deliberately absent rather than guessed at. See BACKLOG.
- *
- * WHAT IS STILL NULL, AND WHY
- * ---------------------------
- * priceCents is still Cents, and the two quote services still carry null,
- * because nothing is owed on a quote request until somebody scopes it. The
- * arithmetic that treats null as unknown rather than zero is unchanged and is
- * still what stops an unpriced service reaching a checkout.
+ * WHAT IS NULL, AND WHY
+ * ---------------------
+ * priceCents is still Cents and a quoted deliverable still resolves to null,
+ * because nothing is owed on a quote request until somebody scopes it. What has
+ * changed is that null is now an ANSWER the rule gives rather than a value
+ * somebody typed: an hourly line quotes everything it sells. The arithmetic
+ * that treats null as unknown rather than zero is untouched and is still what
+ * stops an unpriced service reaching a checkout.
  *
  * THE INSPECTION FEE IS ON FIELD SERVICES ONLY
  * --------------------------------------------
@@ -63,6 +58,7 @@
  */
 
 import type { Cents } from "@/lib/ops-money";
+import { deliverablePriceCents } from "@/config/prices";
 
 /**
  * The three shapes an order can take.
@@ -274,14 +270,22 @@ const OWNER_QUALIFIER: Qualifier = {
  * undercharges ongoing by $200, where $850 was wrong for both. The split into
  * two deliverables is with the operator and is the thing that closes it.
  */
-export const CATALOG: CatalogEntry[] = [
+/**
+ * The deliverables, DECLARED WITHOUT A PRICE.
+ *
+ * `priceCents` is deliberately absent from every entry below and is filled in
+ * by `CATALOG`, which reads it from `src/config/prices.ts`. A price typed here
+ * would not fail to compile, it would fail to exist: the type omits it.
+ */
+type CatalogDeclaration = Omit<CatalogEntry, "priceCents">;
+
+const DECLARED: CatalogDeclaration[] = [
   // ------------------------------------------------------------- field orders
   {
     serviceSlug: "roof-inspections",
     tier: "standard",
     name: "Roof certification letter",
     orderType: "field",
-    priceCents: 54900,
     coastalSurchargeCents: 7500,
     inspectionFeeCents: 17500,
     protocolServiceSlug: "roof-inspections",
@@ -322,12 +326,35 @@ export const CATALOG: CatalogEntry[] = [
       "The photographic record the opinion rests on, keyed to where each photograph was taken",
     ],
   },
+  /*
+   * ONE LINE, TWO DELIVERABLES, SPLIT ON 2026-09-20 BY OPERATOR RULING.
+   *
+   * `windstorm-wpi-8/standard` was one entry at one price covering two
+   * genuinely different jobs. Completed construction is one visit to a finished
+   * structure; ongoing construction is staged attendance while the work is
+   * open, which is more attendance and a different obligation. They are $795
+   * and $995, tier 2 and tier 3, floor $650 and floor $925, and NOT ONE OF
+   * THOSE SIX FACTS COULD BE STATED while the deliverable was one row.
+   *
+   * Three files had each invented a private workaround: `WPI8_ONGOING_CENTS` in
+   * prices.ts, `WPI8_ONGOING_TIER` in engineer-pay.ts which nothing ever read,
+   * and trade-floors.ts was about to need a third. All three retire into these
+   * two rows.
+   *
+   * THE STAGE QUALIFIER IS DELIBERATELY UNCHANGED ON BOTH, and that is an open
+   * question rather than a decision. It has three options against two
+   * deliverables, and whether a WPI-8 is issuable at all on an existing building
+   * with no recent work is an engineering question the operator has referred to
+   * the engineer of record rather than answer. Until it comes back the qualifier
+   * gathers the fact and disqualifies nobody, exactly as before. What has
+   * changed is only that the qualifier no longer silently decides the price: the
+   * deliverable does, and the buyer chooses it before they see a number.
+   */
   {
     serviceSlug: "windstorm-wpi-8",
-    tier: "standard",
-    name: "WPI-8E windstorm evaluation",
+    tier: "completed",
+    name: "WPI-8E windstorm evaluation, completed construction",
     orderType: "field",
-    priceCents: 79500,
     coastalSurchargeCents: 7500,
     inspectionFeeCents: 17500,
     protocolServiceSlug: "windstorm-wpi-8",
@@ -365,10 +392,58 @@ export const CATALOG: CatalogEntry[] = [
       },
     ],
     turnaround:
-      "The visit is scheduled once a technician accepts. Completed construction that has been covered up takes longer, because what can still be evidenced has to be established first.",
+      "The visit is scheduled once a technician accepts. Construction that has been covered up takes longer, because what can still be evidenced has to be established first.",
     receives: [
       "The windstorm certification the engineer's review supports, sealed",
       "The photographic and measurement record it rests on",
+    ],
+  },
+  {
+    serviceSlug: "windstorm-wpi-8",
+    tier: "ongoing",
+    name: "WPI-8E windstorm evaluation, ongoing construction",
+    orderType: "field",
+    coastalSurchargeCents: 7500,
+    inspectionFeeCents: 17500,
+    protocolServiceSlug: "windstorm-wpi-8",
+    qualifiers: [
+      ADDRESS_QUALIFIER,
+      OWNER_QUALIFIER,
+      {
+        id: "stage",
+        prompt: "What stage is the work at?",
+        help: "Windstorm evidence has to be gathered while the construction it certifies can still be seen.",
+        options: [
+          "Not started, or in progress and still open",
+          "Complete and covered up",
+          "Existing building, no recent work",
+        ],
+        disqualifyOn: [],
+        disqualifiedMessage: "",
+      },
+    ],
+    requiredInputs: [
+      {
+        id: "access_notes",
+        label: "How does the technician get in",
+        help: "Gate codes, dogs, who will be there, and anything about the property that would waste a trip.",
+        kind: "text",
+        required: true,
+      },
+      {
+        id: "permit",
+        label: "Building permit or plans, if there are any",
+        help: "Optional, and it helps. What was permitted tells the engineer what the construction was meant to be.",
+        kind: "file",
+        required: false,
+        accepts: "PDF",
+      },
+    ],
+    turnaround:
+      "Attendance is staged against the construction programme rather than booked as a single visit, because the evidence has to be gathered while each stage is still open.",
+    receives: [
+      "The windstorm certification the engineer's review supports, sealed",
+      "The photographic and measurement record it rests on, stage by stage",
     ],
   },
   {
@@ -376,7 +451,6 @@ export const CATALOG: CatalogEntry[] = [
     tier: "standard",
     name: "Foundation certification",
     orderType: "field",
-    priceCents: 49500,
     coastalSurchargeCents: 7500,
     inspectionFeeCents: 17500,
     protocolServiceSlug: "foundation-inspections",
@@ -421,7 +495,6 @@ export const CATALOG: CatalogEntry[] = [
     tier: "standard",
     name: "Manufactured home foundation certification",
     orderType: "field",
-    priceCents: 64500,
     coastalSurchargeCents: 7500,
     inspectionFeeCents: 17500,
     protocolServiceSlug: "manufactured-home-foundation-certifications",
@@ -469,7 +542,6 @@ export const CATALOG: CatalogEntry[] = [
     tier: "standard",
     name: "Solar structural letter",
     orderType: "desk",
-    priceCents: 44500,
     coastalSurchargeCents: 7500,
     inspectionFeeCents: null,
     protocolServiceSlug: null,
@@ -518,7 +590,6 @@ export const CATALOG: CatalogEntry[] = [
     tier: "standard",
     name: "Structural letter for permit",
     orderType: "desk",
-    priceCents: 39500,
     coastalSurchargeCents: 7500,
     inspectionFeeCents: null,
     protocolServiceSlug: null,
@@ -570,7 +641,6 @@ export const CATALOG: CatalogEntry[] = [
     tier: "standard",
     name: "Repair specification",
     orderType: "desk",
-    priceCents: 39500,
     coastalSurchargeCents: 7500,
     inspectionFeeCents: null,
     protocolServiceSlug: null,
@@ -642,7 +712,6 @@ export const CATALOG: CatalogEntry[] = [
     tier: "beam-header-sizing",
     name: "Beam and header sizing",
     orderType: "quote",
-    priceCents: null,
     coastalSurchargeCents: null,
     inspectionFeeCents: null,
     protocolServiceSlug: null,
@@ -685,6 +754,7 @@ export const CATALOG: CatalogEntry[] = [
     turnaround: "No site visit. The engineer's review begins when the span and the loads are complete.",
     receives: [
       "A sealed sizing for the beam or header, with the span and loads it was calculated for stated on it",
+      "A written quote from the engineer's estimate of the hours, and no charge until you accept it",
     ],
   },
   {
@@ -692,7 +762,6 @@ export const CATALOG: CatalogEntry[] = [
     tier: "carport-patio-plan-set",
     name: "Carport and patio cover plan set",
     orderType: "quote",
-    priceCents: null,
     coastalSurchargeCents: null,
     inspectionFeeCents: null,
     protocolServiceSlug: null,
@@ -735,6 +804,7 @@ export const CATALOG: CatalogEntry[] = [
     receives: [
       "A sealed plan set for the cover, to the wind loads for the property's county",
       "A document a permit office can review without asking for more",
+      "A written quote from the engineer's estimate of the hours, and no charge until you accept it",
     ],
   },
   {
@@ -742,7 +812,6 @@ export const CATALOG: CatalogEntry[] = [
     tier: "custom-package",
     name: "Custom foundation and framing package",
     orderType: "quote",
-    priceCents: null,
     coastalSurchargeCents: null,
     inspectionFeeCents: null,
     protocolServiceSlug: null,
@@ -775,6 +844,39 @@ export const CATALOG: CatalogEntry[] = [
     receives: ["A written quote with a defined scope", "No charge until you accept it"],
   },
 ];
+
+/**
+ * =========================================================================
+ * THE CATALOGUE, WITH ITS PRICES READ FROM `src/config/prices.ts`.
+ * Operator ruling, 2026-09-20.
+ * =========================================================================
+ *
+ * **THIS FILE HELD A SECOND COPY OF EVERY PRICE AND DISAGREED WITH ALL OF
+ * THEM.** The site published one number and a card was charged another, on
+ * every priced line, the widest being repair specifications advertised at $395
+ * and charged at $900. The gaps followed no rule, $5 to $505, so it was drift
+ * rather than a transform, and nothing compared the two files.
+ *
+ * The operator's ruling was that the mechanism matters more than the
+ * correction: one of the two files stops holding prices, and it is this one.
+ * `priceCents` survives as a FIELD, so the nineteen consumers that read it are
+ * untouched, and it is filled here rather than typed above. The number a card
+ * is charged is now the number the site publishes by construction.
+ *
+ * **WHY THIS IS NOT JUST A TIDIER PLACE TO PUT THE SAME NUMBERS.** The rule in
+ * `deliverablePriceCents` makes an HOURLY line quote every deliverable it
+ * sells. Design is hourly at $225 with a $2,000 minimum, so its three
+ * deliverables come out quoted without this file saying so, and a fixed price
+ * typed onto a design deliverable could not take effect even if somebody tried.
+ * Before this, two design deliverables were published at $750 and $1,500, both
+ * BELOW the firm's own minimum engagement, so checkout sold two engagements the
+ * price book says the firm declines. The ruling is now mechanical rather than
+ * typed, which is the only version of it that stays true.
+ */
+export const CATALOG: CatalogEntry[] = DECLARED.map((entry) => ({
+  ...entry,
+  priceCents: deliverablePriceCents(entry.serviceSlug, entry.tier),
+}));
 
 // ---------------------------------------------------------------- accessors
 
