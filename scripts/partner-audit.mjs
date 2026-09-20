@@ -30,6 +30,19 @@ import {
   ATTRIBUTION_WINDOW_DAYS,
 } from "../src/lib/attribution-rules.ts";
 import { copyVerdict, performingFirmLine } from "../src/lib/partner-copy.ts";
+/*
+ * The pattern sets themselves, so the check below can ask whether each one
+ * actually fires rather than trusting that it was written correctly. Importing
+ * the sets is not importing the expectation: the EXAMPLE SENTENCES are written
+ * out here, and a set that matches none of them is a set matching nothing.
+ */
+import {
+  NEVER_CLAIMS,
+  OPEN_GATED,
+  SEALING_GATED,
+  TRADING_GATED,
+} from "./lib/regulatory.mjs";
+import { isTrading } from "../src/lib/launch.ts";
 import { DEFAULT_ROLES } from "../src/lib/ops-authz.ts";
 import {
   applyBps,
@@ -625,13 +638,31 @@ const terms = (over = {}) => ({
    * money switch.
    */
   {
+    /*
+     * THE GATE IS READ RATHER THAN ASSUMED, AND THE FIRST VERSION OF THIS CHECK
+     * ASSUMED IT.
+     *
+     * It asserted flatly that "we provide" is allowed, on the reasoning that
+     * the firm is registered with an engineer of record. True in a process that
+     * has the firm's configuration: this audit runs without FIRM_PHONE, which
+     * is a TRADING condition, so the gate reads PRELAUNCH here and the sentence
+     * is correctly refused. The check failed on a library that was working.
+     *
+     * A check whose answer depends on ambient state it does not set is a check
+     * that reports the environment rather than the rule. So it reads the mode
+     * and asserts the correct outcome FOR THAT MODE, which makes it true in
+     * both worlds and says out loud which one it saw.
+     */
+    const trading = isTrading();
     const provides = copyVerdict(
       "We provide structural engineering services to contractors across Texas.",
     );
     rec(
-      "a partner may now say the firm provides engineering, because it is registered and has an engineer of record",
-      provides.ok === true,
-      provides.ok ? "allowed" : provides.summary.slice(0, 90),
+      trading
+        ? "trading: a partner may say the firm provides engineering, because it is registered with an engineer of record"
+        : "prelaunch: a partner may not yet say the firm provides engineering",
+      provides.ok === trading,
+      `gate reads ${trading ? "trading" : "prelaunch"}, sentence ${provides.ok ? "allowed" : "refused"}`,
     );
 
     const sealing = copyVerdict(
@@ -776,11 +807,62 @@ const terms = (over = {}) => ({
    * protocol is approved. The operator has the split question and has ruled
    * that the conservative default stands until he answers it.
    */
+  /*
+   * AND THE CONDITION CHANGED AGAIN ON 2026-09-20, WHICH IS WHY THIS CHECK
+   * EXISTS RATHER THAN A COMMENT.
+   *
+   * The operator ruled the single gate into three, each naming the condition
+   * that retires it. The old assertion matched `if (!isOpen()) check(REGULATED`
+   * as a literal and went red on the board that carried the split, which is the
+   * harness asking whether the change was meant. It was.
+   *
+   * SHARPER RATHER THAN LOOSER, which is the rule for answering a red like
+   * this: it no longer matches one line, it asserts that each of the three sets
+   * is gated on ITS OWN condition, so collapsing two of them back into one
+   * would fail here rather than quietly widening what a partner may publish.
+   */
   rec(
-    "the regulated check applies until the firm is open, and the never claims always",
-    /if \(!isOpen\(\)\) check\(REGULATED/.test(copyModule) && /check\(NEVER, "never"\)/.test(copyModule),
-    "a claim about sealing becomes true when a protocol is approved; a guaranteed approval never does",
+    "each regulated set is gated on the condition that retires it, and the never claims always",
+    /if \(!isTrading\(\)\) check\(TRADING_GATED/.test(copyModule) &&
+      /if \(!sealingIsAvailable\(\)\) check\(SEALING_GATED/.test(copyModule) &&
+      /if \(!isOpen\(\)\) check\(OPEN_GATED/.test(copyModule) &&
+      /check\(NEVER, "never"\)/.test(copyModule),
+    "a service claim becomes true at trading, a sealing claim when a protocol is approved, an order when the firm opens, and a guaranteed approval never",
   );
+
+  /*
+   * AND NO SET MAY BE EMPTY, which is the check this split actually needed and
+   * did not have.
+   *
+   * Every pattern in three of the four sets was written through a shell heredoc
+   * on 2026-09-20 and arrived with each `\b` turned into a literal BACKSPACE
+   * byte. The regexes parsed, the module loaded, the audit ran, and they
+   * matched nothing at all: OPEN_GATED permitted an order, TRADING_GATED passed
+   * its check by matching nothing, and the two NEVER additions caught no bench.
+   *
+   * A set that matches nothing is the vacuous green wearing a regex. Counting
+   * the patterns is not enough either, because the corrupt ones were still
+   * counted, so this asserts that each set actually FIRES on a sentence it is
+   * supposed to refuse.
+   */
+  {
+    const fires = [
+      ["TRADING_GATED", TRADING_GATED, "We provide structural engineering."],
+      ["SEALING_GATED", SEALING_GATED, "Every deliverable is reviewed and sealed by a licensed Texas Professional Engineer."],
+      ["OPEN_GATED", OPEN_GATED, "Order a roof certification today."],
+      ["NEVER_CLAIMS", NEVER_CLAIMS, "Our engineers review every file."],
+    ];
+    const dead = fires
+      .filter(([, set, sentence]) => !set.some((r) => r && r.pattern.test(sentence)))
+      .map(([name]) => name);
+    rec(
+      "and every set actually fires on a sentence it exists to refuse",
+      dead.length === 0,
+      dead.length === 0
+        ? `${fires.length} sets, each matched by its own example`
+        : `matches nothing: ${dead.join(", ")}`,
+    );
+  }
   /*
    * THE SECOND CHECK, FOR WHAT THE FIRST COULD NOT SEE: that the regulated set
    * is gated on something that is still shut. A check gated on a condition that

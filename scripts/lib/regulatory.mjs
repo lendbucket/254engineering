@@ -135,8 +135,8 @@ export const NEVER_CLAIMS = [
    * describing a review desk rather than the person who takes responsible
    * charge, which is the fiction the whole gate exists to prevent.
    */
-  { pattern: /our engineers/i, why: "plural engineer fiction, and there is one engineer" },
-  { pattern: /the same engineers/i, why: "implies a review bench, which is a capacity claim nobody can make" },
+  { pattern: /\bour engineers\b/i, why: "plural engineer fiction, and there is one engineer" },
+  { pattern: /\bthe same engineers\b/i, why: "implies a review bench, which is a capacity claim nobody can make" },
   {
     pattern: new RegExp(`${NEGATION_GUARD}guarantee[ds]?\\s+(?:approval|permit|pass|certification|results?)`, "i"),
     why: "guaranteed approval",
@@ -310,8 +310,8 @@ export const ALL_REGULATED = [...PRESENT_TENSE_OFFER, ...PRESENT_TENSE_SEALING];
  * and they stay blocked until the copy derives it from firmName().
  */
 export const TRADING_GATED = [
-  { pattern: /we (?:offer|provide|perform|deliver|issue|inspect|certify)/i, why: "first person service claim" },
-  { pattern: /our licensed (?:pe|professional engineer)/i, why: "claims a PE on staff" },
+  { pattern: /\bwe (?:offer|provide|perform|deliver|issue|inspect|certify)\b/i, why: "first person service claim" },
+  { pattern: /\bour licensed (?:pe|professional engineer)\b/i, why: "claims a PE on staff" },
 ];
 
 /**
@@ -326,18 +326,18 @@ export const SEALING_GATED = [
   ...PRESENT_TENSE_SEALING.filter(
     (r) => !/our engineers|the same engineers/i.test(r.why + String(r.pattern)),
   ),
-  { pattern: /we (?:seal|stamp)/i, why: "first person sealing claim" },
+  { pattern: /\bwe (?:seal|stamp)\b/i, why: "first person sealing claim" },
   PRESENT_TENSE_OFFER.find((r) => r.why === "third person service claim, naming the firm"),
   PRESENT_TENSE_OFFER.find((r) => r.why === "states the firm is performing and sealing now"),
-  { pattern: /we will seal/i, why: "promises a seal" },
+  { pattern: /\bwe will seal\b/i, why: "promises a seal" },
 ].filter(Boolean);
 
 /** Retired when the firm OPENS. Orders and money, and nothing else. */
 export const OPEN_GATED = [
-  { pattern: /order (?:a|an|your)/i, why: "invites an order" },
-  { pattern: /schedule (?:an|your) inspection/i, why: "invites a booking" },
-  { pattern: /now accepting/i, why: "states the firm is trading" },
-  { pattern: /get started today/i, why: "invites an order" },
+  { pattern: /\border (?:a|an|your)\b/i, why: "invites an order" },
+  { pattern: /\bschedule (?:an|your) inspection\b/i, why: "invites a booking" },
+  { pattern: /\bnow accepting\b/i, why: "states the firm is trading" },
+  { pattern: /\bget started today\b/i, why: "invites an order" },
 ];
 
 /** Matches from a pattern group, as { why, match, index }. */
