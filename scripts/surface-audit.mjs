@@ -40,6 +40,7 @@ import {
   allPages,
   guardedSurfaces,
   measurableSurfaces,
+  roleForRoute,
   routesOf,
   shellSurfaces,
   surfaces,
@@ -114,6 +115,7 @@ const APIS_MEASURED_ELSEWHERE = {
   apply: ["scripts/lib/careers-audit.mjs", "the careers application flow"],
   cron: ["scripts/security-audit.mjs", "every scheduled route, refused without CRON_SECRET"],
   intake: ["scripts/sister-intake-audit.mjs", "the door the sister brands post a lead through"],
+  "design-inquiry": ["scripts/forms-audit.mjs", "the design brief, eleven answers and three flags"],
   lead: ["scripts/forms-audit.mjs", "the marketing intake"],
   onboarding: ["scripts/jobs-audit.mjs", "the invite and reminder mail the flow queues"],
   "order-flow": ["scripts/security-audit.mjs", "the one write path a visitor can reach, checked for what it refuses"],
@@ -224,6 +226,63 @@ const APIS_MEASURED_ELSEWHERE = {
     }
   }
   rec("every declared surface is well formed", problems.length === 0, problems.join(" | "));
+
+  /*
+   * ===================================================================
+   * A SCREEN ONLY A LICENCE OPENS MUST SAY SO IN roleFor.
+   * Added 2026-09-19, after it cost the same finding twice.
+   * ===================================================================
+   *
+   * The browser audits open each route with `defaultRole`, which is admin. A
+   * page gated on `holdsLicence` refuses an administrator, because a licensed
+   * capability is not a grant: the probe gets a 404 and the audit reports the
+   * PAGE as broken.
+   *
+   * IT HAPPENED TO /portal/protocols/rc-001 AND THEN, ON THE SAME DAY, TO
+   * /portal/waiting. The first was fixed by making roleFor inherit down a path,
+   * which was correct and did nothing for the second, because /portal/waiting
+   * is TOP LEVEL and has no parent to inherit from. The fix cured the instance
+   * and not the class.
+   *
+   * The class is one fact with two homes: roles-audit's lists say which screens
+   * are the engineer's, and roleFor says which principal opens each, and
+   * nothing compared them. This compares both against the thing that actually
+   * decides, which is the GUARD IN THE PAGE. A page calling holdsLicence needs
+   * a roleFor entry; a page that does not, does not.
+   *
+   * Derived from the code rather than from a second list, which is the idiom:
+   * the question is what would have to be true on disk for the declaration to
+   * be honest, and this asks it.
+   */
+  const portal = surfaces().find((s) => s.key === "portal");
+  if (portal) {
+    const licensed = [];
+    const undeclared = [];
+    for (const route of routesOf(portal, { include: "signed-in" })) {
+      /* /portal -> src/app/portal/(app)/page.tsx, /portal/x -> .../x/page.tsx */
+      const rel = route.replace(/^\/portal\/?/, "");
+      const file = join("src/app/portal/(app)", rel, "page.tsx");
+      if (!existsSync(join(process.cwd(), file))) continue;
+      if (!/holdsLicence\s*\(/.test(readSource(file))) continue;
+      licensed.push(route);
+      if (roleForRoute(portal, route) === (portal.defaultRole ?? null)) undeclared.push(route);
+    }
+
+    rec(
+      "the licence gated portal screens were found at all",
+      licensed.length > 0,
+      licensed.length > 0
+        ? `${licensed.length}: ${licensed.join(", ")}`
+        : "none matched, so the check below is passing over an empty set",
+    );
+    rec(
+      "and every one of them names the principal that can open it",
+      undeclared.length === 0,
+      undeclared.length === 0
+        ? "no screen is probed by a role its own guard refuses"
+        : `probed as ${portal.defaultRole} and gated on a licence: ${undeclared.join(", ")}`,
+    );
+  }
 
   const probeSource = readSource("scripts/lib/portal-probe.mjs");
   const missingProbes = surfaces()

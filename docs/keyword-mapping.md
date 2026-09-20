@@ -6,6 +6,28 @@ the right term today, and where two pages would compete.
 
 Read off the source on 2026-09-17, not recalled.
 
+## THE HOME PAGE H1, RULED 2026-09-18
+
+**Structural Engineering Across Texas, on a Written Protocol**
+
+Three options went to the operator and he picked this one. His reasoning is
+recorded because it is a better rule than the choice:
+
+> The protocol is the only differentiator a competitor cannot copy by writing a
+> sentence, and it is true today.
+
+The two he refused, and why, because the reasons generalise:
+
+**"A Texas Structural Engineer Who Answers the Phone"** converts best and was
+refused as the riskiest. It promises something operations cannot keep with one
+part time engineer and no technician hired, and **the first missed call makes it
+false**. A headline that becomes false through ordinary operational failure is a
+headline that puts the firm's honesty in the hands of its staffing.
+
+**"Texas Structural Engineers, Sealed Letters When You Need Them"** was refused
+for saying nothing. It is safe, and a sentence that could appear unchanged on a
+competitor's site fails the copy document's own tone test.
+
 ## THE HEADLINE: CANNIBALISATION IS ALREADY LIVE, BEFORE ANY NEW PAGE IS BUILT
 
 `/structural-engineer` is the pillar, and **it is targeting target 5 rather than

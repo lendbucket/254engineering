@@ -47,7 +47,7 @@ export function OfferCta({
    *
    * THE DEFECT THIS FIXES, WHICH THE BOARD FOUND FIRST. When the gate left
    * prelaunch, this component fell through to its live branch and offered
-   * "Order this" on nine service pages, linking to /order/start/<slug>. No line
+   * "Order this" on every service page, linking to /order/start/<slug>. No line
    * has an approved protocol, so every one of those links led to a page that
    * refuses. cta-audit reported the pages as having no conversion path at all,
    * because its pattern does not recognise an order href, and the deeper truth

@@ -2,6 +2,7 @@ import { cell } from "./csv";
 import { can, type Actor, type Action, type LicensedAction, may } from "./ops-authz";
 import { isOpen } from "./launch";
 import type { FileStatus } from "./ops-files";
+import type { Determination } from "@/content/protocols/rc-001-decisions";
 
 /**
  * Engineer review: the four things a licensed engineer may do with a package,
@@ -80,14 +81,24 @@ import type { FileStatus } from "./ops-files";
  * messages here read that way on purpose.
  */
 
-export type ReviewAction = "seal" | "revisions" | "site_visit" | "refuse";
+/**
+ * `repairs` joined the four on 2026-09-19, and it is the one the platform could
+ * not say before.
+ *
+ * Appendix C has five determinations and this module had four actions, so
+ * REPAIRS REQUIRED mapped to nothing and the write path refused rather than
+ * picking the nearest lie. 0053 gives the file a status for it, and this gives
+ * the engineer a way to reach it.
+ */
+export type ReviewAction = "seal" | "revisions" | "site_visit" | "repairs" | "refuse";
 
-export const REVIEW_ACTIONS: ReviewAction[] = ["seal", "revisions", "site_visit", "refuse"];
+export const REVIEW_ACTIONS: ReviewAction[] = ["seal", "revisions", "site_visit", "repairs", "refuse"];
 
 export const ACTION_LABEL: Record<ReviewAction, string> = {
   seal: "Seal and deliver",
   revisions: "Send back for revisions",
   site_visit: "Send back for a site visit",
+  repairs: "Withhold certification, issue a repair list",
   refuse: "Decline to seal",
 };
 
@@ -104,6 +115,13 @@ export const ACTION_TARGET: Record<ReviewAction, FileStatus> = {
   seal: "sealed",
   revisions: "revisions_requested",
   site_visit: "needs_dispatch",
+  /*
+   * NOT needs_dispatch, AND THAT IS THE WHOLE POINT OF 0053. A site visit is
+   * due now. This revisit is due when the owner has had work done, which may
+   * be months, and a file sitting in the dispatch queue that long is a queue
+   * that has stopped being one.
+   */
+  repairs: "repairs_required",
   refuse: "refused",
 };
 
@@ -112,6 +130,7 @@ const ACTION_PERMISSION: Record<ReviewAction, Action | LicensedAction> = {
   seal: "documents.seal",
   revisions: "review.decide",
   site_visit: "review.decide",
+  repairs: "review.decide",
   refuse: "review.decide",
 };
 
@@ -129,6 +148,12 @@ export const REQUIRES_REASON: Record<ReviewAction, boolean> = {
   seal: false,
   revisions: true,
   site_visit: true,
+  /*
+   * The repair LIST is the substance and it is rows rather than prose, but the
+   * note still goes to the client alongside it, and a repair list arriving with
+   * no covering sentence reads as a demand rather than a finding.
+   */
+  repairs: true,
   refuse: true,
 };
 
@@ -356,6 +381,7 @@ export const OUTCOME_LABEL: Record<ReviewAction, string> = {
   seal: "Sealed",
   revisions: "Sent back for revisions",
   site_visit: "Sent back for a site visit",
+  repairs: "Certification withheld pending repairs",
   refuse: "Declined to seal",
 };
 
@@ -485,4 +511,123 @@ export const BRISK_REVIEW_MINUTES = 3;
 
 export function isBriskReview(minutes: number | null): boolean {
   return minutes !== null && minutes < BRISK_REVIEW_MINUTES;
+}
+
+/**
+ * ===========================================================================
+ * APPENDIX C: THE ENGINEER'S DETERMINATION, WHICH IS NOT THE PLATFORM'S ACTION.
+ * ===========================================================================
+ *
+ * 254-RC-001 Appendix C: "Applied by the engineer to each evidence package. One
+ * determination is recorded per review." It names five. This platform has four
+ * review ACTIONS, and they are a different thing, so both exist rather than one
+ * being folded into the other.
+ *
+ * WHY THEY ARE TWO FACTS. A determination is the professional judgement made
+ * under a signed protocol, and it is what a board would ask about years later:
+ * what did the engineer conclude, and on what. An action is what the software
+ * then does to the file. Collapsing them would mean the regulatory record was a
+ * workflow state, which is the same mistake as reading a queue status as an
+ * opinion.
+ *
+ * THE MAP IS DECLARED, NEVER INFERRED, and one entry is deliberately null.
+ */
+export const DETERMINATION_ACTION: Record<Determination, ReviewAction | null> = {
+  pass: "seal",
+  revise: "revisions",
+  /*
+   * THIS WAS NULL FOR ONE DAY, AND THE NULL IS WHAT PRODUCED THE STATUS.
+   *
+   * The document: "Certification withheld and a repair list issued.
+   * Certification proceeds only after repairs are verified on revisit." The
+   * file is not going back to the technician, because nothing is wrong with the
+   * evidence. It is not going back through dispatch yet, because the revisit
+   * happens after the OWNER has had work done, which may be months. It is not
+   * refused, because certification is withheld rather than declined.
+   *
+   * So for a day this mapped to nothing, the write path refused with the reason
+   * written out, and the gap was a ruling the firm owed rather than a hole
+   * somebody forgot to fill. The operator ruled it on 2026-09-19 and named it
+   * the third instance of one lesson: a status vocabulary that lacks a word for
+   * the situation makes somebody choose the nearest lie. 0053 adds the word.
+   *
+   * KEPT AS A COMMENT RATHER THAN DELETED, because the reasoning is what stops
+   * somebody collapsing this back onto revisions the next time the five and the
+   * five look like four and a spare.
+   */
+  "repairs-required": "repairs",
+  "site-revisit": "site_visit",
+  decline: "refuse",
+};
+
+export type DeterminationVerdict =
+  | { ok: true; action: ReviewAction }
+  | { ok: false; reason: string };
+
+/**
+ * What the platform does about a determination, or why it cannot.
+ *
+ * PURE, AND THE ACTION IS DERIVED RATHER THAN CHOSEN ALONGSIDE IT. An engineer
+ * who determines PASS and an action of "decline to seal" is a contradiction the
+ * record should never be able to hold, and the way to make it unholdable is to
+ * stop asking the question twice.
+ */
+export function actionForDetermination(determination: Determination): DeterminationVerdict {
+  const action = DETERMINATION_ACTION[determination];
+  if (action) return { ok: true, action };
+  /*
+   * EVERY DETERMINATION MAPS TODAY, so this branch is unreachable from the five
+   * in the registry, and it is kept rather than removed. A sixth determination
+   * added to Appendix C would arrive here with no action, and the honest
+   * outcome is a refusal naming it rather than a crash or a silent nearest
+   * guess. protocol-run-audit asserts the map is exhaustive in both directions,
+   * so this branch stays unreachable by check rather than by hope.
+   */
+  return {
+    ok: false,
+    reason:
+      `${determination} has no action in this platform, so the file cannot be moved on it. ` +
+      "The determination is a professional judgement and the platform's answer to it is a " +
+      "workflow decision somebody has to make deliberately, rather than the nearest existing " +
+      "status borrowed for the occasion.",
+  };
+}
+
+/**
+ * Is what the engineer says he relied on actually a record of anything?
+ *
+ * 0051 refuses an empty array at the database, because a determination naming
+ * nothing it relied on is an opinion with no record behind it. This asks the
+ * same question early so the engineer gets a sentence, and asks one more the
+ * database cannot: that the keys are items of THIS file's protocol and the
+ * evidence ids are captures of THIS file. A determination citing another
+ * property's photograph is the worst record this table could hold.
+ */
+export function reliedOnVerdict(input: {
+  itemKeys: string[];
+  evidenceIds: string[];
+  protocolItemKeys: string[];
+  fileEvidenceIds: string[];
+}): ReviewVerdict {
+  if (input.itemKeys.length === 0) {
+    return { ok: false, reason: "Name the checklist items this determination rests on." };
+  }
+  if (input.evidenceIds.length === 0) {
+    return { ok: false, reason: "Name the photographs or readings this determination rests on." };
+  }
+  const strayKeys = input.itemKeys.filter((k) => !input.protocolItemKeys.includes(k));
+  if (strayKeys.length > 0) {
+    return {
+      ok: false,
+      reason: `${strayKeys.join(", ")} ${strayKeys.length === 1 ? "is not an item" : "are not items"} of this file's protocol.`,
+    };
+  }
+  const strayEvidence = input.evidenceIds.filter((id) => !input.fileEvidenceIds.includes(id));
+  if (strayEvidence.length > 0) {
+    return {
+      ok: false,
+      reason: "A determination can only rest on evidence captured for this file.",
+    };
+  }
+  return { ok: true };
 }

@@ -2,7 +2,8 @@ import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { TexasCountyMap } from "@/components/map/TexasCountyMap";
 import { modelSentence } from "@/content/model-copy";
-import { firmName, isPrelaunch } from "@/lib/launch";
+import { isPrelaunch } from "@/lib/launch";
+import { displayPhone, telHref } from "@/config/contact";
 import { services } from "@/content/services";
 import { regions } from "@/content/regions";
 
@@ -55,30 +56,72 @@ export function HomeHero() {
                 the element beats an inherited one, so a heading on a dark band
                 that relies on inheriting from its section renders navy on navy.
                 That is exactly what happened here on the first render. */}
+            {/*
+              THE H1, RULED BY THE OPERATOR 2026-09-18 FROM THREE OPTIONS.
+
+              "Structural Engineering Across Texas, on a Written Protocol."
+
+              His reasoning, which is a better rule than the choice: the protocol
+              is the only differentiator a competitor cannot copy by writing a
+              sentence, and it is true today. He refused a headline promising the
+              firm answers the phone, because the first missed call makes it
+              false and that puts the firm's honesty in the hands of its
+              staffing. He refused a safe one for saying nothing.
+
+              It leads with the primary term from the SEO revision, "structural
+              engineer", which is 18,000 a month at difficulty 0 and the largest
+              cluster on this site by a wide margin, and it reads as a sentence
+              rather than a keyword string.
+            */}
             <h1 className="mt-[22px] max-w-[20ch] font-display text-[clamp(34px,5vw,56px)] leading-[1.12] font-bold tracking-[-0.015em] text-slate-fg">
-              One firm for all <span className="text-brass-light">254 counties</span> of Texas
+              Structural Engineering Across Texas,{" "}
+              <span className="text-brass-light">on a Written Protocol</span>
             </h1>
 
             <p className="mt-[22px] max-w-[56ch] text-[clamp(16px,1.9vw,18.5px)] leading-[1.7] text-slate-fg-muted">
-              {/* v5's opening sentence, then the gate aware model sentence. The
-                  second half is not hardcoded because it is the sentence that has
-                  to change when the registration issues. */}
-              {firmName()} is named for the 254 counties of Texas, every one of which it
-              will serve. {modelSentence()}
+              {/*
+                The approved copy's opening, close to verbatim. It states the
+                problem in the buyer's words before it states the firm's answer,
+                which is the order the copy document uses throughout.
+
+                The second sentence is the gate aware model sentence rather than
+                a literal, because it is the one that has to change when a
+                protocol is approved and sealing begins.
+              */}
+              You need a sealed letter from a licensed engineer, and most firms will tell you
+              three weeks and call you back when they feel like it. {modelSentence()}
             </p>
 
+            {/*
+              THE CALLS TO ACTION THE OPERATOR RULED: "Start a job" is the verb,
+              the telephone is on every page because half these buyers would
+              rather talk, and "See pricing" goes to the page that publishes the
+              numbers. Never a waitlist.
+
+              MOBILE FIRST: the row wraps, and each button carries its own
+              padding rather than relying on a grid, so at 390 they stack as
+              three full width targets instead of two and a half.
+            */}
             <div className="mt-[34px] flex flex-wrap gap-3">
               <Link
-                href={prelaunch ? "/waitlist" : "/contact"}
+                href="/contact"
                 className="inline-block rounded-[3px] bg-brass px-8 py-4 text-[16px] font-bold text-slate-ink shadow-[0_6px_18px_rgba(217,160,50,0.3)] transition-colors hover:bg-brass-light"
               >
-                {prelaunch ? "Join the Waitlist" : "Contact the Firm"}
+                Start a job
               </Link>
+              {telHref() && displayPhone() ? (
+                <a
+                  href={telHref() ?? undefined}
+                  className="inline-block rounded-[3px] border-[1.5px] border-white/50 px-8 py-4 text-[16px] font-semibold text-slate-fg transition-colors hover:border-brass hover:text-brass-light"
+                >
+                  Call {displayPhone()}
+                </a>
+              ) : null}
               <Link
-                href="/services"
+                href="/process"
                 className="inline-block rounded-[3px] border-[1.5px] border-white/50 px-8 py-4 text-[16px] font-semibold text-slate-fg transition-colors hover:border-brass hover:text-brass-light"
               >
-                Explore Services
+                See pricing
               </Link>
             </div>
           </div>
@@ -94,7 +137,12 @@ export function HomeHero() {
       <div className="mt-[clamp(36px,5vw,56px)] border-t border-white/[0.16]">
         <Container>
           <dl className="flex flex-wrap gap-x-[clamp(28px,6vw,88px)] gap-y-6 py-[clamp(20px,3vw,28px)]">
-            <Stat figure={countyCount} label="Texas counties served at launch" />
+            {/*
+              "at launch" came off on 2026-09-18. It was prelaunch language
+              describing a future state, and the firm is trading. The number is
+              still derived from the coverage data rather than typed.
+            */}
+            <Stat figure={countyCount} label="Texas counties served" />
             <Stat figure={regions.length} label="Service regions" />
             <Stat figure={services.length} label="Sealed service lines" />
           </dl>

@@ -1012,6 +1012,199 @@ export const APPLIED = [
       "THE DEVELOPMENT BEHAVIOUR DIGEST IS NOT RECORDED because it has not been read back from " +
       "development, and inventing one is the defect this ledger was corrected for on 2026-09-13.",
   },
+
+  {
+    file: "0050_a_design_inquiry_is_not_an_order.sql", appliedBy: "apply_migration",
+    fingerprint: "9ea2049c0f7e4fd0028c88048abf9866",
+    behaviour: "61cea197e8bde99fdae5c2ca7c2ae1a1",
+    proves: { column: { table: "eng_design_inquiries", name: "respond_by" } },
+    production: "2026-09-20",
+    development: { at: "0050", behaviour: null, facts: 863 },
+    because:
+      "PENDING, AND DELIBERATELY SO. Tonight's limits forbid applying anything to production, and a " +
+      "migration on a feature branch may be pending while a migration on main may not. It does not " +
+      "merge until somebody is at a keyboard to run the production half. " +
+      "WHAT IT ADDS: eng_design_inquiries, one table and four check constraints, for the design brief " +
+      "the public site takes. " +
+      "WHY ITS OWN TABLE RATHER THAN eng_leads: a lead is a contact, with a name, an email and a free " +
+      "text message, and this is a BRIEF of eleven defined answers, three of which decide whether the " +
+      "firm takes the work at all. The three flags are an open insurance claim, active litigation and " +
+      "a prior adverse report, each of which changes what the work IS, and the specification says the " +
+      "customer is told in the first conversation rather than after paying. A column can be " +
+      "constrained; a key inside a jsonb blob cannot. That follows 0016's reasoning about " +
+      "eng_file_inputs and eng_order_inputs duplicating shape on purpose. " +
+      "THE 24 HOUR PROMISE IS A COLUMN RATHER THAN A CONVENTION. respond_by is not null and defaults " +
+      "to 24 hours, and responded_at is separate and nullable, because 'we said we would' and 'we " +
+      "did' are two facts and folding them into one is how a queue starts lying. A constraint requires " +
+      "responded_at and responded_by to move together, so a record cannot say somebody was contacted " +
+      "without saying who contacted them: that is the customer_link.issued defect in different " +
+      "columns. " +
+      "IT NEVER PRODUCES AN ORDER AND NEVER QUOTES A PRICE. Design is hourly with a minimum " +
+      "engagement and a fixed fee quoted from the engineer's own estimate, and no form can price that. " +
+      "Replayed into the in process engine and read back: shape 9ea2049c0f7e4fd0028c88048abf9866 " +
+      "across 1,085 columns and 77 tables, behaviour 61cea197e8bde99fdae5c2ca7c2ae1a1 across 863 " +
+      "facts. NOT YET APPLIED TO DEVELOPMENT EITHER, so no development digest is recorded and none is " +
+      "invented, which is the defect this ledger was corrected for on 2026-09-13. " +
+      "APPLIED TO PRODUCTION 2026-09-20 through apply_migration at the keyboard on the operator's word, " +
+      "and READ BACK rather than assumed: shape 9ea2049c0f7e4fd0028c88048abf9866 across 1,085 columns and " +
+      "77 tables, matching the replay exactly. eng_design_inquiries holds 26 columns, 4 check constraints, " +
+      "2 indexes, row level security on, and 0 rows.",
+  },
+
+  {
+    file: "0051_a_job_carries_its_determination.sql", appliedBy: "apply_migration",
+    fingerprint: "aa53ea353a4128696a23e03feadd1e48",
+    behaviour: "9b345f45ce25d2cc08a905c752255348",
+    proves: { column: { table: "eng_determinations", name: "relied_on_item_keys" } },
+    production: "2026-09-20",
+    development: { at: "0051", behaviour: null, facts: 880 },
+    because:
+      "PENDING. Tonight's limits forbid production and it has not been applied to development either, " +
+      "so no development digest is recorded and none is invented. " +
+      "WHAT IT ADDS: two tables, 18 columns, four check constraints and one trigger, for the two things " +
+      "a job could not previously carry. " +
+      "eng_checklist_exceptions records an Appendix B item that could NOT be observed, or does not " +
+      "apply, with the reason. Section 7 of the signed protocol says no item is estimated, assumed or " +
+      "left blank, and an evidence table can only record what WAS captured: the absence of a row meant " +
+      "both 'not done yet' and 'could not be done', which is one null meaning two things, the oldest " +
+      "lesson in this repository. The reason is constrained to three characters after trimming, so a " +
+      "technician cannot satisfy the rule with a space bar. " +
+      "eng_determinations records one of Appendix C's five, with relied_on_item_keys and " +
+      "relied_on_evidence_ids NOT NULL and constrained non-empty, because a determination naming " +
+      "nothing it relied on is an opinion with no record behind it and the protocol exists so somebody " +
+      "can be asked years later what the engineer actually looked at. The engineer is named, restricted " +
+      "on delete, and the table carries eng_forbid_mutation_allow_cascade, reusing the function 0001 " +
+      "wrote for this class rather than minting a second answer to one question. " +
+      "NOTHING HERE IS DUPLICATED FROM eng_evidence_items, which has recorded captures with their time, " +
+      "location and accuracy since 0001 and is untouched. " +
+      "AND IT DELIBERATELY DOES NOT ENFORCE COMPLETENESS. 'Complete or properly excepted' is a rule " +
+      "about the protocol's item list, which lives in the signed document and its transcription rather " +
+      "than in the database; Postgres cannot know 254-RC-001 has 51 items nor which apply to a metal " +
+      "roof. A constraint that looked like it enforced completeness and did not would be worse than " +
+      "none, so the rule is enforced against the registry in the library and this schema makes the " +
+      "evidence of it recordable and unforgeable. " +
+      "Replayed and read back: shape aa53ea353a4128696a23e03feadd1e48 across 1,103 columns and 79 " +
+      "tables, 62 triggers, behaviour 9b345f45ce25d2cc08a905c752255348 across 880 facts. " +
+      "THE DIGEST MOVED ON 2026-09-19 WITHOUT THE MIGRATION BEING REAPPLIED ANYWHERE, because its " +
+      "determination vocabulary was corrected before it had run: it paraphrased two of Appendix C's " +
+      "five, REVISE as package_incomplete and SITE REVISIT as return_visit. The fact count is " +
+      "unchanged at 880 and the shape is untouched; one check constraint's definition differs. " +
+      "Production, development and the cutover project were all read that day and none holds " +
+      "eng_determinations, which is what makes editing it right rather than forbidden. " +
+      "APPLIED TO PRODUCTION 2026-09-20, READ BACK: shape aa53ea353a4128696a23e03feadd1e48 across 1,103 " +
+      "columns, 79 tables and 62 triggers, matching the replay exactly. Both tables hold 0 rows. AND THE " +
+      "CORRECTION LANDED AS THE DOCUMENT SPELLS IT, read back by pg_get_constraintdef: the determination " +
+      "check reads pass, revise, repairs-required, site-revisit, decline. The paraphrase never reached a " +
+      "database.",
+  },
+  {
+    file: "0052_an_approval_and_its_items_are_one_act.sql", appliedBy: "apply_migration",
+    fingerprint: "aa53ea353a4128696a23e03feadd1e48",
+    behaviour: "6404e2e8de33bff848e94b67da7addc4",
+    proves: { function: "eng_approve_protocol" },
+    production: "2026-09-20",
+    development: { at: "0052", behaviour: null, facts: 889 },
+    note:
+      "The shape fingerprint repeats 0051's on purpose. This migration adds no column and no table: it " +
+      "is five functions and four triggers, so what the database HOLDS is unchanged and what it DOES " +
+      "is not. The behaviour digest is where it moves, 880 facts to 889. Same signature as 0008, which " +
+      "pinned the search_paths, and 0021, which seeded a grant row.",
+    because:
+      "PENDING, and it stays on feat/protocol-screens until somebody is at a keyboard for the " +
+      "production half. Tonight's limits forbid production, and a migration on main is never pending. " +
+      "WHAT IT ADDS: no columns and no tables. Five functions and four triggers, so the SHAPE " +
+      "fingerprint is unchanged at aa53ea353a4128696a23e03feadd1e48 across 1,103 columns and the " +
+      "behaviour digest moves to 6404e2e8de33bff848e94b67da7addc4 across 889 facts, which is exactly " +
+      "the nine. That is the same signature 0008 had when it pinned the search_paths: a migration that " +
+      "changes what the database DOES without changing what it HOLDS. " +
+      "WHY IT EXISTS. The operator ruled that the 51 items of 254-RC-001 are seeded when the engineer " +
+      "approves it, on two conditions: the seeding is part of the approval transaction, and the rows " +
+      "derive from the registry. 0049 gave the platform the words for a signed protocol awaiting " +
+      "approval and did not give it the ACT, so nothing made the approval and the seeding inseparable " +
+      "and nothing stopped a row reaching 'published' by an UPDATE somebody typed. " +
+      "eng_approve_protocol is the one door: it seeds the items, retires the previous version, and " +
+      "records the approval in one transaction. eng_guard_protocol_approval refuses the transition " +
+      "into published from anywhere else, by looking for a transaction local setting only that function " +
+      "sets, and a second guard refuses a template CREATED already in force, which is the shape a " +
+      "seeder reaches for. A deferred constraint trigger asserts at COMMIT that a protocol in force " +
+      "holds at least one item and one required item, re-reading the row rather than trusting NEW so a " +
+      "row published and unpublished inside one transaction is judged where it landed. And the items " +
+      "of a protocol in force are frozen, with cascade allowed, following eng_forbid_mutation_allow_cascade. " +
+      "WHAT IT FOUND ON ITS WAY IN. publishProtocol in src/lib/ops-field.ts has been unable to succeed " +
+      "since 0049 reached production on 2026-09-17: it sets status and published_at and sets no " +
+      "approver, so eng_protocol_templates_published_is_approved_ck refuses every call. The seeder was " +
+      "taught the approval columns that week and the product path was not. Nothing on the board could " +
+      "see it, because approving a protocol is an act by a named engineer and there is no live fixture " +
+      "that performs one and there must not be. Found by reading the code against the migration. This " +
+      "migration does not repair that path, it replaces it. " +
+      "THE SECOND OPERATOR CONDITION IS NOT ENFORCED HERE AND THIS ENTRY DOES NOT PRETEND IT IS. " +
+      "Postgres cannot know 254-RC-001 has 51 items or what its ninth one says. The rows arrive as " +
+      "jsonb from protocolItemRows() in src/lib/protocol-run.ts, which maps the verbatim-verified " +
+      "registry, and protocol-run-audit asserts that round trip seven ways, injection-verified seven " +
+      "ways. What the migration contributes is that the rows cannot arrive by another route and cannot " +
+      "be edited afterwards. " +
+      "Replayed and read back, and its ten guarantees exercised in the replayed database rather than " +
+      "on development, because a development fixture that approves a protocol is the one thing the " +
+      "operator's limits name outright. Injection-verified six ways, one guard at a time, each read " +
+      "for WHICH check went red. Three of the six passed vacuously on the first attempt, each because " +
+      "the deferred assertion answered a question a different guard was named for, and the fixtures " +
+      "were sharpened until each refusal names its own guard. " +
+      "APPLIED TO PRODUCTION 2026-09-20, READ BACK: shape aa53ea353a4128696a23e03feadd1e48 across 1,103 " +
+      "columns and 79 tables, UNCHANGED from 0051, which is the point of this migration. Triggers 62 to 66 " +
+      "and functions 16 to 21, exactly the four and the five. No function carries an unpinned search_path, " +
+      "and eng_approve_protocol(uuid,uuid,text,jsonb) resolves.",
+  },
+  {
+    file: "0053_a_file_can_be_waiting_on_an_owner.sql", appliedBy: "apply_migration",
+    fingerprint: "257175e8e5ff6dc855afd5a3607752c5",
+    behaviour: "5d9821e62f331e895c7b818e80d0b994",
+    proves: { column: { table: "eng_files", name: "repairs_required_at" } },
+    production: "2026-09-20",
+    development: { at: "0053", behaviour: null, facts: 908 },
+    because:
+      "PENDING, and it stays on feat/protocol-screens with 0050, 0051 and 0052 until somebody is at " +
+      "a keyboard for the production half. A migration on main is never pending. " +
+      "WHAT IT ADDS: a word, a table, and an impossibility. Shape moves to " +
+      "257175e8e5ff6dc855afd5a3607752c5 across 1,116 columns, which is exactly thirteen more: " +
+      "repairs_required_at on eng_files, and the twelve columns of eng_repair_items. 79 tables to 80. " +
+      "66 triggers to 69 and 21 functions to 25. Behaviour moves to " +
+      "5d9821e62f331e895c7b818e80d0b994 across 908 facts. " +
+      "WHY IT EXISTS. Appendix C of 254-RC-001 has five determinations and this platform had four " +
+      "review actions, so REPAIRS REQUIRED mapped to nothing for one day and the write path refused " +
+      "with the reason rather than picking. The operator ruled it the THIRD instance of one lesson, " +
+      "after the null that meant both no-price and nothing-accepted, and the signed protocol that had " +
+      "to be called a draft: a status vocabulary that lacks a word for the situation makes somebody " +
+      "choose the nearest lie. All four candidates were lies. The evidence is not deficient so it is " +
+      "not revisions_requested; the revisit is not due yet so it is not needs_dispatch; certification " +
+      "is withheld rather than declined so it is not refused; and closing it would be the firm " +
+      "recording a homeowner saving up for a roof repair as an abandonment. " +
+      "THE REPAIR LIST IS ROWS RATHER THAN A TEXT COLUMN, on the operator's sentence that every item " +
+      "must be individually closed. A free text list cannot be partially closed, so it would push the " +
+      "judgement back into somebody's head, which is the thing being removed. " +
+      "AND THERE IS NO CONDITIONAL CERTIFICATION, made UNREPRESENTABLE rather than checked, which was " +
+      "the operator's word. A file cannot BE sealed while any repair item against it is open. The " +
+      "guard is on the FILE rather than on the review path, so it holds for routes nobody has written " +
+      "yet, and it fires from the repair item side as well, which is the direction a check on the " +
+      "review path would never see: adding a repair list to an already sealed file. " +
+      "Replayed and read back, with ten guarantees exercised in the replayed database and nowhere " +
+      "else, because a live fixture that seals a file would put a sealed deliverable on a real " +
+      "database under a probe engineer's name. They include the half that proves the guard is not " +
+      "simply refusing everything: with every item closed, the file seals. " +
+      "TWO THINGS THE REPLAY CAUGHT THAT READING THE SQL DID NOT. One trigger function reading " +
+      "`case tg_table_name when 'eng_files' then new.id else new.file_id end` was refused by plpgsql " +
+      "before a row was touched, because the expression forces BOTH record fields to be type resolved " +
+      "at plan time and eng_files has no file_id. It is now a rule function taking a file id plus two " +
+      "three-line triggers, so neither touches a column its own table lacks. And a check asserted the " +
+      "refusal said 'no conditional certification', which it does say, just past the 130 character " +
+      "clip the fixture applies to an error. A check on wording is a check on wording even when the " +
+      "wording is right. " +
+      "APPLIED TO PRODUCTION 2026-09-20, READ BACK: shape 257175e8e5ff6dc855afd5a3607752c5 across 1,116 " +
+      "columns and 80 tables, matching the replay exactly. Triggers 66 to 69, functions 21 to 25, zero " +
+      "unpinned search_paths, row level security on all 80. eng_repair_items holds 0 rows, and the file " +
+      "status check reads back carrying repairs_required between revisions_requested and refused. " +
+      "THE PRE-FLIGHT GUARD PASSED BECAUSE PRODUCTION HAS NEVER HELD A PROTOCOL ROW: eng_protocol_templates " +
+      "and eng_files were both read at 0 rows before the migration was sent, checked rather than assumed.",
+  },
 ];
 
 /**

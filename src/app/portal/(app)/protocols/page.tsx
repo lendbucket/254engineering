@@ -5,7 +5,8 @@ import { can, holdsLicence } from "@/lib/ops-authz";
 import { getProtocol, listProtocols, protocolQuestions } from "@/lib/ops-field";
 import { services } from "@/content/services";
 import { Chip, EmptyState, PageHead } from "@/components/portal/surfaces";
-import { ItemEditor, NewProtocolForm, PublishButton, QuestionEditor } from "./ProtocolsClient";
+import { ApproveButton, ItemEditor, NewProtocolForm, QuestionEditor } from "./ProtocolsClient";
+import { protocolItemRowsFor } from "@/lib/protocol-run";
 
 export const dynamic = "force-dynamic";
 
@@ -213,10 +214,31 @@ export default async function ProtocolsPage({
                     <div className="mt-6 border-t border-[var(--border)] pt-5">
                       <ItemEditor.Add templateId={selected.id} />
                     </div>
-                    <div className="mt-6 border-t border-[var(--border)] pt-5">
-                      <PublishButton id={selected.id} itemCount={selected.items.length} />
-                    </div>
+                    {/*
+                     * NO APPROVE BUTTON ON A DRAFT, because 0049's vocabulary
+                     * means draft is "the engineer has not signed the document".
+                     * Offering to approve one would be offering to put an
+                     * unsigned document in force.
+                     */}
+                    <p className="mt-6 border-t border-[var(--border)] pt-5 text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+                      This protocol is a draft, which means the engineer has not signed the
+                      document. It cannot be approved until the signature date is recorded.
+                    </p>
                   </>
+                ) : selected.status === "awaiting_engineer" ? (
+                  <div className="mt-6 border-t border-[var(--border)] pt-5">
+                    <ApproveButton
+                      id={selected.id}
+                      documentNumber={selected.document_number}
+                      /*
+                       * COUNTED FROM THE REGISTRY, NOT FROM THE ROWS. Before
+                       * approval the rows do not exist, so reading
+                       * selected.items.length here would say nought and the
+                       * screen would promise to seed nothing.
+                       */
+                      itemsToSeed={protocolItemRowsFor(selected.document_number)?.length ?? null}
+                    />
+                  </div>
                 ) : (
                   <p className="mt-6 border-t border-[var(--border)] pt-5 text-[13.5px] leading-[1.55] text-[var(--secondary)]">
                     A {selected.status} protocol cannot be edited. Files are being worked to it, and

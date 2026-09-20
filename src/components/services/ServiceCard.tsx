@@ -1,7 +1,6 @@
 import Link from "next/link";
 import {
   DesignIcon,
-  ForensicIcon,
   FoundationIcon,
   ManufacturedHomeIcon,
   RoofIcon,
@@ -18,7 +17,7 @@ import { CARD_LINK, IconTile } from "@/components/ui/section";
  * WHY THE ICON AND THE TAG LIVE HERE AND NOT ON THE HOMEPAGE
  * ----------------------------------------------------------
  * Section 2 built this for the homepage and kept the icon map and the tag map in
- * `app/page.tsx`. The services hub then rendered the same nine services as plain
+ * `app/page.tsx`. The services hub then rendered the same services as plain
  * bordered cards with no mark and no category, so the two most important lists
  * of the same nine things did not look like the same nine things.
  *
@@ -46,7 +45,6 @@ const SERVICE_ICONS: Record<string, typeof RoofIcon> = {
   "structural-letters": SealedLetterIcon,
   "repair-specifications": SpecIcon,
   "residential-light-commercial-design": DesignIcon,
-  "forensic-engineering": ForensicIcon,
 };
 
 const SERVICE_TAGS: Record<string, string> = {
@@ -58,7 +56,6 @@ const SERVICE_TAGS: Record<string, string> = {
   "structural-letters": "Permitting",
   "repair-specifications": "Sealed letter",
   "residential-light-commercial-design": "Design",
-  "forensic-engineering": "Investigation",
 };
 
 export function ServiceCard({

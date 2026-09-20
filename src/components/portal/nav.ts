@@ -88,7 +88,38 @@ export const NAV: NavItem[] = [
     action: "ledger.read_own",
     icon: "pay",
   },
+  {
+    /* Design briefs and the reply each was promised. Behind files.list, which
+     * is the ordinary working grant, because answering an enquiry is intake
+     * rather than engineering. */
+    href: "/portal/inquiries",
+    label: "Design briefs",
+    short: "Briefs",
+    /* files.create, the intake grant, matching the page's guard. On files.list
+     * the link appeared for an engineer and the page then refused him, which is
+     * the nav-disagrees-with-the-door defect this file's header warns about. */
+    action: "files.create",
+    icon: "files",
+  },
   { href: "/portal/review", label: "Review queue", short: "Review", action: "review.queue", primary: true, icon: "review" },
+  {
+    /*
+     * Files waiting on an owner to have repairs done. Behind the same licensed
+     * capability as the review queue, because it is the other half of the same
+     * job: the queue is what is waiting on the firm, this is what the firm is
+     * waiting on somebody else for.
+     *
+     * NOT primary. It is a list nobody needs to open daily, and the whole
+     * reason it exists is that these files are not urgent and must not be
+     * forgotten. A badge demanding attention every day on files that are
+     * legitimately months away is how somebody learns to ignore it.
+     */
+    href: "/portal/waiting",
+    label: "Waiting on owners",
+    short: "Waiting",
+    action: "review.queue",
+    icon: "review",
+  },
   {
     // An engineer's own regulatory record. Their licence stands on it, so it is
     // one tap away rather than behind a menu.
@@ -106,6 +137,14 @@ export const NAV: NavItem[] = [
   { href: "/portal/accounts", label: "Accounts", short: "Accts", action: "accounts.manage", icon: "accounts" },
   { href: "/portal/partners", label: "Partners", short: "Partners", action: "partners.manage", icon: "partners" },
   { href: "/portal/billing", label: "Billing", short: "Money", action: "billing.read", icon: "billing" },
+  /*
+   * The price book, on pricing.write rather than a new capability. A price book
+   * IS pricing, and minting a second grant for the same authority is how two
+   * answers to one question start to exist. It shares the grant with trade
+   * pricing deliberately: the person who may set what a line sells for is the
+   * person who may read what it makes.
+   */
+  { href: "/portal/pricebook", label: "Price book", short: "Prices", action: "pricing.write", icon: "billing" },
   /*
    * Reports, gated on reports.production rather than reports.revenue.
    *

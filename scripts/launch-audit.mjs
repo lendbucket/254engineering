@@ -43,7 +43,7 @@ import {
   PRESENT_TENSE_OFFER,
   PRESENT_TENSE_SEALING,
 } from "./lib/regulatory.mjs";
-import { withGateConditionsMet, FIXTURE_FIRM_NUMBER, FIXTURE_ENV } from "./lib/gate-fixture.mjs";
+import { withGateConditionsMet, withTradingBlocked, FIXTURE_FIRM_NUMBER, FIXTURE_ENV } from "./lib/gate-fixture.mjs";
 
 const PRELAUNCH_PORT = Number(process.env.LAUNCH_AUDIT_PORT || 3227);
 const LIVE_PORT = Number(process.env.LAUNCH_AUDIT_LIVE_PORT || 3228);
@@ -58,7 +58,6 @@ const ROUTES = [
   "/services",
   "/services/roof-inspections",
   "/services/windstorm-wpi-8",
-  "/services/forensic-engineering",
   "/coverage",
   "/coverage/coastal-bend",
   "/government",
@@ -140,10 +139,29 @@ async function crawlMode(label, port, env) {
 
 async function run() {
   {
-    const pre = await crawlMode("prelaunch", PRELAUNCH_PORT, {
-      LAUNCH_MODE: "prelaunch",
-      TBPELS_FIRM_NUMBER: "",
-    });
+    /*
+     * PRELAUNCH IS REACHED, NOT DECLARED, AND UNTIL 2026-09-19 IT WAS DECLARED.
+     *
+     * LAUNCH_MODE gated the whole gate when it was a boolean. The operator's
+     * 2026-09-17 ruling made it gate OPEN alone, and every trading condition is
+     * met today, so this crawl was rendering the TRADING site and asserting
+     * prelaunch things about it. Seven checks were red and not one of them meant
+     * what it said.
+     *
+     * That is the inverse of a vacuous green and worse in one respect: a
+     * persistent red teaches everybody to expect it, and a red mark everyone has
+     * learned to ignore is where the next real failure hides.
+     *
+     * withTradingBlocked empties the engineer register, which is a trading
+     * condition, and asks the gate in a child process whether it actually shut
+     * before handing back control.
+     */
+    const pre = await withTradingBlocked(() =>
+      crawlMode("prelaunch", PRELAUNCH_PORT, {
+        LAUNCH_MODE: "prelaunch",
+        TBPELS_FIRM_NUMBER: "",
+      }),
+    );
     // Live means both gates open: a registration AND an engineer of record. The
     // in-between state, registered but nobody able to seal, is real and is
     // handled by registrationLine(), but the live assertions below describe the
@@ -264,7 +282,21 @@ async function run() {
       claimLeak.join(", "),
     );
 
-    const servicePages = ["/services", "/services/roof-inspections", "/services/windstorm-wpi-8", "/services/forensic-engineering"];
+    /*
+     * DERIVED FROM THE CRAWLED SET RATHER THAN LISTED BESIDE IT.
+     *
+     * This was a hand written list that happened to name pages ROUTES also
+     * carried, and when forensic was removed the obvious repair was to
+     * substitute another service page. The one substituted was not in ROUTES,
+     * so pre.get() returned undefined and the audit crashed rather than failing
+     * a check: a list that has to agree with another list, with nothing
+     * asserting that it does.
+     *
+     * Taking it from ROUTES means it cannot name a page the crawl never
+     * fetched, and a service page added to ROUTES is covered without anybody
+     * remembering this line exists.
+     */
+    const servicePages = ROUTES.filter((r) => r === "/services" || r.startsWith("/services/"));
     const missingNotice = servicePages.filter((r) => !/Opening soon/i.test(pre.get(r).text));
     rec(
       "prelaunch: every service surface carries the opening soon treatment",
@@ -472,10 +504,20 @@ async function run() {
       rec(`no ${why} language on any page in either mode`, hits.length === 0, hits.join(", "));
     }
 
-    rec(
-      "the forensic page states the engineer's obligation runs to the facts rather than to the paying party",
-      /obligation runs to the facts/i.test(pre.get("/services/forensic-engineering").text),
-    );
+    /*
+     * THE FORENSIC ASSERTION IS GONE WITH THE LINE IT DESCRIBED, 2026-09-19.
+     *
+     * Aman refuses forensic engineering, so the page, the catalogue entry and
+     * the trade floor came out. This check went with them rather than being
+     * pointed at another page: it asserted a sentence specific to forensic
+     * work, that the engineer's obligation runs to the facts rather than to the
+     * party who paid, and no other service page makes that claim because no
+     * other line has the same conflict shape.
+     *
+     * Repointing it would have been a check on wording that happened to pass.
+     * Deleting it is the honest loss, recorded here so nobody re-adds it
+     * looking for a page that no longer exists.
+     */
   }
 }
 

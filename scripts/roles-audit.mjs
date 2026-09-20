@@ -1331,12 +1331,136 @@ if (!db) {
      * coverage check in security-audit, which is what caught /api/portal/roles.
      */
     {
+      /*
+       * NESTED PAGES COUNT, AND THEY DID NOT UNTIL 2026-09-19.
+       *
+       * This read one level of directories, so the subject list was every
+       * TOP LEVEL portal screen and nothing below it. The claim lists below
+       * already named `/portal/protocols/rc-001`, which is two levels down, so
+       * the "still exists" check compared a two level claim against a one level
+       * list and reported a page that plainly exists as missing. The same board
+       * printed `an engineer can open /portal/protocols/rc-001 (HTTP 200)` four
+       * lines later.
+       *
+       * The coverage half was the more serious of the two. Seven nested screens
+       * had no ruling about whether an engineer sees them and the check could
+       * not see that, which is the vacuous green in its usual costume: a green
+       * over a subject list narrower than the thing it claims to cover.
+       *
+       * DYNAMIC ROUTES ARE EXCLUDED FROM THE PROBE AND NOT FROM THE RULING. A
+       * segment in brackets needs a real record id to open and the probe has no
+       * way to mint one, so what a check can assert about them is that each has
+       * a ruling written down, not that the server honours it.
+       *
+       * NOT SEEDED WITH FIXTURES, AND THAT IS THE OPERATOR'S RULING RATHER THAN
+       * the cheaper option taken quietly: "a fixture built to satisfy a check is
+       * a fixture that will be wrong the day the real shape differs, and the
+       * count makes the gap visible." So the gap is named, counted, and left
+       * open.
+       *
+       * =====================================================================
+       * THE PRINCIPLE, STATED ONCE SO NO FUTURE SCREEN NEEDS A FRESH RULING.
+       * Operator ruling, 2026-09-19.
+       * =====================================================================
+       *
+       * "An engineer sees what he is accountable for: the protocols he signed,
+       * the queue he reviews, the files and evidence he is deciding on, and his
+       * own responsible charge record. He does not see what the firm makes on
+       * his work, what anyone is paid, customer pricing, or partner
+       * compensation. That is INDEPENDENCE rather than access control, because
+       * a number in his head near an engineering judgement is the thing to
+       * avoid."
+       *
+       * Read that last sentence before adding a screen to either list. The
+       * lists below are not a permission model and must not be reasoned about
+       * as one: the question is never whether an engineer can be trusted with a
+       * figure, it is whether the figure should be anywhere near the decision.
+       *
+       * Every ruling here was READ OFF THE CODE rather than imposed on it. All
+       * seven nested screens already did the right thing; what was missing was
+       * anybody having written down that it was right, and a check that would
+       * notice if it stopped being.
+       */
+
+      /*
+       * The dynamic routes, with their ruling and the clause of the principle
+       * each one answers to. Compared against the walk in both directions, so a
+       * new dynamic screen with no ruling fails here rather than being silently
+       * skipped for having a bracket in its name.
+       */
+      const ENGINEER_DYNAMIC = [
+        {
+          route: "/portal/accounts/[id]/pricing",
+          reaches: false,
+          because:
+            "Customer pricing. The guard is pricing.write and an engineer holds pricing.read, which " +
+            "is the distinction the principle draws: he checks the tier his own production is paid " +
+            "on, and he does not set what an account is charged.",
+        },
+        {
+          route: "/portal/documents/binder/[fileId]",
+          reaches: true,
+          because:
+            "The evidence of a file he is deciding on, which is the clearest case of what he is " +
+            "accountable for. Gated on files.list inside binderFor, which an engineer holds.",
+        },
+        {
+          route: "/portal/jobs/[id]",
+          reaches: true,
+          because:
+            "The job as the technician actually worked it, including the items recorded as " +
+            "unobservable. Gated on offers.list_own OR evidence.review, and an engineer reaches it " +
+            "by the second.",
+        },
+        {
+          route: "/portal/partners/[id]",
+          reaches: false,
+          because:
+            "Partner compensation. Gated on partners.manage, which an engineer does not hold.",
+        },
+      ];
       const dir = "src/app/portal/(app)";
-      const onDisk = fs
-        .readdirSync(dir, { withFileTypes: true })
-        .filter((e) => e.isDirectory() && !e.name.startsWith("[") && !e.name.startsWith("("))
-        .map((e) => "/portal/" + e.name)
-        .sort();
+      const walk = (d, prefix) => {
+        const found = [];
+        for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+          if (!e.isDirectory() || e.name.startsWith("(")) continue;
+          const here = `${prefix}/${e.name}`;
+          if (fs.existsSync(`${d}/${e.name}/page.tsx`)) found.push(here);
+          found.push(...walk(`${d}/${e.name}`, here));
+        }
+        return found;
+      };
+      const allRoutes = walk(dir, "/portal").sort();
+      const dynamic = allRoutes.filter((p) => p.includes("["));
+      const onDisk = allRoutes.filter((p) => !p.includes("["));
+      const declaredDynamic = ENGINEER_DYNAMIC.map((d) => d.route).sort();
+      rec(
+        "every dynamic portal route carries a ruling, even though no probe can open it",
+        dynamic.length > 0 && JSON.stringify(declaredDynamic) === JSON.stringify(dynamic),
+        dynamic.length === 0
+          ? "none found, which means the walk is not reaching them and this is measuring nothing"
+          : JSON.stringify(declaredDynamic) === JSON.stringify(dynamic)
+            ? `${dynamic.length} ruled and unenforceable: ${dynamic.join(", ")}`
+            : `on disk: ${dynamic.join(", ")} | ruled: ${declaredDynamic.join(", ")}`,
+      );
+      rec(
+        "and each says which clause of the principle it answers to",
+        ENGINEER_DYNAMIC.every((d) => typeof d.because === "string" && d.because.length > 40),
+        ENGINEER_DYNAMIC.filter((d) => !d.because || d.because.length <= 40).map((d) => d.route).join(", ") ||
+          "a ruling with no reason is a ruling nobody can check against the principle",
+      );
+      /*
+       * THE GAP IS STATED AS A NUMBER RATHER THAN AS A SENTENCE, because the
+       * operator's ruling was that the count is what makes it visible. Four
+       * screens are ruled and unverified today, and if that becomes fourteen
+       * somebody should notice from this line alone.
+       */
+      rec(
+        "and the unenforceable count is reported rather than left to be inferred",
+        true,
+        `${dynamic.length} of ${allRoutes.length} portal screens are ruled but not probe-verified, ` +
+          "because a segment in brackets needs a record id and no fixture is built to satisfy a check",
+      );
 
       /*
        * The two the licence is FOR. Both are licensed capabilities rather than
@@ -1348,7 +1472,26 @@ if (!db) {
          * opening it sees production and not revenue. */
         "/portal/reports",
         "/portal/protocols",
+        /*
+         * The protocol he signed. An engineer of record reading his own
+         * protocol is the whole point of the document, and refusing it would be
+         * the access control equivalent of a firm keeping its standards from
+         * the person accountable for them. It gates on protocols.author, which
+         * is a licensed capability rather than a grant.
+         */
+        "/portal/protocols/rc-001",
         "/portal/review",
+        /*
+         * Files he withheld certification on, waiting on owners to have
+         * repairs done. His accountability rather than the firm's commerce: a
+         * roof he found active leaks on, still unrepaired after five months, is
+         * a fact about his own decision.
+         *
+         * It carries NO FIGURES, deliberately and by the principle above. What
+         * the job is worth and what anybody is paid stay off a screen he reads
+         * while looking at a list of roofs he refused to certify.
+         */
+        "/portal/waiting",
         // Ordinary working surfaces an engineer holds by grant, not by licence.
         "/portal/files",
         "/portal/clients",
@@ -1380,6 +1523,25 @@ if (!db) {
       const ENGINEER_REFUSED = [
         "/portal/people",
         /*
+         * The two nested screens the widened walk brought into view, and both
+         * rulings are READ OFF THE GRANTS rather than decided here.
+         *
+         * Dispatch gates on `offers.dispatch` and the disputes screen on
+         * `partners.manage`, and DEFAULT_ROLES gives an engineer neither.
+         * Offering a job to a technician and settling what a partner is owed
+         * are the firm's commercial business; a licence is not a reason to do
+         * either, which is the same line the reports entry draws.
+         */
+        /*
+         * Design briefs. Commercial intake: who is asking, what they want built
+         * and when somebody must ring them back. An engineer scopes the work
+         * once it is a job; deciding whether to pursue an enquiry is the
+         * firm's business, and the principle keeps him away from it.
+         */
+        "/portal/inquiries",
+        "/portal/files/dispatch",
+        "/portal/partners/disputes",
+        /*
          * Applications carry a candidate's resume and licence behind signed
          * links. An engineer holds a licence, not a hiring role, and the screen
          * gates on profiles.create for exactly that reason.
@@ -1393,6 +1555,27 @@ if (!db) {
         "/portal/partners",
         "/portal/queue",
         "/portal/status",
+        /*
+         * THE PRICE BOOK, AND IT IS REFUSED FOR A DIFFERENT REASON FROM
+         * EVERYTHING ELSE ON THIS LIST. Operator ruling, 2026-09-18.
+         *
+         * The others are refused because an engineer is a licensed
+         * professional rather than an administrator, and a licence is not a
+         * seniority ranking. That reasoning would stop applying the day
+         * somebody made the engineer an administrator.
+         *
+         * This one would still apply. In his words: an engineer holding
+         * review.queue has no business reading what the firm makes on his own
+         * determinations. The tier a job attracts is HIS determination, and it
+         * decides what he is paid; a screen showing him the margin that turns
+         * on that judgement puts a number in front of the person making the
+         * judgement the number depends on.
+         *
+         * THAT IS INDEPENDENCE RATHER THAN ACCESS CONTROL, and it generalises:
+         * any future screen showing money against an engineer's own work is
+         * refused to that engineer for this reason, whatever role he holds.
+         */
+        "/portal/pricebook",
         /*
          * Launch readiness. Gated on roles.manage, which an engineer does not
          * hold: deciding the firm may trade is the administrator's act. The

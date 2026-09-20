@@ -119,7 +119,7 @@ export const RC001 = {
 export const RC001_ENFORCED: { key: string; rule: string; at: string }[] = [
   {
     key: "flag-routes-to-engineer",
-    rule: "A yes on any flag question routes the job to the engineer BEFORE dispatch. The engineer records accept, accept with conditions, or decline.",
+    rule: "A yes to any flag question in Appendix A routes the job to the engineer before dispatch. The engineer records accept, accept with conditions, or decline.",
     at: "section 6; Appendix A Part 1 heading over questions 8 to 12",
   },
   {
@@ -134,12 +134,38 @@ export const RC001_ENFORCED: { key: string; rule: string; at: string }[] = [
   },
   {
     key: "purpose-and-recipient-verbatim",
-    rule: "The purpose of the letter and the recipient are recorded exactly as given at intake. The letter is addressed only to that recipient and issued only for that purpose.",
+    rule: "The engineer records the purpose of the letter and the recipient exactly as given at intake. The letter is addressed only to that recipient and issued only for that purpose.",
     at: "section 6; section 11",
   },
   {
     key: "letter-never-reassigned",
     rule: "The letter is not reassigned to another recipient, another purpose, or another date. A new inspection is required.",
+    at: "section 11",
+  },
+  /*
+   * TRANSCRIBED 2026-09-18 FROM SECTION 11 OF THE SIGNED PDF, VERBATIM, after
+   * the operator ruled on a contradiction this registry could not see.
+   *
+   * services.ts had said in six places that a roof certification states
+   * remaining service life, including in the deliverable and in a named buyer
+   * segment. The signed protocol says the opposite and has since 09/14/2026.
+   * The two disagreed for three days and nothing on the board could tell,
+   * because this registry carried the protocol's PROCESS rules and not its
+   * rules about what the letter may SAY.
+   *
+   * It is here so the check that now enforces it derives from the document
+   * rather than from a list somebody typed. `protocol-registry-audit` compares
+   * every rule here against `pdftotext` output with whitespace stripped, so a
+   * transcription error is a red board rather than a new source of truth.
+   */
+  {
+    key: "letter-states-observed-condition-only",
+    rule: "The letter states observed condition only. It does not estimate remaining service life, forecast future performance, or represent that the roof will not leak.",
+    at: "section 11",
+  },
+  {
+    key: "letter-states-visual-and-non-destructive",
+    rule: "The letter states that the inspection was visual and non-destructive, that it reflects condition on the date of inspection only, and that no representation is made about concealed conditions.",
     at: "section 11",
   },
   {
@@ -154,8 +180,20 @@ export const RC001_ENFORCED: { key: string; rule: string; at: string }[] = [
   },
   {
     key: "not-applicable-needs-a-reason",
-    rule: "An item that does not apply to the property is marked with the reason it does not apply. No item is estimated, assumed, or left blank.",
-    at: "section 7; section 8",
+    rule: "An item that does not apply to the property is marked with the reason it does not apply.",
+    at: "section 8",
+  },
+  /*
+   * SPLIT FROM THE ENTRY ABOVE ON 2026-09-18. The two sentences were one rule
+   * with an `at` naming two sections, which is the tell: the document states
+   * them in different places and the declaration had merged them into a
+   * sentence the document does not contain. Each is now quoted from where it
+   * actually appears.
+   */
+  {
+    key: "no-item-estimated-or-blank",
+    rule: "No item is estimated, assumed, or left blank.",
+    at: "section 7",
   },
   {
     key: "counts-are-counts",
@@ -219,17 +257,37 @@ export const RC001_ENFORCED: { key: string; rule: string; at: string }[] = [
   },
   {
     key: "letter-is-sealed-and-uploaded",
-    rule: "On a pass determination, the engineer issues a sealed letter. The platform stores it and never composes one.",
-    at: "section 11; CLAUDE.md standing law",
+    rule: "On a pass determination, the engineer issues a sealed letter addressed to the recipient recorded at intake, for the purpose recorded at intake.",
+    at: "section 11",
+  },
+  /*
+   * SPLIT FROM THE ENTRY ABOVE, AND THIS ONE IS THE INTERESTING HALF.
+   *
+   * The rule used to read "On a pass determination, the engineer issues a
+   * sealed letter. The platform stores it and never composes one." and its
+   * `at` said "section 11; CLAUDE.md standing law". That is honest about the
+   * mixture and it makes the sentence a quotation from NEITHER: the document
+   * does not say the platform never composes a letter, and CLAUDE.md does not
+   * say anything about a pass determination.
+   *
+   * A rule sourced from standing law is not a quotation from the protocol and
+   * must not pretend to be, so it is its own entry and the verbatim check
+   * deliberately does not apply to it. The check reads `at` to decide, and a
+   * rule attributed to the document is held to the document's words.
+   */
+  {
+    key: "platform-never-composes-a-seal",
+    rule: "The platform stores the sealed letter the engineer produced and never composes one.",
+    at: "CLAUDE.md standing law",
   },
   {
     key: "predetermined-conclusion-auto-decline",
-    rule: "A customer request for a predetermined conclusion is an automatic decline and the request is logged verbatim.",
+    rule: "A customer request for a predetermined conclusion. This is an automatic decline and the request is logged verbatim.",
     at: "section 12; Appendix C DECLINE",
   },
   {
     key: "job-file-contents",
-    rule: "Each job file contains the intake record and customer uploads, the engineer's acceptance record, the dispatch record, the completed Appendix B checklist, all photographs, the technician's notes, the engineer's review record and determination, any repair list and its closure records, and the issued letter.",
+    rule: "Each job file contains: the intake record and customer uploads, the engineer's acceptance record, the dispatch record, the completed Appendix B checklist, all photographs, the technician's notes, the engineer's review record and determination, any repair list and its closure records, and the issued letter.",
     at: "section 13",
   },
 ];

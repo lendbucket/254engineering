@@ -33,6 +33,9 @@ import {
   type EvidenceKind,
   type ProtocolItem,
 } from "./ops-evidence";
+import { protocolItemRowsFor } from "./protocol-run";
+import { verifiedEngineers } from "@/config/credentials";
+import { licenceIsCurrent } from "./launch";
 
 /**
  * The field layer: protocols, offers, evidence, and what a technician is owed.
@@ -67,16 +70,37 @@ export type ProtocolTemplateRow = {
   service_slug: string;
   name: string;
   version: number;
-  status: "draft" | "published" | "retired";
+  /*
+   * 0049 added awaiting_engineer, and this union did not learn it until the
+   * approval path was built. A status the database can hold and the type cannot
+   * name is the same defect as `role` being typed as the three-role union while
+   * the comment above it said it was not one: the type is the thing being
+   * believed, and the code branches on it.
+   */
+  status: "draft" | "awaiting_engineer" | "published" | "retired";
   summary: string | null;
   published_at: string | null;
   authored_by: string | null;
+  /** 0049. The protocol as the signed paper numbers it, or null. */
+  document_number: string | null;
+  /** 0049. Declared by the engineer, never inferred from the service line name. */
+  requires_discipline: string | null;
+  approved_by: string | null;
+  approved_at: string | null;
+  approved_by_license: string | null;
 };
 
 export type ProtocolWithItems = ProtocolTemplateRow & { items: ProtocolItem[] };
 
-const TEMPLATE_COLUMNS =
-  "id, created_at, service_slug, name, version, status, summary, published_at, authored_by";
+/*
+ * ONE STRING LITERAL, NOT A CONCATENATION, AND THAT IS LOAD BEARING RATHER
+ * THAN A FORMATTING CHOICE. supabase-js reads this list as a TEMPLATE LITERAL
+ * TYPE to work out the row shape. Splitting it across two lines with a `+`
+ * makes it a plain string, the inference collapses to GenericStringError, and
+ * every cast on a template read starts failing to compile. Found by doing it.
+ */
+// prettier-ignore
+const TEMPLATE_COLUMNS = "id, created_at, service_slug, name, version, status, summary, published_at, authored_by, document_number, requires_discipline, approved_by, approved_at, approved_by_license";
 
 const ITEM_COLUMNS =
   "id, template_id, sort_order, item_key, kind, label, instructions, required, unit, min_value, max_value, min_count";
@@ -330,61 +354,177 @@ export async function removeProtocolItem(
 }
 
 /**
- * Publish a protocol, which is the moment it becomes usable by dispatch.
+ * ===========================================================================
+ * APPROVING A PROTOCOL, WHICH IS THE MOMENT IT BECOMES USABLE BY DISPATCH.
+ * ===========================================================================
  *
- * An empty protocol cannot be published. A file working an empty checklist would
- * have a submission gate with nothing in it, and ops-evidence refuses to submit
- * one for exactly that reason, so a technician would be handed a job they can
- * never finish.
+ * THIS REPLACES `publishProtocol`, WHICH HAD BEEN UNABLE TO SUCCEED SINCE 0049
+ * REACHED PRODUCTION ON 2026-09-17, and that is worth writing down rather than
+ * quietly fixing.
+ *
+ * It updated status to 'published' and set `published_at`, and it set no
+ * approver. 0049 added `eng_protocol_templates_published_is_approved_ck`, which
+ * requires a published row to name who approved it and when. Every call was
+ * refused by the database. `seed-field-demo` was taught the approval columns in
+ * the same week and this path was not: one fact with two homes, and the one
+ * nobody looked at is the one that drifted.
+ *
+ * Nothing on the board could see it, and nothing should have been able to.
+ * Approving a protocol is an act by a named engineer in his own session, so
+ * there is no live fixture that performs one and the operator's limits say
+ * outright there must not be. It was found by reading this file against the
+ * migration.
+ *
+ * WHAT THIS FUNCTION IS. Operator ruling, 2026-09-19: "Seed the 51 items on
+ * approval. That is not approving on his behalf; it is his approval taking
+ * effect. A protocol that is approved and whose items do not exist is approved
+ * in name only."
+ *
+ * So the approval and the seeding are one call into one transaction, and 0052's
+ * `eng_approve_protocol` is that transaction. The checks below are NOT the
+ * enforcement. Every one of them is also enforced in the database, and this
+ * function exists to give a person a sentence rather than a constraint name.
+ * If these two ever disagree, the database wins and the screen is wrong.
+ *
+ * THE ITEMS ARE NEVER A PARAMETER, which is the operator's second condition
+ * made structural rather than trusted. A caller cannot supply a checklist. The
+ * rows are derived here from the registry, which is verified verbatim against
+ * the signed PDF by `protocol-registry-audit`, and the mapping is asserted in
+ * both directions by `protocol-run-audit`.
  */
-export async function publishProtocol(
+export async function approveProtocol(
   actor: Actor & { email: string },
   id: string,
   context: Context = {},
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<{ ok: true; items: number } | { ok: false; error: string }> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
-  if (!holdsLicence(actor, "protocols.publish")) return { ok: false, error: licenceRefusal("Publishing a protocol") };
+  if (!holdsLicence(actor, "protocols.publish")) return { ok: false, error: licenceRefusal("Approving a protocol") };
 
   const template = await getProtocol(actor, id);
   if (!template) return { ok: false, error: "That protocol does not exist." };
-  if (template.status === "published") return { ok: false, error: "That protocol is already published." };
-  if (template.items.length === 0) {
-    return { ok: false, error: "A protocol with no items cannot be published. A technician could never finish it." };
-  }
-  if (!template.items.some((i) => i.required)) {
+  if (template.status === "published") return { ok: false, error: "That protocol is already in force." };
+  if (template.status === "draft") {
     return {
       ok: false,
-      error: "Every item in this protocol is optional, so the submission gate would let an empty package through.",
+      error:
+        "That protocol is a draft, which means the engineer has not signed the document. " +
+        "Record the signature date first.",
+    };
+  }
+  if (template.status !== "awaiting_engineer") {
+    return { ok: false, error: `A protocol is approved from awaiting_engineer, and this one is ${template.status}.` };
+  }
+
+  /*
+   * THE APPROVER IS THE ENGINEER ON THE REGISTER, READ OFF HIS OWN PROFILE.
+   *
+   * Holding `protocols.publish` is not enough and never was. That grant says
+   * the platform lets this account approve; the register says Texas lets this
+   * person be answerable for it. An administrator holding the grant approving a
+   * service line for sale is exactly the thing launch-readiness.ts refuses in
+   * writing, and until now nothing enforced it.
+   *
+   * The licence is read from the PROFILE rather than taken from the actor,
+   * because the actor carries a role and a grant set and no licence, and a
+   * licence number typed into a form would be the second home this repository
+   * keeps finding.
+   */
+  const { data: profile } = await db
+    .from("eng_profiles")
+    .select("license_number, display_name")
+    .eq("id", actor.id)
+    .maybeSingle();
+  const licence = ((profile?.license_number as string | null) ?? "").trim();
+  const onRegister = licence ? verifiedEngineers.find((e) => e.licenseNumber === licence) ?? null : null;
+  if (!onRegister) {
+    return {
+      ok: false,
+      error:
+        "Only an engineer on the firm's register may approve a protocol, and this account carries no " +
+        "licence number that the register holds. Approving a service line for sale is an act somebody " +
+        "is answerable for by name.",
+    };
+  }
+  if (!licenceIsCurrent(onRegister.expires, new Date().toISOString().slice(0, 10))) {
+    return {
+      ok: false,
+      error: `The register has no current expiry for licence ${licence}, and an unrecorded expiry is not a current licence.`,
     };
   }
 
-  // Retire the previous published version of the same service line in the same
-  // breath. Two published versions is an ambiguity dispatch would have to guess
-  // its way out of.
-  await db
-    .from("eng_protocol_templates")
-    .update({ status: "retired" })
-    .eq("service_slug", template.service_slug)
-    .eq("status", "published");
+  /*
+   * AND HIS DECLARED COMPETENCE COVERS WHAT THE PROTOCOL REQUIRES. The rule is
+   * protocol-gate's, called rather than restated, because a second copy of it
+   * here is a second answer to one question.
+   */
+  const required = template.requires_discipline;
+  if (required === null) {
+    return {
+      ok: false,
+      error:
+        "This protocol has not declared the discipline it requires, so nothing can check that the " +
+        "approving engineer covers it. Whether this is structural work is the engineer's answer rather " +
+        "than a reading of the service line's name.",
+    };
+  }
+  if (!onRegister.sealsOnly.includes(required)) {
+    return {
+      ok: false,
+      error:
+        `This protocol requires competence in ${required}, and the register records that ` +
+        `${onRegister.name} seals ${onRegister.sealsOnly.join(", ") || "nothing"}.`,
+    };
+  }
 
-  const { error } = await db
-    .from("eng_protocol_templates")
-    .update({ status: "published", published_at: DB_NOW })
-    .eq("id", id)
-    .eq("status", "draft");
+  /*
+   * THE ITEMS, DERIVED. A protocol row whose document number this repository
+   * does not hold has no signed checklist to derive from, and seeding it with
+   * something plausible is the forgery the whole gate exists to prevent.
+   */
+  const documentNumber = template.document_number;
+  const items = protocolItemRowsFor(documentNumber);
+  if (items === null || items.length === 0) {
+    return {
+      ok: false,
+      error:
+        documentNumber === null
+          ? "This protocol row names no document number, so its items cannot be derived from a signed document."
+          : `${documentNumber} is not in this platform's protocol registry, so its items cannot be derived ` +
+            "from the signed document. Nothing will be invented for it.",
+    };
+  }
+
+  const { error } = await db.rpc("eng_approve_protocol", {
+    p_template_id: id,
+    p_approved_by: actor.id,
+    p_license: licence,
+    p_items: items,
+  });
   if (error) return { ok: false, error: error.message };
 
+  /*
+   * THE AUDIT ROW IS WRITTEN AFTER THE TRANSACTION RATHER THAN INSIDE IT, and
+   * that is a known asymmetry rather than an oversight. eng_audit_events is
+   * append only and a failed approval writes nothing, so the risk is a
+   * successful approval whose audit row fails to write, which leaves the
+   * approval real and unlogged. Moving the audit into the function would fix
+   * that and would put the audit trail's shape inside a migration, where the
+   * writeAudit helper's redaction rules cannot reach it. Recorded in BACKLOG.md
+   * rather than decided here.
+   */
   await writeAudit({
     actor,
-    action: "protocol.publish",
+    action: "protocol.approve",
     entityType: "protocol",
     entityId: id,
-    summary: `Published ${template.name} v${template.version} for ${template.service_slug}`,
+    summary:
+      `Approved ${template.name} v${template.version} for ${template.service_slug}, ` +
+      `${documentNumber}, and seeded its ${items.length} items`,
     diff: safeDiff(diffOf({ status: template.status }, { status: "published" })),
     ...context,
   });
-  return { ok: true };
+  return { ok: true, items: items.length };
 }
 
 /** The one published protocol for a service line, or nothing. */
@@ -981,8 +1121,48 @@ export type JobView = {
   };
   protocol: ProtocolWithItems | null;
   captures: EvidenceRow[];
+  /*
+   * The items the technician recorded as unobservable or inapplicable, with
+   * their reasons. CARRIED SEPARATELY FROM `state` on purpose: `state` folds an
+   * exception into `satisfied` so the gate can open, and the engineer reviewing
+   * the package needs the rows themselves, with who recorded each and when.
+   */
+  exceptions: ExceptionRow[];
+  /**
+   * The repair list, when one has been issued. Empty on every file that has
+   * never had certification withheld, which is almost all of them.
+   */
+  repairs: RepairItemRow[];
   state: ChecklistState;
   offer: { id: string; amountCents: number | null; state: OfferState } | null;
+};
+
+export type ExceptionRow = {
+  id: string;
+  item_key: string;
+  kind: "not_observed" | "not_applicable";
+  reason: string;
+  recorded_by: string;
+  recorded_at: string;
+};
+
+/**
+ * What the engineer required before he will certify, and whether it is done.
+ *
+ * CARRIED ON THE JOB VIEW so the technician on the revisit and the engineer at
+ * review read the same rows. 0053 makes a file unsealable while any of these is
+ * open, so a screen that showed a different list from the one the database is
+ * counting would be a screen that says a file is ready when it cannot be.
+ */
+export type RepairItemRow = {
+  id: string;
+  sort_order: number;
+  requirement: string;
+  item_key: string | null;
+  closed_at: string | null;
+  closed_by: string | null;
+  closed_note: string | null;
+  verified_by_evidence_id: string | null;
 };
 
 /**
@@ -1028,7 +1208,50 @@ export async function jobView(actor: Actor | null, fileId: string): Promise<JobV
     .eq("file_id", fileId)
     .order("created_at");
 
+  /*
+   * THE EXCEPTIONS ARE READ HERE, AND THIS READ IS THE WHOLE POINT OF THE
+   * FEATURE RATHER THAN A DETAIL OF IT.
+   *
+   * `checklistState` has taken an exceptions argument since 2026-09-19 and it
+   * defaults to an empty list. A default like that is exactly the shape of the
+   * comms-audit incident: the rule was asserted exhaustively with hand built
+   * inputs, every assertion was right, and the READ that feeds it in production
+   * had never once succeeded, so a person who turned email off was emailed
+   * anyway. Here the equivalent failure is silent and worse: the technician
+   * records why the roof could not be walked, the gate never sees it, and the
+   * package stays blocked with a blocker naming an item that has been answered.
+   *
+   * So this read exists before anything writes an exception, and
+   * `protocol-run-audit` asserts that jobView supplies it rather than only that
+   * checklistState accepts it.
+   */
+  const { data: exceptionRows } = await db
+    .from("eng_checklist_exceptions")
+    .select("id, item_key, kind, reason, recorded_by, recorded_at")
+    .eq("file_id", fileId)
+    .order("recorded_at");
+
+  /*
+   * THE REPAIR LIST, READ FOR EVERY JOB RATHER THAN ONLY FOR A REVISIT.
+   *
+   * It would be cheaper to read it only when the file is in repairs_required or
+   * came from it, and that cheapness is exactly the branch that goes wrong: a
+   * file dispatched for a revisit is in needs_dispatch and then dispatched, so
+   * the condition would have to enumerate which statuses can follow a
+   * withholding, and it would be wrong the first time somebody adds one.
+   *
+   * The list is empty for almost every file, which is one indexed read
+   * returning nothing.
+   */
+  const { data: repairRows } = await db
+    .from("eng_repair_items")
+    .select("id, sort_order, requirement, item_key, closed_at, closed_by, closed_note, verified_by_evidence_id")
+    .eq("file_id", fileId)
+    .order("sort_order");
+
   const rows = (captures ?? []) as EvidenceRow[];
+  const exceptions = (exceptionRows ?? []) as ExceptionRow[];
+  const repairs = (repairRows ?? []) as RepairItemRow[];
   const captured: CapturedItem[] = rows.map((r) => ({
     itemKey: r.item_key,
     kind: r.kind,
@@ -1041,7 +1264,13 @@ export async function jobView(actor: Actor | null, fileId: string): Promise<JobV
     file: file as JobView["file"],
     protocol,
     captures: rows,
-    state: checklistState(protocol?.items ?? [], captured),
+    exceptions,
+    repairs,
+    state: checklistState(
+      protocol?.items ?? [],
+      captured,
+      exceptions.map((e) => ({ itemKey: e.item_key, reason: e.reason, kind: e.kind })),
+    ),
     offer: offer
       ? {
           id: offer.id as string,
@@ -1177,6 +1406,291 @@ export async function recordCapture(
   }
 
   return { ok: true, id: data.id };
+}
+
+/**
+ * ===========================================================================
+ * RECORDING AN ITEM THAT COULD NOT BE OBSERVED, WITH THE REASON.
+ * ===========================================================================
+ *
+ * SECTION 7 OF 254-RC-001: "the technician records each item that could not be
+ * observed and the reason. No item is estimated, assumed, or left blank."
+ * Section 8 adds the second kind: "An item that does not apply to the property
+ * is marked with the reason it does not apply."
+ *
+ * Until this existed an item was captured or it was outstanding, so a roof that
+ * genuinely could not be walked left a technician with nothing to record but a
+ * blank, and the platform was quietly asking for the one outcome the signed
+ * document rules out. The pressure that produces is the thing to see: a
+ * technician who cannot submit and cannot honestly capture will photograph
+ * SOMETHING, and that photograph reaches an engineer's review as an
+ * observation.
+ *
+ * THE TWO KINDS ARE NOT INTERCHANGEABLE AND THE CALLER CHOOSES. "I could not
+ * see it" and "there is none here" are different facts about a property, and
+ * Appendix C asks the engineer to weigh them differently. Folding them into one
+ * word would be the overloaded null this repository keeps finding.
+ */
+export type ExceptionInput = {
+  itemKey: string;
+  kind: "not_observed" | "not_applicable";
+  reason: string;
+};
+
+export async function recordException(
+  actor: Actor & { email: string },
+  fileId: string,
+  input: ExceptionInput,
+  context: Context = {},
+): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  if (!can(actor, "evidence.capture") && !can(actor, "evidence.review")) {
+    return { ok: false, error: "Your role cannot record against a checklist." };
+  }
+
+  const view = await jobView(actor, fileId);
+  if (!view) return { ok: false, error: "That job is not yours." };
+
+  /*
+   * THE SAME OFFER CHECK recordCapture CARRIES, for the same reason and not by
+   * accident. jobView opens to anybody the file was offered to so they can read
+   * the checklist before accepting; writing against it is a different act. A
+   * technician who lost the race could otherwise mark items not applicable on a
+   * job that is not theirs, and an exception is a stronger claim about a
+   * property than a photograph is.
+   */
+  if (actor.role === "field_tech" && view.file.assigned_tech_id !== actor.id) {
+    return {
+      ok: false,
+      error: view.file.assigned_tech_id
+        ? "Another technician accepted this job first."
+        : "Accept this job before recording against it.",
+    };
+  }
+
+  if (["evidence_submitted", "under_review", "sealed", "delivered", "closed", "cancelled"].includes(view.file.status)) {
+    return { ok: false, error: "This file has left the field. Recording is closed on it." };
+  }
+
+  const item = view.protocol?.items.find((i) => i.itemKey === input.itemKey);
+  if (!item) return { ok: false, error: "That item is not in this file's protocol." };
+
+  /*
+   * A REASON OF SPACES IS A BLANK WITH EXTRA STEPS, and the length is the
+   * database's rule read back rather than a second one invented here. 0051
+   * checks `length(btrim(reason)) >= 3`. This refuses the same shape early so
+   * the technician gets a sentence instead of a constraint name, and if the two
+   * ever disagree the database wins.
+   */
+  const reason = input.reason.trim();
+  if (reason.length < 3) {
+    return {
+      ok: false,
+      error: `Say why ${item.label} could not be recorded. The reason goes to the engineer who signs the letter.`,
+    };
+  }
+
+  /*
+   * AN EXCEPTION ON AN ITEM THAT IS ALREADY CAPTURED IS A CONTRADICTION, and it
+   * is refused here rather than resolved. ops-evidence treats an exception as
+   * satisfying an item only when it is NOT already satisfied, so the two would
+   * not fight; but the record would then hold a photograph of a thing and a
+   * note saying it could not be seen, and somebody reading the package years
+   * later has no way to know which the technician meant.
+   */
+  const already = view.state.items.find((s) => s.item.itemKey === input.itemKey);
+  if (already?.satisfied && !already.exception) {
+    return {
+      ok: false,
+      error: `${item.label} is already captured. Remove the capture first if it was recorded in error.`,
+    };
+  }
+
+  /*
+   * One per item, upserted on the unique index 0051 created, so a technician
+   * correcting their own wording does not accumulate two reasons for one
+   * absence. The engineer reads one answer per item or none.
+   */
+  const { data, error } = await db
+    .from("eng_checklist_exceptions")
+    .upsert(
+      {
+        file_id: fileId,
+        item_key: item.itemKey,
+        kind: input.kind,
+        reason,
+        recorded_by: actor.id,
+        recorded_at: DB_NOW,
+      },
+      { onConflict: "file_id,item_key" },
+    )
+    .select("id")
+    .single();
+  if (error || !data) return { ok: false, error: error?.message ?? "Could not record that." };
+
+  if (view.file.status === "dispatched") {
+    await transitionFile(actor, fileId, "evidence_in_progress", "First checklist entry recorded.", context);
+  }
+
+  return { ok: true, id: data.id };
+}
+
+/**
+ * Withdraw an exception, which is what happens when the technician gets back on
+ * the roof and can see the thing after all.
+ *
+ * Deleting is right here and is NOT the general rule in this schema. An
+ * exception is a working record of a job in the field, in the same class as a
+ * capture, which `deleteCapture` already removes on the same conditions. It is
+ * not a regulatory fact until the package is submitted, and after that this
+ * refuses along with everything else, because the file has left the field.
+ */
+export async function withdrawException(
+  actor: Actor & { email: string },
+  fileId: string,
+  itemKey: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  const view = await jobView(actor, fileId);
+  if (!view) return { ok: false, error: "That job is not yours." };
+  if (view.file.status !== "evidence_in_progress" && view.file.status !== "revisions_requested") {
+    return { ok: false, error: "Entries can only be withdrawn while the file is still in the field." };
+  }
+  const { error } = await db
+    .from("eng_checklist_exceptions")
+    .delete()
+    .eq("file_id", fileId)
+    .eq("item_key", itemKey);
+  return error ? { ok: false, error: error.message } : { ok: true };
+}
+
+/**
+ * ===========================================================================
+ * VERIFYING A REPAIR ON THE REVISIT. THE KEY TO 0053'S LOCK.
+ * ===========================================================================
+ *
+ * 0053 made it impossible to seal a file while any repair item is open, and
+ * shipped with nothing able to close one. That was a lock with no key: a file
+ * could enter repairs_required, go back through dispatch for the revisit, and
+ * never reach a seal by any path. It was reported as a gap rather than
+ * discovered, and this is the other half.
+ *
+ * THE TECHNICIAN CLOSES THEM, NOT THE ENGINEER, and that is a decision worth
+ * stating because it could reasonably go the other way. Appendix C's SITE
+ * REVISIT criterion is explicit: "Repairs required, return after repairs to
+ * verify each item on the repair list." The return trip IS the verification.
+ * An engineer closing items from his desk would make the revisit verify
+ * nothing, and the engineer still cannot seal without reviewing the package, so
+ * nothing that matters is delegated: what changes is only who records the
+ * observation, which is the same division the whole platform already runs on.
+ *
+ * ONE ITEM AT A TIME, AND NO "CLOSE ALL". The operator's ruling was that a file
+ * cannot be sealed without every item on the list individually closed, and a
+ * button that closes six at once is that rule with the individually removed.
+ * Six taps is the point rather than an oversight.
+ */
+export async function closeRepairItem(
+  actor: Actor & { email: string },
+  fileId: string,
+  repairItemId: string,
+  input: { note: string | null; evidenceId: string | null },
+  context: Context = {},
+): Promise<{ ok: true; remaining: number } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  if (!can(actor, "evidence.capture") && !can(actor, "evidence.review")) {
+    return { ok: false, error: "Your role cannot verify a repair." };
+  }
+
+  const view = await jobView(actor, fileId);
+  if (!view) return { ok: false, error: "That job is not yours." };
+
+  /*
+   * THE SAME OFFER CHECK recordCapture AND recordException CARRY, for the same
+   * reason and deliberately not abbreviated. A technician who lost the race to
+   * accept could otherwise mark somebody else's repairs verified, and a
+   * verified repair is a stronger claim than a photograph: it is the thing
+   * standing between a property and a seal.
+   */
+  if (actor.role === "field_tech" && view.file.assigned_tech_id !== actor.id) {
+    return {
+      ok: false,
+      error: view.file.assigned_tech_id
+        ? "Another technician accepted this revisit first."
+        : "Accept this revisit before verifying repairs on it.",
+    };
+  }
+
+  const item = view.repairs.find((r) => r.id === repairItemId);
+  if (!item) return { ok: false, error: "That repair item does not belong to this file." };
+  if (item.closed_at !== null) {
+    return { ok: false, error: "That repair is already recorded as verified." };
+  }
+
+  /*
+   * EVIDENCE, WHERE THERE IS ANY, MUST BELONG TO THIS FILE. The database cannot
+   * ask this: its foreign key says the id is a real evidence row, not that it
+   * is a row about THIS property. A repair closed against another job's
+   * photograph is the worst record this table could hold, and it is exactly the
+   * check that only the application can make.
+   */
+  if (input.evidenceId !== null) {
+    const known = view.captures.some((c) => c.id === input.evidenceId);
+    if (!known) {
+      return { ok: false, error: "A repair can only be verified against evidence captured for this file." };
+    }
+  }
+
+  const note = input.note?.trim() || null;
+  /*
+   * A VERIFICATION WITH NEITHER A PHOTOGRAPH NOR A WORD IS A TICK. Section 7's
+   * spirit applied one layer out: the technician says what he saw, or points at
+   * the frame that shows it. Either is enough and neither is optional.
+   */
+  if (input.evidenceId === null && (note === null || note.length < 3)) {
+    return {
+      ok: false,
+      error:
+        "Say what you saw, or attach the photograph that shows it. A repair marked verified with " +
+        "nothing behind it is the tick the protocol does not allow.",
+    };
+  }
+
+  const { error } = await db
+    .from("eng_repair_items")
+    .update({
+      closed_at: DB_NOW,
+      closed_by: actor.id,
+      closed_note: note,
+      verified_by_evidence_id: input.evidenceId,
+    })
+    .eq("id", repairItemId)
+    .eq("file_id", fileId)
+    /*
+     * AND ONLY IF IT IS STILL OPEN. The check above read the row through
+     * jobView, which is a read from a moment ago; two technicians on one
+     * revisit could both pass it. This makes the write itself the decision, so
+     * the second one changes nothing rather than overwriting who verified it.
+     */
+    .is("closed_at", null);
+  if (error) return { ok: false, error: error.message };
+
+  const remaining = view.repairs.filter((r) => r.closed_at === null && r.id !== repairItemId).length;
+
+  await writeAudit({
+    actor,
+    action: "repair.verified",
+    entityType: "file",
+    entityId: fileId,
+    summary:
+      `Verified a repair on ${view.file.file_number}: ${item.requirement}. ` +
+      `${remaining} still open.`,
+    ...context,
+  });
+
+  return { ok: true, remaining };
 }
 
 export async function deleteCapture(

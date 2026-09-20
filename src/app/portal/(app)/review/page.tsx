@@ -11,6 +11,8 @@ import { services } from "@/content/services";
 import { Chip, EmptyState, PageHead } from "@/components/portal/surfaces";
 import { outstandingFor } from "@/lib/ops-file-inputs";
 import { DecisionPanel, OpenReviewButton } from "./ReviewClient";
+import { RC001 } from "@/content/protocols/rc-001";
+import { RC001_DETERMINATIONS } from "@/content/protocols/rc-001-decisions";
 
 export const dynamic = "force-dynamic";
 
@@ -54,8 +56,8 @@ export default async function ReviewPage({
    * cannot look ready on one screen and incomplete on another.
    *
    * This is the ADMINISTRATIVE half only. What evidence an engineer needs
-   * before sealing is the protocol's business and eight of nine service lines
-   * do not have one yet; what a document needs in order to be issued to the
+   * before sealing is the protocol's business and all but one service line
+   * still has no protocol; what a document needs in order to be issued to the
    * right party is knowable now, and missing it is what causes a reissue.
    */
   const outstanding = selected
@@ -234,12 +236,22 @@ export default async function ReviewPage({
                     {selected.items.map((item, i) => (
                       <li
                         key={item.id}
+                        /*
+                         * AN EXCEPTED ITEM IS NOT GREEN. It satisfied the gate
+                         * and it is not a photograph, and Appendix C asks the
+                         * engineer to notice the difference: REVISE's criteria
+                         * include "Exception used where the condition plainly
+                         * applied", which he cannot apply to an item the screen
+                         * has painted the same colour as a captured one.
+                         */
                         className={`rounded-[4px] border p-4 ${
-                          item.satisfied
-                            ? "border-[var(--border)] border-l-[var(--green)]"
-                            : item.required
-                              ? "border-[var(--warn-border)] border-l-[var(--red)]"
-                              : "border-[var(--border)]"
+                          item.exception
+                            ? "border-[var(--warn-border)] border-l-[var(--gold-deep)]"
+                            : item.satisfied
+                              ? "border-[var(--border)] border-l-[var(--green)]"
+                              : item.required
+                                ? "border-[var(--warn-border)] border-l-[var(--red)]"
+                                : "border-[var(--border)]"
                         }`}
                       >
                         <div className="flex flex-wrap items-start justify-between gap-2">
@@ -247,10 +259,21 @@ export default async function ReviewPage({
                             {i + 1}. {item.label}
                             {item.required ? "" : " (optional)"}
                           </p>
-                          {!item.satisfied && item.problem ? (
+                          {item.exception ? (
+                            <p className="text-[13.5px] font-semibold text-[var(--gold-deep)]">
+                              {item.exception.kind === "not_applicable"
+                                ? "Not applicable"
+                                : "Could not be observed"}
+                            </p>
+                          ) : !item.satisfied && item.problem ? (
                             <p className="text-[13.5px] font-semibold text-[var(--red)]">{item.problem}</p>
                           ) : null}
                         </div>
+                        {item.exception ? (
+                          <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--ink)]">
+                            The technician recorded: &ldquo;{item.exception.reason}&rdquo;
+                          </p>
+                        ) : null}
                         {item.instructions ? (
                           <p className="mt-1 max-w-[70ch] text-[13.5px] leading-[1.5] text-[var(--secondary)]">
                             {item.instructions}
@@ -316,6 +339,25 @@ export default async function ReviewPage({
                     complete={selected.complete}
                     blockers={selected.blockers}
                     inReview={Boolean(selected.session)}
+                    protocolDocument={selected.protocolDocument}
+                    /*
+                     * THE RULES COME FROM THE REGISTRY, which is the verbatim
+                     * transcription protocol-registry-audit compares against
+                     * the signed PDF. A second list typed for this screen would
+                     * be a paraphrase of Appendix C in front of the man applying
+                     * it, which is the worst place for one.
+                     *
+                     * Empty when no signed protocol governs the file, and then
+                     * the panel does not ask for a determination at all.
+                     */
+                    determinationRules={
+                      selected.protocolDocument === RC001.documentNumber ? RC001_DETERMINATIONS : []
+                    }
+                    items={selected.items.map((i) => ({
+                      itemKey: i.itemKey,
+                      label: i.label,
+                      captures: i.captures.map((c) => ({ id: c.id })),
+                    }))}
                   />
                 </div>
               </div>

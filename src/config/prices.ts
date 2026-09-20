@@ -50,6 +50,28 @@ export type ServicePrice =
  * assert against so a price for a service that does not exist is a red board
  * rather than a dead entry.
  */
+/**
+ * Money as a person reads it. Formatted exactly once, on the way out, from an
+ * integer of cents.
+ *
+ * Declared ABOVE the table because the table uses it, which is the fix for a
+ * defect I introduced in the first draft of this file: the WPI-8 entry had
+ * "$995" typed into its prose while `WPI8_ONGOING_CENTS` held the same number
+ * twenty lines below. One fact, two homes, written by the session that spent
+ * the night removing exactly that shape from four other facts. It was found by
+ * reading the rendered page rather than the source, which is the only reason it
+ * was found at all.
+ */
+export function money(cents: number): string {
+  return `$${(cents / 100).toLocaleString("en-US", {
+    minimumFractionDigits: cents % 100 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+/** The ongoing construction WPI-8 price, which is a second number on one line. */
+export const WPI8_ONGOING_CENTS = 99_500;
+
 export const servicePrices: Record<string, ServicePrice> = {
   "roof-inspections": {
     kind: "fixed",
@@ -92,7 +114,7 @@ export const servicePrices: Record<string, ServicePrice> = {
     kind: "fixed",
     cents: 79_500,
     whatChangesIt:
-      "This is the completed construction price. Ongoing construction, inspected in stages while the work is open, is $995 because it is more attendance rather than a premium on the same visit.",
+      `This is the completed construction price. Ongoing construction, inspected in stages while the work is open, is ${money(WPI8_ONGOING_CENTS)} because it is more attendance rather than a premium on the same visit.`,
   },
   "repair-specifications": {
     kind: "fixed",
@@ -109,23 +131,9 @@ export const servicePrices: Record<string, ServicePrice> = {
   },
 };
 
-/** The ongoing construction WPI-8 price, which is a second number on one line. */
-export const WPI8_ONGOING_CENTS = 99_500;
-
 /** The price for a service line, or null when none is ruled. */
 export function priceFor(serviceSlug: string): ServicePrice | null {
   return servicePrices[serviceSlug] ?? null;
-}
-
-/**
- * Money as a person reads it. Formatted exactly once, on the way out, from an
- * integer of cents.
- */
-export function money(cents: number): string {
-  return `$${(cents / 100).toLocaleString("en-US", {
-    minimumFractionDigits: cents % 100 === 0 ? 0 : 2,
-    maximumFractionDigits: 2,
-  })}`;
 }
 
 /** The headline price sentence for a service page, or null when none is ruled. */

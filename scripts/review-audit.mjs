@@ -54,12 +54,21 @@ const LIVE = { prelaunch: false };
 const GATED = { prelaunch: true };
 
 // =====================================================================
-// The four actions, named independently.
+// The five actions, named independently.
+//
+// FOUR UNTIL 2026-09-19, and the fifth is a ruling rather than a feature.
+// Appendix C of 254-RC-001 names five determinations and this platform had four
+// actions, so REPAIRS REQUIRED mapped to nothing: certification withheld with a
+// repair list, waiting on the property owner. The operator ruled it the third
+// instance of a status vocabulary lacking a word, and 0053 added it.
+//
+// This list is written out by hand rather than derived, which is why it went red
+// and asked whether the fifth was meant. It was.
 // =====================================================================
 {
-  const EXPECTED = ["seal", "revisions", "site_visit", "refuse"];
+  const EXPECTED = ["seal", "revisions", "site_visit", "repairs", "refuse"];
   rec(
-    "there are exactly four review actions and refusal is one of them",
+    "there are exactly five review actions and refusal is one of them",
     EXPECTED.every((a) => REVIEW_ACTIONS.includes(a)) && REVIEW_ACTIONS.length === EXPECTED.length,
     REVIEW_ACTIONS.join(", "),
   );
@@ -71,6 +80,10 @@ const GATED = { prelaunch: true };
     // A site visit is a new journey and goes through dispatch, not back to the
     // technician who already holds the file.
     ["site_visit", "needs_dispatch"],
+    // NOT needs_dispatch. A site visit is due now; this revisit is due when the
+    // owner has had work done, which may be months, and a file sitting in the
+    // dispatch queue that long is a queue that has stopped being one.
+    ["repairs", "repairs_required"],
     ["refuse", "refused"],
   ];
   let wrong = 0;

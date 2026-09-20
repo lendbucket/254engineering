@@ -72,7 +72,7 @@ export default function ServicesPage() {
         This page had one dark band, at the very end, which is the difference
         between rhythm and a list. The homepage carries three in nine sections and
         never puts them all at the bottom. The section that earns the band here is
-        the one the page most wants remembered: that the nine lines are nine
+        the one the page most wants remembered: that the lines are all
         documents produced one way.
       */}
       <Section id="how-produced" tone="navy">

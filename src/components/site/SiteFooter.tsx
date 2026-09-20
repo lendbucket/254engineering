@@ -128,6 +128,7 @@ export function SiteFooter() {
               Company
             </p>
             <nav className="flex flex-col gap-2.5">
+              <FooterLink href="/process">How it works</FooterLink>
               <FooterLink href="/about">About the firm</FooterLink>
               <FooterLink href="/government">Government and commercial</FooterLink>
               <FooterLink href="/insights">Insights</FooterLink>

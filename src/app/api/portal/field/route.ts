@@ -9,7 +9,10 @@ import {
   createProtocol,
   declineOffer,
   deleteCapture,
-  publishProtocol,
+  closeRepairItem,
+  recordException,
+  withdrawException,
+  approveProtocol,
   recordCapture,
   removeProtocolItem,
   sendOffers,
@@ -119,9 +122,18 @@ export async function POST(request: NextRequest) {
     return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
   }
 
-  if (action === "publish_protocol") {
-    const result = await publishProtocol(actor, String(body?.id ?? ""), context);
-    return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
+  /*
+   * APPROVE, NOT PUBLISH, AND THE OLD ACTION NAME IS GONE RATHER THAN ALIASED.
+   *
+   * publish_protocol called a function that had been unable to succeed since
+   * 0049 reached production: it set no approver and the database refused every
+   * call. Keeping the old name pointed at the new act would leave a caller
+   * asking for a publication and getting an approval, which are the two facts
+   * launch-readiness.ts is at pains to keep apart.
+   */
+  if (action === "approve_protocol") {
+    const result = await approveProtocol(actor, String(body?.id ?? ""), context);
+    return result.ok ? NextResponse.json({ ok: true, items: result.items }) : bad(result.error);
   }
 
   // -------------------------------------------------------------- dispatch
@@ -214,6 +226,48 @@ export async function POST(request: NextRequest) {
 
   if (action === "delete_capture") {
     const result = await deleteCapture(actor, String(body?.fileId ?? ""), String(body?.captureId ?? ""));
+    return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
+  }
+
+  /*
+   * THE KIND IS VALIDATED HERE RATHER THAN CAST, which the two branches above
+   * do not do and should. "not_observed" and "not_applicable" are different
+   * claims about a property, and a body carrying neither would otherwise reach
+   * the database and be refused by a check constraint, which is a constraint
+   * name where a sentence belongs.
+   */
+  if (action === "record_exception") {
+    const kind = String(body?.kind ?? "");
+    if (kind !== "not_observed" && kind !== "not_applicable") {
+      return bad("An item is either one that could not be observed or one that does not apply.");
+    }
+    const result = await recordException(
+      actor,
+      String(body?.fileId ?? ""),
+      { itemKey: String(body?.itemKey ?? ""), kind, reason: String(body?.reason ?? "") },
+      context,
+    );
+    return result.ok ? NextResponse.json({ ok: true, id: result.id }) : bad(result.error);
+  }
+
+  if (action === "close_repair_item") {
+    const result = await closeRepairItem(
+      actor,
+      String(body?.fileId ?? ""),
+      String(body?.repairItemId ?? ""),
+      {
+        note: body?.note ? String(body.note) : null,
+        evidenceId: body?.evidenceId ? String(body.evidenceId) : null,
+      },
+      context,
+    );
+    return result.ok
+      ? NextResponse.json({ ok: true, remaining: result.remaining })
+      : bad(result.error);
+  }
+
+  if (action === "withdraw_exception") {
+    const result = await withdrawException(actor, String(body?.fileId ?? ""), String(body?.itemKey ?? ""));
     return result.ok ? NextResponse.json({ ok: true }) : bad(result.error);
   }
 

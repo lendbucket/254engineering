@@ -608,6 +608,78 @@ const terms = (over = {}) => ({
     claim.summary.slice(0, 90),
   );
 
+  /*
+   * ===================================================================
+   * THE THREE GATES, EXERCISED RATHER THAN READ. Operator ruling, 2026-09-20.
+   * ===================================================================
+   *
+   * ALL_REGULATED was checked under one condition, and the three states made
+   * that one condition answer three different questions. The conservative
+   * repair blocked sentences that are TRUE: the firm is registered, F-29811 is
+   * active, and an engineer of record is on the register.
+   *
+   * So each set is handed a real sentence and asked. The middle one is the
+   * point of the split: a registered firm with an engineer and NO APPROVED
+   * PROTOCOL can seal nothing, so the sealing claims keep being refused through
+   * the whole of trading, gated on sealingIsAvailable() rather than on the
+   * money switch.
+   */
+  {
+    const provides = copyVerdict(
+      "We provide structural engineering services to contractors across Texas.",
+    );
+    rec(
+      "a partner may now say the firm provides engineering, because it is registered and has an engineer of record",
+      provides.ok === true,
+      provides.ok ? "allowed" : provides.summary.slice(0, 90),
+    );
+
+    const sealing = copyVerdict(
+      "Every deliverable is reviewed and sealed by a licensed Texas Professional Engineer.",
+    );
+    rec(
+      "and still may not say work is being sealed, because no protocol is approved",
+      sealing.ok === false,
+      sealing.ok ? "allowed, which is a claim the firm cannot make" : sealing.summary.slice(0, 90),
+    );
+
+    const ordering = copyVerdict("Order a roof certification today and get started today.");
+    rec(
+      "and still may not invite an order, because the firm is not open",
+      ordering.ok === false,
+      ordering.ok ? "allowed" : ordering.summary.slice(0, 90),
+    );
+
+    /*
+     * THE TWO THAT NEVER RETIRE. Not waiting on a gate: there is one engineer,
+     * and a bench is a claim about capacity nobody can make. Asserted as NEVER
+     * rather than merely refused, because a refusal that is really a gate claim
+     * becomes publishable on a day nobody is watching.
+     */
+    const bench = copyVerdict("Our engineers review every file before it is issued.");
+    rec(
+      "a review bench is refused as a never claim rather than as a gate claim",
+      bench.findings.some((f) => f.kind === "never"),
+      "there is one engineer, and a second would not make a bench true either",
+    );
+
+    /*
+     * AND THE FIRM NAME STAYS BLOCKED, which is the operator's caveat. The
+     * board holds 254 Services LLC and the state holds 254 Engineering LLC, so
+     * partner copy that TYPES either one goes stale at reissuance and nobody
+     * re-reads a partner's brochure. The third person patterns are the ones
+     * that would permit a typed name, and they stay in SEALING_GATED.
+     */
+    const typedName = copyVerdict(
+      "254 Services LLC performs and seals every engagement referred through this programme.",
+    );
+    rec(
+      "and a partner still may not type the firm name into a service claim, because a typed name goes stale at reissuance",
+      typedName.ok === false,
+      typedName.ok ? "allowed" : typedName.summary.slice(0, 90),
+    );
+  }
+
   const guarantee = copyVerdict("We guarantee approval, or your money back.");
   rec("a guaranteed approval cannot be published either", guarantee.ok === false);
   rec(

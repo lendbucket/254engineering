@@ -88,6 +88,13 @@ const ADMIN_PAGES = [
   "/portal/audit",
   "/portal/profile",
   "/portal/review",
+  /* Files waiting on an owner to have repairs done. Behind the same licensed
+   * capability as the review queue, and closed to a signed out caller like
+   * every other portal page. */
+  "/portal/waiting",
+  /* Design briefs and the reply each was promised. Behind files.list like the
+   * other working surfaces, and closed to a signed out caller. */
+  "/portal/inquiries",
   "/portal/jobs",
   "/portal/files",
   // Phase 12 Section 4, Section 1. Names every technician who could be offered
@@ -98,6 +105,7 @@ const ADMIN_PAGES = [
   "/portal/clients",
   "/portal/techs",
   "/portal/protocols",
+  "/portal/protocols/rc-001",
   "/portal/onboarding",
   "/portal/certification",
   "/portal/charge-log",
@@ -109,6 +117,14 @@ const ADMIN_PAGES = [
   // Behind the perimeter for the same reason billing is: a signed out visitor
   // reaching it would read the firm's position straight off the page.
   "/portal/reports",
+  /*
+   * The price book. Behind the perimeter for the same reason billing and
+   * reports are, and more so: it carries the firm's cost base, the engineer's
+   * pay tiers from an executed employment agreement, and the margin on every
+   * line. A signed out visitor reaching it would read what the firm makes on
+   * each job and what it pays the person who signs them.
+   */
+  "/portal/pricebook",
   // Every address that has asked the firm to stop writing to them, and why.
   // A list of people who did not want to hear from a company, reachable signed
   // out, is a list somebody else can use for exactly what it records.
@@ -190,6 +206,7 @@ const ADMIN_APIS = [
   // its first run, which is the argument for the coverage check.
   "/api/portal/files",
   "/api/portal/field",
+  "/api/portal/inquiries",
   "/api/portal/review",
   "/api/portal/comms",
   "/api/portal/onboarding",

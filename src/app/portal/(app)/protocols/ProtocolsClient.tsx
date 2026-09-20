@@ -419,27 +419,67 @@ function RemoveItem({ templateId, itemId }: { templateId: string; itemId: string
 
 export const ItemEditor = { Add: AddItem, Remove: RemoveItem };
 
-export function PublishButton({ id, itemCount }: { id: string; itemCount: number }) {
+/**
+ * APPROVING A SIGNED PROTOCOL, WHICH IS WHAT PUBLISHING BECAME.
+ *
+ * THE RULE THIS BUTTON CARRIED IS NOW INVERTED, and that is the interesting
+ * part rather than a rename. It used to refuse while the checklist was empty,
+ * on the reasoning that a technician can never finish an empty checklist. That
+ * reasoning is still right and the state it was reading has changed sides: for
+ * a protocol in the registry, an empty checklist is the NORMAL state before
+ * approval, because the approval is what creates the items.
+ *
+ * So the old copy, "Add at least one required item first", would now be an
+ * instruction to do the one thing nobody should do by hand: type in the
+ * engineer's signed checklist.
+ *
+ * The button says what will happen, with the count read from the registry
+ * rather than from the rows, because the rows do not exist yet.
+ */
+export function ApproveButton({
+  id,
+  documentNumber,
+  itemsToSeed,
+}: {
+  id: string;
+  documentNumber: string | null;
+  itemsToSeed: number | null;
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const derivable = itemsToSeed !== null && itemsToSeed > 0;
 
   return (
     <div>
-      <p className="portal-kicker text-[var(--gold-deep)]">Publish</p>
+      <p className="portal-kicker text-[var(--gold-deep)]">Approve</p>
       <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
-        Publishing makes this the protocol every new job in this service line is worked to, and
-        retires the version it replaces. After that it cannot be edited, only superseded.
+        {derivable ? (
+          <>
+            Approving puts {documentNumber} in force and writes its {itemsToSeed} items in the same
+            breath, taken from the signed document rather than typed. It retires the version it
+            replaces. After that the checklist cannot be edited, only superseded.
+          </>
+        ) : (
+          <>
+            This protocol is not one the platform holds a signed document for, so there is nothing
+            to derive its checklist from and nothing will be invented for it.
+          </>
+        )}
+      </p>
+      <p className="mt-2 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+        Only an engineer on the firm&rsquo;s register may do this, through his own account. It is
+        recorded against his licence.
       </p>
       <Problem message={error} />
       <button
         type="button"
-        disabled={busy || itemCount === 0}
+        disabled={busy || !derivable}
         onClick={async () => {
           setBusy(true);
           setError(null);
           try {
-            await post({ action: "publish_protocol", id });
+            await post({ action: "approve_protocol", id });
             router.refresh();
           } catch (err) {
             setError(err instanceof Error ? err.message : "That did not work.");
@@ -449,14 +489,8 @@ export function PublishButton({ id, itemCount }: { id: string; itemCount: number
         }}
         className={`${button} mt-3`}
       >
-        {busy ? "Publishing" : "Publish this protocol"}
+        {busy ? "Approving" : "Approve this protocol"}
       </button>
-      {itemCount === 0 ? (
-        <p className="mt-2 text-[13.5px] text-[var(--secondary)]">
-          Add at least one required item first. An empty checklist is one a technician can never
-          finish.
-        </p>
-      ) : null}
     </div>
   );
 }

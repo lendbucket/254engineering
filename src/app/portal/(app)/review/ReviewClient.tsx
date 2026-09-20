@@ -3,7 +3,8 @@ import { money } from "@/lib/ops-money";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ACTION_LABEL, MIN_REASON_LENGTH, type ReviewAction } from "@/lib/ops-review";
+import { ACTION_LABEL, DETERMINATION_ACTION, MIN_REASON_LENGTH, type ReviewAction } from "@/lib/ops-review";
+import type { Determination, DeterminationRule } from "@/content/protocols/rc-001-decisions";
 
 /**
  * The decision controls.
@@ -25,6 +26,7 @@ const CONFIRM: Record<ReviewAction, string> = {
   seal: "Seal this file",
   revisions: "Send it back",
   site_visit: "Send for a site visit",
+  repairs: "Withhold and issue the repair list",
   refuse: "Decline to seal",
 };
 
@@ -32,6 +34,8 @@ const HELP: Record<ReviewAction, string> = {
   seal: "Certifies that you reviewed the evidence this protocol required and stand behind the conclusion.",
   revisions: "Goes back to the technician who holds it, with what you need.",
   site_visit: "Goes back through dispatch as a new visit. The current technician is released.",
+  repairs:
+    "Certification is withheld and the owner gets a repair list. The file waits on them, for as long as it takes, and comes back through dispatch when the work is done. It cannot be sealed until every item on the list is verified one by one.",
   refuse:
     "You examined this package and will not certify it. The reason goes to the client, to your responsible charge log, and to whoever opens the file next. You are paid for the review either way.",
 };
@@ -88,21 +92,103 @@ export function OpenReviewButton({ fileId, status }: { fileId: string; status: s
   );
 }
 
+/**
+ * APPENDIX C IN FRONT OF THE ENGINEER, WHICH IS WHERE THE DOCUMENT PUTS IT.
+ *
+ * rc-001-decisions.ts says so in its own header: the criteria are the rule he
+ * applies, not reference material behind a link, and a rule nobody is shown is
+ * a rule somebody reconstructs from memory.
+ *
+ * THE DETERMINATION IS CHOSEN AND THE ACTION FOLLOWS, rather than both being
+ * asked. Asking twice is how a record ends up holding a determination of PASS
+ * beside an action of "decline to seal", and the server refuses that
+ * combination anyway, so offering it here would only be offering an error.
+ */
+function DeterminationStep({
+  rules,
+  chosen,
+  onChoose,
+}: {
+  rules: DeterminationRule[];
+  chosen: Determination | null;
+  onChoose: (d: Determination) => void;
+}) {
+  return (
+    <div className="mt-2 flex flex-col gap-2">
+      {rules.map((rule) => {
+        const selected = chosen === rule.key;
+        const follows = DETERMINATION_ACTION[rule.key];
+        return (
+          <button
+            key={rule.key}
+            type="button"
+            onClick={() => onChoose(rule.key)}
+            aria-pressed={selected}
+            className={`rounded-[4px] border p-3.5 text-left ${
+              selected ? "border-[var(--navy)] bg-white" : "border-[var(--border)] bg-white"
+            }`}
+          >
+            <p className="text-[15px] leading-[1.35] font-bold text-[var(--navy)]">{rule.heading}</p>
+            {rule.effect ? (
+              <p className="mt-1 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+                {rule.effect}
+              </p>
+            ) : null}
+            {selected ? (
+              <>
+                <ul className="mt-2 flex flex-col gap-1">
+                  {rule.criteria.map((c) => (
+                    <li key={c} className="max-w-[70ch] text-[13.5px] leading-[1.5] text-[var(--secondary)]">
+                      {c}
+                    </li>
+                  ))}
+                </ul>
+                {/*
+                  * The fallback sentence is unreachable today, because all five
+                  * determinations map since 0053. It is kept for a sixth added
+                  * to Appendix C, which would arrive here with no action and
+                  * should say so rather than showing a blank line.
+                  */}
+                <p className="mt-2 text-[13.5px] leading-[1.5] font-semibold text-[var(--navy)]">
+                  {follows
+                    ? `This records as ${ACTION_LABEL[follows].toLowerCase()}.`
+                    : "This platform has no action for this determination yet, so it would be recorded and the file would stay where it is. That is a ruling the firm owes rather than a decision to make here."}
+                </p>
+              </>
+            ) : null}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function DecisionPanel({
   fileId,
   actions,
   complete,
   blockers,
   inReview,
+  protocolDocument,
+  determinationRules,
+  items,
 }: {
   fileId: string;
   actions: { action: ReviewAction; allowed: boolean; reason?: string }[];
   complete: boolean;
   blockers: string[];
   inReview: boolean;
+  /** Null when no signed protocol governs this file, and then Appendix C does not apply. */
+  protocolDocument: string | null;
+  determinationRules: DeterminationRule[];
+  items: { itemKey: string; label: string; captures: { id: string }[] }[];
 }) {
   const router = useRouter();
   const [chosen, setChosen] = useState<ReviewAction | null>(null);
+  const [determination, setDetermination] = useState<Determination | null>(null);
+  const [reliedOn, setReliedOn] = useState<string[]>([]);
+  const [determinationNote, setDeterminationNote] = useState("");
+  const [repairList, setRepairList] = useState("");
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -133,10 +219,181 @@ export function DecisionPanel({
   }
 
   const active = chosen ? actions.find((a) => a.action === chosen) : null;
+  const governed = protocolDocument !== null && determinationRules.length > 0;
+
+  /*
+   * WHICH ITEMS THE ENGINEER HAS NAMED, AND THE PHOTOGRAPHS UNDER THEM.
+   *
+   * The evidence ids are derived from the items he ticked rather than ticked
+   * separately. 0051 wants both arrays and they answer one question: what did
+   * he look at. Asking a man to tick fifty one items and then a hundred and
+   * forty photographs one by one is how the record becomes whatever is fastest
+   * to click.
+   */
+  const reliedEvidenceIds = items
+    .filter((i) => reliedOn.includes(i.itemKey))
+    .flatMap((i) => i.captures.map((c) => c.id));
+
+  /*
+   * Split on lines and trimmed HERE rather than on the server alone, so the
+   * count under the box is the count that will be written. A screen that says
+   * "3 items" and writes 2 because one was whitespace is a screen the engineer
+   * cannot check his own decision against.
+   */
+  const repairRequirements = repairList
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length >= 3);
+
+  const determinationReady =
+    !governed ||
+    (determination !== null &&
+      reliedOn.length > 0 &&
+      reliedEvidenceIds.length > 0 &&
+      (determination !== "repairs-required" || repairRequirements.length > 0));
 
   return (
     <div>
       <p className="portal-kicker text-[var(--gold-deep)]">Your decision</p>
+
+      {governed ? (
+        <div className="mt-2">
+          <p className="max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+            {protocolDocument} Appendix C. One determination is recorded per review, with the items
+            it rests on.
+          </p>
+          <DeterminationStep
+            rules={determinationRules}
+            chosen={determination}
+            onChoose={(d) => {
+              setDetermination(d);
+              /*
+               * The action follows the determination rather than being chosen
+               * beside it. Where a determination maps to nothing, the action is
+               * cleared instead of guessed.
+               */
+              setChosen(DETERMINATION_ACTION[d]);
+            }}
+          />
+
+          {determination ? (
+            <div className="mt-4 rounded-[4px] border border-[var(--border)] bg-white p-4">
+              <p className="text-[13.5px] font-semibold text-[var(--navy)]">
+                What this determination rests on
+              </p>
+              <p className="mt-1 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+                A determination naming nothing it relied on is an opinion with no record behind it.
+                Somebody may be asked years from now what you actually looked at.
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setReliedOn(items.map((i) => i.itemKey))}
+                  className="inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] px-3 text-[13.5px] font-semibold text-[var(--navy)]"
+                >
+                  The whole package
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReliedOn([])}
+                  className="inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] px-3 text-[13.5px] font-semibold text-[var(--navy)]"
+                >
+                  Clear
+                </button>
+              </div>
+              <ul className="mt-3 flex flex-col gap-1.5">
+                {items.map((item) => (
+                  <li key={item.itemKey}>
+                    <label className="flex min-h-[44px] items-center gap-2.5 text-[13.5px] leading-[1.45] text-[var(--navy)]">
+                      <input
+                        type="checkbox"
+                        checked={reliedOn.includes(item.itemKey)}
+                        onChange={(e) =>
+                          setReliedOn((prev) =>
+                            e.target.checked
+                              ? [...prev, item.itemKey]
+                              : prev.filter((k) => k !== item.itemKey),
+                          )
+                        }
+                        className="h-5 w-5 shrink-0"
+                      />
+                      <span>
+                        {item.label}
+                        {item.captures.length > 0 ? (
+                          <span className="text-[var(--secondary)]">
+                            {" "}
+                            ({item.captures.length} captured)
+                          </span>
+                        ) : (
+                          <span className="text-[var(--secondary)]"> (nothing captured)</span>
+                        )}
+                      </span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+              {reliedOn.length > 0 && reliedEvidenceIds.length === 0 ? (
+                <p className="mt-2 max-w-[70ch] text-[13.5px] leading-[1.5] font-semibold text-[var(--red)]">
+                  Nothing was captured against the items you have named, so this determination would
+                  rest on no evidence at all. Name an item that carries a photograph or a reading.
+                </p>
+              ) : null}
+
+              <label
+                htmlFor="determination-note"
+                className="mt-4 block text-[13.5px] font-semibold text-[var(--navy)]"
+              >
+                Your note on this determination (optional)
+              </label>
+              <textarea
+                id="determination-note"
+                value={determinationNote}
+                onChange={(e) => setDeterminationNote(e.target.value)}
+                rows={3}
+                className="mt-1.5 w-full rounded-[3px] border border-[var(--border)] bg-white px-3 py-2.5 text-[16px] leading-[1.5] text-[var(--navy)] outline-none focus:border-slate"
+              />
+
+              {/*
+                * THE REPAIR LIST, ONE REQUIREMENT PER LINE, AND THE LINES ARE
+                * THE POINT RATHER THAN A CONVENIENCE.
+                *
+                * Each becomes its own row, and each is closed on its own at the
+                * revisit, because Appendix C says certification proceeds only
+                * after repairs are verified item by item. A single paragraph
+                * cannot be half closed, so a paragraph would push the judgement
+                * back into whoever reads it on the day.
+                */}
+              {determination === "repairs-required" ? (
+                <div className="mt-4 border-t border-[var(--border)] pt-4">
+                  <label
+                    htmlFor="repair-list"
+                    className="block text-[13.5px] font-semibold text-[var(--navy)]"
+                  >
+                    The repair list, one requirement per line
+                  </label>
+                  <p className="mt-1 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+                    Each line becomes an item the technician verifies separately on the revisit. This
+                    file cannot be sealed until every one of them is closed, so anything written here
+                    is something you are requiring before you will certify.
+                  </p>
+                  <textarea
+                    id="repair-list"
+                    value={repairList}
+                    onChange={(e) => setRepairList(e.target.value)}
+                    rows={5}
+                    className="mt-1.5 w-full rounded-[3px] border border-[var(--border)] bg-white px-3 py-2.5 text-[16px] leading-[1.5] text-[var(--navy)] outline-none focus:border-slate"
+                  />
+                  <p className="mt-1.5 text-[13.5px] leading-[1.5] text-[var(--secondary)]">
+                    {repairRequirements.length === 0
+                      ? "Nothing yet. Repairs required issues a repair list, so this cannot be empty."
+                      : `${repairRequirements.length} item${repairRequirements.length === 1 ? "" : "s"}, each closed on its own at the revisit.`}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {!complete ? (
         <div className="mt-2">
@@ -232,7 +489,7 @@ export function DecisionPanel({
           <div className="mt-4 flex flex-wrap gap-2">
             <button
               type="button"
-              disabled={busy}
+              disabled={busy || !determinationReady}
               onClick={async () => {
                 setBusy(true);
                 setError(null);
@@ -245,6 +502,11 @@ export function DecisionPanel({
                       fileId,
                       decision: chosen,
                       reason: reason.trim() || null,
+                      determination,
+                      reliedOnItemKeys: reliedOn,
+                      reliedOnEvidenceIds: reliedEvidenceIds,
+                      determinationNote: determinationNote.trim() || null,
+                      repairRequirements,
                     }),
                   });
                   const body = (await res.json().catch(() => null)) as {

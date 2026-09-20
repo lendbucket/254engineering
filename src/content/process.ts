@@ -82,7 +82,20 @@ export const processSteps: ProcessStep[] = [
     youDo:
       "Send it on. If repairs were required, have your contractor do them and tell us when they are finished. We come back, verify each item individually, and issue the letter. You pay for the return visit rather than for a second full inspection.",
     weDo:
-      "We issue the document and keep the whole file: the answers, the photographs, the checklist, the determination and who made it. Years later, somebody asking what was observed on that date has an answer rather than a memory.",
+    /*
+     * "We issue the document" was caught by voice-audit as a first person
+     * service claim, and the check was right rather than pedantic. Nothing can
+     * be issued today: no protocol is approved, so the platform itself refuses
+     * the seal action on every line. It was written two hours after six
+     * sentences of the same shape were fixed elsewhere, by the session that
+     * fixed them.
+     *
+     * The page describes the METHOD, so the sentence now describes what the
+     * method produces and what is kept, without claiming the firm is issuing
+     * documents this afternoon. The honest caveat about lines opening is stated
+     * once at the top of the steps rather than repeated in each of them.
+     */
+      "The document goes out signed and sealed by the engineer in responsible charge, and the whole file stays: the answers, the photographs, the checklist, the determination and who made it. Years later, somebody asking what was observed on that date has an answer rather than a memory.",
   },
 ];
 

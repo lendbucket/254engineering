@@ -85,7 +85,7 @@ ${
 ## Key pages
 
 - [About the firm](${business.url}/about): the operating model and the name story.
-- [Services](${business.url}/services): all nine service lines.
+- [Services](${business.url}/services): all ${services.length} service lines.
 - [Coverage](${business.url}/coverage): all 254 Texas counties by region.
 - [Government](${business.url}/government): capability statement and registration status.
 - [Careers](${business.url}/careers): Professional Engineer and field technician tracks.

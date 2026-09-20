@@ -46,6 +46,29 @@ export type QueuedCapture = {
   lat?: number | null;
   lng?: number | null;
   accuracy?: number | null;
+  /**
+   * SET WHEN THIS ENTRY IS AN ABSENCE RATHER THAN A CAPTURE.
+   * Added 2026-09-19 with the exception write path.
+   *
+   * WHY IT RIDES THE SAME QUEUE INSTEAD OF POSTING DIRECTLY. The obvious build
+   * is to POST an exception straight to the server, because it is a sentence
+   * rather than a photograph and needs no upload. That would have worked
+   * everywhere except the place it is needed: the item most likely to need an
+   * exception is the one the technician cannot reach, on a roof, in a county
+   * where one bar is the normal condition. An exception typed with no signal
+   * and posted directly is an exception that vanishes, and the technician finds
+   * out by being blocked at submission with a blocker naming an item they have
+   * already answered.
+   *
+   * So it is queued like everything else, survives a reload in IndexedDB, and
+   * flushes when the signal returns. The queue banner counts it, and the
+   * submission gate refuses while the queue is non-empty, which is already the
+   * rule and needs no exception of its own.
+   *
+   * `kind` above still says what the ITEM is, because the server checks the
+   * item exists in the protocol either way. This says what the ENTRY is.
+   */
+  exception?: { kind: "not_observed" | "not_applicable"; reason: string };
   /** Attempts made. Shown to the technician rather than hidden. */
   attempts: number;
   lastError?: string | null;
@@ -110,6 +133,33 @@ export async function markAttempt(entry: QueuedCapture, error: string | null): P
  */
 export async function flushOne(entry: QueuedCapture): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
+    /*
+     * AN ABSENCE HAS NO BYTES AND TAKES THE SHORT PATH. It is answered first so
+     * the upload branch below cannot be reached by an entry that has a reason
+     * and, through some later edit, also a blob: a row that is both a
+     * photograph and a statement that nothing could be photographed is the
+     * contradiction recordException refuses on the server, and it should not be
+     * constructible here either.
+     */
+    if (entry.exception) {
+      const posted = await fetch("/api/portal/field", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "record_exception",
+          fileId: entry.fileId,
+          itemKey: entry.itemKey,
+          kind: entry.exception.kind,
+          reason: entry.exception.reason,
+        }),
+      });
+      const body = (await posted.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+      if (!posted.ok || !body?.ok) {
+        return { ok: false, error: body?.error ?? "The server refused that entry." };
+      }
+      return { ok: true };
+    }
+
     let storageKey: string | null = null;
 
     if (entry.blob && entry.contentType) {

@@ -1,4 +1,5 @@
-import { isPrelaunch, peInResponsibleCharge, sealingIsAvailable } from "@/lib/launch";
+import { isOpen, isPrelaunch, peInResponsibleCharge, sealingIsAvailable } from "@/lib/launch";
+import { PUBLISHED_TURNAROUND } from "@/config/turnaround";
 
 /**
  * Every sentence on this site that describes a licensed engineer doing
@@ -130,8 +131,55 @@ export function turnaroundCopy(serviceTurnaround: string): string | null {
    * figures are ruled this becomes one line instead of a signature change
    * across four callers.
    */
+  /*
+   * RULED 2026-09-19, AND STILL RENDERING NOTHING UNTIL THE GATE OPENS.
+   *
+   * The operator gave the figure and then held it himself: "The gate is
+   * registered and trading today, not open, and a published turnaround is a
+   * promise about fulfilment the firm cannot yet make with no technician.
+   * Render it when the gate opens." The figures live in
+   * src/config/turnaround.ts from today; this is the one place they reach a
+   * page, and it is shut until `isOpen()`.
+   *
+   * `isOpen()` rather than `!isPrelaunch()`, deliberately. Trading is the
+   * middle state: the firm may take money before it can promise delivery, and
+   * a delivery promise is exactly the claim that needs the third gate rather
+   * than the second.
+   */
+  if (!isOpen()) {
+    void serviceTurnaround;
+    return null;
+  }
+
+  /*
+   * THE PER SERVICE STRING IS STILL NOT USED, and that is not an oversight
+   * either. Those strings predate any ruling about turnaround and each one
+   * promises sealing "within a few business days", which is the shape of
+   * promise the operator replaced with a measured figure. Returning them the
+   * moment the gate lifted would publish nine unruled promises in one deploy.
+   *
+   * Only the roof certification has a ruled figure. Every other line renders
+   * nothing until it has one, which is the same refusal this function has been
+   * making all along, now narrowed to the lines that still lack a ruling rather
+   * than applied to all of them.
+   */
   void serviceTurnaround;
   return null;
+}
+
+/**
+ * The published end to end figure for a service line, or null.
+ *
+ * NULL FOR EIGHT OF THE NINE LINES, AND THAT IS THE HONEST ANSWER. One line has
+ * been ruled. A caller getting null must render nothing rather than a heading
+ * over an empty space, which is why this returns null rather than a hopeful
+ * empty string.
+ */
+export function publishedTurnaround(serviceSlug: string): string | null {
+  if (!isOpen()) return null;
+  const ruled = PUBLISHED_TURNAROUND[serviceSlug];
+  if (!ruled) return null;
+  return `${ruled.publishedDays} business days from order to the sealed document in your hands.`;
 }
 
 /** True when any gate is still down, for copy that needs to say so once. */

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { execFileSync } from "node:child_process";
 /**
  * LAYER ONE OF THE COMMIT GUARD. Operator ruling, 2026-09-15.
  *
@@ -134,6 +135,82 @@ export function verdict(command) {
   return null;
 }
 
+/**
+ * RULE THREE: A COMMIT THAT ADDS A MIGRATION WHILE ON main.
+ * Operator ruling, 2026-09-18.
+ *
+ * THE INCIDENT. After a merge, nineteen commits were made directly on main,
+ * including two pending migrations. `schema-ledger-audit` caught it and named
+ * the rule it broke: a migration on main is never pending, because merging is
+ * the moment the decision stops being deferrable. Either it goes to production
+ * in the merge sequence or it stays on its branch.
+ *
+ * WHY THE EXISTING RULES DID NOT COVER IT. CLAUDE.md says to read the branch off
+ * git before every MERGE, and that was honoured: the branch was checked before
+ * the merge and was correct. Nothing checks before every COMMIT, and a long run
+ * is exactly where that drifts. The rule was known, the check at merge time was
+ * done, and the gap was the nineteen commits in between.
+ *
+ * That is the fifth time this week a known rule failed for want of a mechanical
+ * guard rather than for want of knowing it, which is why this is a hook rather
+ * than another paragraph.
+ *
+ * IT TAKES THE GIT STATE RATHER THAN READING IT, so the rule can be exercised
+ * against states that are awkward to create. `readGitState` below does the
+ * reading and is exercised separately, because a rule tested only with its
+ * input handed to it says nothing about whether the read that feeds it works.
+ */
+export function migrationOnMainVerdict(command, state) {
+  if (typeof command !== "string") return null;
+  const stripped = stripQuoted(command) ?? command;
+  if (!/\bgit\s+commit\b/.test(stripped)) return null;
+  if (!state || state.branch !== "main") return null;
+
+  const migrations = (state.stagedFiles ?? []).filter((f) =>
+    /^supabase\/migrations\/\d{4}_.*\.sql$/.test(f),
+  );
+  if (migrations.length === 0) return null;
+
+  return [
+    `This commit adds ${migrations.length === 1 ? "a migration" : `${migrations.length} migrations`} while on main:`,
+    migrations.join(", ") + ".",
+    "A migration on main is never pending. Either it goes to production in the",
+    "merge sequence or it stays on its branch, because merging is the moment the",
+    "decision stops being deferrable.",
+    "On 2026-09-18 nineteen commits were made on main after a merge, two of them",
+    "pending migrations, and the ledger caught it afterwards rather than the",
+    "commit being refused. Branch first, then commit.",
+  ].join(" ");
+}
+
+/**
+ * The git state this hook needs, read from the repository.
+ *
+ * ON FAILING OPEN HERE, WHICH IS THE OPPOSITE OF THE OTHER RULES. The two rules
+ * above fail closed, because an unparseable command is still a command and the
+ * shape they refuse is visible in the text. This one needs to know which branch
+ * is checked out, and if git cannot answer then the likeliest reason is that
+ * this is not a git repository at all. Refusing every commit in that case would
+ * make the hook the problem. It says so on stderr instead of deciding silently.
+ */
+export function readGitStateForProof() {
+  return readGitState();
+}
+
+function readGitState() {
+  try {
+    const run = (args) =>
+      execFileSync("git", args, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+    return {
+      branch: run(["branch", "--show-current"]).trim(),
+      stagedFiles: run(["diff", "--cached", "--name-only"]).split("\n").map((s) => s.trim()).filter(Boolean),
+    };
+  } catch {
+    process.stderr.write("commit-guard: could not read the git state, so the migration rule did not run\n");
+    return null;
+  }
+}
+
 function deny(reason) {
   process.stdout.write(
     JSON.stringify({
@@ -160,7 +237,7 @@ async function main() {
     return;
   }
 
-  const refusal = verdict(command);
+  const refusal = verdict(command) ?? migrationOnMainVerdict(command, readGitState());
   if (refusal) deny(refusal);
 }
 

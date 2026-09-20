@@ -47,26 +47,26 @@ export const services: Service[] = [
     slug: "roof-inspections",
     name: "Roof Inspections and Certifications",
     shortName: "Roof Certifications",
-    h1: "Roof Inspections and Certifications in Texas",
-    title: "Roof Inspection and Certification | 254 Engineering",
+    h1: "Roof Certification in Texas, Sealed by a Licensed Engineer",
+    title: "Roof Certification in Texas, Sealed | 254 Engineering",
     description:
-      "A roof certification is a sealed engineering opinion on condition and remaining service life. What the inspection covers and who orders one. Join the waitlist.",
+      "A roof certification is a sealed opinion on the observed condition of a roof on the date it was inspected. Read what it covers, who orders one, and the cost.",
     summary:
-      "A sealed engineering opinion on the condition of a roof and the service life it can reasonably be expected to have left, issued after a documented field inspection.",
+      "A sealed engineering opinion on the condition of a roof as it stood on the date it was inspected, issued after a documented field inspection to a written protocol.",
     what: [
-      "A roof certification is a written opinion, signed and sealed by a licensed Texas Professional Engineer, on the present condition of a roof covering and the structure beneath it. It follows a field inspection carried out to a written protocol, and it states what was observed, what those observations mean, and how much service life the roof can reasonably be expected to have left.",
+      "A roof certification is a written opinion, signed and sealed by a licensed Texas Professional Engineer, on the present condition of a roof covering and the structure beneath it. It follows a field inspection carried out to a written protocol, and it states what was observed, what those observations mean, and the limitations the opinion carries. It does not estimate how many years the roof has left, and the reason is in the protocol the engineer signed: a remaining life figure is a forecast rather than an observation.",
       "The inspection is non destructive. A technician documents the covering type and how it was installed, flashing and penetrations, drainage and ponding, the condition of the decking where it can be observed, and any evidence of prior repair or storm damage. Photographs are keyed to locations, so the reviewing engineer can see what the technician saw rather than take a conclusion on trust.",
       "The engineer is the author of the opinion. Field work gathers evidence. The licensed engineer in responsible charge reviews that evidence, forms the opinion, and applies the seal. Keeping those two roles distinct is what allows one consistent standard to hold across a state with 254 counties in it.",
     ],
     whoOrders: [
-      "Lenders and loan officers who need remaining service life stated before a file can close",
+      "Lenders and loan officers who need a sealed condition opinion before a file can close. If a checklist demands a remaining life figure in years, say so before ordering and you will be told honestly whether this letter meets it",
       "Insurance carriers and agents underwriting or renewing a property policy",
       "Buyers and sellers resolving a roof question raised by a general home inspection",
       "Property managers and commercial owners documenting the condition of a portfolio",
       "Roofing contractors whose customer has been asked for an engineer's opinion",
     ],
     deliverable: [
-      "A signed and sealed letter on firm letterhead, addressed to the party who needs it, stating the scope of the inspection, the conditions observed, the opinion of remaining service life, and the limitations that opinion carries.",
+      "A signed and sealed letter on firm letterhead, addressed to the party who needs it, stating the scope of the inspection, the date, the conditions observed, the engineer's opinion of that condition, and the limitations the opinion carries.",
       "A photographic record keyed to the observations, so an underwriter or a loan officer can read the letter without arranging a second visit.",
       "A PDF suitable for upload to a loan file, a carrier portal, or a closing package.",
     ],
@@ -75,15 +75,15 @@ export const services: Service[] = [
     faqs: [
       {
         q: "What is the difference between a roof inspection and a roof certification?",
-        a: "The inspection is the field work. The certification is the sealed engineering opinion that follows it. A roofing contractor can inspect a roof and give you a quote. Only a licensed Professional Engineer can issue a sealed opinion on condition and expected remaining service life, and that seal is usually what a lender or a carrier is actually asking for.",
+        a: "The inspection is the field work. The certification is the sealed engineering opinion that follows it. A roofing contractor can inspect a roof and give you a quote. Only a licensed Professional Engineer can issue a sealed opinion on the condition observed, and that seal is usually what a lender or a carrier is actually asking for.",
       },
       {
         q: "How long is a roof certification good for?",
         a: "It states a condition observed on a particular date, so it does not expire on its own. Most lenders and carriers treat one as current for six to twelve months. A significant storm between the inspection and the closing will normally prompt a fresh look regardless of the date on the letter.",
       },
       {
-        q: "Does a certification guarantee the roof will last that long?",
-        a: "No. It is a professional opinion of remaining service life based on what was observed, stated together with its limitations. An engineer cannot warrant a roof, and a document that claims to warrant one is not an engineering opinion.",
+        q: "Will the letter say how many years the roof has left?",
+        a: "No. It states the condition observed on the date of the inspection, with the limitations that opinion carries. A remaining life figure is a forecast rather than an observation, and the protocol the engineer of record signed removes it deliberately. If a carrier or a lender requires a years figure, say so before ordering and you will be told honestly whether this letter meets their requirement.",
       },
       {
         q: "Does the inspection include the attic?",
@@ -103,7 +103,7 @@ export const services: Service[] = [
     h1: "Windstorm WPI-8 Certifications in Texas",
     title: "Texas Windstorm WPI-8 Certification | 254 Engineering",
     description:
-      "How WPI-8 windstorm certification works on the Texas coast, which counties require one, and what a TDI appointed engineer inspects. Join the waitlist.",
+      "How WPI-8 windstorm certification works on the Texas coast, which counties require one, and what a TDI appointed engineer inspects. See the price.",
     summary:
       "The windstorm certificate of compliance required in the Texas coastal catastrophe area, inspected and submitted by an engineer appointed by the Texas Department of Insurance.",
     what: [
@@ -156,7 +156,7 @@ export const services: Service[] = [
     h1: "Foundation Inspections and Certifications in Texas",
     title: "Foundation Inspection and Certification | 254 Engineering",
     description:
-      "A sealed engineering opinion on how a foundation is performing, based on floor elevation measurement and a documented site inspection. Join the waitlist.",
+      "A sealed engineering opinion on how a foundation is performing, based on floor elevation measurement and a documented site inspection. See the price.",
     summary:
       "A sealed engineering opinion on how a foundation is performing, supported by floor elevation measurement and a documented inspection of the structure, the drainage, and the site.",
     what: [
@@ -209,7 +209,7 @@ export const services: Service[] = [
     h1: "Solar Structural Letters for Texas Installations",
     title: "Solar Structural Engineering in Texas | 254 Engineering",
     description:
-      "The sealed structural review a Texas jurisdiction requires before a rooftop solar permit, covering framing capacity and wind loading. Join the waitlist.",
+      "The sealed structural review a Texas jurisdiction requires before a rooftop solar permit, covering framing capacity and wind loading. See the price.",
     summary:
       "The sealed structural review most Texas jurisdictions require before a rooftop solar permit is issued: framing capacity, attachment detail, and wind loading for the site.",
     what: [
@@ -257,7 +257,7 @@ export const services: Service[] = [
     h1: "What Lenders Require on a Manufactured Home Foundation",
     title: "Manufactured Home Foundation Certification | 254 Engineering",
     description:
-      "The engineer's foundation certification an FHA, VA, or USDA loan requires on a manufactured home in Texas, and what it confirms. Join the waitlist.",
+      "The engineer's foundation certification an FHA, VA, or USDA loan requires on a manufactured home in Texas, and what it confirms. See the price.",
     summary:
       "The engineer's foundation certification required before an FHA, VA, or USDA loan will close on a manufactured home, measured against the HUD permanent foundations guide.",
     what: [
@@ -310,7 +310,7 @@ export const services: Service[] = [
     h1: "Structural Letters for Permits in Texas",
     title: "Structural Letters for Texas Permits | 254 Engineering",
     description:
-      "The sealed structural letter a Texas building department requires for wall removal, beam sizing, and small structural alterations. Join the waitlist.",
+      "The sealed structural letter a Texas building department requires for wall removal, beam sizing, and small structural alterations. See the price.",
     summary:
       "The sealed letter a building department asks for when an alteration affects structure: wall removal, a new opening, a header or beam, or a change a plans examiner has questioned.",
     what: [
@@ -359,7 +359,7 @@ export const services: Service[] = [
     h1: "Engineered Repair Specifications in Texas",
     title: "Engineered Repair Specifications | 254 Engineering",
     description:
-      "A sealed repair specification defines what is repaired and how, so contractors bid the same scope and a building department can permit it. Join the waitlist.",
+      "A sealed repair specification defines what is repaired and how, so contractors bid the same scope and a building department can permit it. See the price.",
     summary:
       "A sealed document that defines exactly what is repaired and how it is repaired, so every contractor bids the same scope and a building department can permit the work.",
     what: [
@@ -408,7 +408,7 @@ export const services: Service[] = [
     h1: "Residential and Light Commercial Design in Texas",
     title: "Residential and Light Commercial Design | 254 Engineering",
     description:
-      "Sealed structural design for Texas homes, additions, and light commercial buildings: foundations for expansive soil and framing plans. Join the waitlist.",
+      "Sealed structural design for Texas homes, additions, and light commercial buildings: foundations for expansive soil and framing plans. See the price.",
     summary:
       "Sealed structural design for homes, additions, and light commercial buildings: foundation design for the soil on site, framing plans, and drawings a permit office can review.",
     what: [
@@ -450,58 +450,6 @@ export const services: Service[] = [
     ],
   },
 
-  {
-    slug: "forensic-engineering",
-    name: "Forensic and Insurance Engineering",
-    shortName: "Forensic Engineering",
-    h1: "Forensic and Insurance Engineering in Texas",
-    title: "Forensic and Insurance Engineering | 254 Engineering",
-    description:
-      "Independent engineering investigation into the cause and extent of damage to a structure, documented to one standard for every party. Join the waitlist.",
-    summary:
-      "Independent investigation into the cause and extent of damage to a structure, documented to one standard whichever party asked the question.",
-    what: [
-      "Forensic engineering answers a question about something that already happened. A structure is damaged or has performed poorly, and somebody needs to know why, how far the damage extends, and what the evidence actually supports. The output is a factual determination, reasoned from observation and measurement.",
-      "The obligation runs to the facts rather than to the party who ordered the report. An owner, a carrier, a contractor, and an attorney can all ask the same question about the same building, and a competent investigation returns the same answer to each of them. A firm whose conclusions correlate with who is paying is not performing engineering, and the report will not survive the first serious challenge to it.",
-      "Typical questions include the cause and extent of storm, wind, hail, and water damage, whether observed distress is construction related or the result of foundation movement, whether a failure originated in design, in workmanship, or in maintenance, and how far a damaged assembly has to be repaired to be sound. The investigation records what was observed, the methods used, the evidence relied on, and where the evidence stops.",
-    ],
-    whoOrders: [
-      "Property owners and managers who need the cause of damage established",
-      "Insurance carriers, adjusters, and independent adjusting firms",
-      "Attorneys in construction defect and property damage matters",
-      "Contractors and builders responding to an allegation about their work",
-      "Condominium and homeowner associations investigating building performance",
-    ],
-    deliverable: [
-      "A signed and sealed report stating the scope of the investigation, the observations, the methods and measurements used, the conclusions, and the limits of what the evidence supports.",
-      "A photographic and measurement record adequate for another engineer to follow the reasoning and reach their own view.",
-      "Where the matter proceeds, deposition and testimony by the engineer who performed the work and signed the report.",
-    ],
-    turnaround:
-      "Investigations are scoped individually, because the field work can range from a single visit to repeated observation during destructive exposure. A schedule and a scope are agreed in writing before the investigation begins.",
-    faqs: [
-      {
-        q: "Can an engineer investigate for either the owner or the carrier?",
-        a: "Yes, and the report should read the same either way. The engineer's duty is to the facts and to the public, and the party who commissioned the work does not change what the structure did. Where an engineer cannot be impartial about a matter, the correct response is to decline it.",
-      },
-      {
-        q: "Will a report determine what an insurance claim is worth?",
-        a: "No. Valuation and coverage are the adjuster's and the carrier's determinations under the policy. The engineering question is what happened, how far it extends, and what the repair requires. Those are separate questions and mixing them serves nobody.",
-      },
-      {
-        q: "How soon after damage should an investigation happen?",
-        a: "Generally as soon as the site is safe and before repairs alter the evidence. Emergency mitigation should not be delayed for an engineer, but the condition should be photographed thoroughly before anything is removed, because a repaired assembly cannot be investigated afterward.",
-      },
-      {
-        q: "Is destructive testing part of an investigation?",
-        a: "Sometimes it is the only way to answer the question, and it is always agreed with the owner in advance, planned, documented, and limited to what the question requires. Opening a wall is evidence gathering, not demolition, and it is treated that way.",
-      },
-      {
-        q: "Can the engineer testify about the report?",
-        a: "The engineer who performed the investigation and signed the report is the one who can speak to it. That is one reason field work and review are documented to a written protocol: a report that cannot be explained under examination was not worth issuing.",
-      },
-    ],
-  },
 ];
 
 export const serviceBySlug = (slug: string): Service | undefined =>

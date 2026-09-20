@@ -1124,6 +1124,51 @@ mean.** A call is `name(`, not `name`. A field is the line adjacent to it, not
 the nearest punctuation that resembles it. Where adjacency is not enough, locate
 by explicit position and ASSERT the target before writing.
 
+**A FIX THAT CURES THE CASE IN FRONT OF YOU AND NOT THE SHAPE BEHIND IT WILL
+MEET YOU AGAIN, AND FOUR HOURS IS HOW LONG IT TOOK.** Operator ruling,
+2026-09-19.
+
+**The morning.** Four audits reported `/portal/protocols/rc-001` as broken while
+`roles-audit`, in the same run, reported an engineer opening it with HTTP 200.
+Both were right. The browser audits probe with `defaultRole`, which is admin,
+and the page is gated on `holdsLicence`, which an administrator does not hold:
+the probe was refused and the refusal was reported as a defect in the PAGE.
+
+The fix was to make `roleFor` inherit down a path, matched on a segment
+boundary, so a nested route is opened by whoever opens its parent. That was
+correct, it was proven both ways, and it closed the case.
+
+**The afternoon, same session.** `/portal/waiting` shipped, a new screen gated
+the same way, and the next board reported it as broken in four audits for
+exactly the same reason. **The inheritance fix could not help: `/portal/waiting`
+is TOP LEVEL, so there is no parent to inherit from.**
+
+**The instance was cured. The class was not.** And the class is this
+repository's most frequent defect wearing yet another costume: one fact with two
+homes. `roles-audit`'s lists say which screens are the engineer's; `roleFor`
+says which principal opens each; nothing compared them, so they could disagree,
+and the second time they did it was on a screen written by the session that had
+fixed the first.
+
+**The fix that closes the class derives the answer from the thing that actually
+decides**, which is neither list. It is the GUARD IN THE PAGE: `surface-audit`
+now asserts that any portal screen whose source calls `holdsLicence` carries a
+`roleFor` entry naming a principal that can open it. It went red naming
+`/portal/waiting` on its first run, and it carries its own vacuity check,
+because a version of it that matched no screens would pass forever.
+
+**THE GENERAL FORM, AND IT IS THE QUESTION TO ASK OF EVERY FIX IN THIS
+REPOSITORY. When a check catches something, ask whether the fix closes the
+INSTANCE or the CLASS, and say which you chose.** Both are legitimate answers. A
+deadline, a blast radius, or a shape nobody understands yet can all make the
+instance the right call. What is not legitimate is making that choice without
+noticing it, because an instance fix recorded as a class fix is a hazard
+everybody now believes is handled.
+
+The tell is the same every time: the fix names a specific thing. A route, a
+column, a file. Ask what the general version of that thing is, and whether
+anything would notice the next member of the set.
+
 **AND A TOOLING RULE RATHER THAN A LESSON: NO INLINE SCRIPT MAY CARRY A
 BACKSLASH.** Operator ruling, 2026-09-16, after the shell ate regex escapes
 three times in one session.
@@ -1173,6 +1218,119 @@ the check is written in something that can tell the three outcomes apart and
 say which one it got. The third instance above was re-run that way and answered
 `added lines: 42, lines with an en or em dash: 0`, which is a measurement rather
 than the absence of an error.
+
+**A REGISTRY WAS VERIFIED EVERYWHERE EXCEPT THE ENTRY THAT WOULD BE QUOTED, AND
+THE ENTRY THAT WOULD BE QUOTED WAS THE ONE THAT COULD SAY ANYTHING.** Operator
+ruling, 2026-09-18.
+
+**VERIFICATION THAT STOPS AT THE BOUNDARY OF WHAT IS ENFORCEABLE HAS VERIFIED
+THE WRONG THINGS.**
+
+`src/content/protocols/rc-001.ts` is the transcription of a protocol signed by
+the engineer of record, and `protocol-registry-audit` compares it against the
+PDF in both directions: every intake question, every determination criterion,
+every checklist item, every threshold, the photo procedure, all word for word
+with whitespace stripped. It is one of the most thoroughly proven declarations
+in this repository.
+
+**`RC001_ENFORCED` was checked for having a key and a place.** Not for being
+what the document says. That array is the one a CHECK would quote, because it
+holds the rules the platform is supposed to make unbreakable, and it was the one
+part of the registry that could contain any sentence at all.
+
+**It was found by injection rather than by reading.** A rule was transcribed from
+section 11, the audit passed, and only then was the transcription falsified to
+see whether the green meant anything. It did not. The check added in response
+immediately found **six existing rules that were paraphrases rather than
+quotations**, and two were worse than paraphrases: one merged two sentences from
+different sections into a sentence the document does not contain, and one mixed
+the protocol with CLAUDE.md standing law, making it a quotation from neither
+source. The document says nothing about what the platform composes; CLAUDE.md
+says nothing about a pass determination.
+
+**What it cost while nobody could see it.** `services.ts` promised that a roof
+certification states remaining service life, in six places including the
+deliverable and a named buyer segment. Section 11 says the letter states
+observed condition only. **Two sources of truth about what the firm will put a
+seal on, one approved by the operator and one written before the protocol
+existed, disagreed for three days with nothing able to notice.**
+
+**AND THE EXEMPTION IS COUNTED, BECAUSE AN EXEMPTION NOBODY COUNTS BECOMES THE
+RULE.** One rule legitimately comes from standing law rather than the document,
+so the verbatim check skips it. A second check asserts how many such rules there
+are. Without it, every rule that failed the verbatim check would acquire an
+attribution to standing law, one at a time, each change reasonable on its own,
+until the check covered nothing.
+
+**THE GENERAL FORM, AND IT IS OWED A SURVEY.** Anywhere a declaration is checked
+for SHAPE rather than CONTENT, and the content is what a check will later act
+on. The shape check passes forever, the content is never compared to anything,
+and the first thing to quote it inherits whatever was typed. Ask of every
+declaration: is this verified against the thing it claims to describe, or only
+against itself.
+
+**AND A CHECK AT THE RIGHT MOMENT DOES NOT COVER THE GAP BETWEEN MOMENTS.**
+Operator ruling, 2026-09-18, and it is the fifth instance this week of a known
+rule failing for want of a mechanical guard rather than for want of knowing it.
+
+**What happened.** After a merge, nineteen commits were made directly on `main`,
+two of them carrying pending migrations. `schema-ledger-audit` caught it
+afterwards and named the rule: **a migration on main is never pending.**
+
+**What makes it worth an entry is that the existing rule was obeyed.** This file
+says to read the branch off git before every MERGE, and that was done: the
+branch was checked immediately before the merge and was correct. **Nothing
+checks before every COMMIT**, and a long unattended run is exactly where the gap
+between those two moments opens. The rule was known, the check was honoured, and
+the drift happened in between.
+
+**So the guard moved to the commit.** Layer one of the commit hook now refuses a
+commit that adds a migration while on `main`, alongside the two rules it already
+carries. Nothing was pushed, `origin/main` was untouched, and the nineteen
+commits were moved onto a branch with `main` reset to the merge.
+
+**The general form.** When a rule is enforced at one moment in a workflow, ask
+what happens in the interval before the next enforcement. A check before a merge
+protects the merge. It does not protect the fifty commits that precede the next
+one, and on a long run that interval is where all the work is.
+
+**A RULE YOU WROTE THIS MORNING DOES NOT PROTECT YOU THIS AFTERNOON. THAT IS WHY
+THE GUARD IS MECHANICAL AND WHY THE HOOK EXISTS.** Operator ruling, 2026-09-18,
+recorded as ONE entry from two incidents on one day, by the session that wrote
+both of the rules it broke.
+
+**The morning.** The grep exit code hazard above was written up, committed, and
+given a checker run from a file rather than inline, because a `||` had fired on
+a grep ERROR and printed a reassuring sentence about a check that never ran.
+
+**The afternoon, hours later, same session.** A standalone audit was run as
+
+    BASE_URL=... node scripts/mobile-overflow-audit.mjs 2>&1 | grep -A 20 ... | head -24
+
+and the run reported **exit code 0 while the audit had failed**. The exit code
+belonged to `head`. It is the 2026-09-15 `tail` instance exactly, in a session
+that had written the rule about it that morning and could quote it.
+
+**And the same afternoon, in the check being built at the time.** The new page
+height ceiling called its report function inside BOTH branches of the verdict,
+after the findings had already been counted. A route over its ceiling would have
+**printed the finding and exited zero**: a check that reports a defect and
+passes, which is worse than no check at all, because the line scrolls past in a
+green run and everybody trusts the green. It was caught by reading the control
+flow before trusting it, not by any check.
+
+**So the entry is not "be careful with exit codes".** It is that being careful
+is not a mechanism, and that knowing a rule, having written it down, having
+committed it hours earlier, and being able to recite it, are all compatible with
+breaking it before the day is out. The same point is already made once in this
+file by the commit that built the mechanical commit guard and broke the
+commit-per-change rule while doing it. This is the second time, which makes it a
+pattern rather than a joke.
+
+**What follows from it, practically.** A rule that matters gets a hook, an
+audit, or a file that runs it, and the written form is the explanation rather
+than the protection. Anything still enforced by memory is enforced by nothing on
+a long day.
 
 **AND THE ORIGINAL INSTANCE, 2026-09-13**, in the patch script written to
 document all of this. It searched an eight line window for a table name to decide which query

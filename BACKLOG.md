@@ -27,7 +27,167 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
-## `launch-audit` IS KNOWINGLY RED, AND REWRITING IT BEFORE THE COPY EXISTS WOULD BE WORSE
+## RESOLVED 2026-09-19: THERE IS NOW A STATUS FOR A FILE WAITING ON AN OWNER
+
+Opened and closed the same day. Recorded rather than deleted, because the
+reasoning is what stops somebody collapsing the status back onto revisions the
+next time five determinations and four actions look like four and a spare.
+
+### As first recorded
+
+Appendix C names five determinations and the platform had four review actions,
+so **REPAIRS REQUIRED mapped onto nothing.** Every existing status would have
+been a false statement about a file whose certification is withheld pending
+repairs the property owner has to arrange. `DETERMINATION_ACTION` mapped it to
+`null`, the write path refused with the reason written out, and a check failed
+the day somebody quietly mapped it to revisions.
+
+### The ruling, and what it produced
+
+The operator ruled it the **third instance** of one lesson, after the null that
+meant both "no price" and "nothing accepted" and the signed protocol that had to
+be called a draft: a status vocabulary that lacks a word makes somebody choose
+the nearest lie. Add the word.
+
+0053 adds `repairs_required`, the `eng_repair_items` table holding the list one
+requirement per row, and the impossibility the operator asked for rather than a
+check: **a file cannot BE sealed while any repair item against it is open.** The
+guard sits on the file rather than the review path, so it holds for routes
+nobody has written, and it fires from the repair item side too, which is the
+direction a review-path check would never see.
+
+### THE ONE THING DECIDED RATHER THAN ASKED, AND WHAT IT COSTS
+
+The operator asked whether a file in `repairs_required` ages, and what happens
+to one nobody comes back to, with the instinct that it should stay open forever.
+
+**Decided: it does not age out. No timer, no automatic close.** The operator's
+sentence is the ruling and the code follows it: a homeowner who takes four
+months to afford a roof repair has not abandoned anything, and a firm that
+closes his file is the one who failed. `repairs_required` can reach only
+`needs_dispatch`, for the revisit, and `cancelled`, which is a deliberate act
+with its own audit row rather than a tidy-up. It cannot reach `closed` at all.
+
+**The costs, measured rather than guessed.** Two that were worth fearing turned
+out not to exist, and both were checked by reading the query rather than
+reasoning about it:
+
+- **Technician ranking: no cost.** `candidateTechs` counts open jobs as
+  `dispatched`, `evidence_in_progress` and `revisions_requested` only. A parked
+  file never made anybody look busy, so it cannot quietly starve a technician of
+  offers.
+- **Overdue and due-soon tiles: no cost.** Both filter on `TECH_OPEN_STATUSES`,
+  which this status is not in, so a file waiting on an owner never reads as
+  late. That matters: a permanent overdue count is how an overdue count stops
+  being read.
+
+**One real cost, and it is fixed.** The file kept its `assigned_tech_id`. A
+technician would have carried a job on their list for months that they cannot
+act on, and if the revisit went to somebody else the record would show two
+technicians with no account of the handover. `decideReview` now releases the
+technician and withdraws the accepted assignment on `repairs`, exactly as it
+already did on `site_visit`.
+
+**One cost that remains, and it cannot be engineered away by a timer.** A file
+in `repairs_required` is invisible unless somebody goes looking. Nothing chases
+it. If the owner never calls back, nobody notices, and the answer to that is
+**visibility rather than expiry**: a list of files waiting on owners, oldest
+first, reading the age off `repairs_required_at`, so the firm can ring somebody
+in month three rather than discover them in year two. Waiting is not the same as
+forgotten, and a status that quietly closed itself would convert the first into
+the second while looking tidy.
+
+That list is **not built**. It is the next thing this status wants and it is a
+screen rather than a rule, so it is recorded here rather than bolted onto the
+migration that created the state.
+
+## AN APPROVAL IS ATOMIC AND ITS AUDIT ROW IS NOT, AND THE TWO FIXES ARE BOTH WRONG
+
+Opened 2026-09-19, while building the approval bridge. A disclosed asymmetry
+rather than a defect, because it is a decision nobody has made rather than a
+mistake somebody made.
+
+0052's `eng_approve_protocol` seeds the 51 items and records the approval in one
+transaction, so those two facts cannot disagree. `approveProtocol` in
+`src/lib/ops-field.ts` then calls `writeAudit` AFTER that transaction has
+committed. A failed approval writes nothing, so the exposure is one sided and
+narrow: an approval that succeeds and whose audit row fails to write leaves a
+service line in force with nothing in `eng_audit_events` saying who put it there.
+
+That is a regulatory record, which is why it is written down rather than
+shrugged at. The firm's answer to "who approved this and when" would be the
+template row's own `approved_by`, which is true and is not the audit trail.
+
+**Both obvious fixes are worse, which is why this is open rather than done.**
+Moving the audit INSERT inside the SQL function makes the audit trail's shape a
+thing migrations write, out of reach of `writeAudit`'s redaction rules and of
+the actor context every other audit row is built from. Wrapping the whole thing
+in an application level transaction is not available: PostgREST has no
+transaction spanning two calls, which is the reason the seeding is a function in
+the first place.
+
+The likely answer is a third thing, an outbox row written inside the same
+transaction and drained by the job queue, and that is a shape decision for a
+sitting rather than a patch. Nothing about the approval is unsafe today; what is
+missing is a guarantee that the record of it is as durable as the act.
+
+## RESOLVED 2026-09-19: `launch-audit` WAS MEASURING THE WRONG MODE, NOT THE WRONG COPY
+
+Opened 2026-09-17 and closed 2026-09-19. The diagnosis in the original entry was
+half right and the half it got wrong is the interesting one.
+
+### What it turned out to be
+
+The entry said the audit could no longer REACH prelaunch, and that was correct.
+It also said the larger half was that the trading copy did not exist yet, so
+rewriting the assertions first would mean inventing sentences in the audit and
+writing pages to match them.
+
+**The assertions never needed rewriting.** `LAUNCH_MODE=prelaunch` gates OPEN
+alone since the three state ruling, and every trading condition is met today, so
+that crawl was rendering the **trading** site and asserting prelaunch things
+about it. Seven checks were red and not one of them meant what it said. The
+prelaunch copy was correct the whole time.
+
+**That is the inverse of a vacuous green, and worse in one respect.** A green
+over an empty set is quiet. A persistent red teaches everybody to expect it, and
+a red mark everyone has learned to ignore is where the next real failure hides.
+`unreachable is not failed` was written for this shape and the audit was
+breaking it rather than reporting it.
+
+### The fix, and the proof
+
+`withTradingBlocked` in `scripts/lib/gate-fixture.mjs` is the mirror of
+`withGateConditionsMet`: it empties the engineer register, which is one of the
+three trading conditions, and asks the gate **in a child process** whether it
+actually shut before handing back control. The engineer register rather than the
+registration, deliberately: emptying the registration would also blank the firm
+number, and the prelaunch assertions include what the footer does with that
+number, so the fixture would be deciding an answer the audit is asking.
+
+Injection-verified conclusively. Neutering the fixture to a no-op brings back
+**exactly** the original seven failures and nothing else, which proves both that
+the fixture is load-bearing and that those seven were entirely an artefact of
+measuring the wrong mode.
+
+37 of 37 pass.
+
+### Two smaller things the rewrite found
+
+The crawl still listed `/services/forensic-engineering`, removed the same day,
+so every route check failed on a 404. And `servicePages` was a hand written
+list that had to agree with `ROUTES` with nothing asserting that it did: the
+obvious repair, substituting another service page, named one `ROUTES` does not
+carry and the audit **crashed** rather than failing a check. It derives from
+`ROUTES` now.
+
+One check was deleted rather than repointed: the forensic page's statement that
+the engineer's obligation runs to the facts rather than to the paying party. No
+other service page makes that claim because no other line has the same conflict
+shape, so repointing it would have been a check on wording that happened to
+pass.
+
+## SUPERSEDED: `launch-audit` IS KNOWINGLY RED, AND REWRITING IT BEFORE THE COPY EXISTS WOULD BE WORSE
 
 Opened 2026-09-17, as a disclosed judgement rather than an omission.
 
@@ -58,6 +218,50 @@ would agree because one was copied from the other.
 **So it is rewritten after Part 3, against copy that exists.** Until then it is
 red, it is red for a reason written down here, and the reason is not that
 somebody forgot.
+
+## THE ROOF PAGE PROMISES REMAINING SERVICE LIFE AND THE PROCESS PAGE REFUSES IT
+
+Found 2026-09-18 while retargeting the roof page. **Two of the operator's own
+sources disagree about what the firm will put a seal on, and this is not a
+wording difference.**
+
+`src/content/services.ts` says a roof certification states remaining service
+life, in six places, including the deliverable itself:
+
+> a signed and sealed letter ... stating the scope of the inspection, the
+> conditions observed, **the opinion of remaining service life**, and the
+> limitations that opinion carries
+
+and it names, as a buyer, "lenders and loan officers who need remaining service
+life stated before a file can close".
+
+`docs/254-site-copy.md`, which the operator approved and which `/process` now
+renders, says the opposite in as many words:
+
+> It does not estimate how many years are left. It does not forecast future
+> performance ... an engineer who tells you otherwise is telling you something
+> he cannot stand behind.
+>
+> If your carrier requires a remaining life figure, call us before you order.
+
+**BOTH ARE HIS AND THE NEWER ONE IS EXPLICIT**, which is why this was not
+resolved by a session at three in the morning. It is a claim about what may be
+sealed, which the standing rules reserve to the operator, and resolving it
+changes what the firm sells: if the process page is right, a carrier asking for
+a remaining life figure is told no, and one named buyer segment on the roof page
+goes with it.
+
+**What was done and what was not.** The nine service descriptions had "Join the
+waitlist" as their call to action and that is ruled out, so all nine now read
+"See the price"; every one stayed inside the 140 to 160 character budget. The
+roof page was retargeted onto "roof certification" using the approved copy's own
+H1. **The remaining service life claims were left exactly as they are**, because
+changing six sentences about what an engineer will opine on is not a
+retargeting decision.
+
+**The ruling needed:** does a roof certification from this firm state remaining
+service life, or only observed condition? Whichever it is, one of the two
+documents is wrong and should be corrected rather than left to disagree.
 
 ## THE SITE REBUILD: APPROVED COPY, RETARGETED KEYWORDS, AND THE GATE UNDER IT
 
@@ -5687,6 +5891,132 @@ to dislodge.
 Operator ruling: record it here rather than fix it tonight.
 
     FAIL: /portal/clients: the list is bounded (255 row(s))
+
+### THE ROW COUNT IS THE REAL FINDING, AND THE UNBOUNDED LIST ONLY MADE IT VISIBLE
+
+Three consecutive boards reported **255, then 262, then 269**. Exactly seven per
+board run, which is not a growing business.
+
+**2026-09-19: 292, and the arithmetic still holds.** 269 to 292 is 23, which is
+not a multiple of seven, and that is worth writing down rather than rounding
+off: the seven a board leaves is the figure for a board that RUNS TO COMPLETION,
+and several runs since have been standalone audits or boards that stopped part
+way. The rate is unchanged as far as anything here can tell, and nobody should
+read 23 as a change in behaviour without counting the runs that produced it.
+The screen is still unpaged and this is still recorded rather than fixed.
+
+**And the very next board confirmed it: 299, which is exactly seven more.** The
+paragraph above was written between two board runs and predicted nothing
+explicitly, but it did make a claim, that the rate was unchanged and that 23 was
+an artefact of counting runs rather than a change in behaviour. One completed
+board later the count moved by precisely seven. That is the claim tested rather
+than repeated, which is the only reason it is worth writing down twice.
+
+Read off development rather than inferred, by grouping the most recent rows:
+**every board leaves seven client rows behind.** Three `probe-customer`, one
+`probe-door-checkout`, one `probe-pricing`, and **two named "Audit Probe Company"
+with `is_demo` FALSE and no email at all**.
+
+**THE TWO UNMARKED ONES ARE THE DEFECT. The other five are litter.**
+`doors-audit` drives the product's REAL doors, `/api/account/sign-up` and
+`/api/portal/accounts/create`, which is what that audit is for and is the only
+honest way to test a door. Those routes create a client the way a real customer
+does, so the row is not marked as a demonstration, because from the product's
+point of view it is not one. The teardown then deletes the two clients the audit
+inserted DIRECTLY and cannot delete the two the product made for it.
+
+So development carries a growing population of client rows that are
+**indistinguishable from real clients by the one flag everything filters on**.
+`demo-audit` asserts nothing seeded is counted in a figure, and these rows are
+not seeded in a way it can see. That is the Phase 12 defect, where a sales tile
+counted a seeded client and was found in a screenshot.
+
+274 rows today, 212 marked demonstration, so 62 are not, and an unknown number of
+those 62 are probes.
+
+**THE FIX IS TEARDOWN, NOT MARKING.** The product must not know an audit is
+driving it; making sign up accept an `is_demo` flag would be a hole in the real
+door for the convenience of a test. `destroyProbes` is the model already here:
+sweep the whole probe domain rather than the ids one run made, so a crashed
+earlier run is cleaned up too. The sweep key is the name "Audit Probe Company",
+which no real client will carry.
+
+**Not fixed in the pass that found it**, because the delete has to be verified
+against the foreign keys hanging off a client and `doors-audit` needs a running
+server to exercise. Recorded with the evidence so nobody rediscovers the
+arithmetic.
+
+### THE FOREIGN KEYS WERE CHECKED, AND THE PROPOSED FIX IS IMPOSSIBLE
+
+Operator instruction, 2026-09-18: check what cascades before writing the
+teardown. Read off development. Six foreign keys point at `eng_clients`:
+
+| Child | On delete |
+| --- | --- |
+| `eng_contacts` | CASCADE |
+| `eng_tasks` | CASCADE |
+| `eng_documents` | SET NULL, plus a no-delete trigger on sealed work |
+| `eng_service_orders` | SET NULL, plus the attribution freeze |
+| `eng_files` | RESTRICT |
+| **`eng_customer_accounts`** | **RESTRICT, plus `eng_forbid_account_delete`** |
+
+**Deleting a probe client is not merely blocked, it is blocked BY DESIGN and
+the design is right.** Migration 0048 made an account superseded and never
+removed. So a client with a customer account cannot be deleted, and the account
+cannot be deleted either, and that is the guarantee the platform is supposed to
+have.
+
+**The scale makes it decisive rather than a corner case.** Development holds 274
+clients and **268 customer accounts**. Close to every client has an undeletable
+account attached, so the teardown I proposed would fail on almost all of them
+rather than on two per run.
+
+**And the SET NULL pair is worse than the failure.** If a delete did succeed,
+`eng_service_orders` and `eng_documents` do not go with it: they survive with a
+null `client_id`. A probe order that becomes an order belonging to NOBODY is a
+row in the money path with no owner, which is a worse artefact than the client
+row it was cleaning up.
+
+**SO THE ANSWER IS SUPERSESSION AND MARKING, NOT DELETION**, and both mechanisms
+already exist:
+
+1. After driving a real door, the audit **updates the client it caused to
+   `is_demo: true`**. It knows the email it used, so it can find the row. This
+   puts no flag in the product's door: the route behaved exactly as it does in
+   production, and the audit marks its own leavings afterwards.
+2. The customer account is **superseded** through `superseded_at`, which is what
+   0048 built for an account that goes away.
+
+That is better than what was proposed yesterday, and the foreign key check is
+what produced it.
+
+### THE GENERAL CASE, WHICH IS THE PART WORTH KEEPING
+
+Operator ruling, 2026-09-18:
+
+**An audit that drives a real product route creates real records. Every such
+audit owes a teardown that knows what the ROUTE created, not only what the audit
+inserted.**
+
+The distinction is invisible from inside the audit. `doors-audit` tears down
+carefully and completely for the rows it wrote with its own client, and those
+are not the rows that survive. What survives is what the product made on its
+behalf, which the audit never held an id for.
+
+**The survey, and it corrected itself.** Six audits drive real routes with POST:
+`doors-audit`, `mfa-audit`, `sister-intake-audit`, `forms-audit`,
+`security-audit` and `careers-audit`. Counting deletes against posts suggested
+`careers-audit` was the worst offender: four posts and no deletes at all.
+
+**Then the row counts were read, and they said otherwise.** Development holds 2
+applications and 0 leads. `careers-audit` and `forms-audit` leak nothing. The
+grep was a proxy for the thing rather than the thing, which is the defect this
+repository keeps finding, and the correction is the reason the survey is worth
+more than the count.
+
+**What actually accumulates is clients and customer accounts, and only
+`doors-audit` creates those.** 274 and 268 against 6 service orders, 1 customer
+user, 2 applications and 0 leads.
 
 **255 rows rendered into one screen, unbounded.** It is not the same symptom as
 its neighbour, which times out rather than returning, and it is the same

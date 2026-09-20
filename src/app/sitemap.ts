@@ -57,6 +57,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     entry("/", 1, "monthly"),
     entry("/about", 0.9, "monthly"),
+    entry("/process", 0.9, "monthly"),
     entry("/services", 0.9, "monthly"),
     ...services.map((s) => entry(`/services/${s.slug}`, 0.8, "monthly")),
     entry("/coverage", 0.9, "monthly"),
@@ -68,11 +69,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...windstormPages.map((w) => entry(`/windstorm/${w.slug}`, 0.8, "monthly")),
     entry("/structural-engineer", 0.9, "monthly"),
     ...proximityPages.map((p) => entry(`/structural-engineer/${p.slug}`, 0.8, "monthly")),
+    entry("/structural-engineer/cost", 0.8, "monthly"),
+    entry("/what-is-a-structural-engineer", 0.8, "monthly"),
     entry("/government", 0.9, "monthly"),
     entry("/careers", 0.8, "monthly"),
     ...openPositions().map((p) => entry(`/careers/${p.slug}`, 0.7, "monthly")),
     entry("/insights", 0.8, "monthly"),
     ...insights.map((i) => entry(`/insights/${i.slug}`, 0.7, "monthly", i.dateModified)),
+    /* The design brief. Indexed: it is how somebody with a project finds the
+     * firm, and unlike the waitlist it does not become a redirect when the
+     * gate opens. */
+    entry("/design-inquiry", 0.8, "monthly"),
     entry("/contact", 0.7, "yearly"),
     entry("/privacy", 0.3, "yearly"),
     entry("/terms", 0.3, "yearly"),

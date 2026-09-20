@@ -12,7 +12,7 @@ import { regionPhotos } from "@/content/photos";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { regionBySlug, regions } from "@/content/regions";
-import { serviceBySlug } from "@/content/services";
+import { serviceBySlug, services } from "@/content/services";
 
 export const dynamicParams = false;
 
@@ -143,7 +143,7 @@ export default async function RegionPage({ params }: { params: Promise<{ slug: s
               onDark
               eyebrow="Service emphasis"
               title="What this region asks for most"
-              lede="All nine service lines are available across the state. These are the ones the conditions above push to the front here."
+              lede={`All ${services.length} service lines are available across the state. These are the ones the conditions above push to the front here.`}
             />
             <CardGrid className="mt-10">
               {region.emphasis.map((item) => {

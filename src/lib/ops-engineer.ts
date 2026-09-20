@@ -6,15 +6,20 @@ import { writeAudit } from "./ops-audit";
 import { can, type Actor, holdsLicence, licenceRefusal } from "./ops-authz";
 import { transitionFile } from "./ops-crm";
 import { jobView } from "./ops-field";
+import { protocolItemRowsFor } from "./protocol-run";
+import type { Determination } from "@/content/protocols/rc-001-decisions";
 import { raise } from "./ops-notify";
 import { isOpen } from "./launch";
 import {
+  ACTION_LABEL,
   ACTION_TARGET,
+  actionForDetermination,
   canReview,
   chargeLogRow,
   minutesBetween,
   monthlyExportCsv,
   periodOf,
+  reliedOnVerdict,
   type ExportRow,
   type ReviewAction,
   type ReviewSubject,
@@ -86,6 +91,108 @@ export async function reviewQueue(actor: Actor | null): Promise<QueueRow[]> {
   return (data ?? []) as QueueRow[];
 }
 
+// ------------------------------------------------- waiting on the owners
+
+/**
+ * THE FILES THE FIRM IS NOT WORKING ON, AND HAS NOT FINISHED WITH.
+ *
+ * WHY THIS SCREEN IS WHAT MAKES THE NO-TIMER DECISION SAFE RATHER THAN
+ * NEGLIGENT. Operator ruling, 2026-09-19.
+ *
+ * A file in `repairs_required` does not age out and cannot reach `closed`,
+ * because a homeowner who takes four months to afford a roof repair has not
+ * abandoned anything and a firm that closes his file is the one who failed.
+ * The cost of that ruling is real and it is not a data cost: nothing chases
+ * these. If the owner never rings back, nobody notices.
+ *
+ * The answer is VISIBILITY RATHER THAN EXPIRY. A status that quietly closed
+ * itself would turn "waiting" into "forgotten" while looking tidy. A list turns
+ * it into "waiting, and we can see for how long", which is what lets somebody
+ * ring in month three instead of finding them in year two.
+ *
+ * OLDEST FIRST, for the reason the review queue is oldest first: a list sorted
+ * newest first is one where the awkward case somebody keeps skipping sinks out
+ * of sight. Here the oldest is by definition the one most likely to have been
+ * forgotten.
+ *
+ * NO FIGURES ON IT, AND THAT IS THE ENGINEER PRINCIPLE RATHER THAN AN OVERSIGHT.
+ * An engineer reaches this screen because these are files HE withheld
+ * certification on, which is his accountability. What a job is worth, what
+ * anybody is paid and what the firm makes on it are not on it and must not be
+ * added: "a number in his head near an engineering judgement is the thing to
+ * avoid", and this screen sits closer to an engineering judgement than most.
+ */
+export type WaitingRow = {
+  id: string;
+  file_number: string;
+  property_address: string;
+  city: string | null;
+  county: string;
+  service_slug: string;
+  repairs_required_at: string | null;
+  /** How many of the repair list's items are still open, and how many there were. */
+  openItems: number;
+  totalItems: number;
+};
+
+export async function waitingOnOwners(actor: Actor | null): Promise<WaitingRow[]> {
+  const db = supabaseAdmin();
+  if (!db || !holdsLicence(actor, "review.queue")) return [];
+
+  const { data: files } = await db
+    .from("eng_files")
+    .select("id, file_number, property_address, city, county, service_slug, repairs_required_at")
+    .eq("status", "repairs_required")
+    .eq("is_demo", false)
+    .order("repairs_required_at", { ascending: true, nullsFirst: true })
+    .limit(200);
+
+  const rows = (files ?? []) as Omit<WaitingRow, "openItems" | "totalItems">[];
+  if (rows.length === 0) return [];
+
+  /*
+   * The repair items for exactly these files, counted here rather than by a
+   * query per row. A list screen that issues one query per row is the shape
+   * that makes /portal/accounts take fifty seconds.
+   */
+  const { data: items } = await db
+    .from("eng_repair_items")
+    .select("file_id, closed_at")
+    .in(
+      "file_id",
+      rows.map((r) => r.id),
+    );
+
+  const byFile = new Map<string, { open: number; total: number }>();
+  for (const item of (items ?? []) as { file_id: string; closed_at: string | null }[]) {
+    const seen = byFile.get(item.file_id) ?? { open: 0, total: 0 };
+    seen.total += 1;
+    if (item.closed_at === null) seen.open += 1;
+    byFile.set(item.file_id, seen);
+  }
+
+  return rows.map((r) => ({
+    ...r,
+    openItems: byFile.get(r.id)?.open ?? 0,
+    totalItems: byFile.get(r.id)?.total ?? 0,
+  }));
+}
+
+/**
+ * How long a file has been waiting, in whole days, or null if nobody stamped it.
+ *
+ * NULL IS A REAL ANSWER AND THE SCREEN SAYS SO. A file that reached this status
+ * before 0053 stamped the column, or by a path that forgot to, has an UNKNOWN
+ * age rather than an age of zero. Rendering a missing timestamp as "today" would
+ * put the oldest file at the top of the list reading as the newest.
+ */
+export function daysWaiting(since: string | null, now: Date = new Date()): number | null {
+  if (!since) return null;
+  const started = new Date(since).getTime();
+  if (Number.isNaN(started)) return null;
+  return Math.max(0, Math.floor((now.getTime() - started) / 86_400_000));
+}
+
 // -------------------------------------------------------------- the package
 
 export type EvidenceView = {
@@ -108,6 +215,15 @@ export type EvidenceView = {
   }[];
   satisfied: boolean;
   problem: string | null;
+  /**
+   * Set when the item was satisfied by a recorded absence rather than by
+   * evidence. Appendix C asks the engineer to weigh the package, and "we
+   * photographed it" and "we recorded why we could not" are different inputs to
+   * that judgement. REVISE's criteria include "Exception used where the
+   * condition plainly applied", which he cannot apply if the screen hides which
+   * items were excepted.
+   */
+  exception: { kind: "not_observed" | "not_applicable"; reason: string } | null;
 };
 
 export type PackageView = {
@@ -125,6 +241,12 @@ export type PackageView = {
     refusal_reason: string | null;
   };
   protocolName: string | null;
+  /**
+   * The protocol document number, or null. Read rather than the template name,
+   * because the registry is keyed on the DOCUMENT and the name is a label
+   * somebody typed.
+   */
+  protocolDocument: string | null;
   items: EvidenceView[];
   complete: boolean;
   blockers: string[];
@@ -182,6 +304,9 @@ export async function packageFor(actor: Actor | null, fileId: string): Promise<P
     instructions: status.item.instructions ?? null,
     satisfied: status.satisfied,
     problem: status.problem,
+    exception: status.exception
+      ? { kind: status.exception.kind, reason: status.exception.reason }
+      : null,
     captures: view.captures
       .filter((c) => c.item_key === status.item.itemKey)
       .map((c) => ({
@@ -226,6 +351,7 @@ export async function packageFor(actor: Actor | null, fileId: string): Promise<P
   return {
     file: file as PackageView["file"],
     protocolName: view.protocol ? `${view.protocol.name} v${view.protocol.version}` : null,
+    protocolDocument: view.protocol?.document_number ?? null,
     items,
     ...(await completeness(fileId, view)),
     session: session
@@ -343,18 +469,124 @@ export type DecisionResult =
  * its own, for the reason files-audit taught: a rule here is a rule the suite
  * cannot see.
  */
+/**
+ * WHAT THE ENGINEER CONCLUDED, AND WHAT HE LOOKED AT TO CONCLUDE IT.
+ *
+ * Appendix C: "One determination is recorded per review." So this rides the
+ * decision rather than being a second call somebody could forget: a review that
+ * moved a file and left no determination is precisely the record the protocol
+ * exists to prevent.
+ */
+export type DeterminationInput = {
+  determination: Determination;
+  reliedOnItemKeys: string[];
+  reliedOnEvidenceIds: string[];
+  note: string | null;
+  /**
+   * What the owner must have repaired, one requirement per entry.
+   *
+   * Carried on the determination rather than beside it because 0053 makes
+   * `determination_id` NOT NULL on a repair item: a requirement with no
+   * determination behind it is a demand nobody is accountable for.
+   *
+   * Empty for every determination except REPAIRS REQUIRED, and required for
+   * that one, because "certification withheld and a repair list issued" without
+   * a list is the withholding with the reason left out.
+   */
+  repairRequirements: string[];
+};
+
 export async function decideReview(
   actor: Actor & { email: string },
   fileId: string,
   action: ReviewAction,
   reason: string | null,
   context: Context = {},
+  determination: DeterminationInput | null = null,
 ): Promise<DecisionResult> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
 
   const pkg = await packageFor(actor, fileId);
   if (!pkg) return { ok: false, error: "That file does not exist, or is not yours to review." };
+
+  /*
+   * =====================================================================
+   * THE DETERMINATION, WHICH IS REQUIRED WHEN A SIGNED PROTOCOL GOVERNS.
+   * =====================================================================
+   *
+   * REQUIRED RATHER THAN OFFERED, and the condition is the protocol rather than
+   * a setting. A file worked to 254-RC-001 was worked to a document whose
+   * Appendix C says one determination is recorded per review, and a review that
+   * skips it has not followed the protocol the letter will rest on.
+   *
+   * Files with no registry protocol are not forced through this, because
+   * inventing an Appendix C for a service line that has no signed document
+   * would be the fabrication the whole gate exists to prevent. The condition is
+   * read from the protocol's document number, so the first day a second
+   * protocol is registered, its files are covered with no change here.
+   */
+  const governing = protocolItemRowsFor(pkg.protocolDocument) === null ? null : pkg.protocolDocument;
+
+  if (governing && !determination) {
+    return {
+      ok: false,
+      error: `${governing} requires one determination per review. Record what you concluded and what you relied on.`,
+    };
+  }
+
+  if (governing && determination) {
+    const relied = reliedOnVerdict({
+      itemKeys: determination.reliedOnItemKeys,
+      evidenceIds: determination.reliedOnEvidenceIds,
+      protocolItemKeys: pkg.items.map((i) => i.itemKey),
+      fileEvidenceIds: pkg.items.flatMap((i) => i.captures.map((c) => c.id)),
+    });
+    if (!relied.ok) return { ok: false, error: relied.reason };
+
+    /*
+     * THE ACTION IS DERIVED FROM THE DETERMINATION RATHER THAN ACCEPTED BESIDE
+     * IT. A determination of PASS with an action of "decline to seal" is a
+     * contradiction the record should not be able to hold, so the two are not
+     * asked separately: what arrives is checked against what the determination
+     * implies, and a disagreement is refused by name.
+     */
+    /*
+     * A WITHHOLDING WITH NO LIST IS THE WITHHOLDING WITH ITS REASON LEFT OUT.
+     *
+     * Refused here rather than at the database, because 0053 cannot express
+     * "this determination needs rows in another table": the constraint it CAN
+     * express, and does, is the one that matters more, that a file cannot be
+     * sealed while any of those rows is open. This is the sentence a person
+     * gets; that is the impossibility.
+     */
+    const requirements = (determination.repairRequirements ?? [])
+      .map((r) => r.trim())
+      .filter((r) => r.length >= 3);
+    if (determination.determination === "repairs-required" && requirements.length === 0) {
+      return {
+        ok: false,
+        error:
+          "Repairs required issues a repair list, and none was given. Each item is verified on its " +
+          "own at the revisit, so each one has to be written on its own.",
+      };
+    }
+    if (determination.determination !== "repairs-required" && requirements.length > 0) {
+      return {
+        ok: false,
+        error: `A repair list belongs to a determination of repairs-required, and this one is ${determination.determination}.`,
+      };
+    }
+
+    const implied = actionForDetermination(determination.determination);
+    if (!implied.ok) return { ok: false, error: implied.reason };
+    if (implied.action !== action) {
+      return {
+        ok: false,
+        error: `A determination of ${determination.determination} is ${ACTION_LABEL[implied.action].toLowerCase()}, and this review asked for ${ACTION_LABEL[action].toLowerCase()}.`,
+      };
+    }
+  }
 
   const subject: ReviewSubject = {
     status: pkg.file.status as ReviewSubject["status"],
@@ -364,6 +596,74 @@ export async function decideReview(
 
   const verdict = canReview(actor, subject, action, reason, { prelaunch: !isOpen() });
   if (!verdict.ok) return { ok: false, error: verdict.reason };
+
+  /*
+   * WRITTEN BEFORE THE FILE MOVES, WHICH IS THE OPPOSITE ORDER TO THE
+   * RESPONSIBLE CHARGE LOG BELOW, AND DELIBERATELY SO.
+   *
+   * That log is written after, and the comment beside it explains the cost: if
+   * it fails, the file has moved and the regulatory record is short a row, and
+   * the function shouts about it. This one is written FIRST because it can be:
+   * it depends on nothing the transition produces. A determination that failed
+   * to write leaves the file exactly where it was, so the engineer simply
+   * decides again. The append only trigger means a retry cannot produce two
+   * determinations for one review either, because the second one would be a new
+   * row on a file that is no longer under review.
+   */
+  if (governing && determination) {
+    const { data: detRow, error: detError } = await db
+      .from("eng_determinations")
+      .insert({
+        file_id: fileId,
+        protocol_document: governing,
+        determination: determination.determination,
+        relied_on_item_keys: determination.reliedOnItemKeys,
+        relied_on_evidence_ids: determination.reliedOnEvidenceIds,
+        note: determination.note?.trim() || null,
+        engineer_id: actor.id,
+      })
+      .select("id")
+      .single();
+    if (detError || !detRow) {
+      return {
+        ok: false,
+        error: `The determination did not write: ${detError?.message ?? "no row came back"}. Nothing has moved, so decide again.`,
+      };
+    }
+
+    /*
+     * THE REPAIR LIST, WRITTEN BEFORE THE FILE MOVES, for the same reason the
+     * determination is: nothing here depends on the transition, so a failure
+     * leaves the file where it was and the engineer decides again.
+     *
+     * The ORDER within this block matters and is the opposite of the intuitive
+     * one. If the file moved first and the list failed, the owner would have a
+     * file withheld against a repair list that does not exist, which is the
+     * worst of the three possible states.
+     */
+    const repairs = (determination.repairRequirements ?? [])
+      .map((r) => r.trim())
+      .filter((r) => r.length >= 3);
+    if (repairs.length > 0) {
+      const { error: repairError } = await db.from("eng_repair_items").insert(
+        repairs.map((requirement, index) => ({
+          file_id: fileId,
+          determination_id: detRow.id,
+          sort_order: index,
+          requirement,
+          raised_by: actor.id,
+        })),
+      );
+      if (repairError) {
+        return {
+          ok: false,
+          error:
+            `The determination was recorded and the repair list did not write: ${repairError.message}. ` +
+            "The file has not moved. Decide again, and expect the determination to appear twice in the record.",
+        };
+      }
+    }
+  }
 
   const now = new Date();
   const session = pkg.session;
@@ -387,7 +687,22 @@ export async function decideReview(
       .update({ revision_count: pkg.file.revision_count + 1 })
       .eq("id", fileId);
   }
-  if (action === "site_visit") {
+  /*
+   * A FILE WAITING ON AN OWNER RELEASES ITS TECHNICIAN, for the same reason a
+   * site visit does and with a longer fuse.
+   *
+   * Nobody is working this file and nobody will for weeks or months. Leaving a
+   * technician named on it puts a job on their list they cannot act on, and
+   * when the revisit finally comes it may well go to somebody else entirely,
+   * which would leave the record showing two technicians on one file with no
+   * account of the handover.
+   *
+   * The load count was checked rather than assumed: candidateTechs counts only
+   * dispatched, evidence_in_progress and revisions_requested, so a parked file
+   * was never going to make a technician look busy. This is about the job list
+   * they read, not the ranking.
+   */
+  if (action === "site_visit" || action === "repairs") {
     /*
      * A site visit is a new journey. The file goes back through dispatch, so the
      * technician who held it is released rather than left assigned to a file

@@ -53,7 +53,7 @@ function Card({
  * THE COLOURED TOP RULE ON EVERY TILE IS GONE.
  *
  * The standards file rules out accent borders on cards, and a dashboard of nine
- * tiles each with its own coloured rule was nine lines competing for attention
+ * tiles each with its own coloured rule was every line competing for attention
  * and none of them survivable at a glance: the eye cannot rank nine things.
  *
  * The state moves entirely into the FIGURE, which is where somebody looks

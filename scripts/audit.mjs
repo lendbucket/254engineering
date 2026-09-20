@@ -188,6 +188,36 @@ const PHASE_ZERO = [
     why: "a floor is the operator's, nothing sells beneath one, and nothing sells at all without one",
   },
   {
+    /*
+     * THE PRICE BOOK, ADDED 2026-09-18. It sits beside trade-pricing because
+     * they are the two halves of one subject: what a line may be sold for, and
+     * what it makes when it is.
+     *
+     * Every ruled figure is pinned here as a literal, per CLAUDE.md section 6c,
+     * so moving a price costs two edits made on purpose. The checks that matter
+     * most are the refusals: a job with no determination must not borrow the
+     * line's estimating tier, because that turns a plan into a record and the
+     * figure would be right often enough that nobody would notice the times it
+     * was not.
+     */
+    name: "protocol-run-audit",
+    why: "a job cannot be submitted incomplete, which is the sentence the process page makes to customers",
+  },
+  {
+    /*
+     * The published promise against the segments behind it. Arithmetic, plus
+     * the operator's own hold: the figure exists from 2026-09-19 and reaches a
+     * page only when the firm is OPEN, because a delivery promise from a firm
+     * with no technician is a promise about fulfilment it cannot make.
+     */
+    name: "turnaround-audit",
+    why: "the published figure covers the parts behind it, and does not reach a page before the firm is open",
+  },
+  {
+    name: "price-book-audit",
+    why: "a price is ruled by the operator, and a margin is computed from what happened rather than from the plan",
+  },
+  {
     // Phase 8 added a second kind of person. This asks whether the two can be
     // confused for each other, which is the failure that would look like a
     // working site right up until a customer opened the review queue.

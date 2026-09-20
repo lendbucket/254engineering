@@ -1,9 +1,11 @@
 import {
-  ALL_REGULATED,
   NEVER_CLAIMS,
+  OPEN_GATED,
+  SEALING_GATED,
+  TRADING_GATED,
 } from "../../scripts/lib/regulatory.mjs";
 import { BANNED_PHRASES } from "../../scripts/lib/voice-blocklist.mjs";
-import { firmName, isOpen, registrationStatement } from "./launch";
+import { firmName, isOpen, isTrading, registrationStatement, sealingIsAvailable } from "./launch";
 
 /**
  * Whether a piece of partner marketing copy may be published.
@@ -41,7 +43,9 @@ import { firmName, isOpen, registrationStatement } from "./launch";
 
 type Pattern = { pattern: RegExp; why: string };
 
-const REGULATED = ALL_REGULATED as Pattern[];
+const TRADING_GATED_P = TRADING_GATED as Pattern[];
+const SEALING_GATED_P = SEALING_GATED as Pattern[];
+const OPEN_GATED_P = OPEN_GATED as Pattern[];
 const NEVER = NEVER_CLAIMS as Pattern[];
 const BANNED = BANNED_PHRASES as Pattern[];
 
@@ -112,7 +116,31 @@ export function copyVerdict(text: string): CopyVerdict {
    * should be split, since some of its patterns are about registration rather
    * than about sealing and those are now satisfied. Recorded in BACKLOG.
    */
-  if (!isOpen()) check(REGULATED, "regulated");
+  /*
+   * THREE GATES, BECAUSE ONE GATE STOPPED MEANING ONE THING.
+   * Operator ruling, 2026-09-20.
+   *
+   * This was `if (!isOpen()) check(REGULATED, ...)`, which was the
+   * conservative repair after the check was found gated on isPrelaunch() and
+   * would have switched itself off at the moment partner copy starts making
+   * present tense claims. Conservative was right and blunt: it blocked
+   * sentences that are TRUE.
+   *
+   * The firm is registered, F-29811 is active, and an engineer of record is on
+   * the register. A partner writing "we provide" of that firm is stating a
+   * fact, and a check calling it a regulated claim had stopped describing the
+   * world.
+   *
+   * Each set now names the condition that retires it, and the middle one is the
+   * part that makes the split right rather than merely looser: SEALING_GATED
+   * ties the sealing claims to `sealingIsAvailable()`, which is an approved
+   * protocol, rather than to the money switch. A registered firm with an
+   * engineer and no approved protocol can seal nothing, so those keep firing
+   * through the whole of trading.
+   */
+  if (!isTrading()) check(TRADING_GATED_P, "regulated");
+  if (!sealingIsAvailable()) check(SEALING_GATED_P, "regulated");
+  if (!isOpen()) check(OPEN_GATED_P, "regulated");
   check(NEVER, "never");
   check(BANNED, "voice");
   check(STYLE, "style");

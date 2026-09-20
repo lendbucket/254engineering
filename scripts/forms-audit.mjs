@@ -357,6 +357,73 @@ async function contactChecks() {
   await page.close();
 }
 
+
+// ---------- the design brief ----------
+
+/*
+ * THE THREE FLAGS ARE WHAT THIS SECTION IS FOR.
+ *
+ * An open insurance claim, active litigation, and a prior adverse report each
+ * change what an engineer can properly produce, and the specification says the
+ * customer is told in the first conversation rather than after paying. All
+ * three are required booleans with NO default, so an untouched select must
+ * block rather than record a quiet no.
+ *
+ * WHY NO SUCCESSFUL ROUND TRIP IS EXERCISED HERE, STATED RATHER THAN OMITTED.
+ * A complete submission writes a row to eng_design_inquiries, which is a
+ * business record kept pending counsel and carries no delete path. Every board
+ * run would leave one behind forever, which is exactly the defect recorded
+ * against /portal/clients: seven probe rows a run, 306 of them now, on a screen
+ * that cannot page. Repeating a known mistake to gain a check is a bad trade.
+ * What is asserted is the validation, which is where the flags live; the write
+ * path itself is exercised by the round trip checks against /api/lead.
+ */
+async function designInquiryChecks() {
+  const { page, posts } = await openForm("/design-inquiry", "/api/design-inquiry");
+
+  const submit = page.getByRole("button", { name: /send this brief/i });
+  await submit.click();
+  await page.waitForTimeout(400);
+  rec(
+    "design brief: an empty submission blocks and posts nothing",
+    (await page
+      .getByText("Enter your name.")
+      .isVisible()
+      .catch(() => false)) && posts.length === 0,
+  );
+
+  /*
+   * Everything else filled in and the three flags untouched. This is the case
+   * that would silently record three noes if the conversion used || instead of
+   * mapping an empty select to undefined.
+   */
+  await page.locator('input[name="name"]').fill(MARKER);
+  await page.locator('input[name="email"]').fill("forms.audit@254engineering.com");
+  await page.locator('input[name="propertyAddress"]').fill("1 Audit Street, Corpus Christi");
+  await page.selectOption('select[name="askingAs"]', "owner");
+  await page.selectOption('select[name="workKind"]', "addition");
+  await page.selectOption('select[name="deliverable"]', "sealed_plans");
+  await submit.click();
+  await page.waitForTimeout(500);
+
+  rec(
+    "design brief: the three flags are required, so an untouched one blocks rather than recording a quiet no",
+    posts.length === 0,
+    posts.length === 0
+      ? "nothing was posted with the three unanswered"
+      : "a brief was submitted with flags nobody answered",
+  );
+  rec(
+    "design brief: and the refusal names which question was missed",
+    await page
+      .getByText(/open insurance claim|active or threatened litigation|prior adverse|reported adversely/i)
+      .first()
+      .isVisible()
+      .catch(() => false),
+  );
+
+  await page.close();
+}
 // ---------- waitlist ----------
 
 async function waitlistChecks() {
@@ -634,6 +701,7 @@ async function roundTripChecks() {
 try {
   await contactChecks();
   await waitlistChecks();
+  await designInquiryChecks();
   await honeypotChecks();
   // The careers flows moved to their own module when they became five step
   // applications with uploads. They are long enough that leaving them inline
