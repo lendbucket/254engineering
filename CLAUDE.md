@@ -1139,7 +1139,7 @@ combined injection whose cascade made a security check pass for the wrong
 reason.
 
 **AND A MATCHER WITH A WINDOW WIDER THAN THE THING IT MATCHES ATTACHES TO ITS
-NEIGHBOUR. FOURTH INSTANCE 2026-09-16, AND IT IS NOW ONE OF THE TWO RECURRING
+NEIGHBOUR. FIFTH INSTANCE 2026-09-20, AND IT IS NOW ONE OF THE TWO RECURRING
 DEFECTS IN THIS BUILD**, beside one fact with two homes. Operator ruling.
 
 | When | The matcher | What it attached to instead |
@@ -1148,16 +1148,58 @@ DEFECTS IN THIS BUILD**, beside one fact with two homes. Operator ruling.
 | 2026-09-13 | The last `];` in `supabase/applied.mjs` | `BEHAVIOUR_DIVERGENCE`, not `APPLIED` |
 | 2026-09-16 | `/expires: "[^"]*",/` in the gate fixture | Latent: `verifiedEngineers` is declared earlier than the registration, so it would have taken the ENGINEER's expiry the day one was recorded |
 | 2026-09-16 | `/firmName/` in `compliance-audit` | The FIELD `firmNameOnDocument`, so a record that merely names the deriver read as calling it |
+| 2026-09-20 | The ALL_CAPS string literal scan in `soc2-audit` | Four display LABELS in `partner-audit`'s fixture table, reported as four undeclared secrets |
 
 **The fourth is the one to carry, because nothing was broken when it was
 written.** The pattern was looking for a CALL and matched a NAME. Both spellings
 contain the thing being searched for, and only one of them is the thing being
 forbidden.
 
-**The rule, unchanged and now with four instances behind it: match the thing you
+**The rule, unchanged and now with five instances behind it: match the thing you
 mean.** A call is `name(`, not `name`. A field is the line adjacent to it, not
 the nearest punctuation that resembles it. Where adjacency is not enough, locate
 by explicit position and ASSERT the target before writing.
+
+**AND THE FIFTH ADDS THE HALF THE OTHER FOUR DID NOT NEED: WHAT TO DO WHEN THE
+MATCHER IS EARNING ITS KEEP.** Operator ruling, 2026-09-20.
+
+The other four were repaired by tightening a pattern. This one could not be,
+because the pattern is deliberately loose: an ALL_CAPS_UNDERSCORED string
+literal is a CANDIDATE credential, and the looseness is the whole point.
+`INTAKE_KEY_SEALED` and `INTAKE_KEY_STAMP` are real secrets reachable only as
+string values in a lookup map, invisible to both other scans, and this heuristic
+is the only thing that ever found them.
+
+**So the quiet option was an allowlist, and the operator refused it in the
+sentence worth keeping: "an allowlist of names is a list somebody grows until
+the scan checks nothing."** Four names would have become five, then nine, each
+addition reasonable on its own, until the check covered nothing and still
+printed a green line about a hundred candidates.
+
+**THE ANSWER IS TO SHARPEN THE SUBJECT, NOT TO EXEMPT THE INSTANCE, AND THE
+DISTINCTION WAS MECHANICALLY AVAILABLE.** A credential is read from the
+environment. A constant is a binding this code defines. So a candidate that is
+declared as `const` / `let` / `function` / `class` somewhere in the scanned
+source, **and that nothing reads from an environment**, is a constant and the
+scan stops asking. Five names are excused today, all five named in the check's
+own output. The second clause is the load bearing one: without it,
+`const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY`, the most natural line
+anybody would write, would excuse the credential it reads.
+
+**AND THE FIRST GUARD WRITTEN OVER THAT EXEMPTION WAS VACUOUS, WHICH THE
+INJECTION CAUGHT AND NOTHING ELSE WOULD HAVE.** It asserted that the two real
+secrets are not excused, and injecting `const INTAKE_KEY_SEALED = "x"` left the
+board entirely green. The protection was real, and the check was proving nothing:
+the environment-read clause already held them out regardless of what anybody
+declared. It now asserts the MECHANISM instead, that something reads both from
+an environment, which is a fact that can actually go false in a refactor, and
+the injection makes it red.
+
+**The general form for any check whose false positive is real. Ask whether the
+matcher is finding things nothing else finds. If it is, the exemption is derived
+from a property that distinguishes the two kinds, it is COUNTED and NAMED in the
+output, and the thing the check exists for is asserted to be outside it by a
+clause that can fail.**
 
 **A FIX THAT CURES THE CASE IN FRONT OF YOU AND NOT THE SHAPE BEHIND IT WILL
 MEET YOU AGAIN, AND FOUR HOURS IS HOW LONG IT TOOK.** Operator ruling,

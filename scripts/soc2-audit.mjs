@@ -472,6 +472,51 @@ console.log("");
     for (const m of text.matchAll(/["']([A-Z][A-Z0-9]*(?:_[A-Z0-9]+){1,})["']/g)) byStringLookup.add(m[1]);
   }
 
+  /*
+   * =====================================================================
+   * A NAME THE CODE DEFINES IS A CONSTANT. A CREDENTIAL IS READ FROM THE
+   * ENVIRONMENT. Operator ruling, 2026-09-20.
+   * =====================================================================
+   *
+   * FIFTH INSTANCE OF A MATCHER MATCHING A NAME WHEN IT MEANS SOMETHING ELSE,
+   * and this one fired on the check's own new neighbours: TRADING_GATED,
+   * SEALING_GATED, OPEN_GATED and NEVER_CLAIMS are exported pattern sets, and
+   * partner-audit names them in quotes as LABELS in a fixture table so a failure
+   * can say which set is dead. Four display strings, read as four undeclared
+   * secrets.
+   *
+   * THE SCAN IS NOT WRONG TO FIRE AND IS NOT EXEMPTED. It found two real
+   * credentials, INTAKE_KEY_SEALED and INTAKE_KEY_STAMP, that both other scans
+   * were blind to, so the heuristic earns its keep. The operator's ruling was to
+   * SHARPEN it rather than grow an allowlist: "an allowlist of names is a list
+   * somebody grows until the scan checks nothing".
+   *
+   * THE DISTINCTION, AND IT IS MECHANICALLY AVAILABLE. A credential lives in the
+   * environment and is never declared in the source; a constant is a binding the
+   * code defines. So a candidate that is also a declared binding somewhere in
+   * this repository is a constant, and the scan stops asking about it.
+   *
+   * WHY THIS DOES NOT REOPEN THE HOLE IT WAS BUILT FOR. The two credentials it
+   * caught are named as string VALUES inside a lookup map, never as bindings.
+   * `INTAKE_KEY_SEALED` appears as "INTAKE_KEY_SEALED" and nowhere as
+   * `const INTAKE_KEY_SEALED`, so nothing about this excuses them, which the
+   * check below asserts rather than assumes.
+   */
+  const declaredBindings = new Set();
+  for (const p of files) {
+    const text = codeOnly(readFileSync(p, "utf8"));
+    for (const m of text.matchAll(/\b(?:const|let|var|function|class)\s+([A-Z][A-Z0-9]*(?:_[A-Z0-9]+){1,})\b/g)) {
+      declaredBindings.add(m[1]);
+    }
+    /* Imported into this file, so defined in another one the scan also reads. */
+    for (const m of text.matchAll(/\bimport\s*\{([^}]*)\}/g)) {
+      for (const piece of m[1].split(",")) {
+        const name = piece.split(/\s+as\s+/)[0].trim();
+        if (/^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+){1,}$/.test(name)) declaredBindings.add(name);
+      }
+    }
+  }
+
   const declared = new Set(CREDENTIALS.map((c) => c.name));
   const undeclared = [...read].filter((v) => !declared.has(v) && !NOT_CREDENTIALS.has(v)).sort();
   rec(
@@ -497,15 +542,90 @@ console.log("");
    * Recording that a credential is dead must not itself look like a live one.
    */
   const retiredHere = new Set(RETIRED.map((r) => r.name));
+
+  /*
+   * A NAME IS EXCUSED AS A CONSTANT ONLY IF NOTHING READS IT FROM THE
+   * ENVIRONMENT, which is the operator's sentence made mechanical: the scan's
+   * subject is the READ, not the name.
+   *
+   * `const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY` is a binding AND a
+   * credential, and without the second clause the binding would excuse the
+   * credential. It is also the single most natural line anybody would write, so
+   * this is the shape the exemption has to survive rather than a contrived one.
+   */
+  const constantsNotCredentials = [...byStringLookup]
+    .filter((v) => declaredBindings.has(v) && !read.has(v))
+    .sort();
+  const isConstant = new Set(constantsNotCredentials);
+
   const undeclaredStrings = [...byStringLookup]
-    .filter((v) => !declared.has(v) && !NOT_CREDENTIALS.has(v) && !STRING_LOOKUP_NOT_SECRETS.has(v) && !retiredHere.has(v))
+    .filter(
+      (v) =>
+        !declared.has(v) &&
+        !NOT_CREDENTIALS.has(v) &&
+        !STRING_LOOKUP_NOT_SECRETS.has(v) &&
+        !retiredHere.has(v) &&
+        !isConstant.has(v),
+    )
     .sort();
   rec(
     "and every secret named by string lookup is declared, which is the shape that hid two",
     undeclaredStrings.length === 0,
     undeclaredStrings.length === 0
-      ? `${byStringLookup.size} candidates, all declared or named as not credentials`
+      ? `${byStringLookup.size} candidates, ${constantsNotCredentials.length} are bindings this code defines, the rest declared or named as not credentials`
       : `UNDECLARED BY STRING LOOKUP: ${undeclaredStrings.join(", ")}`,
+  );
+
+  /*
+   * AND THE EXEMPTION IS COUNTED, because an exemption nobody counts becomes the
+   * rule. This is the same mechanism the verbatim protocol check uses on its one
+   * standing-law rule: without a pinned figure, every name that failed the scan
+   * would acquire a `const` somewhere, one at a time, each reasonable on its own,
+   * until the scan covered nothing.
+   *
+   * The figure is a CEILING rather than an equality, because these are ordinary
+   * source constants and new ones are written every week. A jump past it is the
+   * signal worth reading.
+   */
+  const CONSTANT_EXEMPTION_CEILING = 80;
+  rec(
+    "and the constant exemption is counted rather than open ended",
+    constantsNotCredentials.length <= CONSTANT_EXEMPTION_CEILING,
+    `${constantsNotCredentials.length} of ${byStringLookup.size} candidates are bindings, ceiling ${CONSTANT_EXEMPTION_CEILING}` +
+      (constantsNotCredentials.length <= 12 ? `: ${constantsNotCredentials.join(", ")}` : ""),
+  );
+
+  /*
+   * AND THE SHARPENING IS PROVEN NOT TO HAVE REOPENED THE HOLE, BY NAMING THE
+   * MECHANISM RATHER THAN THE OUTCOME.
+   *
+   * THE FIRST WORDING OF THIS CHECK WAS VACUOUS AND THE INJECTION SAID SO. It
+   * asserted only that neither name is excused, and injecting
+   * `const INTAKE_KEY_SEALED = "x"` left the whole board green. The reason is
+   * the good one: `read` matches `env.NAME` as well as `process.env.NAME`, and
+   * `sister-intake-audit.mjs` reads `env.INTAKE_KEY_SEALED`, so the second
+   * clause of the exemption already held it out no matter what anybody declares.
+   * The protection was real and the check was proving nothing, which is exactly
+   * the pair this repository's injection rule exists to tell apart.
+   *
+   * So the check asserts the LOAD BEARING FACT instead: something reads both of
+   * them from an environment. That is what makes them credentials rather than
+   * constants, it is what keeps them out of the exemption, and it can go false.
+   * If the last environment read of one disappears in a refactor, the exemption
+   * becomes the only thing standing between a `const` and a swallowed secret,
+   * and this line goes red at that moment rather than after.
+   */
+  const THE_TWO = ["INTAKE_KEY_SEALED", "INTAKE_KEY_STAMP"];
+  const notReadFromEnv = THE_TWO.filter((n) => !read.has(n));
+  const excusedRealSecret = THE_TWO.filter((n) => isConstant.has(n));
+  rec(
+    "and the two secrets the scan exists for are held out of the exemption by an environment read",
+    notReadFromEnv.length === 0 && excusedRealSecret.length === 0,
+    notReadFromEnv.length === 0 && excusedRealSecret.length === 0
+      ? "both are read from an environment, so no binding can excuse either"
+      : notReadFromEnv.length > 0
+        ? `NOTHING READS FROM AN ENVIRONMENT: ${notReadFromEnv.join(", ")}, so a binding would now excuse it`
+        : `THE EXEMPTION SWALLOWS: ${excusedRealSecret.join(", ")}`,
   );
 
   /*
