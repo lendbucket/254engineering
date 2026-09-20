@@ -81,6 +81,78 @@ for (const [name, command] of ALLOW) {
   if (!ok) wrong += 1;
   console.log(`${ok ? "PASS" : "WRONG"}  allowed: ${name}`);
 }
+/*
+ * RULES FOUR AND FIVE, AGAINST THE COMMANDS THAT ACTUALLY DID IT.
+ *
+ * Every refusal case below is a real command from 2026-09-19 and 2026-09-20,
+ * not a shape invented to match the rule. The allow cases are the ones that
+ * must keep working, and they are the reason the rules test the redirect TARGET
+ * and the heredoc BODY rather than the whole command: a Windows path in a
+ * redirect is full of backslashes and is not content.
+ *
+ * The dangerous strings are built by concatenation for the same reason the file
+ * header gives: this proof is itself a shell payload, and a guard that refuses
+ * its own proof is a guard nobody can test.
+ */
+const WRITE_CASES = [
+  ["the twenty backspaces: a heredoc carrying word boundaries",
+    'cat > ' + 'scratchpad/split.mjs <<' + "'SCRIPT'\nconst p = /" + '\\b' + "order/;\nSCRIPT",
+    true],
+  ["a heredoc into the scratchpad, which a tracked-files rule would have missed",
+    'cat > ' + '/tmp/fill5.mjs <<' + "'S'\ns.split(\"" + '\\n' + "\");\nS",
+    true],
+  ["an in place perl edit of a source file",
+    "perl -0pi -e " + "'s/x/y/' " + "src/lib/regulatory.mjs",
+    true],
+  ["a redirect straight into a source file",
+    "echo 'x' > " + "src/config/turnaround.ts",
+    true],
+  ["an inline node script carrying an interpolation",
+    'node -e ' + '"const s = `${CL}`; writeFileSync(p, s)"',
+    true],
+
+  ["the board redirected to a log, which carries no content",
+    "npm run audit > /tmp/board.log 2>&1",
+    false],
+  ["a board log on a Windows path, whose backslashes are a PATH and not content",
+    'npm run audit > "C:' + '\\Users' + '\\salon' + '\\board.log" 2>&1',
+    false],
+  ["a grep with an escape, which reads rather than writes",
+    'grep -rn "' + '\\b' + 'firmName" src/',
+    false],
+  ["a commit message heredoc, which writes no file",
+    'git ' + 'commit -F - <<EOF\nfix: a message\nEOF',
+    false],
+  ["a plain heredoc with no escapes, into the scratchpad",
+    "cat > /tmp/notes.txt <<'EOF'\nplain words\nEOF",
+    false],
+  ["reading a source file",
+    "sed -n '1,40p' src/lib/launch.ts",
+    false],
+
+  /*
+   * THE FALSE POSITIVE THE RULE ITSELF PRODUCED, kept as a fixture because it
+   * is the exact shape rule one already had to solve and rule four repeated.
+   *
+   * The commit introducing these rules DESCRIBED them, so its message carried
+   * the words sed, perl, ruby, a -0pi, and the extension list. Rule four read a
+   * commit MESSAGE as a command that edits source and refused the commit.
+   * Rule four now tests the stripped command, exactly as rule one does.
+   */
+  ["a commit whose message describes this very rule",
+    'git ' + 'commit -F - <<EOF\nfeat(guard): refuse sed/perl/ruby -0pi writing .ts .mjs .sql files\nEOF',
+    false],
+];
+
+/* Rules four and five, through the hook's own entry point. */
+for (const [name, command, shouldRefuse] of WRITE_CASES) {
+  const out = ask(command);
+  const refused = out.includes('"permissionDecision":"deny"');
+  const ok = refused === shouldRefuse;
+  if (!ok) wrong += 1;
+  console.log(`${ok ? "PASS" : "WRONG"}  ${shouldRefuse ? "refused" : "allowed"}: ${name}`);
+}
+
 /* Rule three, against injected state. */
 const { migrationOnMainVerdict, readGitStateForProof } = await import("../hooks/commit-guard.mjs");
 const commitCommand = "git " + "commit -m 'x'";
@@ -106,6 +178,6 @@ for (const [name, state, shouldRefuse] of GIT_CASES) {
 }
 
 console.log(wrong === 0
-  ? `\nAll ${REFUSE.length + ALLOW.length + GIT_CASES.length + 1} cases correct.`
+  ? `\nAll ${REFUSE.length + ALLOW.length + WRITE_CASES.length + GIT_CASES.length + 1} cases correct.`
   : `\n${wrong} case(s) wrong.`);
 process.exit(wrong === 0 ? 0 : 1);

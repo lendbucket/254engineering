@@ -641,6 +641,41 @@ The operator's ruling was to build something mechanical, and it is committed:
 | **One, built** | A Claude Code `PreToolUse` hook on Bash, `.claude/settings.json` calling `scripts/hooks/commit-guard.mjs` | A command containing `git commit` that also runs anything under `scripts/`, any `npm run`, or any `tsx`. A command containing `npm run audit` and anything else at all, apart from redirecting its own output to a file. |
 | **Two, not built** | A git `pre-commit` hook under `.githooks/`, switched on by `core.hooksPath` | A commit while an audit lock holds a live PID, and a commit when the last recorded run of any audit against this exact tree exited non-zero. |
 
+**THE SAME HOOK GAINED RULES FOUR AND FIVE ON 2026-09-20, AFTER THE FOURTH
+INSTANCE OF THE BACKSLASH HAZARD.** Approved twice and built the third time it
+was asked for, which is its own small instance of the rule it enforces.
+
+| Rule | Refuses |
+| --- | --- |
+| **Four** | A shell command that writes into a SOURCE file: a redirect, a heredoc, or an in place `sed`/`perl`/`ruby` whose target ends `.ts .tsx .js .jsx .mjs .cjs .sql .md .json .css`. Not "when it has a backslash": always. |
+| **Five** | Content carrying a `\` or a `${` written through the shell, ANYWHERE, scratchpad included. Only the heredoc BODY and the `-e` script are tested, never the whole command, so a Windows path in a redirect and a `grep "\bfoo"` are untouched. |
+
+**Rule five covers the scratchpad and that is the operator's caveat rather than
+a detail.** `fill5.mjs` was corrupted on its way INTO the scratchpad, before it
+had run once. A tracked-files-only rule would have missed it entirely.
+
+**WHY PREVENTIVE RATHER THAN DETECTIVE**, which was the design question and is
+the part worth keeping. A `PostToolUse` syntax check would have caught one of
+the four instances and none of the other three: `\d` arriving as `d` and `\b`
+arriving as a backspace both **parse perfectly and silently match nothing**. The
+worst version of this hazard produces valid code, so nothing downstream can see
+it. The guard has to refuse before the write.
+
+Proven by `scripts/proofs/the-commit-guard-refuses-the-shape.mjs`, now 33 cases.
+Every refusal fixture is a REAL command from 2026-09-19 or 2026-09-20 rather
+than a shape invented to match the rule, and the allow fixtures are what must
+keep working: a board redirected to a log, a Windows path full of backslashes
+that is a path rather than content, a `grep` with an escape, and a commit
+message heredoc.
+
+**It refused its author's next command.** The very next thing typed after the
+rules went in was a `perl -0pi -e` carrying a backslash and a `${`, and the hook
+denied it. The proof then found a real gap in the same hour: the flag cluster
+`-0pi` carries a DIGIT, and the first version of the in place matcher allowed
+letters only, so `perl -0pi` walked straight past rule four. Ten hand-picked
+shapes had passed; the first real command and the proof found what they missed,
+which is the same story the original guard tells one rule up.
+
 **WHY LAYER ONE IS THE ANSWER AND LAYER TWO ALONE WOULD NOT HAVE CAUGHT THIS
 ONE.** A git hook can only refuse on something that was RECORDED. Layer two
 would read an audit's last recorded exit, and **an audit invoked directly with
@@ -1168,6 +1203,50 @@ everybody now believes is handled.
 The tell is the same every time: the fix names a specific thing. A route, a
 column, a file. Ask what the general version of that thing is, and whether
 anything would notice the next member of the set.
+
+**COUNTING THE MEMBERS OF A SET SAYS NOTHING ABOUT WHETHER ANY MEMBER
+FUNCTIONS.** Operator ruling, 2026-09-20, and it is the vacuous green wearing a
+regular expression.
+
+`ALL_REGULATED` was split into three gated sets, and every pattern written by
+hand went through a shell heredoc, so each `\b` arrived as a literal BACKSPACE
+byte. **Twenty of them.** The regexes parsed, the module loaded, the audit ran,
+and they matched nothing at all, because a backspace does not appear in copy.
+
+`OPEN_GATED` permitted an order. `TRADING_GATED`'s check **passed BY matching
+nothing**, which is the worst outcome available: it was the check asserting a
+sentence is now ALLOWED, so a set that matches nothing satisfies it perfectly.
+
+**A COUNT WOULD NOT HAVE CAUGHT IT.** Four sets, four correct lengths: the
+corrupt patterns were still counted. Any check asking "does this set have
+members" answers yes.
+
+**The version that works hands each set a sentence it exists to refuse and
+requires a match.** A set that matches none of its own examples is dead, whatever
+its length says. The general form is the one to carry: **a check on the SIZE of
+a declared set is a check on nothing; the check worth writing exercises a
+member.**
+
+**AND A CHECK THAT DEPENDS ON AMBIENT STATE IT DOES NOT SET REPORTS THE
+ENVIRONMENT RATHER THAN THE RULE.** Same day, same audit, and it is the same
+family as `placeholder-audit` judging the phone against an empty allowlist.
+
+A new check asserted flatly that "we provide structural engineering" is allowed,
+on the reasoning that the firm is registered with an engineer of record. True in
+a process holding the firm's configuration. **`partner-audit` runs without
+`FIRM_PHONE`**, which is a TRADING condition, so the gate reads PRELAUNCH in
+that process and the sentence is correctly refused. The check failed on a
+library that was working perfectly.
+
+The fix is not to force the environment. It is to **read the state and assert
+the correct outcome for it**, so the check is true in both worlds and says out
+loud which one it saw. `launch-audit` already does this with "the gate is shut,
+which is what these checks are asserting against".
+
+**AND THE ONE-LINE ARGUMENT FOR THE TOOLING RULE BELOW.** Of the four pattern
+sets, exactly one survived: `SEALING_GATED`, which **spreads an existing array
+instead of retyping it**. The part that was not hand-written through the shell
+is the part that worked.
 
 **AND A TOOLING RULE RATHER THAN A LESSON: NO INLINE SCRIPT MAY CARRY A
 BACKSLASH.** Operator ruling, 2026-09-16, after the shell ate regex escapes
