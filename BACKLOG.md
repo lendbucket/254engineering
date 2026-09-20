@@ -131,7 +131,63 @@ transaction and drained by the job queue, and that is a shape decision for a
 sitting rather than a patch. Nothing about the approval is unsafe today; what is
 missing is a guarantee that the record of it is as durable as the act.
 
-## `launch-audit` IS KNOWINGLY RED, AND REWRITING IT BEFORE THE COPY EXISTS WOULD BE WORSE
+## RESOLVED 2026-09-19: `launch-audit` WAS MEASURING THE WRONG MODE, NOT THE WRONG COPY
+
+Opened 2026-09-17 and closed 2026-09-19. The diagnosis in the original entry was
+half right and the half it got wrong is the interesting one.
+
+### What it turned out to be
+
+The entry said the audit could no longer REACH prelaunch, and that was correct.
+It also said the larger half was that the trading copy did not exist yet, so
+rewriting the assertions first would mean inventing sentences in the audit and
+writing pages to match them.
+
+**The assertions never needed rewriting.** `LAUNCH_MODE=prelaunch` gates OPEN
+alone since the three state ruling, and every trading condition is met today, so
+that crawl was rendering the **trading** site and asserting prelaunch things
+about it. Seven checks were red and not one of them meant what it said. The
+prelaunch copy was correct the whole time.
+
+**That is the inverse of a vacuous green, and worse in one respect.** A green
+over an empty set is quiet. A persistent red teaches everybody to expect it, and
+a red mark everyone has learned to ignore is where the next real failure hides.
+`unreachable is not failed` was written for this shape and the audit was
+breaking it rather than reporting it.
+
+### The fix, and the proof
+
+`withTradingBlocked` in `scripts/lib/gate-fixture.mjs` is the mirror of
+`withGateConditionsMet`: it empties the engineer register, which is one of the
+three trading conditions, and asks the gate **in a child process** whether it
+actually shut before handing back control. The engineer register rather than the
+registration, deliberately: emptying the registration would also blank the firm
+number, and the prelaunch assertions include what the footer does with that
+number, so the fixture would be deciding an answer the audit is asking.
+
+Injection-verified conclusively. Neutering the fixture to a no-op brings back
+**exactly** the original seven failures and nothing else, which proves both that
+the fixture is load-bearing and that those seven were entirely an artefact of
+measuring the wrong mode.
+
+37 of 37 pass.
+
+### Two smaller things the rewrite found
+
+The crawl still listed `/services/forensic-engineering`, removed the same day,
+so every route check failed on a 404. And `servicePages` was a hand written
+list that had to agree with `ROUTES` with nothing asserting that it did: the
+obvious repair, substituting another service page, named one `ROUTES` does not
+carry and the audit **crashed** rather than failing a check. It derives from
+`ROUTES` now.
+
+One check was deleted rather than repointed: the forensic page's statement that
+the engineer's obligation runs to the facts rather than to the paying party. No
+other service page makes that claim because no other line has the same conflict
+shape, so repointing it would have been a check on wording that happened to
+pass.
+
+## SUPERSEDED: `launch-audit` IS KNOWINGLY RED, AND REWRITING IT BEFORE THE COPY EXISTS WOULD BE WORSE
 
 Opened 2026-09-17, as a disclosed judgement rather than an omission.
 

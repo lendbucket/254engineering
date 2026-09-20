@@ -484,3 +484,126 @@ export async function inOpenGateProcess(source) {
     }
   });
 }
+
+/**
+ * ===========================================================================
+ * RUN `fn` WITH THE FIRM GENUINELY IN PRELAUNCH.
+ * Added 2026-09-19, and the reason it was needed is the finding.
+ * ===========================================================================
+ *
+ * `launch-audit` crawled what it called the prelaunch site by setting
+ * `LAUNCH_MODE=prelaunch`. That variable gated the whole gate when it was a
+ * boolean. After the operator's 2026-09-17 ruling it gates **open alone**, and
+ * the firm's trading conditions are all met today, so that crawl has been
+ * rendering the **TRADING** site and asserting prelaunch things about it.
+ *
+ * Seven checks were red and none of them meant what it said. This is the
+ * inverse of the vacuous green and it is arguably worse: a green over an empty
+ * set is at least quiet, while a persistent red teaches everybody to expect it,
+ * and a red mark everyone has learned to ignore is where the next real failure
+ * hides. `unreachable is not failed` was written for exactly this and it was
+ * being broken by the audit rather than reported by it.
+ *
+ * So prelaunch has to be REACHED rather than declared, and reaching it means
+ * making a TRADING condition unmet. This is the mirror of
+ * `withGateConditionsMet`: that one patches conditions true, this one patches
+ * one false.
+ *
+ * THE ENGINEER REGISTER IS THE ONE EMPTIED, and the choice matters. Three
+ * conditions gate trading: the engineer of record, the registration, and the
+ * phone. Emptying the REGISTRATION would also blank the firm number, and the
+ * prelaunch assertions include what the footer does with that number, so the
+ * fixture would be deciding the answer to a question the audit is asking.
+ * Emptying the ENGINEER leaves the registration facts untouched and produces
+ * exactly the state the prelaunch copy describes: a registered firm with nobody
+ * able to take responsible charge.
+ *
+ * @template T
+ * @param {() => Promise<T>} fn
+ * @returns {Promise<T>}
+ */
+export async function withTradingBlocked(fn) {
+  const original = readFileSync(CONFIG, "utf8");
+
+  /*
+   * ANCHORED ON THE DECLARATION AND CLOSED ON THE FIRST `\n];` AFTER IT, which
+   * is the idiom CLAUDE.md records for editing supabase/applied.mjs: locate by
+   * the thing you mean, not by the nearest punctuation that resembles it.
+   *
+   * The first attempt at this patch wrapped the opening bracket and never
+   * closed the call, producing a file that does not parse. The child process
+   * then printed nothing, which read as "the probe is broken" rather than "the
+   * patch is". Replacing the whole array leaves nothing to balance.
+   */
+  const head = "export const verifiedEngineers: VerifiedEngineer[] = [";
+  const start = original.indexOf(head);
+  const end = start === -1 ? -1 : original.indexOf("\n];", start);
+  if (start === -1 || end === -1) {
+    throw new Error(
+      "gate-fixture: the engineer register was not found whole in " +
+        CONFIG +
+        ". A fixture that silently patches nothing renders the state it meant to change and asserts the other one, which is the failure this whole file exists to stop.",
+    );
+  }
+
+  writeFileSync(
+    CONFIG,
+    original.slice(0, start) +
+      "export const verifiedEngineers: VerifiedEngineer[] = [" +
+      original.slice(end),
+  );
+
+  try {
+    /*
+     * AND THE FIXTURE ASKS THE GATE WHETHER IT ACTUALLY SHUT, rather than
+     * trusting the patch. Same discipline withGateConditionsMet gained on
+     * 2026-09-13: a fourth condition arriving is what turned that one silently
+     * wrong, and the answer was to verify rather than to assume. Read in a
+     * CHILD PROCESS because a module level constant is read once.
+     */
+    const mode = await inPrelaunchGateProcess("m.launchMode()");
+    if (mode !== "prelaunch") {
+      throw new Error(
+        `gate-fixture: the gate did not shut for the fixture. It reads "${mode}". ` +
+          "Emptying the engineer register no longer blocks trading, so whatever this audit " +
+          "measures next is not the prelaunch site.",
+      );
+    }
+    return await fn();
+  } finally {
+    writeFileSync(CONFIG, original);
+  }
+}
+
+/**
+ * Read the world in a child process while the files are patched.
+ *
+ * A module level constant is read once, so an in process import after a patch
+ * answers with the values it was loaded with. The child starts, reads the file
+ * as it is at that moment, prints one prefixed line, and exits.
+ */
+async function inPrelaunchGateProcess(expression) {
+  const { spawnSync } = await import("node:child_process");
+  const script = `import "./scripts/lib/load-env.mjs";
+const m = await import("./src/lib/launch.ts");
+console.log("GATE:" + JSON.stringify(${expression}));`;
+  const file = "tmp-gate-probe.mjs";
+  writeFileSync(file, script);
+  try {
+    const r = spawnSync("npx", ["tsx", file], { encoding: "utf8", shell: true });
+    const line = (r.stdout || "").split("\n").find((l) => l.startsWith("GATE:"));
+    if (!line) {
+      throw new Error(
+        "gate-fixture: the child process printed no answer. stderr: " +
+          (r.stderr || "").split("\n").slice(-3).join(" ").slice(0, 200),
+      );
+    }
+    return JSON.parse(line.slice("GATE:".length));
+  } finally {
+    try {
+      unlinkSync(file);
+    } catch {
+      /* Already gone. */
+    }
+  }
+}
