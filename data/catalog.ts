@@ -223,6 +223,57 @@ const OWNER_QUALIFIER: Qualifier = {
     "The firm needs the owner's authority before anyone attends a property or issues a document about it. Ask the owner to place the order, or to send written authority naming you.",
 };
 
+/*
+ * =========================================================================
+ * `prices.ts` IS THE PRICE. THIS FILE IS BEING CORRECTED TO MATCH IT, AND
+ * THEN IT WILL STOP HOLDING PRICES AT ALL. Operator ruling, 2026-09-20.
+ * =========================================================================
+ *
+ * **EVERY PRICED LINE IN THIS FILE DISAGREED WITH `src/config/prices.ts`, AND
+ * NOTHING COMPARED THEM.** The site published one number and a card was charged
+ * another, on all eight priced lines, the widest being repair specifications
+ * advertised at $395 and charged at $900.
+ *
+ * | Line | The site said | This file charged |
+ * | roof-inspections | $549 | $600 |
+ * | foundation-inspections | $495 | $650 |
+ * | structural-letters | $395 | $550 |
+ * | solar-structural-letters | $445 | $450 |
+ * | manufactured-home-foundation | $645 | $650 |
+ * | windstorm-wpi-8 | $795 | $850 |
+ * | repair-specifications | $395 | $900 |
+ * | design | hourly, $2,000 minimum | $750 and $1,500 fixed |
+ *
+ * The gaps follow no rule, $5 to $505, so it is drift rather than a deliberate
+ * transform. `prices.ts` is read by the public site and the portal price book;
+ * this file is read by `OrderFlow`, the v1 orders API, bulk ordering, intake and
+ * `ops-payments`, which is what a card is actually charged.
+ *
+ * **SIXTH INSTANCE OF ONE FACT WITH TWO HOMES, AND THE FIRST WHERE THE CLAIM AND
+ * THE DEFECT SHARED A FILE.** `prices.ts` opens by naming itself the fifth fact
+ * given the one-home treatment and says in its own words that "the number a
+ * customer is charged and the number the margin is computed against cannot
+ * drift". It said so while this file held a second copy of every one of them.
+ *
+ * **WHY NOTHING CAUGHT IT.** `price-book-audit` imports `prices.ts` and has
+ * never read the catalogue. It asserted every ruled figure was correctly stated
+ * in the price book, which was true, and could not see the other home. An audit
+ * named after the price book never compared the price book to the thing that
+ * takes the money.
+ *
+ * **WHAT IS DONE HERE AND WHAT IS NOT.** The numbers below are corrected to the
+ * ruled figures, which is the money fix and cannot wait. They are therefore
+ * still a SECOND HOME, deliberately and briefly: the mechanism that removes
+ * them, so this file derives its prices rather than restating them, is the next
+ * commit and the check goes in with it.
+ *
+ * **WPI-8 IS CORRECTED TO $795 AND IS STILL WRONG FOR HALF ITS BUYERS.** That
+ * line sells two different jobs, completed construction at $795 and ongoing at
+ * $995, distinguished by a QUALIFIER ANSWER rather than by a tier, so one entry
+ * cannot carry both. $795 is now right for completed construction and
+ * undercharges ongoing by $200, where $850 was wrong for both. The split into
+ * two deliverables is with the operator and is the thing that closes it.
+ */
 export const CATALOG: CatalogEntry[] = [
   // ------------------------------------------------------------- field orders
   {
@@ -230,7 +281,7 @@ export const CATALOG: CatalogEntry[] = [
     tier: "standard",
     name: "Roof certification letter",
     orderType: "field",
-    priceCents: 60000,
+    priceCents: 54900,
     coastalSurchargeCents: 7500,
     inspectionFeeCents: 17500,
     protocolServiceSlug: "roof-inspections",
@@ -276,7 +327,7 @@ export const CATALOG: CatalogEntry[] = [
     tier: "standard",
     name: "WPI-8E windstorm evaluation",
     orderType: "field",
-    priceCents: 85000,
+    priceCents: 79500,
     coastalSurchargeCents: 7500,
     inspectionFeeCents: 17500,
     protocolServiceSlug: "windstorm-wpi-8",
@@ -325,7 +376,7 @@ export const CATALOG: CatalogEntry[] = [
     tier: "standard",
     name: "Foundation certification",
     orderType: "field",
-    priceCents: 65000,
+    priceCents: 49500,
     coastalSurchargeCents: 7500,
     inspectionFeeCents: 17500,
     protocolServiceSlug: "foundation-inspections",
@@ -370,7 +421,7 @@ export const CATALOG: CatalogEntry[] = [
     tier: "standard",
     name: "Manufactured home foundation certification",
     orderType: "field",
-    priceCents: 65000,
+    priceCents: 64500,
     coastalSurchargeCents: 7500,
     inspectionFeeCents: 17500,
     protocolServiceSlug: "manufactured-home-foundation-certifications",
@@ -418,7 +469,7 @@ export const CATALOG: CatalogEntry[] = [
     tier: "standard",
     name: "Solar structural letter",
     orderType: "desk",
-    priceCents: 45000,
+    priceCents: 44500,
     coastalSurchargeCents: 7500,
     inspectionFeeCents: null,
     protocolServiceSlug: null,
@@ -467,7 +518,7 @@ export const CATALOG: CatalogEntry[] = [
     tier: "standard",
     name: "Structural letter for permit",
     orderType: "desk",
-    priceCents: 55000,
+    priceCents: 39500,
     coastalSurchargeCents: 7500,
     inspectionFeeCents: null,
     protocolServiceSlug: null,
@@ -519,7 +570,7 @@ export const CATALOG: CatalogEntry[] = [
     tier: "standard",
     name: "Repair specification",
     orderType: "desk",
-    priceCents: 90000,
+    priceCents: 39500,
     coastalSurchargeCents: 7500,
     inspectionFeeCents: null,
     protocolServiceSlug: null,
@@ -562,20 +613,37 @@ export const CATALOG: CatalogEntry[] = [
 
   // ------------------------------------------------------------- quote orders
   /*
-   * RESIDENTIAL AND LIGHT COMMERCIAL DESIGN SELLS THREE THINGS
+   * RESIDENTIAL AND LIGHT COMMERCIAL DESIGN SELLS THREE THINGS, AND SINCE
+   * 2026-09-20 ALL THREE ARE QUOTED.
    * ----------------------------------------------------------
-   * Operator ruling, 2026-09-03. Two fixed price deliverables and one quoted,
-   * on one service page. This is the case the tier field exists for: before it,
-   * a service line was either wholly priced or wholly quoted, and neither was
-   * true of this one.
+   * Operator ruling, 2026-09-03, recorded rather than deleted because a
+   * superseded decision that leaves no trace looks like one nobody made: this
+   * line sold TWO FIXED PRICE deliverables, beam and header sizing at $750 and
+   * a carport and patio plan set at $1,500, alongside one quoted. That is the
+   * case the tier field exists for, and it remains the reason there are three
+   * entries here rather than one.
+   *
+   * **THE TWO FIXED PRICES WERE BELOW THE FIRM'S OWN MINIMUM ENGAGEMENT.**
+   * Operator ruling, 2026-09-20. `src/config/prices.ts` has always said this
+   * line is hourly at $225 with a $2,000 minimum, which is the point below
+   * which the firm does not take the work. Both fixed prices sat under it, so
+   * the catalogue was selling, at checkout, two engagements the price book says
+   * the firm declines. Design comes off fixed prices entirely.
+   *
+   * All three are `orderType: "quote"` with no price, which is the vocabulary
+   * `custom-package` already used. It matters that it is "quote" rather than a
+   * null price on a desk order: `orderBlockedReason` answers a null price with
+   * "a price has not been published for this service yet", and design's price IS
+   * published. It is hourly. Reaching for the nearest available word there would
+   * have put a false sentence in front of a customer.
    */
   {
     serviceSlug: "residential-light-commercial-design",
     tier: "beam-header-sizing",
     name: "Beam and header sizing",
-    orderType: "desk",
-    priceCents: 75000,
-    coastalSurchargeCents: 7500,
+    orderType: "quote",
+    priceCents: null,
+    coastalSurchargeCents: null,
     inspectionFeeCents: null,
     protocolServiceSlug: null,
     qualifiers: [
@@ -623,9 +691,9 @@ export const CATALOG: CatalogEntry[] = [
     serviceSlug: "residential-light-commercial-design",
     tier: "carport-patio-plan-set",
     name: "Carport and patio cover plan set",
-    orderType: "desk",
-    priceCents: 150000,
-    coastalSurchargeCents: 7500,
+    orderType: "quote",
+    priceCents: null,
+    coastalSurchargeCents: null,
     inspectionFeeCents: null,
     protocolServiceSlug: null,
     qualifiers: [

@@ -22,15 +22,33 @@
  * --------------------------------------------------------------------
  * The brief said "every service line named". The catalogue does not price
  * service lines; it prices DELIVERABLES, keyed on (serviceSlug, tier), and has
- * since the operator's ruling of 2026-09-03. There are 11 deliverables across 9
- * service lines.
+ * since the operator's ruling of 2026-09-03. There are **10 deliverables across
+ * 8 service lines**.
  *
- * One line makes a per line floor impossible to state honestly:
- * `residential-light-commercial-design` sells beam and header sizing at
- * $750.00, a carport and patio plan set at $1,500.00, and custom packages by
+ * **THAT COUNT READ 11 ACROSS 9 UNTIL 2026-09-20, AND FOUR SENTENCES IN THIS
+ * FILE SAID SO.** Forensic and insurance engineering came out of the catalogue
+ * on 2026-09-19, taking one deliverable and one line with it. The ENTRY went
+ * with it, correctly and immediately, because `trade-pricing-audit` fails when
+ * an entry here names a deliverable the catalogue no longer has. The PROSE did
+ * not, and sat wrong for a day.
+ *
+ * **THE AUDIT DERIVES ITS SUBJECT FROM THE CATALOGUE AND NEVER READS A WORD OF
+ * THIS COMMENT**, which is exactly why it caught the entry and could not catch
+ * the sentence describing it. That is the declared inventory idiom working as
+ * designed and showing its edge: a derived check keeps the DATA honest and says
+ * nothing about the prose a human reads to understand it. The count above is
+ * now stated in one place rather than four, so the next removal costs one edit.
+ *
+ * One line used to make a per line floor impossible to state honestly, and the
+ * reasoning survives even though its example has gone:
+ * `residential-light-commercial-design` sold beam and header sizing at $750.00
+ * and a carport and patio plan set at $1,500.00 beside custom packages by
  * quote. A single floor for that line would either block the cheapest
  * deliverable or under protect the dearest, and choosing between those is
- * inventing a rule the operator did not give.
+ * inventing a rule the operator did not give. Those two fixed prices were
+ * withdrawn on 2026-09-20 for being below the firm's own $2,000 minimum
+ * engagement, so all three design deliverables are quoted now, but the argument
+ * for keying per deliverable is unchanged and WPI-8 is about to prove it again.
  *
  * So floors are keyed the way the catalogue prices: per deliverable. The
  * decision was taken rather than asked, because it is structural rather than a
@@ -85,29 +103,42 @@ export type TradeFloor =
  * ======================================================================
  *
  * Every entry below was pending when this file was written because no floor had
- * been ruled yet. They are pending NOW because the operator looked at all
- * eleven and decided to leave them pending.
+ * been ruled yet. They are pending NOW because the operator looked at the whole
+ * list and decided to leave them pending.
+ *
+ * **THAT IS ABOUT TO CHANGE. The operator ruled six floors on 2026-09-20**, and
+ * they are not written here yet because two of the six are WPI-8, which is one
+ * key holding two different jobs. The floors land with the WPI-8 split and the
+ * third state in one pass, rather than nine tenths of a ruling sitting in a file
+ * whose own header says it is ruled all at once.
  *
  * The distinction matters to whoever reads this next. An unfilled declaration
  * invites somebody to fill it; a ruled one does not. Nobody is waiting on a
- * prompt, nothing is half done, and the correct response to finding eleven
- * pending floors is to leave them alone.
+ * prompt, nothing is half done, and the correct response to finding a list of
+ * pending floors is to leave them alone until the operator rules.
  *
  * THE CONSEQUENCE, STATED SO IT IS NOT DISCOVERED
  * ------------------------------------------------
  * No trade price can be set on any service, at any value, by anybody.
  * `setTradePrice` refuses every deliverable, the operator's pricing screen shows
- * all eleven under "Awaiting a floor", and `trade-pricing-audit` passes over
- * that state rather than failing on it.
+ * every one of them under "Awaiting a floor", and `trade-pricing-audit` passes
+ * over that state rather than failing on it.
  *
  * **TRADE PRICING DOES NOT SELL UNTIL THE OPERATOR RULES THEM. RETAIL PRICING IS
  * UNAFFECTED.** The catalogue price is what every customer pays today and every
  * order path is untouched by this file: a deliverable with no floor is quoted at
  * its published price exactly as it was before Section 2 existed.
  *
+ * **AND ON 2026-09-20 THAT SENTENCE TURNED OUT TO BE CARRYING MORE THAN IT
+ * KNEW.** "Its published price" was the CATALOGUE's price, and the catalogue
+ * disagreed with the published price on every priced line. The ruling is that
+ * `src/config/prices.ts` is the price and the catalogue is corrected to match,
+ * which is done; the mechanism that leaves the catalogue holding no prices at
+ * all is the next commit.
+ *
  * There is a second and independent reason nothing sells at trade pricing, and
  * it is worth knowing before these are ruled: the whole order path is behind the
- * compliance gate, which is shut on four conditions. Ruling these eleven does
+ * compliance gate, which is shut on four conditions. Ruling the whole list does
  * not by itself put a trade price in front of a customer.
  */
 
@@ -118,8 +149,10 @@ const AWAITING =
 /**
  * One entry per catalogue deliverable, keyed `serviceSlug/tier`.
  *
- * EVERY ONE IS PENDING AS OF 2026-09-14. That is the whole list the operator
- * rules in one pass, and until they do, no trade price can be set on anything.
+ * EVERY ONE IS STILL PENDING AS OF 2026-09-20, AND SIX ARE NOW RULED BUT NOT
+ * YET WRITTEN. The operator rules the list in one pass; two of the six ruled
+ * floors belong to WPI-8, which is one key covering two different jobs, so the
+ * pass waits on that split rather than landing partly.
  */
 export const TRADE_FLOORS: Record<string, TradeFloor> = {
   /* ---------------------------------------------------------- field orders */
