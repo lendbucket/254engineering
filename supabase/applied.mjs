@@ -1018,7 +1018,7 @@ export const APPLIED = [
     fingerprint: "9ea2049c0f7e4fd0028c88048abf9866",
     behaviour: "61cea197e8bde99fdae5c2ca7c2ae1a1",
     proves: { column: { table: "eng_design_inquiries", name: "respond_by" } },
-    production: null,
+    production: "2026-09-20",
     development: { at: "0050", behaviour: null, facts: 863 },
     because:
       "PENDING, AND DELIBERATELY SO. Tonight's limits forbid applying anything to production, and a " +
@@ -1044,7 +1044,11 @@ export const APPLIED = [
       "Replayed into the in process engine and read back: shape 9ea2049c0f7e4fd0028c88048abf9866 " +
       "across 1,085 columns and 77 tables, behaviour 61cea197e8bde99fdae5c2ca7c2ae1a1 across 863 " +
       "facts. NOT YET APPLIED TO DEVELOPMENT EITHER, so no development digest is recorded and none is " +
-      "invented, which is the defect this ledger was corrected for on 2026-09-13.",
+      "invented, which is the defect this ledger was corrected for on 2026-09-13. " +
+      "APPLIED TO PRODUCTION 2026-09-20 through apply_migration at the keyboard on the operator's word, " +
+      "and READ BACK rather than assumed: shape 9ea2049c0f7e4fd0028c88048abf9866 across 1,085 columns and " +
+      "77 tables, matching the replay exactly. eng_design_inquiries holds 26 columns, 4 check constraints, " +
+      "2 indexes, row level security on, and 0 rows.",
   },
 
   {
@@ -1052,7 +1056,7 @@ export const APPLIED = [
     fingerprint: "aa53ea353a4128696a23e03feadd1e48",
     behaviour: "9b345f45ce25d2cc08a905c752255348",
     proves: { column: { table: "eng_determinations", name: "relied_on_item_keys" } },
-    production: null,
+    production: "2026-09-20",
     development: { at: "0051", behaviour: null, facts: 880 },
     because:
       "PENDING. Tonight's limits forbid production and it has not been applied to development either, " +
@@ -1086,14 +1090,19 @@ export const APPLIED = [
       "five, REVISE as package_incomplete and SITE REVISIT as return_visit. The fact count is " +
       "unchanged at 880 and the shape is untouched; one check constraint's definition differs. " +
       "Production, development and the cutover project were all read that day and none holds " +
-      "eng_determinations, which is what makes editing it right rather than forbidden.",
+      "eng_determinations, which is what makes editing it right rather than forbidden. " +
+      "APPLIED TO PRODUCTION 2026-09-20, READ BACK: shape aa53ea353a4128696a23e03feadd1e48 across 1,103 " +
+      "columns, 79 tables and 62 triggers, matching the replay exactly. Both tables hold 0 rows. AND THE " +
+      "CORRECTION LANDED AS THE DOCUMENT SPELLS IT, read back by pg_get_constraintdef: the determination " +
+      "check reads pass, revise, repairs-required, site-revisit, decline. The paraphrase never reached a " +
+      "database.",
   },
   {
     file: "0052_an_approval_and_its_items_are_one_act.sql", appliedBy: "apply_migration",
     fingerprint: "aa53ea353a4128696a23e03feadd1e48",
     behaviour: "6404e2e8de33bff848e94b67da7addc4",
     proves: { function: "eng_approve_protocol" },
-    production: null,
+    production: "2026-09-20",
     development: { at: "0052", behaviour: null, facts: 889 },
     note:
       "The shape fingerprint repeats 0051's on purpose. This migration adds no column and no table: it " +
@@ -1139,14 +1148,18 @@ export const APPLIED = [
       "operator's limits name outright. Injection-verified six ways, one guard at a time, each read " +
       "for WHICH check went red. Three of the six passed vacuously on the first attempt, each because " +
       "the deferred assertion answered a question a different guard was named for, and the fixtures " +
-      "were sharpened until each refusal names its own guard.",
+      "were sharpened until each refusal names its own guard. " +
+      "APPLIED TO PRODUCTION 2026-09-20, READ BACK: shape aa53ea353a4128696a23e03feadd1e48 across 1,103 " +
+      "columns and 79 tables, UNCHANGED from 0051, which is the point of this migration. Triggers 62 to 66 " +
+      "and functions 16 to 21, exactly the four and the five. No function carries an unpinned search_path, " +
+      "and eng_approve_protocol(uuid,uuid,text,jsonb) resolves.",
   },
   {
     file: "0053_a_file_can_be_waiting_on_an_owner.sql", appliedBy: "apply_migration",
     fingerprint: "257175e8e5ff6dc855afd5a3607752c5",
     behaviour: "5d9821e62f331e895c7b818e80d0b994",
     proves: { column: { table: "eng_files", name: "repairs_required_at" } },
-    production: null,
+    production: "2026-09-20",
     development: { at: "0053", behaviour: null, facts: 908 },
     because:
       "PENDING, and it stays on feat/protocol-screens with 0050, 0051 and 0052 until somebody is at " +
@@ -1184,7 +1197,13 @@ export const APPLIED = [
       "three-line triggers, so neither touches a column its own table lacks. And a check asserted the " +
       "refusal said 'no conditional certification', which it does say, just past the 130 character " +
       "clip the fixture applies to an error. A check on wording is a check on wording even when the " +
-      "wording is right.",
+      "wording is right. " +
+      "APPLIED TO PRODUCTION 2026-09-20, READ BACK: shape 257175e8e5ff6dc855afd5a3607752c5 across 1,116 " +
+      "columns and 80 tables, matching the replay exactly. Triggers 66 to 69, functions 21 to 25, zero " +
+      "unpinned search_paths, row level security on all 80. eng_repair_items holds 0 rows, and the file " +
+      "status check reads back carrying repairs_required between revisions_requested and refused. " +
+      "THE PRE-FLIGHT GUARD PASSED BECAUSE PRODUCTION HAS NEVER HELD A PROTOCOL ROW: eng_protocol_templates " +
+      "and eng_files were both read at 0 rows before the migration was sent, checked rather than assumed.",
   },
 ];
 
