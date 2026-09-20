@@ -48,7 +48,25 @@ const when = (value: string) =>
 
 export default async function InquiriesPage() {
   const actor = await currentActor();
-  if (!can(actor, "files.list")) notFound();
+  /*
+   * files.create RATHER THAN files.list, AND THE BOARD IS WHY.
+   *
+   * This shipped gated on files.list, and roles-audit went red: "an engineer
+   * does not get /portal/inquiries (HTTP 200)". The engineer HOLDS files.list,
+   * so the page opened to him while the ruling recorded beside it said he was
+   * refused. One fact with two homes, the guard and the ruling, disagreeing on
+   * the first board after they were written.
+   *
+   * The RULING is the operator's and it stands: a design brief is commercial
+   * intake, who is asking and when somebody must ring them back. He scopes the
+   * work once it is a job; deciding whether to pursue an enquiry is the firm's
+   * business. So the guard moves to match it.
+   *
+   * files.create is the intake grant, the one behind "New job", and an engineer
+   * does not hold it. That is the honest expression of "this is intake" rather
+   * than a permission minted to produce a refusal.
+   */
+  if (!can(actor, "files.create")) notFound();
 
   const rows = await designInquiries(actor);
   const open = rows.filter((r) => r.responded_at === null);

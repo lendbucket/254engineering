@@ -64,7 +64,9 @@ const COLUMNS =
  */
 export async function designInquiries(actor: Actor | null): Promise<InquiryRow[]> {
   const db = supabaseAdmin();
-  if (!db || !can(actor, "files.list")) return [];
+  /* files.create, the intake grant. See the note on the page: an engineer
+   * holds files.list, and the ruling is that design briefs are intake. */
+  if (!db || !can(actor, "files.create")) return [];
   const { data } = await db
     .from("eng_design_inquiries")
     .select(COLUMNS)

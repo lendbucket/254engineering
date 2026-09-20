@@ -123,6 +123,20 @@ const FIRM_NAMES =
  * Department of Insurance.
  */
 export const NEVER_CLAIMS = [
+  /*
+   * A BENCH IS A CLAIM ABOUT CAPACITY NOBODY CAN MAKE. Operator ruling,
+   * 2026-09-20, moving these two out of the gated sets where they had been
+   * sitting as though they were waiting for something.
+   *
+   * They are not. THERE IS ONE ENGINEER. These do not become publishable when
+   * the firm starts trading, and they do not become publishable when a protocol
+   * is approved, because neither event produces a second person. A second
+   * engineer would not release them either: the sentence would still be
+   * describing a review desk rather than the person who takes responsible
+   * charge, which is the fiction the whole gate exists to prevent.
+   */
+  { pattern: /our engineers/i, why: "plural engineer fiction, and there is one engineer" },
+  { pattern: /the same engineers/i, why: "implies a review bench, which is a capacity claim nobody can make" },
   {
     pattern: new RegExp(`${NEGATION_GUARD}guarantee[ds]?\\s+(?:approval|permit|pass|certification|results?)`, "i"),
     why: "guaranteed approval",
@@ -247,6 +261,84 @@ export const PRESENT_TENSE_SEALING = [
 
 /** Every regulated claim for a site with both gates down. */
 export const ALL_REGULATED = [...PRESENT_TENSE_OFFER, ...PRESENT_TENSE_SEALING];
+
+/**
+ * ===========================================================================
+ * THE THREE GATES, BECAUSE ONE GATE STOPPED MEANING ONE THING.
+ * Operator ruling, 2026-09-20.
+ * ===========================================================================
+ *
+ * ALL_REGULATED was checked under a single condition, and while the gate was a
+ * boolean that was right. It is three states now, and the patterns above stopped
+ * answering to the same question: some describe a firm that is not registered,
+ * some describe work being sealed, and some invite an order. Those three become
+ * true on three different days.
+ *
+ * Holding them together meant the conservative choice blocked sentences that are
+ * TRUE. The firm is registered, F-29811 is active, and an engineer of record is
+ * on the register: a partner writing "we provide" of that firm is stating a
+ * fact, and a check calling it a regulated claim is a check that has stopped
+ * describing the world.
+ *
+ * SO EACH SET NAMES THE CONDITION THAT RETIRES IT.
+ *
+ *   TRADING_GATED   false until the firm is registered with an engineer of
+ *                   record. True today, so these no longer fire.
+ *   SEALING_GATED   false until a protocol is approved and something can
+ *                   actually be sealed. NOT true today and the sharpest of the
+ *                   three: it ties the copy to the precondition that makes it
+ *                   true rather than to the money switch, so these keep firing
+ *                   through the whole of trading.
+ *   OPEN_GATED      about orders and money, retired when the firm opens.
+ *
+ * AND TWO THAT NEVER RETIRE, moved to NEVER_CLAIMS where they belong. "our
+ * engineers" and "the same engineers" are not waiting on a gate: THERE IS ONE
+ * ENGINEER, and a bench is a claim about capacity nobody can make. A second
+ * engineer would not release them either, because the sentence would still be
+ * describing a review desk rather than a person.
+ */
+
+/**
+ * Retired at TRADING. A firm with a registration and an engineer of record may
+ * say it provides engineering, because it does.
+ *
+ * NOTHING HERE MAY LET A PARTNER TYPE THE FIRM NAME, and that is the operator's
+ * caveat rather than a detail. The board holds 254 Services LLC and the state
+ * holds 254 Engineering LLC. Partner copy that types either one goes stale at
+ * reissuance and nobody will re-read it, so the third person patterns naming the
+ * firm stay in SEALING_GATED: they are the ones that would permit a typed name,
+ * and they stay blocked until the copy derives it from firmName().
+ */
+export const TRADING_GATED = [
+  { pattern: /we (?:offer|provide|perform|deliver|issue|inspect|certify)/i, why: "first person service claim" },
+  { pattern: /our licensed (?:pe|professional engineer)/i, why: "claims a PE on staff" },
+];
+
+/**
+ * Retired when SEALING IS AVAILABLE, which is an approved protocol rather than
+ * an open gate. A registered firm with an engineer and no approved protocol can
+ * seal nothing, and every one of these says it is sealing.
+ *
+ * The third person patterns live here rather than in TRADING_GATED because they
+ * name the firm. See the note above: a typed firm name is a stale firm name.
+ */
+export const SEALING_GATED = [
+  ...PRESENT_TENSE_SEALING.filter(
+    (r) => !/our engineers|the same engineers/i.test(r.why + String(r.pattern)),
+  ),
+  { pattern: /we (?:seal|stamp)/i, why: "first person sealing claim" },
+  PRESENT_TENSE_OFFER.find((r) => r.why === "third person service claim, naming the firm"),
+  PRESENT_TENSE_OFFER.find((r) => r.why === "states the firm is performing and sealing now"),
+  { pattern: /we will seal/i, why: "promises a seal" },
+].filter(Boolean);
+
+/** Retired when the firm OPENS. Orders and money, and nothing else. */
+export const OPEN_GATED = [
+  { pattern: /order (?:a|an|your)/i, why: "invites an order" },
+  { pattern: /schedule (?:an|your) inspection/i, why: "invites a booking" },
+  { pattern: /now accepting/i, why: "states the firm is trading" },
+  { pattern: /get started today/i, why: "invites an order" },
+];
 
 /** Matches from a pattern group, as { why, match, index }. */
 export function findClaims(text, group) {

@@ -95,7 +95,10 @@ export const NAV: NavItem[] = [
     href: "/portal/inquiries",
     label: "Design briefs",
     short: "Briefs",
-    action: "files.list",
+    /* files.create, the intake grant, matching the page's guard. On files.list
+     * the link appeared for an engineer and the page then refused him, which is
+     * the nav-disagrees-with-the-door defect this file's header warns about. */
+    action: "files.create",
     icon: "files",
   },
   { href: "/portal/review", label: "Review queue", short: "Review", action: "review.queue", primary: true, icon: "review" },
