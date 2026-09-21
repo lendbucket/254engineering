@@ -687,6 +687,34 @@ export const RETENTION_POLICY: RetentionEntry[] = [
       ruledBy: "operator, 2026-09-09, and 0032",
     },
   },
+  /*
+   * 0054. Somebody asked whether an existing building could be certified.
+   *
+   * THE SAME RULE AS eng_design_inquiries AND FOR THE SAME REASON: personal
+   * data about a person who may never become a client, which is the question
+   * counsel is being asked about for the contact and lead tables. It gets no
+   * floor invented for it here.
+   *
+   * The two are separate TABLES because the questions differ, which 0054 argues
+   * at length. They are not separate retention decisions, and pretending they
+   * were would be inventing a distinction to match a schema rather than a
+   * reason.
+   *
+   * IT SITS HERE RATHER THAN BESIDE ITS SIBLING BECAUSE THE LIST IS
+   * ALPHABETICAL, and the audit enforces that so nobody has to decide where a
+   * new table belongs. The first version of this entry was put next to
+   * eng_design_inquiries on the reasoning that they are the same decision, and
+   * the audit refused it by name. Grouping by meaning is exactly the judgement
+   * the ordering exists to remove: a list that can be diffed against the schema
+   * needs no opinion about which tables are alike.
+   */
+  {
+    table: "eng_windstorm_inquiries",
+    rule: {
+      kind: "kept_pending_counsel",
+      because: "An enquiry from somebody who may never become a client. " + COUNSEL,
+    },
+  },
 ];
 
 /** Every table the declaration names, for a check to compare against the schema. */

@@ -82,6 +82,46 @@ console.log("");
   );
 }
 
+/* ---- the operator's case: work either side of the line, on one structure ---- */
+{
+  /*
+   * A 1985 ADDITION AND A 2021 REROOF. The case the operator named, and it is
+   * sharper than the 1975 house above because BOTH dates are work rather than
+   * one being the building's age: one falls before the line and one after, on
+   * the same structure, and the structure is in scope.
+   *
+   * This is what "a structure can have more than one" means where it bites. A
+   * rule that took the earliest date, or that required every date to qualify,
+   * would refuse this and would look entirely reasonable doing it.
+   */
+  const v = windstormScopeVerdict([
+    { what: "Addition", year: 1985 },
+    { what: "Roof replaced", year: 2021 },
+  ]);
+  check(
+    "a 1985 addition and a 2021 reroof puts the structure IN SCOPE",
+    v.state === "in_scope",
+    `${v.state}. One date each side of the line, and the later one decides.`,
+  );
+  check(
+    "and only the 2021 work is named as qualifying",
+    v.state === "in_scope" && v.inScope.length === 1 && v.inScope[0].year === 2021,
+    v.state === "in_scope" ? v.inScope.map((w) => w.year).join(", ") : "no verdict",
+  );
+  /*
+   * AND THE STORED COLUMN CARRIES THE SAME ANSWER. The table keeps one year,
+   * `most_recent_work_year`, and the route writes the most recent. That is
+   * exact rather than a shortcut, and this asserts the equivalence: the verdict
+   * on the whole list matches the verdict on the most recent alone.
+   */
+  const stored = windstormScopeVerdict([{ what: "Roof replaced", year: 2021 }]);
+  check(
+    "and storing only the most recent year gives the same verdict",
+    stored.state === v.state,
+    `list ${v.state}, most recent alone ${stored.state}`,
+  );
+}
+
 /* ---- a structure can have more than one date ---- */
 {
   const v = windstormScopeVerdict([

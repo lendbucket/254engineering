@@ -17,6 +17,12 @@ by injecting a violation before it is trusted, and every completion claim is ver
 from a running app. A check that passes while looking at the wrong thing is the recurring defect
 class here. Hunt it.
 
+**Two files to read at the moment they apply**, neither of which is standing law and both of which
+exist because prose in this file was not enough on its own. `docs/new-surface-checklist.md` is read
+BEFORE building a portal screen, a portal API route or a table, and again before the board: it is
+the seven declared inventories each must appear in, verified on disk, and the one of them nothing
+sweeps. `docs/lessons.md` is read when writing a figure into a file that outlives the session.
+
 **Two sentences to have in mind from the first command of a session**, because each has cost a run
 more than once and each is invisible from its own symptom.
 
