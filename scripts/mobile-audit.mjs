@@ -375,7 +375,32 @@ async function measurePage(base, browser, path, width, probe = null, session = "
 
     return { hscroll, taps, clip, note: notes.join(" | ") };
   } catch (err) {
-    return { hscroll: false, taps: false, clip: false, note: `error: ${String(err.message).split("\n")[0]}` };
+    /*
+     * =====================================================================
+     * UNREACHABLE IS NOT FAILED. Operator ruling, 2026-09-20.
+     * =====================================================================
+     *
+     * This returned three false verdicts and a note, so a page that never
+     * loaded printed `hscroll=FAIL taps=FAIL clip=FAIL` and went into the
+     * failure list as three content findings about a page nobody saw.
+     *
+     * On 2026-09-20 `/portal/accounts` exceeded a 90 second navigation timeout
+     * and this audit reported it as a mobile layout defect at three widths,
+     * while `mobile-overflow-audit` and `native-audit` reported the same screen
+     * as COULD NOT TELL. Three audits, one cause, two different kinds of red.
+     *
+     * **A RED THAT DOES NOT MEAN WHAT IT SAYS TEACHES PEOPLE TO IGNORE REDS**,
+     * which is the same defect `launch-audit` carried for two days, and it is
+     * worse here because the sentence is specific: it names a tap target
+     * problem that was never measured.
+     */
+    return {
+      unreachable: true,
+      hscroll: null,
+      taps: null,
+      clip: null,
+      note: `error: ${String(err.message).split("\n")[0]}`,
+    };
   } finally {
     await context.close();
   }
@@ -459,6 +484,11 @@ async function main() {
     const browser = await chromium.launch();
     const rows = [];
     const failures = [];
+    /*
+     * The third verdict, kept apart from `failures` on purpose. A finding stops
+     * the run; a screen that never answered says so loudly and does not.
+     */
+    const unreachable = [];
 
     const sessions = {};
     for (const role of ["admin", "engineer", "field_tech"]) {
@@ -489,10 +519,15 @@ async function main() {
           t.session ?? "staff",
         );
         cells[w] = cell;
-        log(
-          `  ${pad(t.name, 18)} @${w}: hscroll=${cell.hscroll ? "ok" : "FAIL"} taps=${cell.taps ? "ok" : "FAIL"} clip=${cell.clip ? "ok" : "FAIL"}${cell.note ? "  (" + cell.note + ")" : ""}`,
-        );
-        if (!cell.hscroll || !cell.taps || !cell.clip) failures.push(`${t.name} @${w}: ${cell.note || "fail"}`);
+        if (cell.unreachable) {
+          log(`  ${pad(t.name, 18)} @${w}: COULD NOT TELL  (${cell.note})`);
+          unreachable.push(`${t.name} @${w}: ${cell.note}`);
+        } else {
+          log(
+            `  ${pad(t.name, 18)} @${w}: hscroll=${cell.hscroll ? "ok" : "FAIL"} taps=${cell.taps ? "ok" : "FAIL"} clip=${cell.clip ? "ok" : "FAIL"}${cell.note ? "  (" + cell.note + ")" : ""}`,
+          );
+          if (!cell.hscroll || !cell.taps || !cell.clip) failures.push(`${t.name} @${w}: ${cell.note || "fail"}`);
+        }
       }
       rows.push({ name: t.name, cells });
     }
@@ -521,7 +556,7 @@ async function main() {
       let line = pad(row.name, 20);
       for (const w of WIDTHS) {
         const c = row.cells[w];
-        line += pad(c.hscroll && c.taps && c.clip ? "pass" : "FAIL", 10);
+        line += pad(c.unreachable ? "no load" : c.hscroll && c.taps && c.clip ? "pass" : "FAIL", 10);
       }
       log(line);
     }
@@ -538,9 +573,24 @@ async function main() {
     if (!menuOk) failures.push(`menu: ${menu.note || "one or more menu checks failed"}`);
 
     log("\n================ RESULT ================");
+
+    /*
+     * THE THIRD VERDICT IS SAID LOUDLY WHETHER OR NOT ANYTHING FAILED, because
+     * a green board over a half that never happened is the other way to lie.
+     */
+    if (unreachable.length > 0) {
+      log(`COULD NOT TELL: ${unreachable.length} combination(s) never loaded, so nothing was measured on them:`);
+      unreachable.forEach((u) => log("  - " + u));
+      log("  That is not a finding about those pages. Re-run before believing anything about them.");
+      log("");
+    }
+
     if (failures.length === 0) {
+      const measured = `Zero horizontal scroll, every tap target satisfies WCAG 2.5.8 at ${MIN_TAP}px, menu behaves.`;
       log(
-        `ALL GREEN. Zero horizontal scroll, every tap target satisfies WCAG 2.5.8 at ${MIN_TAP}px, menu behaves.`,
+        unreachable.length === 0
+          ? `ALL GREEN. ${measured}`
+          : `GREEN ON WHAT LOADED, and ${unreachable.length} combination(s) were not measured either way. ${measured}`,
       );
       process.exitCode = 0;
     } else {

@@ -193,10 +193,21 @@ async function auditPage(browser, base, t, width, sessions = {}) {
      * of traffic. Public pages keep networkidle: they carry photographs, and a
      * late loading image is exactly the thing that changes a contrast result.
      */
+    /*
+     * NAVIGATION IS TRACKED SEPARATELY SO THE CATCH CAN TELL THE TWO APART.
+     *
+     * A page that never loaded and a page that loaded and then broke an
+     * assertion both land in the same catch, and only the first is a
+     * COULD NOT TELL. The flag answers structurally; reading the error message
+     * for the word "timeout" would be a check on the wording of somebody
+     * else's exception.
+     */
+    let navigated = false;
     const res = await page.goto(base + t.path, {
       waitUntil: t.portal ? "domcontentloaded" : "networkidle",
       timeout: 90_000,
     });
+    navigated = true;
     if (t.portal) {
       await page
         .locator("[data-portal-scroll], main")
@@ -291,7 +302,30 @@ async function auditPage(browser, base, t, width, sessions = {}) {
     }
     return { error: null, contrast, other };
   } catch (err) {
-    return { error: `error: ${String(err.message).split("\n")[0]}`, contrast: [], other: [] };
+    /*
+     * =====================================================================
+     * UNREACHABLE IS NOT FAILED. Operator ruling, 2026-09-20.
+     * =====================================================================
+     *
+     * A navigation that never completed was counted as a `pageError` and made
+     * this audit exit non zero, alongside real findings like a wrong HTTP
+     * status, a bounce to the sign in screen and a probe left behind. On
+     * 2026-09-20 `/portal/accounts` exceeded its 90 second timeout at two
+     * widths and this audit went red, while `mobile-overflow-audit` and
+     * `native-audit` reported the same screen as COULD NOT TELL.
+     *
+     * Only the navigation case moves. The other five things `pageErrors`
+     * counts are findings about the application and stay findings: a screen
+     * that answers 500, one that bounces a valid session to sign in, one that
+     * renders the wrong state, a missing probe session, and a probe not swept
+     * are each something somebody has to fix.
+     */
+    return {
+      error: `error: ${String(err.message).split("\n")[0]}`,
+      unreachable: !navigated,
+      contrast: [],
+      other: [],
+    };
   } finally {
     await context.close();
   }
@@ -349,10 +383,17 @@ async function main() {
     const contrastSeen = new Map();
     const otherSeen = new Map();
     let pageErrors = 0;
+    /* The third verdict, kept apart from pageErrors. It reports, it does not fail. */
+    const neverLoaded = [];
 
     for (const t of [...TEMPLATES, ...OPEN_TEMPLATES, ...PORTAL_TEMPLATES]) {
       for (const w of WIDTHS) {
         const r = await auditPage(browser, base, t, w, sessions);
+        if (r.unreachable) {
+          log(`  ${t.name} @${w}: COULD NOT TELL, ${r.error}`);
+          neverLoaded.push(`${t.name} @${w}: ${r.error}`);
+          continue;
+        }
         if (r.error) {
           log(`  ${t.name} @${w}: ${r.error}`);
           pageErrors++;
@@ -413,9 +454,24 @@ async function main() {
         `${PORTAL_TEMPLATES.length} signed in screens across ` +
         `${new Set(PORTAL_TEMPLATES.map((t) => t.session)).size} principals, at ${WIDTHS.join(" and ")}.`,
     );
+    /*
+     * SAID LOUDLY, AND SAID WHETHER OR NOT ANYTHING FAILED. A green over a half
+     * that never happened is the other way to lie.
+     */
+    if (neverLoaded.length > 0) {
+      log("");
+      log(`COULD NOT TELL: ${neverLoaded.length} combination(s) never loaded, so no contrast was measured on them:`);
+      neverLoaded.forEach((u) => log("  - " + u));
+      log("  That is not a finding about those screens. Re-run before believing anything about them.");
+    }
+
     const total = contrastSeen.size + otherSeen.size;
     if (total === 0 && pageErrors === 0) {
-      log("ALL GREEN. No WCAG A/AA violations across templates.");
+      log(
+        neverLoaded.length === 0
+          ? "ALL GREEN. No WCAG A/AA violations across templates."
+          : `GREEN ON WHAT LOADED. No WCAG A/AA violations across the templates that rendered, and ${neverLoaded.length} combination(s) were not measured either way.`,
+      );
       process.exitCode = 0;
     } else {
       log(
