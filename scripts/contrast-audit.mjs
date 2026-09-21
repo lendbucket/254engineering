@@ -172,6 +172,22 @@ async function auditPage(browser, base, t, width, sessions = {}) {
     await context.addCookies(cookies);
   }
   const page = await context.newPage();
+
+  /*
+   * DECLARED OUTSIDE THE TRY, BECAUSE THE CATCH IS WHAT READS IT.
+   *
+   * The first version declared this inside the try, next to the goto it
+   * describes, which reads better and does not work: `let` is block scoped, so
+   * the catch threw "navigated is not defined" and took the whole audit down.
+   * Every template at both widths went unmeasured.
+   *
+   * Found by the board on 2026-09-21, which is the second crash in one night
+   * from a check added to an audit and committed without being run standalone.
+   * The first was forms-audit. This one was recorded in BACKLOG as "committed
+   * and unproven" hours before it fired, which is the record working and is not
+   * the same as the check working.
+   */
+  let navigated = false;
   try {
     /*
      * NETWORKIDLE ON A PUBLIC PAGE, AND NOT ON A SIGNED IN ONE.
@@ -202,7 +218,6 @@ async function auditPage(browser, base, t, width, sessions = {}) {
      * for the word "timeout" would be a check on the wording of somebody
      * else's exception.
      */
-    let navigated = false;
     const res = await page.goto(base + t.path, {
       waitUntil: t.portal ? "domcontentloaded" : "networkidle",
       timeout: 90_000,
