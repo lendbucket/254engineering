@@ -87,6 +87,41 @@ nothing about the thing that actually happens. The next board where
 `contrast-audit` reports `/portal/accounts` as could-not-tell rather than failing
 is the proof, and if it fails instead, that is the finding.
 
+## SURVEY OWED: FINDINGS RECORDED WHERE NOBODY LOOKS
+
+Operator ruling, 2026-09-20. Report only. **Phase 14 opens with this and the
+prefix survey below.**
+
+**Three instances in one night, and none of them was hidden. Each was written
+down carefully, in a place that is not `BACKLOG.md`.**
+
+| Where it was | What it was |
+| --- | --- |
+| A conversation transcript | The signed protocol routed open-claim work to a forensic line the firm had stopped offering. Reported, acted on, never filed. When the operator asked for the entry to be closed, there was no entry. |
+| A constant in `engineer-pay.ts` | `WPI8_ONGOING_TIER = 3`, the engineer's ruling that ongoing construction is tier 3. Correct, committed, and **read by nothing** for two days. |
+| A comment in `forms-audit.mjs` | "seven probe rows a run, 306 of them now, on a screen that cannot page. Repeating a known mistake to gain a check is a bad trade." A known defect, described precisely, explaining why a check was not added. It reached 349 rows before anything acted on it. |
+
+**THE THIRD IS THE SHARPEST BECAUSE IT IS THE MOST CONSCIENTIOUS.** Somebody
+declined to add a check, and wrote down why, at the exact spot where the next
+reader of that file would see it. That is good practice for the file. It is not
+a place anybody reads when asking "what is broken", and the defect grew for a
+fortnight while its description sat in the source.
+
+**THE RULE THIS FILE ALREADY MAKES, APPLIED TO FINDINGS RATHER THAN DOCUMENTS.**
+The header says an item may keep its reasoning wherever that reasoning belongs,
+and may not exist ONLY there. `backlog-audit` enforces it for documents under
+`docs/`. Nothing enforces it for a finding recorded in a comment, a commit
+message, a constant, or a report.
+
+**WHAT THE SURVEY ASKS.** Where are the findings that never reached here. Places
+to start, none checked: comments in `scripts/` explaining why a check was not
+added or was narrowed; `as of` and `today` and `for now` in source comments;
+declared constants nothing imports; and the commit messages of anything
+described as "recorded" or "noted" that has no entry in this file.
+
+**A finding recorded in a report closes when the conversation ends.** That is
+the sentence to carry.
+
 ## SURVEY OWED: WHICH COMPARISONS MATCH A PREFIX WHERE THEY SHOULD MATCH THE WHOLE
 
 Operator ruling, 2026-09-20. Report only. Not tonight.
