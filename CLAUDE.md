@@ -550,6 +550,35 @@ BASE_URL=https://254engineering.com npx tsx scripts/security-audit.mjs
 **Every audit is verified by injecting a violation and watching it fail before its green is
 trusted.** An audit that has never failed has never been tested.
 
+**AND A CHECK THAT HAS NEVER RUN IS NOT A CHECK. A CHECK THAT CRASHES TAKES ITS
+NEIGHBOURS WITH IT.** Operator ruling, 2026-09-20.
+
+A new check was added to `forms-audit`, which covers four forms, and committed
+WITHOUT BEING RUN, on the reasoning that it needs a server and the board would
+run it. It referenced `PROBE_EMAIL`, a constant that does not exist in that
+file. The audit died on that line before driving a single form.
+
+**The product was untouched and three working forms went unmeasured, on a board
+that would otherwise have been pushed.** The check added for the fourth form
+removed the other three from the board's coverage.
+
+**The rules already here each said part of it and none said this.** "An audit
+that has never failed has never been tested" assumes a green to distrust; this
+had no run at all. "A green audit is a green audit of the files it read" assumes
+it read something. What neither says is that **an audit is a SHARED SUBJECT, so
+breaking the harness is a different class of mistake from writing a wrong
+assertion.** A wrong assertion fails loudly and names itself. A crash deletes
+the whole subject and reports as one red audit among fifty-eight, which looks
+like one finding and is fifty-eight fewer answers.
+
+**So anything added to an audit is run standalone before it is committed, and
+"it needs a server" is the reason to do it rather than the reason to skip it.**
+`forms-audit` does not start its own server; its preflight prints the two
+commands that stand one up, and following them costs a build and a minute. The
+version that ran afterwards passed 121 of 121 and proved the four new checks
+actually execute. That is the difference between a check and a sentence, and it
+was available the whole time.
+
 **AND THE BOARD IS RUN UNDER ITS OWN INVOCATION BEFORE ANY COMMIT IS REPORTED AS
 GREEN.** The rule already existed. It is recorded again here with what breaking
 it cost, on 2026-09-09, because the cost is the argument.

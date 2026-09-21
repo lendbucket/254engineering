@@ -465,19 +465,29 @@ async function windstormInquiryChecks() {
       .catch(() => false)) && posts.length === 0,
   );
 
+  /*
+   * THE EMAIL IS THE SAME LITERAL THE OTHER CHECKS USE, and the selects use
+   * this file's `page.selectOption(selector, value)` idiom.
+   *
+   * The first version of this block referenced `PROBE_EMAIL`, a constant that
+   * does not exist here, and forms-audit DIED ON THIS LINE before driving a
+   * single form. Three working forms went unmeasured because of a check added
+   * for a fourth. See the entry in CLAUDE.md: a check that has never run is not
+   * a check, and a check that crashes takes its neighbours with it.
+   */
   await page.locator('input[name="name"]').fill(MARKER);
-  await page.locator('input[name="email"]').fill(PROBE_EMAIL);
-  await page.locator('select[name="askingAs"]').selectOption("owner");
-  await page.locator('input[name="propertyAddress"]').fill("11 Probe Row, Corpus Christi");
+  await page.locator('input[name="email"]').fill("forms.audit@254engineering.com");
+  await page.locator('input[name="propertyAddress"]').fill("11 Audit Street, Corpus Christi");
   await page.locator('input[name="yearBuilt"]').fill("1995");
-  await page.locator('select[name="yearBuiltUnknown"]').selectOption("no");
   await page.locator('textarea[name="workDone"]').fill("Reroof in 2021 by a local contractor.");
   await page.locator('textarea[name="whatIsCovered"]').fill("Sheathing and deck attachment are covered.");
-  await page.locator('select[name="openingsRated"]').selectOption("unknown");
-  await page.locator('select[name="willOpenUp"]').selectOption("yes");
-  await page.locator('select[name="openInsuranceClaim"]').selectOption("no");
-  await page.locator('select[name="activeLitigation"]').selectOption("no");
-  await page.locator('select[name="priorAdverseReport"]').selectOption("no");
+  await page.selectOption('select[name="askingAs"]', "owner");
+  await page.selectOption('select[name="yearBuiltUnknown"]', "no");
+  await page.selectOption('select[name="openingsRated"]', "unknown");
+  await page.selectOption('select[name="willOpenUp"]', "yes");
+  await page.selectOption('select[name="openInsuranceClaim"]', "no");
+  await page.selectOption('select[name="activeLitigation"]', "no");
+  await page.selectOption('select[name="priorAdverseReport"]', "no");
 
   await submit.click();
   await page.waitForTimeout(900);
