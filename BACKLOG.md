@@ -60,6 +60,105 @@ anywhere but may not exist ONLY there, and this one existed only in a
 transcript. A finding recorded in a report is a finding that closes when the
 conversation ends.
 
+## PHASE 14: `mfa-audit` REPORTS AN UNREACHABLE DATABASE AS A CONTENT FINDING
+
+**Survey 3's first live instance, and it is ranked first.** Operator ruling,
+2026-09-21. Do not fix now: touching the audit means a receipt and another board.
+
+On the board at `4f0eb66`, `mfa-audit` printed
+
+    FAIL: the throwaway required role was cleaned up
+      (mfa_probe_required_1790000129147 is still on development: TypeError: fetch failed)
+
+The cleanup is `db.from("eng_roles").delete()`, a Supabase client call, so the
+failed fetch was **reaching the development database** and not the local server.
+`mfa-audit` is one of the four audits identified that same night as having no
+preflight guard, and this is what that costs: a network fault becomes a sentence
+about the state of the data.
+
+**The sentence happened to be TRUE, which is the part worth sitting with.** The
+role really was still there, because the delete that would have removed it is
+the thing that failed. **A check cannot tell "I asked and the answer is no" from
+"I could not ask", and here those two produce the same words.** The next time
+the fetch fails after a successful delete, the same line will be false and will
+read identically.
+
+**Ranked first of survey 3** because its failure mode is a red that means two
+things AND it leaves state behind, which the entry below is about.
+
+## PHASE 14: `mfa-audit`'s TEARDOWN DELETES ONE KEY WHERE `destroyProbes` SWEEPS A DOMAIN
+
+Operator ruling, 2026-09-21. Do not fix now, same reason.
+
+`mfa-audit` removes `REQUIRED_ROLE`, the key minted by THIS run. It does not
+sweep the probe domain. So a run whose teardown faults strands a role
+**permanently**, and every later run passes its own cleanup check while the
+stranded one sits there. Proven rather than argued: the audit was re-run
+standalone, passed 57 checks, created and removed its own role, and **left the
+earlier one untouched**.
+
+**This lesson is already written down in `scripts/lib/portal-probe.mjs`, and
+`mfa-audit` never received it:**
+
+> "EVERYTHING ON THE PROBE DOMAIN, not only what this run made. The first
+> version deleted the ids in `made` and then verified by sweeping the domain. So
+> a run that crashed before teardown left its accounts behind, and every later
+> run reported them as a failure it was not deleting: the cleanup and the
+> verification were looking at different sets. Deleting exactly what the
+> verification looks for is the only version where they agree."
+
+`mfa-audit` has the same shape with the halves swapped: its cleanup and its
+verification agree with each other perfectly, and both are scoped to one run, so
+neither can see what an earlier run left.
+
+**The general form, and it is the reason this is its own entry:** a lesson
+recorded in the file where it was learned protects that file. Nothing carried it
+to the other three places that create probe rows. That is the same failure as
+the survey two entries above, one level up: **a fix recorded where it happened
+is not a fix applied where it applies.**
+
+## MANUAL REMOVAL UNDER OPERATOR WORD, 2026-09-21
+
+`mfa_probe_required_1790000129147` was deleted from development by hand, that key
+and nothing else, on the operator's explicit word.
+
+**Why the run could not do it.** The teardown that would have removed it is the
+call that failed, and `mfa-audit`'s sweep is scoped to its own run, so no later
+run would ever have cleared it. The two entries above are why.
+
+Confirmed immediately before: 0 grants, 0 profiles, 8 roles, 3 system. Read back
+after: **7 roles, 3 system, 0 probe roles remaining.**
+
+Recorded because a destructive action taken by hand is the class this repository
+has already been bitten by: `docs/production-cutover-plan.md` once said a project
+had been deleted and it was alive eleven days later. A deletion with no record is
+a claim nothing supports.
+
+## THE BOARD OF 2026-09-21, RECORDED TRUTHFULLY
+
+**55 of 58. One FAIL, and it was TRUE rather than reclassified.**
+
+The prediction was 56 of 58 with zero FAIL lines and was **falsified**. Every
+prediction about the six commits under test held: `contrast-audit` passed after
+its crash fix, `forms-audit` 121/121, `surface-audit` 25. The miss was
+`mfa-audit`, which none of the six commits touches and which fails identically
+at `5bd0121`.
+
+Cause: one real network fault reaching the development database during teardown,
+plus a run-scoped teardown that cannot heal itself. Two `COULD NOT TELL` as
+ever, both `/portal/accounts`.
+
+**`contrast-audit` did not meet the stall**, so the third verdict's emitted
+output remains unproven. It measured `/portal/accounts` clean at both widths.
+
+**THE LAST FULLY GREEN BOARD REMAINS `5bd0121`**, and the next standalone sweep
+still measures from there. This board is not green and is not recorded as green.
+
+**One correction made before it reached a report:** a second `connect ETIMEDOUT`
+in the log was counted as a network fault and is not one. It is `order-audit`'s
+deliberate fixture, asserting that an unreachable provider changes nothing.
+There was one real fault in the run, not two.
+
 ## PHASE 14, FIRST ITEM: A COMMIT TOUCHING AN AUDIT CARRIES A STANDALONE RUN RECEIPT
 
 Operator ruling, 2026-09-21. **Recorded, not built.** It is the first Phase 14
