@@ -60,6 +60,33 @@ anywhere but may not exist ONLY there, and this one existed only in a
 transcript. A finding recorded in a report is a finding that closes when the
 conversation ends.
 
+## OWED: `contrast-audit`'s THIRD VERDICT IS COMMITTED AND UNPROVEN
+
+Recorded 2026-09-20, stated rather than glossed, on the operator's instruction.
+
+`0946bf7` gave `mobile-audit` and `contrast-audit` the `COULD NOT TELL` verdict
+the rest of the board already uses, so a screen that never loaded stops being
+reported as a content finding about a page nobody saw.
+
+**`mobile-audit`'s half is injection-verified in both directions.** Every
+navigation timed out and it said COULD NOT TELL, exited zero and claimed no
+layout defect; a real tap target finding still reddened it and named the
+control. The second direction is the one that mattered, because an audit that
+called everything could-not-tell would have passed the first perfectly.
+
+**`contrast-audit`'s half is neither injection-verified nor live-exercised.**
+Its injection was still running when the tree was needed for other work, its
+fixture was reverted surgically rather than by checkout because uncommitted
+changes lived in the same file, and the board that followed measured
+`/portal/accounts` successfully in that audit, so the new path never ran.
+
+**It is exercised the next time the stall fires, not by manufacturing one.**
+Operator ruling. The stall is intermittent and unexplained after six
+observations, and a synthetic timeout proves the code path while telling us
+nothing about the thing that actually happens. The next board where
+`contrast-audit` reports `/portal/accounts` as could-not-tell rather than failing
+is the proof, and if it fails instead, that is the finding.
+
 ## SURVEY OWED: WHICH COMPARISONS MATCH A PREFIX WHERE THEY SHOULD MATCH THE WHOLE
 
 Operator ruling, 2026-09-20. Report only. Not tonight.
