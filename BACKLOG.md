@@ -27,6 +27,40 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
+## FOR COUNSEL: TWO QUESTIONS ABOUT THE OFFER CLAUSE ON THE TERMS PAGE
+
+Recorded 2026-09-21 on the operator's instruction. **Not now, and not a thing a
+session decides.**
+
+`src/app/(site)/terms/page.tsx` states, under Firm registration status:
+
+> No page of this website should be read as an offer to perform engineering
+> services.
+
+**Question one: should "an offer" read "an offer capable of acceptance"?**
+The everyday word is the one in the clause today. The term of art names the
+thing actually being excluded, which is a communication a stranger could accept
+and thereby bind the firm. The clause matters because the site publishes prices,
+and a published price that is an offer capable of acceptance binds the firm to
+perform at that price on somebody else's say-so. Its value goes UP when the gate
+opens.
+
+**Question two: is the point stated in two places, and should it be?** The
+paragraph two above it already says an engagement begins only under a signed
+written agreement identifying the scope and the engineer in responsible charge.
+That is the same point in a different register. Two statements of one term are
+two statements that can drift, which is this repository's most frequent defect
+in its contractual form, and the answer may still be that a contract wants both.
+
+**How the clause got here, because it explains why it is being asked.** It was
+one half of a sentence whose other half had gone false, and this session removed
+both, giving a reason that was exactly backwards: that published prices
+contradict the disclaimer. Published prices are why it exists. The operator held
+the change, ruled the split, and kept the clause word for word apart from its
+dangling referent. `compliance-audit` passes it by construction rather than by
+exemption: its matcher looks for the DENIAL, `does not offer or perform`, and
+this sentence contains no denial.
+
 ## PLANNED, NEXT AFTER THE PROTOCOL LOAD: NO ACTION CHANGES A PROFILE'S LOGIN EMAIL
 
 Operator ruling, 2026-09-21. Recorded as a planned feature, at the top of the
