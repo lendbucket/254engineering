@@ -47,7 +47,7 @@
  * description. No fee figures anywhere: engineering fees vary by scope and a
  * number on this page would be invented.
  */
-import { firmName, registrationStatement } from "@/lib/launch";
+import { firmName, notYetTakingOrders, registrationStatement, responsibleChargeStatement } from "@/lib/launch";
 
 
 export type ProximitySection = {
@@ -382,8 +382,65 @@ export const proximityPages: ProximityPage[] = [
         title: "Where 254 Engineering Services currently stands",
         lede: "A page about verifying credentials should be checkable about its own.",
         body: [
-          [`${firmName()} is a veteran owned Texas firm, based in Corpus Christi and named for the 254 counties of Texas.`, registrationStatement(), "No Professional Engineer is yet in responsible charge."].filter(Boolean).join(" "),
-          "That means the firm does not currently offer or perform engineering services, and nothing on this site should be read as an offer to. Apply the checks on this page to it exactly as you would to anyone else, starting with the registration number above.",
+          /*
+           * ===================================================================
+           * A WIDENING, RECORDED AS ONE. Operator ruling, 2026-09-21:
+           * "the widening stands, recorded as widened under item 3's intent."
+           * ===================================================================
+           *
+           * WHAT WAS RULED AND WHAT WAS DONE ARE DIFFERENT SIZES, WHICH IS WHY
+           * THIS COMMENT EXISTS. Item 3 named `windstorm-program.ts` and said
+           * to replace its false responsible charge sentence with a derivation.
+           * Item 4, in the same decision, was REPORT ONLY: sweep for every
+           * other compliance sentence typed as a literal. This file was an item
+           * 4 finding, and it was fixed rather than reported.
+           *
+           * THE REASON, AND IT IS THE INTENT RATHER THAN THE WORDING. The
+           * sentence here was character for character the sentence item 3
+           * ordered removed, in the same `.filter(Boolean).join(" ")` idiom,
+           * and it was FALSE in the same way: `peInResponsibleCharge()` has
+           * answered true since a licence expiring 2028-01-31 was recorded.
+           * Reporting a known false compliance sentence and leaving it public
+           * for a sitting would have been obeying the letter of "report only"
+           * against the whole point of the gate.
+           *
+           * AND THE PAGE MATTERS. This is the page that tells a reader how to
+           * check an engineer's credentials. A page that is wrong about its own
+           * while teaching that has answered the reader's question anyway,
+           * which is the argument the block's own lede makes two lines up.
+           *
+           * THE OPERATOR UPHELD IT AFTER THE FACT. It was disclosed as a
+           * widening in the report, not buried in a diff, and the ruling above
+           * is his answer. The alternative was available and was offered:
+           * revert it to a report.
+           */
+          [
+            `${firmName()} is a veteran owned Texas firm, based in Corpus Christi and named for the 254 counties of Texas.`,
+            registrationStatement(),
+            responsibleChargeStatement(),
+          ]
+            .filter(Boolean)
+            .join(" "),
+          /*
+           * THE SECOND HOME OF THE SAME FALSE CLAUSE. Operator ruling,
+           * 2026-09-21: it predates F-29811 and is now false, because the firm
+           * is registered, has an engineer in responsible charge, and
+           * publishes prices.
+           *
+           * The sentence it opened with, "That means the firm does not
+           * currently offer or perform engineering services, and nothing on
+           * this site should be read as an offer to", also asserted that the
+           * whole site is not an offer, which is a claim this page is in no
+           * position to make about pages it does not control. What survives is
+           * the instruction to the reader, which is the useful half and the
+           * one the block's lede promises.
+           */
+          [
+            notYetTakingOrders(),
+            "Apply the checks on this page to this firm exactly as you would to anyone else, starting with the registration number above.",
+          ]
+            .filter(Boolean)
+            .join(" "),
         ],
       },
     ],

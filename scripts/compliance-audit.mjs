@@ -378,19 +378,262 @@ const {
    * must be there. Held means it must be gone, because a firm that has the
    * appointment and still says it does not is telling a different lie.
    */
+  /*
+   * =====================================================================
+   * REWRITTEN 2026-09-21, AND THE OLD CHECK WENT RED FIRST, CORRECTLY.
+   * =====================================================================
+   *
+   * It matched the literal "does not currently hold a Texas Department of
+   * Insurance windstorm appointment" in the page source. The sentence is now
+   * DERIVED from the register by `windstormAppointmentStatement()`, and the
+   * operator's ruling changed its subject as well: TDI appoints individual
+   * engineers, not firms, so the sentence names the engineer.
+   *
+   * A red board when an implementation is deliberately changed is the harness
+   * asking whether you meant it. The answer is never to loosen the pattern so
+   * it passes on both, which converts a check into a check on nothing. It
+   * names the new shape exactly, and it GAINS the check the old one could not
+   * make: the old one could not see whether the sentence was typed or derived,
+   * so it would have passed forever on a hardcoded literal that had gone
+   * false. That is precisely what happened to the responsible charge sentence
+   * three lines down the same page.
+   */
   const tdi = verifiedCredentials.find((c) => /TDI|Department of Insurance/i.test(c.issuer + c.name));
-  const windstorm = readSource("src/content/windstorm-program.ts");
-  const disclosesAbsence = windstorm.includes(
-    "does not currently hold a Texas Department of Insurance windstorm appointment",
+  const { windstormAppointmentStatement, responsibleChargeStatement, notYetTakingOrders } = await import(
+    "../src/lib/launch.ts"
+  );
+  const { inOpenGateProcess } = await import("./lib/gate-fixture.mjs");
+  const windstorm = codeOnly(readSource("src/content/windstorm-program.ts"));
+
+  rec(
+    "the windstorm page derives its TDI disclosure rather than typing one",
+    windstorm.includes("windstormAppointmentStatement()"),
+    windstorm.includes("windstormAppointmentStatement()")
+      ? "the page calls the deriver, so the register decides what it says"
+      : "the page states its own TDI sentence, which is the sentence nobody updates",
+  );
+
+  /*
+   * AND THE DERIVER AGREES WITH THE REGISTER, IN WHICHEVER DIRECTION IT
+   * POINTS. Not held means the sentence must deny an appointment. Held means
+   * it must not, because a firm that has the appointment and still says no
+   * engineer holds one is telling a different lie.
+   */
+  const sentence = windstormAppointmentStatement();
+  const deniesAppointment = /^No engineer at .+ currently holds a Texas Department of Insurance windstorm appointment\.$/.test(
+    sentence,
   );
   rec(
     tdi && !tdi.held
-      ? "the windstorm pages disclose that no TDI appointment is held, because the register says none is"
-      : "the windstorm pages no longer disclose an absent TDI appointment, because the register holds one",
-    Boolean(tdi) && (tdi.held ? !disclosesAbsence : disclosesAbsence),
-    tdi
-      ? `register: held ${tdi.held}; page discloses the absence: ${disclosesAbsence}`
-      : "no TDI record in the register, so nothing decides what the page should say",
+      ? "and it denies an appointment, because the register holds none"
+      : "and it states the appointment the register holds, rather than denying one",
+    Boolean(tdi) && (tdi.held ? !deniesAppointment && sentence.includes(String(tdi.identifier)) : deniesAppointment),
+    tdi ? `register: held ${tdi.held}; rendered: ${sentence}` : "no TDI record in the register, so nothing decides this",
+  );
+
+  /*
+   * =====================================================================
+   * AND NO SOURCE TYPES EITHER SENTENCE. SWEPT FROM DISK.
+   * Operator ruling, 2026-09-21, item 4 of the windstorm decision.
+   * =====================================================================
+   *
+   * THE DEFECT THIS EXISTS FOR WAS LIVE WHEN IT WAS WRITTEN, IN THREE PLACES.
+   * "No Professional Engineer is yet in responsible charge." was typed into
+   * windstorm-program.ts twice and structural-engineer.ts once, and
+   * `peInResponsibleCharge()` has answered TRUE since a licence expiring
+   * 2028-01-31 was recorded. Three public sentences denying the firm's own
+   * engineer of record, one of them on the page that teaches a reader how to
+   * verify an engineer's credentials.
+   *
+   * It is the 2026-09-12 portal sidebar exactly: a compliance sentence
+   * hardcoded anywhere is the defect, and the copy is always the one nobody
+   * updates. A pin on the literal would have caught an ACCIDENTAL edit and
+   * done nothing here, because nobody edited anything. The world moved.
+   *
+   * THE SWEEP DERIVES ITS SUBJECT from every .ts and .tsx under src, and it
+   * asserts it had files to read, because a walk that returns nothing passes
+   * this forever.
+   */
+  const typedForms = [
+    "No Professional Engineer is yet in responsible charge",
+    "No engineer of record is yet in responsible charge",
+    "does not currently hold a Texas Department of Insurance windstorm appointment",
+    "holds no departmental windstorm appointment",
+  ];
+
+  const { readdirSync: rdAll, statSync: stAll } = await import("node:fs");
+  const complianceSrc = [];
+  const walkAll = (dir) => {
+    for (const name of rdAll(dir)) {
+      const full = `${dir}/${name}`;
+      if (stAll(full).isDirectory()) walkAll(full);
+      else if (/[.](ts|tsx)$/.test(name)) complianceSrc.push(full);
+    }
+  };
+  walkAll("src");
+
+  rec(
+    "the compliance sentence sweep had source to read",
+    complianceSrc.length > 100,
+    `${complianceSrc.length} files (if this were zero every finding below would be absent for the wrong reason)`,
+  );
+
+  /*
+   * launch.ts is the one home and is exempt BY NAME rather than by pattern,
+   * because that is where the derivers compose these sentences. The exemption
+   * is a single file and it is named here, so it cannot quietly grow into a
+   * list nobody counts.
+   */
+  const COMPLIANCE_SENTENCE_HOME = "src/lib/launch.ts";
+
+  /*
+   * SHARPEN THE SUBJECT, DO NOT EXEMPT THE INSTANCE. Operator ruling,
+   * 2026-09-20, from soc2-audit: "an allowlist of names is a list somebody
+   * grows until the scan checks nothing."
+   *
+   * The first version of this check went red naming `CredentialsStrip.tsx`,
+   * and that file is CORRECT: it reads `peInResponsibleCharge()` into `pe` and
+   * branches, so its negative sentence is a branch of a derivation rather than
+   * an assertion. Adding it to a list of permitted files would have been the
+   * refused answer, and the next four would have joined it.
+   *
+   * The distinction is mechanically available and it is the one that matters:
+   * **a file that consults the register may state either branch; a file that
+   * never asks it may state neither.** A typed denial is a sentence nothing
+   * can make true again, which is exactly the three this check was written
+   * for, and a branch beside a live call moves the day the register does.
+   *
+   * THE EXEMPTION IS COUNTED AND NAMED, and the clause that can still fail is
+   * the one below it: the deriver is called and its answer compared with the
+   * register, so a file could not satisfy this by calling the register and
+   * ignoring what it said.
+   */
+  /*
+   * `responsibleChargeStatement(` is deliberately NOT in this list. A file
+   * that calls the deriver and ALSO types the sentence is a fact with two
+   * homes inside one file, which is worth a red rather than an exemption.
+   */
+  const REGISTER_CALLS = ["peInResponsibleCharge(", "activeEngineer(", "windstormAppointmentStatement("];
+  const typedElsewhere = [];
+  const branchedOnTheRegister = [];
+  for (const file of complianceSrc) {
+    if (file.replace(/\\/g, "/") === COMPLIANCE_SENTENCE_HOME) continue;
+    const text = codeOnly(readSource(file));
+    const carries = typedForms.filter((form) => text.includes(form));
+    if (carries.length === 0) continue;
+    if (REGISTER_CALLS.some((call) => text.includes(call))) {
+      branchedOnTheRegister.push(file);
+      continue;
+    }
+    for (const form of carries) typedElsewhere.push(`${file}: "${form}"`);
+  }
+
+  rec(
+    `no source outside ${COMPLIANCE_SENTENCE_HOME} states a responsible charge or windstorm appointment sentence without asking the register`,
+    typedElsewhere.length === 0,
+    typedElsewhere.length > 0
+      ? typedElsewhere.join(" | ") + ". Nothing can make these true again; the world moved and the copy did not."
+      : `${typedForms.length} forms against ${complianceSrc.length - 1} files. ` +
+        `${branchedOnTheRegister.length} file(s) state a branch beside a live register call: ${
+          branchedOnTheRegister.join(", ") || "none"
+        }`,
+  );
+
+  /*
+   * AND THE EXEMPTION IS BOUNDED, because a file list that grows is the thing
+   * the ruling above refuses. Today three files legitimately branch. A fourth
+   * is a deliberate edit to this number rather than a quiet addition.
+   */
+  rec(
+    "and the set of files branching on the register has not quietly grown",
+    branchedOnTheRegister.length <= 3,
+    `${branchedOnTheRegister.length} of a ceiling of 3`,
+  );
+
+  /*
+   * AND THE DERIVER ITSELF FOLLOWS THE REGISTER, proven by calling it rather
+   * than by reading its source. A function that returned the shut sentence
+   * unconditionally would satisfy every check above this one.
+   */
+  const { peInResponsibleCharge } = await import("../src/lib/launch.ts");
+  const chargeSentence = responsibleChargeStatement();
+  rec(
+    "and the responsible charge sentence follows the register rather than a constant",
+    peInResponsibleCharge()
+      ? chargeSentence === "A Texas licensed Professional Engineer is in responsible charge."
+      : chargeSentence === "No Professional Engineer is yet in responsible charge.",
+    `peInResponsibleCharge() is ${peInResponsibleCharge()}; rendered: ${chargeSentence}`,
+  );
+
+  /*
+   * =====================================================================
+   * "DOES NOT CURRENTLY OFFER OR PERFORM ENGINEERING SERVICES" IS GONE,
+   * AND WHAT REPLACED IT IS CHECKED IN BOTH GATE STATES.
+   * Operator ruling, 2026-09-21.
+   * =====================================================================
+   *
+   * THE SENTENCE OUTLIVED THE FACT UNDERNEATH IT. It predates F-29811, and
+   * the firm is now registered, has an engineer in responsible charge, and
+   * publishes prices. Every clause of it was false, in the direction people
+   * mistake for caution. `notYetTakingOrders()` says the narrower thing that
+   * is true, and says nothing at all once the gate opens.
+   *
+   * BOTH STATES ARE EXERCISED, AND THE OPEN ONE NEEDS A CHILD PROCESS.
+   * `isOpen()` reads constants bound at first import, so patching the gate in
+   * this process and re-importing would read the shut value and report the
+   * code refusing correctly, which is the failure this repository has paid for
+   * three times in one night. The child has no module graph to invalidate.
+   *
+   * THE OPEN HALF IS THE ONE THAT MATTERS. A disclosure that survives the
+   * condition it discloses is the other way to mislead: a site that is taking
+   * orders while still saying it is not has told its customers something
+   * false at the exact moment they are trying to buy. Nothing on the board
+   * could see that today, because the gate has never been open on a board.
+   */
+  /*
+   * MATCH THE NEGATION, NOT THE PHRASE. The first version of this looked for
+   * "offer or perform engineering services" and named `structural-engineer.ts`
+   * for its own FAQ: "A firm registration permits a company to offer or
+   * perform engineering services in its own name." That sentence is TRUE,
+   * general, and about what a registration means rather than about this firm.
+   *
+   * Sixth instance of a matcher matching a name when it means something else,
+   * and the tell was the same as the other five: both spellings contain the
+   * thing being searched for, and only one of them is the thing being
+   * forbidden. The thing forbidden is the DENIAL.
+   */
+  const deadClause = /does not (currently )?offer or perform/;
+  const stillTyped = complianceSrc.filter((f) => deadClause.test(codeOnly(readSource(f))));
+  rec(
+    "no page claims the firm does not offer or perform engineering services, which stopped being true at F-29811",
+    stillTyped.length === 0,
+    stillTyped.join(", ") ||
+      `${complianceSrc.length} files swept; the firm is registered, an engineer is in responsible charge, and prices are published`,
+  );
+
+  const shutSentence = notYetTakingOrders();
+  rec(
+    "with the gate shut, the pages say the firm is not yet taking orders",
+    shutSentence === "We are not yet taking orders.",
+    `gate shut, rendered: ${JSON.stringify(shutSentence)}`,
+  );
+
+  process.env.LAUNCH_MODE = "live";
+  const openGate = await inOpenGateProcess(`
+    const { notYetTakingOrders, isOpen } = await import("./src/lib/launch.ts");
+    answer({ open: isOpen(), sentence: notYetTakingOrders() });
+  `);
+
+  rec(
+    "and the fixture actually opened the gate, so the check below is not measuring the shut one again",
+    openGate.open === true,
+    `isOpen() in the child: ${openGate.open}`,
+  );
+
+  rec(
+    "and with the gate open it says nothing at all, rather than a disclosure that outlived its condition",
+    openGate.open === true && openGate.sentence === null,
+    `gate open, rendered: ${JSON.stringify(openGate.sentence)}`,
   );
 
   /*

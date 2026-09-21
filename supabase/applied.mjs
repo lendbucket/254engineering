@@ -1265,6 +1265,123 @@ export const APPLIED = [
       "prefix: one table created, one existing object referenced, eng_profiles(id), no function and " +
       "no trigger. Two migrations from other applications landed on production the same day.",
   },
+  {
+    file: "0055_the_signed_roof_protocol_awaits_its_engineer.sql", appliedBy: "apply_migration",
+    fingerprint: "56b351a693ec70cc86203fd0cbde481c",
+    behaviour: "72b8ec3ab4975f1178add4a64261d88a",
+    proves: {
+      table: "eng_protocol_templates",
+      match: { document_number: "254-RC-001", version_label: "1.1" },
+    },
+    production: "2026-09-21",
+    development: { at: "0055", behaviour: null, facts: 919 },
+    note:
+      "BOTH fingerprints repeat 0054's, which is what a migration with no DDL in it must do. It " +
+      "inserts one row into eng_protocol_templates and touches nothing the shape digest reads and " +
+      "nothing the behaviour digest reads. The line is not copied: it was replayed at 0054 and at " +
+      "0055 and read back identical. The row itself is what `proves` asks about.",
+    because:
+      "APPLIED TO PRODUCTION 2026-09-21 at 20:54:24 UTC, provider version 20260921205424, read from " +
+      "list_migrations rather than from the clock this session runs on, and agreeing with the row's " +
+      "own created_at of 20:54:24.559055+00. " +
+      "IT WAS PENDING FIRST, BY OPERATOR RULING: 'Production waits for a sitting with me at the " +
+      "keyboard.' This migration puts the engineer of record's signed protocol into the platform, and " +
+      "the row it writes is the thing his first sign in will be looking at, so it did not go in while " +
+      "nobody was watching. The wait earned its keep: the signed date was wrong in the first version " +
+      "and was found, ruled on and corrected while the only database holding it was development. " +
+      "THE PRE-FLIGHT GUARD, CHECKED RATHER THAN ASSUMED, the same read 0053's entry records: " +
+      "production held 0 protocol templates, 0 protocol items and 0 files immediately before the " +
+      "migration was sent. So the NOT EXISTS guard and the retire-the-previous logic in 0052 had " +
+      "nothing to act on, and the row is the first this table has ever held on production. " +
+      "A NAMING SLIP, RECORDED BECAUSE THE LEDGER EXISTS TO BE CROSS-CHECKED AGAINST THE PROVIDER. " +
+      "The apply_migration call passed the name without its number, so production's list_migrations " +
+      "shows 'the_signed_roof_protocol_awaits_its_engineer' where every neighbour since 0006 shows " +
+      "its prefix, as in '0054_a_windstorm_brief_asks_when_the_work_was_done'. Somebody grepping that " +
+      "list for 0055 will not find it and may conclude production lacks it, which is the same wrong " +
+      "and alarming answer 0025 produces for a different reason. It is not renamed, because a " +
+      "provider history that changes after the fact is a history nobody can reason about. The next " +
+      "migration passes the full file stem. " +
+      "READ BACK FROM PRODUCTION, EVERY COLUMN, not a count: one row, " +
+      "aef41de3-2eb7-49b9-9d18-cb99a741bc6c, service_slug roof-inspections, name 'Roof Certification " +
+      "Protocol for Existing Roofs', version 2, version_label 1.1, status awaiting_engineer, " +
+      "document_number 254-RC-001, issue_date 2026-09-18, document_signed_at 2026-09-20, " +
+      "document_sha256 d050a21a2b2d43114de47989ca731f41e26951f195c90187e99c11705011e4ef, " +
+      "firm_name_on_document '254 Engineering Services', requires_discipline NULL, and approved_by, " +
+      "approved_at, approved_by_license, published_at and authored_by all five NULL. " +
+      "requires_discipline NULL IS THE LOAD BEARING ONE: roof-inspections stays a waitlist even after " +
+      "the engineer approves, until he states in writing which discipline 254-RC-001 requires. The " +
+      "load does not open the line and was never going to. " +
+      "APPLIED TO DEVELOPMENT 2026-09-21 through apply_migration and READ BACK COLUMN BY COLUMN: one " +
+      "row, version 2, version_label 1.1, status awaiting_engineer, document_sha256 " +
+      "d050a21a2b2d43114de47989ca731f41e26951f195c90187e99c11705011e4ef, issue_date 2026-09-18, " +
+      "document_signed_at 2026-09-20, requires_discipline null, and approved_by, approved_at, " +
+      "approved_by_license and published_at all four null. " +
+      "THE DEVELOPMENT ROW WAS WRITTEN TWICE AND THE FIRST ONE WAS REMOVED, which is recorded here " +
+      "rather than left for somebody to infer from a created_at. The first application wrote " +
+      "document_signed_at 2026-09-18, the ISSUE date, because that is what the seeder had always " +
+      "used. Operator ruling, 2026-09-21: the column is 0049's 'date on the paper the engineer " +
+      "signed', the handwritten mark sits beside the typed date 09/20/2026 on the approval page, and " +
+      "the value is derived from RC001_SIGNATURE_EVIDENCE.approvalPageDate rather than typed. Two " +
+      "days apart, and RC001_VERSIONS already said so in its own words: v1.1 existed for two days " +
+      "while v1.0 was still the authority. " +
+      "THE ROW WAS READ BACK IN FULL BEFORE IT WAS DELETED, on the operator's instruction, so the " +
+      "record says what was removed rather than that something was. Row 9e174809-eb31-483b-90b2-" +
+      "49d3c877182c, created 2026-09-21 19:28:35 UTC, document_signed_at 2026-09-18. The delete named " +
+      "that id AND required status awaiting_engineer with no approver and no publication date, so a " +
+      "row that had been approved in between could not have been removed by it. It is a row this " +
+      "sitting created, on development, which is the only place that permission reaches. " +
+      "The replacement is 4b796249-a071-42ba-9b20-408e0d38b7b0, created 2026-09-21 20:32:06 UTC. " +
+      "PRODUCTION NEVER SAW THE FIRST VERSION, which is the whole argument for the operator's rule " +
+      "that production waits for a sitting. The wrong date was found, ruled on and corrected while " +
+      "the only database holding it was the one that exists to be wrong. " +
+      "AND THE SUMMARY COLUMN WAS CORRECTED WITH IT. It read 'signed 2026-09-18', naming the issue " +
+      "date as the signing date, which would have left one row disagreeing with itself in prose. It " +
+      "states both dates now and calls each what it is. " +
+      "BOTH FINGERPRINTS ARE UNCHANGED FROM 0054 AND THAT IS THE WHOLE POINT OF THIS ENTRY. It has no " +
+      "DDL in it: 56b351a693ec70cc86203fd0cbde481c across 1,141 columns and " +
+      "72b8ec3ab4975f1178add4a64261d88a across 919 facts, read from a replay of the full chain at both " +
+      "0054 and 0055 rather than carried over. So the fingerprint cannot see this migration AT ALL, " +
+      "which puts it with 0018, 0025, 0030, 0032 and 0037, and makes the row read-back above the only " +
+      "evidence that it did anything. `proves` is the row shape for the same reason. " +
+      "THE INTEGER version IS 2, AND THE SEEDER SAID 1. Found while writing this, before the script " +
+      "had ever been asked for a second version. eng_protocol_templates carries " +
+      "unique (service_slug, version) and createProtocol computes max(version) + 1 per service line, " +
+      "so the integer is the PLATFORM's sequence and version_label is the DOCUMENT's label. " +
+      "Development already held roof-inspections version 1 at v1.0, so the hardcoded 1 would have hit " +
+      "the unique constraint there. On production, which holds no protocol row at all, it would have " +
+      "SUCCEEDED and written v1.1 as the first version of a line whose first version is v1.0. The two " +
+      "projects would then have disagreed about one document, which is the divergence this ledger " +
+      "exists to prevent, and nothing would have said so. It is derived from RC001_VERSIONS now. " +
+      "WHAT THIS SEEDS IS PROVENANCE, NOT AN APPROVAL. awaiting_engineer is 0049's word for signed on " +
+      "paper and not approved in the platform, and 0049's constraints refuse an approver, an approval " +
+      "time or a publication date in that state, so this migration could not forge one. The approval " +
+      "is Aman's act in his own session through eng_approve_protocol, and it is what seeds the 51 " +
+      "checklist items. No item row is written here. " +
+      "GENERATED, NEVER TYPED. scripts/seed-roof-protocol.mjs --emit-sql hashes the PDF, refuses on " +
+      "any difference, opens no database connection, and renders the literals from the same row object " +
+      "the --apply path inserts, so the two routes cannot state different facts about one document. " +
+      "The route exists because the script carries neverProduction, checked before ALLOW_PRODUCTION_DB " +
+      "is read, and that guard is not being weakened to let a seeder reach production. " +
+      "AND THE HOLE IT LEAVES IS CLOSED FROM THE OTHER SIDE. Postgres cannot hash a PDF, so once the " +
+      "SQL is on disk the digest is a literal nothing re-derives. protocol-registry-audit now reads it " +
+      "back OUT of the migration and asserts it equals BOTH the registry and the file on disk, hashed " +
+      "at run time. Three values, not two: comparing the migration only to the registry would pass on " +
+      "a day both had drifted off the actual document. Injection verified four ways, each naming the " +
+      "right check: two different digests in one file, one consistent wrong digest, status published, " +
+      "and approved_by_license written by the migration. " +
+      "THE SIGNED DATE IS BOUND THE SAME WAY, AND FOR THE SAME REASON: once the SQL is written, the " +
+      "derivation from the signature evidence is gone and the file holds a date literal. " +
+      "protocol-registry-audit asserts it equals RC001_SIGNATURE_EVIDENCE.approvalPageDate, and " +
+      "carries a second check that the approval page date and the issue date still DIFFER, because " +
+      "the day somebody makes them equal the first check silently stops discriminating and goes on " +
+      "printing a green line about a distinction it can no longer make. Injection verified by putting " +
+      "the issue date back into document_signed_at: both checks went red, naming both dates. " +
+      "v1.0 IS NOT INSERTED. Operator ruling: RC001_VERSIONS is the record Section 13 requires of " +
+      "every issued version, and this table is not a second copy of it. " +
+      "requires_discipline STAYS NULL until the engineer states it in writing, which keeps " +
+      "roof-inspections a waitlist even after he approves. Operator ruling, 2026-09-21: do not guess " +
+      "it from his licence.",
+  },
 ];
 
 /**

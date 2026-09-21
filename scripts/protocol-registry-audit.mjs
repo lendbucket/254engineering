@@ -23,7 +23,8 @@
  * the structural half still runs. Unreachable is not failed, and it says loudly
  * which half did not run.
  */
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 
 const out = [];
@@ -34,7 +35,7 @@ console.log("");
 console.log("========== 254-RC-001 AGAINST ITS SIGNED DOCUMENT ==========");
 console.log("");
 
-const { RC001, RC001_ENFORCED, RC001_AMBIGUITIES } = await import(
+const { RC001, RC001_ENFORCED, RC001_AMBIGUITIES, RC001_SIGNATURE_EVIDENCE } = await import(
   "../src/content/protocols/rc-001.ts"
 );
 const { verifiedFirmRegistrations } = await import("../src/config/credentials.ts");
@@ -673,6 +674,243 @@ if (pdftotext.error || pdftotext.status !== 0) {
           ". The signed protocol says the letter does not do this. A page that promises it is promising something the engineer will not seal."
       : `${forbidden.length} excluded phrase(s) checked against the service copy`,
   );
+}
+
+/*
+ * ===========================================================================
+ * 5. THE MIGRATION THAT CARRIES THIS DOCUMENT TO A DATABASE NAMES THE SAME
+ *    DOCUMENT. Operator ruling, 2026-09-21.
+ * ===========================================================================
+ *
+ * WHY THIS CHECK IS OWED THE MOMENT A MIGRATION EXISTS AT ALL.
+ * `seed-roof-protocol.mjs` hashes the PDF before it writes anything, and that
+ * protection lives in the GENERATOR. Once the SQL is on disk the digest is a
+ * literal like any other and **nothing in the migration re-derives it**.
+ * Postgres cannot hash a PDF, so the check has to come from this side.
+ *
+ * THE SUBJECT IS DERIVED RATHER THAN NAMED. Scanning every migration for one
+ * that inserts this document number answers a question a hardcoded path
+ * cannot: whether there is a SECOND migration writing the same row. A path
+ * typed here would also be a second home for a fact the generator already
+ * holds, which is this repository's most frequent defect.
+ *
+ * AND IT COMPARES THREE VALUES, NOT TWO. The registry, the file on disk, and
+ * the migration. Comparing the migration only to the registry would pass on a
+ * day when both had drifted off the actual PDF, which is precisely the state
+ * the generator's own refusal exists to catch.
+ */
+
+/**
+ * Split a SQL value list on its top level commas.
+ *
+ * A NAIVE split(",") IS WRONG HERE AND WOULD HAVE BEEN WRONG QUIETLY. The row
+ * this migration writes carries a summary reading
+ * "254-RC-001 v1.1, signed 2026-09-18 by Aman Dhakal, P.E., Engineer of
+ * Record.", which holds four commas inside one quoted literal. Splitting on
+ * every comma yields more values than there are columns, the status would land
+ * at the wrong index, and the check would report a status of "signed 2026-09-18
+ * by Aman Dhakal" rather than saying it could not line them up.
+ *
+ * Quotes are doubled rather than escaped in the SQL this generator writes, and
+ * a doubled quote inside a string reads as a close followed by an open, which
+ * leaves the parity correct without a special case.
+ */
+function splitSqlValues(text) {
+  const values = [];
+  let current = "";
+  let inString = false;
+  for (const ch of text) {
+    if (ch === "'") inString = !inString;
+    if (ch === "," && !inString) {
+      values.push(current.trim());
+      current = "";
+      continue;
+    }
+    current += ch;
+  }
+  if (current.trim()) values.push(current.trim());
+  return values;
+}
+
+const migrationDir = "supabase/migrations";
+const carriers = readdirSync(migrationDir)
+  .filter((f) => f.endsWith(".sql"))
+  .map((f) => ({ file: f, text: readFileSync(`${migrationDir}/${f}`, "utf8") }))
+  .filter((m) => m.text.includes("insert into eng_protocol_templates") && m.text.includes(RC001.documentNumber));
+
+rec(
+  `exactly one migration inserts ${RC001.documentNumber} into eng_protocol_templates`,
+  carriers.length === 1,
+  carriers.map((c) => c.file).join(", ") ||
+    "no migration carries this document, so every check below this line is measuring nothing",
+);
+
+if (carriers.length === 1) {
+  const carrier = carriers[0];
+
+  /*
+   * Every 64 character hexadecimal literal in the file, deduplicated. A sha256
+   * is the only thing of that shape this migration has any reason to contain,
+   * and taking the SET rather than the first occurrence is what makes a file
+   * that names two different digests fail rather than pass on whichever one
+   * happened to be written first.
+   */
+  const digests = [...new Set(carrier.text.match(/[0-9a-f]{64}/g) ?? [])];
+
+  rec(
+    `${carrier.file} states exactly one document digest`,
+    digests.length === 1,
+    digests.length === 0
+      ? "none found, so the comparisons below would have nothing to compare"
+      : digests.join(", "),
+  );
+
+  if (digests.length === 1) {
+    const inMigration = digests[0];
+
+    rec(
+      "and it is the digest the registry declares",
+      inMigration === RC001.sourceSha256,
+      inMigration === RC001.sourceSha256
+        ? inMigration
+        : `migration ${inMigration} against registry ${RC001.sourceSha256}`,
+    );
+
+    /*
+     * THE THIRD VALUE, AND IT IS THE ONE NEITHER DECLARATION CAN SUPPLY.
+     * Hashed here rather than trusted, because the whole point of the digest
+     * is to bind the record to a specific file, and a record that agrees with
+     * a declaration about a file nobody read is two declarations agreeing.
+     */
+    if (!existsSync(RC001.sourceFile)) {
+      tell.push(
+        `${RC001.sourceFile} is not on disk, so the migration's digest could not be compared against ` +
+          "the document itself. It was compared against the registry only, which is two declarations agreeing.",
+      );
+    } else {
+      const onDisk = createHash("sha256").update(readFileSync(RC001.sourceFile)).digest("hex");
+      rec(
+        "and it is the digest of the PDF on disk, hashed here rather than declared",
+        inMigration === onDisk,
+        inMigration === onDisk ? onDisk : `migration ${inMigration} against file ${onDisk}`,
+      );
+    }
+  }
+
+  /*
+   * THE STATE THE ROW LANDS IN, because a migration that seeded 'published'
+   * would be the platform claiming an approval the engineer never gave, and
+   * that is the one thing this whole protocol chain exists to make impossible.
+   * 0049 refuses it at the database; this refuses it in review, which is
+   * earlier and names the file.
+   *
+   * READ THE COLUMN LIST, NOT THE FILE. The first version of this check asked
+   * whether the word "approved_by" appears anywhere in the migration, which
+   * would have gone red the day somebody EXPLAINED in a comment why the column
+   * is absent. That is a check on wording, which this repository has recorded
+   * as its own defect class. The thing meant is the insert's column list.
+   */
+  const insertMatch = carrier.text.match(/insert into eng_protocol_templates\s*\(([^)]*)\)/);
+  const insertColumns = (insertMatch?.[1] ?? "")
+    .split(",")
+    .map((c) => c.trim())
+    .filter(Boolean);
+
+  rec(
+    `the insert in ${carrier.file} was found and names its columns`,
+    insertColumns.length > 0,
+    insertColumns.length > 0
+      ? `${insertColumns.length} columns`
+      : "the insert could not be parsed, so the approval check below would pass over nothing",
+  );
+
+  const approvalColumns = ["approved_by", "approved_at", "approved_by_license", "published_at"];
+  const claimed = approvalColumns.filter((c) => insertColumns.includes(c));
+
+  rec(
+    `${carrier.file} seeds the row awaiting its engineer and claims no approval`,
+    insertColumns.length > 0 && insertColumns.includes("status") && claimed.length === 0,
+    claimed.length > 0
+      ? `${claimed.join(", ")} written by a migration. An approval is the engineer's act in his own session.`
+      : "no approver, approval time, licence or publication date is written",
+  );
+
+  /*
+   * And the value that column carries. 0049 refuses a published row with no
+   * approver at the DATABASE; this refuses it in review, which is earlier and
+   * names the file somebody would have to edit.
+   */
+  const statusIndex = insertColumns.indexOf("status");
+  const selectMatch = carrier.text.match(/\)\s*select\s+([^;]*?)\s*where not exists/);
+  const selectValues = splitSqlValues(selectMatch?.[1] ?? "");
+  const linedUp = selectValues.length === insertColumns.length;
+
+  rec(
+    `and the status it actually writes is awaiting_engineer`,
+    statusIndex >= 0 && linedUp && selectValues[statusIndex] === "'awaiting_engineer'",
+    linedUp
+      ? String(selectValues[statusIndex])
+      : `${insertColumns.length} columns against ${selectValues.length} values, so nothing lines up`,
+  );
+
+  /*
+   * =====================================================================
+   * THE SIGNED DATE IS THE APPROVAL PAGE'S, AND THE MIGRATION MUST AGREE.
+   * Operator ruling, 2026-09-21.
+   * =====================================================================
+   *
+   * WHY IT NEEDED ITS OWN CHECK RATHER THAN TRUST IN THE GENERATOR. The
+   * generator derives this value from `RC001_SIGNATURE_EVIDENCE`, and the
+   * moment the SQL is written that derivation is gone: the file holds a date
+   * literal and nothing re-derives it, exactly as with the digest. A hand
+   * edit, or a regeneration from an older script, would put the ISSUE date
+   * back in and every other check here would still pass.
+   *
+   * AND THE TWO DATES ARE TWO DAYS APART, WHICH IS WHAT MAKES THIS FINDABLE
+   * AT ALL. v1.1 was issued 2026-09-18 and signed 2026-09-20. Both are real
+   * dates about the same document, both appear in this migration, and the
+   * column means one of them. A check comparing `document_signed_at` against
+   * "a date the registry holds" would pass on either, so it compares against
+   * the approval page date SPECIFICALLY and asserts the two differ, because
+   * the day somebody makes them equal this check silently stops discriminating.
+   */
+  const signedIndex = insertColumns.indexOf("document_signed_at");
+  const issueIndex = insertColumns.indexOf("issue_date");
+
+  rec(
+    "the migration writes a signed date and an issue date, and they are different columns",
+    signedIndex >= 0 && issueIndex >= 0 && linedUp,
+    signedIndex >= 0 && issueIndex >= 0
+      ? `document_signed_at at ${signedIndex}, issue_date at ${issueIndex}`
+      : "one of the two columns is not written, so the comparison below has nothing to separate",
+  );
+
+  if (signedIndex >= 0 && issueIndex >= 0 && linedUp) {
+    const signedInSql = String(selectValues[signedIndex]).replace(/'/g, "");
+    const issueInSql = String(selectValues[issueIndex]).replace(/'/g, "");
+
+    rec(
+      "and the signed date is the approval page's, read from the signature evidence",
+      signedInSql === RC001_SIGNATURE_EVIDENCE.approvalPageDate,
+      signedInSql === RC001_SIGNATURE_EVIDENCE.approvalPageDate
+        ? `${signedInSql}, which is the date beside the handwritten mark`
+        : `migration ${signedInSql} against approval page ${RC001_SIGNATURE_EVIDENCE.approvalPageDate}`,
+    );
+
+    /*
+     * THE DISCRIMINATING HALF. If the issue date and the approval page date
+     * were ever the same value, the check above would pass whichever one the
+     * migration wrote, and would go on printing a green line about a
+     * distinction it could no longer make.
+     */
+    rec(
+      "and that date is not simply the issue date, so the check above can tell them apart",
+      RC001_SIGNATURE_EVIDENCE.approvalPageDate !== RC001.issueDate && signedInSql !== issueInSql,
+      RC001_SIGNATURE_EVIDENCE.approvalPageDate === RC001.issueDate
+        ? "the registry now holds one date for both, so this comparison has stopped discriminating"
+        : `issued ${issueInSql}, signed ${signedInSql}`,
+    );
+  }
 }
 
 /* ----------------------------------------------------------------- verdict */

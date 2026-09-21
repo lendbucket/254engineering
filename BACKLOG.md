@@ -27,6 +27,83 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
+## FOR COUNSEL: TWO QUESTIONS ABOUT THE OFFER CLAUSE ON THE TERMS PAGE
+
+Recorded 2026-09-21 on the operator's instruction. **Not now, and not a thing a
+session decides.**
+
+`src/app/(site)/terms/page.tsx` states, under Firm registration status:
+
+> No page of this website should be read as an offer to perform engineering
+> services.
+
+**Question one: should "an offer" read "an offer capable of acceptance"?**
+The everyday word is the one in the clause today. The term of art names the
+thing actually being excluded, which is a communication a stranger could accept
+and thereby bind the firm. The clause matters because the site publishes prices,
+and a published price that is an offer capable of acceptance binds the firm to
+perform at that price on somebody else's say-so. Its value goes UP when the gate
+opens.
+
+**Question two: is the point stated in two places, and should it be?** The
+paragraph two above it already says an engagement begins only under a signed
+written agreement identifying the scope and the engineer in responsible charge.
+That is the same point in a different register. Two statements of one term are
+two statements that can drift, which is this repository's most frequent defect
+in its contractual form, and the answer may still be that a contract wants both.
+
+**How the clause got here, because it explains why it is being asked.** It was
+one half of a sentence whose other half had gone false, and this session removed
+both, giving a reason that was exactly backwards: that published prices
+contradict the disclaimer. Published prices are why it exists. The operator held
+the change, ruled the split, and kept the clause word for word apart from its
+dangling referent. `compliance-audit` passes it by construction rather than by
+exemption: its matcher looks for the DENIAL, `does not offer or perform`, and
+this sentence contains no denial.
+
+## PLANNED, NEXT AFTER THE PROTOCOL LOAD: NO ACTION CHANGES A PROFILE'S LOGIN EMAIL
+
+Operator ruling, 2026-09-21. Recorded as a planned feature, at the top of the
+list once 254-RC-001 v1.1 is loaded into production and boarded. **Nothing is
+built yet, and nothing is built without the operator's word.**
+
+### What is true today, read from the source
+
+`src/app/api/portal/people/route.ts` accepts five actions: `create`,
+`force_reset`, `resend_invite`, `suspend`, `restore`. **There is no action that
+changes the address a person signs in with.** Today that is a support request
+with no path through the platform at all.
+
+### Why it cannot simply be an update on a column
+
+`issueSetPasswordToken` in `src/lib/ops-auth.ts` deletes outstanding unused
+tokens **for that profile and that purpose** before minting a new one:
+
+    .delete().eq("profile_id", profileId).eq("purpose", purpose).is("used_at", null)
+
+**The tokens key on `profile_id`, never on the address.** So an invite or a
+reset link already in flight to the OLD address stays valid for the profile
+after the address changes, for the rest of its `SET_PASSWORD_TTL_HOURS` window,
+which is 72. Whoever holds that old inbox can still set the password on the
+account the change was made to move away from. The revocation has to be written
+deliberately, because nothing about an email update would trigger it.
+
+### The requirements, as ruled
+
+1. Every outstanding token for that profile is revoked in the same transaction.
+2. The new address is confirmed by a link sent to it before the change takes
+   effect.
+3. The old address is notified that the change happened.
+4. Written to `eng_audit_events` with who, when, and both addresses.
+5. The admin passes a fresh MFA check to perform it.
+6. For any profile holding responsible charge or an engineer grant, the engineer
+   confirms the change from his own session, or it does not happen. **An admin
+   alone cannot repoint the engineer of record.**
+
+The sixth is the one that decides the shape. A change that an administrator can
+complete alone is a change that can move the account the firm's seals are
+answerable to, which is the separation `LicensedAction` exists to hold.
+
 ## RESOLVED 2026-09-20: THE SIGNED PROTOCOL ROUTED WORK TO A LINE THE FIRM DOES NOT OFFER
 
 Closed against the document's own words rather than deleted, and recorded here
@@ -208,6 +285,44 @@ ever, both `/portal/accounts`.
 **`contrast-audit` did not meet the stall**, so the third verdict's emitted
 output remains unproven. It measured `/portal/accounts` clean at both widths.
 
+### CORRECTED 2026-09-21 ON THE NEXT BOARD: IT MET THE STALL, AND THE THIRD VERDICT WORKED
+
+The sentence above is no longer true and is corrected here rather than answered
+by a second entry beside it, on the operator's ruling.
+
+The board on `feat/protocol-load` returned **56 of 58, zero FAIL lines**, and
+`contrast-audit` could not reach that screen either:
+
+```
+mobile-overflow-audit   portal: accounts @320 @375 @390 @430   Timeout 90000ms exceeded
+native-audit            /portal/accounts                        Timeout 45000ms exceeded
+contrast-audit          portal: accounts @390 @1280             Timeout 90000ms exceeded
+```
+
+**THREE AUDITS COULD NOT REACH IT AND THE BOARD COUNTED TWO.** `contrast-audit`
+reported `PASS` at the roll-up, because the third verdict absorbed the miss:
+"GREEN ON WHAT LOADED. No WCAG A/AA violations across the templates that
+rendered, and 2 combination(s) were not measured either way." Its own output
+says so loudly, exactly as the ruling requires. The SUITE SUMMARY then printed:
+
+> `2 of 58 audits could not measure: mobile-overflow-audit, native-audit`
+
+That figure is arithmetically correct and is a false statement about the thing
+it describes. It is the access review defect in a different column: a reader
+takes "2" to mean two audits were blind, and three were.
+
+**AND THE STALL IS GETTING WORSE, MEASURED RATHER THAN IMPRESSION.** The
+recorded figure was a 45 second navigation timeout and roughly fifty seconds of
+application time. This run shows it exceeding **90,000ms** in two separate
+audits at four widths. That is a worsening on a screen people use, on a database
+shared with unrelated applications.
+
+**RANKED BY THE OPERATOR, 2026-09-21.** The `/portal/accounts` stall goes
+**ahead of the Phase 14 surveys**, because it is getting worse on a screen
+people use. The roll-up undercount goes **first in survey 3**, because it hides
+could-not-measure results inside green audits, which is the one failure mode the
+third verdict was introduced to avoid rather than create. Neither is chased now.
+
 **THE LAST FULLY GREEN BOARD REMAINS `5bd0121`**, and the next standalone sweep
 still measures from there. This board is not green and is not recorded as green.
 
@@ -363,6 +478,26 @@ Its injection was still running when the tree was needed for other work, its
 fixture was reverted surgically rather than by checkout because uncommitted
 changes lived in the same file, and the board that followed measured
 `/portal/accounts` successfully in that audit, so the new path never ran.
+
+**A NEW FACT ABOUT THE STALL, 2026-09-21, AND IT IS THE FIRST IN DAYS.**
+
+**Four audits visit `/portal/accounts`. Only three have ever failed to reach
+it.** `mobile-overflow-audit` and `native-audit` have met the stall on every
+board this week. `mobile-audit` met it on the board at `6fcec1c` and reported
+`COULD NOT TELL` correctly, which is the third verdict proven live rather than
+by injection. **`contrast-audit` has never once failed to reach that screen
+since the verdict went in**, across five boards, and measures it clean at both
+widths every time.
+
+**So the stall is not uniform across visitors.** Six observations produced no
+explanation; this is the first fact that narrows it. Whatever it is, something
+about how `contrast-audit` reaches that screen differs from the other three, and
+that difference is a lead rather than a curiosity.
+
+**It is not chased here and no story is attached to it**, on the standing rule
+that the operator would rather it stay unexplained than acquire a plausible
+account. What is recorded is the asymmetry and the count, so the next session
+starts from a narrower question than "why does it sometimes stall".
 
 **It is exercised the next time the stall fires, not by manufacturing one.**
 Operator ruling. The stall is intermittent and unexplained after six

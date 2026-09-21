@@ -6,7 +6,7 @@ import { Prose } from "@/components/ui/primitives";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { business } from "@/config/business";
-import { registrationStatement } from "@/lib/launch";
+import { notYetTakingOrders, registrationStatement, responsibleChargeStatement } from "@/lib/launch";
 
 export const metadata: Metadata = buildMetadata({
   title: "Terms of Use and Site Conditions | 254 Engineering",
@@ -68,10 +68,47 @@ export default function TermsPage() {
 
               <h2>Firm registration status</h2>
               <p>
-                {registrationStatement()} Until the firm opens for work, it does not offer or perform
-                engineering services in Texas, and no page of this website should be read as an offer
-                to do so. The footer of every page states the registration, and it changes when the
-                register does.
+                {/*
+                  * ONE SENTENCE CARRYING TWO CLAUSES, SPLIT RATHER THAN CUT.
+                  * Operator ruling, 2026-09-21, correcting this session.
+                  *
+                  * IT READ: "Until the firm opens for work, it does not offer
+                  * or perform engineering services in Texas, and no page of
+                  * this website should be read as an offer to do so."
+                  *
+                  * THE FIRST CLAUSE IS REGULATORY AND HAD GONE FALSE. F-29811
+                  * is active, an engineer is in responsible charge, and the
+                  * site publishes prices. It is removed, which is the ruling
+                  * that removed it from four other files.
+                  *
+                  * THE SECOND CLAUSE IS CONTRACTUAL AND IS NOT THE SAME
+                  * SENTENCE. It keeps a published price from being an offer
+                  * capable of acceptance, which would bind the firm to perform
+                  * at that price on a stranger's say-so. Its value goes UP
+                  * when the gate opens, not down. This session removed it with
+                  * the dead half and gave a reason that was exactly backwards:
+                  * that published prices contradict the disclaimer. Published
+                  * prices are WHY it is there. The operator held the change.
+                  *
+                  * IT IS NOT GATED, DELIBERATELY. Unlike its neighbours it
+                  * calls no deriver, because it is true in every launch mode
+                  * and a contract term that disappears when a flag flips is a
+                  * term somebody relied on and then lost.
+                  *
+                  * TWO WORDS CHANGED AND THEY ARE NAMED. The clause ended "an
+                  * offer to do so", where "do so" pointed back at "offer or
+                  * perform engineering services". With the first clause gone
+                  * that reference dangles onto whatever sentence precedes it,
+                  * which today would read as an offer not to take orders. The
+                  * referent is written out. Nothing else moved, and the
+                  * operative words are the document's own.
+                  */}
+                {[registrationStatement(), responsibleChargeStatement(), notYetTakingOrders()]
+                  .filter(Boolean)
+                  .join(" ")}{" "}
+                No page of this website should be read as an offer to perform engineering services.
+                The footer of every page states the registration, and it changes when the register
+                does.
               </p>
 
               <h2>No guaranteed outcomes</h2>

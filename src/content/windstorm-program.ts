@@ -69,7 +69,13 @@
  */
 
 import { FIRST_TIER_COASTAL, FIRST_TIER_COUNT } from "./windstorm";
-import { firmName, registrationStatement } from "@/lib/launch";
+import {
+  firmName,
+  notYetTakingOrders,
+  registrationStatement,
+  responsibleChargeStatement,
+  windstormAppointmentStatement,
+} from "@/lib/launch";
 
 /*
  * The county sentence is BUILT from the list rather than typed out.
@@ -381,7 +387,24 @@ export const windstormPages: WindstormPage[] = [
         title: "Where 254 Engineering Services stands",
         lede: "Stated plainly, because a page about credentials that is vague about its own is not worth reading.",
         body: [
-          [`${firmName()} does not currently hold a Texas Department of Insurance windstorm appointment, and does not currently offer or perform engineering services.`, registrationStatement(), "No Professional Engineer is yet in responsible charge."].filter(Boolean).join(" "),
+          /*
+           * EVERY SENTENCE HERE IS DERIVED. Operator ruling, 2026-09-21.
+           *
+           * The typed clause that used to sit in this list, "does not currently
+           * offer or perform engineering services", is gone rather than
+           * reworded: it predates F-29811 and every part of it had become
+           * false. What replaces it is `notYetTakingOrders()`, which is the
+           * narrower thing that is actually true and which returns NOTHING once
+           * the gate opens, so this block needs no edit on the day it lifts.
+           */
+          [
+            windstormAppointmentStatement(),
+            notYetTakingOrders(),
+            registrationStatement(),
+            responsibleChargeStatement(),
+          ]
+            .filter(Boolean)
+            .join(" "),
           "The firm is being built in the Coastal Bend, inside the designated area, around this program specifically. When an appointment is held, this page will say so and will say when. Until then it says this instead, because a firm that is vague about its own credentials on a page explaining why credentials matter has answered the question anyway.",
         ],
       },
@@ -620,7 +643,26 @@ export const windstormPages: WindstormPage[] = [
         title: "The documents this firm is built around",
         body: [
           `Everything in this cluster describes a program rather than a service. ${firmName()} is built around the documents coastal transactions turn on, including windstorm certification inside the designated area, and is designed to deliver them under a licensed Texas Professional Engineer in responsible charge.`,
-          ["None of that is offered or performed today.", registrationStatement(), "No Professional Engineer is yet in responsible charge, and the firm holds no departmental windstorm appointment. The capability page sets out what the firm is built to deliver once it can."].filter(Boolean).join(" "),
+          /*
+           * THE SECOND INSTANCE, AND THE OPERATOR ONLY POINTED AT THE FIRST.
+           *
+           * The ruling named the sentence at the "Where this firm stands"
+           * block. This one carried the same two false claims folded into a
+           * single typed string, which is the class rather than the instance:
+           * the fix that cures one and leaves the other is the shape recorded
+           * on 2026-09-19, where a nested route was fixed and a top level
+           * screen shipped with the same defect the same afternoon. Both are
+           * derived now, and `compliance-audit` refuses a third.
+           */
+          [
+            "None of that is offered or performed today.",
+            registrationStatement(),
+            responsibleChargeStatement(),
+            windstormAppointmentStatement(),
+            "The capability page sets out what the firm is built to deliver once it can.",
+          ]
+            .filter(Boolean)
+            .join(" "),
         ],
       },
     ],
