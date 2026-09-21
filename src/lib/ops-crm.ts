@@ -114,6 +114,38 @@ const FILE_COLUMNS =
 
 // ------------------------------------------------------------------ clients
 
+/**
+ * ===========================================================================
+ * DEMONSTRATION CLIENTS ARE NOT ON THIS SCREEN. Operator ruling, 2026-09-20.
+ * ===========================================================================
+ *
+ * `/portal/clients` counted 268 probe clients among 354 rows, and the count was
+ * growing by roughly thirty a day. It looked like a teardown gap and it is not
+ * one. The diagnosis, which is why this filter is here rather than a fix in
+ * `portal-probe.mjs`:
+ *
+ * A customer probe creates a client, then an account that references it.
+ * Teardown supersedes the account, because **`eng_customer_accounts` carries
+ * `eng_forbid_account_delete` and refuses DELETE outright**: an account is the
+ * record of what somebody was charged, and `trade-pricing-audit` asserts that
+ * it is closed rather than removed. The surviving account still references the
+ * client through an `ON DELETE RESTRICT` foreign key, so the client delete is
+ * refused too.
+ *
+ * **Three layers, each individually correct, and the result is a probe client
+ * nothing can remove.** That is the schema protecting a money record and it is
+ * working. Weakening either the trigger or the foreign key to tidy a list would
+ * trade a regulatory guarantee for a screen.
+ *
+ * Every one of those rows is already marked `is_demo`, checked rather than
+ * assumed: 268 of 268. **A screen counting correctly labelled demonstration
+ * data is a display defect, not a data defect**, and the fix belongs where the
+ * defect is.
+ *
+ * NULL IS TREATED AS NOT DEMO, deliberately. The column is nullable and older
+ * rows predate it, so `eq(false)` would hide every real client written before
+ * it existed, which is the opposite failure and a worse one.
+ */
 export async function listClients(actor: Actor | null): Promise<ClientRow[]> {
   const db = supabaseAdmin();
   if (!db || !actor) return [];
@@ -122,6 +154,7 @@ export async function listClients(actor: Actor | null): Promise<ClientRow[]> {
     .select(
       "id, kind, name, client_type, status, email, phone, city, county, source_site, utm_source, converted_from_lead_id, created_at, notes",
     )
+    .or("is_demo.is.null,is_demo.eq.false")
     .order("created_at", { ascending: false })
     .limit(500);
   return (data ?? []) as ClientRow[];

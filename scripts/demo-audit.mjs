@@ -123,6 +123,66 @@ if (!db) {
     );
   }
 
+  // ------------------------------- the clients screen does not count demo rows
+
+  /*
+   * =====================================================================
+   * A SCREEN COUNTING LABELLED DEMONSTRATION DATA. Operator ruling,
+   * 2026-09-20.
+   * =====================================================================
+   *
+   * `/portal/clients` carried 268 probe clients among 354 rows, growing by
+   * about thirty a day, and `native-audit` failed it as an unbounded list.
+   *
+   * It is NOT a teardown gap. A customer probe creates a client and then an
+   * account referencing it; teardown supersedes the account because
+   * `eng_customer_accounts` refuses DELETE by trigger, that surviving account
+   * holds the client through an ON DELETE RESTRICT foreign key, and the client
+   * delete is refused. Three layers, each correct, protecting the record of
+   * what somebody was charged. The rows are all correctly marked `is_demo`.
+   *
+   * So the defect is the screen, and this is the check for it. It is built the
+   * way the dispatcher tile's filter is proven below: **the subject is asserted
+   * to exist first**, because a filter check over a database with no demo rows
+   * in it passes forever and says nothing.
+   */
+  {
+    const { listClients } = await import("../src/lib/ops-crm.ts");
+    const actor = { id: null, email: `demo-audit@${"audit-probe.invalid"}`, role: "admin" };
+
+    const { count: demoCount } = await db
+      .from("eng_clients")
+      .select("id", { count: "exact", head: true })
+      .eq("is_demo", true);
+
+    rec(
+      "there are demonstration clients for the filter to have to exclude",
+      (demoCount ?? 0) > 0,
+      (demoCount ?? 0) > 0
+        ? `${demoCount} demonstration client(s) on this database`
+        : "NONE, so the check below passes over an empty set and proves nothing",
+    );
+
+    const listed = await listClients(actor);
+    const ids = listed.map((c) => c.id);
+    let leaked = [];
+    if (ids.length > 0) {
+      const { data: flags } = await db
+        .from("eng_clients")
+        .select("id, email, is_demo")
+        .in("id", ids)
+        .eq("is_demo", true);
+      leaked = (flags ?? []).map((f) => f.email ?? f.id);
+    }
+    rec(
+      `and the clients screen lists none of them (${listed.length} listed)`,
+      leaked.length === 0,
+      leaked.length === 0
+        ? "a demonstration row on an operator's client list is a figure nobody can act on"
+        : `DEMONSTRATION CLIENTS ON THE SCREEN: ${leaked.slice(0, 5).join(", ")}`,
+    );
+  }
+
   // ------------------------------------- the detector: a probe with no DEMO number
 
   /*
