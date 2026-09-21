@@ -114,6 +114,74 @@ export const designInquirySchema = z.object({
   referrer: trimmed(500).optional(),
 });
 
+/*
+ * =========================================================================
+ * THE WINDSTORM BRIEF, FOR AN EXISTING BUILDING. Operator ruling, 2026-09-20.
+ * =========================================================================
+ *
+ * ITS OWN SCHEMA AND ITS OWN TABLE, not a reuse of the design brief above.
+ * The columns overlap and **the questions are not the same questions**. A
+ * design brief asks what is being built, what the deliverable is, whether
+ * drawings exist and whether there is a soil report. This asks when the
+ * building was built, what has been covered up, whether the openings are
+ * rated, and whether the owner will open things up to verify. Half of these
+ * have no column over there, and forcing them in would mean either windstorm
+ * columns null on every design row or a column answering a question it was not
+ * named for. Both are the shape this build spends its time removing.
+ *
+ * EVERY QUESTION HERE IS THE ENGINEER OF RECORD'S, from his reply of
+ * 2026-09-20. They are not a guess at what scoping needs.
+ *
+ * WHY THERE IS NO PRICE AND NO ORDER. Only buildings constructed after 1988
+ * can be certified, the construction that needs inspecting is already covered
+ * so parts of it must be opened, and the openings may need replacing before a
+ * certification is possible at all. Any of the three changes what the work is,
+ * so this is scoped one property at a time.
+ */
+const WINDSTORM_ASKING_AS = ["owner", "buyer", "agent", "builder", "contractor"] as const;
+const OPENINGS_RATED = ["yes_documented", "yes_undocumented", "no", "unknown"] as const;
+const WILL_OPEN_UP = ["yes", "no", "need_to_discuss"] as const;
+
+export const windstormInquirySchema = z.object({
+  name: requiredText("your name"),
+  email,
+  phone,
+  askingAs: z.enum(WINDSTORM_ASKING_AS, { message: "Tell us which of these you are." }),
+  propertyAddress: requiredText("the property address"),
+  county: trimmed(120).optional(),
+  /*
+   * THE 1988 QUESTION, ASKED AS A YEAR RATHER THAN AS A YES OR NO.
+   *
+   * The engineer's rule is that only buildings constructed after 1988 can be
+   * certified. Asking "is it after 1988" invites a guess and records the guess;
+   * asking the year records what the person actually knows, and the comparison
+   * is the platform's to make rather than theirs. `yearBuiltUnknown` exists
+   * because "I do not know" is a real answer and is not the year 0.
+   */
+  yearBuilt: z.coerce.number().int().min(1800).max(2100).optional(),
+  yearBuiltUnknown: z.boolean({ message: "Tell us the year it was built, or that you do not know." }),
+  workDone: requiredText("what work has been done"),
+  whatIsCovered: requiredText("what is already covered up"),
+  openingsRated: z.enum(OPENINGS_RATED, {
+    message: "Tell us whether the doors and windows are rated for wind, or that you do not know.",
+  }),
+  willOpenUp: z.enum(WILL_OPEN_UP, {
+    message: "Tell us whether the owner is willing to open up covered work so it can be verified.",
+  }),
+  deadline: trimmed(300).optional(),
+  /*
+   * The same three flags as the design brief, with no .optional() and no
+   * .default(), for the same reason: a missing flag fails validation and the
+   * message says which, rather than being quietly recorded as "no".
+   */
+  openInsuranceClaim: z.boolean({ message: "Answer whether there is an open insurance claim." }),
+  activeLitigation: z.boolean({ message: "Answer whether there is active or threatened litigation." }),
+  priorAdverseReport: z.boolean({ message: "Answer whether a prior adverse report exists." }),
+  company: honeypot,
+  landingPath: trimmed(300).optional(),
+  referrer: trimmed(500).optional(),
+});
+
 export const waitlistSchema = z.object({
   name: requiredText("your name"),
   email,

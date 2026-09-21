@@ -116,6 +116,13 @@ const APIS_MEASURED_ELSEWHERE = {
   cron: ["scripts/security-audit.mjs", "every scheduled route, refused without CRON_SECRET"],
   intake: ["scripts/sister-intake-audit.mjs", "the door the sister brands post a lead through"],
   "design-inquiry": ["scripts/forms-audit.mjs", "the design brief, eleven answers and three flags"],
+  /*
+   * The windstorm brief for an existing building. It validates and then REFUSES,
+   * because its table waits for a migration sitting, and forms-audit asserts
+   * exactly that: a valid brief is not accepted and the person is told nothing
+   * was saved. The exemption is honest today and inverts when the table lands.
+   */
+  "windstorm-inquiry": ["scripts/forms-audit.mjs", "the windstorm brief, which validates and refuses until its table exists"],
   lead: ["scripts/forms-audit.mjs", "the marketing intake"],
   onboarding: ["scripts/jobs-audit.mjs", "the invite and reminder mail the flow queues"],
   "order-flow": ["scripts/security-audit.mjs", "the one write path a visitor can reach, checked for what it refuses"],

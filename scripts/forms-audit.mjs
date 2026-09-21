@@ -424,6 +424,97 @@ async function designInquiryChecks() {
 
   await page.close();
 }
+// ---------- windstorm brief, for an existing building ----------
+
+/*
+ * =========================================================================
+ * THE FORM THAT DOES NOT PERSIST YET, AND IS PROVEN TO SAY SO.
+ * Operator ruling, 2026-09-20.
+ * =========================================================================
+ *
+ * `/api/windstorm-inquiry` validates a brief completely and then REFUSES it,
+ * because `eng_windstorm_inquiries` does not exist and a migration on `main` is
+ * never pending. The split was ruled deliberately: the questions are the
+ * engineer's and are settled; the persistence is what the table is for.
+ *
+ * **THE THING THIS CHECK EXISTS FOR IS THAT THE REFUSAL IS HONEST.** A form
+ * that answers 200 and drops a person's name, telephone number and property
+ * address is the `customer_link.issued` defect, which cost a paying customer a
+ * telephone call to find out nothing had been sent. So what is asserted is that
+ * a valid brief is NOT accepted and that the person is told, on screen, that
+ * nothing was saved.
+ *
+ * It is also what makes the surface-audit exemption honest: that check refuses
+ * an exemption whose named owner does not actually reference the path.
+ *
+ * WHEN THE TABLE LANDS this check inverts: the brief is accepted, and what is
+ * asserted becomes the row and the respond_by promise. It is written so that
+ * the day somebody makes it persist, this goes red and names the reason.
+ */
+async function windstormInquiryChecks() {
+  const { page, posts } = await openForm("/windstorm-inquiry", "/api/windstorm-inquiry");
+
+  const submit = page.getByRole("button", { name: /send the brief/i });
+  await submit.click();
+  await page.waitForTimeout(400);
+  rec(
+    "windstorm brief: an empty submission blocks and posts nothing",
+    (await page
+      .getByText("Enter your name.")
+      .isVisible()
+      .catch(() => false)) && posts.length === 0,
+  );
+
+  await page.locator('input[name="name"]').fill(MARKER);
+  await page.locator('input[name="email"]').fill(PROBE_EMAIL);
+  await page.locator('select[name="askingAs"]').selectOption("owner");
+  await page.locator('input[name="propertyAddress"]').fill("11 Probe Row, Corpus Christi");
+  await page.locator('input[name="yearBuilt"]').fill("1995");
+  await page.locator('select[name="yearBuiltUnknown"]').selectOption("no");
+  await page.locator('textarea[name="workDone"]').fill("Reroof in 2021 by a local contractor.");
+  await page.locator('textarea[name="whatIsCovered"]').fill("Sheathing and deck attachment are covered.");
+  await page.locator('select[name="openingsRated"]').selectOption("unknown");
+  await page.locator('select[name="willOpenUp"]').selectOption("yes");
+  await page.locator('select[name="openInsuranceClaim"]').selectOption("no");
+  await page.locator('select[name="activeLitigation"]').selectOption("no");
+  await page.locator('select[name="priorAdverseReport"]').selectOption("no");
+
+  await submit.click();
+  await page.waitForTimeout(900);
+
+  rec(
+    "and a complete brief passes validation and reaches the route",
+    posts.length === 1,
+    `${posts.length} post(s)`,
+  );
+
+  /*
+   * THE FLAGS TRAVEL AS BOOLEANS, which is the same defect the design brief
+   * check guards: a select mapped with || would send three noes for three
+   * questions nobody answered.
+   */
+  const sent = posts[0] ?? {};
+  rec(
+    "and the answers that travel are the answers that were given",
+    sent.yearBuilt === 1995 && sent.yearBuiltUnknown === false && sent.openInsuranceClaim === false,
+    JSON.stringify({ yearBuilt: sent.yearBuilt, unknown: sent.yearBuiltUnknown }),
+  );
+
+  const banner = await page
+    .getByText(/nothing has been saved/i)
+    .isVisible()
+    .catch(() => false);
+  rec(
+    "and the person is told plainly that nothing was saved",
+    banner,
+    banner
+      ? "the brief is refused honestly rather than accepted and dropped"
+      : "A VALID BRIEF WAS ACCEPTED OR FAILED SILENTLY. If the table now exists, this check inverts.",
+  );
+
+  await page.close();
+}
+
 // ---------- waitlist ----------
 
 async function waitlistChecks() {
@@ -702,6 +793,7 @@ try {
   await contactChecks();
   await waitlistChecks();
   await designInquiryChecks();
+  await windstormInquiryChecks();
   await honeypotChecks();
   // The careers flows moved to their own module when they became five step
   // applications with uploads. They are long enough that leaving them inline
