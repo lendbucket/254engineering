@@ -62,9 +62,9 @@ export const RC001_DETERMINATIONS: DeterminationRule[] = [
       "Active leak: daylight through deck or active moisture at any stain",
       "Deck delamination or sag confirmed by measurement",
       "Failed flashing, boots, or sealant at any penetration",
-      "Unsealed tabs at more than 25% of tested locations",
-      "Covering damage beyond 10 units on any plane",
-      "8 or more hail hits in a 10 by 10 test square, where a test square was taken on a site revisit",
+      "2 or more unsealed tabs of the 4 locations tested",
+      "10 or more damaged shingles or tiles on any plane; for metal, standing-seam, or membrane coverings, any breach of the water barrier",
+      "8 or more hail hits in a 10 foot by 10 foot (100 square foot) test square, where a test square was taken on a site revisit",
       "Certification proceeds only after repairs are verified on revisit",
     ],
     at: "Appendix C, REPAIRS REQUIRED",
@@ -95,7 +95,7 @@ export const RC001_DETERMINATIONS: DeterminationRule[] = [
     heading: "DECLINE",
     effect: "Declined at this service tier or routed to another service line under its own engagement terms. The coordinator records the routing in the job file and informs the customer in writing.",
     criteria: [
-      "Open insurance claim where the certification would function as claim leverage -- route to forensic line under its own engagement terms, or decline",
+      "Open insurance claim where the certification would function as claim leverage -- decline and refer to an independent firm",
       "Active or threatened litigation -- decline at this service tier",
       "Covering type outside engineer competency.",
       "Unsafe access that prevents minimum capture and customer refuses lift/equipment pricing",
@@ -125,7 +125,7 @@ export const RC001_THRESHOLDS: {
 }[] = [
   {
     key: "unsealed-tab-fraction",
-    states: "Unsealed tabs at more than 25% of tested locations",
+    states: "2 or more unsealed tabs of the 4 locations tested",
     value: 0.25,
     settled: false,
     /*
@@ -141,7 +141,7 @@ export const RC001_THRESHOLDS: {
   },
   {
     key: "covering-damage-units",
-    states: "Covering damage beyond 10 units on any plane",
+    states: "10 or more damaged shingles or tiles on any plane; for metal, standing-seam, or membrane coverings, any breach of the water barrier",
     value: 10,
     settled: false,
     question:
@@ -150,7 +150,7 @@ export const RC001_THRESHOLDS: {
   },
   {
     key: "hail-hits-per-test-square",
-    states: "8 or more hail hits in a 10 by 10 test square, where a test square was taken on a site revisit",
+    states: "8 or more hail hits in a 10 foot by 10 foot (100 square foot) test square, where a test square was taken on a site revisit",
     value: 8,
     settled: false,
     question:

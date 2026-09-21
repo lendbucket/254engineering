@@ -122,7 +122,7 @@ export const RC001_INTAKE_QUESTIONS: IntakeQuestion[] = [
   {
     number: 8,
     group: "flags",
-    ask: "Is there an OPEN insurance claim on this roof? (open claim = engineer pre-review; potential forensic line instead)",
+    ask: "Is there an OPEN insurance claim on this roof? (open claim = engineer pre-review; likely decline)",
     flag: true,
     verbatim: false,
     at: "Appendix A, Part 1, question 8",
@@ -130,7 +130,7 @@ export const RC001_INTAKE_QUESTIONS: IntakeQuestion[] = [
   {
     number: 9,
     group: "flags",
-    ask: "Is there active or threatened litigation involving the roof? (route to engineer; likely decline or forensic line)",
+    ask: "Is there active or threatened litigation involving the roof? (route to engineer; likely decline)",
     flag: true,
     verbatim: false,
     at: "Appendix A, Part 1, question 9",

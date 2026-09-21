@@ -27,6 +27,39 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
+## RESOLVED 2026-09-20: THE SIGNED PROTOCOL ROUTED WORK TO A LINE THE FIRM DOES NOT OFFER
+
+Closed against the document's own words rather than deleted, and recorded here
+because **it was never written down anywhere findable in the first place.**
+
+**What it was.** 254-RC-001 v1.0, signed and in force, sent two situations to a
+forensic line: Appendix C sent an open insurance claim "to forensic line under
+its own engagement terms, or decline", and intake questions 8 and 9 described a
+"potential forensic line instead" and a "likely decline or forensic line". On
+2026-09-19 the operator ruled that the firm has eight service lines, not nine,
+because the engineer of record refuses forensic engineering, and the line came
+out of the catalogue and off the site the same day.
+
+**So the signed protocol routed work to a service the firm had stopped
+offering**, and a technician or coordinator following it would have had nowhere
+to send the job.
+
+**How v1.1 resolves it, quoted rather than paraphrased.** Section 2 moves
+forensic out of the list of things covered elsewhere and states it plainly:
+"The firm does not perform forensic or cause-of-loss investigation." Appendix C
+becomes "Open insurance claim where the certification would function as claim
+leverage -- decline and refer to an independent firm." Questions 8 and 9 become
+"likely decline". The destination is a decline with a referral, which is a thing
+the firm can actually do.
+
+**THE PART WORTH KEEPING IS WHY IT WAS HARD TO CLOSE.** The operator asked for
+this entry to be closed, and there was no entry: the disagreement had been
+reported in conversation and named in a commit message, and neither is a place
+anybody looks. `BACKLOG.md` says at the top that an item may keep its reasoning
+anywhere but may not exist ONLY there, and this one existed only in a
+transcript. A finding recorded in a report is a finding that closes when the
+conversation ends.
+
 ## SURVEY OWED: WHICH CHECKS EXPIRE WHEN THE FIRM SUCCEEDS
 
 Operator ruling, 2026-09-20, from the trade floor pass. Report only, no fix

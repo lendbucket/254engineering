@@ -109,7 +109,7 @@ export const RC001_CHECKLIST: ChecklistItem[] = [
   {
     key: "shingle-seal-bond",
     section: "covering-condition",
-    label: "Shingle roofs -- SEAL-BOND: gentle tab lift at 3-4 spots on different planes; photo any unsealed tab",
+    label: "Shingle roofs -- SEAL-BOND: gentle tab lift at 4 locations spread across different planes; photo any unsealed tab",
     photo: true,
     ruler: false,
     perOccurrence: false,

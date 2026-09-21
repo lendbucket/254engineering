@@ -3,7 +3,95 @@ import { RC001_CHECKLIST, RC001_SECTIONS, RC001_PHOTO_PROCEDURE } from "./rc-001
 import { RC001_DETERMINATIONS, RC001_THRESHOLDS } from "./rc-001-decisions";
 
 /**
- * 254-RC-001 v1.0, THE SIGNED DOCUMENT, DECLARED.
+ * =========================================================================
+ * EVERY ISSUED VERSION, BECAUSE SECTION 13 REQUIRES THE COMPLIANCE FILE TO
+ * HOLD THEM ALL. Operator ruling, 2026-09-20.
+ * =========================================================================
+ *
+ * A superseded protocol is not a deleted one. A letter sealed under v1.0 was
+ * sealed under v1.0's thresholds, and somebody asking years later what the firm
+ * was required to do that day needs the document that was in force THEN, not
+ * the one in force now. Replacing the record rather than extending it would
+ * make that question unanswerable.
+ *
+ * `inForceFrom` is the date the engineer approved it, which is the date on the
+ * approval page, and is not the issue date. v1.1 was issued on 18 September and
+ * approved on the 20th; for two days the document existed and v1.0 was still
+ * the authority.
+ */
+export const RC001_VERSIONS: {
+  version: string;
+  issueDate: string;
+  inForceFrom: string;
+  supersededOn: string | null;
+  file: string;
+  sha256: string;
+}[] = [
+  {
+    version: "1.0",
+    issueDate: "2026-09-14",
+    inForceFrom: "2026-09-14",
+    supersededOn: "2026-09-20",
+    file: "docs/254-RC-001-roof-certification-protocol-v1.0.pdf",
+    sha256: "f6d3ca925ddcb305292895c47249199ce86977644d3323d8a0d8ccc017803ba9",
+  },
+  {
+    version: "1.1",
+    issueDate: "2026-09-18",
+    inForceFrom: "2026-09-20",
+    supersededOn: null,
+    file: "docs/254-RC-001-roof-certification-protocol-v1.1.pdf",
+    sha256: "d050a21a2b2d43114de47989ca731f41e26951f195c90187e99c11705011e4ef",
+  },
+];
+
+/**
+ * =========================================================================
+ * WHAT THE SIGNATURE ON THE PDF ESTABLISHES, AND WHAT IT DOES NOT.
+ * Operator ruling, 2026-09-20. Recorded as a limitation of the EVIDENCE
+ * rather than as a doubt about the engineer.
+ * =========================================================================
+ *
+ * Verified by extracting the image objects from both PDFs and looking at them,
+ * then deleting the extracts:
+ *
+ *   - A handwritten mark is present on v1.1's approval page, beside the typed
+ *     date 09/20/2026. It is an ink signature, not a typed name or a blank rule.
+ *   - **That image is byte-identical to the one in v1.0**, the same two JPEG
+ *     objects with the same digests in both files.
+ *   - **Neither document carries a cryptographic signature.** No `/Type /Sig`,
+ *     no `/ByteRange`, nothing.
+ *
+ * **So the artifact cannot establish that he personally applied the signature
+ * to v1.1.** A stored signature image placed by anyone is indistinguishable
+ * from one he placed himself. Reusing a stored signature image is ordinary
+ * practice and this is not an allegation; it is a statement of what this
+ * evidence can and cannot support, written down so nobody later reads "signed"
+ * as more than it is.
+ *
+ * **THE ACT THAT SETTLES IT IS THE APPROVAL IN THE PLATFORM, THROUGH HIS OWN
+ * ACCOUNT**, which is what `approvedProtocols` requires and which no session
+ * will ever perform on his behalf by any path. **The PDF is the DOCUMENT; the
+ * platform approval is the ACT.** That is the stronger record and it is the one
+ * this firm was always going to rely on.
+ *
+ * OWED, NOT MISSING: the operator is asking the engineer for a cryptographic
+ * signature or a wet-signed scan on the next protocol, so the compliance file
+ * can answer this question from the artifact rather than from anybody's word.
+ */
+export const RC001_SIGNATURE_EVIDENCE = {
+  handwrittenMarkPresent: true,
+  approvalPageDate: "2026-09-20",
+  /** Identical to v1.0's, verified by digest on the extracted image objects. */
+  signatureImageReusedFromPriorVersion: true,
+  cryptographicSignature: false,
+  establishesPersonalApplication: false,
+  settledInsteadBy: "the engineer's approval in the platform, through his own account",
+  owedOnNextProtocol: "a cryptographic signature or a wet-signed scan",
+} as const;
+
+/**
+ * 254-RC-001 v1.1, THE SIGNED DOCUMENT, DECLARED.
  *
  * THE DOCUMENT IS THE AUTHORITY AND THE PORTAL IS ITS IMPLEMENTATION. Every
  * question, checklist item and decision rule the portal shows traces to a
@@ -17,14 +105,14 @@ import { RC001_DETERMINATIONS, RC001_THRESHOLDS } from "./rc-001-decisions";
 export const RC001 = {
   documentNumber: "254-RC-001",
   title: "Roof Certification Protocol for Existing Roofs",
-  version: "1.0",
-  issueDate: "2026-09-14",
+  version: "1.1",
+  issueDate: "2026-09-18",
   preparedBy: "Aman Dhakal, P.E., Engineer of Record",
   approvedBy: "Aman Dhakal, P.E., Engineer of Record",
   /** The licence as recorded in verifiedEngineers. The document does not print it. */
   approvedByLicense: "143295",
   appliesTo: "All roof certification engagements performed by 254 Engineering Services",
-  supersedes: "None.",
+  supersedes: "Version 1.0, issued September 14, 2026.",
   serviceSlug: "roof-inspections",
 
   /**
@@ -48,8 +136,8 @@ export const RC001 = {
    * The file this declaration was transcribed from, and its digest, so the
    * declaration cannot drift onto a different document without saying so.
    */
-  sourceFile: "docs/254-RC-001-roof-certification-protocol-v1.0.pdf",
-  sourceSha256: "f6d3ca925ddcb305292895c47249199ce86977644d3323d8a0d8ccc017803ba9",
+  sourceFile: "docs/254-RC-001-roof-certification-protocol-v1.1.pdf",
+  sourceSha256: "d050a21a2b2d43114de47989ca731f41e26951f195c90187e99c11705011e4ef",
 
   /**
    * THE FIRM NAME AS THE DOCUMENT PRINTS IT, RECORDED RATHER THAN CORRECTED.
@@ -227,7 +315,7 @@ export const RC001_ENFORCED: { key: string; rule: string; at: string }[] = [
   },
   {
     key: "photos-from-the-field-application-only",
-    rule: "Photographs carry automatic timestamp and location from the field application. Photographs from other devices are not accepted.",
+    rule: "Photographs carry location and three time values from the field application: the time reported by the device, the server time at sync, and the difference between them. A device clock that disagrees with the server is recorded as disagreeing rather than presented as certain. Photographs from other devices are not accepted.",
     at: "section 9",
   },
   {
@@ -300,45 +388,105 @@ export const RC001_ENFORCED: { key: string; rule: string; at: string }[] = [
  * because the engineer signed the words and the reading changes what the firm
  * certifies. They go to him with their section numbers.
  */
-export const RC001_AMBIGUITIES: { at: string; question: string }[] = [
+/**
+ * =========================================================================
+ * FIVE OF THE EIGHT ARE ANSWERED BY v1.1. THREE ARE NOT, AND SAYING SO IS
+ * THE POINT OF KEEPING THEM. Checked against the document, 2026-09-20.
+ * =========================================================================
+ *
+ * The operator's expectation was that v1.1 answered all eight. It answers
+ * five, and each resolution below is quoted from the document rather than
+ * taken from the covering email, because the email is not the authority and
+ * will not be in the compliance file in ten years.
+ *
+ * **The three that remain open are recorded as open.** Closing a question
+ * because a new version arrived, rather than because the new version answers
+ * it, is how a resolved list stops meaning anything.
+ */
+export const RC001_AMBIGUITIES: {
+  at: string;
+  question: string;
+  /** The document's own words, where v1.1 settles it. Null while open. */
+  resolvedByV11: string | null;
+}[] = [
   {
     at: "Appendix C, REPAIRS REQUIRED, with Appendix B, COVERING CONDITION",
     question:
       "Unsealed tabs at more than 25% of tested locations, against a seal-bond test at 3-4 spots. One of four is exactly 25% and does not trigger; one of three is 33% and does. The determination depends on how many spots the technician chose to test. A count, or a fixed number of test spots, would settle it. This is the sharpest of these and needs a rule rather than a percentage.",
+    resolvedByV11:
+      "Both halves moved, which is what it needed. The test is now \"gentle tab lift at 4 locations spread across different planes\" and the trigger is \"2 or more unsealed tabs of the 4 locations tested\". A fixed denominator and a count, so the determination no longer depends on how many spots the technician chose.",
   },
   {
     at: "Appendix C, REPAIRS REQUIRED",
     question:
       "Covering damage beyond 10 units on any plane. Units of what? Appendix B counts damaged shingles/tiles visible, which is the likely reading, but the rule does not say and the word units appears nowhere in Appendix B.",
+    resolvedByV11:
+      "\"10 or more damaged shingles or tiles on any plane; for metal, standing-seam, or membrane coverings, any breach of the water barrier\". The word units is gone, the likely reading is now the stated one, and the coverings it could not have counted are given their own rule.",
   },
   {
     at: "Appendix C, REPAIRS REQUIRED",
     question:
       "8 or more hail hits in a 10 by 10 test square. A 10 by 10 square in what units? Feet is the trade convention and the document does not state it.",
+    resolvedByV11:
+      "\"8 or more hail hits in a 10 foot by 10 foot (100 square foot) test square\". Stated, and stated twice over, so the trade convention no longer has to be assumed.",
   },
   {
     at: "Appendix A, Part 1, questions 5 and 14",
     question:
       "Number of stories is asked twice: question 5 asks property type and number of stories, question 14 asks number of stories and roof steepness. Should one of them drop the stories, and if the two answers disagree at intake, which governs?",
+    /*
+     * STILL OPEN. Both questions are word for word what they were in v1.0:
+     * question 5 still asks "Property type (single family / duplex / townhome /
+     * small commercial) and number of stories" and question 14 still asks
+     * "Number of Stories and Roof Steepness?". The duplication stands and no
+     * rule for a disagreement has been added.
+     */
+    resolvedByV11: null,
   },
   {
     at: "section 13",
     question:
       "Job files are retained ten years from the date of the letter. A job that is DECLINED never produces a letter, so it has no anchor. From what date is a declined job's file retained, and is it retained at all?",
+    resolvedByV11:
+      "\"For a job that produces no letter, the ten years run from the date of the last engineer determination recorded in the file.\" The anchor is given and the file is retained. v1.1 also adds that ten years is the firm's floor and that the engineer raises it where TBPELS rules or the professional liability policy require longer.",
   },
   {
     at: "section 2, with Appendix D",
     question:
       "Section 2 excludes windstorm inspections of ongoing construction on the basis that they are covered by the firm's windstorm inspection protocol, while Appendix D lists 254-WP-001 as a Firm document (Draft). Is a protocol in force allowed to defer scope to one that is not yet in force, and what happens to a job that falls in that gap today?",
+    /*
+     * STILL OPEN, AND ARGUABLY WIDER THAN IT WAS. v1.1 removes the "254-WP-001
+     * Windstorm Inspection Protocol" row from Appendix D and drops the
+     * "(Draft)" annotation, and changes section 14 from "the format established
+     * by 254-WP-001" to "the firm's standard protocol format".
+     *
+     * So the visible CONTRADICTION is gone. The deferral is not: section 2
+     * still excludes ongoing-construction windstorm work "covered by the firm's
+     * windstorm inspection protocol", and that protocol is now not named
+     * anywhere in the document. A scope exclusion pointing at an unnamed
+     * document is harder to act on than one pointing at a named draft, not
+     * easier, and the job that falls in the gap today still has no answer.
+     */
+    resolvedByV11: null,
   },
   {
     at: "Approval page",
     question:
       "The approval block prints the name and 09/14/2026 beside it, and the typed 'Date: ______' field below is left blank. Is the date beside the name the effective date, and should the blank field be removed at v1.1?",
+    resolvedByV11:
+      "Answered by what the page now does rather than by a sentence. The date beside the name is gone and the field is filled: \"Signature: ______ Date: 09/20/2026\". One date, in the field provided for it, and it is the date the protocol is in force from.",
   },
   {
     at: "Appendix D",
     question:
       "The references table's item-to-location pairings do not survive text extraction legibly, so this transcription does not assert them. A human eye on that table is needed before anything in the portal cites it.",
+    /*
+     * STILL OPEN. The table changed, losing the 254-WP-001 row and the
+     * "(Draft)" annotation, and it still does not survive extraction legibly:
+     * the column headers and the authority URLs interleave, so which location
+     * belongs to which item cannot be read from the text layer. Nothing in the
+     * portal cites it and nothing should until somebody reads the table itself.
+     */
+    resolvedByV11: null,
   },
 ];

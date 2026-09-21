@@ -512,6 +512,71 @@ if (pdftotext.error || pdftotext.status !== 0) {
   );
 
   /*
+   * =====================================================================
+   * AND THE WHOLE LABEL, NOT ITS FIRST 24 CHARACTERS. Found 2026-09-20 by
+   * the v1.1 transcription, and the check above is why it had to be found
+   * rather than reported.
+   * =====================================================================
+   *
+   * The check above matches a checkbox line to a declared item on a leading
+   * fragment, for a good reason: the declaration strips the document's own
+   * "[PHOTO]" marker and the punctuation varies. **What it therefore asks is
+   * whether an item is PRESENT, and nothing at all about whether it is
+   * QUOTED.**
+   *
+   * v1.1 changed the seal-bond item from "gentle tab lift at 3-4 spots on
+   * different planes" to "gentle tab lift at 4 locations spread across
+   * different planes". The first 24 characters, "shingle roofs -- seal-bo",
+   * are identical in both. **The audit read v1.1, compared it against a v1.0
+   * transcription, and passed 44 of 44.** Twenty-one labels could each diverge
+   * after their twenty-fourth character and nothing would have said so.
+   *
+   * It is the RC001_ENFORCED lesson in a second place: a declaration verified
+   * for SHAPE while the CONTENT, which is what a checklist hands a technician
+   * on a roof, was compared to nothing. It is also a matcher with a window
+   * narrower than the thing it matches, which is the same family from the
+   * other end.
+   *
+   * So the label is compared WHOLE, against the document's own line with its
+   * "[PHOTO]" marker and check box removed and whitespace squashed, which are
+   * extraction artifacts rather than the document's words.
+   */
+  /*
+   * SCOPED TO THE ITEMS THAT ARE CHECKBOX LINES, which is exactly where the
+   * hole was. The declaration also carries form fields, "job no", "property
+   * address", "technician name", which are not checkbox lines in the document
+   * and are covered by their own checks. Requiring those to match a checkbox
+   * line would be inventing a rule rather than closing a gap, and the first
+   * version of this check did exactly that and named three of them.
+   *
+   * The pairing uses the SAME leading fragment the check above uses, so the two
+   * agree about which document line an item is; what this adds is that once
+   * they are paired, the WHOLE line must match.
+   */
+  /*
+   * COMPARED THE WAY THE OTHER FOUR ARE: against the whole document with all
+   * whitespace squashed out, rather than against one extracted line.
+   *
+   * The first attempt compared a label to the checkbox LINE and failed on
+   * every long item, because `pdftotext -layout` wraps a long line and the
+   * continuation lands on the next one. That is an extraction artifact, the
+   * same class as the hyphen-break this file already documents, and repairing
+   * it by squashing whitespace is what the intake, criteria, procedure and
+   * enforced-rule comparisons all already do. Every character is still
+   * compared, in order.
+   */
+  const notVerbatim = RC001.checklist
+    .filter((item) => !doc.includes(squash(item.label)))
+    .map((item) => `${item.key}: "${squash(item.label).slice(0, 60)}"`);
+  rec(
+    `every checklist label appears in the signed document, word for word (${RC001.checklist.length} items)`,
+    RC001.checklist.length > 15 && notVerbatim.length === 0,
+    notVerbatim.length === 0
+      ? `${RC001.checklist.length} labels compared whole rather than on their first 24 characters`
+      : `NOT WHAT THE DOCUMENT SAYS: ${notVerbatim.slice(0, 3).join(" | ")}`,
+  );
+
+  /*
    * And the same question asked the other way for the counts and the
    * temperature, because those are the captures the document is most explicit
    * about and the easiest to render as a note rather than a value.
