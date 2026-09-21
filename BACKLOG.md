@@ -60,6 +60,43 @@ anywhere but may not exist ONLY there, and this one existed only in a
 transcript. A finding recorded in a report is a finding that closes when the
 conversation ends.
 
+## SURVEY OWED: WHICH COMPARISONS MATCH A PREFIX WHERE THEY SHOULD MATCH THE WHOLE
+
+Operator ruling, 2026-09-20. Report only. Not tonight.
+
+**Two checks in two days passed over content they were not comparing, and both
+were in the protocol registry, which covers the document the firm's work rests
+on.**
+
+| When | The check | What it actually compared |
+| --- | --- | --- |
+| 2026-09-18 | `RC001_ENFORCED` | that a rule had a key and a place, never that it was what the document says |
+| 2026-09-20 | the checklist labels | the first 24 characters of each line, so every tail was unread |
+
+The second is the instructive one because it had a REASON. Matching on a leading
+fragment was deliberate: the declaration strips the document's own "[PHOTO]"
+marker and the punctuation varies, so a whole-line match would have failed on
+formatting. The fragment solved that and silently changed the question from
+"is this what the document says" to "is something like this present". v1.1
+changed a checklist item after its twenty-fourth character and the audit read
+the new document against the old transcription and passed 44 of 44.
+
+**THE QUESTION FOR THE SURVEY.** Every comparison in this repository that
+matches on a prefix, a key, a length, a count, or a shape, where the thing that
+matters is the whole content. For each: what would have to differ for it to
+still pass, and is that difference one anybody would care about.
+
+Places to start, none checked: the surface inventory's route matching, the
+schema ledger's per-migration declarations, the email template list parsed from
+`compose()` calls, `roles-audit`'s grant comparison, the demo detector's probe
+address matching, and every `.slice(0, n)` or `startsWith` in `scripts/`.
+
+**The tell is a normalisation with a good reason behind it.** Nobody writes a
+prefix match by accident; they write it because a whole match failed on
+something irrelevant, and the fix for the irrelevant thing quietly narrows the
+subject. The right repair is to normalise the artifact and keep comparing the
+whole, which is what the checklist check does now.
+
 ## SURVEY OWED: WHICH CHECKS EXPIRE WHEN THE FIRM SUCCEEDS
 
 Operator ruling, 2026-09-20, from the trade floor pass. Report only, no fix

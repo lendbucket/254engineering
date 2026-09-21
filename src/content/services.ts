@@ -110,6 +110,22 @@ export const services: Service[] = [
       "The WPI-8 is the certificate of compliance issued by the Texas Department of Insurance for construction inside the designated catastrophe area along the Texas coast. It records that the work was inspected and found to comply with the windstorm building code applicable where the structure stands, and it is the document an insurer looks for before windstorm coverage is written through the Texas Windstorm Insurance Association.",
       "There are two routes to one. The Department may inspect the work itself. The alternative, and in practice the common one, is inspection and certification by a Texas licensed Professional Engineer appointed by the Department for windstorm inspections, who documents compliance on form WPI-2 so that the Department can issue the WPI-8.",
       "The inspection is sequenced with construction rather than performed once at the end. Roof deck attachment, sheathing, framing connections, and opening protection all have to be observed before they are covered up. That is the single most common reason a coastal project cannot be certified later: not that the work was done badly, but that nobody was there to see it while it could still be seen.",
+      /*
+       * THE TWO PATHS, ON ONE PAGE, BY OPERATOR RULING OF 2026-09-20.
+       *
+       * Not a second service line and not a second page. A buyer arriving here
+       * does not yet know which of the two situations he is in, and asking him
+       * to choose between two windstorm lines before he has read anything is
+       * asking him to guess. So the page describes both and the difference
+       * decides itself.
+       *
+       * The existing building case carries NO PRICE, deliberately. The engineer
+       * of record's reasons are stated rather than summarised, because each one
+       * is a thing that can make a certification impossible and a buyer is
+       * better served knowing that in a paragraph than in a refund.
+       */
+      "Two situations reach this page and they are not priced the same way. Work that has not started, or that is under way and still open to view, is inspected in sequence and carries a published price. An existing building where the work is already finished and covered is quoted after a conversation, because whether it can be certified at all is not knowable from a form.",
+      "Three things decide that case. Only buildings constructed after 1988 can be certified. The construction that would be inspected is already covered, so parts of it have to be opened up before anything can be verified. And where opening protection does not meet the standard, doors and windows may need replacing before a certification is possible at all. Any of the three can change what the work is, which is why it is scoped one property at a time rather than sold at a price.",
     ],
     whoOrders: [
       "Builders and general contractors working inside the catastrophe area",
@@ -129,6 +145,10 @@ export const services: Service[] = [
       {
         q: "Which Texas counties require a WPI-8?",
         a: "The designated catastrophe area covers the fourteen Texas seacoast counties, Aransas, Brazoria, Calhoun, Cameron, Chambers, Galveston, Jefferson, Kenedy, Kleberg, Matagorda, Nueces, Refugio, San Patricio, and Willacy, together with the part of Harris County east of State Highway 146. Structures outside that area do not need one.",
+      },
+      {
+        q: "The building is already finished and was never certified. What happens?",
+        a: "It is looked at one property at a time rather than quoted from a price list, and three things decide it. Only buildings constructed after 1988 can be certified. The construction that needs inspecting is already covered, so parts of it have to be opened up before it can be verified. And if the doors and windows do not meet the opening protection standard, they may need replacing before a certification is possible. That is why this case is quoted after a conversation about the property rather than carrying a published price, and why the answer is sometimes that it cannot be certified.",
       },
       {
         q: "Is the WPI-8 the same thing as the engineer's letter?",

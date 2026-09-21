@@ -1348,6 +1348,23 @@ of an exit code being read as something other than what it said.
 | 2026-09-15 | `npx tsx scripts/db-guard-audit.mjs \| tail -1 && git commit` | `tail` succeeded | the audit passed |
 | 2026-09-16 | `grep ... && git commit` | nothing matched | the command failed, so skip the commit |
 | 2026-09-17 | `grep -P "[\x{2013}]" \|\| echo "no long dashes"` | the pattern would not compile | there are no long dashes |
+| 2026-09-20 | `node inj-contrast.mjs \| tail -12` | nothing, until the process exits | the injection is hung |
+
+**THE FOURTH IS THE SAME MECHANISM WEARING A DIFFERENT SYMPTOM, WHICH IS WHY IT
+IS IN THIS TABLE RATHER THAN ITS OWN ENTRY.** Operator ruling, 2026-09-20.
+
+The first three are about an EXIT CODE being read as something other than what
+it said. This one discards nothing and reports nothing: piping a long running
+command through `tail` buffers ALL of its output until the process exits, so a
+run that was working normally produced an empty log for six minutes and was
+diagnosed as hung. Processes were surveyed, a kill was attempted and refused,
+and the cause was the pipe.
+
+**`tail` at the end of a command is the same hazard at both ends.** In front of
+`&&` it hides the answer the command gave. In front of a long run it hides that
+the command is answering at all. The rule is unchanged and now covers both: a
+command whose output is a verdict is run on its own and its output is read, or
+it is redirected to a file that can be read while it runs.
 
 **The shape, and it is one shape rather than three anecdotes. `grep` answers
 with THREE values and `&&` is two valued.** Zero is matched, one is did not
