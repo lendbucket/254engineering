@@ -478,11 +478,19 @@ async function windstormInquiryChecks() {
   await page.locator('input[name="name"]').fill(MARKER);
   await page.locator('input[name="email"]').fill("forms.audit@254engineering.com");
   await page.locator('input[name="propertyAddress"]').fill("11 Audit Street, Corpus Christi");
-  await page.locator('input[name="yearBuilt"]').fill("1995");
+  /*
+   * THE YEAR OF THE WORK, AND DELIBERATELY NOT THE YEAR BUILT.
+   *
+   * 1995 goes into `mostRecentWorkYear` and `yearBuilt` is left EMPTY, so the
+   * read-back below can prove the row carries the work year and a null
+   * construction year. A fixture that filled both could not tell the two apart,
+   * and telling them apart is the whole correction of 2026-09-21.
+   */
+  await page.locator('input[name="mostRecentWorkYear"]').fill("1995");
   await page.locator('textarea[name="workDone"]').fill("Reroof in 2021 by a local contractor.");
   await page.locator('textarea[name="whatIsCovered"]').fill("Sheathing and deck attachment are covered.");
   await page.selectOption('select[name="askingAs"]', "owner");
-  await page.selectOption('select[name="yearBuiltUnknown"]', "no");
+  await page.selectOption('select[name="workYearUnknown"]', "no");
   await page.selectOption('select[name="openingsRated"]', "unknown");
   await page.selectOption('select[name="willOpenUp"]', "yes");
   await page.selectOption('select[name="openInsuranceClaim"]', "no");
@@ -506,21 +514,171 @@ async function windstormInquiryChecks() {
   const sent = posts[0] ?? {};
   rec(
     "and the answers that travel are the answers that were given",
-    sent.yearBuilt === 1995 && sent.yearBuiltUnknown === false && sent.openInsuranceClaim === false,
-    JSON.stringify({ yearBuilt: sent.yearBuilt, unknown: sent.yearBuiltUnknown }),
+    sent.mostRecentWorkYear === 1995 &&
+      sent.workYearUnknown === false &&
+      sent.yearBuilt === undefined &&
+      sent.openInsuranceClaim === false,
+    JSON.stringify({ work: sent.mostRecentWorkYear, unknown: sent.workYearUnknown, built: sent.yearBuilt }),
   );
 
-  const banner = await page
-    .getByText(/nothing has been saved/i)
+  /*
+   * =====================================================================
+   * INVERTED 2026-09-21, WHEN 0054 GAVE IT A TABLE.
+   * =====================================================================
+   *
+   * This asserted that a valid brief was REFUSED and that the person was told
+   * nothing had been saved, which was the correct assertion while the table did
+   * not exist. It now asserts the opposite, and the comment is kept because a
+   * check that flips its meaning should say when and why rather than read as
+   * though it always meant this.
+   *
+   * **IT ASSERTS THE ROW, NOT THE STATUS CODE.** A route can answer 200 and
+   * write nothing: that is `customer_link.issued`, the defect this whole form
+   * was built around, and a check reading only the response would pass over it
+   * perfectly. So the brief is read back out of `eng_windstorm_inquiries` by
+   * the marker this run wrote, and its answers are compared.
+   */
+  /*
+   * THE ACKNOWLEDGEMENT IS ON SCREEN, WHICH THE FIRST VERSION DID NOT CHECK.
+   *
+   * That version asserted the ROUTE's sentence, and the route's sentence never
+   * reached a screen: `useFormPost` discards the response body on success by
+   * design, and this form had no success branch at all. So the row was written,
+   * the check passed on the read-back, and a person submitting the form would
+   * have seen nothing happen. Found by running it rather than by reading it.
+   */
+  const accepted = await page
+    .getByText(/your brief is with us/i)
     .isVisible()
     .catch(() => false);
   rec(
-    "and the person is told plainly that nothing was saved",
-    banner,
-    banner
-      ? "the brief is refused honestly rather than accepted and dropped"
-      : "A VALID BRIEF WAS ACCEPTED OR FAILED SILENTLY. If the table now exists, this check inverts.",
+    "and the person is told on screen that the brief arrived",
+    accepted,
+    accepted ? "" : "A ROW WITH NO ACKNOWLEDGEMENT is a form that looks broken to the person who filled it in",
   );
+  /*
+   * AND IT DOES NOT HAND THEM A SCOPE DETERMINATION. Telling a stranger their
+   * work is in scope under 2210.251, from a form, is an opinion arriving from
+   * the wrong place. Staff see it on the portal screen; the enquirer hears it
+   * from a person.
+   *
+   * ASSERTED ON THE RESPONSE BODY RATHER THAN ON THE PAGE, and the first
+   * version taught me why. It searched the rendered page for "in scope" and
+   * "2210.251" and went red, because the page LEGITIMATELY explains the statute
+   * above the form: that is the educational copy a reader needs, not a verdict
+   * on their property. A matcher matching a name when it means something else,
+   * in a check written to catch exactly that class.
+   *
+   * The response body cannot be confused with page copy. The route answers
+   * `{ ok: true }` and nothing else, so a determination reaching the public
+   * would have to appear here first.
+   */
+  const body = await page.evaluate(async (marker) => {
+    const res = await fetch("/api/windstorm-inquiry", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: marker,
+        email: "forms.audit@254engineering.com",
+        askingAs: "owner",
+        propertyAddress: "12 Audit Street, Corpus Christi",
+        mostRecentWorkYear: 1995,
+        workYearUnknown: false,
+        workDone: "Reroof in 2021 by a local contractor.",
+        whatIsCovered: "Sheathing and deck attachment are covered.",
+        openingsRated: "unknown",
+        willOpenUp: "yes",
+        openInsuranceClaim: false,
+        activeLitigation: false,
+        priorAdverseReport: false,
+      }),
+    });
+    return { status: res.status, json: await res.json().catch(() => ({})) };
+  }, MARKER);
+
+  const keys = Object.keys(body.json ?? {}).sort().join(",");
+  rec(
+    "and the route hands the public no scope determination, only an acknowledgement",
+    body.status === 200 && keys === "ok",
+    `status ${body.status}, keys {${keys}}`,
+  );
+
+  /*
+   * THE CLIENT IS ASSERTED RATHER THAN SKIPPED. Without it the write path is
+   * unproven, and a check that quietly passes over "I could not look" is the
+   * shape this repository spends its time removing. The lead round trip below
+   * assumes a client for the same reason; this one says so out loud.
+   */
+  const db = auditClient("forms-audit");
+  rec(
+    "a database client exists to read the brief back with",
+    Boolean(db),
+    db ? "" : "WITHOUT ONE THE WRITE PATH IS UNPROVEN, and a 200 is not evidence of a row",
+  );
+  if (db) {
+    const { data: rows } = await db
+      .from("eng_windstorm_inquiries")
+      .select("name, most_recent_work_year, year_built, openings_rated, will_open_up, open_insurance_claim, respond_by, responded_at")
+      .eq("name", MARKER)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    const row = (rows ?? [])[0];
+
+    rec(
+      "and the brief is actually in the table, read back by this run's marker",
+      Boolean(row),
+      row ? "" : "A 200 WITH NO ROW IS customer_link.issued, which is what this form was built around",
+    );
+
+    /*
+     * THE YEAR OF THE WORK IS THE ONE THAT MATTERS, so it is the one compared.
+     * 1995 was typed into the work year field, not the construction year, and a
+     * row carrying it under `year_built` would be the old defect wearing the
+     * new column.
+     */
+    rec(
+      "and the year it carries is the year of the WORK, not the year built",
+      row?.most_recent_work_year === 1995 && row?.year_built === null,
+      row ? `work ${row.most_recent_work_year}, built ${row.year_built}` : "no row",
+    );
+
+    rec(
+      "and the answers that decide the job survived the round trip",
+      row?.openings_rated === "unknown" &&
+        row?.will_open_up === "yes" &&
+        row?.open_insurance_claim === false,
+      row ? `${row.openings_rated}, ${row.will_open_up}, claim ${row.open_insurance_claim}` : "no row",
+    );
+
+    /*
+     * THE 24 HOUR PROMISE IS A COLUMN RATHER THAN A CONVENTION, and it arrives
+     * unanswered. A row born with `responded_at` set would mean the promise was
+     * discharged by the act of making it.
+     */
+    rec(
+      "and it carries an unanswered 24 hour promise",
+      Boolean(row?.respond_by) && row?.responded_at === null,
+      row?.respond_by ? `respond_by ${String(row.respond_by).slice(0, 16)}, unanswered` : "no promise",
+    );
+
+    /*
+     * TEARDOWN, AND IT SWEEPS THE MARKER RATHER THAN THE ID IT JUST WROTE.
+     * The portal-probe lesson, applied here rather than rediscovered: deleting
+     * exactly what the verification looks for is the only version where a run
+     * that died before teardown is cleaned up by the next one. mfa-audit is the
+     * counter-example, and it stranded a role for a day.
+     */
+    const { error: sweepError } = await db.from("eng_windstorm_inquiries").delete().eq("name", MARKER);
+    const { data: left } = await db
+      .from("eng_windstorm_inquiries")
+      .select("id")
+      .eq("name", MARKER);
+    rec(
+      "and the probe brief is swept, by marker rather than by id",
+      !sweepError && (left ?? []).length === 0,
+      sweepError ? sweepError.message : `${(left ?? []).length} left behind`,
+    );
+  }
 
   await page.close();
 }

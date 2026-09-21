@@ -60,6 +60,50 @@ anywhere but may not exist ONLY there, and this one existed only in a
 transcript. A finding recorded in a report is a finding that closes when the
 conversation ends.
 
+## PHASE 14, AHEAD OF THE SURVEYS: THE DEVELOPMENT AGAINST REPLAY COMPARISON BECOMES A BOARD PREFLIGHT
+
+Operator ruling, 2026-09-21. **Record only, do not build now.**
+
+**Development was missing 0050, 0051, 0052 and 0053 for eight days and every
+board was green.** They were applied to production on 2026-09-20 and the ledger
+records that correctly. Nobody applied them to development, which is the
+database every audit points at.
+
+**Section 6b already says this is a defect and already says what catches it:**
+"Every migration in `supabase/migrations/` applies to both, in order, and a
+migration applied to one and not the other is a defect the fingerprint catches."
+**The fingerprint does catch it. Nobody ran the fingerprint.** It is a by-hand
+step, and the interval between somebody remembering is where this lived.
+
+**WHY NO AUDIT NOTICED, WHICH IS THE PART WORTH KEEPING.** Both missing tables
+are unreachable from every live audit, and each for a DELIBERATE and RECORDED
+reason:
+
+| Table | Why nothing live touches it |
+| --- | --- |
+| `eng_design_inquiries` | `forms-audit` drives the form and never completes a valid submission. It asserts empty-blocks and flags-block, so the POST never happens and the route is never reached. Recorded reason: inserting a brief would add probe rows to a screen that could not page, and "repeating a known mistake to gain a check is a bad trade". |
+| `eng_repair_items` | Exercised only in `migration-audit`'s replayed database. Recorded reason: a live fixture that seals a file would put a sealed deliverable on a real database under a probe engineer's name. |
+
+**Both decisions were right. Their side effect is that a missing table is
+undetectable.** Every check that might have noticed was either passing over
+validation that blocks before the write, or running against a replay that
+builds the table itself. That is not a gap in the audits; it is the gap between
+two good decisions, and only the fingerprint comparison spans it.
+
+**THE SHAPE, for whoever builds it.** The board already refuses to run against a
+stale artifact and already knows both fingerprints. Comparing development's
+shape digest against the replay's before the first audit runs costs one query,
+and it fails with the one sentence that matters: which migrations development
+lacks. It belongs with the build guard rather than inside an audit, because an
+audit that runs against the wrong schema has already wasted the run.
+
+**Note for whoever reads the provider history:** development's
+`schema_migrations` will show **0054 ahead of 0050 through 0053**, because 0054
+was applied first while chasing this. It is a development artifact, the operator
+has accepted it, and the schema is correct: shape
+`56b351a693ec70cc86203fd0cbde481c`, 1,141 columns, 81 tables, RLS on all 81, 25
+`eng_` functions, matching the replay exactly.
+
 ## PHASE 14: `mfa-audit` REPORTS AN UNREACHABLE DATABASE AS A CONTENT FINDING
 
 **Survey 3's first live instance, and it is ranked first.** Operator ruling,

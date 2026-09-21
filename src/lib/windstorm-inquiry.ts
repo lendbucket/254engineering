@@ -1,115 +1,150 @@
 /**
  * ===========================================================================
  * WHAT A WINDSTORM BRIEF ON AN EXISTING BUILDING CAN BE TOLD FROM A FORM.
- * Operator ruling, 2026-09-20, from the engineer of record's reply.
  * ===========================================================================
  *
- * The answer is: very little, and saying so is the feature. Three things decide
- * whether an existing building can be certified, and only ONE of them is
- * knowable from anything a person types:
+ * The answer is: very little, and saying so is the feature. What can be decided
+ * from answers a person types is whether any WORK on the structure is in scope.
+ * Everything else, what is covered up, what can be opened to verify it, and
+ * whether the openings meet the standard, is the engineer's judgement about a
+ * specific property.
  *
- *   1. Only buildings constructed after 1988 can be certified.
- *   2. The construction that needs inspecting is already covered up, so parts
- *      of it have to be opened before anything can be verified.
- *   3. Where opening protection falls short, doors and windows may need
- *      replacing before a certification is possible at all.
+ * ===========================================================================
+ * THE RULE IS KEYED ON THE DATE OF THE WORK, NEVER ON THE CONSTRUCTION YEAR.
+ * Operator ruling, 2026-09-21, reversing the first encoding.
+ * ===========================================================================
  *
- * The first is a date comparison. The second and third are the engineer's
- * judgement about a specific property. So this file answers the first, records
- * the inputs to the other two, and **never produces a quote or a verdict on the
- * job**. A form that told somebody their building could be certified would be
- * issuing an engineering opinion from a dropdown.
+ * **THE FIRST VERSION ASKED WHEN THE BUILDING WAS BUILT AND WAS BACKWARDS FOR
+ * THE COMMONEST CASE.** It told the owner of a 1975 house that the building
+ * predated the standards and could not be certified. The firm's own published
+ * page says the opposite, and says it citing the statute:
  *
- * THE FORM EXISTS AND DOES NOT YET PERSIST, DELIBERATELY.
- * ------------------------------------------------------
- * `eng_windstorm_inquiries` does not exist yet. A migration on `main` is never
- * pending, so the table waits for a sitting with the operator at a keyboard,
- * and the split was ruled deliberately: **the questions are settled and the
- * persistence is not.** Aman answered what to ask; the table is where answers
- * go.
+ *   "Subsection (a) makes compliance with the plan of operation the condition
+ *    of eligibility for a structure constructed, altered, remodeled, enlarged,
+ *    or repaired, or to which additions are made, on or after January 1, 1988.
+ *    **The list of verbs is the point. The date that matters is the date of the
+ *    work, and a structure can have more than one.**"
  *
- * So `/api/windstorm-inquiry` validates a brief completely and then refuses to
- * accept it, telling the person to ring or email instead. It does NOT take
- * somebody's details and drop them. A form that accepts a submission it cannot
- * store is the `customer_link.issued` defect wearing a different hat, and that
- * one cost a paying customer a phone call to find out nothing had been sent.
+ *   "The pre-1988 treatment belongs to the pre-1988 work. **A roof replaced
+ *    last year on a house built in 1975 is work done on or after January 1,
+ *    1988, and subsection (a) reaches it.**"
  *
- * WHAT THE SITTING HAS TO DO, so nobody finds this half built and guesses:
- *   - a migration creating `eng_windstorm_inquiries`, with the columns this
- *     schema validates and the `respond_by` promise the design table carries
- *   - `src/lib/ops-windstorm-inquiries.ts`, the reader gated on `files.create`
- *     and `markResponded`, mirroring `ops-inquiries.ts`
- *   - the insert, replacing the refusal in the route
- *   - `/portal/windstorm-inquiries`, and **a `roleFor` entry for it in the same
- *     commit**: it is top level with no parent to inherit from, which is
- *     exactly the shape that shipped broken as `/portal/waiting`
+ * So an old house with recent work is IN SCOPE, and the old rule turned away
+ * the most common legitimate enquiry this form exists to receive. The
+ * operator's ruling: for an inquiry form, which routes rather than certifies,
+ * turning away the common legitimate case is not caution.
+ *
+ * **TWO CONDITIONS ON THIS RULE, BOTH RECORDED RATHER THAN ASSUMED.**
+ *
+ * First, `/insights/twia-coverage-homes-built-before-1988` was written by a
+ * session and **has not been checked against the statute by a person**. This
+ * rule now rests on that page's reading of Tex. Ins. Code 2210.251. That is a
+ * second-hand authority and it is named as one. 2210.251 is in the bundle for
+ * the engineer of record to confirm after orientation.
+ *
+ * Second, the form already asks WHAT WORK HAS BEEN DONE. The rule reads that,
+ * and asks when each piece of work was done. It does not apply a date test to
+ * the construction year, which is the field it was wrongly reading before.
+ *
+ * THE FORM EXISTS AND DOES NOT YET PERSIST ON `main`. On this branch the table
+ * lands and the route saves. See `ops-windstorm-inquiries.ts`.
  */
 
 /**
- * The year a building must have been constructed AFTER to be certifiable.
+ * The statutory line. Work done ON OR AFTER this date is in scope.
  *
- * Stated as the operator stated it, "only buildings after 1988", so 1988 itself
- * does not qualify and 1989 does.
- *
- * THE BOUNDARY IS A QUESTION FOR THE ENGINEER AND IS RECORDED AS ONE. "After
- * 1988" is unambiguous as written and the thing it refers to may not be: if the
- * rule tracks a code adoption, the date that matters is more likely to be when
- * the structure was permitted or completed than the year somebody remembers. A
- * building finished in 1989 under a 1988 permit is the case that decides it.
- * The platform holds the strict reading until he says otherwise, because the
- * strict reading refuses and the loose one certifies.
+ * Tex. Ins. Code 2210.251 as `/insights/twia-coverage-homes-built-before-1988`
+ * reads it: **January 1, 1988**, and "on or after" includes the day itself.
+ * That is a different boundary from the first encoding, which excluded 1988
+ * entirely, and the difference is one calendar year of legitimate enquiries.
  */
-export const WINDSTORM_CERTIFIABLE_AFTER_YEAR = 1988;
+export const WINDSTORM_WORK_IN_SCOPE_FROM = "1988-01-01";
 
-export type WindstormAgeVerdict =
-  | { state: "eligible"; because: string }
-  | { state: "too_old"; because: string }
-  | { state: "unknown"; because: string };
+/** The year component, for prose and for a year-only answer. */
+export const WINDSTORM_WORK_IN_SCOPE_YEAR = 1988;
 
 /**
- * What the building's age alone says, which is never the whole answer.
- *
- * ABSENT IS NOT A PASS AND IT IS NOT A FAILURE. A person who does not know when
- * their building was built gets `unknown`, which routes to the same
- * conversation as `eligible` does rather than to a refusal. Treating an unknown
- * year as too old would turn "I am not sure" into "no", and treating it as
- * eligible would put a certifiability claim on a building nobody has dated.
+ * One piece of work on the structure. A structure can have several, which is
+ * the whole reason this is a list rather than a field.
  */
-export function windstormAgeVerdict(input: {
-  yearBuilt?: number;
-  yearBuiltUnknown: boolean;
-}): WindstormAgeVerdict {
-  if (input.yearBuiltUnknown || input.yearBuilt === undefined) {
+export type WindstormWork = {
+  /** What was done, in the person's own words. */
+  what: string;
+  /** The year it was done, where they know it. */
+  year?: number;
+};
+
+export type WindstormScopeVerdict =
+  /** At least one piece of work is on or after the line. */
+  | { state: "in_scope"; because: string; inScope: WindstormWork[] }
+  /** Every dated piece of work predates the line. */
+  | { state: "all_pre_1988"; because: string }
+  /** Nothing is dated, so nothing can be placed either side of the line. */
+  | { state: "undated"; because: string };
+
+/**
+ * Whether any work on this structure falls on or after the statutory line.
+ *
+ * **A SINGLE PIECE OF QUALIFYING WORK PUTS THE STRUCTURE IN SCOPE.** That is
+ * what "a structure can have more than one" means in practice: the enquiry does
+ * not turn on the oldest date or on an average, it turns on whether any date
+ * reaches the line.
+ *
+ * ABSENT IS NOT A PASS AND IT IS NOT A FAILURE. Work nobody has dated yields
+ * `undated`, which routes to the same conversation as `in_scope` rather than to
+ * a refusal. A person who cannot date their reroof is the ordinary case, not a
+ * disqualifying one, and the date is established from the permit or the
+ * appraisal record rather than from memory.
+ */
+export function windstormScopeVerdict(work: WindstormWork[]): WindstormScopeVerdict {
+  const dated = work.filter((w) => typeof w.year === "number");
+  const inScope = dated.filter((w) => (w.year as number) >= WINDSTORM_WORK_IN_SCOPE_YEAR);
+
+  if (inScope.length > 0) {
+    const years = inScope.map((w) => w.year).join(", ");
     return {
-      state: "unknown",
+      state: "in_scope",
       because:
-        "The year the building was constructed is not recorded, and it is the first thing that decides whether a certification is possible at all. It is established from the permit or the appraisal record before anything else is scoped.",
+        `Work recorded in ${years} is on or after January 1, ${WINDSTORM_WORK_IN_SCOPE_YEAR}, so it is work the statute reaches whatever year the building itself went up. ` +
+        "Whether it can be certified still depends on what is covered, what can be opened to verify it, and whether the openings meet the standard, none of which is knowable from a form.",
+      inScope,
     };
   }
-  if (input.yearBuilt <= WINDSTORM_CERTIFIABLE_AFTER_YEAR) {
+
+  if (dated.length === 0) {
     return {
-      state: "too_old",
+      state: "undated",
       because:
-        `A building constructed in ${input.yearBuilt} predates the windstorm construction standards a certification rests on, and the engineer of record certifies only buildings constructed after ${WINDSTORM_CERTIFIABLE_AFTER_YEAR}. That is answered before a visit rather than after one.`,
+        "None of the work described here carries a date, and the date of the work is what decides whether the statute reaches it. It is established from the permit or the appraisal record before anything is scoped, not from memory.",
     };
   }
+
   return {
-    state: "eligible",
+    state: "all_pre_1988",
     because:
-      `A building constructed in ${input.yearBuilt} is not ruled out on age. Whether it can be certified still depends on what is covered up, what can be opened to verify it, and whether the doors and windows meet the opening protection standard, none of which is knowable from a form.`,
+      `Every piece of work described here predates January 1, ${WINDSTORM_WORK_IN_SCOPE_YEAR}. Work before that line is treated differently and may be eligible without inspection at all, which is a better answer than a certification and is still a conversation rather than a form's verdict.`,
   };
 }
 
-/**
- * The sentence a person is shown after a brief is validated.
+/*
+ * `windstormBriefReply` WAS HERE AND WENT, THE SAME DAY IT WAS WRITTEN.
  *
- * IT NEVER PROMISES A CERTIFICATION AND IT NEVER PROMISES A PRICE. The most it
- * says is that the age does not rule the building out, and the least it says is
- * that the age does.
+ * It composed the sentence a member of the public would be shown after
+ * submitting: which side of the statutory line their work fell on. Two things
+ * removed it. `useFormPost` discards the response body on success by design,
+ * so it never reached a screen; and once that was noticed, the better question
+ * was whether it SHOULD.
+ *
+ * **Telling a stranger their work is in scope under 2210.251, from a form, is
+ * close to an opinion arriving from the wrong place.** The determination is
+ * shown to STAFF on /portal/windstorm-inquiries, where somebody can act on it,
+ * and it reaches the enquirer in a reply written by a person.
+ *
+ * Deleted rather than left unused, on the same rule that removed `heldOnTier`:
+ * dead code that composes a sentence about a live case is a thing somebody
+ * reads and believes.
+ *
+ * `windstormScopeVerdict` above is NOT dead. The portal screen calls it to
+ * render each brief's scope chip, deliberately rather than comparing the year
+ * itself, so the rule has one home and one reader.
  */
-export function windstormBriefReply(verdict: WindstormAgeVerdict): string {
-  if (verdict.state === "too_old") {
-    return `${verdict.because} It is worth a conversation anyway, because a later addition or a reroof can sometimes be certified on its own, and that is a question about this property rather than about the rule.`;
-  }
-  return `${verdict.because} Somebody will be in touch to scope it.`;
-}

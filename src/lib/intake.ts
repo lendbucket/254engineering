@@ -184,6 +184,73 @@ export async function insertDesignInquiry(row: DesignInquiryRow): Promise<WriteR
   return error ? { ok: false, error: error.message } : { ok: true };
 }
 
+/**
+ * A windstorm brief on an existing building. 0054 holds it.
+ *
+ * ITS OWN ROW TYPE AND ITS OWN INSERT, not the design one with a flag. The
+ * questions are different questions, which is the argument 0054 makes at
+ * length, and a shared insert would mean one function writing two column sets.
+ */
+export type WindstormInquiryRow = {
+  name: string;
+  email: string;
+  phone?: string;
+  askingAs: string;
+  propertyAddress: string;
+  county?: string;
+  /** Context for the engineer, never the eligibility test. */
+  yearBuilt?: number;
+  /** The test. Undefined means undated, which is a third state and not a no. */
+  mostRecentWorkYear?: number;
+  workDone: string;
+  whatIsCovered: string;
+  openingsRated: string;
+  willOpenUp: string;
+  deadline?: string;
+  openInsuranceClaim: boolean;
+  activeLitigation: boolean;
+  priorAdverseReport: boolean;
+  landingPath?: string;
+  referrer?: string;
+  userAgent?: string | null;
+};
+
+export async function insertWindstormInquiry(row: WindstormInquiryRow): Promise<WriteResult> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "Supabase is not configured" };
+
+  const { error } = await db.from("eng_windstorm_inquiries").insert({
+    name: row.name,
+    email: row.email,
+    phone: row.phone || null,
+    asking_as: row.askingAs,
+    property_address: row.propertyAddress,
+    county: row.county || null,
+    /*
+     * ?? rather than ||, because a year is a number and 0 is falsy. It cannot
+     * reach here as 0 today, since the schema floors both years at 1800, and
+     * the operator is `??` anyway so that a future loosening of the schema does
+     * not silently turn a year into a null. Same character, same defect as the
+     * soil report above.
+     */
+    year_built: row.yearBuilt ?? null,
+    most_recent_work_year: row.mostRecentWorkYear ?? null,
+    work_done: row.workDone,
+    what_is_covered: row.whatIsCovered,
+    openings_rated: row.openingsRated,
+    will_open_up: row.willOpenUp,
+    deadline: row.deadline || null,
+    open_insurance_claim: row.openInsuranceClaim,
+    active_litigation: row.activeLitigation,
+    prior_adverse_report: row.priorAdverseReport,
+    landing_path: row.landingPath || null,
+    referrer: row.referrer || null,
+    user_agent: row.userAgent || null,
+  });
+
+  return error ? { ok: false, error: error.message } : { ok: true };
+}
+
 export type ApplicationRow = {
   role: "professional_engineer" | "field_technician";
   name?: string;

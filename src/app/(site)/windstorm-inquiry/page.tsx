@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/site/PageHeader";
 import { WindstormInquiryForm } from "@/components/forms/WindstormInquiryForm";
 import { Eyebrow, Rule } from "@/components/ui/primitives";
 import { buildMetadata } from "@/lib/seo";
-import { WINDSTORM_CERTIFIABLE_AFTER_YEAR } from "@/lib/windstorm-inquiry";
+import { WINDSTORM_WORK_IN_SCOPE_YEAR } from "@/lib/windstorm-inquiry";
 
 /**
  * ===========================================================================
@@ -76,13 +76,28 @@ export default function WindstormInquiryPage() {
           <Eyebrow>What decides it</Eyebrow>
           <Rule />
           <div className="mt-5 space-y-4 text-[0.98rem] leading-[1.7] text-slate-muted">
+            {/*
+              THE DATE OF THE WORK, NOT THE YEAR OF THE HOUSE. This paragraph
+              said "only buildings constructed after 1988 can be certified",
+              which is not what the statute says and turned away the commonest
+              legitimate enquiry: an old house with recent work. Corrected
+              2026-09-21 against the firm's own reading of Tex. Ins. Code
+              2210.251 at /insights/twia-coverage-homes-built-before-1988.
+            */}
             <p>
-              Three things, and the engineer of record is plain about all three. Only buildings
-              constructed after {WINDSTORM_CERTIFIABLE_AFTER_YEAR} can be certified. The
-              construction that would be inspected is already covered, so parts of it have to be
-              opened up before anything can be verified. And where the doors and windows do not
-              meet the opening protection standard, they may need replacing before a certification
-              is possible at all.
+              The first question is when the work was done, not when the house went up. Under
+              Texas Insurance Code section 2210.251 the date that matters is the date of the work,
+              and a structure can have more than one: a roof replaced last year on a house built in
+              1975 is work done on or after January 1, {WINDSTORM_WORK_IN_SCOPE_YEAR}, and the
+              section reaches it. Work done before that line is treated differently and may be
+              eligible without inspection at all.
+            </p>
+            <p>
+              After that, two things the engineer of record is plain about. The construction that
+              would be inspected is already covered, so parts of it have to be opened up before
+              anything can be verified. And where the doors and windows do not meet the opening
+              protection standard, they may need replacing before a certification is possible at
+              all.
             </p>
             <p>
               Any one of those can change what the work is, or end it. That is why this is scoped

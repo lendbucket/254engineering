@@ -125,7 +125,7 @@ export const services: Service[] = [
        * better served knowing that in a paragraph than in a refund.
        */
       "Two situations reach this page and they are not priced the same way. Work that has not started, or that is under way and still open to view, is inspected in sequence and carries a published price. An existing building where the work is already finished and covered is quoted after a conversation, because whether it can be certified at all is not knowable from a form.",
-      "Three things decide that case. Only buildings constructed after 1988 can be certified. The construction that would be inspected is already covered, so parts of it have to be opened up before anything can be verified. And where opening protection does not meet the standard, doors and windows may need replacing before a certification is possible at all. Any of the three can change what the work is, which is why it is scoped one property at a time rather than sold at a price.",
+      "Three things decide that case. The first is when the work was done rather than when the house went up: under Texas Insurance Code section 2210.251 the date that matters is the date of the work, and a structure can have more than one, so a roof replaced last year on a house built in 1975 is reached by it. The second is that the construction which would be inspected is already covered, so parts of it have to be opened up before anything can be verified. The third is that where opening protection does not meet the standard, doors and windows may need replacing before a certification is possible at all. Any of the three can change what the work is, which is why it is scoped one property at a time rather than sold at a price.",
     ],
     whoOrders: [
       "Builders and general contractors working inside the catastrophe area",
@@ -148,7 +148,7 @@ export const services: Service[] = [
       },
       {
         q: "The building is already finished and was never certified. What happens?",
-        a: "It is looked at one property at a time rather than quoted from a price list, and three things decide it. Only buildings constructed after 1988 can be certified. The construction that needs inspecting is already covered, so parts of it have to be opened up before it can be verified. And if the doors and windows do not meet the opening protection standard, they may need replacing before a certification is possible. That is why this case is quoted after a conversation about the property rather than carrying a published price, and why the answer is sometimes that it cannot be certified.",
+        a: "It is looked at one property at a time rather than quoted from a price list, and three things decide it. The age of the house is not the question: Texas Insurance Code section 2210.251 turns on the date of the work, so a reroof done last year on a house built in 1975 is reached by it, and work done before January 1, 1988 is treated differently and may be eligible without inspection at all. The construction that needs inspecting is already covered, so parts of it have to be opened up before it can be verified. And if the doors and windows do not meet the opening protection standard, they may need replacing before a certification is possible. That is why this case is quoted after a conversation about the property rather than carrying a published price, and why the answer is sometimes that it cannot be certified.",
       },
       {
         q: "Is the WPI-8 the same thing as the engineer's letter?",
