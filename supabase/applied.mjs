@@ -1265,6 +1265,70 @@ export const APPLIED = [
       "prefix: one table created, one existing object referenced, eng_profiles(id), no function and " +
       "no trigger. Two migrations from other applications landed on production the same day.",
   },
+  {
+    file: "0055_the_signed_roof_protocol_awaits_its_engineer.sql",
+    fingerprint: "56b351a693ec70cc86203fd0cbde481c",
+    behaviour: "72b8ec3ab4975f1178add4a64261d88a",
+    proves: {
+      table: "eng_protocol_templates",
+      match: { document_number: "254-RC-001", version_label: "1.1" },
+    },
+    production: null,
+    development: { at: "0055", behaviour: null, facts: 919 },
+    note:
+      "BOTH fingerprints repeat 0054's, which is what a migration with no DDL in it must do. It " +
+      "inserts one row into eng_protocol_templates and touches nothing the shape digest reads and " +
+      "nothing the behaviour digest reads. The line is not copied: it was replayed at 0054 and at " +
+      "0055 and read back identical. The row itself is what `proves` asks about.",
+    because:
+      "PENDING BY OPERATOR RULING, 2026-09-21: 'Production waits for a sitting with me at the " +
+      "keyboard.' This migration puts the engineer of record's signed protocol into the platform, and " +
+      "the row it writes is the thing his first sign in will be looking at. It is not going in while " +
+      "nobody is watching. A migration on a feature branch may be pending; a migration on main may " +
+      "not, so this branch does not merge until the production half is run. " +
+      "APPLIED TO DEVELOPMENT 2026-09-21 through apply_migration and READ BACK COLUMN BY COLUMN: one " +
+      "row, version 2, version_label 1.1, status awaiting_engineer, document_sha256 " +
+      "d050a21a2b2d43114de47989ca731f41e26951f195c90187e99c11705011e4ef, issue_date 2026-09-18, " +
+      "document_signed_at 2026-09-18, requires_discipline null, and approved_by, approved_at, " +
+      "approved_by_license and published_at all four null. " +
+      "BOTH FINGERPRINTS ARE UNCHANGED FROM 0054 AND THAT IS THE WHOLE POINT OF THIS ENTRY. It has no " +
+      "DDL in it: 56b351a693ec70cc86203fd0cbde481c across 1,141 columns and " +
+      "72b8ec3ab4975f1178add4a64261d88a across 919 facts, read from a replay of the full chain at both " +
+      "0054 and 0055 rather than carried over. So the fingerprint cannot see this migration AT ALL, " +
+      "which puts it with 0018, 0025, 0030, 0032 and 0037, and makes the row read-back above the only " +
+      "evidence that it did anything. `proves` is the row shape for the same reason. " +
+      "THE INTEGER version IS 2, AND THE SEEDER SAID 1. Found while writing this, before the script " +
+      "had ever been asked for a second version. eng_protocol_templates carries " +
+      "unique (service_slug, version) and createProtocol computes max(version) + 1 per service line, " +
+      "so the integer is the PLATFORM's sequence and version_label is the DOCUMENT's label. " +
+      "Development already held roof-inspections version 1 at v1.0, so the hardcoded 1 would have hit " +
+      "the unique constraint there. On production, which holds no protocol row at all, it would have " +
+      "SUCCEEDED and written v1.1 as the first version of a line whose first version is v1.0. The two " +
+      "projects would then have disagreed about one document, which is the divergence this ledger " +
+      "exists to prevent, and nothing would have said so. It is derived from RC001_VERSIONS now. " +
+      "WHAT THIS SEEDS IS PROVENANCE, NOT AN APPROVAL. awaiting_engineer is 0049's word for signed on " +
+      "paper and not approved in the platform, and 0049's constraints refuse an approver, an approval " +
+      "time or a publication date in that state, so this migration could not forge one. The approval " +
+      "is Aman's act in his own session through eng_approve_protocol, and it is what seeds the 51 " +
+      "checklist items. No item row is written here. " +
+      "GENERATED, NEVER TYPED. scripts/seed-roof-protocol.mjs --emit-sql hashes the PDF, refuses on " +
+      "any difference, opens no database connection, and renders the literals from the same row object " +
+      "the --apply path inserts, so the two routes cannot state different facts about one document. " +
+      "The route exists because the script carries neverProduction, checked before ALLOW_PRODUCTION_DB " +
+      "is read, and that guard is not being weakened to let a seeder reach production. " +
+      "AND THE HOLE IT LEAVES IS CLOSED FROM THE OTHER SIDE. Postgres cannot hash a PDF, so once the " +
+      "SQL is on disk the digest is a literal nothing re-derives. protocol-registry-audit now reads it " +
+      "back OUT of the migration and asserts it equals BOTH the registry and the file on disk, hashed " +
+      "at run time. Three values, not two: comparing the migration only to the registry would pass on " +
+      "a day both had drifted off the actual document. Injection verified four ways, each naming the " +
+      "right check: two different digests in one file, one consistent wrong digest, status published, " +
+      "and approved_by_license written by the migration. " +
+      "v1.0 IS NOT INSERTED. Operator ruling: RC001_VERSIONS is the record Section 13 requires of " +
+      "every issued version, and this table is not a second copy of it. " +
+      "requires_discipline STAYS NULL until the engineer states it in writing, which keeps " +
+      "roof-inspections a waitlist even after he approves. Operator ruling, 2026-09-21: do not guess " +
+      "it from his licence.",
+  },
 ];
 
 /**

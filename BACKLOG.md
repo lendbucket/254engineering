@@ -27,6 +27,49 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
+## PLANNED, NEXT AFTER THE PROTOCOL LOAD: NO ACTION CHANGES A PROFILE'S LOGIN EMAIL
+
+Operator ruling, 2026-09-21. Recorded as a planned feature, at the top of the
+list once 254-RC-001 v1.1 is loaded into production and boarded. **Nothing is
+built yet, and nothing is built without the operator's word.**
+
+### What is true today, read from the source
+
+`src/app/api/portal/people/route.ts` accepts five actions: `create`,
+`force_reset`, `resend_invite`, `suspend`, `restore`. **There is no action that
+changes the address a person signs in with.** Today that is a support request
+with no path through the platform at all.
+
+### Why it cannot simply be an update on a column
+
+`issueSetPasswordToken` in `src/lib/ops-auth.ts` deletes outstanding unused
+tokens **for that profile and that purpose** before minting a new one:
+
+    .delete().eq("profile_id", profileId).eq("purpose", purpose).is("used_at", null)
+
+**The tokens key on `profile_id`, never on the address.** So an invite or a
+reset link already in flight to the OLD address stays valid for the profile
+after the address changes, for the rest of its `SET_PASSWORD_TTL_HOURS` window,
+which is 72. Whoever holds that old inbox can still set the password on the
+account the change was made to move away from. The revocation has to be written
+deliberately, because nothing about an email update would trigger it.
+
+### The requirements, as ruled
+
+1. Every outstanding token for that profile is revoked in the same transaction.
+2. The new address is confirmed by a link sent to it before the change takes
+   effect.
+3. The old address is notified that the change happened.
+4. Written to `eng_audit_events` with who, when, and both addresses.
+5. The admin passes a fresh MFA check to perform it.
+6. For any profile holding responsible charge or an engineer grant, the engineer
+   confirms the change from his own session, or it does not happen. **An admin
+   alone cannot repoint the engineer of record.**
+
+The sixth is the one that decides the shape. A change that an administrator can
+complete alone is a change that can move the account the firm's seals are
+answerable to, which is the separation `LicensedAction` exists to hold.
+
 ## RESOLVED 2026-09-20: THE SIGNED PROTOCOL ROUTED WORK TO A LINE THE FIRM DOES NOT OFFER
 
 Closed against the document's own words rather than deleted, and recorded here
@@ -363,6 +406,26 @@ Its injection was still running when the tree was needed for other work, its
 fixture was reverted surgically rather than by checkout because uncommitted
 changes lived in the same file, and the board that followed measured
 `/portal/accounts` successfully in that audit, so the new path never ran.
+
+**A NEW FACT ABOUT THE STALL, 2026-09-21, AND IT IS THE FIRST IN DAYS.**
+
+**Four audits visit `/portal/accounts`. Only three have ever failed to reach
+it.** `mobile-overflow-audit` and `native-audit` have met the stall on every
+board this week. `mobile-audit` met it on the board at `6fcec1c` and reported
+`COULD NOT TELL` correctly, which is the third verdict proven live rather than
+by injection. **`contrast-audit` has never once failed to reach that screen
+since the verdict went in**, across five boards, and measures it clean at both
+widths every time.
+
+**So the stall is not uniform across visitors.** Six observations produced no
+explanation; this is the first fact that narrows it. Whatever it is, something
+about how `contrast-audit` reaches that screen differs from the other three, and
+that difference is a lead rather than a curiosity.
+
+**It is not chased here and no story is attached to it**, on the standing rule
+that the operator would rather it stay unexplained than acquire a plausible
+account. What is recorded is the asymmetry and the count, so the next session
+starts from a narrower question than "why does it sometimes stall".
 
 **It is exercised the next time the stall fires, not by manufacturing one.**
 Operator ruling. The stall is intermittent and unexplained after six

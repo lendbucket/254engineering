@@ -49,6 +49,23 @@ when did I read it?** If the answer is "it sounded about right", it does not go
 in. "Some days" is honest. "Eight days" is a measurement, and a measurement has
 a source.
 
+### Third instance, same day: a date is read from the register, not recalled
+
+A sitting report said 254-RC-001 v1.1 was signed "two days ago". **It was signed
+2026-09-20, which was yesterday**, and the approval page carrying that date had
+been on screen in the same session, transcribed by hand, hours earlier.
+
+**Three wrong figures in one day, from one root.** Eight days, five constraints,
+two days ago. Each was produced from recollection while the source was open, and
+each was caught by somebody or something other than the session that wrote it:
+the ledger caught the first, the operator's read-back specification caught the
+second, the operator caught the third.
+
+**That the source was open is what makes this a pattern rather than three slips.**
+A figure invented with no source available is a guess anybody would flag. A
+figure produced from memory when the register is one command away reads as
+recalled rather than guessed, which is why it survives the writing.
+
 ### Second instance, same day: a count is produced by COUNTING the source
 
 **A count is produced by counting the source, not by describing a list.**
