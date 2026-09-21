@@ -60,6 +60,63 @@ anywhere but may not exist ONLY there, and this one existed only in a
 transcript. A finding recorded in a report is a finding that closes when the
 conversation ends.
 
+## PHASE 14, AHEAD OF THE SURVEYS: THE DEVELOPMENT AGAINST REPLAY COMPARISON BECOMES A BOARD PREFLIGHT
+
+Operator ruling, 2026-09-21. **Record only, do not build now.**
+
+**Development was missing 0050, 0051, 0052 and 0053 for ONE DAY and every board
+in that window was green.** They were applied to production on **2026-09-20**
+and the ledger records that correctly. Nobody applied them to development, which
+is the database every audit points at, until 2026-09-21.
+
+**CORRECTED 2026-09-21. This entry first said EIGHT DAYS, and that figure was
+invented.** Source, read rather than remembered: all four entries in
+`supabase/applied.mjs` carry `production: "2026-09-20"`, and the provider's own
+history agrees at timestamps `20260920141658`, `141741`, `141856` and `141943`.
+The commit message of `e94c00c` carries the same wrong figure and is
+deliberately not rewritten, because the board measured that hash. See
+`docs/lessons.md`: a duration written into a file that outlives the session is
+read from its source at the moment of writing, or it is not written.
+
+**The duration was fiction and the finding is not.** Four migrations reached
+production a day before development, and in that window every board ran green
+against a database missing two tables the product reads from.
+
+**Section 6b already says this is a defect and already says what catches it:**
+"Every migration in `supabase/migrations/` applies to both, in order, and a
+migration applied to one and not the other is a defect the fingerprint catches."
+**The fingerprint does catch it. Nobody ran the fingerprint.** It is a by-hand
+step, and the interval between somebody remembering is where this lived.
+
+**WHY NO AUDIT NOTICED, WHICH IS THE PART WORTH KEEPING.** Both missing tables
+are unreachable from every live audit, and each for a DELIBERATE and RECORDED
+reason:
+
+| Table | Why nothing live touches it |
+| --- | --- |
+| `eng_design_inquiries` | `forms-audit` drives the form and never completes a valid submission. It asserts empty-blocks and flags-block, so the POST never happens and the route is never reached. Recorded reason: inserting a brief would add probe rows to a screen that could not page, and "repeating a known mistake to gain a check is a bad trade". |
+| `eng_repair_items` | Exercised only in `migration-audit`'s replayed database. Recorded reason: a live fixture that seals a file would put a sealed deliverable on a real database under a probe engineer's name. |
+
+**Both decisions were right. Their side effect is that a missing table is
+undetectable.** Every check that might have noticed was either passing over
+validation that blocks before the write, or running against a replay that
+builds the table itself. That is not a gap in the audits; it is the gap between
+two good decisions, and only the fingerprint comparison spans it.
+
+**THE SHAPE, for whoever builds it.** The board already refuses to run against a
+stale artifact and already knows both fingerprints. Comparing development's
+shape digest against the replay's before the first audit runs costs one query,
+and it fails with the one sentence that matters: which migrations development
+lacks. It belongs with the build guard rather than inside an audit, because an
+audit that runs against the wrong schema has already wasted the run.
+
+**Note for whoever reads the provider history:** development's
+`schema_migrations` will show **0054 ahead of 0050 through 0053**, because 0054
+was applied first while chasing this. It is a development artifact, the operator
+has accepted it, and the schema is correct: shape
+`56b351a693ec70cc86203fd0cbde481c`, 1,141 columns, 81 tables, RLS on all 81, 25
+`eng_` functions, matching the replay exactly.
+
 ## PHASE 14: `mfa-audit` REPORTS AN UNREACHABLE DATABASE AS A CONTENT FINDING
 
 **Survey 3's first live instance, and it is ranked first.** Operator ruling,
@@ -158,6 +215,96 @@ still measures from there. This board is not green and is not recorded as green.
 in the log was counted as a network fault and is not one. It is `order-audit`'s
 deliberate fixture, asserting that an unreachable provider changes nothing.
 There was one real fault in the run, not two.
+
+## PHASE 14: NOTHING ASKS WHETHER EVERY PORTAL SCREEN IS REACHABLE FROM THE NAVIGATION
+
+Operator ruling, 2026-09-21. **Record only, do not build now.**
+
+`/portal/windstorm-inquiries` shipped built, secured, declared in the surface
+inventory, and **absent from `src/components/portal/nav.ts`.** No operator could
+reach it. The board named the four declarations it was missing from and could
+not name this one.
+
+**THE PERIMETER AND THE RULINGS ARE SWEPT AGAINST DISK. THE NAVIGATION IS NOT.**
+`security-audit` walks `src/app/portal` and fails on a page or an API route that
+is not in its list. `roles-audit` does the same for the engineer ruling. Nothing
+does it for the nav.
+
+**Three audits import `NAV`, and every one asks the OUTWARD question:**
+
+| Audit | What it asks |
+| --- | --- |
+| `compliance-audit` | is `/portal/launch` reachable from the nav. One hard-coded route, not a sweep. |
+| `reporting-audit` | is everybody who may read a report offered its nav link. Nav outward to roles. |
+| `overnight-roles.mjs` | which NAV destinations is each role offered, and which not. Nav outward again. |
+
+All three start FROM the nav and ask who can see it. **None starts from disk and
+asks what the nav is missing.** A screen that exists and is linked from nowhere
+is invisible to all three, because it contributes no NAV entry to walk.
+
+**THE SHAPE, for whoever builds it.** `surface-audit` already walks the portal
+directories to derive screens, and `NAV` is a plain exported array. The check is
+a set difference with an exemption list for screens that are deliberately
+unlinked, each naming why, asserted so the exemptions cannot quietly grow. That
+is the same mechanism `surface-audit` uses for API trees.
+
+**One thing to decide first:** some screens are legitimately reached only from
+another screen rather than from the nav, and a check that demands a nav entry
+for every one of them would be refused into uselessness. The exemption list is
+the whole design, not a detail of it.
+
+## PHASE 14: THE DESIGN BRIEF HAS NO PROOF THAT A VALID SUBMISSION SAVES
+
+Operator ruling, 2026-09-21. **Record only. The operator is testing the live form
+by hand today.**
+
+`forms-audit` drives `/design-inquiry` in a real browser and **never completes a
+valid submission.** It asserts that an empty form blocks, that the three flags
+block when untouched, and that the refusal names the missed question. Every
+assertion is about validation stopping the POST, so the route is never reached
+and **nothing has ever proved that a design brief reaches the table.**
+
+That was a deliberate trade, recorded in the file: inserting a brief would put
+probe rows where a person would see them, and "repeating a known mistake to gain
+a check is a bad trade". The known mistake was `/portal/clients` filling with
+probe rows.
+
+**It is also how `eng_design_inquiries` being absent from development went
+unnoticed**, since the only check that would have touched it stops before the
+write.
+
+**WHAT CLOSING IT TAKES, and the third part is the one that matters.** The
+windstorm check now has the shape:
+
+1. Submit a complete brief and assert it reaches the route.
+2. **Read it back out of the table by this run's marker** and compare the
+   answers, because a route can answer 200 and write nothing, which is
+   `customer_link.issued` and is the defect the whole form was built around.
+3. **Sweep by the MARKER, not by the id just written.** This is the difference
+   between safe and another `/portal/clients`: a run that dies before teardown
+   is then cleaned up by the next run rather than leaving a brief sitting on the
+   operator's queue forever. It is the `portal-probe.mjs` lesson, and
+   `mfa-audit` is the counter-example that stranded a role for a day.
+
+The design brief can take the same three steps unchanged.
+
+## PHASE 14: A COLUMN COMMENT DESCRIBES THE TEST AND NOT THE RECENCY
+
+Recorded 2026-09-21. **Correct it in the next migration that touches the table.
+No re-apply.**
+
+`eng_windstorm_inquiries.most_recent_work_year` carries the comment "The test.
+Work on or after January 1, 1988 is in scope whatever year the building went
+up." That is true and it describes the RULE rather than what the column holds,
+which is the MOST RECENT piece of work.
+
+The meaning is carried in four other places, all verified: the column name
+itself, the form label "Year of the most recent work", its hint "whichever was
+last", and the reasoning in `src/lib/forms.ts`. So nothing is ambiguous today.
+
+**It is not corrected now because 0054 is applied to development and editing the
+file would put the two out of step immediately before a production apply.** A
+comment is not worth that, and the operator ruled it waits.
 
 ## PHASE 14, FIRST ITEM: A COMMIT TOUCHING AN AUDIT CARRIES A STANDALONE RUN RECEIPT
 

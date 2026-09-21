@@ -101,6 +101,28 @@ export const NAV: NavItem[] = [
     action: "files.create",
     icon: "files",
   },
+  {
+    /*
+     * Windstorm briefs on existing buildings, and the reply each was promised.
+     *
+     * files.create, matching the page's guard exactly, for the reason recorded
+     * on its sibling above: on files.list the link appears for an engineer and
+     * the page then refuses him, which is the nav-disagrees-with-the-door
+     * defect this file's header warns about. Answering an enquiry nobody has
+     * scoped is intake rather than engineering.
+     *
+     * ADDED 2026-09-21, AND THE SCREEN SHIPPED WITHOUT IT. The board named four
+     * declarations the screen was missing from and could not name this one,
+     * because nothing sweeps the navigation against the screens on disk. The
+     * page rendered, was secured, was in the surface inventory, and no operator
+     * could reach it. See BACKLOG, Phase 14.
+     */
+    href: "/portal/windstorm-inquiries",
+    label: "Windstorm briefs",
+    short: "Windstorm",
+    action: "files.create",
+    icon: "files",
+  },
   { href: "/portal/review", label: "Review queue", short: "Review", action: "review.queue", primary: true, icon: "review" },
   {
     /*

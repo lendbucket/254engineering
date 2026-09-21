@@ -150,16 +150,39 @@ export const windstormInquirySchema = z.object({
   propertyAddress: requiredText("the property address"),
   county: trimmed(120).optional(),
   /*
-   * THE 1988 QUESTION, ASKED AS A YEAR RATHER THAN AS A YES OR NO.
+   * ===================================================================
+   * THE YEAR BUILT IS CONTEXT. THE DATE OF THE WORK IS THE RULE.
+   * Operator ruling, 2026-09-21, reversing the first encoding.
+   * ===================================================================
    *
-   * The engineer's rule is that only buildings constructed after 1988 can be
-   * certified. Asking "is it after 1988" invites a guess and records the guess;
-   * asking the year records what the person actually knows, and the comparison
-   * is the platform's to make rather than theirs. `yearBuiltUnknown` exists
-   * because "I do not know" is a real answer and is not the year 0.
+   * Tex. Ins. Code 2210.251, as the firm's own published page reads it, turns
+   * on the date of the WORK: "a structure constructed, altered, remodeled,
+   * enlarged, or repaired, or to which additions are made, on or after January
+   * 1, 1988". A roof replaced last year on a house built in 1975 is in scope.
+   *
+   * The first version asked for the construction year and compared THAT to
+   * 1988, which turned away the commonest legitimate enquiry this form exists
+   * to receive.
+   *
+   * `yearBuilt` stays because it is useful to the engineer, and it is optional
+   * and is NOT what the rule reads. Pre-1988 construction with no later work
+   * may be eligible without inspection at all, which is a different and better
+   * answer than a certification.
    */
   yearBuilt: z.coerce.number().int().min(1800).max(2100).optional(),
-  yearBuiltUnknown: z.boolean({ message: "Tell us the year it was built, or that you do not know." }),
+  /*
+   * THE MOST RECENT WORK IS SUFFICIENT, AND THAT IS EXACT RATHER THAN A
+   * SIMPLIFICATION. The rule asks whether ANY work reaches the line. If the
+   * most recent piece does, the structure is in scope; if the most recent
+   * predates the line, everything earlier does too. One date answers it.
+   *
+   * `workYearUnknown` carries no default, so a person who does not know says
+   * so rather than having a zero recorded for them.
+   */
+  mostRecentWorkYear: z.coerce.number().int().min(1800).max(2100).optional(),
+  workYearUnknown: z.boolean({
+    message: "Tell us the year of the most recent work, or that you do not know.",
+  }),
   workDone: requiredText("what work has been done"),
   whatIsCovered: requiredText("what is already covered up"),
   openingsRated: z.enum(OPENINGS_RATED, {

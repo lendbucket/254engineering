@@ -1539,6 +1539,14 @@ if (!db) {
          * firm's business, and the principle keeps him away from it.
          */
         "/portal/inquiries",
+        /*
+         * Windstorm briefs on existing buildings. The same ruling for the same
+         * reason: whether a property is worth scoping is commercial intake, and
+         * the engineer answers what can be certified once it is a job. The
+         * screen gates on files.create, which he does not hold, so the guard and
+         * this ruling agree rather than disagreeing on the first board.
+         */
+        "/portal/windstorm-inquiries",
         "/portal/files/dispatch",
         "/portal/partners/disputes",
         /*

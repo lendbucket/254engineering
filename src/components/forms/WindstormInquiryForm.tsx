@@ -67,7 +67,8 @@ export function WindstormInquiryForm() {
     const payload = {
       ...values,
       yearBuilt: values.yearBuilt ? Number(values.yearBuilt) : undefined,
-      yearBuiltUnknown: flag(values.yearBuiltUnknown),
+      mostRecentWorkYear: values.mostRecentWorkYear ? Number(values.mostRecentWorkYear) : undefined,
+      workYearUnknown: flag(values.workYearUnknown),
       openInsuranceClaim: flag(values.openInsuranceClaim),
       activeLitigation: flag(values.activeLitigation),
       priorAdverseReport: flag(values.priorAdverseReport),
@@ -86,8 +87,56 @@ export function WindstormInquiryForm() {
       return;
     }
 
-    const ok = await submit(payload);
-    if (!ok) requestAnimationFrame(() => bannerRef.current?.focus());
+    /*
+     * FOCUS MOVES EITHER WAY. The banner carries the refusal and the panel
+     * carries the acknowledgement, and both are the thing the person needs
+     * next. Focusing only on failure would leave a successful submission
+     * announcing nothing to somebody using a screen reader.
+     */
+    await submit(payload);
+    requestAnimationFrame(() => bannerRef.current?.focus());
+  }
+
+  /*
+   * ===================================================================
+   * THE SUCCESS STATE, AND WHY IT DOES NOT REPEAT THE SCOPE VERDICT.
+   * ===================================================================
+   *
+   * The route computes whether the work is in scope under 2210.251 and the row
+   * carries the year it decided on, but this screen does not tell the person.
+   * Two reasons, and the second is the one that matters.
+   *
+   * `useFormPost` discards the response body on success by design, so the
+   * message would have to be plumbed through shared infrastructure to reach
+   * here. That is the mechanical reason.
+   *
+   * **The real one: telling a member of the public that their work is in scope
+   * under a statute is close to an opinion, and it would arrive from a form
+   * rather than from the engineer.** What the firm can honestly promise a
+   * stranger who filled in a page is that a person will read it and come back.
+   * The scope determination is shown to STAFF on /portal/windstorm-inquiries,
+   * where somebody can act on it, and it reaches the enquirer in a reply
+   * written by a person.
+   */
+  if (state.status === "success") {
+    return (
+      <div
+        ref={bannerRef}
+        tabIndex={-1}
+        className="rounded-[4px] border border-limestone-line border-t-[3px] border-t-brass bg-white p-7"
+      >
+        <p className="text-[12px] font-bold tracking-[0.14em] text-brass-ink uppercase">Received</p>
+        <h2 className="mt-3 font-display text-[24px] leading-[1.3] font-bold text-slate">
+          Thank you. Your brief is with us.
+        </h2>
+        <p className="mt-4 text-[0.98rem] leading-[1.7] text-slate-muted">
+          Somebody will read it and come back to you within one business day. An existing building
+          is scoped one property at a time, so the reply will be a conversation about what can be
+          established and what would have to be opened up, rather than a figure from a calculator.
+          If what you have described cannot be certified, we will say so plainly and tell you why.
+        </p>
+      </div>
+    );
   }
 
   const busy = state.status === "submitting";
@@ -141,29 +190,44 @@ export function WindstormInquiryForm() {
       </div>
 
       {/*
-        THE YEAR IS ASKED AS A YEAR, NOT AS "IS IT AFTER 1988".
-        Asking the rule invites a guess and records the guess. Asking the year
-        records what the person actually knows, and the comparison against 1988
-        is the platform's to make rather than theirs.
+        THE DATE OF THE WORK IS THE QUESTION. THE YEAR BUILT IS CONTEXT.
+
+        Corrected 2026-09-21. The first version asked only when the building was
+        constructed and the rule compared THAT to 1988, which told the owner of
+        a 1975 house with a 2021 reroof that it could not be certified. Texas
+        Insurance Code 2210.251 turns on the date of the WORK, so that reroof is
+        in scope and this form now asks for it.
+
+        Both are asked as YEARS rather than as "is it after 1988". Asking the
+        rule invites a guess and records the guess; asking the year records what
+        the person knows, and the comparison is the platform's to make.
       */}
       <div className="grid gap-6 sm:grid-cols-2">
         <TextInput
-          name="yearBuilt"
-          label="Year the building was constructed"
+          name="mostRecentWorkYear"
+          label="Year of the most recent work"
           optional
-          hint="From the permit, the appraisal record, or the closing documents if you have them."
-          error={state.errors.yearBuilt}
+          hint="The reroof, the new windows, the addition, whichever was last. This is the question that decides whether the work is in scope."
+          error={state.errors.mostRecentWorkYear}
         />
         <Select
-          name="yearBuiltUnknown"
-          label="Or tell us you do not know the year"
+          name="workYearUnknown"
+          label="Or tell us you do not know that year"
           options={[
-            { value: "no", label: "No, I have given the year above" },
+            { value: "no", label: "No, I have given the year" },
             { value: "yes", label: "Yes, I do not know" },
           ]}
-          error={state.errors.yearBuiltUnknown}
+          error={state.errors.workYearUnknown}
         />
       </div>
+
+      <TextInput
+        name="yearBuilt"
+        label="Year the building was constructed"
+        optional
+        hint="Useful context and not the test. A house older than the standards can still have work on it that is in scope."
+        error={state.errors.yearBuilt}
+      />
 
       <TextArea
         name="workDone"

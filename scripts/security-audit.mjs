@@ -95,6 +95,10 @@ const ADMIN_PAGES = [
   /* Design briefs and the reply each was promised. Behind files.list like the
    * other working surfaces, and closed to a signed out caller. */
   "/portal/inquiries",
+  /* Windstorm briefs on existing buildings. Same gate as the design briefs
+   * above, files.create, and closed to a signed out caller like everything
+   * else on this list. */
+  "/portal/windstorm-inquiries",
   "/portal/jobs",
   "/portal/files",
   // Phase 12 Section 4, Section 1. Names every technician who could be offered
@@ -207,6 +211,7 @@ const ADMIN_APIS = [
   "/api/portal/files",
   "/api/portal/field",
   "/api/portal/inquiries",
+  "/api/portal/windstorm-inquiries",
   "/api/portal/review",
   "/api/portal/comms",
   "/api/portal/onboarding",

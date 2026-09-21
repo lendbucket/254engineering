@@ -118,9 +118,26 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * 25 is those three plus the rule itself, which takes a file id so that neither
  * trigger function has to touch a column its own table does not have.
  */
-const EXPECTED_FINGERPRINT = "257175e8e5ff6dc855afd5a3607752c5";
-const EXPECTED_COLUMNS = 1116;
-const EXPECTED_TABLES = 80;
+/*
+ * Moved again 2026-09-21 by 0054, which gives the windstorm brief on an
+ * existing building its own table rather than more columns on the design one.
+ *
+ * 1,116 to 1,141 is exactly twenty five, all of them eng_windstorm_inquiries.
+ * 80 tables to 81 is the one, and row level security is on it like the rest.
+ * NO TRIGGERS AND NO FUNCTIONS, which is why those two figures do not move: it
+ * is a table of answers to questions, with four check constraints and no
+ * behaviour. A brief is not a record anything is derived from.
+ *
+ * The columns, so a future count can be checked against the reason for it
+ * rather than against a number: id, created_at, name, email, phone, asking_as,
+ * property_address, county, year_built, most_recent_work_year, work_done,
+ * what_is_covered, openings_rated, will_open_up, deadline, and the three
+ * flags, then respond_by, responded_at, responded_by, landing_path, referrer,
+ * user_agent, status.
+ */
+const EXPECTED_FINGERPRINT = "56b351a693ec70cc86203fd0cbde481c";
+const EXPECTED_COLUMNS = 1141;
+const EXPECTED_TABLES = 81;
 const EXPECTED_TRIGGERS = 69;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
