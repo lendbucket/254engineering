@@ -60,6 +60,44 @@ anywhere but may not exist ONLY there, and this one existed only in a
 transcript. A finding recorded in a report is a finding that closes when the
 conversation ends.
 
+## PHASE 14, FIRST ITEM: A COMMIT TOUCHING AN AUDIT CARRIES A STANDALONE RUN RECEIPT
+
+Operator ruling, 2026-09-21. **Recorded, not built.** It is the first Phase 14
+item because the rule it mechanises has now failed as prose three times.
+
+**What it costs when it fails.** Two boards died in one night to the same cause,
+and a third would have cost the morning:
+
+| Audit | The defect | What it took down |
+| --- | --- | --- |
+| `forms-audit` | referenced `PROBE_EMAIL`, a constant that does not exist in that file | four forms, including three that were fine |
+| `contrast-audit` | `let navigated` declared inside the `try`, read in the `catch` | every template at both widths |
+
+Neither was a wrong assertion. Both were crashes, and **a crash deletes the
+whole subject and reports as one red audit among fifty-eight**, which looks like
+one finding and is fifty-eight fewer answers.
+
+**WHY PROSE HAS NOT BEEN ENOUGH.** The rule was written into CLAUDE.md after the
+first crash. The second was already committed at that point and was recorded, in
+this file, as "committed and unproven". The gap was named, the rule was written,
+and the gap was not closed, because closing it meant a build and a server while
+a board was already running. **Knowing the rule, having just written it, and
+being able to quote it were all compatible with the second crash.** That is the
+pattern this repository has now recorded three times, and the answer each
+previous time was a hook.
+
+**THE SHAPE, for whoever builds it.** A commit whose staged files include
+anything under `scripts/` matching an audit or proof is refused unless a receipt
+exists for each: the audit having exited zero against the file's CURRENT digest,
+recorded where the hook can read it. The digest matters more than a timestamp,
+because the failure mode is editing after running, not forgetting to run.
+
+**The hard part is the ones that need a server**, which is most of the ones that
+crash. `forms-audit` and `contrast-audit` both refuse to run without one, and
+their preflights print the two commands that stand one up. A receipt scheme that
+cannot be satisfied for those audits would be a hook everybody learns to bypass,
+which is worse than prose. Whoever builds this decides that first.
+
 ## OWED: `contrast-audit`'s THIRD VERDICT IS COMMITTED AND UNPROVEN
 
 Recorded 2026-09-20, stated rather than glossed, on the operator's instruction.
@@ -86,6 +124,28 @@ observations, and a synthetic timeout proves the code path while telling us
 nothing about the thing that actually happens. The next board where
 `contrast-audit` reports `/portal/accounts` as could-not-tell rather than failing
 is the proof, and if it fails instead, that is the finding.
+
+**UPDATED 2026-09-21, AND THE STATE IS NOW THREE THINGS RATHER THAN ONE.**
+Operator ruling: record it as parsed, reached, and unproven in what it emits.
+It belongs to Phase 14 survey 3, the survey of audits that report an unreachable
+server as a failure.
+
+| | |
+| --- | --- |
+| **Parsed** | Yes. `contrast-audit` was run standalone against a live server after the fix: 160 combinations, exit 0. |
+| **Reached** | Yes, and that is how the defect surfaced. The board entered the catch on a real navigation failure and threw `navigated is not defined`, because the flag was block scoped inside the try. Fixed in `21a99d8`. |
+| **Unproven** | What it EMITS. That it no longer crashes is not evidence that it reports COULD NOT TELL rather than counting a page error, and those are different outcomes for the board. |
+
+**Two routes to proving it are closed by ruling or by construction.** A
+manufactured stall is refused by the operator, because it would prove the code
+path while saying nothing about the thing that actually happens. A dead
+`BASE_URL` cannot do it either: with `BASE_URL` set the preflight refuses
+outright when the host is not answering, so the audit never runs and the catch
+is never entered.
+
+**So it waits for the real stall**, which has fired on six of the last several
+boards in `mobile-overflow-audit` and `native-audit`. The next board that hits
+it in `contrast-audit` settles it either way.
 
 ## SURVEY OWED: FINDINGS RECORDED WHERE NOBODY LOOKS
 
