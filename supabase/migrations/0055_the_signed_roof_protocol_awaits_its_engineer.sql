@@ -60,7 +60,7 @@ insert into eng_protocol_templates (
   service_slug, name, version, version_label, status, summary, document_number, issue_date, document_sha256, firm_name_on_document, requires_discipline, document_signed_at
 )
 select
-  'roof-inspections', 'Roof Certification Protocol for Existing Roofs', 2, '1.1', 'awaiting_engineer', '254-RC-001 v1.1, signed 2026-09-18 by Aman Dhakal, P.E., Engineer of Record. Awaiting approval in the platform.', '254-RC-001', '2026-09-18', 'd050a21a2b2d43114de47989ca731f41e26951f195c90187e99c11705011e4ef', '254 Engineering Services', null, '2026-09-18'
+  'roof-inspections', 'Roof Certification Protocol for Existing Roofs', 2, '1.1', 'awaiting_engineer', '254-RC-001 v1.1, issued 2026-09-18, signed 2026-09-20 by Aman Dhakal, P.E., Engineer of Record. Awaiting approval in the platform.', '254-RC-001', '2026-09-18', 'd050a21a2b2d43114de47989ca731f41e26951f195c90187e99c11705011e4ef', '254 Engineering Services', null, '2026-09-20'
 where not exists (
   select 1 from eng_protocol_templates
   where document_number = '254-RC-001'

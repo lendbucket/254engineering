@@ -399,7 +399,10 @@ const {
    * three lines down the same page.
    */
   const tdi = verifiedCredentials.find((c) => /TDI|Department of Insurance/i.test(c.issuer + c.name));
-  const { windstormAppointmentStatement, responsibleChargeStatement } = await import("../src/lib/launch.ts");
+  const { windstormAppointmentStatement, responsibleChargeStatement, notYetTakingOrders } = await import(
+    "../src/lib/launch.ts"
+  );
+  const { inOpenGateProcess } = await import("./lib/gate-fixture.mjs");
   const windstorm = codeOnly(readSource("src/content/windstorm-program.ts"));
 
   rec(
@@ -560,6 +563,77 @@ const {
       ? chargeSentence === "A Texas licensed Professional Engineer is in responsible charge."
       : chargeSentence === "No Professional Engineer is yet in responsible charge.",
     `peInResponsibleCharge() is ${peInResponsibleCharge()}; rendered: ${chargeSentence}`,
+  );
+
+  /*
+   * =====================================================================
+   * "DOES NOT CURRENTLY OFFER OR PERFORM ENGINEERING SERVICES" IS GONE,
+   * AND WHAT REPLACED IT IS CHECKED IN BOTH GATE STATES.
+   * Operator ruling, 2026-09-21.
+   * =====================================================================
+   *
+   * THE SENTENCE OUTLIVED THE FACT UNDERNEATH IT. It predates F-29811, and
+   * the firm is now registered, has an engineer in responsible charge, and
+   * publishes prices. Every clause of it was false, in the direction people
+   * mistake for caution. `notYetTakingOrders()` says the narrower thing that
+   * is true, and says nothing at all once the gate opens.
+   *
+   * BOTH STATES ARE EXERCISED, AND THE OPEN ONE NEEDS A CHILD PROCESS.
+   * `isOpen()` reads constants bound at first import, so patching the gate in
+   * this process and re-importing would read the shut value and report the
+   * code refusing correctly, which is the failure this repository has paid for
+   * three times in one night. The child has no module graph to invalidate.
+   *
+   * THE OPEN HALF IS THE ONE THAT MATTERS. A disclosure that survives the
+   * condition it discloses is the other way to mislead: a site that is taking
+   * orders while still saying it is not has told its customers something
+   * false at the exact moment they are trying to buy. Nothing on the board
+   * could see that today, because the gate has never been open on a board.
+   */
+  /*
+   * MATCH THE NEGATION, NOT THE PHRASE. The first version of this looked for
+   * "offer or perform engineering services" and named `structural-engineer.ts`
+   * for its own FAQ: "A firm registration permits a company to offer or
+   * perform engineering services in its own name." That sentence is TRUE,
+   * general, and about what a registration means rather than about this firm.
+   *
+   * Sixth instance of a matcher matching a name when it means something else,
+   * and the tell was the same as the other five: both spellings contain the
+   * thing being searched for, and only one of them is the thing being
+   * forbidden. The thing forbidden is the DENIAL.
+   */
+  const deadClause = /does not (currently )?offer or perform/;
+  const stillTyped = complianceSrc.filter((f) => deadClause.test(codeOnly(readSource(f))));
+  rec(
+    "no page claims the firm does not offer or perform engineering services, which stopped being true at F-29811",
+    stillTyped.length === 0,
+    stillTyped.join(", ") ||
+      `${complianceSrc.length} files swept; the firm is registered, an engineer is in responsible charge, and prices are published`,
+  );
+
+  const shutSentence = notYetTakingOrders();
+  rec(
+    "with the gate shut, the pages say the firm is not yet taking orders",
+    shutSentence === "We are not yet taking orders.",
+    `gate shut, rendered: ${JSON.stringify(shutSentence)}`,
+  );
+
+  process.env.LAUNCH_MODE = "live";
+  const openGate = await inOpenGateProcess(`
+    const { notYetTakingOrders, isOpen } = await import("./src/lib/launch.ts");
+    answer({ open: isOpen(), sentence: notYetTakingOrders() });
+  `);
+
+  rec(
+    "and the fixture actually opened the gate, so the check below is not measuring the shut one again",
+    openGate.open === true,
+    `isOpen() in the child: ${openGate.open}`,
+  );
+
+  rec(
+    "and with the gate open it says nothing at all, rather than a disclosure that outlived its condition",
+    openGate.open === true && openGate.sentence === null,
+    `gate open, rendered: ${JSON.stringify(openGate.sentence)}`,
   );
 
   /*

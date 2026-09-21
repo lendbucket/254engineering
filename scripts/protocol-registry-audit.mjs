@@ -35,7 +35,7 @@ console.log("");
 console.log("========== 254-RC-001 AGAINST ITS SIGNED DOCUMENT ==========");
 console.log("");
 
-const { RC001, RC001_ENFORCED, RC001_AMBIGUITIES } = await import(
+const { RC001, RC001_ENFORCED, RC001_AMBIGUITIES, RC001_SIGNATURE_EVIDENCE } = await import(
   "../src/content/protocols/rc-001.ts"
 );
 const { verifiedFirmRegistrations } = await import("../src/config/credentials.ts");
@@ -843,14 +843,74 @@ if (carriers.length === 1) {
   const statusIndex = insertColumns.indexOf("status");
   const selectMatch = carrier.text.match(/\)\s*select\s+([^;]*?)\s*where not exists/);
   const selectValues = splitSqlValues(selectMatch?.[1] ?? "");
+  const linedUp = selectValues.length === insertColumns.length;
 
   rec(
     `and the status it actually writes is awaiting_engineer`,
-    statusIndex >= 0 && selectValues.length === insertColumns.length && selectValues[statusIndex] === "'awaiting_engineer'",
-    selectValues.length !== insertColumns.length
-      ? `${insertColumns.length} columns against ${selectValues.length} values, so nothing lines up`
-      : String(selectValues[statusIndex]),
+    statusIndex >= 0 && linedUp && selectValues[statusIndex] === "'awaiting_engineer'",
+    linedUp
+      ? String(selectValues[statusIndex])
+      : `${insertColumns.length} columns against ${selectValues.length} values, so nothing lines up`,
   );
+
+  /*
+   * =====================================================================
+   * THE SIGNED DATE IS THE APPROVAL PAGE'S, AND THE MIGRATION MUST AGREE.
+   * Operator ruling, 2026-09-21.
+   * =====================================================================
+   *
+   * WHY IT NEEDED ITS OWN CHECK RATHER THAN TRUST IN THE GENERATOR. The
+   * generator derives this value from `RC001_SIGNATURE_EVIDENCE`, and the
+   * moment the SQL is written that derivation is gone: the file holds a date
+   * literal and nothing re-derives it, exactly as with the digest. A hand
+   * edit, or a regeneration from an older script, would put the ISSUE date
+   * back in and every other check here would still pass.
+   *
+   * AND THE TWO DATES ARE TWO DAYS APART, WHICH IS WHAT MAKES THIS FINDABLE
+   * AT ALL. v1.1 was issued 2026-09-18 and signed 2026-09-20. Both are real
+   * dates about the same document, both appear in this migration, and the
+   * column means one of them. A check comparing `document_signed_at` against
+   * "a date the registry holds" would pass on either, so it compares against
+   * the approval page date SPECIFICALLY and asserts the two differ, because
+   * the day somebody makes them equal this check silently stops discriminating.
+   */
+  const signedIndex = insertColumns.indexOf("document_signed_at");
+  const issueIndex = insertColumns.indexOf("issue_date");
+
+  rec(
+    "the migration writes a signed date and an issue date, and they are different columns",
+    signedIndex >= 0 && issueIndex >= 0 && linedUp,
+    signedIndex >= 0 && issueIndex >= 0
+      ? `document_signed_at at ${signedIndex}, issue_date at ${issueIndex}`
+      : "one of the two columns is not written, so the comparison below has nothing to separate",
+  );
+
+  if (signedIndex >= 0 && issueIndex >= 0 && linedUp) {
+    const signedInSql = String(selectValues[signedIndex]).replace(/'/g, "");
+    const issueInSql = String(selectValues[issueIndex]).replace(/'/g, "");
+
+    rec(
+      "and the signed date is the approval page's, read from the signature evidence",
+      signedInSql === RC001_SIGNATURE_EVIDENCE.approvalPageDate,
+      signedInSql === RC001_SIGNATURE_EVIDENCE.approvalPageDate
+        ? `${signedInSql}, which is the date beside the handwritten mark`
+        : `migration ${signedInSql} against approval page ${RC001_SIGNATURE_EVIDENCE.approvalPageDate}`,
+    );
+
+    /*
+     * THE DISCRIMINATING HALF. If the issue date and the approval page date
+     * were ever the same value, the check above would pass whichever one the
+     * migration wrote, and would go on printing a green line about a
+     * distinction it could no longer make.
+     */
+    rec(
+      "and that date is not simply the issue date, so the check above can tell them apart",
+      RC001_SIGNATURE_EVIDENCE.approvalPageDate !== RC001.issueDate && signedInSql !== issueInSql,
+      RC001_SIGNATURE_EVIDENCE.approvalPageDate === RC001.issueDate
+        ? "the registry now holds one date for both, so this comparison has stopped discriminating"
+        : `issued ${issueInSql}, signed ${signedInSql}`,
+    );
+  }
 }
 
 /* ----------------------------------------------------------------- verdict */

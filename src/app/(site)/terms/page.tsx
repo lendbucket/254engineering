@@ -6,7 +6,7 @@ import { Prose } from "@/components/ui/primitives";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { business } from "@/config/business";
-import { registrationStatement } from "@/lib/launch";
+import { notYetTakingOrders, registrationStatement, responsibleChargeStatement } from "@/lib/launch";
 
 export const metadata: Metadata = buildMetadata({
   title: "Terms of Use and Site Conditions | 254 Engineering",
@@ -68,10 +68,27 @@ export default function TermsPage() {
 
               <h2>Firm registration status</h2>
               <p>
-                {registrationStatement()} Until the firm opens for work, it does not offer or perform
-                engineering services in Texas, and no page of this website should be read as an offer
-                to do so. The footer of every page states the registration, and it changes when the
-                register does.
+                {/*
+                  * THE FIFTH HOME, AND THE ONE THAT WOULD HAVE BEEN READ IN A
+                  * DISPUTE. Operator ruling, 2026-09-21.
+                  *
+                  * It read: "Until the firm opens for work, it does not offer
+                  * or perform engineering services in Texas, and no page of
+                  * this website should be read as an offer to do so."
+                  *
+                  * The registration is active and an engineer is in
+                  * responsible charge, so the first half had gone false. The
+                  * second half is worse than stale: a terms page telling a
+                  * reader that no page of the site is an offer, on a site that
+                  * publishes prices, is a disclaimer contradicted by the thing
+                  * it disclaims. What is true is narrower and it is about
+                  * orders, so that is what it says now.
+                  */}
+                {[registrationStatement(), responsibleChargeStatement(), notYetTakingOrders()]
+                  .filter(Boolean)
+                  .join(" ")}{" "}
+                The footer of every page states the registration, and it changes when the register
+                does.
               </p>
 
               <h2>No guaranteed outcomes</h2>

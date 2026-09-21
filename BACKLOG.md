@@ -251,6 +251,44 @@ ever, both `/portal/accounts`.
 **`contrast-audit` did not meet the stall**, so the third verdict's emitted
 output remains unproven. It measured `/portal/accounts` clean at both widths.
 
+### CORRECTED 2026-09-21 ON THE NEXT BOARD: IT MET THE STALL, AND THE THIRD VERDICT WORKED
+
+The sentence above is no longer true and is corrected here rather than answered
+by a second entry beside it, on the operator's ruling.
+
+The board on `feat/protocol-load` returned **56 of 58, zero FAIL lines**, and
+`contrast-audit` could not reach that screen either:
+
+```
+mobile-overflow-audit   portal: accounts @320 @375 @390 @430   Timeout 90000ms exceeded
+native-audit            /portal/accounts                        Timeout 45000ms exceeded
+contrast-audit          portal: accounts @390 @1280             Timeout 90000ms exceeded
+```
+
+**THREE AUDITS COULD NOT REACH IT AND THE BOARD COUNTED TWO.** `contrast-audit`
+reported `PASS` at the roll-up, because the third verdict absorbed the miss:
+"GREEN ON WHAT LOADED. No WCAG A/AA violations across the templates that
+rendered, and 2 combination(s) were not measured either way." Its own output
+says so loudly, exactly as the ruling requires. The SUITE SUMMARY then printed:
+
+> `2 of 58 audits could not measure: mobile-overflow-audit, native-audit`
+
+That figure is arithmetically correct and is a false statement about the thing
+it describes. It is the access review defect in a different column: a reader
+takes "2" to mean two audits were blind, and three were.
+
+**AND THE STALL IS GETTING WORSE, MEASURED RATHER THAN IMPRESSION.** The
+recorded figure was a 45 second navigation timeout and roughly fifty seconds of
+application time. This run shows it exceeding **90,000ms** in two separate
+audits at four widths. That is a worsening on a screen people use, on a database
+shared with unrelated applications.
+
+**RANKED BY THE OPERATOR, 2026-09-21.** The `/portal/accounts` stall goes
+**ahead of the Phase 14 surveys**, because it is getting worse on a screen
+people use. The roll-up undercount goes **first in survey 3**, because it hides
+could-not-measure results inside green audits, which is the one failure mode the
+third verdict was introduced to avoid rather than create. Neither is chased now.
+
 **THE LAST FULLY GREEN BOARD REMAINS `5bd0121`**, and the next standalone sweep
 still measures from there. This board is not green and is not recorded as green.
 

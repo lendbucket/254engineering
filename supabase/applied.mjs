@@ -1289,8 +1289,29 @@ export const APPLIED = [
       "APPLIED TO DEVELOPMENT 2026-09-21 through apply_migration and READ BACK COLUMN BY COLUMN: one " +
       "row, version 2, version_label 1.1, status awaiting_engineer, document_sha256 " +
       "d050a21a2b2d43114de47989ca731f41e26951f195c90187e99c11705011e4ef, issue_date 2026-09-18, " +
-      "document_signed_at 2026-09-18, requires_discipline null, and approved_by, approved_at, " +
+      "document_signed_at 2026-09-20, requires_discipline null, and approved_by, approved_at, " +
       "approved_by_license and published_at all four null. " +
+      "THE DEVELOPMENT ROW WAS WRITTEN TWICE AND THE FIRST ONE WAS REMOVED, which is recorded here " +
+      "rather than left for somebody to infer from a created_at. The first application wrote " +
+      "document_signed_at 2026-09-18, the ISSUE date, because that is what the seeder had always " +
+      "used. Operator ruling, 2026-09-21: the column is 0049's 'date on the paper the engineer " +
+      "signed', the handwritten mark sits beside the typed date 09/20/2026 on the approval page, and " +
+      "the value is derived from RC001_SIGNATURE_EVIDENCE.approvalPageDate rather than typed. Two " +
+      "days apart, and RC001_VERSIONS already said so in its own words: v1.1 existed for two days " +
+      "while v1.0 was still the authority. " +
+      "THE ROW WAS READ BACK IN FULL BEFORE IT WAS DELETED, on the operator's instruction, so the " +
+      "record says what was removed rather than that something was. Row 9e174809-eb31-483b-90b2-" +
+      "49d3c877182c, created 2026-09-21 19:28:35 UTC, document_signed_at 2026-09-18. The delete named " +
+      "that id AND required status awaiting_engineer with no approver and no publication date, so a " +
+      "row that had been approved in between could not have been removed by it. It is a row this " +
+      "sitting created, on development, which is the only place that permission reaches. " +
+      "The replacement is 4b796249-a071-42ba-9b20-408e0d38b7b0, created 2026-09-21 20:32:06 UTC. " +
+      "PRODUCTION NEVER SAW THE FIRST VERSION, which is the whole argument for the operator's rule " +
+      "that production waits for a sitting. The wrong date was found, ruled on and corrected while " +
+      "the only database holding it was the one that exists to be wrong. " +
+      "AND THE SUMMARY COLUMN WAS CORRECTED WITH IT. It read 'signed 2026-09-18', naming the issue " +
+      "date as the signing date, which would have left one row disagreeing with itself in prose. It " +
+      "states both dates now and calls each what it is. " +
       "BOTH FINGERPRINTS ARE UNCHANGED FROM 0054 AND THAT IS THE WHOLE POINT OF THIS ENTRY. It has no " +
       "DDL in it: 56b351a693ec70cc86203fd0cbde481c across 1,141 columns and " +
       "72b8ec3ab4975f1178add4a64261d88a across 919 facts, read from a replay of the full chain at both " +
@@ -1323,6 +1344,13 @@ export const APPLIED = [
       "a day both had drifted off the actual document. Injection verified four ways, each naming the " +
       "right check: two different digests in one file, one consistent wrong digest, status published, " +
       "and approved_by_license written by the migration. " +
+      "THE SIGNED DATE IS BOUND THE SAME WAY, AND FOR THE SAME REASON: once the SQL is written, the " +
+      "derivation from the signature evidence is gone and the file holds a date literal. " +
+      "protocol-registry-audit asserts it equals RC001_SIGNATURE_EVIDENCE.approvalPageDate, and " +
+      "carries a second check that the approval page date and the issue date still DIFFER, because " +
+      "the day somebody makes them equal the first check silently stops discriminating and goes on " +
+      "printing a green line about a distinction it can no longer make. Injection verified by putting " +
+      "the issue date back into document_signed_at: both checks went red, naming both dates. " +
       "v1.0 IS NOT INSERTED. Operator ruling: RC001_VERSIONS is the record Section 13 requires of " +
       "every issued version, and this table is not a second copy of it. " +
       "requires_discipline STAYS NULL until the engineer states it in writing, which keeps " +

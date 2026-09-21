@@ -1,7 +1,24 @@
 import { business } from "@/config/business";
 import { services } from "@/content/services";
 import { regions } from "@/content/regions";
-import { registrationLine, registrationStatement } from "@/lib/launch";
+/*
+ * THE FOURTH HOME OF A SENTENCE THAT HAD GONE FALSE, AND THE WORST PLACED OF
+ * THE FOUR. Operator ruling, 2026-09-21, found by the item 3 sweep.
+ *
+ * The Current status block used to state, as a literal: "Until firm
+ * registration with the Texas Board of Professional Engineers and Land
+ * Surveyors is active, this firm does not offer or perform engineering
+ * services in Texas." F-29811 is active. The sentence was published, in plain
+ * text, on the one document in this repository whose entire purpose is to be
+ * QUOTED ACCURATELY by machines, and it contradicted `registrationLine()`
+ * three lines above it.
+ *
+ * This file's own header says a hand written long form is a second copy of the
+ * site's claims and that a second copy drifts. It was right, and the drift was
+ * sitting inside it: every other claim here is generated from the modules the
+ * pages render from, and the compliance status was typed.
+ */
+import { notYetTakingOrders, registrationLine, registrationStatement, responsibleChargeStatement } from "@/lib/launch";
 import { responsibleChargeCopy, specialistsCopy, turnaroundCopy } from "@/content/model-copy";
 
 /**
@@ -31,7 +48,7 @@ Ownership: Veteran owned
 
 ${registrationLine()}
 
-Until firm registration with the Texas Board of Professional Engineers and Land Surveyors is active, this firm does not offer or perform engineering services in Texas. Pages describing service lines describe what the firm is built to deliver.
+${[notYetTakingOrders(), responsibleChargeStatement()].filter(Boolean).join(" ")}
 `);
 
   sections.push(`## The name

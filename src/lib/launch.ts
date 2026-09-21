@@ -767,6 +767,43 @@ export function responsibleChargeStatement(): string {
 }
 
 /**
+ * ===========================================================================
+ * WHAT THE FIRM CANNOT DO TODAY, WHICH IS TAKE AN ORDER. Operator ruling,
+ * 2026-09-21, replacing a sentence that had outlived the fact behind it.
+ * ===========================================================================
+ *
+ * WHAT IT REPLACES, AND WHY THAT SENTENCE HAD TO GO. Two public pages typed
+ * "does not currently offer or perform engineering services". That sentence
+ * PREDATES F-29811 and every clause of it is now false: the firm is registered
+ * with TBPELS, an engineer of record is in responsible charge, and the site
+ * publishes prices. A firm in that position is plainly offering engineering
+ * services. Saying otherwise was not caution, it was a false statement in the
+ * conservative direction, which is still a false statement and is exactly what
+ * the gate exists to prevent.
+ *
+ * WHAT IS ACTUALLY TRUE IS NARROWER AND IT IS ABOUT ORDERS. `isOpen()` is the
+ * only one of the three modes that gates money, and what a reader needs to
+ * know is that they cannot buy yet. So the sentence says that and nothing
+ * more.
+ *
+ * NOTHING WHEN OPEN, WHICH IS THE POINT OF RETURNING NULL. A disclosure that
+ * survives the condition it discloses is the other way to mislead, and callers
+ * already drop nulls through `.filter(Boolean)`. It is not a sentence that
+ * gets rewritten when the gate lifts; it disappears.
+ *
+ * WHY NOT `notYetAcceptingEngagements()`, WHICH SAYS SOMETHING SIMILAR. That
+ * one is for refusal paths: an order route, a checkout, a form that has just
+ * declined to take money, where the reader has already tried. This is PAGE
+ * copy, read by somebody who has not tried anything, and the operator ruled
+ * its wording separately. Folding them together would mean one sentence
+ * serving two audiences, and the next person to improve it for one would break
+ * it for the other.
+ */
+export function notYetTakingOrders(): string | null {
+  return isOpen() ? null : "We are not yet taking orders.";
+}
+
+/**
  * THE FIRM'S NAME IN A SENTENCE, READ OFF THE BOARD'S RECORD. Operator ruling,
  * 2026-09-15.
  *

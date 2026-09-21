@@ -71,6 +71,7 @@
 import { FIRST_TIER_COASTAL, FIRST_TIER_COUNT } from "./windstorm";
 import {
   firmName,
+  notYetTakingOrders,
   registrationStatement,
   responsibleChargeStatement,
   windstormAppointmentStatement,
@@ -387,20 +388,18 @@ export const windstormPages: WindstormPage[] = [
         lede: "Stated plainly, because a page about credentials that is vague about its own is not worth reading.",
         body: [
           /*
-           * THREE DERIVED SENTENCES AND ONE TYPED CLAUSE, and the typed one is
-           * disclosed rather than quietly left. Operator ruling, 2026-09-21.
+           * EVERY SENTENCE HERE IS DERIVED. Operator ruling, 2026-09-21.
            *
-           * The appointment and responsible charge now read off the register.
-           * "does not currently offer or perform engineering services" is still
-           * a literal here, because the nearest deriver,
-           * `notYetAcceptingEngagements()`, says "The firm is not yet accepting
-           * engagements", which is a NARROWER claim about taking work rather
-           * than the regulatory statement about offering or performing. Two
-           * files type this clause today. It is reported, not guessed at.
+           * The typed clause that used to sit in this list, "does not currently
+           * offer or perform engineering services", is gone rather than
+           * reworded: it predates F-29811 and every part of it had become
+           * false. What replaces it is `notYetTakingOrders()`, which is the
+           * narrower thing that is actually true and which returns NOTHING once
+           * the gate opens, so this block needs no edit on the day it lifts.
            */
           [
             windstormAppointmentStatement(),
-            `${firmName()} does not currently offer or perform engineering services.`,
+            notYetTakingOrders(),
             registrationStatement(),
             responsibleChargeStatement(),
           ]

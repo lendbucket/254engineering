@@ -64,7 +64,7 @@ const EMIT_SQL = process.argv.includes("--emit-sql");
  */
 const EMITTED_MIGRATION = "supabase/migrations/0055_the_signed_roof_protocol_awaits_its_engineer.sql";
 
-const { RC001, RC001_VERSIONS } = await import("../src/content/protocols/rc-001.ts");
+const { RC001, RC001_VERSIONS, RC001_SIGNATURE_EVIDENCE } = await import("../src/content/protocols/rc-001.ts");
 
 console.log("");
 console.log("========== SEED 254-RC-001, AWAITING ITS ENGINEER ==========");
@@ -139,13 +139,51 @@ const row = {
   version: versionIndex + 1,
   version_label: RC001.version,
   status: "awaiting_engineer",
-  summary: `${RC001.documentNumber} v${RC001.version}, signed ${RC001.issueDate} by ${RC001.approvedBy}. Awaiting approval in the platform.`,
+  /*
+   * ISSUED AND SIGNED ARE TWO DATES AND THE SUMMARY USED TO CONFLATE THEM.
+   *
+   * It read "signed ${RC001.issueDate}", which named the ISSUE date as the
+   * signing date. With `document_signed_at` now derived from the approval
+   * page, a summary saying signed 2026-09-18 beside a column saying 2026-09-20
+   * would be one row disagreeing with itself in prose, which is the shape this
+   * repository spends its time removing. Both dates are stated and each is
+   * called what it is.
+   */
+  summary:
+    `${RC001.documentNumber} v${RC001.version}, issued ${RC001.issueDate}, ` +
+    `signed ${RC001_SIGNATURE_EVIDENCE.approvalPageDate} by ${RC001.approvedBy}. ` +
+    "Awaiting approval in the platform.",
   document_number: RC001.documentNumber,
   issue_date: RC001.issueDate,
   document_sha256: RC001.sourceSha256,
   firm_name_on_document: RC001.firmNameOnDocument,
   requires_discipline: RC001.requiresDiscipline,
-  document_signed_at: RC001.issueDate,
+  /*
+   * =========================================================================
+   * THE DATE ON THE PAPER, WHICH IS THE APPROVAL PAGE'S AND NOT THE ISSUE
+   * DATE. Operator ruling, 2026-09-21.
+   * =========================================================================
+   *
+   * 0049's column comment is "The date on the paper the engineer signed", and
+   * this line carried `RC001.issueDate`, which is the date the document was
+   * ISSUED. Those are different facts and the document itself separates them:
+   * `RC001_VERSIONS` records v1.1 as issued 2026-09-18 and in force from
+   * 2026-09-20, and says in its own words that "for two days the document
+   * existed and v1.0 was still the authority".
+   *
+   * The handwritten mark sits beside the typed date 09/20/2026 on the approval
+   * page, which is what `RC001_SIGNATURE_EVIDENCE.approvalPageDate` records.
+   * So the signing date is the 20th, read from the evidence declaration rather
+   * than typed here, and the two day gap stops being invisible in the row.
+   *
+   * WHAT THIS DATE DOES NOT ESTABLISH, and the declaration is explicit about
+   * it: the signature image is byte identical to v1.0's and neither PDF
+   * carries a cryptographic signature, so the artifact cannot show that he
+   * personally applied it. The act that settles that is his approval in the
+   * platform, through his own account. This column records what the paper
+   * says, which is all it was ever able to record.
+   */
+  document_signed_at: RC001_SIGNATURE_EVIDENCE.approvalPageDate,
   /*
    * Deliberately absent, and the database refuses them in this state anyway:
    * approved_by, approved_at, approved_by_license, published_at.
