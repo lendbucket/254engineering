@@ -5,7 +5,7 @@ import {
   engineerPayCents,
   type PayTier,
 } from "@/config/engineer-pay";
-import { TECHNICIAN_CALL_CENTS } from "@/config/cost-inputs";
+import { TECHNICIAN_CALL_CENTS, processingCentsFor } from "@/config/cost-inputs";
 
 /**
  * ===========================================================================
@@ -49,6 +49,20 @@ export type MarginInput = {
   tier: PayTier | null;
   /** Hours recorded against the job. The design line is paid on these. */
   designHours: number | null;
+  /**
+   * HOW THE JOB WAS ACTUALLY PAID. Operator ruling, 2026-09-20.
+   *
+   * Processing is not one rate. A card attracts 2.9% plus 30 cents and an
+   * account paying on invoice attracts 0.4%, so a book that assumed card would
+   * be wrong for every invoice account and wrong in the flattering direction
+   * for none of them, which is its own kind of unhelpful.
+   *
+   * Null means the job does not record how it was paid, and that is a REFUSAL
+   * rather than an assumption, the same as an unrecorded tier or unrecorded
+   * hours. Defaulting to card here would be substituting a plan for a record,
+   * which is the thing this whole function is arranged to prevent.
+   */
+  paidBy: "card" | "invoice" | null;
 };
 
 export type MarginVerdict =
@@ -57,12 +71,21 @@ export type MarginVerdict =
       revenueCents: number;
       technicianCents: number;
       engineerCents: number;
+      /** What the payment provider took, computed from how the job was paid. */
+      processingCents: number;
+      /** Which rate was applied, so a reader can see it was not assumed. */
+      processingMethod: "card" | "invoice";
       costCents: number;
       netCents: number;
       /** Net as a percentage of revenue, rounded to one decimal. */
       marginPct: number;
-      /** Always true today. Card processing has no ruled rate. */
-      beforeCardProcessing: true;
+      /**
+       * AFTER PROCESSING SINCE 2026-09-20, and the field is named rather than
+       * removed. It read `beforeCardProcessing: true` while no rate was ruled,
+       * and a consumer that still expects that name now fails to compile rather
+       * than silently reading a figure that means something else.
+       */
+      afterCardProcessing: true;
     }
   | { ok: false; because: string; missing: string };
 
@@ -130,7 +153,25 @@ export function marginForJob(input: MarginInput): MarginVerdict {
     engineerCents = engineerPayCents(input.tier);
   }
 
-  const costCents = technicianCents + engineerCents;
+  /*
+   * PROCESSING, FROM HOW THE JOB WAS ACTUALLY PAID. Operator ruling,
+   * 2026-09-20, with the rates read off the Stripe dashboard that day.
+   *
+   * This refusal is last on purpose: a job missing BOTH a tier and a payment
+   * method should hear about the tier first, because that is the engineer's
+   * determination and it is the input somebody can go and get.
+   */
+  if (input.paidBy === null) {
+    return {
+      ok: false,
+      missing: "payment method",
+      because:
+        "How this job was paid is not recorded, so what the payment provider took cannot be computed. A card is charged 2.9% plus 30 cents and an invoice 0.4%, which are different enough that assuming one would be inventing a cost rather than reading it.",
+    };
+  }
+
+  const processingCents = processingCentsFor(input.paidBy, input.chargedCents);
+  const costCents = technicianCents + engineerCents + processingCents;
   const netCents = input.chargedCents - costCents;
 
   return {
@@ -138,10 +179,12 @@ export function marginForJob(input: MarginInput): MarginVerdict {
     revenueCents: input.chargedCents,
     technicianCents,
     engineerCents,
+    processingCents,
+    processingMethod: input.paidBy,
     costCents,
     netCents,
     marginPct: Math.round((netCents / input.chargedCents) * 1000) / 10,
-    beforeCardProcessing: true,
+    afterCardProcessing: true,
   };
 }
 

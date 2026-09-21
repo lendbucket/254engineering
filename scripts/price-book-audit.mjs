@@ -31,7 +31,9 @@ const { ENGINEER_TIER_CENTS, ENGINEER_DESIGN_HOURLY_CENTS, TIER_BY_DELIVERABLE }
 );
 const { CATALOG } = await import("../data/catalog.ts");
 const { readFileSync } = await import("node:fs");
-const { TECHNICIAN_CALL_CENTS, CARD_PROCESSING_RATE } = await import("../src/config/cost-inputs.ts");
+const { TECHNICIAN_CALL_CENTS, PROCESSING_RATES, PROCESSING_READ_ON, PROCESSING_READ_FROM } =
+  await import("../src/config/cost-inputs.ts");
+const { stripeConsole } = await import("../src/config/stripe-console.ts");
 const { marginForJob, estimateForLine } = await import("../src/lib/price-book.ts");
 const { services } = await import("../src/content/services.ts");
 
@@ -158,10 +160,49 @@ rec(
  * was meant, or a plausible figure somebody typed, which is the thing that must
  * never happen in a money file.
  */
+/*
+ * THE RATES ARE RULED NOW, AND THEY ARE PINNED HERE AS LITERALS.
+ *
+ * This check used to assert `CARD_PROCESSING_RATE === null`, which was the
+ * right assertion while no rate had been read: it stopped a plausible figure
+ * being typed into a money file. The operator read the Stripe dashboard on
+ * 2026-09-20 and the figure turned out to be exactly the 2.9% plus 30 cents
+ * the old comment named as the "common Stripe shape" and refused to write.
+ *
+ * **BEING RIGHT ABOUT A GUESS IS NOT THE SAME AS KNOWING.** The only thing that
+ * changed is that somebody opened the console, and that is why the provenance
+ * is asserted below alongside the numbers.
+ */
+const RULED_CARD_FRACTION = 0.029;
+const RULED_CARD_FIXED_CENTS = 30;
+const RULED_INVOICE_FRACTION = 0.004;
+
 rec(
-  "card processing carries no invented rate",
-  CARD_PROCESSING_RATE === null,
-  "every margin is stated before card processing",
+  "the domestic card rate is the ruled rate",
+  PROCESSING_RATES.card.fraction === RULED_CARD_FRACTION &&
+    PROCESSING_RATES.card.fixedCents === RULED_CARD_FIXED_CENTS,
+  `${(PROCESSING_RATES.card.fraction * 100).toFixed(1)}% plus ${money(PROCESSING_RATES.card.fixedCents)}`,
+);
+rec(
+  "and the invoice rate is its own rate rather than the card one",
+  PROCESSING_RATES.invoice.fraction === RULED_INVOICE_FRACTION &&
+    PROCESSING_RATES.invoice.fraction !== PROCESSING_RATES.card.fraction,
+  `${(PROCESSING_RATES.invoice.fraction * 100).toFixed(1)}% on a one-time invoice payment`,
+);
+/*
+ * AND A CONSOLE RECORD WITH NO DATE IS A NOTE. The same rule section 6 makes
+ * about Vercel and Stripe: a person read it, wrote down what it said and when,
+ * and that is what makes it a fact this repository can hold and let go stale.
+ */
+rec(
+  "and the rates say when they were read and from where",
+  /^\d{4}-\d{2}-\d{2}$/.test(PROCESSING_READ_ON) && PROCESSING_READ_FROM.includes("acct_"),
+  `${PROCESSING_READ_ON}, ${PROCESSING_READ_FROM}`,
+);
+rec(
+  "and the account they were read from is the account the console record names",
+  PROCESSING_READ_FROM.includes(stripeConsole.accountId),
+  stripeConsole.accountId,
 );
 
 /* ------------------------------ 4. the refusals, which are the whole design */
@@ -172,6 +213,7 @@ const BASE = {
   technicianVisits: 1,
   tier: 1,
   designHours: null,
+  paidBy: "card",
 };
 
 {
@@ -182,20 +224,55 @@ const BASE = {
     good.ok ? `revenue ${money(good.revenueCents)}, cost ${money(good.costCents)}, net ${money(good.netCents)}, ${good.marginPct}%` : good.because,
   );
   /*
-   * The arithmetic, pinned. $549 less one $85 call less $175 of tier 1 is $289,
-   * which is 52.6 percent. Computed by hand here rather than by calling the
-   * function, because a check that recomputes with the code under test agrees
-   * with it by construction.
+   * The arithmetic, pinned, and it MOVED on 2026-09-20 when processing became a
+   * computed line. $549, less one $85 call, less $175 of tier 1, less $16.22 of
+   * card processing, which is 2.9% of $549 rounded plus 30 cents, is $272.78 on
+   * a cost of $276.22, or 49.7 percent.
+   *
+   * Computed by hand here rather than by calling the function, because a check
+   * that recomputes with the code under test agrees with it by construction.
+   * That is what makes these three numbers worth typing out.
    */
   rec(
     "and the arithmetic is the ruled arithmetic",
-    good.ok && good.costCents === 26_000 && good.netCents === 28_900 && good.marginPct === 52.6,
-    good.ok ? `${money(good.costCents)} cost, ${money(good.netCents)} net, ${good.marginPct}%` : "no figure",
+    good.ok && good.processingCents === 1_622 && good.costCents === 27_622 && good.netCents === 27_278 && good.marginPct === 49.7,
+    good.ok
+      ? `${money(good.costCents)} cost including ${money(good.processingCents)} processing, ${money(good.netCents)} net, ${good.marginPct}%`
+      : "no figure",
   );
   rec(
-    "and it says it is before card processing",
-    good.ok === true && good.beforeCardProcessing === true,
-    "the rate is not ruled, so the boundary is stated on the figure",
+    "and it says it is AFTER processing, and which rate it used",
+    good.ok === true && good.afterCardProcessing === true && good.processingMethod === "card",
+    "a margin that omits what the provider took is wrong in the flattering direction",
+  );
+
+  /*
+   * THE SAME JOB PAID ON INVOICE IS A DIFFERENT MARGIN, which is the entire
+   * reason the method is an input rather than an assumption. 0.4% of $549 is
+   * $2.20 against $16.22 on a card: a $14 swing on one roof certification.
+   */
+  const onInvoice = marginForJob({ ...BASE, paidBy: "invoice" });
+  rec(
+    "the same job paid on invoice costs less to process and says so",
+    onInvoice.ok === true &&
+      onInvoice.processingCents === 220 &&
+      onInvoice.processingMethod === "invoice" &&
+      onInvoice.netCents > (good.ok ? good.netCents : 0),
+    onInvoice.ok
+      ? `${money(onInvoice.processingCents)} against ${money(good.ok ? good.processingCents : 0)} on a card, net ${money(onInvoice.netCents)}`
+      : onInvoice.because,
+  );
+
+  /*
+   * AND A JOB THAT DOES NOT SAY HOW IT WAS PAID REFUSES, like every other
+   * missing input in this book. Defaulting to card would be the usually-right
+   * figure that earns the trust it then spends.
+   */
+  const noMethod = marginForJob({ ...BASE, paidBy: null });
+  rec(
+    "a job with no recorded payment method refuses rather than assuming a card",
+    noMethod.ok === false && noMethod.missing === "payment method",
+    noMethod.ok ? "IT COMPUTED A FIGURE" : String(noMethod.because).slice(0, 80),
   );
 }
 
@@ -235,6 +312,7 @@ const BASE = {
     technicianVisits: 0,
     tier: null,
     designHours: null,
+    paidBy: "invoice",
   });
   rec(
     "the design line refuses without recorded hours, rather than falling back to a tier",
@@ -248,6 +326,7 @@ const BASE = {
     technicianVisits: 0,
     tier: null,
     designHours: 12,
+    paidBy: "invoice",
   });
   rec(
     "and computes from the hours the engineer actually recorded",

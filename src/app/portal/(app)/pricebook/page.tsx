@@ -5,7 +5,12 @@ import { PageHead, Panel } from "@/components/portal/surfaces";
 import { services } from "@/content/services";
 import { priceFor, priceSentence } from "@/config/prices";
 import { estimateForLine, money } from "@/lib/price-book";
-import { TECHNICIAN_CALL_CENTS, CARD_PROCESSING_RATE } from "@/config/cost-inputs";
+import {
+  TECHNICIAN_CALL_CENTS,
+  PROCESSING_RATES,
+  PROCESSING_READ_ON,
+  PROCESSING_READ_FROM,
+} from "@/config/cost-inputs";
 import { ENGINEER_TIER_CENTS, ENGINEER_DESIGN_HOURLY_CENTS, defaultTierFor } from "@/config/engineer-pay";
 import { floorCentsFor } from "@/lib/trade-pricing";
 
@@ -155,12 +160,20 @@ export default async function PriceBookPage() {
             </dd>
           </div>
           <div>
-            <dt className="font-semibold text-[var(--ink)]">Card processing</dt>
+            <dt className="font-semibold text-[var(--ink)]">Payment processing</dt>
             <dd className="text-[var(--secondary)]">
-              A cost line in this book and never a line on the site. No rate is ruled, so every
-              margin here is stated before card processing and says so on the row rather than in a
-              footnote.
-              {CARD_PROCESSING_RATE === null ? "" : ""}
+              A cost line in this book and never a line on the site: a customer is not shown a fee
+              for the firm&rsquo;s choice of payment provider. The rates are{" "}
+              {(PROCESSING_RATES.card.fraction * 100).toFixed(1)}% plus{" "}
+              {money(PROCESSING_RATES.card.fixedCents)} on a domestic card and{" "}
+              {(PROCESSING_RATES.invoice.fraction * 100).toFixed(1)}% on a one-time invoice payment,
+              read from {PROCESSING_READ_FROM} on {PROCESSING_READ_ON}. They are not one rate,
+              so a recorded job&rsquo;s margin is computed from how that job was actually paid and
+              refuses if the job does not say.
+              <br />
+              <strong>An estimate on this page is before processing</strong>, because an estimate
+              cannot know how a job nobody has taken yet will be paid. That is a different figure
+              from a recorded margin and it is labelled on every row rather than in a footnote.
             </dd>
           </div>
           <div>
