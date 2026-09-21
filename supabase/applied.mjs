@@ -1266,14 +1266,14 @@ export const APPLIED = [
       "no trigger. Two migrations from other applications landed on production the same day.",
   },
   {
-    file: "0055_the_signed_roof_protocol_awaits_its_engineer.sql",
+    file: "0055_the_signed_roof_protocol_awaits_its_engineer.sql", appliedBy: "apply_migration",
     fingerprint: "56b351a693ec70cc86203fd0cbde481c",
     behaviour: "72b8ec3ab4975f1178add4a64261d88a",
     proves: {
       table: "eng_protocol_templates",
       match: { document_number: "254-RC-001", version_label: "1.1" },
     },
-    production: null,
+    production: "2026-09-21",
     development: { at: "0055", behaviour: null, facts: 919 },
     note:
       "BOTH fingerprints repeat 0054's, which is what a migration with no DDL in it must do. It " +
@@ -1281,11 +1281,36 @@ export const APPLIED = [
       "nothing the behaviour digest reads. The line is not copied: it was replayed at 0054 and at " +
       "0055 and read back identical. The row itself is what `proves` asks about.",
     because:
-      "PENDING BY OPERATOR RULING, 2026-09-21: 'Production waits for a sitting with me at the " +
+      "APPLIED TO PRODUCTION 2026-09-21 at 20:54:24 UTC, provider version 20260921205424, read from " +
+      "list_migrations rather than from the clock this session runs on, and agreeing with the row's " +
+      "own created_at of 20:54:24.559055+00. " +
+      "IT WAS PENDING FIRST, BY OPERATOR RULING: 'Production waits for a sitting with me at the " +
       "keyboard.' This migration puts the engineer of record's signed protocol into the platform, and " +
-      "the row it writes is the thing his first sign in will be looking at. It is not going in while " +
-      "nobody is watching. A migration on a feature branch may be pending; a migration on main may " +
-      "not, so this branch does not merge until the production half is run. " +
+      "the row it writes is the thing his first sign in will be looking at, so it did not go in while " +
+      "nobody was watching. The wait earned its keep: the signed date was wrong in the first version " +
+      "and was found, ruled on and corrected while the only database holding it was development. " +
+      "THE PRE-FLIGHT GUARD, CHECKED RATHER THAN ASSUMED, the same read 0053's entry records: " +
+      "production held 0 protocol templates, 0 protocol items and 0 files immediately before the " +
+      "migration was sent. So the NOT EXISTS guard and the retire-the-previous logic in 0052 had " +
+      "nothing to act on, and the row is the first this table has ever held on production. " +
+      "A NAMING SLIP, RECORDED BECAUSE THE LEDGER EXISTS TO BE CROSS-CHECKED AGAINST THE PROVIDER. " +
+      "The apply_migration call passed the name without its number, so production's list_migrations " +
+      "shows 'the_signed_roof_protocol_awaits_its_engineer' where every neighbour since 0006 shows " +
+      "its prefix, as in '0054_a_windstorm_brief_asks_when_the_work_was_done'. Somebody grepping that " +
+      "list for 0055 will not find it and may conclude production lacks it, which is the same wrong " +
+      "and alarming answer 0025 produces for a different reason. It is not renamed, because a " +
+      "provider history that changes after the fact is a history nobody can reason about. The next " +
+      "migration passes the full file stem. " +
+      "READ BACK FROM PRODUCTION, EVERY COLUMN, not a count: one row, " +
+      "aef41de3-2eb7-49b9-9d18-cb99a741bc6c, service_slug roof-inspections, name 'Roof Certification " +
+      "Protocol for Existing Roofs', version 2, version_label 1.1, status awaiting_engineer, " +
+      "document_number 254-RC-001, issue_date 2026-09-18, document_signed_at 2026-09-20, " +
+      "document_sha256 d050a21a2b2d43114de47989ca731f41e26951f195c90187e99c11705011e4ef, " +
+      "firm_name_on_document '254 Engineering Services', requires_discipline NULL, and approved_by, " +
+      "approved_at, approved_by_license, published_at and authored_by all five NULL. " +
+      "requires_discipline NULL IS THE LOAD BEARING ONE: roof-inspections stays a waitlist even after " +
+      "the engineer approves, until he states in writing which discipline 254-RC-001 requires. The " +
+      "load does not open the line and was never going to. " +
       "APPLIED TO DEVELOPMENT 2026-09-21 through apply_migration and READ BACK COLUMN BY COLUMN: one " +
       "row, version 2, version_label 1.1, status awaiting_engineer, document_sha256 " +
       "d050a21a2b2d43114de47989ca731f41e26951f195c90187e99c11705011e4ef, issue_date 2026-09-18, " +
