@@ -1,7 +1,9 @@
 import {
   verifiedFirmRegistrations,
   verifiedEngineers,
+  verifiedCredentials,
   operatingNameOnBoardRecord,
+  WINDSTORM_APPOINTMENT_CREDENTIAL,
   type VerifiedEngineer,
   type VerifiedFirmRegistration,
 } from "@/config/credentials";
@@ -680,6 +682,88 @@ export function registrationStatement(): string | null {
   const registration = activeFirmRegistration();
   if (!registration) return null;
   return `${registration.issuedTo} is a Texas registered engineering firm, TBPELS Firm Registration ${registration.number}.`;
+}
+
+/**
+ * ===========================================================================
+ * THE TDI WINDSTORM APPOINTMENT, AS A SENTENCE, READ OFF THE REGISTER.
+ * Operator ruling, 2026-09-21. Option A: derive from `verifiedCredentials`.
+ * ===========================================================================
+ *
+ * THE SUBJECT IS THE ENGINEER, NOT THE FIRM, AND THAT IS THE RULING RATHER
+ * THAN A WORDING PREFERENCE. TDI appoints individual engineers. A sentence
+ * saying the FIRM holds no appointment describes a thing that cannot be held,
+ * and a reader who later meets an appointed engineer working at an unappointed
+ * firm would find the site had told them something that is not how the program
+ * works.
+ *
+ * WHY IT IS DERIVED AT ALL. The sentence it replaces was typed into
+ * `windstorm-program.ts`, which makes it the same shape as the portal sidebar
+ * that went on saying "registration pending" for a day after TBPELS issued
+ * F-29811. The day Aman is appointed, somebody updates the register because
+ * that is where the appointment number goes, and a typed sentence on a page
+ * about credentials would go on denying it. One fact, one home, for the sixth
+ * time; this is the seventh.
+ *
+ * THE SHUT ANSWER IS THE DEFAULT AND EVERY UNEXPECTED STATE FALLS INTO IT.
+ * No entry, several entries, held with no identifier: each renders the
+ * negative. That is `an unknown is not a pass` applied to a disclosure, and it
+ * errs toward the sentence that claims nothing. `compliance-audit` asserts
+ * there is exactly ONE such entry, because a second one would make this
+ * silently pick, and silently picking is how a disclosure stops being read.
+ *
+ * THE POSITIVE BRANCH NAMES NO ENGINEER, and it is not an oversight.
+ * `HeldCredential` has no link to `verifiedEngineers`, so the register cannot
+ * say WHICH engineer holds it, and standing law does not publish his name in
+ * any case. It states the appointment number and the date somebody checked it
+ * against TDI's own record, which is what a reader can verify.
+ */
+export function windstormAppointmentStatement(): string {
+  const entries = verifiedCredentials.filter((c) => c.name === WINDSTORM_APPOINTMENT_CREDENTIAL);
+  const held = entries.filter((c) => c.held && c.identifier !== null);
+
+  if (entries.length !== 1 || held.length !== 1) {
+    return `No engineer at ${firmName()} currently holds a Texas Department of Insurance windstorm appointment.`;
+  }
+
+  return (
+    `An engineer at ${firmName()} holds a Texas Department of Insurance windstorm appointment, ` +
+    `${held[0].identifier}, verified against the department's own record on ${held[0].verifiedOn}.`
+  );
+}
+
+/**
+ * ===========================================================================
+ * WHETHER A PROFESSIONAL ENGINEER IS IN RESPONSIBLE CHARGE, AS A SENTENCE.
+ * Operator ruling, 2026-09-21.
+ * ===========================================================================
+ *
+ * IT REPLACES A LITERAL THAT HAD ALREADY GONE FALSE. `windstorm-program.ts`
+ * carried "No Professional Engineer is yet in responsible charge." typed, in
+ * TWO places, and `peInResponsibleCharge()` reads `activeEngineer() !== null`,
+ * which has been true since a licence expiring 2028-01-31 was recorded. The
+ * page was denying the firm's own engineer of record on a page about
+ * credentials.
+ *
+ * THAT IS THE 2026-09-12 PORTAL SIDEBAR AGAIN, EXACTLY. Same defect, same
+ * cause, same fix: a compliance sentence hardcoded anywhere is the defect, and
+ * the copy is always the one nobody updates. This is the second time it has
+ * been a sentence about responsible charge specifically.
+ *
+ * IT READS `peInResponsibleCharge()` RATHER THAN `activeEngineer()` DIRECTLY,
+ * which is the operator's ruling honoured rather than sidestepped: that
+ * function IS the derivation from `activeEngineer()`, and calling the register
+ * again here would put a second reader of one fact in the file whose whole job
+ * is having one.
+ *
+ * THE POSITIVE BRANCH NAMES NOBODY. Standing law: never publish the engineer's
+ * name or licence number. What a reader needs is whether somebody licensed is
+ * answerable, not who.
+ */
+export function responsibleChargeStatement(): string {
+  return peInResponsibleCharge()
+    ? "A Texas licensed Professional Engineer is in responsible charge."
+    : "No Professional Engineer is yet in responsible charge.";
 }
 
 /**

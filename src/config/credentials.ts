@@ -472,9 +472,22 @@ export type HeldCredential = {
   verified: string;
 };
 
+/**
+ * THE KEY THE WINDSTORM DISCLOSURE LOOKS THIS CREDENTIAL UP BY.
+ *
+ * A constant rather than a literal typed in two places, which is the only
+ * reason it exists. `windstormAppointmentStatement()` in src/lib/launch.ts
+ * derives the rendered sentence from the entry below, and a lookup keyed on a
+ * string typed at both ends is a fact with two homes: renaming the entry would
+ * silently make the lookup miss, and a MISS here renders as the shut sentence,
+ * which is the failure nobody would see. Reading it from one binding means a
+ * rename is a type error at the other end instead.
+ */
+export const WINDSTORM_APPOINTMENT_CREDENTIAL = "TDI windstorm inspector appointment";
+
 export const verifiedCredentials: HeldCredential[] = [
   {
-    name: "TDI windstorm inspector appointment",
+    name: WINDSTORM_APPOINTMENT_CREDENTIAL,
     issuer: "Texas Department of Insurance",
     /*
      * NOT HELD, AND IT IS RECORDED HERE BECAUSE THE RULING NAMES IT. The
