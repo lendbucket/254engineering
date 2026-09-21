@@ -48,3 +48,30 @@ Before a number reaches a file that survives the session: **what did I read, and
 when did I read it?** If the answer is "it sounded about right", it does not go
 in. "Some days" is honest. "Eight days" is a measurement, and a measurement has
 a source.
+
+### Second instance, same day: a count is produced by COUNTING the source
+
+**A count is produced by counting the source, not by describing a list.**
+
+A sitting report given to the operator before a production migration said
+0054 had "**Five check constraints:**", then listed five, then added "Plus the
+`responded_at`/`responded_by` pairing that 0050 and 0049 carry". **The list is
+six.** The sentence undercounted its own contents, and the operator took the
+figure from the sentence and wrote it into the read-back he specified.
+
+The read-back returned six. Production, development and the replay all read six
+and always had: `asking_as_ck`, `openings_rated_ck`, `response_is_named_ck`,
+`will_open_up_ck`, `work_after_building_ck`, `years_are_plausible_ck`. **No
+schema difference existed. The only thing that differed was a figure in a
+report**, and it stopped a production sequence to establish that.
+
+**Why this is the same lesson and not a smaller one.** The first instance
+produced a number from nothing. This one produced a number from a real list by
+summarising it instead of counting it, which is harder to catch precisely
+because the source was right there and looked consulted. A prose summary that
+ends "plus" has already stopped counting.
+
+It also travelled further than the first. A wrong figure in a report becomes the
+operator's expectation, and his instruction then encodes it. He is checking your
+work against your own arithmetic.
+

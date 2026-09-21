@@ -1210,11 +1210,11 @@ export const APPLIED = [
     fingerprint: "56b351a693ec70cc86203fd0cbde481c",
     behaviour: "72b8ec3ab4975f1178add4a64261d88a",
     proves: { column: { table: "eng_windstorm_inquiries", name: "most_recent_work_year" } },
-    production: null,
+    production: "2026-09-21",
     development: { at: "0054", behaviour: null, facts: 919 },
     because:
-      "PENDING, and it stays on feat/windstorm-inquiries until somebody is at a keyboard for the " +
-      "production half. A migration on main is never pending. " +
+      "APPLIED TO PRODUCTION 2026-09-21 at 17:02:27 UTC, provider version 20260921170227, read from " +
+      "list_migrations rather than from the clock this session runs on. " +
       "WHAT IT ADDS: one table, eng_windstorm_inquiries, and nothing else. Shape moves to " +
       "56b351a693ec70cc86203fd0cbde481c across 1,141 columns, which is exactly twenty five more, all " +
       "of them that table's. 80 tables to 81, with row level security on all 81. Behaviour moves to " +
@@ -1251,7 +1251,19 @@ export const APPLIED = [
       "A RESPONSE IS NAMED OR IT DID NOT HAPPEN, the same constraint 0050 and 0049 carry. A record " +
       "saying somebody was contacted without saying who is the customer_link.issued defect in " +
       "different columns, and that one cost a paying customer a telephone call to find out nothing " +
-      "had been sent.",
+      "had been sent. " +
+      "READ BACK FROM PRODUCTION, every item: eng_windstorm_inquiries exists with 25 columns, SIX " +
+      "check constraints, row level security on, and the partial index on the unanswered promise. " +
+      "The eng_ schema reads 81 tables and 1,141 columns at shape " +
+      "56b351a693ec70cc86203fd0cbde481c, matching the replay and development exactly. " +
+      "THE SIX, NAMED RATHER THAN COUNTED: asking_as_ck, openings_rated_ck, response_is_named_ck, " +
+      "will_open_up_ck, work_after_building_ck, years_are_plausible_ck. " +
+      "The sitting report said FIVE, which was wrong: it listed five and added the response pairing " +
+      "as a sixth in prose, so the sentence undercounted its own list. Production, development and " +
+      "the replay all read six and always did. The only thing that differed was the figure. " +
+      "PRODUCTION IS SHARED WITH UNRELATED APPS, which is why this touches nothing outside the eng_ " +
+      "prefix: one table created, one existing object referenced, eng_profiles(id), no function and " +
+      "no trigger. Two migrations from other applications landed on production the same day.",
   },
 ];
 
