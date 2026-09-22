@@ -660,6 +660,22 @@ last", and the reasoning in `src/lib/forms.ts`. So nothing is ambiguous today.
 file would put the two out of step immediately before a production apply.** A
 comment is not worth that, and the operator ruled it waits.
 
+## THE HANDOFF OF 2026-09-22 IS THE POSITION; THIS FILE IS THE INDEX
+
+`docs/HANDOFF-2026-09-22.md` is where the firm, the gate, the ranked blockers,
+the work in flight and the rulings owed stand as of 2026-09-22T19:18:03Z. It was
+written as the final act of the session on the operator's previous Claude
+account, for a session that has **no conversation history at all**.
+
+**This is the pointer, not a second copy.** Where the two disagree, the source
+each cites wins, and both are stale the moment something moves: the handoff's
+own section 11 opens with the five commands that re-establish state from git,
+the ledger and the provider rather than from either document.
+
+**Open work it carries** that is not already a section here: the five rulings
+owed in its section 8, and the four things it names as unverifiable, chief among
+them the Stripe legal business name and the engineer's TBPELS roster entry.
+
 ## FIVE WATTSMITH AUDIT ACCOUNTS ON PRODUCTION, AND THEY ARE NOT THIS FIRM'S TO DELETE
 
 Observed on production `fsaryeciduszuahgjbly` on 2026-09-22, during the sweep

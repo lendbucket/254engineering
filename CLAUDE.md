@@ -1,5 +1,9 @@
 @AGENTS.md
 
+**READ `docs/HANDOFF-2026-09-22.md` FIRST.** It is where the firm, the gate, the
+blockers and the work in flight stand, written for a session with no memory of
+anything. This file is the law; that one is the position.
+
 # 254 Engineering Services: standing law
 
 This file is binding on every session in this repo. It is the operative summary of
