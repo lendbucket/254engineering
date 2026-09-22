@@ -48,7 +48,24 @@ const BASE = process.env.BASE_URL || "http://localhost:3225";
 const EXPECTED_MFA_PATHS = ["/portal/mfa", "/portal/mfa/enrol", "/api/portal/mfa"];
 
 const out = [];
+/*
+ * `ok` is true, false, or NULL for could not tell.
+ *
+ * Operator ruling, 2026-09-22. Three checks here reported a hard FAIL when
+ * their PROBE could not be built, which is a different statement from the
+ * property being violated. On the board of 2026-09-22 one of them went red
+ * with the note "no probe"; a standalone re-run minutes later passed 57 of 57
+ * and nothing in the diff touched MFA, sessions, roles or profiles. The check
+ * had not found a way for an un-enrolled account to acknowledge its way to a
+ * session. It had failed to create an account to try it with.
+ *
+ * `unreachable is not failed`, and the cost of confusing them runs both ways: a
+ * red nobody can reproduce teaches people to discount this audit, and the next
+ * real finding arrives wearing the same colour.
+ */
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
+/** Could not tell: the subject could not be built, so nothing was measured. */
+const cnt = (name, note) => out.push({ name, ok: null, note });
 
 console.log("");
 console.log("========== THE SECOND FACTOR AT THE SESSION BOUNDARY ==========");
@@ -517,12 +534,37 @@ else process.env.OPS_SESSION_SECRET = HAD;
         let roleMade = false;
 
         /* Sign a fresh account in and report what came back, without enrolling it. */
+        /*
+         * FOUR WAYS TO COME BACK WITHOUT A COOKIE, AND THEY USED TO LOOK
+         * IDENTICAL. Operator ruling, 2026-09-22.
+         *
+         * Every caller that could not get a probe said "no probe", which is a
+         * status note that can only name the faults its author enumerated, and
+         * this one enumerated none of them. A reader of the 2026-09-22 board
+         * could not tell a missing service key from a refused createUser from a
+         * failed profile insert from a sign in that returned no cookie. Those
+         * are four different problems and three of them are not about MFA at
+         * all.
+         *
+         * `why` is null on success and a sentence otherwise, and the sentence
+         * carries the provider's own message where there is one.
+         */
         const makeProbe = async (roleKey, tag) => {
-          if (!db) return { cookie: null, redirect: null, id: null };
+          if (!db) {
+            return {
+              cookie: null, redirect: null, id: null,
+              why: "no database client: this process has no SUPABASE_URL or service role key, so no account could be created",
+            };
+          }
           const email = `mfaprobe-${tag}-${stamp}@mobile-audit.invalid`;
           const password = `mfaprobe-${tag}-${stamp}-enrolment-screen`;
           const made = await db.auth.admin.createUser({ email, password, email_confirm: true });
-          if (!made.data?.user) return { cookie: null, redirect: null, id: null };
+          if (!made.data?.user) {
+            return {
+              cookie: null, redirect: null, id: null,
+              why: `createUser returned no user for ${email}: ${made.error?.message ?? "no error message given"}`,
+            };
+          }
           const id = made.data.user.id;
           probeIds.push(id);
           const inserted = await db.from("eng_profiles").insert({
@@ -532,17 +574,26 @@ else process.env.OPS_SESSION_SECRET = HAD;
             role: roleKey,
             status: "active",
           });
-          if (inserted.error) return { cookie: null, redirect: null, id };
+          if (inserted.error) {
+            return {
+              cookie: null, redirect: null, id,
+              why: `the account was created but its eng_profiles row was refused: ${inserted.error.message}`,
+            };
+          }
           const res = await fetch(`${BASE}/api/portal/session`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email, password }),
           });
           const body = await res.json().catch(() => null);
+          const cookie = (res.headers.get("set-cookie") ?? "").match(/eng_ops=([^;]+)/)?.[1] ?? null;
           return {
-            cookie: (res.headers.get("set-cookie") ?? "").match(/eng_ops=([^;]+)/)?.[1] ?? null,
+            cookie,
             redirect: typeof body?.redirect === "string" ? body.redirect : null,
             id,
+            why: cookie
+              ? null
+              : `signing in as ${email} returned HTTP ${res.status} and no eng_ops cookie`,
           };
         };
 
@@ -917,7 +968,10 @@ else process.env.OPS_SESSION_SECRET = HAD;
              */
             const stale = roleMade
               ? await makeProbe(REQUIRED_ROLE, "ackstale")
-              : { cookie: null, redirect: null, id: null };
+              : {
+                  cookie: null, redirect: null, id: null,
+                  why: "the probe role requiring a second factor could not be created, so no account could hold it",
+                };
             if (stale.cookie) {
               const staleHeader = `eng_ops=${stale.cookie}`;
               const begun2 = await fetch(`${BASE}/api/portal/mfa`, {
@@ -1047,8 +1101,9 @@ else process.env.OPS_SESSION_SECRET = HAD;
                 rec("while this account's own token from its own confirm does complete it", false, "no second session");
               }
             } else {
-              rec("a second sign in on an enrolled account is challenged", false, "no probe");
-              rec("and CANNOT acknowledge an earlier enrolment into a full session", false, "no probe");
+              const why = stale.why ?? "the probe could not be built and makeProbe gave no reason, which is itself a defect";
+              cnt("a second sign in on an enrolled account is challenged", why);
+              cnt("and CANNOT acknowledge an earlier enrolment into a full session", why);
             }
 
             /*
@@ -1059,7 +1114,10 @@ else process.env.OPS_SESSION_SECRET = HAD;
              */
             const bare = roleMade
               ? await makeProbe(REQUIRED_ROLE, "ackbare")
-              : { cookie: null, redirect: null, id: null };
+              : {
+                  cookie: null, redirect: null, id: null,
+                  why: "the probe role requiring a second factor could not be created, so no account could hold it",
+                };
             if (bare.cookie) {
               const res = await fetch(`${BASE}/api/portal/mfa`, {
                 method: "POST",
@@ -1073,7 +1131,10 @@ else process.env.OPS_SESSION_SECRET = HAD;
                 minted ? "it minted one" : `refused with ${res.status}`,
               );
             } else {
-              rec("an account with no enrolment cannot acknowledge its way to a session", false, "no probe");
+              cnt(
+                "an account with no enrolment cannot acknowledge its way to a session",
+                bare.why ?? "the probe could not be built and makeProbe gave no reason, which is itself a defect",
+              );
             }
           }
         }
@@ -1197,12 +1258,30 @@ else process.env.OPS_SESSION_SECRET = HAD;
 
 // ------------------------------------------------------------------- verdict
 
-for (const r of out) console.log(`  ${r.ok ? "PASS" : "FAIL"}: ${r.name}${r.note ? ` (${r.note})` : ""}`);
+const verdictOf = (r) => (r.ok === null ? "COULD NOT TELL" : r.ok ? "PASS" : "FAIL");
+for (const r of out) console.log(`  ${verdictOf(r)}: ${r.name}${r.note ? ` (${r.note})` : ""}`);
 
-const failed = out.filter((r) => !r.ok);
+const failed = out.filter((r) => r.ok === false);
+const unmeasured = out.filter((r) => r.ok === null);
 console.log("");
+
+/*
+ * SAID LOUDLY EVEN THOUGH IT DOES NOT FAIL THE RUN, because a green board over
+ * a half that never happened is the other way to lie. Each line names WHICH of
+ * makeProbe's four failure paths it hit, so the next reader is not left with
+ * "no probe" covering four different causes.
+ */
+if (unmeasured.length) {
+  console.log(`COULD NOT TELL: ${unmeasured.length} of ${out.length} checks did not run, because the probe they need could not be built:`);
+  for (const r of unmeasured) console.log(`  ${r.name}: ${r.note}`);
+  console.log("");
+}
+
 if (failed.length) {
   console.log(`FAIL: ${failed.length} of ${out.length} checks.`);
   process.exit(1);
 }
-console.log(`PASS: ${out.length} checks. A half authenticated session is not a session.`);
+console.log(
+  `PASS: ${out.length - unmeasured.length} checks. A half authenticated session is not a session.` +
+    (unmeasured.length ? ` ${unmeasured.length} could not be measured and are listed above.` : ""),
+);
