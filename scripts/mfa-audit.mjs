@@ -641,15 +641,23 @@ else process.env.OPS_SESSION_SECRET = HAD;
         }
 
         const optional = await makeProbe("admin", "optional");
-        const required = roleMade ? await makeProbe(REQUIRED_ROLE, "required") : { cookie: null, redirect: null };
+        const required = roleMade
+          ? await makeProbe(REQUIRED_ROLE, "required")
+          : {
+              cookie: null, redirect: null,
+              why: "the probe role requiring a second factor could not be created, so no account could hold it",
+            };
 
         const probeCookie = optional.cookie;
 
-        rec(
-          "an un-enrolled probe on an optional role signed in",
-          Boolean(probeCookie),
-          probeCookie ? "" : "without one the enrolment screen cannot be walked at all",
-        );
+        if (probeCookie) {
+          rec("an un-enrolled probe on an optional role signed in", true, "");
+        } else {
+          cnt(
+            "an un-enrolled probe on an optional role signed in",
+            `${optional.why ?? "no reason given"}. Without one the enrolment screen cannot be walked at all.`,
+          );
+        }
 
         /*
          * ------------------------------------------------------------------
@@ -664,11 +672,15 @@ else process.env.OPS_SESSION_SECRET = HAD;
          * reading a factor out of it, because what is being claimed is that
          * the portal opens, and that is a thing the server decides.
          */
-        rec(
-          "an optional role with no factor is OFFERED enrolment",
-          optional.redirect === "/portal/mfa/enrol",
-          optional.redirect ?? "no redirect came back",
-        );
+        if (optional.cookie) {
+          rec(
+            "an optional role with no factor is OFFERED enrolment",
+            optional.redirect === "/portal/mfa/enrol",
+            optional.redirect ?? "no redirect came back",
+          );
+        } else {
+          cnt("an optional role with no factor is OFFERED enrolment", optional.why ?? "no reason given");
+        }
 
         const portalPath = all.includes("/portal") ? "/portal" : (pages[0] ?? "/portal");
 
@@ -685,7 +697,7 @@ else process.env.OPS_SESSION_SECRET = HAD;
               : `status ${opened.status}. The offer was made and the portal was still shut, which is the behaviour this ruling replaced.`,
           );
         } else {
-          rec("and can DECLINE into the portal", false, "no optional probe to try it with");
+          cnt("and can DECLINE into the portal", optional.why ?? "no optional probe to try it with, and no reason given");
         }
 
         /*
@@ -696,11 +708,15 @@ else process.env.OPS_SESSION_SECRET = HAD;
          * still worth having in the code. Same sign in, same screen, and the
          * portal must refuse.
          */
-        rec(
-          "a required role with no factor is sent to enrolment",
-          required.redirect === "/portal/mfa/enrol",
-          required.redirect ?? (roleMade ? "no redirect came back" : "no required role was created"),
-        );
+        if (required.cookie) {
+          rec(
+            "a required role with no factor is sent to enrolment",
+            required.redirect === "/portal/mfa/enrol",
+            required.redirect ?? "no redirect came back",
+          );
+        } else {
+          cnt("a required role with no factor is sent to enrolment", required.why ?? "no reason given");
+        }
 
         if (required.cookie) {
           /*
@@ -765,8 +781,9 @@ else process.env.OPS_SESSION_SECRET = HAD;
             shown.ok ? (/Not now/i.test(html) ? "the decline was rendered for a required role" : "") : `enrol screen answered ${shown.status}`,
           );
         } else {
-          rec("and CANNOT decline into the portal", false, "no required probe to try it with");
-          rec("and is not shown a way out of it", false, "no required probe to try it with");
+          const why = required.why ?? "no required probe to try it with, and no reason given";
+          cnt("and CANNOT decline into the portal", why);
+          cnt("and is not shown a way out of it", why);
         }
 
         /*
@@ -814,12 +831,14 @@ else process.env.OPS_SESSION_SECRET = HAD;
            */
           const ack = roleMade
             ? await makeProbe(REQUIRED_ROLE, "ack")
-            : { cookie: null, redirect: null, id: null };
+            : {
+                cookie: null, redirect: null, id: null,
+                why: "the probe role requiring a second factor could not be created, so no account could hold it",
+              };
           if (!ack.cookie) {
-            rec(
+            cnt(
               "a probe could be signed in to walk the acknowledgement",
-              false,
-              roleMade ? "nothing was attempted" : "no required role was created",
+              ack.why ?? "no reason given",
             );
           } else {
             const header = `eng_ops=${ack.cookie}`;
@@ -1096,9 +1115,16 @@ else process.env.OPS_SESSION_SECRET = HAD;
                     : `HTTP ${own.status}. The refusals above would then prove nothing about the binding.`,
                 );
               } else {
-                rec("and CANNOT acknowledge an earlier enrolment into a full session", false, "no second session");
-                rec("and not with a valid token minted for another account", false, "no second session");
-                rec("while this account's own token from its own confirm does complete it", false, "no second session");
+                /*
+                 * The probe existed; the SECOND SIGN IN returned no cookie, so
+                 * the attacker's position could not be set up. Same shape as a
+                 * probe that could not be built: nothing was measured, and a
+                 * red here would claim the binding was tested and broken.
+                 */
+                const why = `the second sign in as mfaprobe-ackstale-${stamp}@mobile-audit.invalid returned no eng_ops cookie, so the attacker's position could not be set up`;
+                cnt("and CANNOT acknowledge an earlier enrolment into a full session", why);
+                cnt("and not with a valid token minted for another account", why);
+                cnt("while this account's own token from its own confirm does complete it", why);
               }
             } else {
               const why = stale.why ?? "the probe could not be built and makeProbe gave no reason, which is itself a defect";
