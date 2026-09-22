@@ -629,7 +629,7 @@ export const RETENTION_POLICY: RetentionEntry[] = [
       because:
         REFUSES_DELETE("eng_forbid_mutation") +
         " THE KEPT FOREVER LIST NAMES THIS FIRST AND NO CONFIGURATION CAN SHORTEN IT. It is the record " +
-        "an engineer's licence stands on and the artefact an enforcement action reads. Retention never " +
+        "an engineer's license stands on and the artefact an enforcement action reads. Retention never " +
         "touches it, and retention-audit proves no path can, including a retention job run as admin.",
       ruledBy: "operator, standing law",
     },

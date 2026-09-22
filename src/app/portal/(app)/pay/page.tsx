@@ -55,7 +55,7 @@ const STATUS: Record<string, { label: string; tone: StatusTone; means: string }>
     means: "Approved for payment and not yet paid.",
   },
   paid: { label: "Paid", tone: "good", means: "Paid." },
-  void: { label: "Void", tone: "inert", means: "Cancelled. It is kept rather than deleted." },
+  void: { label: "Void", tone: "inert", means: "Canceled. It is kept rather than deleted." },
 };
 
 const WHEN = (iso: string) =>

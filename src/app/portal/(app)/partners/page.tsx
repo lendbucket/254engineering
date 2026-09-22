@@ -101,7 +101,7 @@ export default async function PartnersPage() {
       />
 
       <PageHead
-        eyebrow="Referral programme"
+        eyebrow="Referral program"
         title="Partners"
         lede="Who is sending work, what the firm owes them, and what is waiting for a person."
       />

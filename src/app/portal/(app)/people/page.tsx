@@ -99,7 +99,7 @@ export default async function PeoplePage() {
         p.role === "engineer"
           ? p.license_number
             ? `Licence ${p.license_number}`
-            : "No licence recorded"
+            : "No license recorded"
           : p.role === "field_tech"
             ? `${p.coverage_counties.length} counties${p.base_county ? `, based ${p.base_county}` : ""}`
             : "Full access",

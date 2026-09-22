@@ -46,7 +46,7 @@ export default async function PartnerHome() {
       <RestrictedMode />
 
       {outstanding ? (
-        <SystemAlert condition="The programme agreement has been updated.">
+        <SystemAlert condition="The program agreement has been updated.">
           Read and accept the current version. Referrals already made are unaffected and what has
           been earned stands.{" "}
           <Link href="/partner/agreement" className="font-semibold underline">

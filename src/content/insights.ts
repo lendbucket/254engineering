@@ -258,7 +258,7 @@ export const insights: Insight[] = [
     description:
       "A Texas business may not practice or advertise engineering unless the firm is registered with TBPELS. See what the registration covers and how to check one.",
     summary:
-      "In Texas the individual licence is only half of it. The business entity has to be registered too, and the statute restricts what an unregistered company may call itself.",
+      "In Texas the individual license is only half of it. The business entity has to be registered too, and the statute restricts what an unregistered company may call itself.",
     eyebrow: "Licensure",
     primaryKeyword: "texas engineering firm registration",
     datePublished: "2026-08-23",
@@ -266,7 +266,7 @@ export const insights: Insight[] = [
     body: [
       {
         kind: "p",
-        text: "Texas licenses two different things. It licenses people to practice engineering, and it separately registers the business entities through which engineering is practised. A company whose every employee holds a Texas engineering licence is still prohibited from practising engineering in Texas if the company itself is not registered.",
+        text: "Texas licenses two different things. It licenses people to practice engineering, and it separately registers the business entities through which engineering is practised. A company whose every employee holds a Texas engineering license is still prohibited from practising engineering in Texas if the company itself is not registered.",
       },
       {
         kind: "p",
@@ -306,7 +306,7 @@ export const insights: Insight[] = [
       },
       {
         kind: "p",
-        text: "Section 1001.301 sits alongside it and does the same job for individuals. A person may not engage in the practice of engineering without a licence, may not use the protected titles, and may not use any abbreviation, word, symbol, slogan, or sign that tends or is likely to create an impression with the public that they are qualified to practise. Subsection (e) of that section provides that a person or entity that offers or attempts to engage in the described conduct is conclusively presumed to be engaged in the practice of engineering.",
+        text: "Section 1001.301 sits alongside it and does the same job for individuals. A person may not engage in the practice of engineering without a license, may not use the protected titles, and may not use any abbreviation, word, symbol, slogan, or sign that tends or is likely to create an impression with the public that they are qualified to practice. Subsection (e) of that section provides that a person or entity that offers or attempts to engage in the described conduct is conclusively presumed to be engaged in the practice of engineering.",
       },
 
       { kind: "h2", text: "Why this site is written the way it is" },
@@ -331,11 +331,11 @@ export const insights: Insight[] = [
       { kind: "h2", text: "How to check a firm registration" },
       {
         kind: "p",
-        text: "The board publishes a searchable engineering firm roster and a separate roster for individual licensees, and it also publishes downloadable files of both that are updated daily. The firm search is the one that answers the section 1001.405 question, and it is a different search from the one that answers whether a named individual holds a licence.",
+        text: "The board publishes a searchable engineering firm roster and a separate roster for individual licensees, and it also publishes downloadable files of both that are updated daily. The firm search is the one that answers the section 1001.405 question, and it is a different search from the one that answers whether a named individual holds a license.",
       },
       {
         kind: "p",
-        text: "Both checks are worth doing, because they fail independently. A registered firm can employ someone who is not licensed, and a licensed individual can be working through a company that has let its registration lapse. The mechanics of the individual search, including what the roster stopped publishing in 2023, are covered in [how to look up a Texas PE licence](/insights/texas-pe-license-lookup).",
+        text: "Both checks are worth doing, because they fail independently. A registered firm can employ someone who is not licensed, and a licensed individual can be working through a company that has let its registration lapse. The mechanics of the individual search, including what the roster stopped publishing in 2023, are covered in [how to look up a Texas PE license](/insights/texas-pe-license-lookup).",
       },
       {
         kind: "ul",
@@ -358,7 +358,7 @@ export const insights: Insight[] = [
       { kind: "h2", text: "What a registration does not tell you" },
       {
         kind: "p",
-        text: "Registration is a threshold, not a ranking. It establishes that an entity is permitted to practise and to describe itself as an engineering firm. It says nothing about whether the firm has done work resembling yours, whether the individual who would seal your document practises in the relevant discipline, or whether anyone there has stood on a roof in the county your property is in.",
+        text: "Registration is a threshold, not a ranking. It establishes that an entity is permitted to practice and to describe itself as an engineering firm. It says nothing about whether the firm has done work resembling yours, whether the individual who would seal your document practises in the relevant discipline, or whether anyone there has stood on a roof in the county your property is in.",
       },
       {
         kind: "p",
@@ -374,7 +374,7 @@ export const insights: Insight[] = [
       {
         label: "Tex. Occ. Code § 1001.301, License Required",
         url: "https://texas.public.law/statutes/tex._occ._code_section_1001.301",
-        supports: "The individual licence requirement and the conclusive presumption in subsection (e).",
+        supports: "The individual license requirement and the conclusive presumption in subsection (e).",
       },
       {
         label: "TBPELS, Engineering Firm Registration",
@@ -389,12 +389,12 @@ export const insights: Insight[] = [
     ],
     faqs: [
       {
-        q: "Does a sole practitioner have to register the business as well as hold a licence?",
+        q: "Does a sole practitioner have to register the business as well as hold a license?",
         a: "Section 1001.405(a) includes a sole proprietorship in the definition of business entity, so the registration requirement reaches a one person practice. The board's firm registration page states a separate, lower initial fee for sole proprietorships, which reflects that they are inside the scheme rather than outside it.",
       },
       {
-        q: "Can an out of state firm practise engineering in Texas?",
-        a: "The registration requirement in section 1001.405(b) is written about the practice of engineering in this state rather than about where the entity is organised, and the individual licence requirement in section 1001.301 applies to the person doing the work. Both have to be satisfied. The board is the authority on how it treats a particular out of state entity.",
+        q: "Can an out of state firm practice engineering in Texas?",
+        a: "The registration requirement in section 1001.405(b) is written about the practice of engineering in this state rather than about where the entity is organised, and the individual license requirement in section 1001.301 applies to the person doing the work. Both have to be satisfied. The board is the authority on how it treats a particular out of state entity.",
       },
       {
         q: "What happens to a firm that practises before it is registered?",
@@ -439,7 +439,7 @@ export const insights: Insight[] = [
       { kind: "h2", text: "The seal is the mechanism" },
       {
         kind: "p",
-        text: "Section 1001.401 of the Occupations Code requires that a plan, specification, plat, or report issued by a license holder for a project to be constructed or used in this state include the license holder's seal on the document. The section also prohibits use of a seal where the licence has expired, been suspended, or been revoked.",
+        text: "Section 1001.401 of the Occupations Code requires that a plan, specification, plat, or report issued by a license holder for a project to be constructed or used in this state include the license holder's seal on the document. The section also prohibits use of a seal where the license has expired, been suspended, or been revoked.",
       },
       {
         kind: "p",
@@ -542,7 +542,7 @@ export const insights: Insight[] = [
   {
     slug: "texas-pe-license-lookup",
     title: "Texas PE License Lookup and Verification | 254 Engineering",
-    h1: "How to look up a Texas PE licence, and what the roster leaves out",
+    h1: "How to look up a Texas PE license, and what the roster leaves out",
     description:
       "The TBPELS roster and an official verification are two different things. See which one answers your question, and what the roster stopped publishing in 2023.",
     summary:
@@ -554,7 +554,7 @@ export const insights: Insight[] = [
     body: [
       {
         kind: "p",
-        text: "Most people who need to check a Texas Professional Engineer are doing one of two very different things. They are confirming that the person about to seal a document holds a current licence, or they are moving a licence between states and need the board to certify its standing to another board. Texas serves those two needs through separate systems, and using the wrong one is the usual reason a check takes a month.",
+        text: "Most people who need to check a Texas Professional Engineer are doing one of two very different things. They are confirming that the person about to seal a document holds a current license, or they are moving a license between states and need the board to certify its standing to another board. Texas serves those two needs through separate systems, and using the wrong one is the usual reason a check takes a month.",
       },
 
       { kind: "h2", text: "The roster answers the first question" },
@@ -564,7 +564,7 @@ export const insights: Insight[] = [
       },
       {
         kind: "p",
-        text: "It is free, it is immediate, and it is the right tool for confirming that a named individual currently holds a Texas licence. It is also the tool most people mean when they search for a Texas PE licence lookup.",
+        text: "It is free, it is immediate, and it is the right tool for confirming that a named individual currently holds a Texas license. It is also the tool most people mean when they search for a Texas PE license lookup.",
       },
 
       { kind: "h2", text: "What the roster stopped publishing in 2023" },
@@ -594,7 +594,7 @@ export const insights: Insight[] = [
       { kind: "h2", text: "Check the firm as well as the person" },
       {
         kind: "p",
-        text: "A licence check on an individual is only half of the question a buyer usually has. Texas separately requires the business entity practising engineering to be registered, and it restricts what an unregistered company may call itself. Those two checks fail independently, so passing one says nothing about the other.",
+        text: "A license check on an individual is only half of the question a buyer usually has. Texas separately requires the business entity practising engineering to be registered, and it restricts what an unregistered company may call itself. Those two checks fail independently, so passing one says nothing about the other.",
       },
       {
         kind: "p",
@@ -609,8 +609,8 @@ export const insights: Insight[] = [
         kind: "note",
         title: "A widely repeated claim we could not confirm",
         body: [
-          "Several third party guides state that once a Texas PE licence has been expired for two or more years it becomes non renewable and is removed from the published roster, so a search for a long lapsed licensee returns nothing rather than an expired record.",
-          "We could not trace that to a board page or to a rule citation. It is plausible and it may be correct. It is recorded here as unconfirmed rather than repeated as fact, because the difference between a licence that never existed and one that lapsed in 2019 matters a great deal to somebody checking, and a reader should know that a blank result may not distinguish between them.",
+          "Several third party guides state that once a Texas PE license has been expired for two or more years it becomes non renewable and is removed from the published roster, so a search for a long lapsed licensee returns nothing rather than an expired record.",
+          "We could not trace that to a board page or to a rule citation. It is plausible and it may be correct. It is recorded here as unconfirmed rather than repeated as fact, because the difference between a license that never existed and one that lapsed in 2019 matters a great deal to somebody checking, and a reader should know that a blank result may not distinguish between them.",
           "The board is the authority. Where a search returns nothing and the answer matters, ask the board directly rather than inferring from the absence.",
         ],
       },
@@ -619,7 +619,7 @@ export const insights: Insight[] = [
       {
         kind: "ul",
         items: [
-          "Use the engineer roster to confirm a named individual holds a current Texas licence. It is free and immediate.",
+          "Use the engineer roster to confirm a named individual holds a current Texas license. It is free and immediate.",
           "Use the firm roster separately to confirm the business entity is registered, searching the legal entity name rather than the trading name.",
           "Expect no contact details from the roster for individual licensees. Senate Bill 510 removed them in September 2023.",
           "Use an official verification only for board to board purposes, and allow up to 30 business days, because the board does not expedite.",
@@ -663,7 +663,7 @@ export const insights: Insight[] = [
         a: "The board removed mailing addresses and phone numbers for individual professional engineer licensees and engineers in training from the published roster on 1 September 2023, in compliance with Senate Bill 510. Email addresses are excluded as well. The roster remains a licensure status tool.",
       },
       {
-        q: "How long does an official Texas licence verification take?",
+        q: "How long does an official Texas license verification take?",
         a: "The board states a normal processing time of up to 30 business days from the date the request is received, that requests are processed in order of receipt, and that it does not offer expediting. That is roughly six calendar weeks and should be planned for rather than worked around.",
       },
     ],

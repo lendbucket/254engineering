@@ -268,7 +268,7 @@ export function licensedCapabilities() {
     actions: LICENSED_ACTIONS,
     why:
       "These come from holding the Professional Engineer role, because a seal represents a " +
-      "Texas PE licence rather than a job title. They are not permissions and there is no " +
+      "Texas PE license rather than a job title. They are not permissions and there is no " +
       "checkbox for them anywhere: the platform cannot represent granting one, so nobody can " +
       "grant one by mistake.",
   };

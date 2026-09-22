@@ -1130,7 +1130,7 @@ export async function cancelAndRefund(input: {
   if (reason.length < 10) {
     return {
       ok: false,
-      error: "Say why this is being cancelled. It is the only record of why the money moved.",
+      error: "Say why this is being canceled. It is the only record of why the money moved.",
     };
   }
 

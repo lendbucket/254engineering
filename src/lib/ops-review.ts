@@ -447,7 +447,7 @@ export function monthlyExportCsv(
 
   lines.push([cell("Responsible charge log"), cell(meta.period)].join(","));
   lines.push([cell("Engineer"), cell(meta.engineerName)].join(","));
-  lines.push([cell("Texas PE licence"), cell(meta.licenseNumber ?? "not recorded")].join(","));
+  lines.push([cell("Texas PE license"), cell(meta.licenseNumber ?? "not recorded")].join(","));
   lines.push([cell("Records"), cell(rows.length)].join(","));
   lines.push(
     [cell("Declined to seal"), cell(rows.filter((r) => r.refused).length)].join(","),

@@ -72,7 +72,7 @@ const ENGINEER: ChecklistItem[] = [
     key: "photo_id_front",
     step: "identity",
     label: "Government issued photo ID, front",
-    help: "A driver licence or passport. A clear photograph taken on a phone is fine as long as every corner is in frame and the text is readable.",
+    help: "A driver license or passport. A clear photograph taken on a phone is fine as long as every corner is in frame and the text is readable.",
     actor: "person",
   },
   {
@@ -85,8 +85,8 @@ const ENGINEER: ChecklistItem[] = [
   {
     key: "pe_license_card",
     step: "licensure",
-    label: "Texas PE licence verification",
-    help: "A wallet card, a certificate, or a printout of the TBPELS roster entry. The licence number is already on file and is shown below for you to check.",
+    label: "Texas PE license verification",
+    help: "A wallet card, a certificate, or a printout of the TBPELS roster entry. The license number is already on file and is shown below for you to check.",
     actor: "person",
   },
   {
@@ -160,14 +160,14 @@ const FIELD_TECH: ChecklistItem[] = [
     key: "photo_id_front",
     step: "identity",
     label: "Government issued photo ID, front",
-    help: "A driver licence or passport, with every corner in frame and the text readable.",
+    help: "A driver license or passport, with every corner in frame and the text readable.",
     actor: "person",
   },
   {
     key: "drivers_license",
     step: "identity",
-    label: "Driver licence",
-    help: "Field work is dispatched by county and involves driving to the property. A current licence is required.",
+    label: "Driver license",
+    help: "Field work is dispatched by county and involves driving to the property. A current license is required.",
     actor: "person",
   },
   {
@@ -285,7 +285,7 @@ export const ONBOARDING_STEPS: Record<OnboardingRole, StepDef[]> = {
     {
       id: "licensure",
       title: "Licensure",
-      blurb: "Verification of the Texas PE licence already on file.",
+      blurb: "Verification of the Texas PE license already on file.",
     },
     {
       id: "paperwork",
@@ -306,8 +306,8 @@ export const ONBOARDING_STEPS: Record<OnboardingRole, StepDef[]> = {
   field_tech: [
     {
       id: "identity",
-      title: "Identity and licence",
-      blurb: "A government issued photo ID and a current driver licence.",
+      title: "Identity and license",
+      blurb: "A government issued photo ID and a current driver license.",
     },
     {
       id: "coverage",

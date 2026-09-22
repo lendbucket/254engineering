@@ -56,7 +56,7 @@ export default async function DisputesPage({
       </p>
 
       <PageHead
-        eyebrow="Referral programme"
+        eyebrow="Referral program"
         title="Why an order was attributed"
         lede="Every touch behind one order, including the ones that lost. This is what a partner is shown when they think an order should have been theirs."
       />

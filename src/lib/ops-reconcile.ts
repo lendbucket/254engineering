@@ -302,7 +302,7 @@ export async function reconcileOrder(
       action: closed.ok && closed.changed ? "cancelled" : "none",
       detail:
         closed.ok && closed.changed
-          ? "The checkout closed unpaid, so the order is cancelled. Nothing was charged."
+          ? "The checkout closed unpaid, so the order is canceled. Nothing was charged."
           : "The checkout closed unpaid, and the order had already moved on.",
     };
   }

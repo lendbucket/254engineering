@@ -107,7 +107,7 @@ export function lineBlocks(
             : `${protocol.documentNumber} requires ${protocol.requiresDiscipline}, and no engineer on record seals that.`,
         clearedBy:
           anyone.length > 0
-            ? "Record a current licence expiry for that engineer."
+            ? "Record a current license expiry for that engineer."
             : "Add an engineer who declares that discipline, or the engineer of record extends what he seals.",
       });
     }

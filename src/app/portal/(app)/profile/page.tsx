@@ -22,7 +22,7 @@ export default async function ProfilePage() {
   ];
 
   if (actor!.role === "engineer") {
-    rows.push(["Texas PE licence", actor!.license_number ?? "Not recorded"]);
+    rows.push(["Texas PE license", actor!.license_number ?? "Not recorded"]);
     rows.push(["TDI windstorm appointment", actor!.tdi_appointment ?? "none"]);
   }
   if (actor!.role === "field_tech") {

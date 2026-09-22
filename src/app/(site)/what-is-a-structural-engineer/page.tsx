@@ -155,7 +155,7 @@ export default function WhatIsAStructuralEngineerPage() {
       <Section id="the-seal" tone="navy">
         <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
           <div className="lg:col-span-4">
-            <SectionHead eyebrow="The licence" title="What the seal actually means" level="h2" onDark />
+            <SectionHead eyebrow="The license" title="What the seal actually means" level="h2" onDark />
           </div>
           <div className="lg:col-span-8">
             <p className="text-[1.02rem] leading-[1.75] text-slate-fg-muted">

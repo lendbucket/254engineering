@@ -147,7 +147,7 @@ export function TransitionControls({
                   if (
                     destructive &&
                     !window.confirm(
-                      "Cancel this file? Cancelled is final: the file cannot be moved again afterwards.",
+                      "Cancel this file? Canceled is final: the file cannot be moved again afterwards.",
                     )
                   ) {
                     return;

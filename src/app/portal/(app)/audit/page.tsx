@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
+import { actionLabel } from "@/lib/portal-labels";
 import { supabaseAdmin } from "@/lib/supabase";
 import {
   EmptyState,
@@ -55,7 +56,15 @@ export default async function AuditPage() {
   const columns: Column<Event>[] = [
     { key: "when", head: "When", cell: (e) => stamp(e.created_at) },
     { key: "who", head: "Who", cell: (e) => e.actor_email ?? "system" },
-    { key: "action", head: "Action", cell: (e) => <span className="font-mono text-[12.5px]">{e.action}</span> },
+    /*
+     * THE LABEL, NOT THE KEY. Operator ruling, 2026-09-21.
+     *
+     * This rendered `customer.signed_in` in monospace. The key is still what is
+     * STORED, and the trail is unchanged; what a person reads is the same fact
+     * as English. Monospace went with it, because the point of that face here
+     * was that the value was an identifier.
+     */
+    { key: "action", head: "Action", cell: (e) => <span className="text-[13px]">{actionLabel(e.action)}</span> },
     { key: "what", head: "What happened", cell: (e) => e.summary ?? `${e.entity_type} ${e.entity_id ?? ""}` },
     { key: "ip", head: "IP", wide: true, cell: (e) => e.ip ?? "" },
   ];
@@ -78,7 +87,7 @@ export default async function AuditPage() {
             empty={<EmptyState title="Nothing recorded yet" body="Every action anyone takes in the platform lands here." />}
             card={(e) => (
               <div>
-                <p className="font-mono text-[12.5px] text-[var(--gold-deep)]">{e.action}</p>
+                <p className="text-[13px] font-medium text-[var(--gold-deep)]">{actionLabel(e.action)}</p>
                 <p className="mt-1 text-[13.5px] leading-[1.5] break-words text-[var(--navy)]">{e.summary ?? e.entity_type}</p>
                 {/*
                   break-words on both lines, because everything on this card is

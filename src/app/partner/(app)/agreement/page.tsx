@@ -93,7 +93,7 @@ export default async function PartnerAgreementPage() {
         <Panel>
           <EmptyState
             title="No agreement is published"
-            body="The firm has not published a programme agreement yet. Nothing here needs your acceptance until it does, and what you have earned is unaffected either way."
+            body="The firm has not published a program agreement yet. Nothing here needs your acceptance until it does, and what you have earned is unaffected either way."
           />
         </Panel>
       )}

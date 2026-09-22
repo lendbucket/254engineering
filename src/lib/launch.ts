@@ -180,13 +180,13 @@ export const LAUNCH_CONDITIONS: LaunchCondition[] = [
      */
     id: "engineer-of-record",
     gates: "trading",
-    what: "A licensed Professional Engineer with a current licence is on the register.",
-    whoClears: "The operator, by recording the engineer and the licence expiry he read off the roster.",
+    what: "A licensed Professional Engineer with a current license is on the register.",
+    whoClears: "The operator, by recording the engineer and the license expiry he read off the roster.",
     statedIn: "verifiedEngineers in src/config/credentials.ts",
     unmet: () =>
       activeEngineer()
         ? null
-        : "No engineer with a current, recorded licence is on the register in src/config/credentials.ts. An unrecorded expiry counts as not current, because sealing rests on the licence being active.",
+        : "No engineer with a current, recorded license is on the register in src/config/credentials.ts. An unrecorded expiry counts as not current, because sealing rests on the license being active.",
   },
 
   {

@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
 
   if (!partnerSessionConfigured()) {
     return NextResponse.json(
-      { ok: false, error: "The partner programme is not configured on this deployment." },
+      { ok: false, error: "The partner program is not configured on this deployment." },
       { status: 503 },
     );
   }
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
   clearLoginAttempts(clientKey(request.headers), attempted);
 
   const session = issuePartnerSession(result.principal.id, result.principal.partnerId);
-  if (!session) return fail(503, "The partner programme is not configured.");
+  if (!session) return fail(503, "The partner program is not configured.");
 
   await writeAudit({
     actor: { id: null, role: "admin", email: result.principal.email },

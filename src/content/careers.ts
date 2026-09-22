@@ -49,7 +49,7 @@ export function workingModel(): { heading: string; body: string }[] {
       body: "Every service line has a documented inspection procedure that says what is measured, what is photographed, in what order, and what is recorded when a condition cannot be observed. Technicians are certified on a protocol before a first assignment on it. Written protocols rather than individual habit is what lets one person's record be read by somebody who was not there.",
     },
     {
-      heading: "A licensed engineer sits at the centre",
+      heading: "A licensed engineer sits at the center",
       body: peInResponsibleCharge()
         ? "Field work gathers evidence and does not reach conclusions. A Texas licensed Professional Engineer reads the record, forms the opinion, and takes responsible charge of the sealed document. Responsible charge is never asked to bend: if a record does not support an opinion, the answer is that it does not, and the job goes back to the field."
         : "Field work gathers evidence and does not reach conclusions. A Texas licensed Professional Engineer will read the record, form the opinion, and take responsible charge of the sealed document. Responsible charge will never be asked to bend: if a record does not support an opinion, the answer is that it does not, and the job goes back to the field. No engineer of record is in place yet, which is why the engineering seat is open.",
@@ -107,12 +107,12 @@ export const hiringProcess = [
   {
     step: "01",
     title: "Application review",
-    body: "You complete the application for the role. It takes about ten minutes and it asks for the things that decide the answer: your licence or your background, the counties you can reach, and your documents. Nothing is asked twice. A person reads every one, not a filter.",
+    body: "You complete the application for the role. It takes about ten minutes and it asks for the things that decide the answer: your license or your background, the counties you can reach, and your documents. Nothing is asked twice. A person reads every one, not a filter.",
   },
   {
     step: "02",
     title: "Credential verification",
-    body: "For licensed roles the licence is checked against the public roster the Texas Board of Professional Engineers and Land Surveyors publishes, and any windstorm appointment against the Texas Department of Insurance. Public records only. Nothing is requested from you that a public source already answers.",
+    body: "For licensed roles the license is checked against the public roster the Texas Board of Professional Engineers and Land Surveyors publishes, and any windstorm appointment against the Texas Department of Insurance. Public records only. Nothing is requested from you that a public source already answers.",
   },
   {
     step: "03",
@@ -204,8 +204,8 @@ export function careersFaqs(): { q: string; a: string }[] {
       a: "All 254 counties, grouped into eight regions. Technicians choose the counties they are willing to serve and are dispatched only within them. Rural county groups are where technician density is thinnest and where coverage is worth the most to the firm.",
     },
     {
-      q: "What licence does each role require?",
-      a: "The engineering seat requires an active Texas Professional Engineer licence in good standing. The field inspection role requires no licence at all: it requires a reliable vehicle, comfort working safely around a roof, thorough documentation, and certification on the written protocol for each service line before a first assignment on it.",
+      q: "What license does each role require?",
+      a: "The engineering seat requires an active Texas Professional Engineer license in good standing. The field inspection role requires no license at all: it requires a reliable vehicle, comfort working safely around a roof, thorough documentation, and certification on the written protocol for each service line before a first assignment on it.",
     },
     {
       q: "How does field dispatch actually work?",
@@ -230,7 +230,7 @@ export function careersFaqs(): { q: string; a: string }[] {
         : [
             "Not practising yet, and this is stated plainly because it affects your decision.",
             registrationStatement(),
-            "No engineer is yet in responsible charge and no work is being sealed today, so you would be joining at the point the firm becomes able to practise rather than after it.",
+            "No engineer is yet in responsible charge and no work is being sealed today, so you would be joining at the point the firm becomes able to practice rather than after it.",
           ]
             .filter(Boolean)
             .join(" "),

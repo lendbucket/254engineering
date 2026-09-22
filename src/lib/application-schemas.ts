@@ -332,7 +332,7 @@ export const engineerSteps: StepDef[] = [
   {
     id: "licensure",
     title: "Licensure",
-    blurb: "Your Texas licence, and whether you hold a windstorm appointment.",
+    blurb: "Your Texas license, and whether you hold a windstorm appointment.",
     fields: [
       "peLicenseNumber",
       "yearFirstLicensedTexas",
@@ -345,7 +345,7 @@ export const engineerSteps: StepDef[] = [
   {
     id: "experience",
     title: "Experience",
-    blurb: "The practice behind the licence.",
+    blurb: "The practice behind the license.",
     fields: [
       "yearsStructural",
       "sealedWork",

@@ -2,10 +2,10 @@ import Link from "next/link";
 import { ScrollMemory } from "@/components/portal/ScrollMemory";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
-import { RELEASE } from "@/lib/ops-observability";
+/* RELEASE came out with the build line on 2026-09-21. It lives on /portal/status. */
 import { registrationLine } from "@/lib/launch";
 import { currentActor } from "@/lib/ops-auth";
-import { environmentLabel, mispointing } from "@/lib/db-guard";
+import { mispointing } from "@/lib/db-guard";
 import { MispointedDeployment } from "@/components/portal/Mispointed";
 import { listNotifications, unreadCount } from "@/lib/ops-notify";
 import { can, roleLabel, may } from "@/lib/ops-authz";
@@ -180,9 +180,26 @@ export default async function PortalLayout({ children }: { children: React.React
             This is not the feature flag and environment banner system in the
             build roadmap. It is two facts that already exist, displayed.
           */}
-          <p className="mt-3 font-mono text-[12px] leading-[1.5] text-[var(--on-navy-dim)]">
-            {RELEASE} · {environmentLabel()}
-          </p>
+          {/*
+            THE BUILD LINE CAME OUT OF THE RAIL ON 2026-09-21. Operator ruling.
+
+            It rendered `{RELEASE} · {environmentLabel()}` on EVERY portal
+            screen for EVERY role. A commit hash is an internal identifier, and
+            the people who see this rail are the engineer of record and field
+            technicians, for whom it is noise at best and a thing to read out
+            wrongly during an incident at worst.
+
+            IT IS NOT LOST, WHICH IS WHY THIS IS A MOVE RATHER THAN A DELETION.
+            /portal/status already carries both values in its own lede, "Release
+            X, running Y", on a screen whose whole job is what this deployment
+            can reach and what has been failing. That screen is gated on
+            jobs.manage, which only the administrator holds by default, and it
+            is the screen somebody actually opens during an incident.
+
+            So the pairing the comment above described, a fault report matched
+            to a screenshot by RELEASE, still works: the person doing the
+            matching is the person who can open Platform status.
+          */}
         </div>
       </aside>
 

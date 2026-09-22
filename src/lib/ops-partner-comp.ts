@@ -431,7 +431,7 @@ export async function recordAdjustment(
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "The database is not configured." };
   if (!can(actor, "partners.manage")) {
-    return { ok: false, error: "You do not have permission to manage the referral programme." };
+    return { ok: false, error: "You do not have permission to manage the referral program." };
   }
 
   const reason = input.reason.trim();

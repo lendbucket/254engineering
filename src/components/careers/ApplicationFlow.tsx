@@ -574,7 +574,7 @@ export function ApplicationFlow({ track }: { track: Track }) {
               required={isEngineer}
               help={
                 isEngineer
-                  ? "PDF or image, up to 10MB. Required for this seat, because a licence number alone does not describe practice."
+                  ? "PDF or image, up to 10MB. Required for this seat, because a license number alone does not describe practice."
                   : "PDF or image, up to 10MB. Optional. Plenty of good technicians do not keep one."
               }
               state={uploads.resume ?? { status: "empty" }}

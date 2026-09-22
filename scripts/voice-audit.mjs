@@ -269,6 +269,142 @@ for (const route of allRoutes) {
   }
 }
 
+// ---------- US spelling in text this platform composes ----------
+
+/*
+ * ===========================================================================
+ * US SPELLING IN TEXT THE PLATFORM COMPOSES. PROTOCOL TEXT IS EXEMPT.
+ * Operator ruling, 2026-09-21.
+ * ===========================================================================
+ *
+ * THE DISTINCTION IS BY ORIGIN, NOT BY PATH CONVENIENCE, and that is the whole
+ * design. `src/content/protocols/` is the transcription of a document the
+ * engineer of record signed. Standing law: its text is carried exactly,
+ * punctuation included, and the house style loses to the document wherever the
+ * two disagree. So a British spelling there is not a defect, it is the
+ * document, and changing it would be altering a signed authority.
+ *
+ * Everything else under `src/` is text this firm wrote, and the operator's
+ * ruling is US spelling.
+ *
+ * AN ALLOWLIST BY PATH WOULD HAVE BEEN THE WRONG SHAPE and was refused for the
+ * reason recorded on 2026-09-20: a list somebody grows until the scan checks
+ * nothing. This is not that. It is one directory, it is the directory whose
+ * contents are verified verbatim against a PDF by `protocol-registry-audit`,
+ * and the exemption is COUNTED and NAMED in the output below.
+ *
+ * WHAT IT READS: string literals only, comments excluded, because a comment is
+ * not rendered and this repository's comments are where its reasoning lives.
+ */
+{
+  const { readFileSync: readSrc } = await import("node:fs");
+  const { execFileSync: git } = await import("node:child_process");
+
+  const PROTOCOL_DIR = "src/content/protocols/";
+
+  const everySource = git("git", ["ls-files", "--cached", "--others", "--exclude-standard"], {
+    encoding: "utf8",
+  })
+    .split("\n")
+    .filter(Boolean)
+    .filter((f) => f.startsWith("src/") && /\.(ts|tsx)$/.test(f));
+
+  const protocolFiles = everySource.filter((f) => f.startsWith(PROTOCOL_DIR));
+  const composedFiles = everySource.filter((f) => !f.startsWith(PROTOCOL_DIR));
+
+  /*
+   * VACUITY GUARDS, BOTH DIRECTIONS. A sweep over nothing passes forever, and
+   * an exemption over nothing is an exemption that is not doing anything. Both
+   * numbers are asserted rather than printed.
+   */
+  if (composedFiles.length < 100) {
+    record("spelling", "us-spelling-sweep", `only ${composedFiles.length} composed files found, so this swept nothing`);
+  }
+  if (protocolFiles.length === 0) {
+    record("spelling", "us-spelling-sweep", "no protocol files found, so the exemption is over an empty set");
+  }
+
+  /* British forms this firm composes. Code identifiers are never matched: the scan reads literals. */
+  const BRITISH = [
+    ["licence", "license"], ["licences", "licenses"], ["colour", "color"], ["colours", "colors"],
+    ["behaviour", "behavior"], ["behaviours", "behaviors"], ["recognise", "recognize"],
+    ["recognised", "recognized"], ["organisation", "organization"], ["organisations", "organizations"],
+    ["authorise", "authorize"], ["authorised", "authorized"], ["apologise", "apologize"],
+    ["analyse", "analyze"], ["analysed", "analyzed"], ["defence", "defense"], ["centre", "center"],
+    ["favourite", "favorite"], ["labour", "labor"], ["neighbour", "neighbor"], ["fulfil", "fulfill"],
+    ["whilst", "while"], ["amongst", "among"], ["learnt", "learned"], ["practise", "practice"],
+    ["normalise", "normalize"], ["normalised", "normalized"], ["summarise", "summarize"],
+    ["prioritise", "prioritize"], ["utilise", "utilize"], ["minimise", "minimize"],
+    ["maximise", "maximize"], ["realise", "realize"], ["emphasise", "emphasize"],
+    ["standardise", "standardize"], ["optimise", "optimize"], ["programme", "program"],
+    ["programmes", "programs"], ["cancelled", "canceled"], ["travelled", "traveled"],
+  ];
+
+  const LITERAL = /"((?:[^"\\\n]|\\.)*)"|'((?:[^'\\\n]|\\.)*)'|`((?:[^`\\$]|\\.)*)`/g;
+
+  /*
+   * A COLUMN LIST IS CODE WITH SPACES IN IT, AND THAT COST A REAL DEFECT.
+   *
+   * The first version of this check treated "contains a space" as "is prose".
+   * `eng_partners.organisation` is a column, and it appears in select strings
+   * like "id, organisation, code, status", which contain spaces. The fixer
+   * written against this check rewrote SEVEN of them to `organization`,
+   * renaming a schema identifier as copy. `tsc` caught it because PartnerRow
+   * still declared the real spelling; had the type been inferred, the queries
+   * would have failed at runtime against a column that does not exist.
+   *
+   * Sixth instance of a matcher with a window wider than the thing it means.
+   * The property that separates them is available and exact: a comma separated
+   * list of snake_case names with no sentence punctuation is a column list,
+   * not a sentence. Prose that legitimately says "organization" is unaffected.
+   */
+  const COLUMN_LIST = /^[a-z_]+(?:\s*,\s*[a-z_]+)*$/;
+
+  const spelt = [];
+  let columnLists = 0;
+  for (const file of composedFiles) {
+    const lines = readSrc(file, "utf8").split("\n");
+    lines.forEach((line, i) => {
+      if (/^\s*(\*|\/\/)/.test(line)) return;
+      LITERAL.lastIndex = 0;
+      let m;
+      while ((m = LITERAL.exec(line)) !== null) {
+        const s = m[1] ?? m[2] ?? m[3];
+        /* Prose only: a literal with no space is a key, a class name or a path. */
+        if (!s || !/\s/.test(s.trim())) continue;
+        /* And a comma separated list of snake_case names is a column list. */
+        if (COLUMN_LIST.test(s.trim())) {
+          columnLists += 1;
+          continue;
+        }
+        const lower = s.toLowerCase();
+        for (const [british, american] of BRITISH) {
+          if (new RegExp(`\\b${british}\\b`).test(lower)) {
+            spelt.push({ file, line: i + 1, british, american, text: s.trim().slice(0, 90) });
+            break;
+          }
+        }
+      }
+    });
+  }
+
+  for (const s of spelt) {
+    record(
+      `${s.file}:${s.line}`,
+      "us-spelling",
+      `"${s.british}" should be "${s.american}" in text this platform composes: ${s.text}`,
+    );
+  }
+
+  console.log("");
+  console.log(
+    `US SPELLING: ${composedFiles.length} composed file(s) swept, ` +
+      `${protocolFiles.length} protocol file(s) exempt as the signed document's own text ` +
+      `(${protocolFiles.map((f) => f.slice(PROTOCOL_DIR.length)).join(", ")}), ` +
+      `${columnLists} column list(s) skipped as schema identifiers rather than prose.`,
+  );
+}
+
 // ---------- report ----------
 
 console.log("=== VOICE AUDIT ===");

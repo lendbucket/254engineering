@@ -690,7 +690,7 @@ async function engineerDashboard(actor: Actor): Promise<EngineerDashboard> {
   if (tasks.overdue > 0) {
     attention.push({
       label: `${tasks.overdue} compliance task${tasks.overdue === 1 ? "" : "s"} overdue`,
-      detail: "Licence renewal, the nonsubscriber filing and the insurance dates all sit in that list.",
+      detail: "License renewal, the nonsubscriber filing and the insurance dates all sit in that list.",
       href: "/portal/tasks",
     });
   }
@@ -1680,7 +1680,7 @@ async function customerServiceDashboard(): Promise<CustomerServiceDashboard> {
   const breakdowns: Breakdown[] = [
     {
       title: "Refunds in flight, by case",
-      note: "Counted, not totalled. refund_case has no constraint anywhere and is written in two shapes: slugs from reconciliation and sentences from a review decision. Both appear as themselves rather than being normalised into a guess.",
+      note: "Counted, not totalled. refund_case has no constraint anywhere and is written in two shapes: slugs from reconciliation and sentences from a review decision. Both appear as themselves rather than being normalized into a guess.",
       href: "/portal/orders",
       rows: groupBy(
         refunds,

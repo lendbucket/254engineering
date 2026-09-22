@@ -99,14 +99,14 @@ export const EXPIRING_KINDS: CredentialKind[] = [
 ];
 
 export const CREDENTIAL_LABEL: Record<CredentialKind, string> = {
-  drivers_license: "Driver licence",
+  drivers_license: "Driver license",
   gl_insurance: "General liability insurance",
   vehicle_insurance: "Vehicle insurance",
   drone_license: "Remote pilot certificate",
   w9: "Form W-9",
   ic_agreement: "Independent contractor agreement",
   direct_deposit: "Direct deposit authorization",
-  pe_license: "Texas PE licence",
+  pe_license: "Texas PE license",
   tdi_appointment: "TDI appointment",
   other: "Other document",
 };

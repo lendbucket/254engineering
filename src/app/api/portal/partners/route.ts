@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
   if (!actor) return NextResponse.json({ ok: false, error: "Sign in first." }, { status: 401 });
   if (!can(actor, "partners.manage")) {
     return NextResponse.json(
-      { ok: false, error: "You do not have permission to manage the referral programme." },
+      { ok: false, error: "You do not have permission to manage the referral program." },
       { status: 403 },
     );
   }

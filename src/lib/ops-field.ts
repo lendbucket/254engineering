@@ -442,7 +442,7 @@ export async function approveProtocol(
       ok: false,
       error:
         "Only an engineer on the firm's register may approve a protocol, and this account carries no " +
-        "licence number that the register holds. Approving a service line for sale is an act somebody " +
+        "license number that the register holds. Approving a service line for sale is an act somebody " +
         "is answerable for by name.",
     };
   }

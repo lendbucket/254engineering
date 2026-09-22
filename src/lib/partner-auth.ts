@@ -252,7 +252,7 @@ export async function signInPartner(
   password: string,
 ): Promise<{ ok: true; principal: PartnerPrincipal } | { ok: false; error: string }> {
   if (!partnerSessionConfigured()) {
-    return { ok: false, error: "The partner programme is not available on this deployment." };
+    return { ok: false, error: "The partner program is not available on this deployment." };
   }
 
   const db = supabaseAdmin();

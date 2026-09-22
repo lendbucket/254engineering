@@ -356,9 +356,9 @@ export type ComplianceSeed = {
 export const COMPLIANCE_SEEDS: ComplianceSeed[] = [
   {
     key: "pe_licence_renewal",
-    title: "Renew the engineer of record's Texas PE licence",
+    title: "Renew the engineer of record's Texas PE license",
     description:
-      "Due 30 September. An expired licence does not delay work sealed under it, it makes that work a problem, and the files are already delivered by the time anybody notices.",
+      "Due 30 September. An expired license does not delay work sealed under it, it makes that work a problem, and the files are already delivered by the time anybody notices.",
     recurrence: "annually",
     priority: "urgent",
     anchor: { month: 9, day: 30 },

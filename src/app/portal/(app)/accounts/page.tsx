@@ -39,7 +39,7 @@ export default async function AccountsPage() {
       <PageHead
         eyebrow="Money"
         title="Ordering accounts"
-        lede="Organisations that order regularly. What they have ordered, what they owe, and whether they can order right now."
+        lede="Organizations that order regularly. What they have ordered, what they owe, and whether they can order right now."
       />
 
       {rows.length === 0 ? (
@@ -54,7 +54,7 @@ export default async function AccountsPage() {
           */}
           <EmptyState
             title="No ordering accounts yet"
-            body="An account arrives one of three ways: somebody rings and you open one below, somebody pays for an order, or an existing client organisation is converted, which keeps every file and document already attached to them."
+            body="An account arrives one of three ways: somebody rings and you open one below, somebody pays for an order, or an existing client organization is converted, which keeps every file and document already attached to them."
           />
           <div className="mt-4">
             <OpenAccountClient />

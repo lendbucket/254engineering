@@ -88,7 +88,7 @@ export function judge(
     return {
       verdict: "abandoned",
       intent: "cancel",
-      detail: "The checkout is closed and was never paid. The order can be cancelled and nothing was charged.",
+      detail: "The checkout is closed and was never paid. The order can be canceled and nothing was charged.",
     };
   }
 

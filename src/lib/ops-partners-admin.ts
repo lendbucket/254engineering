@@ -30,7 +30,7 @@ import type { Cents } from "./ops-money";
  * calls.
  */
 
-const REFUSED = "You do not have permission to manage the referral programme.";
+const REFUSED = "You do not have permission to manage the referral program.";
 
 export type PartnerRow = {
   id: string;
@@ -287,7 +287,7 @@ export async function createPartner(
   const contactEmail = input.contactEmail.trim().toLowerCase();
   const code = normaliseCode(input.code);
 
-  if (organisation.length < 2) return { ok: false, error: "Give the partner organisation a name." };
+  if (organisation.length < 2) return { ok: false, error: "Give the partner organization a name." };
   if (contactName.length < 2) return { ok: false, error: "Name somebody to contact there." };
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(contactEmail)) return { ok: false, error: "That is not an email address." };
 

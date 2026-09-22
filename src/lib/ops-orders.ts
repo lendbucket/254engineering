@@ -354,9 +354,9 @@ export function refundForFirmCancellation(input: { paidCents: Cents }): Refund {
   return {
     refundCents: input.paidCents,
     retainedCents: isKnown(input.paidCents) ? 0 : null,
-    caseName: "Cancelled by the firm",
+    caseName: "Canceled by the firm",
     explanation:
-      "The firm cancelled this order and refunded it in full. Nothing is retained, including any inspection that had already happened, because the decision to stop was the firm's and not yours.",
+      "The firm canceled this order and refunded it in full. Nothing is retained, including any inspection that had already happened, because the decision to stop was the firm's and not yours.",
     receivesFindings: true,
   };
 }
@@ -437,7 +437,7 @@ export const CUSTOMER_STATUS: Record<OrderStatus, string> = {
   in_fulfilment: "Underway. You will be told when the engineer has decided.",
   complete: "Finished. Your document is below.",
   refunded: "Refunded. What the engineer found is below.",
-  cancelled: "Cancelled. Nothing is owed.",
+  cancelled: "Canceled. Nothing is owed.",
 };
 
 const ORDER_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {

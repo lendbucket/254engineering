@@ -72,7 +72,7 @@ export default async function PartnerMaterials() {
       */}
       <Panel
         title="The line that goes on everything"
-        description="On any page or document of yours that mentions this programme, near the offer rather than in a footer."
+        description="On any page or document of yours that mentions this program, near the offer rather than in a footer."
       >
         <CopyBlock text={performingFirmLine()} />
       </Panel>

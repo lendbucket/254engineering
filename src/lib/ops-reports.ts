@@ -425,7 +425,7 @@ export async function revenueReport(period = periodOf(), scope: FigureScope = "r
             label: "Attempted and not settled",
             value: sumRows(attempted.map((r) => rowOf(r))),
             kind: "money",
-            note: "Pending, failed or cancelled, and therefore in no figure above. Shown so the exclusion is not silent.",
+            note: "Pending, failed or canceled, and therefore in no figure above. Shown so the exclusion is not silent.",
             rows: attempted.map((r) => ({
               label: r.eng_service_orders.reference,
               detail: `${r.status}, ${day(r.created_at)}`,
@@ -923,7 +923,7 @@ export async function partnerReport(period = periodOf(), scope: FigureScope = "r
    * ledger: a statement is a demonstration exactly when its partner is. */
   let q = client
     .from("eng_partner_statements")
-    .select("reference, total_cents, status, period, eng_partners!inner(organisation, is_demo)", { count: "exact" })
+    .select("reference, total_cents, status, period, eng_partners!inner(organization, is_demo)", { count: "exact" })
     .eq("period", period);
   if (scope !== "including_demonstrations") q = q.eq("eng_partners.is_demo", false);
 

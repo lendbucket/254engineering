@@ -69,7 +69,7 @@ export default async function BatchPage({
           : batch.status === "accepted"
             ? `Accepted${batch.paid_at ? " and paid" : " on account"}. Each property is now its own file and moves at its own pace.`
             : batch.status === "cancelled"
-              ? "This submission was cancelled. Nothing was charged."
+              ? "This submission was canceled. Nothing was charged."
               : "This submission is being prepared."}
       </p>
 

@@ -160,7 +160,7 @@ function summarise(findings: CopyFinding[]): string {
     return (
       `This says something the firm's own website may not say while the firm is not yet accepting engagements: ` +
       `${regulated.map((f) => `"${f.match}" (${f.why})`).join(", ")}. ` +
-      `A partner surface is held to the same rule as the public site, because the licence at risk is the same licence.`
+      `A partner surface is held to the same rule as the public site, because the license at risk is the same license.`
     );
   }
 

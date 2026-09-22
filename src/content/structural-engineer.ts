@@ -148,18 +148,18 @@ export const proximityHub: {
     {
       eyebrow: "Proximity",
       title: "Distance matters, but not for the reason people assume",
-      lede: "A Texas licence works statewide. What does not scale is standing in the building.",
+      lede: "A Texas license works statewide. What does not scale is standing in the building.",
       body: [
         "Structural work turns on observation. Someone competent has to be physically present, look at the thing, and record what they saw in a way that supports the opinion later. That is the part distance actually affects, and it is why a firm's coverage is a real question rather than a marketing claim.",
         "What distance does not affect is authority. A Professional Engineer licensed in Texas is licensed for Texas, not for a county, so an engineer two hundred miles away is not less qualified to hold the opinion. The relevant questions are whether they will actually travel, whether they know the conditions where the building stands, and whether the field work will be done to a standard that does not change with the mileage.",
-        "Regional knowledge is not interchangeable in Texas. Expansive clay behaviour in the Blackland Prairie, coastal wind requirements inside the designated catastrophe area, and caliche and rock nearer the Hill Country are genuinely different problems, and an engineer who has only worked one of them will say so.",
+        "Regional knowledge is not interchangeable in Texas. Expansive clay behavior in the Blackland Prairie, coastal wind requirements inside the designated catastrophe area, and caliche and rock nearer the Hill Country are genuinely different problems, and an engineer who has only worked one of them will say so.",
       ],
     },
     {
       eyebrow: "Verification",
       title: "Everything about an engineer is checkable",
       body: [
-        "Texas licensure is public. So is [engineering firm registration](/insights/texas-engineering-firm-registration), which is separate from an individual licence and is what permits a firm rather than a person to offer engineering services. Both can be confirmed before anyone is engaged, and neither requires the engineer's cooperation to check.",
+        "Texas licensure is public. So is [engineering firm registration](/insights/texas-engineering-firm-registration), which is separate from an individual license and is what permits a firm rather than a person to offer engineering services. Both can be confirmed before anyone is engaged, and neither requires the engineer's cooperation to check.",
         "That is unusual and worth using. In most trades a customer is relying on reputation. Here there is a register.",
       ],
     },
@@ -176,7 +176,7 @@ export const proximityHub: {
     },
     {
       q: "Does a structural engineer have to be local to the property?",
-      a: "A Texas licence is valid statewide, so proximity is not a question of authority. It is a question of whether the field observation will actually happen properly and whether the engineer knows the soil and wind conditions where the building stands, which vary considerably across Texas.",
+      a: "A Texas license is valid statewide, so proximity is not a question of authority. It is a question of whether the field observation will actually happen properly and whether the engineer knows the soil and wind conditions where the building stands, which vary considerably across Texas.",
     },
   ],
 };
@@ -286,7 +286,7 @@ export const proximityPages: ProximityPage[] = [
         lede: "The cheapest structural engineering happens before the work, not after it.",
         body: [
           "Removing or opening a wall, cutting a new opening, adding a storey, [converting an attic or a garage to habitable space](/services/residential-light-commercial-design), or hanging significant new load such as heavy equipment all change the load path. Whether a wall is load bearing is frequently not obvious from inside the room, and the confident answer from somebody who has not looked at the framing is worth nothing.",
-          "Adding rooftop equipment or [a solar array](/services/solar-structural-letters) is the same question in a form people rarely recognise as structural, because the array is light and the wind uplift on it is not.",
+          "Adding rooftop equipment or [a solar array](/services/solar-structural-letters) is the same question in a form people rarely recognize as structural, because the array is light and the wind uplift on it is not.",
           "In each of these the analysis is cheap relative to the work, and it is very cheap relative to discovering the answer afterwards.",
         ],
       },
@@ -328,16 +328,16 @@ export const proximityPages: ProximityPage[] = [
     h1: "How to Choose a Structural Engineer in Texas",
     title: "How to Choose a Structural Engineer | 254 Engineering",
     description:
-      "How to verify a Texas engineer's licence and firm registration, what a scope should say, and the red flags worth walking away from. See the coverage map.",
+      "How to verify a Texas engineer's license and firm registration, what a scope should say, and the red flags worth walking away from. See the coverage map.",
     summary:
       "Two of the most important checks are public records that take a few minutes. The rest is about scope and independence, which are settled before the engagement or not at all.",
     sections: [
       {
         eyebrow: "Check one",
-        title: "The individual licence",
+        title: "The individual license",
         lede: "Texas licensure is a public register, and looking someone up costs nothing.",
         body: [
-          "Engineering is a licensed profession in Texas, and both the licence and its status are public. Confirming that the person who will seal the document holds a current licence is the baseline check, and it is the one most people skip because it feels like an accusation. It is not. It is the check the register exists for.",
+          "Engineering is a licensed profession in Texas, and both the license and its status are public. Confirming that the person who will seal the document holds a current license is the baseline check, and it is the one most people skip because it feels like an accusation. It is not. It is the check the register exists for.",
           "The roster does have [limits worth understanding before relying on it](/insights/texas-pe-license-lookup).",
         ],
       },
@@ -346,8 +346,8 @@ export const proximityPages: ProximityPage[] = [
         title: "The firm registration, which is a separate thing",
         lede: "A licensed individual and a registered firm are two different permissions, and most people have never heard of the second.",
         body: [
-          "In Texas a firm that offers or performs engineering services registers with the board in its own right, separately from the licences its engineers hold. A business can employ a licensed engineer and still not be registered, and that is a real distinction rather than a technicality.",
-          "It is checkable in the same way as an individual licence. Anyone commissioning engineering from a company rather than from a named individual should confirm both.",
+          "In Texas a firm that offers or performs engineering services registers with the board in its own right, separately from the licenses its engineers hold. A business can employ a licensed engineer and still not be registered, and that is a real distinction rather than a technicality.",
+          "It is checkable in the same way as an individual license. Anyone commissioning engineering from a company rather than from a named individual should confirm both.",
         ],
       },
       {
@@ -447,7 +447,7 @@ export const proximityPages: ProximityPage[] = [
     faqs: [
       {
         q: "Is a licensed engineer the same as a registered engineering firm?",
-        a: "No. An individual licence permits a person to practise. A firm registration permits a company to offer or perform engineering services in its own name. A business can employ licensed engineers without holding one, and both are public records worth checking.",
+        a: "No. An individual license permits a person to practice. A firm registration permits a company to offer or perform engineering services in its own name. A business can employ licensed engineers without holding one, and both are public records worth checking.",
       },
       {
         q: "Should the engineer who visits be the one who seals the report?",

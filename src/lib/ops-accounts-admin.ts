@@ -147,7 +147,7 @@ export async function accountRows(): Promise<AccountRow[]> {
     rows.push({
       id,
       clientId: a.client_id as string,
-      clientName: nameOf.get(a.client_id as string) ?? "Unknown organisation",
+      clientName: nameOf.get(a.client_id as string) ?? "Unknown organization",
       status: a.status as AccountRow["status"],
       billingMode: a.billing_mode as AccountRow["billingMode"],
       creditLimitCents: a.credit_limit_cents === null ? null : Number(a.credit_limit_cents),
@@ -204,7 +204,7 @@ export async function convertClientToAccount(
   if (client.kind !== "organization") {
     return {
       ok: false,
-      error: "Accounts are for organisations. An individual orders through the site and gets a link.",
+      error: "Accounts are for organizations. An individual orders through the site and gets a link.",
     };
   }
 

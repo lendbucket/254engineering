@@ -78,7 +78,7 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
       </p>
 
       <PageHead
-        eyebrow="Referral programme"
+        eyebrow="Referral program"
         title={partner.organisation}
         lede={`Code ${partner.code}. ${partner.contactName}, ${partner.contactEmail}.`}
       />
@@ -160,7 +160,7 @@ export default async function PartnerPage({ params }: { params: Promise<{ id: st
         <TermsForm partnerId={partner.id} />
       </Panel>
 
-      <Panel title="Who signs in" description="An organisation outlives whoever holds the login.">
+      <Panel title="Who signs in" description="An organization outlives whoever holds the login.">
         {people.length === 0 ? (
           <div className="mb-5">
             <EmptyState
