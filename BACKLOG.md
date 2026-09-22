@@ -27,6 +27,28 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
+## SIX RULINGS OWED FROM THE OVERNIGHT OF 2026-09-21, IN `docs/overnight-2026-09-22.md`
+
+Pointer entry, not a second copy. The reasoning for each, with a recommendation,
+is in section 3 of that report.
+
+1. **"Field Technician" or "Field Inspection Technician"** for `field_tech`.
+   `DEFAULT_ROLES` and `ROLE_LABELS` disagree today. One fact, two homes.
+2. **May a registered DBA appear in partner copy**, now that TBPELS records
+   three assumed names on F-29811.
+3. **Audit action wording**: a deterministic transform of the key, or named
+   overrides for particular actions.
+4. **The three photo time values.** Section 9 of 254-RC-001 requires the
+   difference between device and server time to be recorded. Two of three
+   exist. This one needs a migration.
+5. **Ten years, or longer.** Section 13 makes it a floor the engineer raises
+   where TBPELS rules or the liability policy require. Nobody has asked him.
+6. **`CLAUDE.md` says the gate carries seven conditions and it carries nine.**
+   `self-service-signup` and `recovery` are missing from that table, and
+   `compliance-audit`'s pinned id list should be checked for the same gap.
+
+Three of the six block a service line. None blocks a morning sitting.
+
 ## TWO REDS ON THE BOARD, 2026-09-21, AND BOTH ARE OWED HUMAN READS
 
 Operator ruling. **Both are recorded here as owed rather than fixed, and the
