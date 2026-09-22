@@ -1,6 +1,7 @@
 import "server-only";
 import { STATUS_LABEL, type FileStatus } from "./ops-files";
 import { DB_NOW } from "./db-now";
+import { clockReading } from "./clock-skew";
 import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import type { Cents } from "./ops-money";
@@ -1100,6 +1101,9 @@ export type EvidenceRow = {
   captured_at: string | null;
   captured_lat: number | string | null;
   captured_lng: number | string | null;
+  /* The third time value and its verdict. See src/lib/clock-skew.ts. */
+  clock_skew_seconds: number | string | null;
+  clock_disagrees: boolean | null;
   client_capture_id: string | null;
   status: "submitted" | "accepted" | "revision_requested";
 };
@@ -1203,7 +1207,7 @@ export async function jobView(actor: Actor | null, fileId: string): Promise<JobV
   const { data: captures } = await db
     .from("eng_evidence_items")
     .select(
-      "id, item_key, kind, value_text, value_number, unit, storage_key, captured_at, captured_lat, captured_lng, client_capture_id, status",
+      "id, item_key, kind, value_text, value_number, unit, storage_key, captured_at, captured_lat, captured_lng, clock_skew_seconds, clock_disagrees, client_capture_id, status",
     )
     .eq("file_id", fileId)
     .order("created_at");
@@ -1373,6 +1377,15 @@ export async function recordCapture(
   if (item.kind !== input.kind) return { ok: false, error: `${item.label} expects a ${item.kind}.` };
   if (!input.clientCaptureId) return { ok: false, error: "That capture has no id." };
 
+  /*
+   * THE SERVER CLOCK, READ ONCE. Both the skew below and the row's own
+   * created_at are meant to describe the same instant, and reading the clock
+   * twice would fold this function's own runtime into a figure whose entire
+   * job is measuring the DEVICE against the server.
+   */
+  const serverNow = new Date().toISOString();
+  const reading = clockReading(input.capturedAt ?? null, serverNow);
+
   const { data, error } = await db
     .from("eng_evidence_items")
     .upsert(
@@ -1394,6 +1407,29 @@ export async function recordCapture(
         captured_accuracy: input.accuracy ?? null,
         captured_by: actor.id,
         client_capture_id: input.clientCaptureId,
+        /*
+         * THE THIRD TIME VALUE, WRITTEN AT SYNC. 254-RC-001 section 9 asks for
+         * the device time, the server time, AND THE DIFFERENCE, with a
+         * disagreeing clock recorded as disagreeing.
+         *
+         * WRITTEN HERE RATHER THAN DERIVED ON READ, which is the operator's
+         * ruling and the evidential point: the protocol asks what was true AT
+         * SYNC, and a value computed later answers what is true when somebody
+         * looks. Those differ after any backfill or restore that moves a
+         * created_at, and a number that can change after the fact is not
+         * evidence of anything.
+         *
+         * `serverNow` is read ONCE above so the skew and the row's own
+         * created_at describe the same instant. Reading the clock twice would
+         * put a few milliseconds of this function's own runtime into a figure
+         * that is supposed to measure the device.
+         *
+         * BOTH NULL WHEN EITHER TIME IS MISSING. 0057's check constraint
+         * refuses one without the other, because a measurement with no verdict
+         * is two code paths disagreeing about one fact.
+         */
+        clock_skew_seconds: reading?.skewSeconds ?? null,
+        clock_disagrees: reading?.disagrees ?? null,
       },
       { onConflict: "file_id,client_capture_id" },
     )

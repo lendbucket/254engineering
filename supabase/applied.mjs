@@ -1464,6 +1464,59 @@ export const APPLIED = [
       "this firm holds out and he will seal. The gate reads the second, which is the firm's question " +
       "rather than the board's.",
   },
+  {
+    file: "0057_a_photograph_carries_three_times.sql",
+    fingerprint: "e2bc81c9096a0eb4d8b8366ce3aea881",
+    behaviour: "88129f2c277c601ea05cff9ccd15d77d",
+    proves: { column: { table: "eng_evidence_items", name: "clock_skew_seconds" } },
+    production: null,
+    development: { at: "0057", behaviour: null, facts: 920 },
+    because:
+      "PENDING. It goes to production at a sitting with the operator, on the rule 0055 and 0056 were " +
+      "held under. " +
+      "WHAT IT ADDS: two columns on eng_evidence_items and one check constraint. Shape moves to " +
+      "e2bc81c9096a0eb4d8b8366ce3aea881 across 1,143 columns, which is exactly two more, and " +
+      "behaviour to 88129f2c277c601ea05cff9ccd15d77d across 920 facts, which is the one constraint. " +
+      "Both read off a replay at 0056 and at 0057 rather than predicted. No table, no trigger, no " +
+      "function. " +
+      "WHY IT EXISTS. 254-RC-001 section 9 requires a photograph to carry THREE time values: the " +
+      "device time, the server time at sync, and THE DIFFERENCE BETWEEN THEM, with a disagreeing " +
+      "clock 'recorded as disagreeing rather than presented as certain'. The walk of 2026-09-21 found " +
+      "two of the three. captured_at is the device clock and created_at is the server's; the " +
+      "difference existed nowhere and nothing marked a clock as disagreeing. " +
+      "STORED AT WRITE TIME RATHER THAN DERIVED ON READ, which is the operator's ruling and the " +
+      "evidential point. created_at minus captured_at gives the same answer today and a DIFFERENT one " +
+      "after any backfill or restore that moves created_at. The protocol asks what was true AT SYNC; " +
+      "a derived column answers what is true when somebody looks. This row is part of a package a " +
+      "Professional Engineer reaches a determination from, and a number that can change after the " +
+      "fact is not evidence of anything. " +
+      "THE FLAG IS A SEPARATE COLUMN FROM THE NUMBER on purpose. The number is a measurement; the " +
+      "flag is a JUDGEMENT about it against a ruled tolerance, and folding the judgement into the " +
+      "number would make every reader re-derive the threshold with some of them getting it wrong. " +
+      "The check constraint refuses one without the other, because a skew with no verdict is two code " +
+      "paths disagreeing about one fact. " +
+      "NOTHING IS BACKFILLED, AND NULL IS A THIRD STATE. Rows captured before this read null for both " +
+      "columns, which is 'nobody measured' rather than 'they agreed'. Inventing a zero would put a " +
+      "measurement on the regulatory record that nobody took, which is the absent versus zero defect " +
+      "this repository has already paid for in a batch total and an access review. The screens carry " +
+      "a third sentence for it. " +
+      "THE TOLERANCE IS SIXTY SECONDS, ruled by the operator and pinned as a literal in " +
+      "protocol-run-audit under section 6c. Longer than any plausible round trip on a roof with one " +
+      "bar, short enough to catch a phone set to the wrong hour, day or timezone, which are the " +
+      "errors that actually happen and are all far larger than a minute. " +
+      "IT RECORDS RATHER THAN REFUSES. A disagreeing clock does not reject the photograph: section 9 " +
+      "is a statement about how evidence is PRESENTED, and a technician on a roof with a wrong phone " +
+      "clock has still taken the photograph the engineer needs. Throwing it away would lose the " +
+      "observation to protect the timestamp. " +
+      "TEN CHECKS IN protocol-run-audit, including both sides of the tolerance boundary, both " +
+      "directions of skew, and that the unmeasured, agreeing and disagreeing cases read as three " +
+      "DIFFERENT sentences. Injection verified twice: taking the absolute value of the skew went red " +
+      "naming the check about direction, and returning a zero reading for a missing device time went " +
+      "red naming the absent versus zero check. " +
+      "APPLIED TO DEVELOPMENT 2026-09-22 through apply_migration and READ BACK: both columns present " +
+      "and nullable, integer and boolean, and eng_evidence_items_clock_pair_ck read back from " +
+      "pg_constraint by its definition rather than its name.",
+  },
 ];
 
 /**

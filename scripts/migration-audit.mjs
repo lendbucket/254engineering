@@ -135,8 +135,22 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * flags, then respond_by, responded_at, responded_by, landing_path, referrer,
  * user_agent, status.
  */
-const EXPECTED_FINGERPRINT = "56b351a693ec70cc86203fd0cbde481c";
-const EXPECTED_COLUMNS = 1141;
+/*
+ * Moved again 2026-09-22 by 0057, which gives a photograph the third time
+ * value 254-RC-001 section 9 asks for and the verdict on it.
+ *
+ * 1,141 to 1,143 is exactly two: clock_skew_seconds and clock_disagrees on
+ * eng_evidence_items. 81 tables unchanged, 69 triggers unchanged, no function.
+ * The behaviour digest moves to 88129f2c277c601ea05cff9ccd15d77d across 920
+ * facts, which is the one check constraint keeping the measurement and its
+ * verdict written together, read off the replay rather than predicted.
+ *
+ * Changed by a person who noticed, which is what this constant is for. It went
+ * red naming the old figure and the new one side by side, which is the whole
+ * reason it is a constant rather than a fetch.
+ */
+const EXPECTED_FINGERPRINT = "e2bc81c9096a0eb4d8b8366ce3aea881";
+const EXPECTED_COLUMNS = 1143;
 const EXPECTED_TABLES = 81;
 const EXPECTED_TRIGGERS = 69;
 /**
