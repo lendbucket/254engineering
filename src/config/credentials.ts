@@ -55,6 +55,27 @@ export type VerifiedEngineer = {
    */
   employersOnRoster: string[];
   /**
+   * A KNOWN, DATED LAG BETWEEN THE FIRM'S RECORD AND THE ENGINEER'S.
+   *
+   * Present only while the board's person-side record has not caught up with a
+   * reissuance. `compliance-audit` reports ACKNOWLEDGED instead of FAIL while
+   * `expires` is in the future, and fails from the day after, because an
+   * acknowledgement with no end date is an exemption nobody revisits.
+   *
+   * It records WHOSE statement the timing is, because no check here can read
+   * the roster and a claim about how fast a board updates is not a fact this
+   * repository owns.
+   */
+  rosterNameLag?: {
+    /** The name the roster is expected to show once it catches up. */
+    expectedName: string;
+    acknowledgedOn: string;
+    acknowledgedBy: string;
+    /** ISO date. ACKNOWLEDGED through this day; a finding from the next. */
+    expires: string;
+    because: string;
+  };
+  /**
    * ISO date the licence expires, or NULL meaning NOT YET RECORDED.
    *
    * Added 2026-09-16 on the operator's ruling, and the asymmetry it closes is
@@ -193,13 +214,52 @@ export const verifiedEngineers: VerifiedEngineer[] = [
      * Recorded as the roster lists them, including the employer that is not this
      * firm, because an edited list is not what the roster says.
      */
-    employersOnRoster: ["254 Services LLC", "Williams Scotsman Inc."],
+    /*
+     * RECORDED AS THE ROSTER PRINTS IT, CAPITALS AND ALL. Operator ruling,
+     * 2026-09-22. The second employer is shown in capitals on the roster and was
+     * previously written here in title case, which is a small edit to a record
+     * this firm does not own. An edited list is not what the roster says, and
+     * the place that rule is easiest to break is punctuation nobody thinks of as
+     * content.
+     */
+    employersOnRoster: ["254 Services LLC", "WILLIAMS SCOTSMAN INC."],
+    /*
+     * THE ROSTER STILL NAMES THE OLD FIRM NAME, AND THAT IS EXPECTED FOR A FEW
+     * DAYS RATHER THAN A DISAGREEMENT. Operator ruling, 2026-09-22.
+     *
+     * TBPELS reissued F-29811 to 254 Engineering LLC on 2026-09-21. The
+     * engineer's own roster entry still reads 254 Services LLC, because the
+     * board's person-side record follows the firm-side record within 24 to 48
+     * hours. That is the OPERATOR'S STATEMENT of how the board behaves, recorded
+     * as his statement rather than as a fact this repository verified, because
+     * nothing here can read the roster.
+     *
+     * SO IT IS ACKNOWLEDGED, WITH A DATE THAT RUNS OUT. compliance-audit reports
+     * ACKNOWLEDGED rather than FAIL through 2026-09-24, and FAILS from
+     * 2026-09-25 unless somebody re-reads the roster and records that it names
+     * 254 Engineering LLC. An acknowledgement with no expiry is how a known
+     * difference becomes a permanent exemption nobody revisits.
+     */
+    rosterNameLag: {
+      expectedName: "254 Engineering LLC",
+      acknowledgedOn: "2026-09-22",
+      acknowledgedBy: "Robert Reyna, operator",
+      expires: "2026-09-24",
+      because:
+        "TBPELS reissued F-29811 to 254 Engineering LLC on 2026-09-21 and the operator states the " +
+        "board updates the engineer's own roster entry within 24 to 48 hours. The roster read of " +
+        "2026-09-22 still shows 254 Services LLC. This is his statement about the board's timing, " +
+        "not something this repository can check. It runs out at the end of 2026-09-24, after which " +
+        "the difference is a finding again unless a fresh roster read records the new name.",
+    },
     verified:
       "Read from the TBPELS roster on 2026-09-16 by the operator: DHAKAL, AMAN, PE# 143295, status " +
       "Active, branch Civil, granted 12-09-2021, expires 01-31-2028, employers 254 Services LLC and " +
-      "Williams Scotsman Inc. He signed 254-RC-001 v1.0 on 2026-09-14 as Engineer of Record, and " +
-      "confirmed on 2026-09-16 that his focus, experience and expertise are structural only. Nothing " +
-      "here can read the roster; this is what a person read, on a date, and said.",
+      "WILLIAMS SCOTSMAN INC. He signed 254-RC-001 v1.0 on 2026-09-14 as Engineer of Record, and " +
+      "confirmed on 2026-09-16 that his focus, experience and expertise are structural only. " +
+      "RE-READ 2026-09-22 by the operator, after the reissuance: the entry is unchanged and still " +
+      "names 254 Services LLC. Nothing here can read the roster; this is what a person read, on a " +
+      "date, and said.",
   },
 ];
 

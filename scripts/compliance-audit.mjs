@@ -56,6 +56,13 @@ const codeOnly = (text) =>
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
+/*
+ * ACKNOWLEDGED: a known difference the operator has dated and that EXPIRES.
+ * Not a pass. It prints in its own block with the day it becomes a finding
+ * again, because an acknowledgement with no end date is an exemption nobody
+ * revisits. Operator ruling, 2026-09-22.
+ */
+const ack = (name, note) => out.push({ name, ok: "acknowledged", note });
 
 /*
  * THE RULED VALUES, AS LITERALS. Changing one of these is changing what the
@@ -250,11 +257,75 @@ const {
     verifiedEngineers.every((e) => /\d{4}-\d{2}-\d{2}/.test(e.verified) && e.employersOnRoster.length > 0),
     verifiedEngineers.map((e) => `${e.name}: ${e.employersOnRoster.length} employer(s) on the roster`).join("; "),
   );
-  rec(
-    "and this firm appears on the engineer's own roster entry, which is the registration reflected from his side",
-    verifiedEngineers.every((e) => e.employersOnRoster.includes(ISSUED_TO)),
-    verifiedEngineers.map((e) => e.employersOnRoster.join(", ")).join(" | "),
-  );
+  /*
+   * ===================================================================
+   * THIS FIRM ON THE ENGINEER'S OWN ROSTER ENTRY, AND THE LAG AFTER A
+   * REISSUANCE
+   * ===================================================================
+   *
+   * Operator ruling, 2026-09-22. The board reissued F-29811 to 254 Engineering
+   * LLC on 2026-09-21 and the engineer's PERSON-side entry still reads 254
+   * Services LLC. The operator states the board updates it within 24 to 48
+   * hours, and that is HIS STATEMENT about the board's timing rather than
+   * anything this repository can verify, so it is recorded as his and given an
+   * end date.
+   *
+   * ACKNOWLEDGED is a third verdict here for the same reason COULD NOT TELL is
+   * one elsewhere: a red that everybody knows about and nobody can act on is
+   * how a board's red stops meaning anything. What makes it safe is that it
+   * EXPIRES. From the day after `expires` this is a FAIL again unless somebody
+   * re-reads the roster and records the new name, so the acknowledgement cannot
+   * quietly become a permanent exemption.
+   *
+   * The pinned literal is deliberate, per section 6c: `ISSUED_TO` is what the
+   * firm's own record says, and the lag entry must name the SAME name as the
+   * thing it is waiting for. An entry waiting for some other name would be
+   * acknowledging a difference nobody is actually expecting to close.
+   */
+  {
+    const TODAY = new Date().toISOString().slice(0, 10);
+    const missing = verifiedEngineers.filter((e) => !e.employersOnRoster.includes(ISSUED_TO));
+    const covered = missing.filter(
+      (e) => e.rosterNameLag && e.rosterNameLag.expectedName === ISSUED_TO && e.rosterNameLag.expires >= TODAY,
+    );
+    const uncovered = missing.filter((e) => !covered.includes(e));
+    const detail = verifiedEngineers.map((e) => e.employersOnRoster.join(", ")).join(" | ");
+
+    if (missing.length === 0) {
+      rec(
+        "and this firm appears on the engineer's own roster entry, which is the registration reflected from his side",
+        true,
+        detail,
+      );
+    } else if (uncovered.length === 0) {
+      ack(
+        "and this firm appears on the engineer's own roster entry, which is the registration reflected from his side",
+        covered
+          .map(
+            (e) =>
+              `${e.name}: roster reads ${e.employersOnRoster.join(", ")}, waiting for ${e.rosterNameLag.expectedName}. ` +
+              `Acknowledged ${e.rosterNameLag.acknowledgedOn} by ${e.rosterNameLag.acknowledgedBy}, ACKNOWLEDGED THROUGH ${e.rosterNameLag.expires}. ` +
+              `Today is ${TODAY}. From the day after ${e.rosterNameLag.expires} this is a FAIL unless the roster is re-read and records ${e.rosterNameLag.expectedName}.`,
+          )
+          .join(" | "),
+      );
+    } else {
+      rec(
+        "and this firm appears on the engineer's own roster entry, which is the registration reflected from his side",
+        false,
+        uncovered
+          .map((e) => {
+            const lag = e.rosterNameLag;
+            if (!lag) return `${e.name}: roster reads ${e.employersOnRoster.join(", ")}, and nothing acknowledges the difference`;
+            if (lag.expectedName !== ISSUED_TO) {
+              return `${e.name}: the acknowledgement waits for "${lag.expectedName}" while the record says "${ISSUED_TO}"`;
+            }
+            return `${e.name}: the acknowledgement EXPIRED on ${lag.expires} and today is ${TODAY}. Re-read the roster and record what it says.`;
+          })
+          .join(" | ") + ` (roster: ${detail})`,
+      );
+    }
+  }
 
   /*
    * THE VARIABLE IS GONE AND MAY NOT COME BACK. The reverse of the usual scan:
@@ -1813,11 +1884,27 @@ const RULED_CONDITIONS = [
 /* ----------------------------------------------------------------- verdict */
 
 console.log("");
-const failed = out.filter((r) => !r.ok);
-for (const r of out) console.log(`  ${r.ok ? "PASS" : "FAIL"}: ${r.name}${r.note ? ` (${r.note})` : ""}`);
+const failed = out.filter((r) => r.ok === false);
+const acknowledged = out.filter((r) => r.ok === "acknowledged");
+const verdictOf = (r) => (r.ok === "acknowledged" ? "ACKNOWLEDGED" : r.ok ? "PASS" : "FAIL");
+for (const r of out) console.log(`  ${verdictOf(r)}: ${r.name}${r.note ? ` (${r.note})` : ""}`);
 console.log("");
+
+/*
+ * SAID LOUDLY, WITH ITS EXPIRY, because an acknowledgement nobody re-reads is
+ * an exemption. Each line carries the date it stops being one.
+ */
+if (acknowledged.length) {
+  console.log(`ACKNOWLEDGED: ${acknowledged.length} of ${out.length} checks are a known difference with an END DATE, not a pass:`);
+  for (const r of acknowledged) console.log(`  ${r.name}: ${r.note}`);
+  console.log("");
+}
+
 if (failed.length === 0) {
-  console.log(`PASS: ${out.length} checks. The gate is shut, and every condition of opening it is named.`);
+  console.log(
+    `PASS: ${out.length - acknowledged.length} checks. The gate is shut, and every condition of opening it is named.` +
+      (acknowledged.length ? ` ${acknowledged.length} acknowledged and listed above, each with the date it becomes a finding again.` : ""),
+  );
   process.exitCode = 0;
 } else {
   console.log(`FAIL: ${failed.length} of ${out.length} checks.`);
