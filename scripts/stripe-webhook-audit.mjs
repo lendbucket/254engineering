@@ -34,6 +34,48 @@ const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
 const tell = [];
 
+/**
+ * ===========================================================================
+ * IS THIS THE ACCOUNT WE THINK IT IS, AND DOES IT BELONG TO THIS FIRM?
+ * Operator ruling, 2026-09-22. It FAILS; it does not report COULD NOT TELL.
+ * ===========================================================================
+ *
+ * THE DISTINCTION THE RULING TURNS ON. No key is UNREACHABLE, and the third
+ * verdict is right for it. A key that reaches the WRONG COMPANY is a FINDING,
+ * and reporting it as unreachable would be the mechanism this repository
+ * built the third verdict to avoid, used to hide the one thing it was meant to
+ * surface.
+ *
+ * It is not hypothetical: Preview carried live Reyna Pay keys until 2026-09-21,
+ * and this audit would have said COULD NOT TELL about it on a laptop and
+ * nothing at all on the deployment.
+ *
+ * WHY IT IS A PURE FUNCTION OVER AN ACCOUNT OBJECT. Because the live half
+ * needs a key and the board has none, so without this the rule could only ever
+ * be exercised in the one place nobody is watching. Extracting it means the
+ * BOARD proves the rule with constructed accounts, and the live half applies
+ * the same function to a real one.
+ *
+ * AND THAT IS EXACTLY THE CAVEAT CLAUDE.md RECORDS ABOUT PURE FUNCTIONS: a
+ * rule tested with its input handed to it says nothing about the read that
+ * feeds it in production. So both halves exist and each says which it is. The
+ * constructed checks prove the RULE. Only a run with a key proves the READ.
+ *
+ * THE LEGAL NAME IS `company.name`, WHICH IS THE FIELD MATCHED AGAINST THE EIN,
+ * not `business_profile.name` and not the dashboard display name. Those two are
+ * customer facing and the operator has ruled they stay as the brand; this one
+ * answers who Stripe believes it is paying.
+ */
+function accountVerdict(account, { declaredId, registrant }) {
+  const legalName = account?.company?.name ?? null;
+  return {
+    id: account?.id ?? null,
+    legalName,
+    idMatches: Boolean(declaredId) && account?.id === declaredId,
+    nameMatches: Boolean(registrant) && legalName === registrant,
+  };
+}
+
 console.log("");
 console.log("============ THE STRIPE WEBHOOK REGISTRATION ============");
 console.log("");
@@ -134,6 +176,61 @@ rec(
   stripeConsole.whatMustChange.includes("TBPELS") && stripeConsole.whatMustChange.length > 80,
   stripeConsole.whatMustChange.slice(0, 60),
 );
+
+/*
+ * =========================================================================
+ * THE ACCOUNT RULE, EXERCISED ON CONSTRUCTED ACCOUNTS. Operator ruling,
+ * 2026-09-22: "Inject both, with a constructed account object, and say that
+ * is what it was."
+ * =========================================================================
+ *
+ * THESE ARE CONSTRUCTED OBJECTS, NOT STRIPE. Said plainly, because a check
+ * named after Stripe that passes on a laptop with no key would otherwise read
+ * as evidence about Stripe. It is evidence about the RULE. Only the live half
+ * below, which needs a key, is evidence about the account.
+ *
+ * WHY EXERCISE IT AT ALL THEN. Because the live half runs almost nowhere: not
+ * on the board, not in CI, only when somebody runs this with a production key
+ * in a separate window. A rule that can only be exercised there is a rule
+ * nobody is watching. This makes the rule fail on the board the day somebody
+ * loosens it, which is the failure mode that actually happens.
+ */
+{
+  const declaredId = stripeConsole.accountId;
+
+  const rightAccount = { id: declaredId, company: { name: registrant } };
+  const wrongCompany = { id: declaredId, company: { name: "Reyna Pay LLC" } };
+  const wrongAccount = { id: "acct_SOMEBODYELSE0000", company: { name: registrant } };
+  const noName = { id: declaredId, company: {} };
+
+  const right = accountVerdict(rightAccount, { declaredId, registrant });
+  rec(
+    "CONSTRUCTED: the declared account under the registrant's name passes both halves",
+    right.idMatches && right.nameMatches,
+    `id ${right.idMatches}, name ${right.nameMatches}. Not a Stripe read.`,
+  );
+
+  const otherCompany = accountVerdict(wrongCompany, { declaredId, registrant });
+  rec(
+    "CONSTRUCTED: the right account id under ANOTHER company's name fails on the name",
+    otherCompany.idMatches && !otherCompany.nameMatches,
+    "this is the Preview shape: a working key whose account is not this firm. Not a Stripe read.",
+  );
+
+  const otherAccount = accountVerdict(wrongAccount, { declaredId, registrant });
+  rec(
+    "CONSTRUCTED: a different account id fails on the id even under the right name",
+    !otherAccount.idMatches && otherAccount.nameMatches,
+    "a swapped key is caught by the id without needing the name. Not a Stripe read.",
+  );
+
+  const nameless = accountVerdict(noName, { declaredId, registrant });
+  rec(
+    "CONSTRUCTED: an account with no legal name fails rather than passing on an absence",
+    !nameless.nameMatches,
+    `legal name ${nameless.legalName ?? "null"}, which is not the registrant. Not a Stripe read.`,
+  );
+}
 
 /*
  * The support phone against the number this platform derives. Two accounts of
@@ -239,12 +336,34 @@ if (!key) {
      * its note. Asserting it means a key swapped to a DIFFERENT account turns
      * this red and names both ids, which is the thing a pass could never say.
      */
+    const reached = accountVerdict(account, { declaredId: stripeConsole.accountId, registrant });
     rec(
       "the account the key reached is the account that was confirmed and declared",
-      account.id === stripeConsole.accountId,
-      account.id === stripeConsole.accountId
+      reached.idMatches,
+      reached.idMatches
         ? `${account.id}, confirmed ${stripeWebhookEndpoint.liveConfirmedOn ?? "never"}`
         : `the key reached ${account.id}; src/config/stripe-console.ts declares ${stripeConsole.accountId}`,
+    );
+
+    /*
+     * AND THE LEGAL NAME ON THE ACCOUNT THE KEY REACHED. Operator ruling,
+     * 2026-09-22, and it FAILS rather than reporting COULD NOT TELL.
+     *
+     * The distinction the ruling turns on: no key is unreachable, and a key
+     * that reaches the wrong company is a FINDING. Until today this audit
+     * treated both as the same verdict, so a Preview holding a working key for
+     * a different entity would have produced the identical reassuring line it
+     * produces on a laptop with no key at all.
+     *
+     * That is not hypothetical. Preview carried live Reyna Pay keys until
+     * 2026-09-21, and this audit would have said COULD NOT TELL about it.
+     */
+    rec(
+      "and the legal name on that account is the registrant the board holds",
+      reached.nameMatches,
+      reached.nameMatches
+        ? `${reached.legalName}`
+        : `the account reads ${reached.legalName ?? "no legal name"}; the board's registrant is ${registrant}`,
     );
     rec(
       `the key is a ${keyIsLive ? "live" : "test"} key and the endpoints listed are its own mode`,
