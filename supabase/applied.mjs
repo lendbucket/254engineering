@@ -1380,7 +1380,89 @@ export const APPLIED = [
       "every issued version, and this table is not a second copy of it. " +
       "requires_discipline STAYS NULL until the engineer states it in writing, which keeps " +
       "roof-inspections a waitlist even after he approves. Operator ruling, 2026-09-21: do not guess " +
-      "it from his licence.",
+      "it from his licence. HE STATED IT THE SAME EVENING, and 0056 carries it.",
+  },
+  {
+    file: "0056_the_engineer_states_the_discipline.sql", appliedBy: "apply_migration",
+    fingerprint: "56b351a693ec70cc86203fd0cbde481c",
+    behaviour: "72b8ec3ab4975f1178add4a64261d88a",
+    proves: {
+      table: "eng_protocol_templates",
+      match: { document_number: "254-RC-001", version_label: "1.1", requires_discipline: "structural" },
+    },
+    production: "2026-09-22",
+    development: { at: "0056", behaviour: null, facts: 919 },
+    note:
+      "BOTH fingerprints repeat 0055's, which is what an UPDATE with no DDL must do. It writes one " +
+      "column on one existing row and touches nothing either digest reads. Replayed at 0055 and at " +
+      "0056 and read back identical rather than copied. The row is what `proves` asks about, and it " +
+      "asks about the COLUMN VALUE rather than the row's existence, because 0055 already proved that.",
+    because:
+      "APPLIED TO PRODUCTION 2026-09-22 at 13:41:20 UTC, provider version 20260922134120, read from " +
+      "list_migrations rather than from the clock this session runs on, and agreeing with the row's " +
+      "own updated_at of 13:41:20.934643+00. " +
+      "THE NAME CARRIES ITS FULL FILE STEM, which 0055's did not. That entry records the slip: its " +
+      "apply_migration call passed the name without the number, so production's history shows " +
+      "'the_signed_roof_protocol_awaits_its_engineer' where every neighbour carries a prefix. The " +
+      "correction was written down there as owed on the next migration, and this is the next " +
+      "migration. It reads '0056_the_engineer_states_the_discipline'. " +
+      "IT WAS PENDING FIRST, by operator ruling of 2026-09-21, the same rule 0055 was held under: a " +
+      "migration touching the engineer's own protocol does not land while nobody is watching. It was " +
+      "applied with him at the keyboard on the morning of 2026-09-22. " +
+      "PRE-FLIGHT, CHECKED RATHER THAN ASSUMED, and the migration's own guard asserts the same shape: " +
+      "production held exactly one 254-RC-001 row, v1.1, awaiting_engineer, requires_discipline NULL, " +
+      "under the declared digest. Read immediately before the migration was sent. " +
+      "READ BACK FROM PRODUCTION, EVERY COLUMN: aef41de3-2eb7-49b9-9d18-cb99a741bc6c, " +
+      "roof-inspections, 'Roof Certification Protocol for Existing Roofs', version 2, version_label " +
+      "1.1, status awaiting_engineer, document_number 254-RC-001, issue_date 2026-09-18, " +
+      "document_sha256 d050a21a2b2d43114de47989ca731f41e26951f195c90187e99c11705011e4ef, " +
+      "firm_name_on_document '254 Engineering Services', requires_discipline STRUCTURAL, " +
+      "document_signed_at 2026-09-20, and approved_by, approved_at, approved_by_license, published_at " +
+      "and authored_by all five NULL. created_at unchanged at 2026-09-21 20:54:24, which is 0055's " +
+      "insert: this migration updated a row rather than writing one. " +
+      "WHAT IT DOES: sets requires_discipline to 'structural' on the 254-RC-001 v1.1 row while it is " +
+      "awaiting_engineer. One column, one row, no DDL. " +
+      "THE VALUE IS THE ENGINEER'S, IN WRITING, AND THE EVIDENCE IS ON DISK. Aman Dhakal wrote on " +
+      "2026-09-21: 'Regarding the roof certification, Structural Engineering governs this " +
+      "requirement.' Recorded as roof-certification-discipline in src/config/engineer-directions.ts " +
+      "with the screenshot of that email digested, and compliance-audit hashes the file rather than " +
+      "trusting the record. The field had been null since transcription BECAUSE it is his answer and " +
+      "is never inferred from the words 'roof certification'. The note beside it said the likely " +
+      "answer was structural and that likely is not declared. It was right and it stayed a guess. " +
+      "THE FREEZE QUESTION, ASKED BEFORE THE MIGRATION WAS WRITTEN AND ANSWERED BY A DATABASE. Does " +
+      "eng_approve_protocol or 0049 freeze requires_discipline once a protocol is in force? NO. " +
+      "0049 adds it as a plain text column, no constraint or trigger in the chain names it, and " +
+      "eng_approve_protocol writes only status, published_at, approved_by, approved_at and " +
+      "approved_by_license. That reading is an argument from absence, so migration-audit now PROVES " +
+      "it in the replayed database: a probe protocol is taken to published through the real approval " +
+      "function, its discipline is then changed, and the transaction commits. A second check asserts " +
+      "the probe actually reached published carrying the value, because a transaction that failed at " +
+      "the insert would also report 'not refused' for an update it never ran. " +
+      "SO 0056 COULD LAND EITHER SIDE OF HIS APPROVAL, and it is still written narrowly, updating " +
+      "only while awaiting_engineer. He stated the discipline of a protocol he has not approved, and " +
+      "the migration describes that state rather than a wider one nobody asked for. " +
+      "GENERATED FROM THE REGISTRY, NEVER TYPED, the same route 0055 took: " +
+      "--emit-discipline-sql reads RC001.requiresDiscipline, refuses outright if it is null, refuses " +
+      "if no written direction is on record, opens no database connection, and quotes the engineer " +
+      "in the migration header from the direction record rather than from a retyped string. " +
+      "protocol-registry-audit reads the literal back OUT of the migration and asserts it equals the " +
+      "registry, derives its subject by scanning every migration for one that sets that column so a " +
+      "SECOND one is a finding, and separately asserts the discipline is one an engineer on record " +
+      "declares he seals. Injection verified both ways: a wrong literal in the migration goes red " +
+      "naming both values, and a discipline nobody seals goes red naming that too. " +
+      "APPLIED TO DEVELOPMENT 2026-09-22 through apply_migration and READ BACK: row " +
+      "4b796249-a071-42ba-9b20-408e0d38b7b0, version_label 1.1, status awaiting_engineer, " +
+      "requires_discipline structural, approved_by, approved_at and published_at all null. The v1.0 " +
+      "row on development is UNTOUCHED at requires_discipline null, which is the WHERE clause doing " +
+      "its job: the discipline belongs to the version he stated it for. " +
+      "WHAT IT OPENS AND WHAT IT DOES NOT. protocol-gate.ts filters active engineers by " +
+      "sealsOnly.includes(requires_discipline), and the register records sealsOnly ['structural'] for " +
+      "him, so the DISCIPLINE block clears. roof-inspections does NOT open: it still needs an " +
+      "APPROVED protocol, and 254-RC-001 is awaiting_engineer until he approves it in his own " +
+      "session. One condition of several, cleared. " +
+      "AND IT IS NOT HIS LICENCE BRANCH. TBPELS lists his branch as Civil and sealsOnly records what " +
+      "this firm holds out and he will seal. The gate reads the second, which is the firm's question " +
+      "rather than the board's.",
   },
 ];
 

@@ -116,21 +116,37 @@ export const RC001 = {
   serviceSlug: "roof-inspections",
 
   /**
-   * THE DISCIPLINE THIS PROTOCOL REQUIRES, AND IT IS NOT DECLARED YET.
+   * THE DISCIPLINE THIS PROTOCOL REQUIRES. DECLARED 2026-09-21, BY HIM.
    *
    * Operator ruling, 2026-09-16: a protocol declares the discipline it requires
    * and it is never inferred from the service line's name. Whether a roof
    * certification is structural work is the engineer's answer, not a reading of
-   * the word "roof", and this session is not going to supply it by guessing.
+   * the word "roof", and no session was going to supply it by guessing.
    *
-   * NULL BLOCKS THE LINE, which is the conservative direction and is the point.
-   * roof-inspections stays a waitlist until Aman states what 254-RC-001
-   * requires, and the block says exactly that rather than refusing vaguely.
+   * THIS FIELD SAT AT NULL FOR FIVE DAYS AND THE NOTE BESIDE IT SAID WHY: "he
+   * signed this protocol and declares his competence structural only, so the
+   * likely answer is structural. Likely is not declared." The guess was right
+   * and it stayed a guess, which is the whole point of having left it null.
    *
-   * He signed this protocol and declares his competence structural only, so the
-   * likely answer is structural. Likely is not declared.
+   * HE STATED IT IN WRITING ON 2026-09-21: "Regarding the roof certification,
+   * Structural Engineering governs this requirement." The email is on disk and
+   * digested, recorded as `roof-certification-discipline` in
+   * `src/config/engineer-directions.ts`, and `compliance-audit` asserts the
+   * evidence file hashes to what was read.
+   *
+   * WHAT THIS DOES AND DOES NOT OPEN. `protocol-gate.ts` filters active
+   * engineers by `sealsOnly.includes(requiresDiscipline)`, and his register
+   * entry records `sealsOnly: ["structural"]`, so the DISCIPLINE block clears.
+   * The line does not open: `roof-inspections` still needs an APPROVED
+   * protocol, and 254-RC-001 is `awaiting_engineer` until he approves it in his
+   * own session. One condition of several, cleared.
+   *
+   * IT IS NOT HIS LICENCE BRANCH AND THE DIFFERENCE IS DELIBERATE. TBPELS lists
+   * his branch as Civil; `sealsOnly` records what this firm holds out and he
+   * will seal. The gate reads the second, which is the firm's question rather
+   * than the board's, and the register's own comment says so.
    */
-  requiresDiscipline: null as string | null,
+  requiresDiscipline: "structural" as string | null,
 
   /**
    * The file this declaration was transcribed from, and its digest, so the
