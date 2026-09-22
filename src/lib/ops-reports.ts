@@ -923,7 +923,23 @@ export async function partnerReport(period = periodOf(), scope: FigureScope = "r
    * ledger: a statement is a demonstration exactly when its partner is. */
   let q = client
     .from("eng_partner_statements")
-    .select("reference, total_cents, status, period, eng_partners!inner(organization, is_demo)", { count: "exact" })
+    /*
+     * `organisation` IS THE COLUMN, NOT A SPELLING. Reverted 2026-09-22 after
+     * the US spelling pass rewrote it here and broke this report outright.
+     *
+     * The check that excluded column lists matched a plain "a, b, c" shape and
+     * did not know about PostgREST's embedded resource form,
+     * `eng_partners!inner(...)`. So this one literal escaped, the query asked
+     * for a column the database does not have, the partner report returned no
+     * figures at all, and `tsc` could not see it because an embedded select's
+     * result type is not checked against the schema.
+     *
+     * It was caught by `demo-audit`, whose control check asks whether the
+     * report CAN see a demonstration when told to include one. The answer was
+     * "the control figure is not on the report at all", which is what a broken
+     * query looks like from the outside.
+     */
+    .select("reference, total_cents, status, period, eng_partners!inner(organisation, is_demo)", { count: "exact" })
     .eq("period", period);
   if (scope !== "including_demonstrations") q = q.eq("eng_partners.is_demo", false);
 

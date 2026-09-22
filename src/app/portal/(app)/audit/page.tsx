@@ -64,7 +64,7 @@ export default async function AuditPage() {
      * as English. Monospace went with it, because the point of that face here
      * was that the value was an identifier.
      */
-    { key: "action", head: "Action", cell: (e) => <span className="text-[13px]">{actionLabel(e.action)}</span> },
+    { key: "action", head: "Action", cell: (e) => <span className="text-[12.5px]">{actionLabel(e.action)}</span> },
     { key: "what", head: "What happened", cell: (e) => e.summary ?? `${e.entity_type} ${e.entity_id ?? ""}` },
     { key: "ip", head: "IP", wide: true, cell: (e) => e.ip ?? "" },
   ];
@@ -87,7 +87,7 @@ export default async function AuditPage() {
             empty={<EmptyState title="Nothing recorded yet" body="Every action anyone takes in the platform lands here." />}
             card={(e) => (
               <div>
-                <p className="text-[13px] font-medium text-[var(--gold-deep)]">{actionLabel(e.action)}</p>
+                <p className="text-[12.5px] font-medium text-[var(--gold-deep)]">{actionLabel(e.action)}</p>
                 <p className="mt-1 text-[13.5px] leading-[1.5] break-words text-[var(--navy)]">{e.summary ?? e.entity_type}</p>
                 {/*
                   break-words on both lines, because everything on this card is

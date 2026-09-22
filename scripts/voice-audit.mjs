@@ -358,7 +358,27 @@ for (const route of allRoutes) {
    * list of snake_case names with no sentence punctuation is a column list,
    * not a sentence. Prose that legitimately says "organization" is unaffected.
    */
-  const COLUMN_LIST = /^[a-z_]+(?:\s*,\s*[a-z_]+)*$/;
+  /*
+   * AND THE FIRST VERSION OF THIS PATTERN LET ONE THROUGH, WHICH BROKE A
+   * REPORT. Widened 2026-09-22.
+   *
+   * It matched a plain "a, b, c" list and knew nothing about PostgREST's
+   * embedded resource form. So
+   *
+   *   "reference, total_cents, status, period, eng_partners!inner(organisation, is_demo)"
+   *
+   * was treated as prose, `organisation` was rewritten to `organization`, the
+   * partner report asked for a column the database does not have, and it
+   * returned NO FIGURES AT ALL. `tsc` could not see it, because an embedded
+   * select's result type is not checked against the schema. `demo-audit`
+   * caught it, reporting that the control figure was "not on the report at
+   * all", which is what a broken query looks like from outside.
+   *
+   * Seventh instance of a matcher narrower than the thing it means, and the
+   * inverse of the usual one: this window was too NARROW, so the neighbour it
+   * failed to cover got treated as prose. Same root, opposite sign.
+   */
+  const COLUMN_LIST = /^[a-z_]+(?:!\w+)?(?:\([a-z_,\s!]*\))?(?:\s*,\s*[a-z_]+(?:!\w+)?(?:\([a-z_,\s!]*\))?)*$/;
 
   const spelt = [];
   let columnLists = 0;
@@ -397,11 +417,38 @@ for (const route of allRoutes) {
   }
 
   console.log("");
+  /*
+   * ===========================================================================
+   * WHAT THIS CHECK DOES NOT READ, SAID IN ITS OWN OUTPUT.
+   * Found 2026-09-22, the night it was written.
+   * ===========================================================================
+   *
+   * It reads STRING LITERALS. It does not read JSX text nodes, and it does not
+   * read template literals carrying `${...}`. Both are ordinary places for
+   * rendered copy, and at the time of writing roughly nineteen "cancelled" and
+   * eleven "licence" instances of real rendered text sit in exactly those two
+   * shapes, unseen.
+   *
+   * SO THE GREEN WAS WIDER THAN THE SWEEP, and the line below used to say
+   * "423 composed file(s) swept", which a reader takes to mean the copy in 423
+   * files was checked. It means the string literals in 423 files were checked.
+   * That is the defect this repository records as a green naming a rigour it is
+   * not performing, and it is worse than a small sweep honestly described.
+   *
+   * The scope is not widened here, deliberately: doing it at the end of a long
+   * run would produce another round of edits nobody has reviewed. What changes
+   * now is that the output stops implying coverage it does not have. Widening
+   * it is in the morning report under Rulings owed.
+   */
   console.log(
-    `US SPELLING: ${composedFiles.length} composed file(s) swept, ` +
+    `US SPELLING: string literals in ${composedFiles.length} composed file(s) swept, ` +
       `${protocolFiles.length} protocol file(s) exempt as the signed document's own text ` +
       `(${protocolFiles.map((f) => f.slice(PROTOCOL_DIR.length)).join(", ")}), ` +
       `${columnLists} column list(s) skipped as schema identifiers rather than prose.`,
+  );
+  console.log(
+    "  NOT READ BY THIS CHECK: JSX text nodes, and template literals carrying an " +
+      "interpolation. Both hold rendered copy. Its green covers string literals only.",
   );
 }
 

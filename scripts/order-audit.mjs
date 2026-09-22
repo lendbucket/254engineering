@@ -1260,7 +1260,12 @@ const answerAll = (entry, pick = () => 0) =>
   const cancelled = refundForFirmCancellation({ paidCents: 67500 });
   rec("a firm cancellation refunds everything", cancelled.refundCents === 67500);
   rec("and retains nothing", cancelled.retainedCents === 0);
-  rec("and is named as the firm doing", /cancelled by the firm/i.test(cancelled.caseName));
+  /*
+   * "canceled", one L. Moved 2026-09-22 with the US spelling ruling, as a
+   * deliberate second edit: the value is in ops-orders.ts and the pin is here,
+   * and this check went red asking whether the change was meant. It was.
+   */
+  rec("and is named as the firm doing", /canceled by the firm/i.test(cancelled.caseName));
   rec(
     "and tells the customer the decision was not theirs",
     /and not yours|decision to stop was the firm/i.test(cancelled.explanation),

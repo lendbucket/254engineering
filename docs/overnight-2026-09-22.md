@@ -2,8 +2,9 @@
 
 ## The one screen
 
-**Board on main: PENDING at the time of writing.** Prediction and result are in
-the next section; this line is updated when it lands.
+**First board: 5 FAILs against a prediction of 2. Falsified, and three of the
+five were mine.** One of them had **broken the partner report outright**. All
+fixed, receipts taken, second board below.
 
 **0056 is ready and is NOT on main.** It sits on `feat/discipline-0056`, applied
 to development and read back. **The freeze answer is NO**: nothing in the schema
@@ -14,7 +15,13 @@ at a sitting with you.
 **Two reds are owed human reads and nothing else closes them:** the Stripe legal
 business name, and Aman's TBPELS roster entry.
 
-**Rulings owed: 6.** Listed below. None blocks the morning; three block a line.
+**Rulings owed: 8.** Listed below. None blocks the morning; three block a line.
+
+**Preview held live Reyna Pay keys and you removed them.** Recorded in
+`credential-inventory.ts` as your statement, with the removal marked as
+unverified because nothing here can read Vercel. **Cross entity, not just cross
+environment**: a charge on a preview URL would have paid a different company for
+engineering work this firm may not yet perform.
 
 **Aman replied in writing.** Section 5 qualification accepted, discipline stated
 as Structural Engineering, desktop and solar letters conditional on three things
@@ -24,13 +31,62 @@ including a market enquiry that must happen **before** any protocol work.
 
 ## 1. The board against its prediction
 
-Filled in when the run lands. The prediction, written first:
+**Predicted two FAILs. Got five.** The prediction named the right *class* of
+risk and the wrong audits, which is the second time tonight.
 
-> Exactly two FAIL lines. `stripe-webhook-audit`, the legal business name.
-> `compliance-audit`, the engineer's roster entry. Nothing else.
-> `mobile-overflow-audit` and `native-audit` report COULD NOT TELL on
-> `/portal/accounts`, with `mobile-audit` and `contrast-audit` absorbing the
-> same miss into a PASS.
+| FAIL | Mine? |
+| --- | --- |
+| `stripe-webhook-audit`: the Stripe legal business name | no, owed read |
+| `compliance-audit`: the engineer's roster entry | no, owed read |
+| `token-audit`: `text-[13px]` is outside the font scale | **yes** |
+| `order-audit`: "and is named as the firm doing" | **yes**, a section 6c pin |
+| `demo-audit`: "the control figure is not on the report at all" | **yes, and it broke a report** |
+
+### The one that mattered
+
+The US spelling pass rewrote a **database column name** for the second time,
+and this one `tsc` could not catch:
+
+```
+.select("reference, total_cents, status, period, eng_partners!inner(organisation, is_demo)")
+```
+
+became `organization`. The earlier revert covered the three files the compiler
+named; **an embedded PostgREST select's result type is not checked against the
+schema**, so this one was invisible to `tsc`. The partner report asked for a
+column that does not exist and **returned no figures at all**.
+
+`demo-audit` caught it, reporting "the control figure is not on the report at
+all", which is what a broken query looks like from outside. After the fix:
+`Issued = $555.00 with demonstrations included`.
+
+**Why the exclusion missed it.** The column-list detector matched a plain
+`"a, b, c"` shape and knew nothing about the `table!inner(...)` form. Seventh
+instance of a matcher mismatched to its subject, and the inverse of the usual
+one: this window was too **narrow**, so the neighbour it failed to cover got
+treated as prose.
+
+### And a bigger finding than any of the reds
+
+**The new US spelling check reads string literals only.** It does not read JSX
+text nodes, and it does not read template literals carrying `${...}`. Both hold
+rendered copy. Roughly nineteen `cancelled` and eleven `licence` instances of
+real rendered text sit in exactly those two shapes, unseen, while the check
+printed PASS.
+
+Its output said "423 composed file(s) swept", which a reader takes to mean the
+copy in 423 files was checked. It meant the string literals in 423 files.
+
+**The scope was not widened**, deliberately: doing it at the end of a long run
+produces another round of unreviewed edits. What changed is that the check now
+prints what it does **not** read, so its green stops implying coverage it does
+not have. Widening it is ruling seven.
+
+### Second board
+
+Prediction, written before the run: **exactly two FAIL lines**, the Stripe
+legal name and the roster entry, and nothing else. Result recorded below when
+it lands.
 
 ---
 
@@ -99,6 +155,19 @@ is a migration and it is not written.
 the engineer raises it where TBPELS rules or the professional liability policy
 require longer. **Nobody has asked him.** Recommendation: put it in the same
 sitting as the protocol approval.
+
+**Seven.** *Widen the US spelling check to JSX text and interpolated
+templates.* It reads string literals only and says so now. About thirty
+instances of rendered copy are outside its reach. **Recommendation: widen it,
+in a sitting, not overnight** — it will name several dozen strings and each one
+is a copy change on a live page.
+
+**Eight.** *Should `stripe-webhook-audit` refuse rather than report
+`COULD NOT TELL` when the key's account is not the registrant?* Tonight it says
+COULD NOT TELL with no key, which is right locally. **It would have said the
+same thing on a preview holding a working key for Reyna Pay**, and said nothing
+about whose account it was. **Recommendation: a live half that reaches an
+account whose legal name is not the registrant should FAIL, not shrug.**
 
 **Six.** *`CLAUDE.md` says the gate carries seven conditions. It carries nine.*
 `self-service-signup` and `recovery` are not in that paragraph's table.

@@ -283,17 +283,64 @@ export const CREDENTIALS: Credential[] = [
       readOn: READ_ON + " Re-read 2026-09-12: a single entry covering Production and Preview. RULED 2026-09-13: it stays that way.",
     },
   },
+  /*
+   * =========================================================================
+   * PREVIEW HELD LIVE REYNA PAY KEYS, AND THEY WERE REMOVED 2026-09-21.
+   * Operator statement, recorded the same evening.
+   * =========================================================================
+   *
+   * WHAT IT WAS. Vercel's Preview environment carried LIVE Stripe keys for
+   * REYNA PAY, which is a different legal entity from this firm. The operator
+   * found it and removed them; Preview now holds no Stripe key at all.
+   *
+   * WHY THIS IS WORSE THAN THE 2026-09-12 FINDING RATHER THAN ANOTHER OF THEM.
+   * That one was one firm's secret shared across environments: a customer
+   * cookie minted on a preview was valid on production. Bad, and bounded by the
+   * firm's own blast radius. This is a LIVE key for ANOTHER COMPANY on an
+   * environment whose URLs are reachable by anyone holding the link. A charge
+   * taken there would have moved real money into Reyna Pay for engineering work
+   * 254 Engineering LLC is not yet permitted to perform. Cross environment is a
+   * blast radius question; cross entity is a whose-money question.
+   *
+   * FOURTH CONSOLE FINDING, AND ALL FOUR CAME FROM THE OPERATOR OPENING A
+   * DASHBOARD. Vercel twice on 2026-09-12, Stripe on 2026-09-16, Vercel again
+   * on 2026-09-21. No check in this repository can see any of them, which is
+   * why this file exists as a dated, attributed declaration rather than as a
+   * check.
+   *
+   * AND THE REMOVAL IS RECORDED AS A CLAIM, NOT AS A VERIFIED FACT. Standing
+   * law after `production-cutover-plan.md` said a project had been deleted and
+   * it was alive eleven days later: a document recording a destructive action
+   * as done is a claim nothing supports unless something checked. Nothing here
+   * checked. This says the operator removed them, on that date, and says
+   * plainly that no check in this repository can confirm it. The verification
+   * that would settle it is a preview deployment refusing to construct a Stripe
+   * client, which is not built.
+   *
+   * THE LIVE CHARGE AND REFUND TEST STAYS ON PRODUCTION, as the first act after
+   * the gate opens. Operator ruling, 2026-09-21. It is not run on a preview and
+   * it is not run against Reyna Pay; launch condition `stripe` requires a real
+   * charge and its refund on this firm's own account, recorded.
+   */
   {
     name: "STRIPE_SECRET_KEY",
     kind: "secret",
-    livesIn: "Vercel. The account it belongs to is Reyna Pay, not this firm, which is launch condition `stripe`.",
-    grants: "Charging and refunding against that Stripe account, and reading every charge on it.",
-    rotated: "Never.",
+    livesIn:
+      "Vercel, PRODUCTION ONLY since 2026-09-21. The account it belongs to is Reyna Pay, not this firm, " +
+      "which is launch condition `stripe`. PREVIEW CARRIED LIVE REYNA PAY KEYS AND THE OPERATOR REMOVED " +
+      "THEM on 2026-09-21; Preview now holds no Stripe key. Recorded as his statement: nothing in this " +
+      "repository can read Vercel, so nothing here has confirmed the removal.",
+    grants:
+      "Charging and refunding against that Stripe account, and reading every charge on it. On Preview " +
+      "that meant charging a DIFFERENT COMPANY from a URL anybody with the link can reach.",
+    rotated: "Never. Removed from Preview 2026-09-21, which is not a rotation.",
   },
   {
     name: "STRIPE_WEBHOOK_SECRET",
     kind: "secret",
-    livesIn: "Vercel.",
+    livesIn:
+      "Vercel, production only since 2026-09-21, alongside STRIPE_SECRET_KEY. Preview holds no Stripe " +
+      "credential of either kind.",
     grants: "Forging a payment webhook this platform would believe, which is how an order gets marked paid without money moving.",
     rotated: "Never.",
   },
