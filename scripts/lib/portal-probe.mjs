@@ -490,15 +490,88 @@ export async function destroyProbes(label = "audit") {
     .select("id")
     .like("email", `%@${PROBE_DOMAIN}`);
 
-  const ids = new Set([...made.map((m) => m.id), ...(strays ?? []).map((r) => r.id)]);
+  /*
+   * AND THE AUTH USERS, WHICH THIS SWEEP COULD NOT SEE UNTIL 2026-09-22.
+   *
+   * Operator ruling. The subject was derived from eng_profiles alone, so an
+   * auth user whose PROFILE had already been removed was invisible to both the
+   * deletion and the verification. The verification counted profiles too, which
+   * is what made it quiet: `left` read 0 while real sign-in-capable accounts sat
+   * in auth.users, and the green said the domain was clean.
+   *
+   * It was found on development by a survey rather than by any check: two
+   * roles-audit probes from 2026-09-05 and 2026-09-14, profiles gone, auth users
+   * alive, seventeen days after the runs that made them. That is a credential
+   * outliving its run on a database every audit points at.
+   *
+   * A profile is the thing the platform reads and an auth user is the thing that
+   * can SIGN IN. Sweeping the first and verifying the first is a check on the
+   * easier half of the problem.
+   */
+  const authIds = await probeAuthUsers(d);
+
+  const ids = new Set([
+    ...made.map((m) => m.id),
+    ...(strays ?? []).map((r) => r.id),
+    ...authIds.map((u) => u.id),
+  ]);
+
+  /*
+   * The deleteUser failure is no longer swallowed. `.catch(() => {})` is how
+   * both stranded accounts got there: the call failed, nothing said so, and the
+   * verification was looking at profiles where the failure does not show.
+   */
+  const refusals = [];
   for (const id of ids) {
     await d.from("eng_auth_tokens").delete().eq("profile_id", id);
     await d.from("eng_profiles").delete().eq("id", id);
-    await d.auth.admin.deleteUser(id).catch(() => {});
+    const { error } = await d.auth.admin.deleteUser(id).then(
+      (r) => r,
+      (e) => ({ error: e }),
+    );
+    if (error) refusals.push(`${id}: ${error.message ?? error}`);
   }
   made.length = 0;
 
+  /* VERIFIED IN BOTH PLACES, because a sweep verified in one is a sweep of one. */
   const { data } = await d.from("eng_profiles").select("email").like("email", `%@${PROBE_DOMAIN}`);
-  const left = (data ?? []).length;
-  return { ok: left === 0, left, note: left ? `${left} probe account(s) left behind` : "" };
+  const profilesLeft = (data ?? []).length;
+  const usersLeft = (await probeAuthUsers(d)).length;
+  const left = profilesLeft + usersLeft;
+
+  const parts = [];
+  if (profilesLeft) parts.push(`${profilesLeft} profile(s)`);
+  if (usersLeft) parts.push(`${usersLeft} auth user(s) with no profile, which can still sign in`);
+  if (refusals.length) parts.push(`deleteUser refused: ${refusals.join("; ")}`);
+
+  return {
+    ok: left === 0 && refusals.length === 0,
+    left,
+    note: parts.length ? `left behind on ${PROBE_DOMAIN}: ${parts.join(", ")}` : "",
+  };
+}
+
+/*
+ * EVERY auth user on the probe domain, paged to exhaustion.
+ *
+ * listUsers is paged and answers a bounded page with no indication that more
+ * exist, which is the silent-ceiling shape this repository has already paid for
+ * at PostgREST's 1000 and at a hand written .limit(20) reported as a queue
+ * depth. It pages until a short page comes back, so the count is the count.
+ */
+async function probeAuthUsers(d) {
+  const found = [];
+  const perPage = 200;
+  for (let page = 1; page <= 100; page += 1) {
+    const { data, error } = await d.auth.admin.listUsers({ page, perPage });
+    const users = data?.users ?? [];
+    if (error) break;
+    for (const u of users) {
+      if (typeof u.email === "string" && u.email.endsWith(`@${PROBE_DOMAIN}`)) {
+        found.push({ id: u.id, email: u.email });
+      }
+    }
+    if (users.length < perPage) break;
+  }
+  return found;
 }
