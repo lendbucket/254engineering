@@ -723,7 +723,7 @@ try {
           outcome.kind === "done" &&
             trail?.action === "retention.dry_run" &&
             trail?.actor_role === AUDIT_ASKED.role &&
-            /Authorised by/.test(trail?.summary ?? ""),
+            /Authorized by/.test(trail?.summary ?? ""),
           trail ? `${trail.action} authorised by ${trail.actor_role ?? "NOBODY"}` : "no trail row was written",
         );
 
