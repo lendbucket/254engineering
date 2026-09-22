@@ -41,10 +41,18 @@ import "server-only";
  * Exactly two tables have a real floor, and both are machine telemetry that
  * grows from the clock rather than from the firm.
  *
- * THE COUNT, AND WHAT MOVED
- * -------------------------
- * 74 tables: 41 kept pending counsel, 23 kept forever, 8 not a record, 2
- * deletable. Three entries changed after gate 0 and all three are recorded
+ * WHAT MOVED, AND WHY THERE ARE NO NUMBERS IN THIS COMMENT
+ * --------------------------------------------------------
+ * This paragraph used to open with a tally of how many tables sat in each
+ * state. It was wrong by 2026-09-22, having drifted as the schema grew, and
+ * nothing could have caught it: a count in a comment is prose, and every check
+ * in this repository reads the declaration below instead. The figures were not
+ * corrected, they were removed. Operator ruling.
+ *
+ * `retention-audit` prints the real figures on every run, derived from the
+ * array below, which is the one place they can be right. Read them there.
+ *
+ * Three entries changed after gate 0 and all three are recorded
  * rather than silently different. `eng_deletion_requests` is new, added by 0036
  * as the customer side of this section: somebody asking to be forgotten is
  * recorded, and the record of the asking is one of the things that can never be

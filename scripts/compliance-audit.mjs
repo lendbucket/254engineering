@@ -1341,6 +1341,204 @@ const RULED_CONDITIONS = [
   );
 
   /*
+   * ===================================================================
+   * THE DOCUMENT'S STATED VERDICTS, BOUND TO THE GATE
+   * ===================================================================
+   *
+   * Operator ruling, 2026-09-22. Until that day this document said "Six are
+   * unmet today. Two are cleared", and it was wrong twice: the gate had moved
+   * on, and nine conditions minus two cleared is seven rather than six, so the
+   * sentence did not agree with ITSELF. It also said "No PE is in responsible
+   * charge" after the engineer was recorded, which is the same false compliance
+   * sentence the portal sidebar carried in September, and "nine service lines"
+   * where the catalogue has eight.
+   *
+   * Nothing checked any of it. The pinned id list above proves the document
+   * NAMES every condition; it never asked what the document SAYS about them.
+   * That is a declaration checked for shape rather than content, which this
+   * repository already has a rule about.
+   *
+   * WHY THIS IS NOT SIMPLY `launchBlockers().length`, WHICH IS WHAT WAS ASKED
+   * FOR, AND THE JUDGEMENT IS DISCLOSED RATHER THAN BURIED.
+   *
+   * Two of the nine conditions are decided by the deployment ENVIRONMENT and
+   * seven by a file. `compliance-audit` does not load .env.local, so in THIS
+   * process `phone` reads unmet and launchBlockers() returns one more than the
+   * firm's real answer. Binding the document's count straight to that number
+   * would fail a correct document, on a library that is working perfectly,
+   * which is the ambient-state defect this file already records about
+   * partner-audit and FIRM_PHONE.
+   *
+   * So the comparison is split. The file-stated verdicts are asserted exactly
+   * and are identical in every process, so this cannot flake and cannot be
+   * vacuous. The environment-decided pair is asserted to be NAMED as such. And
+   * the document's own arithmetic is asserted against its own lists, which is
+   * the clause that catches the original defect directly.
+   */
+  const { LAUNCH_CONDITIONS, launchReadiness, launchBlockers } = await import("../src/lib/launch.ts");
+  const { services } = await import("../src/content/services.ts");
+
+  /*
+   * Pinned as literals, per section 6c. A THIRD environment-decided condition
+   * is a real change to how this gate behaves and costs two deliberate edits
+   * rather than quietly widening the set this check declines to judge.
+   */
+  const ENV_DECIDED = ["switch", "phone"];
+
+  const idsOn = (line) => [...line.matchAll(/`([a-z-]+)`/g)].map((m) => m[1]);
+  const unmetLine = /- \*\*UNMET \((\d+)\):\*\*([^\n]*)/.exec(doc);
+  const metLine = /- \*\*MET \((\d+)\):\*\*([^\n]*)/.exec(doc);
+
+  rec(
+    "the launch document states its unmet and met conditions as lists a check can read",
+    Boolean(unmetLine) && Boolean(metLine),
+    unmetLine && metLine ? "both lists found" : "a prose count nothing can parse is a prose count nothing checks",
+  );
+
+  if (unmetLine && metLine) {
+    const docUnmet = idsOn(unmetLine[2]);
+    const docMet = idsOn(metLine[2]);
+
+    /*
+     * The clause that would have caught the original defect on its own: the
+     * document said six unmet and two cleared out of nine, which is eleven
+     * conditions short of nowhere and does not sum.
+     */
+    rec(
+      "and its stated counts agree with its own lists and with the gate's condition count",
+      Number(unmetLine[1]) === docUnmet.length &&
+        Number(metLine[1]) === docMet.length &&
+        docUnmet.length + docMet.length === LAUNCH_CONDITIONS.length,
+      `document says ${unmetLine[1]} unmet and ${metLine[1]} met, lists carry ${docUnmet.length} and ${docMet.length}, the gate has ${LAUNCH_CONDITIONS.length}`,
+    );
+
+    rec(
+      "and every condition appears on exactly one of the two lists",
+      LAUNCH_CONDITIONS.every(
+        (c) => docUnmet.includes(c.id) !== docMet.includes(c.id),
+      ),
+      "a condition on both lists or neither is a condition the document does not answer",
+    );
+
+    const real = launchReadiness();
+    const fileStated = (id) => !ENV_DECIDED.includes(id);
+    const realUnmet = real.filter((r) => r.blocker !== null).map((r) => r.condition.id).filter(fileStated).sort();
+    const realMet = real.filter((r) => r.blocker === null).map((r) => r.condition.id).filter(fileStated).sort();
+    const saidUnmet = docUnmet.filter(fileStated).sort();
+    const saidMet = docMet.filter(fileStated).sort();
+
+    rec(
+      "and the file-stated conditions it calls unmet are the ones the gate refuses",
+      saidUnmet.join(",") === realUnmet.join(","),
+      `document: ${saidUnmet.join(", ") || "none"} | gate: ${realUnmet.join(", ") || "none"}`,
+    );
+
+    rec(
+      "and the file-stated conditions it calls met are the ones the gate accepts",
+      saidMet.join(",") === realMet.join(","),
+      `document: ${saidMet.join(", ") || "none"} | gate: ${realMet.join(", ") || "none"}`,
+    );
+
+    rec(
+      "and it names the two conditions the deployment environment decides, rather than implying a file settles them",
+      ENV_DECIDED.every((id) => docUnmet.includes(id) || docMet.includes(id)) &&
+        /decided by the deployment environment/i.test(doc),
+      `environment decided: ${ENV_DECIDED.join(", ")}`,
+    );
+
+    /*
+     * Said out loud, because a check that depends on ambient state it does not
+     * set must report the environment rather than the rule.
+     */
+    rec(
+      "and this run says which environment it read the gate in",
+      true,
+      `launchBlockers() returned ${launchBlockers().length} here; LAUNCH_MODE=${JSON.stringify(process.env.LAUNCH_MODE ?? null)}, FIRM_PHONE ${process.env.FIRM_PHONE ? "set" : "NOT set"}. The firm's own answer is the file-stated half above plus whatever the deployment sets.`,
+    );
+  }
+
+  /*
+   * The other figure in that document the code can answer. It said nine while
+   * the catalogue has eight, in the sentence explaining why every line is a
+   * waitlist.
+   */
+  /*
+   * Matched against a whitespace-flattened copy, because this document is hard
+   * wrapped and both sentences below span a line break. The first version of
+   * these two checks failed on a document that was already correct, which is
+   * the same defect retention-audit records at the top of its own file: a
+   * pattern spanning two lines measures how the file was wrapped rather than
+   * what it says. Every character is still compared, in order.
+   */
+  const flat = doc.replace(/\s+/g, " ");
+  const WORD = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
+
+  rec(
+    "the launch document states the service line count the catalogue actually carries",
+    new RegExp(`All ${services.length} service lines are a waitlist`).test(flat),
+    `${services.length} service lines in src/content/services.ts`,
+  );
+
+  rec(
+    "and it states the number of conditions compliance-audit checks, not a stale one",
+    new RegExp(`the gate reads all ${WORD[LAUNCH_CONDITIONS.length] ?? LAUNCH_CONDITIONS.length}`).test(flat),
+    `the gate has ${LAUNCH_CONDITIONS.length} conditions`,
+  );
+
+  rec(
+    "and the switch section counts the conditions it sits among correctly",
+    new RegExp(`one condition among ${WORD[LAUNCH_CONDITIONS.length] ?? LAUNCH_CONDITIONS.length}`).test(flat),
+    `switch is one of ${LAUNCH_CONDITIONS.length}`,
+  );
+
+  /*
+   * THE FOOTER SENTENCE, BOUND TO THE DERIVER RATHER THAN TO A TYPED NAME.
+   *
+   * This document quoted the footer as "254 Services LLC, TBPELS Firm F-29811"
+   * and went on quoting it after TBPELS reissued, because `registrationLine()`
+   * moved by itself and the prose did not. A document describing a deriver has
+   * to be checked against the deriver, or it is a second home for the fact the
+   * deriver exists to own.
+   */
+  const { registrationLine, tbpelsFirmNumber } = await import("../src/lib/launch.ts");
+  const line = registrationLine();
+  rec(
+    "the launch document quotes the registration line the deriver actually renders",
+    !line || flat.includes(line),
+    line ? `registrationLine() is "${line}"` : "registrationLine() is null here, so there is nothing to quote",
+  );
+
+  /*
+   * ASSERTED UNCONDITIONALLY, AND THE FIRST VERSION OF THIS CHECK WAS VACUOUS.
+   *
+   * It read `tbpelsFirmNumber() === null || !<the stale sentence>`, which passes
+   * on the left side in THIS process every time: compliance-audit does not load
+   * .env.local, so FIRM_PHONE is unset, the mode reads prelaunch and the number
+   * is withheld. The right side was never evaluated and the check could not
+   * fail for any edit anybody could make to the document.
+   *
+   * The property that actually matters does not depend on where the audit runs:
+   * the firm's deployment HAS a phone and DOES release the number, so the
+   * sentence "still returns null while the gate is shut" is false about the
+   * firm whatever this process sees. So the sentence is simply forbidden, and
+   * the clause can fail the moment somebody writes it back.
+   */
+  /*
+   * Matched on the distinctive PHRASE, not on the call, because the document
+   * writes the call inside backticks. The first pattern here read
+   * `tbpelsFirmNumber\(\) still returns null` and could not match the real
+   * sentence at all, which the injection caught and nothing else would have:
+   * the check was green against a document carrying the very sentence it
+   * forbids. Seventh instance of a matcher matching a name when the thing it
+   * means is spelled differently.
+   */
+  rec(
+    "and it does not claim the firm number is withheld, which is false of the firm's own deployment",
+    !/still returns null while the gate is shut/.test(flat),
+    `tbpelsFirmNumber() is ${JSON.stringify(tbpelsFirmNumber())} in THIS process, which has no FIRM_PHONE; the deployment that has one releases it`,
+  );
+
+  /*
    * AND THE OPERATOR'S SCREEN RENDERS THE GATE'S OWN ANSWER rather than
    * computing its own. A screen with its own copy of the logic is a second
    * gate, and the first time the two disagree the operator reads the wrong one.

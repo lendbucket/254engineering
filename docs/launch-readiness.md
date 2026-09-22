@@ -40,9 +40,27 @@ reasoning.** They cannot disagree, because the screen computes nothing.
 | `recovery` | Point in time recovery is enabled on the production project | The operator, in the Supabase dashboard, and states it here with the date | `pointInTimeRecovery` in `src/config/launch-readiness.ts` |
 | `self-service-signup` | Self service sign up is cleared to reach production | The operator, and nobody else, by editing the file | `selfServiceSignUp` in `src/config/launch-conditions.ts` |
 
-**Six are unmet today.** Two are cleared: `registration`, because F-29811 is active
-and unexpired, and `recovery`, enabled 2026-09-10. The operator's screen at
-/portal/launch shows the same split, and it is the authority if these ever disagree.
+**Four are unmet and five are met**, read from the gate on 2026-09-22.
+
+- **UNMET (4):** `switch`, `stripe`, `protocols`, `self-service-signup`
+- **MET (5):** `registration`, `trading-name`, `engineer-of-record`, `phone`, `recovery`
+
+**Two of the nine are decided by the deployment environment rather than by a
+file**, and they are `switch` and `phone`. The other seven are stated in a file
+and read the same in every process, which is why a check can hold this list to
+the gate without depending on where it runs. A process with no deployment
+environment sees `phone` unmet as well, and that is the environment
+`compliance-audit` itself runs in.
+
+The operator's screen at /portal/launch shows the same split, and it is the
+authority if these ever disagree.
+
+**This paragraph said "Six are unmet today. Two are cleared" until 2026-09-22**,
+which was wrong twice over: the gate had moved on, and nine conditions minus two
+cleared is seven rather than six, so the sentence did not even agree with itself.
+It was written when the gate had eight conditions and was never re-derived.
+`compliance-audit` now binds these lists to the gate, so the next drift is a red
+board rather than a paragraph nobody re-reads.
 
 **`self-service-signup` joined on 2026-09-13**, and the board is what noticed: the
 gate grew an eighth condition on the Phase 13 branch and `compliance-audit`'s pinned
@@ -58,7 +76,7 @@ reads about nowhere.
 ### `switch`
 
 The operator's deliberate act. It was the whole gate until 2026-09-10 and is now
-one condition among seven, which is the entire point of the ruling that day:
+one condition among nine, which is the entire point of the ruling that day:
 setting it alone does not open anything, and `compliance-audit` sets it to `live`
 on every run specifically to prove the gate stays shut.
 
@@ -71,27 +89,44 @@ goes on printing a lapsed number is making a claim it cannot support.
 
 ### `trading-name`
 
-**This is the one holding the gate today.** TBPELS issued F-29811 to **254
-Services LLC**. All three sites hold out as **254 Engineering Services**. A
-registration in one name does not authorise holding out under another, and Texas
-regulates the use of "engineer" and "engineering" in how a firm names itself.
+**MET since 2026-09-21. This is no longer holding the gate**, and it held it
+longer than any other condition, so what it was is worth keeping beside what it
+is.
+
+TBPELS reissued F-29811 in the name **254 Engineering LLC** and also recorded
+**254 Engineering Services**, **Sealed Engineering** and **Stamp My Plans** as
+assumed names. The board now holds both the legal name and the name the sites
+trade under, by both of the routes this condition named.
+
+**What it was, until that letter arrived.** The board held 254 Services LLC while
+all three sites held out as 254 Engineering Services. A registration in one name
+does not authorise holding out under another, and Texas regulates the use of
+"engineer" and "engineering" in how a firm names itself, so printing the board's
+number beside a name the board had no record of would have been the exact
+misstatement this gate exists to prevent.
 
 It is a two field object rather than a boolean on purpose. A boolean can be
-flipped by anybody in a hurry; this one cannot be flipped without writing down
-what the board now holds.
+flipped by anybody in a hurry; this one could not be flipped without writing down
+what the board now holds, and the sentence recorded beside it is what the
+reissuance had to make true.
 
-**What the footer does in the meantime, ruled 2026-09-11.** The public footer
-reads `254 Services LLC, TBPELS Firm F-29811`, with the brand on its own line
-above it. The hazard was never printing the number. It was printing the number
-beside a name the board has no record of. Naming the registrant exactly as issued
-asserts only what the board's record says, and it means the day the gate opens
-the sites are already holding out under the registered name rather than changing
-what they say on the day a filing is acknowledged.
+**What the footer does, ruled 2026-09-11.** The public footer renders
+`registrationLine()`, which reads the registrant off the record rather than
+typing it. It resolves today to `254 Engineering LLC, TBPELS Firm F-29811`, with
+the brand on its own line above it, and it moved to that string by itself when
+the board reissued: nobody edited a footer.
 
-`tbpelsFirmNumber()` still returns null while the gate is shut, and that is not
-an inconsistency: it feeds the government page, the credentials strip and the
-schema block, which are claims of capability rather than a disclosure of who the
-registrant is.
+The hazard was never printing the number. It was printing the number beside a
+name the board has no record of. Naming the registrant exactly as issued asserts
+only what the board's record says.
+
+**`tbpelsFirmNumber()` returns `F-29811` today**, and until 2026-09-22 this
+paragraph claimed the number was withheld for as long as the gate was not open.
+That was true when
+the gate was one flag with two positions. The gate now answers three ways, the
+mode is `trading`, and the number is released in that mode because it feeds the
+government page, the credentials strip and the schema block, which are claims
+about who the registrant is once the registrant is real.
 
 ### `stripe`
 
@@ -151,9 +186,17 @@ it. Required rather than defaulted, because either default is wrong in a way
 nobody would see, and a required parameter makes the two sibling repositories
 fail to compile until somebody decides.
 
-**`approvedProtocols` is empty today, and that is the honest answer.** No PE is
-in responsible charge, so no protocol has been approved by an engineer of record,
-so all nine service lines are a waitlist.
+**`approvedProtocols` is empty today, and that is the honest answer.** An
+engineer of record IS in responsible charge, and `engineer-of-record` is met, so
+the reason this condition is unmet is narrower than it used to be: he has not yet
+approved a protocol version for sale through his own account. All 8 service lines
+are a waitlist until he does.
+
+**This paragraph said "No PE is in responsible charge" until 2026-09-22.** That
+sentence stopped being true when the engineer was recorded on the register, and
+it is the same false compliance sentence the portal sidebar carried in September,
+in the document a person reads to understand the gate. It also said nine service
+lines where the catalogue has 8. Both are bound to the code now.
 
 It is deliberately not a copy of `eng_protocol_templates`. That table is where an
 engineer authors and versions protocols. This is the declaration that a named
@@ -215,7 +258,7 @@ leaving a trace is one the next reader assumes was always this.
 Every condition here is an assertion a person wrote down. Nothing in this
 repository can see a filing cabinet, a Stripe dashboard, or a provider setting.
 `compliance-audit` asserts the shape of each condition, that the gate reads all
-seven, and that the catalogue and the operator's screen are wired to them. It
+nine, and that the catalogue and the operator's screen are wired to them. It
 deliberately does not verify the outside world.
 
 That is the same limit `supabase/applied.mjs` states about the difference between
@@ -242,26 +285,37 @@ and requiring the number means the gate cannot be opened by optimism.
 The condition above is about the name the firm **trades** under. This is about
 the name the firm **is**, and it was found while wiring these conditions.
 
-| | Says |
-| --- | --- |
-| `business.legalName` in `src/config/business.ts` | 254 Engineering Services LLC |
-| `verifiedFirmRegistrations[0].issuedTo` | 254 Services LLC |
+**RESOLVED. Both now read 254 Engineering LLC**, and the table below is what
+they said when the discrepancy was found, kept because a question that vanishes
+looks like one nobody asked.
+
+| | Said, 2026-09-11 | Says today |
+| --- | --- | --- |
+| `business.legalName` in `src/config/business.ts` | 254 Engineering Services LLC | **254 Engineering LLC** |
+| `verifiedFirmRegistrations[0].issuedTo` | 254 Services LLC | **254 Engineering LLC** |
+
+The operator answered the entity question on 2026-09-13 holding the formation
+documents: the entity was 254 Services LLC and `business.legalName` was wrong.
+TBPELS then reissued F-29811 in the name 254 Engineering LLC on 2026-09-21, which
+moved `issuedTo` as well, and `legalEntityMatchesRegistrant` records the answer
+with `resolved: true`.
 
 `business.legalName` renders as **"Legal entity"** on `/government`, which is the
 capability statement a municipal, county, state or federal buyer reads, and in
 the footer copyright line on every page.
 
-**Exactly one of these can be right.** Either `business.legalName` is wrong and
-the entity is 254 Services LLC, in which case the capability statement has been
-naming the wrong company to government buyers. Or there are genuinely two
-entities, in which case the registration belongs to one and the website describes
-the other.
+**Exactly one of them could be right, and that was the point.** Either
+`business.legalName` was wrong and the entity was 254 Services LLC, in which case
+the capability statement had been naming the wrong company to government buyers.
+Or there were genuinely two entities, in which case the registration belonged to
+one and the website described the other. It was the first.
 
-**Nothing in this repository guesses which.** The operator holds the formation
-documents. It is recorded in `legalEntityMatchesRegistrant` in
-`src/config/credentials.ts` with both names written out, and `compliance-audit`
-asserts the record names them and stays true of the values as they are today, so
-it cannot be resolved by editing one string and assuming the other followed.
+**Nothing in this repository guessed which, and that is why it got answered.**
+The operator holds the formation documents. It is recorded in
+`legalEntityMatchesRegistrant` in `src/config/credentials.ts` with both names
+written out, and `compliance-audit` asserts the record names them and stays true
+of the values as they are today, so it could not be resolved by editing one
+string and assuming the other followed.
 
 **It is deliberately not an eighth launch condition.** The gate already will not
 open, on `operating-name`. A second condition for the same underlying fact would
