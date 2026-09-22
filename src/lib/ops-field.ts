@@ -449,7 +449,7 @@ export async function approveProtocol(
   if (!licenceIsCurrent(onRegister.expires, new Date().toISOString().slice(0, 10))) {
     return {
       ok: false,
-      error: `The register has no current expiry for licence ${licence}, and an unrecorded expiry is not a current licence.`,
+      error: `The register has no current expiry for license ${licence}, and an unrecorded expiry is not a current license.`,
     };
   }
 

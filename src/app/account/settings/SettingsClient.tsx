@@ -290,7 +290,7 @@ export function SettingsClient({
       <section className="mt-4 rounded-[4px] border border-[var(--border)] bg-white p-5">
         <h2 className="font-display text-[1.15rem] font-semibold text-[var(--navy)]">API keys</h2>
         <p className="mt-1 text-[12.5px] leading-[1.55] text-[var(--secondary)]">
-          For placing orders from your own systems. A key can order only for this organisation,
+          For placing orders from your own systems. A key can order only for this organization,
           because the account is read from the key rather than from the request.
         </p>
 

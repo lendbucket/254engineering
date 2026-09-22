@@ -469,7 +469,7 @@ export function ApproveButton({
       </p>
       <p className="mt-2 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
         Only an engineer on the firm&rsquo;s register may do this, through his own account. It is
-        recorded against his licence.
+        recorded against his license.
       </p>
       <Problem message={error} />
       <button

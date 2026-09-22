@@ -203,7 +203,7 @@ export default async function PartnerMaterials() {
         </p>
         <p className="mt-3 max-w-[74ch] text-[13.5px] leading-[1.65] text-[var(--ink)]">
           What this cannot do is police what is published elsewhere, and nothing here should be read
-          as suggesting otherwise. The programme agreement is what governs that, and the firm can
+          as suggesting otherwise. The program agreement is what governs that, and the firm can
           withdraw approval at any time.
         </p>
       </Panel>

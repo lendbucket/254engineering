@@ -38,7 +38,7 @@ export default async function AccountLoginPage({
             Sign in to your account
           </h1>
           <p className="mt-2 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
-            For organisations that order regularly. If you placed a single order, the link emailed
+            For organizations that order regularly. If you placed a single order, the link emailed
             to you opens it without signing in.
           </p>
 

@@ -160,7 +160,7 @@ export default function WhatIsAStructuralEngineerPage() {
           <div className="lg:col-span-8">
             <p className="text-[1.02rem] leading-[1.75] text-slate-fg-muted">
               In Texas, engineer is a regulated title. A person may use it professionally only if
-              they hold a licence from the Texas Board of Professional Engineers and Land Surveyors,
+              they hold a license from the Texas Board of Professional Engineers and Land Surveyors,
               and a firm may offer engineering services only if it holds a firm registration. Those
               are two separate things and both are checkable by anybody, in a public register, in
               about a minute.

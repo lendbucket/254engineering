@@ -142,7 +142,7 @@ export default async function PartnerReferrals() {
             stronger signal than a cookie.
           </li>
           <li>
-            An existing customer placing another order is not credited. The programme pays for
+            An existing customer placing another order is not credited. The program pays for
             bringing business, not for being the last link somebody clicked.
           </li>
         </ul>

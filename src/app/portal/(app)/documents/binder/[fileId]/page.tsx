@@ -195,7 +195,7 @@ export default async function BinderPage({ params }: { params: Promise<{ fileId:
                     </StatusPill>
                     <span className="text-[12.5px] text-[var(--secondary)]">
                       {d.engineerName}
-                      {d.licenseNumber ? ` · licence ${d.licenseNumber}` : ""} · {WHEN(d.at)}
+                      {d.licenseNumber ? ` · license ${d.licenseNumber}` : ""} · {WHEN(d.at)}
                       {d.minutes !== null ? ` · ${d.minutes} minutes` : ""}
                     </span>
                   </div>

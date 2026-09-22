@@ -97,7 +97,7 @@ export function OrdersClient({
       }
       setNote(
         data.refundedCents > 0
-          ? `Cancelled and refunded ${money(data.refundedCents)}.`
+          ? `Canceled and refunded ${money(data.refundedCents)}.`
           : "Canceled. Nothing had been charged, so nothing was refunded.",
       );
       setRefunding(null);

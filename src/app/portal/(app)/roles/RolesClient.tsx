@@ -119,7 +119,7 @@ export function RolesClient({
                 ) : null}
                 {role.key === licensed.role ? (
                   <span className="rounded-[3px] bg-[var(--gold-wash)] px-2 py-0.5 text-[12px] font-semibold text-[var(--ink)]">
-                    Carries the licence
+                    Carries the license
                   </span>
                 ) : null}
               </div>

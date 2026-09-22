@@ -1164,14 +1164,14 @@ export async function cancelAndRefund(input: {
      * say which of the two happened, because "cancelled" and "refunded" are
      * different answers to a customer asking about their card.
      */
-    const closed = await markAbandoned(input.orderId, `The firm cancelled this order. ${reason}`);
+    const closed = await markAbandoned(input.orderId, `The firm canceled this order. ${reason}`);
     if (!closed.ok) return { ok: false, error: closed.error };
     await writeAudit({
       actor: input.actor as never,
       action: "order.cancelled_by_firm",
       entityType: "service_order",
       entityId: input.orderId,
-      summary: `${order.reference}: cancelled with nothing charged. ${reason}`,
+      summary: `${order.reference}: canceled with nothing charged. ${reason}`,
     });
     return { ok: true, refundedCents: 0, providerRef: "", alreadyRefunded: false };
   }
@@ -1264,7 +1264,7 @@ export async function cancelAndRefund(input: {
     action: "order.cancelled_by_firm",
     entityType: "service_order",
     entityId: input.orderId,
-    summary: `${order.reference}: cancelled by the firm and refunded ${money(result.amountCents)}. ${reason}`,
+    summary: `${order.reference}: canceled by the firm and refunded ${money(result.amountCents)}. ${reason}`,
   });
 
   return {

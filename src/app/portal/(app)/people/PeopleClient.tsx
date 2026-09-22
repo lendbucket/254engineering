@@ -263,7 +263,7 @@ export function NewPersonForm({
           {asks.includes("licence") ? (
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div>
-                <label htmlFor="licenseNumber" className={label}>Texas PE licence number</label>
+                <label htmlFor="licenseNumber" className={label}>Texas PE license number</label>
                 <input id="licenseNumber" name="licenseNumber" className={field} />
               </div>
               <div>

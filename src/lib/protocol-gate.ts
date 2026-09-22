@@ -103,7 +103,7 @@ export function lineBlocks(
         serviceSlug: slug,
         because:
           anyone.length > 0
-            ? `${protocol.documentNumber} requires ${protocol.requiresDiscipline}, and the engineers who seal it hold no current licence.`
+            ? `${protocol.documentNumber} requires ${protocol.requiresDiscipline}, and the engineers who seal it hold no current license.`
             : `${protocol.documentNumber} requires ${protocol.requiresDiscipline}, and no engineer on record seals that.`,
         clearedBy:
           anyone.length > 0

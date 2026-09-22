@@ -64,7 +64,7 @@ export default async function PartnerLoginPage({
 
             {ready ? null : (
               <SystemAlert condition="Not configured." tone="failed">
-                The partner programme is not configured on this deployment, so nobody can sign in.
+                The partner program is not configured on this deployment, so nobody can sign in.
                 What is missing is in the server logs rather than on this page.
               </SystemAlert>
             )}

@@ -590,7 +590,7 @@ export function portalInvite(input: {
         },
         {
           kind: "p",
-          text: `If you were not expecting this, write to ${business.email} and it will be cancelled.`,
+          text: `If you were not expecting this, write to ${business.email} and it will be canceled.`,
         },
       ],
       button: input.setPasswordUrl

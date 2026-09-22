@@ -52,7 +52,7 @@ export function OpenReviewButton({ fileId, status }: { fileId: string; status: s
       </p>
       <p className="mt-1 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
         Taking it into review starts the clock. The elapsed time until you decide goes on your
-        responsible charge record, which is the record your licence stands on, so it is measured
+        responsible charge record, which is the record your license stands on, so it is measured
         rather than asked for afterwards.
       </p>
       {error ? (

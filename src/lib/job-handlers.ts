@@ -801,7 +801,7 @@ registerJob("retention.sweep", {
       summary:
         `Retention ${r.mode === "execute" ? "deleted" : "would have deleted"} ${r.affected} row(s) ` +
         `from ${r.table}, having intended ${r.intended}. ${r.reconciled ? "Reconciled." : "DID NOT RECONCILE."} ` +
-        `Authorised by ${r.actorRole ?? "nobody the manifest names"}.`,
+        `Authorized by ${r.actorRole ?? "nobody the manifest names"}.`,
       diff: {
         table: r.table, mode: r.mode, intended: r.intended, affected: r.affected,
         reconciled: r.reconciled, actorRole: r.actorRole,

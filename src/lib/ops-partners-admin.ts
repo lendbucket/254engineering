@@ -325,7 +325,7 @@ export async function createPartner(
     action: "partner.created",
     entityType: "partner",
     entityId: data.id as string,
-    summary: `${organisation} added to the referral programme with code ${code}`,
+    summary: `${organisation} added to the referral program with code ${code}`,
   });
 
   return { ok: true, id: data.id as string };

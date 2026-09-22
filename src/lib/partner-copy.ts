@@ -184,6 +184,6 @@ export function performingFirmLine(): string {
    * the platform itself refuses.
    */
   return !isOpen()
-    ? [`${firmName()} is the firm of record for work referred through this programme, and is the firm that will perform and seal it.`, registrationStatement()].filter(Boolean).join(" ")
-    : `${firmName()} is the firm of record for work referred through this programme, and is the firm that performs and seals it.`;
+    ? [`${firmName()} is the firm of record for work referred through this program, and is the firm that will perform and seal it.`, registrationStatement()].filter(Boolean).join(" ")
+    : `${firmName()} is the firm of record for work referred through this program, and is the firm that performs and seals it.`;
 }

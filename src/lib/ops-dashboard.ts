@@ -643,7 +643,7 @@ async function engineerDashboard(actor: Actor): Promise<EngineerDashboard> {
     {
       label: "Tasks overdue",
       count: tasks.overdue,
-      note: `${tasks.open} open in total, including the licence and filing dates.`,
+      note: `${tasks.open} open in total, including the license and filing dates.`,
       href: "/portal/tasks",
       tone: tasks.overdue === 0 ? "good" : "bad",
     },

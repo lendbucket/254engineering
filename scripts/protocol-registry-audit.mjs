@@ -268,10 +268,16 @@ rec(
     lineBlocks(["x"], declared, [civilOnly], TODAY)[0]?.because ?? "not blocked",
   );
   rec(
-    "and an engineer who seals it but holds no current licence blocks it, with a different sentence",
-    lineBlocks(["x"], declared, [lapsed], TODAY)[0]?.because.includes("hold no current licence") &&
-      lineBlocks(["x"], declared, [undated], TODAY)[0]?.because.includes("hold no current licence"),
-    "a lapsed licence and an unrecorded expiry both block, and neither reads as nobody seals it",
+    /*
+     * "license", one word moved with the US spelling ruling of 2026-09-22.
+     * The sentence lives in protocol-gate.ts and this pins it, which is the
+     * section 6c shape: two edits made on purpose. This check went red naming
+     * the sentence, which is it asking whether the change was meant.
+     */
+    "and an engineer who seals it but holds no current license blocks it, with a different sentence",
+    lineBlocks(["x"], declared, [lapsed], TODAY)[0]?.because.includes("hold no current license") &&
+      lineBlocks(["x"], declared, [undated], TODAY)[0]?.because.includes("hold no current license"),
+    "a lapsed license and an unrecorded expiry both block, and neither reads as nobody seals it",
   );
   rec(
     "and one covering engineer among several is enough, so the rule survives a second engineer",

@@ -125,7 +125,7 @@ export default function StructuralEngineerPage() {
         />
         <div className="mt-8 max-w-[68ch]">
           <p className="text-[1.02rem] leading-[1.75] text-slate-muted">
-            Expansive clay behaviour, coastal wind requirements, and rock and caliche near the Hill
+            Expansive clay behavior, coastal wind requirements, and rock and caliche near the Hill
             Country are genuinely different problems, and each of the{" "}
             <Link href="/coverage" className="underline underline-offset-4">
               eight coverage regions

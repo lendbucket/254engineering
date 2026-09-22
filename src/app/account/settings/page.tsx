@@ -29,7 +29,7 @@ export default async function AccountSettingsPage() {
         Settings
       </h1>
       <p className="mt-3 max-w-[62ch] text-[1rem] leading-[1.7] text-[var(--secondary)]">
-        What the firm uses by default when this organisation orders. Everything here can still be
+        What the firm uses by default when this organization orders. Everything here can still be
         changed on a single order.
       </p>
 

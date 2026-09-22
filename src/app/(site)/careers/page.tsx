@@ -85,7 +85,7 @@ export default function CareersPage() {
               Firm registration with the Texas Board of Professional Engineers and Land Surveyors is
               pending and no engineer of record is yet in responsible charge, so no assignments are
               being dispatched. Applications are open and are being read now. Anyone who joins is
-              joining at the point where the firm becomes able to practise, not after it.
+              joining at the point where the firm becomes able to practice, not after it.
             </p>
           </aside>
         ) : null}

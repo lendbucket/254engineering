@@ -184,7 +184,7 @@ export default async function DisputesPage({
             </p>
             <p className="mt-3 max-w-[74ch] text-[13.5px] leading-[1.65] text-[var(--ink)]">
               Both entries stand, and both appear on the statements. A partner who was corrected
-              downward can read why, which is the difference between a programme somebody trusts and
+              downward can read why, which is the difference between a program somebody trusts and
               one they audit.
             </p>
           </Panel>

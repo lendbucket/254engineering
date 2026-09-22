@@ -60,7 +60,7 @@ export default async function AccountSignUpPage() {
               version says you do not have to come here first rather than
               implying you never get an account by ordering.
             */}
-            For organisations that expect to order more than once. You do not have to start here:
+            For organizations that expect to order more than once. You do not have to start here:
             paying for an order opens an account too, and the link emailed with it works either
             way.
           </p>

@@ -103,7 +103,7 @@ export default async function TasksPage({
         <div className="mb-5 rounded-[4px] border border-[var(--border)] bg-white px-4 py-4">
           <p className="text-[13.5px] font-semibold text-[var(--navy)]">The compliance obligations are not seeded yet</p>
           <p className="mt-1.5 max-w-[75ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
-            The PE licence renewal, the DWC-005 filing, the TBPELS and errors and omissions renewals,
+            The PE license renewal, the DWC-005 filing, the TBPELS and errors and omissions renewals,
             and the monthly credential sweep. Two of them carry no due date on purpose, because
             nobody has given one and a guessed compliance deadline is worse than an empty field.
           </p>
