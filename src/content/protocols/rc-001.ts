@@ -174,17 +174,60 @@ export const RC001 = {
    * fine as long as it is WRITTEN DOWN with both names, and it becomes a
    * failure the moment the world moves and the record does not.
    */
+  /*
+   * ===================================================================
+   * RESOLVED 2026-09-21, AND NOT THE WAY ANYBODY EXPECTED.
+   * Operator ruling. THE DOCUMENT IS UNCHANGED.
+   * ===================================================================
+   *
+   * This was recorded as a discrepancy waiting on a REISSUE OF THE PROTOCOL:
+   * the document names the firm "254 Engineering Services", the Board held
+   * F-29811 as "254 Services LLC", and the plan was to correct the document in
+   * the same sitting as `issuedTo`.
+   *
+   * The Board's verification letter of 2026-09-21 closes it from the other
+   * end. TBPELS reissued F-29811 to 254 Engineering LLC **and recorded
+   * 254 Engineering Services as an assumed name**, alongside Sealed
+   * Engineering and Stamp My Plans. So the name printed on the signed document
+   * is a name the Board holds, as a DBA, as of that date.
+   *
+   * **NOTHING ABOUT THE DOCUMENT CHANGES, AND NO REISSUE IS OWED.** The
+   * engineer signed those words and they are now supported by the register
+   * rather than at odds with it. This is the cheapest possible resolution of a
+   * naming discrepancy and it was not available when the discrepancy was
+   * recorded, which is the argument for recording rather than resolving: a
+   * session that had "fixed" this by editing the document would have altered a
+   * signed engineering authority to solve a problem that dissolved on its own.
+   *
+   * WHAT IS STILL TRUE AND IS NOT BEING GLOSSED: the document names a DBA
+   * rather than the registrant. `firmNameOnDocument` is not the firm name in a
+   * sentence, and standing law still says 254 Engineering Services is never
+   * the legal or firm name. The record now says the Board holds it as a DBA,
+   * which is a weaker and accurate claim, rather than saying it matches the
+   * registrant, which would be false.
+   */
   naming: {
+    /* The registrant is 254 Engineering LLC; the document names a DBA. */
     matchesBoardRegister: false,
+    matchesBoardDba: true,
     registrantWhenRecorded: "254 Services LLC",
+    registrantNow: "254 Engineering LLC",
+    dbaRecordedOn: "2026-09-21",
     because:
-      "254-RC-001 v1.0 names the firm 254 Engineering Services throughout, and TBPELS holds F-29811 in " +
-      "the name 254 Services LLC. Operator ruling 2026-09-16: the document stands exactly as signed, the " +
-      "naming is the operator's error before it is the engineer's because the windstorm protocol sent as " +
-      "the format carried the same name, and it is reissued as v1.1 with the legal name corrected in the " +
-      "same sitting as issuedTo when TBPELS reissues the registration.",
+      "254-RC-001 names the firm 254 Engineering Services throughout. When that was recorded, on " +
+      "2026-09-16, TBPELS held F-29811 as 254 Services LLC and the name on the document matched " +
+      "nothing on the register, so the plan was to reissue the protocol with the legal name corrected " +
+      "in the same sitting as issuedTo. THE BOARD'S REISSUANCE OF 2026-09-21 RESOLVED IT WITHOUT " +
+      "TOUCHING THE DOCUMENT: F-29811 is now issued to 254 Engineering LLC and the Board separately " +
+      "records 254 Engineering Services as an assumed name, verified by Jessica Nassour, Licensing " +
+      "Specialist, on the letter held in the compliance file. The name printed on the signed document " +
+      "is a name the Board holds. It is a DBA rather than the registrant, which is why " +
+      "matchesBoardRegister stays false and matchesBoardDba records what is actually true. The " +
+      "document stands exactly as signed and no reissue is owed for the naming.",
     closesWhen:
-      "TBPELS reissues F-29811 in the new name and 254-RC-001 is reissued as v1.1 with the legal name corrected.",
+      "Closed 2026-09-21 by the Board recording 254 Engineering Services as a DBA on F-29811. It " +
+      "reopens only if the Board ceases to hold that assumed name, which would make the document name " +
+      "a firm nothing on the register supports.",
   },
 
   sections: RC001_SECTIONS,

@@ -77,11 +77,57 @@ export type BatchSplit = {
  * ops-dispatch already normalises the same two when it matches coverage. The
  * set is built once from the canonical list rather than at every call.
  */
-const normalizeCountyName = (c: string) => c.trim().replace(/s+county$/i, "").toLowerCase();
+/*
+ * THE BACKSLASH WAS EATEN AND THIS NEVER STRIPPED A SUFFIX. Found 2026-09-21
+ * by the sweep for escapes the shell swallowed whole.
+ *
+ * It read `/s+county$/i`, which is a perfectly valid pattern looking for one
+ * or more literal "s" IMMEDIATELY followed by "county". In "Harris County"
+ * there is a space between them, so it never matched, and it never could.
+ *
+ * WHAT IT COST WHILE NOBODY COULD SEE IT. The canonical list is bare names,
+ * "Aransas", "Harris", "Nueces", so TEXAS_COUNTY_KEYS holds "harris". A
+ * customer typing "Harris County", which the comment above says is a thing
+ * customers type either way, normalised to "harris county" and was not
+ * recognised as a Texas county at all. The case half worked, so the function
+ * looked like it was doing its job.
+ *
+ * This is the shape the control character check CANNOT find: an eaten \b
+ * leaves a backspace byte, but an eaten \s leaves a bare "s" that parses,
+ * runs, and matches almost nothing. Only a test that exercises the pattern
+ * with real input can tell. `bulk-audit` now carries that test.
+ */
+const normalizeCountyName = (c: string) => c.trim().replace(/\s+county$/i, "").toLowerCase();
 const TEXAS_COUNTY_KEYS = new Set(TEXAS_COUNTIES.map(normalizeCountyName));
 
-function isCoastal(entry: CatalogEntry, county: string, twiaCounties: Set<string>): boolean {
-  return isKnown(entry.coastalSurchargeCents) && twiaCounties.has(county);
+/*
+ * ===========================================================================
+ * THE HOLE THE NORMALISER FIX OPENED, AND IT IS ABOUT MONEY.
+ * Found 2026-09-21 by the check written alongside that fix.
+ * ===========================================================================
+ *
+ * This compared the RAW county against the TWIA set while the acceptance test
+ * two calls away compared the NORMALISED one. Two spellings of the same
+ * question inside one function.
+ *
+ * It was invisible for as long as the normaliser was broken. "Nueces County"
+ * failed the acceptance test and the property was REFUSED, so the surcharge
+ * was never reached. Repairing the eaten backslash made that property
+ * ACCEPTED, and it went straight past this line at the inland price: a coastal
+ * order, silently undercharged, which is worse than the refusal it replaced.
+ *
+ * **A FIX THAT CURES THE CASE IN FRONT OF YOU CAN OPEN A WORSE ONE.** CLAUDE.md
+ * section 6 says the hole a fix opens is found by injection-verifying the FIX
+ * rather than the defect, and this is that rule paying for itself: nothing
+ * about repairing a regex looked like it could change a price.
+ *
+ * BOTH SIDES ARE NORMALISED NOW, because the set is canonical bare names
+ * ("Nueces") and a customer types anything ("nueces county"). Comparing a
+ * normalised key against an unnormalised set is the same defect with the
+ * spellings swapped.
+ */
+function isCoastal(entry: CatalogEntry, county: string, twiaKeys: Set<string>): boolean {
+  return isKnown(entry.coastalSurchargeCents) && twiaKeys.has(normalizeCountyName(county));
 }
 
 export function splitBatch(
@@ -113,6 +159,14 @@ export function splitBatch(
    * not.
    */
   const seen = new Set<string>();
+
+  /*
+   * The TWIA list normalised ONCE, not per property. It arrives as canonical
+   * bare names from FIRST_TIER_COASTAL and is compared against whatever a
+   * customer typed, so both sides go through the same normaliser or the
+   * comparison is the defect this function just finished removing.
+   */
+  const twiaKeys = new Set([...twiaCounties].map(normalizeCountyName));
 
   for (const p of properties) {
     if (seen.has(p.ref)) {
@@ -177,7 +231,7 @@ export function splitBatch(
       continue;
     }
 
-    const coastal = isCoastal(entry, p.county, twiaCounties);
+    const coastal = isCoastal(entry, p.county, twiaKeys);
     const quote = quoteFor(entry, coastal, p.county, agreedPriceCents ?? null);
 
     /*

@@ -62,9 +62,30 @@ const rec = (name, ok, note = "") => out.push({ name, ok, note });
  * board issued, which is not a thing that happens because a test was failing.
  */
 const FIRM_NUMBER = "F-29811";
-const ISSUED_TO = "254 Services LLC";
+/*
+ * MOVED 2026-09-21, AND THE SECOND EDIT IS THE MECHANISM RATHER THAN A CHORE.
+ *
+ * TBPELS reissued F-29811 to 254 Engineering LLC. Changing `issuedTo` in the
+ * register moved every rendered sentence at once, because `firmName()` derives
+ * from it, and SEVEN checks here went red naming this literal and its
+ * neighbours. That is section 6c working exactly as written: a ruled value is
+ * stated in the code and pinned as a literal in the audit, so the audit asks
+ * whether the change was meant instead of following it.
+ *
+ * The evidence is the Board's verification letter, verified 2026-09-21 by
+ * Jessica Nassour, Licensing Specialist, digested in the register.
+ */
+const ISSUED_TO = "254 Engineering LLC";
 const EXPIRES = "2027-07-31";
 const TRADING_AS = "254 Engineering Services";
+/*
+ * AND THE BRAND IS NOW A DBA THE BOARD HOLDS, which it was not on 2026-09-16.
+ * The letter records three assumed names on F-29811. Pinned in the Board's own
+ * spelling and order, so a change to the register's list is a deliberate edit
+ * here too, and "Stamp My Plans" keeps the Board's three word spelling rather
+ * than the brand's one word one.
+ */
+const BOARD_DBAS = ["Sealed Engineering", "Stamp My Plans", "254 Engineering Services"];
 
 console.log("");
 console.log("================ THE COMPLIANCE GATE ================");
@@ -1366,7 +1387,7 @@ const RULED_CONDITIONS = [
   );
 
   /* The ruled sentences, written out, because an audit does not import its expectation. */
-  const RULED = "254 Services LLC is a Texas registered engineering firm, TBPELS Firm Registration F-29811.";
+  const RULED = "254 Engineering LLC is a Texas registered engineering firm, TBPELS Firm Registration F-29811.";
   rec(
     "the registration sentence is exactly the ruled one, built from the register",
     registrationStatement() === RULED,

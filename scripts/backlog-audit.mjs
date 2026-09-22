@@ -67,7 +67,7 @@ const backlog = readSource("BACKLOG.md");
  *
  * Variable length lookbehind is supported in V8, so it sits inline.
  */
-const NOT_OPEN = String.raw`(?<!not because they are )(?<!no longer )(?<!are not )(?<!is not )`;
+const NOT_OPEN = String.raw`(?<!\bnot because they are )(?<!\bno longer )(?<!\bare not )(?<!\bis not )`;
 
 const MARKERS = [
   /\bnot built\b/i,

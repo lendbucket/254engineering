@@ -759,7 +759,7 @@ console.log(`configured target: ${current ? describeTarget(current) : "unset"}\n
    * The pattern that used to live here matched a literal column name followed
    * immediately by the machine clock:
    *
-   *   /[a-z_]+_at(:|s*=)s*(new Date().toISOString()|now|...)/
+   *   /\b[a-z_]+_at(:|\s*=)\s*(new Date().toISOString()|now\b|...)/
    *
    * It was widened once already, after setLedgerStatus was found stamping three
    * hundred technician payment rows from this machine in one press. It was

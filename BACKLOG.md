@@ -27,6 +27,175 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
+## TWO REDS ON THE BOARD, 2026-09-21, AND BOTH ARE OWED HUMAN READS
+
+Operator ruling. **Both are recorded here as owed rather than fixed, and the
+board is expected to be red on exactly these two and nothing else.** Neither is
+a code defect. Each is a fact about the world that no check in this repository
+can reach, which is why each is red instead of absent.
+
+### One: the Stripe legal business name has no evidence behind it
+
+```
+FAIL: the Stripe console record names the registrant on the board's record
+```
+
+TBPELS reissued F-29811 to 254 Engineering LLC on 2026-09-21, so `issuedTo`
+moved and the equality went red naming the Stripe field as stale. **That is the
+check working as designed**, and it was designed for exactly this day: the
+operator's standing instruction was that Stripe's legal name changes in the
+same sitting as `issuedTo`, and asserting the equality makes that instruction
+mechanical rather than remembered.
+
+The operator changed it in the dashboard the same day. **The evidence was taken
+and then destroyed on purpose.** A screenshot of the Business details page
+showed the new name, and it also showed his date of birth and his home address,
+so he ruled it deleted. It was never staged and never committed, verified with
+`git ls-files` and `git log --all` before deletion.
+
+**So `legalBusinessName` still holds the last value anybody actually read**,
+from 2026-09-16, and the check is red. A green there would say the platform had
+checked something it has not.
+
+**The general rule this produced, which outlives the incident:** a Stripe
+settings page renders the account representative's personal details beside the
+business ones, so a screenshot of it is a personal data file. The next capture
+is cropped to the business fields or it is not taken.
+
+**Two ways to close it**, and both keep the key out of the tree: a cropped
+screenshot, digested into `stripeConsole.evidence`; or the operator running
+`STRIPE_SECRET_KEY=sk_... npx tsx scripts/stripe-webhook-audit.mjs` himself, so
+the key never enters a session transcript. `.env.local` sets no `STRIPE_*`
+variable and will not.
+
+**Still never captured, and needed before any charge:** the Account status and
+Verified tabs. A requirement or restriction on either would not appear in the
+record at all.
+
+### Two: the engineer's roster entry has not been re-read since the reissuance
+
+```
+FAIL: and this firm appears on the engineer's own roster entry, which is the
+      registration reflected from his side (254 Services LLC, Williams Scotsman Inc.)
+```
+
+`verifiedEngineers[0].employersOnRoster` holds what the operator read off the
+TBPELS roster for Aman Dhakal **on 2026-09-16**: employers 254 Services LLC and
+Williams Scotsman Inc. The firm's own record changed on 2026-09-21. **Nobody has
+looked at the licensee's entry since.**
+
+**`employersOnRoster` is an observation and must not be edited to match.** Its
+own comment says so: "Recorded as the roster lists them, including the employer
+that is not this firm, because an edited list is not what the roster says," and
+"Nothing here can read the roster; this is what a person read, on a date, and
+said." Editing it would assert a Board record nobody has checked, and would be
+undetectable afterwards because the record would look read.
+
+**Operator ruling: the check stays red, the array is not edited, and the check
+is not loosened.**
+
+**Why it matters rather than being bookkeeping.** TBPELS holds the FIRM and the
+LICENSEE as two records and they can disagree. Three outcomes when somebody
+looks, and they are different facts:
+
+| The roster shows | What it means |
+| --- | --- |
+| 254 Engineering LLC | Both records moved together. Re-record with the date. |
+| 254 Services LLC | The firm reissued and the licensee's entry still names the old employer. Worth knowing before anything is sealed. |
+| Neither | A larger question about whether he is listed with this firm at all. |
+
+## AN EATEN `\b` LEAVES A BARE `b`, AND NO READING CAN TELL IT FROM INTENT
+
+Operator ruling, 2026-09-21. Recorded as a permanent limitation of the checks
+added the same day, not as work somebody will finish.
+
+**The backslash hazard has two shapes and only one leaves evidence.**
+
+| Eaten escape | What lands on disk | Findable by |
+| --- | --- | --- |
+| `\b` | byte `0x08`, a backspace | **the control character check** in `project-accountability-audit` |
+| `\s` `\d` `\w` | a bare `s`, `d`, `w` | a heuristic sweep, because the letter sits against a quantifier |
+| **`\b` written as `\b` inside a pattern that is then re-typed** | **a bare `b`** | **nothing** |
+
+The third row is the one this entry exists for. `b` is a legal thing to match:
+`/bar/` is a perfectly ordinary pattern. There is no adjacency tell, because
+`b` is followed by whatever the author meant to match next. **A bare `b` where
+`\b` was intended is indistinguishable from a bare `b` that was intended**, by
+any reading of the source, by any linter, and by both checks added today.
+
+**So those patterns are verified only by the tests that exercise them.** Not by
+reading, not by a scan, not by review. The question to ask of a boundary
+assertion is never "does this look right", it is "what input does this pattern
+have to match, and does something feed it that input and watch".
+
+### Why this is not paranoia
+
+Every instance so far was found by accident or by consequence, never by looking:
+
+- `\b` in `compliance-audit`, found when the audit failed on correct copy.
+- Twenty `\b` in `regulatory.mjs`, found when a gated set matched nothing and
+  **passed by matching nothing**, which is the worst available outcome.
+- Four `\b` in `backlog-audit`, found 2026-09-21 by the control character
+  check. Its exclusions had never once fired; the verdict was unchanged, which
+  is why nobody noticed for as long as no document used those phrases.
+- `\s` in `bulk-order.ts`, found by the sweep, and it had been **refusing real
+  Texas counties by name** the entire time.
+
+**None of those was found by somebody reading the regex.** Three were found by
+a check, one by a consequence, and the checks that found them cannot see the
+`b` case at all.
+
+### What follows practically
+
+Where a `\b` carries weight, the check that proves it feeds the pattern a
+string it must match and a string it must not. `backlog-audit` has that now, in
+both directions, added the day its own boundaries were repaired. Every other
+pattern in `scripts/lib/regulatory.mjs` already has it, because the operator
+ruled on 2026-09-20 that a set which matches none of its own examples is dead
+whatever its length says.
+
+## SETTLED BY RERUN, 2026-09-21: `/coverage` LCP IS MACHINE VARIANCE, AND THE CEILING DID NOT MOVE
+
+The board on `main` at `aac97ee` returned one FAIL, and it was the only FAIL in
+the run:
+
+```
+FAIL: coverage hub: LCP 3447ms within 3400ms (/coverage, median of 3, spread 149ms)
+```
+
+**Operator ruling: rerun twice standalone against a real server, nothing beside
+it, report all three figures, and do not touch the ceiling in either case.**
+Both reruns came in under, on the same build:
+
+| Run | LCP | Spread | Verdict |
+| --- | --- | --- | --- |
+| Board, in-suite | **3447ms** | 149ms | FAIL, 47ms over |
+| Rerun 1, standalone | **3245ms** | 227ms | PASS |
+| Rerun 2, standalone | **3243ms** | 4ms | PASS |
+
+Build `6m-W5FhHKLj6Xw2MiUqTB`, confirmed by the preflight on both reruns, so all
+three measured the same artifact. **So the board stands as 56 of 58 with its one
+FAIL settled by rerun**, and the ceiling is unchanged at 3400ms.
+
+**WHY THIS IS RECORDED RATHER THAN SHRUGGED OFF.** 47ms is 1.4 percent, and the
+honest reading is that this route sits close enough to its ceiling that the
+board's own load decides the verdict. The board runs 58 audits and several
+browsers; a standalone run does not. That is a difference in the MEASUREMENT
+CONDITIONS, not in the page, and it means this check will flip again.
+
+The third verdict is what makes the history legible. One board earlier the same
+route reported `COULD NOT TELL: median of 3, spread 462ms. The range 3222 to
+3684ms straddles the ceiling and is wider than 340ms, so this run cannot say.`
+It did not say, correctly. The next run's spread was 149ms, inside the stability
+band, so the gate could say and said over. **The gate is working exactly as
+designed and the number underneath it is marginal.**
+
+**What is NOT concluded here**: that the page is fine. Nobody has asked what the
+largest paint on `/coverage` actually is. The operator's ruling was explicit
+that if either rerun had failed, the cause would be found and reported before
+anything was fixed. Neither did, so that investigation is not owed today, and it
+is owed the first time a rerun fails.
+
 ## FOR COUNSEL: TWO QUESTIONS ABOUT THE OFFER CLAUSE ON THE TERMS PAGE
 
 Recorded 2026-09-21 on the operator's instruction. **Not now, and not a thing a
@@ -284,6 +453,37 @@ ever, both `/portal/accounts`.
 
 **`contrast-audit` did not meet the stall**, so the third verdict's emitted
 output remains unproven. It measured `/portal/accounts` clean at both widths.
+
+### CORRECTED AGAIN, SAME DAY, ONE BOARD LATER: FOUR AUDITS, AND THE UNDERCOUNT SPANS TWO
+
+The correction below said three audits and a one-audit undercount. **The board
+on `main` at `aac97ee` makes it four and two**, and it is corrected in place a
+second time rather than accumulating entries.
+
+```
+mobile-overflow-audit   /portal/accounts @360 @390                45000ms
+native-audit            /portal/accounts                          45000ms
+mobile-audit            portal: accounts @320 @375 @390 @430      90000ms
+contrast-audit          portal: accounts @390 @1280               90000ms
+```
+
+**FOUR AUDITS CANNOT REACH IT. TWO ABSORB THE MISS INTO A `PASS`.** `mobile-audit`
+and `contrast-audit` both reported PASS at the roll-up while naming that screen
+in their own output. The suite summary said:
+
+> `2 of 58 audits could not measure: mobile-overflow-audit, native-audit`
+
+**So the undercount is now two audits wide, and it widened without anybody
+touching that code.** When it was one, it read as a quirk of the audit that had
+just gained the third verdict. At two it is the shape of the mechanism: every
+audit that adopts the third verdict removes itself from the roll-up's count
+while keeping its own honest line, and nothing reconciles the two.
+
+Nothing about this is a finding on the branch. Four audits, two timeout ceilings
+(45s and 90s), one screen, and every branch will meet it identically.
+
+**Phase 14 ranking unchanged**, restated so it is not re-derived: the stall goes
+ahead of the surveys, the roll-up undercount goes first in survey 3.
 
 ### CORRECTED 2026-09-21 ON THE NEXT BOARD: IT MET THE STALL, AND THE THIRD VERDICT WORKED
 

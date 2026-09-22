@@ -349,7 +349,14 @@ async function measurePage(base, browser, path, width, probe = null, session = "
         const wide = [...el.querySelectorAll("svg, img, video, canvas, iframe")]
           .some((r) => r.getBoundingClientRect().width > el.clientWidth);
         if (wide) continue;
-        const what = (el.textContent || "").trim().replace(/s+/g, " ").slice(0, 34);
+        /*
+         * `\s+`, not `s+`. The backslash was eaten by the shell when this was
+         * written, so this collapsed runs of the LETTER s into spaces and
+         * printed "Assessments" as "A e ment". The overflow was still
+         * detected; the text identifying WHICH element overflowed was
+         * corrupted, which is the half a person reads.
+         */
+        const what = (el.textContent || "").trim().replace(/\s+/g, " ").slice(0, 34);
         clipped.push(
           el.tagName.toLowerCase() + (el.id ? "#" + el.id : "") + " clips " + over + "px of " + JSON.stringify(what),
         );

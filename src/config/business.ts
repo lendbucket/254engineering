@@ -38,7 +38,26 @@ export const business = {
    * 254 Engineering Services survives as the wordmark and the logo, and never
    * as the legal or firm name in a sentence. Operator ruling, same day.
    */
-  legalName: "254 Services LLC",
+  /*
+   * 2026-09-21: THE STATE AND THE BOARD NOW AGREE, SO THIS STOPS BEING STALE
+   * ON PURPOSE. Operator ruling.
+   *
+   * This was deliberately left at the old registrant name while the Secretary
+   * of State held 254 Engineering LLC and TBPELS still held 254 Services LLC:
+   * stale against the state, true against the board, because the gate's
+   * condition is the BOARD's record. TBPELS reissued F-29811 on 2026-09-21, so
+   * both records say 254 Engineering LLC and the reason for the divergence is
+   * gone.
+   *
+   * THESE ARE TWO FACTS THAT COINCIDE, NOT ONE FACT WITH TWO HOMES, which is
+   * why this is not derived from the register. The Secretary of State's entity
+   * name and the Board's registrant name are separate records kept by separate
+   * agencies, and they have already differed once, for five days. Deriving one
+   * from the other would make a future divergence unrepresentable rather than
+   * visible. `compliance-audit` asserts they AGREE instead, so a divergence is
+   * a red board naming both values rather than a state nobody can express.
+   */
+  legalName: "254 Engineering LLC",
   /** Short form for tight spaces. Never used as the schema name. */
   shortName: "254 Engineering",
 

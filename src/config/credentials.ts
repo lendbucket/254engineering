@@ -87,9 +87,44 @@ export type VerifiedFirmRegistration = {
    * reason the launch gate is still shut. See operatingNameOnBoardRecord.
    */
   issuedTo: string;
+  /**
+   * THE ASSUMED NAMES THE BOARD HOLDS, IN THE BOARD'S OWN SPELLING AND ORDER.
+   * Operator ruling, 2026-09-21.
+   *
+   * Transcribed from the verification letter exactly as printed, which means
+   * "Stamp My Plans" in three words where the sibling brand is StampMyPlans in
+   * one. **The Board's spelling wins here and the brand keeps its own in
+   * `business.ts`**, because these answer different questions: this list says
+   * what the Board is prepared to confirm, and the brand list says what a
+   * customer sees. Normalising either into the other would make one of them a
+   * claim its source does not support.
+   *
+   * NOTHING RENDERS THESE YET. Whether and where the site states a registered
+   * DBA is a copy ruling nobody has made. The list exists so the answer is
+   * read off the record when somebody does.
+   */
+  dbas: string[];
+  /** Exactly as the letter prints it, upper case included. */
+  mailingAddress: string;
+  /** ISO. The date the Board first registered this firm, as data not prose. */
+  initialRegistrationDate: string;
   status: "active" | "expired" | "suspended";
   /** ISO date. The registration is not evidence of anything after this. */
   expires: string;
+  /** ISO. The date on the Board's verification, not the date somebody read it. */
+  verifiedOn: string;
+  /** The named person at the Board who verified it. */
+  verifiedBy: string;
+  /**
+   * THE DOCUMENT BEHIND ALL OF THE ABOVE.
+   *
+   * A register that records what a letter said, without recording WHICH letter,
+   * is the `customer_link.issued` defect wearing a credential: it reads as
+   * evidence and is a statement that somebody typed something. The digest binds
+   * this record to one file, so a replaced PDF is detectable rather than
+   * invisible.
+   */
+  evidence: { file: string; sha256: string; bytes: number };
   verified: string;
 };
 
@@ -188,10 +223,35 @@ export const verifiedFirmRegistrations: VerifiedFirmRegistration[] = [
   {
     board: "Texas Board of Professional Engineers and Land Surveyors",
     number: "F-29811",
-    issuedTo: "254 Services LLC",
+    /*
+     * REISSUED IN THE NEW NAME, 2026-09-21. This was "254 Services LLC" from
+     * 2026-09-10 until the Board's verification letter of 2026-09-21, and the
+     * whole compliance gate turned on that string: `firmName()` reads it, so
+     * every rendered sentence naming the firm moved with this one line.
+     */
+    issuedTo: "254 Engineering LLC",
+    /* Verbatim from the letter, in its order, semicolon separated there. */
+    dbas: ["Sealed Engineering", "Stamp My Plans", "254 Engineering Services"],
+    mailingAddress: "5601 SOUTH PADRE ISLAND DRIVE, SUITE E, CORPUS CHRISTI, TX 78412",
+    initialRegistrationDate: "2026-09-10",
     status: "active",
     expires: "2027-07-31",
-    verified: "Issued 2026-09-10, recorded by the operator the same day.",
+    verifiedOn: "2026-09-21",
+    verifiedBy: "Jessica Nassour, Licensing Specialist",
+    evidence: {
+      file: "docs/compliance/F-29811 - 254 Engineering LLC.pdf",
+      sha256: "962eaffd371ae69c65113cf65e26322a97be524b715926a2dfebe2bdddfc8d99",
+      bytes: 709917,
+    },
+    verified:
+      "Initially registered 2026-09-10. REISSUED in the name 254 Engineering LLC and verified on " +
+      "2026-09-21 by Jessica Nassour, Licensing Specialist, on the Board's own Verification of Texas " +
+      "Engineering Firm Registration letter, which is in the compliance file at the path in " +
+      "`evidence` and is the Board's original PDF rather than a photograph of one. The letter records " +
+      "three assumed names, no branch offices on file, and authority to provide Professional " +
+      "Engineering services in Texas until 2027-07-31. Read field by field against what this record " +
+      "already held: only `issuedTo` disagreed, which is the reissuance itself. The initial " +
+      "registration date, the number, the board, the status and the expiry all agreed and always had.",
   },
 ];
 
@@ -202,8 +262,24 @@ export const verifiedFirmRegistrations: VerifiedFirmRegistration[] = [
  * gate rather than a note.
  *
  * F-29811 was issued to **254 Services LLC**. Every one of the three sites
- * holds out as **254 Engineering Services**, and business.legalName says
- * "254 Engineering Services LLC". Those are not the same entity name.
+ * holds out as **254 Engineering Services**, and business.legalName said
+ * "254 Engineering Services LLC" when this was written. Those were not the
+ * same entity name.
+ *
+ * **THE SENTENCE ABOVE WAS STALE AND IS CORRECTED RATHER THAN DELETED.**
+ * Found 2026-09-21 while reading the register against the Board's reissuance
+ * letter. `business.legalName` had already been changed to "254 Services LLC"
+ * at some point after this paragraph was written, and the paragraph went on
+ * describing the value it used to hold. Three different strings have been the
+ * legal name in this repository's history: 254 Engineering Services LLC, then
+ * 254 Services LLC, and from 2026-09-21 the Board's own 254 Engineering LLC.
+ *
+ * It is an instance of the rule in CLAUDE.md section 6b: a recorded
+ * explanation is a hypothesis until something re-checks it, and a wrong one is
+ * worse than none because it makes the next session stop looking. Nothing
+ * compared this comment to `business.ts`, so it decayed silently. The check
+ * added in the same commit compares the two NAMES mechanically, which is the
+ * only version of this that cannot rot.
  *
  * Texas regulates the use of "engineer" and "engineering" in a firm's name and
  * in how it holds itself out. A registration in one name does not authorise
@@ -278,15 +354,39 @@ export const legalEntityMatchesRegistrant: {
    * that changed in one commit with no explanation would have to reconstruct
    * why from the git history. That is this file's own standing practice.
    */
+  /*
+   * MOVED TOGETHER 2026-09-21, AND THIS IS THE THIRD PAIR OF VALUES THIS
+   * RECORD HAS HELD. Operator ruling.
+   *
+   * They agreed at 254 Services LLC from 2026-09-13. The Secretary of State
+   * amendment made the ENTITY 254 Engineering LLC on 2026-09-16 while TBPELS
+   * still held the old name, and that divergence was deliberately NOT recorded
+   * here: `business.legalName` was left stale on purpose, true against the
+   * board and stale against the state, because the gate's condition is the
+   * board's record. TBPELS reissued on 2026-09-21 and both now read
+   * 254 Engineering LLC.
+   *
+   * THEY ARE TWO FACTS THAT COINCIDE, NOT ONE FACT WITH TWO HOMES, and that is
+   * why neither derives from the other. Two agencies keep two records. They
+   * have already differed once, for five days, and a deriver would have made
+   * that state unrepresentable rather than visible. What the audit enforces is
+   * that they AGREE or that the difference is written down with both names, so
+   * a silent drift is impossible and a real divergence is expressible.
+   */
   resolved: true,
-  legalNameOnSite: "254 Services LLC",
-  registrantOnRecord: "254 Services LLC",
+  legalNameOnSite: "254 Engineering LLC",
+  registrantOnRecord: "254 Engineering LLC",
   because:
-    "ANSWERED 2026-09-13 by the operator, who holds the formation documents: the entity is 254 Services " +
+    "ANSWERED 2026-09-13 by the operator, who holds the formation documents: the entity was 254 Services " +
     "LLC, and business.legalName was wrong. It had said 254 Engineering Services LLC since it was written " +
-    "and no such entity exists. The two names now agree because the invented one was corrected to the real " +
-    "one, not because a filing changed anything. 254 Engineering Services survives as the brand wordmark " +
-    "and logo and is never the legal or firm name in a sentence.",
+    "and no such entity existed. " +
+    "MOVED AGAIN 2026-09-21, and this time by a filing rather than a correction. The Secretary of State " +
+    "amendment of 2026-09-16, file number 806765419, made the entity 254 Engineering LLC, and TBPELS " +
+    "reissued F-29811 in that name on 2026-09-21 per the Board's verification letter, verified by " +
+    "Jessica Nassour, Licensing Specialist. Both records now read 254 Engineering LLC, so the two agree " +
+    "again for a different reason than they agreed before. " +
+    "254 Engineering Services survives as the brand wordmark and logo, is never the legal or firm name " +
+    "in a sentence, and is now ALSO held by the Board as an assumed name on F-29811.",
 };
 
 /**
@@ -398,18 +498,49 @@ export const operatingNameOnBoardRecord: {
    * conditions, so the practical state of the platform is unchanged; what
    * changes is that the record now says something true.
    */
-  onRecord: false,
+  /*
+   * CLOSED 2026-09-21 BY THE BOARD'S OWN REISSUANCE, WHICH IS WHAT THE ENTRY
+   * ABOVE SAID WOULD CLOSE IT. Operator ruling.
+   *
+   * It said: "It closes when the board reissues the registration in the new
+   * name." TBPELS did, and the evidence is the Board's Verification of Texas
+   * Engineering Firm Registration letter, verified 2026-09-21 by Jessica
+   * Nassour, Licensing Specialist. The letter is in the compliance file and its
+   * digest is recorded on the registration above.
+   *
+   * IT CLOSES TWICE OVER, AND THE SECOND WAY IS THE STRONGER ONE. The entity
+   * name and the registrant name are now the same string, 254 Engineering LLC,
+   * so the 2026-09-13 reason, that the firm trades under its registered name,
+   * is true again rather than merely arguable. AND the Board separately holds
+   * 254 Engineering Services as an assumed name, which is the other trigger
+   * this condition always named: "either the entity is renamed, or an assumed
+   * name is filed and recorded with the board." Both happened.
+   *
+   * THE BRAND IS NOW ON THE BOARD'S RECORD, and that is the part with the
+   * longest reach. Until today, printing F-29811 beside "254 Engineering
+   * Services" would have asserted something the Board's record did not say.
+   * The Board now says it. That does not open the gate on its own, and nothing
+   * in this file decides what the copy does with it; whether a registered DBA
+   * is ever stated on a page is a copy ruling nobody has made.
+   *
+   * SET FROM THE LETTER RATHER THAN FROM A DATE OR FROM ANYBODY'S WORD, on the
+   * same rule that set it false: a compliance state that flips without a
+   * deliberate edit and an audit trail is refused here.
+   */
+  onRecord: true,
   because:
-    "REOPENED 2026-09-15 by the Secretary of State amendment: the entity becomes 254 Engineering LLC on " +
-    "2026-09-16, file number 806765419, and TBPELS still holds F-29811 in the name 254 Services LLC, so " +
-    "the board does not hold the name the firm operates under. It closes when the board reissues the " +
-    "registration in the new name; the amendment and the duplicate certificate form go to TBPELS on " +
-    "2026-09-16. It had been cleared on 2026-09-13 on the reason that the firm traded under its " +
-    "registered name, which the rename makes false. Three names are now in play and each is a different " +
-    "fact: the board holds 254 Services LLC, the state holds 254 Engineering LLC from 2026-09-16, and " +
-    "254 Engineering Services remains the brand on the wordmark, the logo and the page titles, never the " +
-    "legal or firm name in a sentence. Every rendered sentence names the one the BOARD holds, through " +
-    "firmName(), which is why the rename moves no copy.",
+    "CLOSED 2026-09-21. TBPELS reissued F-29811 in the name 254 Engineering LLC, evidenced by the " +
+    "Board's Verification of Texas Engineering Firm Registration letter, verified 2026-09-21 by " +
+    "Jessica Nassour, Licensing Specialist, held at " +
+    "docs/compliance/F-29811 - 254 Engineering LLC.pdf with its digest recorded on the registration. " +
+    "The board now holds the name the firm operates under, by both of the routes this condition " +
+    "named: the entity was renamed AND 254 Engineering Services is recorded with the board as an " +
+    "assumed name, alongside Sealed Engineering and Stamp My Plans. The three names that were three " +
+    "different facts are now two: the board and the state both hold 254 Engineering LLC, and " +
+    "254 Engineering Services is a brand the board ALSO holds as a DBA rather than a name with no " +
+    "record behind it. It had been reopened 2026-09-15 by the Secretary of State amendment, file " +
+    "number 806765419, effective 2026-09-16, on the reason that the board did not yet hold the " +
+    "operating name. That reason no longer holds.",
 };
 
 /**

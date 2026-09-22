@@ -572,6 +572,65 @@ if (ids.length > 0) {
       split.accepted.find((a) => a.ref === "REAL")?.twiaCounty === true,
       "the surcharge is the thing the wrong county was silently dropping",
     );
+
+    /*
+     * =====================================================================
+     * THE THREE SPELLINGS A CUSTOMER ACTUALLY TYPES. Operator ruling,
+     * 2026-09-21, after an eaten backslash was found in the normaliser.
+     * =====================================================================
+     *
+     * `normalizeCountyName` read `/s+county$/i` where `/\s+county$/i` was
+     * meant. The shell ate the backslash when it was written, leaving a
+     * pattern that looks for a literal "s" pressed against "county". There is
+     * a space in "Harris County", so it never matched and never could.
+     *
+     * WHAT THAT DID, AND WHY NOTHING SAW IT. The suffix was never stripped, so
+     * "Nueces County" normalised to "nueces county", which is not in
+     * TEXAS_COUNTY_KEYS, so a REAL Texas county was refused BY NAME with the
+     * sentence "is not one of the 254 Texas counties". The case half of the
+     * normaliser worked perfectly, so the function looked like it was doing
+     * its job, and every existing check here passed a county already spelled
+     * the way the canonical list spells it.
+     *
+     * THE CHECK ABOVE COULD NEVER HAVE CAUGHT IT, which is the point of adding
+     * this one rather than trusting the fix. It asks whether a NON county is
+     * refused. Nothing asked whether a county spelled the ordinary way is
+     * ACCEPTED, so the defect lived in the gap between "rejects rubbish" and
+     * "accepts what people type".
+     *
+     * Three spellings, one county, and the surcharge has to survive all three:
+     * a coastal property that normalises wrongly loses the TWIA surcharge as
+     * well as the order.
+     */
+    const spellings = splitBatch(
+      entry,
+      [
+        { ref: "BARE", propertyAddress: "1 Somewhere", county: "Nueces", answers },
+        { ref: "SUFFIXED", propertyAddress: "2 Somewhere", county: "Nueces County", answers },
+        { ref: "LOWER", propertyAddress: "3 Somewhere", county: "nueces county", answers },
+      ],
+      twia,
+    );
+
+    const acceptedRefs = new Set(spellings.accepted.map((a) => a.ref));
+    rec(
+      "a county typed bare, suffixed or lower case is the same county",
+      acceptedRefs.has("BARE") && acceptedRefs.has("SUFFIXED") && acceptedRefs.has("LOWER"),
+      acceptedRefs.size === 3
+        ? "Nueces, Nueces County and nueces county all resolve"
+        : `accepted ${[...acceptedRefs].join(", ") || "none"}; refused ` +
+          spellings.rejected.map((r) => `${r.ref}: ${r.reason}`).join(" | "),
+    );
+
+    rec(
+      "and all three carry the coastal surcharge, which a failed normalise would drop",
+      ["BARE", "SUFFIXED", "LOWER"].every(
+        (ref) => spellings.accepted.find((a) => a.ref === ref)?.twiaCounty === true,
+      ),
+      ["BARE", "SUFFIXED", "LOWER"]
+        .map((ref) => `${ref}=${spellings.accepted.find((a) => a.ref === ref)?.twiaCounty ?? "refused"}`)
+        .join(", "),
+    );
   } else {
     rec("the catalog entry the county check is exercised against exists", false, "windstorm-wpi-8");
   }

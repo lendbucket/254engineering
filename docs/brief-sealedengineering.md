@@ -19,17 +19,30 @@ TBPELS issued a firm registration:
 | | |
 | --- | --- |
 | Number | **F-29811** |
-| Issued to | **254 Services LLC** |
+| Issued to | **254 Engineering LLC** |
 | Status | active |
 | Expires | **2027-07-31** |
+| Assumed names on the registration | **Sealed Engineering; Stamp My Plans; 254 Engineering Services** |
+| Verified | **2026-09-21**, Jessica Nassour, Licensing Specialist |
 
-**The compliance gate stays shut on all three sites, and the reason is the
-name.** The registration is in the name *254 Services LLC*. This site holds out
-under a different name. A registration in one name does not authorise holding
-out under another, and Texas regulates the use of "engineer" and "engineering"
-in how a firm names itself and presents itself.
+**REISSUED 2026-09-21, AND THE NAME CONDITION IS NOW MET.** TBPELS reissued
+F-29811 to **254 Engineering LLC** and recorded three assumed names on it,
+including **Sealed Engineering**, which is the name this site holds out under.
 
-So the gate does not open until the board HAS the operating name, either by the
+That closes the reason this section used to give for the gate being shut. It
+used to read: the registration is in the name 254 Services LLC, this site holds
+out under a different name, and a registration in one name does not authorise
+holding out under another. **The board now holds this site's name as a DBA on
+the registration.**
+
+**The gate is still shut, and not for this reason.** The name condition is one
+of seven; the others are unchanged. Do not read this as permission to print
+anything.
+
+The paragraph below is the original condition, kept because a superseded
+reason that vanishes looks like a rule nobody set:
+
+So the gate did not open until the board HAD the operating name, either by the
 entity being renamed or by an assumed name being filed and recorded. Until then
 nothing changes on any of the three sites.
 

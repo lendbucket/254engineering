@@ -261,6 +261,87 @@ for (const e of EXTERNAL) {
   );
 }
 
+/*
+ * ===========================================================================
+ * NO SOURCE FILE CARRIES A CONTROL CHARACTER. Operator ruling, 2026-09-21:
+ * "fifth instance makes it a check, not a note."
+ * ===========================================================================
+ *
+ * THE FIFTH INSTANCE, AND IT HAD BEEN SITTING IN THE TREE UNNOTICED.
+ * `src/lib/sister-intake.ts` carried a raw NUL byte where `"\0"` was meant, as
+ * the separator in the submission fingerprint's `.join()`. The shell ate the
+ * backslash on its way to disk, which is the hazard CLAUDE.md section 6
+ * already records four times: `\s` arriving as `s`, `\n` breaking a regex
+ * across two lines, `\b` arriving as a backspace byte twenty times over.
+ *
+ * WHAT MAKES THIS ONE DIFFERENT, AND WHY IT EARNED A CHECK RATHER THAN A
+ * FIFTH PARAGRAPH. The other four broke something: a pattern matched nothing,
+ * a file stopped parsing. **This one was harmless and invisible.** A literal
+ * NUL and `"\0"` are the same string value, so `fingerprintOf` worked
+ * perfectly and always had. The damage was to VISIBILITY: `file` reported the
+ * source as `data`, and `grep` printed "Binary file matches" instead of the
+ * line. Every shell based scan of this repository had a blind spot exactly one
+ * file wide, and nothing anywhere said so.
+ *
+ * It was found by a sweep for DBA names, which returned "Binary file
+ * src/lib/sister-intake.ts matches" where every other hit was a line. The
+ * sweep that found it had already silently skipped it.
+ *
+ * THIS IS THE VACUOUS GREEN IN ITS PUREST FORM: not a check looking at the
+ * wrong thing, but a file that tools decline to look at at all, with the
+ * decision made by a heuristic nobody configured.
+ *
+ * TAB, NEWLINE AND CARRIAGE RETURN ARE THE ONLY ONES ALLOWED, and they are
+ * named rather than derived from a range, so widening the set is a deliberate
+ * edit somebody has to justify.
+ */
+{
+  const sourceFiles = execFileSync(
+    "git",
+    ["ls-files", "--cached", "--others", "--exclude-standard"],
+    { encoding: "utf8" },
+  )
+    .split("\n")
+    .filter(Boolean)
+    .filter((f) => /\.(ts|tsx|mjs|cjs|js|jsx|json|sql|css|md)$/.test(f));
+
+  rec(
+    "there is source to sweep for control characters",
+    sourceFiles.length > 100,
+    `${sourceFiles.length} files (if this were zero the check below would pass over nothing)`,
+  );
+
+  /*
+   * Read as utf8 and compared by code point. A NUL survives a utf8 read as
+   * U+0000, so nothing here depends on the file being legible as text, which
+   * is the whole point: the file that prompted this was one tools called
+   * binary.
+   */
+  const ALLOWED = new Set([0x09, 0x0a, 0x0d]);
+  const carriers = [];
+  for (const f of sourceFiles) {
+    const text = readFileSync(f, "utf8");
+    for (let i = 0; i < text.length; i += 1) {
+      const code = text.charCodeAt(i);
+      if (code > 0x1f && code !== 0x7f) continue;
+      if (ALLOWED.has(code)) continue;
+      const line = text.slice(0, i).split("\n").length;
+      carriers.push(`${f}:${line} U+${code.toString(16).padStart(4, "0").toUpperCase()}`);
+      break;
+    }
+  }
+
+  rec(
+    "no source file carries a control character other than tab, newline or carriage return",
+    carriers.length === 0,
+    carriers.length
+      ? carriers.join(", ") +
+          ". A backslash escape was eaten by the shell on its way to disk. It may parse, run and " +
+          "behave correctly while making the file invisible to every grep in the repository."
+      : `${sourceFiles.length} files, every byte read`,
+  );
+}
+
 // ------------------------------------------------------------------- verdict
 
 console.log("");
