@@ -1556,6 +1556,62 @@ const RULED_CONDITIONS = [
   );
 }
 
+/*
+ * ===========================================================================
+ * EVERY WRITTEN DIRECTION FROM THE ENGINEER HAS ITS EVIDENCE ON DISK.
+ * Operator hard limit, 2026-09-21: "No compliance fact recorded without its
+ * evidence on disk."
+ * ===========================================================================
+ *
+ * `engineerDirections` records what the engineer of record has directed and
+ * what the platform may act on because of it: which discipline governs a
+ * service line, whether a named person meets a protocol's qualification
+ * requirement. Those are the licensee's judgement, and the platform enforces
+ * them.
+ *
+ * A DECLARATION NOTHING VERIFIES IS A NOTE. This asserts the three things that
+ * can actually go wrong: the file named is on disk, its bytes are the bytes
+ * that were read, and the quote is not empty. The digest is the load bearing
+ * one, because a screenshot can be replaced with another screenshot and the
+ * record would look identical.
+ */
+{
+  const { engineerDirections } = await import("../src/config/engineer-directions.ts");
+  const { createHash } = await import("node:crypto");
+  const { readFileSync: readBytes, existsSync: onDisk } = await import("node:fs");
+
+  rec(
+    "there are engineer directions to check",
+    engineerDirections.length > 0,
+    `${engineerDirections.length} direction(s) (if this were zero every check below would pass over nothing)`,
+  );
+
+  const missing = engineerDirections.filter((d) => !onDisk(d.evidence.file));
+  rec(
+    "every direction from the engineer names evidence that is on disk",
+    missing.length === 0,
+    missing.map((d) => `${d.key}: ${d.evidence.file}`).join("; ") ||
+      `${engineerDirections.length} evidence file(s) present`,
+  );
+
+  const wrongDigest = engineerDirections
+    .filter((d) => onDisk(d.evidence.file))
+    .filter((d) => createHash("sha256").update(readBytes(d.evidence.file)).digest("hex") !== d.evidence.sha256);
+  rec(
+    "and the file on disk is the file that was read, by digest",
+    wrongDigest.length === 0,
+    wrongDigest.map((d) => d.key).join("; ") ||
+      "hashed here rather than declared, so a replaced artifact is a red rather than an invisible",
+  );
+
+  const empty = engineerDirections.filter((d) => !d.quote.trim() || !d.establishes.trim());
+  rec(
+    "and each one carries his words and what they establish",
+    empty.length === 0,
+    empty.map((d) => d.key).join("; ") || "a direction with no quote is somebody's summary of a licensee's judgement",
+  );
+}
+
 /* ----------------------------------------------------------------- verdict */
 
 console.log("");
