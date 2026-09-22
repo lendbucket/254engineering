@@ -159,14 +159,66 @@ rec(
    * owed.
    */
   const registerMoved = registrant !== null && registrant !== RC001.naming.registrantWhenRecorded;
+
+  /*
+   * =====================================================================
+   * THIS CHECK PASSED FOR THE WRONG REASON ON 2026-09-21, AND IT WAS
+   * FOUND BY READING IT RATHER THAN BY A RED.
+   * =====================================================================
+   *
+   * It asserted `!registerMoved || RC001.version !== "1.0"`, using the version
+   * STRING as a proxy for "has been reissued with the corrected name". The
+   * register moved that day, and the check passed, because RC001 was already
+   * at v1.1.
+   *
+   * **But v1.1 was issued on 2026-09-18 for retention wording, and it names
+   * 254 Engineering Services on every page exactly as v1.0 did.** Nothing
+   * about the name was corrected. The proxy broke the moment a version shipped
+   * for any other reason, and from then on this check could never fail: the
+   * version can only go up.
+   *
+   * That is the vacuous green in its quietest form. No empty set, no wrong
+   * file, no cap. A real comparison against a value that had stopped meaning
+   * what the check needed it to mean.
+   *
+   * WHAT ACTUALLY RESOLVED IT IS NOT A REISSUE AT ALL. Operator ruling,
+   * 2026-09-21: TBPELS reissued F-29811 to 254 Engineering LLC AND recorded
+   * 254 Engineering Services as an assumed name on it. The name printed on the
+   * signed document is now a name the Board holds, so the document stands and
+   * no v1.2 is owed for the naming. That outcome did not exist when this check
+   * was written, which is why the check could not express it.
+   *
+   * SO THE TRIGGER NOW ASKS THE QUESTION IT MEANT: when the register moves,
+   * either the document's name is recorded as a DBA the Board holds, or the
+   * protocol has been reissued naming the registrant. The version string is
+   * not consulted, because it answers a different question.
+   */
+  const nameIsOnTheBoardsRecord =
+    RC001.naming.matchesBoardDba === true || RC001.firmNameOnDocument === registrant;
+
   rec(
     registerMoved
-      ? "the register has moved, so the protocol must be reissued with the corrected name"
+      ? "the register has moved, so the document's name is either a DBA the board holds or the protocol was reissued"
       : "the register still holds the name this difference was recorded against",
-    !registerMoved || RC001.version !== "1.0",
+    !registerMoved || nameIsOnTheBoardsRecord,
     registerMoved
-      ? `the board now holds "${registrant}" and 254-RC-001 is still v${RC001.version} naming "${RC001.firmNameOnDocument}". Reissue as v1.1 with the legal name corrected, in the same sitting as issuedTo.`
+      ? nameIsOnTheBoardsRecord
+        ? `the board now holds "${registrant}" and records "${RC001.firmNameOnDocument}" as an assumed name on the registration, so the signed document names a name the board holds`
+        : `the board now holds "${registrant}" and 254-RC-001 v${RC001.version} names "${RC001.firmNameOnDocument}", which the board holds neither as registrant nor as a DBA. Reissue with the corrected name.`
       : `recorded against "${RC001.naming.registrantWhenRecorded}", register holds "${registrant}"`,
+  );
+
+  /*
+   * AND THE DBA CLAIM IS DATED, because "the board holds it as a DBA" is an
+   * assertion about the Board's record and carries the same burden as every
+   * other one here: it is true as of a read, by a person, on a date.
+   */
+  rec(
+    "and a DBA resolution names the date the board's record was read",
+    RC001.naming.matchesBoardDba !== true || /\d{4}-\d{2}-\d{2}/.test(RC001.naming.dbaRecordedOn ?? ""),
+    RC001.naming.matchesBoardDba === true
+      ? `recorded from the board's record on ${RC001.naming.dbaRecordedOn}`
+      : "no DBA resolution claimed",
   );
 }
 

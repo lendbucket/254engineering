@@ -645,7 +645,16 @@ for (const t of templates) {
    * audit that imported the sentence it is checking would compare a value to
    * itself. CLAUDE.md section 6.
    */
-  const REGISTRANT = "254 Services LLC, TBPELS Firm F-29811";
+  /*
+   * MOVED 2026-09-21 BY THE REISSUANCE, AS A DELIBERATE SECOND EDIT.
+   *
+   * TBPELS reissued F-29811 to 254 Engineering LLC, `issuedTo` moved, and
+   * `registrationLine()` followed it in every one of the twenty three email
+   * footers at once. This literal did not, so twenty three checks went red
+   * naming the same line. That is the pin doing its job: it asked whether the
+   * rename was meant instead of following it.
+   */
+  const REGISTRANT = "254 Engineering LLC, TBPELS Firm F-29811";
   const seen = {};
 
   /*

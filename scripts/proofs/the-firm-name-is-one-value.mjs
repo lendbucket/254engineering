@@ -26,8 +26,22 @@ import { copyFileSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
 
 const REGISTER = "src/config/credentials.ts";
 const BACKUP = "src/config/credentials.ts.rename-proof.bak";
-const TODAY = "254 Services LLC";
-const RENAMED = "254 Engineering LLC";
+/*
+ * BOTH MOVED 2026-09-21, AND THE PAIR IS THE POINT RATHER THAN EITHER VALUE.
+ *
+ * This proof patches `issuedTo` from TODAY to RENAMED in a child process and
+ * asserts the RENDER follows. It only proves anything if TODAY is what the
+ * register actually holds right now: patching from a name nothing holds would
+ * change nothing, and the reader would report the render "unmoved" for the
+ * wrong reason, or worse, report it moved when it had never been at TODAY.
+ *
+ * TBPELS reissued F-29811 to 254 Engineering LLC, so TODAY is that, and
+ * RENAMED becomes a value no record holds, which is exactly what a hypothetical
+ * future rename looks like. The old pair is recorded in the git history rather
+ * than here.
+ */
+const TODAY = "254 Engineering LLC";
+const RENAMED = "254 Reissued Hypothetical LLC";
 
 /*
  * WHAT THIS READER ACTUALLY COVERS, SAID PLAINLY: the deriver itself, the

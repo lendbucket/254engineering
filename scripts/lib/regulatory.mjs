@@ -105,11 +105,28 @@ export const CONDITIONAL_GUARD = String.raw`(?<!\b(?:when|once|if|until|unless|b
  * moved to 254 Services LLC and these patterns learned it in the same commit,
  * which is the only reason the audit was still measuring afterwards.
  *
- * 254 Engineering LLC is here BEFORE any sentence uses it. The Secretary of
- * State amendment is effective 2026-09-16 and the copy does not move until
- * TBPELS reissues F-29811, so this entry matches nothing today and is not dead:
- * it is the audit being able to see the rename on the day it happens rather
- * than the day somebody remembers.
+ * 254 Engineering LLC was put here BEFORE any sentence used it, on 2026-09-15,
+ * against a reissuance that had not happened yet. **It happened on 2026-09-21,
+ * and this alternation is the reason `voice-audit` kept measuring through it.**
+ * The entry that matched nothing for six days is the entry that made the
+ * rename safe, which is the whole argument for adding a name early rather than
+ * on the day it is needed.
+ *
+ * ===========================================================================
+ * AND 254 Services LLC STAYS, THOUGH NO RECORD HOLDS IT ANY MORE.
+ * Operator ruling, 2026-09-21. THIS LINE IS NOT PART OF THE RENAME.
+ * ===========================================================================
+ *
+ * The rename swept eighteen occurrences of the old registrant out of
+ * `scripts/`. This is the one that must not move, and removing it would be the
+ * exact defect the paragraph above describes, arriving by way of a tidy-up:
+ * copy anywhere in three repositories may still TYPE the old name, and these
+ * patterns are what catches it. Dropping the alternative would make that copy
+ * invisible to the audit rather than forbidden by it.
+ *
+ * The test to apply before ever shortening this list: a name comes OUT only
+ * when nothing anywhere could still say it, which is a different question from
+ * whether any record still holds it.
  */
 const FIRM_NAMES =
   "254 Services LLC|254 Engineering LLC|254 Engineering Services|Sealed Engineering|StampMyPlans|the firm";
@@ -303,11 +320,17 @@ export const ALL_REGULATED = [...PRESENT_TENSE_OFFER, ...PRESENT_TENSE_SEALING];
  * say it provides engineering, because it does.
  *
  * NOTHING HERE MAY LET A PARTNER TYPE THE FIRM NAME, and that is the operator's
- * caveat rather than a detail. The board holds 254 Services LLC and the state
- * holds 254 Engineering LLC. Partner copy that types either one goes stale at
- * reissuance and nobody will re-read it, so the third person patterns naming the
- * firm stay in SEALING_GATED: they are the ones that would permit a typed name,
- * and they stay blocked until the copy derives it from firmName().
+ * caveat rather than a detail.
+ *
+ * The board and the state BOTH hold 254 Engineering LLC as of the reissuance of
+ * 2026-09-21. The earlier wording of this note, that the two records differ,
+ * has expired, and the caveat it supported is stronger without it: the firm
+ * name has changed twice in eleven days, on 2026-09-16 at the Secretary of
+ * State and on 2026-09-21 at the board. Partner copy that TYPES a name goes
+ * stale the next time any record moves and nobody will re-read a brochure. So
+ * the third person patterns naming the firm stay in SEALING_GATED: they are the
+ * ones that would permit a typed name, and they stay blocked until the copy
+ * derives it from firmName().
  */
 export const TRADING_GATED = [
   { pattern: /\bwe (?:offer|provide|perform|deliver|issue|inspect|certify)\b/i, why: "first person service claim" },

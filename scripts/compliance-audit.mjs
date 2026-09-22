@@ -799,9 +799,12 @@ const {
    *
    * It used to assert the line said "pending with the Texas Board". Operator
    * ruling, 2026-09-11: until the board holds the operating name, the footer
-   * reads "254 Services LLC, TBPELS Firm F-29811" with the brand above it, so
-   * the day the gate opens the sites already hold out under the registered
-   * name.
+   * reads the registrant and the number with the brand above it, so the day
+   * the gate opens the sites already hold out under the registered name. It
+   * read "254 Services LLC, TBPELS Firm F-29811" then and reads
+   * "254 Engineering LLC, TBPELS Firm F-29811" since the reissuance of
+   * 2026-09-21. The line is derived, so it moved on its own; this note names
+   * both values rather than whichever one was current when it was written.
    *
    * The replacement is SHARPER than the old one, which is the response CLAUDE.md
    * section 6 asks for when an implementation is deliberately changed. The old

@@ -612,7 +612,7 @@ const terms = (over = {}) => ({
    * hand it a sentence.
    */
   const claim = copyVerdict(
-    "254 Services LLC performs and seals every engagement referred through this programme.",
+    "254 Engineering LLC performs and seals every engagement referred through this programme.",
   );
   rec("a present tense service claim cannot be published to partners", claim.ok === false);
   rec(
@@ -695,14 +695,21 @@ const terms = (over = {}) => ({
     );
 
     /*
-     * AND THE FIRM NAME STAYS BLOCKED, which is the operator's caveat. The
-     * board holds 254 Services LLC and the state holds 254 Engineering LLC, so
-     * partner copy that TYPES either one goes stale at reissuance and nobody
-     * re-reads a partner's brochure. The third person patterns are the ones
+     * AND THE FIRM NAME STAYS BLOCKED, which is the operator's caveat.
+     *
+     * The board and the state now BOTH hold 254 Engineering LLC, as of the
+     * reissuance of 2026-09-21, so the original wording of this note, that the
+     * two records differ, has expired. The caveat survives it and is in fact
+     * stronger: partner copy that TYPES a firm name goes stale the next time
+     * any record moves, and nobody re-reads a partner's brochure. This name
+     * has changed twice in eleven days. The third person patterns are the ones
      * that would permit a typed name, and they stay in SEALING_GATED.
+     *
+     * The fixture types the CURRENT name, so it exercises today's risk rather
+     * than a name no record holds any more.
      */
     const typedName = copyVerdict(
-      "254 Services LLC performs and seals every engagement referred through this programme.",
+      "254 Engineering LLC performs and seals every engagement referred through this programme.",
     );
     rec(
       "and a partner still may not type the firm name into a service claim, because a typed name goes stale at reissuance",
@@ -723,7 +730,7 @@ const terms = (over = {}) => ({
   rec("an em dash cannot be published", dash.ok === false);
 
   const fine = copyVerdict(
-    "Work referred through this programme will be carried out by 254 Services LLC, the firm of record on every engagement.",
+    "Work referred through this programme will be carried out by 254 Engineering LLC, the firm of record on every engagement.",
   );
   rec(
     "and compliant copy passes, so the check is not simply refusing everything",
@@ -894,19 +901,40 @@ const terms = (over = {}) => ({
    *
    * So it gained the negative half below, which is the half that matters.
    */
+  /* Moved 2026-09-21 by the TBPELS reissuance. A deliberate second edit. */
   rec(
     "the performing firm sentence names the registrant",
-    /254 Services LLC/.test(performingFirmLine()),
+    /254 Engineering LLC/.test(performingFirmLine()),
     performingFirmLine().slice(0, 80),
   );
+  /*
+   * THE CHECK STANDS AND ITS STATED REASON HAS EXPIRED, WHICH IS NOT THE SAME
+   * THING. Corrected 2026-09-21, and flagged for a ruling.
+   *
+   * It read "and never the brand, WHICH THE BOARD HAS NO RECORD OF". As of the
+   * Board's verification letter of 2026-09-21 that clause is FALSE: TBPELS
+   * records 254 Engineering Services as an assumed name on F-29811, alongside
+   * Sealed Engineering and Stamp My Plans.
+   *
+   * A check whose own recorded reason contradicts the world is the failure
+   * this repository refuses, so the reason is replaced rather than left to rot
+   * behind a passing green. The ASSERTION is unchanged, and deliberately: a
+   * partner contract naming the performing firm should name the registrant,
+   * not a trade name, even one the Board now holds. A DBA is a name the firm
+   * may trade under; the entity answerable on an engagement is the registrant.
+   *
+   * THAT IS A JUDGEMENT AND IT IS OWED A RULING, because the operator has not
+   * ruled on whether a registered DBA may appear in partner copy now that the
+   * Board holds three of them. Until he does, the narrower rule stands.
+   */
   rec(
-    "and never the brand, which the board has no record of",
+    "and never the brand, because a partner contract names the registrant rather than a trade name",
     !/254 Engineering Services/.test(performingFirmLine()),
-    "naming the brand as the performing firm is holding out under a name the board does not hold, to the audience relying on it",
+    "the board now records 254 Engineering Services as a DBA on F-29811, and the entity answerable on an engagement is still the registrant",
   );
   rec(
     "and states the registration exactly as the register records it, while the gate is down",
-    performingFirmLine().includes("254 Services LLC is a Texas registered engineering firm, TBPELS Firm Registration F-29811.") &&
+    performingFirmLine().includes("254 Engineering LLC is a Texas registered engineering firm, TBPELS Firm Registration F-29811.") &&
       !/pending/i.test(performingFirmLine()),
   );
   rec(

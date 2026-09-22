@@ -220,7 +220,8 @@ async function run() {
      * BOARD issued it to, and it never appears beside the name the firm trades
      * under.
      */
-    const REGISTRANT_LINE = "254 Services LLC, TBPELS Firm F-29811";
+    /* Moved 2026-09-21 by the TBPELS reissuance. A deliberate second edit. */
+    const REGISTRANT_LINE = "254 Engineering LLC, TBPELS Firm F-29811";
     const missingDisclosure = [...pre.entries()]
       .filter(([route, p]) => !route.endsWith(".txt") && !p.text.includes(REGISTRANT_LINE))
       .map(([route]) => route);
@@ -372,7 +373,7 @@ async function run() {
      */
     rec(
       "prelaunch: the capability statement states the registration as the register records it, rather than omitting it",
-      pre.get("/government").text.includes("254 Services LLC is a Texas registered engineering firm, TBPELS Firm Registration F-29811.") &&
+      pre.get("/government").text.includes("254 Engineering LLC is a Texas registered engineering firm, TBPELS Firm Registration F-29811.") &&
         !/Application pending with the Texas Board/i.test(pre.get("/government").text),
     );
 
@@ -388,7 +389,7 @@ async function run() {
     );
 
     const liveLegalName = [...live.entries()]
-      .filter(([route, p]) => !route.endsWith(".txt") && !p.text.includes("254 Services LLC"))
+      .filter(([route, p]) => !route.endsWith(".txt") && !p.text.includes("254 Engineering LLC"))
       .map(([route]) => route);
     rec(
       "live: the footer renders the legal entity name alongside the firm number",
