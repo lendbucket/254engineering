@@ -643,6 +643,82 @@ last", and the reasoning in `src/lib/forms.ts`. So nothing is ambiguous today.
 file would put the two out of step immediately before a production apply.** A
 comment is not worth that, and the operator ruled it waits.
 
+## FIVE WATTSMITH AUDIT ACCOUNTS ON PRODUCTION, AND THEY ARE NOT THIS FIRM'S TO DELETE
+
+Observed on production `fsaryeciduszuahgjbly` on 2026-09-22, during the sweep
+the operator ordered after two stranded probes were found on development.
+**Recorded, not touched.** Operator ruling, 2026-09-22.
+
+| Observed | 2026-09-22 |
+| --- | --- |
+| Accounts | 5: `support+os-audit-tech`, `-office`, `-master`, `-owner`, `-hq`, all `@wattsmithelectric.com` |
+| Created | 2026-08-05, within three minutes of each other |
+| `eng_profiles` rows | **none**, for any of the five |
+| Made by | the wattsmith application's own audit, not by anything in this repository |
+
+**This session did not delete them and must not.** They belong to another
+application on a shared project, and nothing here owns that repository or knows
+what its audits still expect to find. The standing teardown permission covers
+rows a run created, on development. This is neither.
+
+**WHY IT IS RECORDED HERE, WHICH IS THE POINT RATHER THAN THE FIVE ROWS.** They
+carry no `eng_profiles` row, so every check this firm owns is correct to ignore
+them, and every one of those checks would go on being correct while they sat
+there. **A stranded probe in one application's audit is a shared database
+problem for every application on that project**: the accounts are real,
+sign-in capable, and live in the same `auth.users` this firm's portal
+authenticates against.
+
+This firm found the identical defect in its own sweep on the same day, in its
+own audit, and neither side could see the other's. `destroyProbes` was fixed
+here because ours were ours. Nothing in this repository can fix, or even
+notice, the next five.
+
+**AND IT IS A LIVE COST OF THE PARKED CUTOVER.** The deferral is in
+`docs/production-cutover-plan.md` and the reasoning for sharing is CLAUDE.md
+section 6b, which is why every table this firm owns is `eng_` prefixed. **The
+prefix separates TABLES. It does not separate `auth.users`**, which is the one
+namespace this firm cannot prefix its way out of and the one that decides who
+can sign in. A project of this firm's own is what ends that, and this is a
+demonstrated cost rather than an argument about tidiness.
+
+**Owed.** Nothing to the five accounts. Telling whoever owns wattsmith that its
+audit strands probes is the OPERATOR'S to send, ruled 2026-09-22, and is not a
+session's to do. The cutover ruling when it is taken up again.
+
+## ROLES-AUDIT TEARDOWN CARRIES THE DEFECT destroyProbes JUST HAD FIXED
+
+Found 2026-09-22 by reading, immediately after fixing `destroyProbes`, and
+**not fixed**. This is the instance-versus-class question answered out loud: the
+instance was fixed and the class was not, and this entry exists so nobody
+believes otherwise.
+
+`scripts/roles-audit.mjs` carries its own `PROBE_DOMAIN`, `roles-audit.invalid`,
+and its own teardown. It has all three layers of the defect
+`scripts/lib/portal-probe.mjs` was repaired for:
+
+| | `destroyProbes`, fixed | `roles-audit` teardown, not fixed |
+| --- | --- | --- |
+| Subject | profiles AND auth users on the domain | only the ids THIS run made, so a crashed run strands rows |
+| `deleteUser` failure | surfaced and reported | `.catch(() => {})`, swallowed |
+| Verification | counts BOTH | counts `eng_profiles` only |
+
+**It is the function that actually stranded the two accounts** deleted on the
+operator's ruling of 2026-09-22: `probe-field_tech-1788582223356` from
+2026-09-05 and `probe-cap_492250-1789391492250` from 2026-09-14, profiles swept,
+auth users alive seventeen and eight days later.
+
+Its check is named "probe accounts were removed" and reads green while
+sign-in-capable accounts remain, because the verification looks at the table the
+deletion already cleared. **A sweep verified in one place is a sweep of one
+place.**
+
+The fix is the one already written next door: derive from both, page
+`listUsers` to exhaustion, stop swallowing the delete error, verify both. It is
+not done here because `roles-audit` creates accounts across many roles and its
+teardown interleaves with role deletion, which is a larger change than the
+ruling of the day covered.
+
 ## PHASE 14: THE COMMIT GUARD CANNOT TELL AN APPLIED MIGRATION FROM A PENDING ONE
 
 Operator ruling, 2026-09-22. **Recorded, not built.**
