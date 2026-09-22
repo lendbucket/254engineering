@@ -1944,8 +1944,13 @@ What is open, and who clears it:
   Services LLC and all three sites hold out as 254 Engineering Services. Cleared
   by an assumed name filing plus TBPELS acknowledgement, or by renaming the
   entity. The operator's.
-- **`stripe`** needs a live account belonging to 254 rather than Reyna Pay,
-  proven by one real charge and its refund with both recorded. The operator's.
+- **`stripe`** the account IS 254's, `acct_1UFmIjA2kbTZN5C3`, confirmed
+  2026-09-22 against Production's publishable key. **Corrected: this line said
+  "rather than Reyna Pay", copying a 2026-09-11 sentence nothing re-checked.**
+  What it still needs is the legal business name VERIFIED, which waits on a
+  cropped screenshot, and one real charge and its refund with both recorded.
+  Preview did hold live Reyna Pay keys until 2026-09-21; that is separate and
+  is in `src/config/credential-inventory.ts`. The operator's.
 - **`protocols`** needs one protocol per offered service line, approved by the
   engineer of record. `approvedProtocols` is empty, so all nine lines are a
   waitlist. **Blocked on hiring a PE**, which is the second gate.

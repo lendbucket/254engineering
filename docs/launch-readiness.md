@@ -7,9 +7,18 @@ Operator ruling, 2026-09-11. This document is the written form of
 `launchBlockers()` in `src/lib/launch.ts`. The gate itself is the authority; this
 is the thing a person reads.
 
-`scripts/compliance-audit.mjs` asserts that the gate carries exactly these seven
-conditions, by id, against a pinned list. Removing one costs two edits made on
-purpose.
+`scripts/compliance-audit.mjs` asserts that the gate carries exactly these
+**nine** conditions, by id, against a pinned list. Removing one costs two edits
+made on purpose.
+
+**It said seven until 2026-09-22.** The gate grew `engineer-of-record` and
+`self-service-signup` and renamed `operating-name` to `trading-name`, and the
+pinned list in `compliance-audit` was updated each time, as the mechanism
+requires. **The prose count here was not**, and nor was the table in
+`CLAUDE.md`. The check has been right and the documents describing it have been
+wrong, which is the safer direction of the two and is still worth correcting:
+somebody reading either one to decide whether a condition is missing would have
+counted to seven and stopped.
 
 The operator's own view of this is `/portal/launch`, which renders the gate's own
 answer live. **Read the screen for the current state and this file for the
@@ -86,10 +95,39 @@ registrant is.
 
 ### `stripe`
 
-The integration has been exercised against **Reyna Pay**, a different entity. A
-live charge today would pay the wrong company for engineering work, on a receipt
-the customer keeps, and that is discovered during a dispute rather than before
+**CORRECTED 2026-09-22.** This section said the integration had been exercised
+against **Reyna Pay**, a different entity. **That was wrong.**
+
+Production's account is **`acct_1UFmIjA2kbTZN5C3`**, which is this firm's. It
+has been recorded in `src/config/stripe-console.ts` since 2026-09-16, and on
+2026-09-22 the operator read Production's publishable key: it begins
+`pk_live_51UFmIjA2kbTZN5C3`, which embeds that same account id. He has renamed
+the account to 254 Engineering LLC.
+
+The wrong sentence was written on 2026-09-11 and nothing re-derived it for
+eleven days, while **five other records copied it**, including this one. The
+later, evidenced record was never compared against the earlier, unevidenced
 one.
+
+**Two things still hold this condition shut**, and neither is the account's
+identity:
+
+1. **The legal business name is unverified.** The operator changed it in the
+   dashboard on 2026-09-21; the screenshot proving it was deleted because it
+   carried his personal details. `stripeConsole` therefore holds the value read
+   on 2026-09-16 and `stripe-webhook-audit` is correctly red until a cropped
+   capture or a key-run audit.
+2. **No charge and refund have been made.**
+
+**Preview did carry live Reyna Pay keys** until the operator removed them on
+2026-09-21. That is a separate and real finding, recorded in
+`src/config/credential-inventory.ts`. A charge taken on a preview URL, which
+anybody with the link can reach, would have paid the wrong company for
+engineering work, on a receipt the customer keeps, and that is discovered
+during a dispute rather than before one.
+
+**The live charge and refund run on PRODUCTION**, as the first act after the
+gate opens. Never on a preview.
 
 **A charge and a refund, and both recorded.** A charge proves the account can
 take money. Only a refund proves the firm can give it back, and this platform's

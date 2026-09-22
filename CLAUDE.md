@@ -135,21 +135,36 @@ mode is still prelaunch and `tbpelsFirmNumber()` is still null.
 The conditions, all read from CONFIGURATION so the flip is impossible until each
 is stated true in a file somebody edits on purpose:
 
-| Condition | Where it is stated |
-| --- | --- |
-| The operator has thrown the switch | `LAUNCH_MODE=live` |
-| An active, unexpired registration is on record | `verifiedFirmRegistrations` |
-| **The board holds the operating name** | `operatingNameOnBoardRecord` |
-| A live Stripe account belonging to 254, proven by a charge and its refund | `stripeAccount` |
-| One protocol per offered service line, approved by the engineer of record | `approvedProtocols` |
-| `FIRM_PHONE` is a real number, not a placeholder | `FIRM_PHONE` |
-| Point in time recovery on the production project | `pointInTimeRecovery` |
+| id | Condition | Where it is stated |
+| --- | --- | --- |
+| `switch` | The operator has thrown the switch | `LAUNCH_MODE=live` |
+| `registration` | An active, unexpired registration is on record | `verifiedFirmRegistrations` |
+| `trading-name` | **The board holds the operating name** | `operatingNameOnBoardRecord` |
+| `engineer-of-record` | A licensed PE is in responsible charge | `verifiedEngineers` |
+| `stripe` | A live Stripe account belonging to 254, proven by a charge and its refund | `stripeAccount` |
+| `protocols` | One protocol per offered service line, approved by the engineer of record | `approvedProtocols` |
+| `phone` | `FIRM_PHONE` is a real number, not a placeholder | `FIRM_PHONE` |
+| `recovery` | Point in time recovery on the production project | `pointInTimeRecovery` |
+| `self-service-signup` | Public sign up is cleared for production | `selfServiceSignup` |
 
-**Four more were added on 2026-09-11**, and the last three of those live in
-`src/config/launch-readiness.ts`. Each condition carries the sentence a reader
-gets when it is unmet, who clears it, and where it is stated true, and
-`compliance-audit` asserts the gate carries EXACTLY these seven against a pinned
-list of ids, so removing one costs two edits made on purpose.
+**NINE, NOT SEVEN, AND THIS TABLE SAID SEVEN UNTIL 2026-09-22.** Each condition
+carries the sentence a reader gets when it is unmet, who clears it, and where it
+is stated true, and `compliance-audit` asserts the gate carries EXACTLY these
+against a pinned list of ids, so removing one costs two edits made on purpose.
+
+**THE CHECK WAS RIGHT AND THIS DOCUMENT WAS WRONG, WHICH IS THE SAFE DIRECTION
+AND IS STILL A DEFECT.** The gate gained `engineer-of-record` and
+`self-service-signup` and renamed `operating-name` to `trading-name`, all on
+2026-09-17. `RULED_CONDITIONS` in `compliance-audit` was updated each time,
+exactly as the two-edit mechanism requires, and it has been at nine ever since.
+The table above and the prose in `docs/launch-readiness.md` were not, and
+carried on saying seven for five days.
+
+**Nothing was unpinned**, checked rather than assumed on 2026-09-22: the pinned
+list and `LAUNCH_CONDITIONS` agree at nine and the assertion passes. What broke
+was the account a person reads, not the one a machine enforces. That is the same
+failure this file records about the portal sidebar and the ledger: a fact with
+two homes, and the drift lands in whichever one nothing checks.
 
 **`docs/launch-readiness.md` is the written form and `/portal/launch` is the
 operator's live view.** The screen renders `launchReadiness()` and computes

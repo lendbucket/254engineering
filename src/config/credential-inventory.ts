@@ -293,14 +293,23 @@ export const CREDENTIALS: Credential[] = [
    * REYNA PAY, which is a different legal entity from this firm. The operator
    * found it and removed them; Preview now holds no Stripe key at all.
    *
+   * THIS IS ABOUT PREVIEW AND ONLY PREVIEW. Corrected 2026-09-22. An earlier
+   * version of the entry below said PRODUCTION's key belongs to Reyna Pay,
+   * repeating a sentence written on 2026-09-11 that nothing re-checked. It is
+   * wrong: Production's account is acct_1UFmIjA2kbTZN5C3, which is this firm's
+   * and which the operator has renamed to the registrant. See
+   * src/config/launch-readiness.ts for the evidence and how one unverified
+   * sentence reached six records.
+   *
    * WHY THIS IS WORSE THAN THE 2026-09-12 FINDING RATHER THAN ANOTHER OF THEM.
    * That one was one firm's secret shared across environments: a customer
    * cookie minted on a preview was valid on production. Bad, and bounded by the
    * firm's own blast radius. This is a LIVE key for ANOTHER COMPANY on an
    * environment whose URLs are reachable by anyone holding the link. A charge
-   * taken there would have moved real money into Reyna Pay for engineering work
-   * 254 Engineering LLC is not yet permitted to perform. Cross environment is a
-   * blast radius question; cross entity is a whose-money question.
+   * taken ON A PREVIEW would have moved real money into Reyna Pay for
+   * engineering work this firm is not yet permitted to perform.
+   * Cross environment is a blast radius question; cross entity is a
+   * whose-money question.
    *
    * FOURTH CONSOLE FINDING, AND ALL FOUR CAME FROM THE OPERATOR OPENING A
    * DASHBOARD. Vercel twice on 2026-09-12, Stripe on 2026-09-16, Vercel again
@@ -326,14 +335,21 @@ export const CREDENTIALS: Credential[] = [
     name: "STRIPE_SECRET_KEY",
     kind: "secret",
     livesIn:
-      "Vercel, PRODUCTION ONLY since 2026-09-21. The account it belongs to is Reyna Pay, not this firm, " +
-      "which is launch condition `stripe`. PREVIEW CARRIED LIVE REYNA PAY KEYS AND THE OPERATOR REMOVED " +
-      "THEM on 2026-09-21; Preview now holds no Stripe key. Recorded as his statement: nothing in this " +
-      "repository can read Vercel, so nothing here has confirmed the removal.",
+      "Vercel, PRODUCTION ONLY since 2026-09-21. The production account is acct_1UFmIjA2kbTZN5C3, " +
+      "which IS this firm's: the operator read Production's publishable key on 2026-09-22 and it " +
+      "begins pk_live_51UFmIjA2kbTZN5C3, embedding that account id. He states he has renamed the " +
+      "account to the registrant; that NAME is recorded and deliberately still UNVERIFIED in " +
+      "src/config/stripe-console.ts, so it is not asserted here. " +
+      "CORRECTED 2026-09-22: this field said the production account belongs to Reyna Pay, repeating a " +
+      "sentence written 2026-09-11 that nothing re-checked for eleven days. " +
+      "PREVIEW CARRIED LIVE REYNA PAY KEYS AND THE OPERATOR REMOVED THEM on 2026-09-21; Preview now " +
+      "holds no Stripe key. That is a separate and real finding. Recorded as his statement: nothing " +
+      "in this repository can read Vercel, so nothing here has confirmed the removal.",
     grants:
-      "Charging and refunding against that Stripe account, and reading every charge on it. On Preview " +
-      "that meant charging a DIFFERENT COMPANY from a URL anybody with the link can reach.",
-    rotated: "Never. Removed from Preview 2026-09-21, which is not a rotation.",
+      "Charging and refunding against that Stripe account, and reading every charge on it. While " +
+      "Preview held Reyna Pay's live keys that meant charging a DIFFERENT COMPANY from a URL anybody " +
+      "with the link can reach.",
+    rotated: "Never. Reyna Pay's keys removed from Preview 2026-09-21, which is not a rotation.",
   },
   {
     name: "STRIPE_WEBHOOK_SECRET",

@@ -34,11 +34,22 @@
  *
  * WHY THE ACCOUNT'S OWNER IS PART OF THE CONDITION
  * ------------------------------------------------
- * The platform's Stripe integration has been exercised against an account that
- * is not this firm's. Taking a customer's money into an account belonging to a
- * different entity is not a configuration detail: it is the wrong company being
- * paid for engineering work, on a receipt the customer keeps, and it is the sort
- * of thing that is discovered during a dispute rather than before one.
+ * Taking a customer's money into an account belonging to a different entity is
+ * not a configuration detail: it is the wrong company being paid for
+ * engineering work, on a receipt the customer keeps, and it is the sort of
+ * thing that is discovered during a dispute rather than before one.
+ *
+ * THIS PARAGRAPH USED TO SAY THE INTEGRATION HAD BEEN EXERCISED AGAINST AN
+ * ACCOUNT THAT IS NOT THIS FIRM'S. Corrected 2026-09-22: it has not. The
+ * reasoning for having the owner in the condition survives the correction
+ * unchanged, which is why the paragraph stays. What changed is that it is now
+ * a statement of WHY the rule exists rather than a claim about today.
+ *
+ * AND THE CONDITION EARNED ITSELF ANYWAY, from the other direction. Preview
+ * carried live Reyna Pay keys until 2026-09-21. A charge on a preview URL,
+ * which anybody with the link can reach, would have done exactly what the
+ * paragraph above describes. The rule was right; the sentence naming where the
+ * risk sat was wrong.
  *
  * WHY A CHARGE AND A REFUND, AND WHY BOTH RECORDED
  * ------------------------------------------------
@@ -68,11 +79,64 @@ export const stripeAccount: {
   connected: false,
   accountName: null,
   proof: null,
+  /*
+   * =========================================================================
+   * CORRECTED 2026-09-22. THE "REYNA PAY" SENTENCE WAS WRONG, AND IT WAS THE
+   * SOURCE FIVE OTHER RECORDS COPIED.
+   * =========================================================================
+   *
+   * IT READ, from 2026-09-11 until today: "No Stripe account belonging to 254
+   * is connected. The integration has been exercised against Reyna Pay, which
+   * is a different entity, so a live charge today would pay the wrong company
+   * for engineering work."
+   *
+   * WHAT THE EVIDENCE ACTUALLY SAYS. `stripeConsole.accountId` has recorded
+   * `acct_1UFmIjA2kbTZN5C3` since 2026-09-16, read off the dashboard. The
+   * operator read Production's publishable key on 2026-09-22 and it begins
+   * `pk_live_51UFmIjA2kbTZN5C3`. A Stripe publishable key embeds its own
+   * account id: strip `pk_live_5` and what remains is `1UFmIjA2kbTZN5C3`,
+   * which is the tail of that account. **They are the same account**, and it
+   * is the account the operator states he renamed to the registrant.
+   *
+   * HOW ONE WRONG SENTENCE BECAME SIX. Nothing re-derived it for eleven days.
+   * `credential-inventory.ts` repeated it, `docs/launch-readiness.md` and
+   * `docs/soc2-readiness.md` are written from those two, `BACKLOG.md` pointed
+   * at it, and on 2026-09-21 a session wrote three more lines repeating it
+   * while recording a genuine and separate finding about Preview. The later,
+   * evidenced record, the account id read on the 16th, was never compared
+   * against the earlier, unevidenced one. That is the rule in CLAUDE.md
+   * section 6b: a recorded explanation is a hypothesis until something
+   * re-checks it, and a wrong one is worse than none because it stops the next
+   * reader looking.
+   *
+   * WHAT REMAINS UNMET, AND IT IS NOT THE ACCOUNT'S IDENTITY. Two things. The
+   * account's LEGAL BUSINESS NAME is unverified: the operator changed it in
+   * the dashboard on 2026-09-21 and the screenshot proving it was deleted
+   * because it carried his personal details, so `stripeConsole` still holds
+   * the last evidenced value and `stripe-webhook-audit` is correctly red. And
+   * no charge and refund have been made. This condition needs BOTH.
+   *
+   * THE PREVIEW FINDING IS SEPARATE AND STANDS. Preview carried live Reyna Pay
+   * keys until the operator removed them on 2026-09-21. That was real, it is
+   * recorded in `credential-inventory.ts`, and it is not evidence about which
+   * account Production uses.
+   */
   because:
-    "No Stripe account belonging to 254 is connected. The integration has been exercised against Reyna Pay, " +
-    "which is a different entity, so a live charge today would pay the wrong company for engineering work. " +
-    "This becomes true when the firm's own live account is connected and one real charge and its refund have " +
-    "both been made and recorded above.",
+    "The live account IS this firm's: acct_1UFmIjA2kbTZN5C3, recorded in src/config/stripe-console.ts " +
+    "since 2026-09-16 and confirmed 2026-09-22 by the operator reading Production's publishable key, " +
+    "which begins pk_live_51UFmIjA2kbTZN5C3 and embeds that same account id. He states he has renamed " +
+    "it in the dashboard to the registrant the board holds; that NAME is recorded and deliberately " +
+    "still UNVERIFIED in src/config/stripe-console.ts, so it is not asserted here. " +
+    "TWO THINGS STILL HOLD THIS SHUT. The legal business name on that account is UNVERIFIED: the " +
+    "screenshot proving the rename was deleted because it carried personal details, so the console " +
+    "record still holds the value read on 2026-09-16 and stripe-webhook-audit is red until a cropped " +
+    "capture or a key-run audit. And no real charge and refund have been made and recorded above. " +
+    "This becomes true when both are done, and the live test runs on PRODUCTION as the first act " +
+    "after the gate opens, never on a preview. " +
+    "CORRECTED 2026-09-22: this field previously said the integration had been exercised against " +
+    "Reyna Pay, a different entity. That was written 2026-09-11, nothing re-checked it for eleven " +
+    "days, and five other records copied it. Preview DID carry live Reyna Pay keys until 2026-09-21, " +
+    "which is a separate and real finding recorded in credential-inventory.ts.",
 };
 
 /**
