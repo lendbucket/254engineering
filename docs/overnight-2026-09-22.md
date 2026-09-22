@@ -2,9 +2,12 @@
 
 ## The one screen
 
-**First board: 5 FAILs against a prediction of 2. Falsified, and three of the
-five were mine.** One of them had **broken the partner report outright**. All
-fixed, receipts taken, second board below.
+**Final board: 56 of 58. Two FAILs, both owed human reads. Prediction held
+exactly.** `main` `3a2bffd`, `origin/main` `c89a564`, **nothing pushed**.
+
+**The first board falsified a prediction of 2 with 5, and three were mine.**
+One had **broken the partner report outright**, invisibly to `tsc`. Fixed,
+receipts taken, second board clean.
 
 **0056 is ready and is NOT on main.** It sits on `feat/discipline-0056`, applied
 to development and read back. **The freeze answer is NO**: nothing in the schema
@@ -82,11 +85,31 @@ produces another round of unreviewed edits. What changed is that the check now
 prints what it does **not** read, so its green stops implying coverage it does
 not have. Widening it is ruling seven.
 
-### Second board
+### Second board: the prediction held exactly
 
-Prediction, written before the run: **exactly two FAIL lines**, the Stripe
-legal name and the roster entry, and nothing else. Result recorded below when
-it lands.
+Predicted **exactly two FAIL lines**, the Stripe legal name and the roster
+entry, and nothing else.
+
+```
+2 of 58 audits failed: stripe-webhook-audit, compliance-audit
+2 of 58 audits could not measure: mobile-overflow-audit, native-audit
+
+FAIL: the Stripe legal business name is the registrant the board holds
+FAIL: and this firm appears on the engineer's own roster entry
+```
+
+**56 of 58.** Both failures are the owed human reads. Nothing on this tree is a
+code defect.
+
+**What made the difference between the two boards, stated because it is the
+lesson rather than the outcome.** Before the first, I ran only the audits I had
+edited. Before the second, I ran every audit that touched anything I had
+CHANGED, which is a different and larger set: `token-audit`, `order-audit`,
+`demo-audit`, `soc2-audit`, `backlog-audit`, `tsc`. The first board found three
+defects in twenty minutes that six standalone runs would have found in five.
+
+**Hashes.** `main` `3a2bffd`. `origin/main` `c89a564`. Three commits unpushed.
+`feat/discipline-0056` at `b65a95e`, unmerged, carrying the pending migration.
 
 ---
 
