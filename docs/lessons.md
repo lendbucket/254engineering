@@ -92,3 +92,46 @@ It also travelled further than the first. A wrong figure in a report becomes the
 operator's expectation, and his instruction then encodes it. He is checking your
 work against your own arithmetic.
 
+---
+
+## A RESTORE THAT TOOK MORE THAN IT PUT BACK
+
+**2026-09-22.** Injecting a violation into `src/config/credentials.ts` to prove a
+new check went red, then restoring with
+
+    git checkout src/config/credentials.ts
+
+which discarded **every uncommitted edit in that file**, not the injected line.
+The injection was one changed date. The file also held a new type field, a new
+record, and a verbatim correction to a roster read, all uncommitted, all gone,
+and all rewritten from scratch.
+
+**The same session had done it correctly an hour earlier.** Injecting into
+`docs/launch-readiness.md`, the file was copied to the scratchpad first,
+restored by copy, and verified with `diff -q` after each of three injections.
+The discipline existed, was working, and was not carried across to the next
+file.
+
+**Why `git checkout` is the wrong instrument here, always.** Its subject is "the
+last committed state of this path". An injection's subject is "the one line I
+just changed". Those coincide only when the file has no other uncommitted work,
+which is precisely the condition that does not hold while you are building the
+thing you are injecting into. The command cannot tell the injection from the
+work, because they are the same kind of change.
+
+**The rule.**
+
+| Before an injection | `cp <file> <scratchpad>/<name>.bak` |
+| To restore | `cp <scratchpad>/<name>.bak <file>` |
+| To verify | `diff -q` the two, and say "restored byte identical", or stop |
+
+Never `git checkout`, never `git restore`, and never a reverse edit typed from
+memory. The reverse edit is the subtler trap: it restores what you REMEMBER
+writing, which is not the same as what was there.
+
+**And the verification is not optional**, for the reason this repository already
+records about deletions and rotations: a restore reads identically whether it
+happened or not. `diff -q` costs nothing and is the only thing that tells the
+two apart. It was used on every injection after this one, including the four
+against `scripts/mfa-audit.mjs` the same afternoon.
+
