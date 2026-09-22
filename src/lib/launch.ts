@@ -686,6 +686,51 @@ export function registrationStatement(): string | null {
 
 /**
  * ===========================================================================
+ * A DBA NEVER STANDS ALONE AS THE FIRM. Operator ruling, 2026-09-22.
+ * ===========================================================================
+ *
+ * TBPELS records three assumed names on F-29811: Sealed Engineering, Stamp My
+ * Plans, and 254 Engineering Services. The board holding them is new, and it
+ * changes what may be said, which is why the ruling came with a form attached:
+ *
+ *   "Partner contracts name the registrant. A DBA may appear only as
+ *    '254 Engineering LLC, doing business as ...', never alone."
+ *
+ * WHY NEVER ALONE, AND IT IS NOT STYLE. A partner agreement, a referral page
+ * and an engagement letter all answer one question for the reader: who is the
+ * counterparty. A trade name answers it ambiguously even when the board holds
+ * it, because the entity that can be sued, that holds the registration, and
+ * that the engineer practises under is the REGISTRANT. A DBA alone invites an
+ * argument about who was contracted with, and that argument happens during a
+ * dispute rather than before one.
+ *
+ * SO THE FORM IS DERIVED RATHER THAN TYPED, and the registrant half comes from
+ * `firmName()`, which reads the board's own record. Reissuance moves both
+ * halves at once.
+ *
+ * IT REFUSES A NAME THE BOARD DOES NOT HOLD, and that is the load bearing
+ * clause. Without it this would be a sentence generator for any string
+ * somebody passed it, which is exactly how a brand nobody registered ends up
+ * looking registered.
+ */
+export function tradingAsLine(dba: string): string | null {
+  const registration = activeFirmRegistration();
+  if (!registration) return null;
+
+  const held = registration.dbas.find((d) => d.toLowerCase() === dba.trim().toLowerCase());
+  if (!held) return null;
+
+  /* The board's spelling, not the caller's. "Stamp My Plans", not "StampMyPlans". */
+  return `${firmName()}, doing business as ${held}`;
+}
+
+/** Every assumed name the board holds, for a caller that needs to ask. */
+export function boardHeldDbas(): string[] {
+  return activeFirmRegistration()?.dbas ?? [];
+}
+
+/**
+ * ===========================================================================
  * THE TDI WINDSTORM APPOINTMENT, AS A SENTENCE, READ OFF THE REGISTER.
  * Operator ruling, 2026-09-21. Option A: derive from `verifiedCredentials`.
  * ===========================================================================

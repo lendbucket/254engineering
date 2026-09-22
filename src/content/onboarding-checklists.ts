@@ -1,3 +1,6 @@
+import { DEFAULT_ROLES } from "@/lib/ops-authz";
+import { roleKeyLabel } from "@/lib/portal-labels";
+
 /**
  * The onboarding checklists, one per role.
  *
@@ -229,9 +232,37 @@ export function checklistFor(role: OnboardingRole): ChecklistItem[] {
   return checklists[role];
 }
 
+/**
+ * ===========================================================================
+ * ONE DECLARATION, AND IT IS `DEFAULT_ROLES`. Operator ruling, 2026-09-22.
+ * ===========================================================================
+ *
+ * THIS MAP SAID "Field Inspection Technician" AND THE ROLE RECORD SAYS "Field
+ * Technician". One key, two labels, and they had already diverged: whichever
+ * surface a person happened to be on decided what the role was called.
+ *
+ * The operator ruled "Field Technician", on two grounds. It is the name on the
+ * role record the permission screen already renders, and it is the term
+ * section 5 of 254-RC-001 uses, which is the signed document this firm's field
+ * work is performed under. A label that disagrees with the protocol is a label
+ * that will be read out in an audit and not match the paper.
+ *
+ * SO THIS MAP DERIVES RATHER THAN DECLARES. `DEFAULT_ROLES` in
+ * src/lib/ops-authz.ts carries a `name` for every system role. It is the one
+ * home, and this reads it. The onboarding vocabulary and the portal vocabulary
+ * use the same keys, `engineer` and `field_tech`, so there is nothing to
+ * translate between them.
+ *
+ * WHAT HAPPENS IF A ROLE LOSES ITS NAME. `roleKeyLabel` in
+ * src/lib/portal-labels.ts turns the key back into English as a fallback, so
+ * an onboarding page renders "Field tech" rather than crashing or printing a
+ * raw key. That is deliberately worse looking than the real name: a fallback
+ * that reads as well as the thing it replaces is a fallback nobody notices has
+ * fired.
+ */
 export const ROLE_LABELS: Record<OnboardingRole, string> = {
-  engineer: "Professional Engineer",
-  field_tech: "Field Inspection Technician",
+  engineer: DEFAULT_ROLES.find((r) => r.key === "engineer")?.name ?? roleKeyLabel("engineer"),
+  field_tech: DEFAULT_ROLES.find((r) => r.key === "field_tech")?.name ?? roleKeyLabel("field_tech"),
 };
 
 /**

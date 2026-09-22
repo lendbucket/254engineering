@@ -57,12 +57,17 @@ export function actionLabel(key: string): string {
  * arriving without its record, and its existence is not a licence to stop
  * reading the record.
  *
- * KNOWN DIVERGENCE, RECORDED RATHER THAN RESOLVED HERE. `DEFAULT_ROLES` names
- * `field_tech` "Field Technician" and `ROLE_LABELS` in
- * src/content/onboarding-checklists.ts names the same key "Field Inspection
- * Technician". Two homes for one label, already disagreed. Which word the firm
- * uses is a wording choice for the operator, so it is in the morning report
- * under Rulings owed rather than settled by this file.
+ * THE DIVERGENCE THIS NOTE USED TO RECORD IS RESOLVED. Operator ruling,
+ * 2026-09-22: "Field Technician", because it matches the role record and
+ * section 5 of 254-RC-001, which is the signed document the field work is
+ * performed under. `ROLE_LABELS` in src/content/onboarding-checklists.ts now
+ * DERIVES from `DEFAULT_ROLES` rather than declaring its own, so there is one
+ * home and a second cannot drift from it again.
+ *
+ * This function stays as the fallback for a key arriving without its record,
+ * and it is deliberately worse looking than a real name: "Field tech" rather
+ * than "Field Technician". A fallback that reads as well as the thing it
+ * replaces is a fallback nobody notices has fired.
  */
 export function roleKeyLabel(key: string): string {
   const trimmed = (key ?? "").trim();

@@ -932,6 +932,55 @@ const terms = (over = {}) => ({
     !/254 Engineering Services/.test(performingFirmLine()),
     "the board now records 254 Engineering Services as a DBA on F-29811, and the entity answerable on an engagement is still the registrant",
   );
+
+  /*
+   * =====================================================================
+   * A DBA NEVER STANDS ALONE AS THE FIRM. Operator ruling, 2026-09-22:
+   * "A DBA may appear only as '254 Engineering LLC, doing business as ...',
+   * never alone."
+   * =====================================================================
+   *
+   * WHY THIS NEEDED A CHECK THE DAY THE BOARD STARTED HOLDING THEM. Until
+   * 2026-09-21 the three trade names were brands with no registration behind
+   * them, and naming one as the performing firm was plainly holding out under
+   * a name the board had no record of. Now the board DOES hold them, and the
+   * obvious reading is that they became sayable. They did not: the entity
+   * answerable on an engagement is the registrant, and a trade name alone
+   * leaves the counterparty ambiguous in the one document where it must not
+   * be.
+   *
+   * So the rule got MORE specific at exactly the moment it looked like it had
+   * relaxed, which is the kind of change nobody notices without a check.
+   */
+  {
+    const { tradingAsLine, boardHeldDbas, firmName } = await import("../src/lib/launch.ts");
+    const dbas = boardHeldDbas();
+
+    rec(
+      "the board holds assumed names for this check to be about",
+      dbas.length > 0,
+      dbas.join("; ") || "no DBA on the registration, so the two checks below pass over nothing",
+    );
+
+    const permitted = dbas.map((d) => tradingAsLine(d));
+    rec(
+      "and every one of them renders only as the registrant doing business as that name",
+      permitted.length > 0 &&
+        permitted.every((line) => typeof line === "string" && line.startsWith(`${firmName()}, doing business as `)),
+      permitted.filter(Boolean).join(" | ") || "the deriver returned nothing for a name the board holds",
+    );
+
+    /*
+     * AND A NAME THE BOARD DOES NOT HOLD GETS NO SENTENCE AT ALL, which is the
+     * clause that stops this being a sentence generator for any string. A
+     * brand nobody registered must not come out looking registered.
+     */
+    rec(
+      "and a trade name the board does not hold renders nothing",
+      tradingAsLine("Totally Unregistered Engineering") === null,
+      tradingAsLine("Totally Unregistered Engineering") ?? "null, which is the refusal",
+    );
+  }
   rec(
     "and states the registration exactly as the register records it, while the gate is down",
     performingFirmLine().includes("254 Engineering LLC is a Texas registered engineering firm, TBPELS Firm Registration F-29811.") &&
