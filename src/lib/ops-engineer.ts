@@ -1,5 +1,6 @@
 import "server-only";
 import { DB_NOW } from "./db-now";
+import { clockSentence } from "./clock-skew";
 import { supabaseAdmin } from "./supabase";
 import { deskPackageComplete, orderForFile, settleDecision } from "./ops-payments";
 import { writeAudit } from "./ops-audit";
@@ -212,6 +213,10 @@ export type EvidenceView = {
     capturedAt: string | null;
     lat: number | null;
     lng: number | null;
+    /** 254-RC-001 section 9's third value, as the sentence a person reads. */
+    clockSentence: string;
+    /** Null where nobody measured, which is not the same as agreeing. */
+    clockDisagrees: boolean | null;
   }[];
   satisfied: boolean;
   problem: string | null;
@@ -319,6 +324,23 @@ export async function packageFor(actor: Actor | null, fileId: string): Promise<P
         capturedAt: c.captured_at,
         lat: c.captured_lat === null ? null : Number(c.captured_lat),
         lng: c.captured_lng === null ? null : Number(c.captured_lng),
+        /*
+         * THE THIRD TIME VALUE REACHES THE ENGINEER, because he is the person
+         * the protocol wrote it for. Section 9: a disagreeing clock is
+         * "recorded as disagreeing rather than presented as certain", and the
+         * presenting happens here, on the screen where he decides what the
+         * evidence supports.
+         *
+         * The SENTENCE is built from one home in clock-skew.ts rather than
+         * here, so the technician's screen and this one cannot describe the
+         * same row differently.
+         */
+        clockSentence: clockSentence(
+          c.clock_skew_seconds === null || c.clock_disagrees === null
+            ? null
+            : { skewSeconds: Number(c.clock_skew_seconds), disagrees: c.clock_disagrees },
+        ),
+        clockDisagrees: c.clock_disagrees,
       })),
   }));
 

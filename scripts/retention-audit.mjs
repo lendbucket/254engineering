@@ -718,13 +718,19 @@ try {
         if (trailErr) console.error(`  (could not read the trail row: ${trailErr.message})`);
         const trail = (trailRows ?? [])[0] ?? null;
 
+        /*
+         * "Authorized", with a z, moved 2026-09-22 with the US spelling
+         * ruling. The sentence lives in job-handlers.ts and this pins it, so
+         * the change cost two edits. This check went red naming the trail row,
+         * which is it asking whether the wording change was meant.
+         */
         rec(
-          "the sweep handler writes a trail row naming who authorised it",
+          "the sweep handler writes a trail row naming who authorized it",
           outcome.kind === "done" &&
             trail?.action === "retention.dry_run" &&
             trail?.actor_role === AUDIT_ASKED.role &&
             /Authorized by/.test(trail?.summary ?? ""),
-          trail ? `${trail.action} authorised by ${trail.actor_role ?? "NOBODY"}` : "no trail row was written",
+          trail ? `${trail.action} authorized by ${trail.actor_role ?? "NOBODY"}` : "no trail row was written",
         );
 
         rec(

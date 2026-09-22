@@ -654,6 +654,125 @@ const capture = (key) => ({ itemKey: key, kind: "note", valueText: "seen" });
 }
 
 
+/*
+ * ===========================================================================
+ * 254-RC-001 SECTION 9: THREE TIME VALUES, AND A DISAGREEING CLOCK SAYS SO.
+ * Operator ruling 4, 2026-09-22.
+ * ===========================================================================
+ *
+ * THE REQUIREMENT, QUOTED FROM THE SIGNED DOCUMENT:
+ *
+ *   "Photographs carry location and three time values from the field
+ *    application: the time reported by the device, the server time at sync,
+ *    and the difference between them. A device clock that disagrees with the
+ *    server is recorded as disagreeing rather than presented as certain."
+ *
+ * The walk of 2026-09-21 found two of the three. The difference existed
+ * nowhere, and nothing marked a clock as disagreeing.
+ *
+ * THE TOLERANCE IS PINNED HERE AS A LITERAL, section 6c. It is the operator's
+ * figure and not a tuning parameter: if this check fails on the number, it is
+ * asking whether the change was meant.
+ */
+{
+  const { clockReading, clockSentence, CLOCK_TOLERANCE_SECONDS } = await import("../src/lib/clock-skew.ts");
+
+  rec(
+    "the clock tolerance is the ruled sixty seconds",
+    CLOCK_TOLERANCE_SECONDS === 60,
+    `${CLOCK_TOLERANCE_SECONDS}s. Declared in src/lib/clock-skew.ts, pinned here.`,
+  );
+
+  const server = "2026-09-22T12:00:00.000Z";
+
+  const agreeing = clockReading("2026-09-22T12:00:05.000Z", server);
+  rec(
+    "a device five seconds out is measured and does NOT read as disagreeing",
+    agreeing?.skewSeconds === 5 && agreeing?.disagrees === false,
+    `skew ${agreeing?.skewSeconds}s, disagrees ${agreeing?.disagrees}. Every clock is out a little; flagging that makes the flag meaningless.`,
+  );
+
+  const ahead = clockReading("2026-09-22T12:10:00.000Z", server);
+  rec(
+    "a device ten minutes AHEAD disagrees, and the sign is kept",
+    ahead?.skewSeconds === 600 && ahead?.disagrees === true,
+    `skew ${ahead?.skewSeconds}s. A photograph claiming to be from the future is a different conversation from a slow phone.`,
+  );
+
+  const behind = clockReading("2026-09-22T11:50:00.000Z", server);
+  rec(
+    "and a device ten minutes BEHIND disagrees too, which an absolute value would have hidden",
+    behind?.skewSeconds === -600 && behind?.disagrees === true,
+    `skew ${behind?.skewSeconds}s`,
+  );
+
+  /*
+   * THE BOUNDARY, BOTH SIDES. A tolerance nobody tests at its edge is a
+   * tolerance whose comparison operator is a guess. Sixty exactly must NOT
+   * disagree; sixty one must.
+   */
+  const atLimit = clockReading("2026-09-22T12:01:00.000Z", server);
+  const overLimit = clockReading("2026-09-22T12:01:01.000Z", server);
+  rec(
+    "the tolerance is inclusive at its edge and exclusive past it",
+    atLimit?.disagrees === false && overLimit?.disagrees === true,
+    `${atLimit?.skewSeconds}s agrees, ${overLimit?.skewSeconds}s disagrees`,
+  );
+
+  /*
+   * ABSENT IS NOT ZERO, which is the defect this repository has recorded in a
+   * batch total, an access review and a status column. A row with no device
+   * time has no reading, and must not render as one that agreed.
+   */
+  rec(
+    "a missing device time yields NO reading rather than a zero skew",
+    clockReading(null, server) === null && clockReading("2026-09-22T12:00:00Z", null) === null,
+    "null, so the database holds null for both columns and the screen says nobody measured",
+  );
+  rec(
+    "and an unparseable device time yields no reading either",
+    clockReading("not a date", server) === null,
+    "a string that is not a time is not a time of zero",
+  );
+
+  /*
+   * AND THE THREE SENTENCES ARE DIFFERENT SENTENCES. The unmeasured case must
+   * not borrow the agreeing one: rendering "the clocks agreed" over a row
+   * nobody measured asserts a measurement that was never taken.
+   */
+  const sentences = [clockSentence(null), clockSentence(agreeing), clockSentence(ahead)];
+  rec(
+    "the unmeasured, agreeing and disagreeing cases each read differently",
+    new Set(sentences).size === 3 &&
+      /No clock comparison/.test(sentences[0]) &&
+      /disagreed/.test(sentences[2]) &&
+      !/disagreed/.test(sentences[1]),
+    sentences.map((s) => s.slice(0, 44)).join(" | "),
+  );
+
+  /*
+   * THE WRITER USES THIS RULE RATHER THAN ITS OWN, read from the source. A
+   * second implementation of "do these clocks agree" is a second answer, and
+   * this repository has paid for that shape more than once.
+   */
+  const { readSource } = await import("./lib/read-source.mjs");
+  const field = readSource("src/lib/ops-field.ts");
+  rec(
+    "recordCapture writes both columns from the one rule",
+    /clockReading\(/.test(field) &&
+      /clock_skew_seconds:/.test(field) &&
+      /clock_disagrees:/.test(field),
+    "the skew and the verdict are written together, which 0057's check constraint also refuses to see split",
+  );
+
+  const engineer = readSource("src/lib/ops-engineer.ts");
+  rec(
+    "and the engineer's review screen is given the sentence, because section 9 is about how it is PRESENTED",
+    /clockSentence\(/.test(engineer),
+    "the person the requirement was written for is the person who sees it",
+  );
+}
+
 /* ----------------------------------------------------------------- verdict */
 
 console.log("");

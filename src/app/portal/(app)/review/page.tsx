@@ -306,6 +306,32 @@ export default async function ReviewPage({
                                       alt={`${item.label}, captured ${c.capturedAt ?? "at an unrecorded time"}`}
                                       className="h-40 w-40 rounded-[3px] border border-[var(--border)] object-cover"
                                     />
+                                    {/*
+                                      254-RC-001 SECTION 9, THE THIRD TIME
+                                      VALUE. A disagreeing clock is "recorded
+                                      as disagreeing rather than presented as
+                                      certain", and this is where it is
+                                      presented, to the person deciding what
+                                      the evidence supports.
+
+                                      A DISAGREEMENT IS SHOWN LOUDLY AND
+                                      AGREEMENT IS NOT SHOWN AT ALL. Printing
+                                      "clocks agreed" under every photograph
+                                      would be a line everybody stops reading,
+                                      which is how the one that matters gets
+                                      missed. The unmeasured case is also
+                                      shown, because a row with no reading is
+                                      not a row that agreed.
+                                    */}
+                                    {c.clockDisagrees === true ? (
+                                      <span className="mt-1 block text-[11px] font-medium text-[var(--danger)]">
+                                        {c.clockSentence}
+                                      </span>
+                                    ) : c.clockDisagrees === null ? (
+                                      <span className="mt-1 block text-[11px] text-[var(--secondary)]">
+                                        {c.clockSentence}
+                                      </span>
+                                    ) : null}
                                     {c.lat !== null && c.lng !== null ? (
                                       <span className="mt-1 block text-[11px] text-[var(--secondary)]">
                                         {c.lat.toFixed(4)}, {c.lng.toFixed(4)}
