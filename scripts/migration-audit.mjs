@@ -1077,6 +1077,75 @@ if (failedAt === null) {
 
     /*
      * =====================================================================
+     * IS requires_discipline FROZEN ONCE A PROTOCOL IS IN FORCE?
+     * Operator question, 2026-09-21, asked before migration 0056 is prepared.
+     * =====================================================================
+     *
+     * THE ANSWER IS NO, AND IT IS PROVED HERE RATHER THAN READ. Reading the
+     * chain says nothing guards that column: 0049 adds it as a plain text
+     * column with a comment, no constraint or trigger anywhere names it, and
+     * `eng_approve_protocol` writes only status, published_at, approved_by,
+     * approved_at and approved_by_license.
+     *
+     * But "I read every migration and found nothing" is an argument from
+     * absence, and this repository has a rule about those: a recorded
+     * explanation is a hypothesis until something re-checks it. A trigger on
+     * another table, a rule function reached by cascade, or a constraint
+     * written against a column list rather than a name would all be invisible
+     * to that reading. So the question is put to a real database.
+     *
+     * WHY IT MATTERS FOR 0056. If the column were frozen at publication, the
+     * discipline would have to be written BEFORE the engineer approves, and
+     * the migration would be blocking on his approval. It is not, so 0056 can
+     * land either side. The answer changes the sequencing rather than the SQL,
+     * which is exactly the kind of thing worth knowing before a production
+     * sitting rather than during one.
+     */
+    const publishedProbe = "00000000-0000-4000-8000-0000000000d1";
+    const disciplineAfter = await attemptTxn(`
+      begin;
+      insert into eng_protocol_templates (id, service_slug, name, version, status, document_signed_at, requires_discipline)
+      values ('${publishedProbe}', 'probe-discipline', 'A protocol that goes in force', 1, 'awaiting_engineer', '2026-01-01', null);
+      insert into eng_protocol_items (template_id, sort_order, item_key, kind, label, required)
+      values ('${publishedProbe}', 0, 'probe-item', 'note', 'Something to make the approval real', true);
+      select set_config('eng.approving', '${publishedProbe}', true);
+      update eng_protocol_templates set status = 'published', published_at = now(),
+             approved_by = ${ENG}, approved_at = now(), approved_by_license = 'PROBE'
+       where id = '${publishedProbe}';
+      update eng_protocol_templates set requires_discipline = 'structural'
+       where id = '${publishedProbe}';
+      commit;
+    `);
+
+    rec(
+      "requires_discipline is NOT frozen when a protocol goes in force, which decides 0056's sequencing",
+      disciplineAfter === null,
+      disciplineAfter === null
+        ? "a published protocol accepted a discipline it did not have, so 0056 may land either side of the engineer's approval"
+        : `it was refused: ${disciplineAfter}. 0056 must land BEFORE approval.`,
+    );
+
+    /*
+     * AND THE PROBE ACTUALLY REACHED THE STATE IT CLAIMS TO HAVE TESTED,
+     * because a transaction that failed at the INSERT would also report "not
+     * refused" for the update it never ran. The green above means nothing
+     * without this.
+     */
+    const probeState = await db.query(
+      `select status, requires_discipline from eng_protocol_templates where id = '${publishedProbe}'`,
+    );
+    rec(
+      "and that probe really did reach published carrying the discipline",
+      probeState.rows.length === 1 &&
+        probeState.rows[0].status === "published" &&
+        probeState.rows[0].requires_discipline === "structural",
+      probeState.rows.length === 1
+        ? `status ${probeState.rows[0].status}, requires_discipline ${probeState.rows[0].requires_discipline}`
+        : "the probe row is not there at all, so the check above passed over a transaction that never happened",
+    );
+
+    /*
+     * =====================================================================
      * 0053: THERE IS NO CONDITIONAL CERTIFICATION.
      * =====================================================================
      *

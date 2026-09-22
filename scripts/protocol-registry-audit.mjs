@@ -965,6 +965,87 @@ if (carriers.length === 1) {
   }
 }
 
+/*
+ * ===========================================================================
+ * 6. THE MIGRATION THAT WRITES THE DISCIPLINE WRITES THE REGISTRY'S VALUE.
+ * Operator ruling, 2026-09-21.
+ * ===========================================================================
+ *
+ * SAME SHAPE AS THE DIGEST CHECK ABOVE, AND FOR THE SAME REASON. The generator
+ * reads `RC001.requiresDiscipline`; once the SQL is on disk that derivation is
+ * gone and the file holds a bare string literal. Nothing in Postgres can know
+ * which discipline the engineer named.
+ *
+ * WHAT MAKES THIS ONE WORTH A CHECK RATHER THAN TRUST. The value is a
+ * LICENSEE'S JUDGEMENT about what competence a sealed deliverable requires,
+ * and `protocol-gate.ts` filters engineers by it. A wrong value here does not
+ * fail loudly: it either blocks a line the firm could serve, or clears the
+ * discipline block for an engineer who never said he seals that work. The
+ * second is the one that matters, and it would look exactly like this check
+ * passing.
+ *
+ * THE SUBJECT IS DERIVED, not named, for the reason the digest check gives: a
+ * hardcoded path is a second home, and scanning finds a SECOND migration
+ * writing the same column, which a path could not.
+ */
+{
+  const disciplineCarriers = readdirSync(migrationDir)
+    .filter((f) => f.endsWith(".sql"))
+    .map((f) => ({ file: f, text: readFileSync(`${migrationDir}/${f}`, "utf8") }))
+    .filter((m) => /update\s+eng_protocol_templates[\s\S]{0,200}?set\s+requires_discipline/i.test(m.text));
+
+  if (RC001.requiresDiscipline === null) {
+    rec(
+      "no migration writes a discipline, because the registry declares none",
+      disciplineCarriers.length === 0,
+      disciplineCarriers.map((c) => c.file).join(", ") ||
+        "the engineer has not stated it and nothing is writing one on his behalf",
+    );
+  } else {
+    rec(
+      "exactly one migration sets requires_discipline",
+      disciplineCarriers.length === 1,
+      disciplineCarriers.map((c) => c.file).join(", ") ||
+        "the registry declares a discipline and no migration carries it to a database",
+    );
+
+    if (disciplineCarriers.length === 1) {
+      const carrier = disciplineCarriers[0];
+      const setMatch = carrier.text.match(/set\s+requires_discipline\s*=\s*'([^']*)'/i);
+
+      rec(
+        `${carrier.file} sets the discipline to a literal this check can read`,
+        Boolean(setMatch),
+        setMatch ? `'${setMatch[1]}'` : "the UPDATE could not be parsed, so the comparison below would pass over nothing",
+      );
+
+      rec(
+        "and that literal is the discipline the registry declares",
+        setMatch?.[1] === RC001.requiresDiscipline,
+        setMatch?.[1] === RC001.requiresDiscipline
+          ? `${RC001.requiresDiscipline}, read from the registry rather than typed`
+          : `migration '${setMatch?.[1]}' against registry '${RC001.requiresDiscipline}'`,
+      );
+
+      /*
+       * AND AN ENGINEER ON RECORD ACTUALLY SEALS IT. A discipline nobody seals
+       * is not wrong, it is a line that stays shut, and that is a legitimate
+       * state. What would be wrong is this repository carrying a discipline it
+       * cannot trace to a licensee's own declaration, so the check reports
+       * WHICH engineers cover it rather than asserting somebody must.
+       */
+      const { verifiedEngineers } = await import("../src/config/credentials.ts");
+      const sealers = verifiedEngineers.filter((e) => e.sealsOnly.includes(RC001.requiresDiscipline));
+      rec(
+        "and the discipline is one an engineer on record declares he seals",
+        sealers.length > 0,
+        sealers.map((e) => `${e.name} seals ${e.sealsOnly.join("/")}`).join("; ") ||
+          `no engineer on record declares ${RC001.requiresDiscipline}, so this line stays shut on the discipline block`,
+      );
+    }
+  }
+}
+
 /* ----------------------------------------------------------------- verdict */
 
 console.log("");
