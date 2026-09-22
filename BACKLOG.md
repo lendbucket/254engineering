@@ -643,6 +643,36 @@ last", and the reasoning in `src/lib/forms.ts`. So nothing is ambiguous today.
 file would put the two out of step immediately before a production apply.** A
 comment is not worth that, and the operator ruled it waits.
 
+## PHASE 14: THE COMMIT GUARD CANNOT TELL AN APPLIED MIGRATION FROM A PENDING ONE
+
+Operator ruling, 2026-09-22. **Recorded, not built.**
+
+`migrationOnMainVerdict` in `scripts/hooks/commit-guard.mjs` refuses any commit
+on `main` that stages a file matching `supabase/migrations/NNNN_*.sql`. It reads
+the branch and the staged file list, and nothing else.
+
+**That is exactly the state a CORRECT merge sequence passes through.** The rule's
+own words are "either it goes to production in the merge sequence or it stays on
+its branch". On 2026-09-22 migration 0057 went to production first, was read back
+before and after, had its ledger entry moved to `production: "2026-09-22"` on the
+branch, and the merge commit was then refused. Nothing was wrong; the guard
+cannot see the difference, because "applied" is a fact in
+`supabase/applied.mjs` rather than a fact about the file being staged.
+
+**What it costs today.** A merge carrying a migration needs the operator to type
+the commit, because the hook intercepts the session's tool calls and not their
+terminal. That is a small cost and the safe direction, which is why it waits.
+
+**The class fix, and it is not an exemption.** Read the ledger entry for each
+staged migration and refuse only the ones declared `production: null`. A
+migration the ledger says production already has is the sanctioned merge, and a
+pending one is still refused. That keeps the guard's subject sharp rather than
+adding a carve-out for merge commits, which would let any pending migration
+through inside a merge, which is the incident the rule was written for.
+
+**Do not weaken it to unblock a session.** It refused correctly by its own terms,
+and a guard relaxed in a hurry is how the 2026-09-18 incident happened.
+
 ## PHASE 14, FIRST ITEM: A COMMIT TOUCHING AN AUDIT CARRIES A STANDALONE RUN RECEIPT
 
 Operator ruling, 2026-09-21. **Recorded, not built.** It is the first Phase 14
