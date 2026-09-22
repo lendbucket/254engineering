@@ -1823,6 +1823,27 @@ The options, and each has a real cost:
 else's queued work, even when that somebody is an audit from last Tuesday, and
 the third option changes what the platform does depending on where it runs.
 
+### RETENTION: 45 TABLES ARE KEPT BECAUSE NOBODY HAS RULED, NOT BECAUSE SOMEBODY DID
+
+Operator ruling, 2026-09-22. The questions for the engineer of record are in
+`docs/retention-questions-for-the-engineer.md` and this is the pointer, not a
+second copy of them.
+
+Read from `src/lib/retention-policy.ts` on 2026-09-22: of 81 declared tables, 45
+are `kept_pending_counsel`, 26 are `kept_forever`, 8 are not records, and 2 have
+a real floor. Only the last two rows are decisions. The 45 include the
+responsible charge log, evidence items, payments and the audit trail, and they
+are kept indefinitely because the question has never been put to anybody.
+
+**The document is questions and carries no answers on purpose.** Nothing in this
+repository states what TBPELS requires or what the liability cover implies, and
+the one mention of ten years in this file is a design rationale that cites no
+rule and is not evidence of a period.
+
+**It goes to the engineer separately from any protocol approval**, so that his
+approval stays a single act about a single document. Not sent; it awaits the
+operator's review.
+
 ### BULK TABLE ACTIONS: TWO OF THE THREE DRAWN ACTIONS NEED A RULING
 
 Phase 12 Section 4, Section 1. The full reconciliation is in
