@@ -1465,15 +1465,28 @@ export const APPLIED = [
       "rather than the board's.",
   },
   {
-    file: "0057_a_photograph_carries_three_times.sql",
+    file: "0057_a_photograph_carries_three_times.sql", appliedBy: "apply_migration",
     fingerprint: "e2bc81c9096a0eb4d8b8366ce3aea881",
     behaviour: "88129f2c277c601ea05cff9ccd15d77d",
     proves: { column: { table: "eng_evidence_items", name: "clock_skew_seconds" } },
-    production: null,
+    production: "2026-09-22",
     development: { at: "0057", behaviour: null, facts: 920 },
     because:
-      "PENDING. It goes to production at a sitting with the operator, on the rule 0055 and 0056 were " +
-      "held under. " +
+      "APPLIED TO PRODUCTION 2026-09-22 at a sitting with the operator, on the rule 0055 and 0056 " +
+      "were held under. Applied through apply_migration, never execute_sql, so the provider's own " +
+      "history carries it: list_migrations reads version 20260922155844 named " +
+      "'0057_a_photograph_carries_three_times', WITH ITS NUMERIC PREFIX. 0055 went in without its " +
+      "prefix and is recorded two entries up as the slip it was; 0056 and 0057 both carry the full " +
+      "file stem. " +
+      "READ BACK RATHER THAN ASSUMED, and the before state was read first so the move is proven " +
+      "rather than inferred. Before: shape 56b351a693ec70cc86203fd0cbde481c across 1,141 columns, " +
+      "neither column present, no constraint. After: shape e2bc81c9096a0eb4d8b8366ce3aea881 across " +
+      "1,143 columns, which is the declared fingerprint exactly and exactly two more columns. " +
+      "clock_skew_seconds is integer and nullable, clock_disagrees is boolean and nullable, and " +
+      "pg_get_constraintdef returns the pair constraint as written. " +
+      "NOTHING WAS BACKFILLED, checked rather than trusted: eng_evidence_items holds 0 rows on " +
+      "production and 0 of them carry a skew, so no measurement nobody took has reached the " +
+      "regulatory record. " +
       "WHAT IT ADDS: two columns on eng_evidence_items and one check constraint. Shape moves to " +
       "e2bc81c9096a0eb4d8b8366ce3aea881 across 1,143 columns, which is exactly two more, and " +
       "behaviour to 88129f2c277c601ea05cff9ccd15d77d across 920 facts, which is the one constraint. " +
