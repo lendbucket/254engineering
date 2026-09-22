@@ -507,6 +507,23 @@ Nothing about this is a finding on the branch. Four audits, two timeout ceilings
 **Phase 14 ranking unchanged**, restated so it is not re-derived: the stall goes
 ahead of the surveys, the roll-up undercount goes first in survey 3.
 
+**AND THE NEW ITEMS OF 2026-09-22 ARE RANKED, WITH THE TEARDOWN FIRST.**
+Operator ruling. These are ranked against each other, not slotted into the list
+above.
+
+| Rank | Item | Why here |
+| --- | --- | --- |
+| **1** | **`roles-audit`'s teardown**, its own section below | It is the function that actually stranded the two accounts, and its green SAYS they were removed. A check that asserts the cleanup happened, while sign-in-capable accounts remain, is worse than no check: it is the only thing anybody consults. It runs on every board. |
+| 2 | The commit guard cannot tell an applied migration from a pending one | Costs the operator a keystroke on every migration merge. Safe direction, no data at risk. |
+| 3 | The five wattsmith accounts and the parked cutover | Nothing here can fix it, and the cutover ruling is the operator's. Recorded because the cost is now demonstrated rather than argued. |
+| 4 | `mfa-audit`'s remaining red for an absent `OPS_SESSION_SECRET` | Same class as the fourteen fixed on 2026-09-22 and outside that day's ruling. One check, and its note already names the cause. |
+
+**Rank 1 is not a close call.** The other three are inconveniences, a
+recommendation, and one check's wording. This one is a cleanup that reports
+success it did not achieve, on the database every audit on the board points at,
+and it is the only item of the four that has already caused the thing it is
+supposed to prevent.
+
 ### CORRECTED 2026-09-21 ON THE NEXT BOARD: IT MET THE STALL, AND THE THIRD VERDICT WORKED
 
 The sentence above is no longer true and is corrected here rather than answered

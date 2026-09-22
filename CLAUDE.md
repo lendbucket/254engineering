@@ -1389,6 +1389,38 @@ a file first and then run.** Not because inline scripts are bad, but because
 this particular pipeline is lossy in a way that produces plausible, silent
 wrongness rather than an error.
 
+**AND A THIRD TOOLING RULE: AN INJECTION IS RESTORED BY COPY, NEVER BY
+`git checkout`.** Operator ruling, 2026-09-22. The full account is in
+`docs/lessons.md`; this is the mechanism.
+
+Injecting a violation means editing a file you are in the middle of building.
+`git checkout <path>` restores "the last committed state of that path", which is
+NOT "the line I just changed", and the two differ by exactly the uncommitted
+work in progress. The command cannot tell the injection from the work, because
+they are the same kind of change.
+
+It cost a type field, a new record and a verbatim correction on 2026-09-22, in a
+session that had backed up a different file by copy an hour earlier and simply
+did not carry the habit across.
+
+| Before an injection | `cp <file> <scratchpad>/<name>.bak` |
+| To restore | `cp <scratchpad>/<name>.bak <file>` |
+| To verify | `diff -q` the two, and say "restored byte identical", or stop |
+
+Never a reverse edit typed from memory either: that restores what you REMEMBER
+writing. **And the `diff -q` is not optional**, for the reason this file already
+gives about deletions and rotations: a restore reads identically whether it
+happened or not.
+
+**AND A FOURTH TOOLING RULE: A DATA-MODIFYING CTE CANNOT READ ITS OWN EFFECT.**
+Recorded 2026-09-22. A delete wrapped in a CTE with the read-back in the same
+statement returns the PRE-delete snapshot, because the other parts of the
+statement see the snapshot taken when it began. The run that deleted two
+stranded probes printed `deleted 2` beside `remaining 2`, which reads exactly
+like a delete that silently failed. **The read-back goes in its own statement**,
+which is the same rule the ledger already applies to a migration: the check that
+proves it is separate from the thing it proves.
+
 **AND A SECOND TOOLING RULE: A GREP IN A CONDITIONAL IS A KNOWN HAZARD, NOT A
 MISTAKE TO AVOID BY CARE.** Operator ruling, 2026-09-17, on the third instance
 of an exit code being read as something other than what it said.
@@ -2509,6 +2541,95 @@ prints `THE SUITE DID NOT RUN TO COMPLETION` rather than a list of content
 failures. The verdict matters for a STANDALONE run, which is how these are
 usually run while working on one of them. `sister-intake-audit` carries it;
 the audits that still fail red standalone are listed in `BACKLOG.md`.
+
+**AND IT APPLIES TO A PROBE, NOT ONLY TO A SERVER. FOURTEEN CHECKS IN ONE AUDIT
+WERE REPORTING A FAULT AS A FINDING.** Operator ruling, 2026-09-22.
+
+The 2026-09-08 rule is about a live half that cannot run because nothing is
+answering. The same distinction exists one level in, at the FIXTURE: a check
+whose subject could not be BUILT has not measured the property, and saying FAIL
+claims it did.
+
+**The instance.** A board went red on
+
+    FAIL: an account with no enrolment cannot acknowledge its way to a session (no probe)
+
+It had not found a way for an un-enrolled account to acknowledge its way to a
+session. It had failed to create an account to try it with. A standalone re-run
+minutes later passed 57 of 57, and the whole diff between the two boards touched
+no MFA, session, role or profile code.
+
+**IT IS SHARPER FOR A NEGATIVE SECURITY CHECK THAN ANYWHERE ELSE, AND THAT IS
+THE HALF TO CARRY.** These checks assert that something CANNOT happen: that a
+required role cannot decline into the portal, that an earlier enrolment cannot
+be acknowledged into a full session. A red on one of those reads as **"somebody
+got past the second factor"**, which is the opposite of what happened, and it is
+the sentence a person would quote in an incident review. A false red on a
+negative security assertion is worse than a false red anywhere else because of
+what the reader concludes from it.
+
+**The cost of the confusion runs both ways.** A red nobody can reproduce teaches
+people to discount the audit, and the next real finding arrives in the same
+colour.
+
+**AND THE NOTE HAS TO NAME WHICH FAULT IT HIT.** All of them printed `no probe`,
+covering four different causes: no database client, `createUser` refused, the
+profile insert rejected, the sign in returned no cookie. Three of those four are
+not about the audit's subject at all. That is the status-function defect this
+file already records at the MFA lockout: a note can only name the faults its
+author enumerated, and this one enumerated none. The fixture now returns a
+reason and every line carries it.
+
+**AND A THIRD VERDICT THAT NEVER EXPIRES IS AN EXEMPTION. ACKNOWLEDGED CARRIES A
+DATE.** Operator ruling, 2026-09-22, and it is the same family: a verdict that is
+neither pass nor fail, for a difference somebody has looked at and accepted.
+
+TBPELS reissued F-29811 on 2026-09-21 and the engineer's own roster entry still
+named the old firm. That is a real difference, it is expected to close in 24 to
+48 hours on the operator's statement of how the board behaves, and nobody can
+act on it in the meantime. Leaving it red would have taught everyone to skip
+past a red on `compliance-audit`, which is the audit that must never be skipped
+past.
+
+So `compliance-audit` reports `ACKNOWLEDGED`, in its own block, **with the date
+it becomes a finding again on the line**. What makes that safe is only the
+expiry: the acknowledgement is refused the day after it lapses, and it must also
+name the same value the firm's own record holds, so it cannot quietly become a
+blanket excuse for any difference at all.
+
+Injection-verified three ways, and the third is the one worth having: moving the
+expiry into the past turns it red naming the date; pointing it at a different
+expected name turns it red naming both; and making the roster agree turns it
+into a plain PASS with **the acknowledgement block gone entirely**, which proves
+it cannot outlive the thing it covers.
+
+**A SWEEP VERIFIED IN ONE PLACE IS A SWEEP OF ONE PLACE.** Operator ruling,
+2026-09-22, and it is the tautological-check defect wearing teardown.
+
+`destroyProbes` derived its subject from `eng_profiles`, deleted from
+`eng_profiles`, and verified against `eng_profiles`. An auth user whose PROFILE
+had already been removed was invisible to all three, so the function reported a
+clean domain while accounts that can still SIGN IN sat in `auth.users`.
+
+**The verification and the deletion read the same table, so they agreed by
+construction** and `left` read 0 whatever was actually left. That is the same
+shape as a published price compared against a charged price once both derive
+from one home: a comparison that cannot fail for any edit anybody could make.
+
+It was found by a SURVEY rather than by any check: two probes on development
+with profiles swept and auth users alive, seventeen and eight days after the
+runs that made them. A probe credential outliving its run, on the database every
+audit points at.
+
+Proved both ways by the experiment the operator specified, which is the model
+for any teardown fix: create a probe, delete its PROFILE only, sweep, and read
+the auth user back. Fixed, it is gone. Reverted to deriving from profiles alone,
+it prints `ok=true left=0` over a live account.
+
+**The general form: ask what the verification reads, and whether it is the same
+thing the action read.** If it is, the check is a mirror. And `.catch(() => {})`
+on the delete is how both strays got there: the call failed, nothing said so,
+and the verification was looking where a failure does not show.
 
 ## 7. Session mechanics
 
