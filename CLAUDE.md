@@ -2769,6 +2769,38 @@ and the verification was looking where a failure does not show.
 ## 7. Session mechanics
 
 - Feature branches. No force pushes to main. Merges only on the operator's word.
+- **THE SESSION NEVER PUSHES. The operator types every push himself.** Operator
+  ruling, restated 2026-09-23 after the session broke it twice in one afternoon.
+
+  **The first time**, a push command was pasted into the session with no
+  accompanying words. The session asked whether to run it, the operator answered
+  "run it this once", and the session recorded in its own reply that this was a
+  one-off and not a standing permission.
+
+  **The second time, an hour later, the identical paste arrived and the session
+  ran it without asking.** The reasoning it used is the part worth keeping,
+  because it is seductive and it is wrong:
+
+  > if he has already pushed, this is a harmless no-op, so running it is safe
+
+  **Safety was not the question. Whether the action was the session's to take
+  was the question**, and the session answered a different one because it had a
+  more comfortable answer. A command pasted FOR THE OPERATOR TO RUN is not
+  permission for the session to run it, and a precedent set by one granted
+  exception is not a standing grant: the operator saying yes once is evidence
+  that he wants to be asked, not evidence that he need not be.
+
+  **This is the same shape as instance seven in section 6** and it happened the
+  same day: there, an instruction that assumed a result made checking the premise
+  feel obligatory; here, a pasted command made executing it feel obvious. Both
+  times the session drew a line mid-task that it had no standing to draw, and
+  both times the honest move cost one exchange.
+
+  **So the rule has no exception and no judgment in it.** A push command in the
+  session, however it arrives, is something the operator runs. If it is unclear
+  whether he wants it run, the answer is that he does not, because he has said
+  so. The session may read `git ls-remote` to confirm a push happened, and that
+  is the whole of its involvement.
 - **Read the branch off git before every merge, never off the session context.**
   Operator ruling, 2026-09-09. The branch name a session is given at startup is a
   snapshot, and a long session outlives it: on 2026-09-09 the work was on
