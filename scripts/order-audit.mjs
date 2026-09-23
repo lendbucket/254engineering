@@ -566,6 +566,90 @@ const answerAll = (entry, pick = () => 0) =>
     "one sentence for two modes is the defect this replaced",
   );
 
+  /*
+   * =======================================================================
+   * THE HEADING FOLLOWS THE MODE, AND AN ACRONYM KEEPS ITS CASE.
+   * Operator ruling, 2026-09-23.
+   * =======================================================================
+   *
+   * The order page said "Order roof certifications" above a card explaining
+   * that the firm is not taking orders. Found by reading the page as a visitor
+   * would, on production, rather than by any check here.
+   *
+   * THE EXPECTED STRINGS ARE PINNED AS LITERALS rather than derived from
+   * `orderHeading`, because an audit that builds its expectation from the
+   * module under test compares a value to itself and cannot disagree with
+   * anything. These four are what a person must see.
+   */
+  const { orderHeading, serviceNameInSentence } = await import("../src/lib/order-copy.ts");
+
+  rec("trading heading: roof", orderHeading("Roof Certifications", "trading") === "Roof certifications");
+  rec("open heading: roof", orderHeading("Roof Certifications", "open") === "Order roof certifications");
+  rec("trading heading: windstorm", orderHeading("Windstorm WPI-8", "trading") === "Windstorm WPI-8");
+  rec(
+    "open heading: windstorm, and WPI-8 keeps its case",
+    orderHeading("Windstorm WPI-8", "open") === "Order windstorm WPI-8",
+    "WPI-8 is a TDI form name, and the site rendered it wpi-8 on production until today",
+  );
+
+  /*
+   * AND THE RULE OVER EVERY SERVICE LINE, not only the two pinned above, so a
+   * ninth service added next month is covered by existing.
+   */
+  const { services } = await import("../src/content/services.ts");
+  rec(
+    "there are service lines to check",
+    services.length > 5,
+    `${services.length} lines (a sweep over an empty list passes for ever)`,
+  );
+  const saysOrderWhenShut = services.filter((s) => /\bOrder\b/.test(orderHeading(s.shortName, "trading")));
+  rec(
+    "no heading offers an order while the firm is not taking them",
+    saysOrderWhenShut.length === 0,
+    saysOrderWhenShut.length ? saysOrderWhenShut.map((s) => s.shortName).join(", ") : "",
+  );
+  const missingOrderWhenOpen = services.filter((s) => !orderHeading(s.shortName, "open").startsWith("Order "));
+  rec(
+    "and every heading offers one once the line is open",
+    missingOrderWhenOpen.length === 0,
+    missingOrderWhenOpen.length ? missingOrderWhenOpen.map((s) => s.shortName).join(", ") : "",
+  );
+
+  /*
+   * THE VACUITY GUARD. Every check above passes just as happily if no service
+   * name contains an acronym at all, and the acronym is the whole point of the
+   * casing rule. So the SUBJECT is asserted to exist.
+   */
+  const withAcronym = services.filter((s) => /[A-Z]{2,}|\d/.test(s.shortName));
+  rec(
+    "and at least one service name carries an acronym or a form number",
+    withAcronym.length > 0,
+    withAcronym.length ? withAcronym.map((s) => s.shortName).join(", ") : "NONE, so the casing rule is untested",
+  );
+  const mangled = withAcronym.filter((s) => !serviceNameInSentence(s.shortName).includes(s.shortName.split(" ").find((w) => /[A-Z]{2,}|\d/.test(w))));
+  rec(
+    "and none of them is flattened in a sentence",
+    mangled.length === 0,
+    mangled.length ? mangled.map((s) => s.shortName).join(", ") : "",
+  );
+
+  /*
+   * AND THE PAGE ACTUALLY CALLS IT. A correct helper nothing renders is the
+   * defect this repository records about a rule tested with its input handed
+   * to it: the function would pass for ever while the page went on lowercasing.
+   */
+  const orderPage = readSource("src/app/(site)/order/start/[slug]/page.tsx");
+  rec(
+    "the order page renders the heading through the deriver",
+    /orderHeading\(/.test(orderPage),
+    "a helper nothing calls is a helper that proves nothing",
+  );
+  rec(
+    "and no longer lowercases the service name itself",
+    !/shortName\.toLowerCase\(\)/.test(orderPage),
+    "that spelling is what rendered Order windstorm wpi-8",
+  );
+
   rec(
     "an unknown service is refused rather than defaulted",
     !orderable(catalogFor("no-such-service"), "open", PROTOCOL_APPROVED),

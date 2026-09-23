@@ -6,6 +6,7 @@ import { OrderFlow } from "@/components/order/OrderFlow";
 import { deliverablesFor, orderBlockedReason } from "@data/catalog";
 import { serviceBySlug } from "@/content/services";
 import { launchMode, serviceLineIsOffered } from "@/lib/launch";
+import { orderHeading, serviceNameInSentence } from "@/lib/order-copy";
 
 export const dynamic = "force-dynamic";
 
@@ -18,10 +19,17 @@ export const dynamic = "force-dynamic";
  *
  * THE GATE IS RENDERED, NOT LINKED AROUND
  * ---------------------------------------
- * In prelaunch this page exists and says why it cannot take an order, rather
- * than 404ing. A dead link from a service page would look like a broken site;
- * a page that names the registration is the same answer the rest of the site
- * gives and is the credible one for the audience this firm is built for.
+ * While the firm is not open this page exists and says why it cannot take an
+ * order, rather than 404ing. A dead link from a service page would look like a
+ * broken site; a page that explains itself is the credible answer for the
+ * audience this firm is built for.
+ *
+ * IT USED TO SAY "a page that names the registration", and that sentence was
+ * corrected on 2026-09-23 along with the copy it described. The page named the
+ * registration as PENDING in every mode that is not open, which included
+ * TRADING, where it is active. A comment describing the behaviour it wants is
+ * the account that goes stale when the behaviour changes, so it says what the
+ * page does rather than which fact it recites.
  */
 export async function generateMetadata({
   params,
@@ -31,7 +39,14 @@ export async function generateMetadata({
   const { slug } = await params;
   const service = serviceBySlug(slug);
   return {
-    title: service ? `Order ${service.shortName} | 254 Engineering` : "Order | 254 Engineering",
+    /*
+     * THE TITLE FOLLOWS THE MODE TOO, because a tab reading "Order roof
+     * certifications" above a page reading "Roof certifications" is one fact
+     * with two accounts, and the one that drifts is whichever nobody looks at.
+     * The title is exactly that: nobody reads a tab by eye, which is the
+     * inversion recorded in CLAUDE.md about the JSON-LD telephone.
+     */
+    title: service ? `${orderHeading(service.shortName, launchMode())} | 254 Engineering` : "Order | 254 Engineering",
     robots: { index: false, follow: true },
   };
 }
@@ -74,7 +89,7 @@ export default async function OrderStartPage({ params }: { params: Promise<{ slu
           {service.shortName}
         </p>
         <h1 className="mt-2 font-display text-[clamp(1.7rem,3vw,2.2rem)] leading-[1.2] font-semibold text-[var(--navy)]">
-          Order {service.shortName.toLowerCase()}
+          {orderHeading(service.shortName, launchMode())}
         </h1>
 
         {available.length === 0 ? (
@@ -118,7 +133,7 @@ export default async function OrderStartPage({ params }: { params: Promise<{ slu
 
         <p className="mt-8 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
           <Link href={`/services/${slug}`} className="underline underline-offset-2">
-            Read what {service.shortName.toLowerCase()} covers
+            Read what {serviceNameInSentence(service.shortName)} covers
           </Link>{" "}
           before ordering, if you have not already.
         </p>
