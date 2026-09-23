@@ -917,3 +917,61 @@ creates this situation.
 a parent chain.** It is the difference between a guard that reports a symptom
 and one that names the cause.
 
+## 12. THE MERGE OF 2026-09-23, AND THE RULING THAT ALLOWED IT ON A BOARD THAT WAS NOT GREEN
+
+Recorded here at the operator's instruction. It belongs in a merge commit and
+there is no merge commit, because the merge was fast forward only, so it is in
+the run's own record instead. It is on the branch that follows the merge rather
+than committed straight onto `main`, because **the board must measure everything
+that merges**, and a documentation commit is exactly the one somebody waves
+through.
+
+### What the board said
+
+`feat/overnight-2026-09-23` at `76057a9`, run alone after a stated prediction:
+
+```
+56 PASS, 1 FAIL, 2 COULD NOT TELL, of 59
+1 of 59 audits failed: break-glass-audit
+2 of 59 audits could not measure: mobile-overflow-audit, native-audit
+```
+
+The prediction had been 59, 0, 0. It was falsified twice, and both gaps carried
+information, which is the whole argument for stating one.
+
+### The ruling, and its reasons
+
+**Merge.** Operator ruling, 2026-09-23. The reasons, in his words and order:
+
+**One. The FAIL is a transport fault, not a finding.** `break-glass-audit` went
+red on `the run completed (probe account: fetch failed)`. `createUser` threw
+reaching the database, the catch recorded it as a failed check, and the audit
+printed "a break glass that is not exercised is a recovery path that exists only
+in a document" beneath it. A standalone re-run minutes later passed **32 of 32**,
+including the enrolment being cleared and the audit trail rows. The recovery path
+works. Nothing was ever put in front of it.
+
+**Two. The two could-not-tells are the known stall on a screen this branch did
+not touch.** Both are `/portal/accounts` exceeding a navigation timeout. That
+screen is on `main` already and no commit on this branch goes near it. The
+2026-09-17 ruling covers it exactly: a board is blocked by a finding on the
+branch, never by an audit that could not measure something the branch did not
+touch.
+
+**Three, and it is the one that decides it. The public false registration
+sentence outweighs a re-run.** Until this merge reaches production, the order
+page tells visitors in trading mode that the firm's TBPELS registration is
+pending. It is active. That is the gate's own failure inverted, on a compliance
+sentence, where a buyer looks. Holding it behind another twenty minute board to
+re-prove a transport fault would trade a real, live, public misstatement against
+a green line nobody doubts.
+
+### What it did not license
+
+Absorbing either one. Both were queued as work rather than noted and dropped:
+the probe fault became `fix/probe-fault-is-could-not-tell`, which fixes the
+class across sixteen scripts rather than the one catch block, and the stall
+keeps its backlog entry. The board's third verdict undercount, found in the same
+log, went into the existing backlog entry as a fourth sighting rather than a new
+one.
+
