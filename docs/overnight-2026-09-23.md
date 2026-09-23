@@ -172,3 +172,74 @@ be a fix to make a red go away.
 reason.** That is the honest state and I have not hidden it behind an exclusion.
 
 ---
+
+## 5. The TDI records, and the AQI-1 proposal
+
+**Commits `1704882` and this one.** Records only. The seven items are in
+`BACKLOG.md` as reported and not verified, changing no service line, price or
+rule, with no personal detail from the email.
+
+The one that needed thought is item 2: **three form numbers are in play**, WPI-8
+in the service line, WPI-2E in his account, WPI-2 in item 5. Recorded as a
+disagreement rather than reconciled, per the ruling.
+
+### Item 7: where an AQI-1 submission would be recorded. PROPOSAL, NOT BUILT.
+
+**The deadline is 2026-12-21**, 90 days from 2026-09-22, computed rather than
+counted: 8 days to the end of September, 31 in October, 30 in November, 69 used,
+21 into December.
+
+**A HOME ALREADY EXISTS FOR THE OUTCOME, AND NONE FOR THE ACT.** That is the
+whole of the proposal.
+
+`src/config/credentials.ts` declares `WINDSTORM_APPOINTMENT_CREDENTIAL` in
+`verifiedCredentials`, today `held: false`, and says in its own words:
+
+> This becomes a held credential only when an appointed engineer is on the
+> roster and the appointment number is recorded here from TDI's own record.
+
+So the APPOINTMENT has a home and a check: `compliance-audit` asserts the
+windstorm pages keep disclosing the absence in the negative, and flipping `held`
+turns that into a claim the board would test.
+
+**What has no home is the SUBMISSION**, and the deadline is about the
+submission, not the appointment. TDI granting an appointment is not within
+anybody's control by 2026-12-21; filing the form is.
+
+**The proposal, in the existing shapes and adding no new one:**
+
+1. **The record goes on the credential that already exists**, as two fields on
+   that entry: the date the AQI-1 was submitted, and who stated it. Not a new
+   file and not a new registry. The submission and the appointment are two
+   states of one credential, and splitting them across two homes is the defect
+   this repository names most often.
+2. **The deadline goes in `src/config/parked-work.ts`**, which already does
+   exactly this: `acknowledgedThrough: "2026-12-21"`, with `retiredWhen` naming
+   the submission and `isRetired` reading the field above. Whichever comes
+   first.
+3. **`isRetired` returns true if the submission is recorded OR the credential is
+   held**, because an appointment that has come through is proof the form was
+   filed, and a park that stayed red after the thing succeeded would be the
+   mechanism failing in the direction that teaches people to ignore it.
+
+**WHY IT IS NOT BUILT TONIGHT, beyond the instruction.** The ruling needed first
+is what counts as recording a submission:
+
+- **The operator's word with a date**, the `pointInTimeRecovery` idiom, which
+  this repository already accepts for facts no check can reach; or
+- **An artefact**, a TDI receipt or confirmation, digested the way the Stripe
+  captures and the engineer's directions are.
+
+**I recommend the operator's word with a date**, and I want to say why rather
+than just pick. The artefact standard is stronger and is right where an artefact
+can exist without carrying what must not be stored. A TDI submission receipt for
+an individual licensee will carry his personal details, and the standing rule
+from 2026-09-21 is that a capture containing them is not taken. Demanding
+evidence that cannot be stored produces either a rule nobody can satisfy or a
+cropped artefact whose crop removes the very thing identifying it.
+
+The attestation shape built on 2026-09-22 is the precedent and it fits exactly:
+a statement, named and dated, saying in its own text that no capture backs it,
+retired by an event, with a date as a backstop.
+
+---
