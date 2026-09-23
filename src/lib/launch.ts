@@ -160,8 +160,38 @@ export const LAUNCH_CONDITIONS: LaunchCondition[] = [
     what: "The operator has thrown the switch.",
     whoClears: "The operator, in the deployment environment.",
     statedIn: "LAUNCH_MODE=live",
-    unmet: () =>
-      process.env.LAUNCH_MODE?.trim().toLowerCase() === "live" ? null : "LAUNCH_MODE is not live.",
+    /*
+     * AN UNRECOGNISED VALUE SAYS SO, AND NAMES ITSELF. Operator ruling,
+     * 2026-09-22.
+     *
+     * Every value that is not "live" holds the gate shut, which is the right
+     * direction and was the whole of this condition until today. What it could
+     * not do is tell the operator WHY. A typo reads exactly like a deliberate
+     * prelaunch: "liv", "Live " with a stray character, and "prelaunch" all
+     * produced the one sentence "LAUNCH_MODE is not live.", so somebody who
+     * had thrown the switch and mistyped it would see a shut site and no
+     * account of the mistake anywhere.
+     *
+     * This is the status function lesson pointed at the operator instead of at
+     * a customer. The old sentence was true of every fault it could see and
+     * said nothing about the fault it could not: that the value is neither of
+     * the two this gate reads. Naming the value read is the only thing that
+     * distinguishes them, so the value is printed rather than described.
+     *
+     * The normalisation is unchanged. `.trim().toLowerCase()` still decides, so
+     * a tab or a capital is not a typo and does not become loud for one.
+     */
+    unmet: () => {
+      const raw = process.env.LAUNCH_MODE;
+      const value = raw?.trim().toLowerCase() ?? "";
+      if (value === "live") return null;
+      if (value === "" || value === "prelaunch") return "LAUNCH_MODE is not live.";
+      return (
+        `LAUNCH_MODE is ${JSON.stringify(raw)}, which this gate does not recognise. ` +
+        "It reads live, prelaunch, or unset, so this value holds the gate shut exactly " +
+        "as prelaunch would and may be a typo."
+      );
+    },
   },
 
   {
