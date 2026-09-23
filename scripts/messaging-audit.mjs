@@ -23,7 +23,8 @@
  */
 
 import { readSource } from "./lib/read-source.mjs";
-import { createProbe, destroyProbes } from "./lib/portal-probe.mjs";
+import { createProbe, destroyProbes, probeFault } from "./lib/portal-probe.mjs";
+import { COULD_NOT_TELL } from "./lib/reachable.mjs";
 import { auditClient } from "./lib/db-target.mjs";
 import { ProbeLedger } from "./lib/probe-ledger.mjs";
 
@@ -98,7 +99,23 @@ const admin = await createProbe(BASE, "admin", "messaging-audit");
 const engineer = await createProbe(BASE, "engineer", "messaging-audit");
 const tech = await createProbe(BASE, "field_tech", "messaging-audit");
 
-rec("three probe accounts signed in", Boolean(admin?.cookie && engineer?.cookie && tech?.cookie));
+/*
+ * A PROBE THAT COULD NOT BE BUILT IS NOT A LEAK. Operator ruling, 2026-09-23.
+ *
+ * This was `rec("three probe accounts signed in", ...)`, so a transport fault
+ * became a red line on the audit whose subject is whether one person can read
+ * another person's messages. Every check below it is a NEGATIVE assertion, and
+ * a red on this audit reads as "the messaging centre leaked", which is the
+ * opposite of what a failed createUser means.
+ *
+ * It also could not say which of the three probes failed or why, and now it
+ * names both.
+ */
+const probeSetupFault = probeFault({ admin, engineer, "the field technician": tech });
+if (probeSetupFault) {
+  console.log(`  COULD NOT TELL: the messaging checks were NOT run (${probeSetupFault}).`);
+  console.log("  Nothing was measured about who can read whose messages.");
+}
 
 if (admin?.cookie && engineer?.cookie && tech?.cookie && db) {
   /*
@@ -491,11 +508,28 @@ if (admin?.cookie && engineer?.cookie && tech?.cookie && db) {
 const held = ledger.count();
 const rows = await ledger.sweep();
 rec("the rows this run created were removed", rows.ok, rows.note || `${held} row(s)`);
-rec(
-  "and it created some, so the sweep was not empty",
-  held > 0,
-  "a sweep with nothing to sweep proves nothing about the sweep",
-);
+/*
+ * THE VACUITY CHECK IS ITSELF SKIPPED WHEN NO PROBE COULD BE BUILT, and this
+ * line is here because an injection found it rather than because anybody
+ * predicted it. Operator ruling, 2026-09-23.
+ *
+ * Making the probe fault a COULD NOT TELL was not enough on its own. Injecting
+ * the fault into `createProbe` still turned this audit RED, on this check: no
+ * probes means no rows, no rows means the sweep swept nothing, and a sweep with
+ * nothing to sweep is correctly refused. Every word of that is right, and the
+ * red still said "messaging" when it meant "the database would not answer".
+ *
+ * It is the half of the injection rule that is easy to skip: read WHICH checks
+ * went red, not whether the run did. A run that goes red for the wrong reason
+ * is the same defect as one that stays green.
+ */
+if (!probeSetupFault) {
+  rec(
+    "and it created some, so the sweep was not empty",
+    held > 0,
+    "a sweep with nothing to sweep proves nothing about the sweep",
+  );
+}
 
 const swept = await destroyProbes("messaging-audit");
 rec("the probe accounts were removed", swept.ok, swept.note);
@@ -510,4 +544,16 @@ console.log(
     ? `FAIL: ${failed.length} of ${out.length} checks.`
     : `PASS: ${out.length} checks. Nothing in the messaging centre can be read by somebody it is not for.`,
 );
-process.exit(failed.length ? 1 : 0);
+/*
+ * A finding outranks the verdict, for the reason doors-audit gives: the source
+ * half of this audit runs with no probes at all, so a real leak found by reading
+ * the code is still a leak whether or not three accounts could be made.
+ */
+if (failed.length) process.exit(1);
+if (probeSetupFault) {
+  console.log("");
+  console.log(`COULD NOT TELL: the live half did NOT run (${probeSetupFault}).`);
+  console.log("The source half above passed. Nothing signed in, so nothing read anybody's messages.");
+  process.exit(COULD_NOT_TELL);
+}
+process.exit(0);

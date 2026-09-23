@@ -1100,6 +1100,60 @@ while keeping its own honest line, and nothing reconciles the two.
 Nothing about this is a finding on the branch. Four audits, two timeout ceilings
 (45s and 90s), one screen, and every branch will meet it identically.
 
+### FRESH EVIDENCE, 2026-09-23: FOUR AUDITS, AND `contrast-audit` JOINS THE UNDERCOUNT FOR THE FIRST TIME
+
+Operator ruling, 2026-09-23. Recorded here rather than as a new entry, for the
+reason the 2026-09-22 block gives: it is the same mechanism, and a second entry
+beside it would be a second account.
+
+The board on `feat/overnight-2026-09-23` at `76057a9` returned **56 PASS, 1 FAIL,
+2 COULD NOT TELL of 59**. The roll-up said:
+
+```
+2 of 59 audits could not measure: mobile-overflow-audit, native-audit
+```
+
+**Four audits failed to reach `/portal/accounts` on that run.** The two the
+roll-up names, and both of these, each printing its own could-not-tell lines
+inside a `PASS` verdict:
+
+```
+  portal: accounts   @320: COULD NOT TELL  (error: page.goto: Timeout 90000ms exceeded.)
+  portal: accounts   @375: COULD NOT TELL  (error: page.goto: Timeout 90000ms exceeded.)
+  portal: accounts   @390: COULD NOT TELL  (error: page.goto: Timeout 90000ms exceeded.)
+  portal: accounts   @430: COULD NOT TELL  (error: page.goto: Timeout 90000ms exceeded.)
+COULD NOT TELL: 4 combination(s) never loaded, so nothing was measured on them:
+```
+
+```
+  portal: accounts @390: COULD NOT TELL, error: page.goto: Timeout 90000ms exceeded.
+  portal: accounts @1280: COULD NOT TELL, error: page.goto: Timeout 90000ms exceeded.
+COULD NOT TELL: 2 combination(s) never loaded, so no contrast was measured on them:
+```
+
+**THE SECOND BLOCK IS `contrast-audit`, AND THAT IS THE NEW FACT.** The
+2026-09-22 block records that it had reached that screen cleanly on six
+consecutive boards, and calls the asymmetry unexplained. **The asymmetry is
+over.** It timed out at both widths on this run, which removes the only reason
+anybody had to treat it as different from its three neighbours, and it removes
+it in the direction that makes the stall look broader rather than narrower.
+
+**So the undercount is now four audits wide against a roll-up that says two**,
+and it widened again without anybody changing anything. The 2026-09-22 block
+already made the point that this is the access review defect: a figure can be
+arithmetically correct and still be a false statement about the thing it
+describes. What this run adds is that **the size of the gap is not stable**, so
+any fix that hardcodes which audits roll up their third verdict will be wrong
+again within a week. The roll-up has to read what each audit actually reported.
+
+**How it was found.** Not from the roll-up, and not from a check. By reading the
+board's own log for the reasons behind the two named could-not-tells, and seeing
+the same timeouts in two audits that had reported green. That is the artefact
+rule doing the work the harness cannot.
+
+**Phase 14 ranking unchanged**, restated so it is not re-derived: the stall goes
+ahead of the surveys, the roll-up undercount goes first in survey 3.
+
 ### FRESH EVIDENCE, 2026-09-22: THE UNDERCOUNT CAUGHT ON A GREEN BOARD RATHER THAN FROM THE RECORD
 
 Operator ruling, 2026-09-22. Recorded here rather than as a new entry, because

@@ -29,6 +29,67 @@ import { signInFully } from "./probe-mfa.mjs";
 /** Obviously fake, and the domain is what teardown sweeps on. */
 export const PROBE_DOMAIN = "audit-probe.invalid";
 
+/*
+ * ==========================================================================
+ * A PROBE THAT COULD NOT BE BUILT CARRIES THE REASON IT COULD NOT BE BUILT.
+ * Operator ruling, 2026-09-23.
+ * ==========================================================================
+ *
+ * WHAT HAPPENED. A board went red on
+ *
+ *     FAIL: the run completed (probe account: fetch failed)
+ *
+ * in `break-glass-audit`. The MFA recovery path was never exercised. The call
+ * that creates the probe account threw a transport error, the catch recorded it
+ * as a failed check, and the audit printed "a break glass that is not exercised
+ * is a recovery path that exists only in a document" underneath it. A standalone
+ * re-run minutes later passed 32 of 32.
+ *
+ * That is the 2026-09-22 ruling exactly, one audit further on: a check whose
+ * subject could not be BUILT has not measured the property, and saying FAIL
+ * claims it did. It is sharpest on a recovery or security path, because a red
+ * there reads as "the break glass is broken", which is the opposite of what
+ * happened and is the sentence somebody would quote in an incident review.
+ *
+ * WHY THE FIX IS HERE AND NOT IN THAT AUDIT. The instance was one catch block.
+ * The class is this function, which thirteen scripts call, and which discarded
+ * the reason at the one place where it is known. It returned a bare `null` for
+ * THREE different faults, no database client, `createUser` refused, the profile
+ * insert rejected, and returned an object with a null cookie for a FOURTH, the
+ * sign in producing no cookie. A caller holding `null` cannot say which, so
+ * every caller that wanted to report anything had to invent a sentence, and
+ * four of them invented a failed check.
+ *
+ * So a failed build returns a probe shaped object carrying `fault`. Every
+ * existing caller tests `probe?.cookie`, which is still false, so nothing
+ * downstream changes by accident. What is new is that the reason survives.
+ *
+ * AND EVERY PROBE FAULT IS COULD NOT TELL, WHICHEVER OF THE FOUR IT WAS.
+ * A profile insert rejected by the schema is a real problem and it is still not
+ * a finding about the thing the audit is named after. It is the audit saying it
+ * could not get far enough to look. The note names which fault it hit, because
+ * a note that cannot name the fault is the status function defect this
+ * repository already records at the MFA lockout.
+ */
+const probeFailure = (role, fault) => ({ id: null, email: null, role, cookie: null, fault });
+
+/**
+ * The first fault among some probes, or null when every one of them was built.
+ *
+ * Callers use it to choose between COULD NOT TELL and a real verdict. It reads
+ * the `fault` a failed build carries, and falls back to naming the cookie when
+ * a probe was built but never reached a session, because those are different
+ * sentences and a reader needs to know which one they are looking at.
+ */
+export function probeFault(probes) {
+  for (const [name, probe] of Object.entries(probes)) {
+    if (!probe) return `${name}: no probe was returned at all`;
+    if (probe.fault) return `${name}: ${probe.fault}`;
+    if (!probe.cookie) return `${name}: built, but the sign in returned no cookie`;
+  }
+  return null;
+}
+
 /** The sentence every superseded probe account carries. */
 const PROBE_SUPERSEDED_REASON =
   "An audit probe account, superseded at teardown. It cannot be deleted: 0048 refuses DELETE on every account, because a record of what somebody was charged must outlive the account.";
@@ -84,20 +145,41 @@ function client(label) {
 /**
  * Create an account in the given role and sign it in.
  *
- * Returns null rather than throwing when the database is not configured, so a
- * caller can report "this was not measured" as a failure of its own rather than
- * dying halfway through a run and leaving the earlier accounts behind.
+ * Never throws. When anything in the build fails it returns a probe shaped
+ * object with a null cookie and a `fault` naming what went wrong, so a caller
+ * can report "this was not measured" rather than dying halfway through a run
+ * and leaving the earlier accounts behind.
+ *
+ * It used to return a bare null here, and that sentence is the whole reason for
+ * the note at the top of this file: four different faults arrived at the caller
+ * as one indistinguishable value, and four audits turned that value into a
+ * failed check about something they had not looked at.
  */
 export async function createProbe(base, role, label = "audit") {
   const d = client(label);
-  if (!d) return null;
+  if (!d) return probeFailure(role, "no database client, so no probe account could be made");
 
   const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
   const email = `probe-${stamp}@${PROBE_DOMAIN}`;
   const password = `probe-${stamp}-${label}`;
 
-  const { data, error } = await d.auth.admin.createUser({ email, password, email_confirm: true });
-  if (error || !data?.user) return null;
+  /*
+   * THE THROW IS CAUGHT HERE RATHER THAN LEFT TO THE CALLER, because a
+   * transport error out of this call is what produced the 2026-09-23 board:
+   * `fetch failed` reached a caller's catch block and became a failed check.
+   * Caught here it becomes a fault with a name, and every caller gets the same
+   * answer whether the client refused or the network did.
+   */
+  let data = null;
+  let error = null;
+  try {
+    ({ data, error } = await d.auth.admin.createUser({ email, password, email_confirm: true }));
+  } catch (err) {
+    return probeFailure(role, `creating the account threw: ${err instanceof Error ? err.message : String(err)}`);
+  }
+  if (error || !data?.user) {
+    return probeFailure(role, `creating the account was refused: ${error?.message ?? "no user came back"}`);
+  }
 
   const { error: pErr } = await d.from("eng_profiles").insert({
     id: data.user.id,
@@ -118,7 +200,7 @@ export async function createProbe(base, role, label = "audit") {
   });
   if (pErr) {
     await d.auth.admin.deleteUser(data.user.id).catch(() => {});
-    return null;
+    return probeFailure(role, `the profile insert was rejected: ${pErr.message}`);
   }
 
   made.push({ id: data.user.id, email });
@@ -159,7 +241,7 @@ export async function createProbe(base, role, label = "audit") {
     );
   }
 
-  return { id: data.user.id, email, role, cookie: signedIn.cookie };
+  return { id: data.user.id, email, role, cookie: signedIn.cookie, fault: null };
 }
 
 /**
@@ -179,9 +261,13 @@ export async function createProbe(base, role, label = "audit") {
  * The partner code is obviously fake and the organisation says so, because a
  * probe partner appearing in a list somewhere should read as a probe.
  */
+/** The failure shape for the two non staff probes. See `probeFailure` above. */
+const partnerFailure = (fault) => ({ partnerId: null, userId: null, email: null, cookie: null, fault });
+const customerFailure = (fault) => ({ accountId: null, userId: null, email: null, cookie: null, fault });
+
 export async function createPartnerProbe(base, label = "audit") {
   const d = client(label);
-  if (!d) return null;
+  if (!d) return partnerFailure("no database client, so no partner probe could be made");
 
   const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
   const email = `probe-partner-${stamp}@${PROBE_DOMAIN}`;
@@ -200,7 +286,7 @@ export async function createPartnerProbe(base, label = "audit") {
     })
     .select("id")
     .single();
-  if (pErr || !partner) return null;
+  if (pErr || !partner) return partnerFailure(`the partner insert was rejected: ${pErr?.message ?? "no row came back"}`);
 
   const { data: user, error: uErr } = await d
     .from("eng_partner_users")
@@ -214,7 +300,7 @@ export async function createPartnerProbe(base, label = "audit") {
     .single();
   if (uErr || !user) {
     await d.from("eng_partners").delete().eq("id", partner.id);
-    return null;
+    return partnerFailure(`the partner user insert was rejected: ${uErr?.message ?? "no row came back"}`);
   }
 
   partnersMade.push({ partnerId: partner.id, userId: user.id, email });
@@ -226,14 +312,22 @@ export async function createPartnerProbe(base, label = "audit") {
     token_hash: createHash("sha256").update(token, "utf8").digest("hex"),
     expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
   });
-  if (tErr) return null;
+  if (tErr) return partnerFailure(`the set password token insert was rejected: ${tErr.message}`);
 
   const set = await fetch(`${base}/api/partner/set-password`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ token, password }),
   });
-  if (!set.ok) return { partnerId: partner.id, userId: user.id, email, cookie: null };
+  if (!set.ok) {
+    return {
+      partnerId: partner.id,
+      userId: user.id,
+      email,
+      cookie: null,
+      fault: `setting the partner password was refused (HTTP ${set.status})`,
+    };
+  }
 
   const res = await fetch(`${base}/api/partner/session`, {
     method: "POST",
@@ -242,7 +336,7 @@ export async function createPartnerProbe(base, label = "audit") {
   });
   const m = (res.headers.get("set-cookie") ?? "").match(/eng_partner=([^;]+)/);
 
-  return { partnerId: partner.id, userId: user.id, email, cookie: m ? m[1] : null };
+  return { partnerId: partner.id, userId: user.id, email, cookie: m ? m[1] : null, fault: null };
 }
 
 const customersMade = [];
@@ -272,7 +366,7 @@ const customersMade = [];
  */
 export async function createCustomerProbe(base, label = "audit") {
   const d = client(label);
-  if (!d) return null;
+  if (!d) return customerFailure("no database client, so no customer probe could be made");
 
   const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
   const email = `probe-customer-${stamp}@${PROBE_DOMAIN}`;
@@ -283,7 +377,7 @@ export async function createCustomerProbe(base, label = "audit") {
     .insert({ kind: "organization", name: "Audit Probe Company", email, status: "active", is_demo: true })
     .select("id")
     .single();
-  if (cErr || !clientRow) return null;
+  if (cErr || !clientRow) return customerFailure(`the client insert was rejected: ${cErr?.message ?? "no row came back"}`);
 
   const { data: account, error: aErr } = await d
     .from("eng_customer_accounts")
@@ -292,7 +386,7 @@ export async function createCustomerProbe(base, label = "audit") {
     .single();
   if (aErr || !account) {
     await d.from("eng_clients").delete().eq("id", clientRow.id);
-    return null;
+    return customerFailure(`the customer account insert was rejected: ${aErr?.message ?? "no row came back"}`);
   }
 
   const { data: user, error: uErr } = await d
@@ -309,7 +403,7 @@ export async function createCustomerProbe(base, label = "audit") {
   if (uErr || !user) {
     await supersedeProbeAccount(d, account.id);
     await d.from("eng_clients").delete().eq("id", clientRow.id);
-    return null;
+    return customerFailure(`the customer user insert was rejected: ${uErr?.message ?? "no row came back"}`);
   }
 
   customersMade.push({ clientId: clientRow.id, accountId: account.id, userId: user.id, email });
@@ -321,14 +415,30 @@ export async function createCustomerProbe(base, label = "audit") {
     token_hash: createHash("sha256").update(token, "utf8").digest("hex"),
     expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
   });
-  if (tErr) return { accountId: account.id, userId: user.id, email, cookie: null };
+  if (tErr) {
+    return {
+      accountId: account.id,
+      userId: user.id,
+      email,
+      cookie: null,
+      fault: `the set password token insert was rejected: ${tErr.message}`,
+    };
+  }
 
   const set = await fetch(`${base}/api/account/set-password`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ token, password }),
   });
-  if (!set.ok) return { accountId: account.id, userId: user.id, email, cookie: null };
+  if (!set.ok) {
+    return {
+      accountId: account.id,
+      userId: user.id,
+      email,
+      cookie: null,
+      fault: `setting the customer password was refused (HTTP ${set.status})`,
+    };
+  }
 
   const res = await fetch(`${base}/api/account/session`, {
     method: "POST",
@@ -337,7 +447,7 @@ export async function createCustomerProbe(base, label = "audit") {
   });
   const m = (res.headers.get("set-cookie") ?? "").match(/eng_customer=([^;]+)/);
 
-  return { accountId: account.id, userId: user.id, email, cookie: m ? m[1] : null };
+  return { accountId: account.id, userId: user.id, email, cookie: m ? m[1] : null, fault: null };
 }
 
 /** The customer cookie, shaped for a Playwright context. */

@@ -69,6 +69,7 @@ import { startNextServer } from "./lib/dev-server.mjs";
 import { auditClient } from "./lib/db-target.mjs";
 import { completeEnrolment, signInOnly } from "./lib/probe-mfa.mjs";
 import { destroyProbes, PROBE_DOMAIN } from "./lib/portal-probe.mjs";
+import { COULD_NOT_TELL } from "./lib/reachable.mjs";
 import { breakGlassConfigured, breakGlassMatches, breakGlassMalformed } from "../src/lib/ops-mfa-breakglass.ts";
 
 const PORT_UNSET = Number(process.env.BREAK_GLASS_PORT_UNSET || 3229);
@@ -87,6 +88,8 @@ const MALFORMED_TEXT = "MFA_BREAK_GLASS is set on this deployment but is not in 
 
 const results = [];
 let failures = 0;
+/** Set when the SUBJECT could not be built. It is a verdict, not a finding. */
+let setupFault = null;
 
 function rec(name, ok, note = "") {
   results.push({ name, ok, note });
@@ -175,11 +178,25 @@ async function run() {
    * red here would be a red about the harness rather than about the break
    * glass, which is the kind of red people learn to ignore.
    */
+  /*
+   * EXIT 3, AND THE COMMENT ABOVE IS THE ARGUMENT FOR IT rather than against.
+   *
+   * It says a red here would be a red about the harness rather than about the
+   * break glass, and that people learn to ignore those. Both true. The answer
+   * was exit 0, which is not "not a red", it is a GREEN over an audit that
+   * measured nothing, and the board counts it as a pass.
+   *
+   * Exit 3 is the verdict that reasoning was reaching for and that
+   * `reachable.mjs` already owns. Found by a survey after the operator ruled
+   * the same change for doors-audit, and it is a little embarrassing: this file
+   * is the one whose class fix went in an hour earlier, and its own
+   * preconditions were still doing it.
+   */
   if (!existsSync(".next/BUILD_ID")) {
     console.log("");
     console.log("COULD NOT TELL: there is no build to start. Run `npm run build` first, or run this from the board.");
     console.log("The break glass was NOT exercised.");
-    process.exit(0);
+    process.exit(COULD_NOT_TELL);
   }
 
   const db = auditClient("break-glass-audit", { neverProduction: true });
@@ -187,7 +204,7 @@ async function run() {
     console.log("");
     console.log("COULD NOT TELL: no database client, so no probe account could be made.");
     console.log("The break glass was NOT exercised.");
-    process.exit(0);
+    process.exit(COULD_NOT_TELL);
   }
 
   pureHalf();
@@ -197,6 +214,7 @@ async function run() {
   const password = `probe-${stamp}-break-glass`;
   let userId = null;
   let server = null;
+  let probeReady = false;
 
   try {
     /* --------------------------------------------- 1. the variable unset */
@@ -228,6 +246,21 @@ async function run() {
     const enrolled = await completeEnrolment(server.base, first.cookie);
     if (!enrolled.ok) throw new Error(`the probe could not enrol: ${enrolled.error}`);
     rec("a probe administrator enrols a real second factor", enrolled.ok === true);
+
+    /*
+     * THE BOUNDARY BETWEEN "COULD NOT BUILD THE SUBJECT" AND "MEASURED IT".
+     *
+     * Everything above this line is setup: a server, an account, a profile, a
+     * sign in and a real enrolment. A throw from any of it means the break glass
+     * was never put in front of anything, which is COULD NOT TELL. Everything
+     * below it is the break glass itself, and a throw there is a finding.
+     *
+     * It is a flag rather than a second try block because the setup and the
+     * subject share `server`, `userId` and the enrolment, and splitting them
+     * would mean either duplicating the teardown or leaving a probe account
+     * behind on the path nobody tests.
+     */
+    probeReady = true;
 
     const pendingA = await signIn(server.base, email, password);
     rec(
@@ -382,7 +415,22 @@ async function run() {
       afterSignIn.redirect ?? "no redirect",
     );
   } catch (err) {
-    rec("the run completed", false, err.message);
+    const message = err instanceof Error ? err.message : String(err);
+    if (probeReady) {
+      rec("the run completed", false, message);
+    } else {
+      /*
+       * THE 2026-09-23 BOARD, AND THE REASON THIS BRANCH EXISTS.
+       *
+       * It went red on `FAIL: the run completed (probe account: fetch failed)`.
+       * `createUser` had thrown a transport error. The break glass was never
+       * exercised, and the line underneath said a break glass that is not
+       * exercised is a recovery path that exists only in a document, which read
+       * as an accusation against a recovery path that passed 32 of 32 standalone
+       * minutes later.
+       */
+      setupFault = message;
+    }
   } finally {
     if (server) await server.stop().catch(() => {});
     const swept = await destroyProbes("break-glass-audit");
@@ -393,6 +441,21 @@ async function run() {
 console.log("========== THE BREAK GLASS, EXERCISED ==========");
 await run();
 console.log("");
+/*
+ * THE SETUP FAULT IS READ BEFORE THE FAILURES, and the order matters.
+ *
+ * A run that could not build its probe has not measured the break glass, so it
+ * has no business reporting a failure about it. Reading `failures` first would
+ * put the run back in the state this change exists to remove, because the
+ * teardown check records a result either way and a sweep on a dead connection
+ * can fail too.
+ */
+if (setupFault) {
+  console.log(`COULD NOT TELL: the probe could not be built, so the break glass was NOT exercised (${setupFault}).`);
+  console.log("This is not a finding about the recovery path. Nothing was put in front of it.");
+  console.log(`${results.length} check(s) had run before the fault, of which ${failures} failed.`);
+  process.exit(COULD_NOT_TELL);
+}
 if (failures) {
   console.log(`FAIL: ${failures} of ${results.length} checks.`);
   console.log("A break glass that is not exercised is a recovery path that exists only in a document.");
