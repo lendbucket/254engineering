@@ -68,9 +68,49 @@ quantity, because a quantity is a second copy.
 
 Of the four still open, none blocks a morning sitting.
 
-## FIRST ITEM FOR 2026-09-23: SIX PROOFS HAVE NEVER RUN ON A BOARD, AND ONE IS CITED AS ENFORCEMENT
+## THE OVERNIGHT OF 2026-09-23 IS IN `docs/overnight-2026-09-23.md`
 
-Operator ruling, 2026-09-22. **This is the first thing to do tomorrow.**
+Pointer entry, not a second copy. That report carries what was done, each
+commit, the board against its prediction, and the questions waiting for the
+operator in the order he should answer them. **It states no count of questions
+here**, for the reason the rulings pointer above records: a quantity in a
+pointer is a second copy, and it was wrong for two of them once already.
+
+**Its open items**, each explained there rather than restated:
+
+- **`a-signed-protocol-is-not-a-draft` fails and is not weakened.** Two checks
+  red. One is diagnosed, and the code is not what is wrong: 0052 added a trigger
+  that pre-empts the check constraint the proof names, so the protection is
+  stricter than the proof asserts. The other is recorded as **unexplained**.
+  The board is red on `proofs-audit` by one check until this is ruled.
+- The TDI orientation items the engineer reported, recorded as reported and not
+  verified.
+- Where an AQI-1 submission would be recorded, which is a proposal awaiting a
+  ruling rather than something built.
+- Self service sign up, reported on and not touched.
+
+## RESOLVED 2026-09-23: SIX PROOFS HAD NEVER RUN ON A BOARD, AND ONE WAS CITED AS ENFORCEMENT
+
+Operator ruling, 2026-09-22. **Built on 2026-09-23 as `scripts/proofs-audit.mjs`,
+second in `PHASE_ZERO`.** The record below is kept because the reasoning is what
+makes the fix the right shape, and because one thing it predicted came true on
+the first run: a proof nobody had executed was wrong.
+
+**WHAT CLOSING IT FOUND, and it is the argument for the whole exercise.** Five
+of the six passed. `a-signed-protocol-is-not-a-draft` fails on two checks, and
+the CODE is not what is wrong: 0052 added a trigger that pre-empts the check
+constraint the proof names, so the guarantee is stricter than the proof asserts
+while the proof, written at 0049, was never run as the schema moved to 0058. It
+is not weakened and not excluded, and the board is red on it pending a ruling.
+The full account is in `docs/overnight-2026-09-23.md`.
+
+**AND THE RUNNER FOUND A SECOND THING NOBODY WOULD HAVE SEEN.** One proof
+reports a failure under bare `node` and passes under `tsx`, because it imports a
+TypeScript module. A runner that did not derive the invocation would have
+reported a perfectly sound proof as broken for ever. The invocation is derived
+from the source.
+
+### As first recorded
 
 **PROOFS ARE NEITHER ENUMERATED NOR LISTED.** `grep -n 'proofs' scripts/audit.mjs`
 returns nothing. A proof in `scripts/proofs/` reaches the board only because

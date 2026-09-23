@@ -129,24 +129,27 @@ export const CONTROLS = [
      * a board, section 6c's mechanism has one leg: an edit to the constants
      * would be caught by nobody until somebody ran the proof by hand.
      *
-     * THE FIX IS THE CLASS FIX, NOT A REWORD. The suite is to enumerate
-     * scripts/proofs/ and run every one, plus a check that fails if any proof
-     * is reached by nothing. That is the first item in BACKLOG.md. WHEN IT
-     * LANDS, THIS SENTENCE SHOULD CITE THE PROOF AGAIN, because it will then be
-     * true. It is corrected rather than left, because a false claim in a
-     * compliance artifact is not something to leave standing while a better fix
-     * is built.
+     * AND THE CLASS FIX LANDED THE SAME NIGHT, so this sentence cites the proof
+     * again, which is now true. `scripts/proofs-audit.mjs` derives its subject
+     * from the DIRECTORY and runs every proof as a child process, so one runs
+     * by existing rather than by somebody remembering to import it. That audit
+     * also asserts this specific thing: every runnable proof the SOC 2 pack
+     * cites is one it runs. The citation cannot go hollow again without a check
+     * going red.
+     *
+     * The sequence is kept in this comment rather than tidied away, because the
+     * correction and its reversal happened hours apart and a reader finding
+     * only the final sentence would have no idea the claim had ever been false.
      */
     enforcedBy:
-      "src/lib/ops-mfa.ts and src/lib/totp.ts, where 6 digits and a 30 second period are constants. " +
-      "NOT enforced by a running check: scripts/proofs/totp-matches-the-rfc.mjs verifies the " +
-      "implementation against RFC 6238's published vectors and is reached by nothing, so no board " +
-      "executes it. Run it by hand with: node scripts/proofs/totp-matches-the-rfc.mjs",
+      "src/lib/ops-mfa.ts and src/lib/totp.ts, where 6 digits and a 30 second period are constants, " +
+      "checked against RFC 6238's published vectors by scripts/proofs/totp-matches-the-rfc.mjs, " +
+      "which scripts/proofs-audit.mjs runs on every board.",
     evidence: "eng_mfa_enrolments, eng_mfa_recovery_codes, eng_roles.mfa_requirement",
     machine: true,
     verifiable: true,
     regenerate: "npx tsx scripts/soc2-evidence.mjs",
-    note: "The requirement is per role and 0025 made it optional by default for admin and engineer. That is a GAP and is listed as one. SEPARATELY, and corrected 2026-09-23: the RFC conformance proof for this control is not run by any board, so the digits and period are pinned in one place rather than two. The class fix is the first item in BACKLOG.md.",
+    note: "The requirement is per role and 0025 made it optional by default for admin and engineer. That is a GAP and is listed as one. SEPARATELY, 2026-09-23: this control's enforcedBy cited an RFC conformance proof that no board ran, which was a false claim of enforcement in a readiness pack. Corrected, and then made true the same night by scripts/proofs-audit.mjs, which enumerates scripts/proofs/ and runs every proof. CLAUDE.md section 6c pins the digits and period in two places; both are now read by the board.",
   },
   {
     id: "perimeter",

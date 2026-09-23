@@ -56,6 +56,24 @@ const PHASE_ZERO = [
     why: "audits cannot reach production without an explicit flag that defaults off",
   },
   {
+    /*
+     * SECOND, and it needs no server, no build and no network either.
+     *
+     * It exists because on 2026-09-22 proofs were neither enumerated nor
+     * listed. A proof reached a board only because some audit imported it, and
+     * six of thirteen were imported by nothing and had never run at all. One of
+     * those six was cited to a SOC 2 auditor as the thing enforcing a control.
+     *
+     * Placed here rather than late because a proof is the cheapest check in the
+     * repository and the most fundamental: each one asserts that a rule the
+     * rest of the suite assumes is actually true. A board that is going to
+     * discover its TOTP implementation disagrees with the RFC should discover
+     * it in the first minute, not the twentieth.
+     */
+    name: "proofs-audit",
+    why: "every proof in scripts/proofs runs, and none is reached by nothing",
+  },
+  {
     // Replays every migration into an in process Postgres and fingerprints the
     // result. Runs here because it needs no server, no build and no network, and
     // because a schema that cannot be rebuilt should stop the run early.
