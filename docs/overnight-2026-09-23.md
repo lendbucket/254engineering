@@ -243,3 +243,275 @@ a statement, named and dated, saying in its own text that no capture backs it,
 retired by an event, with a date as a backstop.
 
 ---
+
+## 6. Self service sign up. REPORT ONLY, NO CODE WRITTEN.
+
+### What the gate condition requires
+
+One value. `selfServiceSignUp.cleared` in `src/config/launch-conditions.ts`,
+edited by the operator and nobody else. There is no environment variable and no
+derived answer, deliberately: a feature reaching the public should require
+somebody to open a file, type, and leave a commit behind.
+
+It gates `open`, so it is one of the eight that block.
+
+### What is built, and it is the whole door
+
+| | |
+| --- | --- |
+| Page | `src/app/account/sign-up/page.tsx`, which asks `selfServiceSignUpOpen()` and renders the closed sentence instead of the form |
+| Route | `src/app/api/account/sign-up/route.ts`, which returns **404** with the closed sentence rather than 403, so a shut door is not an inventory of what exists |
+| Declared | Door one of three in `src/lib/account-doors.ts` |
+| Covered by | `accounts-audit`, `doors-audit`, `security-audit`, and `scripts/exercises/suspended-account-link.mjs` |
+
+`doors-audit` walks all three doors end to end. The sentence a closed door gives
+is a single function, `selfServiceSignUpClosedSentence()`, and it deliberately
+says nothing about preview deployments or session secrets: the reader wanted an
+account, and why it is shut is the firm's business rather than theirs.
+
+**Nothing is missing from the feature.** This is not half built.
+
+### What is left, and it is not code
+
+**`selfServiceSignUpOpen()` reads the flag and nothing else:**
+
+```ts
+export function selfServiceSignUpOpen(): boolean {
+  return selfServiceSignUp.cleared === true;
+}
+```
+
+It does **not** consult `launchMode()`. So clearing that one boolean opens sign
+up **immediately on every deployment, including every Preview**, whatever the
+rest of the gate says.
+
+**That matters because of what the condition's own text warns about.** Its
+`because` says clearing it is what turns the shared preview secrets "from a risk
+about accounts the operator created into a risk about accounts anybody can
+create". And `src/config/credential-inventory.ts` still records
+`CUSTOMER_SESSION_SECRET` as **shared** with Preview, recorded as shared rather
+than as fixed, with the note that an earlier version claimed distinct and that
+"a declaration that asserts a fix which has not happened is the exact thing this
+pack exists to prevent".
+
+**So the real prerequisite is a Vercel action, not a code change:** split
+`CUSTOMER_SESSION_SECRET` between Preview and Production, and record the split.
+Until then, clearing the flag means anybody holding a preview URL can create an
+account whose session production accepts.
+
+**The two are coupled in reality and decoupled in the code**, and that
+decoupling was deliberate: the operator ruled them separate decisions so that
+accepting the secret-sharing risk would not silently open a feature nobody
+cleared. The decoupling is right. What is worth knowing is that the ORDER
+matters, and nothing in the code enforces it.
+
+### Estimate
+
+| Work | Sittings |
+| --- | --- |
+| Split `CUSTOMER_SESSION_SECRET` in Vercel, redeploy, record the split in `credential-inventory.ts` | **half a sitting**, and it is the operator's, not a session's |
+| Clear the flag, with who and when | minutes, inside the same sitting |
+| **Optional, and a question rather than a recommendation:** make `selfServiceSignUpOpen()` also require a non-preview deployment, so the order cannot be got wrong | **one sitting**, including a proof both ways |
+
+**One sitting in total if the optional guard is wanted, half if not.** No part of
+this is blocked on anything except the operator being at a keyboard with the
+Vercel dashboard open.
+
+---
+
+## 7. The board against its prediction. FALSIFIED, TWO WAYS, AND ONE OF THEM IS ARITHMETIC.
+
+**Predicted:** 58 PASS, 1 FAIL, 2 COULD NOT TELL, of 59.
+
+**Actual:** **55 PASS, 2 FAIL, 2 COULD NOT TELL, of 59.** Ran to completion, all
+59 audits started.
+
+### The first error is mine and it is embarrassing: the prediction did not add up
+
+58 plus 1 plus 2 is 61, not 59. The figure could not have been right whatever
+the board did. The intended number was 56, and stating a total that contradicts
+its own parts is exactly the kind of thing the prediction rule exists to expose
+before a run rather than after.
+
+**It is recorded rather than quietly corrected**, because a prediction that
+cannot be satisfied is not a prediction, and the next person writing one should
+see that this one was checked against its own total only afterwards.
+
+### The second error carried the information
+
+| | Predicted | Actual |
+| --- | --- | --- |
+| Runs to completion | yes | **yes**, 59 of 59 started |
+| FAIL count | 1 | **2** |
+| Which | `proofs-audit` | `proofs-audit` **and `mfa-audit`** |
+| `proofs-audit` | 15 of 16 | **15 of 16**, on `a-signed-protocol-is-not-a-draft` |
+| COULD NOT TELL | `mobile-overflow-audit`, `native-audit` | **exactly those** |
+| `compliance-audit` | 104, 3 acknowledged | **104, 3 acknowledged** |
+| `db-guard-audit` | 86 | **86** |
+| `soc2-audit` | 63 | **63** |
+| `backlog-audit` / `surface-audit` | 12 / 25 | **12 / 25** |
+
+Everything predicted about the branch held. **What I did not predict is an audit
+the branch does not touch.**
+
+---
+
+## 8. `mfa-audit` failed on the board and passes twice standalone
+
+```
+FAIL: the same role with a FULL session DOES open the portal (/portal)
+      (status 307. The refusal below would then prove nothing about the second factor.)
+FAIL: and CANNOT decline into the portal (/portal)
+      (refused with 307, but the control failed, so this refusal is not evidence)
+```
+
+**The audit was honest about itself**, which is the 2026-09-22 ruling working: the
+second line says outright that the refusal is not evidence because the control
+failed. Without that sentence this would read as somebody getting past the second
+factor, which is the opposite of what happened.
+
+### It cannot be this branch
+
+`git diff --name-only 6685a3a..HEAD` returns ten files: `BACKLOG.md`, the
+overnight report, two generated SOC 2 documents, two evidence CSVs,
+`package.json` (one line), `scripts/audit.mjs` (one list entry),
+`scripts/lib/soc2-controls.mjs` (one string), and the new `proofs-audit.mjs`.
+
+**Nothing touching auth, sessions, the proxy or MFA.** And `mfa-audit` passed on
+`main` at `6685a3a` a few hours earlier, on a board with zero FAIL lines.
+
+### Reruns, following the 2026-09-21 precedent
+
+| Run | Result |
+| --- | --- |
+| In the board | **FAIL, 2 of 57** |
+| Standalone, run 1 | **PASS, 57 of 57** |
+| Standalone, run 2 | **PASS, 57 of 57** |
+
+Both reruns against a real server with nothing beside them. Teardown passed in
+all three, including the board run, so **no probe role was stranded** and the
+2026-09-21 incident did not repeat.
+
+### What is NOT concluded
+
+**Not that the audit is flaky and may be ignored.** It is the second time
+`mfa-audit` has gone red on a board and been unreproducible standalone; the
+first, on 2026-09-21, turned out to be a real network fault reaching the
+development database during teardown, recorded in `BACKLOG.md` as survey 3's
+first live instance.
+
+This one is different in shape: the fault is a **307 where 200 was expected on a
+full session**, in the middle of a sequence whose neighbours all passed,
+including *"and it can open the portal at all, so a refusal means the factor"*.
+Something about that one navigation differed.
+
+**No story is attached to it.** What is recorded is that it failed once under
+board load and passed twice standalone, and that the branch cannot have caused
+it.
+
+**It is a candidate for the same treatment as `/portal/accounts`:** a fault that
+only appears under a full board is a fault the instrumentation has to already be
+running for, because the run that fails is not the run anybody chose.
+
+---
+
+## 9. QUESTIONS WAITING FOR THE OPERATOR, IN THE ORDER TO ANSWER THEM
+
+Nothing below was decided. Each says what I would do and why.
+
+### 1. `a-signed-protocol-is-not-a-draft` fails. Fix the proof, or something else?
+
+**This blocks the merge**, because it is the one thing keeping the board red on
+work the branch introduced the runner for.
+
+**Recommendation: fix the PROOF, not the code, and diagnose its second failure
+before writing either fix.** The schema is right and got stricter: 0052's
+`not_born_in_force` trigger pre-empts the constraint the proof names. Updating
+the proof to assert the current refusal is sharpening, not weakening, and it
+should also print the refusal message it actually got, which it does not today.
+
+The second failure, a `retired` row being refused, is **unexplained**. A fix
+written before it is understood would be a fix to make a red go away.
+
+### 2. What counts as recording an AQI-1 submission?
+
+**Deadline 2026-12-21.** The operator's word with a date, or an artefact.
+
+**Recommendation: the operator's word.** A TDI receipt for an individual
+licensee carries personal details, and the 2026-09-21 rule is that such a
+capture is not taken. Full reasoning in section 5.
+
+### 3. Self service sign up: split the secret first?
+
+**Recommendation: yes, and it is the operator's half a sitting, not a session's.**
+`selfServiceSignUpOpen()` reads one boolean and does not consult the gate, so
+clearing it opens sign up on every Preview immediately, while
+`CUSTOMER_SESSION_SECRET` is still recorded as shared with Preview.
+
+**A second question inside it:** should `selfServiceSignUpOpen()` also require a
+non-preview deployment, so the order cannot be got wrong? One sitting including a
+proof both ways. I did not build it.
+
+### 4. `mfa-audit`: chase it now, or instrument and wait?
+
+**Recommendation: instrument and wait, and record it rather than chase it.** It
+is unreproducible standalone across two runs, and a profile of a healthy run is
+not evidence about a failing one. It should join `/portal/accounts` as a fault
+that needs instrumentation already running when it fires.
+
+**It does not block the merge on this branch**, because the branch cannot have
+caused it and `main` was green on it hours earlier. That is your call, not mine.
+
+### 5. Two pre-existing en dashes in `BACKLOG.md`
+
+At lines 4553 and 4555, inside a historical table using them as range
+separators. Present on the last green board, so outside `placeholder-audit`'s
+scope. Standing law says no en dashes anywhere.
+
+**Recommendation: leave them.** They are in a struck-through historical record,
+not rendered copy, and editing history to satisfy a style rule is worse than the
+inconsistency. Noted so it is a decision rather than an oversight.
+
+---
+
+## 10. WHAT WAS DONE, AND THE RULES THIS RUN WORKED UNDER
+
+**Branch `feat/overnight-2026-09-23` from `main` at `6685a3a`. Five commits.
+Nothing merged, nothing pushed, nothing deleted.**
+
+| Commit | What |
+| --- | --- |
+| `ff0a8bb` | The SOC 2 pack no longer cites a proof no board runs |
+| `edc0177` | Every proof runs, and none is reached by nothing |
+| `1704882` | The engineer's TDI orientation, recorded as reported |
+| `6240042` | Where an AQI-1 submission would be recorded, as a proposal |
+| this one | This report |
+
+**No production access of any kind.** `ALLOW_PRODUCTION_DB` was never set. The
+only database read was development, for regenerating the SOC 2 pack, through the
+guard that refuses production without the flag. No Supabase, Vercel or Stripe
+writes. No secret value read.
+
+**Everything added to an audit was run standalone and injection-verified**, each
+injection restored by copy and confirmed byte identical. The board ran alone,
+with a prediction stated first, and nothing beside it.
+
+**Fixtures I created and removed:** one file with an unaccounted extension in
+`scripts/proofs/`, for an injection. Nothing else was deleted.
+
+### Three mistakes worth carrying, all caught by running things
+
+**Removing `shell: true` made seven proofs report failures they never had.** The
+executable on Windows is a `.cmd` that cannot launch without a shell, so every
+tsx proof returned `exit null`. Caught by running standalone; fixed by invoking
+tsx's own bin entry under `node` and by treating a null exit as could-not-run.
+
+**A constant used before its declaration crashed the new audit outright.** Caught
+because it was run standalone before being wired into the suite, which is the
+rule that exists for exactly this.
+
+**A `grep -P` with a brace escape would not compile and answered
+`pattern-error`.** That is the 2026-09-17 hazard: a pattern that cannot run
+reads as a clean result. Long dashes were checked by code point with a script
+instead, which is how the two in `BACKLOG.md` were found at all.
+
