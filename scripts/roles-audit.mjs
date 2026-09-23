@@ -57,6 +57,33 @@ import {
 import { can, actionsFor, visibleFiles, canSeeFile, redactFile, ROLES, DEFAULT_ROLES, ALL_ACTIONS, LICENSED_ACTIONS, LICENSED_ROLE, holdsLicence, roleLabel, inviteFieldsFor } from "../src/lib/ops-authz.ts";
 import { canReview } from "../src/lib/ops-review.ts";
 import { signInFully } from "./lib/probe-mfa.mjs";
+import { COULD_NOT_TELL, navigationVerdict } from "./lib/reachable.mjs";
+
+/*
+ * A TRANSPORT FAULT IN A PROBE IS COULD NOT TELL, NOT FAIL. Operator ruling,
+ * 2026-09-23, made after break-glass-audit reported `fetch failed` as a failed
+ * check on a recovery path that passed 32 of 32 standalone minutes later.
+ *
+ * WHY THIS FILE DRAWS THE BOUNDARY DIFFERENTLY FROM ITS NEIGHBOURS. The two
+ * catches below wrap the probe SETUP and the SUBJECT in one block, and they
+ * share the accounts, the roles and the teardown. A `probeReady` flag of the
+ * kind break-glass-audit uses would mean splitting a try block whose finally
+ * clause is the only thing that removes live accounts from a database, and a
+ * teardown with two homes is how a probe gets left behind.
+ *
+ * So the question asked here is narrower and is exactly the one the ruling
+ * names: was this a failed CALL. `navigationVerdict` already owns that list,
+ * `fetch failed` is in it, and a logic error in the audit is not, so a genuine
+ * defect still lands as a failure with its own name.
+ */
+let transportFault = null;
+const recordFault = (what, err) => {
+  const verdict = navigationVerdict(err);
+  if (!verdict.unreachable) return false;
+  transportFault = `${what}: ${verdict.reason}`;
+  console.log(`  COULD NOT TELL: ${transportFault}`);
+  return true;
+};
 
 const BASE = process.env.BASE_URL || "http://localhost:3225";
 
@@ -1976,7 +2003,9 @@ if (!db) {
           );
         }
       } catch (err) {
-        rec("the role name injection ran", false, String(err.message).slice(0, 160));
+        if (!recordFault("the role name injection could not run", err)) {
+          rec("the role name injection ran", false, String(err.message).slice(0, 160));
+        }
       } finally {
         /*
          * THE PROBES GO FIRST, AND THE DATABASE INSISTS.
@@ -2023,7 +2052,9 @@ if (!db) {
       );
     }
   } catch (err) {
-    rec("live cross role probes ran", false, String(err.message).slice(0, 160));
+    if (!recordFault("the live cross role probes could not run", err)) {
+      rec("live cross role probes ran", false, String(err.message).slice(0, 160));
+    }
   } finally {
     // ---- teardown, and it is verified ----
     for (const c of created) {
@@ -2221,10 +2252,15 @@ console.log(`database: ${describeTarget(process.env.SUPABASE_URL)}\n`);
 for (const r of out) console.log(`  ${r.ok ? "PASS" : "FAIL"}: ${r.name}${r.note ? ` (${r.note})` : ""}`);
 const failed = out.filter((r) => !r.ok);
 console.log("");
-if (failed.length === 0) {
-  console.log(`PASS: ${out.length} checks. Every role can do what it should and nothing it should not.`);
-  process.exitCode = 0;
-} else {
+if (failed.length) {
+  /* A finding outranks the verdict: most of this audit needs no probe at all. */
   console.log(`FAIL: ${failed.length} of ${out.length} checks.`);
   process.exitCode = 1;
+} else if (transportFault) {
+  console.log(`COULD NOT TELL: part of the live half did NOT run (${transportFault}).`);
+  console.log(`The ${out.length} checks that did run all passed. This is not a finding about any role.`);
+  process.exitCode = COULD_NOT_TELL;
+} else {
+  console.log(`PASS: ${out.length} checks. Every role can do what it should and nothing it should not.`);
+  process.exitCode = 0;
 }

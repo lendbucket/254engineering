@@ -43,6 +43,7 @@ import { randomBytes } from "node:crypto";
 import { startNextServer } from "./lib/dev-server.mjs";
 import { auditClient } from "./lib/db-target.mjs";
 import { PROBE_DOMAIN, supersedeProbeAccount } from "./lib/portal-probe.mjs";
+import { COULD_NOT_TELL } from "./lib/reachable.mjs";
 import { VERIFICATION_TTL_HOURS } from "../src/lib/account-doors.ts";
 
 const PORT = Number(process.env.DOORS_PORT || 3232);
@@ -50,6 +51,8 @@ const CONDITIONS = "src/config/launch-conditions.ts";
 
 const results = [];
 let failures = 0;
+/** Set when a probe could not be built, which is a verdict rather than a finding. */
+let setupFault = null;
 
 function rec(name, ok, note = "") {
   results.push({ name, ok, note });
@@ -272,9 +275,31 @@ async function run() {
      * forged cookie, for the reason every probe in this repository uses the
      * real endpoint: a cookie minted here proves this audit can sign a cookie.
      */
-    const { createProbe, destroyProbes } = await import("./lib/portal-probe.mjs");
+    const { createProbe, destroyProbes, probeFault } = await import("./lib/portal-probe.mjs");
     const admin = await createProbe(base, "admin", "doors-audit");
-    rec("a staff probe with accounts.manage could be made", Boolean(admin?.cookie), admin?.cookie ? "" : "no cookie");
+
+    /*
+     * A PROBE THAT COULD NOT BE BUILT IS NOT A BROKEN DOOR. Operator ruling,
+     * 2026-09-23, after a transport fault in break-glass-audit was reported as
+     * a failed check and read as a broken recovery path.
+     *
+     * This line used to be
+     *
+     *   rec("a staff probe with accounts.manage could be made", Boolean(admin?.cookie), "no cookie")
+     *
+     * which turns "the database refused to make an account" into a red line on
+     * the audit that answers whether the OPERATOR DOOR WORKS. The door is fine.
+     * Nothing walked through it.
+     *
+     * The fault names which of the four it was, because `no cookie` covered a
+     * missing client, a refused createUser, a rejected profile insert and a
+     * sign in that came back empty, and three of those are not about this door.
+     */
+    const adminFault = probeFault({ "the operator probe": admin });
+    if (adminFault) {
+      setupFault = `the operator door was not walked (${adminFault})`;
+      console.log(`  COULD NOT TELL: ${setupFault}`);
+    }
 
     if (admin?.cookie) {
       const opened = await post(
@@ -538,11 +563,30 @@ async function run() {
       .select("origin")
       .in("email", [selfEmail, opEmail, coEmail]);
     const origins = new Set((allThree ?? []).map((r) => r.origin));
-    rec(
-      "three doors produced three accounts with three origins",
-      origins.size === 3,
-      [...origins].join(", ") || "none",
-    );
+    /*
+     * SKIPPED WHEN A DOOR COULD NOT BE WALKED, and an injection is what found
+     * this rather than any reading. Operator ruling, 2026-09-23.
+     *
+     * Turning the probe fault into a verdict above was not sufficient: with the
+     * fault injected, this line still went red saying "three doors produced
+     * three accounts" and listing two. That is true, and it names the DOORS
+     * when the cause was a database that would not make an account. The red a
+     * reader would act on is the wrong one.
+     *
+     * The convergence check is only meaningful over three doors that were all
+     * walked, so it asks its question when they were and says nothing when they
+     * were not. The verdict at the bottom is what reports the gap, once, in the
+     * words that are actually true.
+     */
+    if (setupFault) {
+      say(`  COULD NOT TELL: the three origins were not compared, because one door was not walked (${[...origins].join(", ") || "none"} seen)`);
+    } else {
+      rec(
+        "three doors produced three accounts with three origins",
+        origins.size === 3,
+        [...origins].join(", ") || "none",
+      );
+    }
     rec(
       "and the link life the emails quote is the one the tokens get",
       VERIFICATION_TTL_HOURS === 72,
@@ -619,5 +663,18 @@ if (failures) {
   console.log(`FAIL: ${failures} of ${results.length} checks.`);
   console.log("A door that is declared and does not work is a door nobody can come through.");
   process.exit(1);
+}
+/*
+ * READ AFTER the failures, which is the opposite order to break-glass-audit, and
+ * the difference is deliberate. There, the probe IS the subject and nothing can
+ * be measured without it. Here one door of three could not be walked while the
+ * other two were, so a real finding on either of them is still a finding and
+ * must outrank the verdict. What must not happen is a green over a door nobody
+ * opened.
+ */
+if (setupFault) {
+  console.log(`COULD NOT TELL: ${setupFault}`);
+  console.log(`The other checks passed (${results.length}), but one door of three was not walked.`);
+  process.exit(COULD_NOT_TELL);
 }
 console.log(`PASS: ${results.length} checks. Three doors, three accounts, three origins, one creation function.`);
