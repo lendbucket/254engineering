@@ -240,6 +240,80 @@ pointer is a second copy, and it was wrong for two of them once already.
   ruling rather than something built.
 - Self service sign up, reported on and not touched.
 
+## `voice-audit` HAS NO LIST OF BRITISH WORDS, AND "RING" WAS FOUND BY A PERSON
+
+Operator ruling, 2026-09-23. **Proposed, not built.** The list below is a
+proposal and nothing in it is enforced today.
+
+**What happened.** The trading refusal in `data/catalog.ts` told a Texan to
+"Ring the office". The operator read it and ruled the change. A sweep for the
+whole word then found **five more rendered strings** carrying the same
+Briticism, including two that a person reads at the moment a form has just lost
+their work. `voice-audit` was green throughout, and correctly: it enforces
+banned AI phrasing, structural tells and present-tense service claims under the
+gate, and **it has never had a register or dialect rule at all.**
+
+**Why it matters more than tidiness.** This firm's authority rests on reading
+like a Texas engineering firm. Copy that reads as though it was written
+elsewhere is the same class of defect as a stock photograph of a building the
+firm has never been in: nothing in it is false, and it quietly says the author
+is not who they claim to be. It is also the exact shape this repository keeps
+recording, **a fact nothing is looking at**, found by a person rather than by a
+check.
+
+### The proposed list, and it is the part that needs a ruling
+
+Words where the British form is wrong for this firm's voice and the American
+form is unambiguous. Each would be matched in RENDERED copy only, never in
+source comments, never in CSS, and never in a transcribed signed document,
+which is carried verbatim under the 2026-09-16 ruling.
+
+| British | American | Note |
+| --- | --- | --- |
+| ring, rang | call, called | The instance. `focus:ring` and a progress ring are not copy. |
+| whilst | while | |
+| amongst | among | |
+| licence (noun) | license | **Load bearing.** A PE licence number is a regulated term and the board spells it `license`. |
+| defence, offence | defense, offense | |
+| organise, organisation | organize, organization | |
+| recognise | recognize | |
+| enquiry | inquiry | **Already inconsistent in this repository**: the routes are `design-inquiry` and `windstorm-inquiry` while prose says enquiry. |
+| programme | program | |
+| cheque | check | |
+| post (verb, mail) | mail | Ambiguous with posting a message. Probably not worth matching. |
+| storey | story | |
+| metre, litre | meter, liter | |
+| kerb | curb | Plausible in a site description. |
+| aluminium | aluminum | Plausible in a materials note. |
+
+**Three of those are judgment calls rather than mechanical**, and the ruling
+should say which way each goes: `post`, because the platform genuinely posts
+messages; `enquiry`, because changing it touches an existing route name; and
+`licence`, because it appears inside quotations from TBPELS material where the
+source spelling should stand.
+
+### The shape it should take, if it is built
+
+**Not an allowlist that grows until it checks nothing**, which is the 2026-09-20
+ruling. The list is the SUBJECT, and an exemption is derived from a property
+rather than added by name: copy inside a transcribed protocol is exempt because
+the registry marks it as transcribed, not because somebody listed it.
+
+**And it is exercised rather than counted.** A set of dialect patterns that
+matches none of its own examples is dead whatever its length says, which is the
+2026-09-20 backspace lesson. Each entry carries a sentence it must catch.
+
+**Where it belongs.** `scripts/lib/voice-blocklist.mjs`, beside the banned
+phrasing, because that file is already shared between site copy and email
+templates so the two surfaces cannot disagree.
+
+### What is NOT proposed
+
+A general British-to-American spelling dictionary. That would fire on every
+source comment in this repository, which is written in the operator's own
+register, and on `docs/` prose, and the resulting noise is how a check becomes
+something people switch off.
+
 ## RESOLVED 2026-09-23: SIX PROOFS HAD NEVER RUN ON A BOARD, AND ONE WAS CITED AS ENFORCEMENT
 
 Operator ruling, 2026-09-22. **Built on 2026-09-23 as `scripts/proofs-audit.mjs`,
