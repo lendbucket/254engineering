@@ -671,3 +671,71 @@ and survived across runs. The port range item already in `BACKLOG.md` is the
 related fix: the guard scans 3223 to 3229 and this sat on 3141, caught only by
 the ownership half.
 
+### ANSWERED 2026-09-23: THE BOARD DOES NOT LEAVE IT ALIVE. I DID.
+
+Operator ruling: find where it came from, and why a board leaves it alive.
+**Report before fixing. Nothing is fixed.**
+
+**The board does not leave it alive, and that is the first correction.**
+`scripts/audit.mjs:859` runs `spawnSync("npm", ["run", audit.name])`, which for
+this audit is `tsx --conditions=react-server scripts/launch-audit.mjs`.
+`spawnSync` waits. `launch-audit` PASSED on the board and the next audit ran, so
+its process had exited. The board's own run cleans up.
+
+**`launch-audit` tears its servers down correctly**, which had to be checked
+rather than assumed. `scripts/launch-audit.mjs:135` stops each server in a
+`finally`, and `stopTree` in `scripts/lib/dev-server.mjs:130` does
+`taskkill /pid <child> /T /F` on Windows. A normal run leaves nothing.
+
+**So it takes an ABNORMAL exit, and the evidence says what kind.**
+
+`launch-audit` starts three servers one after another. If somebody kills the
+SERVER process directly, the `launch-audit` parent survives, its `finally` never
+runs for a child that is already dead, and **it proceeds to start the next
+one**. That is exactly what was observed: killing PID 34452 produced another
+immediately, and tracing the tree found `node scripts/launch-audit.mjs` above
+it.
+
+**And the kills were mine.** On 2026-09-22 I cleared servers by PID twice, and
+Windows said so in its own output each time:
+
+```
+SUCCESS: The process with PID 31996 (child process of PID 34400) has been terminated.
+SUCCESS: The process with PID 17252 (child process of PID 35124) has been terminated.
+```
+
+**Both name a parent I did not kill.** `/T` kills a process's CHILDREN, not its
+parent, so tree-killing the server leaves the audit that owns it running. The
+same pattern appears in tonight's first kill: PID 6200 was reported as a "child
+process of PID 30396", which was the `launch-audit` that then spawned another.
+
+**`BACKLOG.md` already records this hazard from 2026-09-21** in almost these
+words: every server started for a standalone audit was killed by PID and left a
+child holding the port. What was not recorded is the inverse, which is the
+dangerous half: **killing the child leaves the PARENT, and the parent starts a
+new server.**
+
+### Why it matters more than tidiness
+
+An orphaned `launch-audit` is not an idle process. It **starts servers**, and
+`launch-audit`'s own build guard kills whatever holds an audit port. A live one
+during a board is a process that can clear the board's server out from under it,
+which is the mechanism that stopped the board of 2026-09-22 after 32 of 58
+audits.
+
+### The fix, NOT MADE, for a ruling
+
+**The guard names the blocker. It should also name what OWNS the blocker**, so
+somebody clearing a stale server kills the thing that will otherwise replace it.
+`findBlockers` already reads each blocker's command line; reading its
+`ParentProcessId` and reporting the parent when that parent is a node process in
+this repository is a small addition to `scripts/lib/build-guard.mjs`.
+
+**And the `taskkill` line the guard prints should target the owner**, not the
+server, in that case. Today it prints the server's PID, which is the kill that
+creates this situation.
+
+**Recommendation: build both, in one change, with a proof feeding the classifier
+a parent chain.** It is the difference between a guard that reports a symptom
+and one that names the cause.
+
