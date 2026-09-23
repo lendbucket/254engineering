@@ -740,12 +740,58 @@ else process.env.OPS_SESSION_SECRET = HAD;
               redirect: "manual",
             });
             controlOk = open.status === 200;
+
+            /*
+             * ===============================================================
+             * INSTRUMENTED, BECAUSE IT FAILED ONCE AND CANNOT BE REPRODUCED.
+             * Operator ruling, 2026-09-23.
+             * ===============================================================
+             *
+             * On the board of 2026-09-23 this control returned 307 where 200
+             * was expected. It passed 57 of 57 twice standalone afterwards, on
+             * the same build, against a real server, with nothing beside it.
+             * The branch under test touched no auth, session, proxy or MFA
+             * code, and main was green on this audit hours earlier.
+             *
+             * WHAT THE NOTE COULD SAY WAS "status 307", AND NOTHING ELSE. That
+             * is the status-function defect this repository already records at
+             * the MFA lockout: a note can only name the faults its author
+             * enumerated, and a 307 with no destination names nothing at all. A
+             * redirect to the sign in screen, to the challenge, and to
+             * enrolment are three different diagnoses and they print
+             * identically.
+             *
+             * SO THE NEXT OCCURRENCE EXPLAINS ITSELF. The destination is the
+             * single most useful fact and it was being thrown away. The retry
+             * separates a transient fault from a persistent one, which is the
+             * question two standalone passes could not answer. Neither costs
+             * anything on a green run: this block only executes on failure.
+             *
+             * NO COOKIE VALUE IS EVER PRINTED. It is a live session token. Its
+             * LENGTH is printed instead, because a truncated or empty cookie is
+             * a real candidate cause and is visible from the length alone.
+             */
+            let forensics = "";
+            if (!controlOk) {
+              const location = open.headers.get("location");
+              const retry = await fetch(`${BASE}${portalPath}`, {
+                headers: { cookie: `eng_ops=${control.value}` },
+                redirect: "manual",
+              });
+              forensics =
+                ` Redirected to ${location ?? "nothing, so the 307 carried no destination"}.` +
+                ` An immediate retry answered ${retry.status}, so this is ${
+                  retry.status === 200 ? "TRANSIENT and the first attempt is the anomaly" : "PERSISTENT on this server"
+                }.` +
+                ` The control cookie was ${control.value.length} characters, minted for role ${REQUIRED_ROLE}.`;
+            }
+
             rec(
               `the same role with a FULL session DOES open the portal (${portalPath})`,
               controlOk,
               controlOk
                 ? ""
-                : `status ${open.status}. The refusal below would then prove nothing about the second factor.`,
+                : `status ${open.status}. The refusal below would then prove nothing about the second factor.${forensics}`,
             );
           } else {
             rec("the same role with a FULL session DOES open the portal", false, "no control cookie could be minted");
