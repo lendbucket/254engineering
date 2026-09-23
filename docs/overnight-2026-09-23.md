@@ -515,3 +515,70 @@ rule that exists for exactly this.
 reads as a clean result. Long dashes were checked by code point with a script
 instead, which is how the two in `BACKLOG.md` were found at all.
 
+---
+
+## 11. FOUND WHILE CLEARING UP, AFTER THE REPORT WAS COMMITTED: AN ORPHANED `launch-audit` WAS RESPAWNING SERVERS
+
+**This section was added after the report was first committed, which is a
+deliberate departure from "commit it, then stop". It is here because it is the
+mechanism that killed a board on 2026-09-22 and because it is a lead on
+question 4.**
+
+### What was found
+
+The last act of the run was to confirm the machine was clear, using the guard
+built the night before. It reported a blocker:
+
+```
+PID 34452  "C:\Program Files\nodejs\node.exe" node_modules/next/dist/bin/next start -p 3141
+```
+
+Killing it produced another immediately. Tracing the tree rather than killing in
+a loop:
+
+```
+child  : 34452  next start -p 3141
+parent : 30396  node scripts/launch-audit.mjs
+grandpa: 3372   cmd.exe /d /s /c node scripts/launch-audit.mjs
+```
+
+**An orphaned `launch-audit` was alive and starting a fresh server each time one
+was killed.** Killing the tree from the `cmd.exe` wrapper cleared seven
+processes and the machine went clean.
+
+### Why it matters rather than being tidying
+
+**This is exactly the mechanism that killed the board on 2026-09-22**, which
+stopped after 32 of 58 audits with its server gone and its log ending cleanly.
+The guard built in response is what found this one, on its author, on the first
+night it existed. That is the fix working.
+
+**And `launch-audit`'s own build guard kills whatever holds an audit port.** An
+orphan of it, alive during a board, is a process that can clear the board's own
+server out from under it.
+
+### The lead on question 4, labelled as a lead and not an explanation
+
+`mfa-audit` failed once on this board with a 307 on a full session and passed
+twice standalone. **An orphaned `launch-audit` was alive during that board.**
+Whether it disturbed anything is NOT established: it held 3141, and `mfa-audit`
+drives 3225.
+
+**No story is attached.** What is recorded is that an unaccounted process was
+running during the board that produced the unreproducible failure, which is a
+fact worth having before anybody profiles it.
+
+### What is NOT known, and should not be guessed
+
+**Where it came from.** The board's own `launch-audit` ran as
+`tsx --conditions=react-server scripts/launch-audit.mjs` and **passed**. The
+orphan was `node scripts/launch-audit.mjs` under a `cmd.exe` wrapper, which is
+neither the board's invocation nor the `npm run` one. I could not establish what
+spawned it and have not invented an account.
+
+**Recommendation:** treat the standing habit of checking the machine before a
+board as insufficient, because this process was invisible to the old detection
+and survived across runs. The port range item already in `BACKLOG.md` is the
+related fix: the guard scans 3223 to 3229 and this sat on 3141, caught only by
+the ownership half.
+
