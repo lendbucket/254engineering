@@ -97,21 +97,73 @@ firm's regulatory posture, and the platform's `LicensedAction` construction
 currently makes several of those acts unrepresentable for anyone but the
 engineer of record. Widening that is not a records change.
 
-### 2. WPI-8 AND WPI-2E ARE DIFFERENT FORM NUMBERS, AND THIS IS THE ITEM TO BE CAREFUL WITH
+### 2. VERIFIED BY SOURCE, 2026-09-23. HE WAS RIGHT, AND OUR SERVICE LINE NAMES THE WRONG FORM.
 
-He states a TBPELS engineer **without a TDI appointment** may certify completed
-improvements.
+**No longer reported-not-verified.** The operator put the TDI source on file and
+the page was captured on 2026-09-23.
 
-**Three form numbers are now in play and they are not the same fact.** The
-firm's service line names **WPI-8**. He names **WPI-2E**. Item 5 below names
-**WPI-2** after final inspection.
+| | |
+| --- | --- |
+| Page | `tdi.texas.gov/wind/completed-construction-certificates.html` |
+| Captured | `docs/compliance/TDI-completed-construction-certificates-09-23-2026.html` |
+| sha256 | `41c01a1195cb5aae7c6f20afb40a8b5d287acd271b896d8047a6884755f2cffd` |
+| Bytes | 30028 |
+| Read | 2026-09-23 |
 
-**Operator ruling: not acted on until the TDI source and the form number are on
-file.** Recorded as a disagreement rather than reconciled, because reconciling
-it would mean choosing one of three and no reading has established which is
-right. `src/content/windstorm-program.ts` already records a cluster of TDI
-statements that disagree with each other about dates, so this is the second
-place TDI's own material does not line up.
+**What the page says, read off the capture rather than summarised:**
+
+> Access the Completed Construction Inspection Form (**WPI-2E**) while logged in
+> to the windstorm system.
+
+> **Not appointed by TDI** [section heading] Request access to the windstorm
+> system to create and track your WPI-2Es.
+
+> The following documents must be submitted before TDI can issue a certificate
+> of compliance for completed construction (**WPI-8E**): A signed WPI-2E
+> application.
+
+It cites **28 TAC 5.4604 and 5.4606** and **Insurance Code 2210.2515**.
+
+**So the engineer's account was correct on every point.** Any TBPELS licensed PE
+may perform completed construction inspections; an engineer NOT appointed by TDI
+may inspect completed construction only; the engineer files a **WPI-2E** with a
+sealed inspection report; TDI issues **WPI-8E**.
+
+### THE NAMING DEFECT, RECORDED AND NOT FIXED
+
+**Our service line names WPI-8. It should name WPI-2E filed and WPI-8E issued**
+for the completed construction route.
+
+`src/content/services.ts:100-111` carries slug `windstorm-wpi-8`, name
+"Windstorm WPI-8 Certifications", and describes the route where "a Texas
+licensed Professional Engineer **appointed by the Department**" documents
+compliance on form **WPI-2** so TDI can issue the **WPI-8**.
+
+**That is a real and different product from the one the source describes**, and
+it is the one this firm cannot perform: WPI-8 is ongoing construction inspected
+by a TDI APPOINTED engineer, and no engineer here holds that appointment.
+`verifiedCredentials` records the absence and the windstorm pages disclose it,
+so nothing published is dishonest.
+
+**The sharp version: the line the firm advertises is the one it cannot serve,
+and the route it could serve with any TBPELS PE is not offered at all.**
+
+**The insights corpus already has this right**, which is worth knowing because
+it means the error is local rather than systemic.
+`src/content/insights-coastal.ts:567` already describes "the application as a
+WPI-2E and the resulting certificate as a WPI-8E", and cites 2210.2515(c) and
+the two routes within it.
+
+**Not fixed. Records only, on the operator's instruction.** Changing a service
+line's name, slug and copy is a service line change. What opening the completed
+construction line would need is a question for the operator in
+`docs/overnight-2026-09-23.md`.
+
+**One thing nothing does yet:** the captured page's digest above is recorded
+here and **hashed by no check**. The Stripe captures are hashed by
+`stripe-webhook-audit`; this one has no register to live in until the line is
+opened. That is the same "a digest in a comment is a digest nothing hashes"
+shape, recorded rather than left implicit.
 
 ### 3. Ongoing construction requires his desk review of sealed drawings, on every job
 

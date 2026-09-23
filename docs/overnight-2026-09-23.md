@@ -415,23 +415,112 @@ running for, because the run that fails is not the run anybody chose.
 
 ---
 
+## 8b. PROPOSAL, NOT BUILT: what opening the completed construction line would need
+
+**The TDI source is now on file** and the engineer's account was correct on every
+point. `docs/compliance/TDI-completed-construction-certificates-09-23-2026.html`,
+sha256 `41c01a1195cb5aae7c6f20afb40a8b5d287acd271b896d8047a6884755f2cffd`, 30028
+bytes, read 2026-09-23.
+
+**The finding underneath it.** The firm's service line is named for **WPI-8**,
+which is ongoing construction inspected by a **TDI appointed** engineer, and no
+engineer here holds that appointment. The route it could serve with any TBPELS
+licensed PE, completed construction, is not offered at all. Nothing published is
+dishonest: the absence of the appointment is disclosed. But the line advertised
+is the one the firm cannot perform.
+
+### What opening it needs, in the order the dependencies actually run
+
+**1. A signed protocol drawn from 28 TAC 5.4604 and 5.4606.**
+Not a variation of 254-RC-001. That protocol is a single inspection of an
+existing roof and its section 2 says in terms that it does not cover windstorm
+work. A completed construction inspection answers a different question against a
+different authority, and the platform already refuses to offer a line with no
+approved protocol: `orderBlockedReason` takes `hasApprovedProtocol` as a
+required parameter, so this is enforced rather than remembered.
+
+**Only the engineer can sign it, and only he can approve it in the platform.**
+
+**2. Windstorm system access for the engineer.**
+The source is explicit that an engineer not appointed by TDI must "request
+access to the windstorm system to create and track your WPI-2Es". **This is a
+prerequisite, not a formality:** without it there is no route to file, and a
+line that cannot file its own deliverable is a line that takes money for
+something it cannot complete.
+
+**3. Insurance confirmed for this scope.**
+Professional liability that covers windstorm completed construction inspection
+specifically. Section 13 of 254-RC-001 already makes the retention floor
+something the engineer raises where the liability policy requires, so the policy
+is already a thing this platform's rules defer to.
+
+**4. The standing rule changed to cover ongoing construction only.**
+Today the firm's position is recorded as not holding a TDI appointment, and the
+windstorm pages disclose it in the negative, asserted by `compliance-audit`. If
+completed construction opens, that disclosure becomes **wrong in the direction
+that matters**: it would read as "this firm does no windstorm work" when the
+true position is "no ongoing construction, completed construction yes".
+
+**That check asserts the disclosure stays NEGATIVE**, so this is not a copy edit.
+It is a change to what the gate and the audit consider honest, and it has to
+happen in the same commit as the copy or the board goes red for the right
+reason.
+
+### The question
+
+**Do you want the completed construction line opened, and if so in what order?**
+
+**My recommendation: do not start until the engineer's windstorm system access
+is granted**, because it is the only step with a third party's timeline on it
+and it is the one that makes the rest useful. The protocol is the expensive
+piece and it is wasted if access is refused.
+
+**And separately, whether or not the line opens: the service line naming should
+be corrected.** Naming it WPI-8 while describing the appointed route is accurate
+about a product the firm does not sell. That is a service line change and I have
+not made it.
+
+**One thing that needs a ruling either way:** the captured TDI page's digest is
+recorded in `BACKLOG.md` and **hashed by no check**, because there is no
+register for it until the line exists. The Stripe captures are hashed by
+`stripe-webhook-audit`. A digest nothing verifies is the shape this repository
+has already named once tonight.
+
+---
+
 ## 9. QUESTIONS WAITING FOR THE OPERATOR, IN THE ORDER TO ANSWER THEM
 
 Nothing below was decided. Each says what I would do and why.
 
-### 1. `a-signed-protocol-is-not-a-draft` fails. Fix the proof, or something else?
+### 1. ANSWERED AND DONE, except one open sub-question about 0058
 
-**This blocks the merge**, because it is the one thing keeping the board red on
-work the branch introduced the runner for.
+Ruled 2026-09-23 and built in commit `4758b78`. The proof asserts the
+protection, the retired case is split and ACKNOWLEDGED through 2026-09-30, and
+`0058_a_retired_protocol_is_not_in_force.sql` is drafted and **pending**, which
+holds the merge until the operator applies it.
 
-**Recommendation: fix the PROOF, not the code, and diagnose its second failure
-before writing either fix.** The schema is right and got stricter: 0052's
-`not_born_in_force` trigger pre-empts the constraint the proof names. Updating
-the proof to assert the current refusal is sharpening, not weakening, and it
-should also print the refusal message it actually got, which it does not today.
+**THE SUB-QUESTION, AND IT NEEDS A RULING.** The proof replays migration FILES,
+not production. So the moment 0058 exists on disk the proof sees the fixed
+behaviour, its check passes, and **the acknowledgement stops firing** while
+production and development still carry the defect. `proofs-audit` now reports
+"no proof is acknowledging anything today".
 
-The second failure, a `retired` row being refused, is **unexplained**. A fix
-written before it is understood would be a fix to make a red go away.
+Nothing is wrong or hidden: the pending ledger entry is what records that
+production lacks it, and that is the correct division of labour in this
+repository. But the park you asked for is currently **dormant**, measuring a
+file rather than a database.
+
+**Three options, none taken:**
+
+| | |
+| --- | --- |
+| **A** | Leave it. The pending ledger entry holds the merge; the park is dormant but harmless |
+| **B** | Keep 0058 off the branch entirely so the acknowledgement stays live, and bring the file to your sitting |
+| **C** | Give the park an `isRetired` reading the ledger, so it retires when 0058 reaches PRODUCTION rather than when the file appears |
+
+**Recommendation: C.** It keeps the park measuring the thing that is actually
+still broken, and it uses the retiring-event machinery built on 2026-09-22
+rather than inventing anything.
 
 ### 2. What counts as recording an AQI-1 submission?
 
