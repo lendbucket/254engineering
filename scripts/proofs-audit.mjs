@@ -150,7 +150,7 @@ for (const file of runnable) {
   const r = spawnSync(command, args, { encoding: "utf8", env: process.env });
   const how = `${needsTsx ? "tsx" : "node"}${needsReactServer ? " --conditions=react-server" : ""}`;
   const tail = (r.stdout || "").trim().split("\n").filter(Boolean).slice(-1)[0] || "";
-  results.push({ file, status: r.status, how, tail, stderr: (r.stderr || "").trim() });
+  results.push({ file, status: r.status, how, tail, stdout: r.stdout || "", stderr: (r.stderr || "").trim() });
 }
 
 for (const p of results) {
@@ -175,6 +175,64 @@ for (const p of results) {
   }
   rec(`${p.file}`, p.status === 0, p.status === 0 ? `${p.how}: ${p.tail}` : `${p.how}, exit ${p.status}: ${p.tail}`);
 }
+
+/* ------------------------------ an acknowledgement is only as good as its park */
+
+/*
+ * A PROOF MAY ACKNOWLEDGE A KNOWN DIFFERENCE. IT MAY NOT GRANT ITSELF ONE.
+ * Operator ruling, 2026-09-23.
+ *
+ * A proof that fails for a reason nobody can fix unattended, a schema defect
+ * whose repair is a migration, would otherwise have to be left red or deleted.
+ * Red holds a merge on work nobody can do; deleted loses the finding. So a
+ * proof may print
+ *
+ *     ACKNOWLEDGED-PARKS: <id>,<id>
+ *
+ * and still exit zero. What it may NOT do is carry the expiry, because an
+ * acknowledgement with its end date written beside it is one somebody edits to
+ * make a red go away. The date lives in src/config/parked-work.ts, which
+ * compliance-audit already turns red the day after it lapses.
+ *
+ * THIS CHECK IS WHAT STOPS THE ACKNOWLEDGEMENT BECOMING AN EXEMPTION: an id
+ * naming no park, or naming one that has expired, is a failure here whatever
+ * the proof's exit code said. Without it a proof could acknowledge anything for
+ * ever by printing a line.
+ */
+const { parkedWork, expiredParks } = await import("../src/config/parked-work.ts");
+const { todayInFirmCalendar } = await import("../src/lib/firm-calendar.ts");
+const firmToday = todayInFirmCalendar();
+const expiredIds = new Set(expiredParks(firmToday).map((p) => p.id));
+const knownIds = new Set(parkedWork.map((p) => p.id));
+
+const claimed = [];
+for (const p of results) {
+  const line = (p.stdout || "").split("\n").find((l) => l.startsWith("ACKNOWLEDGED-PARKS:"));
+  if (!line) continue;
+  for (const id of line.slice("ACKNOWLEDGED-PARKS:".length).split(",").map((s) => s.trim()).filter(Boolean)) {
+    claimed.push({ file: p.file, id });
+  }
+}
+
+const unknown = claimed.filter((c) => !knownIds.has(c.id));
+rec(
+  "every acknowledgement a proof claims names a real park",
+  unknown.length === 0,
+  unknown.length === 0
+    ? claimed.length === 0
+      ? "no proof is acknowledging anything today"
+      : claimed.map((c) => `${c.file} claims ${c.id}`).join("; ")
+    : `names no park: ${unknown.map((c) => `${c.file} claims ${c.id}`).join("; ")}`,
+);
+
+const lapsed = claimed.filter((c) => expiredIds.has(c.id));
+rec(
+  "and none of those parks has run out",
+  lapsed.length === 0,
+  lapsed.length === 0
+    ? `today is ${firmToday} in the firm's calendar`
+    : `EXPIRED, so this is a finding again: ${lapsed.map((c) => `${c.file} claims ${c.id}`).join("; ")}`,
+);
 
 /* ------------------------------------- nothing is reached by nothing */
 

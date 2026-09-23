@@ -1530,6 +1530,61 @@ export const APPLIED = [
       "and nullable, integer and boolean, and eng_evidence_items_clock_pair_ck read back from " +
       "pg_constraint by its definition rather than its name.",
   },
+  {
+    file: "0058_a_retired_protocol_is_not_in_force.sql", appliedBy: null,
+    fingerprint: "e2bc81c9096a0eb4d8b8366ce3aea881",
+    behaviour: "2f4bbea41782d98686abfd5c61301493",
+    proves: { function: "eng_protocol_in_force_holds_items" },
+    production: null,
+    development: { at: null, behaviour: null, facts: null },
+    /*
+     * THE SHAPE FINGERPRINT REPEATS 0057's ON PURPOSE, and the ledger has to
+     * keep saying so, because a reader who does not know that reads a copied
+     * line. This migration replaces a function BODY: no column, no table, no
+     * constraint, no index. The shape fingerprint reads information_schema.
+     * columns and cannot see a function, so it is unchanged at 1,143 columns
+     * while the behaviour fingerprint moves, which is exactly the pair those
+     * two figures exist to distinguish. 0008 and 0021 are the same shape of
+     * entry, one pinning search_path and one seeding a grant.
+     */
+    note:
+      "Shape unchanged from 0057 because this replaces a function body and nothing in the shape. " +
+      "Behaviour moves from 88129f2c277c601ea05cff9ccd15d77d to 2f4bbea41782d98686abfd5c61301493 " +
+      "across the same 920 facts, one function body different.",
+    because:
+      "PENDING, DELIBERATELY, AND IT HOLDS THE MERGE. Drafted 2026-09-23 during an overnight run " +
+      "that is forbidden to touch production. A migration on a feature branch may be pending; a " +
+      "migration on main may not, because merging is the moment the decision stops being " +
+      "deferrable. So this branch does not merge until the operator applies it at a keyboard, " +
+      "which is exactly the intent: he ruled it goes in a sitting with him together with the " +
+      "register entry, because both touch production. " +
+      "WHAT IT FIXES. 0052 added eng_protocol_in_force_holds_items to make a protocol in force hold " +
+      "its checklist, which is right and is unchanged. Its guard reads status not in ('published', " +
+      "'retired'), so it treats RETIRED as in force and demands items on INSERT as well as UPDATE. " +
+      "Inserting a retired protocol with no items is refused, with an exception saying the row is " +
+      "in force about a status that means the opposite. " +
+      "THE GUARD CONFLATED TWO RULES AND ENFORCED A THIRD NOBODY STATED. A protocol in force must " +
+      "hold its items. A protocol that HAS been in force must not lose them, which is an UPDATE. " +
+      "Neither says a retired protocol may never be RECORDED without items, and that is what firing " +
+      "on INSERT enforced. Only that third thing is removed; TG_OP separates them. " +
+      "WHAT IT COSTS UNFIXED: nothing reachable. Nothing in the product inserts or moves a protocol " +
+      "to retired, and the lifecycle reaches retired by UPDATE from published, which already holds " +
+      "its items. It would bite on recording a historical protocol retired before this platform " +
+      "existed. " +
+      "NO SHAPE CHANGE. It replaces a function body, so the shape fingerprint is unchanged at " +
+      "e2bc81c9096a0eb4d8b8366ce3aea881 across 1,143 columns. Behaviour moves to " +
+      "2f4bbea41782d98686abfd5c61301493 across 920 facts, the same fact count with one function " +
+      "body different, both read off a replay rather than predicted. " +
+      "HOW IT WAS FOUND, because it is the argument for what found it. " +
+      "scripts/proofs/a-signed-protocol-is-not-a-draft.mjs has asserted this since 0049 and was " +
+      "reached by NOTHING: proofs were neither enumerated nor listed, so one ran only if an audit " +
+      "imported it. scripts/proofs-audit.mjs was built the same night to end that, and this was the " +
+      "first thing its first run produced. 0052 changed the behaviour of a retired insert and six " +
+      "migrations passed before anybody saw it. " +
+      "VERIFIED IN BOTH DIRECTIONS IN A REPLAY, thrown away: a retired insert with no items is now " +
+      "ACCEPTED, an UPDATE of that same row is still REFUSED naming the protocol and its status, " +
+      "and a row born published is still refused by eng_guard_protocol_insert_in_force.",
+  },
 ];
 
 /**

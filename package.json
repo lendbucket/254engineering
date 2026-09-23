@@ -57,7 +57,7 @@
     "order-audit": "tsx scripts/order-audit.mjs",
     "seed-field-demo": "tsx --conditions=react-server scripts/seed-field-demo.mjs",
     "db-guard-audit": "tsx scripts/db-guard-audit.mjs",
-    "proofs-audit": "node scripts/proofs-audit.mjs",
+    "proofs-audit": "tsx scripts/proofs-audit.mjs",
     "map-markup-audit": "tsx scripts/map-markup-audit.mjs",
     "mfa-audit": "tsx --conditions=react-server scripts/mfa-audit.mjs",
     "migration-audit": "tsx --conditions=react-server scripts/migration-audit.mjs",

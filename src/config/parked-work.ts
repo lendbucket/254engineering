@@ -133,6 +133,29 @@ export const parkedWork: ParkedWork[] = [
       "stripeAccount.proof in src/config/launch-readiness.ts.",
     isRetired: () => stripeAccount.proof !== null,
   },
+  {
+    id: "protocol-retired-insert-requires-items",
+    what:
+      "A retired protocol with no items cannot be inserted. eng_protocol_in_force_holds_items, the " +
+      "deferred constraint trigger added by 0052, treats 'retired' as in force and demands items on " +
+      "INSERT as well as UPDATE.",
+    reasoningIn: "scripts/proofs/a-signed-protocol-is-not-a-draft.mjs",
+    ruledBy: "Robert Reyna, operator",
+    ruledOn: "2026-09-23",
+    acknowledgedThrough: "2026-09-30",
+    because:
+      "It is a defect in the schema rather than in the proof, and the fix is a migration. A migration " +
+      "is applied in a sitting with the operator, together with the register entry, because both touch " +
+      "production. Leaving the check red would hold a merge on work nobody can do unattended; deleting " +
+      "it would lose the finding. The guard's own exception says the row 'is in force' about a status " +
+      "that means the opposite of in force.",
+    costsWhileParked:
+      "Nothing reachable today. Nothing in the product inserts or moves a protocol to retired, and the " +
+      "lifecycle reaches it by UPDATE from published, which already holds items. It would bite on " +
+      "recording a historical protocol retired before this platform existed. The real cost is that a " +
+      "guarantee about what may be recorded is wrong in the direction of refusing something valid, and " +
+      "it went unnoticed for six migrations because the proof that asserts it was never run.",
+  },
 ];
 
 /**
