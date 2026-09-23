@@ -124,6 +124,86 @@ function listenersInRange() {
   return found;
 }
 
+/**
+ * WHO OWNS THIS SERVER, AND IS KILLING IT ENOUGH.
+ * Operator ruling, 2026-09-23.
+ *
+ * WHAT THIS COST. On 2026-09-22 a board stopped after 32 of 58 audits with its
+ * server gone. The cause, established the following night: an orphaned
+ * `launch-audit` was alive and starting a fresh server every time one died.
+ *
+ * AND THE ORPHAN WAS MADE BY FOLLOWING THIS GUARD'S OWN ADVICE. It prints
+ * `taskkill /PID <server> /T /F`. `/T` kills a process's CHILDREN, not its
+ * PARENT, so tree-killing the server leaves the audit that owns it running, and
+ * `launch-audit` starts three servers one after another. Windows said so at the
+ * time, in its own output: "SUCCESS: The process with PID 31996 (child process
+ * of PID 34400) has been terminated." The parent named there was never killed.
+ *
+ * So the guard named a symptom and printed the command that reproduces it. A
+ * blocker now carries its OWNER where one can be established, and `describe`
+ * prints the kill that actually ends the cycle.
+ *
+ * WHAT COUNTS AS AN OWNER, and it is deliberately narrow. A node process, in
+ * this repository, that is not itself a next server. A shell is not an owner:
+ * killing `cmd.exe` leaves the node process it wrapped, which is the same
+ * mistake one level up. Anything else is left alone, because a guard that tells
+ * somebody to kill a process it cannot account for is worse than one that says
+ * nothing.
+ */
+export function classifyOwnerCandidate(command, needle) {
+  if (!command || !String(command).trim()) return false;
+
+  const c = String(command).toLowerCase().replace(/\\/g, "/");
+
+  /* A shell is not an owner. Killing it orphans what it wrapped. */
+  const first = String(command).trim().match(/^"([^"]+)"|^(\S+)/);
+  const exe = (first?.[1] ?? first?.[2] ?? "").toLowerCase().replace(/\\/g, "/");
+  if (!/(^|\/)node(\.exe)?$/.test(exe)) return false;
+
+  /* A next server's parent that is itself a next server is not the owner. */
+  if (/\bnext\b/.test(c) && /\b(start|dev)\b/.test(c)) return false;
+
+  /*
+   * It has to name a scripts/ entry, which is how an audit is invoked, or sit
+   * under the repository root for an absolute invocation.
+   *
+   * A KNOWN LIMIT, STATED RATHER THAN PRETENDED AWAY: a node process running
+   * `scripts/<something>.mjs` in a DIFFERENT checkout matches this and would be
+   * named as an owner. The cost is bounded and one-directional. The guard
+   * refuses and prints a pid for a person to look at; it kills nothing on its
+   * own. Naming one process too many costs a glance, and naming one too few
+   * cost a board.
+   */
+  const scriptMatch = String(command).match(/scripts[\/\\]([\w.-]+\.mjs)/);
+  return Boolean(scriptMatch) || c.includes(needle);
+}
+
+function ownerOf(pid) {
+  const parentPid = parentPidOf(pid);
+  if (!parentPid) return null;
+
+  const command = commandLineOf(parentPid);
+  const needle = repoRoot.toLowerCase().replace(/\\/g, "/");
+  if (!classifyOwnerCandidate(command, needle)) return null;
+
+  const scriptMatch = command.match(/scripts[\/\\]([\w.-]+\.mjs)/);
+  return { pid: parentPid, command, script: scriptMatch ? scriptMatch[1] : null };
+}
+
+/** Parent pid for a pid, or 0 when it cannot be read. */
+function parentPidOf(pid) {
+  if (isWindows) {
+    const out = run("powershell.exe", [
+      "-NoProfile",
+      "-NonInteractive",
+      "-Command",
+      `(Get-CimInstance Win32_Process -Filter "ProcessId = ${pid}" -ErrorAction SilentlyContinue).ParentProcessId`,
+    ]);
+    return Number(out.trim()) || 0;
+  }
+  return Number(run("ps", ["-o", "ppid=", "-p", String(pid)]).trim()) || 0;
+}
+
 /** Command line for a pid, or "" when it cannot be read. */
 function commandLineOf(pid) {
   if (isWindows) {
@@ -325,7 +405,10 @@ export function findBlockers() {
     );
   }
 
-  for (const e of byPid.values()) e.command = commandLineOf(e.pid) || "(command line unavailable)";
+  for (const e of byPid.values()) {
+    e.command = commandLineOf(e.pid) || "(command line unavailable)";
+    e.owner = ownerOf(e.pid);
+  }
   return [...byPid.values()].sort((a, b) => a.pid - b.pid);
 }
 
@@ -356,7 +439,17 @@ function describe(blockers) {
   return blockers
     .map((b) => {
       const where = b.ports.length ? ` on port ${b.ports.join(", ")}` : "";
-      return `  PID ${b.pid}${where}\n    ${b.reasons.join("; ")}\n    ${b.command}`;
+      const head = `  PID ${b.pid}${where}\n    ${b.reasons.join("; ")}\n    ${b.command}`;
+      if (!b.owner) return head;
+      /*
+       * THE OWNER IS PRINTED BECAUSE KILLING THE SERVER ALONE STARTS ANOTHER.
+       * This is the line that would have saved the board of 2026-09-22.
+       */
+      return (
+        `${head}\n    OWNED BY PID ${b.owner.pid}` +
+        `${b.owner.script ? ` (${b.owner.script})` : ""}, which will start another server if you kill` +
+        `\n    only the one above. Kill the owner instead.\n    ${b.owner.command}`
+      );
     })
     .join("\n");
 }
@@ -413,11 +506,26 @@ export function assertClearToBuild({ kill = false, label = "build" } = {}) {
       `smoke check against the stale process still answers 200.\n\n` +
       `Fix it one of these ways:\n` +
       `  - Stop the server(s) above, then re-run.\n` +
+      /*
+       * THE COMMAND TARGETS THE OWNER WHERE THERE IS ONE. Operator ruling,
+       * 2026-09-23. Until today this printed the SERVER's pid, and following it
+       * is what produced the orphan that killed a board: /T kills children, not
+       * the parent, so the audit that owns the server survives and starts
+       * another. The guard was printing the command that reproduces the fault
+       * it was reporting.
+       */
       (isWindows
-        ? `  - taskkill /PID ${blockers[0].pid} /T /F     (/T matters: npx is a shell\n` +
-          `    wrapping the real server, and killing it alone orphans the server.\n` +
-          `    This is also why pkill appears to succeed here and does nothing.)\n`
-        : `  - kill -9 ${blockers.map((b) => b.pid).join(" ")}\n`) +
+        ? (() => {
+            const target = blockers[0].owner ?? blockers[0];
+            const note = blockers[0].owner
+              ? `    That is the OWNER, not the server. Killing the server alone leaves the\n` +
+                `    audit that started it running, and it will start another one.\n`
+              : `    (/T matters: npx is a shell wrapping the real server, and killing it\n` +
+                `    alone orphans the server. This is also why pkill appears to succeed\n` +
+                `    here and does nothing.)\n`;
+            return `  - taskkill /PID ${target.pid} /T /F\n${note}`;
+          })()
+        : `  - kill -9 ${blockers.map((b) => b.owner?.pid ?? b.pid).join(" ")}\n`) +
       `  - Re-run with AUDIT_KILL_STALE=1 to have this guard kill them for you.\n`,
   );
 }
