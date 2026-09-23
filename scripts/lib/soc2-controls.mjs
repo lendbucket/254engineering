@@ -100,12 +100,53 @@ export const CONTROLS = [
     id: "mfa",
     criterion: "security",
     control: "A second factor, TOTP, with recovery codes, and a per role requirement.",
-    enforcedBy: "src/lib/ops-mfa.ts and src/lib/totp.ts, pinned to 6 digits and 30 seconds by scripts/proofs/totp-matches-the-rfc.mjs.",
+    /*
+     * =====================================================================
+     * CORRECTED 2026-09-23. THIS SENTENCE CITED A PROOF NO BOARD RUNS.
+     * =====================================================================
+     *
+     * IT READ: "src/lib/ops-mfa.ts and src/lib/totp.ts, pinned to 6 digits and
+     * 30 seconds by scripts/proofs/totp-matches-the-rfc.mjs."
+     *
+     * That proof is real, it is correct, and it checks the implementation
+     * against RFC 6238's own published vectors, which is the strongest claim
+     * anybody could make about this code. It is also reached by NOTHING. Proofs
+     * in that directory are not enumerated and not listed: one runs only
+     * because an audit imports it, and no audit imports this one. It is named
+     * in a comment and in this string, and neither executes anything.
+     *
+     * WHY THAT MATTERED MORE HERE THAN ANYWHERE ELSE. This file is a readiness
+     * pack. A reader takes `enforcedBy` to mean a machine makes the control
+     * true, and takes `machine: true` beside it as confirmation. Telling an
+     * auditor that a control is enforced by a proof nothing runs is the access
+     * review defect in its worst form: not a wrong number, but a reader who
+     * believes they have looked.
+     *
+     * WHAT IS ACTUALLY ENFORCED TODAY, which is what this now says. The digits
+     * and the period are constants in src/lib/totp.ts, and CLAUDE.md section 6c
+     * pins them as a ruled business decision whose two homes must be edited on
+     * purpose. One of those two homes is the proof, so until the proof runs on
+     * a board, section 6c's mechanism has one leg: an edit to the constants
+     * would be caught by nobody until somebody ran the proof by hand.
+     *
+     * THE FIX IS THE CLASS FIX, NOT A REWORD. The suite is to enumerate
+     * scripts/proofs/ and run every one, plus a check that fails if any proof
+     * is reached by nothing. That is the first item in BACKLOG.md. WHEN IT
+     * LANDS, THIS SENTENCE SHOULD CITE THE PROOF AGAIN, because it will then be
+     * true. It is corrected rather than left, because a false claim in a
+     * compliance artifact is not something to leave standing while a better fix
+     * is built.
+     */
+    enforcedBy:
+      "src/lib/ops-mfa.ts and src/lib/totp.ts, where 6 digits and a 30 second period are constants. " +
+      "NOT enforced by a running check: scripts/proofs/totp-matches-the-rfc.mjs verifies the " +
+      "implementation against RFC 6238's published vectors and is reached by nothing, so no board " +
+      "executes it. Run it by hand with: node scripts/proofs/totp-matches-the-rfc.mjs",
     evidence: "eng_mfa_enrolments, eng_mfa_recovery_codes, eng_roles.mfa_requirement",
     machine: true,
     verifiable: true,
     regenerate: "npx tsx scripts/soc2-evidence.mjs",
-    note: "The requirement is per role and 0025 made it optional by default for admin and engineer. That is a GAP and is listed as one.",
+    note: "The requirement is per role and 0025 made it optional by default for admin and engineer. That is a GAP and is listed as one. SEPARATELY, and corrected 2026-09-23: the RFC conformance proof for this control is not run by any board, so the digits and period are pinned in one place rather than two. The class fix is the first item in BACKLOG.md.",
   },
   {
     id: "perimeter",
