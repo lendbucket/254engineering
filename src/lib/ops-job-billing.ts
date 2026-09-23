@@ -236,9 +236,17 @@ function termsGap(file: FileForBilling): string | null {
   if (!entry) {
     return "That deliverable is not in the order catalog, so its refund terms cannot be stated and it cannot be billed.";
   }
-  /* `false` for prelaunch: the gate is refusedBecause's to report, not this
-   * function's, and passing true here would mask the fee problem behind it. */
-  const blocked = orderBlockedReason(entry, false, serviceLineIsOffered(entry.serviceSlug));
+  /*
+   * "open" for the mode, which is what `false` for prelaunch meant before the
+   * parameter became a mode on 2026-09-23. The gate is refusedBecause's to
+   * report, not this function's, and passing a shut mode here would mask the
+   * fee problem behind it.
+   *
+   * IT IS NOT A CLAIM THAT THE FIRM IS OPEN. It is this function declining to
+   * answer a question that is not its own, and the value now says which
+   * question it is skipping rather than which boolean it is passing.
+   */
+  const blocked = orderBlockedReason(entry, "open", serviceLineIsOffered(entry.serviceSlug));
   if (blocked) return `${blocked} It cannot be billed by telephone either.`;
   return null;
 }

@@ -310,13 +310,13 @@ const answerAll = (entry, pick = () => 0) =>
     const entry = orderableEntries[0];
     rec(
       "a service line with no approved protocol cannot be ordered, gate open or not",
-      !orderable(entry, false, false),
-      orderBlockedReason(entry, false, false) ?? "IT WAS ORDERABLE, which would sell work the firm cannot dispatch",
+      !orderable(entry, "open", false),
+      orderBlockedReason(entry, "open", false) ?? "IT WAS ORDERABLE, which would sell work the firm cannot dispatch",
     );
     rec(
       "and the refusal says it is a waitlist rather than failing vaguely",
-      /waitlist/i.test(orderBlockedReason(entry, false, false) ?? ""),
-      orderBlockedReason(entry, false, false) ?? "",
+      /waitlist/i.test(orderBlockedReason(entry, "open", false) ?? ""),
+      orderBlockedReason(entry, "open", false) ?? "",
     );
     /*
      * AND THE SAME LINE IS ORDERABLE WITH ONE, which is the half that would
@@ -325,20 +325,26 @@ const answerAll = (entry, pick = () => 0) =>
      */
     rec(
       "and the same line is orderable once a protocol is approved",
-      orderable(entry, false, true),
-      orderBlockedReason(entry, false, true) ?? `${entry.serviceSlug} clears with an approved protocol`,
+      orderable(entry, "open", true),
+      orderBlockedReason(entry, "open", true) ?? `${entry.serviceSlug} clears with an approved protocol`,
     );
     /*
-     * The gate still wins. A protocol approved while the firm is prelaunch does
-     * not let anybody order anything, and the reason names the registration
-     * rather than the protocol.
+     * The gate still wins, in BOTH shut modes. A protocol approved while the
+     * firm is prelaunch or trading does not let anybody order anything.
+     *
+     * IT NO LONGER ASSERTS THAT THE REASON NAMES THE REGISTRATION, and that is
+     * the 2026-09-23 correction rather than a loosening: the reason must not
+     * name it. Prelaunch means SOME trading condition is unmet and there are
+     * three, so naming the registration was an assumption presented as a fact.
+     * What is asserted instead is that the refusal is about the ORDER.
      */
-    rec(
-      "and prelaunch still refuses even with a protocol approved",
-      !orderable(entry, true, true) &&
-        /Texas Board of Professional Engineers/i.test(orderBlockedReason(entry, true, true) ?? ""),
-      orderBlockedReason(entry, true, true) ?? "",
-    );
+    for (const shut of ["prelaunch", "trading"]) {
+      rec(
+        `and ${shut} still refuses even with a protocol approved`,
+        !orderable(entry, shut, true) && /no order|not taking orders|not yet accepting/i.test(orderBlockedReason(entry, shut, true) ?? ""),
+        orderBlockedReason(entry, shut, true) ?? "",
+      );
+    }
   }
 
   for (const entry of orderableEntries) {
@@ -349,8 +355,8 @@ const answerAll = (entry, pick = () => 0) =>
     );
     rec(
       `${entry.serviceSlug}: and can therefore be ordered once the gate lifts`,
-      orderable(entry, false, PROTOCOL_APPROVED),
-      orderBlockedReason(entry, false, PROTOCOL_APPROVED) ?? "",
+      orderable(entry, "open", PROTOCOL_APPROVED),
+      orderBlockedReason(entry, "open", PROTOCOL_APPROVED) ?? "",
     );
     rec(
       `${entry.serviceSlug}: the price is a whole number of cents`,
@@ -439,24 +445,24 @@ const answerAll = (entry, pick = () => 0) =>
   const unpriced = { ...orderableEntries[0], priceCents: null };
   rec(
     "removing a price still refuses the order",
-    !orderable(unpriced, false),
-    orderBlockedReason(unpriced, false, PROTOCOL_APPROVED) ?? "",
+    !orderable(unpriced, "open", PROTOCOL_APPROVED),
+    orderBlockedReason(unpriced, "open", PROTOCOL_APPROVED) ?? "",
   );
   rec(
     "and still says the price is not published",
-    /price has not been published/.test(orderBlockedReason(unpriced, false, PROTOCOL_APPROVED) ?? ""),
+    /price has not been published/.test(orderBlockedReason(unpriced, "open", PROTOCOL_APPROVED) ?? ""),
   );
 
   for (const entry of catalogByType("field")) {
     const noFee = { ...entry, inspectionFeeCents: null };
     rec(
       `${entry.serviceSlug}: a field order with no inspection fee cannot be taken`,
-      !orderable(noFee, false),
+      !orderable(noFee, "open", PROTOCOL_APPROVED),
       "the refund rule cannot be disclosed without it",
     );
     rec(
       "and the reason names the refund rule",
-      /refund rule/.test(orderBlockedReason(noFee, false, PROTOCOL_APPROVED) ?? ""),
+      /refund rule/.test(orderBlockedReason(noFee, "open", PROTOCOL_APPROVED) ?? ""),
     );
   }
 
@@ -499,24 +505,74 @@ const answerAll = (entry, pick = () => 0) =>
 // 3. THE COMPLIANCE GATE
 // ===========================================================================
 {
-  for (const entry of CATALOG) {
-    rec(
-      `${entry.serviceSlug}: cannot be ordered in prelaunch`,
-      !orderable(priced(entry), true),
-      "including quote requests, which are still the firm taking work",
-    );
+  /*
+   * =========================================================================
+   * THE GATE PARAMETER IS A MODE, AND THE PRELAUNCH REFUSAL NO LONGER NAMES
+   * THE REGISTRATION. Operator ruling, 2026-09-23.
+   * =========================================================================
+   *
+   * WHAT CHANGED AND WHY THESE CHECKS MOVED WITH IT. `orderBlockedReason` took
+   * a boolean called `prelaunch` and every caller passed `!isOpen()`, which is
+   * true in PRELAUNCH and in TRADING. Its sentence said the firm's TBPELS
+   * registration is pending, so a TRADING visitor, for a firm whose
+   * registration is active, was told it was pending. The order page renders
+   * that string.
+   *
+   * THESE CHECKS PINNED THE FALSE SENTENCE. "the prelaunch refusal names the
+   * registration" asserted the very claim that had to go. Loosening them to
+   * pass either way would convert them into checks on nothing, which is what
+   * CLAUDE.md forbids when an implementation changes deliberately.
+   *
+   * SO THEY ASSERT THE NEW PROPERTY, AND IT IS SHARPER THAN THE OLD ONE. The
+   * prelaunch refusal must say no order and no payment, and must NOT name a
+   * registration state at all, because prelaunch means SOME trading condition
+   * is unmet and there are three of them. A firm that is registered but has no
+   * engineer of record is in prelaunch, and the old sentence was false about it
+   * too. The check now refuses an unfounded claim rather than requiring one.
+   *
+   * AND THE THIRD MODE IS ASSERTED, which the boolean could not express:
+   * trading refuses an order without saying anything about the registration.
+   */
+  for (const mode of ["prelaunch", "trading"]) {
+    for (const entry of CATALOG) {
+      rec(
+        `${entry.serviceSlug}: cannot be ordered in ${mode}`,
+        !orderable(priced(entry), mode, PROTOCOL_APPROVED),
+        "including quote requests, which are still the firm taking work",
+      );
+    }
   }
-  const reason = orderBlockedReason(priced(CATALOG[0]), true, PROTOCOL_APPROVED);
-  rec("the prelaunch refusal names the registration", /TBPELS|Texas Board of Professional/.test(reason ?? ""));
-  rec("and says no payment can be taken", /no payment/i.test(reason ?? ""));
+
+  const NAMES_REGISTRATION = /TBPELS|Texas Board of Professional|registration/i;
+
+  const prelaunchReason = orderBlockedReason(priced(CATALOG[0]), "prelaunch", PROTOCOL_APPROVED);
+  rec("the prelaunch refusal says no order and no payment", /no order can be placed/i.test(prelaunchReason ?? "") && /no payment can be taken/i.test(prelaunchReason ?? ""));
+  rec(
+    "and does NOT name a registration state, because prelaunch does not say which condition is unmet",
+    !NAMES_REGISTRATION.test(prelaunchReason ?? ""),
+    prelaunchReason ?? "",
+  );
+
+  const tradingReason = orderBlockedReason(priced(CATALOG[0]), "trading", PROTOCOL_APPROVED);
+  rec("trading refuses an order too", Boolean(tradingReason));
+  rec(
+    "and says NOTHING about the registration, which is active in trading",
+    !NAMES_REGISTRATION.test(tradingReason ?? ""),
+    tradingReason ?? "",
+  );
+  rec(
+    "and the two modes do not give the same sentence",
+    prelaunchReason !== tradingReason,
+    "one sentence for two modes is the defect this replaced",
+  );
 
   rec(
     "an unknown service is refused rather than defaulted",
-    !orderable(catalogFor("no-such-service"), false),
+    !orderable(catalogFor("no-such-service"), "open", PROTOCOL_APPROVED),
   );
   rec(
     "and the refusal says it is not in the catalog",
-    /not in the order catalog/.test(orderBlockedReason(catalogFor("no-such-service"), false, PROTOCOL_APPROVED) ?? ""),
+    /not in the order catalog/.test(orderBlockedReason(catalogFor("no-such-service"), "open", PROTOCOL_APPROVED) ?? ""),
   );
 
   /*
@@ -525,8 +581,8 @@ const answerAll = (entry, pick = () => 0) =>
    * surfaces.
    */
   const quoteEntry = catalogByType("quote")[0];
-  rec("a quote request is available once the gate lifts", orderable(quoteEntry, false, PROTOCOL_APPROVED));
-  rec("and blocked while it has not", !orderable(quoteEntry, true));
+  rec("a quote request is available once the gate lifts", orderable(quoteEntry, "open", PROTOCOL_APPROVED));
+  rec("and blocked while it has not", !orderable(quoteEntry, "prelaunch", PROTOCOL_APPROVED));
 }
 
 // ===========================================================================

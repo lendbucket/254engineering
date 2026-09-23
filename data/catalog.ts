@@ -941,14 +941,78 @@ export const catalogByType = (type: OrderType): CatalogEntry[] =>
  * repositories fail to COMPILE until somebody decides, which is the loudest and
  * earliest place this can be answered.
  */
+/**
+ * ===========================================================================
+ * THE MODE, NOT A BOOLEAN, AND IT IS A CORRECTION OF A LIVE FALSEHOOD.
+ * Operator ruling, 2026-09-23.
+ * ===========================================================================
+ *
+ * WHAT WAS WRONG. The second parameter was called `prelaunch` and every caller
+ * passed `!isOpen()`. Those are different facts: `!isOpen()` is true in
+ * PRELAUNCH and in TRADING, and the sentence this function returned for it said
+ * the firm's TBPELS registration is pending.
+ *
+ * IN TRADING THAT IS FALSE. The registration is active, and the order page
+ * renders this string in its body, so a visitor was told the firm's
+ * registration was pending while it was not.
+ *
+ * It is the inverse of what the compliance gate exists to prevent. The gate
+ * stops the firm claiming capability it lacks; this had it disclaiming a
+ * registration it holds, on a compliance sentence, where a buyer looks.
+ *
+ * A BOOLEAN COULD NOT BE FIXED, ONLY RENAMED. Two modes refuse an order and
+ * they refuse it for different reasons, so one flag cannot carry a true
+ * sentence for both. The mode is the smallest thing that can.
+ *
+ * STILL PASSED IN RATHER THAN READ HERE, for the reason the paragraph above
+ * gives: this file is copied into three repositories and a cross repo import
+ * would be the first thing to break. The union is written out rather than
+ * imported for the same reason. Widening a parameter makes every call site fail
+ * to COMPILE until somebody decides, which is how the third parameter was
+ * introduced and is the loudest place to answer it.
+ */
+export type OrderGateMode = "prelaunch" | "trading" | "open";
+
 export function orderBlockedReason(
   entry: CatalogEntry | undefined,
-  prelaunch: boolean,
+  mode: OrderGateMode,
   hasApprovedProtocol: boolean,
 ): string | null {
   if (!entry) return "That deliverable is not in the order catalog.";
-  if (prelaunch) {
-    return "The firm's registration with the Texas Board of Professional Engineers and Land Surveyors is pending. No order can be placed and no payment can be taken until it is active.";
+  if (mode === "prelaunch") {
+    /*
+     * IT NO LONGER SAYS WHY, AND THAT IS THE SECOND HALF OF THE 2026-09-23 FIX.
+     *
+     * It read: "The firm's registration with the Texas Board of Professional
+     * Engineers and Land Surveyors is pending. No order can be placed and no
+     * payment can be taken until it is active."
+     *
+     * THAT WAS AN ASSUMPTION ABOUT WHICH CONDITION IS UNMET, not a fact.
+     * Prelaunch means SOME trading condition is unmet, and there are three: the
+     * registration, the engineer of record, and the telephone number. A firm
+     * that is registered but has no engineer of record is in prelaunch, and
+     * this sentence would have been false about it too.
+     *
+     * So it states only what prelaunch guarantees. The registration's actual
+     * state is rendered by `registrationStatement()`, which reads the register,
+     * and a page that wants to explain uses the deriver rather than a copy.
+     *
+     * Widening compliance-audit's sweep to cover this directory is what found
+     * the trading half; this half was found by the same check refusing the file
+     * a second time, which is the check doing its job rather than an exemption
+     * being written for it.
+     */
+    return "The firm is not yet accepting engagements, so no order can be placed and no payment can be taken.";
+  }
+  if (mode === "trading") {
+    /*
+     * TRADING SAYS NOTHING ABOUT THE REGISTRATION, because there is nothing to
+     * say: it is active, and a sentence about it here would be the defect this
+     * change exists to remove. What is true in trading is narrower and duller,
+     * which is the point. The firm is registered, it has an engineer of record,
+     * and it is not yet taking orders through the site.
+     */
+    return "The firm is not taking orders through the site yet. Ring the office or send a message and somebody will take the details.";
   }
   if (!hasApprovedProtocol) {
     return "No protocol for this service line has been approved by the engineer of record yet, so the firm has no agreed way to perform it. It is a waitlist rather than an order.";
@@ -965,6 +1029,6 @@ export function orderBlockedReason(
 
 export const orderable = (
   entry: CatalogEntry | undefined,
-  prelaunch: boolean,
+  mode: OrderGateMode,
   hasApprovedProtocol: boolean,
-): boolean => orderBlockedReason(entry, prelaunch, hasApprovedProtocol) === null;
+): boolean => orderBlockedReason(entry, mode, hasApprovedProtocol) === null;

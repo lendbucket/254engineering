@@ -4,7 +4,7 @@ import { currentCustomer } from "@/lib/customer-auth";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { deliverablesFor, orderBlockedReason } from "@data/catalog";
 import { services } from "@/content/services";
-import { isOpen, notYetAcceptingEngagements, registrationStatement, serviceLineIsOffered } from "@/lib/launch";
+import { launchMode, notYetAcceptingEngagements, registrationStatement, serviceLineIsOffered } from "@/lib/launch";
 import { BulkOrderClient } from "./BulkOrderClient";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +25,13 @@ export default async function BulkOrderPage({
   if (!me) redirect("/account/login");
 
   const { service } = await searchParams;
-  const prelaunch = !isOpen();
+  /*
+   * THE MODE, NOT A BOOLEAN NAMED FOR THE WRONG ONE. Corrected 2026-09-23, the
+   * same defect as the public order page: `!isOpen()` is true in PRELAUNCH and
+   * in TRADING and the name said only the first.
+   */
+  const mode = launchMode();
+  const notYetOpen = mode !== "open";
 
   /*
    * Only lines that can actually be ordered in bulk. A quote only deliverable
@@ -36,7 +42,7 @@ export default async function BulkOrderPage({
     .map((s) => ({
       service: s,
       deliverables: deliverablesFor(s.slug).filter(
-        (d) => orderBlockedReason(d, prelaunch, serviceLineIsOffered(d.serviceSlug)) === null && d.priceCents !== null,
+        (d) => orderBlockedReason(d, mode, serviceLineIsOffered(d.serviceSlug)) === null && d.priceCents !== null,
       ),
     }))
     .filter((s) => s.deliverables.length > 0);
@@ -59,12 +65,28 @@ export default async function BulkOrderPage({
       {orderable.length === 0 ? (
         <div className="mt-8 rounded-[4px] border border-[var(--border)] border-t-brass bg-white px-6 py-7">
           <h2 className="font-display text-[1.25rem] font-semibold text-[var(--navy)]">
-            {prelaunch ? "The firm is not taking orders yet" : "Nothing can be ordered in bulk yet"}
+            {notYetOpen ? "The firm is not taking orders yet" : "Nothing can be ordered in bulk yet"}
           </h2>
           <p className="mt-3 text-[1rem] leading-[1.7] text-[var(--secondary)]">
-            {prelaunch
+            {/*
+              * THREE MODES, THREE TRUE SENTENCES. Corrected 2026-09-23.
+              *
+              * PRELAUNCH keeps the pair it always had, and both are derived:
+              * notYetAcceptingEngagements() and registrationStatement() read
+              * the register, so neither can claim a registration state the
+              * board does not hold.
+              *
+              * TRADING said the same thing until today, which was false: it
+              * carried a registration disclaimer for a firm whose registration
+              * is active. What is true in trading is that the firm is
+              * registered and is not yet taking orders through the site, so
+              * that is what it says.
+              */}
+            {mode === "prelaunch"
               ? [notYetAcceptingEngagements(), registrationStatement()].filter(Boolean).join(" ")
-              : "Every service on this account is quoted rather than fixed price, so each one is a conversation rather than a submission."}
+              : mode === "trading"
+                ? `${registrationStatement()} Orders are not open through the site yet, so anything on this account is arranged with the office.`
+                : "Every service on this account is quoted rather than fixed price, so each one is a conversation rather than a submission."}
           </p>
           <Link
             href="/account"
