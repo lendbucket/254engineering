@@ -139,17 +139,41 @@ mode is still prelaunch and `tbpelsFirmNumber()` is still null.
 The conditions, all read from CONFIGURATION so the flip is impossible until each
 is stated true in a file somebody edits on purpose:
 
-| id | Condition | Where it is stated |
-| --- | --- | --- |
-| `switch` | The operator has thrown the switch | `LAUNCH_MODE=live` |
-| `registration` | An active, unexpired registration is on record | `verifiedFirmRegistrations` |
-| `trading-name` | **The board holds the operating name** | `operatingNameOnBoardRecord` |
-| `engineer-of-record` | A licensed PE is in responsible charge | `verifiedEngineers` |
-| `stripe` | A live Stripe account belonging to 254, proven by a charge and its refund | `stripeAccount` |
-| `protocols` | One protocol per offered service line, approved by the engineer of record | `approvedProtocols` |
-| `phone` | `FIRM_PHONE` is a real number, not a placeholder | `FIRM_PHONE` |
-| `recovery` | Point in time recovery on the production project | `pointInTimeRecovery` |
-| `self-service-signup` | Public sign up is cleared for production | `selfServiceSignup` |
+| id | Condition | Gates | Where it is stated |
+| --- | --- | --- | --- |
+| `switch` | The operator has thrown the switch | `open` | `LAUNCH_MODE=live` |
+| `registration` | An active, unexpired registration is on record | `trading` | `verifiedFirmRegistrations` |
+| `trading-name` | **The board holds the operating name** | **`naming`, which gates NOTHING** | `operatingNameOnBoardRecord` |
+| `engineer-of-record` | A licensed PE is in responsible charge | `trading` | `verifiedEngineers` |
+| `stripe` | A live Stripe account belonging to 254, proven by a charge and its refund | `open` | `stripeAccount` |
+| `protocols` | One protocol per offered service line, approved by the engineer of record | `open` | `approvedProtocols` |
+| `phone` | `FIRM_PHONE` is a real number, not a placeholder | `trading` | `FIRM_PHONE` |
+| `recovery` | Point in time recovery on the production project | `open` | `pointInTimeRecovery` |
+| `self-service-signup` | Public sign up is cleared for production | `open` | `selfServiceSignup` |
+
+**NINE CONDITIONS, AND EIGHT OF THEM BLOCK. Operator ruling, 2026-09-22.**
+
+The `gates` column was added that day because the table read as though all nine
+held the gate shut, and one does not. `trading-name` gates **`naming`**, and
+`openBlockers()` filters it out by construction: `LAUNCH_CONDITIONS.filter((c)
+=> c.gates !== "naming")`. It is met today, and had it been unmet it would not
+have held the mode back by a single step.
+
+**It is not a dead condition and deleting it would be the defect.** It used to
+gate everything, on whether the board held the name the firm trades under. It no
+longer does, because every rendered sentence now derives the name from the
+board's own record through `firmName()`, so the thing it protected is protected
+by construction. What it still decides is which name the trading copy uses, and
+a reissuance changes that. **A condition that blocks nothing and is deleted is a
+fact nobody watches; one that blocks nothing and is labelled as such is a fact
+on a screen.** The label is the `gates` value, and it is why that field has
+three values rather than two.
+
+**The consequence for reading a blocker list:** `tradingBlockers()` reads the
+three `trading` conditions, `openBlockers()` reads all eight that are not
+`naming`, and `launchBlockers()` is `openBlockers()` under the name every caller
+already knew. A list of four unmet conditions is four of eight, never four of
+nine.
 
 **NINE, NOT SEVEN, AND THIS TABLE SAID SEVEN UNTIL 2026-09-22.** Each condition
 carries the sentence a reader gets when it is unmet, who clears it, and where it
@@ -675,6 +699,48 @@ result that means nothing.
 The pair with 2026-09-02's lesson is the whole argument: a suite that can be
 pointed at nothing, or killed by its own operator, is a suite whose red means
 two things.
+
+**INSTANCE SIX, 2026-09-22, AND IT IS THE FIRST WHERE NOTHING DIED. THE RUN WAS
+SOUND AND THE RULE VOIDED IT.** Operator ruling.
+
+A session launched `npm run audit` alone, correctly, with a prediction stated in
+advance. While it ran, it made read-only calls **against the repository**: two
+`sed` reads of `src/config/credentials.ts` and `src/config/stripe-console.ts`,
+Read-tool reads of `docs/overnight-2026-09-22.md` and
+`supabase/migrations/0057_a_photograph_carries_three_times.sql`, and three
+`wc`, `grep` and `tail` passes over the board's own log.
+
+**Nothing wrote. Nothing held `.next` or an audit port. Nothing ran a build.**
+The suite ran to completion and its numbers were almost certainly fine. The
+operator voided it anyway and ordered a re-run, alone, after a restated
+prediction.
+
+**THE REASONING IS THE ENTRY, AND IT IS SHARPER THAN THE FIVE ABOVE.** Every
+earlier instance is an argument from consequence: something died, so do not do
+it. A reader can absorb those as "do not run things that kill the server", which
+is not the rule. The operator's words:
+
+> Reads are not exempt, because the exemption would be a judgment made mid-run,
+> which is what the rule exists to remove.
+
+**The rule is not "do not disturb the board". It is "the board is the only thing
+touching the repository while it runs."** A session that is deciding, mid-run,
+which of its own calls are harmless enough is doing the exact thing the rule
+was written to stop, and it is doing it at the moment it is least able to judge:
+inside a twenty minute wait, with the answer it wants on the other side.
+
+**And the cost of getting it wrong is asymmetric.** A voided board costs twenty
+minutes. A board whose result is *arguable* costs every future board, because
+the argument is available again next time and nobody can say which runs were
+clean. The re-run came back **55 of 58, one FAIL**, exactly as predicted, and
+its value is not the number: it is that nobody has to ask whether anything was
+running beside it.
+
+**What this means practically, stated so it needs no judgment.** From the moment
+the board is launched to the moment it exits: no `grep`, no `cat`, no `sed`, no
+`git`, no Read of any file in the repository, no check of the board's own log,
+and no status read. The harness says when it is done. If somebody asks a
+question during a run, it is answered from what is already known or it waits.
 
 **INSTANCE FIVE, AND IT IS THE LAST ONE THIS RULE GETS AS PROSE. THE FIFTH IS
 WHY THE SIXTH IS MECHANICALLY IMPOSSIBLE.** Operator ruling, 2026-09-15.

@@ -9,6 +9,63 @@ Written 2026-09-03.
 **Nothing has been applied. Nothing is half done. This is a park, not an
 abandonment**, and it names the step it resumes at.
 
+### STILL PARKED, AND NOW WITH A DATE ON IT. Operator ruling, 2026-09-22.
+
+**The word is unchanged. It is PARKED, not unparked, and not ruled out.** What
+it gains is a date and an expiry, because a park with no date is a deferral
+nobody revisits, which is what the eleven days between "since deleted" and a
+live billable project already cost this plan once.
+
+| | |
+| --- | --- |
+| **State** | Parked |
+| **Does it block launch** | **No.** The firm opens without it |
+| **When it happens** | **After launch.** The target date is **not written here** |
+| **The date, and the only place it lives** | **`src/config/parked-work.ts`**, entry `production-cutover`, field `acknowledgedThrough` |
+| **What enforces it** | `compliance-audit`, which reports it as `ACKNOWLEDGED` with the date on the line and **FAILS the day after** unless the operator re-rules it |
+| **Ruled by** | The operator, 2026-09-22 |
+
+**THE DATE IS DELIBERATELY ABSENT FROM THIS DOCUMENT. Operator ruling,
+2026-09-22.** It was written here first, in this table, and in the config at the
+same time, which is two homes for one fact inside a section whose whole subject
+is a deferral nobody revisits. The date would have been the half nobody updated,
+exactly as this file's own step 2 heading carried a migration count that went
+stale twice.
+
+**So the date lives in one place and a check reads it.** To see it, or to change
+it, open `src/config/parked-work.ts`. Changing it there moves what the board
+says on the same run; changing a date in this paragraph would move nothing and
+look identical.
+
+**The reason and the cost stay in prose, because neither is a value anything
+compares.** The reason, in the operator's words: he will not let the cutover
+delay opening; it happens in the first months of trading.
+
+**WHY IT IS AN ACKNOWLEDGEMENT WITH AN EXPIRY RATHER THAN A DEFERRAL.** This
+repository already holds the rule, written for the roster name lag: a third
+verdict that never expires is an exemption. A park with no end date reads
+identically on the page whether somebody decided it last week or last quarter,
+and this plan has been deferred at least three times with each deferral looking
+exactly like the one before it. The date is what makes the next deferral a
+decision somebody makes rather than a state nothing disturbs.
+
+**WHAT IT COSTS WHILE PARKED, MEASURED RATHER THAN ARGUED.** Production
+`fsaryeciduszuahgjbly` is shared. As of 2026-09-22 it holds **171 public
+tables** and **another application migrated it that day**, both read from
+outside this repository because nothing inside it can see either. Five wattsmith
+audit accounts, sign-in capable, sit in the same `auth.users` this firm's portal
+authenticates against, and they carry no `eng_profiles` row so every check this
+firm owns is correct to ignore them. The prefix separates tables; it does not
+separate the table that decides who can sign in. Three checks that would give
+some visibility are recorded in `BACKLOG.md` and none is built.
+
+**None of that makes it a launch blocker.** It is the price of the park, written
+down so the price is known rather than discovered.
+
+**Note on clocks:** the dates in this section are the firm's calendar, which is
+America/Chicago. `compliance-audit` computes today in UTC, so an expiry it
+evaluates runs out five to six hours early in Central. Recorded in `BACKLOG.md`.
+
 ### Where it stands
 
 **It resumes at PHASE 0 STEP 0.4**, the dry run of `copy-project.mjs`, which has
@@ -718,22 +775,53 @@ verification below ambiguous.
 
 **Rollback:** delete the project. Production is untouched.
 
-### Step 2. Replay the migrations. NOW EIGHTEEN SHORT.
+### Step 2. Replay the migrations. THE TARGET STOPS AT 0023; DERIVE THE REST.
 
-**0000 through 0023 are applied and verified.** That was true on 2026-09-07 and
-is still true.
+**THIS HEADING CARRIED A TYPED NUMBER AND THE NUMBER WENT STALE. Operator
+ruling, 2026-09-22: state the invariant, derive the count.**
 
-**It is no longer step 2 being done.** The repository is at **0041**, so
-**0024 through 0041 replay next, in order, eighteen files.** A session reading
-the old "Step 2 is DONE" line and moving to step 3 would build a schema
-eighteen migrations behind the code and find out at step 10, which is exactly
-the failure the same line already caused once when it said 0000 through 0008.
+It read `NOW EIGHTEEN SHORT`, written when the repository was at 0041. On
+2026-09-22 the chain is at **0058**, so the true figure was **thirty-five** and
+this document had been understating the work by seventeen migrations. It is the
+second time this same line has gone stale: it previously said 0000 through 0008.
+A number typed into a document is a number that is correct on the day somebody
+types it, and this line has now been wrong twice in the same way.
 
-What the eighteen carry, so the number means something: the second factor,
-marketing suppressions, reporting foundations, the demo flag and its check
-constraint, bulk order columns, deletion requests, partner addresses, the job
-effect mode, four foreign keys, the eight indexes production always had, and
+**THE INVARIANT, which does not go stale.** The target project
+`qmvcqvkywmkogxbyzsaz` has **0000 through 0023 applied and verified**. That was
+true on 2026-09-07 and is still true on 2026-09-22. **Everything above 0023
+replays next, in order.**
+
+**DERIVE THE COUNT AT THE MOMENT YOU NEED IT**, from the ledger, which is the
+authority for what the chain holds:
+
+```
+ls supabase/migrations/*.sql | wc -l          # the chain's length today
+npx tsx scripts/schema-ledger-audit.mjs       # and that the ledger agrees with it
+```
+
+Outstanding is that figure minus 23. On 2026-09-22 that read 58, so thirty-five
+files, `0024` through `0058`.
+
+**Why this matters more than tidiness.** A session reading a stale "Step 2 is
+DONE" line and moving to step 3 would build a schema short of the code and find
+out at step 10. A session reading a stale COUNT would plan a sitting for
+eighteen files and meet thirty-five, which is the same failure with a smaller
+blast radius and the same cause.
+
+What `0024` through `0041` carry, recorded when that was the whole of the
+outstanding set and kept because it is still true of those files: the second
+factor, marketing suppressions, reporting foundations, the demo flag and its
+check constraint, bulk order columns, deletion requests, partner addresses, the
+job effect mode, four foreign keys, the eight indexes production always had, and
 0041's firm registration column.
+
+**Everything from `0042` upward is NOT summarised here, deliberately.** A
+running prose list of what each migration carries is a second account of
+`supabase/applied.mjs`, which already declares what every migration uniquely
+puts in the schema and is read by two checks. Read it there. The list above is
+kept for the files it describes rather than extended, because extending it is
+how this document acquired a number that went stale twice.
 
 **Apply them through `apply_migration`, never `execute_sql`.** CLAUDE.md section
 6b, operator ruling 2026-09-09: `apply_migration` writes a row into

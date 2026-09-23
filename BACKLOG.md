@@ -27,27 +27,239 @@ item recorded elsewhere has a pointer entry here saying what it is, why it is no
 built, and where the full reasoning lives. A pointer entry is not a second copy:
 duplicating the reasoning is how two accounts of one decision start to disagree.
 
-## SIX RULINGS OWED FROM THE OVERNIGHT OF 2026-09-21, IN `docs/overnight-2026-09-22.md`
+## RULINGS OWED FROM THE OVERNIGHT OF 2026-09-21, IN `docs/overnight-2026-09-22.md`
 
 Pointer entry, not a second copy. The reasoning for each, with a recommendation,
-is in section 3 of that report.
+is in **section 3 of that report**, which is the authority for how many there
+are and what each says.
 
-1. **"Field Technician" or "Field Inspection Technician"** for `field_tech`.
-   `DEFAULT_ROLES` and `ROLE_LABELS` disagree today. One fact, two homes.
-2. **May a registered DBA appear in partner copy**, now that TBPELS records
-   three assumed names on F-29811.
-3. **Audit action wording**: a deterministic transform of the key, or named
-   overrides for particular actions.
-4. **The three photo time values.** Section 9 of 254-RC-001 requires the
-   difference between device and server time to be recorded. Two of three
-   exist. This one needs a migration.
-5. **Ten years, or longer.** Section 13 makes it a floor the engineer raises
-   where TBPELS rules or the liability policy require. Nobody has asked him.
-6. **`CLAUDE.md` says the gate carries seven conditions and it carries nine.**
-   `self-service-signup` and `recovery` are missing from that table, and
-   `compliance-audit`'s pinned id list should be checked for the same gap.
+**THIS ENTRY CARRIED A COUNT IN ITS HEADING AND THE COUNT WAS WRONG, WHICH COST
+REAL WORK ON 2026-09-22.** Operator ruling, 2026-09-22: the heading states no
+number.
 
-Three of the six block a service line. None blocks a morning sitting.
+It read SIX. Section 3 of that report numbers **eight**, and the two this entry
+never listed are the two that went missing:
+
+- **Ruling seven**, widen the US spelling check to JSX text and interpolated
+  templates, was never recorded here at all.
+- **Ruling eight**, whether `stripe-webhook-audit` should FAIL rather than shrug
+  when the key reaches an account that is not the registrant, was never recorded
+  here **and had already been BUILT**, hours after the report was written, in
+  `57d66f6` on 2026-09-22. A session reading this file on 2026-09-22 took it as
+  owed and began rebuilding it before reading the audit.
+
+That is this repository's most frequent defect wearing a heading: **one fact
+with two homes, and the drift lands in whichever one nothing checks.** A pointer
+is allowed to say where the reasoning lives. It is not allowed to restate a
+quantity, because a quantity is a second copy.
+
+### Where each one stands, read on 2026-09-22 rather than remembered
+
+| | Ruling | State |
+| --- | --- | --- |
+| 1 | **"Field Technician" or "Field Inspection Technician"** for `field_tech`. `DEFAULT_ROLES` and `ROLE_LABELS` disagree. One fact, two homes | **OPEN** |
+| 2 | **May a registered DBA appear in partner copy**, now that TBPELS records three assumed names on F-29811 | **OPEN** |
+| 3 | **Audit action wording**: a deterministic transform of the key, or named overrides | **OPEN** |
+| 4 | **The three photo time values** | **CLOSED.** Ruled and built. `0057_a_photograph_carries_three_times`, applied to production 2026-09-22 and read back. It stores `clock_skew_seconds` and `clock_disagrees` **at write time**, which was the recommendation, because a difference computed on read answers what is true when somebody looks rather than what was true at sync. Nothing backfilled, so a null is "nobody measured" |
+| 5 | **Ten years, or longer.** Section 13 makes ten a floor the engineer raises where TBPELS rules or the liability policy require. Nobody has asked him | **OPEN.** Goes to him separately from any approval |
+| 6 | **`CLAUDE.md` said the gate carries seven conditions and it carries nine** | **CLOSED.** `CLAUDE.md` now carries the nine-row table and says so in terms. `compliance-audit` confirms the pinned id list is at nine, not seven: *"the gate carries exactly the 9 ruled conditions"*. Nothing was unpinned |
+| 7 | **Widen the US spelling check to JSX text and interpolated templates** | **OPEN, accepted, not built.** Its own section below |
+| 8 | **Should `stripe-webhook-audit` FAIL rather than shrug** on a non-registrant account | **CLOSED, AND IT WAS CLOSED BEFORE THIS ENTRY EVER LISTED IT.** Built in `57d66f6`, 2026-09-22 08:55:45 -0500, *"a key that reaches the wrong company fails, it does not shrug"* |
+
+Of the four still open, none blocks a morning sitting.
+
+## THREE CHECKS NOTHING HAS: WHAT THE OTHER APPLICATIONS DO TO THE SHARED PRODUCTION PROJECT
+
+Operator ruling, 2026-09-22. **Recorded, not built, all three.**
+
+**What produced them.** An outside audit of Vercel and Supabase on 2026-09-22
+read production `fsaryeciduszuahgjbly` and found **171 public tables**, and that
+**another application migrated it that day**. Neither figure exists anywhere in
+this repository, and nothing here could have produced either.
+
+**The sharing itself is not the finding and never was.** It is recorded in
+`CLAUDE.md` section 6b, in `supabase/projects.mjs` (which names the project
+`wattsmith`, the other application's name, as our own declaration of it), and in
+four places in this file. The finding is that **the repository knows in prose
+and checks nothing**, so the other side can move without anything here noticing.
+
+**What was verified rather than assumed, on 2026-09-22:**
+
+- **The gate does not know.** None of the nine launch conditions concerns
+  tenancy. The only occurrences of "shared" in `src/lib/launch.ts` are about the
+  session secret shared between Preview and Production, a different fact.
+- **No audit counts tables on production, or reads another application's DDL.**
+  Searched for; nothing references a table count or a foreign schema.
+- **`project-accountability-audit` says so out loud**: `THIS CANNOT SEE THE
+  ORGANISATION.` It asserts that every project the REPOSITORY names is declared
+  and explained. That is the whole of its reach, and it is correct about it.
+
+### One: nothing checks the table count or foreign DDL on production
+
+The `eng_` prefix separates TABLES. It does not tell this firm that the project
+grew by forty tables overnight, or that somebody ran a migration against the
+database holding its regulatory record. A count read and recorded on a date,
+compared on later runs, would make growth visible without pretending to govern
+it.
+
+### Two: a check that FAILS if an `eng_` table was altered by a role other than this firm's
+
+The sharpest of the three, and the one with teeth. Every object this firm owns
+is `eng_` prefixed, so "who last altered an `eng_` object" is answerable. An
+alteration by a role that is not this firm's is not a tidiness question: it is
+somebody else's migration reaching into the firm's regulatory memory.
+
+**The hard part is naming the roles**, which is configuration rather than code,
+and it needs a read of what roles exist on that project before anything is
+written. Do not guess the set: an allowlist of roles somebody grows is the
+mechanism this repository already refused for credential names.
+
+### Three: a check that lists `auth.users` accounts not belonging to this firm
+
+**`auth.users` is the one namespace the prefix cannot separate**, and it is the
+one that decides who can sign in. The five wattsmith audit accounts recorded
+below are the demonstrated instance: real, sign-in capable, carrying no
+`eng_profiles` row, and therefore correctly invisible to every check this firm
+owns. A list is not a deletion and must not become one: **these accounts are not
+this firm's to delete**, and the check reports rather than acts.
+
+**All three are consequences of the shared project, and none of them is fixed by
+the cutover being parked.** The cutover is what ends the class. Until then these
+three are the only visibility available, and today there is none.
+
+## RULING SEVEN, ACCEPTED 2026-09-22: THE US SPELLING CHECK READS STRING LITERALS ONLY
+
+Operator ruling: **accepted, backlogged, not built now.** Reasoning in section 3
+of `docs/overnight-2026-09-22.md`; this is the pointer.
+
+`voice-audit`'s US spelling sweep reads **string literals**. It does not read
+JSX text nodes, and it does not read template literals carrying an
+interpolation. Both hold rendered copy.
+
+**It already says what it does not read**, which is the part that was fixed at
+the time: its output names the two shapes outside its reach, so its green stops
+implying coverage it does not have. What remains is widening it.
+
+**THE FIGURE, AND WHAT PRODUCED IT, BECAUSE THE TWO AVAILABLE NUMBERS MEASURE
+DIFFERENT THINGS.**
+
+| Figure | What produced it |
+| --- | --- |
+| **Roughly nineteen `cancelled` and eleven `licence`** | The overnight report's own sweep of 2026-09-22, counting instances of **real rendered text** in the two unread shapes. Not re-derived since |
+| **74 `cancelled` and 97 `licence`** across `src/**/*.ts` and `.tsx`; **14** and **6** in `.tsx` alone | A plain word count run 2026-09-22. An **upper bound in every direction**: it counts identifiers, comments, database column names and string literals the check already reads |
+
+**Neither is the number the widened check would flag**, and no number is,
+because that requires the widened check to exist. Both are recorded with what
+produced them rather than one being offered as the extent of the problem.
+
+**Why it is not widened tonight**, unchanged from the report: it will name
+several dozen strings and each one is a copy change on a live page. That is a
+sitting, not an overnight. And the hazard is already recorded one section down:
+`eng_partners.organisation` is a **database column**, and the fixer has already
+rewritten it as prose twice, once invisibly to `tsc` inside an embedded
+PostgREST select.
+
+## `CountUp.tsx` IS RECOVERABLE FROM A TAG, NOT FROM A BRANCH
+
+Recorded 2026-09-22 on the operator's ruling, as `feat/design-bold` was closed.
+
+**What the branch was.** One commit, `26f2893`, 2026-08-24, the bold homepage
+and an image contrast audit that measures glyphs. It sat **1 ahead and 624
+behind** `origin/main` and carried no migration.
+
+**Why it was closed rather than merged or left.** Its audit work reached `main`
+by another route the same day, in `6ded53f`, and was then developed further
+through the approved v5 design port: `main`'s `image-contrast-audit.mjs` is
+**397 lines against the branch's 279**, and diffing branch to main is
+**+143/-25**. Merging would have reverted that. Its homepage predates the
+artifact `CLAUDE.md` section 2b makes the single source of visual truth, and
+`HomeHero.tsx` on main has been rewritten twice since, most recently on
+2026-09-18 for the ruled H1.
+
+**Leaving it was refused for a stated reason:** an unmerged branch that can never
+merge reads to the next session as work in flight, which is exactly how the
+handoff of 2026-09-22 recorded it, as unreviewed with a diff and a board owed.
+
+**THE ONE THING NOT SUPERSEDED IS `src/components/motion/CountUp.tsx`**, which
+exists at no path on `main`. It is the count-up animation component and it never
+landed.
+
+**It is recovered from the tag, not the bare hash:**
+
+```
+git show archive/design-bold:src/components/motion/CountUp.tsx
+```
+
+The tag `archive/design-bold` was pushed **before** either delete, so the commit
+stays reachable and is not left to the reflog. A bare hash in a backlog entry is
+a hash somebody garbage collects.
+
+**Nothing about this says the component should be used.** It was drawn against a
+superseded design direction and would be read against the approved artifact
+before anything rendered it.
+
+## `compliance-audit` COMPUTES TODAY IN UTC, SO AN ACKNOWLEDGEMENT EXPIRES EARLY IN CENTRAL
+
+Operator ruling, 2026-09-22. **Recorded, not built. It errs shut, which is why
+it is not urgent, and it is still wrong.**
+
+**The firm's calendar is America/Chicago.** `compliance-audit` computes today in
+**UTC**, so for the five to six hours between 19:00 Central and midnight UTC the
+audit believes it is already tomorrow.
+
+**Observed rather than reasoned about.** On 2026-09-22 at 19:19 Central, the
+same command that had printed `Today is 2026-09-22` earlier in the evening
+printed:
+
+```
+Today is 2026-09-23.
+```
+
+with `date -u` reading `2026-09-23T00:19:16Z` and local reading
+`2026-09-22T19:19:16 -0500`.
+
+**What it costs.** An acknowledgement written `ACKNOWLEDGED THROUGH 2026-09-24`
+becomes a finding from the start of 2026-09-25 **UTC**, which is **19:00 Central
+on 2026-09-24**. The operator loses the last five hours of the day he was given.
+The roster acknowledgement is live under exactly this arithmetic today.
+
+**It errs SHUT**, which is the safe direction and the reason this is recorded
+rather than fixed tonight: an acknowledgement expiring early turns something red
+that a person then looks at. The opposite would let a lapsed acknowledgement read
+as current.
+
+**It is Phase 14 survey 2's subject arriving in practice**, a boundary comparing
+clocks across sources, and the survey already records that the retention cutoff
+is the same shape and is the only cross-clock comparison that DESTROYS data.
+
+**Whoever fixes it decides one thing first:** whether every date in the register
+is Central, or whether each dated field says which clock it is in. The second is
+more honest and more work, and picking the first silently is how the next
+disagreement gets written.
+
+**THE LANDING SITE EXISTS ALREADY, WHICH MAKES THIS ONE EDIT RATHER THAN A
+HUNT.** `todayInFirmCalendar()` in `src/lib/firm-calendar.ts` was written on
+2026-09-22 for the parked-work check and carries the operator's ruling that the
+firm's calendar is America/Chicago. It uses `Intl.DateTimeFormat` with a named
+zone rather than a fixed offset, because Central is UTC-6 in winter and UTC-5 in
+summer and a fixed offset is silently wrong for half the year. Fixing the roster
+acknowledgement means pointing its `TODAY` at that function.
+
+**AND THE TWO CLOCKS ARE VISIBLE IN ONE SCREEN TODAY, WHICH IS WHY THIS IS NOT
+LEFT IMPLICIT.** `compliance-audit` on 2026-09-22 at 19:19 Central printed both
+in the same run:
+
+```
+ACKNOWLEDGED: ... roster entry ... Today is 2026-09-23.
+ACKNOWLEDGED: parked work returns on a date: production-cutover
+              ... Today is 2026-09-22 in the firm's calendar (America/Chicago).
+```
+
+Two clocks in one audit is the two-homes shape this repository keeps finding,
+and it was accepted **deliberately for one pass** rather than drifted into: the
+roster acknowledgement is live this week and changing an expiry in passing is
+not a thing to do quietly. The comment above the parked-work check says so, so
+the next reader meets the difference rather than discovering it.
 
 ## TWO REDS ON THE BOARD, 2026-09-21, AND BOTH ARE OWED HUMAN READS
 
@@ -503,6 +715,51 @@ while keeping its own honest line, and nothing reconciles the two.
 
 Nothing about this is a finding on the branch. Four audits, two timeout ceilings
 (45s and 90s), one screen, and every branch will meet it identically.
+
+### FRESH EVIDENCE, 2026-09-22: THE UNDERCOUNT CAUGHT ON A GREEN BOARD RATHER THAN FROM THE RECORD
+
+Operator ruling, 2026-09-22. Recorded here rather than as a new entry, because
+it is the same mechanism and a second entry beside it would be a second account.
+
+The board on `main` at `81d214e` returned **55 of 58, one FAIL**, and the FAIL
+was the Stripe legal name. It is as close to a clean board as this tree gets,
+and the undercount was in it.
+
+**`mobile-audit` reported `PASS` at the roll-up** while printing, in its own
+output, at log lines 6964 to 6971 of that run:
+
+```
+COULD NOT TELL: 4 combination(s) never loaded, so nothing was measured on them:
+  - portal: accounts @320: error: page.goto: Timeout 90000ms exceeded.
+  - portal: accounts @375: error: page.goto: Timeout 90000ms exceeded.
+  - portal: accounts @390: error: page.goto: Timeout 90000ms exceeded.
+  - portal: accounts @430: error: page.goto: Timeout 90000ms exceeded.
+
+GREEN ON WHAT LOADED, and 4 combination(s) were not measured either way.
+```
+
+And the suite summary, seven lines from the end of the same log:
+
+```
+2 of 58 audits could not measure: mobile-overflow-audit, native-audit
+```
+
+**THREE AUDITS COULD NOT REACH THAT SCREEN AND THE ROLL-UP SAID TWO.**
+`mobile-audit`'s own line is impeccable and says exactly what it did not
+measure, which is the third verdict working. The roll-up is where the honesty
+is lost.
+
+**`contrast-audit` reached it cleanly at both widths on this board**, which is
+now the sixth consecutive board on which it has, and the asymmetry recorded
+below stands unexplained rather than acquiring a story.
+
+**Why this instance is worth more than the two already recorded.** Both earlier
+ones were found on boards that were red for other reasons, where somebody was
+already reading output closely. This one was found on a board whose roll-up a
+reader would have accepted at a glance, and the figure a reader takes from
+`2 of 58` is that two audits were blind. Three were. That is the access review
+defect exactly: **a figure can be arithmetically correct and still be a false
+statement about the thing it describes.**
 
 **Phase 14 ranking unchanged**, restated so it is not re-derived: the stall goes
 ahead of the surveys, the roll-up undercount goes first in survey 3.
@@ -1274,20 +1531,47 @@ prelaunch, so under `trading` the check switches itself off at exactly the momen
 the copy starts making present tense claims. It needs rewriting rather than
 reclassifying, and it was flagged rather than changed.
 
-## ELEVEN TRADE FLOORS AWAIT A RULING, AND NOTHING SELLS AT TRADE PRICING UNTIL THEY DO
+## THE TRADE FLOORS ARE ALL RULED, AND THE COMPLIANCE GATE IS WHAT STILL HOLDS TRADE PRICING
 
 Phase 13 Section 2, 2026-09-14. Full reasoning in
 `docs/phase-13-section-2-report.md`; this is the pointer.
 
-**PENDING IS A RULING, NOT AN OMISSION. Operator decision, 2026-09-14.** All
-eleven were put in front of the operator, read, and left pending deliberately.
-Nobody is waiting on a prompt and the correct response to finding them is to
-leave them alone.
+**REWRITTEN 2026-09-22 FROM `src/config/trade-floors.ts` ITSELF, BECAUSE THIS
+SECTION HAD GONE FALSE AND NOTHING NOTICED.** Operator ruling.
 
-Every entry in `src/config/trade-floors.ts` is `pending`. A floor is a decision
-about money and no session writes one, so **trade pricing does not sell until
-the operator rules them**: no trade price can be set on any deliverable, at any
-value, by anybody.
+It said, in its own words, *"Every entry in `src/config/trade-floors.ts` is
+`pending`"*, and its heading said eleven awaited a ruling. **The operator ruled
+the last two floors on 2026-09-20.** The file was read on 2026-09-22 and holds:
+
+| State | Count |
+| --- | --- |
+| `set` | **8** |
+| `minimum-engagement` | **3** |
+| `pending` | **0** |
+
+Eleven entries, none pending. `CLAUDE.md` records that ruling and this file did
+not, for two days, which is the same defect the entry at the top of this file
+records about a count: **a fact with two homes, and the drift lands in whichever
+one nothing checks.**
+
+**`minimum-engagement` is a ruled state, not a waiting one**, and the difference
+is what stops somebody re-ruling a decision already made. Design is hourly at
+$225 with a $2,000 minimum engagement, so there is no fixed price for a floor to
+sit beneath: `set` would need a number, and any number invented there would be a
+floor under a price that does not exist. It carries `by` and `on` exactly as
+`set` does, because a settled decision has an author and an absence does not,
+and that structural difference is what `trade-pricing-audit` asserts rather than
+sniffing the prose.
+
+**WHAT STILL HOLDS TRADE PRICING, NOW THAT THE FLOORS DO NOT.** The whole order
+path sits behind the compliance gate, which is shut on four conditions. The
+floors being ruled does not by itself make a trade price reachable by a
+customer, and reading this section as "trade pricing is now live" would be
+wrong.
+
+**A floor is still a decision about money and no session writes one.** That rule
+is unchanged by every floor being ruled; it is the reason they were ruled by a
+person.
 
 **RETAIL PRICING IS UNAFFECTED.** The catalogue price is what every customer
 pays today and every order path is untouched by that file.
