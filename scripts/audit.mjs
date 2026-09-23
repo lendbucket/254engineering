@@ -1010,7 +1010,67 @@ if (setupError) {
   if (!failed.length && !unmeasured.length) {
     console.log(`All ${results.length} audits pass.`);
   }
-  process.exitCode = failed.length || unmeasured.length ? 1 : 0;
+
+  /*
+   * =======================================================================
+   * THE BOARD'S OWN ARITHMETIC HAS TO CLOSE. Operator ruling, 2026-09-23.
+   * =======================================================================
+   *
+   * WHY. A session predicted this board as "58 PASS, 1 FAIL, 2 COULD NOT TELL,
+   * of 59", which sums to 61. Nothing caught it but the operator reading it. The
+   * ruling: "add a line to the board's own output that checks pass plus fail
+   * plus could-not-tell equals the audit count, so an impossible total is caught
+   * by the board, not by you."
+   *
+   * THE OBVIOUS VERSION OF THIS CHECK IS TAUTOLOGICAL, and writing it would be
+   * the defect this repository keeps recording. `passed`, `failed` and
+   * `unmeasured` are three filters over `results` that partition it by
+   * construction: every code is either 0, COULD_NOT_TELL, or something else. So
+   * `passed + failed + unmeasured === results.length` is true for any input,
+   * cannot fail for any edit anybody could make, and would print a green line
+   * naming a rigour it is not performing. That is the price book comparison and
+   * the 1000 row cap wearing addition.
+   *
+   * SO IT COMPARES AGAINST THE DECLARED COUNT, which is a different fact with a
+   * different author: the three phase arrays say how many audits this board is
+   * SUPPOSED to run, and `results` holds how many reported. Those genuinely can
+   * disagree, and the state where they do is the one worth catching: a phase
+   * that stopped early, an audit that was skipped, a runner that swallowed one.
+   * That is the same shape as `read-every-row.mjs` reading the exact count first
+   * and refusing to return a short list that looks complete.
+   */
+  const declared = PHASE_ZERO.length + PHASE_ONE.length + PHASE_TWO.length;
+  const passed = results.filter((r) => r.code === 0);
+  const tallied = passed.length + failed.length + unmeasured.length;
+  let arithmeticBroken = false;
+  console.log("");
+  if (tallied === declared) {
+    console.log(
+      `Tally: ${passed.length} pass + ${failed.length} fail + ${unmeasured.length} could not tell = ${tallied}, and ${declared} audits are declared.`,
+    );
+  } else {
+    /*
+     * Louder than a failing audit, because it means the SUMMARY above cannot be
+     * trusted, not that something in the product is wrong.
+     */
+    const reported = new Set(results.map((r) => r.name));
+    const missing = [...PHASE_ZERO, ...PHASE_ONE, ...PHASE_TWO]
+      .map((a) => a.name)
+      .filter((n) => !reported.has(n));
+    console.log("  THE BOARD'S ARITHMETIC DOES NOT CLOSE");
+    console.log("");
+    console.log(
+      `  ${passed.length} pass + ${failed.length} fail + ${unmeasured.length} could not tell = ${tallied}, against ${declared} declared audits.`,
+    );
+    if (missing.length) {
+      console.log(`  Never reported a verdict: ${missing.join(", ")}`);
+    }
+    console.log("");
+    console.log("  The summary above is incomplete. Do not read it as the state of the tree.");
+    arithmeticBroken = true;
+  }
+
+  process.exitCode = failed.length || unmeasured.length || arithmeticBroken ? 1 : 0;
 }
 
 // link-map is a measurement, not a gate. It has no failure condition, because
