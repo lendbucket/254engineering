@@ -328,6 +328,118 @@ const {
   }
 
   /*
+   * ===========================================================================
+   * PARKED WORK COMES BACK ON A DATE, AND THE DATE IS ENFORCED HERE.
+   * Operator ruling, 2026-09-22.
+   * ===========================================================================
+   *
+   * WHAT PRODUCED THIS CHECK. The cutover was parked with a target date,
+   * written into docs/production-cutover-plan.md as prose, and the operator
+   * asked the question nothing else in the repository had asked: which audit
+   * turns it red the day after. The answer was none. A date in a markdown
+   * document is a record, and this repository has already paid for the
+   * difference between a record and a check, in migration 0023 and in a project
+   * written down as deleted that was alive eleven days later.
+   *
+   * NO DATE IS TYPED IN THIS COMMENT, AND THAT IS THE SAME RULING APPLIED TO
+   * ITSELF. The first version of this block named the target date while
+   * explaining why a date should have one home, and the document it pointed at
+   * has since stopped carrying it, so the sentence was a second copy AND going
+   * stale. The date is in src/config/parked-work.ts and nowhere else. A check
+   * that prints a value it also hardcodes is comparing a value to itself.
+   *
+   * THE CLOCK IS THE FIRM'S, NOT UTC. Operator ruling the same day: the firm's
+   * calendar is America/Chicago. `todayInFirmCalendar()` carries that, and this
+   * check uses it.
+   *
+   * AND THE ROSTER CHECK ABOVE STILL USES UTC, WHICH IS DELIBERATE AND
+   * RECORDED. Two clocks in one audit is exactly the two-homes shape this file
+   * keeps finding, and fixing the roster one was ruled out of this pass because
+   * it errs shut and changing an expiry that is live this week is not a thing
+   * to do in passing. It is in BACKLOG.md, and `todayInFirmCalendar()` is where
+   * it lands, so that repair is one call site rather than a hunt. Said out loud
+   * here so the next reader meets the difference rather than discovering it.
+   */
+  {
+    const { parkedWork, expiredParks } = await import("../src/config/parked-work.ts");
+    const { todayInFirmCalendar } = await import("../src/lib/firm-calendar.ts");
+    const firmToday = todayInFirmCalendar();
+
+    /*
+     * VACUITY GUARD FIRST. With no parked work this whole block passes over an
+     * empty list for ever, and would be exercised for the first time on the day
+     * somebody parks something, which is the one day nobody is watching it.
+     */
+    rec(
+      "there is parked work to check",
+      parkedWork.length > 0,
+      `${parkedWork.length} park(s) declared (if this were zero every check below would pass over nothing)`,
+    );
+
+    const shapeless = parkedWork.filter(
+      (p) =>
+        !p.id ||
+        !p.what ||
+        !p.reasoningIn ||
+        !p.ruledBy ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(p.ruledOn ?? "") ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(p.acknowledgedThrough ?? "") ||
+        !p.because ||
+        !p.costsWhileParked,
+    );
+    rec(
+      "every park names what it is, who ruled it, when it returns, why, and what it costs",
+      shapeless.length === 0,
+      shapeless.length === 0
+        ? parkedWork.map((p) => `${p.id} through ${p.acknowledgedThrough}`).join(", ")
+        : `incomplete: ${shapeless.map((p) => p.id || "(no id)").join(", ")}`,
+    );
+
+    /*
+     * THE REASONING HAS TO BE SOMEWHERE A PERSON CAN OPEN. A park pointing at a
+     * document that does not exist is the declared-inventory defect this
+     * repository found in account-doors.ts, where every clause of an entry was
+     * false and the file still typechecked.
+     */
+    const { existsSync: ex } = await import("node:fs");
+    const dangling = parkedWork.filter((p) => !ex(p.reasoningIn));
+    rec(
+      "and the document carrying each park's reasoning is on disk",
+      dangling.length === 0,
+      dangling.length === 0
+        ? parkedWork.map((p) => p.reasoningIn).join(", ")
+        : `missing: ${dangling.map((p) => `${p.id} names ${p.reasoningIn}`).join(", ")}`,
+    );
+
+    const expired = expiredParks(firmToday);
+    const live = parkedWork.filter((p) => !expired.includes(p));
+
+    for (const p of live) {
+      ack(
+        `parked work returns on a date: ${p.id}`,
+        `${p.what} Parked by ${p.ruledBy} on ${p.ruledOn}, ACKNOWLEDGED THROUGH ${p.acknowledgedThrough}. ` +
+          `Today is ${firmToday} in the firm's calendar (America/Chicago). ` +
+          `From the day after ${p.acknowledgedThrough} this is a FAIL unless it is re-ruled. ` +
+          `Reasoning: ${p.reasoningIn}. Why: ${p.because}`,
+      );
+    }
+
+    rec(
+      "no park has run out without being re-ruled",
+      expired.length === 0,
+      expired.length === 0
+        ? `${live.length} park(s) still within their date, today is ${firmToday} in America/Chicago`
+        : expired
+            .map(
+              (p) =>
+                `${p.id} EXPIRED on ${p.acknowledgedThrough} and today is ${firmToday}. ` +
+                `Do it, or re-rule it in src/config/parked-work.ts with a new date and a reason.`,
+            )
+            .join(" | "),
+    );
+  }
+
+  /*
    * THE VARIABLE IS GONE AND MAY NOT COME BACK. The reverse of the usual scan:
    * this refuses a NAME rather than requiring one.
    */
