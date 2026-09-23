@@ -116,7 +116,7 @@ const PARTIES: IntakeField[] = [
   {
     id: "site_contact_phone",
     label: "Their phone number",
-    help: "A technician standing at a locked gate needs somebody to ring, and it is rarely the person who ordered.",
+    help: "A technician standing at a locked gate needs somebody to call, and it is rarely the person who ordered.",
     kind: "tel",
     required: true,
     stage: "dispatch",

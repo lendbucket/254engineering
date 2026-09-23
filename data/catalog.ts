@@ -1012,7 +1012,7 @@ export function orderBlockedReason(
      * which is the point. The firm is registered, it has an engineer of record,
      * and it is not yet taking orders through the site.
      */
-    return "The firm is not taking orders through the site yet. Ring the office or send a message and somebody will take the details.";
+    return "The firm is not taking orders through the site yet. Call the office or send a message and somebody will take the details.";
   }
   if (!hasApprovedProtocol) {
     return "No protocol for this service line has been approved by the engineer of record yet, so the firm has no agreed way to perform it. It is a waitlist rather than an order.";

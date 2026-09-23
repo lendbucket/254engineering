@@ -321,7 +321,7 @@ export const LAUNCH_CONDITIONS: LaunchCondition[] = [
       const placeholder = placeholderPhonePatterns.find((p) => p.pattern.test(digits));
       if (placeholder) return `FIRM_PHONE is a placeholder. ${placeholder.why}`;
       if (digits.replace(/\D/g, "").replace(/^1(?=\d{10}$)/, "").length !== 10) {
-        return "FIRM_PHONE is not ten digits, so it is not a number anybody can ring.";
+        return "FIRM_PHONE is not ten digits, so it is not a number anybody can call.";
       }
       return null;
     },
@@ -436,7 +436,7 @@ export function selfServiceSignUpOpen(): boolean {
  * firm's business rather than theirs; what they need is what to do instead.
  */
 export function selfServiceSignUpClosedSentence(): string {
-  return "Accounts are not open for sign up yet. Ring the office or send a message and somebody will open one for you.";
+  return "Accounts are not open for sign up yet. Call the office or send a message and somebody will open one for you.";
 }
 
 export function approvedProtocolFor(serviceSlug: string) {
