@@ -178,11 +178,25 @@ async function run() {
    * red here would be a red about the harness rather than about the break
    * glass, which is the kind of red people learn to ignore.
    */
+  /*
+   * EXIT 3, AND THE COMMENT ABOVE IS THE ARGUMENT FOR IT rather than against.
+   *
+   * It says a red here would be a red about the harness rather than about the
+   * break glass, and that people learn to ignore those. Both true. The answer
+   * was exit 0, which is not "not a red", it is a GREEN over an audit that
+   * measured nothing, and the board counts it as a pass.
+   *
+   * Exit 3 is the verdict that reasoning was reaching for and that
+   * `reachable.mjs` already owns. Found by a survey after the operator ruled
+   * the same change for doors-audit, and it is a little embarrassing: this file
+   * is the one whose class fix went in an hour earlier, and its own
+   * preconditions were still doing it.
+   */
   if (!existsSync(".next/BUILD_ID")) {
     console.log("");
     console.log("COULD NOT TELL: there is no build to start. Run `npm run build` first, or run this from the board.");
     console.log("The break glass was NOT exercised.");
-    process.exit(0);
+    process.exit(COULD_NOT_TELL);
   }
 
   const db = auditClient("break-glass-audit", { neverProduction: true });
@@ -190,7 +204,7 @@ async function run() {
     console.log("");
     console.log("COULD NOT TELL: no database client, so no probe account could be made.");
     console.log("The break glass was NOT exercised.");
-    process.exit(0);
+    process.exit(COULD_NOT_TELL);
   }
 
   pureHalf();

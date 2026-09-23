@@ -135,16 +135,28 @@ async function tokenFor(db, customerUserId) {
 }
 
 async function run() {
+  /*
+   * EXIT 3, NOT 0. Operator ruling, 2026-09-23.
+   *
+   * These two preconditions printed COULD NOT TELL and exited ZERO, so the
+   * board counted this audit as a PASS over an audit that had measured nothing
+   * at all. That is the roll-up undercount recorded in BACKLOG.md, one level
+   * down: there the audit says COULD NOT TELL and the summary miscounts it,
+   * here the audit says COULD NOT TELL and then tells the summary it passed.
+   *
+   * The sentence was already honest. The exit code was not, and the exit code
+   * is the half anybody automating this reads.
+   */
   if (!existsSync("src/config/launch-conditions.ts")) {
     console.log("COULD NOT TELL: the launch conditions file is not where this fixture expects it.");
-    process.exit(0);
+    process.exit(COULD_NOT_TELL);
   }
 
   const db = auditClient("doors-audit", { neverProduction: true });
   if (!db) {
     console.log("");
     console.log("COULD NOT TELL: no database client, so no door could be walked.");
-    process.exit(0);
+    process.exit(COULD_NOT_TELL);
   }
 
   let restore = null;

@@ -54,6 +54,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { auditClient } from "./lib/db-target.mjs";
 import { PROBE_DOMAIN } from "./lib/portal-probe.mjs";
+import { COULD_NOT_TELL } from "./lib/reachable.mjs";
 import { CATALOG } from "../data/catalog.ts";
 import { TRADE_FLOORS, floorKey } from "../src/config/trade-floors.ts";
 
@@ -395,15 +396,25 @@ function patchFloorIn() {
 }
 
 async function run() {
+  /*
+   * EXIT 3, NOT 0. Operator ruling, 2026-09-23, made for doors-audit and
+   * applied here by the survey that followed it.
+   *
+   * A precondition that says COULD NOT TELL and exits zero tells the board it
+   * PASSED. This audit is the one that proves a pending floor refuses a trade
+   * price at any value, so a green over a run that never opened the register is
+   * a green over the check that stands between a floor and what a technician is
+   * paid.
+   */
   if (!existsSync(FLOORS_FILE)) {
     console.log("COULD NOT TELL: the floor register is not where this audit expects it.");
-    process.exit(0);
+    process.exit(COULD_NOT_TELL);
   }
   const db = auditClient("trade-pricing-audit", { neverProduction: true });
   if (!db) {
     console.log("");
     console.log("COULD NOT TELL: no database client, so no price could be set.");
-    process.exit(0);
+    process.exit(COULD_NOT_TELL);
   }
 
   let restore = null;
