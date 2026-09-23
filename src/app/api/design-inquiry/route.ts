@@ -72,7 +72,7 @@ export async function POST(request: Request) {
    */
   if (!result.ok) {
     return NextResponse.json(
-      { ok: false, message: "That did not save. Ring the office and somebody will take it down." },
+      { ok: false, message: "That did not save. Call the office and somebody will take it down." },
       { status: 500 },
     );
   }

@@ -92,7 +92,7 @@ export async function POST(request: Request) {
       {
         ok: false,
         message:
-          "Your brief could not be saved, so nothing has been recorded and nobody has been notified. Please ring or email the firm with these details rather than trying again.",
+          "Your brief could not be saved, so nothing has been recorded and nobody has been notified. Please call or email the firm with these details rather than trying again.",
       },
       { status: 503 },
     );
