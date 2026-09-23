@@ -302,9 +302,64 @@ screenshot, digested into `stripeConsole.evidence`; or the operator running
 the key never enters a session transcript. `.env.local` sets no `STRIPE_*`
 variable and will not.
 
-**Still never captured, and needed before any charge:** the Account status and
-Verified tabs. A requirement or restriction on either would not appear in the
-record at all.
+### CLOSED 2026-09-22, BY THE FIRST OF THE TWO ROUTES
+
+The operator took **two cropped captures** and put them in `docs/compliance/`.
+They carry the business fields and nothing about the account representative,
+which is exactly what the rule above asks for, so the artifact can live in the
+repository where the 2026-09-21 one could not.
+
+```
+Public details / Customer-facing information
+Legal business name      254 Engineering LLC
+Public business name     254 Engineering
+
+Settings / Business / Account details
+Account name             254 Engineering LLC
+Account ID               acct_1UFmIjA2kbTZN5C3
+```
+
+The account id in the second is the one `stripe-console.ts` already declared, so
+the capture confirms the record rather than being compared against nothing.
+`legalBusinessName` moved to the registrant and the check reads
+`both say "254 Engineering LLC"`.
+
+**AND CLOSING IT CREATED A DEFECT THAT WAS FIXED IN THE SAME COMMIT, WHICH IS
+THE PART WORTH KEEPING.** `evidence` had been `null`, so nothing needed to check
+it. The moment two digests were recorded, the record held a sha256 and a byte
+count that **nothing hashed**, which is a declaration verified against itself.
+That is the 2026-09-16 shape exactly, the one CLAUDE.md records about the PE
+licence number: **a defect dormant while one home is empty, live the first time
+somebody fills it in.**
+
+`stripe-webhook-audit` now hashes every recorded capture against disk, mirroring
+the engineer evidence check in `compliance-audit` rather than inventing a second
+shape. `evidence` became a LIST so both captures are hashed, because the first
+version recorded one and described the other in a comment, and **a digest in a
+comment is a digest nothing hashes.**
+
+**The note on the digest check was itself defective and the injection caught
+it.** It printed the leading 16 characters of each digest, and the injection
+changed the LAST character, so it printed two identical strings beside a FAIL
+and read as a broken check rather than a caught one. It prints both digests
+whole now. A truncated comparison can only report the difference it happens to
+cover, which is the prefix defect recorded twice already in this file.
+
+### STILL OWED BEFORE ANY CHARGE: THE ACCOUNT STATUS AND VERIFIED TABS
+
+**Operator ruling, 2026-09-22: he will capture them cropped.** Not closed by the
+captures above and deliberately not marked as such.
+
+The Account details capture shows those two tabs **exist**, because they are
+visible in its tab strip. **Neither was opened.** Seeing that a tab exists says
+nothing whatever about what it contains, and `verificationNotice` says `STILL
+NOT RECORDED` for that reason rather than saying none.
+
+**Why it matters before a charge rather than as bookkeeping.** A requirement or
+a restriction on either tab would not appear anywhere in this record, so the
+firm would learn about it from a failed payout rather than from a file. The
+absence of a notice on the Business details page is not the absence of a
+requirement on the account, and only those two tabs answer the second question.
 
 ### Two: the engineer's roster entry has not been re-read since the reissuance
 

@@ -178,6 +178,119 @@ rec(
 );
 
 /*
+ * ===========================================================================
+ * THE EVIDENCE IS HASHED AGAINST DISK, NOT TAKEN AT ITS WORD.
+ * Operator ruling, 2026-09-22.
+ * ===========================================================================
+ *
+ * WHY THIS EXISTS, AND IT IS A DEFECT CREATED BY FIXING ANOTHER ONE.
+ * `evidence` was null for as long as the only capture of the business name had
+ * been deleted for carrying personal details. Nothing needed to check an empty
+ * field. The moment two cropped captures were recorded with their digests, the
+ * record held a sha256 and a byte count that NOTHING HASHED, which is a
+ * declaration verified against itself.
+ *
+ * That is the 2026-09-16 shape exactly, recorded in CLAUDE.md about the PE
+ * licence number: a defect dormant while one home is empty, live the first time
+ * somebody fills it in. The question to ask is never only "does this fact have
+ * two homes today", it is "will it, the first time somebody fills in the empty
+ * one".
+ *
+ * IT MIRRORS THE ENGINEER EVIDENCE CHECK in compliance-audit deliberately
+ * rather than inventing a second shape, because those two are the same claim
+ * about two different records: a file on disk is the file somebody read. That
+ * check's own words are the reason, and they apply here unchanged: hashed here
+ * rather than declared, so a replaced artifact is a red rather than an
+ * invisible.
+ *
+ * THE SIZE IS CHECKED AS WELL AS THE DIGEST, which is not redundant. A digest
+ * mismatch says the bytes differ; the size says by how much, and a recorded
+ * size that was never true of any file is a transcription error rather than a
+ * swapped artifact. They fail differently and a reader wants to know which.
+ */
+{
+  const { createHash } = await import("node:crypto");
+  const { readFileSync: readBytes, existsSync: onDisk } = await import("node:fs");
+
+  /*
+   * VACUITY GUARD. An empty array passes every check below for ever, and it is
+   * a state this field has genuinely been in, so the guard is not theoretical.
+   */
+  rec(
+    "the console record carries evidence at all",
+    stripeConsole.evidence.length > 0,
+    stripeConsole.evidence.length > 0
+      ? `${stripeConsole.evidence.length} capture(s) recorded`
+      : "no artifact: every check below would pass over nothing, and the business name would rest on somebody's word",
+  );
+
+  const absent = stripeConsole.evidence.filter((e) => !onDisk(e.file));
+  rec(
+    "and every recorded capture is on disk",
+    absent.length === 0,
+    absent.length === 0
+      ? stripeConsole.evidence.map((e) => e.file.split("/").pop()).join(", ")
+      : `missing: ${absent.map((e) => e.file).join(", ")}`,
+  );
+
+  const present = stripeConsole.evidence.filter((e) => onDisk(e.file));
+
+  const wrongDigest = present.filter(
+    (e) => createHash("sha256").update(readBytes(e.file)).digest("hex") !== e.sha256,
+  );
+  rec(
+    "and the file on disk is the file that was read, by digest",
+    wrongDigest.length === 0,
+    wrongDigest.length === 0
+      ? `${present.length} capture(s) hashed against disk rather than declared`
+      : wrongDigest
+          .map(
+            (e) =>
+              /*
+               * THE WHOLE DIGEST, BOTH SIDES, AND NOT A PREFIX.
+               *
+               * The first version of this note printed the leading 16
+               * characters of each. The injection that proved the check changed
+               * the LAST character of a digest, so the note printed two
+               * identical strings beside a FAIL and read as a broken check
+               * rather than as a caught one. A truncated comparison can only
+               * report the difference it happens to cover, which is the prefix
+               * defect this repository has already recorded twice.
+               */
+              `${e.file}\n      on disk: ${createHash("sha256").update(readBytes(e.file)).digest("hex")}\n      recorded: ${e.sha256}`,
+          )
+          .join("\n    "),
+  );
+
+  const wrongSize = present.filter((e) => readBytes(e.file).length !== e.bytes);
+  rec(
+    "and its size is what was recorded",
+    wrongSize.length === 0,
+    wrongSize.length === 0
+      ? `${present.length} capture(s) at their recorded size`
+      : wrongSize
+          .map((e) => `${e.file} is ${readBytes(e.file).length} bytes and the record says ${e.bytes}`)
+          .join("; "),
+  );
+
+  /*
+   * AND EACH ONE SAYS WHAT IT SHOWS. A digest proves a file has not changed. It
+   * says nothing about whether that file displays the value the record claims,
+   * and nothing mechanical can: somebody has to look. What a check CAN refuse
+   * is an artifact recorded with no account of what a reader would see in it,
+   * which is a path and a hash standing in for an observation.
+   */
+  const unsaid = stripeConsole.evidence.filter((e) => !e.shows || e.shows.trim().length < 40);
+  rec(
+    "and each capture says what a person reading it would see",
+    unsaid.length === 0,
+    unsaid.length === 0
+      ? `${stripeConsole.evidence.length} capture(s) describe their own contents`
+      : `no account of contents: ${unsaid.map((e) => e.file).join(", ")}`,
+  );
+}
+
+/*
  * =========================================================================
  * THE ACCOUNT RULE, EXERCISED ON CONSTRUCTED ACCOUNTS. Operator ruling,
  * 2026-09-22: "Inject both, with a constructed account object, and say that
