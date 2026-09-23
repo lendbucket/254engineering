@@ -361,7 +361,9 @@ const {
    * here so the next reader meets the difference rather than discovering it.
    */
   {
-    const { parkedWork, expiredParks } = await import("../src/config/parked-work.ts");
+    const { parkedWork, expiredParks, livingParks, retiredParks, isParkRetired } = await import(
+      "../src/config/parked-work.ts"
+    );
     const { todayInFirmCalendar } = await import("../src/lib/firm-calendar.ts");
     const firmToday = todayInFirmCalendar();
 
@@ -411,8 +413,43 @@ const {
         : `missing: ${dangling.map((p) => `${p.id} names ${p.reasoningIn}`).join(", ")}`,
     );
 
+    /*
+     * A PARK THAT NAMES A RETIRING EVENT SAYS WHAT WOULD END IT, and a park
+     * that does not is ended only by its date. Asserted rather than assumed,
+     * because a predicate with no sentence beside it leaves a reader unable to
+     * tell what the check is waiting for.
+     */
+    const eventless = parkedWork.filter((p) => Boolean(p.isRetired) !== Boolean(p.retiredWhen));
+    rec(
+      "every park with a retiring event says in words what would end it",
+      eventless.length === 0,
+      eventless.length === 0
+        ? `${parkedWork.filter((p) => p.isRetired).length} of ${parkedWork.length} park(s) end on an event as well as a date`
+        : `a predicate with no sentence, or a sentence with no predicate: ${eventless.map((p) => p.id).join(", ")}`,
+    );
+
     const expired = expiredParks(firmToday);
-    const live = parkedWork.filter((p) => !expired.includes(p));
+    const live = livingParks(firmToday);
+    const retired = retiredParks();
+
+    /*
+     * THE THREE SETS ARE THE WHOLE SET. If a park could fall outside all of
+     * them, or into two, the checks below would be reporting on a subset while
+     * reading as though they covered everything.
+     */
+    rec(
+      "and every park is exactly one of retired, live or expired",
+      retired.length + live.length + expired.length === parkedWork.length,
+      `${retired.length} retired + ${live.length} live + ${expired.length} expired = ${parkedWork.length}`,
+    );
+
+    for (const p of retired) {
+      rec(
+        `parked work ended by the thing it was waiting for: ${p.id}`,
+        true,
+        `${p.retiredWhen} That has happened, so the park is over before its date of ${p.acknowledgedThrough}.`,
+      );
+    }
 
     for (const p of live) {
       ack(
@@ -420,6 +457,7 @@ const {
         `${p.what} Parked by ${p.ruledBy} on ${p.ruledOn}, ACKNOWLEDGED THROUGH ${p.acknowledgedThrough}. ` +
           `Today is ${firmToday} in the firm's calendar (America/Chicago). ` +
           `From the day after ${p.acknowledgedThrough} this is a FAIL unless it is re-ruled. ` +
+          (p.retiredWhen ? `Ends early if: ${p.retiredWhen} ` : "") +
           `Reasoning: ${p.reasoningIn}. Why: ${p.because}`,
       );
     }

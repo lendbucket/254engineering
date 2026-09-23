@@ -196,16 +196,52 @@ export const stripeConsole: {
    * that the account is unrestricted, which is a different claim and one a
    * single screenshot cannot support.
    */
+  /*
+   * ===================================================================
+   * AN OPERATOR ATTESTATION, AND IT SAYS SO. Operator ruling, 2026-09-22.
+   * ===================================================================
+   *
+   * THE RULING. No screenshot of the Account status tab goes into this
+   * repository. The operator read it and reports it good, and that report is
+   * recorded here as what it is.
+   *
+   * WHY THIS IS NOT THE THING THE 2026-09-21 RULE REFUSED. That rule said his
+   * word is not evidence, and it still is not. The difference is that this
+   * field does not CLAIM to be evidence: it names the attester, the date, and
+   * says in its own text that no capture backs it. What was refused in
+   * September was a value being moved as though somebody had read it. Nothing
+   * is being moved here. `evidence` still holds only the two captures, and
+   * neither shows account status.
+   *
+   * IT IS THE SAME IDIOM AS `pointInTimeRecovery`, which is stated true by the
+   * operator with a date because nothing here can see a provider dashboard.
+   * The difference, and it is the operator's addition rather than mine: that
+   * one has no expiry and this one does.
+   *
+   * ENFORCED, NOT REMEMBERED. `src/config/parked-work.ts` carries
+   * `stripe-account-status-attested`, which `compliance-audit` reports as
+   * ACKNOWLEDGED and turns into a FAIL after 2026-10-31. It is retired early
+   * by the first live charge and its full refund reaching
+   * `stripeAccount.proof`, because a charge that settles and a refund that
+   * completes exercise the account's real standing, which a status tab only
+   * describes. Whichever comes first.
+   *
+   * The date is in the park and not in this sentence, so there is one place to
+   * change it.
+   */
   verificationNotice:
-    "STILL NOT RECORDED, and the 2026-09-22 captures do not change it. The Account details capture " +
-    "shows that the tabs Account status and Verified EXIST, because they are visible in its tab " +
-    "strip, and neither was opened or captured. Seeing that a tab exists says nothing whatever " +
-    "about what it contains. A screenshot taken 2026-09-21 showed no verification banner on the " +
-    "Business details page and was deleted for carrying personal details, so nothing supports that " +
-    "observation any more either. This field says NOT RECORDED rather than none, because the " +
-    "absence of a notice on one page is not the absence of a requirement on the account, and a " +
-    "requirement or restriction on either uncaptured tab would not appear in this record at all. " +
-    "It is needed before any charge.",
+    "OPERATOR ATTESTATION, NOT EVIDENCE. Attested by Robert Reyna, operator, on 2026-09-22: he " +
+    "read the Stripe Account status tab and reports the account status good. NO CAPTURE BACKS " +
+    "THIS. He ruled that no screenshot of that tab enters this repository, so there is no artifact " +
+    "and this record is his statement. The two captures on file show the business name and the " +
+    "account id, and neither shows account status. The Account details capture shows only that the " +
+    "Account status and Verified tabs EXIST in its tab strip, which says nothing about what they " +
+    "contain. WHAT WOULD MAKE IT EVIDENCE: the first live charge on this account and its full " +
+    "refund, recorded in stripeAccount.proof, which exercises the account's real standing rather " +
+    "than describing it. Until then a verification requirement or a restriction would appear " +
+    "nowhere here. Enforced by the parked-work entry stripe-account-status-attested, which is " +
+    "acknowledged with an end date and becomes a finding the day after it, so an event that never " +
+    "happens cannot become a permanent exemption.",
 
   /*
    * AND THIS SENTENCE IS ENFORCED RATHER THAN REMEMBERED, which is the point of

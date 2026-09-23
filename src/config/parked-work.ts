@@ -30,6 +30,7 @@
  */
 
 import { todayInFirmCalendar } from "@/lib/firm-calendar";
+import { stripeAccount } from "@/config/launch-readiness";
 
 export type ParkedWork = {
   /** Stable key. compliance-audit pins these, so renaming one is deliberate. */
@@ -55,6 +56,27 @@ export type ParkedWork = {
    * weigh the delay against.
    */
   costsWhileParked: string;
+  /**
+   * RETIRED BY AN EVENT, WITH THE DATE AS A BACKSTOP. Operator ruling,
+   * 2026-09-22: "an event that never happens must not make an exemption".
+   *
+   * Some parks end when something HAPPENS rather than when a date arrives. The
+   * date alone would be wrong for those: it would go red on a day when nothing
+   * is owed, or worse, stay green because somebody pushed the date out while
+   * the event never came. The event alone would be worse still, because an
+   * event that never occurs is an exemption with no expiry, which is the exact
+   * shape the acknowledgement rule exists to refuse.
+   *
+   * So it is both, and whichever comes first wins. `retiredWhen` says in words
+   * what would end it; `isRetired` is the predicate a check can actually call,
+   * reading the same repository fact a person would look at.
+   *
+   * A FUNCTION RATHER THAN A FLAG, for the reason `expiredParks` is one: a flag
+   * has to be set by somebody noticing, and the whole point is that nobody has
+   * to notice.
+   */
+  retiredWhen?: string;
+  isRetired?: () => boolean;
 };
 
 export const parkedWork: ParkedWork[] = [
@@ -77,6 +99,40 @@ export const parkedWork: ParkedWork[] = [
       "repository can see any of it; three checks that would give some visibility are in " +
       "BACKLOG.md and none is built.",
   },
+  {
+    id: "stripe-account-status-attested",
+    what:
+      "The Stripe Account status and Verified tabs have never been captured. Their state rests on " +
+      "the operator's attestation rather than on evidence.",
+    reasoningIn: "src/config/stripe-console.ts",
+    ruledBy: "Robert Reyna, operator",
+    ruledOn: "2026-09-22",
+    acknowledgedThrough: "2026-10-31",
+    because:
+      "He read the Account status tab and reports it good, and ruled that no screenshot of it goes " +
+      "into this repository. An attestation is weaker than a capture and is recorded as one rather " +
+      "than dressed up as a read: the two cropped captures on file show the business name and the " +
+      "account id, and neither shows account status.",
+    costsWhileParked:
+      "A verification requirement or a restriction on that account would appear nowhere in this " +
+      "repository, so the firm would learn of it from a failed payout rather than from a file. The " +
+      "absence of a notice on the Business details page is not the absence of a requirement on the " +
+      "account, and only those two tabs answer the second question.",
+    /*
+     * THE EVENT IS THE ONE THAT WOULD ACTUALLY PROVE IT. A charge that settles
+     * and a refund that completes exercise the account's real standing, which
+     * is the thing a status tab only describes. If both succeed, the
+     * attestation has been overtaken by evidence and the park has ended.
+     *
+     * It reads `stripeAccount.proof`, which is where the gate already requires
+     * that charge and refund to be recorded, so this cannot drift from the
+     * launch condition: there is one place, and both read it.
+     */
+    retiredWhen:
+      "The first live charge on this firm's account and its full refund are recorded in " +
+      "stripeAccount.proof in src/config/launch-readiness.ts.",
+    isRetired: () => stripeAccount.proof !== null,
+  },
 ];
 
 /**
@@ -91,5 +147,26 @@ export const parkedWork: ParkedWork[] = [
  * which is the only way to exercise the expired branch without waiting for it.
  */
 export function expiredParks(today: string = todayInFirmCalendar()): ParkedWork[] {
-  return parkedWork.filter((p) => p.acknowledgedThrough < today);
+  return parkedWork.filter((p) => !isParkRetired(p) && p.acknowledgedThrough < today);
+}
+
+/**
+ * Has this park been ended by the thing it was waiting for?
+ *
+ * A park with no `isRetired` can only end by its date, which is the ordinary
+ * case. Where a predicate exists it is asked FIRST, so an event that has
+ * happened retires the park whatever the calendar says.
+ */
+export function isParkRetired(p: ParkedWork): boolean {
+  return p.isRetired ? p.isRetired() : false;
+}
+
+/** The parks still live: not retired by their event and not past their date. */
+export function livingParks(today: string = todayInFirmCalendar()): ParkedWork[] {
+  return parkedWork.filter((p) => !isParkRetired(p) && p.acknowledgedThrough >= today);
+}
+
+/** The parks their event has ended, whatever the date says. */
+export function retiredParks(): ParkedWork[] {
+  return parkedWork.filter((p) => isParkRetired(p));
 }
