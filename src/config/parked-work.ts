@@ -31,6 +31,13 @@
 
 import { todayInFirmCalendar } from "@/lib/firm-calendar";
 import { stripeAccount } from "@/config/launch-readiness";
+/*
+ * THE LEDGER IS THE ONE HOME FOR "DOES PRODUCTION HAVE THIS MIGRATION".
+ * Operator ruling, 2026-09-23, accepting the coupling in those terms. A park
+ * that ends when a migration reaches production has to read the thing that
+ * says so, and the alternative is a second record of the same fact.
+ */
+import { APPLIED } from "../../supabase/applied.mjs";
 
 export type ParkedWork = {
   /** Stable key. compliance-audit pins these, so renaming one is deliberate. */
@@ -155,6 +162,44 @@ export const parkedWork: ParkedWork[] = [
       "recording a historical protocol retired before this platform existed. The real cost is that a " +
       "guarantee about what may be recorded is wrong in the direction of refusing something valid, and " +
       "it went unnoticed for six migrations because the proof that asserts it was never run.",
+    /*
+     * ===================================================================
+     * IT RETIRES WHEN PRODUCTION HAS 0058, NOT WHEN THE FILE APPEARS.
+     * Operator ruling, 2026-09-23.
+     * ===================================================================
+     *
+     * WHY THIS IS NEEDED AT ALL, AND IT IS A TRAP THE FIRST VERSION FELL INTO.
+     * The proof that raises this acknowledgement replays migration FILES, not a
+     * database. So the moment 0058 exists on the same branch, the proof sees the
+     * fixed behaviour, its check passes, and the acknowledgement stops firing
+     * while production and development still carry the defect. The park would be
+     * measuring the presence of a file.
+     *
+     * That was observed rather than predicted: with 0058 on the overnight branch
+     * proofs-audit reported "no proof is acknowledging anything today". Moving
+     * 0058 to its own branch made the acknowledgement live again, which fixed
+     * the symptom and not the cause: the two land together in the end, and on
+     * that day the park would go dormant and then expire on 2026-09-30 as a red
+     * for a defect that is by then fixed. An acknowledgement that goes red after
+     * the thing it covers is repaired teaches everybody to ignore the mechanism.
+     *
+     * SO IT READS THE LEDGER, which is the one home for "does production have
+     * this". `supabase/applied.mjs` is the declaration two checks already read,
+     * and a `production` date on the entry is what "applied" means here.
+     *
+     * THE COUPLING IS DELIBERATE AND WAS RULED ON. A config file reaching into
+     * the migration ledger is a new edge, and the operator accepted it in these
+     * terms: the ledger is the one home for applied. The alternative is a second
+     * place recording whether 0058 is on production, which is the defect this
+     * repository names more often than any other.
+     */
+    retiredWhen:
+      "0058_a_retired_protocol_is_not_in_force.sql is recorded as applied to production in " +
+      "supabase/applied.mjs, which is the one home for whether production has a migration.",
+    isRetired: () => {
+      const entry = APPLIED.find((m) => m.file === "0058_a_retired_protocol_is_not_in_force.sql");
+      return Boolean(entry && entry.production);
+    },
   },
 ];
 
