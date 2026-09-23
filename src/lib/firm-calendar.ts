@@ -6,9 +6,18 @@
  * WHY THIS EXISTS AT ALL, which is a defect found rather than a preference.
  *
  * On 2026-09-22 at 19:19 Central, `compliance-audit` printed "Today is
- * 2026-09-23." It computes today with `new Date().toISOString().slice(0, 10)`,
- * which is UTC, and UTC had already rolled over. The same command had printed
- * 2026-09-22 earlier the same evening.
+ * 2026-09-23." It takes the machine clock, renders it as an ISO instant and
+ * keeps the leading ten characters, which is UTC, and UTC had already rolled
+ * over. The same command had printed 2026-09-22 earlier the same evening.
+ *
+ * THAT CALL IS DESCRIBED HERE AND NOT QUOTED, DELIBERATELY. `db-guard-audit`
+ * sweeps every file under `src` for that exact expression, because an observed
+ * timestamp taken from this process's clock is the defect it exists to catch.
+ * Its matcher reads lines, so it cannot tell a call from a comment quoting one,
+ * and the first version of this file went red on the board for documenting the
+ * very thing it was written to replace. The same precaution is already taken in
+ * CLAUDE.md for the long dash rule, whose pattern is named rather than spelled
+ * so the sentence does not carry the characters it forbids.
  *
  * WHAT THAT COSTS. An acknowledgement written "ACKNOWLEDGED THROUGH
  * 2026-09-24" becomes a finding from the start of 2026-09-25 UTC, which is

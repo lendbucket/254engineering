@@ -778,9 +778,41 @@ async function bringUpServer() {
 
   assertInvocationsMatchDeclarations();
 
-  // The runner owns the audit ports, so it clears them rather than refusing.
-  // Anything holding one is a leftover from an earlier run.
-  assertClearToBuild({ kill: true, label: "the audit suite" });
+  /*
+   * =========================================================================
+   * THE SUITE REFUSES RATHER THAN CLEARING. Operator ruling, 2026-09-22.
+   * =========================================================================
+   *
+   * WHAT THIS LINE USED TO SAY, and it is kept here because the reasoning was
+   * not silly: "The runner owns the audit ports, so it clears them rather than
+   * refusing. Anything holding one is a leftover from an earlier run." It
+   * passed `kill: true`.
+   *
+   * WHY IT CHANGED. On 2026-09-22 a board printed "[build-guard] nothing
+   * holding .next, proceeding." and then died after 32 of 58 audits with THE
+   * SUITE DID NOT RUN TO COMPLETION, because a `next start` out of this
+   * repository had been alive for eighteen minutes and the detection could not
+   * see it. Its command line named the binary relatively, so the repo root was
+   * absent and the row was dropped. That detection is fixed in build-guard.mjs.
+   *
+   * THE RULING IS THE SECOND HALF OF THE SAME LESSON. Killing silently means
+   * the operator never learns that a previous run leaked a server, so the leak
+   * recurs and the only evidence is a board that occasionally dies. Refusing
+   * puts the PID and the command line in front of a person, once, and they
+   * decide. The suite is a measuring instrument: it should not be quietly
+   * rearranging the machine it measures.
+   *
+   * THE COST, stated rather than discovered. A board will now refuse where it
+   * previously cleared and carried on. That is a real cost on a long unattended
+   * run, and it is the direction the operator chose: a refusal that names a PID
+   * is a minute of work, and a board that dies at audit 32 is twenty minutes
+   * and a result that means nothing.
+   *
+   * AUDIT_KILL_STALE=1 still works and is still the wrong answer during a
+   * suite run, for the reason CLAUDE.md gives: with BASE_URL unset the guard
+   * would kill the suite's own server partway through.
+   */
+  assertClearToBuild({ kill: false, label: "the audit suite" });
 
   console.log("\n  building ...");
   const build = spawnSync("npm", ["run", "build"], {

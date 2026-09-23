@@ -68,6 +68,144 @@ quantity, because a quantity is a second copy.
 
 Of the four still open, none blocks a morning sitting.
 
+## FIRST ITEM FOR 2026-09-23: SIX PROOFS HAVE NEVER RUN ON A BOARD, AND ONE IS CITED AS ENFORCEMENT
+
+Operator ruling, 2026-09-22. **This is the first thing to do tomorrow.**
+
+**PROOFS ARE NEITHER ENUMERATED NOR LISTED.** `grep -n 'proofs' scripts/audit.mjs`
+returns nothing. A proof in `scripts/proofs/` reaches the board only because
+some audit happens to `import` a function from it. Nothing spawns one as a
+child process, and nothing walks the directory.
+
+**So a proof that no audit imports is a file, not a check**, and six of the
+thirteen are in exactly that state. Found 2026-09-22 when the operator asked
+whether a newly written proof would run on the board. It would not have.
+
+| Proof | Reached by | Runs on a board |
+| --- | --- | --- |
+| `unreachable-is-not-failed` | imported by asset, mobile-overflow, native | yes |
+| `qr-decodes-to-what-it-encoded` | imported by `mfa-audit` | yes |
+| `a-replaced-key-says-so` | imported by `mfa-audit` | yes |
+| `perf-verdict-fires-where-it-should` | imported by `perf-audit` | yes |
+| `licensed-actions-are-unrepresentable.ts` | read by `reporting-audit`, and it is a COMPILE TIME proof | yes, through `tsc` |
+| `the-system-actor-is-not-a-person.ts` | same shape | yes, through `tsc` |
+| `the-build-guard-knows-whose-server-it-is` | imported by `db-guard-audit` **as of 2026-09-22** | yes |
+| **`totp-matches-the-rfc`** | **a comment and a string** | **NO** |
+| **`the-commit-guard-refuses-the-shape`** | nothing | **NO** |
+| **`the-firm-name-is-one-value`** | nothing | **NO** |
+| **`a-mismatched-stripe-account-stops-charges`** | nothing | **NO** |
+| **`a-signed-protocol-is-not-a-draft`** | nothing | **NO** |
+| **`windstorm-scope-is-the-date-of-the-work`** | nothing | **NO** |
+
+**THE FIGURE AND WHAT PRODUCED IT:** every file in `scripts/proofs/` searched
+for by name across `scripts/` and `package.json`, excluding the proofs
+directory itself, then each surviving hit read to see whether it EXECUTES the
+proof or merely names it. Two hits turned out to be prose.
+
+### THE SHARPEST ONE IS A FALSE CLAIM IN A COMPLIANCE ARTIFACT, AND IT IS CORRECTED FIRST
+
+**`scripts/lib/soc2-controls.mjs` tells a SOC 2 reader that a control is
+enforced by a proof the board never runs.** Its `enforcedBy` string reads:
+
+> pinned to 6 digits and 30 seconds by `scripts/proofs/totp-matches-the-rfc.mjs`
+
+**Correct that before anything else tomorrow.** A readiness pack that overstates
+enforcement is the access review defect in its worst form: the reader believes
+they have looked. Either the proof runs and the sentence is true, or the
+sentence says what is actually enforced.
+
+**And it is a section 6c pin.** `CLAUDE.md` lists the TOTP digits and period as
+a ruled business constant whose two homes must be edited on purpose, naming that
+proof as the pinned half. **One of the two places is never read by any board**,
+so the mechanism section 6c describes has been running on one leg. Section 6c
+also records why this one bites: advertising eight digits while the generator
+emits six locks out every enrolled account at their next sign in, on a phone
+that is working perfectly.
+
+### THE CLASS FIX
+
+**The suite enumerates `scripts/proofs/` and runs every `.mjs`**, plus a check
+that FAILS if any proof is reached by nothing. The second half is the part that
+does not rot: enumeration makes today's six run, and the reachability check is
+what stops the seventh being written into the same hole.
+
+**Two things whoever builds it decides first.**
+
+Some proofs may need a server or credentials, and a runner that cannot satisfy
+those would either fail the board or need exemptions, which is the allowlist
+shape the operator has already refused once. Read each of the six before
+designing the runner rather than after.
+
+And **running five proofs that have never run on a board is its own event**.
+They may not pass. That is worth finding out deliberately, with a prediction
+stated first, rather than as a rider on a commit that was about something else.
+
+## THE BUILD GUARD'S PORT RANGE IS TYPED AND COVERS A FRACTION OF THE PORTS AUDITS CLAIM
+
+Operator ruling, 2026-09-22. **Recorded, not built.** The detection half of this
+was fixed the same night and is not this entry; this is the half that was left.
+
+**What produced it.** A board on `feat/rulings-2026-09-22` printed
+
+```
+[build-guard] nothing holding .next, proceeding.
+```
+
+and then stopped after **32 of 58** audits with `THE SUITE DID NOT RUN TO
+COMPLETION`, the server having been killed mid run. A `next start -p 3141`
+running out of this repository had been alive for eighteen minutes.
+
+**Two independent defects. One is fixed, one is this entry.**
+
+**FIXED THE SAME NIGHT:** `nextProcessesInThisRepo()` kept a process only when
+the repository root appeared in its COMMAND LINE, and the orphan's command line
+named the binary relatively, so ownership could not be established and the row
+was silently dropped. Unknown ownership is now REPORTED. It errs shut.
+
+**NOT FIXED, AND THIS IS IT:** the scanned range is typed.
+
+```js
+export const AUDIT_PORT_RANGE = [3223, 3229];
+```
+
+Its own comment claims the range is "scanned whole rather than as a list, so a
+harness that claims a new port inside it is covered before anyone remembers to
+update this comment." **The premise is false.** Harnesses claim ports outside
+it. Every port named by a log file in the temp directory on 2026-09-22, which is
+a record of what harnesses actually started:
+
+```
+3124 3125 3128 3129 3131 3132 3134 3141 3143 3145 3147 3151 3155 3161 3168
+3223 3224 3225 3226 3227 3228 3229 3230 3231 3232 3233 3234 3235 3244
+```
+
+**Fifteen below the range and six above it.** The orphan sat on 3141, unscanned,
+and a second orphan was found on 3155 while proving the fix.
+
+**THE FIGURE AND WHAT PRODUCED IT:** a listing of `/tmp/*.log` filenames, which
+carry their port in the name. It is what harnesses HAVE started, not a
+declaration of what they MAY start, and it is therefore a floor rather than the
+set.
+
+**WIDENING THE TYPED RANGE IS THE WRONG FIX AND IS EXPLICITLY NOT WHAT THIS ASKS
+FOR.** A typed range is what went stale here, and a wider typed range goes stale
+the same way, more slowly and less visibly. **The range should be DERIVED from
+the harnesses that claim ports**, the way `scripts/lib/surfaces.mjs` derives
+routes by walking directories rather than listing them, and the way
+`email-audit` derives its template list by parsing `compose()` calls.
+
+**What stands in the way, and whoever builds this decides it first.** There is
+no declaration the harnesses agree on today. Ports are passed as literals at
+call sites in `launch-audit`, `dev-server.mjs` and several browser audits, so a
+deriver has to either parse those call sites or the harnesses have to start
+declaring their ports somewhere a scan can read. The second is the honest shape
+and the larger change.
+
+**Until it is derived, the fixed detection is what covers this**, because a
+`next start` out of this repository is now reported whatever port it holds. That
+is a real mitigation and it is not the same thing: a foreign process on an
+unscanned port is still invisible, and so is anything that is not a next server.
+
 ## THREE CHECKS NOTHING HAS: WHAT THE OTHER APPLICATIONS DO TO THE SHARED PRODUCTION PROJECT
 
 Operator ruling, 2026-09-22. **Recorded, not built, all three.**

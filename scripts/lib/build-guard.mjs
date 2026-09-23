@@ -30,15 +30,25 @@ import { fileURLToPath } from "node:url";
  * Two independent detections, because either alone has a hole:
  *
  *   1. Anything LISTENING on a port in the audit range. These ports are ours by
- *      convention, so a listener is unambiguous.
- *   2. Any `next start` / `next dev` whose command line contains THIS
- *      repository's path. npx resolves the local binary, so the inner process
- *      command line carries the project path, which is precise attribution. This
- *      catches a server on a port outside the range.
+ *      convention, so a listener is unambiguous. Its hole is the range itself,
+ *      which is TYPED and narrower than the ports harnesses actually claim.
+ *      Recorded in BACKLOG.md; the range wants deriving, not widening.
+ *   2. Any `next start` / `next dev` this guard cannot vouch for, which is
+ *      three answers rather than two. See `classifyNextProcess`.
  *
- * It deliberately does NOT refuse because some other project's dev server is
- * running. A check that cries wolf gets switched off within a week, and a
- * `next dev` in a different repo cannot touch this `.next`.
+ * ON 2026-09-22 THIS SECTION SAID DETECTION 2 CATCHES "any next start whose
+ * command line contains THIS repository's path", and that was the defect
+ * written down as a feature. A server started with a RELATIVE binary path
+ * carries no repository path at all, so it was dropped silently, and a board
+ * died after 32 of 58 audits with the guard having printed "nothing holding
+ * .next, proceeding".
+ *
+ * So ownership that cannot be ESTABLISHED is now reported rather than assumed
+ * harmless. It still does NOT refuse because some other project's dev server is
+ * running, where that can be positively identified by an absolute path into a
+ * different checkout: a check that cries wolf gets switched off within a week,
+ * and a `next dev` in a different repo cannot touch this `.next`. What changed
+ * is that "I cannot tell" stopped being filed under "not ours".
  */
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -129,9 +139,68 @@ function commandLineOf(pid) {
 }
 
 /**
- * Every `next start` / `next dev` belonging to THIS repository.
+ * WHOSE `next start` OR `next dev` IS THIS, from its command line alone.
  *
- * The path match is what keeps a sibling project's dev server out of the
+ * Returns `null` when the process is not a next server at all, and otherwise
+ * one of `ours`, `foreign` or `unknown`. `needle` is the repository root,
+ * lowercased with forward slashes.
+ *
+ * EXPORTED AS A PURE FUNCTION SO THE BOARD CAN PROVE IT. The live half needs a
+ * process table, and a rule that can only be exercised by starting real servers
+ * is a rule nothing exercises: the check would need a fixture that spawns a
+ * server on a port, which is the thing this guard exists to complain about.
+ * Extracted, the classification is fed four fixtures by
+ * `scripts/proofs/the-build-guard-knows-whose-server-it-is.mjs` and the live
+ * half applies the same function to real command lines.
+ *
+ * AND THAT IS THE CAVEAT CLAUDE.md RECORDS ABOUT PURE FUNCTIONS: a rule tested
+ * with its input handed to it proves the rule and says nothing about whether
+ * production can construct that input. The live half is what reads the process
+ * table, and the fixtures below are REAL command lines copied from it rather
+ * than shapes invented to match the rule.
+ */
+export function classifyNextProcess(command, needle) {
+  /*
+   * THE PROCESS HAS TO BE A NODE PROCESS, NOT SOMETHING THAT MENTIONS ONE.
+   *
+   * Found by reading an injection's output rather than its exit code. Widening
+   * this function to report unknown ownership immediately produced three false
+   * positives: the bash wrappers that had spawned the commands, whose command
+   * lines CONTAIN the server's whole invocation as an argument and therefore
+   * match every text test that matches the server itself.
+   *
+   * A shell wrapping `next start` and a `next start` are not distinguishable by
+   * searching for "next" and "start", because the shell's command line contains
+   * the server's. What separates them is the EXECUTABLE: one is node, the other
+   * is bash. So the first token has to be a node binary.
+   *
+   * This matters more than tidiness. The comment at the top of this file says a
+   * check that cries wolf gets switched off within a week, and a guard that
+   * named three shells every time somebody ran anything would have been
+   * disabled by the end of the day, taking the real detection with it.
+   */
+  const first = String(command).trim().match(/^"([^"]+)"|^(\S+)/);
+  const exe = (first?.[1] ?? first?.[2] ?? "").toLowerCase().replace(/\\/g, "/");
+  if (!/(^|\/)node(\.exe)?$/.test(exe)) return null;
+
+  const c = String(command).toLowerCase().replace(/\\/g, "/");
+  if (!(/\bnext\b/.test(c) && /\b(start|dev)\b/.test(c))) return null;
+
+  if (needle && c.includes(needle)) return "ours";
+
+  /*
+   * An absolute path to a next binary belonging to somewhere else. Matched as a
+   * drive-lettered or root-anchored path ending at the next package, which is
+   * the only shape that can positively identify a DIFFERENT checkout.
+   */
+  return /(?:[a-z]:\/|\/)[^"']*\/node_modules\/next\//.test(c) ? "foreign" : "unknown";
+}
+
+/**
+ * Every `next start` / `next dev` this guard will not vouch for.
+ *
+ * Returns the ones classified `ours` AND the ones classified `unknown`.
+ * `foreign` is dropped, which keeps a sibling project's dev server out of the
  * results. Comparison is case-insensitive and separator-insensitive because
  * Windows command lines mix `/` and `\` freely.
  */
@@ -161,12 +230,78 @@ function nextProcessesInThisRepo() {
     }
   }
 
-  return rows.filter((r) => {
-    if (r.pid === process.pid) return false;
-    const c = r.command.toLowerCase().replace(/\\/g, "/");
-    if (!c.includes(needle)) return false;
-    return /\bnext\b/.test(c) && /\b(start|dev)\b/.test(c);
-  });
+  /*
+   * ===========================================================================
+   * UNKNOWN OWNERSHIP IS REPORTED, NOT DROPPED. Operator ruling, 2026-09-22.
+   * ===========================================================================
+   *
+   * WHAT THIS COST, measured rather than argued. On 2026-09-22 a board printed
+   * "[build-guard] nothing holding .next, proceeding." while a server started
+   * out of this very repository had been alive for eighteen minutes. It killed
+   * the suite's own server partway through and the board stopped after 32 of 58
+   * audits with THE SUITE DID NOT RUN TO COMPLETION.
+   *
+   * WHY IT WAS INVISIBLE. This filter kept a process only when the repository
+   * root appeared in its COMMAND LINE. The orphan's command line was
+   *
+   *     "C:/Program Files/nodejs/node.exe" node_modules/next/dist/bin/next start -p 3141
+   *
+   * which names the binary RELATIVELY. The process was running in this
+   * directory; its command line does not say so, and nothing here can read a
+   * Windows process's working directory. So `includes(needle)` was false and
+   * the row was dropped.
+   *
+   * THE SHAPE OF THE MISTAKE, which is the part worth carrying. The old line
+   * answered "I cannot establish whose this is" with "not ours", silently, in
+   * the direction that lets a build proceed. That is `unreachable is not
+   * failed` inverted: an inability to measure was reported as a measurement.
+   * A server started by hand carries an ABSOLUTE path and was caught every
+   * time, which is exactly why the guard looked sound. It was only ever tested
+   * against the invocation shape it can see.
+   *
+   * SO THERE ARE THREE ANSWERS, NOT TWO, and only one of them drops the row:
+   *
+   *   ours      the repository root is in the command line. A blocker.
+   *   foreign   some OTHER absolute path to a next binary is in the command
+   *             line. Dropped, and that is the original reasoning preserved:
+   *             a next dev in a different repository cannot touch this .next,
+   *             and a guard that cries wolf gets switched off within a week.
+   *   unknown   a next start or dev naming no absolute path at all. REPORTED,
+   *             because it might be ours and nothing here can tell.
+   *
+   * It errs shut. The cost of a false positive is one `taskkill` the operator
+   * runs after reading a PID and a command line printed for them. The cost of
+   * the false negative is the twenty minute board above, and a red that means
+   * two things.
+   */
+  /*
+   * THE PROCESS HAS TO BE A NODE PROCESS, NOT SOMETHING THAT MENTIONS ONE.
+   *
+   * Found by reading an injection's output rather than its exit code. Widening
+   * this function to report unknown ownership immediately produced three false
+   * positives: the bash wrappers that had spawned the commands, whose command
+   * lines CONTAIN the server's whole invocation as an argument and therefore
+   * match every text test that matches the server itself.
+   *
+   * A shell wrapping `next start` and a `next start` are not distinguishable by
+   * searching for "next" and "start", because the shell's command line contains
+   * the server's. What separates them is the EXECUTABLE: one is node, the other
+   * is bash. So the first token has to be a node binary.
+   *
+   * This matters more than tidiness here. The comment at the top of this file
+   * says a check that cries wolf gets switched off within a week, and a guard
+   * that named three shells every time somebody ran anything would have been
+   * disabled by the end of the day, taking the real detection with it.
+   */
+  const classified = [];
+  for (const r of rows) {
+    if (r.pid === process.pid) continue;
+    const ownership = classifyNextProcess(r.command, needle);
+    if (ownership === null || ownership === "foreign") continue;
+    classified.push({ ...r, ownership });
+  }
+
+  return classified;
 }
 
 /** Everything that would make a build unsafe, merged by pid. */
@@ -181,7 +316,14 @@ export function findBlockers() {
   };
 
   for (const { pid, port } of listenersInRange()) add(pid, "listening on an audit port", port);
-  for (const { pid } of nextProcessesInThisRepo()) add(pid, "a next server running out of this repo");
+  for (const { pid, ownership } of nextProcessesInThisRepo()) {
+    add(
+      pid,
+      ownership === "ours"
+        ? "a next server running out of this repo"
+        : "a next server whose repository could not be established from its command line, so it is reported rather than assumed harmless",
+    );
+  }
 
   for (const e of byPid.values()) e.command = commandLineOf(e.pid) || "(command line unavailable)";
   return [...byPid.values()].sort((a, b) => a.pid - b.pid);
@@ -254,9 +396,16 @@ export function assertClearToBuild({ kill = false, label = "build" } = {}) {
   }
 
   const action = label === "build" ? "Building now" : `Running ${label} now`;
+  /*
+   * "REFUSING TO THE AUDIT SUITE" is what this printed until 2026-09-22, when
+   * the suite stopped killing and started refusing, which turned a rare line
+   * into a common one. The verb belongs in the heading, not only in the
+   * sentence below it.
+   */
+  const heading = label === "build" ? "REFUSING TO BUILD" : `REFUSING TO RUN ${label.toUpperCase()}`;
 
   throw new Error(
-    `\n=== BUILD GUARD: REFUSING TO ${label.toUpperCase()} ===\n\n` +
+    `\n=== BUILD GUARD: ${heading} ===\n\n` +
       `${blockers.length} process(es) are holding .next or an audit port:\n\n` +
       `${describe(blockers)}\n\n` +
       `${action} would write .next underneath a running server and produce a torn\n` +

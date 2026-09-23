@@ -901,6 +901,54 @@ console.log(`configured target: ${current ? describeTarget(current) : "unset"}\n
 }
 
 /*
+ * ===========================================================================
+ * THE BUILD GUARD'S OWNERSHIP RULE, PROVEN HERE SO THE BOARD RUNS IT.
+ * Operator ruling, 2026-09-22.
+ * ===========================================================================
+ *
+ * WHY IT HANGS OFF THIS AUDIT. `scripts/proofs/` is neither enumerated nor
+ * listed: a proof reaches the board only because some audit imports it. On
+ * 2026-09-22 six proofs in that directory were reached by NOTHING and had never
+ * run on any board, including the one CLAUDE.md section 6c names as the pinned
+ * half of a ruled business constant. That class is recorded at the top of
+ * BACKLOG.md as the first item for the following day. This one is wired now so
+ * it does not join them.
+ *
+ * WHY THIS AUDIT RATHER THAN ANOTHER. db-guard-audit is where the rules about
+ * what a run may reach already live, and the build guard is the same kind of
+ * rule one layer out: what a run may WRITE UNDER. It also needs no server and
+ * no credentials, which the proof does not either.
+ *
+ * WHAT IT WOULD HAVE CAUGHT. The guard classified a `next start` by looking for
+ * the repository root in its command line, so a server started by a RELATIVE
+ * path was dropped as "not ours" rather than reported as unknown. One was alive
+ * for eighteen minutes on 2026-09-22 while the guard printed "nothing holding
+ * .next, proceeding", and the board it killed stopped after 32 of 58 audits.
+ */
+{
+  const { checkBuildGuardClassification } = await import(
+    "./proofs/the-build-guard-knows-whose-server-it-is.mjs"
+  );
+  const { failed, total } = checkBuildGuardClassification(false);
+  rec(
+    "the build guard can tell whose next server it is, and says so when it cannot",
+    failed.length === 0 && total > 0,
+    failed.length === 0
+      ? `${total} command lines classified correctly, taken from a real process table`
+      : `${failed.length} of ${total} wrong: ${failed.join("; ")}`,
+  );
+  /*
+   * AND THE PROOF IS NOT EMPTY, because a proof that exercises nothing passes
+   * for ever and this audit would report its green as evidence.
+   */
+  rec(
+    "and that proof exercised something",
+    total >= 6,
+    `${total} case(s); if this were zero the check above would be passing over nothing`,
+  );
+}
+
+/*
  * EVERY CHECK IS PRINTED, AND THIS LOOP USED TO SIT IN THE MIDDLE OF THE FILE.
  *
  * It ran before the last five checks were even declared, so those five were
