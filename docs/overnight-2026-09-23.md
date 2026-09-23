@@ -488,6 +488,184 @@ has already named once tonight.
 
 ---
 
+## 8c. REPORT: the Stripe deadlock is real, and finding it found something worse
+
+**Report only, as ruled. No code written for any of this.**
+
+### The deadlock is real
+
+`chargesBlockedReason()` blocks only when `isPrelaunch()`, so a charge is
+permitted in **trading**. That is not where the lock is.
+
+**The lock is the order.** Every order path asks
+`orderBlockedReason(entry, prelaunch, hasApprovedProtocol)`, and five of the six
+call sites pass **`!isOpen()`**:
+
+```
+src/app/(site)/order/start/[slug]/page.tsx:46   const prelaunch = !isOpen();
+src/app/account/order/page.tsx:28               const prelaunch = !isOpen();
+src/lib/ops-bulk.ts:87                          !isOpen()
+src/lib/ops-intake.ts:252, 583                  !isOpen()
+src/lib/ops-job-billing.ts:241                  false, with a stated reason
+```
+
+So: a charge needs an order. An order needs `isOpen()`. `isOpen()` needs the
+`stripe` condition. The `stripe` condition needs a charge **and its refund**
+recorded in `stripeAccount.proof`.
+
+**That is a closed loop, and nothing in the platform breaks it.** The plan
+placing the test order "after the gate opens" cannot happen, because the gate
+cannot open until the test order has happened.
+
+### THE PARAMETER IS NAMED `prelaunch` AND HOLDS `!isOpen()`
+
+Those are different facts and the name says the wrong one. It matters because of
+what the function does with it:
+
+```ts
+if (prelaunch) {
+  return "The firm's registration with the Texas Board of Professional
+          Engineers and Land Surveyors is pending. No order can be placed
+          and no payment can be taken until it is active.";
+}
+```
+
+**In trading mode that sentence is FALSE.** The registration is not pending. It
+is F-29811, active, expiring 2027-07-31, issued to 254 Engineering LLC.
+
+### AND IT IS RENDERED TO A VISITOR TODAY
+
+`order/start/[slug]/page.tsx:74` renders `{blockedReason}` in the page body.
+With `!isOpen()` true, which it is on the deployment right now, a visitor to any
+order page is told the firm's TBPELS registration is pending.
+
+**This is the inverse of the defect the gate exists to prevent.** The gate stops
+the firm claiming capability it lacks. This has it disclaiming a registration it
+holds, on a compliance sentence, in the one place a buyer looks.
+
+It also never reaches the protocol message beneath it, so the true reason, that
+no protocol is approved, is never the one shown.
+
+### WHY NO CHECK CAUGHT IT
+
+`compliance-audit` has exactly the right check:
+
+> no surface says the registration is pending or not yet issued, because the
+> register holds an active one (429 files read)
+
+**It passes, and it is honest about what it read.** Its sweep is `walk("src")`.
+`orderBlockedReason` lives in **`data/catalog.ts`**, which is not under `src`.
+
+A green audit is a green audit of the files it read, and the file list is the
+filter nobody thinks of as one. This is the same shape as the untracked-file
+blind spot already recorded in CLAUDE.md, with a directory boundary in place of
+a git one.
+
+### How to break the deadlock, three ways
+
+**A. Move the order gate from `isOpen()` to `isTrading()` plus the protocol.**
+The most honest, because it says what is actually true: a registered firm with
+an engineer of record and an approved protocol can take an order; the `stripe`
+condition is about proving the money path, not about permission to sell. **It is
+also the largest change and touches six call sites.**
+
+**B. An operator-only path, which is question 4b and my recommendation.** One
+order, placed by the operator, through a door no customer can reach, permitted
+while the gate is shut. Bounded and reversible.
+
+**C. Record the proof from a Stripe test made outside the platform.** Rejected:
+the whole value of the condition is that it exercises THIS platform's charge and
+refund path end to end, including the webhook arriving. A charge made in the
+dashboard proves the account works and nothing about the code.
+
+**My recommendation is B, with A recorded as the eventual correct shape.** B
+unblocks launch without redefining what the gate means; A is the honest model
+and should not be rushed while four other conditions are still shut.
+
+**Whatever is chosen, the false sentence and the sweep gap are separate and
+should be fixed first**, because they are live on the deployment today and are
+not blocked on anything.
+
+---
+
+## 8d. REPORT: insurance and technician training as gate conditions
+
+**Report only. No code written. Designed in the shape the existing nine use.**
+
+### Why they belong in the register
+
+Both are facts about the world that a person establishes and a file records,
+which is exactly what `verifiedFirmRegistrations`, `verifiedEngineers`,
+`pointInTimeRecovery` and `stripeAccount` already are. Neither can be derived,
+and both gate whether work may be performed rather than whether a page may make
+a claim.
+
+**And the engineer has already made training a condition of his own.** Section 5
+of 254-RC-001 requires training on the protocol with a supervised inspection
+before independent work, and `docs/overnight-2026-09-22.md` ranks it sixth of
+what blocks roof certification. It is currently enforced by nothing.
+
+### `insuranceBound`, gating `open`
+
+| Field | Why |
+| --- | --- |
+| `bound: boolean` | The single fact |
+| `carrier`, `policyNumber` | So the claim is checkable by somebody who does not trust the file |
+| `coverage` | What scope it covers, because a policy that excludes windstorm is not cover for a windstorm line |
+| `effective`, `expires` | An expiry, checked like a licence. **An unrecorded expiry is not current**, the rule `activeEngineer()` already enforces |
+| `statedBy`, `statedOn` | Attribution and date |
+| `evidence` | A digest of the certificate, hashed against disk the way the Stripe captures are |
+
+**The unmet sentence:** "No professional liability policy is recorded as bound,
+so the firm cannot perform work it would be answerable for."
+
+### `technicianTraining`, and it is NOT one condition
+
+**A single boolean would be wrong**, and this is the part I would argue for. The
+requirement is per technician and per protocol: a technician trained on
+254-RC-001 is not trained on a windstorm protocol that does not exist yet.
+
+So: a list of `{ technicianId, protocolDocumentNumber, protocolVersion,
+trainedOn, supervisedInspectionOn, attestedBy }`, where `attestedBy` must be the
+engineer of record, and the condition is met when **every technician who can be
+dispatched** for an offered line has a record for that line's approved protocol.
+
+**That makes it derive from two things already in the register** rather than
+being a second copy: the approved protocol list and the dispatchable roster.
+
+**The unmet sentence:** names the technicians and the protocol they lack, rather
+than saying training is incomplete.
+
+### The operator-only path for the first charge and refund
+
+**The shape, and every part of it is a constraint rather than a feature:**
+
+1. **A distinct door.** Not a flag on the public path. A route reachable only
+   with an operator session holding a grant that exists for this and nothing
+   else, so no customer path is widened.
+2. **It writes a real order through the real code.** The entire value is that it
+   exercises checkout, the charge, the webhook and the refund exactly as a
+   customer would. A parallel code path proves nothing.
+3. **The row is marked at insert, not afterwards.** `is_demo` already exists and
+   the demo sweep already excludes such rows from every figure. A row marked
+   after the fact is a row that was real for a while.
+4. **It refuses to run twice.** The condition needs one charge and one refund.
+   A path that can be used repeatedly is a path that will be.
+5. **It writes the proof itself**, or it does not count. If the operator has to
+   copy identifiers into `stripeAccount.proof` by hand, the record is a
+   transcription and the thing this condition exists to prevent is a
+   transcription.
+6. **It is refused once `stripeAccount.proof` is non-null.** It exists to break
+   a deadlock, and after that it is a way to charge a card outside the gate.
+
+**What I would not do:** make it available in prelaunch. The firm may not
+perform engineering work then, and a charge implies an engagement.
+
+**Estimate: one sitting**, with the operator present, because it ends in a real
+card being charged and refunded on production.
+
+---
+
 ## 9. QUESTIONS WAITING FOR THE OPERATOR, IN THE ORDER TO ANSWER THEM
 
 Nothing below was decided. Each says what I would do and why.
