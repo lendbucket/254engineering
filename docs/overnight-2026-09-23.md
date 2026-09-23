@@ -975,3 +975,79 @@ keeps its backlog entry. The board's third verdict undercount, found in the same
 log, went into the existing backlog entry as a fourth sighting rather than a new
 one.
 
+## 13. THE `/coverage` LCP MISS WAS MACHINE LOAD, AND IT WAS PROVEN RATHER THAN ASSUMED
+
+**THIS SECTION WAS NOT MEASURED BY A BOARD.** It is documentation only, written
+after the board that measured the code and committed before the merge on the
+operator's instruction. The commit it sits in changes no code. Saying so is the
+point: everything else on `integrate/2026-09-23` was measured, this was not, and
+a reader should not have to work that out from timestamps.
+
+### What happened
+
+The board on `integrate/2026-09-23` at `a1ad71e` returned **56 PASS, 1 FAIL, 2
+COULD NOT TELL of 59**, and the one FAIL was:
+
+```
+FAIL: coverage hub: LCP 3540ms within 3400ms (/coverage, median of 3, spread 296ms)
+```
+
+### The first reading was wrong, and the rule is what corrected it
+
+The instinct was that 296ms of noise against a 140ms margin meant the
+measurement could not resolve the ceiling, so `perf-audit`'s third verdict
+should have fired and did not. **That was wrong.** `stabilityLimit` is
+`INSTABILITY_FRACTION` of the ceiling, ten percent, so 340ms. The spread was
+296ms, under the limit, and `verdictFor` correctly fell through to the median.
+
+The audit gated exactly as designed. Reading the rule rather than reasoning
+about the numbers is what settled it, and it is worth recording because the
+wrong reading was the comfortable one: it would have turned a FAIL into a
+could-not-measure and cleared the branch without anybody looking further.
+
+### The two measurements
+
+| | Ceiling | Median | Spread | Verdict |
+| --- | --- | --- | --- | --- |
+| Local, loaded laptop, 3 runs, board at `a1ad71e` | 3400ms local | **3540ms** | 296ms | FAIL |
+| Local, same machine, 3 runs, board at `76057a9` three hours earlier | 3400ms local | **3193ms** | 55ms | PASS |
+| **Production, 5 runs, `https://254engineering.com`** | **2760ms remote** | **2542ms** | 602ms | **PASS** |
+
+### Why production settles it, and the tighter ceiling is the reason
+
+The remote profile's LCP ceiling is **2760ms, not 3400ms**. Production passed a
+ceiling 640ms stricter than the one the laptop failed.
+
+**And the production pass is conclusive rather than median based.** The spread
+was 602ms against a stability limit of 276ms, so had the ceiling fallen inside
+the observed range `verdictFor` would have returned `unstable`. It returned
+`pass`, which is only reachable when the SLOWEST of the five runs was inside the
+ceiling. All five were.
+
+Bytes agree: 311KB on production against 464KB locally, on a 600KB budget.
+
+### The finding, stated as what it is
+
+**`/coverage` is not slow.** The miss was load on a machine that had spent the
+day building and running boards, and the same route measured 3193ms at a 55ms
+spread on the same machine three hours earlier with the same rendering code.
+
+`scripts/lib/perf-verdict.mjs` already records this exact route behaving this
+way, 2934ms and then 3454ms an hour apart on one machine, which is why that file
+exists at all. **That is not offered as the explanation.** A recorded
+explanation is a hypothesis until something re-checks it, and what re-checked it
+here is a five run measurement against the live deployment, which is a different
+instrument rather than a second appeal to the same story.
+
+### What was ruled, and why the merge did not wait
+
+Operator ruling, 2026-09-23: merge `integrate/2026-09-23` fast forward only
+whichever way the production measurement came out, **because `/coverage` is
+byte identical on `main` and on the branch and nothing in these six commits
+could have changed it.** They touch audit scripts, the board runner, and six
+words of rendered copy in five files, none of which reaches that route.
+
+The measurement was run first anyway, because the alternative is merging with a
+red board and an unexamined FAIL, and "it cannot be us" is exactly the reasoning
+that lets a real regression through on the one occasion it is wrong.
+
