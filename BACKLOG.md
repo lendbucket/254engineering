@@ -68,6 +68,105 @@ quantity, because a quantity is a second copy.
 
 Of the four still open, none blocks a morning sitting.
 
+## THE ENGINEER'S TDI ORIENTATION, AS REPORTED BY HIM AND NOT VERIFIED
+
+Recorded 2026-09-23 on the operator's instruction. **The engineer reported on
+his TDI orientation by email on 2026-09-22 at 9:18 PM.**
+
+**THE STANDING OF EVERYTHING BELOW, and it governs all seven items.** This is
+what he SAYS, recorded because a licensee's account of the rules he works under
+is a fact worth holding. It is not verified against TDI, and recording it
+**changes no service line, no price and no rule.** Nothing here has been acted
+on. No personal detail from the email is in this repository.
+
+Why the distinction is kept this hard: `src/config/engineer-directions.ts`
+exists precisely because his emailed rulings needed a home that states what each
+one establishes and what it does NOT, with the evidence digested. These seven
+are a rung below that, because they are his account of a third party's rules
+rather than his own professional judgement, and item 2 is the one that shows
+why.
+
+### 1. Designated representatives, and what they may sign
+
+He states a designated representative may assist an inspection under his **close
+monitoring and direct supervision**, and may prepare and sign the inspection
+report.
+
+**Not acted on.** It touches who may sign what, which is the centre of this
+firm's regulatory posture, and the platform's `LicensedAction` construction
+currently makes several of those acts unrepresentable for anyone but the
+engineer of record. Widening that is not a records change.
+
+### 2. WPI-8 AND WPI-2E ARE DIFFERENT FORM NUMBERS, AND THIS IS THE ITEM TO BE CAREFUL WITH
+
+He states a TBPELS engineer **without a TDI appointment** may certify completed
+improvements.
+
+**Three form numbers are now in play and they are not the same fact.** The
+firm's service line names **WPI-8**. He names **WPI-2E**. Item 5 below names
+**WPI-2** after final inspection.
+
+**Operator ruling: not acted on until the TDI source and the form number are on
+file.** Recorded as a disagreement rather than reconciled, because reconciling
+it would mean choosing one of three and no reading has established which is
+right. `src/content/windstorm-program.ts` already records a cluster of TDI
+statements that disagree with each other about dates, so this is the second
+place TDI's own material does not line up.
+
+### 3. Ongoing construction requires his desk review of sealed drawings, on every job
+
+He states ongoing construction needs **his desk review of the design engineer's
+sealed drawings on every job**. Compensation to be agreed.
+
+**Not acted on**, and it has a cost attached. A per job review by the engineer
+of record is a unit economics question and a throughput question before it is a
+protocol question.
+
+### 4. Technicians must read plans and locate structural elements
+
+He states technicians must be able to read plans and locate structural elements,
+and that **prior experience is required**.
+
+This is adjacent to the section 5 qualification he already ruled on in
+`engineer-directions.ts`, and is NOT the same statement. That one is recorded
+with its evidence; this one is his account of what TDI expects.
+
+### 5. Four inspection phases, a report at each, and a form after final
+
+He states TDI requires **four inspection phases**, a report at each, and
+**WPI-2** after the final one.
+
+**For a future windstorm protocol, not for 254-RC-001.** The roof certification
+protocol is a single inspection of an existing roof, and section 2 of it says in
+terms that it does not cover windstorm inspections of ongoing construction.
+Folding a four phase scheme into it would be a change to a signed document.
+
+### 6. Retention, and the firm's floor is longer
+
+He states TDI requires **five years**. The firm's floor is **ten**, in
+`src/lib/retention-policy.ts`, pinned by `retention-audit`.
+
+**No conflict, and no change.** A floor above a requirement is the requirement
+met. Section 13 of 254-RC-001 makes ten a floor the engineer RAISES where rules
+or the liability policy require longer, so a shorter external requirement never
+lowers it. He also states product labels and evaluation reports are required,
+which is an evidence question for a future windstorm protocol rather than a
+retention one.
+
+### 7. AQI-1, AND IT HAS A DEADLINE
+
+He has **90 days from 2026-09-22** to submit form AQI-1. The operator has asked
+him to start.
+
+**That is 2026-12-21**, computed rather than counted: 8 days to the end of
+September, 31 in October, 30 in November, 69 used, 21 into December.
+
+**NOT BUILT. Operator instruction, 2026-09-23.** A dated item that goes red if
+no submission is recorded by the deadline is exactly what the parks mechanism
+does, and the proposal for WHERE a submission would be recorded is in
+`docs/overnight-2026-09-23.md`. It is a proposal awaiting a ruling, because an
+expiry with nowhere to record the satisfying event can only ever expire.
+
 ## THE OVERNIGHT OF 2026-09-23 IS IN `docs/overnight-2026-09-23.md`
 
 Pointer entry, not a second copy. That report carries what was done, each
