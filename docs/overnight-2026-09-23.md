@@ -1051,3 +1051,168 @@ The measurement was run first anyway, because the alternative is merging with a
 red board and an unexamined FAIL, and "it cannot be us" is exactly the reasoning
 that lets a real regression through on the one occasion it is wrong.
 
+## 14. DESIGN, NOT BUILT: the operator's path to the first live charge and refund
+
+**Nothing in this section is built.** It is read against the code rather than
+drawn against a description, per section 2c, and every claim below names the
+file it was read from.
+
+### The deadlock, stated exactly
+
+| Step | Blocked by |
+| --- | --- |
+| A charge needs an order | `startCheckout` in `ops-payments.ts:89` works from an order row |
+| An order needs the gate open | `orderBlockedReason` refuses in `prelaunch` and `trading` |
+| The gate opens on the `stripe` condition | `openBlockers()` in `launch.ts` |
+| The `stripe` condition needs a charge AND its refund | `stripeAccount.proof` in `launch-readiness.ts:68` |
+
+Four steps, and the fourth points at the first. Nothing in the platform can
+break it, because every door into an order consults the gate: the web flow, the
+v1 API, bulk ordering, and `ops-intake` at both call sites.
+
+### What the path must satisfy
+
+The operator's four requirements, each with where it lands in the code:
+
+1. **A real charge**, so `stripe().checkout.sessions.create` in
+   `payments-stripe.ts:89` runs against the live key.
+2. **A real webhook**, so `charge.refunded` at `webhook/route.ts:203` and
+   `checkout.completed` at `:88` are both exercised by Stripe calling us, which
+   is the half `stripe-webhook-audit` cannot prove from inside.
+3. **A real refund**, because the refund grammar, the disclosed inspection fee
+   and the full refund where nobody attended, is worth nothing until the path
+   has run once.
+4. **Usable only by his authenticated account**, and **leaving a record the
+   `stripe` condition reads.**
+
+### The design
+
+**One route, `POST /api/portal/stripe-proof`, and FOUR independent conditions,
+every one of which must hold.** Four rather than one because this route creates
+an order without asking the gate, which is a capability that must not exist for
+anybody else even for a moment.
+
+| Condition | Why it is not enough on its own |
+| --- | --- |
+| A full ops session, MFA complete | Every staff member has one |
+| The `payments.charge` grant | The administrator role holds it, `ops-authz.ts:416` |
+| The caller's email equals a name in CONFIGURATION | This is the identity binding. Same shape as `MFA_BREAK_GLASS`: one named account, not a role |
+| `stripeAccount.proof` is still `null` | **The route deletes itself.** Once the proof exists the path is dead, so the window is one use wide |
+
+**Plus three narrowing rules**: the amount is capped in the source at a figure
+this file recommends as **$1.00**, which is above Stripe's fifty cent floor and
+below anything worth stealing; every attempt, refused or not, writes to
+`eng_audit_events`; and the order row is marked as a demonstration record the
+way probe accounts are, so `demo-audit`'s existing sweep keeps it out of every
+figure on every screen.
+
+### It does NOT write its own proof, and that is the load bearing decision
+
+The run finishes by **printing** the four values `stripeAccount.proof` wants:
+`chargeId`, `refundId`, `on`, `amountCents`. The operator pastes them into
+`src/config/launch-readiness.ts` in a commit.
+
+**A platform that writes its own gate condition is a gate with one home.** The
+whole design of `LAUNCH_CONDITIONS` is that every condition is read from
+configuration "so the flip is impossible until each is stated true in a file
+somebody edits on purpose". A route that could set `proof` would be a route that
+opens the compliance gate, which is precisely the thing this repository refuses
+to let any process do without a deploy and an audit trail.
+
+**And the pasted claim is then checkable rather than trusted.**
+`stripe-webhook-audit` already talks to the account behind `STRIPE_SECRET_KEY`.
+It gains a live check that the recorded `chargeId` and `refundId` exist in that
+account, for that amount, on that date. So the config says what happened and
+something other than the config agrees, which is the rule about declarations.
+
+### The hazard this opens, asked the way the 2026-09-13 ruling says to ask it
+
+Not "does the old defect get caught" but **what does the new code make possible
+that the old code did not.** It makes possible an order that never consulted the
+compliance gate. That is the exact capability the gate exists to remove.
+
+So the checks to write against the NEW code, before it is built:
+
+- a caller with a full session and `payments.charge` but the **wrong email** is refused, and refused before any Stripe call
+- a caller with the right email and **no MFA** is refused
+- the route is refused **once `proof` is non null**, which is the state it will be in for the rest of the firm's life
+- an amount above the cap is refused
+- the order it creates is **excluded from every figure**, asserted by pointing `demo-audit`'s existing sweep at it
+- nothing else in the repository can call the order-creating function it uses
+
+### What needs a ruling before anything is built
+
+1. **The amount.** Recommended $1.00.
+2. **Which account.** The email to bind, and whether it lives in
+   `launch-readiness.ts` beside the condition or in its own record.
+3. **Whether the charge is against a real deliverable or a proving line.**
+   Recommended: a proving line, so no catalogue price is involved and no report
+   can mistake it for revenue.
+4. **Whether the refund goes through `cancelAndRefund`** at
+   `ops-payments.ts:1118`, which exercises the real operator path, **or the
+   provider directly.** Recommended `cancelAndRefund`, because exercising the
+   real path is the point.
+
+## 15. DESIGN, NOT BUILT: insurance and technician training as gate conditions
+
+### Insurance
+
+**Nothing in this repository records the firm's insurance.** Checked rather than
+assumed: every match for "insurance" under `src/config` and `src/lib` is either
+a technician's own cover in `ops-credentials.ts:241` and `:242`, a form field,
+or an email template. There is no firm policy anywhere.
+
+**The design mirrors `verifiedFirmRegistrations` exactly**, because that record
+already solves this problem for a credential the firm holds: a declared entry
+with carrier, policy number, coverage limits, effective date and **expiry**, and
+an `activeInsurance()` deriver beside `activeFirmRegistration()`.
+
+**`expires: null` is refused.** That is the 2026-09-16 ruling about an engineer's
+licence with no recorded expiry: an unknown is a different state from current,
+and for a condition that gates taking money the unknown answer is the shut one.
+
+**Which state it gates is a ruling, and my recommendation is `open`.** Trading is
+quoting and enquiries. `open` is the firm taking money for sealed engineering
+work, which is when a claim becomes possible.
+
+**One thing I will not state as fact.** Whether TBPELS requires professional
+liability cover for a registered firm is **not something I have verified**, and I
+am not going to infer it. It must be confirmed with the board or with counsel
+before anybody relies on a sentence about it, and until then this condition is a
+business decision rather than a regulatory one.
+
+### Technician training
+
+**The shape it should NOT take is a global condition.** One untrained technician
+would shut every service line, which is both wrong and the kind of blunt
+instrument somebody eventually works around.
+
+**It follows the protocol, which is already per line.** `serviceLineIsOffered`
+gates each line on its own approved protocol. Training joins it: a line is
+offered when its protocol is approved **and** every technician who can be
+dispatched on it has been recorded as trained on that protocol version.
+
+**The version matters and is the part worth designing carefully.** 254-RC-001 is
+at v1.0. A technician trained on v1.0 is not thereby trained on v1.1, and a
+record that does not carry the version will read as current for ever. The record
+is keyed on `(profile, protocol, version)`.
+
+**Where it is recorded, and the tension.** Launch conditions read configuration
+by design. Training is per person and belongs in the database beside
+`eng_credentials`. The honest resolution is the one the Stripe console record
+already uses: **a dated, attributed attestation in configuration, asserted
+against something the repository owns.** The attestation says training is
+complete as of a date; a check compares it against the dispatchable technicians
+and the offered lines in the database and goes red when somebody is added who is
+not covered. The attestation alone would go stale silently, which is the defect
+the declared inventory idiom exists to prevent.
+
+### What needs a ruling
+
+1. Whether insurance gates `trading` or `open`. Recommended `open`.
+2. Whether a lapsed policy shuts the gate immediately or raises an alert.
+   Recommended: shuts it, same as an expired registration.
+3. Whether training blocks a LINE or blocks DISPATCH of a given technician.
+   Recommended: blocks dispatch of that technician on that line, and blocks the
+   line only when it would leave nobody able to perform it.
+

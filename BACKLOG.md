@@ -240,6 +240,49 @@ pointer is a second copy, and it was wrong for two of them once already.
   ruling rather than something built.
 - Self service sign up, reported on and not touched.
 
+## THE PRODUCTION SITTING OF 2026-09-24 IS IN `docs/production-sitting-2026-09-24.md`
+
+Pointer entry, not a second copy. That document carries the checklist in order,
+what the operator runs and what the session runs, and the two questions that
+must be answered before it starts.
+
+**The one thing worth reading here rather than there**, because it changes what
+the sitting IS: the third item was asked for as a secret ROTATION, and
+`src/config/credential-inventory.ts` describes a SPLIT with Production
+untouched. For `MFA_ENCRYPTION_KEY` that is the whole safety margin, because
+every enrolment's ciphertext is under the current value and changing it presents
+as a wrong code on a working phone. That is the 2026-09-13 lockout.
+
+**Its open items**, each explained there:
+
+- Whether "layer two" in Aman's approval means the database half of the approval
+  or the commit guard's unbuilt git hook.
+- Whether the secret work is a split or a genuine rotation.
+- `feat/0058-retired-protocol` is based on `cdb1508` and needs rebasing onto
+  `main` before it can be measured or merged.
+
+## TWO DESIGNS DELIVERED 2026-09-23, NEITHER BUILT, IN `docs/overnight-2026-09-23.md`
+
+Pointer entry. Sections 14 and 15 of that document.
+
+- **The operator's path to the first live charge and refund**, which breaks the
+  deadlock where a charge needs an order, an order needs the gate open, the gate
+  needs the `stripe` condition, and that condition needs a charge. Four
+  independent conditions on one route, and it deliberately does NOT write its
+  own proof: the operator pastes the identifiers into configuration, because a
+  platform that writes its own gate condition is a gate with one home. Four
+  rulings owed, listed there.
+- **Insurance and technician training as conditions.** Nothing in this
+  repository records the firm's insurance at all, checked rather than assumed.
+  Training follows the protocol per line and is keyed on the protocol VERSION,
+  because a technician trained on v1.0 is not trained on v1.1 and a record
+  without a version reads as current for ever. Three rulings owed.
+
+**One sentence in section 15 is deliberately not asserted**: whether TBPELS
+requires professional liability cover for a registered firm has not been
+verified and must be confirmed with the board or with counsel before anybody
+relies on it.
+
 ## `voice-audit` HAS NO LIST OF BRITISH WORDS, AND "RING" WAS FOUND BY A PERSON
 
 Operator ruling, 2026-09-23. **Proposed, not built.** The list below is a
