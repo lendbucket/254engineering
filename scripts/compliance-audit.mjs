@@ -1831,6 +1831,56 @@ const RULED_CONDITIONS = [
   ];
   const ISSUED = [/Texas registered engineering firm/i, /TBPELS Firm Registration F-/i];
 
+  /*
+   * ===========================================================================
+   * THE ROOTS ARE DERIVED FROM tsconfig, NOT TYPED. Operator ruling, 2026-09-23.
+   * ===========================================================================
+   *
+   * WHAT THIS SWEEP MISSED, AND IT WAS LIVE ON THE DEPLOYMENT. It walked "src"
+   * and nothing else. `orderBlockedReason` lives in `data/catalog.ts`, outside
+   * it, and returned "The firm's registration with the Texas Board of
+   * Professional Engineers and Land Surveyors is pending" whenever the firm was
+   * not OPEN, which includes TRADING, where the registration is active. The
+   * order page renders that string in its body.
+   *
+   * So this check passed, honestly, while the exact sentence it exists to
+   * forbid was being shown to visitors. A green audit is a green audit of the
+   * files it read, and a directory boundary is the filter nobody thinks of as
+   * one: the same shape as the untracked-file blind spot CLAUDE.md records,
+   * with a path in place of a git index.
+   *
+   * WHY tsconfig AND NOT A WIDER TYPED LIST. A second typed list rots the same
+   * way the first did, and the operator's instruction was to derive it from
+   * what the app imports. `compilerOptions.paths` is exactly that: every alias
+   * the application can import through, declared in one place the build already
+   * reads. Today it yields `src` and `data`. A third alias is covered the day
+   * somebody adds it, without anybody remembering this file exists.
+   *
+   * `scripts/` is deliberately NOT swept. It is not an alias target and nothing
+   * in it renders to a visitor; its text is checks about copy rather than copy.
+   */
+  /*
+   * PARSED RAW, WITH NO COMMENT STRIPPING, AND THAT IS A CORRECTION.
+   *
+   * The first version ran the text through a block comment regex first, in case
+   * tsconfig carried comments. The alias keys are `"@/*"` and `"@data/*"`, so
+   * that regex matched the `/*` INSIDE a string literal and ate the rest of the
+   * file: "Expected ':' after property name at line 26".
+   *
+   * A matcher whose window is wider than the thing it matches, introduced in
+   * the change that was fixing another one. This file parses as plain JSON, and
+   * a JSON parser is the thing that knows a string from a comment.
+   */
+  const tsconfig = JSON.parse(readSource("tsconfig.json"));
+  const aliasRoots = [
+    ...new Set(
+      Object.values(tsconfig.compilerOptions?.paths ?? {})
+        .flat()
+        .map((p) => String(p).replace(/^\.\//, "").replace(/\/\*+$/, ""))
+        .filter((p) => p && !p.startsWith("..")),
+    ),
+  ].sort();
+
   const files = [];
   const walk = (dir) => {
     for (const name of readdirSync(dir)) {
@@ -1839,7 +1889,20 @@ const RULED_CONDITIONS = [
       else if (/\.(ts|tsx)$/.test(name)) files.push(full);
     }
   };
-  walk("src");
+  for (const root of aliasRoots) walk(root);
+
+  /*
+   * THE DERIVATION IS ASSERTED, because a paths block that stopped parsing, or
+   * an alias someone pointed outside the repository, would silently shrink this
+   * sweep back to nothing and the check below would pass over it.
+   */
+  rec(
+    "the directories this sweep reads are derived from tsconfig rather than typed",
+    aliasRoots.length >= 2 && aliasRoots.includes("src") && aliasRoots.includes("data"),
+    aliasRoots.length
+      ? `${aliasRoots.join(", ")}, from compilerOptions.paths`
+      : "no alias roots resolved, so this sweep would read nothing",
+  );
 
   const launchExempt = (file, text) => {
     if (file !== "src/lib/launch.ts") return text;
@@ -1859,7 +1922,7 @@ const RULED_CONDITIONS = [
   rec(
     "the sweep had source to read",
     files.length > 100,
-    `${files.length} .ts and .tsx files under src (if this were zero the check below would pass over nothing)`,
+    `${files.length} .ts and .tsx files under ${aliasRoots.join(" and ")} (if this were zero the check below would pass over nothing)`,
   );
   rec(
     hasActive
