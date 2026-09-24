@@ -238,6 +238,24 @@ export type ApprovedProtocol = {
  *
  * APPROVED IN HIS OWN ACCOUNT, and nobody else's. The operator's standing
  * instruction is that no one signs in as the engineer for any purpose.
+ *
+ * LAYER TWO WAS RUN AGAINST PRODUCTION ON 2026-09-23 AND PASSED, 8 checks:
+ * "The register says what the row says." Run by the operator on his own
+ * machine with the production key, which never entered the session that wrote
+ * this entry.
+ *
+ * THAT RUN IS WHAT MAKES THIS ENTRY EVIDENCE RATHER THAN A CLAIM. Layer one,
+ * on every board, proves the entry is coherent with the service list, the
+ * transcribed document and the engineer register, and it would pass just as
+ * happily over an approval that never happened. Only the comparison against
+ * the ROW can tell those apart, and it needs a credential, so it is a script
+ * somebody runs rather than a check that runs itself.
+ *
+ * IT IS RUN AGAIN BEFORE LAUNCH_MODE GOES LIVE, and that second run is not
+ * ceremony. A protocol can be superseded, retired, or approved again at a new
+ * version, and every one of those changes the row while leaving this file
+ * exactly as it is. A register that was true in September is not thereby true
+ * in November.
  */
 export const approvedProtocols: ApprovedProtocol[] = [
   {
