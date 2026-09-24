@@ -1417,11 +1417,32 @@ statement, beside a real outstanding balance of $1,275.00.** The comment above
 the statements read names this exact outcome as the thing the read was written
 to prevent.
 
-**THE TRIGGER IS THE ACCOUNT COUNT AND PRODUCTION'S IS NOT KNOWN HERE.**
-Development holds 529. Below roughly 350 accounts every figure on this screen is
-right; above it every figure is wrong, silently, with no warning and no error on
-the page. Whether production is over that line today is a question this session
-has no access to answer, and it is the first thing to check in the next sitting.
+**THE TRIGGER IS THE ACCOUNT COUNT.** Development holds 529. Below roughly 350
+accounts every figure on this screen is right; above it every figure is wrong,
+silently, with no warning and no error on the page.
+
+**ANSWERED THE SAME DAY: IT WAS NEVER LIVE ON PRODUCTION.** Operator read,
+2026-09-24, read only from outside the session: production's
+`eng_customer_accounts` holds **zero rows**. Confirmed against the code rather
+than taken on the name: that is the table `accountRows` reads first, at
+`ops-accounts-admin.ts:90`, and all four `.in()` filters are built from
+`accounts.map(a => a.id)`. With no rows the function returns at
+`if (!accounts.length)` before a single oversized request is issued. The cliff
+was not under its threshold on production; it was **unreachable**.
+
+**Which is exactly why it was fixed rather than deferred.** A defect that is
+dormant because a table is empty is the shape this repository has been bitten by
+twice in one week: the PE licence number, harmless while the register held
+nothing, and `sealingIsAvailable()`, correct until the first protocol was
+approved. The first real customer account is what makes this live, and the firm
+is working to have one.
+
+**FIXED 2026-09-24** on `fix/the-accounts-cliff`. Chunked at
+`IN_FILTER_CHUNK = 150`, `accountBalance` taken out of the loop into a bulk read
+sharing one `balanceFrom`, and a failed read returns an absence the screen
+renders as reasons. Profiled before and after: 117979 to 121079ms with 529 of
+529 unnamed, against 1930 to 2866ms with none unnamed. The aggregate is recorded
+in the source as the larger option with what it would cost.
 
 **Recommended, in order.** Take `accountBalance` out of the loop. Chunk the four
 `.in()` reads, or replace the counts with an aggregate the database computes.
