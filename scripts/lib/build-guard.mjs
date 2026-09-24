@@ -178,6 +178,66 @@ export function classifyOwnerCandidate(command, needle) {
   return Boolean(scriptMatch) || c.includes(needle);
 }
 
+/**
+ * =============================================================================
+ * PLACE A SERVER BY ASKING WHO OWNS IT. Operator ruling, 2026-09-24.
+ * =============================================================================
+ *
+ * `classifyNextProcess` can say `foreign` only from an ABSOLUTE path to another
+ * checkout's next binary. A server started as `node node_modules/next/dist/bin/
+ * next start -p 3155` has a RELATIVE path, so it is unplaceable from its own
+ * command line and is reported as `unknown`, which blocks.
+ *
+ * WHAT THAT COST, on 2026-09-24. A board on this repository refused twice. The
+ * second refusal named:
+ *
+ *     PID 19288  next start -p 3155
+ *       OWNED BY PID 5492 (e2e-chain.mjs)
+ *       node --require C:\Users\salon\projects\wattsmith\node_modules\tsx\...
+ *
+ * The guard had already resolved the owner and PRINTED its command line, which
+ * names another checkout in plain text, and used that only to say which pid to
+ * kill. It held the evidence to place the server and did not use it. Port 3151
+ * and 3155 are nowhere near this repository's audit range of 3223 to 3229.
+ *
+ * SO THE OWNER'S COMMAND LINE IS EVIDENCE ABOUT THE CHILD. A checkout root is
+ * derived from any absolute path running through a `node_modules` directory,
+ * which is the one shape that positively identifies where a process was
+ * launched from. If every root found belongs to somewhere else, and none is
+ * ours, the server is foreign.
+ *
+ * IT IS NOT AN ALLOWLIST AND NAMES NO PROJECT. wattsmith appears nowhere in
+ * this file. The test is "a checkout that is not this one", which stays true
+ * for a project nobody has heard of yet.
+ *
+ * THE RISK, STATED RATHER THAN WAVED AT. Placing a server as foreign means it
+ * no longer blocks, and a wrong placement would let a build run under a live
+ * server of OURS and produce a torn artifact. Three things bound it: the
+ * evidence has to be an absolute path through node_modules, the owner must not
+ * mention this repository anywhere, and a placed server is still PRINTED so a
+ * person can see what was set aside and why. The guard reports; it never kills
+ * on its own.
+ */
+export function placeByOwner(ownerCommand, needle) {
+  if (!ownerCommand || !String(ownerCommand).trim()) return "unknown";
+
+  const c = String(ownerCommand).toLowerCase().replace(/\\/g, "/");
+  if (c.includes(needle)) return "ours";
+
+  /*
+   * Every absolute path that runs through a node_modules directory. The text
+   * before it is where that process was launched from, which is the only part
+   * of an arbitrary command line that positively names a checkout.
+   */
+  const roots = new Set();
+  for (const m of c.matchAll(/(?:file:\/\/\/)?((?:[a-z]:\/|\/)[^"'\s]*?)\/node_modules\//g)) {
+    roots.add(m[1].replace(/^\/+/, "/"));
+  }
+
+  if (roots.size === 0) return "unknown";
+  return [...roots].every((r) => r !== needle) ? "foreign" : "ours";
+}
+
 function ownerOf(pid) {
   const parentPid = parentPidOf(pid);
   if (!parentPid) return null;
@@ -409,7 +469,32 @@ export function findBlockers() {
     e.command = commandLineOf(e.pid) || "(command line unavailable)";
     e.owner = ownerOf(e.pid);
   }
-  return [...byPid.values()].sort((a, b) => a.pid - b.pid);
+
+  /*
+   * PLACED BY THEIR OWNER, AND SET ASIDE. See placeByOwner above.
+   *
+   * Only a process whose ONLY reason is that it could not be placed is eligible.
+   * One holding an audit port keeps blocking whatever its owner says, because a
+   * port in this repository's own range is a conflict regardless of whose server
+   * it is: two servers cannot both have 3225.
+   */
+  const placed = [];
+  const blockers = [];
+  for (const e of [...byPid.values()].sort((a, b) => a.pid - b.pid)) {
+    const onlyUnplaceable =
+      e.ports.length === 0 &&
+      e.reasons.length === 1 &&
+      e.reasons[0].startsWith("a next server whose repository could not be established");
+
+    if (onlyUnplaceable && e.owner && placeByOwner(e.owner.command, repoRoot.toLowerCase().replace(/\\/g, "/")) === "foreign") {
+      placed.push({ ...e, placedAs: "foreign", placedBy: e.owner.pid });
+      continue;
+    }
+    blockers.push(e);
+  }
+
+  blockers.placed = placed;
+  return blockers;
 }
 
 /**
@@ -465,7 +550,25 @@ export function assertClearToBuild({ kill = false, label = "build" } = {}) {
   if (inCiOrDeploy()) return { skipped: true, blockers: [] };
 
   let blockers = findBlockers();
-  if (blockers.length === 0) return { skipped: false, blockers: [] };
+
+  /*
+   * SAY WHAT WAS SET ASIDE, ALWAYS, INCLUDING WHEN NOTHING BLOCKS.
+   *
+   * A placement that is silent is a guard quietly deciding not to protect
+   * something, which is worse than the refusal it replaces: a wrong placement
+   * would let a build run under a live server of ours. Printed, it is one line
+   * a person can disagree with. This is the same rule the audits follow about
+   * saying which world they measured.
+   */
+  for (const p of blockers.placed ?? []) {
+    console.error(
+      `[build-guard] PID ${p.pid} placed as FOREIGN by its owner (PID ${p.placedBy}) and is not blocking.\n` +
+        `              ${p.command}\n` +
+        `              owner: ${p.owner?.command ?? "(unknown)"}`,
+    );
+  }
+
+  if (blockers.length === 0) return { skipped: false, blockers: [], placed: blockers.placed ?? [] };
 
   if (kill) {
     console.error(`\n[build-guard] ${blockers.length} process(es) holding .next or an audit port:`);
