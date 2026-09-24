@@ -1158,9 +1158,42 @@ check in this repository can see. `CUSTOMER_SESSION_SECRET` was set for All
 Environments, so a customer cookie minted on any preview deployment was valid on
 production, and a preview URL is reachable by anybody holding the link.
 `PARTNER_SESSION_SECRET` and `MFA_ENCRYPTION_KEY` shared one value across
-Production and Preview. `OPS_SESSION_SECRET` was already split, which is what
-made the other three legible as a defect rather than as a configuration: the
-correct pattern existed and had been applied to one principal of three.
+Production and Preview. `OPS_SESSION_SECRET` was said to be already split, which
+is what made the other three legible as a defect rather than as a configuration:
+the correct pattern existed and had been applied to one principal of three.
+
+**THAT LAST SENTENCE WAS FALSE, AND IT WAS FALSE ON THE DAY IT WAS WRITTEN.**
+Operator finding, 2026-09-24, read from Vercel's own environment list.
+`OPS_SESSION_SECRET` is ONE entry targeting BOTH Preview and Production, and so
+is `OPS_UNLOCK_TOKEN`. It was never split. The principal with the most authority
+of the four had the same sharing as the other three, for twelve days, while this
+file and `credential-inventory.ts` both said it did not.
+
+**HOW IT SURVIVED IS THE PART TO CARRY, AND IT IS NOT A READING ERROR.** The
+2026-09-12 read found the variable **absent from the list** and recorded
+`"unknown"` honestly in the data. The prose beside it then asserted it was
+correctly split. That sentence was never a reading: it was the PREMISE OF THE
+ARGUMENT being made about the other three, written because the argument needed a
+control, and it was believed afterwards because it was written down. One entry
+said unknown in its fields and already-right in its prose, and every later reader
+took the prose. It propagated into this file and into `docs/soc2-readiness.md`
+exactly as the "Reyna Pay" sentence did a day earlier, and for the same reason:
+nobody re-derived it.
+
+**AND `soc2-audit` HAD THE CHECK THE WHOLE TIME.** It carries a named assertion,
+"and the staff session secret is not one of them", written for precisely this
+hazard. It passed every run for twelve days because it reads the declaration,
+and the declaration was wrong. **A check derived from a declaration is exactly as
+true as the declaration**, which is the reason this section exists at all: the
+record is the thing a person has to re-read against the world, and the board can
+only ever enforce agreement with it. Correcting the record turned three checks
+red on the same run.
+
+**The general form, now stated as a rule about this file rather than about
+Vercel: a claim written to serve an argument is not an observation, and the two
+are indistinguishable once they are on the page.** An entry whose DATA says
+unknown and whose PROSE says settled is the tell, and the data is the half that
+was actually read.
 
 The declaration now records which environments each credential lives in and
 whether a Preview value is distinct, and `soc2-audit` asserts that no secret
@@ -1176,7 +1209,8 @@ by opening it.**
 | When | Console | What was found |
 | --- | --- | --- |
 | 2026-09-12 | Vercel | `CUSTOMER_SESSION_SECRET` on All Environments, so a cookie minted on any preview was valid on production |
-| 2026-09-12 | Vercel | `PARTNER_SESSION_SECRET` and `MFA_ENCRYPTION_KEY` shared across Production and Preview, while `OPS_SESSION_SECRET` was already split |
+| 2026-09-12 | Vercel | `PARTNER_SESSION_SECRET` and `MFA_ENCRYPTION_KEY` shared across Production and Preview, while `OPS_SESSION_SECRET` was BELIEVED split and was not |
+| 2026-09-24 | Vercel | `OPS_SESSION_SECRET` and `OPS_UNLOCK_TOKEN` are each ONE entry targeting Preview AND Production. The staff session secret was never split, and nothing in this repository could see it |
 | 2026-09-16 | Stripe | The account's public business name and statement descriptor, both CUSTOMER FACING, naming the firm on a checkout page and a card statement, outside `firmName()` and outside this repository |
 
 **The answer is the same every time, and that is what makes it a rule: a
@@ -2977,6 +3011,66 @@ and the verification was looking where a failure does not show.
   **So the question to ask is not only "does this fact have two homes today".**
   It is "will it, the first time somebody fills in the empty one". A register
   with nothing in it hides this defect perfectly.
+
+  **SECOND INSTANCE, 2026-09-24, AND IT IS NOW A PATTERN RATHER THAN A STORY.**
+  Operator ruling. The same mechanism, one register later, and this time what
+  the empty register was hiding was not a drifting value but a COMPLIANCE
+  CLAIM.
+
+  `sealingIsAvailable()` was `peInResponsibleCharge() && approvedProtocols.length
+  > 0`, and it was written on 2026-09-17 for exactly this purpose: to stop six
+  rendered sentences flipping to the present tense when the engineer became
+  real. **It held for a week, and it held for one reason: `approvedProtocols`
+  was empty.** Aman approved 254-RC-001 on 2026-09-22, the register gained its
+  first entry, and all six sentences flipped on a site whose gate still reads
+  PRELAUNCH:
+
+      "Every opinion, letter, certification, and drawing is reviewed and sealed"
+      "Every deliverable is reviewed and sealed by a Texas licensed PE"
+      "A licensed Texas Professional Engineer reviews the record"
+
+  **The guard against the dormant register was itself dormant.** The session
+  that wrote it had enumerated the dependants of `peInResponsibleCharge()` and
+  found six; nobody enumerated the dependants of the register beside it.
+
+  **What caught it was the board, and nothing else could have.** `voice-audit`
+  went red with six findings across five routes including the home page,
+  `/services`, `/government` and `llms-full.txt`, and `partner-audit` went red
+  on four checks asserting a partner may not say work is being sealed. **Main
+  was never affected**, because main's register is still empty, so the live site
+  never made the claim and the defect was latent on the branch that introduces
+  the entry. That is the board doing the one thing verification cannot: testing
+  what its author did not think of.
+
+  **THE FIX IS THE MISSING CONJUNCT, AND THE DISTINCTION IS THE LESSON.** Being
+  able to seal and being allowed to SAY SO are two facts. The function answered
+  the first while three rendered sentences read it for the second, which is the
+  same shape as `peInResponsibleCharge()` being read to answer "can the firm
+  seal" in 2026-09-17. **A predicate that is one conjunct short does not fail;
+  it answers a slightly different question, correctly, for ever.**
+
+  `isTrading()` joins it, and `sealingIsAvailableFor(serviceSlug)` is added
+  beside it for the narrower claim, because "is ANY protocol approved" is the
+  right question for a sentence about what the firm ISSUES and the wrong one for
+  a sentence about a particular deliverable: one approved line out of eleven
+  would otherwise license a present tense sealing claim on the ten that seal
+  nothing. **"Every" stays**, on the operator's ruling: it describes what the
+  firm issues, and everything it issues is sealed.
+
+  Proved by `scripts/proofs/an-approved-register-does-not-open-the-copy.mjs`,
+  which asserts the PREMISE first, because the whole proof is about a state and
+  one that does not check it is in that state would print green over the very
+  hole it closes. Injection-verified twice and read for which checks went red:
+  removing `isTrading()` from the sitewide predicate turns four red, the
+  predicate and all three sentences, each printing the present tense text it
+  would have rendered; removing it from the line level predicate turns exactly
+  one red, the approved line, while the unapproved line correctly stays green.
+
+  **THE GENERAL FORM, now with two instances behind it. Every empty register in
+  this repository is a guard that has never been exercised.** Ask of each one:
+  what becomes TRUE the first time somebody fills it in, and which sentences
+  read the predicate that changes. The answer is not reachable by testing today,
+  because today the register is empty and everything passes.
 
   The answer each time: one home, a deriver that reads it, and a check that
   refuses the second home coming back. Here `activeEngineer()` mirrors

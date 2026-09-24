@@ -57,11 +57,32 @@ export const selfServiceSignUp: {
   cleared: false,
   clearedBy: null,
   clearedOn: null,
+  /*
+   * CORRECTED 2026-09-24, BECAUSE THE REASON HAD OUTLIVED THE WORLD IT
+   * DESCRIBED. Operator ruling.
+   *
+   * It read that the three identity secrets "stay shared with Preview: that
+   * risk was weighed and accepted", and closed on the consequence that a
+   * customer session signed on a preview is accepted by production. The
+   * operator unticked Preview on CUSTOMER_SESSION_SECRET and
+   * PARTNER_SESSION_SECRET on 2026-09-24, so the sentence a reader gets when
+   * this gate refuses was describing a sharing that no longer exists.
+   *
+   * THE CONDITION DID NOT MOVE, AND THAT IS THE DESIGN WORKING RATHER THAN A
+   * COINCIDENCE. Its first version ran off the sharing state, which meant
+   * lifting one would silently have lifted the other. It was deliberately
+   * separated so that accepting, or removing, a risk could not clear a feature
+   * nobody had cleared. Removing the sharing therefore removes the risk this
+   * reasoning cited and changes this condition not at all.
+   *
+   * WHAT IS STILL TRUE is the part that was always the real reason: nobody has
+   * decided that anybody may create an account on this platform.
+   */
   because:
-    "Phase 13 built the three doors and the operator has not cleared the public one for production. It is " +
-    "held separately from the ruling of the same day that the three identity secrets stay shared with " +
-    "Preview: that risk was weighed and accepted, and this is a decision nobody has made yet. A customer " +
-    "session signed on a preview deployment is accepted by production, and self service sign up is what " +
-    "turns that from a risk about accounts the operator created into a risk about accounts anybody can " +
-    "create.",
+    "Phase 13 built the three doors and the operator has not cleared the public one for production. " +
+    "Nobody has decided that anybody may create an account on this platform, which is a decision about " +
+    "who the firm does business with rather than about a secret. The preview sharing that the earlier " +
+    "version of this sentence cited was ended on 2026-09-24, when CUSTOMER_SESSION_SECRET and " +
+    "PARTNER_SESSION_SECRET were unticked from Preview; that removed the risk it named and left this " +
+    "condition exactly where it stood, which is what holding the two decisions apart was for.",
 };
