@@ -1,5 +1,6 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase";
+import { can, type Action, type Actor } from "./ops-authz";
 import { isKnown, money, type Cents } from "./ops-money";
 import { type FigureScope } from "./reporting-scope";
 import { twiaStatus } from "./ops-counties";
@@ -169,6 +170,30 @@ export function pageOfRows(rows: FigureRow[], page: number): {
   return { shown: rows.slice(from, to), page: current, pages, from, to };
 }
 
+/**
+ * WHO IS ASKING, BECAUSE ONE OF THESE REPORTS IS ABOUT PEOPLE'S PAY.
+ *
+ * Not the full Actor: exactly the three fields an answer needs, which is the
+ * same reason AuthzSubject exists one module over. `id` is here and `role` is
+ * not, because the question this decides is "whose rows" and the answer is an
+ * id. A check that read the role would be comparing against a row somebody can
+ * rename.
+ */
+export type ReportReader = Pick<Actor, "id" | "grants" | "status"> | null;
+
+/**
+ * WHOSE WORK THE FIGURES WERE COMPUTED OVER.
+ *
+ * The second dimension of the same fact `scope` carries, and it is here for
+ * the identical reason: a report that is read, exported and quoted has to say
+ * what it covers, or the manifest states a thing the file is not.
+ *
+ * `scope` answers "real records, or demonstrations as well". This answers
+ * "the whole firm, or one person's own work", and they are independent: an
+ * engineer's own production including demonstrations is a coherent request.
+ */
+export type ReportCoverage = "the firm" | "the reader's own work";
+
 export type Report = {
   key: "revenue" | "production" | "pipeline" | "partner";
   title: string;
@@ -194,6 +219,13 @@ export type Report = {
    * no second place to say it.
    */
   scope: FigureScope;
+  /**
+   * Set by the builder that applied it, exactly as `scope` is, and required
+   * rather than defaulted. A default would be "the firm", which is the
+   * permissive label, and a builder that forgot would describe one engineer's
+   * own pay as the firm's production in a file somebody keeps.
+   */
+  covers: ReportCoverage;
   sections: ReportSection[];
   /** Anything the report could not compute, and why. Never silently omitted. */
   unavailable: string[];
@@ -261,6 +293,7 @@ export async function revenueReport(period = periodOf(), scope: FigureScope = "r
       title: "Revenue",
       period,
       scope,
+      covers: "the firm",
       sections: [],
       unavailable: ["The database is not configured, so no revenue figure could be computed."],
     };
@@ -284,6 +317,7 @@ export async function revenueReport(period = periodOf(), scope: FigureScope = "r
       title: "Revenue",
       period,
       scope,
+      covers: "the firm",
       sections: [],
       unavailable: [`Payments could not be read: ${error.message}`],
     };
@@ -304,6 +338,7 @@ export async function revenueReport(period = periodOf(), scope: FigureScope = "r
       title: "Revenue",
       period,
       scope,
+      covers: "the firm",
       sections: [],
       unavailable: [tooLarge("Payments in this period", count ?? 0)],
     };
@@ -395,6 +430,7 @@ export async function revenueReport(period = periodOf(), scope: FigureScope = "r
     title: "Revenue",
     period,
     scope,
+    covers: "the firm",
     unavailable,
     sections: [
       {
@@ -469,19 +505,60 @@ export async function revenueReport(period = periodOf(), scope: FigureScope = "r
  * Both are computed from the same ledger, so the gap is the firm's actual
  * exposure rather than an estimate.
  */
-export async function productionReport(period = periodOf(), scope: FigureScope = "real"): Promise<Report> {
+export async function productionReport(
+  period = periodOf(),
+  scope: FigureScope = "real",
+  reader: ReportReader = null,
+): Promise<Report> {
   const unavailable: string[] = [];
+
+  /*
+   * THE ENGINEER SEES NO MONEY EXCEPT HIS OWN PAY, AND THIS IS WHERE THAT
+   * RULING WAS HARDEST TO SEE. Operator ruling, 2026-09-24, CLAUDE.md 6b-i.
+   *
+   * `redactFile` closed the FILE. This report was the other half and it was
+   * wide open: the engineer holds reports.production, and the grant's own
+   * comment says it is theirs because "it describes their own work". It
+   * described everybody's. The "By engineer" section names every engineer in
+   * the firm beside what each of them earned, and the three figures above it
+   * are the firm's contractual exposure, which is not a wage at all.
+   *
+   * Fixing the section would have been the wrong repair. The figures are
+   * summed from ONE read, so a set filtered at the render has already been
+   * computed over rows this reader may not see, and the count, the ceiling
+   * check and the totals would all still be the firm's. So the READ is scoped,
+   * for the same reason is_demo is applied at the query a few lines down: a
+   * figure filtered on the way out has already been computed wrong.
+   *
+   * THE NULL READER IS REFUSED RATHER THAN TRUSTED. An unknown is not a pass,
+   * and this is the parameter most likely to be forgotten by a new caller. A
+   * default of "the firm" would make forgetting it invisible and permissive,
+   * which is the wrong direction for the one report that holds wages.
+   */
+  const firmWide = can(reader, "pricing.read");
+  const own = !firmWide && reader !== null && can(reader, "pricing.read_own_pay") ? reader.id : null;
+  const covers: ReportCoverage = firmWide ? "the firm" : "the reader's own work";
+
+  const refuse = (why: string): Report => ({
+    key: "production",
+    title: "Production",
+    period,
+    scope,
+    covers,
+    sections: [],
+    unavailable: [why],
+  });
+
+  if (!firmWide && own === null) {
+    return refuse(
+      "This report was asked for by nobody the platform could identify, or by somebody holding neither pricing.read nor pricing.read_own_pay, so no figure about anybody's pay was computed.",
+    );
+  }
+
   const client = db();
 
   if (!client) {
-    return {
-      key: "production",
-      title: "Production",
-      period,
-      scope,
-      sections: [],
-      unavailable: ["The database is not configured, so no production figure could be computed."],
-    };
+    return refuse("The database is not configured, so no production figure could be computed.");
   }
 
   /*
@@ -496,18 +573,13 @@ export async function productionReport(period = periodOf(), scope: FigureScope =
     .select("engineer_id, decision, amount_cents, status, period, eng_profiles!inner(display_name, is_demo)", { count: "exact" })
     .eq("period", period);
   if (scope !== "including_demonstrations") q = q.eq("eng_profiles.is_demo", false);
+  /* Whose rows, decided at the read. See the block at the top of this builder. */
+  if (own !== null) q = q.eq("engineer_id", own);
 
   const { data, count, error } = await q;
 
   if (error) {
-    return {
-      key: "production",
-      title: "Production",
-      period,
-      scope,
-      sections: [],
-      unavailable: [`The production ledger could not be read: ${error.message}`],
-    };
+    return refuse(`The production ledger could not be read: ${error.message}`);
   }
 
   /*
@@ -520,14 +592,7 @@ export async function productionReport(period = periodOf(), scope: FigureScope =
    * whole set, none of them can be stated.
    */
   if ((count ?? 0) > (data ?? []).length) {
-    return {
-      key: "production",
-      title: "Production",
-      period,
-      scope,
-      sections: [],
-      unavailable: [tooLarge("Production ledger entries in this period", count ?? 0)],
-    };
+    return refuse(tooLarge("Production ledger entries in this period", count ?? 0));
   }
 
   type Row = {
@@ -581,40 +646,74 @@ export async function productionReport(period = periodOf(), scope: FigureScope =
     });
   }
 
+  /*
+   * THE SCOPED REPORT IS NOT THE FIRM'S REPORT WITH ROWS TAKEN OUT.
+   *
+   * The three figures below are the firm's contractual exposure: what it owes
+   * under a signed agreement, what it pays under an unsigned amendment, and
+   * the gap. Recomputed over one engineer's rows they would be arithmetically
+   * correct and would still carry labels describing the firm's position, which
+   * is the defect the comment on Report.scope is about, one level in. They are
+   * ABSENT from the scoped report rather than narrowed.
+   *
+   * What an engineer is owed is one figure, and it is the second of the three:
+   * every completed review, whatever they decided. It is stated here under a
+   * label that says whose it is.
+   */
+  const firmSections: ReportSection[] = [
+    {
+      title: "What the firm owes for this period: the executed agreement beside the unsigned amendment",
+      figures: [
+        {
+          label: "Executed agreement, section 3.2",
+          value: sumRows(sealed.map(rowOf)),
+          kind: "money",
+          note: "SIGNED. Seals only, which is section 3.2 as the operator describes it. The agreement itself is not in this repository and nothing here quotes it.",
+          rows: sealed.map(rowOf),
+        },
+        {
+          label: "Unsigned amendment, which is what the platform already pays",
+          value: sumRows(priced.map(rowOf)),
+          kind: "money",
+          note: "UNSIGNED, AND NOT YET DRAFTED. Every completed review, whatever the engineer decided. This is the larger of the two and it is the one the ledger holds and the one that will be paid.",
+          rows: priced.map(rowOf),
+        },
+        {
+          label: "The gap between them",
+          value: sumRows(unsealed.map(rowOf)),
+          kind: "money",
+          note: "Paid under a term the executed contract does not contain. This is the firm's exposure, computed from the ledger's own decisions rather than estimated.",
+          rows: unsealed.map(rowOf),
+        },
+      ],
+    },
+    { title: "By engineer", figures: byEngineer },
+  ];
+
+  const ownSections: ReportSection[] = [
+    {
+      title: "What you earned in this period",
+      figures: [
+        {
+          label: "As the platform pays",
+          value: sumRows(priced.map(rowOf)),
+          kind: "money",
+          note: "Every completed review of yours in this period, whatever you decided. It is what the ledger holds against your name and what will be paid.",
+          rows: priced.map(rowOf),
+        },
+      ],
+    },
+  ];
+
   return {
     key: "production",
     title: "Production",
     period,
     scope,
+    covers,
     unavailable,
     sections: [
-      {
-        title: "What the firm owes for this period: the executed agreement beside the unsigned amendment",
-        figures: [
-          {
-            label: "Executed agreement, section 3.2",
-            value: sumRows(sealed.map(rowOf)),
-            kind: "money",
-            note: "SIGNED. Seals only, which is section 3.2 as the operator describes it. The agreement itself is not in this repository and nothing here quotes it.",
-            rows: sealed.map(rowOf),
-          },
-          {
-            label: "Unsigned amendment, which is what the platform already pays",
-            value: sumRows(priced.map(rowOf)),
-            kind: "money",
-            note: "UNSIGNED, AND NOT YET DRAFTED. Every completed review, whatever the engineer decided. This is the larger of the two and it is the one the ledger holds and the one that will be paid.",
-            rows: priced.map(rowOf),
-          },
-          {
-            label: "The gap between them",
-            value: sumRows(unsealed.map(rowOf)),
-            kind: "money",
-            note: "Paid under a term the executed contract does not contain. This is the firm's exposure, computed from the ledger's own decisions rather than estimated.",
-            rows: unsealed.map(rowOf),
-          },
-        ],
-      },
-      { title: "By engineer", figures: byEngineer },
+      ...(firmWide ? firmSections : ownSections),
       {
         title: "Decisions in the period",
         figures: (["seal", "revisions", "site_visit", "refuse"] as const).map((d) => {
@@ -623,7 +722,9 @@ export async function productionReport(period = periodOf(), scope: FigureScope =
             label: d === "refuse" ? "declined to seal" : d.replace("_", " "),
             value: mine.length,
             kind: "count" as const,
-            note: "Completed reviews recorded with this decision.",
+            note: firmWide
+              ? "Completed reviews recorded with this decision."
+              : "Your own completed reviews recorded with this decision.",
             rows: mine.map(rowOf),
           };
         }),
@@ -669,6 +770,7 @@ export async function pipelineReport(period = periodOf(), scope: FigureScope = "
       title: "Pipeline",
       period,
       scope,
+      covers: "the firm",
       sections: [],
       unavailable: ["The database is not configured, so no pipeline figure could be computed."],
     };
@@ -686,6 +788,7 @@ export async function pipelineReport(period = periodOf(), scope: FigureScope = "
       title: "Pipeline",
       period,
       scope,
+      covers: "the firm",
       sections: [],
       unavailable: [`Orders could not be read: ${error.message}`],
     };
@@ -706,6 +809,7 @@ export async function pipelineReport(period = periodOf(), scope: FigureScope = "
       title: "Pipeline",
       period,
       scope,
+      covers: "the firm",
       sections: [],
       unavailable: [tooLarge("Orders", count ?? 0)],
     };
@@ -873,6 +977,7 @@ export async function pipelineReport(period = periodOf(), scope: FigureScope = "
     title: "Pipeline",
     period,
     scope,
+    covers: "the firm",
     unavailable,
     sections: [
       { title: "Orders by state", figures: byState },
@@ -914,6 +1019,7 @@ export async function partnerReport(period = periodOf(), scope: FigureScope = "r
       title: "Partner",
       period,
       scope,
+      covers: "the firm",
       sections: [],
       unavailable: ["The database is not configured, so no partner figure could be computed."],
     };
@@ -951,6 +1057,7 @@ export async function partnerReport(period = periodOf(), scope: FigureScope = "r
       title: "Partner",
       period,
       scope,
+      covers: "the firm",
       sections: [],
       unavailable: [`Partner statements could not be read: ${error.message}`],
     };
@@ -971,6 +1078,7 @@ export async function partnerReport(period = periodOf(), scope: FigureScope = "r
       title: "Partner",
       period,
       scope,
+      covers: "the firm",
       sections: [],
       unavailable: [tooLarge("Partner statements in this period", count ?? 0)],
     };
@@ -1002,6 +1110,7 @@ export async function partnerReport(period = periodOf(), scope: FigureScope = "r
     title: "Partner",
     period,
     scope,
+    covers: "the firm",
     unavailable,
     sections: [
       {
@@ -1045,12 +1154,54 @@ export async function partnerReport(period = periodOf(), scope: FigureScope = "r
  * so a fifth report added without a check is a red board rather than a gap
  * somebody notices later.
  */
-export const REPORTS = [
+/**
+ * WHAT EVERY BUILDER MUST ACCEPT, SO A CALLER CANNOT FORGET WHO IS ASKING.
+ *
+ * Three of the four ignore the reader, and they are still typed to receive it.
+ * The alternative was for the registry to hold four different shapes and for
+ * every caller to discover, per report, whether this one takes an actor. That
+ * is a decision made at each call site, which is the shape this repository has
+ * been bitten by often enough to write down: the caller that forgets is the one
+ * nobody reviews.
+ *
+ * A function with fewer parameters is assignable to this, so the three that do
+ * not need a reader do not pretend to take one.
+ *
+ * ALL THREE PARAMETERS ARE REQUIRED HERE, THOUGH EVERY BUILDER DEFAULTS THEM.
+ * The first version of this type made the reader optional, and the whole
+ * repository typechecked clean with not one call site passing it, which is to
+ * say the change compiled while doing nothing. An optional parameter is a
+ * parameter the compiler will never remind anybody about, and this one decides
+ * whether somebody sees another person's wages.
+ */
+export type ReportBuilder = (
+  period: string,
+  scope: FigureScope,
+  reader: ReportReader,
+) => Promise<Report>;
+
+export type ReportEntry = {
+  key: Report["key"];
+  title: string;
+  action: Action;
+  build: ReportBuilder;
+};
+
+/*
+ * ANNOTATED RATHER THAN `as const`, AND THE ANNOTATION IS THE POINT.
+ *
+ * Under `as const` each entry's `build` keeps its own narrow signature, so
+ * `r.build(period, scope, reader)` over the union is a type error for the three
+ * that declare two parameters, and the way to make it compile is to stop
+ * passing the reader. The registry would have quietly taught every caller to
+ * drop the argument this change exists to add.
+ */
+export const REPORTS: readonly ReportEntry[] = [
   { key: "revenue", title: "Revenue", action: "reports.revenue", build: revenueReport },
   { key: "production", title: "Production", action: "reports.production", build: productionReport },
   { key: "pipeline", title: "Pipeline", action: "reports.pipeline", build: pipelineReport },
   { key: "partner", title: "Partner", action: "reports.partner", build: partnerReport },
-] as const;
+];
 
 export function formatFigure(f: Figure): string {
   if (f.value === null) return "not computed";

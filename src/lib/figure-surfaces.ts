@@ -86,7 +86,14 @@ export type FigureSurface = {
 /** A well formed uuid belonging to nobody, so a scoped count truthfully reads zero. */
 const NOBODY = "00000000-0000-4000-8000-000000000000";
 
-function actorFor(roleKey: string): Actor {
+/**
+ * An actor standing for a DEFAULT role, for a sweep that has no signed-in
+ * person. Exported since 2026-09-24 because the reports now ask who is reading,
+ * and demo-audit and reporting-audit both need to say. Two audits building this
+ * by hand would be one fact with three homes, which is this repository's most
+ * frequent defect.
+ */
+export function actorFor(roleKey: string): Actor {
   const role = DEFAULT_ROLES.find((r) => r.key === roleKey);
   return {
     id: NOBODY,
@@ -153,7 +160,19 @@ export const FIGURE_SURFACES: FigureSurface[] = [
     kind: "report" as const,
     expandable: true,
     figures: async (ctx: { period: string }) => {
-      const built = await r.build(ctx.period);
+      /*
+       * THE OWNER'S VIEW, STATED RATHER THAN DEFAULTED.
+       *
+       * This sweep exists to catch a demonstration record reaching a figure,
+       * so it must see every figure there is, which is the owner's report.
+       *
+       * What follows from that, and it is recorded rather than left implicit:
+       * an ENGINEER's production report is a different set of figures, and
+       * this sweep does not look at it. reporting-audit asserts that one
+       * separately, because a sweep of the widest view says nothing about a
+       * narrower one.
+       */
+      const built = await r.build(ctx.period, "real", actorFor("admin"));
       return built.sections.flatMap((s) =>
         s.figures.map((f) => ({
           surface: `report:${r.key}`,

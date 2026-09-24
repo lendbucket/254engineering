@@ -35,6 +35,16 @@ process.loadEnvFile?.(".env.local");
 import { readSource } from "./lib/read-source.mjs";
 import { REPORTS, ROWS_PER_PAGE, formatFigure, pageOfRows, periodOf } from "../src/lib/ops-reports.ts";
 import { LICENSED_FIGURES } from "../src/lib/ops-authz.ts";
+import { actorFor } from "../src/lib/figure-surfaces.ts";
+
+/*
+ * WHO THESE CHECKS READ AS, STATED ONCE.
+ *
+ * The reports ask who is reading since 2026-09-24, because the production one
+ * holds every engineer's pay. These checks are about the owner's report, so
+ * they say owner rather than passing null and measuring a refusal.
+ */
+const OWNER = actorFor("admin");
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -98,7 +108,7 @@ console.log("");
 
 {
   const period = periodOf();
-  const built = await Promise.all(REPORTS.map((r) => r.build(period)));
+  const built = await Promise.all(REPORTS.map((r) => r.build(period, "real", OWNER)));
 
   const figures = built.flatMap((r) =>
     r.sections.flatMap((s) => s.figures.map((f) => ({ ...f, report: r.key, section: s.title }))),
@@ -286,7 +296,7 @@ console.log("");
 
   const files = [];
   for (const r of REPORTS) {
-    const built = await r.build(period);
+    const built = await r.build(period, "real", OWNER);
     files.push({ key: r.key, built, body: reportCsv(built, by), name: exportFilename(built) });
   }
 
@@ -332,7 +342,7 @@ console.log("");
    */
   const measured = [...files];
   for (const r of REPORTS) {
-    const built = await r.build(period, "including_demonstrations");
+    const built = await r.build(period, "including_demonstrations", OWNER);
     measured.push({ key: `${r.key} (demonstrations)`, built, body: reportCsv(built, by) });
   }
 
@@ -653,9 +663,137 @@ console.log("");
   );
 }
 
+// --------------------------------- the engineer sees no money except his own
+
+/*
+ * THE PRODUCTION REPORT IS THE ONE THAT HOLDS WAGES. CLAUDE.md 6b-i.
+ *
+ * `redactFile` closed the file screen. This closes the report, and the
+ * property is not "an engineer cannot open it": they may, because it describes
+ * their own work and the grant is theirs for that reason. The property is that
+ * what they open holds their rows and nobody else's.
+ *
+ * WHY THIS CHECK IS NOT VACUOUS, WHICH IS THE PART THAT TOOK THE THINKING.
+ * Proving "somebody sees nothing" is trivially satisfiable by a broken query,
+ * an empty period or a database that did not answer, and all three produce the
+ * same green. So the check is a DIFFERENCE between two readers over one period:
+ * the owner must actually see a named engineer's earnings, and a reader who is
+ * not that engineer must not see that same row. If the owner's side is empty
+ * there is no subject, and this reports COULD NOT TELL rather than passing,
+ * because a green over an absent subject is the defect this file is full of.
+ *
+ * The subject is the standing demonstration engineer, which development has
+ * exactly one of and keeps forever, so nothing is seeded here and nothing is
+ * deleted. Scope is `including_demonstrations` for that reason and that reason
+ * only: it is the one scope in which a real engineer with real earnings is
+ * guaranteed to be in the set.
+ */
+const couldNotTell = [];
+
+{
+  const OTHER = actorFor("engineer");
+  const period = periodOf();
+  const production = REPORTS.find((r) => r.key === "production");
+
+  const ownerView = await production.build(period, "including_demonstrations", OWNER);
+  const engineerView = await production.build(period, "including_demonstrations", OTHER);
+  const nobodyView = await production.build(period, "including_demonstrations", null);
+
+  const rowsOf = (report) =>
+    report.sections.flatMap((s) => s.figures.flatMap((f) => (f.rows ?? []).map((row) => row.label)));
+
+  const ownerNames = [...new Set(rowsOf(ownerView))];
+
+  /*
+   * THE PREMISE, ASSERTED RATHER THAN ASSUMED.
+   *
+   * Everything below is a statement about a reader who may see their own pay
+   * and not the firm's. If the engineer role is ever granted pricing.read
+   * again, that reader becomes an owner, every check below would still pass
+   * for the wrong reason, and the leak would be back with a green board over
+   * it. So the grants that make this block mean anything are checked first.
+   */
+  rec(
+    "the engineer role may read its own pay and not the firm's",
+    OTHER.grants.has("pricing.read_own_pay") && !OTHER.grants.has("pricing.read"),
+    `pricing.read_own_pay ${OTHER.grants.has("pricing.read_own_pay")}, pricing.read ${OTHER.grants.has("pricing.read")}`,
+  );
+
+  if (ownerNames.length === 0) {
+    couldNotTell.push(
+      "the owner's production report named no engineer for this period, so there was no wage for a second reader to be refused; nothing was seeded to make one",
+    );
+  } else {
+    rec(
+      `the owner's production report names engineers (${ownerNames.length})`,
+      ownerNames.length > 0,
+      ownerNames.join(", "),
+    );
+
+    const leaked = rowsOf(engineerView).filter((label) => ownerNames.includes(label));
+    rec(
+      "and no other engineer's earnings appear on the report an engineer opens",
+      leaked.length === 0,
+      leaked.length
+        ? `an engineer reading production saw: ${[...new Set(leaked)].join(", ")}`
+        : `${ownerNames.length} engineer(s) visible to the owner, none to a reader who is not them`,
+    );
+  }
+
+  rec(
+    "the owner's production report says it covers the firm",
+    ownerView.covers === "the firm",
+    ownerView.covers,
+  );
+
+  rec(
+    "an engineer's production report says it covers their own work",
+    engineerView.covers === "the reader's own work",
+    engineerView.covers,
+  );
+
+  /* The firm's contractual exposure is not a wage, so it is absent rather than
+   * narrowed. Matched on the section title the builder writes, which is the
+   * thing meant, rather than on the word "firm" appearing somewhere. */
+  const FIRM_SECTION = "What the firm owes for this period: the executed agreement beside the unsigned amendment";
+  rec(
+    "the firm's exposure is on the owner's report",
+    ownerView.sections.some((s) => s.title === FIRM_SECTION),
+    "a check that the engineer lacks a section nobody has would prove nothing",
+  );
+  rec(
+    "and is absent from the engineer's, rather than recomputed under the same label",
+    !engineerView.sections.some((s) => s.title === FIRM_SECTION),
+    engineerView.sections.map((s) => s.title).join(" | "),
+  );
+
+  /* An unknown is not a pass. This is the parameter a new caller forgets. */
+  rec(
+    "a production report asked for by nobody identifiable computes no figure",
+    nobodyView.sections.length === 0 && nobodyView.unavailable.length > 0,
+    nobodyView.unavailable[0] ?? "it returned sections",
+  );
+
+  /* And the file says so, because what leaves the building is bytes. */
+  const { reportCsv } = await import("../src/lib/ops-report-export.ts");
+  const engineerCsv = reportCsv(engineerView, { email: "engineer@254engineering.com", role: "engineer" });
+  const ownerCsv = reportCsv(ownerView, { email: "owner@254engineering.com", role: "admin" });
+  rec(
+    "an engineer's exported file states that it covers their own work only",
+    engineerCsv.includes("THE READER'S OWN WORK ONLY"),
+    "a file titled Production under the firm's name is taken for the firm's",
+  );
+  rec(
+    "and the owner's states that it covers the whole firm",
+    ownerCsv.includes("The whole firm."),
+    "",
+  );
+}
+
 // ------------------------------------------------------------------ verdict
 
 for (const r of out) console.log(`  ${r.ok ? "PASS" : "FAIL"}: ${r.name}${r.note ? ` (${r.note})` : ""}`);
+for (const c of couldNotTell) console.log(`  COULD NOT TELL: ${c}`);
 
 const failed = out.filter((r) => !r.ok);
 console.log("");

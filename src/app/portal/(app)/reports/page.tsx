@@ -190,13 +190,33 @@ export default async function ReportsPage({
   const period = /^\d{4}-\d{2}$/.test(asked ?? "") ? (asked as string) : periodOf();
   const page = Number.parseInt(askedPage ?? "1", 10) || 1;
 
-  const built = await Promise.all(allowed.map((r) => r.build(period)));
+  /*
+   * THE ACTOR IS PASSED, NOT ONLY CONSULTED FOR THE MENU ABOVE.
+   *
+   * `can(actor, r.action)` decides WHICH reports this person may open. It says
+   * nothing about what is inside one, and the production report holds every
+   * engineer's pay. An engineer holds reports.production legitimately, because
+   * the report describes their own work, so the filter above admits them and
+   * the builder is what narrows the read to their own rows.
+   */
+  const built = await Promise.all(allowed.map((r) => r.build(period, "real", actor)));
 
   return (
     <>
+      {/*
+        THE LEDE SAID "WHAT THE FIRM DID" TO EVERY READER, AND FOR ONE OF THEM
+        THAT IS NOT WHAT IS ON THE SCREEN. An engineer's only report is the
+        production one, scoped at the query to their own ledger rows, so the
+        sentence above it has to say so or the screen makes a claim its figures
+        do not support.
+      */}
       <PageHead
         title="Reports"
-        lede={`What the firm did in ${period}. Every figure is a number a query produced, the word none because it found nothing, or an absence because it could not run.`}
+        lede={
+          built.every((r) => r.covers === "the reader's own work")
+            ? `Your own work in ${period}. Every figure is a number a query produced, the word none because it found nothing, or an absence because it could not run.`
+            : `What the firm did in ${period}. Every figure is a number a query produced, the word none because it found nothing, or an absence because it could not run.`
+        }
       />
 
       {/*
@@ -234,6 +254,16 @@ export default async function ReportsPage({
             </ButtonLink>
           }
         >
+          {report.covers === "the reader's own work" ? (
+            <div className="mb-4">
+              <SystemAlert condition="This report covers your own work only." tone="pending">
+                Every figure below is computed from your own ledger entries, scoped by the query
+                rather than hidden by the screen. It is not a statement about the firm and holds
+                nothing about what any other engineer earned.
+              </SystemAlert>
+            </div>
+          ) : null}
+
           {report.unavailable.length > 0 ? (
             <div className="mb-4">
               <SystemAlert condition="Part of this report could not be computed." tone="failed">

@@ -62,7 +62,18 @@ import { auditClient } from "./lib/db-target.mjs";
 import { DEMO_SCOPED_TABLES } from "../src/lib/reporting-scope.ts";
 import { isProbeAddress } from "../src/lib/ops-files.ts";
 import { REPORTS, formatFigure, periodOf } from "../src/lib/ops-reports.ts";
-import { FIGURE_SURFACES, allFigures } from "../src/lib/figure-surfaces.ts";
+import { FIGURE_SURFACES, allFigures, actorFor } from "../src/lib/figure-surfaces.ts";
+
+/*
+ * WHO THIS SWEEP READS AS, STATED ONCE.
+ *
+ * The reports ask who is reading since 2026-09-24. This sweep exists to catch
+ * a demonstration record reaching a figure, so it must see every figure there
+ * is, which is the owner's. Reading as anybody narrower would shrink the set
+ * this audit searches and the green would mean less every time somebody's view
+ * got smaller.
+ */
+const OWNER = actorFor("admin");
 import { standingDemo, STANDING, ledgerRowCount } from "./lib/standing-demo.mjs";
 
 const out = [];
@@ -321,7 +332,7 @@ if (!db) {
   {
     const DEMO_SHAPE = /-DEMO-|\bdemo\b/i;
 
-    const real = await Promise.all(REPORTS.map((r) => r.build(PERIOD, "real")));
+    const real = await Promise.all(REPORTS.map((r) => r.build(PERIOD, "real", OWNER)));
     const named = real.flatMap((r) =>
       r.sections.flatMap((s) =>
         s.figures.flatMap((f) =>
@@ -338,7 +349,7 @@ if (!db) {
       named.length ? named.join(", ") : `${real.length} reports expanded, every row a real record`,
     );
 
-    const including = await Promise.all(REPORTS.map((r) => r.build(PERIOD, "including_demonstrations")));
+    const including = await Promise.all(REPORTS.map((r) => r.build(PERIOD, "including_demonstrations", OWNER)));
     const visible = including.flatMap((r) =>
       r.sections.flatMap((s) =>
         s.figures.flatMap((f) =>
@@ -376,7 +387,7 @@ if (!db) {
     const leaked = [];
     let realBytes = 0;
     for (const r of REPORTS) {
-      const body = reportCsv(await r.build(PERIOD, "real"), by);
+      const body = reportCsv(await r.build(PERIOD, "real", OWNER), by);
       realBytes += body.length;
       for (const line of body.split("\r\n")) {
         if (/-DEMO-/i.test(line)) leaked.push(`${r.key}: ${line.slice(0, 80)}`);
@@ -396,7 +407,7 @@ if (!db) {
 
     const visible = [];
     for (const r of REPORTS) {
-      const body = reportCsv(await r.build(PERIOD, "including_demonstrations"), by);
+      const body = reportCsv(await r.build(PERIOD, "including_demonstrations", OWNER), by);
       for (const line of body.split("\r\n")) if (/-DEMO-/i.test(line)) visible.push(r.key);
     }
     rec(
@@ -664,7 +675,7 @@ if (!db) {
         );
       } else {
         const built = await Promise.all(
-          REPORTS.filter((r) => r.key === injection.report).map((r) => r.build(PERIOD, "including_demonstrations")),
+          REPORTS.filter((r) => r.key === injection.report).map((r) => r.build(PERIOD, "including_demonstrations", OWNER)),
         );
         const figures = built.flatMap((r) => r.sections.flatMap((s) => s.figures));
         const control = injection.control(figures);
@@ -697,10 +708,10 @@ if (!db) {
     if (made.notes.length) console.log(`  (standing fixture: ${made.notes.join("; ")})`);
 
     const real = await Promise.all(
-      REPORTS.filter((r) => r.key === "production").map((r) => r.build(PERIOD, "real")),
+      REPORTS.filter((r) => r.key === "production").map((r) => r.build(PERIOD, "real", OWNER)),
     );
     const withDemos = await Promise.all(
-      REPORTS.filter((r) => r.key === "production").map((r) => r.build(PERIOD, "including_demonstrations")),
+      REPORTS.filter((r) => r.key === "production").map((r) => r.build(PERIOD, "including_demonstrations", OWNER)),
     );
 
     const namesIn = (built) =>
@@ -753,8 +764,8 @@ if (!db) {
    */
   {
     const revenue = REPORTS.find((r) => r.key === "revenue");
-    const real = await revenue.build(PERIOD, "real");
-    const including = await revenue.build(PERIOD, "including_demonstrations");
+    const real = await revenue.build(PERIOD, "real", OWNER);
+    const including = await revenue.build(PERIOD, "including_demonstrations", OWNER);
 
     const grossOf = (report) =>
       report.sections.flatMap((s) => s.figures).find((f) => f.label === "Gross")?.value ?? null;

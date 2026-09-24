@@ -113,6 +113,21 @@ export function reportCsv(
         ? "Real records only. Seeded and demonstration records are excluded by the query, not by this file."
         : "INCLUDING DEMONSTRATIONS. This file counts seeded records and is not a statement about the firm.",
     ],
+    /*
+     * WHOSE WORK, FOR THE SAME REASON THE LINE ABOVE EXISTS.
+     *
+     * A production report built for an engineer holds that engineer's ledger
+     * rows and nothing else. Without this line the file it exports carries a
+     * title reading "Production", a firm name at the top, and figures a reader
+     * would take for the firm's. That is the defect the Scope line was added to
+     * fix, in the other dimension.
+     */
+    [
+      "Covers",
+      report.covers === "the firm"
+        ? "The whole firm. Every record the query matched, whoever it belongs to."
+        : "THE READER'S OWN WORK ONLY. Scoped at the query to the person this file was assembled for, so it is not a statement about the firm or about anybody else.",
+    ],
     ["Figures", figures.length],
     ["Rows", exportRowCount(report)],
   ];
