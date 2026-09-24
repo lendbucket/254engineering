@@ -204,6 +204,15 @@ const ADMIN_APIS = [
    */
   "/api/portal/accounts/pricing",
 
+  /*
+   * The one route that can take a charge without the launch gate, once, ever.
+   * A signed out POST here would be a stranger moving the firm's first live
+   * dollar through its Stripe account, so it is listed the day it ships. The
+   * four conditions in ops-proving-charge.ts would still refuse it; this is the
+   * perimeter, which is the layer that should not need them to.
+   */
+  "/api/portal/proving-charge",
+
   "/api/portal/people",
   "/api/portal/password",
   // Never listed since Phase 1 shipped it. Found by the coverage check below on

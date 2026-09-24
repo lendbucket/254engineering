@@ -20,7 +20,7 @@
  * to one module rather than being copied into each one.
  */
 import fs from "node:fs";
-import { readSource } from "./lib/read-source.mjs";
+import { readSource, codeOnly } from "./lib/read-source.mjs";
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -627,13 +627,79 @@ const rec = (name, ok, note = "") => out.push({ name, ok, note });
       "NONE FOUND, so every check below would pass over an empty set",
   );
 
-  const ungated = chargePaths.filter((p) => !/chargesBlockedReason\(\)/.test(p.body));
+  /*
+   * =========================================================================
+   * ONE CHARGE PATH ASKS A DIFFERENT GATE, AND THE SUBJECT IS SHARPENED
+   * RATHER THAN THE INSTANCE EXEMPTED. Operator ruling 2026-09-24, option B.
+   * =========================================================================
+   *
+   * The `stripe` launch condition reads "a live Stripe account belonging to
+   * 254, proven by a charge and its refund". The gate cannot open until a
+   * charge has been taken, and chargesBlockedReason refuses every charge until
+   * the gate opens. The condition requires the act the gate forbids, and
+   * `startProvingCheckout` is the one path ruled through it.
+   *
+   * THE QUIET OPTION WAS AN ALLOWLIST OF FUNCTION NAMES HERE, AND IT IS
+   * REFUSED, in the operator's own words about the SOC 2 scan: "an allowlist
+   * of names is a list somebody grows until the scan checks nothing." One name
+   * becomes two the first time somebody is in a hurry.
+   *
+   * So a charge path is GATED when it asks either gate, and three further
+   * clauses hold the exemption in place, every one of them capable of failing:
+   *
+   *   the proving gate exists and is one function
+   *   EXACTLY ONE charge path asks it, counted and named below
+   *   that path reads stripeAccount.proof, which is what makes it self-closing
+   *
+   * The last is the load bearing one. Without it the proving path could stop
+   * being a one-time path and this check would go on calling it gated.
+   */
+  const PROVING_GATE = /provingChargeBlockers\(/;
+  const proving = chargePaths.filter((p) => PROVING_GATE.test(p.body));
+  const ungated = chargePaths.filter(
+    (p) => !/chargesBlockedReason\(\)/.test(p.body) && !PROVING_GATE.test(p.body),
+  );
   rec(
-    "and every one of them asks chargesBlockedReason before it charges",
+    "and every one of them asks a gate before it charges",
     chargePaths.length > 0 && ungated.length === 0,
     ungated.length
-      ? `${ungated.map((p) => `${p.name} in ${p.file}`).join(", ")} can take money without asking the gate`
-      : `${chargePaths.length} charge paths, all gated`,
+      ? `${ungated.map((p) => `${p.name} in ${p.file}`).join(", ")} can take money without asking any gate`
+      : `${chargePaths.length} charge paths: ${chargePaths.length - proving.length} ask chargesBlockedReason, ${proving.length} ask provingChargeBlockers`,
+  );
+
+  rec(
+    "exactly one charge path asks the proving gate rather than the launch gate",
+    proving.length === 1,
+    proving.length === 1
+      ? `${proving[0].name} in ${proving[0].file}`
+      : `${proving.length} paths: ${proving.map((p) => p.name).join(", ") || "none"}`,
+  );
+
+  /*
+   * READ WITH THE PROSE REMOVED, AND THE FIRST VERSION OF THIS CHECK WAS NOT.
+   * The header of ops-proving-charge.ts explains stripeAccount.proof six times,
+   * so a plain grep for the name passes on the explanation after somebody
+   * deletes the code. Match the read, not the mention: `!== null` is the
+   * comparison the condition is made of and appears in no sentence.
+   */
+  const provingSource = codeOnly("src/lib/ops-proving-charge.ts");
+  rec(
+    "and that path closes itself permanently by reading stripeAccount.proof",
+    /*
+     * NOT `proving.length === 1 &&`. The first version carried that, and a
+     * second injected proving path turned BOTH checks red, the second one for
+     * a reason that had nothing to do with what it asserts. A cascade is the
+     * same defect as a green for the wrong reason: the run goes red and names
+     * a property that is still true. The count has its own check, one line up.
+     */
+    /stripeAccount\.proof !== null/.test(provingSource),
+    "a proving path that stops reading the proof is a permanent hole this check would still call gated",
+  );
+
+  rec(
+    "the proving gate is one function, read from ops-proving-charge.ts",
+    /export function provingChargeBlockers\(actor: Actor \| null\): string\[\] \{/.test(provingSource),
+    "a second copy is a second answer that will drift",
   );
 
   rec(

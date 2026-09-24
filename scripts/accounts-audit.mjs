@@ -26,7 +26,7 @@
 
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { readSource } from "./lib/read-source.mjs";
+import { readSource, codeOnly } from "./lib/read-source.mjs";
 import { createHmac } from "node:crypto";
 import { issueOpsSession, readOpsSession, OPS_COOKIE } from "../src/lib/ops-session.ts";
 import {
@@ -47,22 +47,13 @@ import {
 } from "../src/lib/customer-auth.ts";
 import { ROLES } from "../src/lib/ops-authz.ts";
 
-/**
- * Source with comments removed.
- *
- * The first version of the checks below grepped whole files, and three of them
- * failed against the very comments that explain why the code does NOT do the
- * thing being checked for. A check that reads prose is a check looking at the
- * wrong thing, which is the defect class this repository exists to hunt, and it
- * appeared here in an audit written to hunt it.
+/*
+ * codeOnly MOVED TO scripts/lib/read-source.mjs ON 2026-09-24, unchanged, the
+ * moment money-audit needed the same thing. Its reasoning travelled with it and
+ * is worth reading there: the first version of the checks below grepped whole
+ * files, and three of them failed against the very comments explaining why the
+ * code does NOT do the thing being checked for.
  */
-function codeOnly(path) {
-  const withoutBlocks = readSource(path).replace(/\/\*[\s\S]*?\*\//g, "");
-  return withoutBlocks
-    .split("\n")
-    .filter((line) => !/^\s*\/\//.test(line))
-    .join("\n");
-}
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });

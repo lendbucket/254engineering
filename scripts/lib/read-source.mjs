@@ -26,3 +26,31 @@ import { readFileSync } from "node:fs";
 export function readSource(path) {
   return readFileSync(path, "utf8").split("\r\n").join("\n");
 }
+
+/**
+ * THE SAME FILE WITH THE PROSE TAKEN OUT.
+ *
+ * Lived in accounts-audit.mjs from 2026-09-13 until 2026-09-24, where its own
+ * comment records why it exists: the first version of those checks grepped
+ * whole files, and three of them failed against the very comments explaining
+ * why the code does NOT do the thing being checked for.
+ *
+ * MOVED HERE THE MOMENT A SECOND AUDIT NEEDED IT, rather than copied. money-
+ * audit was about to assert that the proving charge path reads
+ * `stripeAccount.proof`, against a file whose header explains the proof six
+ * times in prose, so the check would have passed on the explanation after
+ * somebody deleted the code. That is this repository's matcher defect and its
+ * two-homes defect arriving together, which is a good enough reason to give the
+ * helper one address.
+ *
+ * It is deliberately crude: block comments anywhere, and lines whose first non
+ * whitespace is `//`. A `//` inside a string literal survives, which is correct
+ * for a URL and is why a trailing comment on a line of code is left alone.
+ */
+export function codeOnly(path) {
+  const withoutBlocks = readSource(path).replace(/\/\*[\s\S]*?\*\//g, "");
+  return withoutBlocks
+    .split("\n")
+    .filter((line) => !/^\s*\/\//.test(line))
+    .join("\n");
+}
