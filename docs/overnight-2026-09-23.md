@@ -1026,7 +1026,46 @@ ceiling. All five were.
 
 Bytes agree: 311KB on production against 464KB locally, on a 600KB budget.
 
-### The finding, stated as what it is
+### CORRECTED THE SAME EVENING: THE LOAD EXPLANATION IS NOT SUPPORTED
+
+**The paragraph below was written before a third board, and that board falsified
+it.** It is kept rather than rewritten, because a wrong explanation that vanishes
+is one the next session re-makes, and because the prediction that killed it was
+stated in advance.
+
+Before running the board on `fix/heading-follows-mode` the session recorded that
+three node processes were building another project on the same machine, and
+predicted `perf-audit` would fail again on LCP **for that reason**, writing down
+what each outcome would mean. It passed.
+
+```
+board 1, quiet machine       PASS  3193ms  spread  55ms
+board 2, the failure         FAIL  3540ms  spread 296ms
+board 3, wattsmith building  PASS  3189ms  spread  53ms
+```
+
+**Board 3 ran under the only load anybody has actually observed and measured
+within 4ms of board 1.** So the one piece of evidence that exists about
+busyness on this machine argues AGAINST load being the cause.
+
+**What the evidence now supports.** Production is comfortably inside a ceiling
+640ms stricter, so `/coverage` is not slow. Board 2 remains a real reading and is
+now **unexplained**: a 350ms jump with a fivefold widening of the spread, on one
+run out of three, with identical rendering code.
+
+**Its shape is the `/portal/accounts` stall's shape**, intermittent and marked by
+a spread that widens sharply when it happens, and that is recorded as a
+hypothesis worth testing rather than as a second explanation. The two did not
+co-occur cleanly: the stall appeared on boards 2 and 3 and the perf miss only on
+board 2, which weakens any story that they are one fault.
+
+**The rule this is an instance of** is already in CLAUDE.md section 6b: an
+explanation that covers the observation is not the same as an explanation that is
+true, and a wrong one is worse than none because it stops the next session
+looking. What made the difference here was writing down, before the run, what a
+pass would mean.
+
+### The finding as first written, now superseded
 
 **`/coverage` is not slow.** The miss was load on a machine that had spent the
 day building and running boards, and the same route measured 3193ms at a 55ms
