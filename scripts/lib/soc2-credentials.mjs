@@ -172,6 +172,27 @@ export const NOT_CREDENTIALS = new Set([
    */
   "BUILD_ENV_FILE", "DEPLOYED_COMMIT",
   /*
+   * Two more from 2026-09-24, both caught by this list on the integrated board
+   * rather than on the branch that introduced them, which is the whole argument
+   * for boarding branches together.
+   *
+   * EXPLORE_OUT names the DIRECTORY the exploratory portal sweep writes its
+   * screenshots and findings.json into. A path on this machine and nothing
+   * else; it defaults to a folder under the scratchpad.
+   *
+   * PROVING_CHARGE is the deliberation switch on the one route that can take a
+   * charge without the launch gate, and it is worth a sentence because it looks
+   * like the opposite of what it is. It holds no value anybody could use: it is
+   * compared exactly against "1", so 0, true and yes are all refusals, and it
+   * is one of FOUR independent conditions rather than a key. Setting it opens
+   * nothing on its own, and the other three include a database uniqueness
+   * constraint nobody can talk their way past.
+   *
+   * Named individually rather than excused by a pattern, for the reason this
+   * list gives about _PORT further up.
+   */
+  "EXPLORE_OUT", "PROVING_CHARGE",
+  /*
    * break-glass-audit starts three servers one after another, because a
    * process environment is fixed when it boots and the audit needs three
    * different values of MFA_BREAK_GLASS. Three ports, three names.

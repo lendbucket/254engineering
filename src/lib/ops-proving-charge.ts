@@ -1,4 +1,5 @@
 import "server-only";
+import { DB_NOW } from "./db-now";
 import { supabaseAdmin } from "./supabase";
 import { can, type Actor } from "./ops-authz";
 import { stripeAccount } from "@/config/launch-readiness";
@@ -220,7 +221,18 @@ export async function placeProvingOrder(actor: Actor | null): Promise<ProvingRes
        */
       refund_disclosure:
         "This charge exists to prove that the firm's Stripe account can take money and give it back. It is refunded in full, immediately, by the operator, and no engineering work is ordered or performed.",
-      placed_at: new Date().toISOString(),
+      /*
+       * THE DATABASE'S CLOCK, NOT THIS PROCESS'S, and db-guard-audit is what
+       * caught it. This read `new Date().toISOString()`, copied from the shape
+       * of `placeOrder` without copying the one thing that matters: that
+       * function writes `placed_at: DB_NOW`.
+       *
+       * An observed timestamp written from the application's clock records when
+       * a server THOUGHT it was, which is a different fact from when the
+       * database recorded the row, and the two drift on any machine whose clock
+       * is off. On the firm's first live order that is the moment money moved.
+       */
+      placed_at: DB_NOW,
       client_request_id: PROVING_REFERENCE,
     })
     .select("id, reference, total_cents")

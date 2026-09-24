@@ -44,6 +44,7 @@ import { startNextServer } from "./lib/dev-server.mjs";
 import { auditClient } from "./lib/db-target.mjs";
 import { PROBE_DOMAIN, supersedeProbeAccount } from "./lib/portal-probe.mjs";
 import { COULD_NOT_TELL } from "./lib/reachable.mjs";
+import { withGateConditionsMet, FIXTURE_ENV } from "./lib/gate-fixture.mjs";
 import { VERIFICATION_TTL_HOURS } from "../src/lib/account-doors.ts";
 
 const PORT = Number(process.env.DOORS_PORT || 3232);
@@ -165,9 +166,96 @@ async function run() {
 
   try {
     restore = openSignUpCondition();
+
+    /*
+     * =====================================================================
+     * BOTH DIRECTIONS, BECAUSE THE FLAG IS NOT THE GATE. Operator ruling,
+     * 2026-09-24. The check was wrong, not the code.
+     * =====================================================================
+     *
+     * This audit cleared `selfServiceSignUp.cleared` and expected the door to
+     * open. That was right until `selfServiceSignUpOpen()` was changed to
+     * require `isOpen()` as WELL as the flag, on the ruling that the one
+     * condition a reasonable person clears early must not open public sign up
+     * while the firm is still shut.
+     *
+     * The branch carrying that change passed its own checks. This audit lives
+     * on another branch and had never run beside it, so the first board to put
+     * them on one tree reported eight failures on a door behaving exactly as
+     * ruled. That is the integrated-board lesson in one audit.
+     *
+     * A FIXTURE THAT CAN ONLY PRODUCE ONE ANSWER CANNOT TELL A WORKING GATE
+     * FROM A BROKEN ONE, so both are produced:
+     *
+     *   shut   flag cleared, gate NOT open  ->  the door REFUSES, writing nothing
+     *   open   flag cleared, gate open      ->  the door ADMITS, and is walked
+     *
+     * Two servers on one port, one after the other, because the conditions are
+     * read at module load and one process cannot hold both states.
+     */
     say("");
-    say(`launch condition cleared for this run, server starting on ${PORT}`);
+    say(`flag cleared, gate still SHUT, server starting on ${PORT}`);
     server = await startNextServer({ port: PORT, command: "dev", timeoutMs: 240_000 });
+
+    {
+      const shutStamp = `${Date.now()}-${randomBytes(3).toString("hex")}`;
+      const shutEmail = `probe-door-shut-${shutStamp}@${PROBE_DOMAIN}`;
+      const refused = await post(server.base, "/api/account/sign-up", {
+        name: "Audit Probe Gate Shut",
+        organisation: "Audit Probe Company",
+        email: shutEmail,
+        phone: "",
+      });
+
+      say("");
+      say("0. the gate holds the public door shut");
+      rec(
+        "sign up is REFUSED while the gate is shut, even with its own flag cleared",
+        refused.status >= 400 || refused.body?.ok === false,
+        `HTTP ${refused.status}: ${JSON.stringify(refused.body ?? {}).slice(0, 130)}`,
+      );
+
+      const { data: leaked } = await db.from("eng_customer_users").select("id").eq("email", shutEmail);
+      rec(
+        "and it wrote nothing while refusing",
+        (leaked ?? []).length === 0,
+        `${(leaked ?? []).length} row(s). A refusal that still created the account would be the gate doing nothing.`,
+      );
+    }
+
+    await server.stop().catch(() => {});
+    server = null;
+
+    /*
+     * HAND THE FIELD BACK BEFORE THE GATE FIXTURE TAKES IT.
+     *
+     * `openSignUpCondition` and `withGateConditionsMet` patch the SAME line.
+     * Leaving this one applied meant the fixture's own patch found nothing to
+     * change and threw by name, which is the fixture's guard working: a patch
+     * that edits nothing would otherwise run the live half against the
+     * prelaunch state. Two fixtures owning one field is the two-homes defect
+     * wearing a file patch, and the owner of that field for the rest of this
+     * run is the gate fixture.
+     */
+    restore();
+    restore = null;
+
+    /*
+     * EVERYTHING BELOW RUNS WITH THE WHOLE GATE OPEN, and the callback closes
+     * immediately before the `catch`. The body is deliberately left at its
+     * original indentation: re-indenting four hundred lines would bury a
+     * two-line behavioural change inside an unreadable diff, and what changed
+     * here is which state the walk runs in, not the walk.
+     */
+    say("");
+    say(`gate conditions stated true, server restarting on ${PORT}`);
+    return await withGateConditionsMet(async () => {
+    server = await startNextServer({
+      port: PORT,
+      command: "dev",
+      timeoutMs: 240_000,
+      env: { ...FIXTURE_ENV, LAUNCH_MODE: "live" },
+    });
     const base = server.base;
 
     /* ------------------------------------------------ door one: self service */
@@ -604,6 +692,7 @@ async function run() {
       VERIFICATION_TTL_HOURS === 72,
       "pinned here as a literal so the registry and this audit are two edits apart",
     );
+    }); /* withGateConditionsMet closes here: the register is put back before the catch. */
   } catch (err) {
     rec("the run completed", false, err.message);
   } finally {

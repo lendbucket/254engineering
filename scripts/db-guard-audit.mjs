@@ -22,7 +22,7 @@
  * the very front of the suite.
  */
 import fs from "node:fs";
-import { readSource } from "./lib/read-source.mjs";
+import { readSource, codeOnly } from "./lib/read-source.mjs";
 import path from "node:path";
 import { isProduction, refOf, describeTarget, PRODUCTION_REF, DEVELOPMENT_REF } from "./lib/db-target.mjs";
 import {
@@ -823,7 +823,22 @@ console.log(`configured target: ${current ? describeTarget(current) : "unset"}\n
       if (entry.isDirectory()) walkSrc(full);
       else if (/\.tsx?$/.test(entry.name)) {
         const rel = full.split("\\").join("/");
-        for (const line of readSource(full).split("\n")) {
+        /*
+         * CODE, NOT PROSE, and this check read prose until 2026-09-24.
+         *
+         * It found a machine clock call inside a COMMENT: ops-proving-charge.ts
+         * had just had exactly this defect fixed, and the comment recording the
+         * fix quotes the call it removed. So the check went red naming a file
+         * whose code was correct, pointing at the sentence explaining why.
+         *
+         * A check that forbids a code shape must read code. Any explanation of
+         * why a rule exists will quote the thing the rule forbids, so a scan
+         * that reads comments is a scan that punishes writing the reason down,
+         * which is the opposite of what this repository wants. codeOnly strips
+         * block comments and whole-line `//` comments and is shared, so the
+         * three audits doing this cannot disagree about what counts as code.
+         */
+        for (const line of codeOnly(full).split("\n")) {
           if (/new Date\(\)\.toISOString\(\)/.test(line)) {
             machineClock.push({ rel, line: line.trim().slice(0, 100) });
           }

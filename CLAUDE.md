@@ -2770,6 +2770,57 @@ accounted for. So: **say what the run will do before running it, in terms
 specific enough to be wrong**, and when it is wrong, the gap is the finding.
 A prediction offered only after the result is not a prediction.
 
+**AND A PREDICTION FOR AN INTEGRATED BOARD REASONS ABOUT EACH BRANCH'S EFFECT ON
+THE AUDITS OF EVERY OTHER BRANCH, NOT ABOUT BRANCHES ONE AT A TIME.** Operator
+ruling, 2026-09-24.
+
+**The instance.** `integrate/2026-09-24` held nine branches. The prediction was
+58 of 59 with one FAIL, `schema-ledger-audit`, which was certain because three
+migrations were applied and not yet on main. The board returned **53 pass, 6
+fail**. Five failures were unpredicted and **every one of the five was a branch
+changing the behaviour that a DIFFERENT branch's audit asserts**:
+
+| the branch | the audit it broke | what happened |
+| --- | --- | --- |
+| the proving charge | `db-guard-audit` | a new file wrote `placed_at` from the process clock, which a src-wide rule forbids |
+| the training attestation | `proofs-audit` | recording the training made a proof's subject expire: it asserted training BLOCKS |
+| the accounts cliff fix | `native-audit` | the screen began to RENDER, and the bounded-list rule could measure it for the first time |
+| two different branches | `soc2-audit` | two environment names undeclared |
+| sign up requires the gate | `doors-audit` | the door now needs `isOpen()`, and that audit's fixture clears one flag |
+
+**Every branch passed its own checks, and that is exactly why this happens.** A
+branch is developed against the audits that were green when it started. The
+audit that its change invalidates usually lives somewhere else, and nothing runs
+the two together until the integration board. So an integrated board is not a
+re-run of nine green boards: it is the **first** time most of those pairs have
+ever met.
+
+**The prediction was not merely wrong, it was wrong in a way that was
+foreseeable.** The session stating it had already noticed that two branches
+touched the gate fixture and the register, wrote "I will need to be careful
+about that", and then predicted one failure anyway. Noticing an interaction and
+not carrying it into the number is the whole defect.
+
+**So the method is a pass over the CROSS PRODUCT, not over the list.** For each
+branch, ask which rules it changes the answer to, and then ask which OTHER
+branch owns an audit that asserts that answer. The four questions that would
+have caught all five here:
+
+- Does this branch add a file that a repository-wide source rule sweeps?
+- Does this branch RECORD something that a proof or fixture assumes is absent?
+  Every empty register is a guard nobody has exercised.
+- Does this branch make a screen or path WORK that was previously failing? A
+  check that could never measure something will start measuring it, and the
+  first measurement is often a defect that was always there.
+- Does this branch change a PREDICATE that another audit's fixture satisfies by
+  hand? A fixture that sets one condition is a fixture that will be wrong the
+  day the code reads two.
+
+**The last one is the general form and it has now cost three audits in two
+days:** the gate fixture twice and `doors-audit` once. A fixture that states
+conditions rather than deriving them is a second account of what the gate
+requires, and CLAUDE.md already records that about `withGateConditionsMet`.
+
 **UNREACHABLE IS NOT FAILED.** Operator ruling, 2026-09-08. An audit whose
 live half cannot run because no server is answering reports a third verdict,
 `COULD NOT TELL`, and exits zero. It is the same three way answer the perf

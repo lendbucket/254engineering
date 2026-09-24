@@ -33,11 +33,54 @@ type Row = {
  * starts running. Doing both in one button would mean a mistake in the gather is
  * a mistake in a bill.
  */
+/**
+ * =============================================================================
+ * HOW MANY ACCOUNTS REACH THE PAGE AT ONCE. Operator ruling, 2026-09-24.
+ * =============================================================================
+ *
+ * "An unbounded list is a defect whether it holds 5 rows or 544."
+ *
+ * This list had no bound at all and nobody noticed, for a reason worth keeping:
+ * `/portal/accounts` took 118 seconds to render and every browser audit that
+ * reached it timed out, so `native-audit`'s bounded-list rule had never once
+ * been able to measure this screen. Fixing the cliff underneath it is what made
+ * the list observable, and the very first board that could see it reported 544
+ * visible rows against a ceiling of 250.
+ *
+ * That is worth stating rather than filing as a regression: the pagination was
+ * missing the whole time, and a defect hidden behind a hang is not a defect
+ * that was introduced when the hang was fixed.
+ *
+ * FIFTY, which is two pages of a phone's scroll rather than twenty-two, and
+ * well under the audit's 250. The remainder is STATED rather than dropped, for
+ * the reason the reports module gives about its own window: a table that
+ * silently stops is a reader counting fifty rows under a heading that says 544.
+ */
+const PER_PAGE = 50;
+
 export function AccountsClient({ rows }: { rows: Row[] }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+
+  /*
+   * SEARCH BEFORE PAGING, so a search covers every account rather than the
+   * fifty currently on screen. A filter applied after the window would be the
+   * bounded-read defect wearing a text box: it would look like a search and
+   * would be a search of one page.
+   */
+  const needle = query.trim().toLowerCase();
+  const matching = needle
+    ? rows.filter((r) => r.clientName.toLowerCase().includes(needle))
+    : rows;
+
+  const pages = Math.max(1, Math.ceil(matching.length / PER_PAGE));
+  const current = Math.min(Math.max(1, page), pages);
+  const from = (current - 1) * PER_PAGE;
+  const shown = matching.slice(from, from + PER_PAGE);
 
   async function act(payload: Record<string, unknown>, key: string) {
     setBusy(key);
@@ -76,8 +119,39 @@ export function AccountsClient({ rows }: { rows: Row[] }) {
 
   return (
     <div>
+      <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-2">
+        <label className="flex-1 min-w-[200px]">
+          <span className="sr-only">Search accounts by organization name</span>
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setPage(1);
+            }}
+            placeholder="Search by organization"
+            className="w-full rounded-[4px] border border-limestone-line px-3 py-2 text-[13.5px] text-[var(--navy)]"
+          />
+        </label>
+        {/*
+          THE TOTAL AND THE WINDOW, BOTH, because either alone misleads. The
+          count of what is shown without the total is a reader believing they
+          have seen everything; the total without the window is a reader
+          wondering where the rest went.
+        */}
+        <p className="text-[13.5px] text-[var(--secondary)]">
+          {matching.length === 0
+            ? needle
+              ? `No account matches "${query.trim()}". ${rows.length} in total.`
+              : "No accounts."
+            : `Showing ${from + 1} to ${from + shown.length} of ${matching.length}${
+                needle ? ` matching "${query.trim()}", ${rows.length} in total` : ""
+              }, ${PER_PAGE} to a page.`}
+        </p>
+      </div>
+
       <ul className="divide-y divide-limestone-line">
-        {rows.map((r) => (
+        {shown.map((r) => (
           <li key={r.id} className="py-4">
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
               <span className="text-[13.5px] font-semibold text-[var(--navy)]">{r.clientName}</span>
@@ -185,6 +259,30 @@ export function AccountsClient({ rows }: { rows: Row[] }) {
         <p role="status" className="mt-4 rounded-[3px] bg-[var(--green-bg)] px-3 py-2 text-[13.5px] text-[var(--green)]">
           {note}
         </p>
+      ) : null}
+
+      {pages > 1 ? (
+        <nav aria-label="Accounts pages" className="mt-4 flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={() => setPage(current - 1)}
+            disabled={current === 1}
+            className="min-h-[44px] rounded-[4px] border border-limestone-line px-4 text-[13.5px] text-[var(--navy)] disabled:opacity-40"
+          >
+            Previous
+          </button>
+          <span className="text-[13.5px] text-[var(--secondary)]">
+            Page {current} of {pages}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPage(current + 1)}
+            disabled={current === pages}
+            className="min-h-[44px] rounded-[4px] border border-limestone-line px-4 text-[13.5px] text-[var(--navy)] disabled:opacity-40"
+          >
+            Next
+          </button>
+        </nav>
       ) : null}
     </div>
   );

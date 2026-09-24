@@ -57,6 +57,29 @@ function patch(file, find, replace) {
   writeFileSync(file, after);
 }
 
+/**
+ * SET a declaration to a state, whether or not that is a change.
+ *
+ * `patch` asserts that an EDIT HAPPENED, which is the right assertion when the
+ * point is to move the world off its current state. It is the WRONG assertion
+ * when the point is to guarantee a state: setting an already empty register to
+ * empty is a legitimate no-op, and `patch` reads that as "the shape has moved"
+ * and throws. It did exactly that the first time this proof was made to build
+ * its own world.
+ *
+ * So this asserts the PATTERN MATCHED, which is the thing that would really be
+ * wrong, and is indifferent to whether the bytes changed. The two helpers are
+ * kept separate rather than one made lenient, because "an edit happened" is
+ * still the assertion every case that MOVES the world wants.
+ */
+function ensure(file, find, replace) {
+  const before = readFileSync(file, "utf8");
+  if (!find.test(before)) {
+    throw new Error(`the proof could not find ${String(find)} in ${file}: the shape has moved.`);
+  }
+  writeFileSync(file, before.replace(find, replace));
+}
+
 function restoreAll() {
   for (const [file, backup] of Object.entries(BACKUPS)) {
     copyFileSync(backup, file);
@@ -94,9 +117,41 @@ const INSURED = (expires) =>
     evidence: { seenBy: "the proof", seenOn: "2000-01-01", document: "none: this is a fixture" },
   }];`;
 
-const EMPTY_INSURANCE = "export const verifiedInsurance: VerifiedInsurance[] = [];";
-const EMPTY_TRAINING = "export const verifiedTechnicianTraining: TechnicianTraining[] = [];";
-const EMPTY_PROTOCOLS = "export const approvedProtocols: ApprovedProtocol[] = [];";
+/*
+ * =============================================================================
+ * THE PROOF BUILDS ITS OWN WORLD. It used to depend on the live registers
+ * being empty. Operator ruling, 2026-09-24.
+ * =============================================================================
+ *
+ * These were the literal strings `= [];`, used as the anchor to patch a
+ * fixture in. That worked for exactly as long as nobody had recorded anything,
+ * and it broke the day the operator attested the first technician training:
+ * the literal was no longer in the file, the patch found nothing, and this
+ * proof exited 1 on the integrated board.
+ *
+ * It is the third instance of one defect in two days. The gate fixture's
+ * protocol patch broke the same way when Aman's approval was recorded, and its
+ * training patch broke the same way this morning. Each time the anchor was the
+ * register's STARTING state, which the firm was always going to leave.
+ *
+ * A PROOF MUST NOT DEPEND ON WHAT THE REGISTER HOLDS TODAY. Its job is to
+ * prove both directions of a rule, and a rule is not "true while the register
+ * happens to be empty". So each anchor now matches the whole DECLARATION,
+ * empty or populated, and every case writes the state it needs rather than
+ * assuming it. Case D sets the training register to EMPTY explicitly, where it
+ * previously relied on finding it that way.
+ */
+const DECLARATION = (name, type) =>
+  new RegExp(`export const ${name}: ${type}\\[\\] = (?:\\[\\]|\\[[\\s\\S]*?\\n\\]);`);
+
+const EMPTY_INSURANCE = DECLARATION("verifiedInsurance", "VerifiedInsurance");
+const EMPTY_TRAINING = DECLARATION("verifiedTechnicianTraining", "TechnicianTraining");
+const EMPTY_PROTOCOLS = DECLARATION("approvedProtocols", "ApprovedProtocol");
+
+/** What each register is set to when a case needs it empty. */
+const NO_INSURANCE = "export const verifiedInsurance: VerifiedInsurance[] = [];";
+const NO_TRAINING = "export const verifiedTechnicianTraining: TechnicianTraining[] = [];";
+const NO_PROTOCOLS = "export const approvedProtocols: ApprovedProtocol[] = [];";
 
 const insuranceBlocker = (b) => b.find((s) => s.includes("professional liability cover")) ?? null;
 const trainingBlocker = (b) => b.find((s) => s.includes("trained on the approved protocol")) ?? null;
@@ -109,6 +164,19 @@ for (const [file, backup] of Object.entries(BACKUPS)) copyFileSync(file, backup)
 
 try {
   /* ------------------------------------------------ A: nothing recorded */
+  /*
+   * SET, NOT ASSUMED. This case is named "nothing recorded" and it used to
+   * read whatever the three registers happened to hold. On a tree where a
+   * protocol is approved and a technician is trained, both of its assertions
+   * would have passed for reasons that have nothing to do with what they
+   * claim: training does not block because somebody IS trained, rather than
+   * because no protocol is approved.
+   *
+   * A case that describes a world states that world.
+   */
+  ensure(CREDENTIALS, EMPTY_INSURANCE, NO_INSURANCE);
+  ensure(CREDENTIALS, EMPTY_TRAINING, NO_TRAINING);
+  ensure(READINESS, EMPTY_PROTOCOLS, NO_PROTOCOLS);
   const a = blockersInChild();
   rec(
     "A: with no cover on record, insurance holds the gate shut",
@@ -142,6 +210,10 @@ try {
 
   /* ----------------------------- D: a protocol approved, nobody trained */
   restoreAll();
+  /* Explicitly nobody trained. This case previously relied on the register
+   * being empty on disk, which stopped being true the day the operator
+   * attested the first training and is what broke this proof. */
+  ensure(CREDENTIALS, EMPTY_TRAINING, NO_TRAINING);
   patch(
     READINESS,
     EMPTY_PROTOCOLS,
