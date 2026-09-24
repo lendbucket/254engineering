@@ -626,13 +626,55 @@ export type TechnicianTraining = {
 };
 
 /**
- * EMPTY, AND IT SHUTS THE GATE, WHICH IS CORRECT TODAY.
+ * ONE ENTRY, RECORDED 2026-09-24 ON THE OPERATOR'S ATTESTATION.
  *
- * 254-RC-001 v1.1 is approved and no technician has been recorded as trained on
- * it. Dispatching somebody to perform a protocol they have not been trained on
- * is the firm putting its engineer's seal behind work nobody prepared for.
+ * It was empty, and the sentence that stood here said that shut the gate:
+ * 254-RC-001 v1.1 was approved and nobody was recorded as trained on it.
+ *
+ * WHAT THE OPERATOR ATTESTED, 2026-09-24, Robert Reyna: the technician training
+ * and the supervised inspection with the engineer of record are complete.
+ *
+ * THE EVIDENCE IS AN ATTESTATION AND IS RECORDED AS ONE, which is the same
+ * treatment the Stripe account status already gets. The engineer's written
+ * confirmation is PENDING and, on the operator's ruling, is NOT required to
+ * retire the condition. When it arrives it becomes the evidence and this entry
+ * is updated to name it. An attestation dressed up as a document read would be
+ * the failure this register exists to prevent; an attestation recorded as an
+ * attestation is a fact with a name and a date on it.
+ *
+ * THE TECHNICIAN IS THE OPERATOR HIMSELF, and that is worth a line rather than
+ * a raised eyebrow. A single operator firm training on its own first protocol
+ * is the ordinary case at this size, and the record says who did what rather
+ * than implying a roster that does not exist. The engineer of record delivered
+ * it and supervised the inspection, which is the part that could not be
+ * self-attested.
+ *
+ * THE VERSION INTEGER IS THE MATCH AND IT IS 2. `linesWithNobodyTrained()`
+ * compares `t.protocolVersion === p.version` against the approved protocol
+ * register, which carries version 2 for versionLabel "1.1". Recording the label
+ * alone would leave the condition unmet against a document everybody calls
+ * v1.1, which is the nearest-lie shape this pair of fields exists to prevent.
  */
-export const verifiedTechnicianTraining: TechnicianTraining[] = [];
+export const verifiedTechnicianTraining: TechnicianTraining[] = [
+  {
+    technician: "Robert Reyna",
+    protocolDocument: "254-RC-001",
+    protocolVersion: 2,
+    protocolVersionLabel: "1.1",
+    serviceSlug: "roof-inspections",
+    trainedOn: "2026-09-23",
+    trainedBy: "Aman Dhakal, PE 143295",
+    evidence: {
+      seenBy: "Robert Reyna, operator",
+      seenOn: "2026-09-24",
+      document:
+        "Operator attestation, not a document read. The training and the supervised inspection with " +
+        "the engineer of record were completed on 2026-09-23 and the operator states so on 2026-09-24. " +
+        "The engineer's written confirmation is pending; the operator ruled it is not required to " +
+        "retire this condition, and it replaces this line when it arrives.",
+    },
+  },
+];
 
 export const operatingNameOnBoardRecord: {
   onRecord: boolean;

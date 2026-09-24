@@ -226,7 +226,23 @@ export async function withGateConditionsMet(fn) {
     /* --- one approved protocol per service line */
     {
       file: READINESS,
-      find: /export const approvedProtocols: ApprovedProtocol\[\] = \[\];/,
+      /*
+       * ANCHORED ON THE DECLARATION, NOT ON ITS EMPTINESS. Fixed 2026-09-24.
+       *
+       * This read `= \[\];` and therefore matched only while the register was
+       * EMPTY. The moment a real protocol was approved the pattern matched
+       * nothing, and the fixture's own guard threw rather than silently
+       * running the live half of every audit against a prelaunch state. That
+       * guard is the only reason this was a loud failure instead of thirteen
+       * audits quietly measuring the wrong world.
+       *
+       * It is the same defect as anchoring an edit to supabase/applied.mjs on
+       * the last `];` in the file: locate by the thing you mean. Here the
+       * thing meant is the whole declaration, however long it has become, so
+       * the alternation takes either an empty pair or everything through the
+       * first `];` sitting at the start of a line.
+       */
+      find: /export const approvedProtocols: ApprovedProtocol\[\] = (?:\[\]|\[[\s\S]*?\n\]);/,
       replace: () => `export const approvedProtocols: ApprovedProtocol[] = ${JSON.stringify(fixtureProtocols(), null, 2)};`,
       what: "the approved protocol registry",
     },
@@ -283,7 +299,10 @@ export async function withGateConditionsMet(fn) {
        * approved protocol per service slug; this builds one trained technician
        * per approved protocol, matching on the same version it wrote.
        */
-      find: /export const verifiedTechnicianTraining: TechnicianTraining\[\] = \[\];/,
+      /* Anchored on the declaration for the reason given above the protocol
+       * register: this one broke the same way on 2026-09-24, one register
+       * later, the day a real technician was recorded. */
+      find: /export const verifiedTechnicianTraining: TechnicianTraining\[\] = (?:\[\]|\[[\s\S]*?\n\]);/,
       replace: () =>
         "export const verifiedTechnicianTraining: TechnicianTraining[] = " +
         JSON.stringify(
