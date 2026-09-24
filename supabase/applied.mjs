@@ -1673,6 +1673,53 @@ export const APPLIED = [
       "WHAT TO READ BACK WHEN IT IS APPLIED: the total grant count, and the two rows by name. Not " +
       "the fingerprint, which cannot see a row, and 0018 is the precedent for why that matters.",
   },
+
+  {
+    file: "0060_every_bucket_is_in_the_chain.sql", appliedBy: null,
+    fingerprint: "e2bc81c9096a0eb4d8b8366ce3aea881",
+    behaviour: "6f2ad57d4793229e8db629936f0cbb74",
+    note:
+      "Shape and behaviour both unchanged, and that is not a copied line. This migration writes one " +
+      "row into storage.buckets, which is not in the public schema, so neither digest can see it: the " +
+      "shape fingerprint reads information_schema.columns for eng_ tables, and the behaviour digest " +
+      "covers constraints, indexes, policies, triggers and functions. A bucket is invisible to both, " +
+      "which is the whole reason this gap survived. Read the BUCKET back, never a digest.",
+    proves: { bucket: "eng-uploads" },
+    /*
+     * IT IS FOUR BUCKETS, NOT ONE. The file was drafted for `eng-uploads`,
+     * which a hand survey had noticed. The check written alongside it found
+     * five buckets named in the source and three more absent from the chain:
+     * eng-onboarding, eng-partner-assets and eng-messages. Five is the number
+     * the cutover plan records being created BY HAND on the new project, which
+     * is the same fact from the other side.
+     *
+     * TWO CARRY LIMITS DERIVED FROM THE CODE AND TWO DO NOT, deliberately.
+     * eng-partner-assets and eng-messages have no size or mime limits stated
+     * anywhere in this repository, and they already exist on the live projects
+     * with settings nobody here has read, so they are created `do nothing` with
+     * null limits. Inventing limits with a `do update` would overwrite live
+     * configuration with a guess and enforce the guess on real uploads.
+     */
+    production: null,
+    development: { at: null, behaviour: null, facts: null },
+    because:
+      "PENDING, DELIBERATELY. Drafted 2026-09-24 during an overnight run forbidden to touch " +
+      "production, and nobody has read which buckets actually exist on either project. " +
+      "WHAT IT FIXES. src/lib/uploads.ts hardcodes the bucket eng-uploads and it carries every " +
+      "application resume, onboarding document and order upload. NO migration created it; the only " +
+      "bucket in this chain is eng-evidence from 0002. A database rebuilt from these files has " +
+      "nowhere to put an upload. " +
+      "WHY NOTHING CAUGHT IT, AND THE FIRST EXPLANATION WRITTEN HERE WAS WRONG. It said PGlite has " +
+      "no storage schema so buckets were invisible to the replay. False: migration-audit creates a " +
+      "storage.buckets stub before it replays, and the replay disproved the claim within the minute. " +
+      "The true reason is narrower: NOTHING EVER COMPARED THE BUCKETS THE CODE NAMES AGAINST THE " +
+      "BUCKETS THE CHAIN CREATES. The replay proves the chain applies; it never asked whether the " +
+      "application's expectations are in it. The check that closes that went in with this migration. " +
+      "BEFORE IT IS APPLIED somebody must read the live buckets on fsaryeciduszuahgjbly and on " +
+      "development. If eng-uploads exists there with a different size limit or mime list, this " +
+      "migration CHANGES it, and the do-update clause is deliberate: it re-asserts private, the " +
+      "limit and the list rather than leaving a bucket somebody widened in the dashboard.",
+  },
 ];
 
 /**

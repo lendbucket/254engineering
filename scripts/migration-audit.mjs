@@ -1277,9 +1277,163 @@ if (failedAt === null) {
   }
 }
 
+/*
+ * =======================================================================
+ * EVERY BUCKET THE CODE NAMES IS CREATED BY THE CHAIN. Added 2026-09-24.
+ * =======================================================================
+ *
+ * WHAT WAS MISSING, AND IT IS NOT WHAT IT LOOKED LIKE. `src/lib/uploads.ts`
+ * hardcodes the bucket `eng-uploads`, which carries every application resume,
+ * onboarding document and order upload, and NO migration created it. Only
+ * `eng-evidence` was in the chain.
+ *
+ * The first explanation written for why nothing caught it was that PGlite has
+ * no storage schema. **That is false**, and this file disproves it a few
+ * hundred lines above: it creates a `storage.buckets` stub before replaying, so
+ * every bucket statement runs exactly as it would on a real project.
+ *
+ * The real reason is narrower and is what this check closes. **The replay
+ * proved the chain APPLIES and nothing ever asked whether the application's
+ * expectations were IN it.** A bucket named only from TypeScript was invisible
+ * to a check that could have seen it all along.
+ *
+ * IT READS THE REPLAYED DATABASE, not the migration text. A regex over the SQL
+ * would be a check on how somebody spelled an insert; the stub holds the rows
+ * the chain actually produced, which is the thing that matters.
+ *
+ * THE SUBJECT IS DERIVED FROM THE SOURCE, not listed here, so a seventh bucket
+ * somebody adds next month is covered by existing rather than by being
+ * remembered. Matched on `storage.from("x")`, which is how the client names a
+ * bucket, and the empty string is excluded because a template literal is not a
+ * bucket name this check can resolve.
+ */
+try {
+  const { readdirSync: rd, statSync: st } = await import("node:fs");
+  const { join: j } = await import("node:path");
+
+  const sourceFiles = [];
+  const walkSrc = (dir) => {
+    for (const name of rd(dir)) {
+      const full = j(dir, name);
+      if (st(full).isDirectory()) {
+        walkSrc(full);
+        continue;
+      }
+      if (/\.(ts|tsx)$/.test(name)) sourceFiles.push(full);
+    }
+  };
+  walkSrc("src");
+
+  /*
+   * A LITERAL OR A CONSTANT, AND THE FIRST VERSION SAW ONLY LITERALS.
+   *
+   * It matched `storage.from("x")` and nothing else, so it found exactly one
+   * bucket, `eng-evidence`, and reported a comfortable green. The bucket this
+   * whole check exists for is written `storage.from(BUCKET)` in
+   * `src/lib/uploads.ts`, with `const BUCKET = "eng-uploads"` nine lines above
+   * it. **The check could not see the one thing it was built to find**, which
+   * is the vacuous green in its purest form: a matcher narrower than its
+   * subject, passing over the defect it was written for.
+   *
+   * Caught by reading the COUNT in its own output rather than the verdict. One
+   * bucket was the wrong number and the pass said nothing about it.
+   *
+   * So an identifier is resolved against a `const NAME = "..."` in the same
+   * file. Same file only, deliberately: following an import would mean
+   * resolving a module graph, and a bucket name imported from elsewhere would
+   * be a different shape worth failing on rather than quietly resolving.
+   */
+  /*
+   * A REPOSITORY WIDE MAP OF BUCKET CONSTANTS, because same file was not enough
+   * either. `MESSAGE_BUCKET` is declared in `src/lib/ops-threads.ts` and used in
+   * `src/app/api/portal/comms/route.ts`, which is the ordinary way a shared
+   * constant is written and would have been reported as unresolvable for ever.
+   *
+   * Only names that look like a bucket are collected, a lowercase dashed
+   * string, so this is not a general constant table pretending to be one.
+   */
+  const constants = new Map();
+  const texts = new Map();
+  for (const f of sourceFiles) {
+    const text = readSource(f.replace(/\\/g, "/"));
+    texts.set(f, text);
+    for (const m of text.matchAll(
+      /const\s+([A-Za-z_$][\w$]*)\s*(?::[^=\n]+)?=\s*["'`]([a-z0-9][a-z0-9-]*)["'`]/g,
+    )) {
+      if (!constants.has(m[1])) constants.set(m[1], m[2]);
+    }
+  }
+
+  const named = new Set();
+  const unresolved = [];
+  for (const f of sourceFiles) {
+    const text = texts.get(f);
+
+    for (const m of text.matchAll(/storage\s*\.\s*from\(\s*["'`]([a-z0-9][a-z0-9-]*)["'`]/g)) {
+      named.add(m[1]);
+    }
+
+    for (const m of text.matchAll(/storage\s*\.\s*from\(\s*([A-Za-z_$][\w$]*)\s*\)/g)) {
+      const ident = m[1];
+      const sameFile = text.match(
+        new RegExp(`const\\s+${ident}\\s*(?::[^=\\n]+)?=\\s*["'\`]([a-z0-9][a-z0-9-]*)["'\`]`),
+      );
+      const resolved = sameFile ? sameFile[1] : constants.get(ident);
+      if (resolved) named.add(resolved);
+      else unresolved.push(`${f.replace(/\\/g, "/")}: storage.from(${ident})`);
+    }
+  }
+
+  /*
+   * AN UNRESOLVED IDENTIFIER IS A FAILURE, NOT A SKIP. Silently ignoring one
+   * would put this check straight back where it started: believing every bucket
+   * is accounted for because it could not read the line that says otherwise.
+   */
+  rec(
+    "every storage.from names a bucket this check can resolve",
+    unresolved.length === 0,
+    unresolved.length ? unresolved.join("; ") : "every call is a literal or a const in the same file",
+  );
+
+  const { rows } = await db.query("select id from storage.buckets order by id");
+  const created = new Set(rows.map((r) => r.id));
+
+  rec(
+    `the source names at least one storage bucket (${named.size})`,
+    named.size > 0,
+    named.size ? [...named].join(", ") : "none found, so the check below would pass over nothing",
+  );
+
+  const missing = [...named].filter((b) => !created.has(b));
+  rec(
+    "every bucket the code names is created by the chain",
+    missing.length === 0,
+    missing.length
+      ? `${missing.join(", ")} is used in src and no migration creates it, so a rebuilt database has nowhere to put those files`
+      : `${created.size} created: ${[...created].join(", ")}`,
+  );
+} catch (err) {
+  /*
+   * A CHECK THAT CRASHES TAKES ITS NEIGHBOURS WITH IT, which is why this is
+   * caught rather than left to propagate. A wrong assertion fails loudly and
+   * names itself; an uncaught throw here would end the replay and report as one
+   * red audit among many, which looks like one finding and is eighty fewer
+   * answers.
+   *
+   * The message is truncated hard because a PGlite error carries the whole wasm
+   * module and would bury every other line in the run.
+   */
+  rec(
+    "the bucket comparison ran",
+    false,
+    String(err instanceof Error ? err.message : err).slice(0, 200),
+  );
+}
+
 await db.close();
 
 // ---------------------------------------------------------------- the verdict
+
 
 const failed = out.filter((o) => !o.ok);
 for (const o of out) {
