@@ -162,6 +162,21 @@ export async function readEvery<T>(
  * a real outstanding balance. It took two minutes to say so. Nothing on the
  * board could see it, because the browser audits could only ever report a
  * navigation timeout and a timeout blocks no merge.
+ *
+ * IT WAS NEVER LIVE ON PRODUCTION, AND THAT IS RECORDED BECAUSE THE REASON
+ * MATTERS MORE THAN THE RELIEF. Operator read, 2026-09-24, read only from
+ * outside this session: production's `eng_customer_accounts` holds ZERO rows.
+ * That is the table `accountRows` reads first, and every `.in()` filter below
+ * it is built from those ids, so with no accounts the function returns at
+ * `if (!accounts.length)` before a single oversized request is issued. The
+ * cliff was not merely under its threshold on production; it was unreachable.
+ *
+ * WHICH IS EXACTLY WHY IT HAD TO BE FIXED NOW RATHER THAN LATER. A defect that
+ * is dormant because a table is empty is the shape this repository has already
+ * been bitten by twice in one week: the PE licence number, harmless while the
+ * register held nothing, and `sealingIsAvailable()`, correct until the first
+ * protocol was approved. The first real customer account is the thing that
+ * makes this live, and the firm is working to have one.
  */
 export const IN_FILTER_CHUNK = 150;
 
