@@ -130,7 +130,11 @@ export function AccountsClient({ rows }: { rows: Row[] }) {
               setPage(1);
             }}
             placeholder="Search by organization"
-            className="w-full rounded-[4px] border border-limestone-line px-3 py-2 text-[13.5px] text-[var(--navy)]"
+            /* min-h-44 because this is a new interactive control on a screen
+             * mobile-audit measures, and py-2 alone lands it under the tap
+             * target minimum. Caught by asking, before the board, which rules
+             * a change makes newly applicable rather than waiting to be told. */
+            className="min-h-[44px] w-full rounded-[4px] border border-limestone-line px-3 py-2 text-[13.5px] text-[var(--navy)]"
           />
         </label>
         {/*
