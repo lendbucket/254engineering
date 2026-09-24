@@ -242,9 +242,41 @@ rec(`there are migrations to check (${files.length})`, files.length > 0);
   );
 
   if (mainKnown) {
+    /*
+     * =====================================================================
+     * MAIN'S TREE, NOT MAIN'S HISTORY. Operator ruling, 2026-09-23.
+     * =====================================================================
+     *
+     * THIS READ `git rev-list -1 main -- <path>`, which answers "did any commit
+     * reachable from main ever TOUCH this file". That is not the question. The
+     * question is whether main HAS the migration today.
+     *
+     * The two differ by exactly one case, and that case happened during the
+     * 2026-09-23 sitting. 0058 was written on the overnight branch, moved to a
+     * branch of its own by `f574f4b`, and that branch merged. So main's history
+     * contains a commit touching the path, the commit that DELETED it, and
+     * `rev-list` found it. The audit reported 0058 as "merged and the ledger
+     * says production does not have it" while `git ls-tree main` showed the file
+     * absent from main's tree. A false red, on the one check that guards a
+     * migration reaching production, in the middle of applying one.
+     *
+     * THE INVERSE IS WORSE THAN THE FALSE RED, and it is why this is a defect
+     * rather than an inconvenience: a migration genuinely REMOVED from main
+     * would read as merged for ever, because the deletion is itself a commit
+     * that touched the path. The check would go on asserting a rule about a
+     * file nobody has.
+     *
+     * `git ls-tree` asks the tree. It prints a line when the path exists in
+     * that commit's tree and nothing when it does not, whatever the history
+     * around it says.
+     *
+     * It is another instance of the recurring defect in this repository: a
+     * matcher whose window is wider than the thing it means. `rev-list -- path`
+     * is a window over history; the subject is one tree.
+     */
     const onMain = (file) => {
       try {
-        const r = execFileSync("git", ["rev-list", "-1", MAIN, "--", join(DIR, file)], {
+        const r = execFileSync("git", ["ls-tree", "--name-only", MAIN, join(DIR, file)], {
           stdio: "pipe",
           encoding: "utf8",
         });
