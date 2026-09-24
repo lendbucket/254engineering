@@ -126,6 +126,100 @@ export async function readEvery<T>(
   };
 }
 
+/**
+ * =============================================================================
+ * HOW MANY IDS MAY GO INTO ONE `.in()` FILTER, AND IT IS A CLIFF.
+ * =============================================================================
+ *
+ * Measured against the development project on 2026-09-24, same client, same
+ * table, one filter, ids sliced:
+ *
+ *     in( 50):    122ms  filter  1849 chars  ok
+ *     in(100):    120ms  filter  3699 chars  ok
+ *     in(150):    124ms  filter  5549 chars  ok
+ *     in(200):    134ms  filter  7399 chars  ok
+ *     in(250):    146ms  filter  9249 chars  ok
+ *     in(300):    145ms  filter 11099 chars  ok
+ *     in(400):   8116ms  filter 14799 chars  ERROR TypeError: fetch failed
+ *     in(529):   8454ms  filter 19572 chars  ERROR TypeError: fetch failed
+ *
+ * A CLIFF, NOT A GRADIENT. Everything under it answers in about 130ms and
+ * everything over it fails whole after eight seconds. It is a request too large
+ * for the transport rather than a query that is slow, and the same tables read
+ * with no `.in()` at all answer in 107ms and 223ms.
+ *
+ * WHY 150 AND NOT 300. The last size that worked is not a safe size to choose:
+ * it is the edge of a limit this repository does not own and cannot see, and
+ * the limit is on the whole REQUEST rather than on this filter, so another
+ * clause, a longer column name or a second filter eats the same budget. 150
+ * uuids is about 5,550 characters, a third of the way to the last known good
+ * reading, and costs four round trips where 300 would cost two.
+ *
+ * WHAT IT COST BEFORE ANYBODY MEASURED IT. `/portal/accounts` read 529 account
+ * ids into four `.in()` filters, all four failed, every failure was turned into
+ * an empty list by `?? []`, and the screen rendered 529 accounts each reading
+ * "Unknown organization" with no orders, no seats and no open statement beside
+ * a real outstanding balance. It took two minutes to say so. Nothing on the
+ * board could see it, because the browser audits could only ever report a
+ * navigation timeout and a timeout blocks no merge.
+ *
+ * IT WAS NEVER LIVE ON PRODUCTION, AND THAT IS RECORDED BECAUSE THE REASON
+ * MATTERS MORE THAN THE RELIEF. Operator read, 2026-09-24, read only from
+ * outside this session: production's `eng_customer_accounts` holds ZERO rows.
+ * That is the table `accountRows` reads first, and every `.in()` filter below
+ * it is built from those ids, so with no accounts the function returns at
+ * `if (!accounts.length)` before a single oversized request is issued. The
+ * cliff was not merely under its threshold on production; it was unreachable.
+ *
+ * WHICH IS EXACTLY WHY IT HAD TO BE FIXED NOW RATHER THAN LATER. A defect that
+ * is dormant because a table is empty is the shape this repository has already
+ * been bitten by twice in one week: the PE licence number, harmless while the
+ * register held nothing, and `sealingIsAvailable()`, correct until the first
+ * protocol was approved. The first real customer account is the thing that
+ * makes this live, and the firm is working to have one.
+ */
+export const IN_FILTER_CHUNK = 150;
+
+/**
+ * Read every row matching `ids`, in chunks small enough for the transport.
+ *
+ * FAILS WHOLE OR SUCCEEDS WHOLE, and that is the entire point rather than a
+ * detail. A chunked read that returns what it managed to collect is strictly
+ * worse than an unchunked one that fails, because the caller cannot tell a
+ * complete answer from a partial one and every figure downstream is computed
+ * from a set nobody can describe.
+ *
+ * An empty `ids` returns an empty success rather than reading anything: no ids
+ * means no matching rows, and issuing a query with an empty filter is a way to
+ * accidentally match everything.
+ */
+export async function readEveryIn<T>(
+  ids: readonly string[],
+  build: (chunk: readonly string[], from: number, to: number) => PromiseLike<Result<T>>,
+  options: { chunkSize?: number; pageSize?: number; maxPages?: number } = {},
+): Promise<BoundedRead<T>> {
+  if (ids.length === 0) return { ok: true, rows: [], total: 0, complete: true };
+
+  const chunkSize = options.chunkSize ?? IN_FILTER_CHUNK;
+  const rows: T[] = [];
+
+  for (let i = 0; i < ids.length; i += chunkSize) {
+    const chunk = ids.slice(i, i + chunkSize);
+    const read = await readEvery<T>((from, to) => build(chunk, from, to), options);
+    if (!read.ok) {
+      return {
+        ok: false,
+        error:
+          `Reading ids ${i + 1} to ${Math.min(i + chunkSize, ids.length)} of ${ids.length} failed: ` +
+          `${read.error} No partial set is returned, because a caller cannot tell one from a complete answer.`,
+      };
+    }
+    rows.push(...read.rows);
+  }
+
+  return { ok: true, rows, total: rows.length, complete: true };
+}
+
 /** The sentence a figure carries when its set was larger than one read. */
 export function tooManyRows(what: string, total: number, got: number): string {
   return (

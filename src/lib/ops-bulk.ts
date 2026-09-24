@@ -1,6 +1,6 @@
 import "server-only";
 import { DB_NOW } from "./db-now";
-import { readEvery } from "./bounded-read";
+import { readEvery, readEveryIn } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import { tradePriceInForce } from "./trade-pricing";
 import { catalogFor, orderBlockedReason, type CatalogEntry } from "@data/catalog";
@@ -408,13 +408,39 @@ export async function accountBalance(accountId: string): Promise<{
     return { issuedUnpaidCents: null, unbilledCents: null, outstandingCents: null, oldestUnpaidDays: null };
   }
 
-  const issuedUnpaidCents = (statements ?? []).reduce((n, s) => n + Number(s.total_cents ?? 0), 0);
-  const unbilledCents = (unbilled ?? []).reduce((n, o) => n + Number(o.total_cents ?? 0), 0);
+  return balanceFrom(statements ?? [], unbilled ?? []);
+}
+
+/**
+ * Turn one account's rows into its balance.
+ *
+ * EXTRACTED 2026-09-24 SO THE BULK READER CANNOT DISAGREE WITH THE SINGLE ONE.
+ * `accountRows` used to call `accountBalance` once per account, which is two
+ * sequential round trips each and was 529 accounts' worth of them. Reading in
+ * bulk is the fix; reimplementing the arithmetic in the bulk path would have
+ * been the defect, because this is the credit gate and a second account of it
+ * is a second answer to whether somebody may order on invoice.
+ *
+ * So there is one reader per shape and ONE computation, here. Both callers feed
+ * it the same two row sets.
+ */
+export function balanceFrom(
+  statements: readonly { total_cents: number | null; due_at: string | null }[],
+  unbilled: readonly { total_cents: number | null }[],
+  now: number = Date.now(),
+): {
+  issuedUnpaidCents: number | null;
+  unbilledCents: number | null;
+  outstandingCents: number | null;
+  oldestUnpaidDays: number | null;
+} {
+  const issuedUnpaidCents = statements.reduce((n, s) => n + Number(s.total_cents ?? 0), 0);
+  const unbilledCents = unbilled.reduce((n, o) => n + Number(o.total_cents ?? 0), 0);
 
   let oldestUnpaidDays: number | null = null;
-  for (const s of statements ?? []) {
+  for (const s of statements) {
     if (!s.due_at) continue;
-    const days = Math.floor((Date.now() - Date.parse(s.due_at as string)) / (24 * 60 * 60 * 1000));
+    const days = Math.floor((now - Date.parse(s.due_at)) / (24 * 60 * 60 * 1000));
     if (days > 0 && (oldestUnpaidDays === null || days > oldestUnpaidDays)) oldestUnpaidDays = days;
   }
 
@@ -424,6 +450,68 @@ export async function accountBalance(accountId: string): Promise<{
     outstandingCents: issuedUnpaidCents + unbilledCents,
     oldestUnpaidDays,
   };
+}
+
+/**
+ * Every account's balance, in chunked reads rather than two per account.
+ *
+ * WHY IT RETURNS A RESULT RATHER THAN A MAP. A failed read here must not become
+ * a zero balance: `creditDecision` refuses on an UNKNOWN balance and grants on a
+ * zero one, so the two differ by whether the firm extends credit it did not mean
+ * to. The single-account version already returns nulls on failure for exactly
+ * that reason, and this is the same rule at the set level.
+ */
+export async function accountBalances(
+  ids: readonly string[],
+): Promise<
+  | { ok: true; balances: Map<string, ReturnType<typeof balanceFrom>> }
+  | { ok: false; error: string }
+> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured, so no balance could be read." };
+
+  const statementRead = await readEveryIn<{ account_id: string; total_cents: number | null; due_at: string | null }>(
+    ids,
+    (chunk, from, to) =>
+      db
+        .from("eng_statements")
+        .select("account_id, total_cents, due_at")
+        .in("account_id", chunk as string[])
+        .eq("status", "issued")
+        .order("created_at", { ascending: true })
+        .range(from, to),
+  );
+  if (!statementRead.ok) return { ok: false, error: `Issued statements: ${statementRead.error}` };
+
+  const unbilledRead = await readEveryIn<{ account_id: string; total_cents: number | null }>(
+    ids,
+    (chunk, from, to) =>
+      db
+        .from("eng_service_orders")
+        .select("account_id, total_cents")
+        .in("account_id", chunk as string[])
+        .eq("billing_mode", "invoice")
+        .is("statement_id", null)
+        .in("status", ["paid", "in_fulfilment", "complete"])
+        .order("created_at", { ascending: true })
+        .range(from, to),
+  );
+  if (!unbilledRead.ok) return { ok: false, error: `Unbilled orders: ${unbilledRead.error}` };
+
+  const statementsBy = new Map<string, { total_cents: number | null; due_at: string | null }[]>();
+  for (const s of statementRead.rows) {
+    statementsBy.set(s.account_id, [...(statementsBy.get(s.account_id) ?? []), s]);
+  }
+  const unbilledBy = new Map<string, { total_cents: number | null }[]>();
+  for (const o of unbilledRead.rows) {
+    unbilledBy.set(o.account_id, [...(unbilledBy.get(o.account_id) ?? []), o]);
+  }
+
+  const balances = new Map<string, ReturnType<typeof balanceFrom>>();
+  for (const id of ids) {
+    balances.set(id, balanceFrom(statementsBy.get(id) ?? [], unbilledBy.get(id) ?? []));
+  }
+  return { ok: true, balances };
 }
 
 const ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
