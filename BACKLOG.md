@@ -1344,6 +1344,91 @@ rule doing the work the harness cannot.
 **Phase 14 ranking unchanged**, restated so it is not re-derived: the stall goes
 ahead of the surveys, the roll-up undercount goes first in survey 3.
 
+### THE PROFILE ARRIVED, 2026-09-24. IT IS NOT A STALL, IT IS TWO DEFECTS, AND THE SECOND ONE RENDERS WRONG FIGURES ON A BILLING SCREEN
+
+The 2026-09-17 ruling said this screen comes back for a decision **with a
+measurement**, and that a plausible cause nobody has profiled is a guess. Here
+is the measurement. It came out of the exploratory sweep, item 6, which caught
+the stall live because it was already running when one arrived.
+
+**`accountRows()` in `src/lib/ops-accounts-admin.ts`, measured three times
+against development: 119097ms, 120046ms, 121079ms, 529 account rows each time.**
+
+**IT IS NOT INTERMITTENT. It is two minutes, every time.** Every earlier
+reading of "it measured fine on that run" needs re-reading in that light: the
+browser audits could only ever report a navigation timeout, which the 2026-09-17
+ruling correctly classes as could-not-measure and which therefore blocks
+nothing, so the screen has been unusable and unmeasured for a week.
+
+**WHAT ISOLATED IT WAS THE ROLE, NOT THE CLOCK.** The sweep drives seven roles.
+`/portal/accounts` does `if (!can(actor, "accounts.manage")) redirect("/portal")`
+before it reads anything, so six of the seven never reach `accountRows()` and
+all six rendered instantly. The one role that runs it timed out at both widths.
+The difference between the fast case and the slow case is not the machine and
+not the moment: it is whether that function executes.
+
+#### Defect one, the two minutes
+
+`const balance = await accountBalance(id);` sits INSIDE the loop over accounts,
+so it is 529 sequential round trips at roughly 220ms. That is the whole of the
+120 seconds and it has nothing to do with the four reads above it.
+
+#### Defect two, and it is the serious one
+
+The four reads that follow the roster filter on `.in(ids)` with all 529 account
+ids. Measured, same client, same table, ids sliced:
+
+```
+in( 50):    122ms  filter  1849 chars  ok
+in(100):    120ms  filter  3699 chars  ok
+in(150):    124ms  filter  5549 chars  ok
+in(200):    134ms  filter  7399 chars  ok
+in(250):    146ms  filter  9249 chars  ok
+in(300):    145ms  filter 11099 chars  ok
+in(400):   8116ms  filter 14799 chars  ERROR TypeError: fetch failed
+in(529):   8454ms  filter 19572 chars  ERROR TypeError: fetch failed
+```
+
+**A CLIFF, NOT A GRADIENT**, somewhere between 11k and 15k characters of filter,
+which is a request too large for the transport rather than a query that is slow.
+The same tables read with no `in()` answer in 107ms and 223ms.
+
+**AND THE FAILURE IS CONVERTED INTO ZEROS.** Each read is `readEvery` and each
+carries a comment saying why: "a partial count is a wrong one", "an open
+statement missed here is a bill the screen says does not exist". Those guards
+are on TRUNCATION. On FAILURE the code does `clientRead.ok ? rows : null` and
+then `(clients ?? [])`, so a failed read becomes an empty list. Read back from
+the function itself, not inferred:
+
+```
+117979ms, 529 rows
+clientName "Unknown organization": 529 of 529
+orders 0:                          529 of 529
+users 0:                           529 of 529
+openStatement null:                529 of 529
+```
+
+beside a first row carrying `issuedUnpaidCents: 127500` and `canOrder: true`,
+because `accountBalance` is the one read that still works.
+
+So the screen a person waits two minutes for shows **every customer named
+"Unknown organization", every one with no orders, no seats and no open
+statement, beside a real outstanding balance of $1,275.00.** The comment above
+the statements read names this exact outcome as the thing the read was written
+to prevent.
+
+**THE TRIGGER IS THE ACCOUNT COUNT AND PRODUCTION'S IS NOT KNOWN HERE.**
+Development holds 529. Below roughly 350 accounts every figure on this screen is
+right; above it every figure is wrong, silently, with no warning and no error on
+the page. Whether production is over that line today is a question this session
+has no access to answer, and it is the first thing to check in the next sitting.
+
+**Recommended, in order.** Take `accountBalance` out of the loop. Chunk the four
+`.in()` reads, or replace the counts with an aggregate the database computes.
+And make a failed read an ABSENCE rather than a zero, which is the rule this
+repository already applies to every figure on every report and which this
+function predates.
+
 ### FRESH EVIDENCE, 2026-09-22: THE UNDERCOUNT CAUGHT ON A GREEN BOARD RATHER THAN FROM THE RECORD
 
 Operator ruling, 2026-09-22. Recorded here rather than as a new entry, because
