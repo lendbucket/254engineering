@@ -1531,12 +1531,49 @@ export const APPLIED = [
       "pg_constraint by its definition rather than its name.",
   },
   {
-    file: "0058_a_retired_protocol_is_not_in_force.sql", appliedBy: null,
+    file: "0058_a_retired_protocol_is_not_in_force.sql", appliedBy: "apply_migration",
     fingerprint: "e2bc81c9096a0eb4d8b8366ce3aea881",
     behaviour: "2f4bbea41782d98686abfd5c61301493",
     proves: { function: "eng_protocol_in_force_holds_items" },
-    production: null,
+    production: "2026-09-23",
     development: { at: null, behaviour: null, facts: null },
+    /*
+     * APPLIED 2026-09-23, AND EVERY FIGURE BELOW WAS READ BACK RATHER THAN
+     * PREDICTED. The provider's own history carries it WITH ITS NUMERIC PREFIX,
+     * version 20260924004442 named '0058_a_retired_protocol_is_not_in_force',
+     * which is the 0055 slip not repeated.
+     *
+     * READ BACK FROM fsaryeciduszuahgjbly IMMEDIATELY AFTER APPLYING:
+     *
+     *   shape fingerprint   e2bc81c9096a0eb4d8b8366ce3aea881   as predicted
+     *   eng_ columns        1,143                              unchanged, as predicted
+     *   eng_ tables         81
+     *   eng_ functions      25
+     *   function body       2486876ac8329b36c3e6a37ca51ad472
+     *                       to b570ffa383e134af4e712d3bfa2d61eb
+     *   TG_OP present       true, which is the whole fix
+     *
+     * No count disagreed with this entry, which is the stop condition under the
+     * 2026-09-12 ruling. The behaviour digest was NOT used as a stop, because a
+     * live read-back is judged on counts.
+     *
+     * AND THE BODY WAS COMPARED BEFORE ANYTHING WAS APPLIED. Production was
+     * asked for the md5 of its own function body, whitespace normalised, and
+     * the same normalisation was computed from 0052 in this repository: both
+     * 2486876ac8329b36c3e6a37ca51ad472 across 788 characters. So production was
+     * running 0052 unmodified and this migration replaced what it was meant to
+     * replace. The production body was never transcribed into this repository,
+     * because a comparison against something retyped is a comparison against
+     * the retyping.
+     *
+     * ONE THING SEEN IN THE MIGRATION LIST THAT IS NOT THIS FIRM'S. Four
+     * migrations from another application on this shared project were applied
+     * the same day: lead_submission_id, account_approval_gate, tech_training
+     * and generator_gas_exclusion. None touched anything eng_ prefixed, checked
+     * rather than assumed by the shape fingerprint matching this entry exactly.
+     * It is the first dated evidence for the shared-project exposure BACKLOG.md
+     * records as nothing checking foreign DDL on production.
+     */
     /*
      * THE SHAPE FINGERPRINT REPEATS 0057's ON PURPOSE, and the ledger has to
      * keep saying so, because a reader who does not know that reads a copied
