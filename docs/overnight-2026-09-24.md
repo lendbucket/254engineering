@@ -1,5 +1,234 @@
 # Overnight, 2026-09-24
 
+---
+
+# THE RESTARTED RUN
+
+**Everything below the first horizontal rule is the restarted run. The original
+run's record follows it unchanged, because a report that is edited to look
+consistent is a report nobody can audit.**
+
+**Nothing merged, nothing pushed, nothing deleted. No production, Supabase,
+Vercel or Stripe call of any kind. No secret value in the session. No process
+belonging to another project was touched.**
+
+## R1. WHAT THE RULINGS PRODUCED
+
+| Branch | Commit | |
+| --- | --- | --- |
+| `feat/engineer-sees-no-money` | `d48b327`, `75e09b8` | the engineer money ruling, and migration 0059 |
+| `feat/eng-uploads-bucket` | `e4379bf` | migration 0060, four missing buckets, and the check that found them |
+| `fix/business-dates-in-firm-calendar` | `13056df` | partner commission terms, credential expiries, the SOC 2 timestamp |
+
+`feat/engineer-sees-no-money` is based on `feat/0058-retired-protocol` and
+`feat/eng-uploads-bucket` on that, **so the migration chain is contiguous at
+0058, 0059, 0060.** Branching all three from `main` would have produced three
+migrations numbered 0058. Disclosed here rather than discovered at integration.
+
+## R2. THREE ITEMS DID NOT RUN, AND ONE WAS NOT BUILT
+
+**Items 1, 6 and 8 did not run.** The machine was held for the whole run by
+another project: `full-suite`, its `launch-audit`, and a Next server on port
+3141 whose process has been alive since 19:19 on 2026-09-23. Under the standing
+rule nothing of that project is touched and this repository's board waits, and a
+waiter re-checked every ten minutes throughout. **The item 1 prediction remains
+unspent:** 56 PASS, 1 FAIL, 2 COULD NOT TELL of 59, the red being
+`schema-ledger-audit` on 0058 applied and not on main.
+
+That also means **item 6, the browser half of the exploratory audit, has still
+not happened.** It needs a server at 390 and 1280 for six roles. It is the
+largest remaining piece of work and nothing in it has been done.
+
+**Item 7 was deliberately not built**, and the reasoning is one already
+accepted: `BACKLOG.md` records that the build guard "stands between a board and
+a torn artifact" and that loosening it "belongs in daylight with an injection".
+Building it tonight would have meant changing that guard at the end of an
+unsupervised run **with no board available to verify it**, because the machine
+was held. The design is at R6.
+
+**Item 3, option B, was not reached.** The night went into items 2, 4 and 5, each
+of which grew well beyond its brief when read against the code. Nothing of item 3
+was started, so there is no half-built money path anywhere.
+
+## R3. THE ENGINEER MONEY RULING, AND WHAT IT TOOK
+
+`d48b327` and `75e09b8`. Recorded in CLAUDE.md in your words.
+
+`pricing.read` is gone from the engineer and `pricing.read_own_pay` replaces it,
+returning exactly `engineer_cost_cents` and only on a file whose
+`assigned_engineer_id` is that engineer.
+
+**A blanket removal would have been a different and worse ruling.**
+`engineer_cost_cents` IS his pay. Dropping `pricing.read` alone hides it with
+everything else, turning "no money except his own pay" into "no money".
+
+**Roles are data, so this needed migration 0059**, drafted and pending. It is
+**the first migration in this chain to revoke a grant from one role**, and
+`roles-audit` could not read such a statement: the only removal shape it
+understood was a delete by ACTION alone, which revokes from every role. Written
+that way, this migration would have taken `pricing.read` from `admin` and
+`read_only` as well. The parser learned both shapes and now applies the chain in
+ORDER rather than as a set.
+
+**A ledger digest was guessed and the check caught it.** The behaviour
+fingerprint was first written as a repeat of 0058's, on the reasoning that a row
+migration moves no shape. `schema-ledger-audit` refused it and named both values:
+role grants ARE part of the behaviour digest.
+
+### R3a. A SECOND DEFECT IN THE SAME AREA, NOT FIXED, RANKED HIGH
+
+**`productionReport(period, scope)` takes no actor.** It selects
+`engineer_id, ... amount_cents` for a period across every engineer, grouped by
+display name. The engineer holds `reports.production`, and the comment on that
+grant says "it describes their own work". **It does not.** Every engineer can see
+every other engineer's production pay, which is the ruling being violated in the
+one report the engineer can reach.
+
+It is not small: scoping it means threading an actor through the report builder
+and the registry. **Recommendation: fix it before 0059 is applied**, because
+applying 0059 closes the file-level leak and leaves this one open, which is a
+worse state to be in than either, since it reads as done.
+
+## R4. FOUR BUCKETS, NOT ONE, AND A CHECK THAT WAS VACUOUS FOR ITS OWN CASE
+
+`e4379bf`. Migration 0060, pending.
+
+The original finding named `eng-uploads`. The check written alongside it found
+**five buckets in the source and three more missing**: `eng-onboarding`,
+`eng-partner-assets`, `eng-messages`. Five is the number the cutover plan records
+being created BY HAND on the new project.
+
+**The first explanation for why nothing caught it was wrong**, and the replay
+disproved it within the minute. It said PGlite has no storage schema;
+`migration-audit` creates a `storage.buckets` stub and every bucket statement
+runs. The true reason is narrower: **nothing ever compared the buckets the code
+names against the buckets the chain creates.**
+
+**And the first version of that check was vacuous for exactly the case it was
+built for.** It matched `storage.from("literal")` only, found ONE bucket, and
+passed. The bucket it exists for is written `storage.from(BUCKET)`. It was caught
+by reading the COUNT in its own output rather than the verdict.
+
+**Two buckets carry limits derived from the code and two do not, deliberately.**
+`eng-partner-assets` and `eng-messages` have no limits stated anywhere here and
+already exist on the live projects with settings nobody has read, so they are
+created `do nothing` with null limits. A `do update` carrying invented limits
+would overwrite live configuration with a guess and enforce it on real uploads.
+
+**The cost, said out loud:** a database rebuilt from this chain gets those two
+private but with no size limit and no mime restriction. That is a question at
+R7.3, not something papered over.
+
+## R5. BUSINESS DATES AND THE SOC 2 TIMESTAMP
+
+`13056df`.
+
+**The partner commission boundary, first as ordered.** `termsInForce` chose which
+commission terms applied using a UTC date. From 19:00 Chicago the UTC date is
+already tomorrow, so **a rate change dated the first took effect at seven in the
+evening on the last day of the previous month**, and every order in that window
+accrued at the wrong rate. It moves by a whole month at a month boundary, which
+is exactly where terms change.
+
+**The credential expiries** in `launch.ts` compared against a UTC date, so for
+five or six hours either side of midnight a credential expiring today was already
+treated as lapsed. Small, and in the safe direction, which is why it would never
+have been noticed.
+
+**The SOC 2 pack said "Generated on X" where X was not when it was generated.**
+`eng_now` exists in no migration, so the fallback has always run: it reads the
+`created_at` of the most recent job, which on a quiet system is hours or days
+old, and `eng_jobs` is one of the two tables retention may delete from. The
+header then said "Every figure below was read at generation time" above it. The
+pack now states what the value is and where it came from, at all three places.
+
+**What was deliberately not swept:** fourteen files use the UTC spelling and this
+changed the ones that DECIDE something. The rest format a stored instant for
+display. Sweeping them tonight would have been an instance fix dressed as a class
+fix. See R7.4.
+
+## R6. ITEM 7, DESIGNED AND NOT BUILT
+
+**Why the guard flagged a foreign server.** `classifyNextProcess` already returns
+`foreign` for an absolute path into another checkout. Tonight's process was
+started with a RELATIVE path, `node_modules/next/dist/bin/next start -p 3141`, so
+it fell through to `unknown` and was reported. The guard was right to fail closed.
+
+**Reading a foreign process's working directory is not reliably possible on
+Windows.** There is no WMI field for it and the supported routes need debug
+privileges. A design that assumes it can is a design that will not work here.
+
+**The decisive signal that IS available: ask the server which build it serves.**
+For any `unknown` process, take its port from `-p N` (default 3000), fetch
+`http://127.0.0.1:N/`, and compare the build id in the response against this
+checkout's `.next/BUILD_ID`.
+
+  - matches: it is OURS, and it is a blocker.
+  - answers and does not match: it is another checkout. Drop it, and say so.
+  - does not answer: stay `unknown` and keep failing closed.
+
+That resolves tonight's case exactly, keeps the conservative default, and stops
+the guard offering a `taskkill` for a process this repository cannot claim.
+
+**The port move is the second half and is NOT a substitute.** Tonight's block was
+not a port collision: ours is 3223 to 3232 and the other held 3141. Moving the
+range stops the two suites competing; it does not help the guard place a server.
+The range is typed in more than one place today, which is its own one-fact-two-
+homes problem and belongs in the same pass.
+
+## R7. QUESTIONS, IN THE ORDER TO ANSWER THEM
+
+### R7.1 The production report leaks every engineer's pay
+
+R3a. Fix before 0059 is applied, or the file-level fix reads as done while the
+report is still open. Needs an actor threaded through the report registry.
+
+### R7.2 Two pending migrations and their order
+
+0059 and 0060 are both pending and both need a sitting. 0060 must not be applied
+until the live buckets have been read, because its first two statements carry
+`do update`.
+
+### R7.3 The two buckets with unknown limits
+
+`eng-partner-assets` and `eng-messages` are created with null limits for a fresh
+database. Once the live settings are read, do they become `do update` with the
+real figures? Recommendation: yes, in a follow-up migration, so the chain
+reproduces production rather than approximating it.
+
+### R7.4 The remaining UTC dates
+
+Fourteen files, of which the deciding ones are fixed. Recommendation: a check
+that forbids deriving a business date from `toISOString()` outside
+`firm-calendar.ts`, with the display sites exempted by being passed an explicit
+instant. That is the class fix; tonight was the money.
+
+### R7.5 `eng_now()`
+
+The SOC 2 timestamp is now honest about being a stale row. A one line SQL
+function would make it a real database clock and let the pack say "generated on"
+truthfully. It needs a migration. Recommendation: add it to whichever sitting
+applies 0059.
+
+### R7.6 Item 3, option B
+
+Not started. The design at section 1.2 of the original run stands unchanged and
+is ready to build.
+
+### R7.7 Item 6, the browser audit
+
+Not started, and it is the largest remaining piece. It needs the machine.
+
+### R7.8 The foreign process on 3141
+
+Alive since 19:19 on 2026-09-23 and holding the machine for this repository's
+boards. Not touched, and not mine to touch. If it is a stray rather than a run
+you want, ending it is the thing that unblocks items 1, 6 and 8.
+
+---
+
+# THE ORIGINAL RUN OF 2026-09-24 FOLLOWS, UNCHANGED
+
 **Nothing merged, nothing pushed, nothing deleted. No production access of any
 kind: no Supabase, Vercel or Stripe call was made after the rules were given, and
 no secret value entered the session.** Every branch below is unmerged.
