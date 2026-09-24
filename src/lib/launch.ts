@@ -476,8 +476,43 @@ export const LAUNCH_CONDITIONS: LaunchCondition[] = [
  * THE ROUTE CHECKS IT TOO, not only the screen. A screen that hides a form is a
  * screen; the route is what a person who reads HTML has to get past.
  */
+/**
+ * ===========================================================================
+ * IT REQUIRES THE GATE AS WELL AS ITS OWN FLAG. Operator ruling, 2026-09-24.
+ * ===========================================================================
+ *
+ * WHAT IT DID. It read `selfServiceSignUp.cleared` and nothing else. That flag
+ * is one of the nine launch conditions, so clearing it says "public sign up is
+ * ready to reach production" and says nothing about whether the FIRM is open.
+ *
+ * WHY THAT IS WRONG IN THE DIRECTION THAT COSTS SOMETHING. The flag is a single
+ * boolean in a configuration file. The moment the operator clears it, in
+ * preparation for opening, self service sign up becomes live on the public site
+ * WHILE THE GATE IS STILL SHUT: a member of the public could create an account
+ * on a firm that is not yet taking orders, be told nothing is available, and be
+ * left holding a credential for a service that does not exist yet. The account
+ * surface exists to own orders, and in prelaunch and trading there are none.
+ *
+ * It is also the one condition a reasonable person would clear EARLY, because
+ * clearing it is preparation rather than a commitment, which is exactly what
+ * makes reading it alone dangerous.
+ *
+ * NO RECURSION, CHECKED RATHER THAN ASSUMED. `isOpen()` reads `openBlockers()`,
+ * which reads each condition's `unmet()`, and the `self-service-signup`
+ * condition reads `selfServiceSignUp.cleared` DIRECTLY rather than calling this
+ * function. So this can call `isOpen()` safely, and the flag check below is
+ * redundant by construction today and kept anyway: it states the intent locally
+ * rather than relying on a condition list somebody could reorder.
+ *
+ * A DISCLOSED JUDGEMENT, AND IT IS IN THE OVERNIGHT FILE FOR A RULING. The bar
+ * chosen is `open` rather than `trading`. The reasoning is that an account is
+ * for owning orders and trading takes no orders, so an account opened in
+ * trading can do nothing. If the operator wants sign up available as soon as
+ * the firm is registered and quoting, this becomes `!isPrelaunch()` and the
+ * error sentence stays as it is.
+ */
 export function selfServiceSignUpOpen(): boolean {
-  return selfServiceSignUp.cleared === true;
+  return isOpen() && selfServiceSignUp.cleared === true;
 }
 
 /**
