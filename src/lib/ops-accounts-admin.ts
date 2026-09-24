@@ -1,7 +1,7 @@
 import "server-only";
-import { readEvery } from "./bounded-read";
+import { readEvery, readEveryIn } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
-import { accountBalance } from "./ops-bulk";
+import { accountBalances } from "./ops-bulk";
 import { creditDecision } from "./account-credit";
 import type { Cents } from "./ops-money";
 
@@ -45,9 +45,23 @@ function periodOf(d: Date): string {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
-export async function accountRows(): Promise<AccountRow[]> {
+/**
+ * What the accounts screen got, or why it got nothing.
+ *
+ * A RESULT RATHER THAN AN ARRAY, since 2026-09-24. An empty array meant two
+ * different things: the firm has no ordering accounts, which is a real and
+ * perfectly good answer, and the reads failed, which is not an answer at all.
+ * The screen rendered the same encouraging empty state for both.
+ */
+export type AccountRowsResult =
+  | { ok: true; rows: AccountRow[] }
+  | { ok: false; unavailable: string[] };
+
+export async function accountRows(): Promise<AccountRowsResult> {
   const db = supabaseAdmin();
-  if (!db) return [];
+  if (!db) {
+    return { ok: false, unavailable: ["The database is not configured, so no account could be read."] };
+  }
 
   /*
    * FIVE READS, AND THE ORDERS ONE BREAKS FIRST BY A LONG WAY.
@@ -79,51 +93,141 @@ export async function accountRows(): Promise<AccountRow[]> {
       .range(from, to),
   );
 
-  const accounts = accountRead.ok ? accountRead.rows : [];
-  if (!accounts.length) return [];
+  /*
+   * The roster's own failure is an absence like any other. It used to collapse
+   * to an empty array, which the screen rendered as the encouraging "no
+   * ordering accounts yet" state: a database that could not be read and a firm
+   * with no customers, shown identically.
+   */
+  if (!accountRead.ok) return { ok: false, unavailable: [`Ordering accounts: ${accountRead.error}`] };
+  const accounts = accountRead.rows;
+  if (!accounts.length) return { ok: true, rows: [] };
 
   const ids = accounts.map((a) => a.id as string);
   const clientIds = accounts.map((a) => a.client_id as string);
 
+  /*
+   * ===========================================================================
+   * CHUNKED, BECAUSE AN `.in()` OF EVERY ACCOUNT ID FAILS WHOLE ABOVE ~350.
+   * Operator ruling, 2026-09-24: chunk now, aggregate recorded as the larger
+   * option.
+   * ===========================================================================
+   *
+   * All four of these passed the full id list into one filter. Measured, that
+   * is fine to 300 ids and returns `TypeError: fetch failed` from 400: a
+   * request too large for the transport rather than a slow query. The evidence
+   * and the chunk size are in `IN_FILTER_CHUNK` in bounded-read.ts.
+   *
+   * Development holds 529 accounts, so all four failed, every time.
+   *
+   * THE LARGER OPTION, RECORDED RATHER THAN TAKEN. The order and seat figures
+   * are COUNTS, and a database can count without shipping a row per order. An
+   * aggregate view, or an RPC returning one row per account, would remove these
+   * reads entirely rather than making them survivable, and would stop the page
+   * paging every order that every account has ever placed in order to display a
+   * number beside each. It is the right shape and it is a migration, a new
+   * declared surface and a second thing for the ledger to carry. Chunking is
+   * what was ruled today; this paragraph is so the next person knows the
+   * ceiling was chosen rather than missed.
+   */
   const [clientRead, orderRead, userRead, statementRead] = await Promise.all([
-    // readEvery: a client missing from this map renders an account with no name.
-    readEvery<Record<string, unknown>>((from, to) =>
-      db.from("eng_clients").select("id, name").in("id", clientIds).order("id", { ascending: true }).range(from, to),
+    // A client missing from this map renders an account with no name.
+    readEveryIn<Record<string, unknown>>(clientIds, (chunk, from, to) =>
+      db.from("eng_clients").select("id, name").in("id", chunk as string[]).order("id", { ascending: true }).range(from, to),
     ),
-    // readEvery: this is the order COUNT per account, and a partial count is a wrong one.
-    readEvery<Record<string, unknown>>((from, to) =>
-      db.from("eng_service_orders").select("account_id, created_at").in("account_id", ids).order("created_at", { ascending: true }).range(from, to),
+    // This is the order COUNT per account, and a partial count is a wrong one.
+    readEveryIn<Record<string, unknown>>(ids, (chunk, from, to) =>
+      db.from("eng_service_orders").select("account_id, created_at").in("account_id", chunk as string[]).order("created_at", { ascending: true }).range(from, to),
     ),
-    // readEvery: the seat count on an account, billed on, so it cannot be partial.
-    readEvery<Record<string, unknown>>((from, to) =>
-      db.from("eng_customer_users").select("account_id").in("account_id", ids).eq("status", "active").order("id", { ascending: true }).range(from, to),
+    // The seat count on an account, billed on, so it cannot be partial.
+    readEveryIn<Record<string, unknown>>(ids, (chunk, from, to) =>
+      db.from("eng_customer_users").select("account_id").in("account_id", chunk as string[]).eq("status", "active").order("id", { ascending: true }).range(from, to),
     ),
-    // readEvery: an open statement missed here is a bill the screen says does not exist.
-    readEvery<Record<string, unknown>>((from, to) =>
+    // An open statement missed here is a bill the screen says does not exist.
+    readEveryIn<Record<string, unknown>>(ids, (chunk, from, to) =>
       db
         .from("eng_statements")
         .select("id, account_id, reference, period, status, total_cents")
-        .in("account_id", ids)
+        .in("account_id", chunk as string[])
         .eq("status", "open")
         .order("created_at", { ascending: true })
         .range(from, to),
     ),
   ]);
 
-  const clients = clientRead.ok ? clientRead.rows : null;
-  const orders = orderRead.ok ? orderRead.rows : null;
-  const users = userRead.ok ? userRead.rows : null;
-  const statements = statementRead.ok ? statementRead.rows : null;
+  /*
+   * ===========================================================================
+   * A FAILED READ IS AN ABSENCE, NOT A ZERO. Operator ruling, 2026-09-24.
+   * ===========================================================================
+   *
+   * This read `clientRead.ok ? clientRead.rows : null` and then every consumer
+   * did `?? []`. Each read is a bounded read BECAUSE a partial answer would be
+   * wrong, and the comments above them say so: "a partial count is a wrong
+   * one", "an open statement missed here is a bill the screen says does not
+   * exist". Those guards were written against TRUNCATION. On FAILURE the same
+   * code turned the whole set into an empty list.
+   *
+   * WHAT THAT LOOKED LIKE, read back from this function rather than argued:
+   *
+   *     117979ms, 529 rows
+   *     clientName "Unknown organization": 529 of 529
+   *     orders 0:                          529 of 529
+   *     users 0:                           529 of 529
+   *     openStatement null:                529 of 529
+   *
+   * beside a first row carrying issuedUnpaidCents 127500 and canOrder true,
+   * because the balance was the one read that still worked. Every figure on a
+   * billing screen was wrong, confidently, and it took two minutes to say so.
+   *
+   * So the function now refuses to state anything it could not read. It is the
+   * rule every report in this platform already follows: a figure is a number a
+   * query produced, the word none because it found nothing, or an absence with
+   * a reason. There is no fourth, and "zero because the read failed" was one.
+   */
+  const failures = [
+    clientRead.ok ? null : `Client names: ${clientRead.error}`,
+    orderRead.ok ? null : `Orders per account: ${orderRead.error}`,
+    userRead.ok ? null : `Seats per account: ${userRead.error}`,
+    statementRead.ok ? null : `Open statements: ${statementRead.error}`,
+  ].filter((s): s is string => s !== null);
 
-  const nameOf = new Map((clients ?? []).map((c) => [c.id as string, c.name as string]));
+  if (failures.length > 0) return { ok: false, unavailable: failures };
+
+  const clients = clientRead.ok ? clientRead.rows : [];
+  const orders = orderRead.ok ? orderRead.rows : [];
+  const users = userRead.ok ? userRead.rows : [];
+  const statements = statementRead.ok ? statementRead.rows : [];
+
+  /*
+   * ONE CHUNKED READ FOR EVERY BALANCE, NOT TWO ROUND TRIPS PER ACCOUNT.
+   *
+   * `await accountBalance(id)` sat inside the loop below. That function issues
+   * two sequential paged reads, so 529 accounts cost 1,058 round trips in
+   * series and that is the whole of the two minutes. The four reads above,
+   * even failing, accounted for about eight seconds of it.
+   *
+   * The arithmetic is unchanged and is not duplicated: `accountBalances` reads
+   * in bulk and both it and `accountBalance` hand their rows to the same
+   * `balanceFrom`. This is the credit gate, and a second account of it would be
+   * a second answer to whether somebody may order on invoice.
+   */
+  const balanceRead = await accountBalances(ids);
+  if (!balanceRead.ok) return { ok: false, unavailable: [`Account balances: ${balanceRead.error}`] };
+
+  const nameOf = new Map(clients.map((c) => [c.id as string, c.name as string]));
   const thisPeriod = periodOf(new Date());
 
   const rows: AccountRow[] = [];
 
   for (const a of accounts) {
     const id = a.id as string;
-    const mine = (orders ?? []).filter((o) => o.account_id === id);
-    const balance = await accountBalance(id);
+    const mine = orders.filter((o) => o.account_id === id);
+    const balance = balanceRead.balances.get(id) ?? {
+      issuedUnpaidCents: null,
+      unbilledCents: null,
+      outstandingCents: null,
+      oldestUnpaidDays: null,
+    };
 
     const verdict = creditDecision(
       {
@@ -171,7 +275,7 @@ export async function accountRows(): Promise<AccountRow[]> {
     });
   }
 
-  return rows;
+  return { ok: true, rows };
 }
 
 /**

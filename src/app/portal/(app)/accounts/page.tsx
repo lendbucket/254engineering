@@ -30,7 +30,45 @@ export default async function AccountsPage() {
   if (!actor) redirect("/portal/login");
   if (!can(actor, "accounts.manage")) redirect("/portal");
 
-  const rows = await accountRows();
+  const result = await accountRows();
+
+  /*
+   * ===========================================================================
+   * AN ABSENCE IS RENDERED AS AN ABSENCE. Operator ruling, 2026-09-24.
+   * ===========================================================================
+   *
+   * This screen used to receive an array and could not tell "the firm has no
+   * ordering accounts", which is a real answer and gets an encouraging empty
+   * state, from "the reads failed", which is not an answer at all. Worse, on
+   * 2026-09-24 the reads did not fail visibly: they failed and were turned into
+   * empty lists upstream, so the screen rendered 529 accounts every one of
+   * which read "Unknown organization" with no orders, no seats and no open
+   * statement, beside real outstanding balances.
+   *
+   * A screen that states a figure it could not compute is the defect this
+   * platform spends its time removing. So the reasons are shown, the table is
+   * not, and nothing here is a number.
+   */
+  if (!result.ok) {
+    return (
+      <>
+        <PageHead
+          eyebrow="Money"
+          title="Ordering accounts"
+          lede="This screen could not be computed. Nothing below is a figure, because a figure from a read that failed is a plausible number rather than a missing one."
+        />
+        <Panel title="Not computed">
+          <ul className="list-disc space-y-2 pl-5 text-sm">
+            {result.unavailable.map((why) => (
+              <li key={why}>{why}</li>
+            ))}
+          </ul>
+        </Panel>
+      </>
+    );
+  }
+
+  const rows = result.rows;
   const blocked = rows.filter((r) => !r.canOrder && r.status === "active");
   const unbilled = rows.filter((r) => (r.unbilledCents ?? 0) > 0);
 
