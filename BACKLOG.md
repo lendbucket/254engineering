@@ -356,6 +356,32 @@ requires professional liability cover for a registered firm has not been
 verified and must be confirmed with the board or with counsel before anybody
 relies on it.
 
+## THE OVERNIGHT OF 2026-09-24 IS IN `docs/overnight-2026-09-24.md`
+
+Pointer entry, not a second copy. That document carries what was built, what was
+stopped, the exploratory findings ranked by harm, and the questions in the order
+to answer them. It states no count of questions here, for the reason the other
+pointers record: a quantity in a pointer is a second copy and it has been wrong
+before.
+
+**The one thing worth reading here rather than there**, because it is a rule
+disagreement rather than a defect: **the operator's stated rule that the engineer
+never sees prices, margins or payouts is the OPPOSITE of what this platform
+deliberately does.** `roles-audit` asserts "an engineer keeps pricing" and
+`pricing.read` is held by `admin`, `engineer` and `read_only`, with a written
+reason. The technician is the role that is redacted. Nothing was changed; it
+needs a ruling on which rule stands.
+
+**Its open items**, each explained there:
+
+- The engineer and money, above.
+- The proving charge path, stopped at a three way fork with a recommendation.
+- `eng-uploads`, a bucket the product depends on that no migration creates.
+- UTC dates used as business dates in fourteen files, one of which decides which
+  partner commission terms apply.
+- The SOC 2 pack's "Generated on" date, which is the last job's timestamp.
+- Three tables nothing reads.
+
 ## `voice-audit` HAS NO LIST OF BRITISH WORDS, AND "RING" WAS FOUND BY A PERSON
 
 Operator ruling, 2026-09-23. **Proposed, not built.** The list below is a
