@@ -751,6 +751,32 @@ is the one instance seven states: no tool calls of any kind, process listings
 included. This paragraph is kept because its reasoning is the argument, not
 because its list is the boundary.
 
+**TWO PROJECTS SHARE THIS MACHINE, AND THE BOARD WAITS FOR THE OTHER ONE.**
+Operator ruling, 2026-09-23. It is a rule about what happens BEFORE a board, so
+it does not touch the no-tool-calls rule that applies during one.
+
+The operator runs two projects on this machine at once. On 2026-09-23 the board
+refused to start because the other project's `launch-audit` held a Next server,
+and the guard, which could not establish that server's checkout from its command
+line, failed closed and printed a `taskkill` line for it.
+
+**The rule, and it needs no judgment.** Before a board, check whether another
+project's suite holds a port. If it does, **wait and check again every five
+minutes, for up to an hour, doing nothing else**, then start the board.
+
+**NEVER KILL ANOTHER PROJECT'S PROCESS.** Not with `taskkill`, not with
+`AUDIT_KILL_STALE=1`, which does the same thing less visibly. The guard will
+sometimes recommend exactly that, because it cannot tell whose server it found.
+Its recommendation is for a stale server of OURS. A session that follows it
+against a foreign process destroys a run of the operator's to unblock one of its
+own, and it will be doing so at the end of a long sitting, which is when that
+trade looks most reasonable and is least defensible.
+
+The underlying fix is in `BACKLOG.md` and is deliberately not built at night: the
+guard should read a working directory rather than parse a command line, and this
+repository's audit ports should move to a range no other project uses so the two
+suites stop competing at all.
+
 **INSTANCE SEVEN, 2026-09-23, THE SECOND IN ONE SESSION AND THE FIRST WHERE THE
 PROMPT TO BREAK THE RULE CAME FROM OUTSIDE.** Operator ruling.
 

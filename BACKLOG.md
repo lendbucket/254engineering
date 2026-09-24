@@ -240,6 +240,79 @@ pointer is a second copy, and it was wrong for two of them once already.
   ruling rather than something built.
 - Self service sign up, reported on and not touched.
 
+## THE BUILD GUARD CANNOT TELL A FOREIGN CHECKOUT'S NEXT SERVER FROM OURS
+
+Found 2026-09-23 during the production sitting, with evidence. **Not built.**
+
+**What happened.** The board refused to start:
+
+```
+1 process(es) are holding .next or an audit port:
+
+  PID 14096
+    a next server whose repository could not be established from its
+    command line, so it is reported rather than assumed harmless
+    "...node.exe" node_modules/next/dist/bin/next start -p 3141
+    OWNED BY PID 9616 (launch-audit.mjs), which will start another server
+    if you kill only the one above. Kill the owner instead.
+```
+
+**That server belongs to another project on this machine, not to this
+checkout.** Established three ways rather than assumed: `full-suite`, the script
+that started it, does not exist in this repository's `package.json`; this repo
+invokes `launch-audit` as `tsx --conditions=react-server` and that process is
+plain `node` with no flag; and ours uses ports 3227 and 3228 while that one held
+3141, which is outside the audit range entirely.
+
+**The guard was right to refuse.** `node_modules/next/dist/bin/next start -p
+3141` is a relative path that names no checkout, so the guard genuinely cannot
+tell, and it fails closed and says so in those words. Failing closed is the
+correct direction and must not be traded away.
+
+**The cost, which is what makes it a backlog item.** Any other project running
+Next on this machine blocks this repository's board completely, and the message
+the guard prints recommends `taskkill` on a process belonging to somebody else's
+work. A session following that advice would destroy an unrelated suite run to
+unblock its own. On 2026-09-23 the session declined to do it and waited, which
+is the right call and is exactly the kind of judgement a guard should not be
+asking a tired session to make at the end of a long sitting.
+
+**The fix, in outline.** Read each candidate's WORKING DIRECTORY rather than
+parsing its command line, and classify on that. Where the directory genuinely
+cannot be read, keep failing closed but change the words: say "a Next server
+from another checkout, or one whose checkout could not be established" and do
+not offer a `taskkill` line for a process this repository cannot claim. The
+owner-naming half is unaffected and is working: it named the owner correctly
+twice on 2026-09-23, which is the second and third real encounters since it was
+built that morning.
+
+**Why it is not built tonight.** It is a change to the guard that stands between
+a board and a torn artifact, and the moment it was found was the moment it was
+blocking a board at the end of a production sitting. That is precisely when not
+to loosen a safety check. It belongs in daylight with an injection proving a
+foreign server is still refused when its directory cannot be read.
+
+### AND THE SECOND HALF, WHICH REMOVES THE COLLISION RATHER THAN DETECTING IT
+
+Operator ruling, 2026-09-23. **Move this repository's audit ports into a range
+no other project on this machine uses**, so both suites can run at once.
+
+**It is the better of the two fixes and they are not alternatives.** Reading a
+working directory tells the guard whose server it found, which it needs anyway
+for its message to be honest. Moving the ports means the two suites stop
+competing at all, so the guard has nothing to adjudicate and neither project
+waits on the other. Today they overlap only by accident: ours is 3223 to 3232
+and the other held 3141, so tonight's block was not even a port collision, it
+was a Next server the guard could not place.
+
+**What it touches**, so nobody discovers the extent halfway through:
+`AUDIT_PORT_RANGE` in `scripts/lib/build-guard.mjs`, `AUDIT_PORT` in the
+runner, the per audit defaults (`LAUNCH_AUDIT_PORT`, `LAUNCH_AUDIT_LIVE_PORT`,
+`BREAK_GLASS_PORT_*` and the others), and the preflight's documented
+`npx next start -p ...` line. The range is typed in more than one place today,
+which is its own small instance of one fact with two homes and should be fixed
+in the same pass rather than propagated.
+
 ## THE PRODUCTION SITTING OF 2026-09-24 IS IN `docs/production-sitting-2026-09-24.md`
 
 Pointer entry, not a second copy. That document carries the checklist in order,
