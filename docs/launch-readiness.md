@@ -8,7 +8,7 @@ Operator ruling, 2026-09-11. This document is the written form of
 is the thing a person reads.
 
 `scripts/compliance-audit.mjs` asserts that the gate carries exactly these
-**nine** conditions, by id, against a pinned list. Removing one costs two edits
+**eleven** conditions, by id, against a pinned list. Removing one costs two edits
 made on purpose.
 
 **It said seven until 2026-09-22.** The gate grew `engineer-of-record` and
@@ -39,14 +39,24 @@ reasoning.** They cannot disagree, because the screen computes nothing.
 | `phone` | `FIRM_PHONE` is a real number, not a placeholder | The operator, once there is a number somebody answers | `FIRM_PHONE` in the deployment environment |
 | `recovery` | Point in time recovery is enabled on the production project | The operator, in the Supabase dashboard, and states it here with the date | `pointInTimeRecovery` in `src/config/launch-readiness.ts` |
 | `self-service-signup` | Self service sign up is cleared to reach production | The operator, and nobody else, by editing the file | `selfServiceSignUp` in `src/config/launch-conditions.ts` |
+| `insurance` | Professional liability cover is in force, on record, with an expiry | The operator, by recording the certificate he has read | `verifiedInsurance` in `src/config/credentials.ts` |
+| `technician-training` | Every approved protocol has somebody trained on that version of it | The engineer of record, or somebody he names, by delivering it | `verifiedTechnicianTraining` in `src/config/credentials.ts` |
 
-**Four are unmet and five are met**, read from the gate on 2026-09-22.
+**Five are unmet and six are met**, read from the gate on 2026-09-24.
 
-- **UNMET (4):** `switch`, `stripe`, `protocols`, `self-service-signup`
-- **MET (5):** `registration`, `trading-name`, `engineer-of-record`, `phone`, `recovery`
+- **UNMET (5):** `switch`, `stripe`, `protocols`, `self-service-signup`, `insurance`
+- **MET (6):** `registration`, `trading-name`, `engineer-of-record`, `phone`, `recovery`, `technician-training`
 
-**Two of the nine are decided by the deployment environment rather than by a
-file**, and they are `switch` and `phone`. The other seven are stated in a file
+**`technician-training` is MET and it is met VACUOUSLY, which is worth stating
+in the one document a person reads.** It asks whether every APPROVED protocol
+has a trained technician, and no protocol is approved on this branch, so the
+answer is yes over an empty list. It becomes load bearing the moment the first
+protocol is approved. It is deliberately not asked of every service line,
+because a line with no protocol is already shut by `protocols` and naming it
+twice would report one fault as two.
+
+**Two of the eleven are decided by the deployment environment rather than by a
+file**, and they are `switch` and `phone`. The other nine are stated in a file
 and read the same in every process, which is why a check can hold this list to
 the gate without depending on where it runs. A process with no deployment
 environment sees `phone` unmet as well, and that is the environment
@@ -76,7 +86,7 @@ reads about nowhere.
 ### `switch`
 
 The operator's deliberate act. It was the whole gate until 2026-09-10 and is now
-one condition among nine, which is the entire point of the ruling that day:
+one condition among eleven, which is the entire point of the ruling that day:
 setting it alone does not open anything, and `compliance-audit` sets it to `live`
 on every run specifically to prove the gate stays shut.
 
@@ -258,7 +268,7 @@ leaving a trace is one the next reader assumes was always this.
 Every condition here is an assertion a person wrote down. Nothing in this
 repository can see a filing cabinet, a Stripe dashboard, or a provider setting.
 `compliance-audit` asserts the shape of each condition, that the gate reads all
-nine, and that the catalogue and the operator's screen are wired to them. It
+eleven, and that the catalogue and the operator's screen are wired to them. It
 deliberately does not verify the outside world.
 
 That is the same limit `supabase/applied.mjs` states about the difference between

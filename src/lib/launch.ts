@@ -3,9 +3,12 @@ import {
   verifiedEngineers,
   verifiedCredentials,
   operatingNameOnBoardRecord,
+  verifiedInsurance,
+  verifiedTechnicianTraining,
   WINDSTORM_APPOINTMENT_CREDENTIAL,
   type VerifiedEngineer,
   type VerifiedFirmRegistration,
+  type VerifiedInsurance,
 } from "@/config/credentials";
 import {
   stripeAccount,
@@ -360,6 +363,55 @@ export const LAUNCH_CONDITIONS: LaunchCondition[] = [
      * preview URL, which is why this condition exists and why it is the
      * operator's alone to lift.
      */
+    id: "insurance",
+    gates: "open",
+    what: "Professional liability cover is in force, on record, with an expiry.",
+    whoClears: "The operator, by recording the certificate he has read.",
+    statedIn: "verifiedInsurance in src/config/credentials.ts",
+    /*
+     * WHY IT GATES `open` AND NOT `trading`. Trading is quoting and taking
+     * enquiries. `open` is the firm taking money for work that will carry an
+     * engineer's seal, which is the moment a claim becomes possible. A
+     * disclosed judgement, recorded in the overnight file for a ruling.
+     *
+     * AND AN UNKNOWN EXPIRY CANNOT REACH HERE, because the record has no null
+     * expiry to offer. That is the 2026-09-16 ruling built into the shape
+     * rather than checked at the edge.
+     */
+    unmet: () =>
+      activeInsurance()
+        ? null
+        : "No professional liability cover is on record, so the firm would be taking money for sealed engineering work uninsured. Record the certificate in verifiedInsurance.",
+  },
+
+  {
+    id: "technician-training",
+    gates: "open",
+    what: "Every approved protocol has somebody trained on that version of it.",
+    whoClears: "The engineer of record, or somebody he names, by delivering it.",
+    statedIn: "verifiedTechnicianTraining in src/config/credentials.ts",
+    /*
+     * IT ASKS ITS QUESTION OF THE APPROVED PROTOCOLS, NOT OF EVERY LINE, and
+     * that has a consequence worth stating rather than discovering: while no
+     * protocol is approved this condition is VACUOUSLY MET and contributes
+     * nothing. That is correct, because a line with no approved protocol is
+     * already shut by the `protocols` condition and naming it here as well
+     * would report one fault twice. It becomes load bearing the moment the
+     * first protocol is approved, which is exactly when a technician could
+     * otherwise be dispatched to perform something nobody trained them on.
+     *
+     * THE VERSION IS PART OF THE MATCH. Training on v1.0 is not training on
+     * v1.1, and a match on the document alone would read as current for ever.
+     */
+    unmet: () => {
+      const untrained = linesWithNobodyTrained();
+      return untrained.length === 0
+        ? null
+        : `No technician is recorded as trained on the approved protocol for: ${untrained.join(", ")}. Dispatching somebody to perform a protocol they have not been trained on is the firm putting its engineer's seal behind work nobody prepared for.`;
+    },
+  },
+
+  {
     id: "self-service-signup",
     gates: "open",
     what: "Self service sign up is cleared to reach production.",
@@ -595,6 +647,52 @@ export function activeFirmRegistration(): VerifiedFirmRegistration | null {
   return (
     verifiedFirmRegistrations.find((r) => r.status === "active" && r.expires >= today) ?? null
   );
+}
+
+/**
+ * THE FIRM'S CURRENT PROFESSIONAL LIABILITY COVER, OR NULL.
+ *
+ * It mirrors `activeFirmRegistration()` exactly, including the date comparison,
+ * because they answer the same shape of question about two credentials the firm
+ * holds from outside bodies. An entry that has lapsed, or whose expiry has
+ * passed, is not cover.
+ *
+ * PROFESSIONAL LIABILITY ONLY. General liability is worth recording and is a
+ * different promise: it covers the van in the car park, not the opinion in the
+ * sealed letter. The condition that gates taking money for engineering work
+ * asks about the second.
+ */
+export function activeInsurance(): VerifiedInsurance | null {
+  const today = new Date().toISOString().slice(0, 10);
+  return (
+    verifiedInsurance.find(
+      (p) => p.kind === "professional-liability" && p.status === "active" && p.expires >= today,
+    ) ?? null
+  );
+}
+
+/**
+ * THE SERVICE LINES WHOSE APPROVED PROTOCOL NOBODY IS TRAINED ON.
+ *
+ * A line is only offered when its protocol is approved, so this asks its
+ * question of the APPROVED protocols rather than of every line: a line with no
+ * protocol is already shut by the `protocols` condition and naming it here too
+ * would report one fault twice.
+ *
+ * MATCHED ON THE VERSION LABEL AS WELL AS THE DOCUMENT. Training on v1.0 is not
+ * training on v1.1, and a match on the document alone would read as current for
+ * ever across every future revision.
+ */
+export function linesWithNobodyTrained(): string[] {
+  return approvedProtocols
+    .filter(
+      (p) =>
+        !verifiedTechnicianTraining.some(
+          (t) =>
+            t.serviceSlug === p.serviceSlug && t.protocolVersion === p.version,
+        ),
+    )
+    .map((p) => p.serviceSlug);
 }
 
 /**

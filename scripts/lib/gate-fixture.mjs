@@ -227,28 +227,119 @@ export async function withGateConditionsMet(fn) {
     {
       file: READINESS,
       /*
-       * MATCHES THE ARRAY WHATEVER IT HOLDS, AND IT USED TO MATCH ONLY `[]`.
-       * Corrected 2026-09-23, the day the register stopped being empty.
+       * ANCHORED ON THE DECLARATION, NOT ON ITS EMPTINESS.
        *
-       * The pattern was `= \[\];`. That was correct for as long as no protocol
-       * had ever been approved, which was true from the day the file was
-       * written until Aman's approval was recorded. The moment one entry went
-       * in, the pattern matched nothing and the fixture threw, correctly, on
-       * every audit that opens the gate.
+       * The pattern was `= \[\];`, which matched only while the register was
+       * EMPTY. That was correct from the day the file was written until Aman's
+       * approval was recorded. The moment one entry went in it matched nothing
+       * and the fixture threw, correctly, on every audit that opens the gate.
+       * The fixture's own guard is the only reason that was a loud failure
+       * rather than thirteen audits quietly measuring the prelaunch state while
+       * reporting on the live one.
        *
-       * It is the transitional-subject defect from the other side: a pattern
+       * IT IS THE TRANSITIONAL-SUBJECT DEFECT FROM THE OTHER SIDE: a pattern
        * whose subject was the firm's STARTING state, which the firm was always
-       * going to leave. `trade-pricing-audit` met the same thing when the last
-       * pending floor was ruled.
+       * going to leave. `trade-pricing-audit` met the same thing the day the
+       * last pending floor was ruled.
        *
-       * ANCHORED ON THE ARRAY NAME, THEN THE FIRST CLOSING BRACKET AFTER IT,
-       * which is what CLAUDE.md prescribes after a patch on supabase/applied.mjs
-       * found the last `];` in the file and edited a different array. The
-       * non-greedy run stops at the array's own `\n];` and cannot reach past it.
+       * FIXED TWICE, INDEPENDENTLY, A DAY APART, and the merge is where that
+       * showed. 2026-09-23 wrote `\[[\s\S]*?\n\];`, which matches a POPULATED
+       * array. 2026-09-24 wrote the alternation below, which matches either.
+       * The alternation is kept because it is the more general of the two: a
+       * branch whose register is still empty, which several are, would make the
+       * 09-23 pattern match nothing and throw all over again. A fixture must
+       * work on any tree it is checked out on, not only on the one where the
+       * register happens to be full.
+       *
+       * Locate by the thing you mean, which CLAUDE.md prescribes after a patch
+       * on supabase/applied.mjs found the last `];` in the file and edited a
+       * different array. The thing meant is the whole declaration, however long
+       * it has become, so this takes either an empty pair or everything through
+       * the first `];` sitting at the start of a line.
        */
-      find: /export const approvedProtocols: ApprovedProtocol\[\] = \[[\s\S]*?\n\];/,
+      find: /export const approvedProtocols: ApprovedProtocol\[\] = (?:\[\]|\[[\s\S]*?\n\]);/,
       replace: () => `export const approvedProtocols: ApprovedProtocol[] = ${JSON.stringify(fixtureProtocols(), null, 2)};`,
       what: "the approved protocol registry",
+    },
+
+    /*
+     * --- the firm's professional liability cover, and training on each protocol
+     *
+     * ADDED 2026-09-24 WITH THE TWO CONDITIONS THEMSELVES, in the same commit,
+     * which is the whole point of the 2026-09-13 ruling. A condition the
+     * fixture does not know about does not quietly downgrade thirteen audits to
+     * the prelaunch state while they report on the live one: the fixture asks
+     * the gate whether it actually opened and refuses to run the body if
+     * anything is still shut. So the cost of forgetting this is a loud stop
+     * rather than a silent lie, and the cost of remembering it is these two
+     * entries.
+     *
+     * THE FIXTURE VALUES ARE OBVIOUSLY NOT REAL, for the reason every fixture
+     * here is: an audit fixture that could be mistaken for a record is a record
+     * nobody can trust. The carrier says so in capitals and the expiry is
+     * 2099, which also means neither breaks by itself on a date.
+     */
+    {
+      file: CONFIG,
+      find: /export const verifiedInsurance: VerifiedInsurance\[\] = \[\];/,
+      replace:
+        "export const verifiedInsurance: VerifiedInsurance[] = [" +
+        JSON.stringify(
+          {
+            kind: "professional-liability",
+            carrier: "AUDIT FIXTURE, NOT A REAL CARRIER",
+            policyNumber: "AUDIT-FIXTURE-NOT-A-REAL-POLICY",
+            limitPerClaimCents: 100000000,
+            limitAggregateCents: 200000000,
+            effective: "2000-01-01",
+            expires: "2099-12-31",
+            status: "active",
+            evidence: {
+              seenBy: "the gate fixture",
+              seenOn: "2099-12-31",
+              document: "none: this is a fixture",
+            },
+          },
+          null,
+          2,
+        ) +
+        "];",
+      what: "professional liability cover",
+    },
+    {
+      file: CONFIG,
+      /*
+       * DERIVED FROM THE PROTOCOLS THE FIXTURE ITSELF PATCHED IN, rather than
+       * typed, so the two cannot disagree. `fixtureProtocols()` builds one
+       * approved protocol per service slug; this builds one trained technician
+       * per approved protocol, matching on the same version it wrote.
+       */
+      /* Anchored on the declaration for the reason given above the protocol
+       * register: this one broke the same way on 2026-09-24, one register
+       * later, the day a real technician was recorded. */
+      find: /export const verifiedTechnicianTraining: TechnicianTraining\[\] = (?:\[\]|\[[\s\S]*?\n\]);/,
+      replace: () =>
+        "export const verifiedTechnicianTraining: TechnicianTraining[] = " +
+        JSON.stringify(
+          fixtureProtocols().map((p) => ({
+            technician: "AUDIT FIXTURE, NOT A REAL TECHNICIAN",
+            protocolDocument: "AUDIT-FIXTURE",
+            protocolVersion: p.version,
+            protocolVersionLabel: String(p.version),
+            serviceSlug: p.serviceSlug,
+            trainedOn: "2000-01-01",
+            trainedBy: "the gate fixture",
+            evidence: {
+              seenBy: "the gate fixture",
+              seenOn: "2000-01-01",
+              document: "none: this is a fixture",
+            },
+          })),
+          null,
+          2,
+        ) +
+        ";",
+      what: "a technician trained on every approved protocol",
     },
   ];
 

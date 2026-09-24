@@ -493,6 +493,183 @@ export const secretaryOfStateAmendment: {
     "it, and no surface changes until it does.",
 };
 
+/**
+ * ===========================================================================
+ * THE FIRM'S INSURANCE, WHICH THIS REPOSITORY HELD NOWHERE UNTIL 2026-09-24.
+ * ===========================================================================
+ *
+ * CHECKED RATHER THAN ASSUMED BEFORE IT WAS WRITTEN: every match for
+ * "insurance" under `src/config` and `src/lib` was a TECHNICIAN's own cover in
+ * `ops-credentials.ts`, a form field, or an email template. The FIRM's policy
+ * appeared nowhere at all, so nothing could ask about it and nothing did.
+ *
+ * IT MIRRORS `verifiedFirmRegistrations` DELIBERATELY. That record already
+ * solves this exact problem for a credential the firm holds from an outside
+ * body: a dated entry, the issuer named, an expiry, and a status, with a
+ * deriver that refuses anything stale. Inventing a different shape for the same
+ * kind of fact would mean two ways of recording "the firm holds a thing that
+ * lapses".
+ *
+ * `expires` HAS NO NULL, AND THAT IS THE 2026-09-16 RULING. An engineer's
+ * licence with no recorded expiry was treated as current, and the operator
+ * ruled that an unknown is a different state from current: for a condition
+ * gating whether the firm may take money, the unknown answer is the shut one.
+ * A policy whose expiry nobody has read is therefore not recordable here, which
+ * is the point.
+ *
+ * WHAT IS NOT ASSERTED. Whether TBPELS REQUIRES professional liability cover
+ * for a registered firm is not established anywhere in this repository and is
+ * not inferred here. It must be confirmed with the board or with counsel before
+ * any sentence relies on it. Until then this condition is a business decision
+ * the operator has made, not a regulatory one, and the distinction is recorded
+ * so nobody later reads it as the second.
+ */
+export type VerifiedInsurance = {
+  /** What the policy covers, in the words the industry uses. */
+  kind: "professional-liability" | "general-liability";
+  /** The carrier exactly as the certificate names it. */
+  carrier: string;
+  /** The policy number exactly as the certificate prints it. */
+  policyNumber: string;
+  /** Per claim and aggregate, in cents, so no figure is a rounded story. */
+  limitPerClaimCents: number;
+  limitAggregateCents: number;
+  /** ISO dates. `expires` is never null: see the header. */
+  effective: string;
+  expires: string;
+  status: "active" | "lapsed";
+  /**
+   * WHO READ THE CERTIFICATE, AND WHEN. Nothing here can see a carrier's
+   * system, so this record is somebody's reading of a document, and it says so
+   * rather than presenting itself as a fact the platform verified. It is the
+   * same idiom as the Stripe console record and the Vercel inventory.
+   */
+  evidence: {
+    seenBy: string;
+    seenOn: string;
+    /** Where the certificate lives, so a reader can go and look. */
+    document: string;
+  };
+};
+
+/**
+ * EMPTY, AND THE EMPTINESS IS THE CURRENT ANSWER.
+ *
+ * No certificate has been recorded, so `activeInsurance()` returns null and the
+ * `insurance` condition holds the gate shut. That is the intended state: the
+ * firm does not take money for sealed engineering work uninsured, and the way
+ * this repository says "nobody has checked" is an empty register rather than a
+ * default that reads as satisfied.
+ */
+export const verifiedInsurance: VerifiedInsurance[] = [];
+
+/**
+ * ===========================================================================
+ * A TECHNICIAN TRAINED ON A PROTOCOL, AT A VERSION.
+ * ===========================================================================
+ *
+ * THE VERSION IS THE PART THAT MATTERS AND IS EASIEST TO LEAVE OUT. 254-RC-001
+ * is at v1.1 and was at v1.0 nine days earlier. Somebody trained on v1.0 is not
+ * thereby trained on v1.1, and a record without a version reads as current for
+ * ever, which is the same defect as a credential with no expiry.
+ *
+ * WHY IT IS HERE AND NOT IN THE DATABASE. Launch conditions are read from
+ * CONFIGURATION by design, because the gate runs during `next build` and a
+ * condition answered by a table would be answered by whatever that table said
+ * at build time, with no record of what it said. So this is an ATTESTATION:
+ * somebody trained somebody and wrote it down.
+ *
+ * AND AN ATTESTATION ALONE GOES STALE SILENTLY, which is why the design this
+ * comes from pairs it with a check comparing the attested set against the
+ * technicians and offered lines the database actually holds. That check needs a
+ * database and is therefore not a gate condition; it is the second layer, in
+ * the same shape as the protocol register's two layers.
+ */
+export type TechnicianTraining = {
+  /** The technician, as their profile records them. */
+  technician: string;
+  /** The protocol document number, for example 254-RC-001. */
+  protocolDocument: string;
+  /**
+   * The version MATCHED ON, which is the integer the approved protocol register
+   * carries and the row keys on. Training on version 1 is not training on
+   * version 2.
+   */
+  protocolVersion: number;
+  /**
+   * The same version as the signed document states it, for example "1.1".
+   *
+   * FOR A READER, NOT FOR THE MATCH. The integer above is what the register and
+   * the database row agree on; this is what the document is headed and what
+   * anybody would say out loud. Both are held for the reason the approved
+   * protocol register holds both: a record that can only say "version 2" about
+   * a document headed v1.1 makes somebody choose the nearest lie.
+   */
+  protocolVersionLabel: string;
+  /** The service line that protocol governs. Matches a slug in services.ts. */
+  serviceSlug: string;
+  /** ISO date the training was completed. */
+  trainedOn: string;
+  /** Who delivered it. The engineer of record, or somebody he named. */
+  trainedBy: string;
+  evidence: {
+    seenBy: string;
+    seenOn: string;
+    document: string;
+  };
+};
+
+/**
+ * ONE ENTRY, RECORDED 2026-09-24 ON THE OPERATOR'S ATTESTATION.
+ *
+ * It was empty, and the sentence that stood here said that shut the gate:
+ * 254-RC-001 v1.1 was approved and nobody was recorded as trained on it.
+ *
+ * WHAT THE OPERATOR ATTESTED, 2026-09-24, Robert Reyna: the technician training
+ * and the supervised inspection with the engineer of record are complete.
+ *
+ * THE EVIDENCE IS AN ATTESTATION AND IS RECORDED AS ONE, which is the same
+ * treatment the Stripe account status already gets. The engineer's written
+ * confirmation is PENDING and, on the operator's ruling, is NOT required to
+ * retire the condition. When it arrives it becomes the evidence and this entry
+ * is updated to name it. An attestation dressed up as a document read would be
+ * the failure this register exists to prevent; an attestation recorded as an
+ * attestation is a fact with a name and a date on it.
+ *
+ * THE TECHNICIAN IS THE OPERATOR HIMSELF, and that is worth a line rather than
+ * a raised eyebrow. A single operator firm training on its own first protocol
+ * is the ordinary case at this size, and the record says who did what rather
+ * than implying a roster that does not exist. The engineer of record delivered
+ * it and supervised the inspection, which is the part that could not be
+ * self-attested.
+ *
+ * THE VERSION INTEGER IS THE MATCH AND IT IS 2. `linesWithNobodyTrained()`
+ * compares `t.protocolVersion === p.version` against the approved protocol
+ * register, which carries version 2 for versionLabel "1.1". Recording the label
+ * alone would leave the condition unmet against a document everybody calls
+ * v1.1, which is the nearest-lie shape this pair of fields exists to prevent.
+ */
+export const verifiedTechnicianTraining: TechnicianTraining[] = [
+  {
+    technician: "Robert Reyna",
+    protocolDocument: "254-RC-001",
+    protocolVersion: 2,
+    protocolVersionLabel: "1.1",
+    serviceSlug: "roof-inspections",
+    trainedOn: "2026-09-23",
+    trainedBy: "Aman Dhakal, PE 143295",
+    evidence: {
+      seenBy: "Robert Reyna, operator",
+      seenOn: "2026-09-24",
+      document:
+        "Operator attestation, not a document read. The training and the supervised inspection with " +
+        "the engineer of record were completed on 2026-09-23 and the operator states so on 2026-09-24. " +
+        "The engineer's written confirmation is pending; the operator ruled it is not required to " +
+        "retire this condition, and it replaces this line when it arrives.",
+    },
+  },
+];
+
 export const operatingNameOnBoardRecord: {
   onRecord: boolean;
   /** What the board's record says, or why it does not yet say it. */
