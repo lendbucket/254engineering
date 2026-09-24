@@ -5,6 +5,7 @@ import { writeAudit } from "./ops-audit";
 import { copyVerdict, performingFirmLine, type CopyVerdict } from "./partner-copy";
 import type { PartnerPrincipal } from "./partner-auth";
 import type { Actor } from "./ops-authz";
+import { ALLOWED_UPLOAD_TYPES, MAX_UPLOAD_BYTES } from "./uploads";
 
 /**
  * The asset library, and material a partner sends the firm to look at.
@@ -142,6 +143,45 @@ export async function publishAsset(
   const slug = input.slug.trim().toLowerCase();
   if (!/^[a-z0-9][a-z0-9-]{2,60}$/.test(slug)) {
     return { ok: false, error: "A slug is lower case letters, numbers and hyphens." };
+  }
+
+  /*
+   * =========================================================================
+   * WHAT MAY BE STORED, WHICH THIS FUNCTION DID NOT ASK UNTIL 2026-09-24.
+   * =========================================================================
+   *
+   * Operator ruling. `contentType` and `byteSize` arrive from the caller and
+   * were written straight into the version row with neither checked, and
+   * `eng-partner-assets` did not exist on production at all, so there was no
+   * bucket limit underneath to catch what this did not. The application check
+   * and the storage limit were both absent: one gap counted twice rather than
+   * two layers.
+   *
+   * DERIVED FROM src/lib/uploads.ts RATHER THAN TYPED. That file already
+   * declares the firm's upload rules and its own comment explains why both
+   * layers exist: "a check that lives only in application code is a check
+   * somebody can skip by calling storage directly with a signed URL obtained
+   * for a different file." 0060 gives this bucket the same 10MB and the same
+   * six types, so the two cannot drift; a second list here would be the
+   * two-homes defect on the rule about what may enter the firm's storage.
+   *
+   * A version with no file is untouched by this. The library is mostly copy
+   * blocks and email snippets, which carry no storage key at all, and refusing
+   * those for having no content type would be refusing the ordinary case.
+   */
+  if (input.storageKey) {
+    if (!ALLOWED_UPLOAD_TYPES.includes(input.contentType as (typeof ALLOWED_UPLOAD_TYPES)[number])) {
+      return {
+        ok: false,
+        error: `That file type is not accepted. Allowed: ${ALLOWED_UPLOAD_TYPES.join(", ")}.`,
+      };
+    }
+    if (typeof input.byteSize !== "number" || input.byteSize <= 0 || input.byteSize > MAX_UPLOAD_BYTES) {
+      return {
+        ok: false,
+        error: `A file must be between 1 byte and ${MAX_UPLOAD_BYTES / (1024 * 1024)}MB, and its size must be known.`,
+      };
+    }
   }
 
   /*

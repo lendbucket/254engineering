@@ -126,10 +126,56 @@ on conflict (id) do update
 
 -- Limits unknown to this repository. See the note above: do NOT change these to
 -- `do update` without first reading what the live buckets carry.
-insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('eng-partner-assets', 'eng-partner-assets', false, null, null)
-on conflict (id) do nothing;
+-- ---------------------------------------------------------------------------
+-- AMENDED 2026-09-24, BEFORE BEING APPLIED ANYWHERE, ON THE OPERATOR'S RULING.
+-- ---------------------------------------------------------------------------
+--
+-- Both of these were written `null, null` with `do nothing`, and the reason
+-- given was honest: the live settings had not been read, so the migration
+-- refused to guess at them. They have now been read, on production, read only,
+-- 2026-09-24, and guessing is no longer necessary.
+--
+-- WHAT THE READ FOUND, and it is why `do nothing` was not good enough:
+--
+--   eng-messages         EXISTS, limit 20971520, five mime types. The chain
+--                        would have created it `null, null` on a fresh
+--                        database, so a replay did NOT reproduce production.
+--                        `do nothing` protected the live bucket and thereby
+--                        GUARANTEED the divergence.
+--
+--   eng-partner-assets   DOES NOT EXIST on production at all, while
+--                        ops-partner-assets.ts names it as ASSET_BUCKET. The
+--                        chain would have created it with no size limit and no
+--                        mime restriction, which is the only eng- bucket that
+--                        would have had neither.
+--
+-- So eng-messages takes production's exact values, in production's own array
+-- order, and `do update`: a fresh replay now equals production, and applying it
+-- TO production changes nothing, because the values it writes are the values
+-- already there. Both halves matter and the second is what makes the first
+-- safe.
+--
+-- eng-partner-assets takes the same 10MB and six types as eng-uploads, and
+-- src/lib/ops-partner-assets.ts is tightened in the same commit to refuse
+-- anything larger or of another type. Until today that code validated NEITHER
+-- the content type nor the byte size of what it stored, so the bucket having no
+-- limits and the code having no checks were the same gap counted twice.
+-- ---------------------------------------------------------------------------
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('eng-messages', 'eng-messages', false, null, null)
-on conflict (id) do nothing;
+values ('eng-partner-assets', 'eng-partner-assets', false, 10485760,
+        array['application/pdf','image/png','image/jpeg','image/webp','image/heic','image/heif'])
+on conflict (id) do update
+  set public = false,
+      file_size_limit = excluded.file_size_limit,
+      allowed_mime_types = excluded.allowed_mime_types;
+
+-- Production's own values as read on 2026-09-24, in production's own order, so
+-- that applying this changes nothing and replaying it reproduces the bucket.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('eng-messages', 'eng-messages', false, 20971520,
+        array['image/jpeg','image/png','image/heic','image/webp','application/pdf'])
+on conflict (id) do update
+  set public = false,
+      file_size_limit = excluded.file_size_limit,
+      allowed_mime_types = excluded.allowed_mime_types;

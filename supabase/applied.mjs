@@ -1624,7 +1624,7 @@ export const APPLIED = [
   },
 
   {
-    file: "0059_the_engineer_sees_no_money.sql", appliedBy: null,
+    file: "0059_the_engineer_sees_no_money.sql", appliedBy: "apply_migration",
     fingerprint: "e2bc81c9096a0eb4d8b8366ce3aea881",
     behaviour: "6f2ad57d4793229e8db629936f0cbb74",
     note:
@@ -1634,7 +1634,23 @@ export const APPLIED = [
       "0058's and schema-ledger-audit refused it, naming both values. Role grants are part of the " +
       "behaviour digest, which is exactly why a row migration is not invisible to it.",
     proves: { row: { table: "eng_role_grants", where: "role_key = 'engineer' and action = 'pricing.read_own_pay'" } },
-    production: null,
+    /*
+     * APPLIED TO PRODUCTION 2026-09-24, in a sitting with the operator, and
+     * read back the way this entry says to read it back: the rows by name,
+     * never the fingerprint.
+     *
+     * BEFORE: the engineer held 18 grants INCLUDING pricing.read and NOT
+     * pricing.read_own_pay, which is exactly the pre-migration state.
+     * AFTER: 18 grants, pricing.read GONE, pricing.read_own_pay PRESENT, and
+     * the other seventeen byte identical.
+     *
+     * AND THE DELETE WAS CONFIRMED SCOPED, which this entry's own `because`
+     * says is the thing that could have gone wrong. Read back across every
+     * role: admin still holds pricing.read and pricing.write, read_only still
+     * holds pricing.read. Only the engineer moved. Written as a delete by
+     * ACTION alone it would have revoked pricing.read from all three.
+     */
+    production: "2026-09-24",
     development: { at: null, behaviour: null, facts: null },
     /*
      * NO SHAPE CHANGE AND NO BEHAVIOUR CHANGE, WHICH IS UNUSUAL AND IS WHY IT
@@ -1675,7 +1691,7 @@ export const APPLIED = [
   },
 
   {
-    file: "0060_every_bucket_is_in_the_chain.sql", appliedBy: null,
+    file: "0060_every_bucket_is_in_the_chain.sql", appliedBy: "apply_migration",
     fingerprint: "e2bc81c9096a0eb4d8b8366ce3aea881",
     behaviour: "6f2ad57d4793229e8db629936f0cbb74",
     note:
@@ -1686,6 +1702,35 @@ export const APPLIED = [
       "which is the whole reason this gap survived. Read the BUCKET back, never a digest.",
     proves: { bucket: "eng-uploads" },
     /*
+     * APPLIED TO PRODUCTION 2026-09-24, and the read-back is the BUCKET rather
+     * than a digest, exactly as the note above insists.
+     *
+     * THE PREDICTION WAS: one bucket created, eng-partner-assets, and NO
+     * existing bucket altered, because every value the four do-updates write is
+     * the value already there. That is what happened.
+     *
+     *   eng-uploads          10485760, six types, updated_at 2026-08-16
+     *                        23:06:34.305418+00, UNMOVED
+     *   eng-onboarding       15728640, six types, updated_at 2026-08-25
+     *                        02:40:11.696087+00, UNMOVED
+     *   eng-messages         20971520, five types and no image/heif,
+     *                        updated_at 2026-09-05 21:57:39.475603+00, UNMOVED
+     *   eng-partner-assets   CREATED. 10485760, six types, created_at and
+     *                        updated_at both 2026-09-24 19:19:50.987029+00
+     *
+     * UPDATED_AT WAS CHECKED, NOT ONLY THE VALUES, on the operator's
+     * instruction, and it is the stronger statement: each of the three still
+     * equals its own created_at to the microsecond, so none has been updated
+     * since the day it was made. The new row carries today in both columns,
+     * which is how a created row is told from a touched one.
+     *
+     * It was established BEFORE applying that no trigger on storage.buckets
+     * maintains updated_at: the five that exist cover bucket name length, the
+     * lifecycle control columns and delete protection. The do-updates set only
+     * public, file_size_limit and allowed_mime_types, so the column could not
+     * move. Read rather than hoped for.
+     */
+    /*
      * IT IS FOUR BUCKETS, NOT ONE. The file was drafted for `eng-uploads`,
      * which a hand survey had noticed. The check written alongside it found
      * five buckets named in the source and three more absent from the chain:
@@ -1693,18 +1738,53 @@ export const APPLIED = [
      * the cutover plan records being created BY HAND on the new project, which
      * is the same fact from the other side.
      *
-     * TWO CARRY LIMITS DERIVED FROM THE CODE AND TWO DO NOT, deliberately.
-     * eng-partner-assets and eng-messages have no size or mime limits stated
-     * anywhere in this repository, and they already exist on the live projects
-     * with settings nobody here has read, so they are created `do nothing` with
-     * null limits. Inventing limits with a `do update` would overwrite live
-     * configuration with a guess and enforce the guess on real uploads.
+     * =======================================================================
+     * THE SETTINGS WERE READ ON 2026-09-24 AND THE FILE WAS AMENDED BEFORE
+     * BEING APPLIED ANYWHERE. Operator ruling.
+     * =======================================================================
+     *
+     * THE PARAGRAPH THAT STOOD HERE said eng-partner-assets and eng-messages
+     * are created `do nothing` with null limits, because their live settings
+     * had not been read and "inventing limits with a do update would overwrite
+     * live configuration with a guess". That reasoning was right at the time
+     * and it is superseded by a reading rather than by a better guess.
+     *
+     * READ ON PRODUCTION, read only, 2026-09-24:
+     *
+     *   eng-uploads          EXISTS. false, 10485760, six types, and the array
+     *                        order matches what this file writes exactly, so
+     *                        its `do update` moves nothing.
+     *   eng-onboarding       EXISTS. false, 15728640, the same six. Also a
+     *                        no-op.
+     *   eng-messages         EXISTS. false, 20971520, FIVE types and no
+     *                        image/heif. The chain would have created it
+     *                        null/null on a fresh database, so `do nothing`
+     *                        protected the live bucket and GUARANTEED that a
+     *                        replay did not reproduce production.
+     *   eng-partner-assets   DOES NOT EXIST, while ops-partner-assets.ts names
+     *                        it as ASSET_BUCKET. It would have been created
+     *                        with no size limit and no mime restriction, the
+     *                        only eng- bucket with neither.
+     *
+     * So eng-messages now carries production's own figures in production's own
+     * array order under `do update`: a replay reproduces production and
+     * applying it to production writes the values already there. And
+     * eng-partner-assets takes eng-uploads's 10MB and six types, with
+     * ops-partner-assets.ts tightened in the same commit to refuse anything
+     * else. That function validated NEITHER the content type NOR the byte size
+     * of what it stored, so the missing bucket limits and the missing code
+     * checks were one gap counted twice rather than two layers.
      */
-    production: null,
+    production: "2026-09-24",
     development: { at: null, behaviour: null, facts: null },
     because:
-      "PENDING, DELIBERATELY. Drafted 2026-09-24 during an overnight run forbidden to touch " +
-      "production, and nobody has read which buckets actually exist on either project. " +
+      "APPLIED 2026-09-24. Drafted during an overnight run forbidden to touch production. The " +
+      "buckets were read on production, read only, later the same day, and the file was AMENDED " +
+      "before being applied anywhere: eng-messages to production's exact values so a replay " +
+      "reproduces it, and eng-partner-assets to eng-uploads's limits because it does not exist " +
+      "on production at all. Predicted effect of applying: ONE bucket created, eng-partner-assets, " +
+      "and NO existing bucket altered, because every value the three do-updates write is the value " +
+      "already there. That is the read-back to check. " +
       "WHAT IT FIXES. src/lib/uploads.ts hardcodes the bucket eng-uploads and it carries every " +
       "application resume, onboarding document and order upload. NO migration created it; the only " +
       "bucket in this chain is eng-evidence from 0002. A database rebuilt from these files has " +
