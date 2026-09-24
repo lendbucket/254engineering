@@ -233,17 +233,30 @@ export const CREDENTIALS: Credential[] = [
      * forge a staff session can also remove the control that would slow down
      * guessing one the ordinary way.
      */
+    /*
+     * CLOSED THE SAME DAY IT WAS FOUND, 2026-09-24 at 10:20 Central, by the
+     * operator: Preview removed, and a NEW production value set. Production
+     * redeployed.
+     *
+     * ROTATED, WHICH IS THE HALF THAT MATTERS AND IS EASY TO SKIP. Removing
+     * Preview stops a future preview from holding it; it does nothing about
+     * the twelve days in which every preview did. Anything that read it in
+     * that window still holds a key that would otherwise have gone on working.
+     * Rotating is cheap here and that is why there was no reason not to:
+     * nothing is encrypted under this value, so the whole cost is that every
+     * staff session is signed out at once. MFA_ENCRYPTION_KEY is the opposite
+     * and is why it is never rotated casually.
+     */
     environments: {
       production: "set",
-      preview: "set",
+      preview: "absent",
       development: "set",
-      previewValueDistinct: false,
-      pendingFix:
-        "SPLIT IT. One entry targeting Production and a second, different value targeting Preview, or remove Preview entirely as the other three now are. Operator's action in Vercel; nothing here can do it. Until then a preview deployment holds the key to a full staff session on production.",
+      previewValueDistinct: true,
       readOn:
         READ_ON +
         " Re-read 2026-09-12: ABSENT FROM THE LIST, recorded unknown." +
-        " READ AGAIN 2026-09-24 by the operator, names and targets only, no values: ONE entry targeting Preview AND Production. It is shared, and this file's earlier claim that it was split was never a reading.",
+        " READ AGAIN 2026-09-24 by the operator, names and targets only, no values: ONE entry targeting Preview AND Production. It was shared, and this file's earlier claim that it was split was never a reading." +
+        " CORRECTED 2026-09-24 at 10:20 Central by Robert Reyna: Preview removed and the production value ROTATED, production redeployed.",
     },
   },
   {
@@ -507,13 +520,12 @@ export const CREDENTIALS: Credential[] = [
      */
     environments: {
       production: "set",
-      preview: "set",
+      preview: "absent",
       development: "absent",
-      previewValueDistinct: false,
-      pendingFix:
-        "Split or remove Preview, with OPS_SESSION_SECRET and in the same sitting. Operator's action in Vercel.",
+      previewValueDistinct: true,
       readOn:
-        "2026-09-24, by the operator, from Vercel's environment list, names and targets only, no values read. ONE entry targeting Preview AND Production. Removed from .env.local 2026-09-12, which is why development is absent.",
+        "2026-09-24, by the operator, from Vercel's environment list, names and targets only, no values read. ONE entry targeting Preview AND Production." +
+        " CORRECTED the same day at 10:20 Central by Robert Reyna: Preview removed and the production value ROTATED, production redeployed. Removed from .env.local 2026-09-12, which is why development is absent.",
     },
   },
   {
