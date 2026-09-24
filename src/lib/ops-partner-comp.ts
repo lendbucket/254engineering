@@ -1,5 +1,6 @@
 import "server-only";
 import { DB_NOW } from "./db-now";
+import { todayInFirmCalendar } from "./firm-calendar";
 import { readEvery } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import { orderForFile as liveOrderForFile } from "./order-for-file";
@@ -65,7 +66,29 @@ export async function termsInForce(
   const db = supabaseAdmin();
   if (!db) return null;
 
-  const day = at.toISOString().slice(0, 10);
+  /*
+   * ===========================================================================
+   * THE FIRM'S CALENDAR, NOT UTC. Operator ruling, 2026-09-24.
+   * ===========================================================================
+   *
+   * This read `at.toISOString().slice(0, 10)`, which is the date in UTC.
+   *
+   * WHAT THAT COST. Chicago is UTC minus five or six, so from 19:00 Chicago the
+   * UTC date is already tomorrow. `effective_from` and `effective_to` on a
+   * partner's terms are DATES a person wrote down meaning the firm's own
+   * calendar. A rate change dated the first therefore took effect at seven in
+   * the evening on the last day of the previous month, and every order placed
+   * in that window was accrued at the wrong rate.
+   *
+   * It is small in duration and it is money, it is a figure a partner can
+   * dispute, and it moves by a whole MONTH at a month boundary, which is
+   * precisely where commission terms change.
+   *
+   * `todayInFirmCalendar` takes the instant, so this stays a pure function of
+   * `at` and a check can ask what the firm's calendar said at 23:30 Chicago
+   * without moving the machine clock.
+   */
+  const day = todayInFirmCalendar(at);
   const { data } = await db
     .from("eng_partner_terms")
     .select("id, model, percent_bps, flat_cents, tiers, holdback_days, effective_from, effective_to")

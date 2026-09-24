@@ -17,6 +17,22 @@ import {
   placeholderPhonePatterns,
 } from "@/config/launch-readiness";
 import { business } from "@/config/business";
+/*
+ * THE FIRM'S CALENDAR DECIDES WHETHER A CREDENTIAL HAS EXPIRED.
+ * Operator ruling, 2026-09-24.
+ *
+ * Both comparisons below read `new Date().toISOString().slice(0, 10)`, which is
+ * UTC. Chicago is five or six hours behind it, so for those hours either side of
+ * midnight the gate read TOMORROW's date and a registration or a licence expiring
+ * today was already treated as lapsed.
+ *
+ * The harm is small and the direction is the safe one, which is exactly why it
+ * would never have been noticed: a gate that shuts a few hours early looks like a
+ * gate working. It is corrected because the expiry is a date somebody read off a
+ * board's letter in Texas, and comparing it against a date in another zone is
+ * comparing two different things.
+ */
+import { todayInFirmCalendar } from "./firm-calendar";
 import { stripeAccountBlockedReason } from "./stripe-account";
 import { contact } from "@/config/contact";
 import { services } from "@/content/services";
@@ -678,7 +694,7 @@ export function launchReadiness(): { condition: LaunchCondition; blocker: string
  * a lapsed number is making a claim it cannot support.
  */
 export function activeFirmRegistration(): VerifiedFirmRegistration | null {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInFirmCalendar();
   return (
     verifiedFirmRegistrations.find((r) => r.status === "active" && r.expires >= today) ?? null
   );
@@ -846,7 +862,7 @@ export function peInResponsibleCharge(): boolean {
  * number, and the fourth instance of one fact with two homes in a fortnight.
  */
 export function activeEngineer(): VerifiedEngineer | null {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInFirmCalendar();
   return verifiedEngineers.find((e) => licenceIsCurrent(e.expires, today)) ?? null;
 }
 
