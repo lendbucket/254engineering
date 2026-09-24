@@ -1341,6 +1341,30 @@ const RULED_CONDITIONS = [
    * The full reasoning is in src/lib/launch.ts above the condition itself.
    */
   "self-service-signup",
+  /*
+   * THE TENTH AND ELEVENTH, 2026-09-24, and writing them here is the second of
+   * the two edits this list exists to impose.
+   *
+   * `insurance` is the firm's professional liability cover. Until this date the
+   * repository held NO record of the firm's insurance anywhere, checked rather
+   * than assumed: every match for the word was a technician's own cover, a form
+   * field, or an email template. So nothing could ask whether the firm was
+   * insured, and nothing did.
+   *
+   * `technician-training` is whether anybody has been trained on the approved
+   * protocol, at that VERSION. It is vacuously met while no protocol is
+   * approved, deliberately: a line with no protocol is already shut by
+   * `protocols`, and naming it here too would report one fault twice. It
+   * becomes load bearing the moment the first protocol is approved, which is
+   * exactly when a technician could otherwise be sent to perform something
+   * nobody prepared them for.
+   *
+   * Both gate `open` rather than `trading`, on the reasoning that trading is
+   * quoting and `open` is taking money for work that will carry a seal. That is
+   * a disclosed judgement and is in the overnight file for a ruling.
+   */
+  "insurance",
+  "technician-training",
 ];
 
 {
@@ -1692,7 +1716,40 @@ const RULED_CONDITIONS = [
    * what it says. Every character is still compared, in order.
    */
   const flat = doc.replace(/\s+/g, " ");
-  const WORD = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
+  /*
+   * THE LIST RAN OUT AT NINE, AND THE GATE REACHED ELEVEN ON 2026-09-24.
+   *
+   * `WORD[n] ?? n` falls back to the DIGITS when the word is missing, so the
+   * moment the gate grew past nine this check silently began demanding that a
+   * document written in words say "the gate reads all 11". The document is
+   * prose and spells its numbers, so the check and the file disagreed about
+   * language rather than about the count, and the failure read as a stale
+   * count when nothing was stale.
+   *
+   * It is the transitional-subject defect in miniature: a lookup table sized
+   * for the world as it was. Extended past any number of conditions this gate
+   * is plausibly going to have, and the digit fallback is kept, because a
+   * fallback that produces a wrong-looking demand is still better than one that
+   * throws and takes the audit with it.
+   */
+  const WORD = [
+    "",
+    "one",
+    "two",
+    "three",
+    "four",
+    "five",
+    "six",
+    "seven",
+    "eight",
+    "nine",
+    "ten",
+    "eleven",
+    "twelve",
+    "thirteen",
+    "fourteen",
+    "fifteen",
+  ];
 
   rec(
     "the launch document states the service line count the catalogue actually carries",

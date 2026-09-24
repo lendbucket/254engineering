@@ -230,6 +230,83 @@ export async function withGateConditionsMet(fn) {
       replace: () => `export const approvedProtocols: ApprovedProtocol[] = ${JSON.stringify(fixtureProtocols(), null, 2)};`,
       what: "the approved protocol registry",
     },
+
+    /*
+     * --- the firm's professional liability cover, and training on each protocol
+     *
+     * ADDED 2026-09-24 WITH THE TWO CONDITIONS THEMSELVES, in the same commit,
+     * which is the whole point of the 2026-09-13 ruling. A condition the
+     * fixture does not know about does not quietly downgrade thirteen audits to
+     * the prelaunch state while they report on the live one: the fixture asks
+     * the gate whether it actually opened and refuses to run the body if
+     * anything is still shut. So the cost of forgetting this is a loud stop
+     * rather than a silent lie, and the cost of remembering it is these two
+     * entries.
+     *
+     * THE FIXTURE VALUES ARE OBVIOUSLY NOT REAL, for the reason every fixture
+     * here is: an audit fixture that could be mistaken for a record is a record
+     * nobody can trust. The carrier says so in capitals and the expiry is
+     * 2099, which also means neither breaks by itself on a date.
+     */
+    {
+      file: CONFIG,
+      find: /export const verifiedInsurance: VerifiedInsurance\[\] = \[\];/,
+      replace:
+        "export const verifiedInsurance: VerifiedInsurance[] = [" +
+        JSON.stringify(
+          {
+            kind: "professional-liability",
+            carrier: "AUDIT FIXTURE, NOT A REAL CARRIER",
+            policyNumber: "AUDIT-FIXTURE-NOT-A-REAL-POLICY",
+            limitPerClaimCents: 100000000,
+            limitAggregateCents: 200000000,
+            effective: "2000-01-01",
+            expires: "2099-12-31",
+            status: "active",
+            evidence: {
+              seenBy: "the gate fixture",
+              seenOn: "2099-12-31",
+              document: "none: this is a fixture",
+            },
+          },
+          null,
+          2,
+        ) +
+        "];",
+      what: "professional liability cover",
+    },
+    {
+      file: CONFIG,
+      /*
+       * DERIVED FROM THE PROTOCOLS THE FIXTURE ITSELF PATCHED IN, rather than
+       * typed, so the two cannot disagree. `fixtureProtocols()` builds one
+       * approved protocol per service slug; this builds one trained technician
+       * per approved protocol, matching on the same version it wrote.
+       */
+      find: /export const verifiedTechnicianTraining: TechnicianTraining\[\] = \[\];/,
+      replace: () =>
+        "export const verifiedTechnicianTraining: TechnicianTraining[] = " +
+        JSON.stringify(
+          fixtureProtocols().map((p) => ({
+            technician: "AUDIT FIXTURE, NOT A REAL TECHNICIAN",
+            protocolDocument: "AUDIT-FIXTURE",
+            protocolVersion: p.version,
+            protocolVersionLabel: String(p.version),
+            serviceSlug: p.serviceSlug,
+            trainedOn: "2000-01-01",
+            trainedBy: "the gate fixture",
+            evidence: {
+              seenBy: "the gate fixture",
+              seenOn: "2000-01-01",
+              document: "none: this is a fixture",
+            },
+          })),
+          null,
+          2,
+        ) +
+        ";",
+      what: "a technician trained on every approved protocol",
+    },
   ];
 
   /*
