@@ -123,6 +123,155 @@ if (!db) {
     );
   }
 
+  // ------------------------- is_demo comes from provenance, never from a caller
+
+  /*
+   * =====================================================================
+   * THE CHECK 0027 SAID THIS AUDIT ALREADY HAD. Operator ruling,
+   * 2026-09-24.
+   * =====================================================================
+   *
+   * 0027's own comment read: "The column is written by the seeder and by the
+   * backfill below, and by nothing else; demo-audit asserts that no application
+   * code writes it."
+   *
+   * BOTH HALVES WERE FALSE. This audit had no source scan of any kind, so
+   * nothing asserted anything about who writes the column. And application code
+   * already wrote it: `ops-crm.ts` sets `is_demo` from `actor.is_demo` when a
+   * demonstration actor creates a file. A declaration describing enforcement
+   * nobody built, which is the class CLAUDE.md names, found in an applied
+   * migration.
+   *
+   * WHAT THE RULE ALWAYS MEANT. The operator's refusal of 2026-09-08 was of a
+   * CAPABILITY: an operator marking a REAL record as excluded from reporting,
+   * which is a way to remove a real order from revenue with one flag. What
+   * separates that from what ops-crm does is not WHO writes the column but
+   * WHERE THE VALUE COMES FROM. A row that is a demonstration because the actor
+   * who made it is one carries its PROVENANCE. A row marked from a request
+   * field carries somebody's judgement, and that is the flag the operator
+   * refused.
+   *
+   * SO THE SUBJECT IS SHARPENED RATHER THAN THE INSTANCE EXEMPTED, which is the
+   * shape the operator has already ruled for twice: an allowlist of files is a
+   * list somebody grows until the scan checks nothing. Every write is found,
+   * every one is NAMED in the output, and the refusal is derived from the value
+   * expression rather than from where it happens to live.
+   */
+  {
+    const { readdirSync, statSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const { readSource } = await import("./lib/read-source.mjs");
+
+    const files = [];
+    const walk = (dir) => {
+      for (const name of readdirSync(dir)) {
+        const full = join(dir, name);
+        if (statSync(full).isDirectory()) walk(full);
+        else if (/\.(ts|tsx)$/.test(name)) files.push(full);
+      }
+    };
+    walk("src");
+
+    /*
+     * A WRITE, NOT A PROJECTION. `is_demo:` appears in three shapes: inside an
+     * insert payload, as a key in an object being returned from a read, and
+     * inside a select string. Only the first is a write. The select strings are
+     * excluded by requiring the colon to be followed by an expression rather
+     * than by more column names, which is what a quoted select list is.
+     */
+    const writes = [];
+    for (const file of files) {
+      const src = readSource(file);
+      for (const m of src.matchAll(/(^|[\s{,])is_demo:\s*([^,\n}]+)/g)) {
+        const value = m[2].trim();
+        /* A select list is a quoted string of column names, never an expression. */
+        if (/^["'`]/.test(value)) continue;
+        /*
+         * A TYPE MEMBER IS NOT A WRITE, and the first version of this counted
+         * four of them as writes: `is_demo: boolean | null;` in a row type reads
+         * identically to an assignment until you look at the value. It passed,
+         * and it reported six writes where there are two, so its own
+         * non-vacuity line was overstating what it had found by three times.
+         *
+         * Matched as the shape meant: a TypeScript primitive type, optionally a
+         * union with null or undefined, optionally ending in a semicolon. An
+         * assignment's value is an expression and never looks like this.
+         */
+        if (/^(boolean|string|number)(\s*\|\s*(null|undefined|boolean|string|number))*\s*;?$/.test(value)) continue;
+        const line = src.slice(0, m.index).split("\n").length;
+        writes.push({ file: file.replace(/\\/g, "/"), line, value });
+      }
+    }
+
+    rec(
+      `the scan finds writes of is_demo in the application source (${writes.length})`,
+      writes.length > 0,
+      writes.length > 0
+        ? writes.map((w) => `${w.file}:${w.line} = ${w.value}`).join(" | ")
+        : "NONE FOUND, so every check below passes over an empty set and proves nothing",
+    );
+
+    /*
+     * CALLER INPUT, NAMED. These are the identifiers a request arrives under in
+     * this codebase. A value mentioning any of them is a caller deciding
+     * whether their own record counts in the firm's figures.
+     */
+    const FROM_A_CALLER = /\b(body|input|request|req|params|searchParams|query|payload|form|formData)\b/;
+    const fromCaller = writes.filter((w) => FROM_A_CALLER.test(w.value));
+
+    rec(
+      "no write of is_demo takes its value from caller input",
+      fromCaller.length === 0,
+      fromCaller.length
+        ? `${fromCaller.map((w) => `${w.file}:${w.line} = ${w.value}`).join(" | ")} lets a caller decide whether their own record counts`
+        : `${writes.length} write(s), every value derived from an actor, a row, or a literal`,
+    );
+
+    /*
+     * A BOOLEAN LITERAL IS SAFE ONLY BECAUSE THE DATABASE BINDS IT, and that is
+     * asserted rather than assumed. 0027's constraint is two directional:
+     * `(reference like '%-DEMO-%') = is_demo`. So `is_demo: true` cannot be
+     * saved on a row whose reference is ordinary, and `is_demo: false` cannot be
+     * saved on a DEMO one. The literal carries the record's own provenance
+     * because the database refuses any other pairing.
+     *
+     * If that constraint were ever dropped, a literal would become exactly the
+     * flag the operator refused, so this check reads the chain rather than
+     * trusting the reasoning above it.
+     */
+    const chain = readdirSync("supabase/migrations")
+      .filter((f) => f.endsWith(".sql"))
+      .map((f) => readSource(join("supabase/migrations", f)))
+      .join("\n");
+
+    /*
+     * BOTH TABLES, ASSERTED SEPARATELY, AND THE FIRST VERSION DID NOT.
+     *
+     * It matched `(?:file_number|reference)`, which is satisfied by EITHER, so
+     * weakening the orders constraint left it green on the files one. The
+     * injection caught it: an alternation is one assertion wearing the shape of
+     * two, and the sentence beside it said "in both directions" about two
+     * tables while checking one.
+     *
+     * eng_files keys on file_number and eng_service_orders on reference. They
+     * are separate constraints on separate tables and either could be dropped
+     * alone, so each is its own check.
+     */
+    const bindings = [
+      { what: "eng_files, on file_number", ok: /check \(\(file_number like '%-DEMO-%'\) = is_demo\)/.test(chain) },
+      { what: "eng_service_orders, on reference", ok: /check \(\(reference like '%-DEMO-%'\) = is_demo\)/.test(chain) },
+    ];
+    const missing = bindings.filter((b) => !b.ok).map((b) => b.what);
+
+    rec(
+      "and the database binds a literal to the record's own reference, on both tables",
+      missing.length === 0,
+      missing.length === 0
+        ? "so is_demo true on an ordinary reference is refused by Postgres rather than by care"
+        : `THE CONSTRAINT IS GONE on ${missing.join(" and ")}, and a boolean literal is now an unchecked flag there`,
+    );
+  }
+
   // ------------------------------- the clients screen does not count demo rows
 
   /*

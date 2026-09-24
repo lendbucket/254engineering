@@ -37,9 +37,35 @@
 -- wanted the looser constraint.
 --
 -- So the two must agree in BOTH directions. A DEMO number with is_demo false is
--- refused, and is_demo true on a record without a DEMO number is refused. The
--- column is written by the seeder and by the backfill below, and by nothing
--- else; demo-audit asserts that no application code writes it.
+-- refused, and is_demo true on a record without a DEMO number is refused.
+--
+-- CORRECTED 2026-09-24, AND ONLY THIS COMMENT CHANGED. Operator ruling. No SQL
+-- in this file is touched: it has run against production, and a migration whose
+-- BEHAVIOUR changes after it has run is one nobody can reason about. The
+-- replayed fingerprint is unaffected and migration-audit is what says so.
+--
+-- IT READ: "The column is written by the seeder and by the backfill below, and
+-- by nothing else; demo-audit asserts that no application code writes it."
+--
+-- BOTH HALVES WERE FALSE. demo-audit had no source scan of any kind, so nothing
+-- asserted anything about who writes this column. And application code already
+-- wrote it: ops-crm.ts sets `is_demo: isDemo` from `actor.is_demo` when a
+-- demonstration actor creates a client, which is not the capability this
+-- constraint exists to refuse. It is the opposite: without it a seeded
+-- engineer's client would count in every figure.
+--
+-- WHAT THE RULE ALWAYS MEANT, and it is narrower than "nothing writes it". The
+-- operator's refusal of 2026-09-08 was of a capability: an operator marking a
+-- REAL record as excluded from reporting, which is a way to remove a real order
+-- from revenue with one flag. What distinguishes the two is not who writes the
+-- column but WHERE THE VALUE COMES FROM. A row that is a demonstration because
+-- the actor who made it is one, or because its own reference carries the DEMO
+-- segment, is carrying its PROVENANCE. A row marked from a request field, a
+-- query parameter or an operator's choice is carrying a judgement.
+--
+-- So the rule is: every write of is_demo derives from the actor's or the
+-- record's own provenance, never from caller input. demo-audit asserts exactly
+-- that now, which makes this paragraph true for the first time.
 --
 -- If a real record ever needs excluding from a figure, that is a different
 -- column with a different name and its own ruling. It does not exist.
