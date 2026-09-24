@@ -1622,6 +1622,57 @@ export const APPLIED = [
       "ACCEPTED, an UPDATE of that same row is still REFUSED naming the protocol and its status, " +
       "and a row born published is still refused by eng_guard_protocol_insert_in_force.",
   },
+
+  {
+    file: "0059_the_engineer_sees_no_money.sql", appliedBy: null,
+    fingerprint: "e2bc81c9096a0eb4d8b8366ce3aea881",
+    behaviour: "6f2ad57d4793229e8db629936f0cbb74",
+    note:
+      "Shape unchanged from 0058 because this moves two ROWS in eng_role_grants and nothing in the " +
+      "shape. information_schema.columns cannot see a row. THE BEHAVIOUR DIGEST DOES MOVE, and " +
+      "that was read off a replay rather than predicted: it was first written as a repeat of " +
+      "0058's and schema-ledger-audit refused it, naming both values. Role grants are part of the " +
+      "behaviour digest, which is exactly why a row migration is not invisible to it.",
+    proves: { row: { table: "eng_role_grants", where: "role_key = 'engineer' and action = 'pricing.read_own_pay'" } },
+    production: null,
+    development: { at: null, behaviour: null, facts: null },
+    /*
+     * NO SHAPE CHANGE AND NO BEHAVIOUR CHANGE, WHICH IS UNUSUAL AND IS WHY IT
+     * SAYS SO. This migration moves two ROWS in eng_role_grants: one inserted,
+     * one deleted. The shape fingerprint reads information_schema.columns and
+     * cannot see a row, so it repeats 0058's. The behaviour digest covers
+     * constraints, indexes, policies, triggers and function bodies, none of
+     * which move either.
+     *
+     * 0018 and 0021 are the same shape of entry, and 0018 is the reason this
+     * matters: its correctness was NOT captured by the fingerprint at all. The
+     * shape was 64 tables either way; whether the administrator role carried
+     * roles.manage was a row, and the first version of that migration did not
+     * carry it while DEFAULT_ROLES did. Applying it as written would have
+     * produced a firm unable to open the permission screen and unable to grant
+     * itself the permission that opens it.
+     *
+     * So the thing to read back here is the GRANT COUNT and the two rows
+     * themselves, never the fingerprint.
+     */
+    because:
+      "PENDING, DELIBERATELY, AND IT HOLDS THE MERGE. Drafted 2026-09-24 during an overnight run " +
+      "that is forbidden to touch production. A migration on a feature branch may be pending; a " +
+      "migration on main may not, because merging is the moment the decision stops being " +
+      "deferrable. " +
+      "WHAT IT DOES. Operator ruling, 2026-09-24, in his words: the engineer should not see what " +
+      "the firm makes. It grants the engineer pricing.read_own_pay, a new action returning exactly " +
+      "engineer_cost_cents and only on a file whose assigned_engineer_id is that engineer, and it " +
+      "REVOKES pricing.read from the engineer, which is the grant that let redactFile return every " +
+      "money column. " +
+      "IT IS THE FIRST MIGRATION IN THIS CHAIN TO REMOVE A GRANT FROM ONE ROLE, and that is worth " +
+      "recording because roles-audit could not read such a statement until the same commit taught " +
+      "it. The one removal shape it understood was a delete by ACTION alone, which revokes from " +
+      "every role; written that way this migration would have taken pricing.read from admin and " +
+      "read_only as well, which is a different and much worse migration. " +
+      "WHAT TO READ BACK WHEN IT IS APPLIED: the total grant count, and the two rows by name. Not " +
+      "the fingerprint, which cannot see a row, and 0018 is the precedent for why that matters.",
+  },
 ];
 
 /**

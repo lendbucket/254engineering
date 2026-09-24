@@ -614,19 +614,84 @@ rec(
    * ran, because a migration that changes after it has run is one nobody can
    * reason about. The removal is a new statement and this reads both.
    */
-  const removed = [
-    ...sql.matchAll(/delete\s+from\s+eng_role_grants\s+where\s+action\s*=\s*'([^']+)'/gi),
-  ].map((m) => m[1]);
+  /*
+   * ======================================================================
+   * TWO SHAPES OF REMOVAL, AND IN ORDER. Extended 2026-09-24.
+   * ======================================================================
+   *
+   * THE PARSER READ ONE SHAPE: `delete from eng_role_grants where action = 'x'`,
+   * which revokes an action from EVERY role, and `seededGrants` filtered on the
+   * action alone to match.
+   *
+   * 0059 is the first migration in this chain to revoke a grant from ONE ROLE:
+   * the engineer loses `pricing.read` while `admin` and `read_only` keep it.
+   * The old parser could not see that statement at all, so the audit reported
+   * the grant as still seeded, and had the statement instead been written in
+   * the shape it DID understand it would have revoked the action from all three
+   * roles, which is a different and much worse migration.
+   *
+   * So both shapes are read, and the pair shape subtracts a PAIR rather than an
+   * action.
+   *
+   * AND IT IS APPLIED IN ORDER RATHER THAN AS A SET, which the old code was
+   * not. A chain that deletes a grant in one migration and re-inserts it in a
+   * later one nets to granted, and a set difference says revoked. Nothing in
+   * the chain does that today; the point is that the model now matches how a
+   * database actually reads a migration chain, so the first time somebody does
+   * it the answer is right rather than alarming.
+   */
+  const STATEMENT =
+    /insert\s+into\s+eng_role_grants\s*\(role_key,\s*action\)\s*values([\s\S]*?);|delete\s+from\s+eng_role_grants\s+where\s+([\s\S]*?);/gi;
+
+  const live = new Set();
+  let removalCount = 0;
+  const removalsSeen = [];
+
+  for (const m of sql.matchAll(STATEMENT)) {
+    if (m[1] !== undefined) {
+      for (const pair of m[1].matchAll(/\('([a-z_]+)',\s*'([^']+)'\)/g)) {
+        live.add(`${pair[1]}:${pair[2]}`);
+      }
+      continue;
+    }
+
+    const where = m[2];
+    const byPair = where.match(/role_key\s*=\s*'([a-z_]+)'[\s\S]*?action\s*=\s*'([^']+)'/i);
+    const byAction = where.match(/^\s*action\s*=\s*'([^']+)'\s*$/i);
+
+    if (byPair) {
+      removalCount += 1;
+      removalsSeen.push(`${byPair[1]}:${byPair[2]}`);
+      live.delete(`${byPair[1]}:${byPair[2]}`);
+    } else if (byAction) {
+      removalCount += 1;
+      removalsSeen.push(`every role: ${byAction[1]}`);
+      for (const g of [...live]) {
+        if (g.split(":")[1] === byAction[1]) live.delete(g);
+      }
+    } else {
+      /*
+       * A delete this parser cannot model is NOT ignored. Silently skipping it
+       * would leave the audit believing a grant is still seeded when the chain
+       * removes it, which is the direction that hides a real difference.
+       */
+      rec(
+        "every grant removal in the chain is in a shape this audit understands",
+        false,
+        `unrecognised: delete from eng_role_grants where ${where.trim().slice(0, 120)}`,
+      );
+    }
+  }
 
   rec(
-    `the chain's grant removals are read as well as its inserts (${removed.length})`,
+    `the chain's grant removals are read as well as its inserts (${removalCount})`,
     true,
-    removed.length
-      ? removed.join(", ")
+    removalCount
+      ? removalsSeen.join(", ")
       : "none yet; when one arrives this is the check that notices it",
   );
 
-  const seededGrants = inserted.filter((g) => !removed.includes(g.split(":")[1]));
+  const seededGrants = [...live];
 
   const wantRoles = DEFAULT_ROLES.map((r) => r.key).sort();
   const gotRoles = seededRoles.map((r) => r.key).sort();

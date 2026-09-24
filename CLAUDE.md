@@ -2577,6 +2577,54 @@ by reading its own environment, while the server it is testing reads
 `.env.local`, is an audit measuring a different system, and it passed every run
 while writing nothing.
 
+## 6b-i. THE ENGINEER SHOULD NOT SEE WHAT THE FIRM MAKES
+
+**Operator ruling, 2026-09-24, in his words.**
+
+The engineer sees no money in the portal except HIS OWN PAY: no order totals, no
+price charged, no costs, no margin, no partner commission, no technician pay,
+no payouts, **in any screen, API response, export or email.**
+
+**IT REVERSES A DELIBERATE EARLIER RULING, which is why it is recorded here
+rather than left in a commit.** `pricing.read` was held by `admin`, `engineer`
+and `read_only`, and the sentence beside the grant read: "An engineer sees what a
+file is worth, because they are paid production on it and a tier they cannot see
+is a number they cannot check." `roles-audit` asserted **`an engineer keeps
+pricing`** in those words. A reversed rule that leaves no trace reads as a rule
+nobody ever set, so the old assertion is quoted in the audit rather than deleted.
+
+**The earlier reasoning is answered, not ignored.** He still sees the one number
+it was really about, his own production pay, and stops seeing the seven that were
+never his business.
+
+**A BLANKET REMOVAL WOULD HAVE BEEN A DIFFERENT AND WORSE RULING.**
+`engineer_cost_cents` IS his pay. Dropping `pricing.read` alone hides it with
+everything else, turning "no money except his own pay" into "no money": a person
+who cannot see what he is being paid cannot check it.
+
+**So it is his own pay on his own file, and the second half is load bearing.**
+`assigned_engineer_id` decides it. An engineer looking at a file assigned to
+somebody else sees no pay figure at all, because **another engineer's pay is as
+much "what the firm makes" as a margin is.**
+
+`pricing.read_own_pay` is its own Action rather than a weaker `pricing.read`,
+because they are not degrees of one thing. One asks whether somebody may see what
+the firm charges and earns; the other asks whether somebody may see their own
+wage, which would be a strange thing to refuse.
+
+**Where it lives, and it is three places on purpose.** `DEFAULT_ROLES` declares
+it, `roles-audit`'s independent expectation table pins it, and migration 0059
+seeds the rows, because roles have been data since 0018. Changing it again costs
+all three edits.
+
+**AND 0059 IS THE FIRST MIGRATION IN THIS CHAIN TO REVOKE A GRANT FROM ONE
+ROLE.** `roles-audit` could not read such a statement: the one removal shape it
+understood was a delete by ACTION alone, which revokes from every role. Written
+that way this migration would have taken `pricing.read` from `admin` and
+`read_only` as well. The parser learned both shapes in the same commit, and it
+now applies the chain IN ORDER rather than as a set, so a grant deleted and later
+re-inserted nets to granted.
+
 ## 6c. Business rulings that live in two places, on purpose
 
 Four constants are decisions the operator made rather than numbers somebody
