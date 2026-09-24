@@ -1,56 +1,86 @@
 /**
- * PROOF: AN APPROVED PROTOCOL DOES NOT PUT THE SITE INTO THE PRESENT TENSE.
+ * PROOF: THE SEALING COPY FOLLOWS THE GATE, NOT THE REGISTER.
  *
- * Operator ruling, 2026-09-24, after the board caught it on the branch that
- * introduces the register entry.
+ * Operator ruling, 2026-09-24.
  *
  * WHAT HAPPENED. `sealingIsAvailable()` was `peInResponsibleCharge() &&
- * approvedProtocols.length > 0`. It was written on 2026-09-17 precisely to stop
- * six rendered sentences flipping to the present tense, and it held for a week
- * for one reason: the register was EMPTY. Aman approved 254-RC-001 on
- * 2026-09-22, the register gained its first entry, and all six flipped on a
- * site whose gate still reads prelaunch. `voice-audit` went red with six
- * findings across five routes and `partner-audit` with four checks.
+ * approvedProtocols.length > 0`. It was written on 2026-09-17 to stop six
+ * rendered sentences flipping to the present tense, and it held for a week for
+ * one reason: the register was EMPTY. Aman approved 254-RC-001 on 2026-09-22,
+ * the register gained its first entry, and all six flipped.
  *
- * SECOND INSTANCE OF THE DORMANT REGISTER. CLAUDE.md records the first: the PE
- * licence number had two homes and that was harmless for exactly as long as the
- * register held nothing, because one home holding nothing cannot disagree with
- * another. The question that rule leaves is the one this proof answers: not
+ * Second instance of the dormant register, recorded in CLAUDE.md beside the PE
+ * licence one. The question that rule leaves is the one this proof answers: not
  * "does this fact have two homes today" but "what becomes true the first time
  * somebody fills in the empty one".
  *
- * WHY A PROOF AND NOT ONLY voice-audit. voice-audit is the check and it stays
- * the check; it scans 63 rendered routes and it is what went red. It needs a
- * built site and a running server. This reads the three predicates and the
- * three sentences directly, costs a second, and names WHICH conjunct is
- * refusing, which a route scan cannot say.
+ * =============================================================================
+ * IT READS TWO WORLDS, AND THE FIRST VERSION READ ONLY ONE, WRONGLY
+ * =============================================================================
  *
- * WHY A CHILD PROCESS. CLAUDE.md section 6: a module level constant is read
- * once and a fresh import() is not fresh enough. `approvedProtocols` and the
- * launch conditions are exactly such constants. The injection below patches
- * source on disk, so the world has to be read by a process that starts after
- * the patch.
+ * The first version asserted, as its premise, that the gate reads PRELAUNCH.
+ * It passed. It passed because its child process does not load `.env.local`,
+ * so `FIRM_PHONE` was unset, the phone trading condition was unmet, and the
+ * gate answered prelaunch IN THE PROOF while the build under test was made in
+ * TRADING. A proof green about a world the site is not in.
  *
- * THE PREMISE IS ASSERTED BEFORE ANYTHING ELSE, because this whole proof is
- * about a state and a proof that does not check it is in that state proves
- * nothing. If the register were empty, every sentence below would be future
- * tense for a reason that has nothing to do with the fix, and this would print
- * green over the exact hole it was written to close.
+ * That is the ambient-state defect CLAUDE.md records against `partner-audit`,
+ * written fresh into the proof for a different instance of the same family, by
+ * the session writing up the first one.
+ *
+ * So it reads BOTH worlds and asserts the correct outcome for each, which is
+ * what CLAUDE.md says to do with a check that depends on ambient state: read
+ * the state and say out loud which one you saw.
+ *
+ *   as built    .env.local loaded, the same file `next build` loads. The firm
+ *               is TRADING, sealing is available, and the copy is PRESENT
+ *               tense, which is the sentence the firm is entitled to say.
+ *   bare        no firm configuration at all, so no FIRM_PHONE and the gate is
+ *               PRELAUNCH. Sealing is refused and the copy is FUTURE tense.
+ *
+ * THE SECOND WORLD IS WHAT MAKES THE CONJUNCT PROVABLE. In trading,
+ * `isTrading()` is satisfied, so removing it changes nothing and an injection
+ * there proves nothing. The prelaunch world is where it bites, and it is a real
+ * deployment state rather than a contrivance: it is what this firm was, in
+ * production, until FIRM_PHONE was set.
+ *
+ * WHY CHILD PROCESSES. CLAUDE.md section 6: a module level constant is read
+ * once and a fresh `import()` is not fresh enough. `approvedProtocols` and the
+ * launch conditions are exactly such constants, and the two worlds differ only
+ * in the environment present at module load. Two processes, two answers.
  */
 import { spawnSync } from "node:child_process";
 import { unlinkSync, writeFileSync } from "node:fs";
 
-const READER = `
-import {
+/*
+ * EVERY IMPORT IN THE READER IS DYNAMIC, AND THAT IS LOAD BEARING RATHER THAN
+ * STYLE. The first version put `process.loadEnvFile(".env.local")` at the top
+ * of the file above static imports, and the "as built" world came back reading
+ * PRELAUNCH: ES module imports are HOISTED and evaluated before any top level
+ * statement, so `launch.ts` and the config beneath it bound their module level
+ * constants before the environment existed.
+ *
+ * That is exactly the hazard `scripts/lib/load-env.mjs` documents in its own
+ * header under "IMPORT THIS FIRST", and it is the hazard I had just wrongly
+ * accused `voice-audit` of, where the ordering is in fact correct because the
+ * launch import there is dynamic. The defect was mine, one file over.
+ *
+ * A dynamic import runs when it is reached, so the env decision happens first.
+ */
+const reader = (loadEnv) => `
+${loadEnv ? 'process.loadEnvFile(".env.local");' : "/* no firm configuration in this process */"}
+const {
   isPrelaunch,
   isTrading,
   peInResponsibleCharge,
   sealingIsAvailable,
   sealingIsAvailableFor,
-} from "../../src/lib/launch.ts";
-import { approvedProtocols } from "../../src/config/launch-readiness.ts";
+  launchMode,
+} = await import("../../src/lib/launch.ts");
+const { approvedProtocols } = await import("../../src/config/launch-readiness.ts");
 const copy = await import("../../src/content/model-copy.ts");
 console.log(JSON.stringify({
+  mode: launchMode(),
   approvedCount: approvedProtocols.length,
   approvedSlugs: approvedProtocols.map((p) => p.serviceSlug),
   prelaunch: isPrelaunch(),
@@ -67,8 +97,8 @@ console.log(JSON.stringify({
 
 const READER_PATH = "scripts/proofs/.sealing-proof-reader.mts";
 
-function readWorld(label) {
-  writeFileSync(READER_PATH, READER);
+function readWorld(label, loadEnv) {
+  writeFileSync(READER_PATH, reader(loadEnv));
   try {
     const r = spawnSync("npx", ["tsx", READER_PATH], { encoding: "utf8", shell: true });
     const line = (r.stdout || "")
@@ -95,7 +125,7 @@ const check = (name, ok, note) => {
 };
 
 /*
- * The present tense branch of each of the three sentences, quoted from
+ * The PRESENT tense branch of each of the three sentences, quoted from
  * model-copy.ts. Matched as the SENTENCE rather than on the word "sealed",
  * because both branches of all three contain that word and a matcher on it
  * would fire on the compliant copy. Match the thing you mean.
@@ -106,76 +136,108 @@ const PRESENT = {
   reviewStep: "Professional Engineer reviews the record",
 };
 
-const world = readWorld("as the branch stands");
+const built = readWorld("as the build is made", true);
+const bare = readWorld("with no firm configuration", false);
 
-// ------------------------------------------------------- the premise, first
+console.log(`as built: mode ${built.mode}.  bare: mode ${bare.mode}.`);
+console.log("");
+
+// --------------------------------------------------- the premise, in both
 
 check(
-  `the register holds an approved protocol (${world.approvedCount})`,
-  world.approvedCount > 0,
-  world.approvedCount > 0
-    ? world.approvedSlugs.join(", ")
+  `the register holds an approved protocol (${built.approvedCount})`,
+  built.approvedCount > 0 && bare.approvedCount > 0,
+  built.approvedCount > 0
+    ? built.approvedSlugs.join(", ")
     : "EMPTY, so every sentence below is future tense for a reason that is not the fix, and this proof would be vacuous",
 );
 
 check(
-  "and the gate reads prelaunch",
-  world.prelaunch === true && world.trading === false,
-  `prelaunch ${world.prelaunch}, trading ${world.trading}`,
+  "the two worlds really are different modes",
+  built.mode === "trading" && bare.mode === "prelaunch",
+  `as built ${built.mode}, bare ${bare.mode}. If these were equal the proof would be asserting one world twice.`,
 );
 
 check(
-  "and an engineer is in responsible charge",
-  world.engineer === true,
-  "if this were false, sealingIsAvailable would be false without isTrading doing any work",
+  "an engineer is in responsible charge in both",
+  built.engineer === true && bare.engineer === true,
+  "so the conjunct that differs between the two worlds is isTrading(), and nothing else",
+);
+
+// ------------------------------------------- as built: TRADING, and allowed
+
+check(
+  "as built: sealing IS available, because the firm is trading and a protocol is approved",
+  built.sealing === true,
+  `trading ${built.trading}, engineer ${built.engineer}, approved ${built.approvedCount}`,
+);
+
+check(
+  "as built: the responsible charge paragraph is present tense",
+  built.responsibleCharge.includes(PRESENT.responsibleCharge),
+  built.responsibleCharge.slice(0, 80),
+);
+
+check(
+  "as built: the deliverable sentence is present tense",
+  built.deliverable.includes(PRESENT.deliverable),
+  built.deliverable.slice(0, 80),
+);
+
+check(
+  "as built: the review step is present tense",
+  built.reviewStep.includes(PRESENT.reviewStep),
+  built.reviewStep.slice(0, 80),
+);
+
+check(
+  "as built: the APPROVED line may say its deliverable is sealed",
+  built.sealingRoof === true,
+  "roof-inspections has an approved protocol and the firm is trading",
 );
 
 /*
- * THE ISOLATION, AND IT IS WHAT MAKES THE RESULT MEAN SOMETHING. Two of the
- * three conjuncts are true, asserted directly above. So a false answer from
- * sealingIsAvailable() can only be isTrading() refusing, which is the conjunct
- * this change added. Without these three lines the check below would pass just
- * as happily on an empty register, which is the state it was written against.
+ * THE NARROW RULE, AND IT IS THE ONE THE SITEWIDE PREDICATE CANNOT EXPRESS.
+ * `sealingIsAvailable()` asks whether ANY protocol is approved. One approved
+ * line out of eleven would otherwise license a present tense sealing claim on
+ * the ten that seal nothing.
  */
+check(
+  "as built: a line with NO approved protocol still may not",
+  built.sealingUnapproved === false,
+  "manufactured-home-foundations has no approved protocol, and the firm is trading",
+);
 
-// --------------------------------------------- the predicate and the copy
+// ------------------------------------------ bare: PRELAUNCH, and refused
 
 check(
-  "sealing is NOT available, because the firm is not trading",
-  world.sealing === false,
-  `trading ${world.trading}, engineer ${world.engineer}, approved ${world.approvedCount}`,
+  "bare: sealing is NOT available, because the firm is not trading",
+  bare.sealing === false,
+  `trading ${bare.trading}, engineer ${bare.engineer}, approved ${bare.approvedCount}. This is the conjunct isTrading() doing the work.`,
 );
 
 check(
-  "the responsible charge paragraph stays future tense",
-  !world.responsibleCharge.includes(PRESENT.responsibleCharge),
-  world.responsibleCharge.slice(0, 90),
+  "bare: the responsible charge paragraph stays future tense",
+  !bare.responsibleCharge.includes(PRESENT.responsibleCharge),
+  bare.responsibleCharge.slice(0, 80),
 );
 
 check(
-  "the deliverable sentence stays future tense",
-  !world.deliverable.includes(PRESENT.deliverable),
-  world.deliverable.slice(0, 90),
+  "bare: the deliverable sentence stays future tense",
+  !bare.deliverable.includes(PRESENT.deliverable),
+  bare.deliverable.slice(0, 80),
 );
 
 check(
-  "the review step stays future tense",
-  !world.reviewStep.includes(PRESENT.reviewStep),
-  world.reviewStep.slice(0, 90),
-);
-
-// ------------------------------------------------------ the line level rule
-
-check(
-  "an APPROVED line may not claim present tense sealing while the firm is not trading",
-  world.sealingRoof === false,
-  `roof-inspections is approved and sealingIsAvailableFor returned ${world.sealingRoof}`,
+  "bare: the review step stays future tense",
+  !bare.reviewStep.includes(PRESENT.reviewStep),
+  bare.reviewStep.slice(0, 80),
 );
 
 check(
-  "and a line with no approved protocol may not either",
-  world.sealingUnapproved === false,
-  "manufactured-home-foundations has no approved protocol",
+  "bare: even the APPROVED line may not claim present tense sealing",
+  bare.sealingRoof === false,
+  "an approved protocol does not open the copy; trading does",
 );
 
 console.log(
