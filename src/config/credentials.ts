@@ -222,44 +222,38 @@ export const verifiedEngineers: VerifiedEngineer[] = [
      * the place that rule is easiest to break is punctuation nobody thinks of as
      * content.
      */
-    employersOnRoster: ["254 Services LLC", "WILLIAMS SCOTSMAN INC."],
     /*
-     * THE ROSTER STILL NAMES THE OLD FIRM NAME, AND THAT IS EXPECTED FOR A FEW
-     * DAYS RATHER THAN A DISAGREEMENT. Operator ruling, 2026-09-22.
+     * THE BOARD CAUGHT UP, AND THE ACKNOWLEDGEMENT IS GONE RATHER THAN
+     * EXTENDED. Operator re-read, 2026-09-24.
      *
-     * TBPELS reissued F-29811 to 254 Engineering LLC on 2026-09-21. The
-     * engineer's own roster entry still reads 254 Services LLC, because the
-     * board's person-side record follows the firm-side record within 24 to 48
-     * hours. That is the OPERATOR'S STATEMENT of how the board behaves, recorded
-     * as his statement rather than as a fact this repository verified, because
-     * nothing here can read the roster.
+     * The firm's line on Aman Dhakal's roster entry now reads 254 Engineering
+     * LLC. The second employer is unchanged and is still recorded exactly as
+     * the roster prints it, capitals and all, because an edited list is not
+     * what the roster says.
      *
-     * SO IT IS ACKNOWLEDGED, WITH A DATE THAT RUNS OUT. compliance-audit reports
-     * ACKNOWLEDGED rather than FAIL through 2026-09-24, and FAILS from
-     * 2026-09-25 unless somebody re-reads the roster and records that it names
-     * 254 Engineering LLC. An acknowledgement with no expiry is how a known
-     * difference becomes a permanent exemption nobody revisits.
+     * THE ACKNOWLEDGEMENT BLOCK IS DELETED, NOT MARKED CLOSED, and that is the
+     * design working rather than tidiness. Its own injection test asserts that
+     * making the roster agree turns the check into a plain PASS with the block
+     * GONE ENTIRELY, which is what proves an acknowledgement cannot outlive
+     * the thing it covers. Leaving a retired one behind with a note under it
+     * would be the first step toward an exemption nobody revisits, which is
+     * the failure the expiry date exists to prevent.
+     *
+     * It expired at the end of this very day. Had nobody re-read the roster,
+     * compliance-audit would have gone FAIL from 2026-09-25 naming the date,
+     * which is the mechanism doing exactly what it was built to do.
      */
-    rosterNameLag: {
-      expectedName: "254 Engineering LLC",
-      acknowledgedOn: "2026-09-22",
-      acknowledgedBy: "Robert Reyna, operator",
-      expires: "2026-09-24",
-      because:
-        "TBPELS reissued F-29811 to 254 Engineering LLC on 2026-09-21 and the operator states the " +
-        "board updates the engineer's own roster entry within 24 to 48 hours. The roster read of " +
-        "2026-09-22 still shows 254 Services LLC. This is his statement about the board's timing, " +
-        "not something this repository can check. It runs out at the end of 2026-09-24, after which " +
-        "the difference is a finding again unless a fresh roster read records the new name.",
-    },
+    employersOnRoster: ["254 Engineering LLC", "WILLIAMS SCOTSMAN INC."],
     verified:
       "Read from the TBPELS roster on 2026-09-16 by the operator: DHAKAL, AMAN, PE# 143295, status " +
       "Active, branch Civil, granted 12-09-2021, expires 01-31-2028, employers 254 Services LLC and " +
       "WILLIAMS SCOTSMAN INC. He signed 254-RC-001 v1.0 on 2026-09-14 as Engineer of Record, and " +
       "confirmed on 2026-09-16 that his focus, experience and expertise are structural only. " +
       "RE-READ 2026-09-22 by the operator, after the reissuance: the entry is unchanged and still " +
-      "names 254 Services LLC. Nothing here can read the roster; this is what a person read, on a " +
-      "date, and said.",
+      "names 254 Services LLC. RE-READ AGAIN 2026-09-24 by the operator: the firm's line now reads " +
+      "254 Engineering LLC, so the board's record of the PERSON agrees with its record of the FIRM " +
+      "and the acknowledgement that covered the gap is retired. Nothing here can read the roster; " +
+      "this is what a person read, on a date, and said.",
   },
 ];
 

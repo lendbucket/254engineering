@@ -28,9 +28,9 @@ import {
   STRUCTURAL,
   context,
   findBannedPhrases,
-  findRegulatoryClaims,
   isRhetoricalTriad,
 } from "./lib/voice-blocklist.mjs";
+import { OPEN_GATED, SEALING_GATED, TRADING_GATED, findClaims } from "./lib/regulatory.mjs";
 
 const BASE = process.env.BASE_URL || "http://localhost:3225";
 /*
@@ -54,25 +54,70 @@ const BASE = process.env.BASE_URL || "http://localhost:3225";
  * answers trading, which is how this was found.
  */
 import "./lib/load-env.mjs";
-const { launchMode } = await import("../src/lib/launch.ts");
-const MODE = launchMode();
+import { modeUnderTest, announceMode } from "./lib/rendered-mode.mjs";
+
 /*
- * REGULATED CLAIMS ARE FAILURES UNTIL THE FIRM IS OPEN, WHICH IS THE
- * CONSERVATIVE SIDE OF A SPLIT THE OPERATOR HAS NOT RULED YET.
+ * =========================================================================
+ * THE MODE COMES FROM THE BUILD UNDER TEST, AND IS REFUSED RATHER THAN
+ * GUESSED. Operator ruling, 2026-09-24.
+ * =========================================================================
  *
- * The patterns refuse present tense claims about SEALING and performing
- * engineering. Under `trading` the firm may say it is registered and may quote,
- * and it still cannot seal anything, because no protocol is approved. Some of
- * these patterns are about registration and are now satisfied; others are about
- * sealing and are not. Splitting them is the operator's ruling and the question
- * is in front of him with the sentences attached.
+ * This used to call `launchMode()` in THIS process. That is right when the
+ * server was built here from the same env file, and silently wrong against a
+ * remote deployment built from environment variables this machine cannot read,
+ * where `launchMode()` answers `prelaunch` for want of FIRM_PHONE and the
+ * answer is indistinguishable from a deployment that genuinely is prelaunch.
  *
- * Until he answers, this stays shut through trading. `!== "live"` would have
- * been the same answer by accident, since "live" is no longer a mode at all, and
- * an accident that gives the right answer is the thing this repository spends
- * its time removing.
+ * A missing answer wearing a real answer's clothes is the defect this whole
+ * file exists to hunt. `modeUnderTest` returns null instead, and a null makes
+ * this audit report COULD NOT TELL and exit zero, because unreachable is not
+ * failed and a compliance ruleset chosen by guesswork is worse than no verdict.
  */
-const GATE_ACTIVE = MODE !== "open";
+const modeResult = await modeUnderTest(BASE);
+const MODE = modeResult.mode;
+/*
+ * =========================================================================
+ * THE SPLIT, RULED 2026-09-24. EACH GROUP HAS ITS OWN PREDICATE.
+ * =========================================================================
+ *
+ * This read `MODE !== "open"`, and the comment that stood here said so: the
+ * conservative side of a split the operator had not ruled, held deliberately
+ * until he answered, with the question in front of him and the sentences
+ * attached. He answered. The sealing sentences are correct in trading.
+ *
+ * WHAT THE OLD BOOLEAN COST. The board of 2026-09-24 reported six present
+ * tense service claims on five routes, including the home page and
+ * llms-full.txt, every one of them a sentence the firm is entitled to say.
+ * `partner-audit` went red on four checks for the same reason. Those were not
+ * defects in the copy; they were one ruleset applied to a mode it was not
+ * written for.
+ *
+ * THE THREE GROUPS ALREADY EXISTED IN regulatory.mjs AND NOTHING USED THEM.
+ * `findRegulatoryClaims` reads ALL_REGULATED, which is every pattern at once.
+ * So the split was built, documented, and then asked under a single boolean,
+ * which is the declared-inventory failure wearing a pattern set: the
+ * distinction existed and nothing consulted it.
+ *
+ * Each group is now gated on the thing it is actually about:
+ *
+ *   TRADING_GATED   refused while the firm is not trading
+ *   SEALING_GATED   refused while sealing is not available, which is an
+ *                   APPROVED PROTOCOL and trading, not an open gate
+ *   OPEN_GATED      refused while the firm is not open. Orders and money.
+ *
+ * `sealingIsAvailable()` rather than `isOpen()` is the load bearing choice. A
+ * registered firm, trading, with an engineer and no approved protocol can seal
+ * nothing, and every SEALING_GATED pattern says it is sealing.
+ */
+const { isTrading, isOpen, sealingIsAvailable } = await import("../src/lib/launch.ts");
+
+const ACTIVE_GROUPS = [];
+if (MODE !== null) {
+  if (!isTrading()) ACTIVE_GROUPS.push(["trading", TRADING_GATED]);
+  if (!sealingIsAvailable()) ACTIVE_GROUPS.push(["sealing", SEALING_GATED]);
+  if (!isOpen()) ACTIVE_GROUPS.push(["open", OPEN_GATED]);
+}
+const GATE_ACTIVE = ACTIVE_GROUPS.length > 0;
 
 /**
  * Routes exempt from the structural checks, with a reason.
@@ -212,6 +257,27 @@ if (allRoutes.length <= 3) {
   process.exitCode = 1;
 }
 
+/*
+ * REFUSE TO JUDGE RATHER THAN JUDGE BY A GUESS. Operator ruling, 2026-09-24.
+ *
+ * The banned phrase and structural checks below are about WRITING and are true
+ * in every mode, so they could in principle still run. They do not, and that is
+ * deliberate: a run that measured two thirds of this audit and reported a
+ * verdict would be a green whose scope nobody could see, which is the vacuous
+ * green this file exists to hunt. One verdict, one scope, and the reason
+ * printed.
+ */
+if (MODE === null) {
+  console.log("=== VOICE AUDIT ===");
+  announceMode(modeResult);
+  console.log("");
+  console.log(`COULD NOT TELL: ${allRoutes.length} route(s) were not judged, because the compliance`);
+  console.log("ruleset depends on the mode the build under test was made in, and that could not be");
+  console.log("established. Nothing here failed. Nothing here passed either.");
+  process.exitCode = 0;
+  process.exit(0);
+}
+
 for (const route of allRoutes) {
   const { status, html } = await get(route);
   if (status !== 200) {
@@ -226,9 +292,16 @@ for (const route of allRoutes) {
     record(route, "banned phrase", `${hit.why}: ${context(text, hit.index)}`);
   }
 
-  if (GATE_ACTIVE) {
-    for (const hit of findRegulatoryClaims(text)) {
-      record(route, "present tense service claim", `${hit.why} ("${hit.match}"): ${context(text, hit.index)}`);
+  /*
+   * Named by the group that refused it, so a finding says WHICH rule it broke
+   * and therefore what would have to change for it to be allowed. "present
+   * tense service claim" was one label over three different rules, and a
+   * reader could not tell whether a sentence needed an approved protocol, a
+   * registration or an open gate.
+   */
+  for (const [group, patterns] of ACTIVE_GROUPS) {
+    for (const hit of findClaims(text, patterns)) {
+      record(route, `${group}-gated claim`, `${hit.why} ("${hit.match}"): ${context(text, hit.index)}`);
     }
   }
 
@@ -456,10 +529,22 @@ for (const route of allRoutes) {
 
 console.log("=== VOICE AUDIT ===");
 console.log(`scanned ${allRoutes.length} routes against ${BASE}`);
+/*
+ * IT SAID "prelaunch gate ACTIVE" IN EVERY MODE THAT WAS NOT OPEN, INCLUDING
+ * TRADING, and that cost a whole diagnosis. Reading that line on a trading
+ * build, I concluded the audit had failed to load the environment and went
+ * looking for an import ordering bug that did not exist. The audit had read
+ * `trading` correctly and printed a label naming a different mode.
+ *
+ * A figure can be arithmetically correct and still be a false statement about
+ * the thing it describes. So can a status line, and this one was read by a
+ * person who then acted on it.
+ */
+announceMode(modeResult);
 console.log(
   GATE_ACTIVE
-    ? "prelaunch gate ACTIVE: present tense service claims are failures"
-    : "live mode: regulatory phrase check relaxed",
+    ? `gated groups ACTIVE: ${ACTIVE_GROUPS.map(([g]) => g).join(", ")}. Claims in these groups are failures.`
+    : "every gated group is retired for this mode: the firm may make these claims.",
 );
 
 if (findings.length === 0) {

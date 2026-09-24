@@ -145,30 +145,37 @@ export const CREDENTIALS: Credential[] = [
      */
     environments: {
       production: "set",
-      preview: "set",
-      development: "set",
+      preview: "absent",
+      development: "absent",
+      previewValueDistinct: true,
       /*
-       * NOT YET SPLIT. The dashboard shows ONE entry covering Production and
-       * Preview, which is the same sharing wearing a new row. The operator is
-       * splitting each into two entries with different values, Production
-       * untouched.
+       * =====================================================================
+       * PREVIEW NO LONGER CARRIES IT. Corrected 2026-09-24.
+       * =====================================================================
        *
-       * RECORDED AS SHARED RATHER THAN AS FIXED, and the board is RED on it
-       * until it is confirmed. An earlier version of this file said distinct,
-       * because it recorded the intent to split rather than the split, and a
-       * declaration that asserts a fix which has not happened is the exact
-       * thing this pack exists to prevent.
+       * The 2026-09-13 sharing ruling is superseded by the operator's own
+       * action, and the ruling block is removed rather than left standing with
+       * a correction under it: a `sharingRuling` on a variable that is no
+       * longer shared would be the board reporting an accepted risk that no
+       * longer exists, which is the same defect as a park nobody retires.
+       *
+       * The consequence it recorded is kept here as HISTORY, because a risk
+       * that was real for eleven days is a thing somebody may need to reason
+       * about later: from 2026-09-13 to 2026-09-24 a preview deployment could
+       * decrypt production second factor secrets, since the key that decrypts
+       * them was the same value and preview URLs are publicly reachable.
+       *
+       * What has NOT changed, and is the reason the production value is never
+       * rotated casually: encryptionKey() is sha256 over this, every
+       * enrolment's ciphertext is under the current one, and changing it makes
+       * every second factor undecryptable in a way that presents exactly like
+       * a wrong code. Recovery codes are scrypt hashed against the user id and
+       * do not depend on it, which is the way back in.
        */
-      previewValueDistinct: false,
-      /*
-       * SHARED BY OPERATOR RULING, NOT BY OVERSIGHT. 2026-09-13.
-       */
-      sharingRuling: {
-        by: "Robert Reyna, operator",
-        on: "2026-09-13",
-        consequence: "A preview deployment can decrypt production second factor secrets, because the key that decrypts them is the same value. Preview URLs are publicly reachable by anybody holding the link. The production value is never changed, because encryptionKey is sha256 over it and every enrolment's ciphertext is under the current one; recovery codes are scrypt hashed against the user id and do not depend on it, which is the way back in if it ever is.",
-      },
-      readOn: READ_ON + " Re-read 2026-09-12: a single entry covering Production and Preview. RULED 2026-09-13: it stays that way.",
+      readOn:
+        READ_ON +
+        " Re-read 2026-09-12: a single entry covering Production and Preview. RULED 2026-09-13: it stays that way." +
+        " READ AGAIN 2026-09-24 by the operator, names and targets only, no values: a SINGLE entry targeting Production only. Preview and development carry none of it, which supersedes the 2026-09-13 ruling.",
     },
   },
   {
@@ -179,34 +186,77 @@ export const CREDENTIALS: Credential[] = [
     rotated: "Never.",
     decides: "identity",
     /*
-     * THE ONE THAT WAS ALREADY RIGHT, and the reason the finding was findable:
-     * the correct pattern existed and had been applied to one principal of
-     * three.
+     * =========================================================================
+     * "THE ONE THAT WAS ALREADY RIGHT" WAS NEVER RIGHT. Operator finding,
+     * 2026-09-24, read from Vercel's own environment list.
+     * =========================================================================
+     *
+     * THE SENTENCE THAT USED TO SIT HERE read: "THE ONE THAT WAS ALREADY
+     * RIGHT, and the reason the finding was findable: the correct pattern
+     * existed and had been applied to one principal of three." That claim is
+     * false and has been false since it was written on 2026-09-12.
+     *
+     * The list shows ONE entry for this variable targeting BOTH Preview and
+     * Production. It is not split. It is the same sharing the other three had,
+     * on the principal with the most authority of the four.
+     *
+     * HOW IT SURVIVED TWELVE DAYS, AND IT IS WORTH MORE THAN THE FINDING. The
+     * 2026-09-12 read found this variable ABSENT from the list, recorded
+     * "unknown" honestly, and reasoned about what an absence would mean. Then
+     * a SECOND sentence, in the same entry, asserted it was correctly split,
+     * and that sentence was not a reading at all: it was the premise of the
+     * argument being made about the other three. A record that says "unknown"
+     * in its data and "already right" in its prose is two accounts of one fact,
+     * and every later reader took the prose.
+     *
+     * CLAUDE.md repeated it. `docs/soc2-readiness.md` is written from this
+     * file. The claim propagated exactly as the "Reyna Pay" sentence did on
+     * 2026-09-11, and for the same reason: nobody re-derived it.
+     *
+     * WHAT A PREVIEW MINTED OPS SESSION DOES ON PRODUCTION, read from the code
+     * rather than assumed:
+     *
+     *   The payload is `sub.role.factor.exp` and `factor` is minted "full", so
+     *   a cookie signed with this secret is a FULLY authenticated staff
+     *   session. It is produced without a password and without a second
+     *   factor, because the cookie IS the proof that both were satisfied.
+     *
+     *   `currentActor()` then re-reads eng_profiles by `claims.sub` against
+     *   THAT deployment's own database and takes the role and the grants from
+     *   the row, not from the cookie. So the forger needs a `sub` that exists
+     *   in PRODUCTION, and cannot invent a role. That bounds it and does not
+     *   close it: minting for a real production profile id yields whatever
+     *   that person holds, and for the operator's own id that is everything.
+     *
+     * THE SECOND HALF IS OPS_UNLOCK_TOKEN, shared the same way, which clears
+     * the sign in rate limiter. Sharing both means the environment that can
+     * forge a staff session can also remove the control that would slow down
+     * guessing one the ordinary way.
+     */
+    /*
+     * CLOSED THE SAME DAY IT WAS FOUND, 2026-09-24 at 10:20 Central, by the
+     * operator: Preview removed, and a NEW production value set. Production
+     * redeployed.
+     *
+     * ROTATED, WHICH IS THE HALF THAT MATTERS AND IS EASY TO SKIP. Removing
+     * Preview stops a future preview from holding it; it does nothing about
+     * the twelve days in which every preview did. Anything that read it in
+     * that window still holds a key that would otherwise have gone on working.
+     * Rotating is cheap here and that is why there was no reason not to:
+     * nothing is encrypted under this value, so the whole cost is that every
+     * staff session is signed out at once. MFA_ENCRYPTION_KEY is the opposite
+     * and is why it is never rotated casually.
      */
     environments: {
-      /*
-       * NO LONGER IN THE DASHBOARD LIST, read 2026-09-12, and the operator is
-       * confirming whether it was deleted.
-       *
-       * IF IT WAS, THE SYMPTOM IS AN OUTAGE RATHER THAN A WEAKNESS, which was
-       * checked in the code before saying so: signingKey() returns null below
-       * 24 characters or when absent, with no fallback and no default, so no
-       * session can be forged because none can be signed. opsSessionStatus()
-       * says "Nobody can sign into the portal until it is" and the sign in
-       * screen shows it. Announcements stop too: ops-announce refuses to send
-       * rather than send an unsigned unsubscribe link.
-       *
-       * It was the ONE identity secret already split correctly, which is what
-       * made the other three legible as a defect rather than as a
-       * configuration.
-       */
-      production: "unknown",
-      preview: "unknown",
+      production: "set",
+      preview: "absent",
       development: "set",
-      previewValueDistinct: null,
-      pendingFix:
-        "Confirming whether it was deleted; restoring it as two split entries before the next deploy, because staff sign in reads it.",
-      readOn: READ_ON + " Re-read 2026-09-12: ABSENT FROM THE LIST.",
+      previewValueDistinct: true,
+      readOn:
+        READ_ON +
+        " Re-read 2026-09-12: ABSENT FROM THE LIST, recorded unknown." +
+        " READ AGAIN 2026-09-24 by the operator, names and targets only, no values: ONE entry targeting Preview AND Production. It was shared, and this file's earlier claim that it was split was never a reading." +
+        " CORRECTED 2026-09-24 at 10:20 Central by Robert Reyna: Preview removed and the production value ROTATED, production redeployed.",
     },
   },
   {
@@ -222,30 +272,54 @@ export const CREDENTIALS: Credential[] = [
      */
     environments: {
       production: "set",
-      preview: "set",
+      /*
+       * =====================================================================
+       * UNTICKED FROM PREVIEW ON 2026-09-24. THE SHARING IS OVER, AND THE
+       * CORROBORATION IS NOT. Operator ruling and operator action.
+       * =====================================================================
+       *
+       * The operator changed his ruling of 2026-09-13 and removed Preview from
+       * this variable in the Vercel dashboard. No new Preview value was
+       * created: Preview now carries NOTHING, so a preview deployment cannot
+       * mint a customer session at all, which is stronger than a distinct one.
+       *
+       * RECORDED AS THE OPERATOR'S ATTESTATION, NOT AS A VERIFIED FACT, and
+       * the difference is the whole point of this file. Nothing in this
+       * repository can read the Vercel dashboard. What a check CAN do is ask a
+       * preview deployment whether it still mints, and
+       * `scripts/preview-cannot-mint.mjs` was written to do exactly that.
+       *
+       * IT COULD NOT TELL, and the reason is recorded rather than smoothed
+       * over. Run 2026-09-24 against the preview the operator supplied, built
+       * from 24b778c: every dynamic route answers Vercel's own platform 404,
+       * including /api/portal/health, while /account/login answers 200 from the
+       * CDN. That deployment serves static pages and no functions, so there is
+       * nothing on it to ask, and its 404s are NOT evidence the secret is gone.
+       *
+       * AND THE CUSTOMER DOOR CANNOT ANSWER THIS QUESTION EVEN ON A HEALTHY
+       * DEPLOYMENT, which is a finding in its own right. At 24b778c
+       * `api/account/session` calls `signInCustomer` BEFORE
+       * `issueCustomerSession`, so a deployment with no secret and one with a
+       * working secret answer a bogus login identically with 401. The 503
+       * "Accounts are not available on this deployment." is reachable only with
+       * a valid customer password. A configuration state observable only by
+       * signing somebody in is one nobody can verify after changing it. The
+       * partner door has the checks the other way round and IS observable.
+       */
+      preview: "absent",
       development: "set",
       /*
-       * NOT YET SPLIT. The dashboard shows ONE entry covering Production and
-       * Preview, which is the same sharing wearing a new row. The operator is
-       * splitting each into two entries with different values, Production
-       * untouched.
-       *
-       * RECORDED AS SHARED RATHER THAN AS FIXED, and the board is RED on it
-       * until it is confirmed. An earlier version of this file said distinct,
-       * because it recorded the intent to split rather than the split, and a
-       * declaration that asserts a fix which has not happened is the exact
-       * thing this pack exists to prevent.
+       * Vacuously true and said plainly: there is no Preview value to be
+       * distinct from Production, which is why this is not `true` with a
+       * comfortable sentence beside it.
        */
-      previewValueDistinct: false,
-      /*
-       * SHARED BY OPERATOR RULING, NOT BY OVERSIGHT. 2026-09-13.
-       */
-      sharingRuling: {
-        by: "Robert Reyna, operator",
-        on: "2026-09-13",
-        consequence: "A customer session cookie signed on ANY preview deployment is accepted by production. Preview URLs are publicly reachable by anybody holding the link, so anybody who can reach a preview can mint a session that production will honour as that customer.",
-      },
-      readOn: READ_ON + " Re-read 2026-09-12: a single entry covering Production and Preview. RULED 2026-09-13: it stays that way.",
+      previewValueDistinct: true,
+      pendingFix:
+        "Corroborate the untick against a preview that actually serves functions, or have the operator read the Preview variable list for this project. The 2026-09-24 run could not tell.",
+      readOn:
+        READ_ON +
+        " Re-read 2026-09-12: a single entry covering Production and Preview. RULED 2026-09-13: it stays that way." +
+        " UNTICKED FROM PREVIEW 2026-09-24 by Robert Reyna, superseding that ruling. The after-check ran the same day and COULD NOT TELL, because the preview supplied serves no functions.",
     },
   },
   {
@@ -257,30 +331,33 @@ export const CREDENTIALS: Credential[] = [
     decides: "identity",
     environments: {
       production: "set",
-      preview: "set",
-      development: "set",
       /*
-       * NOT YET SPLIT. The dashboard shows ONE entry covering Production and
-       * Preview, which is the same sharing wearing a new row. The operator is
-       * splitting each into two entries with different values, Production
-       * untouched.
+       * UNTICKED FROM PREVIEW ON 2026-09-24, alongside
+       * CUSTOMER_SESSION_SECRET, superseding the ruling of 2026-09-13. Preview
+       * carries nothing, so a preview cannot mint a partner session at all.
        *
-       * RECORDED AS SHARED RATHER THAN AS FIXED, and the board is RED on it
-       * until it is confirmed. An earlier version of this file said distinct,
-       * because it recorded the intent to split rather than the split, and a
-       * declaration that asserts a fix which has not happened is the exact
-       * thing this pack exists to prevent.
+       * THE SAME ATTESTATION AND THE SAME UNFINISHED CORROBORATION as the
+       * customer secret above, and the reasoning is not repeated here because
+       * one decision with two accounts is two accounts that will disagree.
+       *
+       * WHAT IS DIFFERENT, AND IT IS WORTH KNOWING: this door IS observable.
+       * At 24b778c `api/partner/session` calls `partnerSessionConfigured()`
+       * BEFORE `signInPartner`, so a bogus credential is refused by the
+       * configuration check and the answer distinguishes "no secret" from
+       * "secret present" with no valid credential and no write. The customer
+       * door has those the other way round and cannot. So when a preview that
+       * serves functions is available, THIS is the door that settles it, and
+       * `scripts/preview-cannot-mint.mjs` asks it.
        */
-      previewValueDistinct: false,
-      /*
-       * SHARED BY OPERATOR RULING, NOT BY OVERSIGHT. 2026-09-13.
-       */
-      sharingRuling: {
-        by: "Robert Reyna, operator",
-        on: "2026-09-13",
-        consequence: "A partner session cookie signed on ANY preview deployment is accepted by production, with the same reach as the customer one: a partner's own earnings, statements and attribution record.",
-      },
-      readOn: READ_ON + " Re-read 2026-09-12: a single entry covering Production and Preview. RULED 2026-09-13: it stays that way.",
+      preview: "absent",
+      development: "set",
+      previewValueDistinct: true,
+      pendingFix:
+        "Corroborate against a preview that serves functions. The partner door can answer this without a credential; the customer door cannot.",
+      readOn:
+        READ_ON +
+        " Re-read 2026-09-12: a single entry covering Production and Preview. RULED 2026-09-13: it stays that way." +
+        " UNTICKED FROM PREVIEW 2026-09-24 by Robert Reyna, superseding that ruling. The after-check ran the same day and COULD NOT TELL, because the preview supplied serves no functions.",
     },
   },
   /*
@@ -421,6 +498,35 @@ export const CREDENTIALS: Credential[] = [
       "Vercel. REMOVED from .env.local 2026-09-12 by the same ruling as the mail key: it serves one route handler that nothing local calls, so it was a credential sitting in a development environment for no current purpose.",
     grants: "Clearing a lockout on a staff account.",
     rotated: "Never.",
+    /*
+     * IT HAD NO ENVIRONMENT MAP AT ALL UNTIL 2026-09-24, WHICH IS WHY NOTHING
+     * EVER ASKED WHETHER IT WAS SHARED.
+     *
+     * `decides` was unset and `environments` was absent, so soc2-audit's rule
+     * that no identity or database secret may be shared did not reach it: the
+     * rule is asserted over secrets that declare one of those two words, and a
+     * secret that declares neither is outside every question the board asks.
+     *
+     * That is the declared inventory failing in the way this repository keeps
+     * finding: not a wrong answer, a question nobody was made to answer.
+     *
+     * It is NOT tagged `identity`, deliberately and with the reason written
+     * down, because it does not mint or read a session: the route's own header
+     * is emphatic that it clears a counter and "does not sign anybody in, does
+     * not touch a password, does not read a profile". Tagging it identity to
+     * force the board to look would make the board's own vocabulary wrong,
+     * which is the nearest-lie defect. The environment map below is what makes
+     * it visible instead.
+     */
+    environments: {
+      production: "set",
+      preview: "absent",
+      development: "absent",
+      previewValueDistinct: true,
+      readOn:
+        "2026-09-24, by the operator, from Vercel's environment list, names and targets only, no values read. ONE entry targeting Preview AND Production." +
+        " CORRECTED the same day at 10:20 Central by Robert Reyna: Preview removed and the production value ROTATED, production redeployed. Removed from .env.local 2026-09-12, which is why development is absent.",
+    },
   },
   {
     name: "ORDER_INTAKE_KEYS",

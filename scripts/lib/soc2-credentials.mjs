@@ -152,6 +152,26 @@ export const NOT_CREDENTIALS = new Set([
    */
   "SHOTS",
   /*
+   * The two added 2026-09-24, and this list caught both within minutes of
+   * their being written, which is the reverse scan doing exactly what it was
+   * built for.
+   *
+   * BUILD_ENV_FILE names WHICH env file a build loaded, so an audit judging
+   * rendered copy can read the same gate the build read instead of guessing
+   * one from its own bare process. It is a PATH, never a value, and its
+   * absence is what makes `scripts/lib/rendered-mode.mjs` refuse to judge
+   * rather than default to prelaunch.
+   *
+   * DEPLOYED_COMMIT names which commit a preview under test was built from, so
+   * `preview-cannot-mint.mjs` asserts the sentences that are IN that artefact
+   * rather than the ones on main. It is a git ref.
+   *
+   * Neither decides identity, neither opens a database, and neither holds a
+   * value anybody could use. Named individually rather than excused by a
+   * pattern, for the reason this list gives about _PORT one entry up.
+   */
+  "BUILD_ENV_FILE", "DEPLOYED_COMMIT",
+  /*
    * break-glass-audit starts three servers one after another, because a
    * process environment is fixed when it boots and the audit needs three
    * different values of MFA_BREAK_GLASS. Three ports, three names.

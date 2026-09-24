@@ -471,9 +471,63 @@ export function approvedProtocolFor(serviceSlug: string) {
  * I had classified eleven dependants of `peInResponsibleCharge()` and named
  * three that must not flip. It was six. Verification tests what its author
  * already thought of; the board is what tests the rest.
+ *
+ * =============================================================================
+ * AND IT WAS NOT ENOUGH. SECOND INSTANCE OF THE DORMANT REGISTER, 2026-09-24.
+ * =============================================================================
+ *
+ * Operator ruling. The guard above held for a week and it held for one reason
+ * only: `approvedProtocols` was EMPTY. On 2026-09-22 Aman approved 254-RC-001
+ * and the register gained its first entry, `approvedProtocols.length > 0`
+ * turned true, and all six sentences flipped to the present tense on a site
+ * whose gate still reads PRELAUNCH.
+ *
+ * The board caught it and nothing else would have: `voice-audit` went red with
+ * six findings across five routes including the home page, /services,
+ * /government and llms-full.txt, and `partner-audit` went red on four checks
+ * that assert a partner may not say work is being sealed. Main was never
+ * affected, because main's register is still empty, so the live site never made
+ * the claim and the defect was latent on the branch that introduces the entry.
+ *
+ * THE FIX IS THE MISSING CONJUNCT. Being able to seal and being allowed to SAY
+ * SO are two facts, and this function was answering the first while three
+ * rendered sentences read it for the second. An engineer in responsible charge
+ * with an approved protocol can seal; a firm that is not yet trading may not
+ * describe that in the present tense. So `isTrading()` joins the condition.
+ *
+ * `peInResponsibleCharge()` is kept although `isTrading()` subsumes it today,
+ * because engineer-of-record gating trading is a property of the conditions
+ * table rather than of this function, and a conjunct removed on the strength of
+ * another file's current shape is a dependency nobody records.
+ *
+ * "EVERY" STAYS, and that was the operator's ruling rather than an oversight:
+ * the sentence describes what the firm ISSUES, and everything it issues is
+ * sealed. What it must not do is say so in the present tense before trading.
  */
 export function sealingIsAvailable(): boolean {
-  return peInResponsibleCharge() && approvedProtocols.length > 0;
+  return isTrading() && peInResponsibleCharge() && approvedProtocols.length > 0;
+}
+
+/**
+ * MAY A SENTENCE ON THIS SERVICE LINE'S OWN PAGE SAY ITS DELIVERABLE IS SEALED?
+ *
+ * Operator ruling, 2026-09-24, and it is the sitewide question narrowed to one
+ * line. `sealingIsAvailable()` asks whether ANY protocol is approved, which is
+ * the right question for a sentence about what the firm issues. It is the WRONG
+ * question for a sentence about a particular deliverable: one approved line out
+ * of eleven would license a present tense sealing claim on the ten that have no
+ * protocol, and a line with no approved protocol seals nothing.
+ *
+ * NO RENDERED SENTENCE CALLS THIS TODAY, and that is said out loud rather than
+ * dressed up. The per line copy in `services.ts` describes what a certification
+ * IS, as a document type, which is definitional and not a claim about what this
+ * firm is doing this week; `voice-audit` correctly leaves it alone. This exists
+ * so the first sentence that DOES make the narrow claim has a correct predicate
+ * to read, and the proof beside it exercises the function so it is a rule with
+ * a caller rather than a comment. 0027 records what the other kind becomes.
+ */
+export function sealingIsAvailableFor(serviceSlug: string): boolean {
+  return isTrading() && peInResponsibleCharge() && approvedProtocolFor(serviceSlug) !== null;
 }
 
 /**
