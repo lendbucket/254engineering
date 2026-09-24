@@ -174,8 +174,24 @@ export type ApprovedProtocol = {
   serviceSlug: string;
   /** The protocol as named in eng_protocol_templates. */
   protocolName: string;
-  /** The version approved. A later version is a new approval, not an edit. */
+  /**
+   * The row's integer version. A later version is a new approval, not an edit.
+   *
+   * IT IS NOT THE VERSION ANYBODY SAYS OUT LOUD, and that is why the field
+   * below exists. Operator ruling, 2026-09-23. `eng_protocol_templates` carries
+   * BOTH an integer `version`, which is 2 for the current roof protocol, and a
+   * `version_label`, which is "1.1" and is what the signed document itself
+   * says. A register that could hold only the integer would say "version 2"
+   * about a document headed v1.1, which is the status vocabulary defect this
+   * repository already records: the shortage is in the vocabulary and the cost
+   * is paid by whoever later reads the value and believes it.
+   *
+   * So both are held. This one is what layer two compares mechanically, because
+   * it is the row's own key. The label is what a person reads.
+   */
   version: number;
+  /** The version as the signed document states it, for example "1.1". */
+  versionLabel: string;
   /** The Professional Engineer who approved it, as their licence reads. */
   approvedBy: string;
   /** Their Texas PE licence number. Must also be in verifiedEngineers. */
@@ -184,7 +200,56 @@ export type ApprovedProtocol = {
   approvedOn: string;
 };
 
-export const approvedProtocols: ApprovedProtocol[] = [];
+/*
+ * ===========================================================================
+ * THE FIRST APPROVED PROTOCOL, 2026-09-23.
+ * ===========================================================================
+ *
+ * EVERY FIELD BELOW WAS READ OFF THE PRODUCTION ROW, not typed from memory and
+ * not copied from the document. Operator instruction: the values come from a
+ * read only query of `eng_protocol_templates`, because the register exists to
+ * agree with that row and a register written from anything else is a second
+ * account of the same fact.
+ *
+ * The row, read from fsaryeciduszuahgjbly on 2026-09-23:
+ *
+ *   document_number      254-RC-001
+ *   version              2
+ *   version_label        1.1
+ *   status               published
+ *   service_slug         roof-inspections
+ *   name                 Roof Certification Protocol for Existing Roofs
+ *   requires_discipline  structural
+ *   issue_date           2026-09-18
+ *   document_signed_at   2026-09-20
+ *   document_sha256      d050a21a2b2d43114de47989ca731f41e26951f195c90187e99c11705011e4ef
+ *   approved_by_license  143295
+ *   approved_at          2026-09-22 21:09:34.338155+00
+ *   item_count           51, all 51 required
+ *
+ * `approvedBy` is the ONE field the row cannot supply, because the row holds a
+ * uuid and a licence number and no name. It is therefore DERIVED from
+ * `verifiedEngineers` by matching the licence, rather than typed, which keeps
+ * the engineer's name in the one place it already lives.
+ *
+ * THE DOCUMENT, THE ROW AND THE TRANSCRIPTION ALL AGREE, checked rather than
+ * assumed: `src/content/protocols/rc-001.ts` carries version 1.1, issue date
+ * 2026-09-18 and sha256 d050a21a..., and the row carries the same three.
+ *
+ * APPROVED IN HIS OWN ACCOUNT, and nobody else's. The operator's standing
+ * instruction is that no one signs in as the engineer for any purpose.
+ */
+export const approvedProtocols: ApprovedProtocol[] = [
+  {
+    serviceSlug: "roof-inspections",
+    protocolName: "Roof Certification Protocol for Existing Roofs",
+    version: 2,
+    versionLabel: "1.1",
+    approvedBy: "Aman Dhakal",
+    approvedByLicense: "143295",
+    approvedOn: "2026-09-22",
+  },
+];
 
 /**
  * POINT IN TIME RECOVERY ON THE PRODUCTION PROJECT.

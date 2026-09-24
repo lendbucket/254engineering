@@ -1054,6 +1054,112 @@ if (carriers.length === 1) {
 
 /* ----------------------------------------------------------------- verdict */
 
+/*
+ * =========================================================================
+ * LAYER ONE: THE REGISTER AGREES WITH EVERYTHING THIS REPOSITORY OWNS.
+ * Operator ruling, 2026-09-23.
+ * =========================================================================
+ *
+ * `approvedProtocols` is what the compliance gate reads to decide a service
+ * line may be offered. It is CONFIGURATION, so anybody can type anything into
+ * it, and until today nothing compared it to anything at all.
+ *
+ * TWO LAYERS, BECAUSE THEY ANSWER DIFFERENT QUESTIONS AND ONE OF THEM NEEDS A
+ * CREDENTIAL.
+ *
+ *   LAYER ONE, here, needs nothing and runs on every board. It asks whether the
+ *   register is coherent with the things this repository already holds: the
+ *   service list, the signed document's transcription, and the engineer
+ *   register. It cannot see production and does not pretend to.
+ *
+ *   LAYER TWO is scripts/protocol-register-check.mjs, run by the operator with
+ *   the production key on his own machine. It asks the only question layer one
+ *   cannot: does the register match the ROW.
+ *
+ * Layer one alone would pass over a register describing an approval that never
+ * happened. Layer two alone would not run on a board. Neither is the other's
+ * substitute.
+ */
+{
+  const { approvedProtocols } = await import("../src/config/launch-readiness.ts");
+  const { verifiedEngineers } = await import("../src/config/credentials.ts");
+  const { services } = await import("../src/content/services.ts");
+
+  /*
+   * NOT A COUNT. An empty register satisfies every `every` below, and the gate
+   * would then be asserting that no line may be offered, which is a different
+   * state from a register that agrees with the row. So the subject is asserted
+   * to exist before anything is asked of it.
+   */
+  rec(
+    "the register names at least one approved protocol",
+    approvedProtocols.length > 0,
+    `${approvedProtocols.length} entr(y|ies). An empty register makes every check below vacuous.`,
+  );
+
+  for (const p of approvedProtocols) {
+    const where = `${p.serviceSlug} ${p.protocolName} v${p.versionLabel}`;
+
+    rec(
+      `${where}: names a service line that exists`,
+      services.some((s) => s.slug === p.serviceSlug),
+      p.serviceSlug,
+    );
+
+    /* The engineer is DERIVED, so this asserts the derivation still holds. */
+    const engineer = verifiedEngineers.find((e) => e.licenseNumber === p.approvedByLicense);
+    rec(
+      `${where}: the approving licence is on the engineer register`,
+      Boolean(engineer),
+      engineer ? `${engineer.name}, licence ${p.approvedByLicense}` : `licence ${p.approvedByLicense} is on no engineer`,
+    );
+    rec(
+      `${where}: and the name recorded is that engineer's name`,
+      Boolean(engineer) && engineer.name === p.approvedBy,
+      engineer ? `register says "${p.approvedBy}", the engineer register says "${engineer.name}"` : "",
+    );
+
+    /*
+     * THE DISCIPLINE IS CHECKED AGAINST sealsOnly, NOT disciplines, and the
+     * difference is the whole reason both fields exist. TBPELS grants a branch,
+     * his is Civil, and Texas restricts practice by COMPETENCE. `sealsOnly` is
+     * what the firm holds out and what he will seal.
+     */
+    rec(
+      `${where}: the protocol's discipline is one this engineer seals`,
+      Boolean(engineer) && engineer.sealsOnly.includes(RC001.requiresDiscipline),
+      engineer ? `document requires ${RC001.requiresDiscipline}, he seals ${engineer.sealsOnly.join(", ")}` : "",
+    );
+
+    /* The transcription of the signed document is the other thing we own. */
+    rec(
+      `${where}: the version label matches the transcribed document`,
+      p.versionLabel === RC001.version,
+      `register "${p.versionLabel}", document "${RC001.version}"`,
+    );
+    rec(
+      `${where}: the protocol name matches the transcribed document's title`,
+      p.protocolName === RC001.title,
+      `register "${p.protocolName}", document "${RC001.title}"`,
+    );
+    rec(
+      `${where}: the approval is dated on or after the document was issued`,
+      p.approvedOn >= RC001.issueDate,
+      `approved ${p.approvedOn}, issued ${RC001.issueDate}. An approval predating the document would be an approval of something else.`,
+    );
+  }
+}
+
+/*
+ * THE PRINTING SITS HERE, BELOW LAYER ONE, AND IT MOVED TO GET HERE.
+ *
+ * It used to run above that block, so the seven layer one checks were counted
+ * in the total and never printed by name. The run said "68 checks" and listed
+ * 61. A passing check nobody prints is only untidy; a FAILING one that never
+ * names itself is a red with no subject, which is the thing this audit exists
+ * to avoid. Caught by counting the printed lines against the reported total
+ * rather than by reading the code.
+ */
 console.log("");
 for (const r of out) console.log(`  ${r.ok ? "PASS" : "FAIL"}: ${r.name}${r.note ? ` (${r.note})` : ""}`);
 for (const t of tell) console.log(`  COULD NOT TELL: ${t}`);

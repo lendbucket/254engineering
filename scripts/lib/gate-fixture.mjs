@@ -226,7 +226,27 @@ export async function withGateConditionsMet(fn) {
     /* --- one approved protocol per service line */
     {
       file: READINESS,
-      find: /export const approvedProtocols: ApprovedProtocol\[\] = \[\];/,
+      /*
+       * MATCHES THE ARRAY WHATEVER IT HOLDS, AND IT USED TO MATCH ONLY `[]`.
+       * Corrected 2026-09-23, the day the register stopped being empty.
+       *
+       * The pattern was `= \[\];`. That was correct for as long as no protocol
+       * had ever been approved, which was true from the day the file was
+       * written until Aman's approval was recorded. The moment one entry went
+       * in, the pattern matched nothing and the fixture threw, correctly, on
+       * every audit that opens the gate.
+       *
+       * It is the transitional-subject defect from the other side: a pattern
+       * whose subject was the firm's STARTING state, which the firm was always
+       * going to leave. `trade-pricing-audit` met the same thing when the last
+       * pending floor was ruled.
+       *
+       * ANCHORED ON THE ARRAY NAME, THEN THE FIRST CLOSING BRACKET AFTER IT,
+       * which is what CLAUDE.md prescribes after a patch on supabase/applied.mjs
+       * found the last `];` in the file and edited a different array. The
+       * non-greedy run stops at the array's own `\n];` and cannot reach past it.
+       */
+      find: /export const approvedProtocols: ApprovedProtocol\[\] = \[[\s\S]*?\n\];/,
       replace: () => `export const approvedProtocols: ApprovedProtocol[] = ${JSON.stringify(fixtureProtocols(), null, 2)};`,
       what: "the approved protocol registry",
     },
