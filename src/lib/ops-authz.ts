@@ -267,6 +267,23 @@ export type Action =
   | "documents.read"
   // money
   | "pricing.read"
+  /**
+   * SEEING YOUR OWN PAY, AND NOTHING ELSE ABOUT THE MONEY.
+   * Operator ruling, 2026-09-24: the engineer should not see what the firm
+   * makes.
+   *
+   * Its own action rather than a weaker `pricing.read`, because they are not
+   * degrees of one thing. `pricing.read` answers "may this person see what the
+   * firm charges and earns". This answers "may this person see what they are
+   * paid", which is a question about somebody's own wage and would be a strange
+   * thing to refuse.
+   *
+   * It is deliberately narrow in TWO ways, and `redactFile` enforces both: the
+   * only field it returns is `engineer_cost_cents`, and only on a file whose
+   * `assigned_engineer_id` is the actor. Another engineer's pay is as much
+   * "what the firm makes" as a margin is.
+   */
+  | "pricing.read_own_pay"
   /*
    * SETTING A TRADE PRICE FOR AN ACCOUNT. Phase 13 Section 2.
    *
@@ -451,9 +468,16 @@ const MATRIX: Record<Role, Action[]> = {
      * what the firm earns. */
     "reports.production",
     "responsible_charge.read_own",
-    // An engineer sees what a file is worth, because they are paid production on
-    // it and a tier they cannot see is a number they cannot check.
-    "pricing.read",
+    /*
+     * `pricing.read` WAS HERE AND WAS REMOVED ON 2026-09-24. Operator ruling,
+     * in his words: the engineer should not see what the firm makes.
+     *
+     * The sentence that used to sit here read: "An engineer sees what a file is
+     * worth, because they are paid production on it and a tier they cannot see
+     * is a number they cannot check." The second half of that is answered by
+     * the grant below; the first half is the thing the ruling refuses.
+     */
+    "pricing.read_own_pay",
   ],
   field_tech: [
     "profiles.read_self", "profiles.update_self",
@@ -925,10 +949,62 @@ export const PRICING_FIELDS = [
   "price_overridden_at",
 ] as const;
 
+/**
+ * ===========================================================================
+ * THE ENGINEER SHOULD NOT SEE WHAT THE FIRM MAKES. Operator ruling, 2026-09-24.
+ * ===========================================================================
+ *
+ * In his words. The engineer sees no money in the portal except HIS OWN PAY: no
+ * order totals, no price charged, no costs, no margin, no partner commission,
+ * no technician pay, no payouts, in any screen, API response, export or email.
+ *
+ * WHAT THIS REVERSES. Until today `pricing.read` was held by `admin`,
+ * `engineer` and `read_only`, and the reason written beside it was that an
+ * engineer "sees what a file is worth, because they are paid production on it
+ * and a tier they cannot see is a number they cannot check". `roles-audit`
+ * asserted `an engineer keeps pricing` in those words. That reasoning is
+ * answered rather than ignored: he still sees the one number it was really
+ * about, which is his own production pay, and stops seeing the seven that were
+ * never his business.
+ *
+ * WHY A BLANKET REMOVAL WOULD HAVE BEEN WRONG. `engineer_cost_cents` is the
+ * engineer's own pay for that file. Dropping `pricing.read` alone would have
+ * hidden it along with everything else, and "no money except his own pay" would
+ * have become "no money", which is a different ruling and a worse one: a person
+ * who cannot see what he is being paid cannot check it.
+ *
+ * SO IT IS HIS OWN PAY ON HIS OWN FILE, and the second half of that is load
+ * bearing. `assigned_engineer_id` decides it. An engineer looking at a file
+ * assigned to somebody else sees no pay figure at all, because another
+ * engineer's pay is exactly as much "what the firm makes" as a margin is.
+ *
+ * REDACTION IS STILL ON THE WAY OUT OF THE DATA LAYER, never in a component.
+ * A component that forgets to hide a field ships the number in the HTML whether
+ * or not it renders it, and "it is not displayed" is not the same as "it was
+ * not sent".
+ */
 export function redactFile<T extends Record<string, unknown>>(actor: Actor | null, file: T): T {
   if (can(actor, "pricing.read")) return file;
+
   const copy = { ...file };
   for (const field of PRICING_FIELDS) delete copy[field];
+
+  /*
+   * The one number that comes back, and only on his own file.
+   *
+   * Checked against the ORIGINAL rather than the copy, because the loop above
+   * has already deleted it from the copy.
+   */
+  if (
+    can(actor, "pricing.read_own_pay") &&
+    actor &&
+    typeof file.assigned_engineer_id === "string" &&
+    file.assigned_engineer_id === actor.id &&
+    "engineer_cost_cents" in file
+  ) {
+    (copy as Record<string, unknown>).engineer_cost_cents = file.engineer_cost_cents;
+  }
+
   return copy;
 }
 

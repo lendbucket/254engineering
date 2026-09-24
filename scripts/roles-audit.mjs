@@ -168,7 +168,18 @@ const EXPECTED = {
    * cannot check. The second is the firm's own margin and belongs to the
    * operator alone.
    */
-  "pricing.read":                 { admin: true,  engineer: true,  field_tech: false },
+  /*
+   * `engineer` WENT FROM true TO false ON 2026-09-24, and this table is the
+   * SECOND of the two edits that change costs. Operator ruling, in his words:
+   * the engineer should not see what the firm makes.
+   *
+   * This table is deliberately an INDEPENDENT expectation rather than something
+   * derived from DEFAULT_ROLES, which is why changing a grant costs an edit
+   * here as well. An audit that read its expectation from the module under test
+   * would compare a value to itself.
+   */
+  "pricing.read":                 { admin: true,  engineer: false, field_tech: false },
+  "pricing.read_own_pay":         { admin: false, engineer: true,  field_tech: false },
   /* Phase 13 Section 2. Deciding what ONE account is charged, which is a
    * different act from reading what the firm charges. Admin alone: an engineer
    * sees pricing to do their work, not to discount it. */
@@ -362,9 +373,18 @@ rec(
        * not intend. A salesperson seeing it is negotiating against the firm's
        * own costs.
        */
-      why: "costs and margin are for the operator, the engineer, and whoever is evaluating the business",
+      /*
+       * REVERSED 2026-09-24. Operator ruling, in his words: the engineer should
+       * not see what the firm makes.
+       *
+       * This read "costs and margin are for the operator, the engineer, and
+       * whoever is evaluating the business", and `engineer` was in the allowed
+       * list. It is out. What the engineer keeps is `pricing.read_own_pay`,
+       * which returns one field on one file and is asserted separately below.
+       */
+      why: "costs and margin are for the operator and whoever is evaluating the business, and not for the engineer",
       check: (role, action) =>
-        action === "pricing.read" && !["admin", "engineer", "read_only"].includes(role)
+        action === "pricing.read" && !["admin", "read_only"].includes(role)
           ? "a role that should not see cost or margin holds pricing.read"
           : null,
     },
@@ -1055,7 +1075,43 @@ rec("a signed out actor may do nothing at all", ![...known].some((a) => can(null
   const leaked = ["client_price_cents", "tech_cost_cents", "engineer_cost_cents"].filter((k) => k in forTech);
   rec("a technician receives no pricing fields at all", leaked.length === 0, leaked.join(", "));
   rec("a technician still receives the file itself", forTech.property_address === "1 Example St");
-  rec("an engineer keeps pricing", "client_price_cents" in redactFile(active("engineer"), row));
+  /*
+   * ==================================================================
+   * REVERSED 2026-09-24. THIS ASSERTED THE OPPOSITE UNTIL TODAY.
+   * ==================================================================
+   *
+   * It read `rec("an engineer keeps pricing", "client_price_cents" in ...)`.
+   * Operator ruling, in his words: the engineer should not see what the firm
+   * makes. No order totals, no price charged, no costs, no margin, no partner
+   * commission, no technician pay, no payouts, anywhere.
+   *
+   * The old line is quoted rather than deleted, because a reversed assertion
+   * that leaves no trace reads as a rule nobody ever set, and the next session
+   * would find the removal in the history and assume it was an accident.
+   */
+  const forEngineerOwn = redactFile(active("engineer"), { ...row, assigned_engineer_id: "engineer-1" });
+  const forEngineerOther = redactFile(active("engineer"), { ...row, assigned_engineer_id: "engineer-2" });
+
+  rec(
+    "an engineer sees NO price charged",
+    !("client_price_cents" in forEngineerOwn),
+    "the engineer should not see what the firm makes",
+  );
+  rec(
+    "an engineer sees NO technician pay",
+    !("tech_cost_cents" in forEngineerOwn),
+    "another person's pay is as much what the firm makes as a margin is",
+  );
+  rec(
+    "an engineer DOES see his own pay on his own file",
+    forEngineerOwn.engineer_cost_cents === 15000,
+    "a person who cannot see what he is being paid cannot check it",
+  );
+  rec(
+    "and sees NO pay figure at all on another engineer's file",
+    !("engineer_cost_cents" in forEngineerOther),
+    "assigned_engineer_id decides it, which is the second half of `his own pay`",
+  );
   rec("an admin keeps pricing", "client_price_cents" in redactFile(active("admin"), row));
 }
 
