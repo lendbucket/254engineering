@@ -848,8 +848,8 @@ async function bringUpServer() {
     onWait: (held) =>
       console.log(
         held.reaped
-          ? `  [lock] ${held.project} (pid ${held.pid}, started ${held.startedAt}) is gone. Reaping its lock and proceeding.`
-          : `  [lock] waiting for ${held.project} (pid ${held.pid}, ${held.label}, started ${held.startedAt}). Re-checking every 60s.`,
+          ? `  [lock] ${held.project} (pid ${held.pid}, started ${held.since}) is gone. Reaping its lock and proceeding.`
+          : `  [lock] waiting for ${held.project} (pid ${held.pid}, ${held.label}, started ${held.since}). Re-checking every 60s.`,
       ),
   });
   void release;

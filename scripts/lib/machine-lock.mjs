@@ -71,12 +71,31 @@ function alive(pid) {
   }
 }
 
-/** What the file says, or null when it is absent or unreadable. */
+/**
+ * What the file says, or null when it is absent or unreadable.
+ *
+ * TOLERANT ABOUT EVERY FIELD EXCEPT `pid`, because the first other project to
+ * adopt this lock wrote `start` where this one writes `startedAt`, and the wait
+ * message then read "started undefined". A shared protocol between two
+ * codebases is only as strong as the field names they happen to agree on, so
+ * only the one that decides BEHAVIOUR is required. `since` and `label` are
+ * normalised for display and their absence costs a reader nothing.
+ *
+ * Requiring the whole shape would be worse than useless here: it would make
+ * this project ignore a lock another project is genuinely holding, which is the
+ * one outcome the lock exists to prevent.
+ */
 export function readLock() {
   if (!existsSync(LOCK_PATH)) return null;
   try {
     const held = JSON.parse(readFileSync(LOCK_PATH, "utf8"));
-    return typeof held?.pid === "number" ? held : null;
+    if (typeof held?.pid !== "number") return null;
+    return {
+      ...held,
+      project: held.project ?? "an unnamed project",
+      label: held.label ?? "an unnamed run",
+      since: held.startedAt ?? held.start ?? held.started ?? "an unrecorded time",
+    };
   } catch {
     /*
      * A CORRUPT LOCK IS A DEAD LOCK. A half written file cannot name an owner,

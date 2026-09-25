@@ -29,7 +29,7 @@ await takeLock({
     console.log(
       held.reaped
         ? `[lock] ${held.project} (pid ${held.pid}) is gone. Reaping its lock and proceeding.`
-        : `[lock] waiting for ${held.project} (pid ${held.pid}, ${held.label}, started ${held.startedAt}). Re-checking every 60s.`,
+        : `[lock] waiting for ${held.project} (pid ${held.pid}, ${held.label}, started ${held.since}). Re-checking every 60s.`,
     ),
 });
 
