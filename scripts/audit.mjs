@@ -37,8 +37,11 @@ import { readSource } from "./lib/read-source.mjs";
 
 import { runtimeFor, DECLARATION } from "./lib/audit-runtime.mjs";
 import { assertClearToBuild } from "./lib/build-guard.mjs";
+import { takeLock } from "./lib/machine-lock.mjs";
 import { startNextServer } from "./lib/dev-server.mjs";
 import { COULD_NOT_TELL } from "./lib/reachable.mjs";
+import { queueSnapshot, queueGrowth, queueTeardown } from "./lib/queue-ledger.mjs";
+import { auditClient } from "./lib/db-target.mjs";
 
 const PORT = Number(process.env.AUDIT_PORT || 3225);
 const BASE = process.env.BASE_URL || `http://localhost:${PORT}`;
@@ -830,6 +833,27 @@ async function bringUpServer() {
    * suite run, for the reason CLAUDE.md gives: with BASE_URL unset the guard
    * would kill the suite's own server partway through.
    */
+  /*
+   * THE MACHINE LOCK, TAKEN BEFORE THE GUARD RUNS AND HELD FOR THE WHOLE SUITE.
+   * Operator ruling, 2026-09-24. Two projects share this computer.
+   *
+   * BEFORE the guard, deliberately. The guard DETECTS a collision and refuses;
+   * the lock PREVENTS one. Taking it first means the common case is a wait
+   * rather than a refusal a person has to come and read, and the guard stays
+   * underneath for anything that does not take the lock at all.
+   */
+  const release = await takeLock({
+    project: "254engineering",
+    label: "the audit suite",
+    onWait: (held) =>
+      console.log(
+        held.reaped
+          ? `  [lock] ${held.project} (pid ${held.pid}, started ${held.startedAt}) is gone. Reaping its lock and proceeding.`
+          : `  [lock] waiting for ${held.project} (pid ${held.pid}, ${held.label}, started ${held.startedAt}). Re-checking every 60s.`,
+      ),
+  });
+  void release;
+
   assertClearToBuild({ kill: false, label: "the audit suite" });
 
   console.log("\n  building ...");
@@ -852,6 +876,20 @@ async function bringUpServer() {
   return server;
 }
 
+/*
+ * WHAT EACH AUDIT LEFT IN THE JOB QUEUE. See scripts/lib/queue-ledger.mjs for
+ * why this lives here rather than inside each audit: the audits do not enqueue,
+ * the product does, so an audit cannot clean up rows it does not know it made.
+ * What it can be held to is that the queue afterwards is the queue before.
+ */
+const queueGrew = [];
+/*
+ * `neverProduction`, so this can never delete a job row on production however
+ * anybody's environment is set. The one permission a run has over this table is
+ * removing rows it caused, on development, and that is where it stays.
+ */
+let queueLedgerDb = auditClient("audit-queue-ledger", { neverProduction: true });
+
 function run(audit, env) {
   console.log(`\n${"=".repeat(72)}`);
   console.log(`RUNNING: ${audit.name}  (${audit.why})`);
@@ -862,6 +900,27 @@ function run(audit, env) {
     shell: process.platform === "win32",
   });
   results.push({ name: audit.name, code: r.status ?? 1 });
+}
+
+/** Run an audit and record what it left in the queue, naming it. */
+async function runWatched(audit, env) {
+  const before = await queueSnapshot(queueLedgerDb);
+  run(audit, env);
+  const growth = await queueGrowth(queueLedgerDb, before);
+  if (growth === null) {
+    /* COULD NOT TELL rather than "nothing grew": a failed read must not read as
+     * a clean queue, which is the whole defect class this board hunts. */
+    if (before !== null) queueGrew.push({ name: audit.name, unreadable: true });
+    return;
+  }
+  if (growth.added.length > 0) {
+    queueGrew.push({
+      name: audit.name,
+      added: growth.added.length,
+      removable: growth.removable.map((r) => r.id),
+      kinds: [...new Set(growth.added.map((r) => `${r.kind}/${r.status}`))],
+    });
+  }
 }
 
 let server = null;
@@ -881,7 +940,7 @@ try {
   }
 
   for (const audit of PHASE_ZERO) {
-    run(audit, { ...process.env });
+    await runWatched(audit, { ...process.env });
   }
 
   /*
@@ -908,7 +967,7 @@ try {
           "killed the process, and carries the error when it fell over by itself.",
       );
     }
-    run(audit, { ...process.env, BASE_URL: BASE });
+    await runWatched(audit, { ...process.env, BASE_URL: BASE });
   }
 
   console.log(`\n${"=".repeat(72)}`);
@@ -929,7 +988,7 @@ try {
     // particular would then measure one mode twice while reporting on two.
     const env = { ...process.env, AUDIT_KILL_STALE: "1" };
     delete env.BASE_URL;
-    run(audit, env);
+    await runWatched(audit, env);
   }
 } catch (err) {
   setupError = err;
@@ -1043,6 +1102,37 @@ if (setupError) {
   const passed = results.filter((r) => r.code === 0);
   const tallied = passed.length + failed.length + unmeasured.length;
   let arithmeticBroken = false;
+  /*
+   * WHAT THE RUN LEFT IN THE JOB QUEUE, NAMED BY AUDIT. Operator ruling,
+   * 2026-09-24, after development's queue reached 1,017 pending and 577 dead
+   * and broke a check about the queue by growing past the row ceiling.
+   *
+   * Reported before the tally, because it is about whether this run cleaned up
+   * after itself rather than about the product, and torn down here rather than
+   * between audits: a later audit may legitimately assert on a row an earlier
+   * one caused.
+   */
+  console.log("");
+  if (queueGrew.length === 0) {
+    console.log("The job queue is as this run found it. Nothing was left behind.");
+  } else {
+    const unreadable = queueGrew.filter((g) => g.unreadable);
+    const grew = queueGrew.filter((g) => !g.unreadable);
+    for (const g of grew) {
+      console.log(`  queue: ${g.name} left ${g.added} row(s): ${g.kinds.join(", ")}`);
+    }
+    for (const g of unreadable) {
+      console.log(`  queue: COULD NOT TELL what ${g.name} left, because the queue could not be read.`);
+    }
+    const ids = grew.flatMap((g) => g.removable);
+    const removed = await queueTeardown(queueLedgerDb, ids);
+    console.log(
+      `  queue: removed ${removed} pending or dead row(s) this run caused. done and running are left to the retention policy.`,
+    );
+    const left = await queueGrowth(queueLedgerDb, new Set());
+    void left;
+  }
+
   console.log("");
   if (tallied === declared) {
     console.log(

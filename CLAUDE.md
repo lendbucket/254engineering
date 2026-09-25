@@ -2925,6 +2925,55 @@ thing the action read.** If it is, the check is a mirror. And `.catch(() => {})`
 on the delete is how both strays got there: the call failed, nothing said so,
 and the verification was looking where a failure does not show.
 
+## 6d. Efficiency: the standing rules of how this work is run
+
+**Operator ruling, 2026-09-24, given as six rules.** They are here rather than in
+a document because they change what a session DOES on every turn, and because
+the day they were given was the day their absence was measurable: five board
+refusals over a shared machine, a board predicted branch by branch that failed
+six ways, and a session asking permission for things nobody needed to rule on.
+
+**ONE. ONE LOCK FOR THE WHOLE MACHINE.** Before any board, full suite, build or
+dev server, take `C:\Users\salon\.test-lock`, writing the project name, the pid
+and the start time into it. If it exists and its pid is ALIVE, wait and poll
+every 60 seconds. If its pid is DEAD, remove it and proceed. Delete it when the
+run exits. **Every project on this machine obeys the same lock.**
+
+Built in `scripts/lib/machine-lock.mjs` and proven by
+`scripts/proofs/the-machine-lock-holds-and-reaps.mjs`. Two properties that are
+not obvious and are load bearing: it is **re-entrant across the process tree**,
+because the suite takes the lock and then spawns a build whose own hook takes it,
+and without that it waits for its own parent for ever; and a release **only ever
+removes its own lock**, because removing another project's is silent until two
+builds write `.next` at once.
+
+**It is advisory, and the build guard stays underneath it.** The lock is
+cooperation between willing parties; the guard is the detector for everything
+else. Detection has a ceiling the lock does not: `placeByOwner` can only place a
+server whose owner's command line carries an absolute path, and the last blocker
+of that day was `node scripts/launch-audit.mjs`, relative and unplaceable.
+
+**TWO. DECIDE SMALL THINGS.** Proceed without asking on mechanical fixes,
+undeclared variables, test and proof repairs, comments, backlog entries, and
+anything reversible on a branch. Report them afterwards, one line each.
+
+**Stop and ask** for production reads or writes, pushes, merges to main,
+deletions, money, pricing, regulatory copy, anything a customer or the engineer
+sees, and anything irreversible.
+
+**THREE. BATCH.** Work goes on branches during the day and is integrated and
+boarded together, at most twice a day, never per branch.
+
+**FOUR. EVERY MESSAGE STARTS WITH ONE LINE**: what is needed from the operator,
+or "nothing needed". Then results. No restating earlier messages. Questions are
+numbered and each carries a recommendation, so the answer can be "1 yes, 2 yes".
+
+**FIVE. A NUMBERED PLAN WITH A FINISH LINE**, each morning and after each board:
+what "done today" means. Work to it.
+
+**SIX. UNATTENDED TIME IS FOR BOARDS.** When the operator steps away, or at
+night, if the lock is free and work is waiting, board it.
+
 ## 7. Session mechanics
 
 - Feature branches. No force pushes to main. Merges only on the operator's word.

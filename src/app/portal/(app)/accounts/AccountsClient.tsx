@@ -120,10 +120,35 @@ export function AccountsClient({ rows }: { rows: Row[] }) {
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-2">
+        {/*
+          aria-label RATHER THAN A VISUALLY HIDDEN SPAN, and the reason is
+          measured rather than stylistic.
+
+          This was `<span className="sr-only">`, and native-audit went red:
+          "/portal/accounts: the page itself does not scroll (the document
+          scrolls by 308px)". Nothing was visible past the fold and every box on
+          the page measured 844. Hiding the span at runtime took the overflow to
+          exactly 0; changing the flex alignment did nothing.
+
+          Tailwind's `sr-only` is `position: absolute`, and nothing between here
+          and <body> is positioned, so it resolves against the INITIAL
+          CONTAINING BLOCK. Its static position is deep inside a scrolling
+          region 11,166px tall, so the browser extended the document to reach
+          it. An element that is invisible, unreachable and one pixel square,
+          silently making the whole page scroll.
+
+          A label that needs no box is an attribute. This also removes the last
+          positioned-escape hazard from the control, where adding `relative` to
+          the label would only have hidden it behind a fix nobody could explain.
+
+          WORTH KNOWING BEYOND THIS SCREEN: any `sr-only` element placed inside
+          the portal's scroll region has this shape. Point 1 is the only check
+          that can see it, and it sees it as a page that scrolls.
+        */}
         <label className="flex-1 min-w-[200px]">
-          <span className="sr-only">Search accounts by organization name</span>
           <input
             type="search"
+            aria-label="Search accounts by organization name"
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);

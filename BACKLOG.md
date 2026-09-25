@@ -4,6 +4,66 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## DEVELOPMENT'S JOB QUEUE WAS SWEPT ON 2026-09-24, AND THE COUNTS ARE THE RECORD
+
+**Operator ruling, 2026-09-24, in his words: "(c), development only. One-off
+sweep of development's pending and dead jobs that audits created, recorded with
+the counts and my ruling, dated. Then teardown in every audit that enqueues, so
+it cannot recur, with a check that an audit run leaves the queue as it found it.
+Production is untouched."**
+
+Recorded here because a destructive action taken by hand is a claim nothing
+supports unless something checked, and this file already carries that rule about
+a project that was said to be deleted and was alive eleven days later.
+
+**HOW IT WAS FOUND, WHICH IS SIDEWAYS.** `queue-audit` went red saying the
+eligible queue had passed PostgREST's thousand row ceiling, so the check could
+no longer read its own probes. The queue had grown until it broke a check about
+the queue. Nothing was watching the depth itself.
+
+**WHAT WAS THERE, AND WHAT CAUSED IT.** 2,344 rows: 1,017 pending, 577 dead, 750
+done. 21 created in the previous hour, 79 in a day, 771 in a week, and the rate
+tracked how many audits had been run rather than any background process. The
+newest were `report.export` and `email.send` stamped at the minute
+`reporting-audit` and `doors-audit` had been running. **324 of the pending rows
+were `email.send` addressed to the operator's own address**: had a worker ever
+run on development he would have received a thousand emails about fixtures.
+
+**THE RETENTION POLICY COULD NOT DO IT, AND THAT IS WHY A RULING WAS NEEDED.**
+Measured against the real rule, `delete_after` with a 30 day floor aged on
+`finished_at`: **zero** rows qualified. 750 done rows were inside the floor, and
+the policy's own `neverDelete` protects pending and dead precisely because "a
+pending job older than the floor is a defect somebody has to see, and a dead one
+is the evidence of what failed". Running the prune as first instructed would
+have deleted nothing and left the check just as blind.
+
+**THE SWEEP, COUNTED BEFORE AND AFTER RATHER THAN ASSERTED.**
+
+```
+BEFORE: {"pending":1017,"dead":577,"done":750,"running":0}
+deleted: 1594
+AFTER:  {"pending":0,"dead":0,"done":750,"running":0}
+VERIFIED: no pending and no dead rows remain. done and running untouched.
+```
+
+Looked at before deleting: every address in the swept rows was the firm's own
+domain, `audit-probe.invalid`, `example.com` or `mobile-audit.invalid`. Nothing
+outside those, which is what made "audit residue" a reading rather than a belief.
+
+**PRODUCTION WAS NOT TOUCHED AND DOES NOT HAVE THIS PROBLEM.** Read-only through
+the MCP the same day: 5,854 rows, **every one `done`**, zero pending and zero
+dead, oldest 2026-09-04 and newest that minute. It drains everything and merely
+accumulates terminal rows, which the retention policy governs.
+
+**WHAT STOPS IT RECURRING** is `scripts/lib/queue-ledger.mjs`, wired into the
+board runner around every audit in all three phases. It is NOT teardown inside
+each audit, and the reason is worth keeping: **the audits do not enqueue.** They
+drive the product and the product enqueues, so an audit cannot clean up rows it
+does not know it made. What it can be held to is the property the operator
+named, which is observable from outside: the queue afterwards is the queue
+before. Growth is attributed by audit name, removed at suite end rather than
+between audits, and only for pending and dead.
+
 Items are removed when they ship, not when they are attempted.
 
 **THIS FILE IS THE INDEX, AND ON 2026-09-06 IT WAS NOT.**

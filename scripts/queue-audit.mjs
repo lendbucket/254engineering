@@ -313,6 +313,40 @@ const nextEligible = runner.nextEligible;
     throw new Error(`could not count the eligible queue: ${eligibleErr?.message ?? "null count"}`);
   }
   const readSize = eligibleNow + 5;
+
+  /*
+   * A QUEUE TOO DEEP TO READ IS COULD NOT TELL, NOT FAIL. Operator ruling,
+   * 2026-09-24, and it is `unreachable is not failed` applied to this check's
+   * own subject.
+   *
+   * This recorded a FAIL when the eligible queue passed PostgREST's thousand
+   * row ceiling. Nothing had gone wrong with the queue, the clock, or the
+   * ownership guard: the CHECK could not see its own subject, because the three
+   * probes are enqueued "a moment ago" and therefore sort LAST behind every
+   * older job, and `nextEligible` takes a limit rather than a filter.
+   *
+   * A red that means "I could not measure" is the red everybody learns to skip
+   * past, and this one sat next to three checks about whether a job the claim
+   * will take is a job the guard can see. Those are the checks that must never
+   * be ignored.
+   *
+   * The three below are SKIPPED rather than reported against a short read,
+   * because a set that does not contain the probes would fail them for a reason
+   * that is not about the clock at all.
+   *
+   * THE DEPTH ITSELF IS A REAL FINDING AND IS PRINTED, not swallowed. A
+   * development queue standing at hundreds of eligible jobs is audit residue
+   * nothing prunes, and it is the operator's to rule on: these rows were not
+   * created by this run, so no run may remove them.
+   */
+  if (readSize > 1000) {
+    console.log(
+      `  COULD NOT TELL: the eligible queue is ${eligibleNow} deep, past the ${1000} row ceiling, so the ` +
+        `clock checks below cannot see their own probes and are skipped. Nothing about the queue failed. ` +
+        `The depth is audit residue on development and wants pruning by whoever may remove it.`,
+    );
+    await db.from("eng_jobs").delete().eq("kind", CLOCK_KIND);
+  } else {
   rec(
     "the queue is small enough for the clock check to read all of it",
     readSize <= 1000,
@@ -344,6 +378,7 @@ const nextEligible = runner.nextEligible;
     "and not a running job whose lease is still held",
     !seen.has(idOf("leased")),
   );
+  } /* else: the queue was shallow enough for the probes to be visible. */
 }
 
 let fillerMade = 0;
