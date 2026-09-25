@@ -193,6 +193,14 @@ export const NOT_CREDENTIALS = new Set([
    */
   "EXPLORE_OUT", "PROVING_CHARGE",
   /*
+   * MACHINE_LOCK_HELD, 2026-09-24. The pid of the process holding
+   * C:/Users/salon/.test-lock, published so a descendant does not wait for its
+   * own parent. It is a process id and nothing else: it grants nothing, opens
+   * nothing, and is worthless to anybody who reads it. Without it the suite
+   * deadlocks on its own nested build.
+   */
+  "MACHINE_LOCK_HELD",
+  /*
    * break-glass-audit starts three servers one after another, because a
    * process environment is fixed when it boots and the audit needs three
    * different values of MFA_BREAK_GLASS. Three ports, three names.

@@ -41,7 +41,37 @@ import { takeLock } from "./lib/machine-lock.mjs";
 import { startNextServer } from "./lib/dev-server.mjs";
 import { COULD_NOT_TELL } from "./lib/reachable.mjs";
 import { queueSnapshot, queueGrowth, queueTeardown } from "./lib/queue-ledger.mjs";
-import { auditClient } from "./lib/db-target.mjs";
+
+/*
+ * =============================================================================
+ * THE ENVIRONMENT EVERY AUDIT GETS, CAPTURED BEFORE ANYTHING CAN WIDEN IT.
+ * =============================================================================
+ *
+ * WHAT THIS EXISTS BECAUSE OF, and it is the sharpest self-inflicted finding of
+ * the night. The queue ledger needed a database client, so `auditClient` was
+ * imported here. `scripts/lib/db-target.mjs` LOADS `.env.local`, which CLAUDE.md
+ * states in as many words, so importing it put `FIRM_PHONE` into the RUNNER's
+ * environment. Every audit is spawned with `{ ...process.env }`, so every audit
+ * inherited it, the `phone` trading condition became met in all fifty-nine
+ * processes, and the compliance gate read `trading` where it had read
+ * `prelaunch`.
+ *
+ * THREE AUDITS FAILED AND NOT ONE OF THEM WAS BROKEN. `partner-audit` reported
+ * that a partner may say work is being sealed, `compliance-audit` reported that
+ * the gate had opened on the switch alone, and the sealing proof's "bare" world
+ * came back trading. All three pass standalone. A database client, added for a
+ * queue count, silently moved the firm's regulatory state for the whole board.
+ *
+ * So the env audits receive is FROZEN HERE, before any dynamic import can widen
+ * it, and `db-target` is imported lazily below rather than statically. Static
+ * imports hoist, so a static import of it could not be outrun by any code in
+ * this file; a dynamic one runs when it is reached, which is after this line.
+ *
+ * The audits that WANT the firm's configuration load it themselves through
+ * `scripts/lib/load-env.mjs`, deliberately and per audit. That decision belongs
+ * to each audit and not to the runner.
+ */
+const AUDIT_ENV = { ...process.env };
 
 const PORT = Number(process.env.AUDIT_PORT || 3225);
 const BASE = process.env.BASE_URL || `http://localhost:${PORT}`;
@@ -883,12 +913,33 @@ async function bringUpServer() {
  * What it can be held to is that the queue afterwards is the queue before.
  */
 const queueGrew = [];
-/*
+let queueLedgerDb = null;
+let queueLedgerTried = false;
+
+/**
+ * The client, made on first use rather than at import.
+ *
  * `neverProduction`, so this can never delete a job row on production however
  * anybody's environment is set. The one permission a run has over this table is
  * removing rows it caused, on development, and that is where it stays.
+ *
+ * LAZY BECAUSE THE IMPORT HAS A SIDE EFFECT ON THE WHOLE BOARD. See AUDIT_ENV
+ * at the top of this file: db-target loads `.env.local`, and a static import of
+ * it changed the compliance gate for all fifty-nine audits. By the time this
+ * runs, AUDIT_ENV is already captured, so widening this process's environment
+ * can no longer reach the audits.
  */
-let queueLedgerDb = auditClient("audit-queue-ledger", { neverProduction: true });
+async function ledgerDb() {
+  if (queueLedgerTried) return queueLedgerDb;
+  queueLedgerTried = true;
+  try {
+    const { auditClient } = await import("./lib/db-target.mjs");
+    queueLedgerDb = auditClient("audit-queue-ledger", { neverProduction: true });
+  } catch {
+    queueLedgerDb = null;
+  }
+  return queueLedgerDb;
+}
 
 function run(audit, env) {
   console.log(`\n${"=".repeat(72)}`);
@@ -904,9 +955,10 @@ function run(audit, env) {
 
 /** Run an audit and record what it left in the queue, naming it. */
 async function runWatched(audit, env) {
-  const before = await queueSnapshot(queueLedgerDb);
+  const db = await ledgerDb();
+  const before = await queueSnapshot(db);
   run(audit, env);
-  const growth = await queueGrowth(queueLedgerDb, before);
+  const growth = await queueGrowth(db, before);
   if (growth === null) {
     /* COULD NOT TELL rather than "nothing grew": a failed read must not read as
      * a clean queue, which is the whole defect class this board hunts. */
@@ -940,7 +992,9 @@ try {
   }
 
   for (const audit of PHASE_ZERO) {
-    await runWatched(audit, { ...process.env });
+    /* MACHINE_LOCK_HELD explicitly: AUDIT_ENV is frozen at import, before the
+     * lock is taken, so a nested build would otherwise wait on its own parent. */
+    await runWatched(audit, { ...AUDIT_ENV, MACHINE_LOCK_HELD: String(process.pid) });
   }
 
   /*
@@ -967,7 +1021,7 @@ try {
           "killed the process, and carries the error when it fell over by itself.",
       );
     }
-    await runWatched(audit, { ...process.env, BASE_URL: BASE });
+    await runWatched(audit, { ...AUDIT_ENV, BASE_URL: BASE, MACHINE_LOCK_HELD: String(process.pid) });
   }
 
   console.log(`\n${"=".repeat(72)}`);
@@ -986,7 +1040,7 @@ try {
     // BASE_URL is deliberately removed. With it set these harnesses point at the
     // shared server instead of spawning their own, and the launch audit in
     // particular would then measure one mode twice while reporting on two.
-    const env = { ...process.env, AUDIT_KILL_STALE: "1" };
+    const env = { ...AUDIT_ENV, AUDIT_KILL_STALE: "1", MACHINE_LOCK_HELD: String(process.pid) };
     delete env.BASE_URL;
     await runWatched(audit, env);
   }

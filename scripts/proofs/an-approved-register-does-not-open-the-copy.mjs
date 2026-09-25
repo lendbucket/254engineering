@@ -100,7 +100,26 @@ const READER_PATH = "scripts/proofs/.sealing-proof-reader.mts";
 function readWorld(label, loadEnv) {
   writeFileSync(READER_PATH, reader(loadEnv));
   try {
-    const r = spawnSync("npx", ["tsx", READER_PATH], { encoding: "utf8", shell: true });
+    /*
+     * THE BARE WORLD IS MADE BARE, NOT MERELY LEFT UNLOADED, and the board is
+     * what taught this. Run directly, this proof passed: nothing in its
+     * environment carried the firm's configuration, so "do not load .env.local"
+     * was the same as "have no FIRM_PHONE". Run by `proofs-audit` inside the
+     * suite, the parent's environment DID carry it, the bare child inherited
+     * it, both worlds came back trading, and six of fourteen checks failed.
+     *
+     * Not loading a file is not the same as not having a value. A world this
+     * proof describes as having no firm configuration has to have none, which
+     * means removing it rather than declining to add it. The variables stripped
+     * are the ones the TRADING conditions read, which is what separates the two
+     * worlds this proof exists to compare.
+     */
+    const env = { ...process.env };
+    if (!loadEnv) {
+      delete env.FIRM_PHONE;
+      delete env.LAUNCH_MODE;
+    }
+    const r = spawnSync("npx", ["tsx", READER_PATH], { encoding: "utf8", shell: true, env });
     const line = (r.stdout || "")
       .split("\n")
       .map((l) => l.trim())
