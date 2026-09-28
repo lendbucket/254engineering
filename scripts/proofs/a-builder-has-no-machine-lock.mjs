@@ -68,8 +68,19 @@ const PREFLIGHT = "scripts/preflight-build.mjs";
 const ABSENT_HOME = join(mkdtempSync(join(tmpdir(), "no-home-")), "not-created");
 
 let wrong = 0;
+/*
+ * THE FAILING CHECKS ARE NAMED IN THE LAST LINE, because that is the only line
+ * `proofs-audit` carries up to the board. Board eight reported this proof as
+ * "1 check(s) wrong" and nothing else, so the board said a proof failed and
+ * could not say which property. That is the `no probe` defect in CLAUDE.md
+ * wearing a summary line.
+ */
+const failed = [];
 const check = (name, ok, note) => {
-  if (!ok) wrong += 1;
+  if (!ok) {
+    wrong += 1;
+    failed.push(name);
+  }
   console.log(`${ok ? "PASS" : "FAIL"}  ${name}${note ? ` (${note})` : ""}`);
 };
 
@@ -196,10 +207,32 @@ check(
   "a skip that fires everywhere would pass the two cases above and delete the coordination",
 );
 
+/*
+ * IT REACHED THE GUARD. WHICH ANSWER THE GUARD GAVE IS THE ENVIRONMENT, NOT THE
+ * RULE, AND THE FIRST VERSION CONFUSED THE TWO.
+ *
+ * It asserted the `[build-guard]` prefix, which only appears when the guard
+ * REPORTS. Inside a board a next server is holding `.next`, so the guard does
+ * the other correct thing: it throws, and the preflight prints the bare message.
+ * Board eight went red here on a preflight that was working perfectly, which is
+ * the second time this one proof has asserted "no board is running" without
+ * saying so.
+ *
+ * So both answers are accepted and the one seen is NAMED, which is what
+ * `launch-audit` does when it says out loud which world it measured. What must
+ * not happen is silence: a preflight that neither reported nor refused did not
+ * consult the guard at all, and that is the thing worth failing on.
+ */
+const guardReported = /\[build-guard\]/.test(atHome.out);
+const guardRefused = /holding \.next|audit port|Refusing|blocker/i.test(atHome.out);
 check(
-  "and it reaches the build guard, which reports on .next",
-  /\[build-guard\]/.test(atHome.out),
-  atHome.out.trim().split("\n").pop() ?? "no output",
+  "and it consults the build guard, whichever answer the guard gives",
+  guardReported || guardRefused,
+  guardReported
+    ? `reported: ${atHome.out.trim().split("\n").pop()}`
+    : guardRefused
+      ? "refused over a live server, which is a board running beside this proof"
+      : `neither reported nor refused, so the guard was never consulted: ${atHome.out.trim().slice(-160)}`,
 );
 
 /*
@@ -217,6 +250,6 @@ check(
 console.log(
   wrong === 0
     ? "\nAll checks correct. The preflight coordinates on a developer machine and gets out of the way on a builder."
-    : `\n${wrong} check(s) wrong.`,
+    : `\n${wrong} check(s) wrong: ${failed.join("; ")}`,
 );
 process.exitCode = wrong === 0 ? 0 : 1;
