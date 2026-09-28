@@ -445,10 +445,30 @@ Pointer entry. Sections 14 and 15 of that document.
   because a technician trained on v1.0 is not trained on v1.1 and a record
   without a version reads as current for ever. Three rulings owed.
 
-**One sentence in section 15 is deliberately not asserted**: whether TBPELS
-requires professional liability cover for a registered firm has not been
-verified and must be confirmed with the board or with counsel before anybody
-relies on it.
+**One sentence in section 15 was deliberately not asserted**: whether TBPELS
+requires professional liability cover for a registered firm had not been
+verified and had to be confirmed before anybody relied on it.
+
+**CLOSED BY OPERATOR RULING, Robert Reyna, 2026-09-28: Texas does not require
+professional liability insurance for a registered engineering firm. It is a
+business choice, not a regulatory condition.**
+
+**It is closed as HIS RULING and not as a verification, and that distinction is
+kept on purpose.** The item asked to be settled with the board or with counsel;
+what settles it is the owner stating it in his own name with a date. Anybody
+reading this later should know which of the two they are looking at, because
+this repository has already paid for a claim written to serve an argument being
+read afterwards as an observation: `OPS_SESSION_SECRET` was asserted split in
+prose for twelve days while its own data said unknown.
+
+**What it changes.** The firm launched on 2026-09-28 with no cover, under
+`insuranceOverride` in `src/config/credentials.ts`, expiring **2026-10-28**.
+That override now covers one thing rather than two: a commercial exposure the
+owner accepts, and no open regulatory question. **The expiry is deliberately
+kept** so the gate goes red on that date and the firm is reminded to buy a
+policy, which is the only reason the override is safe to have written down at
+all. Proven by case H of
+`scripts/proofs/insurance-and-training-block-the-gate.mjs`.
 
 ## THE OVERNIGHT OF 2026-09-24 IS IN `docs/overnight-2026-09-24.md`
 

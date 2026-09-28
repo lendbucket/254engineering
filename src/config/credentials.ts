@@ -581,11 +581,18 @@ export const verifiedInsurance: VerifiedInsurance[] = [];
  * WHAT IS BEING ACCEPTED, STATED PLAINLY BECAUSE AN ACKNOWLEDGEMENT THAT SOFTENS
  * ITS OWN SUBJECT IS WORTH NOTHING. The firm takes money for work that will carry
  * a Professional Engineer's seal while carrying no professional liability cover.
- * The condition's own sentence says so. And whether Texas REQUIRES such cover for
- * a registered firm has never been verified here: BACKLOG.md records it as
- * unconfirmed and says it must be settled with the board or with counsel before
- * anybody relies on it. So this covers a known commercial exposure and an unknown
- * regulatory one, and the second half is the reason the window is short.
+ * The condition's own sentence says so.
+ *
+ * IT IS A COMMERCIAL EXPOSURE AND NOT A REGULATORY ONE. Operator ruling, Robert
+ * Reyna, 2026-09-28: Texas does not require professional liability insurance for
+ * a registered engineering firm, and carrying it is a business choice.
+ *
+ * That closes the question `BACKLOG.md` had carried as never verified, and it
+ * narrows what this override covers to one thing rather than two. Recorded as HIS
+ * RULING with his name and the date, which is not the same as verified against
+ * the board or counsel, and the distinction is kept deliberately: this repository
+ * has already been bitten by a claim written to serve an argument being read
+ * later as an observation.
  *
  * THE EXPIRY IS THE ONLY THING THAT MAKES IT SAFE, which is the rule the 2026-09-22
  * ACKNOWLEDGED ruling already states: a third verdict that never expires is an
@@ -610,7 +617,7 @@ export const insuranceOverride: InsuranceOverride | null = {
   acknowledgedBy: "Robert Reyna, owner",
   acknowledgedOn: "2026-09-28",
   expires: "2026-10-28",
-  reason: "operating without professional liability coverage by owner decision until bound",
+  reason: "no policy yet; not required by TBPELS; owner accepts the commercial risk",
 };
 
 /**

@@ -71,10 +71,18 @@ moment somebody should be able to read why.
 **What the firm is accepting while that override stands**, stated plainly because
 an acknowledgement that softens its own subject is worth nothing: the firm takes
 money for work carrying a Professional Engineer's seal while carrying no
-professional liability cover. Whether Texas REQUIRES such cover for a registered
-firm has never been verified here; `BACKLOG.md` records it as unconfirmed and
-says it must be settled with the board or with counsel before anybody relies on
-it.
+professional liability cover.
+
+**It is a commercial exposure and not a regulatory one**, by operator ruling,
+Robert Reyna, 2026-09-28: Texas does not require professional liability
+insurance for a registered engineering firm, and carrying it is a business
+choice. That closed the question `BACKLOG.md` had carried as never verified.
+**Recorded as his ruling rather than as a verification**, which is a different
+thing and is kept distinct on purpose.
+
+**The expiry stays regardless**, because the reason for it was never the
+regulatory question: it is what makes the firm get reminded to buy a policy
+rather than trading uninsured for ever on one decision.
 
 **`technician-training` is MET and it is met VACUOUSLY, which is worth stating
 in the one document a person reads.** It asks whether every APPROVED protocol
