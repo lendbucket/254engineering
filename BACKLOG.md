@@ -4,6 +4,40 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## NO BOARD BUILDS THE WAY A BUILDER DOES, AND THAT IS HOW A DEFECT REACHED THE DEPLOY
+
+**Operator ruling, 2026-09-28. Recorded, not built.**
+
+The production build of `0d4024e` failed on Vercel in `prebuild`, because
+`bc2397b` had put the machine lock in front of it and the lock wrote to a typed
+`C:/Users/salon/.test-lock`. Production was unaffected only because Vercel went
+on serving the previous deployment. The fix is on
+`fix/the-lock-is-not-a-build-requirement` and is proved by
+`scripts/proofs/a-builder-has-no-machine-lock.mjs`.
+
+**WHAT IS NOT BUILT IS THE THING THAT WOULD HAVE CAUGHT IT.** Every board builds,
+and sixty of them have. Not one has ever built the way a builder does: every one
+runs on the machine whose home directory happens to exist, holding a lock file
+that happens to be there, with no `VERCEL` or `CI` in the environment. The board
+and the deploy run the same command and do not run the same thing, so "the build
+passes" had quietly meant "the build passes HERE" for four days.
+
+**It is this repository's vacuous green wearing an environment**, which is the
+class already recorded against a thousand row ceiling and a sitemap that failed
+to parse: a check is only ever over the conditions it ran in, and nothing said
+which conditions those were.
+
+**THE SHAPE OF THE FIX, AND WHY IT IS NOT BUILT TONIGHT.** A board phase that
+runs `npm run build` a second time under a CI-shaped environment, with a home
+directory that is not this one, asserting exit 0. It costs a second full build,
+which is minutes on every board, so whether it belongs on every run or on a
+pre-merge run is a decision worth making deliberately rather than at 4 AM.
+
+**The narrower version worth considering first** is a check with no build in it
+at all: assert that nothing reachable from `preflight-build.mjs` writes to a path
+outside the repository without deriving it from `os.homedir()`, which is cheap
+and would have caught the typed constant that actually broke this.
+
 ## DEVELOPMENT'S JOB QUEUE WAS SWEPT ON 2026-09-24, AND THE COUNTS ARE THE RECORD
 
 **Operator ruling, 2026-09-24, in his words: "(c), development only. One-off

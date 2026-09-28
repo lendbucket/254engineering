@@ -8,39 +8,73 @@
 //
 // See scripts/lib/build-guard.mjs for what counts as a blocker and why this is
 // not a two-line pkill.
-import { assertClearToBuild } from "./lib/build-guard.mjs";
+import { assertClearToBuild, inCiOrDeploy } from "./lib/build-guard.mjs";
 import { takeLock } from "./lib/machine-lock.mjs";
 
 const kill = process.argv.includes("--kill") || process.env.AUDIT_KILL_STALE === "1";
 
 /*
- * THE MACHINE LOCK, on every build, because a build is the thing that writes
- * `.next` underneath whatever is serving it. Operator ruling, 2026-09-24.
+ * BOTH OF THESE ARE RULES ABOUT A DEVELOPER MACHINE, AND NEITHER BELONGS ON A
+ * BUILDER. Operator ruling, 2026-09-28, after the production deploy failed here.
  *
- * A build invoked by the suite finds the lock already held by an ancestor and
- * proceeds immediately: the lock is re-entrant across a process tree, or this
- * hook would wait for its own parent for ever. A build somebody types waits
- * for the other project properly.
+ * WHAT HAPPENED. `prebuild` runs on every `npm run build`, which is the point of
+ * wiring it that way, and that includes Vercel's. The machine lock wrote to a
+ * typed `C:/Users/salon/.test-lock`, a directory no builder has, so the deploy
+ * died with ENOENT before Next was invoked. Production was untouched only
+ * because Vercel went on serving the previous deployment.
+ *
+ * THE CORRECT BEHAVIOUR WAS ALREADY IN THIS FILE, ONE STATEMENT BELOW THE
+ * DEFECT. `assertClearToBuild` has always skipped CI and said so. The lock was
+ * added in front of it, so the build never reached the line that knew. That is
+ * worth stating plainly: this was not a missing idea, it was an ordering, and
+ * nothing here could see it because no board builds the way a builder does.
  */
-await takeLock({
-  project: "254engineering",
-  label: "build",
-  onWait: (held) =>
-    console.log(
-      held.reaped
-        ? `[lock] ${held.project} (pid ${held.pid}) is gone. Reaping its lock and proceeding.`
-        : `[lock] waiting for ${held.project} (pid ${held.pid}, ${held.label}, started ${held.since}). Re-checking every 60s.`,
-    ),
-});
+/*
+ * A BRANCH RATHER THAN AN EARLY `process.exit(0)`, because this file already
+ * records why: the libuv assertion that bites the audit scripts on Windows is
+ * not worth re-litigating, and a preflight that exits hard is the shape that
+ * would do it.
+ */
+if (inCiOrDeploy()) {
+  console.log(
+    "[preflight] CI or deploy environment: skipping the machine lock and the build guard, because both are rules about a shared developer machine.",
+  );
+} else {
+  /*
+   * THE MACHINE LOCK, on every build, because a build is the thing that writes
+   * `.next` underneath whatever is serving it. Operator ruling, 2026-09-24.
+   *
+   * A build invoked by the suite finds the lock already held by an ancestor and
+   * proceeds immediately: the lock is re-entrant across a process tree, or this
+   * hook would wait for its own parent for ever. A build somebody types waits
+   * for the other project properly.
+   */
+  await takeLock({
+    project: "254engineering",
+    label: "build",
+    onWait: (held) =>
+      console.log(
+        held.reaped
+          ? `[lock] ${held.project} (pid ${held.pid}) is gone. Reaping its lock and proceeding.`
+          : `[lock] waiting for ${held.project} (pid ${held.pid}, ${held.label}, started ${held.since}). Re-checking every 60s.`,
+      ),
+  });
 
-try {
-  const { skipped, killed } = assertClearToBuild({ kill, label: "build" });
-  if (skipped) console.log("[build-guard] CI or deploy environment, skipped.");
-  else if (killed) console.log("[build-guard] cleared stale server(s), proceeding.");
-  else console.log("[build-guard] nothing holding .next, proceeding.");
-} catch (err) {
-  console.error(err.message);
-  // process.exitCode, not process.exit(): the same libuv assertion that bites
-  // the audit scripts on Windows is not worth re-litigating here.
-  process.exitCode = 1;
+  try {
+    /*
+     * The guard keeps its own CI skip, which is now unreachable from here and is
+     * deliberately left in place: it is a public function with other callers,
+     * and a guard that depends on its caller having checked first is a guard
+     * with a precondition nobody can see.
+     */
+    const { skipped, killed } = assertClearToBuild({ kill, label: "build" });
+    if (skipped) console.log("[build-guard] CI or deploy environment, skipped.");
+    else if (killed) console.log("[build-guard] cleared stale server(s), proceeding.");
+    else console.log("[build-guard] nothing holding .next, proceeding.");
+  } catch (err) {
+    console.error(err.message);
+    // process.exitCode, not process.exit(): the same libuv assertion that bites
+    // the audit scripts on Windows is not worth re-litigating here.
+    process.exitCode = 1;
+  }
 }

@@ -49,9 +49,28 @@
  */
 
 import { existsSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
-/** The one path, absolute, shared by every project on this machine. */
-export const LOCK_PATH = "C:/Users/salon/.test-lock";
+import { inCiOrDeploy } from "./build-guard.mjs";
+
+/**
+ * The one path, shared by every project on this machine, DERIVED FROM THE HOME
+ * DIRECTORY rather than typed.
+ *
+ * IT WAS TYPED, AND IT BROKE THE PRODUCTION DEPLOY. This read
+ * `"C:/Users/salon/.test-lock"`. On Vercel there is no such directory, so the
+ * write on line 164 threw `ENOENT: no such file or directory` and `npm run
+ * build` died in `prebuild`. Production was unaffected only because Vercel kept
+ * serving the previous deployment.
+ *
+ * A typed absolute path is a claim about which computer is running this code,
+ * and the claim was made in a file whose whole subject is one particular
+ * computer, which is what made it invisible. `homedir()` resolves to the same
+ * file here, so the other project's own typed path still names the same lock and
+ * the protocol between them is unchanged.
+ */
+export const LOCK_PATH = join(homedir(), ".test-lock");
 
 const POLL_MS = 60_000;
 
@@ -113,6 +132,27 @@ export function readLock() {
  * @returns {Promise<() => void>} release, which is safe to call twice
  */
 export async function takeLock({ project, label, pollMs = POLL_MS, onWait }) {
+  /*
+   * A LOCK ABOUT THIS MACHINE MEANS NOTHING ON SOMEBODY ELSE'S BUILDER, SO IN CI
+   * IT IS NOT TAKEN AT ALL.
+   *
+   * The 2026-09-28 production build failed here. `prebuild` runs on every build
+   * including Vercel's, and there is exactly one process on a Vercel builder, so
+   * there is nothing to coordinate with and no home directory worth writing to.
+   *
+   * THE SKIP IS IN THE LOCK AND NOT ONLY IN ITS CALLER, and CLAUDE.md asks which
+   * was chosen. Guarding the one call site in `preflight-build.mjs` fixes the
+   * build that broke and leaves the next caller to discover this again; the
+   * general fact is that this file's whole subject is a shared developer machine,
+   * which is a thing CI does not have.
+   *
+   * `inCiOrDeploy` is IMPORTED rather than rewritten. It already existed, already
+   * exported, already reading VERCEL, CI and GITHUB_ACTIONS, and a second copy of
+   * "am I in CI" is the two homes defect this repository records more often than
+   * any other.
+   */
+  if (inCiOrDeploy()) return () => {};
+
   /*
    * RE-ENTRANT ACROSS THE PROCESS TREE, AND WITHOUT THIS IT DEADLOCKS ON
    * ITSELF. The suite takes the lock and then spawns `npm run build`, whose
