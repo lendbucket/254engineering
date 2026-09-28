@@ -90,12 +90,41 @@ function openSignUpCondition() {
    * STARTS with the field, which no comment line in that file does.
    */
   const FIELD = /^(\s*)cleared:\s*false,/m;
-  if (!FIELD.test(original)) {
+
+  /*
+   * IT GUARANTEES THE STATE. IT DOES NOT REQUIRE A CHANGE.
+   *
+   * Corrected 2026-09-28, the day the operator cleared self service sign up for
+   * launch. Until then this threw when it found no `cleared: false` to patch,
+   * and its own message offered the two possibilities: "Either the operator has
+   * lifted the condition, in which case this fixture should be removed, or the
+   * shape changed." He lifted it, and the throw took doors-audit red on a door
+   * that was working perfectly.
+   *
+   * REMOVING THE FIXTURE IS THE OTHER ANSWER ITS MESSAGE OFFERS, AND IT IS THE
+   * WRONG ONE. Without it this audit can only exercise the public door while the
+   * operator happens to be leaving it open, so the day he un-clears the
+   * condition the door would stop being measured and nothing would say so. A
+   * check that quietly narrows when configuration changes is the vacuous green
+   * this repository keeps paying for.
+   *
+   * So: already true is a legitimate no-op, and the restore becomes a no-op with
+   * it. What still throws is a file with no `cleared:` declaration at all, which
+   * means the condition was renamed or removed and this fixture no longer knows
+   * what world it is building.
+   */
+  if (!/^(\s*)cleared:\s*(?:true|false),/m.test(original)) {
     throw new Error(
-      `${CONDITIONS} has no line declaring the condition unmet, so this fixture does not know what it is patching. ` +
-        `Either the operator has lifted the condition, in which case this fixture should be removed, or the shape changed.`,
+      `${CONDITIONS} has no \`cleared:\` declaration at all, so this fixture does not know what it is patching. ` +
+        `The condition was renamed or removed, and this fixture must be updated rather than deleted.`,
     );
   }
+
+  if (!FIELD.test(original)) {
+    say("  [fixture] self service sign up is already cleared, so nothing is patched.");
+    return () => {};
+  }
+
   writeFileSync(CONDITIONS, original.replace(FIELD, "$1cleared: true,"));
   return () => {
     writeFileSync(CONDITIONS, original);

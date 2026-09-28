@@ -73,16 +73,36 @@ copyFileSync(CONDITIONS, BACKUP);
 
 try {
   /* ---------------------------------- case one: gate shut, flag cleared */
+  /*
+   * SET THE STATE, RATHER THAN REQUIRE AN EDIT. Corrected 2026-09-28, the day
+   * the operator cleared self service sign up for launch.
+   *
+   * This replaced `cleared: false` with `cleared: true` and threw when the
+   * replacement changed nothing, which is the right assertion when the point is
+   * to MOVE the world off its current state. It is the wrong assertion when the
+   * point is to GUARANTEE a state: the flag being already true is exactly the
+   * world this case wants, and the proof read that as "the shape has moved" and
+   * died, taking the whole of proofs-audit red with it.
+   *
+   * It is the third time this shape has cost a board in a week. The insurance
+   * proof drew the same distinction for its registers and named the two helpers
+   * `patch` and `ensure` for it; the gate fixture needed an `already` clause for
+   * this very condition the same afternoon.
+   *
+   * THE ASSERTION THAT MATTERS IS THAT THE DECLARATION IS STILL THERE. A file
+   * with no `cleared:` line at all would mean the condition was renamed or
+   * removed, and this proof would then be running against a world it cannot
+   * describe. That still throws.
+   */
   const original = readFileSync(CONDITIONS, "utf8");
-  const patched = original.replace("  cleared: false,", "  cleared: true,");
-  if (patched === original) {
+  if (!/\n\s*cleared: (?:true|false),/.test(original)) {
     throw new Error(
-      "the proof could not patch `cleared: false` in " +
+      "the proof could not find a `cleared:` declaration in " +
         CONDITIONS +
-        ". The shape has moved, and a proof that patches nothing proves nothing.",
+        ". The condition was renamed or removed, and a proof that cannot state its own world proves nothing.",
     );
   }
-  writeFileSync(CONDITIONS, patched);
+  writeFileSync(CONDITIONS, original.replace(/\n(\s*)cleared: false,/, "\n$1cleared: true,"));
 
   const shut = inChild();
   rec(
