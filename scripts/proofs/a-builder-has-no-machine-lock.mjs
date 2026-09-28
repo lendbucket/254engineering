@@ -160,16 +160,34 @@ check(
 // ------------------------------------------------------------------ at home
 
 /*
- * The machine keeps its lock. Run with no CI variable and the REAL home, the
- * preflight must reach the lock and the guard. It is run with the lock already
- * published as held by this process, so it takes the re-entrant path and cannot
- * wait sixty seconds on anything.
+ * The machine keeps its lock. With no CI variable, the preflight must reach the
+ * lock and the guard.
+ *
+ * IT IS GIVEN ITS OWN HOME, AND THAT IS NOT TIDINESS. The first version pointed
+ * at the REAL home with MACHINE_LOCK_HELD cleared, to force the non re-entrant
+ * path. `proofs-audit` runs every file in this directory, so that version would
+ * have run INSIDE a board, where the suite is holding the real lock with a live
+ * pid. The child would have found it held by somebody else, waited sixty
+ * seconds, and gone round again for ever. A hung board, caused by the proof
+ * written to prove the lock is safe.
+ *
+ * That is the ambient-state defect CLAUDE.md records against `partner-audit`:
+ * a check that depends on state it does not set reports the environment rather
+ * than the rule. Here the state was "is anybody holding the machine lock right
+ * now", and the answer during a board is always yes.
+ *
+ * A home of its own gives it an uncontended lock to take and release, which
+ * exercises MORE of the path than the re-entrant shortcut would, and makes the
+ * result identical whether or not a board is running.
  */
+const OWN_HOME = mkdtempSync(join(tmpdir(), "own-home-"));
 const atHome = runPreflight({
   VERCEL: "",
   CI: "",
   GITHUB_ACTIONS: "",
   MACHINE_LOCK_HELD: "",
+  USERPROFILE: OWN_HOME,
+  HOME: OWN_HOME,
 });
 
 check(
@@ -182,6 +200,18 @@ check(
   "and it reaches the build guard, which reports on .next",
   /\[build-guard\]/.test(atHome.out),
   atHome.out.trim().split("\n").pop() ?? "no output",
+);
+
+/*
+ * AND IT RELEASED WHAT IT TOOK. A lock that outlives its owner is what the
+ * reaper exists to clean up, and not needing the reaper is better. Checked in
+ * the proof's own home, so this says something about the run that just
+ * happened rather than about the machine's shared lock.
+ */
+check(
+  "and the lock it took in its own home was released on exit",
+  !existsSync(join(OWN_HOME, ".test-lock")),
+  "an unreleased lock would wedge the next run until the reaper noticed",
 );
 
 console.log(
