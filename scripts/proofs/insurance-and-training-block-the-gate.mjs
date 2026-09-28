@@ -153,6 +153,39 @@ const NO_INSURANCE = "export const verifiedInsurance: VerifiedInsurance[] = [];"
 const NO_TRAINING = "export const verifiedTechnicianTraining: TechnicianTraining[] = [];";
 const NO_PROTOCOLS = "export const approvedProtocols: ApprovedProtocol[] = [];";
 
+/*
+ * THE OWNER OVERRIDE, WHICH THIS PROOF DID NOT KNOW ABOUT AND WHICH BROKE IT.
+ *
+ * Operator ruling, 2026-09-28: the firm trades without professional liability
+ * cover by owner decision until 2026-10-28. The moment that was recorded, cases
+ * A and C went red on a gate that was working exactly as ruled: they set the
+ * POLICY register empty or expired and asserted the gate shuts, and the override
+ * was holding it open for a reason neither case mentions.
+ *
+ * That is the dormant-register defect from the other direction. The register
+ * those cases patch is no longer the only thing the condition reads, so a case
+ * that states its world has to state ALL of it.
+ *
+ * So the override is now part of every world this proof builds, and it gains two
+ * cases of its own. G and H are the ones that matter most, because the expiry is
+ * the ONLY thing that makes trading uninsured safe to record at all: an override
+ * that never lapsed would be an exemption, which is the 2026-09-22 ACKNOWLEDGED
+ * ruling in one sentence. H is what proves it lapses.
+ */
+const OVERRIDE_DECLARATION = new RegExp(
+  "export const insuranceOverride: InsuranceOverride \\| null = (?:null;|\\{[\\s\\S]*?\\n\\};)",
+);
+const NO_OVERRIDE = "export const insuranceOverride: InsuranceOverride | null = null;";
+const OVERRIDE_UNTIL = (expires) =>
+  [
+    "export const insuranceOverride: InsuranceOverride | null = {",
+    '  acknowledgedBy: "A proof fixture, not a person",',
+    '  acknowledgedOn: "2026-09-28",',
+    `  expires: "${expires}",`,
+    '  reason: "a proof fixture",',
+    "};",
+  ].join("\n");
+
 const insuranceBlocker = (b) => b.find((s) => s.includes("professional liability cover")) ?? null;
 const trainingBlocker = (b) => b.find((s) => s.includes("trained on the approved protocol")) ?? null;
 
@@ -177,6 +210,8 @@ try {
   ensure(CREDENTIALS, EMPTY_INSURANCE, NO_INSURANCE);
   ensure(CREDENTIALS, EMPTY_TRAINING, NO_TRAINING);
   ensure(READINESS, EMPTY_PROTOCOLS, NO_PROTOCOLS);
+  /* Nothing recorded means nothing recorded, the owner's decision included. */
+  ensure(CREDENTIALS, OVERRIDE_DECLARATION, NO_OVERRIDE);
   const a = blockersInChild();
   rec(
     "A: with no cover on record, insurance holds the gate shut",
@@ -201,11 +236,48 @@ try {
   /* ------------------------------------------- C: the same cover, expired */
   restoreAll();
   patch(CREDENTIALS, EMPTY_INSURANCE, INSURED("2000-01-01"));
+  /* restoreAll brings the real override back, and this case is about the POLICY
+   * expiring. Leaving it in place would have the override answering for the
+   * lapsed cover, which is how case C first went red. */
+  ensure(CREDENTIALS, OVERRIDE_DECLARATION, NO_OVERRIDE);
   const c = blockersInChild();
   rec(
     "C: with EXPIRED cover on record, insurance blocks again",
     insuranceBlocker(c.blockers) !== null,
     "the expiry is load bearing, not decoration. A lapsed policy is not cover.",
+  );
+
+  /* ------------------------------- G: no cover, and the owner says trade anyway */
+  restoreAll();
+  ensure(CREDENTIALS, EMPTY_INSURANCE, NO_INSURANCE);
+  ensure(CREDENTIALS, OVERRIDE_DECLARATION, OVERRIDE_UNTIL("2099-12-31"));
+  const g = blockersInChild();
+  rec(
+    "G: with no cover and a live owner override, insurance does NOT block",
+    insuranceBlocker(g.blockers) === null,
+    "the owner's decision to trade uninsured is what opens the gate here, and nothing else is recorded",
+  );
+
+  /* ------------------------------------- H: the same override, lapsed */
+  /*
+   * THE CASE THAT MAKES THE OVERRIDE SAFE TO HAVE WRITTEN DOWN. An acknowledgement
+   * that never expires is an exemption, and the firm would be trading uninsured
+   * for ever on a decision somebody made once. This is the assertion that it ends.
+   */
+  restoreAll();
+  ensure(CREDENTIALS, EMPTY_INSURANCE, NO_INSURANCE);
+  ensure(CREDENTIALS, OVERRIDE_DECLARATION, OVERRIDE_UNTIL("2000-01-01"));
+  const h = blockersInChild();
+  rec(
+    "H: with the override LAPSED, insurance blocks again",
+    insuranceBlocker(h.blockers) !== null,
+    insuranceBlocker(h.blockers) ??
+      "NO blocker, so the override never ends and the firm trades uninsured for ever on one decision",
+  );
+  rec(
+    "H: and the sentence names the date it lapsed, so nobody has to guess",
+    (insuranceBlocker(h.blockers) ?? "").includes("2000-01-01"),
+    insuranceBlocker(h.blockers)?.slice(0, 120) ?? "no blocker to read",
   );
 
   /* ----------------------------- D: a protocol approved, nobody trained */
