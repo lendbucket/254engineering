@@ -4,6 +4,7 @@ import {
   verifiedCredentials,
   operatingNameOnBoardRecord,
   verifiedInsurance,
+  insuranceOverride,
   verifiedTechnicianTraining,
   WINDSTORM_APPOINTMENT_CREDENTIAL,
   type VerifiedEngineer,
@@ -36,7 +37,7 @@ import { todayInFirmCalendar } from "./firm-calendar";
 import { stripeAccountBlockedReason } from "./stripe-account";
 import { contact } from "@/config/contact";
 import { services } from "@/content/services";
-import { selfServiceSignUp } from "@/config/launch-conditions";
+import { offeredServiceLines, selfServiceSignUp } from "@/config/launch-conditions";
 
 /**
  * The compliance gate.
@@ -316,14 +317,33 @@ export const LAUNCH_CONDITIONS: LaunchCondition[] = [
      */
     what: "Every service line offered at launch has one protocol approved by the engineer of record.",
     whoClears: "The Professional Engineer in responsible charge approves each protocol.",
-    statedIn: "approvedProtocols in src/config/launch-readiness.ts",
+    statedIn:
+      "offeredServiceLines in src/config/launch-conditions.ts, and approvedProtocols in src/config/launch-readiness.ts",
+    /*
+     * OFFERED LINES, NOT EVERY LINE. Operator ruling, 2026-09-28.
+     *
+     * The `what` above has always said "offered". The code checked every line in
+     * `services`, so eleven pages the firm is not selling held the gate shut.
+     *
+     * THE TWO GUARDS COME FIRST AND THEY FAIL LOUDLY, because both failures look
+     * exactly like success from the outside. An empty list satisfies "every
+     * offered line has a protocol" over nothing, and a mistyped slug is a line
+     * nobody can dispatch reading as covered. Neither is reachable without
+     * somebody editing the list, which is precisely when a mistake is made.
+     */
     unmet: () => {
-      const waiting = services.filter((s) => !approvedProtocolFor(s.slug)).map((s) => s.slug);
-      if (waiting.length === 0) return null;
-      if (waiting.length === services.length) {
-        return `No service line has a protocol approved by an engineer of record, so all ${services.length} are a waitlist rather than an offer.`;
+      if (offeredServiceLines.length === 0) {
+        return "No service line is declared as offered, so this condition would pass over an empty list. Declare at least one in offeredServiceLines, or the firm is opening with nothing to sell.";
       }
-      return `${waiting.length} of ${services.length} service lines have no approved protocol and are a waitlist: ${waiting.join(", ")}.`;
+
+      const unknown = offeredServiceLines.filter((slug) => !services.some((s) => s.slug === slug));
+      if (unknown.length > 0) {
+        return `offeredServiceLines names ${unknown.length} line(s) this platform does not have: ${unknown.join(", ")}. A slug that matches no service is a line nobody can order and nobody can dispatch.`;
+      }
+
+      const waiting = offeredServiceLines.filter((slug) => !approvedProtocolFor(slug));
+      if (waiting.length === 0) return null;
+      return `${waiting.length} of ${offeredServiceLines.length} OFFERED service line(s) have no approved protocol: ${waiting.join(", ")}. A line is offered when it is listed and its protocol is approved, and both are needed.`;
     },
   },
 
@@ -394,10 +414,12 @@ export const LAUNCH_CONDITIONS: LaunchCondition[] = [
      * expiry to offer. That is the 2026-09-16 ruling built into the shape
      * rather than checked at the edge.
      */
-    unmet: () =>
-      activeInsurance()
-        ? null
-        : "No professional liability cover is on record, so the firm would be taking money for sealed engineering work uninsured. Record the certificate in verifiedInsurance.",
+    unmet: () => {
+      const stands = insuranceStandsOn();
+      if (stands.on === "policy") return null;
+      if (stands.on === "override") return null;
+      return stands.why;
+    },
   },
 
   {
@@ -713,6 +735,60 @@ export function activeFirmRegistration(): VerifiedFirmRegistration | null {
  * sealed letter. The condition that gates taking money for engineering work
  * asks about the second.
  */
+/**
+ * WHAT THE INSURANCE CONDITION IS STANDING ON, AND IT IS THREE ANSWERS RATHER
+ * THAN TWO.
+ *
+ * Operator ruling, 2026-09-28. A policy and an owner override are not degrees of
+ * one thing: one is cover, the other is a decision to trade without cover. The
+ * gate treats both as "not blocking" and every reader that shows a human what
+ * the firm is standing on must be able to tell them apart, so the answer carries
+ * WHICH.
+ *
+ * Folding them into a boolean is the failure this repository names most often: a
+ * status that collapses two different facts, after which the screen says
+ * "insurance: met" over a firm with no insurance.
+ *
+ * THE POLICY IS READ FIRST, so recording real cover retires the override with no
+ * edit and no deletion. An override that had to be removed by hand is an override
+ * somebody forgets, and it would then be sitting there claiming a decision nobody
+ * would make twice.
+ *
+ * THE EXPIRY IS AGAINST THE FIRM'S CALENDAR, never a build timestamp, so it goes
+ * red on the day it says rather than on the day somebody next deploys.
+ */
+export type InsuranceStanding =
+  | { on: "policy"; policy: VerifiedInsurance }
+  | { on: "override"; override: NonNullable<typeof insuranceOverride>; expires: string }
+  | { on: "nothing"; why: string };
+
+export function insuranceStandsOn(today: string = todayInFirmCalendar()): InsuranceStanding {
+  const policy = activeInsurance();
+  if (policy) return { on: "policy", policy };
+
+  if (insuranceOverride && insuranceOverride.expires >= today) {
+    return { on: "override", override: insuranceOverride, expires: insuranceOverride.expires };
+  }
+
+  if (insuranceOverride) {
+    return {
+      on: "nothing",
+      why:
+        `The owner's decision to operate without professional liability cover expired on ` +
+        `${insuranceOverride.expires} and today is ${today}. No cover is on record, so the firm ` +
+        `would be taking money for sealed engineering work uninsured. Record the certificate in ` +
+        `verifiedInsurance, or the owner re-rules with a new date.`,
+    };
+  }
+
+  return {
+    on: "nothing",
+    why:
+      "No professional liability cover is on record, so the firm would be taking money for sealed " +
+      "engineering work uninsured. Record the certificate in verifiedInsurance.",
+  };
+}
+
 export function activeInsurance(): VerifiedInsurance | null {
   const today = new Date().toISOString().slice(0, 10);
   return (

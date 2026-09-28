@@ -1395,6 +1395,89 @@ const RULED_CONDITIONS = [
   );
 
   /*
+   * ===========================================================================
+   * WHAT THE FIRM OFFERS AT LAUNCH, PINNED AS A LITERAL. Operator ruling,
+   * 2026-09-28: roof certification only, and the other seven are a waitlist.
+   * ===========================================================================
+   *
+   * PINNED HERE RATHER THAN IMPORTED, which is the section 6c mechanism and the
+   * whole reason this check is worth writing. An audit that read
+   * `offeredServiceLines` and asserted it equals itself cannot disagree with
+   * anything, and this repository has already shipped that exact tautology twice.
+   * The duplication IS the protection: adding a line costs an edit there and an
+   * edit here, made on purpose, and the board says so in between.
+   *
+   * WHAT THE FOUR CHECKS SEPARATE. The first is the ruling. The second is that
+   * the offer is real, because a listed line with no approved protocol is an
+   * offer the firm cannot dispatch. The third is the one nobody asks for and is
+   * the one that would catch a mistake: an approved protocol on a line NOBODY
+   * listed, which would make a service orderable that the operator never ruled
+   * open. The fourth asserts the gate actually reads the list, because the whole
+   * ruling is inert if the condition still sweeps every service that exists.
+   */
+  const OFFERED_AT_LAUNCH = ["roof-inspections"];
+
+  const { offeredServiceLines } = await import("../src/config/launch-conditions.ts");
+  const { approvedProtocols } = await import("../src/config/launch-readiness.ts");
+  const { services } = await import("../src/content/services.ts");
+
+  const offered = [...offeredServiceLines].sort();
+  rec(
+    `the firm offers exactly the ${OFFERED_AT_LAUNCH.length} ruled service line(s)`,
+    offered.length === OFFERED_AT_LAUNCH.length && OFFERED_AT_LAUNCH.every((s) => offered.includes(s)),
+    offered.length === 0
+      ? "offeredServiceLines is EMPTY, which would satisfy the protocols condition over nothing"
+      : `offered: ${offered.join(", ")}. Ruled: ${OFFERED_AT_LAUNCH.join(", ")}`,
+  );
+
+  const approvedFor = new Set(approvedProtocols.map((p) => p.serviceSlug));
+  const offeredWithout = offeredServiceLines.filter((s) => !approvedFor.has(s));
+  rec(
+    "and every offered line has a protocol approved by the engineer of record",
+    offeredWithout.length === 0,
+    offeredWithout.length === 0
+      ? `${offeredServiceLines.length} offered, all approved`
+      : `offered with no approved protocol: ${offeredWithout.join(", ")}`,
+  );
+
+  const approvedButUnoffered = [...approvedFor].filter((s) => !offeredServiceLines.includes(s));
+  rec(
+    "and no line is approved without being offered",
+    approvedButUnoffered.length === 0,
+    approvedButUnoffered.length === 0
+      ? `${services.length - offeredServiceLines.length} line(s) are a waitlist and none is approved`
+      : `approved but not offered, so orderable without a ruling: ${approvedButUnoffered.join(", ")}`,
+  );
+
+  const launchSource = readSource("src/lib/launch.ts");
+  const protocolsCondition = launchSource.slice(
+    launchSource.indexOf('id: "protocols"'),
+    launchSource.indexOf('id: "phone"'),
+  );
+  /*
+   * TWO CLAUSES, AND THE NOTE SAYS WHICH ONE FAILED.
+   *
+   * The first version reported "it reads offeredServiceLines" while failing,
+   * because the note only consulted the first clause and the injection tripped
+   * the second. A note that names a fault its author did not enumerate is the
+   * `no probe` defect, and it appeared here inside the check written to prove a
+   * ruling is wired, which is the least useful place to be lied to.
+   */
+  const readsOffered = /offeredServiceLines/.test(protocolsCondition);
+  const sweepsAll = /services\.filter/.test(protocolsCondition);
+  rec(
+    "and the protocols condition reads the offered list rather than every service",
+    protocolsCondition.length > 0 && readsOffered && !sweepsAll,
+    protocolsCondition.length === 0
+      ? "the protocols condition could not be located, so this check read nothing"
+      : !readsOffered
+        ? "it never mentions offeredServiceLines, so the ruling is inert"
+        : sweepsAll
+          ? "it reads offeredServiceLines AND still sweeps every service in the catalogue, so the narrower list is decorative"
+          : "it reads offeredServiceLines and sweeps nothing wider",
+  );
+
+  /*
    * A BLOCKER IS A SENTENCE. The ruling is explicit and the reason is the
    * reader: a list of falses is a puzzle. Asserted as real prose rather than as
    * a non empty string, because "no" is a non empty string.

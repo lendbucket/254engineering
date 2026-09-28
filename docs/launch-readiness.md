@@ -42,10 +42,39 @@ reasoning.** They cannot disagree, because the screen computes nothing.
 | `insurance` | Professional liability cover is in force, on record, with an expiry | The operator, by recording the certificate he has read | `verifiedInsurance` in `src/config/credentials.ts` |
 | `technician-training` | Every approved protocol has somebody trained on that version of it | The engineer of record, or somebody he names, by delivering it | `verifiedTechnicianTraining` in `src/config/credentials.ts` |
 
-**Five are unmet and six are met**, read from the gate on 2026-09-24.
+**Two are unmet and nine are met**, read from the gate on 2026-09-28, launch day.
 
-- **UNMET (5):** `switch`, `stripe`, `protocols`, `self-service-signup`, `insurance`
-- **MET (6):** `registration`, `trading-name`, `engineer-of-record`, `phone`, `recovery`, `technician-training`
+- **UNMET (2):** `switch`, `stripe`
+- **MET (9):** `registration`, `trading-name`, `engineer-of-record`, `phone`, `recovery`, `technician-training`, `protocols`, `self-service-signup`, `insurance`
+
+**Three moved on 2026-09-28, and two of the three moved by ruling rather than by
+the world changing.** Recorded here because a condition that becomes met is the
+moment somebody should be able to read why.
+
+- **`protocols`** is met because the ruling narrowed what it asks. It always said
+  "every service line OFFERED at launch", and it checked every line that exists.
+  The firm launches with **roof certification only**; the other seven are a
+  waitlist, and `offeredServiceLines` in `src/config/launch-conditions.ts` is now
+  the list it reads. Adding a line is one edit there plus Aman approving its
+  protocol, and neither alone does anything.
+- **`self-service-signup`** is met because the operator cleared it: public sign
+  up is on at launch, by Robert Reyna on 2026-09-28.
+- **`insurance` is met by an OWNER OVERRIDE AND NOT BY A POLICY**, and that
+  distinction is the whole point of how it is recorded. `verifiedInsurance` is
+  still empty and `activeInsurance()` still returns null, because there is no
+  cover. `insuranceOverride` in `src/config/credentials.ts` records the owner's
+  decision to trade without it, in his name, **expiring 2026-10-28**. From the
+  day after, this condition is unmet again with no edit by anybody, and the gate
+  shuts. Recording a policy retires the override automatically, because
+  `insuranceStandsOn()` reads the register first.
+
+**What the firm is accepting while that override stands**, stated plainly because
+an acknowledgement that softens its own subject is worth nothing: the firm takes
+money for work carrying a Professional Engineer's seal while carrying no
+professional liability cover. Whether Texas REQUIRES such cover for a registered
+firm has never been verified here; `BACKLOG.md` records it as unconfirmed and
+says it must be settled with the board or with counsel before anybody relies on
+it.
 
 **`technician-training` is MET and it is met VACUOUSLY, which is worth stating
 in the one document a person reads.** It asks whether every APPROVED protocol

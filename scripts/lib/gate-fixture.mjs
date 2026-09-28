@@ -139,6 +139,18 @@ export async function withGateConditionsMet(fn) {
       file: CONDITIONS,
       find: /cleared: false,/,
       replace: "cleared: true,",
+      /*
+       * ALREADY TRUE SINCE 2026-09-28, when the operator cleared public sign up
+       * for launch. Same reasoning as `onRecord` below: a condition the firm has
+       * genuinely met is not a fixture failure, and the fixture must not throw
+       * just because reality caught up with what it was pretending.
+       *
+       * The `already` pattern is what keeps that safe rather than lax. Without
+       * it the fixture would have to tolerate a patch matching nothing, which is
+       * precisely how a fixture starts running the live half of an audit against
+       * the prelaunch state while reporting on the live one.
+       */
+      already: /cleared: true,/,
       what: "self service sign up being cleared for production",
     },
     /* --- the registration itself */

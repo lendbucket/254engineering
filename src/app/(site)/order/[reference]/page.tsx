@@ -46,6 +46,42 @@ export default async function OrderStatusPage({
    * one. Distinguishing them would confirm to somebody guessing that an order
    * with this reference exists.
    */
+  /*
+   * THE CUSTOMER WHO HAS JUST PAID ARRIVES HERE WITH NO TOKEN, AND WAS TOLD HIS
+   * LINK DOES NOT OPEN AN ORDER.
+   *
+   * Operator finding, 2026-09-28. Stripe's success_url is built at checkout and
+   * carries `paid=1` and no token, because a token cannot exist yet: it is
+   * minted when the work is RELEASED, deliberately, so that an abandoned
+   * checkout never produces a live link to an order nobody paid for.
+   *
+   * So the first thing a paying customer saw was the refusal written for a
+   * mistyped or revoked link. Every word of it was true about the token and
+   * every word of it was wrong about him.
+   *
+   * THIS IS THE HONEST STATE RATHER THAN A SECOND WAY IN. It opens nothing, it
+   * confirms nothing about whether that reference exists, and it says what is
+   * actually happening: the payment landed and the link arrives by email once
+   * the work is released. A page that answered `paid=1` by showing the order
+   * would be a page where the query string is the credential.
+   */
+  if (!view && paid) {
+    return (
+      <Container>
+        <div className="mx-auto max-w-[62ch] py-20">
+          <h1 className="font-display text-[1.8rem] leading-[1.2] font-semibold text-[var(--navy)]">
+            Payment received
+          </h1>
+          <p className="mt-4 text-[1.02rem] leading-[1.7] text-[var(--secondary)]">
+            Thank you. The firm emails a link to this order once it is released for work, and that
+            link is the one that opens it. If nothing arrives within the hour, reply to any email
+            from the firm quoting <span className="font-mono">{reference}</span>.
+          </p>
+        </div>
+      </Container>
+    );
+  }
+
   if (!view || view.reference !== reference) {
     return (
       <Container>

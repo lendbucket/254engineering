@@ -13,6 +13,38 @@
  */
 
 /**
+ * ===========================================================================
+ * WHICH SERVICE LINES THE FIRM OFFERS. EVERYTHING ELSE IS A WAITLIST.
+ * ===========================================================================
+ *
+ * Operator ruling, 2026-09-28: the firm launches with roof certification only.
+ *
+ * WHY THIS LIST HAS TO EXIST RATHER THAN BEING DERIVED. The `protocols`
+ * condition already said, in its own words, "every service line OFFERED at
+ * launch has one protocol approved", and it checked every line that EXISTS in
+ * `services`. So the declaration was right and the code was answering a
+ * different question, which meant eleven service pages the firm is not selling
+ * yet were holding the gate shut.
+ *
+ * Deriving "offered" from "has an approved protocol" is the obvious shortcut and
+ * it is the one thing this must not do. It would make the condition compare a
+ * value to itself, which is the tautological check this repository has already
+ * paid for twice: every offered line would have an approved protocol by
+ * construction, for ever, whatever anybody approved.
+ *
+ * ADDING A LINE IS TWO ACTS, DELIBERATELY. One edit here, and Aman approving the
+ * protocol for it in his own account. Either alone does nothing: a slug added
+ * here with no approved protocol shuts the gate and names itself, and a protocol
+ * approved for a line nobody listed changes nothing at all.
+ *
+ * THE TWO GUARDS BELOW ARE NOT DEFENSIVE PROGRAMMING, they are the difference
+ * between a check and a sentence. An empty list would satisfy "every offered
+ * line has a protocol" vacuously and open the gate over nothing, and a mistyped
+ * slug would offer a line that does not exist while reading as covered.
+ */
+export const offeredServiceLines: string[] = ["roof-inspections"];
+
+/**
  * MAY SELF SERVICE SIGN UP REACH PRODUCTION?
  *
  * Operator ruling, 2026-09-13, and it is deliberately SEPARATE from the ruling
@@ -54,9 +86,25 @@ export const selfServiceSignUp: {
   /** Why it stands where it stands. Never empty. */
   because: string;
 } = {
-  cleared: false,
-  clearedBy: null,
-  clearedOn: null,
+  /*
+   * CLEARED 2026-09-28. Operator ruling: public sign up is ON at launch.
+   *
+   * The decision this condition was waiting for has been made, and it is the one
+   * the condition always said it was waiting for: somebody deciding that anybody
+   * may create an account on this platform. It is a decision about who the firm
+   * does business with, and the owner made it.
+   *
+   * A NARROWER OPTION WAS OFFERED AND REFUSED, and that is recorded because a
+   * rejected alternative that leaves no trace reads as an option nobody thought
+   * of. The suggestion was to treat "off, deliberately" as a decision, so the
+   * condition would stop holding the gate without turning the door on, since
+   * nothing about selling a roof certification needs public sign up: a customer
+   * reaches an order through checkout, which creates a client, and an operator
+   * converts it. The operator ruled for the door being open instead.
+   */
+  cleared: true,
+  clearedBy: "Robert Reyna",
+  clearedOn: "2026-09-28",
   /*
    * CORRECTED 2026-09-24, BECAUSE THE REASON HAD OUTLIVED THE WORLD IT
    * DESCRIBED. Operator ruling.
@@ -78,11 +126,17 @@ export const selfServiceSignUp: {
    * WHAT IS STILL TRUE is the part that was always the real reason: nobody has
    * decided that anybody may create an account on this platform.
    */
+  /*
+   * REWRITTEN ON CLEARING, because the old sentence said the operator had not
+   * cleared it and that became false the moment he did. This field is the reason
+   * a reader is given, and a reason describing the previous world is the defect
+   * this very file was corrected for on 2026-09-24.
+   */
   because:
-    "Phase 13 built the three doors and the operator has not cleared the public one for production. " +
-    "Nobody has decided that anybody may create an account on this platform, which is a decision about " +
-    "who the firm does business with rather than about a secret. The preview sharing that the earlier " +
-    "version of this sentence cited was ended on 2026-09-24, when CUSTOMER_SESSION_SECRET and " +
-    "PARTNER_SESSION_SECRET were unticked from Preview; that removed the risk it named and left this " +
-    "condition exactly where it stood, which is what holding the two decisions apart was for.",
+    "Cleared by Robert Reyna on 2026-09-28 for launch. Phase 13 built the three doors and the public " +
+    "one is now open: anybody may create an account on this platform. That is a decision about who the " +
+    "firm does business with rather than about a secret, which is why it was always separate from the " +
+    "preview secret sharing that an earlier version of this sentence cited. That sharing was ended on " +
+    "2026-09-24, when CUSTOMER_SESSION_SECRET and PARTNER_SESSION_SECRET were unticked from Preview, " +
+    "and it neither cleared this condition nor blocked it, which is what holding the two apart was for.",
 };

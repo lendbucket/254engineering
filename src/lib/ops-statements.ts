@@ -420,8 +420,18 @@ export async function startStatementCheckout(
     customerEmail: email,
     description: `Statement ${statement.reference}`,
     lines: lines.map((l) => ({ label: l.description as string, amountCents: Number(l.amount_cents) })),
-    successUrl: `${deploymentOrigin()}/account/statements/${statement.reference}?paid=1`,
-    cancelUrl: `${deploymentOrigin()}/account/statements/${statement.reference}?cancelled=1`,
+    /*
+     * /account/statements IS A LIST AND HAS NO [reference] SEGMENT, so both of
+     * these sent a paying customer to a 404. Operator finding, 2026-09-28.
+     *
+     * The reference rides as a QUERY rather than a path, because inventing the
+     * detail route to match the string that was already being sent would be
+     * building a page to justify a typo. The list is where the statement and its
+     * paid state are shown, and it is behind the account session, so nothing
+     * here is a way in.
+     */
+    successUrl: `${deploymentOrigin()}/account/statements?paid=1&ref=${encodeURIComponent(statement.reference as string)}`,
+    cancelUrl: `${deploymentOrigin()}/account/statements?cancelled=1&ref=${encodeURIComponent(statement.reference as string)}`,
   });
 
   return { ok: true, url: session.url };

@@ -565,6 +565,56 @@ export const verifiedInsurance: VerifiedInsurance[] = [];
 
 /**
  * ===========================================================================
+ * OPERATING WITHOUT PROFESSIONAL LIABILITY COVER, BY OWNER DECISION, WITH A DATE
+ * ===========================================================================
+ *
+ * Operator ruling, 2026-09-28, in his words: an owner override, not a record of
+ * a policy.
+ *
+ * IT IS NOT AN INSURANCE RECORD AND MUST NEVER BE READ AS ONE. `verifiedInsurance`
+ * stays EMPTY, and `activeInsurance()` goes on returning null, because there is
+ * no cover. Writing a fake entry there to open the gate would put a policy on the
+ * firm's own record that does not exist, which is the fabricated-assurance defect
+ * this repository refuses everywhere else. What this does is let the OPERATOR
+ * decide to trade anyway, in his own name, with an expiry.
+ *
+ * WHAT IS BEING ACCEPTED, STATED PLAINLY BECAUSE AN ACKNOWLEDGEMENT THAT SOFTENS
+ * ITS OWN SUBJECT IS WORTH NOTHING. The firm takes money for work that will carry
+ * a Professional Engineer's seal while carrying no professional liability cover.
+ * The condition's own sentence says so. And whether Texas REQUIRES such cover for
+ * a registered firm has never been verified here: BACKLOG.md records it as
+ * unconfirmed and says it must be settled with the board or with counsel before
+ * anybody relies on it. So this covers a known commercial exposure and an unknown
+ * regulatory one, and the second half is the reason the window is short.
+ *
+ * THE EXPIRY IS THE ONLY THING THAT MAKES IT SAFE, which is the rule the 2026-09-22
+ * ACKNOWLEDGED ruling already states: a third verdict that never expires is an
+ * exemption. From the day after `expires` this stops satisfying the condition and
+ * the gate shuts again, with no edit by anybody and no deploy required to make it
+ * true, because the comparison is against the firm's calendar rather than a build
+ * timestamp.
+ *
+ * IT ENDS EARLY THE MOMENT A REAL POLICY IS RECORDED. `insuranceStandsOn()` reads
+ * the register FIRST, so recording cover in `verifiedInsurance` retires this
+ * override without anybody having to remember to delete it.
+ */
+export type InsuranceOverride = {
+  acknowledgedBy: string;
+  acknowledgedOn: string;
+  /** The day after which it stops working. A calendar date, never a duration. */
+  expires: string;
+  reason: string;
+};
+
+export const insuranceOverride: InsuranceOverride | null = {
+  acknowledgedBy: "Robert Reyna, owner",
+  acknowledgedOn: "2026-09-28",
+  expires: "2026-10-28",
+  reason: "operating without professional liability coverage by owner decision until bound",
+};
+
+/**
+ * ===========================================================================
  * A TECHNICIAN TRAINED ON A PROTOCOL, AT A VERSION.
  * ===========================================================================
  *
