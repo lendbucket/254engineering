@@ -176,6 +176,15 @@ TBPELS reissued F-29811 in the name **254 Engineering LLC** and also recorded
 assumed names. The board now holds both the legal name and the name the sites
 trade under, by both of the routes this condition named.
 
+**And the owner attested to the certificate itself on 2026-09-29.** The value
+above was read off the Board's verification letter, which is a letter about the
+record; the attestation is the owner's reading of the registration certificate,
+which is the instrument. It lives in `registeredNameAttestation` in
+`src/config/credentials.ts`, and `compliance-audit` asserts it states the same
+name and number as the register, so the two cannot drift apart in silence. This
+is a pointer rather than a second copy, for the reason this file gives about
+everything else it points at.
+
 **What it was, until that letter arrived.** The board held 254 Services LLC while
 all three sites held out as 254 Engineering Services. A registration in one name
 does not authorise holding out under another, and Texas regulates the use of

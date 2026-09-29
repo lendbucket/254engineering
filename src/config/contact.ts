@@ -77,10 +77,18 @@ const env = (key: string): string | null => {
  * that disagrees with the site on punctuation is a NAP mismatch even though
  * both dial the same number.
  *
- * Name and address are the other two thirds and are not settled here: the legal
- * name is 254 Services LLC, the brand wordmark is 254 Engineering Services, and
- * which one a listing carries is the operator's decision. See the operating name
- * condition in src/lib/launch.ts, which is why the compliance gate is shut.
+ * Name and address are the other two thirds and are not settled here. The legal
+ * name is whatever the register holds, which `firmName()` derives and which has
+ * been 254 Engineering LLC since the Board reissued F-29811 on 2026-09-21; the
+ * brand wordmark is 254 Engineering Services, which the Board now also holds as
+ * a recorded assumed name. Which one a listing carries is the operator's
+ * decision.
+ *
+ * THIS COMMENT TYPED THE LEGAL NAME AND WENT STALE, which is the thing it was
+ * describing happening to it. It read "the legal name is 254 Services LLC" for
+ * eight days after the reissuance, and it went on pointing at the operating
+ * name condition as the reason the gate was shut, which that condition stopped
+ * being on the same day. It names the deriver now instead of a string.
  */
 export const contact = {
   /**

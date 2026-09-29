@@ -428,6 +428,78 @@ as a wrong code on a working phone. That is the 2026-09-13 lockout.
 - `feat/0058-retired-protocol` is based on `cdb1508` and needs rebasing onto
   `main` before it can be measured or merged.
 
+## THE TRIGGER THAT INVALIDATES TOKENS AT SUSPENSION, WHICH IS THE GUARANTEE HALF
+
+**The application half shipped on 2026-09-29** and is not in question. What is
+owed is the migration.
+
+**Operator ruling, 2026-09-29.** "A password reset changes the password only,
+never the account status. A suspended account stays suspended until I lift it.
+Suspending an account also invalidates every outstanding reset and set password
+token for its users. Only an operator action reactivates." A suspended person
+opening a dead link sees the generic "that link is not valid", with no
+disclosure. Trigger as the guarantee, application row as the record with the
+actor.
+
+**What shipped.** `setCustomerPassword` refuses a suspended holder before the
+token is spent, and the write that sets `active` carries `neq("status",
+"suspended")` as the race guard with its result counted. `invited` still becomes
+`active`, which is the sign up door completing. Proved per door by
+`scripts/proofs/a-suspension-is-not-lifted-by-a-link.mjs`, 13 checks, deriving
+the doors from the registry so a fourth is covered the day it is declared.
+
+**WHAT IS STILL OWED, and it is the half that cannot be walked around.** A
+trigger that marks every outstanding `set_password` and `reset_password` token
+SPENT at the moment a customer user is suspended. **Marks spent, not deletes**,
+on the operator's ruling: a deleted token leaves no evidence it existed, and the
+question afterwards is "was there a live link when we suspended them", which
+only a spent row can answer. Plus the application audit row naming the operator
+who suspended.
+
+**Why it waits.** It is a production migration, and standing law says a
+migration on main is never pending, so the branch holding it does not merge
+until the operator is at a keyboard to run the production half.
+
+**What the gap is in the meantime.** The application guard covers every path
+that goes through `setCustomerPassword`, which is all three declared doors and
+the only route that spends a customer token. What it cannot cover is a route
+written later in raw SQL, which is exactly what the trigger exists to make
+impossible.
+
+### As first recorded, before the ruling
+
+Found 2026-09-29 while building the password reset door, which is why it was
+recorded rather than fixed: it was pre-existing, it was not reachable through
+anything that branch added, and the fix changes a path all three account doors
+share.
+
+`setCustomerPassword` in `src/lib/customer-auth.ts` ends with
+
+    .update({ password_hash: hash, password_salt: salt, status: "active" })
+
+**unconditionally.** So the sequence below reopens a closed account:
+
+1. A link is issued while the account is active, by any of the three doors.
+2. An operator suspends the account.
+3. The holder opens the link, which is still unspent and unexpired, and sets a
+   password. The row goes back to `active`.
+
+Both new reset routes refuse a suspended account at ISSUE time, so neither
+makes this more reachable. The hole is the window between issuing a link and
+somebody using it, which is up to 72 hours by `VERIFICATION_TTL_HOURS`.
+
+**Why it is a ruling rather than a mechanical fix.** The obvious change is to
+write `status` only when it is not `suspended`, but that silently gives a person
+a working password on an account they cannot sign into, which is its own
+confusing state. The alternatives are to expire outstanding tokens when an
+account is suspended, or to refuse the link outright with a sentence. Which one
+is right depends on what suspension is FOR, and that is the operator's call:
+whether it means "this person is temporarily barred" or "this account is
+closed".
+
+**What is not in doubt:** all three are better than the current behaviour, where
+the platform quietly undoes a decision a member of staff made.
+
 ## TWO DESIGNS DELIVERED 2026-09-23, NEITHER BUILT, IN `docs/overnight-2026-09-23.md`
 
 Pointer entry. Sections 14 and 15 of that document.

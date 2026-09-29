@@ -203,6 +203,15 @@ const ADMIN_APIS = [
    * choosing, which is money, so it is listed the day it ships.
    */
   "/api/portal/accounts/pricing",
+  /*
+   * 2026-09-29. Mails a password reset link to a customer on an operator's say
+   * so. A signed out POST here would let a stranger send this firm's own
+   * branded mail, carrying a live credential, to an address of their choosing,
+   * which is worse than the sign up route's equivalent because the link opens
+   * an account that already exists and already has orders on it. Listed the day
+   * it shipped.
+   */
+  "/api/portal/accounts/reset-password",
 
   /*
    * The one route that can take a charge without the launch gate, once, ever.
@@ -396,6 +405,36 @@ const OPEN_BY_DESIGN = new Set([
    */
   "/account/sign-up",
   "/api/account/sign-up",
+
+  /*
+   * PASSWORD RECOVERY, 2026-09-29, AND IT IS A FRONT DOOR BY THE SHARPEST
+   * VERSION OF THE DEFINITION ABOVE.
+   *
+   * A route for people who CANNOT SIGN IN cannot sit behind a check for being
+   * signed in. That is not a concession, it is the entire function: every
+   * person who legitimately needs this route is, by definition, unable to
+   * satisfy any session check it could carry.
+   *
+   * WHAT GUARDS IT INSTEAD, and all three are exercised rather than asserted.
+   * A rate limit that answers identically whether it refused, so it cannot be
+   * walked to learn which addresses hold accounts. One response sentence for
+   * every outcome, including a suspended account and no account at all. And no
+   * session, no password change and no token on the response: the only thing
+   * this route can cause is an email to an address already on file, which is
+   * the one place a stranger cannot read.
+   *
+   * IT IS NOT GATED ON THE SIGN UP CONDITION, unlike the pair above. That
+   * condition governs whether the firm accepts NEW self service accounts.
+   * Everybody reaching this already has one, so gating recovery on it would
+   * mean closing public sign up silently locked every existing customer out of
+   * their own password.
+   *
+   * THE STAFF SIDE IS NOT HERE. /api/portal/accounts/reset-password mails the
+   * same kind of link on an operator's say so and belongs in ADMIN_APIS with
+   * the rest of the portal, which is where it is listed.
+   */
+  "/account/forgot-password",
+  "/api/account/forgot-password",
 ]);
 
 /**

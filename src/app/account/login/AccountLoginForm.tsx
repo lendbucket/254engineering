@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 /**
@@ -56,9 +57,23 @@ export function AccountLoginForm({ next }: { next: string }) {
         className="mt-1.5 w-full rounded-[3px] border border-[var(--border)] px-3 py-2.5 text-[15px] text-[var(--navy)]"
       />
 
-      <label htmlFor="password" className="mt-4 block text-[13.5px] font-bold text-[var(--navy)]">
-        Password
-      </label>
+      {/*
+        THE LABEL AND THE WAY OUT SIT ON ONE LINE, which is where a person
+        looks for it: beside the field they have just failed to fill in
+        correctly, rather than below the button they are about to press.
+      */}
+      <div className="mt-4 flex items-baseline justify-between gap-3">
+        <label htmlFor="password" className="block text-[13.5px] font-bold text-[var(--navy)]">
+          Password
+        </label>
+        <Link
+          href="/account/forgot-password"
+          prefetch={false}
+          className="text-[12.5px] text-[var(--navy)] underline underline-offset-2"
+        >
+          Forgot password?
+        </Link>
+      </div>
       <input
         id="password"
         type="password"

@@ -57,20 +57,70 @@ The firm's TBPELS registration is pending, and no licensed PE is on staff yet. U
 - "Engineer", "engineering", and "sealed" are regulated terms in Texas. Treat every sentence
   containing them as load bearing.
 
+> ### EVERYTHING BELOW ABOUT THE FIRM'S NAME IS THE PRE-REISSUANCE RECORD. READ THIS FIRST.
+>
+> **TBPELS REISSUED F-29811 IN THE NAME 254 ENGINEERING LLC ON 2026-09-21, AND
+> THE OWNER ATTESTED TO THE CERTIFICATE ON 2026-09-29.** Every paragraph in this
+> section from "THE ENTITY WAS RENAMED" down to the condition table describes
+> the world BEFORE that, and each is kept rather than deleted because the
+> reasoning is why the gate is built the way it is.
+>
+> **What is true now, and it is one sentence.** The board, the state and the
+> firm all say **254 Engineering LLC**, F-29811, active to 2027-07-31. The board
+> ALSO holds Sealed Engineering, Stamp My Plans and 254 Engineering Services as
+> assumed names. `firmName()` and `registrationLine()` derive from the register,
+> so nothing below needs editing for the copy to be right, and nothing below is
+> a description of today.
+>
+> **`operatingNameOnBoardRecord` is `true` and the `trading-name` condition is
+> MET.** It gates `naming` and has never held the mode back by a step.
+>
+> **WHY THIS BLOCK EXISTS, AND IT IS THE SECTION'S OWN LESSON HAPPENING TO IT.**
+> On 2026-09-29 a session read the paragraphs below, told the operator in
+> writing that "the board holds F-29811 under 254 Services LLC", and refused to
+> transcribe a design footer reading "254 Engineering LLC, TBPELS Firm F-29811"
+> on the grounds that it paired the board's number with a name the board had no
+> record of. **The register had said 254 Engineering LLC for eight days, every
+> deriver rendered it, and the design was right.** Nothing was ever rendered
+> wrongly; the error was in a sentence a session said and in the document it
+> read to say it.
+>
+> This file records, in section 6b, that a recorded explanation is a hypothesis
+> until something re-checks it, and that a wrong one is worse than none because
+> it makes the next reader stop looking. That is exactly what happened, to this
+> section, about the fact this section is most about. The correction is marked
+> in place rather than made silently, for the same reason the Newsreader ruling
+> in 2b is still written down.
+>
+> **AND THE PART A READER SHOULD CARRY PAST THIS ONE ENTRY.** A supersession
+> notice at the head of a long passage does not stop the passage being quoted:
+> a reader looking for a specific fact lands in the middle. So the sentences
+> below that asserted the old name as a PRESENT fact are corrected where they
+> stand, and what is preserved is the reasoning rather than the stale claim.
+> **Where this file and `src/config/credentials.ts` disagree about the firm's
+> name, the register wins and this file is the defect.**
+
 **THE ENTITY WAS RENAMED ON 2026-09-16, AND NOTHING ON THE SITE MOVED.**
 Operator ruling, 2026-09-15, and it is the cleanest statement of what this gate
-is actually about.
+is actually about. **Superseded 2026-09-21 by the reissuance; kept for the
+reasoning.**
 
 The Secretary of State amendment is filed and stamped: **254 Engineering LLC**,
 formerly 254 Services LLC, effective **2026-09-16**, file number **806765419**.
 The amendment and the duplicate certificate form go to TBPELS on the 16th.
 
 **THE GATE'S CONDITION IS THE BOARD'S RECORD, NOT THE STATE'S**, and those are
-different facts. TBPELS still holds F-29811 in the name 254 Services LLC, so
-every rendered sentence goes on naming 254 Services LLC until the board reissues.
-Nothing about the copy changes, and nothing about the gate opens.
+different facts. **That principle is still the law and is the reason this
+paragraph is kept.** What it said next was that TBPELS still held F-29811 in the
+old name, so every rendered sentence went on naming it until the board
+reissued. **THE BOARD REISSUED ON 2026-09-21. The register holds
+254 Engineering LLC, every deriver renders it, and there is no window and no
+divergence left.** The sentence is corrected here rather than deleted because
+the principle it illustrates outlives the situation it described.
 
-`operatingNameOnBoardRecord` **flipped back to false**, because its recorded
+`operatingNameOnBoardRecord` **flipped back to false ON 2026-09-15, AND WAS SET
+TRUE AGAIN ON 2026-09-21 WHEN THE BOARD REISSUED. It is `true` today.** The
+account below is why it moved, not what it holds. It flipped false because its recorded
 reason was "the firm trades under its registered name" and the rename makes that
 sentence false. Leaving it true would have been a flag whose own stated reason
 contradicts the world, which is the failure this gate exists to prevent rather
@@ -79,19 +129,29 @@ reissuance. It is set at FILING rather than by a date comparison, because a
 compliance state that flips with no deploy and no audit trail is refused
 outright here; the cost is one day of reading false, erring toward shut.
 
-**THREE NAMES ARE NOW IN PLAY AND EACH IS A DIFFERENT FACT.** The board holds
-254 Services LLC. The state holds 254 Engineering LLC. 254 Engineering Services
-is the brand on the wordmark, the logo and the page titles, and is never the
-legal or firm name in a sentence. `compliance-audit` asserts the record names
-all three.
+**THREE NAMES WERE IN PLAY BETWEEN 2026-09-16 AND 2026-09-21, AND EACH WAS A
+DIFFERENT FACT.** The board held 254 Services LLC, the state held
+254 Engineering LLC, and 254 Engineering Services was the brand with no record
+behind it.
 
-**A KNOWN, ACCEPTED WINDOW, WRITTEN DOWN RATHER THAN DISCOVERED.** From
-2026-09-16 the site names an entity the STATE no longer holds, while the BOARD's
-record agrees with every sentence. That is the correct trade, because holding
-the copy still is what stops the sites claiming a name TBPELS has never
-registered, which is the exact misstatement the gate exists to prevent. It
-closes on reissuance. `business.legalName` is deliberately left at the old name
-for the same reason: stale against the state, true against the board, on purpose.
+**SINCE 2026-09-21 THERE ARE TWO, AND NEITHER IS A DISCREPANCY.** The board and
+the state both hold **254 Engineering LLC**. 254 Engineering Services is the
+brand on the wordmark, the logo and the page titles, it is never the legal or
+firm name in a sentence, **and the board now holds it as a recorded assumed
+name** alongside Sealed Engineering and Stamp My Plans. Whether a registered DBA
+is ever printed on a page is a copy ruling nobody has made.
+
+**A KNOWN, ACCEPTED WINDOW, WRITTEN DOWN RATHER THAN DISCOVERED. IT OPENED
+2026-09-16 AND CLOSED 2026-09-21. THERE IS NO OPEN WINDOW TODAY.** For those
+five days the site named an entity the STATE no longer held, while the BOARD's
+record agreed with every sentence. That was the correct trade, because holding
+the copy still is what stopped the sites claiming a name TBPELS had never
+registered, which is the exact misstatement the gate exists to prevent.
+
+`business.legalName` was deliberately left at the old name for the same reason,
+stale against the state and true against the board, on purpose. **It reads
+254 Engineering LLC now**, changed when the reissuance made both records agree,
+and `compliance-audit` compares it to the registrant on every run.
 
 **AND THE NAME IS NOW DERIVED, WHICH MAKES REISSUANCE ONE VALUE.** `firmName()`
 in `src/lib/launch.ts` reads `issuedTo` off the register, and twenty rendered
@@ -118,17 +178,26 @@ in the same commit as the deriver, before any sentence uses it.
 
 **THE FIRM REGISTRATION ISSUED ON 2026-09-10, AND THE GATE DID NOT OPEN.**
 
-TBPELS issued **F-29811** to **254 Services LLC**, active, expiring
-**2027-07-31**. It is recorded in `src/config/credentials.ts`, which is the one
-place it lives.
+TBPELS issued **F-29811**, active, expiring **2027-07-31**. It is recorded in
+`src/config/credentials.ts`, which is the one place it lives. **It issued to
+254 Services LLC on that date and was REISSUED to 254 Engineering LLC on
+2026-09-21, which is what the register holds today.**
 
-**The gate stays shut, and the reason is the name.** The registration is in the
-name 254 Services LLC. All three sites hold out as 254 Engineering Services. A
-registration in one name does not authorise holding out under another, and Texas
-regulates the use of "engineer" and "engineering" in how a firm names itself and
-presents itself. Printing the board's number beside a name the board has no
+**The gate stayed shut in September 2026, and the reason was the name.** The
+registration was then in a name none of the three sites held out under, and a
+registration in one name does not authorise holding out under another: Texas
+regulates the use of "engineer" and "engineering" in how a firm names itself
+and presents itself. Printing the board's number beside a name the board has no
 record of would be the exact misstatement this gate exists to prevent, made in
 the one place a reader goes to check.
+
+**THAT REASON IS SPENT AND THE PRINCIPLE IS NOT.** The board now holds
+254 Engineering LLC and holds 254 Engineering Services as a recorded assumed
+name, so the pairing the paragraph forbids is no longer the pairing the site
+renders. The rule to carry forward is the one about pairings rather than the
+one about those two strings: **a number is only ever printed beside the name
+the register holds, and it is derived rather than typed so it cannot be printed
+beside anything else.**
 
 So the gate is no longer one variable. **`LAUNCH_MODE` is the operator's SWITCH
 and one of the conditions rather than all of them.** `launchBlockers()` in
@@ -198,10 +267,14 @@ two homes, and the drift lands in whichever one nothing checks.
 operator's live view.** The screen renders `launchReadiness()` and computes
 nothing itself, because a screen with its own copy of the logic is a second gate.
 
-**Two consequences worth knowing before they bite.** First, the public footer now
-reads `254 Services LLC, TBPELS Firm F-29811` while the gate is SHUT, with the
-brand on its own line above: the hazard was never printing the number, it was
-printing it beside a name the board has no record of. `tbpelsFirmNumber()` still
+**Two consequences worth knowing before they bite.** First, the public footer
+states the registrant and the number while the gate is SHUT, with the brand on
+its own line above: the hazard was never printing the number, it was printing it
+beside a name the board has no record of. **It read
+`254 Services LLC, TBPELS Firm F-29811` when this was written and reads
+`254 Engineering LLC, TBPELS Firm F-29811` since the reissuance of 2026-09-21.
+It is not quoted as a literal here, because `registrationLine()` moves by itself
+and prose does not, which is how this paragraph went stale in the first place.** `tbpelsFirmNumber()` still
 returns null in prelaunch, because it feeds claims of capability rather than a
 disclosure of who the registrant is. Second, `orderBlockedReason` in
 `data/catalog.ts` now takes `hasApprovedProtocol` as a REQUIRED third parameter,
