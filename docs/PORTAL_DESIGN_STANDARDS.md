@@ -42,6 +42,36 @@ Visual reference: `254 Brand Standards.dc.html`. Canonical implementation: `254 
 - Logos: `brand-assets/logo.png` (light backgrounds), `brand-assets/logo-dark.png` (navy backgrounds)
 - Status: firm TBPELS registration pending — never show order-taking or sealing as available until it lifts
 
+## SUPERSEDED BY DESIGN V10: THE COLOUR TOKENS AND THE TYPEFACES
+
+**Operator ruling, Robert Reyna, 2026-09-29.** `docs/design-v10/DESIGN_V10.md`
+supersedes the colour tokens and the typefaces below. **Everything else in this
+file stays in force**: the voice, the product truths, the accessibility rules,
+the dash rule, the shape and spacing rules, and the standards the board already
+asserts.
+
+| | Was | Is now |
+| --- | --- | --- |
+| navy | `#14315D` | **`#012758`** |
+| gold | `#D9A032` | **`#D6A62A`**, taken from the logo |
+| headings and figures | Archivo | **Inter**, 400/500/600/700 |
+| body and UI | Open Sans | **Inter** |
+
+**Two rules come with it and both are narrower than what this file said.** V10
+allows **no status colours at all**: no red, green or amber anywhere in the
+interface. Urgency is shown with weight and with words, "Overdue 4h", never with
+a dot, a badge or a tinted box. And there is **no monospace anywhere**, including
+file numbers, times and money.
+
+**The old tokens are left below rather than deleted**, and that is the practice
+this repository already follows for the Newsreader typeface ruling and the
+keyword-ownership model. A superseded decision that leaves no trace reads as a
+decision nobody made, and the next session finds the reasoning in the git history
+and assumes the current state is an accident.
+
+**The full token set, the type scale, the layout rules and the component
+inventory are in `DESIGN_V10.md`.** Where the two disagree, V10 wins.
+
 ## Color tokens
 ```css
 --navy: #14315D;        /* primary, headings, sidebar, primary buttons */
@@ -80,6 +110,11 @@ Rules: gold appears only in the logo, warnings, pending states, and the active-n
 Green only on status dots. Never gradients. New tints via oklch near these anchors.
 
 ## Typography
+
+> **SUPERSEDED 2026-09-29 by DESIGN_V10: Inter replaces both faces**, weights
+> 400, 500, 600, 700, and no monospace anywhere including file numbers, times
+> and money. The scale below is superseded by V10's. Kept for the record.
+
 - Headings & figures: `Archivo` (500/600/700/800). Body & UI: `Open Sans` (400/600/700).
 - Google Fonts: `Archivo:wght@500;600;700;800`, `Open Sans:ital,wght@0,400;0,600;0,700;1,400`
 - Scale: page display 30/800 Archivo · KPI figure 24/700 Archivo (tabular-nums) ·
