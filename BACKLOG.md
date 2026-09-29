@@ -428,12 +428,50 @@ as a wrong code on a working phone. That is the 2026-09-13 lockout.
 - `feat/0058-retired-protocol` is based on `cdb1508` and needs rebasing onto
   `main` before it can be measured or merged.
 
-## A SUSPENDED CUSTOMER CAN REACTIVATE THEMSELVES WITH A LINK ISSUED BEFORE THE SUSPENSION
+## THE TRIGGER THAT INVALIDATES TOKENS AT SUSPENSION, WHICH IS THE GUARANTEE HALF
 
-Found 2026-09-29 while building the password reset door, which is why it is
-recorded rather than fixed: it is pre-existing, it is not reachable through
-anything that branch adds, and the fix changes a path all three account doors
-share. **Needs a ruling.**
+**The application half shipped on 2026-09-29** and is not in question. What is
+owed is the migration.
+
+**Operator ruling, 2026-09-29.** "A password reset changes the password only,
+never the account status. A suspended account stays suspended until I lift it.
+Suspending an account also invalidates every outstanding reset and set password
+token for its users. Only an operator action reactivates." A suspended person
+opening a dead link sees the generic "that link is not valid", with no
+disclosure. Trigger as the guarantee, application row as the record with the
+actor.
+
+**What shipped.** `setCustomerPassword` refuses a suspended holder before the
+token is spent, and the write that sets `active` carries `neq("status",
+"suspended")` as the race guard with its result counted. `invited` still becomes
+`active`, which is the sign up door completing. Proved per door by
+`scripts/proofs/a-suspension-is-not-lifted-by-a-link.mjs`, 13 checks, deriving
+the doors from the registry so a fourth is covered the day it is declared.
+
+**WHAT IS STILL OWED, and it is the half that cannot be walked around.** A
+trigger that marks every outstanding `set_password` and `reset_password` token
+SPENT at the moment a customer user is suspended. **Marks spent, not deletes**,
+on the operator's ruling: a deleted token leaves no evidence it existed, and the
+question afterwards is "was there a live link when we suspended them", which
+only a spent row can answer. Plus the application audit row naming the operator
+who suspended.
+
+**Why it waits.** It is a production migration, and standing law says a
+migration on main is never pending, so the branch holding it does not merge
+until the operator is at a keyboard to run the production half.
+
+**What the gap is in the meantime.** The application guard covers every path
+that goes through `setCustomerPassword`, which is all three declared doors and
+the only route that spends a customer token. What it cannot cover is a route
+written later in raw SQL, which is exactly what the trigger exists to make
+impossible.
+
+### As first recorded, before the ruling
+
+Found 2026-09-29 while building the password reset door, which is why it was
+recorded rather than fixed: it was pre-existing, it was not reachable through
+anything that branch added, and the fix changes a path all three account doors
+share.
 
 `setCustomerPassword` in `src/lib/customer-auth.ts` ends with
 

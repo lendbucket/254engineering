@@ -207,6 +207,61 @@ export async function setCustomerPassword(
     };
   }
 
+  /*
+   * ===================================================================
+   * A SUSPENDED ACCOUNT IS NOT REOPENED BY A LINK. Operator ruling,
+   * 2026-09-29.
+   * ===================================================================
+   *
+   * "A password reset changes the password only, never the account status. A
+   * suspended account stays suspended until I lift it. Only an operator action
+   * reactivates."
+   *
+   * WHAT WAS WRONG. The update at the end of this function writes
+   * `status: "active"` unconditionally. So a link issued while an account was
+   * active, followed by a suspension, followed by the holder opening the link,
+   * put the row back to active. The platform quietly undid a decision a member
+   * of staff had made, and nothing anywhere said so.
+   *
+   * It was found on 2026-09-29 while building the reset door, recorded rather
+   * than fixed in the same breath because the fix touches a path all three
+   * customer doors share and the right answer depended on what suspension
+   * MEANS, which is the operator's call and not a detail.
+   *
+   * THE REFUSAL IS THE GENERIC SENTENCE. Operator ruling, same day: a suspended
+   * person opening a dead link sees "That link is not valid" and learns nothing
+   * else. Saying "this account is suspended" would tell anybody holding a stale
+   * link the status of an account they may not own, and the person who needs
+   * the real explanation is already on the telephone.
+   *
+   * IT IS CHECKED BEFORE THE TOKEN IS SPENT, which is the ordering that
+   * matters. Spending first and refusing second would burn a legitimate link on
+   * a refused attempt, so an account suspended and then lifted would find its
+   * outstanding link already dead for no reason anybody could reconstruct.
+   *
+   * AND THE FINAL UPDATE CARRIES THE SAME CONDITION, because this read and that
+   * write are two statements with a gap between them. A suspension landing in
+   * that gap would otherwise walk straight past the check it was written for.
+   * The guard below is the answer to "what did you see", and the `neq` on the
+   * update is the answer to "what was true when you wrote".
+   *
+   * THE TRIGGER IS STILL OWED. This is the application half. Invalidating every
+   * outstanding token AT the moment of suspension is a migration, it is the
+   * guarantee a second route written later cannot walk around, and it waits for
+   * a sitting with the operator at the keyboard. Until it lands, this function
+   * is the guard, and it is the only place all three customer doors pass
+   * through.
+   */
+  const { data: holder } = await db
+    .from("eng_customer_users")
+    .select("status")
+    .eq("id", inspected.userId)
+    .maybeSingle();
+
+  if (!holder || holder.status === "suspended") {
+    return { ok: false, error: "That link is not valid." };
+  }
+
   const { hash, salt } = newPasswordRecord(password);
 
   /*
@@ -260,12 +315,49 @@ export async function setCustomerPassword(
     .eq("id", inspected.userId)
     .is("email_verified_at", null);
 
-  const { error } = await db
+  /*
+   * `neq` IS THE RACE GUARD, AND `select` IS WHAT MAKES IT AUDIBLE.
+   *
+   * The status read above answers "was this account suspended when we looked".
+   * This answers "was it suspended when we wrote", and they are different
+   * questions because PostgREST gives one statement at a time. Without the
+   * condition, a suspension landing between the two would be overwritten by
+   * this line, which is the exact defect being fixed, surviving inside its own
+   * fix.
+   *
+   * The returned rows are counted rather than assumed. An update that matches
+   * nothing is not an error in PostgREST: it succeeds and reports no error at
+   * all, so a version of this that only checked `error` would refuse nothing
+   * and return ok. That is the shape this repository calls a green over an
+   * empty set, and here it would have made the whole guard vacuous while
+   * reading as though it worked.
+   *
+   * `status: "active"` still moves an INVITED row to active, which is the sign
+   * up door completing and is what the operator's ruling preserves. What it can
+   * no longer do is move a SUSPENDED one.
+   */
+  const { data: written, error } = await db
     .from("eng_customer_users")
     .update({ password_hash: hash, password_salt: salt, status: "active" })
-    .eq("id", inspected.userId);
+    .eq("id", inspected.userId)
+    .neq("status", "suspended")
+    .select("id");
 
   if (error) return { ok: false, error: "The password could not be set." };
+
+  /*
+   * Nothing was written, which here means the account was suspended between the
+   * read above and this write. The token has already been spent, and that is
+   * the right outcome rather than a loss: a link that arrived during a
+   * suspension should not still be live afterwards, which is what the trigger
+   * will make true at the moment of suspension rather than at the moment of use.
+   *
+   * The sentence is the generic one, for the reason the block above gives.
+   */
+  if (!written || written.length === 0) {
+    return { ok: false, error: "That link is not valid." };
+  }
+
   return { ok: true, userId: inspected.userId };
 }
 
