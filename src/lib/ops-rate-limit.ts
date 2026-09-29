@@ -51,7 +51,7 @@ import "server-only";
  * waiting: see releaseLock and src/app/api/portal/unlock/route.ts.
  */
 
-import { SIGN_UP_ATTEMPTS_PER_HOUR } from "./account-doors";
+import { RESET_ATTEMPTS_PER_HOUR, SIGN_UP_ATTEMPTS_PER_HOUR } from "./account-doors";
 
 const WINDOW_MS = 15 * 60 * 1000;
 
@@ -249,6 +249,53 @@ export function takeSignUpAttempt(
 }
 
 const SIGN_UP_WINDOW_MS = 60 * 60 * 1000;
+
+/**
+ * HOW MANY PASSWORD RESET LINKS ONE ADDRESS MAY ASK FOR IN AN HOUR.
+ *
+ * The same two bucket shape as `takeSignUpAttempt`, and for the same two
+ * reasons, so the comment above that function is the explanation for this one
+ * as well. The second bucket keyed on the connection is what stops a limit
+ * keyed on an address alone from being a denial of service anybody can aim at
+ * anybody: three requests naming somebody's address would otherwise lock that
+ * person out of resetting their own password for an hour, which is precisely
+ * when they need it.
+ *
+ * THE CEILING IS ITS OWN, declared in account-doors.ts and pinned by
+ * accounts-audit. Reusing the sign up number would mean tuning one silently
+ * moved the other.
+ *
+ * THE CALLER MUST NOT SAY THAT IT REFUSED, and /api/account/forgot-password
+ * does not: it answers one sentence whether this returned true or false. A
+ * refusal visible only for addresses that exist is an enumeration oracle with
+ * a delay attached.
+ */
+export function takeResetAttempt(
+  address: string,
+  identity: string,
+  now: number = Date.now(),
+): boolean {
+  prune(now);
+
+  const key = `reset:${address}`;
+  const existing = buckets.get(key);
+
+  if (!existing || now - existing.first > SIGN_UP_WINDOW_MS) {
+    buckets.set(key, { count: 1, first: now });
+    return true;
+  }
+
+  existing.count += 1;
+  if (existing.count > RESET_ATTEMPTS_PER_HOUR) return false;
+
+  const byConnection = buckets.get(`reset:${address}:${identity}`);
+  if (!byConnection || now - byConnection.first > SIGN_UP_WINDOW_MS) {
+    buckets.set(`reset:${address}:${identity}`, { count: 1, first: now });
+    return true;
+  }
+  byConnection.count += 1;
+  return byConnection.count <= RESET_ATTEMPTS_PER_HOUR;
+}
 
 export function clientKey(headers: Headers): string {
   const forwarded = headers.get("x-forwarded-for");

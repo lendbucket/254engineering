@@ -342,6 +342,79 @@ export async function issueLinkForExistingAccount(
 }
 
 /**
+ * ISSUE A PASSWORD RESET LINK FOR AN ACCOUNT THAT ALREADY EXISTS.
+ *
+ * Until 2026-09-29 no code anywhere called `issueCustomerToken` with
+ * `reset_password`. The purpose had been declared since the table was written
+ * and nothing minted one, so a customer who forgot their password had no route
+ * back in, self service or otherwise: nobody at the firm could send them one
+ * either. It is the dormant register shape CLAUDE.md records twice, and what
+ * made it invisible is that the type compiled, the screen at
+ * /account/set-password worked, and the purpose read as supported.
+ *
+ * IT MIRRORS `issueLinkForExistingAccount` RATHER THAN EXTENDING IT, and the
+ * difference is the whole reason there are two functions. That one is reached
+ * from a SIGN UP attempt on an address that already has an account, so the
+ * honest thing to send is "finish setting this up". This one is reached from
+ * somebody saying they have forgotten a password. The token purpose differs,
+ * the audit action differs, and the email differs. Folding them together would
+ * mean a boolean parameter deciding three things, which is how one function
+ * ends up describing two events in the trail.
+ *
+ * A SUSPENDED ACCOUNT GETS NOTHING, exactly as on the sign up path. Mailing a
+ * working link into an account somebody deliberately closed would be this door
+ * undoing a decision made on another one, and the caller says the same sentence
+ * either way so nothing is disclosed by the refusal.
+ *
+ * AN INVITED ACCOUNT DOES GET ONE. Somebody who was invited, never finished,
+ * and now types their address into a forgotten password form has exactly the
+ * problem this solves, and telling them to look for a different email they
+ * cannot find is the unhelpful answer. The link sets a password either way.
+ *
+ * IT RETURNS null FOR "no such address" AND FOR "suspended" WITHOUT
+ * DISTINGUISHING THEM, deliberately. The caller cannot leak a difference it
+ * cannot see.
+ */
+export async function issueResetForAccount(
+  address: string,
+): Promise<{ token: string; displayName: string; customerUserId: string } | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
+
+  const { data: user } = await db
+    .from("eng_customer_users")
+    .select("id, display_name, status")
+    .eq("email", normaliseAddress(address))
+    .maybeSingle();
+  if (!user) return null;
+  if (user.status === "suspended") return null;
+
+  const issued = await issueCustomerToken(user.id as string, "reset_password");
+  if (!issued) return null;
+
+  /*
+   * ISSUED, AND NOTHING ELSE, for the reason written out above its sibling: a
+   * row claiming a link was SENT, written before the caller has queued
+   * anything, is a false line in an append only trail. Four such rows exist on
+   * development and cannot be removed. The enqueue outcome is recorded by the
+   * caller that performs it.
+   */
+  await recordSystemAudit({
+    action: "customer_account.reset_link_issued",
+    entityType: "customer_user",
+    entityId: user.id as string,
+    summary:
+      "A password reset link was issued for an existing account. Nothing was created and no password was changed. Whether an email carrying it was queued is recorded separately, by the caller that queues it.",
+  });
+
+  return {
+    token: issued.token,
+    displayName: (user.display_name as string) ?? "",
+    customerUserId: user.id as string,
+  };
+}
+
+/**
  * What happened when a set password link was handed to the queue, recorded by
  * the code that did the handing.
  *
@@ -353,14 +426,29 @@ export async function issueLinkForExistingAccount(
 export async function recordLinkEmailQueued(
   customerUserId: string,
   result: { ok: true; id: number; duplicate: boolean } | { ok: false; error: string },
+  /*
+   * WHICH LINK, BECAUSE THE TRAIL SHOULD NOT SAY "set password" ABOUT A RESET.
+   *
+   * Added 2026-09-29 with the password reset door. This helper had one caller
+   * and its sentence was written for that caller, so reusing it unchanged would
+   * have written "An email carrying the set password link was queued" onto
+   * every reset. That is small, and it is the same class as the
+   * `customer_link.issued` row that read like evidence somebody had been
+   * written to: a line in an append only trail describing an event other than
+   * the one that happened.
+   *
+   * It defaults to the original wording so the existing callers are untouched
+   * and their rows stay comparable with the ones already written.
+   */
+  link: "set password" | "password reset" = "set password",
 ): Promise<void> {
   await recordSystemAudit({
     action: result.ok ? "customer_account.link_email_queued" : "customer_account.link_email_not_queued",
     entityType: "customer_user",
     entityId: customerUserId,
     summary: result.ok
-      ? `An email carrying the set password link was queued${result.id > 0 ? ` as job ${result.id}` : ""}${result.duplicate ? ", matching one already waiting" : ""}. Queued is not sent; the job records delivery.`
-      : `The email carrying the set password link could not be queued, so it was not sent: ${result.error}`,
+      ? `An email carrying the ${link} link was queued${result.id > 0 ? ` as job ${result.id}` : ""}${result.duplicate ? ", matching one already waiting" : ""}. Queued is not sent; the job records delivery.`
+      : `The email carrying the ${link} link could not be queued, so it was not sent: ${result.error}`,
   });
 }
 

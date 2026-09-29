@@ -974,6 +974,85 @@ export function accountWelcome(input: {
 }
 
 /**
+ * A PASSWORD RESET LINK.
+ *
+ * IT IS A SEPARATE TEMPLATE FROM accountWelcome AND NOT A FOURTH `origin`.
+ * The welcome email's whole job is to tell somebody an account now exists and
+ * what to do about it. This one goes to a person who knows perfectly well that
+ * their account exists and cannot get into it. Folding them together would put
+ * a fourth branch through three sentences that already carry three, and the
+ * reader of this one needs a fact none of those three needs: that nothing has
+ * changed yet, and that ignoring the message is safe.
+ *
+ * THE "YOU DID NOT ASK FOR THIS" SENTENCE IS NOT BOILERPLATE, IT IS THE POINT.
+ * This is the one email at this firm that an attacker can cause to be sent to
+ * somebody else's mailbox, by typing their address into a public form. The
+ * person receiving it may have done nothing at all. So it says plainly that no
+ * password has been changed and that doing nothing leaves the account exactly
+ * as it was, which is both true and the only thing that makes the message
+ * harmless to a stranger.
+ *
+ * IT NAMES NO ACCOUNT DETAIL beyond the person's own name, which is already
+ * their address's to know. No company, no order, no account number: the
+ * recipient of an unrequested reset email should learn nothing from it.
+ *
+ * WHO ASKED IS STATED, because the two cases differ for the reader. Somebody
+ * who clicked a link a minute ago wants confirmation; somebody whose reset was
+ * sent by the firm after a telephone call wants to know why an email about
+ * their password arrived unprompted.
+ */
+export function passwordReset(input: {
+  customerName: string;
+  customerEmail: string;
+  /** Who caused this to be sent. The reader's situation differs. */
+  requestedBy: "customer" | "firm";
+  /** The signed link. Sets a password; does not sign anybody in. */
+  link: string;
+  /** In words, as a person reads them: "3 days", not an ISO timestamp. */
+  expiresIn: string;
+}): RenderedEmail {
+  const byFirm = input.requestedBy === "firm";
+
+  return compose(
+    "account.password_reset",
+    "human",
+    "Reset your password",
+    {
+      preheader: byFirm
+        ? `We have sent you a link to set a new password. It lasts ${input.expiresIn}.`
+        : `A link to set a new password. It lasts ${input.expiresIn}, and nothing has changed yet.`,
+      signed: true,
+      blocks: [
+        { kind: "p", text: `${input.customerName},` },
+        {
+          kind: "p",
+          text: byFirm
+            ? `Somebody at ${firmName()} sent you this link so you can set a new password on your account. Your current password still works until you use it.`
+            : "Somebody asked for a link to set a new password on your account. If that was you, the button below is the way in.",
+        },
+        {
+          kind: "p",
+          /*
+           * THE HARMLESSNESS SENTENCE, and it is written as a fact rather than
+           * as reassurance. "Your account is safe" is a claim about a state
+           * nobody here can see. "No password has been changed" is a fact about
+           * what this email did, which is nothing, and it is the fact a person
+           * who did not ask for this needs.
+           */
+          text: "No password has been changed. If you did not ask for this, you do not need to do anything: ignore this message and the account stays exactly as it is.",
+        },
+        {
+          kind: "note",
+          text: `This link lasts ${input.expiresIn} and works once. If it has expired by the time you open it, ask for another from the sign in page.`,
+        },
+      ],
+      button: { label: "Set a new password", url: input.link },
+    },
+    { to: input.customerEmail },
+  );
+}
+
+/**
  * The engineer could not seal it, and what happens to the money.
  *
  * EVERY FIGURE COMES FROM refundFor, WHICH IS THE ONLY THING THAT KNOWS.
@@ -1653,6 +1732,27 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       origin: "order_checkout",
       link: "https://254engineering.com/account/set-password?token=SAMPLE",
       expiresIn: "7 days",
+    }),
+    /*
+     * BOTH WAYS A RESET CAN BE ASKED FOR, because they render different
+     * sentences and a fixture that only built one would leave the other
+     * unmeasured. That is the coverage question this list exists to answer, and
+     * it went red naming account.password_reset the first time this template
+     * shipped without an entry here, which is the inventory working.
+     */
+    passwordReset({
+      customerName: "Sample Customer",
+      customerEmail: "sample@example.com",
+      requestedBy: "customer",
+      link: "https://254engineering.com/account/set-password?token=SAMPLE",
+      expiresIn: "3 days",
+    }),
+    passwordReset({
+      customerName: "Sample Customer",
+      customerEmail: "sample@example.com",
+      requestedBy: "firm",
+      link: "https://254engineering.com/account/set-password?token=SAMPLE",
+      expiresIn: "3 days",
     }),
     /*
      * The three a paying customer gets. The sample figures are deliberately

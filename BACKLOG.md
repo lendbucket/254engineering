@@ -428,6 +428,40 @@ as a wrong code on a working phone. That is the 2026-09-13 lockout.
 - `feat/0058-retired-protocol` is based on `cdb1508` and needs rebasing onto
   `main` before it can be measured or merged.
 
+## A SUSPENDED CUSTOMER CAN REACTIVATE THEMSELVES WITH A LINK ISSUED BEFORE THE SUSPENSION
+
+Found 2026-09-29 while building the password reset door, which is why it is
+recorded rather than fixed: it is pre-existing, it is not reachable through
+anything that branch adds, and the fix changes a path all three account doors
+share. **Needs a ruling.**
+
+`setCustomerPassword` in `src/lib/customer-auth.ts` ends with
+
+    .update({ password_hash: hash, password_salt: salt, status: "active" })
+
+**unconditionally.** So the sequence below reopens a closed account:
+
+1. A link is issued while the account is active, by any of the three doors.
+2. An operator suspends the account.
+3. The holder opens the link, which is still unspent and unexpired, and sets a
+   password. The row goes back to `active`.
+
+Both new reset routes refuse a suspended account at ISSUE time, so neither
+makes this more reachable. The hole is the window between issuing a link and
+somebody using it, which is up to 72 hours by `VERIFICATION_TTL_HOURS`.
+
+**Why it is a ruling rather than a mechanical fix.** The obvious change is to
+write `status` only when it is not `suspended`, but that silently gives a person
+a working password on an account they cannot sign into, which is its own
+confusing state. The alternatives are to expire outstanding tokens when an
+account is suspended, or to refuse the link outright with a sentence. Which one
+is right depends on what suspension is FOR, and that is the operator's call:
+whether it means "this person is temporarily barred" or "this account is
+closed".
+
+**What is not in doubt:** all three are better than the current behaviour, where
+the platform quietly undoes a decision a member of staff made.
+
 ## TWO DESIGNS DELIVERED 2026-09-23, NEITHER BUILT, IN `docs/overnight-2026-09-23.md`
 
 Pointer entry. Sections 14 and 15 of that document.

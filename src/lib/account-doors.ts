@@ -166,6 +166,31 @@ export function doorFor(origin: AccountOrigin): AccountDoor {
 export const SIGN_UP_ATTEMPTS_PER_HOUR = 5;
 
 /**
+ * HOW MANY PASSWORD RESET LINKS ONE ADDRESS MAY ASK FOR IN A WINDOW.
+ *
+ * Declared here beside the sign up ceiling and pinned by accounts-audit, so
+ * changing it costs two edits made on purpose.
+ *
+ * WHY IT IS ITS OWN NUMBER RATHER THAN REUSING THE SIGN UP CEILING. They are
+ * limits on different things, and sharing a constant would mean tuning one
+ * silently moved the other. Sign up limiting is aimed at somebody walking an
+ * address list; reset limiting is aimed at that AND at using this firm's mail
+ * server to deliver unwanted mail to an address the requester does not own.
+ *
+ * WHY THREE RATHER THAN FIVE. A person who has genuinely forgotten a password
+ * asks once, looks in the wrong mailbox, and asks again. Three covers that
+ * with room to spare. Every request beyond it sends mail somebody did not ask
+ * for to an address the requester has not proved they hold, so the cost of
+ * being generous here falls on a third party rather than on the firm.
+ *
+ * THE REFUSAL SAYS THE SAME THING AS A SUCCESS, which is the property that
+ * makes this worth having at all. A limit that answers differently for
+ * addresses that exist is the enumeration oracle it was meant to close,
+ * wearing a delay.
+ */
+export const RESET_ATTEMPTS_PER_HOUR = 3;
+
+/**
  * How long a verification link lasts, in hours, and in words for the email.
  *
  * The number and the sentence are derived from one constant so they cannot

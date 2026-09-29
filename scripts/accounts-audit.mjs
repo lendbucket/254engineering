@@ -1264,6 +1264,24 @@ function screenDirFor(urlPath) {
     /SIGN_UP_ATTEMPTS_PER_HOUR = 5;/.test(doorsSource),
     "it is what stops an address list being walked to learn who holds an account here",
   );
+  /*
+   * THE RESET CEILING IS ITS OWN NUMBER AND ITS OWN PIN.
+   *
+   * Sharing the sign up pin would mean tuning one silently moved the other,
+   * which is the same two-homes shape one level down: two decisions with one
+   * value, and nobody notices until somebody changes it for one reason and gets
+   * both.
+   *
+   * It is lower than the sign up ceiling on purpose. Every request beyond what
+   * a forgetful person actually needs sends mail nobody asked for to an address
+   * the requester has not proved they hold, so the cost of being generous here
+   * is paid by a third party.
+   */
+  rec(
+    "the password reset ceiling is still three attempts an hour",
+    /RESET_ATTEMPTS_PER_HOUR = 3;/.test(doorsSource),
+    "beyond it, a stranger is using this firm's mail server to write to somebody else's inbox",
+  );
   rec(
     "a verification link still lasts 72 hours",
     /VERIFICATION_TTL_HOURS = 72;/.test(doorsSource),

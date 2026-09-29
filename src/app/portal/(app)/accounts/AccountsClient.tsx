@@ -313,6 +313,120 @@ export function AccountsClient({ rows }: { rows: Row[] }) {
           </button>
         </nav>
       ) : null}
+
+      <SendResetLink />
     </div>
+  );
+}
+
+/**
+ * SEND A CUSTOMER A PASSWORD RESET LINK.
+ *
+ * The customer telephones saying they cannot get in. Until 2026-09-29 there was
+ * nothing an operator could do about that: no code anywhere minted a
+ * `reset_password` token for a customer, so the only answers available were to
+ * open a second account or to give up.
+ *
+ * IT TAKES A TYPED ADDRESS RATHER THAN SITTING ON EACH ROW, and that is a
+ * scope decision worth naming rather than hiding. The rows on this screen are
+ * ACCOUNTS, and an account has `users: number` and no addresses: putting a
+ * button on a row would mean either sending to a person the operator cannot
+ * see, or widening the server query to carry every user of every account
+ * through a list that is already paged for being too long. The address is what
+ * the person on the telephone is reading out anyway.
+ *
+ * The consequence is stated in the help text rather than left to be discovered:
+ * this sends to whichever customer holds that address, which may be one of
+ * several people on the same account.
+ *
+ * IT DOES NOT SHARE `act`, because that helper posts to /api/portal/accounts
+ * and this is its own route. Threading a second URL through it would make one
+ * function answer for two endpoints, which is how a screen ends up reporting
+ * the wrong thing about the wrong call.
+ */
+function SendResetLink() {
+  const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+
+  return (
+    <section className="mt-8 border-t border-limestone-line pt-6">
+      <h2 className="text-[16px] font-bold text-[var(--navy)]">Send a password reset link</h2>
+      <p className="mt-1.5 max-w-[62ch] text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+        For a customer who cannot sign in. The link goes to the address on their account and
+        nowhere else, it works once, and their current password keeps working until they use it.
+        Nobody here sees the link or their password.
+      </p>
+
+      <form
+        className="mt-4 flex flex-wrap items-end gap-3"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          if (busy) return;
+          setBusy(true);
+          setError(null);
+          setNote(null);
+          try {
+            const res = await fetch("/api/portal/accounts/reset-password", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email }),
+            });
+            const data = (await res.json().catch(() => null)) as
+              | { ok?: boolean; error?: string; message?: string }
+              | null;
+            if (!res.ok || !data?.ok) {
+              setError(data?.error ?? "That did not work.");
+              return;
+            }
+            setNote(data.message ?? "Sent.");
+            setEmail("");
+          } catch {
+            setError("The network did not answer. Nothing was sent.");
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[12.5px] font-bold text-[var(--secondary)]">
+            Customer email address
+          </span>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoComplete="off"
+            className="min-h-[44px] w-[min(100%,22rem)] rounded-[3px] border border-limestone-line px-3 text-[14px] text-[var(--navy)]"
+          />
+        </label>
+        <button
+          type="submit"
+          disabled={busy}
+          className="min-h-[44px] rounded-[3px] bg-[var(--navy)] px-5 text-[13.5px] font-bold text-white disabled:opacity-50"
+        >
+          {busy ? "Sending" : "Send the link"}
+        </button>
+      </form>
+
+      {error ? (
+        <p
+          role="alert"
+          className="mt-3 rounded-[3px] bg-[var(--warn-bg)] px-3 py-2 text-[13.5px] leading-[1.6] text-[var(--red)]"
+        >
+          {error}
+        </p>
+      ) : null}
+      {note ? (
+        <p
+          role="status"
+          className="mt-3 rounded-[3px] bg-[var(--green-bg)] px-3 py-2 text-[13.5px] leading-[1.6] text-[var(--green)]"
+        >
+          {note}
+        </p>
+      ) : null}
+    </section>
   );
 }
