@@ -177,18 +177,27 @@ export function OrderFlow({
 
   if (done) {
     return (
-      <div className="rounded-[4px] border border-[var(--border)] border-t-slate bg-white px-6 py-7">
-        <h2 className="font-display text-[1.4rem] leading-[1.2] font-semibold text-[var(--navy)]">
+      <div>
+        <h2 className="text-[30px] leading-[1.12] font-semibold tracking-[-0.5px] text-[var(--color-ink)]">
           {entry?.orderType === "quote" ? "Your request is with the firm" : "Your order is placed"}
         </h2>
-        <p className="mt-3 text-[1rem] leading-[1.7] text-[var(--secondary)]">
-          Reference <span className="font-mono font-semibold text-[var(--navy)]">{done.reference}</span>.
+        <p className="mt-3 text-[16px] leading-[1.7] text-[var(--color-ink-quiet)]">
+          Reference{" "}
+          <span className="font-mono font-semibold text-[var(--color-ink)]">{done.reference}</span>.
           {entry?.orderType === "quote"
             ? " Somebody will scope it and come back with a written quote. Nothing is charged until you accept one."
             : " A link to follow it has been recorded against your email."}
         </p>
+        {/*
+          THIS ONE KEEPS ITS EMPHASIS BECAUSE OF WHAT IT SAYS.
+
+          It is the sentence that tells somebody their card was NOT charged when
+          they expected it to be. V10 removes tinted panels, and it gets a rule
+          and weight instead of a tint, but it does not get to look like the
+          paragraph above it.
+        */}
         {done.unpaid ? (
-          <p className="mt-4 rounded-[4px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-4 py-3 text-[13.5px] leading-[1.65] text-[var(--warn-ink)]">
+          <p className="mt-6 border-l-2 border-[var(--color-brass)] pl-4 text-[15px] leading-[1.7] text-[var(--color-ink)]">
             Nothing has been charged. The payment page could not be opened, so the firm will send
             you a payment link for this reference. {done.unpaid}
           </p>
@@ -201,18 +210,18 @@ export function OrderFlow({
 
   if (disqualified) {
     return (
-      <div className="rounded-[4px] border border-[var(--border)] border-t-brass bg-white px-6 py-7">
-        <h2 className="font-display text-[1.3rem] leading-[1.25] font-semibold text-[var(--navy)]">
+      <div>
+        <h2 className="text-[26px] leading-[1.15] font-semibold tracking-[-0.4px] text-[var(--color-ink)]">
           This is not work the firm can take
         </h2>
-        <p className="mt-3 text-[1rem] leading-[1.7] text-[var(--secondary)]">{disqualified}</p>
+        <p className="mt-3 text-[16px] leading-[1.7] text-[var(--color-ink-quiet)]">{disqualified}</p>
         <button
           type="button"
           onClick={() => {
             setDisqualified(null);
             setState((s) => ({ ...s, answers: [] }));
           }}
-          className="mt-6 min-h-[44px] rounded-[3px] border border-[var(--border)] px-4 text-[13.5px] font-bold text-[var(--navy)] hover:bg-[var(--canvas)]"
+          className="mt-7 min-h-[var(--tap-target)] rounded-[3px] border border-[var(--color-limestone-edge)] px-5 text-[15px] font-semibold text-[var(--color-ink)]"
         >
           Go back and change an answer
         </button>
@@ -225,39 +234,97 @@ export function OrderFlow({
   // ---------------------------------------------------------------- steps
 
   return (
-    <div className="rounded-[4px] border border-[var(--border)] border-t-slate bg-white">
-      <div className="border-b border-[var(--border)] px-6 py-4">
-        <p className="portal-kicker text-[var(--gold-deep)]">
-          Step {index + 1} of {steps.length}
-        </p>
-        <h2 className="mt-1 font-display text-[1.3rem] leading-[1.25] font-semibold text-[var(--navy)]">
+    <div>
+      {/*
+        THE PROGRESS RAIL, DERIVED FROM THE STEPS THIS FLOW ACTUALLY HAS.
+
+        V10O-service draws four named steps, Property, Service, Visit, Review
+        and pay. This platform has a different set, and one of the design's four
+        does not exist at all: there is no scheduling anywhere in the customer
+        surface, and the operator deferred V10O-visit whole on 2026-09-29.
+
+        So the rail reads `steps`, which is `stepsFor(entry, ...)`, the same
+        array the flow walks. It cannot name a step the flow does not have, and
+        it cannot miss one it does, which is what typing four labels here would
+        have risked the first time `stepsFor` changed. One fact, one home.
+
+        The bar above each label is the design's: navy behind what is done,
+        brass on the current one, a hairline ahead. On a phone the labels would
+        not fit, so it degrades to the bars with the current step named beneath,
+        which is the same information in the space available.
+      */}
+      <ol className="flex gap-2" aria-label="Order progress">
+        {steps.map((s, i) => (
+          <li key={s.id} className="flex-1">
+            <div
+              className={`h-[3px] w-full ${
+                i < index
+                  ? "bg-[var(--color-slate)]"
+                  : i === index
+                    ? "bg-[var(--color-brass)]"
+                    : "bg-[var(--color-limestone-line)]"
+              }`}
+            />
+            <p
+              className={`mt-2.5 hidden truncate text-[13px] sm:block ${
+                i === index
+                  ? "font-semibold text-[var(--color-ink)]"
+                  : "text-[var(--color-ink-quiet)]"
+              }`}
+            >
+              <span className="tabular-nums">{i + 1}</span> {s.title}
+            </p>
+          </li>
+        ))}
+      </ol>
+      <p className="mt-2.5 text-[13px] font-semibold text-[var(--color-ink)] sm:hidden">
+        Step <span className="tabular-nums">{index + 1}</span> of{" "}
+        <span className="tabular-nums">{steps.length}</span>. {step.title}
+      </p>
+
+      <div className="mt-8">
+        <h2 className="text-[26px] leading-[1.15] font-semibold tracking-[-0.4px] text-[var(--color-ink)]">
           {step.title}
         </h2>
-        <p className="mt-1.5 text-[13.5px] leading-[1.6] text-[var(--secondary)]">{step.blurb}</p>
+        <p className="mt-2 text-[15px] leading-[1.6] text-[var(--color-ink-quiet)]">{step.blurb}</p>
       </div>
 
-      <div className="px-6 py-6">
+      <div className="mt-8">
+        {/*
+          V10 rule 1 applied to a choice list. These were bordered cards with a
+          tinted fill on the selected one. The design draws the same choice as
+          rows separated by hairlines, with the radio doing the work of saying
+          which is chosen, so selection is carried by the control rather than by
+          a second signal in the background colour.
+
+          The comment sits ABOVE the ternary rather than inside its branch. A
+          JSX comment in a branch is two expressions where one is allowed: tsc
+          is clean and the build fails, which this repository has paid for once
+          already.
+        */}
         {step.id === "deliverable" ? (
-          <fieldset className="flex flex-col gap-3">
+          <fieldset className="border-t border-[var(--color-limestone-line)]">
             <legend className="sr-only">Choose a deliverable</legend>
             {deliverables.map((d) => (
               <label
                 key={d.tier}
-                className={`flex cursor-pointer items-start gap-3 rounded-[4px] border px-4 py-3.5 ${
-                  state.tier === d.tier ? "border-[var(--navy)] bg-[var(--canvas)]/60" : "border-[var(--border)]"
-                }`}
+                className="flex cursor-pointer items-start gap-3.5 border-b border-[var(--color-limestone-line)] py-4"
               >
                 <input
                   type="radio"
                   name="tier"
-                  className="mt-1.5"
+                  className="mt-1 size-4"
                   checked={state.tier === d.tier}
                   onChange={() => set({ tier: d.tier })}
                 />
                 <span>
-                  <span className="block text-[15px] font-semibold text-[var(--navy)]">{d.name}</span>
-                  <span className="mt-0.5 block text-[13.5px] leading-[1.55] text-[var(--secondary)]">
-                    {d.orderType === "quote" ? "Quoted. Nothing is charged until you accept." : d.turnaround}
+                  <span className="block text-[15px] font-semibold text-[var(--color-ink)]">
+                    {d.name}
+                  </span>
+                  <span className="mt-1 block text-[14px] leading-[1.55] text-[var(--color-ink-quiet)]">
+                    {d.orderType === "quote"
+                      ? "Quoted. Nothing is charged until you accept."
+                      : d.turnaround}
                   </span>
                 </span>
               </label>
@@ -266,23 +333,33 @@ export function OrderFlow({
         ) : null}
 
         {step.id === "qualify" && entry ? (
-          <div className="flex flex-col gap-7">
+          <div className="flex flex-col gap-9">
             {entry.qualifiers.map((q) => (
               <fieldset key={q.id}>
-                <legend className="text-[15px] font-semibold text-[var(--navy)]">{q.prompt}</legend>
+                <legend className="text-[15px] font-semibold text-[var(--color-ink)]">
+                  {q.prompt}
+                </legend>
                 {q.help ? (
-                  <p className="mt-1.5 text-[13.5px] leading-[1.55] text-[var(--secondary)]">{q.help}</p>
+                  <p className="mt-1.5 text-[14px] leading-[1.55] text-[var(--color-ink-quiet)]">
+                    {q.help}
+                  </p>
                 ) : null}
-                <div className="mt-3 flex flex-col gap-2">
+                <div className="mt-4 border-t border-[var(--color-limestone-line)]">
                   {q.options.map((option, i) => (
-                    <label key={option} className="flex cursor-pointer items-center gap-3">
+                    <label
+                      key={option}
+                      className="flex min-h-[var(--tap-target)] cursor-pointer items-center gap-3.5 border-b border-[var(--color-limestone-line)] py-3"
+                    >
                       <input
                         type="radio"
                         name={q.id}
-                        checked={state.answers.some((a) => a.qualifierId === q.id && a.optionIndex === i)}
+                        className="size-4"
+                        checked={state.answers.some(
+                          (a) => a.qualifierId === q.id && a.optionIndex === i,
+                        )}
                         onChange={() => answer(q.id, i)}
                       />
-                      <span className="text-[15px] text-[var(--navy)]">{option}</span>
+                      <span className="text-[15px] text-[var(--color-ink)]">{option}</span>
                     </label>
                   ))}
                 </div>
@@ -377,19 +454,24 @@ export function OrderFlow({
             */}
             {customerFieldsFor(entry, "seal").map((input) => (
               <div key={input.id}>
-                <label className="text-[15px] font-semibold text-[var(--navy)]" htmlFor={input.id}>
+                <label
+                  className="text-[13px] font-semibold text-[var(--color-ink)]"
+                  htmlFor={input.id}
+                >
                   {input.label}
                   {input.required ? "" : " (optional)"}
                 </label>
                 {input.help ? (
-                  <p className="mt-1 text-[13.5px] leading-[1.55] text-[var(--secondary)]">{input.help}</p>
+                  <p className="mt-1 text-[13px] leading-[1.55] text-[var(--color-ink-quiet)]">
+                    {input.help}
+                  </p>
                 ) : null}
                 {input.kind === "select" || input.kind === "boolean" ? (
                   <select
                     id={input.id}
                     value={state.inputs[input.id] ?? ""}
                     onChange={(e) => set({ inputs: { ...state.inputs, [input.id]: e.target.value } })}
-                    className="mt-2.5 h-11 w-full rounded-[3px] border border-[var(--border)] px-3 text-[15px] text-[var(--navy)]"
+                    className={FIELD}
                   >
                     <option value="">Choose one</option>
                     {(input.kind === "boolean" ? ["Yes", "No"] : (input.options ?? [])).map((o) => (
@@ -402,7 +484,7 @@ export function OrderFlow({
                     type={input.kind === "date" ? "date" : "tel"}
                     value={state.inputs[input.id] ?? ""}
                     onChange={(e) => set({ inputs: { ...state.inputs, [input.id]: e.target.value } })}
-                    className="mt-2.5 h-11 w-full rounded-[3px] border border-[var(--border)] px-3 text-[15px] text-[var(--navy)]"
+                    className={FIELD}
                   />
                 ) : input.kind === "file" ? (
                   <div className="mt-2.5">
@@ -417,7 +499,7 @@ export function OrderFlow({
                     />
                     <ul className="mt-2 flex flex-col gap-1">
                       {(state.files[input.id] ?? []).map((f) => (
-                        <li key={f.storageKey} className="text-[13.5px] text-[var(--secondary)]">
+                        <li key={f.storageKey} className="text-[14px] text-[var(--color-ink-quiet)]">
                           {f.name}
                         </li>
                       ))}
@@ -429,7 +511,7 @@ export function OrderFlow({
                     rows={input.kind === "text" ? 3 : 1}
                     value={state.inputs[input.id] ?? ""}
                     onChange={(e) => set({ inputs: { ...state.inputs, [input.id]: e.target.value } })}
-                    className="mt-2.5 w-full rounded-[3px] border border-[var(--border)] px-3 py-2 text-[15px] text-[var(--navy)]"
+                    className={`${FIELD} py-2.5`}
                   />
                 )}
               </div>
@@ -443,11 +525,11 @@ export function OrderFlow({
       </div>
 
       {blockers.length > 0 && index > 0 ? (
-        <div className="border-t border-[var(--border)] bg-[var(--canvas)]/50 px-6 py-3">
-          <p className="text-[13.5px] font-semibold text-[var(--navy)]">Still needed</p>
-          <ul className="mt-1 flex flex-col gap-0.5">
+        <div className="mt-8 border-t border-[var(--color-limestone-line)] pt-5">
+          <p className="text-[14px] font-semibold text-[var(--color-ink)]">Still needed</p>
+          <ul className="mt-1.5 flex flex-col gap-1">
             {blockers.map((b) => (
-              <li key={b} className="text-[13.5px] leading-[1.5] text-[var(--secondary)]">
+              <li key={b} className="text-[14px] leading-[1.55] text-[var(--color-ink-quiet)]">
                 {b}
               </li>
             ))}
@@ -455,18 +537,26 @@ export function OrderFlow({
         </div>
       ) : null}
 
+      {/*
+        The error keeps its colour and loses its tinted box, as on the sign up
+        form. V10 carries status in weight; a failure that reads as body copy is
+        one people scroll past, so this is a red left rule with red text.
+      */}
       {error ? (
-        <div role="alert" className="border-t border-[var(--border)] bg-[var(--warn-bg)] px-6 py-3">
-          <p className="text-[13.5px] leading-[1.6] text-[var(--red)]">{error}</p>
-        </div>
+        <p
+          role="alert"
+          className="mt-8 border-l-2 border-[var(--red)] pl-3 text-[15px] leading-[1.6] font-semibold text-[var(--red)]"
+        >
+          {error}
+        </p>
       ) : null}
 
-      <div className="flex items-center justify-between gap-3 border-t border-[var(--border)] px-6 py-4">
+      <div className="mt-10 flex items-center justify-between gap-3 border-t border-[var(--color-limestone-line)] pt-6">
         <button
           type="button"
           disabled={index === 0}
           onClick={() => setIndex((i) => Math.max(0, i - 1))}
-          className="min-h-[44px] rounded-[3px] px-3 text-[13.5px] font-bold text-[var(--secondary)] disabled:opacity-40"
+          className="min-h-[var(--tap-target)] rounded-[3px] border border-[var(--color-limestone-edge)] px-5 text-[15px] font-semibold text-[var(--color-ink)] disabled:opacity-40"
         >
           Back
         </button>
@@ -475,7 +565,7 @@ export function OrderFlow({
             type="button"
             disabled={blockers.length > 0 || submitting}
             onClick={() => void submit()}
-            className="min-h-[var(--tap-target)] rounded-[var(--radius-control)] bg-[var(--navy)] px-5 text-[13.5px] font-bold text-white disabled:opacity-40"
+            className="min-h-[var(--tap-target)] rounded-[3px] bg-[var(--color-slate)] px-6 text-[15px] font-semibold text-white disabled:opacity-40"
           >
             {submitting
               ? "Sending"
@@ -488,14 +578,14 @@ export function OrderFlow({
             type="button"
             disabled={blockers.length > 0}
             onClick={() => setIndex((i) => Math.min(steps.length - 1, i + 1))}
-            className="min-h-[var(--tap-target)] rounded-[var(--radius-control)] bg-[var(--navy)] px-5 text-[13.5px] font-bold text-white disabled:opacity-40"
+            className="min-h-[var(--tap-target)] rounded-[3px] bg-[var(--color-slate)] px-6 text-[15px] font-semibold text-white disabled:opacity-40"
           >
             Continue
           </button>
         )}
       </div>
-      <p className="border-t border-[var(--border)] px-6 py-3 text-[12.5px] leading-[1.55] text-[var(--secondary)]">
-        {serviceName}. Card details are entered on Stripe's page and never reach this site.
+      <p className="mt-5 text-[13px] leading-[1.6] text-[var(--color-ink-quiet)]">
+        {serviceName}. Card details are entered on Stripe&rsquo;s page and never reach this site.
       </p>
     </div>
   );
@@ -517,20 +607,33 @@ function Field({
   const id = label.toLowerCase().replace(/\s+/g, "-");
   return (
     <div>
-      <label htmlFor={id} className="text-[15px] font-semibold text-[var(--navy)]">
+      <label htmlFor={id} className="text-[13px] font-semibold text-[var(--color-ink)]">
         {label}
       </label>
-      {hint ? <p className="mt-1 text-[13.5px] leading-[1.55] text-[var(--secondary)]">{hint}</p> : null}
+      {hint ? (
+        <p className="mt-1 text-[13px] leading-[1.55] text-[var(--color-ink-quiet)]">{hint}</p>
+      ) : null}
       <input
         id={id}
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-2 w-full rounded-[3px] border border-[var(--border)] px-3 py-2 text-[15px] text-[var(--navy)]"
+        className={FIELD}
       />
     </div>
   );
 }
+
+/*
+ * One field style for this flow, written once.
+ *
+ * 16px is not a type choice: iOS zooms the viewport on focus for anything
+ * smaller, and the root layout deliberately does not lock zoom because locking
+ * it is an accessibility failure. `--tap-target` is the platform's WCAG 2.5.8
+ * floor, and mobile-audit measures both.
+ */
+const FIELD =
+  "mt-2 min-h-[var(--tap-target)] w-full rounded-[3px] border border-[var(--color-limestone-edge)] bg-white px-3 text-[16px] text-[var(--color-ink)]";
 
 /**
  * The price and terms step.
@@ -558,18 +661,18 @@ function ReviewStep({
   if (entry.orderType === "quote") {
     return (
       <div>
-        <p className="text-[1rem] leading-[1.7] text-[var(--navy)]">
+        <p className="text-[16px] leading-[1.7] text-[var(--color-ink)]">
           {entry.name} is quoted rather than priced. Nothing is charged now and nothing is owed
           until you accept a written scope.
         </p>
-        <label className="mt-6 flex cursor-pointer items-start gap-3">
+        <label className="mt-7 flex cursor-pointer items-start gap-3">
           <input
             type="checkbox"
-            className="mt-1"
+            className="mt-1 size-4"
             checked={state.acceptedTerms}
             onChange={(e) => onAccept(e.target.checked)}
           />
-          <span className="text-[13.5px] leading-[1.65] text-[var(--secondary)]">
+          <span className="text-[15px] leading-[1.65] text-[var(--color-ink)]">
             I understand this is a request for a quote and not an order.
           </span>
         </label>
@@ -579,37 +682,48 @@ function ReviewStep({
 
   return (
     <div>
-      <dl className="border-t border-[var(--border)]">
-        <div className="flex justify-between border-b border-[var(--border)] py-2.5">
-          <dt className="text-[15px] text-[var(--secondary)]">{entry.name}</dt>
-          <dd className="text-[15px] text-[var(--navy)]">{dollars(entry.priceCents)}</dd>
+      {/*
+        THE PRICE TABLE, WHICH IS THE ONE PLACE V10 KEEPS A RULED GRID.
+
+        The design draws money as a two column list with a hairline under each
+        row and the figure right aligned, and that survives the no boxes rule
+        because it is a rule between rows rather than a border around a card.
+        Tabular figures so the decimal points line up, which is inherited from
+        the root and named here because a money column is where it shows.
+      */}
+      <dl className="border-t border-[var(--color-limestone-line)]">
+        <div className="flex items-baseline justify-between gap-4 border-b border-[var(--color-limestone-line)] py-3">
+          <dt className="text-[15px] text-[var(--color-ink-quiet)]">{entry.name}</dt>
+          <dd className="text-[15px] font-semibold tabular-nums text-[var(--color-ink)]">
+            {dollars(entry.priceCents)}
+          </dd>
         </div>
       </dl>
-      <p className="mt-3 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+      <p className="mt-3 text-[14px] leading-[1.65] text-[var(--color-ink-quiet)]">
         A property in a first tier coastal county carries a named surcharge of{" "}
         {dollars(entry.coastalSurchargeCents)}, shown as its own line on the payment page. The firm
         works out which county the address is in rather than asking you to.
       </p>
 
-      <h3 className="mt-7 portal-kicker text-[var(--gold-deep)]">
+      <h3 className="mt-9 text-[12px] font-semibold tracking-[0.08em] text-[var(--color-ink-quiet)] uppercase">
         If the engineer declines
       </h3>
-      <ul className="mt-3 flex flex-col gap-2.5">
+      <ul className="mt-4 flex flex-col gap-3">
         {refundLines(entry).map((line) => (
-          <li key={line} className="text-[13.5px] leading-[1.65] text-[var(--secondary)]">
+          <li key={line} className="text-[15px] leading-[1.65] text-[var(--color-ink-quiet)]">
             {line}
           </li>
         ))}
       </ul>
 
-      <label className="mt-7 flex cursor-pointer items-start gap-3">
+      <label className="mt-9 flex cursor-pointer items-start gap-3">
         <input
           type="checkbox"
-          className="mt-1"
+          className="mt-1 size-4"
           checked={state.acceptedTerms}
           onChange={(e) => onAccept(e.target.checked)}
         />
-        <span className="text-[13.5px] leading-[1.65] text-[var(--secondary)]">
+        <span className="text-[15px] leading-[1.65] text-[var(--color-ink)]">
           I have read what happens if the engineer declines to seal.
         </span>
       </label>

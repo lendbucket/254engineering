@@ -83,21 +83,41 @@ export default async function OrderStartPage({ params }: { params: Promise<{ slu
   );
 
   return (
+    /*
+     * ===================================================================
+     * RESTYLED TO DESIGN V10, 2026-09-29. PRESENTATION ONLY.
+     * ===================================================================
+     *
+     * WHAT IS DELIBERATELY NOT DONE HERE. V10O-service draws a stripped
+     * checkout chrome: the wordmark, the buyer's name and "Save and exit",
+     * with no site navigation. This route lives inside the (site) route group
+     * and inherits the marketing header and footer from its layout. Taking it
+     * out of that group is a routing change, and the operator ruled that stage
+     * 1 adds and renames no routes, so the page keeps the site chrome and only
+     * its own content is restyled. It is on the follow up list.
+     *
+     * "Save and exit" is a second absence and a larger one: there is nothing to
+     * save. The flow's state lives in a React hook and is posted whole at the
+     * end, so a control offering to save it would be offering a capability the
+     * platform does not have.
+     */
     <Container>
       <div className="mx-auto max-w-[68ch] py-12 sm:py-16">
-        <p className="portal-kicker text-[var(--gold-deep)]">
+        <p className="text-[12px] font-semibold tracking-[0.08em] text-[var(--color-ink-quiet)] uppercase">
           {service.shortName}
         </p>
-        <h1 className="mt-2 font-display text-[clamp(1.7rem,3vw,2.2rem)] leading-[1.2] font-semibold text-[var(--navy)]">
+        <h1 className="mt-2.5 text-[clamp(1.75rem,3vw,2.1rem)] leading-[1.15] font-semibold tracking-[-0.5px] text-[var(--color-ink)]">
           {orderHeading(service.shortName, launchMode())}
         </h1>
 
         {available.length === 0 ? (
-          <div className="mt-8 rounded-[4px] border border-[var(--border)] border-t-brass bg-white px-6 py-7">
-            <h2 className="font-display text-[1.25rem] leading-[1.25] font-semibold text-[var(--navy)]">
+          <div className="mt-9 border-t border-[var(--color-limestone-line)] pt-7">
+            <h2 className="text-[20px] leading-[1.25] font-semibold text-[var(--color-ink)]">
               {notYetOpen ? "The firm is not taking orders yet" : "This cannot be ordered online yet"}
             </h2>
-            <p className="mt-3 text-[1rem] leading-[1.7] text-[var(--secondary)]">{blockedReason}</p>
+            <p className="mt-3 text-[16px] leading-[1.7] text-[var(--color-ink-quiet)]">
+              {blockedReason}
+            </p>
             {/*
               * THE WAITLIST IS A PRELAUNCH DESTINATION, NOT A TRADING ONE.
               *
@@ -109,19 +129,19 @@ export default async function OrderStartPage({ params }: { params: Promise<{ slu
               */}
             <Link
               href={mode === "prelaunch" ? `/waitlist?service=${encodeURIComponent(service.name)}` : "/contact"}
-              className="mt-6 inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-5 text-[13.5px] font-bold text-white"
+              className="mt-7 inline-flex min-h-[var(--tap-target)] items-center rounded-[3px] bg-[var(--color-slate)] px-6 text-[15px] font-semibold text-white"
             >
               {mode === "prelaunch" ? "Join the waitlist" : "Contact the firm"}
             </Link>
           </div>
         ) : (
           <>
-            <p className="mt-3 max-w-[62ch] text-[1.02rem] leading-[1.7] text-[var(--secondary)]">
+            <p className="mt-3 max-w-[62ch] text-[16px] leading-[1.7] text-[var(--color-ink-quiet)]">
               A few questions decide whether this is work the firm can take, then the property, then
               what the engineer needs. You see the price and what happens if the engineer declines
               before anything is charged.
             </p>
-            <div className="mt-8">
+            <div className="mt-10">
               <OrderFlow
                 serviceSlug={slug}
                 serviceName={service.name}
@@ -131,8 +151,11 @@ export default async function OrderStartPage({ params }: { params: Promise<{ slu
           </>
         )}
 
-        <p className="mt-8 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
-          <Link href={`/services/${slug}`} className="underline underline-offset-2">
+        <p className="mt-10 text-[14px] leading-[1.6] text-[var(--color-ink-quiet)]">
+          <Link
+            href={`/services/${slug}`}
+            className="text-[var(--color-link)] underline underline-offset-2"
+          >
             Read what {serviceNameInSentence(service.shortName)} covers
           </Link>{" "}
           before ordering, if you have not already.
