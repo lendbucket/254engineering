@@ -69,7 +69,7 @@ export function AccountLoginForm({ next }: { next: string }) {
         <Link
           href="/account/forgot-password"
           prefetch={false}
-          className="text-[13px] text-[var(--navy)] underline underline-offset-2"
+          className="text-[12.5px] text-[var(--navy)] underline underline-offset-2"
         >
           Forgot password?
         </Link>

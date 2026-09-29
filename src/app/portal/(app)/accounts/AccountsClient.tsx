@@ -399,7 +399,7 @@ function SendResetLink() {
             onChange={(e) => setEmail(e.target.value)}
             required
             autoComplete="off"
-            className="min-h-[44px] w-[min(100%,22rem)] rounded-[3px] border border-limestone-line px-3 text-[14px] text-[var(--navy)]"
+            className="min-h-[44px] w-[min(100%,22rem)] rounded-[3px] border border-limestone-line px-3 text-[13.5px] text-[var(--navy)]"
           />
         </label>
         <button
