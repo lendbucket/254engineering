@@ -21,7 +21,41 @@ import { useState } from "react";
  * THE RESULT REPLACES THE FORM RATHER THAN SITTING UNDER IT. A form still
  * standing after a successful submit invites a second submit, and the second
  * one is the request that gets rate limited.
+ *
+ * ===========================================================================
+ * RESTYLED TO DESIGN V10, 2026-09-29. PRESENTATION ONLY.
+ * ===========================================================================
+ *
+ * FOUR THINGS THE DESIGN DRAWS ARE NOT HERE, AND THE ABSENCES ARE DELIBERATE.
+ * V10-signup shows a "who is ordering" radio group, a first and last name pair,
+ * a password field, a terms checkbox and a text message opt in. Every one of
+ * them is a field this platform does not collect, and the operator ruled on
+ * 2026-09-29 that stage 1 is look only: where a design shows a step the product
+ * lacks, today's step is kept and styled rather than the design's step being
+ * built.
+ *
+ * The password is the one worth naming twice, because it reads as an omission
+ * and is a decision. The paragraph at the top of this file has said since the
+ * form was written why a password typed here cannot be held honestly, and the
+ * design showing one does not answer that argument. It is in the follow up list
+ * with the other five.
+ *
+ * WHAT CHANGED IS THE SHAPE. V10 rule 1: no boxes. Labels sit above inputs on
+ * white with a hairline border, the submit is a full width navy bar, and the
+ * sent state is a plain block of text rather than a tinted panel, because V10
+ * carries status in weight rather than in colour.
  */
+/*
+ * One field style, written once.
+ *
+ * The 16px minimum is not a type choice: iOS zooms the viewport on focus for
+ * anything under it, and the root layout deliberately does not lock zoom,
+ * because locking it is an accessibility failure. `--tap-target` is the
+ * platform's WCAG 2.5.8 floor and mobile-audit measures it.
+ */
+const FIELD =
+  "min-h-[var(--tap-target)] w-full rounded-[3px] border border-[var(--color-limestone-edge)] bg-white px-3 text-[16px] text-[var(--color-ink)]";
+
 export function SignUpForm() {
   const [name, setName] = useState("");
   const [organisation, setOrganisation] = useState("");
@@ -35,11 +69,11 @@ export function SignUpForm() {
 
   if (sent) {
     return (
-      <div className="mt-5 rounded-[3px] border border-[var(--border)] bg-[var(--surface-muted,#f7f8f9)] px-3.5 py-3">
-        <p role="status" className="text-[13.5px] leading-[1.6] text-[var(--navy)]">
+      <div className="mt-7 border-t border-[var(--color-limestone-line)] pt-6">
+        <p role="status" className="text-[16px] leading-[1.6] font-semibold text-[var(--color-ink)]">
           {sent}
         </p>
-        <p className="mt-2 text-[13px] leading-[1.6] text-[var(--secondary)]">
+        <p className="mt-2 text-[15px] leading-[1.6] text-[var(--color-ink-quiet)]">
           The link lasts 3 days. If it has expired by the time you open it, sign in and the page
           will send you a fresh one.
         </p>
@@ -49,7 +83,7 @@ export function SignUpForm() {
 
   return (
     <form
-      className="mt-5 flex flex-col gap-3.5"
+      className="mt-7 flex flex-col gap-5"
       onSubmit={async (e) => {
         e.preventDefault();
         if (busy) return;
@@ -76,33 +110,33 @@ export function SignUpForm() {
         }
       }}
     >
-      <label className="flex flex-col gap-1.5">
-        <span className="text-[13px] font-semibold text-[var(--navy)]">Your name</span>
+      <label className="flex flex-col gap-2">
+        <span className="text-[13px] font-semibold text-[var(--color-ink)]">Your name</span>
         <input
           name="name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           autoComplete="name"
           required
-          className="min-h-[var(--tap-target)] rounded-[3px] border border-[var(--border)] px-3 text-[15px] text-[var(--navy)]"
+          className={FIELD}
         />
       </label>
 
-      <label className="flex flex-col gap-1.5">
-        <span className="text-[13px] font-semibold text-[var(--navy)]">
-          Company <span className="font-normal text-[var(--secondary)]">(optional)</span>
+      <label className="flex flex-col gap-2">
+        <span className="text-[13px] font-semibold text-[var(--color-ink)]">
+          Company <span className="font-normal text-[var(--color-ink-quiet)]">(optional)</span>
         </span>
         <input
           name="organisation"
           value={organisation}
           onChange={(e) => setOrganisation(e.target.value)}
           autoComplete="organization"
-          className="min-h-[var(--tap-target)] rounded-[3px] border border-[var(--border)] px-3 text-[15px] text-[var(--navy)]"
+          className={FIELD}
         />
       </label>
 
-      <label className="flex flex-col gap-1.5">
-        <span className="text-[13px] font-semibold text-[var(--navy)]">Email address</span>
+      <label className="flex flex-col gap-2">
+        <span className="text-[13px] font-semibold text-[var(--color-ink)]">Email address</span>
         <input
           name="email"
           type="email"
@@ -113,13 +147,13 @@ export function SignUpForm() {
           required
           aria-describedby={error ? "sign-up-error" : undefined}
           aria-invalid={error ? true : undefined}
-          className="min-h-[var(--tap-target)] rounded-[3px] border border-[var(--border)] px-3 text-[15px] text-[var(--navy)]"
+          className={FIELD}
         />
       </label>
 
-      <label className="flex flex-col gap-1.5">
-        <span className="text-[13px] font-semibold text-[var(--navy)]">
-          Telephone <span className="font-normal text-[var(--secondary)]">(optional)</span>
+      <label className="flex flex-col gap-2">
+        <span className="text-[13px] font-semibold text-[var(--color-ink)]">
+          Telephone <span className="font-normal text-[var(--color-ink-quiet)]">(optional)</span>
         </span>
         <input
           name="phone"
@@ -128,7 +162,7 @@ export function SignUpForm() {
           onChange={(e) => setPhone(e.target.value)}
           autoComplete="tel"
           inputMode="tel"
-          className="min-h-[var(--tap-target)] rounded-[3px] border border-[var(--border)] px-3 text-[15px] text-[var(--navy)]"
+          className={FIELD}
         />
       </label>
 
@@ -151,11 +185,20 @@ export function SignUpForm() {
         </label>
       </div>
 
+      {/*
+        THE ERROR KEEPS ITS COLOUR AND LOSES ITS BOX.
+
+        V10 carries status in weight rather than in tint, and a tinted red panel
+        is the shape it removes. What it does not remove is the fact that this
+        is an error: red on white here is 5.9:1 and contrast-audit measures it,
+        and `role="alert"` is what a screen reader acts on either way. A failure
+        that looks exactly like body copy is a failure people scroll past.
+      */}
       {error ? (
         <p
           id="sign-up-error"
           role="alert"
-          className="rounded-[3px] border border-[var(--red-border)] bg-[var(--red-bg)] px-3 py-2.5 text-[13.5px] leading-[1.55] text-[var(--red)]"
+          className="border-l-2 border-[var(--red)] pl-3 text-[15px] leading-[1.55] font-semibold text-[var(--red)]"
         >
           {error}
         </p>
@@ -164,12 +207,12 @@ export function SignUpForm() {
       <button
         type="submit"
         disabled={busy}
-        className="min-h-[var(--tap-target)] rounded-[3px] bg-[var(--navy)] px-4 text-[14px] font-semibold text-white disabled:opacity-60"
+        className="mt-1 flex min-h-[var(--tap-target)] w-full items-center justify-center rounded-[3px] bg-[var(--color-slate)] px-4 text-[15px] font-semibold text-white disabled:opacity-60"
       >
         {busy ? "Sending" : "Create the account"}
       </button>
 
-      <p className="text-[13px] leading-[1.55] text-[var(--secondary)]">
+      <p className="text-[14px] leading-[1.6] text-[var(--color-ink-quiet)]">
         You choose a password from the link we send. Nobody here can see it, and the account cannot
         do anything until that link is opened.
       </p>
