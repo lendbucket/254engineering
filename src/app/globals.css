@@ -43,7 +43,21 @@
    * Before this pass every section was limestone and every section therefore
    * weighed the same, which is most of why the design read as a template.
    */
-  --color-slate: #14315d;
+  /*
+   * NAVY MOVED TO #012758. Operator ruling, 2026-09-29, design v10.
+   *
+   * It is DARKER than the #14315d it replaces, so every contrast ratio against
+   * a light ground improves and none can regress. That is worth stating rather
+   * than discovering: this token is the ground for white text in the header bar
+   * and on every primary button, and a lighter navy would have needed the whole
+   * on-navy scale re-measured.
+   *
+   * The token is named slate here and navy in the portal. Two vocabularies for
+   * one colour is not ideal, and it is deliberately NOT being unified during a
+   * presentation change: renaming a token used by forty components is a
+   * refactor, and this branch is not allowed to alter what any screen does.
+   */
+  --color-slate: #012758;
   --color-slate-ink: #14213a;
   --color-slate-deep: #0e2347;
   --color-slate-abyss: #0b1b36;
@@ -85,7 +99,19 @@
    * --color-brass-light is the on-navy display gold at 6.99:1.
    * Measured, not guessed. Changing any of them means re-measuring.
    */
-  --color-brass: #d9a032;
+  /*
+   * GOLD MOVED TO #D6A62A, taken from the logo. Same ruling.
+   *
+   * Very close to the #d9a032 it replaces, and the reason for the change is
+   * provenance rather than appearance: v10 takes the value from the wordmark so
+   * the interface and the logo cannot drift.
+   *
+   * The standing rule survives untouched and is worth repeating where somebody
+   * will read it: gold is never body text on a light ground. It measures 2.33:1
+   * on white. It is the rule under the header bar, the active nav marker and the
+   * current step, and nothing else.
+   */
+  --color-brass: #d6a62a;
   --color-brass-deep: #b77e1b;
   --color-brass-ink: #8d610f;
   --color-brass-light: #e8b04a;
@@ -105,8 +131,16 @@
    * directions in the typography gate can be rendered from the same tree
    * rather than from two branches. See src/app/layout.tsx.
    */
-  --font-display: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
-  --font-sans: var(--font-open-sans), Arial, ui-sans-serif, system-ui, sans-serif;
+  /*
+   * BOTH RESOLVE TO INTER. Operator ruling, 2026-09-29, design v10.
+   *
+   * Kept as two tokens rather than collapsed into one, because every rendered
+   * surface already asks for one or the other. A ruling that splits the faces
+   * again is then one edit in layout.tsx and here, rather than a sweep through
+   * forty components.
+   */
+  --font-display: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), Arial, ui-sans-serif, system-ui, sans-serif;
 
   /* A single generous rhythm. Sections breathe or the firm looks small. */
   --spacing-section: 5.5rem;

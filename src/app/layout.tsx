@@ -1,11 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, Open_Sans } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { business } from "@/config/business";
 import { firmName } from "@/lib/launch";
 
 /**
  * THE APPROVED DESIGN'S FACES.
+ *
+ * > SUPERSEDED 2026-09-29 BY DESIGN V10: the faces are now Inter alone, at 400,
+ * > 500, 600 and 700. The paragraphs below describe the v5 artifact's choice and
+ * > are kept because the REASONING still governs what is loaded: nothing heavier
+ * > than the design asks for, and italic only because one component needs a real
+ * > one. See the Inter declaration further down for the current state.
  *
  * Archivo for display, Open Sans for text, at the weights the approved v5
  * artifact actually uses: Archivo 500 to 800, Open Sans 400, 600, 700. Nothing
@@ -46,16 +52,32 @@ import { firmName } from "@/lib/launch";
  * them, subsets them, and emits the preload links, so the same faces arrive
  * from this origin with no external request at all.
  */
-const archivo = Archivo({
+/**
+ * =============================================================================
+ * INTER REPLACES BOTH FACES. Operator ruling, 2026-09-29, design v10.
+ * =============================================================================
+ *
+ * Archivo for display and Open Sans for text came from the approved v5 artifact
+ * and shipped for weeks. `docs/design-v10/DESIGN_V10.md` supersedes them with
+ * one face at 400, 500, 600 and 700, and `PORTAL_DESIGN_STANDARDS.md` records
+ * the supersession with the old choice left visible beside it.
+ *
+ * TWO FACES BECOME ONE, WHICH IS A REAL CHANGE AND NOT ONLY A NAME. The old
+ * pair gave display and body genuinely different shapes, and v10's scale does
+ * the separating with size, weight and letter spacing instead. So `--font-display`
+ * and `--font-sans` both resolve here, and they are KEPT AS TWO TOKENS rather
+ * than collapsed into one: every rendered surface already asks for one or the
+ * other, and a future ruling that splits them again should be one edit in this
+ * file rather than a sweep through forty components.
+ *
+ * ITALIC IS STILL LOADED, and for the same single reason it always was: the
+ * absent data chip. `token-audit` asserts this literal, and the reason is in the
+ * note it prints, that a synthesised oblique on a 12px chip is the mush this
+ * system exists to avoid. The face changed; the requirement did not.
+ */
+const inter = Inter({
   subsets: ["latin"],
-  weight: ["500", "600", "700", "800"],
-  variable: "--font-archivo",
-  display: "swap",
-});
-
-const openSans = Open_Sans({
-  subsets: ["latin"],
-  weight: ["400", "600", "700"],
+  weight: ["400", "500", "600", "700"],
   /*
    * Italic is loaded, and it is loaded for exactly one thing.
    *
@@ -70,7 +92,7 @@ const openSans = Open_Sans({
    * never a zero, which is a rule this platform enforces in three places.
    */
   style: ["normal", "italic"],
-  variable: "--font-open-sans",
+  variable: "--font-inter",
   display: "swap",
 });
 
@@ -141,7 +163,7 @@ export const metadata: Metadata = {
  */
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${archivo.variable} ${openSans.variable}`}>
+    <html lang="en" className={inter.variable}>
       <body className="flex min-h-screen flex-col">{children}</body>
     </html>
   );
