@@ -29,6 +29,17 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false, nocache: true },
 };
 
+/*
+ * The section label, written once.
+ *
+ * V10 replaces the gold `portal-kicker` with a quiet uppercase label in the
+ * muted ink. Gold is an accent and never text on a light surface, which is
+ * standing law older than this design, and `--gold-deep` was the compliant
+ * workaround for wanting it anyway. V10 stops wanting it.
+ */
+const LABEL =
+  "text-[12px] font-semibold tracking-[0.08em] text-[var(--color-ink-quiet)] uppercase";
+
 export default async function OrderStatusPage({
   params,
   searchParams,
@@ -69,10 +80,10 @@ export default async function OrderStatusPage({
     return (
       <Container>
         <div className="mx-auto max-w-[62ch] py-20">
-          <h1 className="font-display text-[1.8rem] leading-[1.2] font-semibold text-[var(--navy)]">
+          <h1 className="text-[30px] leading-[1.12] font-semibold tracking-[-0.5px] text-[var(--color-ink)]">
             Payment received
           </h1>
-          <p className="mt-4 text-[1.02rem] leading-[1.7] text-[var(--secondary)]">
+          <p className="mt-4 text-[16px] leading-[1.7] text-[var(--color-ink-quiet)]">
             Thank you. The firm emails a link to this order once it is released for work, and that
             link is the one that opens it. If nothing arrives within the hour, reply to any email
             from the firm quoting <span className="font-mono">{reference}</span>.
@@ -86,10 +97,10 @@ export default async function OrderStatusPage({
     return (
       <Container>
         <div className="mx-auto max-w-[62ch] py-20">
-          <h1 className="font-display text-[1.8rem] leading-[1.2] font-semibold text-[var(--navy)]">
+          <h1 className="text-[30px] leading-[1.12] font-semibold tracking-[-0.5px] text-[var(--color-ink)]">
             This link does not open an order
           </h1>
-          <p className="mt-4 text-[1.02rem] leading-[1.7] text-[var(--secondary)]">
+          <p className="mt-4 text-[16px] leading-[1.7] text-[var(--color-ink-quiet)]">
             The link may have been mistyped, or it may have been replaced by a newer one. The firm
             emails a link when an order is paid for, and the most recent email is always the one
             that works. If you cannot find it, reply to any email from the firm quoting{" "}
@@ -103,31 +114,48 @@ export default async function OrderStatusPage({
   return (
     <Container>
       <div className="mx-auto max-w-[70ch] py-14 sm:py-20">
-        <p className="portal-kicker text-[var(--gold-deep)]">
+        <p className="text-[13px] text-[var(--color-ink-quiet)]">
           Order {view.reference}
+          {", "}
+          {view.propertyAddress}
         </p>
-        <h1 className="mt-2 font-display text-[clamp(1.6rem,3vw,2.1rem)] leading-[1.2] font-semibold text-[var(--navy)]">
+        <h1 className="mt-2 text-[clamp(1.65rem,3vw,2rem)] leading-[1.15] font-semibold tracking-[-0.5px] text-[var(--color-ink)]">
           {view.serviceName}
         </h1>
-        <p className="mt-2 text-[1.02rem] leading-[1.7] text-[var(--secondary)]">
+        <p className="mt-2 text-[16px] leading-[1.7] text-[var(--color-ink-quiet)]">
           {view.propertyAddress}
           {view.city ? `, ${view.city}` : ""}, {view.county} County
         </p>
 
+        {/*
+          THREE NOTICES THAT KEEP THEIR EMPHASIS, AND MONEY IS WHY.
+
+          V10 removes tinted panels and carries status in weight. These three
+          are each a statement about somebody's card, and a sentence saying a
+          payment landed, or that nothing was charged, or that money has been
+          returned, is not something to style as body copy. They lose the tint
+          and the border box and keep a coloured left rule, which is the
+          design's own treatment for a line that must not be skimmed.
+
+          Green stays green and brass stays brass because the distinction is
+          the point: one says the money moved as expected and one says it did
+          not. Both are measured against white by contrast-audit rather than
+          assumed.
+        */}
         {paid ? (
-          <div className="mt-6 rounded-[4px] border border-[var(--green-border)] border-l-[var(--green)] bg-[var(--green-bg)] px-4 py-3.5">
+          <div className="mt-7 border-l-2 border-[var(--green)] pl-4">
             <p className="text-[15px] font-semibold text-[var(--green)]">Payment received</p>
-            <p className="mt-1 text-[13.5px] leading-[1.6] text-[var(--green)]">
-              Nothing else is needed from you right now. This page is where the order's progress
-              appears.
+            <p className="mt-1 text-[15px] leading-[1.65] text-[var(--color-ink-quiet)]">
+              Nothing else is needed from you right now. This page is where the order&rsquo;s
+              progress appears.
             </p>
           </div>
         ) : null}
 
         {cancelled ? (
-          <div className="mt-6 rounded-[4px] border border-[var(--warn-border)] border-l-brass bg-[var(--warn-bg)] px-4 py-3.5">
-            <p className="text-[15px] font-semibold text-[var(--warn-ink)]">Nothing was charged</p>
-            <p className="mt-1 text-[13.5px] leading-[1.6] text-[var(--warn-ink)]">
+          <div className="mt-7 border-l-2 border-[var(--color-brass)] pl-4">
+            <p className="text-[15px] font-semibold text-[var(--color-ink)]">Nothing was charged</p>
+            <p className="mt-1 text-[15px] leading-[1.65] text-[var(--color-ink-quiet)]">
               You left the payment page before it completed. The order is still here and can be paid
               from the link the firm sent you.
             </p>
@@ -136,11 +164,11 @@ export default async function OrderStatusPage({
 
         {/* The money that came back leads, because it is the thing they most want to know. */}
         {view.refunded ? (
-          <div className="mt-6 rounded-[4px] border border-[var(--border)] border-l-slate bg-white px-5 py-4">
-            <p className="text-[15px] font-semibold text-[var(--navy)]">
+          <div className="mt-7 border-l-2 border-[var(--color-slate)] pl-4">
+            <p className="text-[15px] font-semibold text-[var(--color-ink)]">
               {view.refunded.amount} has been refunded
             </p>
-            <p className="mt-1.5 text-[13.5px] leading-[1.65] text-[var(--secondary)]">
+            <p className="mt-1.5 text-[15px] leading-[1.65] text-[var(--color-ink-quiet)]">
               {view.refunded.because}. {view.refunded.retained} was retained, which is the
               inspection that was carried out and was disclosed before you paid. You receive what
               the engineer found and why they could not seal it.
@@ -148,63 +176,83 @@ export default async function OrderStatusPage({
           </div>
         ) : null}
 
-        <section className="mt-10">
-          <h2 className="portal-kicker text-[var(--gold-deep)]">
-            Where it is
-          </h2>
-          <p className="mt-2 text-[1.02rem] leading-[1.7] text-[var(--navy)]">{view.statusLine}</p>
+        <section className="mt-12">
+          <h2 className={LABEL}>Where it is</h2>
+          <p className="mt-3 text-[18px] leading-[1.55] font-semibold text-[var(--color-ink)]">
+            {view.statusLine}
+          </p>
         </section>
 
+        {/*
+          THE DOT RAIL, AND IT SHOWS ONLY WHAT HAPPENED.
+
+          V10C-tracker draws four stages with the unreached ones greyed, which
+          reads as a promise that those stages are coming. `view.timeline` is
+          the record of events that have OCCURRED: the platform does not model a
+          customer facing plan of future stages, and drawing one from a typed
+          list here would be a second account of the order's lifecycle with
+          nothing able to notice when the two disagree.
+
+          So every dot is filled, because every entry is something that
+          happened. What is still to come is the sentence above, which comes
+          from the same view as the rest.
+        */}
         {view.timeline.length > 0 ? (
-          <section className="mt-10">
-            <h2 className="portal-kicker text-[var(--gold-deep)]">
-              What has happened
-            </h2>
-            <ol className="mt-4 flex flex-col gap-4">
-              {view.timeline.map((entry) => (
-                <li key={entry.at} className="border-l-[2px] border-[var(--border)] pl-4">
-                  <p className="text-[13.5px] text-[var(--secondary)]">
-                    {new Date(entry.at).toLocaleString("en-US", {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    })}
-                  </p>
-                  <p className="mt-1 text-[15px] leading-[1.6] text-[var(--navy)]">{entry.summary}</p>
+          <section className="mt-12">
+            <h2 className={LABEL}>What has happened</h2>
+            <ol className="mt-5">
+              {view.timeline.map((entry, i) => (
+                <li key={entry.at} className="flex gap-4">
+                  <div className="flex flex-col items-center" aria-hidden>
+                    <span className="mt-1.5 size-[9px] shrink-0 rounded-full bg-[var(--color-slate)]" />
+                    {i < view.timeline.length - 1 ? (
+                      <span className="w-px flex-1 bg-[var(--color-limestone-line)]" />
+                    ) : null}
+                  </div>
+                  <div className={i < view.timeline.length - 1 ? "pb-6" : ""}>
+                    <p className="text-[15px] leading-[1.5] font-semibold text-[var(--color-ink)]">
+                      {entry.summary}
+                    </p>
+                    <p className="mt-1 text-[14px] text-[var(--color-ink-quiet)]">
+                      {new Date(entry.at).toLocaleString("en-US", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })}
+                    </p>
+                  </div>
                 </li>
               ))}
             </ol>
           </section>
         ) : null}
 
-        <section className="mt-10">
-          <h2 className="portal-kicker text-[var(--gold-deep)]">
-            What you paid
-          </h2>
-          <dl className="mt-4 border-t border-[var(--border)]">
+        <section className="mt-12">
+          <h2 className={LABEL}>What you paid</h2>
+          <dl className="mt-4 border-t border-[var(--color-limestone-line)]">
             {view.lines.map((line) => (
               <div
                 key={line.label}
-                className="flex justify-between border-b border-[var(--border)] py-2.5"
+                className="flex items-baseline justify-between gap-4 border-b border-[var(--color-limestone-line)] py-3"
               >
-                <dt className="text-[15px] text-[var(--secondary)]">{line.label}</dt>
-                <dd className="text-[15px] text-[var(--navy)]">{line.amount}</dd>
+                <dt className="text-[15px] text-[var(--color-ink-quiet)]">{line.label}</dt>
+                <dd className="text-[15px] tabular-nums text-[var(--color-ink)]">{line.amount}</dd>
               </div>
             ))}
-            <div className="flex justify-between py-2.5">
-              <dt className="text-[15px] font-semibold text-[var(--navy)]">Total</dt>
-              <dd className="text-[15px] font-semibold text-[var(--navy)]">{view.total}</dd>
+            <div className="flex items-baseline justify-between gap-4 py-3">
+              <dt className="text-[15px] font-semibold text-[var(--color-ink)]">Total</dt>
+              <dd className="text-[15px] font-semibold tabular-nums text-[var(--color-ink)]">
+                {view.total}
+              </dd>
             </div>
           </dl>
         </section>
 
         {view.receives.length > 0 ? (
-          <section className="mt-10">
-            <h2 className="portal-kicker text-[var(--gold-deep)]">
-              What you receive
-            </h2>
-            <ul className="mt-4 flex flex-col gap-2">
+          <section className="mt-12">
+            <h2 className={LABEL}>What you receive</h2>
+            <ul className="mt-4 flex flex-col gap-3">
               {view.receives.map((line) => (
-                <li key={line} className="text-[15px] leading-[1.65] text-[var(--secondary)]">
+                <li key={line} className="text-[15px] leading-[1.65] text-[var(--color-ink-quiet)]">
                   {line}
                 </li>
               ))}
@@ -213,10 +261,8 @@ export default async function OrderStatusPage({
         ) : null}
 
         {view.refundDisclosure ? (
-          <section className="mt-10 border-t border-[var(--border)] pt-8">
-            <h2 className="portal-kicker text-[var(--gold-deep)]">
-              What you were told before you paid
-            </h2>
+          <section className="mt-12 border-t border-[var(--color-limestone-line)] pt-9">
+            <h2 className={LABEL}>What you were told before you paid</h2>
             {/*
               * The stored text, verbatim, not a re-render of today's rule. If the
               * firm changes its terms next month, this order still shows the terms
@@ -224,7 +270,7 @@ export default async function OrderStatusPage({
               */}
             <div className="mt-4 flex flex-col gap-3">
               {view.refundDisclosure.split("\n\n").map((para) => (
-                <p key={para} className="text-[13.5px] leading-[1.7] text-[var(--secondary)]">
+                <p key={para} className="text-[15px] leading-[1.7] text-[var(--color-ink-quiet)]">
                   {para}
                 </p>
               ))}
