@@ -107,13 +107,84 @@ const {
   secretaryOfStateAmendment,
 } = await import("../src/config/credentials.ts");
 
+/* --------- 0a. the owner's attestation of the name on the certificate ----- */
+
+/*
+ * THE REGISTERED NAME NOW RESTS ON TWO SOURCES, AND THIS IS WHAT KEEPS THEM
+ * FROM DRIFTING. Operator attestation, 2026-09-29.
+ *
+ * The register's `issuedTo` was read off the Board's VERIFICATION LETTER of
+ * 2026-09-21. `registeredNameAttestation` is the owner's reading of the
+ * registration CERTIFICATE, which is the instrument itself. Two independent
+ * sources for one fact is worth having; two HOMES for one fact that nothing
+ * compares is the defect this repository meets most often. So they are
+ * compared.
+ *
+ * THE EXPECTATION IS NOT IMPORTED FROM THE THING UNDER TEST. Both sides are
+ * data read from the same file, and the comparison is between them rather than
+ * between either and a deriver: calling firmName() here would compare a value
+ * to itself and pass forever, which is the vacuous check CLAUDE.md names.
+ *
+ * WHAT IT CATCHES. Somebody editing the register to a new name without a new
+ * attestation, or recording an attestation that does not match what the
+ * register holds. Either is a real event at the next reissuance, and either is
+ * silent without this.
+ *
+ * WHAT IT CANNOT CATCH, said plainly rather than implied: whether the owner
+ * read the certificate correctly. Nothing in this repository can reach TBPELS.
+ * What it buys is that the name cannot move without somebody naming their
+ * source and the date they read it.
+ */
+{
+  const { registeredNameAttestation } = await import("../src/config/credentials.ts");
+  const active = verifiedFirmRegistrations.find((r) => r.status === "active") ?? null;
+
+  rec(
+    "the owner's attestation names the same registered name as the register",
+    active !== null && registeredNameAttestation.name === active.issuedTo,
+    active === null
+      ? "no active registration on record"
+      : `attestation "${registeredNameAttestation.name}" against register "${active.issuedTo}"`,
+  );
+
+  rec(
+    "and the same firm number, so the two are about one registration",
+    active !== null && registeredNameAttestation.firmNumber === active.number,
+    active === null
+      ? "no active registration on record"
+      : `attestation ${registeredNameAttestation.firmNumber} against register ${active.number}`,
+  );
+
+  /*
+   * AN ATTESTATION WITH NO SOURCE AND NO DATE IS SOMEBODY'S RECOLLECTION.
+   * The whole value of this record is that a later reader can ask for the same
+   * instrument, so the instrument has to be named and the reading has to be
+   * dated. Asserted structurally rather than by matching the wording, for the
+   * reason the trade floor vocabulary check records: a matcher on prose fires
+   * on the clause that makes the point.
+   */
+  rec(
+    "and it names an instrument, a person and the date it was read",
+    registeredNameAttestation.source.trim().length > 0 &&
+      registeredNameAttestation.attestedBy.trim().length > 0 &&
+      /^\d{4}-\d{2}-\d{2}$/.test(registeredNameAttestation.attestedOn),
+    `${registeredNameAttestation.attestedBy}, ${registeredNameAttestation.attestedOn}, from the ${registeredNameAttestation.source}`,
+  );
+}
+
 /* ------------ 0. the legal entity name, which is a SECOND name discrepancy */
 
 /*
- * Found 2026-09-11. `business.legalName` says the entity is 254 Engineering
- * Services LLC; the board issued F-29811 to 254 Services LLC. That is a claim
- * about who the firm IS, separate from what it trades as, and /government
- * prints it to procurement officers under the heading "Legal entity".
+ * Found 2026-09-11. `business.legalName` said the entity was 254 Engineering
+ * Services LLC while the board held F-29811 in a different name. That is a
+ * claim about who the firm IS, separate from what it trades as, and
+ * /government prints it to procurement officers under "Legal entity".
+ *
+ * THE DISCREPANCY IS CLOSED AND THE CHECK STAYS. Since the reissuance of
+ * 2026-09-21 both say 254 Engineering LLC, so the first branch of every
+ * assertion below is the one that fires. It is kept because the condition it
+ * guards can reopen: an entity rename, a second registration, or an edit to
+ * either string puts the two out of step again, and this is what notices.
  *
  * This audit does not decide which is correct, because it cannot: the answer is
  * in formation documents nobody here can read. What it enforces is that the

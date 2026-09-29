@@ -113,10 +113,15 @@ export type LaunchMode = "prelaunch" | "trading" | "open";
  * stated true in a file somebody has to edit on purpose.
  *
  * The ruling came from a real gap. TBPELS issued F-29811 on 2026-09-10, which
- * looks like the day the gate opens, and it is not: the registration is in the
- * name 254 Services LLC while all three sites hold out as 254 Engineering
- * Services. Setting LAUNCH_MODE=live that afternoon would have printed a
- * registration number beside a name the board has no record of.
+ * looked like the day the gate opens, and it was not: the registration was then
+ * in the name 254 Services LLC while all three sites held out as
+ * 254 Engineering Services. Setting LAUNCH_MODE=live that afternoon would have
+ * printed a registration number beside a name the board had no record of.
+ *
+ * That particular gap closed on 2026-09-21, when the Board reissued F-29811 to
+ * 254 Engineering LLC and recorded the brand as an assumed name. The ruling it
+ * produced did not close with it: the gate is still a list of conditions rather
+ * than one variable, and that is the point of the paragraph.
  *
  * So each blocker returns a SENTENCE, not a boolean, because what a reader
  * needs when the gate will not open is the reason.
@@ -1173,11 +1178,17 @@ export function notYetTakingOrders(): string | null {
  * IT READS THE REGISTRANT, NOT THE ENTITY, AND THAT IS THE WHOLE DESIGN.
  * Operator ruling, 2026-09-15, on the Secretary of State amendment: the
  * compliance gate is about what the BOARD's record says, and the state's record
- * is a different fact. The entity became 254 Engineering LLC on 2026-09-16 and
- * TBPELS still holds F-29811 in the name 254 Services LLC, so every sentence
- * naming the firm goes on saying what the board holds until the certificate is
+ * is a different fact. The entity became 254 Engineering LLC on 2026-09-16
+ * while TBPELS still held F-29811 in the older name, so every sentence naming
+ * the firm went on saying what the board held until the certificate was
  * reissued. Sourcing this from the registration is what makes that true
  * mechanically rather than by remembering.
+ *
+ * THE TWO RECORDS AGREED AGAIN ON 2026-09-21, and the deriver is why nothing
+ * had to be edited for the copy to follow: `issuedTo` moved and twenty
+ * rendered sentences moved with it. That is the argument for this function
+ * stated as an outcome rather than as an intention, which is the only version
+ * worth having.
  *
  * So reissuance is ONE VALUE: `issuedTo` in the register, and every rendered
  * sentence, both email templates, the JSON-LD block and the report export
@@ -1255,9 +1266,13 @@ export function registrationLine(): string {
   /*
    * THE REGISTRATION IS STATED WHILE THE GATE IS SHUT, AND THAT IS A CHANGE.
    * Operator ruling, 2026-09-11: until the board holds the operating name, the
-   * public footer reads "254 Services LLC, TBPELS Firm F-29811" with the brand
-   * above it, so the day the gate opens the sites already hold out under the
-   * registered name.
+   * public footer states the REGISTRANT and the number with the brand above it,
+   * so the day the gate opens the sites already hold out under the registered
+   * name. It read "254 Services LLC, TBPELS Firm F-29811" then and reads
+   * "254 Engineering LLC, TBPELS Firm F-29811" since the reissuance of
+   * 2026-09-21. The line is derived, so it moved on its own; the sentence above
+   * quoted one of those values as though it were the rule and went stale, which
+   * is exactly what deriving it was meant to prevent happening to the COPY.
    *
    * WHY THIS IS NOT THE THING THE GATE PREVENTS. The hazard was never printing
    * the number. It was printing the number BESIDE A NAME THE BOARD HAS NO
@@ -1283,10 +1298,15 @@ export function registrationLine(): string {
    * trades under. Operator ruling, 2026-09-10.
    *
    * This used to print a module constant reading "254 Engineering Services
-   * LLC". F-29811 is issued to "254 Services LLC", so once the gate opened this
-   * line would have put the board's number beside a name the board's record
-   * does not carry, which is the exact misstatement the gate exists to prevent,
-   * printed in the one place a reader goes to check.
+   * LLC". F-29811 was issued to "254 Services LLC", so once the gate opened
+   * this line would have put the board's number beside a name the board's
+   * record did not carry, which is the exact misstatement the gate exists to
+   * prevent, printed in the one place a reader goes to check.
+   *
+   * The registrant has since moved once, to "254 Engineering LLC" on
+   * 2026-09-21, and this function needed no edit for it. That is the whole
+   * argument for reading the register rather than a constant, demonstrated
+   * rather than asserted.
    *
    * Reading it off the registration means the two cannot disagree: whatever
    * name the board holds is the name that appears next to its number, and if

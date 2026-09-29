@@ -310,6 +310,76 @@ export const verifiedFirmRegistrations: VerifiedFirmRegistration[] = [
 ];
 
 /**
+ * THE OPERATOR READ THE REGISTRATION CERTIFICATE AND ATTESTED TO THE NAME.
+ * Operator attestation, 2026-09-29.
+ *
+ * WHY THIS EXISTS WHEN THE REGISTER ALREADY HOLDS THE NAME, which is the
+ * obvious objection and is the point of the record.
+ *
+ * `verifiedFirmRegistrations` holds `issuedTo: "254 Engineering LLC"` and has
+ * since 2026-09-21. That value was read off the Board's VERIFICATION LETTER,
+ * which is a letter the Board writes on request confirming what its record
+ * says. This attestation is a SECOND and independent source for the same fact:
+ * the registration CERTIFICATE itself, read by the owner.
+ *
+ * Two sources agreeing is not duplication of the kind this repository refuses.
+ * The defect it refuses is one fact with two HOMES that can drift, and the
+ * check below closes exactly that by asserting the attestation and the register
+ * state the same string, so the day they disagree the board goes red naming
+ * both. What is gained is that the name now rests on the instrument itself
+ * rather than only on a letter about it, which is the document a procurement
+ * officer or an insurer would ask to see.
+ *
+ * WHAT PROMPTED IT IS WORTH RECORDING, because it is an instance of the failure
+ * this file exists to prevent rather than a routine confirmation.
+ *
+ * On 2026-09-29 a session told the operator, in writing, that "the board holds
+ * F-29811 under 254 Services LLC" and that the v10 design's footer was
+ * therefore wrong. Both statements were false. The register on disk said
+ * 254 Engineering LLC, every deriver rendered it, and the design's footer was
+ * correct. The session had recited CLAUDE.md's standing law section, which
+ * still described the pre-reissuance world eight days after the reissuance.
+ *
+ * It is the rule in CLAUDE.md section 6b almost word for word: a recorded
+ * explanation is a hypothesis until something re-checks it, and a wrong one is
+ * worse than none because it makes the next reader stop looking. The prose was
+ * the second home, the prose was the one nobody updated, and the prose was the
+ * one that got quoted. The standing law is corrected in the same commit.
+ *
+ * NOTHING RENDERED WRONG AT ANY POINT. Verified rather than assumed, in a child
+ * process reading the modules off disk: `firmName()` answers
+ * "254 Engineering LLC", `registrationLine()` answers "254 Engineering LLC,
+ * TBPELS Firm F-29811", `business.legalName` is the same string, and Stripe's
+ * declared legal business name matches it. The error was in a sentence a
+ * session said, and in the documents it read to say it, never in the product.
+ */
+export const registeredNameAttestation: {
+  /** The registered name, exactly as the certificate prints it. */
+  name: string;
+  /** The firm registration number on the same certificate. */
+  firmNumber: string;
+  attestedBy: string;
+  /** ISO date the operator read the instrument. */
+  attestedOn: string;
+  /** The instrument read, named so a later reader can ask for the same one. */
+  source: string;
+  notice: string;
+} = {
+  name: "254 Engineering LLC",
+  firmNumber: "F-29811",
+  attestedBy: "Robert Reyna, owner",
+  attestedOn: "2026-09-29",
+  source: "TBPELS registration certificate, read by Robert Reyna",
+  notice:
+    "This repository cannot read the Board's records. This is the owner's attestation of what the " +
+    "registration certificate itself states, recorded so the registered name rests on the " +
+    "instrument rather than only on the Board's verification letter of 2026-09-21. It is asserted " +
+    "against `verifiedFirmRegistrations` by compliance-audit: if the register is ever edited to a " +
+    "different name or number, the board goes red naming both values and this attestation, rather " +
+    "than the two quietly disagreeing.",
+};
+
+/**
  * DOES THE BOARD HOLD THE NAME THIS FIRM TRADES UNDER?
  *
  * Operator ruling, 2026-09-10, and it is a named condition of the compliance
