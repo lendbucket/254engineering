@@ -64,7 +64,7 @@ export default async function AccountHomePage() {
           between sections do not already carry.
         */}
         <section className="mt-10 border-t border-[var(--color-limestone-line)] pt-7">
-          <h2 className="text-[18px] font-semibold text-[var(--color-ink)]">
+          <h2 className="text-[17px] font-semibold text-[var(--color-ink)]">
             Order for several properties
           </h2>
           <p className="mt-2 text-[15px] leading-[1.65] text-[var(--color-ink-quiet)]">
@@ -80,7 +80,7 @@ export default async function AccountHomePage() {
         </section>
 
         <section className="mt-9 border-t border-[var(--color-limestone-line)] pt-7">
-          <h2 className="text-[18px] font-semibold text-[var(--color-ink)]">Settings</h2>
+          <h2 className="text-[17px] font-semibold text-[var(--color-ink)]">Settings</h2>
           <p className="mt-2 text-[15px] leading-[1.65] text-[var(--color-ink-quiet)]">
             The billing contact, the standing access instructions that go onto every order, and the
             properties you order against repeatedly.
@@ -95,7 +95,7 @@ export default async function AccountHomePage() {
 
         {me.account.billingMode === "invoice" ? (
           <section className="mt-9 border-t border-[var(--color-limestone-line)] pt-7">
-            <h2 className="text-[18px] font-semibold text-[var(--color-ink)]">Statements</h2>
+            <h2 className="text-[17px] font-semibold text-[var(--color-ink)]">Statements</h2>
             <p className="mt-2 text-[15px] leading-[1.65] text-[var(--color-ink-quiet)]">
               What has been billed, what is still to be billed, and paying an outstanding statement.
             </p>
@@ -130,6 +130,12 @@ export default async function AccountHomePage() {
   );
 }
 
-/* V10's section label. Gold is an accent and never text on a light surface. */
-const LABEL =
-  "text-[12px] font-semibold tracking-[0.08em] text-[var(--color-ink-quiet)] uppercase";
+/*
+ * V10's section label. Gold is an accent and never text on a light surface.
+ *
+ * The uppercase lives in the `.v10-label` class in globals.css rather than in
+ * an `uppercase` utility here, because token-audit forbids the utility for an
+ * accessibility reason: a CSS transform makes the DOM disagree with the screen.
+ * The portal resolves the same tension the same way, with `.portal-kicker`.
+ */
+const LABEL = "v10-label";

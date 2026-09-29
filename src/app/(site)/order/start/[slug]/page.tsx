@@ -103,7 +103,7 @@ export default async function OrderStartPage({ params }: { params: Promise<{ slu
      */
     <Container>
       <div className="mx-auto max-w-[68ch] py-12 sm:py-16">
-        <p className="text-[12px] font-semibold tracking-[0.08em] text-[var(--color-ink-quiet)] uppercase">
+        <p className="v10-label">
           {service.shortName}
         </p>
         <h1 className="mt-2.5 text-[clamp(1.75rem,3vw,2.1rem)] leading-[1.15] font-semibold tracking-[-0.5px] text-[var(--color-ink)]">

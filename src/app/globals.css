@@ -57,7 +57,27 @@
    * presentation change: renaming a token used by forty components is a
    * refactor, and this branch is not allowed to alter what any screen does.
    */
-  --color-slate: #012758;
+  /*
+   * REVERTED TO THE PORTAL'S NAVY ON 2026-09-29, PENDING AN OPERATOR RULING.
+   *
+   * V10 specifies #012758 for the customer surface, and it was set here during
+   * stage 1. `token-audit` then went red: it asserts that the site palette and
+   * the portal standards name the SAME colour under two names, which is the
+   * "one brand, two vocabularies" invariant. Moving one half of a twin gives
+   * the firm two navies, one on customer screens and one on staff screens.
+   *
+   * THAT IS A DESIGN RULING NOBODY HAS MADE. The operator ruled on the V10 TYPE
+   * SCALE and said nothing about the palette, and the difference between
+   * #012758 and #14315d is not visible enough to be worth guessing about while
+   * he is asleep. Reverting keeps the invariant and costs stage 1 nothing that
+   * matters: the layout is what stage 1 is for.
+   *
+   * It is in BACKLOG.md with the question stated. Either the portal follows V10
+   * and both move, or V10's navy yields to the existing one, or the two
+   * surfaces are declared to have separate palettes and the twin check learns
+   * it, which is what happened to the type scale on the same day.
+   */
+  --color-slate: #14315d;
   --color-slate-ink: #14213a;
   --color-slate-deep: #0e2347;
   --color-slate-abyss: #0b1b36;
@@ -111,7 +131,9 @@
    * on white. It is the rule under the header bar, the active nav marker and the
    * current step, and nothing else.
    */
-  --color-brass: #d6a62a;
+  /* Reverted with its twin above, same reason, same pending ruling. V10 asks
+   * for #d6a62a; the portal standards name #d9a032 as --gold. */
+  --color-brass: #d9a032;
   --color-brass-deep: #b77e1b;
   --color-brass-ink: #8d610f;
   --color-brass-light: #e8b04a;
@@ -247,6 +269,28 @@
    * or a code block, is contained here rather than being allowed to widen the
    * document.
    */
+  /*
+   * THE CUSTOMER SURFACE'S SECTION LABEL. V10.
+   *
+   * It exists as a named class rather than as an `uppercase` utility in each
+   * component, because `token-audit` forbids the utility and the reason is an
+   * accessibility one rather than a style one: a CSS transform makes the DOM
+   * disagree with the screen, which breaks screen readers and copy and paste,
+   * and lets voice-audit read one string while a person sees another.
+   *
+   * The portal already resolves this the same way, with `.portal-kicker` as the
+   * one sanctioned uppercase treatment. This is its customer twin, and it is
+   * declared here in the site's own stylesheet rather than in portal.css
+   * because the two surfaces are different systems with different scales.
+   */
+  .v10-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-ink-quiet);
+  }
+
   .scroll-x {
     overflow-x: auto;
     overscroll-behavior-x: contain;

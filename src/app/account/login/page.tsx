@@ -169,7 +169,7 @@ export default async function AccountLoginPage({
 
           {/* -------------------------------------------- how ordering works */}
           <section>
-            <h2 className="text-[12px] font-semibold tracking-[0.08em] text-[var(--color-ink-quiet)] uppercase">
+            <h2 className="v10-label">
               Order a roof certification
             </h2>
             <ol className="mt-5 space-y-6">

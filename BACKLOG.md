@@ -428,6 +428,69 @@ as a wrong code on a working phone. That is the 2026-09-13 lockout.
 - `feat/0058-retired-protocol` is based on `cdb1508` and needs rebasing onto
   `main` before it can be measured or merged.
 
+## THE FIRM HAS TWO CANDIDATE NAVIES AND V10 DID NOT RULE ON WHICH. NEEDS A RULING.
+
+Found 2026-09-29 on the type scale branch, **reverted rather than shipped**, and
+it is the palette version of the question the operator answered for the type
+scale that morning.
+
+`token-audit` asserts twelve TWINS: colours that exist under two names, once in
+the site's Tailwind theme and once under the portal standards name, holding the
+same value. That invariant is "one brand, two vocabularies", and it is what
+stops the firm accumulating four navies nobody can choose between.
+
+**V10 specifies different values for two of them.**
+
+| | V10 | portal standards |
+| --- | --- | --- |
+| navy | `#012758` | `--navy` `#14315d` |
+| gold | `#d6a62a` | `--gold` `#d9a032` |
+
+Stage 1 set the V10 values in `globals.css`, and `token-audit` went red on both
+twins. **They are reverted to the portal values on the branch**, with the reason
+written beside each in the file, because the operator ruled on the V10 TYPE
+SCALE and said nothing about the palette, and two navies across the firm is a
+design decision rather than a styling detail.
+
+**The three answers, and a recommendation.**
+
+1. **The portal follows V10.** Both halves of each twin move, the invariant
+   holds, and the staff portal is restyled at the same time. Largest change,
+   cleanest result, and it is a second design port.
+2. **V10's navy yields.** The customer surface keeps `#14315d`. Costs nothing
+   but the exact hue, and the difference between `#012758` and `#14315d` is not
+   one most readers would name.
+3. **The two surfaces are declared to have separate palettes**, and the twin
+   check learns which files belong to which, exactly as it learned two type
+   scales on 2026-09-29.
+
+**Recommended: 2 for now, 1 when the portal is next touched.** The hue is not
+worth a second port today, and 3 weakens an invariant that has been earning its
+keep, for a difference nobody asked for.
+
+## THE CUSTOMER SCREENS STILL ON THE STAFF TYPE SCALE
+
+Recorded 2026-09-29 with the customer scale. `token-audit` now holds eight
+restyled customer files to the customer scale and every other ported file to the
+staff one. These customer surfaces are ported but **not yet restyled**, so they
+are still judged against the staff scale, which is what they still are:
+
+`src/app/account/order/BulkOrderClient.tsx`, `src/app/account/order/page.tsx`,
+`src/app/account/orders/[reference]/page.tsx`,
+`src/app/account/settings/SettingsClient.tsx`,
+`src/app/account/settings/page.tsx`, `src/app/account/statements/page.tsx`,
+`src/app/account/statements/PayStatementButton.tsx`,
+`src/app/account/set-password/page.tsx`,
+`src/app/account/set-password/SetPasswordForm.tsx`,
+`src/app/account/forgot-password/page.tsx`,
+`src/app/account/forgot-password/ForgotPasswordForm.tsx`,
+`src/app/account/layout.tsx`, `src/app/account/login/AccountLoginForm.tsx`.
+
+They are not unchecked. Each moves onto the customer scale when stage 1
+restyles it, and `CUSTOMER_V10` prints the remaining count on every run so
+stalling is visible. This entry exists so the list is a plan rather than a
+silence.
+
 ## THE TRIGGER THAT INVALIDATES TOKENS AT SUSPENSION, WHICH IS THE GUARANTEE HALF
 
 **The application half shipped on 2026-09-29** and is not in question. What is

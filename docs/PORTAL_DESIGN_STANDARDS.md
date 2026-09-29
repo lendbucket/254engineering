@@ -115,6 +115,40 @@ Green only on status dots. Never gradients. New tints via oklch near these ancho
 > 400, 500, 600, 700, and no monospace anywhere including file numbers, times
 > and money. The scale below is superseded by V10's. Kept for the record.
 
+### THE CUSTOMER TYPE SCALE. Operator ruling, 2026-09-29.
+
+**12, 13, 14, 15, 16, 17, 20, 26, 32.** In his words: "Add a customer scale to
+PORTAL_DESIGN_STANDARDS.md and token-audit. Snap every v10 size to the nearest
+step. Staff scale unchanged."
+
+**16 IS IN THE SCALE FOR ONE REASON AND IT IS NOT AESTHETIC.** It was absent
+from the first version of this ruling, and was added when the consequence was
+put to the operator: below 16px, Safari zooms the viewport when a form control
+takes focus, and this platform deliberately does not lock zoom, because locking
+it is an accessibility failure for anyone with low vision. So **16 is the form
+control step**, and a customer input, select or textarea uses it. Everything
+else takes the nearest step.
+
+**THE TWO SCALES ARE SEPARATE BECAUSE THE TWO SURFACES ARE.** The scale above
+this block was written for the staff portal, which is a dense working tool read
+at a desk for hours. V10 is a customer design: fewer things on a screen, read
+once, often on a phone, frequently by somebody who is anxious about a roof. A
+single scale serving both would be a compromise that fits neither, and the two
+audiences never see each other's screens.
+
+**WHICH SCALE A FILE IS HELD TO IS DECLARED, NOT INFERRED.** `token-audit`
+carries a list of the customer surface files that have been restyled to V10, and
+every other ported file stays on the staff scale. The list may only grow, and
+the count of customer files still owed a pass is printed on every run, which is
+the same mechanism the `PORTED` list uses and for the same reason: an audit that
+is expected to be red is an audit nobody reads, and a list that can shrink is a
+way to hide work.
+
+**WHAT THIS DOES NOT LICENSE.** A staff file may not reach for a customer step,
+and `token-audit` asserts that separately. Without it, adding a second scale
+would quietly widen the first: a staff screen wanting 20px would simply be
+declared a customer file. The two lists are disjoint and the audit says so.
+
 - Headings & figures: `Archivo` (500/600/700/800). Body & UI: `Open Sans` (400/600/700).
 - Google Fonts: `Archivo:wght@500;600;700;800`, `Open Sans:ital,wght@0,400;0,600;0,700;1,400`
 - Scale: page display 30/800 Archivo · KPI figure 24/700 Archivo (tabular-nums) ·

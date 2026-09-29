@@ -178,7 +178,7 @@ export function OrderFlow({
   if (done) {
     return (
       <div>
-        <h2 className="text-[30px] leading-[1.12] font-semibold tracking-[-0.5px] text-[var(--color-ink)]">
+        <h2 className="text-[32px] leading-[1.12] font-semibold tracking-[-0.5px] text-[var(--color-ink)]">
           {entry?.orderType === "quote" ? "Your request is with the firm" : "Your order is placed"}
         </h2>
         <p className="mt-3 text-[16px] leading-[1.7] text-[var(--color-ink-quiet)]">
@@ -491,7 +491,7 @@ export function OrderFlow({
                     <input
                       id={input.id}
                       type="file"
-                      className="text-[13.5px]"
+                      className="text-[14px]"
                       onChange={(e) => {
                         const f = e.target.files?.[0];
                         if (f) void upload(input.id, f);
@@ -705,7 +705,7 @@ function ReviewStep({
         works out which county the address is in rather than asking you to.
       </p>
 
-      <h3 className="mt-9 text-[12px] font-semibold tracking-[0.08em] text-[var(--color-ink-quiet)] uppercase">
+      <h3 className="v10-label mt-9">
         If the engineer declines
       </h3>
       <ul className="mt-4 flex flex-col gap-3">

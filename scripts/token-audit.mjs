@@ -267,6 +267,15 @@ const PORTED = [
   "src/app/account/order/page.tsx",
   "src/app/account/orders/[reference]/page.tsx",
   "src/app/account/page.tsx",
+  /*
+   * The sign up pair joined on 2026-09-29, when stage 1 restyled them. They had
+   * never been on this list, so nothing had ever held them to a scale, and the
+   * customer V10 declaration named them while this one did not. The new check
+   * "every file declared as customer V10 is one this audit reads" went red and
+   * named both, which is that check earning its keep on its first run.
+   */
+  "src/app/account/sign-up/SignUpForm.tsx",
+  "src/app/account/sign-up/page.tsx",
   "src/app/account/set-password/SetPasswordForm.tsx",
   "src/app/account/set-password/page.tsx",
   "src/app/account/settings/SettingsClient.tsx",
@@ -407,6 +416,49 @@ function codeOnly(path) {
  * purpose: a component wanting 14.5px is a component inventing a step.
  */
 const ALLOWED_FONT_PX = new Set([11, 12, 12.5, 13.5, 15, 16, 17, 24, 30]);
+
+/**
+ * THE CUSTOMER SCALE. Operator ruling, 2026-09-29, and it is a SECOND scale
+ * rather than a widening of the first.
+ *
+ * 12, 13, 14, 15, 16, 17, 20, 26, 32. Recorded in
+ * docs/PORTAL_DESIGN_STANDARDS.md with the reasoning, including why 16 is in it
+ * (below 16px Safari zooms the viewport on focus, and this platform does not
+ * lock zoom because locking it is an accessibility failure).
+ *
+ * WHY A SECOND SCALE AND NOT A LONGER ONE. Merging the two would mean every
+ * staff screen silently gained 20, 26 and 32, and every customer screen gained
+ * 11, 12.5, 13.5, 24 and 30. That is not one system, it is the absence of one:
+ * fourteen steps is a scale in name only. The two surfaces have different
+ * readers and never show each other's screens.
+ *
+ * WHICH SCALE A FILE IS HELD TO IS DECLARED BELOW, and the declaration may only
+ * grow, exactly as PORTED does and for the reason given there.
+ */
+const CUSTOMER_FONT_PX = new Set([12, 13, 14, 15, 16, 17, 20, 26, 32]);
+
+/**
+ * The customer surface files restyled to V10 and therefore held to the customer
+ * scale. Everything else on PORTED stays on the staff scale.
+ *
+ * IT GROWS AS STAGE 1 RESTYLES SCREENS, and the remainder is reported on every
+ * run so stalling is visible. A customer screen NOT on this list is not
+ * unchecked: it is checked against the staff scale, which is what it still is.
+ *
+ * THE TWO LISTS ARE DISJOINT AND THAT IS ASSERTED. Without it, a staff screen
+ * wanting 20px could be declared a customer file, and the second scale would
+ * become a way to widen the first one file at a time.
+ */
+const CUSTOMER_V10 = [
+  "src/app/account/login/page.tsx",
+  "src/app/account/sign-up/page.tsx",
+  "src/app/account/sign-up/SignUpForm.tsx",
+  "src/app/account/page.tsx",
+  "src/app/account/SignOutButton.tsx",
+  "src/components/order/OrderFlow.tsx",
+  "src/app/(site)/order/[reference]/page.tsx",
+  "src/app/(site)/order/start/[slug]/page.tsx",
+];
 const ALLOWED_RADIUS_PX = new Set([2, 3, 4, 8, 12, 16, 18]);
 
 const rawColour = [];
@@ -424,8 +476,17 @@ for (const file of portalFiles) {
       rawColour.push(`${file}: ${m[0]}`);
     }
   }
+  /*
+   * THE FILE DECIDES WHICH SCALE, and the scale it is judged against is named
+   * in the finding. A red saying only "off the scale" leaves the reader asking
+   * which of two, which is how a correct size gets "fixed" into a wrong one.
+   */
+  const customer = CUSTOMER_V10.includes(file);
+  const scale = customer ? CUSTOMER_FONT_PX : ALLOWED_FONT_PX;
   for (const m of code.matchAll(/text-\[([0-9.]+)px\]/g)) {
-    if (!ALLOWED_FONT_PX.has(Number(m[1]))) rawFont.push(`${file}: ${m[0]}`);
+    if (!scale.has(Number(m[1]))) {
+      rawFont.push(`${file}: ${m[0]} (${customer ? "customer" : "staff"} scale)`);
+    }
   }
   for (const m of code.matchAll(/rounded-\[([0-9.]+)px\]/g)) {
     if (!ALLOWED_RADIUS_PX.has(Number(m[1]))) rawRadius.push(`${file}: ${m[0]}`);
@@ -437,6 +498,81 @@ rec(
   rawColour.length === 0,
   rawColour.slice(0, 6).join("  |  ") || "none",
 );
+/*
+ * ===========================================================================
+ * THE TWO SCALES, AND WHAT STOPS THE SECOND ONE EATING THE FIRST.
+ * ===========================================================================
+ */
+
+/*
+ * A CUSTOMER FILE MUST BE A FILE THIS AUDIT ACTUALLY SWEEPS. A name here that
+ * is not on PORTED is a declaration over nothing: the file is never read, the
+ * customer scale is never applied to it, and the list grows while the coverage
+ * does not. Same shape as a probe that names a route which does not exist.
+ */
+const customerNotPorted = CUSTOMER_V10.filter((f) => !PORTED.includes(f));
+rec(
+  "every file declared as customer V10 is one this audit reads",
+  customerNotPorted.length === 0,
+  customerNotPorted.join(", ") || `${CUSTOMER_V10.length} customer file(s), all on PORTED`,
+);
+
+/*
+ * AND THE CUSTOMER SET IS NOT EMPTY. An empty list makes every customer scale
+ * check below a green over nothing, which reads exactly like a scale being
+ * enforced. This is the vacuity guard, and it is the check that would fire if
+ * somebody emptied the list to make a red go away.
+ */
+rec(
+  "and the customer scale has files to enforce against",
+  CUSTOMER_V10.length > 0,
+  `${CUSTOMER_V10.length} file(s) on the customer scale, ${PORTED.length - CUSTOMER_V10.length} still on the staff scale`,
+);
+
+/*
+ * THE TWO SCALES DIFFER, which is the whole reason there are two. If somebody
+ * edited them to the same values, every check here would pass forever and the
+ * split would be decoration. Asserted on the SETS rather than on their lengths,
+ * because two scales of nine steps each can still be identical.
+ */
+const sameSteps =
+  CUSTOMER_FONT_PX.size === ALLOWED_FONT_PX.size &&
+  [...CUSTOMER_FONT_PX].every((n) => ALLOWED_FONT_PX.has(n));
+rec(
+  "the customer scale is genuinely a different scale from the staff one",
+  !sameSteps,
+  `customer only: ${[...CUSTOMER_FONT_PX].filter((n) => !ALLOWED_FONT_PX.has(n)).join(", ")}  |  staff only: ${[...ALLOWED_FONT_PX].filter((n) => !CUSTOMER_FONT_PX.has(n)).join(", ")}`,
+);
+
+/*
+ * AND A STAFF FILE MAY NOT REACH FOR A CUSTOMER STEP.
+ *
+ * This is the check that makes the split honest rather than a widening. Without
+ * it, a staff screen wanting 20px has an obvious move available: add itself to
+ * CUSTOMER_V10. The steps that exist only on the customer scale are therefore
+ * forbidden in staff files by name, and the finding says which step and which
+ * file rather than leaving somebody to work it out.
+ *
+ * It is the same assertion the main font check already makes, stated
+ * separately so that its RED says something different: "this file is on the
+ * wrong scale" rather than "this size is on no scale".
+ */
+const customerOnly = [...CUSTOMER_FONT_PX].filter((n) => !ALLOWED_FONT_PX.has(n));
+const staffReachingOver = [];
+for (const file of portalFiles) {
+  if (CUSTOMER_V10.includes(file)) continue;
+  const code = codeOnly(file);
+  for (const m of code.matchAll(/text-\[([0-9.]+)px\]/g)) {
+    if (customerOnly.includes(Number(m[1]))) staffReachingOver.push(`${file}: ${m[0]}`);
+  }
+}
+rec(
+  "no staff file uses a step that exists only on the customer scale",
+  staffReachingOver.length === 0,
+  staffReachingOver.slice(0, 6).join("  |  ") ||
+    `${customerOnly.join(", ")} are customer only and appear in no staff file`,
+);
+
 rec(
   "no portal component names a font size outside the scale",
   rawFont.length === 0,

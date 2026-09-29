@@ -37,8 +37,7 @@ export const metadata: Metadata = {
  * standing law older than this design, and `--gold-deep` was the compliant
  * workaround for wanting it anyway. V10 stops wanting it.
  */
-const LABEL =
-  "text-[12px] font-semibold tracking-[0.08em] text-[var(--color-ink-quiet)] uppercase";
+const LABEL = "v10-label";
 
 export default async function OrderStatusPage({
   params,
@@ -80,7 +79,7 @@ export default async function OrderStatusPage({
     return (
       <Container>
         <div className="mx-auto max-w-[62ch] py-20">
-          <h1 className="text-[30px] leading-[1.12] font-semibold tracking-[-0.5px] text-[var(--color-ink)]">
+          <h1 className="text-[32px] leading-[1.12] font-semibold tracking-[-0.5px] text-[var(--color-ink)]">
             Payment received
           </h1>
           <p className="mt-4 text-[16px] leading-[1.7] text-[var(--color-ink-quiet)]">
@@ -97,7 +96,7 @@ export default async function OrderStatusPage({
     return (
       <Container>
         <div className="mx-auto max-w-[62ch] py-20">
-          <h1 className="text-[30px] leading-[1.12] font-semibold tracking-[-0.5px] text-[var(--color-ink)]">
+          <h1 className="text-[32px] leading-[1.12] font-semibold tracking-[-0.5px] text-[var(--color-ink)]">
             This link does not open an order
           </h1>
           <p className="mt-4 text-[16px] leading-[1.7] text-[var(--color-ink-quiet)]">
@@ -178,7 +177,7 @@ export default async function OrderStatusPage({
 
         <section className="mt-12">
           <h2 className={LABEL}>Where it is</h2>
-          <p className="mt-3 text-[18px] leading-[1.55] font-semibold text-[var(--color-ink)]">
+          <p className="mt-3 text-[17px] leading-[1.55] font-semibold text-[var(--color-ink)]">
             {view.statusLine}
           </p>
         </section>
