@@ -522,16 +522,62 @@ export async function withGateConditionsMet(fn) {
  * is plain .mjs loaded by audits that must not pull the TypeScript module graph
  * in just to build a fixture.
  */
+/**
+ * THE OFFERED LINES, NOT EVERY LINE. Corrected 2026-09-29.
+ *
+ * This approved a protocol for EVERY slug in services.ts, which was right while
+ * the `protocols` condition asked about every line. On 2026-09-28 the operator
+ * ruled the firm launches with roof certification only, and `protocols` now
+ * reads `offeredServiceLines`.
+ *
+ * SO THE FIXTURE WAS BUILDING A WORLD THE FIRM IS NOT IN. Its live state had all
+ * eight lines orderable, and every audit that reads the live world was
+ * therefore looking at a firm selling eight services. Nothing failed, because
+ * nothing asserted the difference, which is precisely what makes it worth
+ * correcting: the fixture was quietly wider than the product and any check
+ * written about waitlists would have been asserting the fixture.
+ *
+ * It is the same defect CLAUDE.md records about `withGateConditionsMet` itself:
+ * a fixture that STATES the conditions rather than deriving them is a second
+ * account of what the gate requires, and it goes stale the day the gate moves.
+ *
+ * THE GUARD CHANGED WITH IT, and it had to. It refused fewer than two slugs, on
+ * the reasoning that the condition would otherwise be stated true over an empty
+ * set. One offered line is now the firm's real and deliberate state, so the
+ * guard asks the question that still matters: is the offered list non-empty, and
+ * does every name in it exist. Both are the checks the condition itself makes,
+ * which is the point: the fixture builds the world the gate is asking about.
+ */
 function fixtureProtocols() {
   const src = readFileSync("src/content/services.ts", "utf8");
-  const slugs = [...src.matchAll(/^\s*slug: "([a-z0-9-]+)",/gm)].map((m) => m[1]);
-  if (slugs.length < 2) {
+  const known = [...src.matchAll(/^\s*slug: "([a-z0-9-]+)",/gm)].map((m) => m[1]);
+
+  const conditions = readFileSync(CONDITIONS, "utf8");
+  const block = conditions.match(/export const offeredServiceLines: string\[\] = \[([\s\S]*?)\];/);
+  if (!block) {
     throw new Error(
-      "The gate fixture found fewer than two service slugs in src/content/services.ts, so the protocol " +
-        "condition would be stated true over an empty set and the gate would stay shut for a reason no " +
-        "audit would name.",
+      "The gate fixture could not find offeredServiceLines in " +
+        CONDITIONS +
+        ". The protocols condition reads it, so a fixture that cannot see it would approve the wrong " +
+        "set and every live half would measure a firm selling something else.",
     );
   }
+  const slugs = [...block[1].matchAll(/"([a-z0-9-]+)"/g)].map((m) => m[1]);
+
+  if (slugs.length === 0) {
+    throw new Error(
+      "The gate fixture found no offered service lines, so the protocols condition would be stated " +
+        "true over an empty set and the gate would stay shut for a reason no audit would name.",
+    );
+  }
+  const unknown = slugs.filter((s) => !known.includes(s));
+  if (unknown.length > 0) {
+    throw new Error(
+      `The gate fixture found offered lines that are not services: ${unknown.join(", ")}. ` +
+        "Approving a protocol for a slug no service has would open the gate over a line nobody can order.",
+    );
+  }
+
   return slugs.map((serviceSlug) => ({
     serviceSlug,
     protocolName: "AUDIT FIXTURE NOT A REAL PROTOCOL",

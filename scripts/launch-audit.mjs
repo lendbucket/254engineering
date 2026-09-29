@@ -466,18 +466,106 @@ async function run() {
       liveNoticeLeak.join(", "),
     );
 
-    const liveWaitlistCta = servicePages.filter((r) => live.get(r).html.includes('href="/waitlist'));
-    rec(
-      "live: service CTAs no longer route to the waitlist",
-      liveWaitlistCta.length === 0,
-      liveWaitlistCta.join(", "),
+    /*
+     * =====================================================================
+     * OFFERED LINES LOSE THE WAITLIST. THE OTHER SEVEN KEEP IT, EVEN OPEN.
+     * Operator ruling, 2026-09-28: the firm launches with roof only.
+     * =====================================================================
+     *
+     * THESE TWO CHECKS ASSERTED THE OLD SHAPE and were right until that ruling.
+     * They said every service CTA stops routing to the waitlist when the firm
+     * opens, which was true when `protocols` asked about every line. It is now
+     * false about seven of the eight, and a check that kept passing would have
+     * been passing because the gate fixture approved everything rather than
+     * because the product does the right thing.
+     *
+     * This is the 2026-09-09 lesson exactly: when a deliberate change turns a
+     * check red, the answer is never to loosen the pattern until it passes on
+     * both. It is to make the check name the new shape and to ask what the old
+     * one could not see. What it could not see is the thing that matters now:
+     * whether an UNOFFERED line still refuses an order when the firm is open.
+     *
+     * PINNED AS A LITERAL, per section 6c and the operator's instruction. If
+     * this read `offeredServiceLines` it would compare the configuration to
+     * itself and could not disagree with anything. Adding a line costs an edit
+     * there, an edit in compliance-audit, and an edit here: three deliberate
+     * acts, and the board says so in between.
+     */
+    const OFFERED_AT_LAUNCH = ["roof-inspections"];
+    const offeredPages = servicePages.filter((r) =>
+      OFFERED_AT_LAUNCH.some((slug) => r === `/services/${slug}`),
+    );
+    const waitlistPages = servicePages.filter(
+      (r) => r.startsWith("/services/") && !offeredPages.includes(r),
     );
 
-    const liveContactCta = servicePages.filter((r) => !live.get(r).html.includes('href="/contact"'));
     rec(
-      "live: service CTAs route to contact instead",
-      liveContactCta.length === 0,
-      liveContactCta.join(", "),
+      `live: the ${OFFERED_AT_LAUNCH.length} offered line(s) are reachable to check`,
+      offeredPages.length === OFFERED_AT_LAUNCH.length,
+      offeredPages.length === 0
+        ? "no offered service page is in ROUTES, so every check below would pass over nothing"
+        : offeredPages.join(", "),
+    );
+
+    const offeredStillWaitlisted = offeredPages.filter((r) =>
+      live.get(r).html.includes('href="/waitlist'),
+    );
+    rec(
+      "live: an OFFERED line no longer routes its CTA to the waitlist",
+      offeredStillWaitlisted.length === 0,
+      offeredStillWaitlisted.join(", ") || offeredPages.join(", "),
+    );
+
+    const offeredWithoutContact = offeredPages.filter(
+      (r) => !live.get(r).html.includes('href="/contact"'),
+    );
+    rec(
+      "live: an OFFERED line routes its CTA to contact instead",
+      offeredWithoutContact.length === 0,
+      offeredWithoutContact.join(", "),
+    );
+
+    /*
+     * THE HALF THE OLD CHECKS COULD NOT SEE: WHETHER AN UNOFFERED LINE CAN BE
+     * ORDERED. A line with no approved protocol cannot be dispatched, so
+     * offering an order on it is taking money for work the firm has no agreed
+     * way to perform.
+     *
+     * THE FIRST VERSION OF THIS CHECK ASSERTED THE WAITLIST AND WAS WRONG, and
+     * it is recorded rather than quietly replaced because the mistake is
+     * instructive. It said an unoffered line should still route to the waitlist
+     * when the firm is open. It should not: the waitlist belongs to PRELAUNCH.
+     * `OfferCta` reads `serviceLineIsOffered(slug)` per line, so when the firm
+     * is open an unoffered line offers an ENQUIRY, which is the honest thing to
+     * offer for work the firm will do once its protocol is approved.
+     *
+     * The check was asserting a state the product had deliberately left behind,
+     * and it took a standalone run to find out. That is the whole argument for
+     * running an audit before committing it: this would have been a red board.
+     *
+     * So the property is the ORDER PATH, which is what the ruling is actually
+     * about. `/order/start/<slug>` is the door, and it must exist for an
+     * offered line and must not exist for any other.
+     */
+    const offeredWithoutOrder = offeredPages.filter(
+      (r) => !live.get(r).html.includes("/order/start/"),
+    );
+    rec(
+      "live: an OFFERED line offers an order",
+      offeredWithoutOrder.length === 0,
+      offeredWithoutOrder.join(", ") || `${offeredPages.length} offered page(s) carry an order path`,
+    );
+
+    const unofferedWithOrder = waitlistPages.filter((r) =>
+      live.get(r).html.includes("/order/start/"),
+    );
+    rec(
+      "live: an UNOFFERED line offers NO order, even with the firm open",
+      waitlistPages.length > 0 && unofferedWithOrder.length === 0,
+      waitlistPages.length === 0
+        ? "no unoffered service page is in ROUTES, so this check read nothing"
+        : unofferedWithOrder.join(", ") ||
+          `${waitlistPages.length} unoffered line(s), none orderable`,
     );
 
     rec(
