@@ -97,6 +97,46 @@ export const stripeConsole: {
    * personal details.
    */
   evidence: { file: string; sha256: string; bytes: number; shows: string }[];
+  /**
+   * WHAT THE WEBHOOK ENDPOINTS LIST SHOWED, WHICH NO CHECK HERE CAN SEE.
+   *
+   * `stripe-webhook-audit` has a live half that asks the account whether an
+   * endpoint at this firm's URL is registered, enabled, and subscribed to the
+   * events the handler branches on. It needs STRIPE_SECRET_KEY, which is not in
+   * this tree by design, so on every board it reports COULD NOT TELL and says
+   * in its own words: "Run it with the key before any merge that touches
+   * payments."
+   *
+   * THAT HALF MATTERS MORE THAN MOST, and the reason is recorded in CLAUDE.md
+   * as the sharpest vacuous green in this repository. If the key belongs to one
+   * account and the URL is registered in another, that account never calls us:
+   * no 400, no log line, no event, nothing to inspect. The customer pays,
+   * Stripe shows the charge, and the order sits at awaiting_payment for ever
+   * while every check on the arrival path stays green, because the subject
+   * never arrives.
+   *
+   * SO A PERSON READING THE LIST IS THE ONLY THING THAT CLOSES IT TODAY, and
+   * what they saw becomes a dated, attributed record here. This is the same
+   * idiom as `verificationNotice` below and as `pointInTimeRecovery`: a fact
+   * about a console this repository cannot reach, stated by somebody who
+   * opened it, with their name and the date on it.
+   *
+   * IT IS AN ATTESTATION AND IT SAYS SO. It does not make the live half green
+   * and must not be read as having done. `stripe-webhook-audit` still reports
+   * COULD NOT TELL until the key runs it, and that is correct: this record says
+   * what a person saw on one day, and the check asks the account itself.
+   */
+  webhookCheck: {
+    checkedBy: string;
+    checkedOn: string;
+    via: string;
+    endpointCount: number;
+    url: string;
+    /** What the endpoint's recent deliveries showed, as read. */
+    deliveries: string;
+    /** Said plainly so nobody promotes this to evidence. */
+    notice: string;
+  } | null;
   /** Any verification requirement or restriction the console showed. */
   verificationNotice: string;
   /** What must change in the console, and what triggers it. */
@@ -186,6 +226,42 @@ export const stripeConsole: {
         "shows that Account status and Verified exist; neither was opened.",
     },
   ],
+
+  /*
+   * READ 2026-09-28, THE NIGHT OF THE PROVING CHARGE.
+   *
+   * The operator opened the live dashboard's webhook endpoints list after
+   * making the charge and its refund, and read the deliveries for both.
+   *
+   * WHAT IT CLOSES, IN PRACTICE. The failure this half exists to catch is a key
+   * in one account and a URL registered in another, where the account never
+   * calls us at all. One endpoint, at the production URL, with the charge and
+   * the refund both delivered and answered 200, is that failure not happening:
+   * the events were sent, they arrived, and this platform accepted them.
+   *
+   * WHAT IT DOES NOT CLOSE. It is one person's read on one evening, not the
+   * account answering a question. It says nothing about which events the
+   * endpoint is subscribed to, which is the other half `stripe-webhook-audit`
+   * asks, and a fourth handled event nobody registered would not show here.
+   * The live half stays COULD NOT TELL on every board until the key runs it,
+   * and that remains correct rather than pedantic.
+   */
+  webhookCheck: {
+    checkedBy: "Robert Reyna, operator",
+    checkedOn: "2026-09-28",
+    via: "the Stripe live dashboard, webhook endpoints list",
+    endpointCount: 1,
+    url: "the production URL",
+    deliveries:
+      "The $1.00 proving charge and its full refund were both delivered to that endpoint and both " +
+      "answered 200.",
+    notice:
+      "OPERATOR ATTESTATION, NOT EVIDENCE. No capture backs this and no API read was made. It " +
+      "records that events reached this platform on one evening; it does not record which events " +
+      "the endpoint is subscribed to, which is the half that catches a fourth handled event nobody " +
+      "registered. stripe-webhook-audit's live half stays COULD NOT TELL until somebody runs it " +
+      "with the key, and this record must not be read as having made it green.",
+  },
   /*
    * WHAT THE PAGE SHOWED, INCLUDING THE ABSENCE. The Business details page
    * carried no verification banner, no restriction notice and no "action

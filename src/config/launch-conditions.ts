@@ -45,6 +45,60 @@
 export const offeredServiceLines: string[] = ["roof-inspections"];
 
 /**
+ * ===========================================================================
+ * THE OPERATOR THREW THE SWITCH. RECORDED, BECAUSE NOTHING HERE CAN SEE IT.
+ * ===========================================================================
+ *
+ * `LAUNCH_MODE` lives in the deployment environment, so the `switch` condition
+ * is answered by whatever Vercel holds at build time and this repository has no
+ * way to read it. Ten of the eleven conditions are stated in a file somebody
+ * edits on purpose; this is the one that is not, and that asymmetry is
+ * deliberate: it is the operator's own act.
+ *
+ * WHICH LEAVES THE ACT ITSELF UNRECORDED ANYWHERE, and that is what this closes.
+ * Not the VALUE, which would be a second home for a variable the gate already
+ * reads. The PROVENANCE: who set it, when, in which environment, and which
+ * deployment carried it. It is the same idiom as `pointInTimeRecovery` and the
+ * Stripe console record, and for the same reason: a fact in a console nobody
+ * here can reach becomes a dated, attributed declaration or it is not a fact
+ * this repository holds at all.
+ *
+ * PRODUCTION ONLY, AND THAT IS THE PART WORTH RECORDING. A preview inheriting
+ * `LAUNCH_MODE=live` would hold the firm out as open on a URL anybody with the
+ * link can reach, which is the shape `previewPointingAtProduction()` already
+ * refuses for the database. Nothing enforces it for this variable, so the scope
+ * is written down where a person will look.
+ *
+ * IT DOES NOT MAKE THE CONDITION MET AND MUST NOT BE READ AS DOING SO.
+ * `launchMode()` goes on reading the environment. If this record and the
+ * environment ever disagree, the environment is what the site was built with
+ * and this record is what somebody believed, which is exactly the gap worth
+ * being able to see.
+ */
+export const launchSwitchRecord: {
+  setBy: string;
+  setOn: string;
+  /** Which Vercel environments received it. */
+  scope: string;
+  /** The deployment that carried it, so the claim is checkable in Vercel. */
+  deployment: string;
+  notice: string;
+} = {
+  setBy: "Robert Reyna, operator",
+  setOn: "2026-09-28",
+  scope: "Vercel Production only. Preview and Development did not receive it.",
+  deployment: "dpl_7cWFjFGcZKnzExB4tQCccrRTWcuD, which reached READY on the redeploy that followed",
+  notice:
+    "PROVENANCE, NOT A CONDITION. LAUNCH_MODE is read from the deployment environment and this " +
+    "record does not change what launchMode() answers. It records who threw the switch, when, in " +
+    "which environment, and which deployment carried it, because nothing in this repository can " +
+    "read a Vercel setting. Set at about 20:59 on 2026-09-28, with the redeploy READY four seconds " +
+    "later on the operator's report. NOTE that the deployment it names was built from 8472ed8, " +
+    "where stripeAccount.proof is still null, so that build's gate reads stripe as UNMET and the " +
+    "firm as trading. The switch being on changed nothing visible until the proof reached main.",
+};
+
+/**
  * MAY SELF SERVICE SIGN UP REACH PRODUCTION?
  *
  * Operator ruling, 2026-09-13, and it is deliberately SEPARATE from the ruling
