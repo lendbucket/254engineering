@@ -73,11 +73,48 @@ and assumes the current state is an accident.
 inventory are in `DESIGN_V10.md`.** Where the two disagree, V10 wins.
 
 ## Color tokens
+
+### THE LOGO'S COLOURS WIN, ON BOTH SURFACES. Operator ruling 2026-09-28, applied 2026-09-29.
+
+**Navy `#012758`, gold `#D6A62A`.** In his words: "The logo colors win... Keep
+the one-brand invariant by moving the staff portal to the same values, not by
+keeping two navies and not by reverting V10."
+
+**BOTH HALVES OF EACH TWIN MOVED IN ONE COMMIT**, here, in `src/styles/portal.css`
+and in `src/app/globals.css`, so `token-audit`'s twin check never saw them
+disagree. That check is the one-brand invariant: twelve colours exist under two
+names, once in the site's Tailwind theme and once under the standards name, and
+it is what stops the firm accumulating four navies nobody can choose between.
+
+**THE DATE IS TWO FIELDS ON PURPOSE.** He ruled on 2026-09-28 and it landed on
+2026-09-29, and collapsing those into one date loses the fact that a session
+spent a day working against a ruling it did not have.
+
+**CONTRAST WAS RE-MEASURED, NOT ASSUMED.** The new navy is darker, so every
+TEXT pairing on navy improved:
+
+| on navy | old | new |
+| --- | --- | --- |
+| `--on-navy` white | 12.91 | **14.66** |
+| `--on-navy-muted` | 8.90 | **10.11** |
+| `--on-navy-dim` | 5.50 | **6.24** |
+| `--gold-bright` | 6.60 | **7.50** |
+| `--color-slate-fg-label` | 4.49 | **5.10** |
+
+The last row is the one that mattered: it sat a hair under AA and now clears it.
+
+**TWO NON-TEXT PAIRINGS FELL AND ARE NOT ADJUSTED HERE.** `--navy-hover` against
+navy is 1.06 where it was 1.21, and `--ink-navy` is 1.17 where it was 1.33.
+Neither carries a text requirement. The hover one is a real usability question,
+because a pressed state at 1.06 is not visible, and it is in `BACKLOG.md` for a
+ruling rather than adjusted by a session against a colour the operator had just
+chosen.
+
 ```css
---navy: #14315D;        /* primary, headings, sidebar, primary buttons */
+--navy: #012758;        /* primary, headings, sidebar, primary buttons */
 --navy-hover: #0E2347;  /* hover/pressed on navy */
 --ink-navy: #0B1B36;    /* overlay scrims, device frames */
---gold: #D9A032;        /* warnings, pending, active-nav bar — never decoration */
+--gold: #D6A62A;        /* warnings, pending, active-nav bar — never decoration */
 --gold-bright: #E8B04A; /* progress fills on navy */
 --gold-deep: #8D610F;   /* warning text on light backgrounds */
 --gold-wash: #FDF6E7;   /* accent tint: the fill behind an explanation, not an alert */

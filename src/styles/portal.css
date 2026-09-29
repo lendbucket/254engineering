@@ -35,7 +35,7 @@
 :root {
   /* ------------------------------------------------------------- colour --- */
 
-  --navy: #14315d;
+  --navy: #012758;
   --navy-hover: #0e2347;
   --ink-navy: #0b1b36;
 
@@ -45,7 +45,7 @@
    * measures 2.33:1. That is the operator's standing ruling and it predates this
    * design; --gold-deep is the on-light text value.
    */
-  --gold: #d9a032;
+  --gold: #d6a62a;
   --gold-bright: #e8b04a;
   --gold-deep: #8d610f;
 

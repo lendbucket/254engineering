@@ -169,8 +169,24 @@ export default async function AccountLoginPage({
 
           {/* -------------------------------------------- how ordering works */}
           <section>
+            {/*
+              IT DESCRIBES, IT DOES NOT INVITE. `portal-voice-audit` caught this
+              heading reading "Order a roof certification", which is a present
+              tense service claim under a gate that is shut: the firm is not
+              taking orders, and a signed out screen inviting one is the exact
+              misstatement section 1 exists to prevent.
+
+              I wrote it during stage 1 while restyling, which is the hazard
+              this repository records about design imports. A drawing is made
+              against a description of the platform, and V10 draws a customer
+              surface for a firm that is open. Restyling is not supposed to
+              introduce copy, and this did.
+
+              The column below is a description of how the work is done, so the
+              heading now says that and nothing more.
+            */}
             <h2 className="v10-label">
-              Order a roof certification
+              How a roof certification works
             </h2>
             <ol className="mt-5 space-y-6">
               <li className="flex gap-4">

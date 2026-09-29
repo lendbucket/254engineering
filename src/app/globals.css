@@ -58,26 +58,36 @@
    * refactor, and this branch is not allowed to alter what any screen does.
    */
   /*
-   * REVERTED TO THE PORTAL'S NAVY ON 2026-09-29, PENDING AN OPERATOR RULING.
+   * THE LOGO'S NAVY, ON BOTH SURFACES. Operator ruling 2026-09-28, applied
+   * 2026-09-29.
    *
-   * V10 specifies #012758 for the customer surface, and it was set here during
-   * stage 1. `token-audit` then went red: it asserts that the site palette and
-   * the portal standards name the SAME colour under two names, which is the
-   * "one brand, two vocabularies" invariant. Moving one half of a twin gives
-   * the firm two navies, one on customer screens and one on staff screens.
+   * "The logo colors win: navy #012758, gold #D6A62A. Keep the one-brand
+   * invariant by moving the staff portal to the same values, not by keeping two
+   * navies and not by reverting V10."
    *
-   * THAT IS A DESIGN RULING NOBODY HAS MADE. The operator ruled on the V10 TYPE
-   * SCALE and said nothing about the palette, and the difference between
-   * #012758 and #14315d is not visible enough to be worth guessing about while
-   * he is asleep. Reverting keeps the invariant and costs stage 1 nothing that
-   * matters: the layout is what stage 1 is for.
+   * So this and `--navy` in src/styles/portal.css moved in the same commit,
+   * with the standards document, and the twin check in token-audit never saw
+   * them disagree.
    *
-   * It is in BACKLOG.md with the question stated. Either the portal follows V10
-   * and both move, or V10's navy yields to the existing one, or the two
-   * surfaces are declared to have separate palettes and the twin check learns
-   * it, which is what happened to the type scale on the same day.
+   * IT WAS BRIEFLY REVERTED AND THAT WAS MY ERROR, recorded because the
+   * reasoning is the part worth not repeating. I wrote that the operator "ruled
+   * on the type scale and said nothing about the palette". What I actually knew
+   * was that I had no RECORD of a palette ruling, and I treated that as
+   * equivalent to there being none. He had ruled, the morning before. An
+   * absence in my own notes is not an absence in the world.
+   *
+   * THE CONTRAST WAS RE-MEASURED RATHER THAN ASSUMED, and every text pairing on
+   * navy improved because the new navy is darker. The one that mattered:
+   * `--color-slate-fg-label` sat at 4.49 against the old navy, a hair under AA,
+   * and clears at 5.10 against this one.
+   *
+   * Two NON-text pairings fell, and they are recorded in BACKLOG.md rather than
+   * quietly adjusted: `--navy-hover` against this navy is 1.06 where it was
+   * 1.21, and `--ink-navy` is 1.17 where it was 1.33. Neither carries a text
+   * requirement, and the hover one is a usability question rather than a
+   * compliance one, so it is the operator's to rule on.
    */
-  --color-slate: #14315d;
+  --color-slate: #012758;
   --color-slate-ink: #14213a;
   --color-slate-deep: #0e2347;
   --color-slate-abyss: #0b1b36;
@@ -131,9 +141,10 @@
    * on white. It is the rule under the header bar, the active nav marker and the
    * current step, and nothing else.
    */
-  /* Reverted with its twin above, same reason, same pending ruling. V10 asks
-   * for #d6a62a; the portal standards name #d9a032 as --gold. */
-  --color-brass: #d9a032;
+  /* The logo's gold, moved with its twin above under the same ruling. On the
+   * new navy it measures 6.53, up from 6.30. On white it is 2.25 and remains
+   * unusable as text there, which is what --color-brass-ink exists for. */
+  --color-brass: #d6a62a;
   --color-brass-deep: #b77e1b;
   --color-brass-ink: #8d610f;
   --color-brass-light: #e8b04a;

@@ -131,6 +131,19 @@ export const NOT_CREDENTIALS = new Set([
   "LAUNCH_AUDIT_LIVE_PORT", "LAUNCH_AUDIT_PORT", "MOBILE_PORT", "OVERFLOW_SHOW_ALL",
   "PERF_RUNS", "PERF_SAMPLES", "ROUND3_PORT", "SHOTS_PORT", "KEEP_EXISTING", "LOAD_JOBS",
   /*
+   * SHOTS_OUT, 2026-09-29. Where scripts/design-shots.mjs writes screenshots,
+   * defaulting to a scratchpad path. A directory to save PNGs into, holding
+   * nothing and opening nothing.
+   *
+   * Its sibling SHOTS_PORT has been here since that script was written; this one
+   * was added the day the script learned to take an output directory and was
+   * not declared with it, so the board went red naming it. That is the reverse
+   * scan working: every name set in the environment is declared or named as not
+   * a credential, and a name nothing accounts for is a red rather than a
+   * silence.
+   */
+  "SHOTS_OUT",
+  /*
    * perf-audit's three, added 2026-09-14 when it learned to sign in.
    *
    * PERF_SCOPE chooses the cadence: the public templates on every board, the

@@ -428,7 +428,60 @@ as a wrong code on a working phone. That is the 2026-09-13 lockout.
 - `feat/0058-retired-protocol` is based on `cdb1508` and needs rebasing onto
   `main` before it can be measured or merged.
 
-## THE FIRM HAS TWO CANDIDATE NAVIES AND V10 DID NOT RULE ON WHICH. NEEDS A RULING.
+## THE NAVY HOVER STATE IS NOW INVISIBLE AGAINST THE NAVY IT SITS ON. NEEDS A RULING.
+
+Found 2026-09-29 by measuring, while applying the operator's palette ruling. Not
+adjusted, because the fix means changing a shade beside a colour he had just
+chosen.
+
+`--navy-hover` `#0E2347` is the hover and pressed state for anything on a navy
+ground: the sidebar items, the primary buttons. Against the OLD navy `#14315D`
+it measured **1.21**, which is subtle. Against the new `#012758` it measures
+**1.06**, which is not a state at all. The new navy is darker than the old, and
+the hover shade was already darker than both, so the gap closed.
+
+`--ink-navy` `#0B1B36` moved the same way, 1.33 to **1.17**. It is used for
+scrims and device frames, where being nearly indistinguishable is closer to the
+point, so it is probably fine and is recorded for completeness.
+
+**NEITHER IS A COMPLIANCE FAILURE.** No text is involved and no WCAG threshold
+applies to a hover ground against its own surface. This is a usability finding.
+
+**The options.**
+
+1. **Make the hover LIGHTER than the navy rather than darker.** A pressed state
+   that lifts rather than deepens. Something near `#0E3570` gives a visible
+   step, and it inverts a convention the portal has used since it was built.
+2. **Deepen it further**, to around `#00152F`, which keeps the convention and
+   buys a visible step in the same direction.
+3. **Leave it.** The active-nav gold bar already marks the current item, so the
+   hover may be carrying less than it appears to.
+
+**Recommended: 2.** It keeps the existing direction, so no other screen needs
+re-reasoning, and it is one token. 1 is the better interaction and a bigger
+change. 3 is defensible only after somebody looks at the sidebar and agrees the
+gold bar is doing the work.
+
+## THE FIRM HAS TWO CANDIDATE NAVIES AND V10 DID NOT RULE ON WHICH. RESOLVED 2026-09-29.
+
+**RESOLVED BY THE OPERATOR'S RULING OF 2026-09-28, WHICH EXISTED BEFORE THIS
+ENTRY WAS WRITTEN AND WHICH I DID NOT HAVE.** The logo's colours win, on both
+surfaces: navy `#012758`, gold `#D6A62A`, with the staff portal moving to match
+rather than the firm keeping two navies. Applied 2026-09-29 across
+`PORTAL_DESIGN_STANDARDS.md`, `src/styles/portal.css` and `src/app/globals.css`
+in one commit.
+
+**Kept rather than deleted, because the mistake in it is worth not repeating.**
+This entry said the palette was "a design ruling nobody has made". What was
+actually true is that *I had no record of one*, and I wrote the stronger claim.
+An absence in a session's notes is not an absence in the world, and the correct
+move when the operator is asleep and the question is his was to apply the
+conservative option AND say plainly that I might simply not know, rather than
+asserting he had not ruled.
+
+The original entry, with its three options and its recommendation, follows.
+
+### As first recorded, before the ruling surfaced
 
 Found 2026-09-29 on the type scale branch, **reverted rather than shipped**, and
 it is the palette version of the question the operator answered for the type
