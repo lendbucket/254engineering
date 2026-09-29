@@ -123,6 +123,19 @@
   --color-slate-fg-dim: #9daac0;
   --color-slate-fg-footer: #dce2eb;
   --color-slate-fg-label: #8a99b5;
+  /*
+   * LINKS GET THEIR OWN TOKEN. Design v10, 2026-09-29.
+   *
+   * There was no link colour on this surface: links were navy, or underlined
+   * ink, or whatever each component decided. V10 names one, #0b4f8a, which is
+   * lighter than the navy and reads as a link beside body ink rather than as
+   * a heading. It measures comfortably past AA on white.
+   *
+   * Added rather than reused, because using the navy would mean a link and a
+   * heading are the same colour and the only thing distinguishing them is an
+   * underline somebody may remove.
+   */
+  --color-link: #0b4f8a;
   --color-ink: #333a45;
   --color-ink-quiet: #5f6877;
 
