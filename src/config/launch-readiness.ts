@@ -59,6 +59,21 @@
  * refund path has never once been run. The identifiers are recorded so the claim
  * is checkable in the Stripe dashboard by somebody who does not trust this file.
  */
+
+/*
+ * THE FIRST IMPORT THIS FILE HAS EVER HAD, and it is narrow on purpose.
+ *
+ * `stripeConsole` is the dated, attributed record of what the Stripe dashboard
+ * holds, which is a thing no check in this repository can read for itself. This
+ * file needs exactly one field from it, the account holder's name, so that the
+ * name is not typed here as a second copy.
+ *
+ * It does not import `launch.ts` and must not: the gate reads THIS file, and a
+ * condition that read the gate back would be circular. The dependency runs one
+ * way, from the gate to the configuration.
+ */
+import { stripeConsole } from "./stripe-console";
+
 export const stripeAccount: {
   /** Connected, live, and owned by this firm. */
   connected: boolean;
@@ -76,9 +91,52 @@ export const stripeAccount: {
   /** What is true today, in words, for whoever reads the launch screen. */
   because: string;
 } = {
-  connected: false,
-  accountName: null,
-  proof: null,
+  connected: true,
+  /*
+   * THE ACCOUNT HOLDER AS STRIPE SHOWS IT, DERIVED AND NOT TYPED.
+   *
+   * It was typed as a literal in the first version of this entry, and
+   * compliance-audit caught it: "no source outside the config writes
+   * '254 Engineering LLC' as a literal, so reissuance is one value". That check
+   * exists because the firm's name had two homes once and the copy was the one
+   * nobody updated, and it was right to fire here.
+   *
+   * `stripeConsole.legalBusinessName` is the one home for what the Stripe
+   * dashboard shows, evidenced by a cropped capture taken 2026-09-22 and hashed
+   * against disk. Reading it means this field cannot disagree with the console
+   * record, and a reissuance is one edit in one file.
+   *
+   * IT IS DELIBERATELY NOT `firmName()`. That derives the registrant from the
+   * BOARD's record, and this field is what STRIPE holds. The two are equal
+   * today and that equality is an assertion `stripe-webhook-audit` makes rather
+   * than an assumption anybody may bake in: if Stripe's record ever drifts from
+   * the board's, this field must show the drift rather than hide it.
+   */
+  accountName: stripeConsole.legalBusinessName,
+  /*
+   * ONE REAL CHARGE AND ITS REFUND, MADE ON THE LIVE ACCOUNT 2026-09-28.
+   *
+   * Made by the operator in the Stripe dashboard rather than through this
+   * platform's proving-charge path, and the amount is what he read off the
+   * payment page. It is recorded as read rather than as this firm's
+   * PROVING_AMOUNT_CENTS, which is also 100: assuming our own constant because
+   * it matches would have put a figure on the launch record that nobody read.
+   *
+   * WHAT RECORDING THIS DOES, BEYOND OPENING THE CONDITION. Two things happen
+   * the moment `proof` stops being null, and both are by design:
+   *
+   *   the proving-charge path disables itself permanently, because
+   *   ops-proving-charge.ts reads this field and is self-closing
+   *
+   *   the parked item `stripe-account-status-attested` retires itself, because
+   *   its isRetired is `stripeAccount.proof !== null`
+   */
+  proof: {
+    chargeId: "ch_3UKqulA2kbTZN5C30klBCW9j",
+    refundId: "re_3UKqulA2kbTZN5C30EOZNKB3",
+    on: "2026-09-28",
+    amountCents: 100,
+  },
   /*
    * =========================================================================
    * CORRECTED 2026-09-22. THE "REYNA PAY" SENTENCE WAS WRONG, AND IT WAS THE
@@ -121,18 +179,40 @@ export const stripeAccount: {
    * recorded in `credential-inventory.ts`, and it is not evidence about which
    * account Production uses.
    */
+  /*
+   * AND THIS FIELD WAS ITSELF STALE WHEN THE PROOF ARRIVED, WHICH IS THE SAME
+   * DEFECT IT ALREADY RECORDS ONE PARAGRAPH DOWN.
+   *
+   * It said the legal business name was UNVERIFIED and that stripe-webhook-audit
+   * was red until a cropped capture existed. Two cropped captures were taken on
+   * 2026-09-22, are on disk, are hashed, and one of them reads "Legal business
+   * name  254 Engineering LLC". `stripe-console.ts` records all of that.
+   *
+   * So one of the two things this field said was holding the condition shut had
+   * already been closed, in the other home, six days earlier. Nobody re-read
+   * this sentence when the captures landed. That is precisely the failure the
+   * Reyna Pay correction below is about, repeating in the field that records it.
+   */
   because:
-    "The live account IS this firm's: acct_1UFmIjA2kbTZN5C3, recorded in src/config/stripe-console.ts " +
-    "since 2026-09-16 and confirmed 2026-09-22 by the operator reading Production's publishable key, " +
-    "which begins pk_live_51UFmIjA2kbTZN5C3 and embeds that same account id. He states he has renamed " +
-    "it in the dashboard to the registrant the board holds; that NAME is recorded and deliberately " +
-    "still UNVERIFIED in src/config/stripe-console.ts, so it is not asserted here. " +
-    "TWO THINGS STILL HOLD THIS SHUT. The legal business name on that account is UNVERIFIED: the " +
-    "screenshot proving the rename was deleted because it carried personal details, so the console " +
-    "record still holds the value read on 2026-09-16 and stripe-webhook-audit is red until a cropped " +
-    "capture or a key-run audit. And no real charge and refund have been made and recorded above. " +
-    "This becomes true when both are done, and the live test runs on PRODUCTION as the first act " +
-    "after the gate opens, never on a preview. " +
+    "MET 2026-09-28. The live account is this firm's, acct_1UFmIjA2kbTZN5C3, and one real charge of " +
+    "$1.00 was made on it and refunded in full: ch_3UKqulA2kbTZN5C30klBCW9j and " +
+    "re_3UKqulA2kbTZN5C30EOZNKB3, recorded above. The refund path has now been run on the live " +
+    "account rather than argued about. " +
+    "THE ACCOUNT'S IDENTITY was settled before the charge: acct_1UFmIjA2kbTZN5C3 has been recorded " +
+    "in src/config/stripe-console.ts since 2026-09-16, and on 2026-09-22 the operator read " +
+    "Production's publishable key, which begins pk_live_51UFmIjA2kbTZN5C3 and embeds that same " +
+    "account id. " +
+    /*
+     * DERIVED, NOT TYPED, for the third time in this one entry. The first
+     * version of this sentence spelled the name out, and compliance-audit
+     * refused it: this string RENDERS on the launch screen, so a literal here
+     * is a second home for the firm's name in front of a reader.
+     */
+    `THE LEGAL BUSINESS NAME is ${stripeConsole.legalBusinessName}, evidenced by a cropped capture taken 2026-09-22, ` +
+    "hashed against disk and checked by stripe-webhook-audit, which also asserts it equals the " +
+    "registrant on the board's record rather than trusting the equality. This field said that name " +
+    "was UNVERIFIED until today; it had been closed in the console record six days earlier and " +
+    "nothing re-read this sentence, which is the same defect as the Reyna Pay error below. " +
     "CORRECTED 2026-09-22: this field previously said the integration had been exercised against " +
     "Reyna Pay, a different entity. That was written 2026-09-11, nothing re-checked it for eleven " +
     "days, and five other records copied it. Preview DID carry live Reyna Pay keys until 2026-09-21, " +

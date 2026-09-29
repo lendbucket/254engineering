@@ -42,10 +42,41 @@ reasoning.** They cannot disagree, because the screen computes nothing.
 | `insurance` | Professional liability cover is in force, on record, with an expiry | The operator, by recording the certificate he has read | `verifiedInsurance` in `src/config/credentials.ts` |
 | `technician-training` | Every approved protocol has somebody trained on that version of it | The engineer of record, or somebody he names, by delivering it | `verifiedTechnicianTraining` in `src/config/credentials.ts` |
 
-**Two are unmet and nine are met**, read from the gate on 2026-09-28, launch day.
+**One is unmet and ten are met**, read from the gate on 2026-09-28, launch day.
 
-- **UNMET (2):** `switch`, `stripe`
-- **MET (9):** `registration`, `trading-name`, `engineer-of-record`, `phone`, `recovery`, `technician-training`, `protocols`, `self-service-signup`, `insurance`
+- **UNMET (1):** `switch`
+- **MET (10):** `registration`, `trading-name`, `engineer-of-record`, `phone`, `recovery`, `technician-training`, `protocols`, `self-service-signup`, `insurance`, `stripe`
+
+**`stripe` closed at the end of that day.** The operator made one real charge of
+**$1.00** on the live account and refunded it in full:
+`ch_3UKqulA2kbTZN5C30klBCW9j` and `re_3UKqulA2kbTZN5C30EOZNKB3`, recorded in
+`stripeAccount.proof`. **The refund path has now been run on the live account
+rather than argued about**, which is what that condition always asked for: a
+charge proves the account can take money, and only a refund proves the firm can
+give it back.
+
+**Two things retired themselves when that landed**, both by design and both
+worth knowing:
+
+- **The proving-charge path disabled itself permanently.** `ops-proving-charge.ts`
+  reads `stripeAccount.proof` and is self-closing, so that route can never
+  charge again.
+- **The parked item `stripe-account-status-attested` retired itself**, because
+  its `isRetired` is `stripeAccount.proof !== null`. `compliance-audit` now
+  prints one acknowledgement where it printed two.
+
+**And this document's own record of the Stripe condition had been stale for six
+days**, which is recorded rather than quietly corrected. `stripeAccount.because`
+said the legal business name was unverified and that `stripe-webhook-audit` was
+red until a cropped capture existed. Two cropped captures were taken on
+2026-09-22, are on disk, are hashed, and one reads "Legal business name
+254 Engineering LLC". One of the two things said to be holding the condition
+shut had already been closed in the other home, and nobody re-read the sentence
+that said so. **That is the same failure as the Reyna Pay error that field
+already records**, repeating inside the field that records it.
+
+**So only the switch remains**, and it is the operator's own act in the
+deployment environment.
 
 **Three moved on 2026-09-28, and two of the three moved by ruling rather than by
 the world changing.** Recorded here because a condition that becomes met is the

@@ -220,11 +220,50 @@ export async function withGateConditionsMet(fn) {
     },
 
     /* --- the Stripe account, connected and proven */
-    { file: READINESS, find: /connected: false,/, replace: "connected: true,", what: "the Stripe account being connected" },
+    /*
+     * ALL THREE STRIPE PATCHES GAINED AN `already` ON 2026-09-28, the day the
+     * operator made the live proving charge and refund and recorded them.
+     *
+     * This is the FOURTH condition to become genuinely true and break the
+     * fixture that was pretending it, after the operating name, the approved
+     * protocol and self service sign up. The pattern is now plain enough to
+     * state: EVERY patch in this list is waiting to become a no-op, because the
+     * whole purpose of the firm is to make these conditions true.
+     *
+     * A patch whose `find` matches the STARTING state is a patch with an expiry
+     * date nobody wrote down. The `already` clause is what turns that expiry
+     * into a no-op instead of a crash that takes an audit red on a condition
+     * that is working.
+     *
+     * The three are kept separate rather than collapsed, because the fixture
+     * must still be able to open the gate on a branch where the operator has
+     * NOT yet recorded the charge, and each of the three can be in a different
+     * state on such a branch.
+     */
+    {
+      file: READINESS,
+      find: /connected: false,/,
+      replace: "connected: true,",
+      already: /connected: true,/,
+      what: "the Stripe account being connected",
+    },
     {
       file: READINESS,
       find: /accountName: null,/,
       replace: `accountName: "${FIXTURE_STRIPE_ACCOUNT}",`,
+      /*
+       * ANYTHING THAT IS NOT null SATISFIES THIS, because the only property
+       * this patch exists to guarantee is that SOMEBODY is named.
+       *
+       * Two narrower patterns were tried and both were wrong for the same
+       * reason: they asserted a SHAPE rather than the property. Requiring the
+       * fixture's own string would have meant the real account name failing a
+       * patch that wanted any name at all, and requiring a quoted literal broke
+       * the moment the field became a derived expression,
+       * `stripeConsole.legalBusinessName`, which is exactly what
+       * compliance-audit asked for to stop the firm's name having two homes.
+       */
+      already: /accountName: (?!null,)/,
       what: "the Stripe account holder",
     },
     {
@@ -232,6 +271,23 @@ export async function withGateConditionsMet(fn) {
       find: /proof: null,/,
       replace:
         `proof: { chargeId: "ch_AUDIT_FIXTURE", refundId: "re_AUDIT_FIXTURE", on: "2099-12-31", amountCents: 100 },`,
+      /*
+       * A real proof object satisfies this, and the pattern matches the VALUE
+       * rather than the shape.
+       *
+       * `proof: \{` would have been the obvious anchor and is wrong: the TYPE
+       * annotation twenty lines above this value also reads `proof: {`, so it
+       * would match on a branch where the proof is null and the patch would be
+       * permanently vacuous. That is the matcher attaching to its neighbour,
+       * which is one of the two recurring defects in this repository.
+       *
+       * `chargeId: "` appears only in a real value. The type declares
+       * `chargeId: string;` with no quote.
+       *
+       * The first attempt also used `$` with no multiline flag, so it asserted
+       * end of STRING rather than end of line and matched nothing at all.
+       */
+      already: /chargeId: "/,
       what: "the charge and refund proof",
     },
 
