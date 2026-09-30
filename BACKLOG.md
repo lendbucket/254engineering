@@ -428,6 +428,89 @@ as a wrong code on a working phone. That is the 2026-09-13 lockout.
 - `feat/0058-retired-protocol` is based on `cdb1508` and needs rebasing onto
   `main` before it can be measured or merged.
 
+## WHETHER ANYTHING DEPLOYED DRAINS THE DEVELOPMENT JOB QUEUE. UNCONFIRMED.
+
+Recorded 2026-09-30. It blocked the signed-in screen captures, which came back
+COULD NOT TELL rather than being taken against a probe account.
+
+**The operator's condition**, before a probe customer could be created on
+development: confirm that nothing deployed drains the job queue the development
+app writes to. A queued job that something drains is an email or an SMS to
+whatever address the probe carries.
+
+**What configuration says, by name.** `vercel.json` schedules three crons, and
+`/api/cron/jobs` runs every minute. It is the only route in `src/app/api` that
+drains the queue. `credential-inventory.ts` records, from a console read on
+2026-09-12, that the Preview `SUPABASE_URL` names the DEVELOPMENT project, so a
+Preview deployment reads the same database an audit does.
+
+**Why that is not a confirmation.** Whether a scheduled cron executes against a
+Preview deployment is a fact about the Vercel platform and that project's
+settings, not about anything in this repository. On the platform's documented
+behaviour crons run against Production only, which would mean the deployed
+drainer touches production's queue and never development's. That is an argument,
+not a reading.
+
+`CLAUDE.md` records three separate occasions where the sharpest finding of a day
+came from the Vercel console and no check here could see it, including
+`CUSTOMER_SESSION_SECRET` set for All Environments and `OPS_SESSION_SECRET`
+believed split for twelve days while it was not. This is the same shape: a claim
+about deployment scoping that only the console settles.
+
+**What would settle it,** in a daylight sitting: open the project's cron
+settings and confirm which deployment environment they execute against, then
+record it in `credential-inventory.ts` beside the other console reads, dated and
+attributed, so a future session has a fact to compare against rather than an
+argument to re-make.
+
+**Until then the rule holds and no probe account is created.** The cost of being
+wrong is mail to a real address from the firm's own sender.
+
+## A FALSE ALARM ABOUT THE DEVELOPMENT DATABASE, AND THE ONE LINE THAT CAUSED IT
+
+Recorded 2026-09-30. **There is nothing wrong with the development database
+configuration.** This entry exists because I told the operator twice that there
+was, and a false finding that vanishes is one the next session re-makes.
+
+**What I reported.** That `describeTarget()` printed "an unrecognised database",
+meaning the ref in the environment matched neither `PRODUCTION_REF` nor
+`DEVELOPMENT_REF`, and that it might be the cutover project `CLAUDE.md` says
+nothing should point at. The operator ordered an entry for a daylight sitting to
+identify it.
+
+**What is actually true.** The environment points at the project declared as
+DEVELOPMENT. Established by comparing the ref against every project declared in
+`scripts/lib/db-target.mjs` and `supabase/projects.mjs` and printing only the
+matching NAME.
+
+**THE CAUSE IS ONE MISSING ARGUMENT.** The signature is
+
+    export function describeTarget(url)
+
+and I called it as `describeTarget()`, with nothing. So `refOf(undefined)`
+returned nothing and the function returned its fallback string, which is written
+for a URL it cannot parse. It described the absence of an argument, and I read it
+as a description of the database.
+
+**Why it is worth an entry rather than a shrug.** It is the defect class this
+repository names most often, arriving from a new direction: a check looking at
+the wrong subject. Not a matcher with the wrong window, not a green over an empty
+set, but a DIAGNOSTIC called wrongly, whose fallback answer is indistinguishable
+from a real finding. "An unrecognised database" is exactly what a genuinely
+misconfigured environment would produce.
+
+**It survived two reports because it agreed with something plausible.**
+`CLAUDE.md` declares a fourth project nothing should point at, so an unrecognised
+ref had a ready explanation waiting for it. A wrong answer that fits a story
+already in the reader's head does not get questioned.
+
+**What would have caught it in seconds:** asking what the function's parameters
+are before believing its output. The fix is not a check, it is that a diagnostic
+string is evidence about the diagnostic until the call that produced it has been
+read.
+
+**Nothing was changed.** No configuration was touched, then or now.
+
 ## THE NAVY HOVER STATE WAS INVISIBLE AGAINST THE NEW NAVY. RESOLVED 2026-09-29.
 
 **Operator ruling, 2026-09-29:** "Deepen it to about `#00152F`, keeping the
