@@ -95,6 +95,46 @@ export type Credential = {
 /** Where the dashboard answers came from, so every entry says it once. */
 const READ_ON = "2026-09-12, by the operator, from the Vercel dashboard. Nothing here can see it.";
 
+/**
+ * WHICH DEPLOYMENTS RUN THE SCHEDULED JOBS. A DOCUMENTED PLATFORM FACT.
+ *
+ * Operator ruling, 2026-09-30: "Vercel documents that cron jobs run on
+ * production deployments only (vercel.com/docs/cron-jobs, and 'vercel crons
+ * run' triggers only jobs deployed to production)."
+ *
+ * IT IS RECORDED AS A DIFFERENT KIND OF FACT FROM EVERYTHING ELSE IN THIS FILE,
+ * AND THE DISTINCTION IS THE POINT. `READ_ON` above attributes values somebody
+ * looked at in a dashboard on a date, and those go stale silently when somebody
+ * changes a setting. This is not that. It is how the platform behaves, stated in
+ * its own documentation, so it does not decay when a project's settings change
+ * and it cannot be confirmed or refuted by opening this project's console.
+ *
+ * Collapsing the two would be the worse error in the safer-looking direction: a
+ * platform fact filed as a console read invites a future session to "re-read"
+ * it, find nothing to read, and record `unknown` for something that was never
+ * a setting.
+ *
+ * WHY IT MATTERED. `vercel.json` schedules `/api/cron/jobs` every minute, and
+ * that route is the only thing in `src/app/api` that drains the job queue.
+ * `SUPABASE_URL` on Preview names the DEVELOPMENT project, recorded below from
+ * a console read, so a Preview deployment reads the same database every audit
+ * writes to. If crons ran on Preview, anything an audit queued would be
+ * delivered by a deployment, which is the failure mode that blocked creating a
+ * probe customer at all.
+ *
+ * They do not. The deployed drainer touches production's queue and never
+ * development's.
+ *
+ * WHAT IT DOES NOT COVER, said plainly rather than left implied: somebody
+ * running the drain route by hand against a Preview URL, or a second scheduler
+ * outside Vercel. Neither is configuration this file can see, and neither is
+ * what the ruling was about.
+ */
+export const CRON_RUNS_ON =
+  "Production deployments only. Documented platform behaviour per vercel.com/docs/cron-jobs, " +
+  "recorded 2026-09-30 on the operator's ruling. NOT a console read: it is how Vercel works " +
+  "rather than how this project is configured, so it does not go stale when a setting changes.";
+
 export const CREDENTIALS: Credential[] = [
   // ---------------------------------------------------------------- secrets
   {

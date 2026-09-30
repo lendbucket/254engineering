@@ -578,10 +578,31 @@ function fixtureProtocols() {
     );
   }
 
+  /*
+   * `versionLabel` WAS MISSING AND NOTHING COULD SEE IT. Added 2026-09-30.
+   *
+   * `ApprovedProtocol` gained a required `versionLabel` when the protocol
+   * registry learned that a row's numeric key and the version a signed document
+   * states are two different facts. This fixture types the object by hand, so
+   * it went on emitting the old shape.
+   *
+   * WHY NO AUDIT NOTICED, WHICH IS THE PART WORTH KEEPING. Every caller of
+   * `withGateConditionsMet` runs under tsx, which does not typecheck, so the
+   * patched file was imported and used happily. The shape is only checked by a
+   * BUILD, and nothing had ever built under this fixture: the board builds
+   * first and patches second.
+   *
+   * It surfaced the moment something needed the gate open in a BUILT app, which
+   * was capturing the order flow, and it surfaced as `error TS2741: Property
+   * 'versionLabel' is missing`. A fixture that states a shape rather than
+   * deriving it is a second account of that shape, and this is the third time
+   * CLAUDE.md has recorded that about this file.
+   */
   return slugs.map((serviceSlug) => ({
     serviceSlug,
     protocolName: "AUDIT FIXTURE NOT A REAL PROTOCOL",
     version: 1,
+    versionLabel: "AUDIT-FIXTURE",
     approvedBy: "Audit Fixture",
     approvedByLicense: "AUDIT-FIXTURE",
     approvedOn: "2099-12-31",

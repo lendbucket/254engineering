@@ -428,6 +428,36 @@ as a wrong code on a working phone. That is the 2026-09-13 lockout.
 - `feat/0058-retired-protocol` is based on `cdb1508` and needs rebasing onto
   `main` before it can be measured or merged.
 
+## NOTHING TYPECHECKS THE GATE FIXTURE'S OUTPUT, AND IT WAS WRONG FOR SOME TIME
+
+Found and fixed 2026-09-30. The fix is one field; the entry is about why nothing
+saw it.
+
+**What was wrong.** `withGateConditionsMet` patches an approved protocol into
+`launch-readiness.ts`, and it types that object by hand. `ApprovedProtocol`
+gained a required `versionLabel` when the registry learned that a row's numeric
+key and the version a signed document states are two different facts. The
+fixture kept emitting the old shape.
+
+**Why nothing noticed.** Every caller runs under `tsx`, which does not
+typecheck, so the patched file imported and ran happily. The shape is only
+checked by a BUILD, and **nothing had ever built under this fixture**: the board
+builds first and patches second. It surfaced the first time something needed the
+gate open in a BUILT app, which was capturing the order flow, and it surfaced as
+`error TS2741`.
+
+**So thirteen audits' live halves have been running against a config file that
+would not compile.** They were not wrong: the values they needed were all
+present, and the missing field is one nothing reads at runtime. But the fixture
+had drifted from the type it claims to produce, and the only thing that can
+notice is a build.
+
+**Recommended.** A proof that builds under the fixture, or more cheaply, one
+that imports the patched module and asserts the object satisfies the type. It is
+the third time `CLAUDE.md` has recorded that this fixture states a shape rather
+than deriving it, and the previous two were about the CONDITIONS rather than the
+protocol.
+
 ## WHETHER ANYTHING DEPLOYED DRAINS THE DEVELOPMENT JOB QUEUE. UNCONFIRMED.
 
 Recorded 2026-09-30. It blocked the signed-in screen captures, which came back
