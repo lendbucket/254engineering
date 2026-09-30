@@ -475,6 +475,20 @@ const CUSTOMER_V10 = [
   "src/app/account/forgot-password/ForgotPasswordForm.tsx",
   "src/app/account/set-password/page.tsx",
   "src/app/account/set-password/SetPasswordForm.tsx",
+  /*
+   * THE FOUR SIGNED IN SHELLS, 2026-09-29. Header, headings and footer on V10.
+   *
+   * Their INTERIORS are not here and that is the honest part: SettingsClient,
+   * BulkOrderClient, the statement rows and the per property rows are still on
+   * the staff palette and the staff scale, so each of these screens currently
+   * reads as a V10 shell around an older middle. A token pass over forms that
+   * hold API keys, billing contacts and money is a rewrite of every control,
+   * not a restyle, and doing it at speed was the wrong trade. BACKLOG.md.
+   */
+  "src/app/account/settings/page.tsx",
+  "src/app/account/statements/page.tsx",
+  "src/app/account/orders/[reference]/page.tsx",
+  "src/app/account/order/page.tsx",
 ];
 const ALLOWED_RADIUS_PX = new Set([2, 3, 4, 8, 12, 16, 18]);
 

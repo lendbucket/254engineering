@@ -539,6 +539,34 @@ design decision rather than a styling detail.
 worth a second port today, and 3 weakens an invariant that has been earning its
 keep, for a difference nobody asked for.
 
+## STAGE 1 RESTYLED THE SHELLS OF FOUR SIGNED IN SCREENS AND NOT THEIR INTERIORS
+
+Recorded 2026-09-29, at the end of the overnight stage 1 pass, because it is a
+visible seam rather than an invisible one and should be named before somebody
+opens the screen and finds it.
+
+**Done:** header, headings, copy and footer on V10 and the customer type scale,
+for `/account/settings`, `/account/statements`, `/account/orders/[reference]`
+and `/account/order`.
+
+**Not done:** their interiors. `SettingsClient` (408 lines), `BulkOrderClient`
+(418 lines), the statement rows and the per property rows are still on the staff
+palette and the staff scale. Each of those four screens therefore reads as a V10
+shell around an older middle.
+
+**Why it stopped there, stated as a judgement rather than as a limit.** A token
+pass over `SettingsClient` is not a restyle. That form holds API keys, billing
+contacts and saved properties, and `BulkOrderClient` is where an organisation
+commits to paying for several properties at once. Rewriting every control on
+either at speed, overnight, unsupervised, on the screens where a customer edits
+what the firm bills them, is the wrong trade against a seam that costs nothing
+but looks unfinished.
+
+**Recommendation.** One session each, in daylight, with `forms-audit` run
+standalone before and after, because both are forms and that audit is the one
+that can tell whether a control still behaves. Neither is urgent: nothing about
+them is wrong, they are merely older.
+
 ## THE CUSTOMER SCREENS STILL ON THE STAFF TYPE SCALE
 
 Recorded 2026-09-29 with the customer scale. `token-audit` now holds eight

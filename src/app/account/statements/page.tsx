@@ -5,6 +5,7 @@ import { statementsFor } from "@/lib/ops-statements";
 import { accountBalance } from "@/lib/ops-bulk";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { money } from "@/lib/ops-money";
+import { registrationLine } from "@/lib/launch";
 import { PayStatementButton } from "./PayStatementButton";
 
 export const dynamic = "force-dynamic";
@@ -31,15 +32,32 @@ export default async function StatementsPage() {
   ]);
 
   return (
-    <main className="mx-auto max-w-[760px] px-4 py-10">
-      <div className="mb-6">
-        <Wordmark height={36} />
-      </div>
+    /*
+     * RESTYLED TO DESIGN V10, 2026-09-29. Shell and headings; the statement
+     * rows below keep the portal's money styling for now, which is recorded in
+     * BACKLOG.md with the other interiors still owed a pass.
+     */
+    <div className="flex min-h-dvh flex-col bg-white">
+      <header className="border-b border-[var(--color-limestone-line)]">
+        <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between px-4 py-4 sm:px-6">
+          <Link href="/account" prefetch={false} aria-label="254 Engineering Services, your account">
+            <Wordmark height={28} />
+          </Link>
+          <Link
+            href="/account"
+            prefetch={false}
+            className="text-[14px] font-semibold text-[var(--color-link)]"
+          >
+            Your account
+          </Link>
+        </div>
+      </header>
 
-      <p className="portal-kicker text-[var(--gold-deep)]">Your account</p>
-      <h1 className="mt-2 font-display text-[clamp(1.6rem,3vw,2.1rem)] leading-[1.2] font-semibold text-[var(--navy)]">
-        Statements
-      </h1>
+      <main className="mx-auto w-full max-w-[760px] flex-1 px-4 py-12 sm:px-6 sm:py-16">
+        <p className="v10-label">Your account</p>
+        <h1 className="mt-2.5 text-[clamp(1.65rem,3vw,2rem)] leading-[1.15] font-semibold tracking-[-0.5px] text-[var(--color-ink)]">
+          Statements
+        </h1>
 
       {me.account.billingMode !== "invoice" ? (
         <p className="mt-3 max-w-[62ch] text-[1rem] leading-[1.7] text-[var(--secondary)]">
@@ -54,28 +72,28 @@ export default async function StatementsPage() {
           </p>
 
           <div className="mt-6 flex flex-wrap gap-x-8 gap-y-2 rounded-[4px] border border-[var(--border)] bg-white px-5 py-4">
-            <span className="text-[13.5px] text-[var(--secondary)]">
+            <span className="text-[14px] text-[var(--secondary)]">
               Issued and unpaid{" "}
               <span className="font-semibold text-[var(--navy)]">{money(balance.issuedUnpaidCents)}</span>
             </span>
-            <span className="text-[13.5px] text-[var(--secondary)]">
+            <span className="text-[14px] text-[var(--secondary)]">
               Not yet billed{" "}
               <span className="font-semibold text-[var(--navy)]">{money(balance.unbilledCents)}</span>
             </span>
           </div>
 
           {statements.length === 0 ? (
-            <p className="mt-6 text-[13.5px] text-[var(--secondary)]">No statements yet.</p>
+            <p className="mt-6 text-[14px] text-[var(--secondary)]">No statements yet.</p>
           ) : (
             <ul className="mt-6 divide-y divide-limestone-line border-t border-[var(--border)]">
               {statements.map((s) => (
                 <li key={s.id as string} className="py-4">
                   <div className="flex flex-wrap items-baseline gap-x-3">
-                    <span className="font-mono text-[12.5px] font-semibold text-[var(--navy)]">
+                    <span className="font-mono text-[13px] font-semibold text-[var(--navy)]">
                       {s.reference as string}
                     </span>
-                    <span className="text-[13.5px] text-[var(--navy)]">{s.period as string}</span>
-                    <span className="text-[12.5px] text-[var(--secondary)]">
+                    <span className="text-[14px] text-[var(--navy)]">{s.period as string}</span>
+                    <span className="text-[13px] text-[var(--secondary)]">
                       {s.status === "paid"
                         ? "paid"
                         : s.status === "issued"
@@ -86,7 +104,7 @@ export default async function StatementsPage() {
                             ? "cancelled"
                             : "still being prepared"}
                     </span>
-                    <span className="ml-auto text-[13.5px] font-semibold text-[var(--navy)]">
+                    <span className="ml-auto text-[14px] font-semibold text-[var(--navy)]">
                       {money(s.total_cents === null ? null : Number(s.total_cents))}
                     </span>
                   </div>
@@ -102,11 +120,30 @@ export default async function StatementsPage() {
         </>
       )}
 
-      <p className="mt-8 text-[13.5px] text-[var(--secondary)]">
-        <Link href="/account" className="underline underline-offset-2">
-          Back to your account
-        </Link>
-      </p>
-    </main>
+        <p className="mt-10 text-[14px] text-[var(--color-ink-quiet)]">
+          <Link href="/account" className="text-[var(--color-link)] underline underline-offset-2">
+            Back to your account
+          </Link>
+        </p>
+      </main>
+
+      <footer className="border-t border-[var(--color-limestone-line)]">
+        <div className="mx-auto flex w-full max-w-[1200px] flex-wrap items-center justify-between gap-3 px-4 py-5 text-[13px] text-[var(--color-ink-quiet)] sm:px-6">
+          {/* Derived from the board's own record. Never typed. */}
+          <p>{registrationLine()}</p>
+          <nav className="flex gap-5">
+            <Link href="/terms" prefetch={false} className="text-[var(--color-link)]">
+              Terms
+            </Link>
+            <Link href="/privacy" prefetch={false} className="text-[var(--color-link)]">
+              Privacy
+            </Link>
+            <Link href="/contact" prefetch={false} className="text-[var(--color-link)]">
+              Contact
+            </Link>
+          </nav>
+        </div>
+      </footer>
+    </div>
   );
 }

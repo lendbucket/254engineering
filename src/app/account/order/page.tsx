@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { currentCustomer } from "@/lib/customer-auth";
 import { Wordmark } from "@/components/brand/Wordmark";
+import { registrationLine } from "@/lib/launch";
 import { deliverablesFor, orderBlockedReason } from "@data/catalog";
 import { services } from "@/content/services";
 import { launchMode, notYetAcceptingEngagements, registrationStatement, serviceLineIsOffered } from "@/lib/launch";
@@ -50,17 +51,30 @@ export default async function BulkOrderPage({
   const chosen = orderable.find((s) => s.service.slug === service) ?? orderable[0];
 
   return (
-    <main className="mx-auto max-w-[900px] px-4 py-10">
-      <div className="mb-6">
-        <Wordmark height={36} />
-      </div>
+    /* Restyled to V10, 2026-09-29. Shell and headings; BulkOrderClient beneath
+     * it is 418 lines of form and keeps the staff styling for now, which is
+     * recorded in BACKLOG.md with the other interiors still owed a pass. */
+    <div className="flex min-h-dvh flex-col bg-white">
+      <header className="border-b border-[var(--color-limestone-line)]">
+        <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between px-4 py-4 sm:px-6">
+          <Link href="/account" prefetch={false} aria-label="254 Engineering Services, your account">
+            <Wordmark height={28} />
+          </Link>
+          <Link
+            href="/account"
+            prefetch={false}
+            className="text-[14px] font-semibold text-[var(--color-link)]"
+          >
+            Your account
+          </Link>
+        </div>
+      </header>
 
-      <p className="portal-kicker text-[var(--gold-deep)]">
-        {me.displayName}
-      </p>
-      <h1 className="mt-2 font-display text-[clamp(1.7rem,3vw,2.2rem)] leading-[1.2] font-semibold text-[var(--navy)]">
-        Order for several properties
-      </h1>
+      <main className="mx-auto w-full max-w-[900px] flex-1 px-4 py-12 sm:px-6 sm:py-16">
+        <p className="v10-label">{me.displayName}</p>
+        <h1 className="mt-2.5 text-[clamp(1.75rem,3vw,2.1rem)] leading-[1.15] font-semibold tracking-[-0.5px] text-[var(--color-ink)]">
+          Order for several properties
+        </h1>
 
       {orderable.length === 0 ? (
         <div className="mt-8 rounded-[4px] border border-[var(--border)] border-t-brass bg-white px-6 py-7">
@@ -90,7 +104,7 @@ export default async function BulkOrderPage({
           </p>
           <Link
             href="/account"
-            className="mt-6 inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-[var(--navy)] underline underline-offset-2"
+            className="mt-6 inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--navy)] underline underline-offset-2"
           >
             Back to your account
           </Link>
@@ -108,7 +122,7 @@ export default async function BulkOrderPage({
               <Link
                 key={o.service.slug}
                 href={`/account/order?service=${o.service.slug}`}
-                className={`inline-flex min-h-[44px] items-center rounded-[3px] border px-3.5 text-[13.5px] font-semibold ${
+                className={`inline-flex min-h-[44px] items-center rounded-[3px] border px-3.5 text-[14px] font-semibold ${
                   o.service.slug === chosen.service.slug
                     ? "border-[var(--navy)] bg-slate text-white"
                     : "border-[var(--border)] bg-white text-[var(--navy)]"
@@ -138,6 +152,25 @@ export default async function BulkOrderPage({
           </div>
         </>
       )}
-    </main>
+      </main>
+
+      <footer className="border-t border-[var(--color-limestone-line)]">
+        <div className="mx-auto flex w-full max-w-[1200px] flex-wrap items-center justify-between gap-3 px-4 py-5 text-[13px] text-[var(--color-ink-quiet)] sm:px-6">
+          {/* Derived from the board's own record. Never typed. */}
+          <p>{registrationLine()}</p>
+          <nav className="flex gap-5">
+            <Link href="/terms" prefetch={false} className="text-[var(--color-link)]">
+              Terms
+            </Link>
+            <Link href="/privacy" prefetch={false} className="text-[var(--color-link)]">
+              Privacy
+            </Link>
+            <Link href="/contact" prefetch={false} className="text-[var(--color-link)]">
+              Contact
+            </Link>
+          </nav>
+        </div>
+      </footer>
+    </div>
   );
 }
