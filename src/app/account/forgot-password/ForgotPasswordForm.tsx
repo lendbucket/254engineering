@@ -31,11 +31,11 @@ export function ForgotPasswordForm() {
 
   if (sent) {
     return (
-      <div className="mt-5 rounded-[3px] border border-[var(--border)] bg-[var(--surface-muted,#f7f8f9)] px-3.5 py-3">
-        <p role="status" className="text-[13.5px] leading-[1.6] text-[var(--navy)]">
+      <div className="mt-7 border-t border-[var(--color-limestone-line)] pt-6">
+        <p role="status" className="text-[16px] leading-[1.6] font-semibold text-[var(--color-ink)]">
           {sent}
         </p>
-        <p className="mt-2 text-[13px] leading-[1.6] text-[var(--secondary)]">
+        <p className="mt-2 text-[15px] leading-[1.6] text-[var(--color-ink-quiet)]">
           The link works once. If it has expired by the time you open it, ask for another from
           here.
         </p>
@@ -45,7 +45,7 @@ export function ForgotPasswordForm() {
 
   return (
     <form
-      className="mt-5 flex flex-col gap-3.5"
+      className="mt-7 flex flex-col gap-5"
       onSubmit={async (e) => {
         e.preventDefault();
         if (busy) return;
@@ -72,8 +72,8 @@ export function ForgotPasswordForm() {
         }
       }}
     >
-      <label className="flex flex-col gap-1.5">
-        <span className="text-[13px] font-semibold text-[var(--navy)]">Email address</span>
+      <label className="flex flex-col gap-2">
+        <span className="text-[13px] font-semibold text-[var(--color-ink)]">Email address</span>
         <input
           name="email"
           type="email"
@@ -85,7 +85,8 @@ export function ForgotPasswordForm() {
           autoFocus
           aria-describedby={error ? "forgot-error" : undefined}
           aria-invalid={error ? true : undefined}
-          className="min-h-[var(--tap-target)] rounded-[3px] border border-[var(--border)] px-3 text-[16px] text-[var(--navy)]"
+          /* 16px is the form control step, and it is the iOS zoom guard. */
+          className="min-h-[var(--tap-target)] w-full rounded-[3px] border border-[var(--color-limestone-edge)] bg-white px-3 text-[16px] text-[var(--color-ink)]"
         />
       </label>
 
@@ -108,11 +109,12 @@ export function ForgotPasswordForm() {
         </label>
       </div>
 
+      {/* Keeps its colour, loses its box. See the note on the sign up form. */}
       {error ? (
         <p
           id="forgot-error"
           role="alert"
-          className="rounded-[3px] border border-[var(--red-border)] bg-[var(--red-bg)] px-3 py-2.5 text-[13.5px] leading-[1.55] text-[var(--red)]"
+          className="border-l-2 border-[var(--red)] pl-3 text-[15px] leading-[1.55] font-semibold text-[var(--red)]"
         >
           {error}
         </p>
@@ -121,12 +123,12 @@ export function ForgotPasswordForm() {
       <button
         type="submit"
         disabled={busy}
-        className="min-h-[var(--tap-target)] rounded-[3px] bg-[var(--navy)] px-4 text-[14px] font-semibold text-white disabled:opacity-60"
+        className="mt-1 flex min-h-[var(--tap-target)] w-full items-center justify-center rounded-[3px] bg-[var(--color-slate)] px-4 text-[15px] font-semibold text-white disabled:opacity-60"
       >
         {busy ? "Sending" : "Email me a link"}
       </button>
 
-      <p className="text-[13px] leading-[1.55] text-[var(--secondary)]">
+      <p className="text-[14px] leading-[1.6] text-[var(--color-ink-quiet)]">
         Nothing changes until you open the link and choose a new password. Your current password
         keeps working until then.
       </p>

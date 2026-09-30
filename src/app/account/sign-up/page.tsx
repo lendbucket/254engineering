@@ -51,15 +51,26 @@ export const metadata: Metadata = {
  * one step is a sentence about the product that is not true, and it is the
  * cheapest possible version of the defect section 2c of CLAUDE.md exists for.
  *
- * THE FOOTER IS DERIVED AND THE DESIGN'S FOOTER IS WRONG. V10 draws
- * "254 Engineering LLC, TBPELS Firm F-29811". Three names are in play and that
- * pairing is not one of them: the STATE holds 254 Engineering LLC since the
- * 2026-09-16 amendment, and the BOARD holds F-29811 in the name 254 Services
- * LLC. Printing the board's number beside a name the board has no record of is
- * the exact misstatement the compliance gate exists to prevent, made in the one
- * place a reader goes to check. `registrationLine()` reads the registrant off
- * the register, so this footer stays right through reissuance without anybody
- * editing it.
+ * THE FOOTER IS DERIVED, AND THE DESIGN'S FOOTER WAS RIGHT ALL ALONG.
+ *
+ * CORRECTED 2026-09-29. This comment said the design's
+ * "254 Engineering LLC, TBPELS Firm F-29811" was wrong, on the grounds that the
+ * board held F-29811 under a different name. It does not and did not. TBPELS
+ * reissued in the name 254 Engineering LLC on 2026-09-21, the register has said
+ * so since, and every deriver has rendered it. The design was correct and I was
+ * reciting CLAUDE.md's standing law, which still described the world before the
+ * reissuance.
+ *
+ * The correction is left in place rather than the paragraph being deleted,
+ * because it is the instance CLAUDE.md now records at the head of section 1: a
+ * recorded explanation is a hypothesis until something re-checks it, and the
+ * stale one made a session confidently refuse a correct drawing.
+ *
+ * What remains true is the mechanism. `registrationLine()` reads the registrant
+ * off the register rather than a literal, so this footer moved by itself at the
+ * reissuance and will move again at the next one with nobody editing it. That
+ * is why the sentence is derived rather than typed, and it is also why nothing
+ * ever RENDERED the stale name: only the prose went out of date.
  *
  * WHAT CHANGED IS THE SHAPE. No card, no brass top edge, no grey ground. A
  * header bar, one centred column, a footer, all on white.

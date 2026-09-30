@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { currentCustomer } from "@/lib/customer-auth";
 import { customerSessionConfigured } from "@/lib/customer-session";
+import { registrationLine } from "@/lib/launch";
 import { ForgotPasswordForm } from "./ForgotPasswordForm";
 
 export const dynamic = "force-dynamic";
@@ -44,45 +45,87 @@ export default async function ForgotPasswordPage() {
   if (existing) redirect("/account/settings");
 
   return (
-    <main className="grid min-h-dvh place-items-center px-4 py-10">
-      <div className="w-full max-w-[420px]">
-        <div className="mb-6 flex justify-center">
-          <Wordmark height={44} priority />
+    /*
+     * RESTYLED TO DESIGN V10, 2026-09-29, in the same pass that built it. It
+     * shipped in the old card style hours earlier because the reset branch was
+     * cut from main; this brings it onto the same surface as sign in and sign
+     * up, so a person moving between the three does not cross a visual seam.
+     */
+    <div className="flex min-h-dvh flex-col bg-white">
+      <header className="border-b border-[var(--color-limestone-line)]">
+        <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between px-4 py-4 sm:px-6">
+          <Link href="/" prefetch={false} aria-label="254 Engineering Services, home">
+            <Wordmark height={28} priority />
+          </Link>
+          <Link
+            href="/account/login"
+            prefetch={false}
+            className="text-[14px] font-semibold text-[var(--color-link)]"
+          >
+            Sign in
+          </Link>
         </div>
+      </header>
 
-        <div className="rounded-[4px] border border-[var(--border)] border-t-brass bg-white p-6 sm:p-7">
-          <h1 className="font-display text-[24px] leading-[1.2] font-bold text-[var(--navy)]">
-            Reset your password
-          </h1>
-          <p className="mt-2 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
-            Give us the address the account is under and we will email a link for setting a new
-            password.
+      <main className="mx-auto w-full max-w-[520px] flex-1 px-4 py-12 sm:px-6 sm:py-16">
+        <h1 className="text-[26px] leading-[1.15] font-semibold tracking-[-0.4px] text-[var(--color-ink)]">
+          Reset your password
+        </h1>
+        <p className="mt-2 text-[15px] leading-[1.6] text-[var(--color-ink-quiet)]">
+          Give us the address the account is under and we will email a link for setting a new
+          password.
+        </p>
+
+        {customerSessionConfigured() ? (
+          <ForgotPasswordForm />
+        ) : (
+          /* V10 carries status in weight rather than in a tinted panel. */
+          <p className="mt-7 border-t border-[var(--color-limestone-line)] pt-6 text-[16px] leading-[1.6] font-semibold text-[var(--color-ink)]">
+            Accounts are not available on this deployment yet.
           </p>
+        )}
 
-          {customerSessionConfigured() ? (
-            <ForgotPasswordForm />
-          ) : (
-            <p className="mt-5 rounded-[3px] bg-[var(--warn-bg)] px-3 py-2.5 text-[13.5px] leading-[1.6] text-[var(--warn-ink)]">
-              Accounts are not available on this deployment yet.
-            </p>
-          )}
-        </div>
-
-        <p className="mt-5 text-center text-[13.5px] text-[var(--secondary)]">
-          <Link href="/account/login" className="underline underline-offset-2">
+        <p className="mt-8 text-[14px] text-[var(--color-ink-quiet)]">
+          <Link
+            href="/account/login"
+            prefetch={false}
+            className="font-semibold text-[var(--color-link)]"
+          >
             Back to sign in
           </Link>
         </p>
-        <p className="mt-2 text-center text-[13.5px] text-[var(--secondary)]">
+        <p className="mt-3 text-[14px] text-[var(--color-ink-quiet)]">
           {/*
             Not prefetched, for the reason given on /account/login: prefetching
             "/" loads the lead form's zod in the browser.
           */}
-          <Link href="/" prefetch={false} className="underline underline-offset-2">
+          <Link
+            href="/"
+            prefetch={false}
+            className="text-[var(--color-link)] underline underline-offset-2"
+          >
             Back to the site
           </Link>
         </p>
-      </div>
-    </main>
+      </main>
+
+      <footer className="border-t border-[var(--color-limestone-line)]">
+        <div className="mx-auto flex w-full max-w-[1200px] flex-wrap items-center justify-between gap-3 px-4 py-5 text-[13px] text-[var(--color-ink-quiet)] sm:px-6">
+          {/* Derived from the board's own record. Never typed. */}
+          <p>{registrationLine()}</p>
+          <nav className="flex gap-5">
+            <Link href="/terms" prefetch={false} className="text-[var(--color-link)]">
+              Terms
+            </Link>
+            <Link href="/privacy" prefetch={false} className="text-[var(--color-link)]">
+              Privacy
+            </Link>
+            <Link href="/contact" prefetch={false} className="text-[var(--color-link)]">
+              Contact
+            </Link>
+          </nav>
+        </div>
+      </footer>
+    </div>
   );
 }

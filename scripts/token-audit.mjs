@@ -261,6 +261,16 @@ const PORTED = [
   "src/app/(site)/order/start/[slug]/page.tsx",
   "src/app/account/SignOutButton.tsx",
   "src/app/account/layout.tsx",
+  /*
+   * The forgot password pair, 2026-09-29, added the same day the screen was
+   * built. The customer V10 declaration named them and this list did not, and
+   * the check caught it for the SECOND time in one session, on files that were
+   * hours old. That is the useful shape: a new screen is exactly the thing most
+   * likely to be missing from an inventory, because nobody has had a reason to
+   * think about it yet.
+   */
+  "src/app/account/forgot-password/ForgotPasswordForm.tsx",
+  "src/app/account/forgot-password/page.tsx",
   "src/app/account/login/AccountLoginForm.tsx",
   "src/app/account/login/page.tsx",
   "src/app/account/order/BulkOrderClient.tsx",
@@ -458,6 +468,13 @@ const CUSTOMER_V10 = [
   "src/components/order/OrderFlow.tsx",
   "src/app/(site)/order/[reference]/page.tsx",
   "src/app/(site)/order/start/[slug]/page.tsx",
+  /* The credential screens, restyled 2026-09-29. Every account door's link and
+   * both reset paths land on set-password, so leaving it in the old card style
+   * would have put a visual seam at the end of every one of them. */
+  "src/app/account/forgot-password/page.tsx",
+  "src/app/account/forgot-password/ForgotPasswordForm.tsx",
+  "src/app/account/set-password/page.tsx",
+  "src/app/account/set-password/SetPasswordForm.tsx",
 ];
 const ALLOWED_RADIUS_PX = new Set([2, 3, 4, 8, 12, 16, 18]);
 

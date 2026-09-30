@@ -35,7 +35,7 @@ export function AccountSetPasswordForm({ token, minLength }: { token: string; mi
         }
       }}
     >
-      <label htmlFor="password" className="mt-4 block text-[13.5px] font-bold text-[var(--navy)]">
+      <label htmlFor="password" className="mt-7 block text-[13px] font-semibold text-[var(--color-ink)]">
         Choose a password
       </label>
       <input
@@ -46,12 +46,19 @@ export function AccountSetPasswordForm({ token, minLength }: { token: string; mi
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         required
-        className="mt-1.5 w-full rounded-[3px] border border-[var(--border)] px-3 py-2.5 text-[15px] text-[var(--navy)]"
+        /* 16px is the form control step, and it is the iOS zoom guard. */
+        className="mt-2 min-h-[var(--tap-target)] w-full rounded-[3px] border border-[var(--color-limestone-edge)] bg-white px-3 text-[16px] text-[var(--color-ink)]"
       />
-      <p className="mt-1.5 text-[12.5px] text-[var(--secondary)]">At least {minLength} characters.</p>
+      <p className="mt-2 text-[13px] text-[var(--color-ink-quiet)]">
+        At least {minLength} characters.
+      </p>
 
+      {/* Keeps its colour, loses its box. See the note on the sign up form. */}
       {error ? (
-        <p role="alert" className="mt-4 rounded-[3px] bg-[var(--warn-bg)] px-3 py-2 text-[13.5px] text-[var(--red)]">
+        <p
+          role="alert"
+          className="mt-5 border-l-2 border-[var(--red)] pl-3 text-[15px] leading-[1.55] font-semibold text-[var(--red)]"
+        >
           {error}
         </p>
       ) : null}
@@ -59,7 +66,7 @@ export function AccountSetPasswordForm({ token, minLength }: { token: string; mi
       <button
         type="submit"
         disabled={busy || password.length < minLength}
-        className="mt-5 inline-flex min-h-[44px] w-full items-center justify-center rounded-[3px] bg-slate px-5 text-[13.5px] font-bold text-white disabled:opacity-50"
+        className="mt-6 inline-flex min-h-[var(--tap-target)] w-full items-center justify-center rounded-[3px] bg-[var(--color-slate)] px-5 text-[15px] font-semibold text-white disabled:opacity-50"
       >
         {busy ? "Saving" : "Set the password"}
       </button>
