@@ -428,7 +428,25 @@ as a wrong code on a working phone. That is the 2026-09-13 lockout.
 - `feat/0058-retired-protocol` is based on `cdb1508` and needs rebasing onto
   `main` before it can be measured or merged.
 
-## THE NAVY HOVER STATE IS NOW INVISIBLE AGAINST THE NAVY IT SITS ON. NEEDS A RULING.
+## THE NAVY HOVER STATE WAS INVISIBLE AGAINST THE NEW NAVY. RESOLVED 2026-09-29.
+
+**Operator ruling, 2026-09-29:** "Deepen it to about `#00152F`, keeping the
+existing convention (pressed is darker than navy). Target roughly the old 1.2
+ratio against `#012758`. Leave `--ink-navy` as is."
+
+**Applied and measured.** `--navy-hover` is `#00152F` at **1.25** against the
+navy, where the old pair was 1.21. `#00182F` would have been nearer at 1.22 and
+the difference is invisible; he named a value and it lands inside what he asked
+for. Its twin `--color-slate-deep` moved in the same commit, and that token is a
+surface on the public site as well as a portal hover, so white on it was
+measured too and rose to 18.29.
+
+`--ink-navy` stays, on his ruling.
+
+The finding as first recorded follows, because the reasoning is why it was
+brought to him rather than fixed.
+
+### As first recorded
 
 Found 2026-09-29 by measuring, while applying the operator's palette ruling. Not
 adjusted, because the fix means changing a shade beside a colour he had just

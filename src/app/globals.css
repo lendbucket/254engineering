@@ -89,7 +89,30 @@
    */
   --color-slate: #012758;
   --color-slate-ink: #14213a;
-  --color-slate-deep: #0e2347;
+  /*
+   * DEEPENED WITH ITS TWIN. Operator ruling 2026-09-29.
+   *
+   * "Deepen it to about #00152F, keeping the existing convention (pressed is
+   * darker than navy). Target roughly the old 1.2 ratio against #012758."
+   *
+   * Measured: #00152F sits at 1.25 against #012758, where the old pair
+   * (#0E2347 on #14315D) was 1.21. #00182F would have been nearer at 1.22, and
+   * the difference is not one anybody can see; the operator named a value and
+   * it lands inside what he asked for, so it is his value that shipped.
+   *
+   * WHY IT MOVED AT ALL. The navy went darker on 2026-09-28's ruling, and this
+   * shade was already darker than both the old and the new navy, so the gap
+   * closed to 1.06: a pressed state nobody could see. No text is involved and
+   * no WCAG threshold applies, which is why it was recorded for a ruling rather
+   * than adjusted by a session beside a colour the operator had just chosen.
+   *
+   * IT IS A SURFACE ON THE PUBLIC SITE TOO, not only a portal hover. The about
+   * page, the careers detail, the home hero, the mobile nav and the page header
+   * all render on it. Deepening a ground can only raise what sits on it, and
+   * that was measured rather than assumed: white goes to 18.29 and the muted
+   * on-navy tone to 12.61, both up.
+   */
+  --color-slate-deep: #00152f;
   --color-slate-abyss: #0b1b36;
   --color-slate-soft: #2e5288;
   --color-slate-muted: #555e6b;

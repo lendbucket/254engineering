@@ -103,16 +103,29 @@ TEXT pairing on navy improved:
 
 The last row is the one that mattered: it sat a hair under AA and now clears it.
 
-**TWO NON-TEXT PAIRINGS FELL AND ARE NOT ADJUSTED HERE.** `--navy-hover` against
-navy is 1.06 where it was 1.21, and `--ink-navy` is 1.17 where it was 1.33.
-Neither carries a text requirement. The hover one is a real usability question,
-because a pressed state at 1.06 is not visible, and it is in `BACKLOG.md` for a
-ruling rather than adjusted by a session against a colour the operator had just
-chosen.
+**TWO NON-TEXT PAIRINGS FELL.** `--navy-hover` against navy dropped to 1.06 from
+1.21, and `--ink-navy` to 1.17 from 1.33. Neither carries a text requirement, so
+neither is a compliance failure, but a pressed state at 1.06 is not a state.
+They were recorded for a ruling rather than adjusted by a session beside a
+colour the operator had just chosen.
+
+**RULED 2026-09-29.** "Deepen it to about `#00152F`, keeping the existing
+convention (pressed is darker than navy). Target roughly the old 1.2 ratio
+against `#012758`. Leave `--ink-navy` as is."
+
+`--navy-hover` is now **`#00152F`**, measured at **1.25** against the navy where
+the old pair was 1.21. `#00182F` would have landed nearer at 1.22, and the
+difference is not one anybody can see; he named a value, it lands inside what he
+asked for, so his value shipped. Its twin `--color-slate-deep` moved with it in
+the same commit.
+
+`--ink-navy` stays at `#0B1B36` and 1.17, on his ruling. It is used for scrims
+and device frames, where being nearly indistinguishable from the ground is
+closer to the point than a defect.
 
 ```css
 --navy: #012758;        /* primary, headings, sidebar, primary buttons */
---navy-hover: #0E2347;  /* hover/pressed on navy */
+--navy-hover: #00152F;  /* hover/pressed on navy. 1.25 against --navy */
 --ink-navy: #0B1B36;    /* overlay scrims, device frames */
 --gold: #D6A62A;        /* warnings, pending, active-nav bar — never decoration */
 --gold-bright: #E8B04A; /* progress fills on navy */
