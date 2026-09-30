@@ -137,7 +137,7 @@ closer to the point than a defect.
 --warn-bg: #FFF9EC;     /* alert background */
 --warn-border: #E8D9AE; /* alert border */
 --warn-ink: #5C4A12;    /* alert text */
---ink: #333A45;         /* body text */
+--ink: #161B22;         /* body text. V10. 17.30 on white, was 11.46 */
 --secondary: #555E6B;   /* labels, metadata, column headers */
 --muted: #8A93A0;       /* inert status dots ONLY. 3.1:1 on white, so never text. */
 --border: #DDE0E4;      /* card borders */

@@ -85,21 +85,28 @@ export default async function AccountLoginPage({
         <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between px-4 py-4 sm:px-6">
           <Link href="/" prefetch={false} aria-label="254 Engineering Services, home">
             {/*
-              40, NOT 28, AND IT WAS 28 UNTIL A SCREENSHOT WAS LOOKED AT.
+              THE v5 HEADER RULE, AND IT TOOK THREE GOES TO GET RIGHT.
 
-              The mark is a raster lockup fixed at 2262 by 1147, so height alone
-              drives it and the descriptor "ENGINEERING SERVICES" is part of the
-              artwork rather than live text. At 28 tall the whole lockup is 55
-              wide and the descriptor renders as an illegible smear. Nothing in
-              the code could show that: the component is correct, the aspect is
-              correct, and the only symptom is on a screen.
+              The mark is a raster lockup with a fixed aspect, so height alone
+              drives it and "ENGINEERING SERVICES" is part of the artwork rather
+              than live text. My restyle set this to 28, which renders the whole
+              lockup 55 wide and the descriptor as an illegible smear. Nothing in
+              the code could show that: the component was correct, the aspect was
+              correct, the typecheck was clean and 59 audits were green. It was
+              found by opening the capture.
 
-              Found by opening the capture, which is the half of this the board
-              cannot do. v5 sets the header mark to clamp(58px, 9vw, 84px) and
-              the old card used 44; 40 is the smallest value where the
-              descriptor is readable at both widths.
+              40 was the second go, and it was BETTER AND STILL WRONG. Measured
+              from the browser on 2026-09-30 it rendered 78.36 by 40 at both
+              widths, against a spec of 84 at 1280 and 58 at 390: short by 44 and
+              by 18. A fixed number cannot satisfy a clamp, and eyeballing a
+              capture cannot tell 78 from 84, which is why the operator asked for
+              the measurement rather than another screenshot.
+
+              So it is the rule itself, as CSS. `height` stays at the clamp's
+              maximum because that is the source size Next must prepare: asking
+              for less is how a mark ends up upscaled and soft at the wide end.
             */}
-            <Wordmark height={40} priority />
+            <Wordmark height={84} cssHeight="clamp(58px, 9vw, 84px)" priority />
           </Link>
           {phone ? (
             <p className="text-[14px] text-[var(--color-ink-quiet)]">

@@ -43,11 +43,26 @@ export function Wordmark({
   onDark = false,
   /** Rendered height in pixels. Width follows the fixed aspect. */
   height = 72,
+  cssHeight,
   priority = false,
   className = "",
 }: {
   onDark?: boolean;
   height?: number;
+  /**
+   * A CSS length for the rendered height, used instead of `height` when given.
+   *
+   * IT EXISTS BECAUSE v5's HEADER RULE IS RESPONSIVE AND A NUMBER CANNOT BE.
+   * The spec is `clamp(58px, 9vw, 84px)`, which is 84 at 1280 and 58 at 390. A
+   * fixed `height` prop satisfies neither: measured on 2026-09-30, a header set
+   * to 40 rendered 40 at both widths, short of the spec by 44 and by 18.
+   *
+   * `height` is still what sizes the intrinsic attributes Next needs, so the
+   * caller passes the LARGEST value the clamp can reach. Asking Next for a
+   * smaller source than the clamp will render is how a mark ends up upscaled
+   * and soft at the wide end, which no audit would see and a screen would.
+   */
+  cssHeight?: string;
   priority?: boolean;
   className?: string;
 }) {
@@ -60,7 +75,7 @@ export function Wordmark({
       height={height}
       priority={priority}
       className={`block h-auto w-auto ${className}`}
-      style={{ height, width: "auto" }}
+      style={{ height: cssHeight ?? height, width: "auto" }}
     />
   );
 }

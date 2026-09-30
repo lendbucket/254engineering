@@ -40,8 +40,8 @@ export default async function AccountHomePage() {
       <header className="border-b border-[var(--color-limestone-line)]">
         <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between px-4 py-4 sm:px-6">
           <Link href="/" prefetch={false} aria-label="254 Engineering Services, home">
-            {/* 40, see the note on /account/login. */}
-            <Wordmark height={40} />
+            {/* v5's header rule as CSS. See the note on /account/login. */}
+            <Wordmark height={84} cssHeight="clamp(58px, 9vw, 84px)" />
           </Link>
           <SignOutButton />
         </div>

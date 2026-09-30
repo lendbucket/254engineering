@@ -192,7 +192,26 @@
    * underline somebody may remove.
    */
   --color-link: #0b4f8a;
-  --color-ink: #333a45;
+  /*
+   * V10's ink, on both surfaces. Operator spec, 2026-09-30: "#161B22".
+   *
+   * MOVED WITH ITS TWIN `--ink` in the same commit, which is the pattern his
+   * 2026-09-28 palette ruling set: keep the one-brand invariant by moving both
+   * halves rather than letting the two surfaces diverge.
+   *
+   * IT WAS MEASURED ON EVERY GROUND IT IS USED AGAINST, not only white, because
+   * the last palette change was right about the obvious pairing and wrong about
+   * two others. Nothing fell: white 11.46 to 17.30, canvas 10.51 to 15.86, the
+   * sunk surface 10.11 to 15.26, row hover, gold wash and the warning ground
+   * all up by about five and a half. The lowest ratio anywhere is 15.26 against
+   * an AA floor of 4.5.
+   *
+   * IT WAS FOUND BY MEASURING THE RENDERED COLOUR RATHER THAN READING THE CODE.
+   * The h1 on /account/login computed to rgb(51, 58, 69), which is the old
+   * #333A45, against a spec of #161B22. An eye cannot tell those apart on a
+   * screenshot, which is why the operator asked for the computed value.
+   */
+  --color-ink: #161b22;
   --color-ink-quiet: #5f6877;
 
   /*
