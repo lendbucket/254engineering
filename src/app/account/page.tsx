@@ -63,9 +63,16 @@ export default async function AccountHomePage() {
           The three cards become three ruled sections. V10 rule 1: the border
           around a card carries no information that the whitespace and the rule
           between sections do not already carry.
+
+          THE RULE GOES UNDER THE HEADING, 2px AND IN INK. Operator correction,
+          2026-09-30: I had put a hairline ABOVE each section, which separates
+          sections from each other. V10's rule sits UNDER the heading, in ink at
+          2px, which does something different: it binds the heading to the
+          content beneath it and gives the section a head rather than a fence.
+          Presentation only, so it is aligned to the spec rather than raised.
         */}
-        <section className="mt-10 border-t border-[var(--color-limestone-line)] pt-7">
-          <h2 className="text-[17px] font-semibold text-[var(--color-ink)]">
+        <section className="mt-12">
+          <h2 className="border-b-2 border-[var(--color-ink)] pb-3 text-[17px] font-semibold text-[var(--color-ink)]">
             Order for several properties
           </h2>
           <p className="mt-2 text-[15px] leading-[1.65] text-[var(--color-ink-quiet)]">
@@ -80,8 +87,10 @@ export default async function AccountHomePage() {
           </Link>
         </section>
 
-        <section className="mt-9 border-t border-[var(--color-limestone-line)] pt-7">
-          <h2 className="text-[17px] font-semibold text-[var(--color-ink)]">Settings</h2>
+        <section className="mt-11">
+          <h2 className="border-b-2 border-[var(--color-ink)] pb-3 text-[17px] font-semibold text-[var(--color-ink)]">
+            Settings
+          </h2>
           <p className="mt-2 text-[15px] leading-[1.65] text-[var(--color-ink-quiet)]">
             The billing contact, the standing access instructions that go onto every order, and the
             properties you order against repeatedly.
@@ -95,8 +104,10 @@ export default async function AccountHomePage() {
         </section>
 
         {me.account.billingMode === "invoice" ? (
-          <section className="mt-9 border-t border-[var(--color-limestone-line)] pt-7">
-            <h2 className="text-[17px] font-semibold text-[var(--color-ink)]">Statements</h2>
+          <section className="mt-11">
+            <h2 className="border-b-2 border-[var(--color-ink)] pb-3 text-[17px] font-semibold text-[var(--color-ink)]">
+              Statements
+            </h2>
             <p className="mt-2 text-[15px] leading-[1.65] text-[var(--color-ink-quiet)]">
               What has been billed, what is still to be billed, and paying an outstanding statement.
             </p>
