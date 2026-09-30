@@ -84,7 +84,22 @@ export default async function AccountLoginPage({
       <header className="border-b border-[var(--color-limestone-line)]">
         <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between px-4 py-4 sm:px-6">
           <Link href="/" prefetch={false} aria-label="254 Engineering Services, home">
-            <Wordmark height={28} priority />
+            {/*
+              40, NOT 28, AND IT WAS 28 UNTIL A SCREENSHOT WAS LOOKED AT.
+
+              The mark is a raster lockup fixed at 2262 by 1147, so height alone
+              drives it and the descriptor "ENGINEERING SERVICES" is part of the
+              artwork rather than live text. At 28 tall the whole lockup is 55
+              wide and the descriptor renders as an illegible smear. Nothing in
+              the code could show that: the component is correct, the aspect is
+              correct, and the only symptom is on a screen.
+
+              Found by opening the capture, which is the half of this the board
+              cannot do. v5 sets the header mark to clamp(58px, 9vw, 84px) and
+              the old card used 44; 40 is the smallest value where the
+              descriptor is readable at both widths.
+            */}
+            <Wordmark height={40} priority />
           </Link>
           {phone ? (
             <p className="text-[14px] text-[var(--color-ink-quiet)]">

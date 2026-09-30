@@ -55,7 +55,8 @@ export default async function ForgotPasswordPage() {
       <header className="border-b border-[var(--color-limestone-line)]">
         <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between px-4 py-4 sm:px-6">
           <Link href="/" prefetch={false} aria-label="254 Engineering Services, home">
-            <Wordmark height={28} priority />
+            {/* 40, see the note on /account/login. */}
+            <Wordmark height={40} priority />
           </Link>
           <Link
             href="/account/login"

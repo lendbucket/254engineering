@@ -23,13 +23,35 @@ import { chromium } from "playwright";
 import { startNextServer } from "./lib/dev-server.mjs";
 import { takeLock } from "./lib/machine-lock.mjs";
 
-const OUT = process.env.SHOTS_OUT ?? "C:/Users/salon/AppData/Local/Temp/claude/design-v10-shots";
+/*
+ * BESIDE THE DESIGNS, because that is where they are compared.
+ *
+ * Operator order: "Screenshot each screen next to its design in
+ * docs/design-v10/screens". A subfolder rather than the same directory, so a
+ * capture is never mistaken for a design: the designs are the authority and the
+ * captures are evidence about one commit.
+ */
+const OUT = process.env.SHOTS_OUT ?? "docs/design-v10/screens/captured";
 
-/** Each restyled route beside the design it is meant to match. */
+/**
+ * Each restyled route beside the design it is meant to match.
+ *
+ * `design: null` MEANS THERE IS NO DRAWING FOR IT, which is a fact worth
+ * carrying rather than a gap to fill with the nearest picture. Forgot password
+ * did not exist when V10 was drawn, and the customer account home has no
+ * customer design at all: V10A-dashboard is the OPERATIONS overview, a staff
+ * screen carrying revenue and margin, and pairing it with this one would invite
+ * somebody to build the firm's money onto a buyer's screen.
+ *
+ * `/order` IS NOT A ROUTE AND WAS LISTED AS ONE. Corrected 2026-09-29: the
+ * order flow lives at /order/start/[slug] and /order/[reference], and the entry
+ * in this list pointing at a bare /order would have captured a 404 and filed it
+ * beside V10O-property.png as though it were the screen.
+ */
 const SCREENS = [
   { route: "/account/login", design: "V10-login.png", name: "login" },
   { route: "/account/sign-up", design: "V10-signup.png", name: "signup" },
-  { route: "/order", design: "V10O-property.png", name: "order-property" },
+  { route: "/account/forgot-password", design: null, name: "forgot-password" },
   { route: "/order/start/roof-inspections", design: "V10O-service.png", name: "order-service" },
 ];
 
@@ -71,12 +93,23 @@ try {
         continue;
       }
 
+      /*
+       * A NON 200 IS REPORTED AND STILL CAPTURED, because a screenshot of a
+       * refusal is evidence and a missing file is not. What is NOT done is
+       * filing it silently beside a design as though it were the screen: the
+       * status is on the line, and an earlier version of this list pointed at a
+       * route that does not exist and would have done exactly that.
+       */
       const file = `${OUT}/${screen.name}-${width.name}.png`;
       await page.screenshot({ path: file, fullPage: true });
       console.log(
-        `  ${screen.name.padEnd(16)} ${width.name.padEnd(5)} HTTP ${status}  ->  ${file}`,
+        `  ${screen.name.padEnd(16)} ${width.name.padEnd(5)} HTTP ${status}${status === 200 ? "" : "  <-- NOT 200"}  ->  ${file}`,
       );
-      console.log(`  ${" ".repeat(16)} ${" ".repeat(5)} design: docs/design-v10/screens/${screen.design}`);
+      console.log(
+        `  ${" ".repeat(16)} ${" ".repeat(5)} design: ${
+          screen.design ? `docs/design-v10/screens/${screen.design}` : "none drawn for this screen"
+        }`,
+      );
     }
 
     await context.close();
