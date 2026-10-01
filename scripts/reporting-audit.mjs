@@ -33,6 +33,7 @@ process.loadEnvFile?.(".env.local");
 
 
 import { readSource } from "./lib/read-source.mjs";
+import { auditClient } from "./lib/db-target.mjs";
 import { REPORTS, ROWS_PER_PAGE, formatFigure, pageOfRows, periodOf } from "../src/lib/ops-reports.ts";
 import { LICENSED_FIGURES } from "../src/lib/ops-authz.ts";
 import { actorFor } from "../src/lib/figure-surfaces.ts";
@@ -48,6 +49,28 @@ const OWNER = actorFor("admin");
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
+
+/*
+ * THE THIRD VERDICT, DECLARED BESIDE THE OTHER TWO.
+ *
+ * It was declared two thirds of the way down this file, next to its first use.
+ * The export block above it now needs it too, and a `const` used before its
+ * declaration is a temporal dead zone error rather than an undefined: the audit
+ * would have died mid run rather than reporting anything. Caught by reading the
+ * line numbers before trusting the edit, which is cheaper than a board.
+ */
+const couldNotTell = [];
+
+/*
+ * A DATABASE CLIENT, FOR CHOOSING A WINDOW THAT CANNOT EXPIRE ON A DATE.
+ *
+ * This audit built its subjects from REPORTS, which reach the database
+ * themselves, so it never needed a client of its own. It needs one now only to
+ * ask how many payments exist and when the newest is, which is what tells an
+ * empty WINDOW apart from an empty TABLE. The guard in db-target owns the
+ * connection, as it does for every script here.
+ */
+const db = auditClient("choosing a reporting window from the data");
 
 console.log("");
 console.log("============ EVERY FIGURE IS ONE OF THREE THINGS ============");
@@ -291,7 +314,18 @@ console.log("");
    * count is compared against the rows actually written, on every report.
    */
   const { reportCsv, exportRowCount, exportFilename } = await import("../src/lib/ops-report-export.ts");
-  const period = periodOf();
+  /*
+   * THE WINDOW IS DERIVED FROM THE DATA, NOT THE CLOCK. Operator ruling
+   * 2026-10-01, after this block's money-cell check went red on the first of
+   * the month: every demonstration payment is dated early September, so the
+   * current calendar month held no money cells to parse and the vacuity guard
+   * fired correctly over an empty window. The rule lives in
+   * scripts/lib/measurable-period.mjs so both audits that needed it derive the
+   * same way rather than keeping two accounts of one fact.
+   */
+  const { measurablePeriod } = await import("./lib/measurable-period.mjs");
+  const window = await measurablePeriod(db);
+  const period = window.period;
   const by = { email: "audit@254engineering.com", role: "admin" };
 
   const files = [];
@@ -440,11 +474,25 @@ console.log("");
       : n + lines.slice(header + 1).filter((l) => l.includes('","money","')).length;
   }, 0);
 
-  rec(
-    `there are money cells in an export to parse (${moneyCells})`,
-    moneyCells > 0,
-    "a parse over no money cells passes forever, which is why both scopes are measured",
-  );
+  /*
+   * AN EMPTY WINDOW OVER A NON EMPTY TABLE IS COULD NOT TELL.
+   *
+   * The guard stays: a parse over no money cells passes forever, so zero cells
+   * is never a green. What it must not do is report FAIL, because that asserts
+   * the exports are malformed when in fact none was examined. The two states
+   * are told apart by whether any payment exists at all.
+   */
+  if (moneyCells === 0 && window.rows > 0) {
+    couldNotTell.push(
+      `no money cells appeared in any export over ${period} (${window.why}), while eng_order_payments holds ${window.rows} row(s). The money cell format was not checked.`,
+    );
+  } else {
+    rec(
+      `there are money cells in an export to parse (${moneyCells} over ${period})`,
+      moneyCells > 0,
+      "a parse over no money cells passes forever, which is why both scopes are measured",
+    );
+  }
   rec(
     "every money cell in every export is dollars with two decimals",
     badMoney.length === 0,
@@ -688,8 +736,6 @@ console.log("");
  * only: it is the one scope in which a real engineer with real earnings is
  * guaranteed to be in the set.
  */
-const couldNotTell = [];
-
 {
   const OTHER = actorFor("engineer");
   const period = periodOf();

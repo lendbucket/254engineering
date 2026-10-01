@@ -75,6 +75,7 @@ import { FIGURE_SURFACES, allFigures, actorFor } from "../src/lib/figure-surface
  */
 const OWNER = actorFor("admin");
 import { standingDemo, STANDING, ledgerRowCount } from "./lib/standing-demo.mjs";
+import { measurablePeriod } from "./lib/measurable-period.mjs";
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -912,9 +913,57 @@ if (!db) {
    * nothing passes forever.
    */
   {
+    /*
+     * =====================================================================
+     * THE PERIOD IS DERIVED FROM THE DATA, NOT FROM THE CLOCK.
+     * Operator ruling, 2026-10-01.
+     * =====================================================================
+     *
+     * "A window with no rows while the table has rows is COULD NOT TELL, not
+     * FAIL, and the audit measures a subject that cannot expire on a date."
+     *
+     * WHAT HAPPENED. This check used `periodOf()`, the current calendar month.
+     * Every demonstration payment on development is dated early September. At
+     * midnight on 2026-10-01 the window emptied, and the same tree that passed
+     * the night before returned two reds with no commit between them that
+     * either audit reads.
+     *
+     * The check was RIGHT to refuse: a comparison over nothing passes forever,
+     * which is why it fails rather than passes on an empty set. What it got
+     * wrong is WHICH ANSWER. It could not tell "there are no demonstration
+     * payments", which is a real gap, from "there are none in this month",
+     * which is the first of the month. `unreachable is not failed`, one level
+     * in: the subject could not be assembled, so the property was never
+     * measured.
+     *
+     * AND A SUBJECT SCOPED TO THE CURRENT MONTH EXPIRES ON A DATE. CLAUDE.md
+     * asks of every check whether it still has anything to look at if the firm
+     * succeeds at what it is currently trying to do. This one emptied on a
+     * calendar boundary instead, every month, with nothing to blame.
+     *
+     * So the window is now the period of the NEWEST demonstration payment,
+     * which cannot be empty by construction: if a payment exists, its own month
+     * contains it. The period used is stated in the note, because a measurement
+     * over a window nobody named is a measurement nobody can check.
+     */
     const revenue = REPORTS.find((r) => r.key === "revenue");
-    const real = await revenue.build(PERIOD, "real", OWNER);
-    const including = await revenue.build(PERIOD, "including_demonstrations", OWNER);
+
+    /*
+     * THREE STATES, AND THEY GET THREE ANSWERS. No payments at all is a genuine
+     * gap and stays a FAIL: there is nothing to prove revenue against, and
+     * seeding one is impossible because eng_order_payments refuses deletes and
+     * a per-run fixture would stand for ever. An unreadable database is COULD
+     * NOT TELL. A payment existing gives a window that cannot empty on a date.
+     */
+    const window = await measurablePeriod(db);
+    const paymentsAtAll = window.rows;
+    if (!window.derived && paymentsAtAll > 0) {
+      unmeasured.push(`no revenue window could be chosen: ${window.why}`);
+    }
+
+    const PERIOD_MEASURED = window.period;
+    const real = await revenue.build(PERIOD_MEASURED, "real", OWNER);
+    const including = await revenue.build(PERIOD_MEASURED, "including_demonstrations", OWNER);
 
     const grossOf = (report) =>
       report.sections.flatMap((s) => s.figures).find((f) => f.label === "Gross")?.value ?? null;
@@ -922,13 +971,33 @@ if (!db) {
     const realGross = grossOf(real);
     const demoGross = grossOf(including);
 
-    rec(
-      "revenue has standing demonstration payments to be proved against",
-      typeof demoGross === "number" && typeof realGross === "number" && demoGross > realGross,
-      typeof demoGross === "number" && typeof realGross === "number"
-        ? `real ${realGross}, including demonstrations ${demoGross}. eng_order_payments refuses deletes, so revenue is proved from what is already there rather than by inserting a payment that could never be removed.`
-        : "one of the two scopes could not compute gross, so nothing was compared",
-    );
+    /*
+     * THE WINDOW HAVING NO ROWS WHILE THE TABLE HAS ROWS IS NOT A FAILURE.
+     *
+     * By construction the derived period holds the newest payment, so this
+     * branch means something other than the calendar: a report that filters
+     * further than this audit knows, or a build that returned nothing. Either
+     * way the property was not measured, and saying FAIL would assert that
+     * demonstration revenue leaks into a real figure, which is the opposite of
+     * what an unmeasured check knows.
+     */
+    const bothComputed = typeof demoGross === "number" && typeof realGross === "number";
+    const windowEmpty = bothComputed && demoGross === 0 && realGross === 0;
+    const tableHasRows = (paymentsAtAll ?? 0) > 0;
+
+    if (windowEmpty && tableHasRows) {
+      unmeasured.push(
+        `revenue was measured over ${PERIOD_MEASURED}, the period of the newest payment, and both scopes came back zero while eng_order_payments holds ${paymentsAtAll} row(s). The window is empty and the table is not, so nothing was compared.`,
+      );
+    } else {
+      rec(
+        "revenue has standing demonstration payments to be proved against",
+        bothComputed && demoGross > realGross,
+        bothComputed
+          ? `over ${PERIOD_MEASURED}, the period of the newest payment: real ${realGross}, including demonstrations ${demoGross}. eng_order_payments refuses deletes, so revenue is proved from what is already there rather than by inserting a payment that could never be removed.`
+          : `one of the two scopes could not compute gross over ${PERIOD_MEASURED}, so nothing was compared`,
+      );
+    }
 
     const demoRows = including.sections
       .flatMap((s) => s.figures)
@@ -939,13 +1008,25 @@ if (!db) {
       .flatMap((f) => f.rows ?? [])
       .filter((row) => /-DEMO-/i.test(row.label));
 
-    rec(
-      `and none of those ${demoRows.length} demonstration payments reaches a real revenue figure`,
-      demoRows.length > 0 && realRows.length === 0,
-      realRows.length
-        ? `${realRows.map((r) => r.label).join(", ")} are counted in a real figure`
-        : "",
-    );
+    /*
+     * SAME THREE WAY ANSWER. With no demonstration rows in the window there is
+     * nothing to check for leakage, and "none of zero leaked" is the vacuous
+     * green this check exists to refuse. It is not a failure either: it is a
+     * window with nothing in it.
+     */
+    if (demoRows.length === 0 && tableHasRows) {
+      unmeasured.push(
+        `no demonstration payment rows appeared in ${PERIOD_MEASURED}, so leakage into a real figure could not be checked. eng_order_payments holds ${paymentsAtAll} row(s).`,
+      );
+    } else {
+      rec(
+        `and none of those ${demoRows.length} demonstration payments reaches a real revenue figure`,
+        demoRows.length > 0 && realRows.length === 0,
+        realRows.length
+          ? `${realRows.map((r) => r.label).join(", ")} are counted in a real figure`
+          : `over ${PERIOD_MEASURED}`,
+      );
+    }
   }
 }
 
