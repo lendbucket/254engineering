@@ -59,8 +59,30 @@ function serverOnly(file, depth = 0) {
     return true;
   }
 
-  for (const m of src.matchAll(/from "(\.[^"]+)"/g)) {
-    const target = resolve(dirname(file), m[1]);
+  /*
+   * RELATIVE IMPORTS AND THE `@/` ALIAS, because following only one of the two
+   * made this walk blind to most of the codebase.
+   *
+   * Found 2026-10-01. A new proof imported `../../src/proxy.ts`, which is
+   * relative and was followed, and `proxy.ts` imports `@/lib/ops-session`, which
+   * is `server-only` and was NOT, because the pattern required a leading dot. So
+   * the walk reported "no server-only module reached", `proofs-audit` ran the
+   * proof without `--conditions=react-server`, and it died on the import.
+   *
+   * THE BLIND SPOT WAS NEVER ABOUT ONE PROOF. Almost every module under `src`
+   * imports its siblings through this alias, so any audit whose chain to a
+   * server-only module passes through one aliased hop was undetectable, and the
+   * failure mode is the one this file's own header describes: green the way it is
+   * tested, dead the way the board runs it.
+   */
+  const specs = [
+    ...[...src.matchAll(/from "(\.[^"]+)"/g)].map((m) => ({ spec: m[1], from: "relative" })),
+    ...[...src.matchAll(/from "(@\/[^"]+)"/g)].map((m) => ({ spec: m[1], from: "alias" })),
+  ];
+
+  for (const { spec, from } of specs) {
+    const target = from === "alias" ? aliasTarget(spec) : resolve(dirname(file), spec);
+    if (!target) continue;
     for (const candidate of [target, `${target}.ts`, `${target}.tsx`, `${target}/index.ts`]) {
       if (existsSync(candidate) && serverOnly(candidate, depth + 1)) {
         SEEN.set(file, true);
@@ -69,6 +91,32 @@ function serverOnly(file, depth = 0) {
     }
   }
   return false;
+}
+
+/**
+ * Where `@/` points, READ FROM tsconfig rather than assumed.
+ *
+ * It is `./src/*` today. Hardcoding that would be a second home for a fact
+ * tsconfig already owns, and this file exists because of a list somebody
+ * maintained by hand. If the mapping cannot be read, this returns null and the
+ * caller treats the import as unfollowable rather than guessing, which is the
+ * honest failure: an undetected server-only module is a loud crash on the board,
+ * and a wrongly guessed path would be a silent miss.
+ */
+let ALIAS_ROOT;
+function aliasTarget(spec) {
+  if (ALIAS_ROOT === undefined) {
+    ALIAS_ROOT = null;
+    try {
+      const tsconfig = readSource("tsconfig.json");
+      const m = tsconfig.match(/"@\/\*"\s*:\s*\[\s*"([^"]+)"/);
+      if (m) ALIAS_ROOT = m[1].replace(/\*$/, "").replace(/^\.\//, "");
+    } catch {
+      ALIAS_ROOT = null;
+    }
+  }
+  if (!ALIAS_ROOT) return null;
+  return resolve(process.cwd(), ALIAS_ROOT + spec.slice(2));
 }
 
 /**
