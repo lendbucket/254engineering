@@ -144,6 +144,20 @@ export const NOT_CREDENTIALS = new Set([
    */
   "SHOTS_OUT",
   /*
+   * SWEEP_PORT, 2026-10-01. Which port scripts/sweep/run.mjs serves the break
+   * it sweep on, defaulting to 3240. A port number, holding nothing and opening
+   * nothing.
+   *
+   * SECOND TIME IN THREE DAYS the reverse scan has caught a name I added
+   * without declaring, after SHOTS_OUT. The pattern is the same both times: a
+   * new script reads a new environment value, the value is obviously not a
+   * secret, and precisely because it is obviously not a secret nobody thinks to
+   * declare it. That is the scan earning its keep rather than being pedantic:
+   * every name set in an environment is declared or named as not a credential,
+   * and a name nothing accounts for is a red rather than a silence.
+   */
+  "SWEEP_PORT",
+  /*
    * perf-audit's three, added 2026-09-14 when it learned to sign in.
    *
    * PERF_SCOPE chooses the cadence: the public templates on every board, the
