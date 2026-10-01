@@ -28,7 +28,7 @@
 import { randomBytes, scryptSync } from "node:crypto";
 
 import { auditClient } from "../../lib/db-target.mjs";
-import { createProbe, destroyProbes, PROBE_DOMAIN } from "../../lib/portal-probe.mjs";
+import { cookieFor, createProbe, destroyProbes, PROBE_DOMAIN } from "../../lib/portal-probe.mjs";
 
 /** Exactly customer-auth.ts's parameters. A mismatch fails the sign in. */
 const SCRYPT = { N: 16384, r: 8, p: 1, keylen: 64, maxmem: 64 * 1024 * 1024 };
@@ -138,13 +138,92 @@ export async function makeCustomer(base, db) {
   };
 }
 
-/** Every principal the sweep walks as, built once. */
+/**
+ * THE SURFACE EACH PRINCIPAL IS SUPPOSED TO OPEN, used to VERIFY the session.
+ *
+ * A redirect to another screen on the same surface is fine, because the engineer
+ * lands somewhere other than the portal root. Landing on a LOGIN screen is the
+ * failure, and it is the only thing tested for.
+ */
+const LANDS_ON = {
+  customer: "/account",
+  admin: "/portal",
+  csr: "/portal",
+  technician: "/portal",
+  engineer: "/portal",
+};
+
+/**
+ * A COOKIE STRING IS NOT A SESSION, AND THIS FILE CLAIMED IT WAS FOR EVERY RUN.
+ *
+ * `makeCustomer` keeps `set-cookie` split at the first semicolon, so its value is
+ * the PAIR `eng_customer=<value>`. `createProbe` returns the VALUE alone, because
+ * the shared `cookieFor` helper is what knows the name is `eng_ops`. Two shapes
+ * in one list, and the sweep then did `cookie.split("=")` on both, so every staff
+ * principal was handed to Playwright as a cookie NAMED after its own session
+ * token with an empty value.
+ *
+ * The portal refused all four, correctly, and the sweep reported
+ * `principal admin session ok` because a string had come back. **Four of six
+ * principals had never been signed in to anything, in any run.** The cost was
+ * invisible until the landing check went in: 39 portal screens and 5 partner
+ * screens reported as redirecting, which reads as a product fact and was a
+ * harness fault, and before the landing check existed those same 41 routes had
+ * the LOGIN page's dashes, promises and heights filed under their names.
+ *
+ * It is this repository's commonest defect twice over. The cookie name had two
+ * homes, `cookieFor` and a `split("=")` here, and the sweep trusted its own
+ * declaration that a principal was built instead of asking the product.
+ *
+ * SO A PRINCIPAL IS SIGNED IN WHEN SOMETHING IT OWNS OPENS, NEVER WHEN A STRING
+ * EXISTS. `auth-cases.mjs` already holds this discipline in writing, for the
+ * cookies it mints itself: "the reproduction is verified before it is trusted,
+ * which is the half that makes an expired-session result mean anything." The
+ * principals themselves were exempt from it. They are not now.
+ */
+async function verify(base, principal) {
+  const landing = LANDS_ON[principal.role];
+  if (!landing) return { ok: true, note: "no surface is declared for this role, so nothing was verified" };
+  if (!principal.cookies || principal.cookies.length === 0) {
+    return { ok: false, note: "no cookie to verify" };
+  }
+  try {
+    const res = await fetch(base + landing, {
+      headers: { cookie: principal.cookies.map((c) => `${c.name}=${c.value}`).join("; ") },
+      redirect: "manual",
+    });
+    const to = res.headers.get("location") ?? "";
+    if (res.status === 200) return { ok: true, note: `${landing} answered 200` };
+    if (/\/login/.test(to)) {
+      return { ok: false, note: `${landing} redirected to ${to.split("?")[0]}, so this cookie opens nothing` };
+    }
+    if (res.status >= 300 && res.status < 400) {
+      return { ok: true, note: `${landing} redirected to ${to.split("?")[0]}, which is not a login screen` };
+    }
+    return { ok: false, note: `${landing} answered ${res.status}` };
+  } catch (e) {
+    return { ok: false, note: `verifying ${landing} threw: ${String(e).slice(0, 80)}` };
+  }
+}
+
+/** Every principal the sweep walks as, built once and then VERIFIED. */
 export async function makePrincipals(base) {
   const db = auditClient("building the sweep's principals");
-  const principals = [{ role: "signed out", cookie: null, email: null }];
+  const principals = [{ role: "signed out", cookies: [], email: null }];
 
   const customer = await makeCustomer(base, db);
-  principals.push(customer);
+  /*
+   * The pair is split once, HERE, where its shape is known, rather than by every
+   * consumer guessing. `cookieFor` does the same job for a staff probe.
+   */
+  const at = customer.cookie ? customer.cookie.indexOf("=") : -1;
+  principals.push({
+    ...customer,
+    cookies:
+      at > 0
+        ? [{ name: customer.cookie.slice(0, at), value: customer.cookie.slice(at + 1) }]
+        : [],
+  });
 
   for (const { key, label } of STAFF_ROLES) {
     const probe = await createProbe(base, key, "sweep");
@@ -152,10 +231,26 @@ export async function makePrincipals(base) {
       role: label,
       roleKey: key,
       email: probe.email ?? null,
-      cookie: probe.cookie ?? null,
+      /* The shared helper names the cookie. Nothing here restates it. */
+      cookies: cookieFor(probe, base).map((c) => ({ name: c.name, value: c.value })),
       id: probe.id ?? null,
       fault: probe.fault ?? (probe.cookie ? null : "no session cookie came back"),
     });
+  }
+
+  for (const p of principals) {
+    if (p.role === "signed out") continue;
+    const v = await verify(base, p);
+    if (!v.ok) {
+      /*
+       * The fault is REPLACED rather than appended, because the old one said the
+       * sign in succeeded and that is the sentence that misled everybody.
+       */
+      p.fault = `the session was built but does not open its own surface: ${v.note}`;
+      p.cookies = [];
+    } else {
+      p.verified = v.note;
+    }
   }
 
   return { principals, customer, db };

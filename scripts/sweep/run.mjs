@@ -90,6 +90,22 @@ const staffColour = new Set();
 const tally = { forms: null, controls: null };
 
 /**
+ * Does this principal hold a session that was PROVEN to open its own surface?
+ *
+ * One predicate, used everywhere, because the old test was `p.cookie` and that
+ * was true for four principals whose cookie opened nothing. `makePrincipals`
+ * empties `cookies` when its verification fails, so this cannot be true of a
+ * principal that was built and never checked.
+ */
+const hasSession = (p) => p?.role === "signed out" || (Array.isArray(p?.cookies) && p.cookies.length > 0);
+
+/** The `cookie` request header for a principal, or nothing when it is signed out. */
+const cookieHeader = (p) =>
+  Array.isArray(p?.cookies) && p.cookies.length > 0
+    ? { cookie: p.cookies.map((c) => `${c.name}=${c.value}`).join("; ") }
+    : {};
+
+/**
  * One finding.
  * @param sev 1 money or a customer's order, 2 wrong data shown, 3 dead path, 4 presentation
  */
@@ -278,13 +294,20 @@ try {
   for (const p of principals) {
     if (p.role === "signed out") continue;
     if (p.email) treatAsSecret(p.password ?? "");
-    if (!p.cookie) {
+    if (!hasSession(p)) {
       cnt(
         `every check as ${p.role}`,
         `no session could be built: ${p.fault ?? "no cookie"}. Nothing was measured as this role.`,
       );
     }
-    console.log(`  principal ${String(p.role).padEnd(12)} ${p.cookie ? "session ok" : "NO SESSION"}`);
+    /*
+     * "session ok" USED TO MEAN "A STRING CAME BACK", and it was wrong for four
+     * of six principals on every run. It now reports what `verify` actually
+     * observed, so a reader sees which screen opened rather than a word.
+     */
+    console.log(
+      `  principal ${String(p.role).padEnd(12)} ${hasSession(p) ? `OPENS ITS SURFACE (${p.verified})` : `NO SESSION: ${p.fault}`}`,
+    );
   }
 
   /* ------------------------------------------------- 1. the routes to visit */
@@ -318,15 +341,14 @@ try {
 
   for (const width of WIDTHS) {
     for (const p of principals) {
-      if (p.role !== "signed out" && !p.cookie) continue;
+      if (!hasSession(p)) continue;
       const context = await browser.newContext({
         viewport: { width: width.width, height: width.height },
       });
-      if (p.cookie) {
-        const [name, value] = p.cookie.split("=");
-        await context.addCookies([
-          { name: name.trim(), value: value ?? "", domain: "localhost", path: "/" },
-        ]);
+      if (p.cookies.length > 0) {
+        await context.addCookies(
+          p.cookies.map((c) => ({ name: c.name, value: c.value, domain: "localhost", path: "/" })),
+        );
       }
       const page = await context.newPage();
 
@@ -488,6 +510,40 @@ try {
              */
             const ABOUT_THE_WORK =
               /\b(we |our |the firm|your (letter|report|order|certificate|document|inspection)|turnaround|deliver|issued|sealed|you (will|can expect)|engineer will)\b/i;
+
+            /*
+             * A PROMISE NEEDS A PROMISOR, AND THE THIRD RUN MEASURED WHAT THAT IS
+             * WORTH. Operator ruling, 2026-10-01.
+             *
+             * The second run reported six sentences and exactly one was a
+             * promise: an unsourced market price range on /structural-engineer/cost
+             * with an imputed motive beside it. The other five were a form label
+             * reading "Counties you usually work in", a paragraph correcting the
+             * misconception that a sealed report is a warranty, a sentence about
+             * engineering practice, a heading whose body says it is not a
+             * diagnostic list, and an honest hedge about what lenders ask for.
+             *
+             * One in six is a matcher people learn to skim, and skimming is how
+             * the one that matters gets missed. The operator refused an exemption
+             * list for the five, which is the standing ruling on this shape: an
+             * allowlist of instances is a list somebody grows until the check
+             * covers nothing.
+             *
+             * SO THE SUBJECT IS SHARPENED. A promise has somebody doing the
+             * promising, and four of the five name the firm nowhere at all.
+             * ABOUT_THE_WORK above is too generous on its own because `sealed`
+             * and `your report` match a sentence about the industry; this adds the
+             * requirement that the firm itself is the subject near the hedge.
+             *
+             * WHAT IT GIVES UP, stated rather than hidden: a promise phrased
+             * without naming the firm, "turnaround is usually two weeks" as a bare
+             * heading, would no longer be reported. That is a real gap and it is
+             * the right trade against five false rows a reader has to triage. The
+             * sentence is still shown for everything it does report, because this
+             * is a heuristic and a person makes the judgement.
+             */
+            const HAS_A_PROMISOR = /\b(we|our|us|this firm|the firm|254)\b/i;
+
             for (const m of body.matchAll(promise)) {
               const at = m.index ?? 0;
               const before = body.slice(Math.max(0, at - 90), at);
@@ -497,6 +553,7 @@ try {
                 .replace(/\s+/g, " ")
                 .trim();
               if (!ABOUT_THE_WORK.test(sentence)) continue;
+              if (!HAS_A_PROMISOR.test(sentence)) continue;
               out.promises.push(`${m[0]} :: ...${sentence}...`);
             }
 
@@ -632,14 +689,14 @@ try {
 
   for (const api of allApis) {
     for (const p of principals) {
-      if (p.role !== "signed out" && !p.cookie) continue;
+      if (!hasSession(p)) continue;
       for (const method of ["GET", "POST"]) {
         let res = null;
         try {
           res = await fetch(BASE + api, {
             method,
             headers: {
-              ...(p.cookie ? { cookie: p.cookie } : {}),
+              ...cookieHeader(p),
               ...(method === "POST" ? { "Content-Type": "application/json" } : {}),
             },
             ...(method === "POST" ? { body: "{}" } : {}),
@@ -794,20 +851,19 @@ try {
   try {
     for (const { route } of routes) {
       const p = ownerOf(route);
-      if (!p || (p.role !== "signed out" && !p.cookie)) {
+      if (!hasSession(p)) {
         cnt(
           `form abuse and control clicking on ${route}`,
-          `no session could be built for ${p?.role ?? "its owning role"}, so the screen was never opened as the principal that owns it`,
+          `no session could be built for ${p?.role ?? "its owning role"}: ${p?.fault ?? "no principal owns this route"}. The screen was never opened as the principal that owns it`,
         );
         continue;
       }
 
       const context = await browser2.newContext({ viewport: { width: 1280, height: 900 } });
-      if (p.cookie) {
-        const [name, value] = p.cookie.split("=");
-        await context.addCookies([
-          { name: name.trim(), value: value ?? "", domain: "localhost", path: "/" },
-        ]);
+      if (p.cookies.length > 0) {
+        await context.addCookies(
+          p.cookies.map((c) => ({ name: c.name, value: c.value, domain: "localhost", path: "/" })),
+        );
       }
       const page = await context.newPage();
 
