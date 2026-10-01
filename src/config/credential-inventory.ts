@@ -131,7 +131,7 @@ const READ_ON = "2026-09-12, by the operator, from the Vercel dashboard. Nothing
  * what the ruling was about.
  */
 export const CRON_RUNS_ON =
-  "Production deployments only. Documented platform behaviour per vercel.com/docs/cron-jobs, " +
+  "Production deployments only. Documented platform behavior per vercel.com/docs/cron-jobs, " +
   "recorded 2026-09-30 on the operator's ruling. NOT a console read: it is how Vercel works " +
   "rather than how this project is configured, so it does not go stale when a setting changes.";
 
