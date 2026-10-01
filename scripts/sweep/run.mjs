@@ -579,6 +579,10 @@ try {
       }
     }
   }
+  /* ------------------------------------------------- 4. the auth cases */
+
+  const { runAuthCases } = await import("./lib/auth-cases.mjs");
+  await runAuthCases({ base: BASE, customer, db, find, cnt, treatAsSecret });
 } catch (e) {
   cnt("the sweep as a whole", `it stopped early: ${String(e).slice(0, 220)}`);
   console.log("SWEEP STOPPED: " + String(e).slice(0, 220));
@@ -634,7 +638,22 @@ function safeLine(line, counter) {
 }
 
 function buildReport({ findings, couldNotTell, disposal, gap }) {
-  const sevName = { 1: "1 money or a customer's order", 2: "2 wrong data shown", 3: "3 dead path", 4: "4 presentation" };
+  const sevName = {
+    0: "confirmed, not a finding",
+    1: "1 money or a customer's order",
+    2: "2 wrong data shown",
+    3: "3 dead path",
+    4: "4 presentation",
+  };
+
+  /*
+   * SEVERITY ZERO IS A CHECK THAT WAS EXERCISED AND HELD, and it is reported
+   * separately rather than dropped. "An expired session was refused" is not a
+   * finding, but it is the thing the operator asked to be tested, and a sweep
+   * that printed only failures would leave him unable to tell a case that
+   * passed from one that never ran. The COULD NOT TELL section is the third
+   * state, for the ones that genuinely could not be exercised.
+   */
 
   /*
    * ONE ROW PER DISTINCT FINDING, WITH THE ROLES AND WIDTHS IT AFFECTS.
@@ -659,13 +678,15 @@ function buildReport({ findings, couldNotTell, disposal, gap }) {
     byKey.get(key).roles.add(f.role);
     byKey.get(key).widths.add(f.width);
   }
-  const sorted = [...byKey.values()]
+  const all = [...byKey.values()]
     .map((f) => ({
       ...f,
       role: [...f.roles].join(", "),
       width: [...f.widths].filter((w) => w !== "n/a").join(", ") || "n/a",
     }))
     .sort((a, b) => a.sev - b.sev || a.route.localeCompare(b.route));
+  const confirmed = all.filter((f) => f.sev === 0);
+  const sorted = all.filter((f) => f.sev > 0);
 
   const counter = { n: withheld };
   const raw = [];
@@ -708,6 +729,18 @@ function buildReport({ findings, couldNotTell, disposal, gap }) {
     l.push(`**To be removed in stages 2 to 4.** ${staffColour.size} staff screen(s) carry status in colour:`);
     l.push("");
     for (const r of [...staffColour].sort()) l.push(`- \`${r}\``);
+    l.push("");
+  }
+
+  if (confirmed.length > 0) {
+    l.push("## Exercised and held");
+    l.push("");
+    l.push(
+      "Not findings. These are the cases the sweep attacked and the product refused " +
+        "correctly, listed so a case that PASSED can be told apart from one that never ran.",
+    );
+    l.push("");
+    for (const f of confirmed) l.push(`- \`${f.route}\` as ${f.role}: ${f.what}`);
     l.push("");
   }
 

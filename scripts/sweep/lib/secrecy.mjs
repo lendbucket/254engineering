@@ -34,17 +34,52 @@
  */
 const known = new Set();
 
-/** Register a value as unprintable. Short values are ignored, see below. */
+/**
+ * Register a value as unprintable, explicitly.
+ *
+ * EIGHT, BECAUSE SHORTER IS WORSE THAN USELESS. Registering a three character
+ * value would make the guard match ordinary prose containing those three
+ * characters and refuse every report for ever, which is how a check that cannot
+ * be satisfied gets switched off. Nothing minted here is that short.
+ *
+ * This is the EXPLICIT door and keeps the low floor, because a caller passing a
+ * value has decided it is secret. The automatic door below is stricter.
+ */
 export function treatAsSecret(value) {
   if (typeof value !== "string") return;
-  /*
-   * EIGHT, BECAUSE SHORTER IS WORSE THAN USELESS. Registering a three character
-   * value would make the guard match ordinary prose containing those three
-   * characters and refuse every report for ever, which is how a check that
-   * cannot be satisfied gets switched off. Nothing secret here is that short.
-   */
   if (value.trim().length < 8) return;
   known.add(value.trim());
+}
+
+/**
+ * COULD THIS ENVIRONMENT VALUE PLAUSIBLY BE A CREDENTIAL?
+ *
+ * REGISTERING EVERY VALUE WHOLESALE WAS WRONG, and the sweep found it the
+ * expensive way: `VERCEL_ENV` holds "production", ten characters, and
+ * "reproduction" contains it. So a finding reading "a valid reproduction was
+ * accepted first" was withheld from the report as though it carried a secret.
+ *
+ * It is the matcher-too-wide defect in a new place. The fix is the one the
+ * operator has ruled for before: sharpen the subject rather than exempt the
+ * instance, and derive the distinction rather than list names. A credential is
+ * long and arbitrary; a mode, a flag or a region is a short dictionary word.
+ *
+ * So a value is auto-registered only if it is at least sixteen characters AND
+ * is not a single run of lowercase letters. "production", "development" and
+ * "preview" are excluded by both tests; a session secret, an API key and a
+ * connection string pass both.
+ *
+ * WHAT THIS GIVES UP, said rather than hidden: a real secret that is sixteen or
+ * more characters and entirely lowercase letters would not be auto-registered.
+ * The shape patterns still catch every provider format, and anything this
+ * process mints is registered explicitly, so the gap is a credential somebody
+ * set by hand to a long lowercase word. Narrow, and stated.
+ */
+function plausiblyCredential(value) {
+  const v = value.trim();
+  if (v.length < 16) return false;
+  if (/^[a-z]+$/.test(v)) return false;
+  return true;
 }
 
 /** Register every environment value that could be a credential. */
@@ -59,6 +94,7 @@ export function registerEnvironment(env = process.env) {
     if (/^(PATH|PATHEXT|PSModulePath|SystemRoot|windir|TEMP|TMP|HOME|HOMEPATH|USERPROFILE|APPDATA|LOCALAPPDATA|ProgramFiles.*|CommonProgram.*|OS|COMSPEC|NUMBER_OF_PROCESSORS|PROCESSOR_.*)$/i.test(name)) {
       continue;
     }
+    if (!plausiblyCredential(value)) continue;
     treatAsSecret(value);
   }
 }

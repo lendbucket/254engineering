@@ -26,7 +26,12 @@
  * leak it exists to prevent, in the error message. That is asserted too.
  */
 
-import { assertNothingSecret, refusalFor, treatAsSecret } from "../sweep/lib/secrecy.mjs";
+import {
+  assertNothingSecret,
+  refusalFor,
+  registerEnvironment,
+  treatAsSecret,
+} from "../sweep/lib/secrecy.mjs";
 
 const out = [];
 const rec = (name, ok, note = "") => {
@@ -122,6 +127,47 @@ rec(
   "and it ignores a value too short to be a credential",
   refusalFor("the abc column was empty") === null,
   "a guard that cannot be satisfied is a guard somebody removes",
+);
+
+/* -------------------- 3b. an environment MODE is not a credential */
+
+/*
+ * THE REGRESSION THIS EXISTS FOR, FOUND BY THE SWEEP ITSELF.
+ *
+ * registerEnvironment used to register every value of eight characters or more.
+ * VERCEL_ENV holds "production", which is ten, and "reproduction" contains it.
+ * So a genuine finding reading "a valid reproduction was accepted first" was
+ * withheld from the report as though it carried a secret.
+ *
+ * A credential is long and arbitrary; a mode, a flag or a region is a short
+ * dictionary word. The distinction is derived rather than listed, because an
+ * allowlist of names is a list somebody grows until the scan checks nothing.
+ */
+registerEnvironment({
+  VERCEL_ENV: "production",
+  VERCEL_TARGET_ENV: "production",
+  NODE_ENV: "development",
+  SOME_REGION: "us-central1",
+});
+for (const line of [
+  "a valid reproduction was accepted first, so the case was genuinely exercised",
+  "the development database answered, and production was never touched",
+  "the preview deployment reads the development project",
+]) {
+  rec(`an environment mode does not refuse: ${line.slice(0, 44)}...`, refusalFor(line) === null, refusalFor(line) ?? "");
+}
+
+/*
+ * AND THE STRICTER DOOR MUST STILL REGISTER A REAL ONE, or the fix would have
+ * closed the hole by closing the check. A long arbitrary value from the
+ * environment is still caught.
+ */
+const LONG_ARBITRARY = join(run("Q", 9), "7", run("z", 9), "4", run("M", 9));
+registerEnvironment({ SOME_SECRET: LONG_ARBITRARY });
+rec(
+  "but a long arbitrary environment value is still registered",
+  refusalFor(`the client was configured with ${LONG_ARBITRARY} today`) !== null,
+  "the floor rose from eight to sixteen and excluded single lowercase words, nothing more",
 );
 
 /* ------------------------------------------- 4. it refuses, it does not redact */

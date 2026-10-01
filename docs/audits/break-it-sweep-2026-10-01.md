@@ -12,24 +12,24 @@ Report only. Nothing in this file has been fixed.
 
 ## Findings, ranked
 
-69 distinct finding(s), collapsed from 425 observation(s). A finding seen by four roles at two widths is one finding and seven copies; the roles and widths it was seen at are in their own columns.
+69 distinct finding(s), collapsed from 431 observation(s). A finding seen by four roles at two widths is one finding and seven copies; the roles and widths it was seen at are in their own columns.
 
 | # | Route | Role | Width | What happened | Severity | Fix |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | `/account/forgot-password` | customer | 1280, 390 | wording that promises or warrants: "usually :: .... No preference Standard As soon as the firm can Urgent Counties you usually work in Comma separated. Offered when you are filling in a bulk subm..." | 2 wrong data shown | behaviour |
 | 2 | `/account/settings` | customer | 1280, 390 | wording that promises or warrants: "usually :: .... No preference Standard As soon as the firm can Urgent Counties you usually work in Comma separated. Offered when you are filling in a bulk subm..." | 2 wrong data shown | behaviour |
-| 3 | `/insights/post-construction-evaluation-report` | signed out, customer, admin, csr, technician, engineer | 1280, 390 | wording that promises or warrants: "warranty :: ...n a party to a transaction treats a sealed report as though it were a warranty of the construction. Who can call the engineer to account Subsectio..." | 2 wrong data shown | behaviour |
-| 4 | `/services/roof-inspections` | signed out, customer, admin, csr, technician, engineer | 1280, 390 | wording that promises or warrants: "usually :: ...an issue a sealed opinion on the condition observed, and that seal is usually what a lender or a carrier is actually asking for. How long is a roof..." | 2 wrong data shown | behaviour |
-| 5 | `/services/structural-letters` | signed out, customer, admin, csr, technician, engineer | 1280, 390 | wording that promises or warrants: "usually :: ...letter be issued without anyone visiting the site? Rarely, and it is usually a mistake to try. The letter turns on what is actually there: span, m..." | 2 wrong data shown | behaviour |
-| 6 | `/structural-engineer/cost` | signed out, customer, admin, csr, technician, engineer | 1280, 390 | wording that promises or warrants: "typically :: ...s the market a residential structural inspection with a sealed letter typically runs from the high hundreds into the low thousands, and firms that wi..." | 2 wrong data shown | behaviour |
-| 7 | `/structural-engineer/when-you-need-one` | signed out, customer, admin, csr, technician, engineer | 1280, 390 | wording that promises or warrants: "usually :: ...ct answer, and an honest engineer will tell you so. SIGNALS What is usually worth looking at Not a diagnostic list. These are the observations t..." | 2 wrong data shown | behaviour |
-| 8 | `(the surface inventory)` | n/a | n/a | 2 declared route(s) have no page on disk: /order/start/roof-inspections, /order/254-B2026-000000 | 3 dead path | behaviour |
-| 9 | `/` | signed out, customer, admin, csr, technician, engineer | 390 | 12155px tall, 14.4 phone heights against a ceiling of three. This is long-form marketing content, where length may be intended. | 4 presentation | presentation |
-| 10 | `/about` | signed out, customer, admin, csr, technician, engineer | 390 | 8062px tall, 9.6 phone heights against a ceiling of three. This is long-form marketing content, where length may be intended. | 4 presentation | presentation |
-| 11 | `/careers` | signed out, customer, admin, csr, technician, engineer | 390 | 14018px tall, 16.6 phone heights against a ceiling of three. This is long-form marketing content, where length may be intended. | 4 presentation | presentation |
-| 12 | `/careers/field-inspection-technician` | signed out, customer, admin, csr, technician, engineer | 390 | 9596px tall, 11.4 phone heights against a ceiling of three. This is long-form marketing content, where length may be intended. | 4 presentation | presentation |
-| 13 | `/careers/professional-engineer` | signed out, customer | 390 | 10190px tall, 12.1 phone heights against a ceiling of three. This is long-form marketing content, where length may be intended. | 4 presentation | presentation |
-| 14 | `/careers/professional-engineer` | admin, csr, technician, engineer | 390 | 10573px tall, 12.5 phone heights against a ceiling of three. This is long-form marketing content, where length may be intended. | 4 presentation | presentation |
+| 3 | `/api/account/session` | customer | n/a | ten wrong passwords were refused identically (401), so nothing visibly rate limits a password guess on this route | 2 wrong data shown | behaviour |
+| 4 | `/insights/post-construction-evaluation-report` | signed out, customer, admin, csr, technician, engineer | 1280, 390 | wording that promises or warrants: "warranty :: ...n a party to a transaction treats a sealed report as though it were a warranty of the construction. Who can call the engineer to account Subsectio..." | 2 wrong data shown | behaviour |
+| 5 | `/services/roof-inspections` | signed out, customer, admin, csr, technician, engineer | 1280, 390 | wording that promises or warrants: "usually :: ...an issue a sealed opinion on the condition observed, and that seal is usually what a lender or a carrier is actually asking for. How long is a roof..." | 2 wrong data shown | behaviour |
+| 6 | `/services/structural-letters` | signed out, customer, admin, csr, technician, engineer | 1280, 390 | wording that promises or warrants: "usually :: ...letter be issued without anyone visiting the site? Rarely, and it is usually a mistake to try. The letter turns on what is actually there: span, m..." | 2 wrong data shown | behaviour |
+| 7 | `/structural-engineer/cost` | signed out, customer, admin, csr, technician, engineer | 1280, 390 | wording that promises or warrants: "typically :: ...s the market a residential structural inspection with a sealed letter typically runs from the high hundreds into the low thousands, and firms that wi..." | 2 wrong data shown | behaviour |
+| 8 | `/structural-engineer/when-you-need-one` | signed out, customer, admin, csr, technician, engineer | 1280, 390 | wording that promises or warrants: "usually :: ...ct answer, and an honest engineer will tell you so. SIGNALS What is usually worth looking at Not a diagnostic list. These are the observations t..." | 2 wrong data shown | behaviour |
+| 9 | `(the surface inventory)` | n/a | n/a | 2 declared route(s) have no page on disk: /order/start/roof-inspections, /order/254-B2026-000000 | 3 dead path | behaviour |
+| 10 | `/` | signed out, customer, admin, csr, technician, engineer | 390 | 12155px tall, 14.4 phone heights against a ceiling of three. This is long-form marketing content, where length may be intended. | 4 presentation | presentation |
+| 11 | `/about` | signed out, customer, admin, csr, technician, engineer | 390 | 8062px tall, 9.6 phone heights against a ceiling of three. This is long-form marketing content, where length may be intended. | 4 presentation | presentation |
+| 12 | `/careers` | signed out, customer, admin, csr, technician, engineer | 390 | 14018px tall, 16.6 phone heights against a ceiling of three. This is long-form marketing content, where length may be intended. | 4 presentation | presentation |
+| 13 | `/careers/field-inspection-technician` | signed out, customer, admin, csr, technician, engineer | 390 | 9596px tall, 11.4 phone heights against a ceiling of three. This is long-form marketing content, where length may be intended. | 4 presentation | presentation |
+| 14 | `/careers/professional-engineer` | signed out, customer, admin, csr, technician, engineer | 390 | 10190px tall, 12.1 phone heights against a ceiling of three. This is long-form marketing content, where length may be intended. | 4 presentation | presentation |
 | 15 | `/contact` | signed out, customer, admin, csr, technician, engineer | 390 | 4177px tall, 4.9 phone heights against a ceiling of three. This is long-form marketing content, where length may be intended. | 4 presentation | presentation |
 | 16 | `/corpus-christi` | signed out, customer, admin, csr, technician, engineer | 390 | 8731px tall, 10.3 phone heights against a ceiling of three. This is long-form marketing content, where length may be intended. | 4 presentation | presentation |
 | 17 | `/coverage` | signed out, customer, admin, csr, technician, engineer | 390 | 8105px tall, 9.6 phone heights against a ceiling of three. This is long-form marketing content, where length may be intended. | 4 presentation | presentation |
@@ -86,9 +86,19 @@ Report only. Nothing in this file has been fixed.
 | 68 | `/windstorm/re-roofs-and-repairs` | signed out, customer, admin, csr, technician, engineer | 390 | 7339px tall, 8.7 phone heights against a ceiling of three. This is long-form marketing content, where length may be intended. | 4 presentation | presentation |
 | 69 | `/windstorm/twia-coverage` | signed out, customer, admin, csr, technician, engineer | 390 | 7375px tall, 8.7 phone heights against a ceiling of three. This is long-form marketing content, where length may be intended. | 4 presentation | presentation |
 
+## Exercised and held
+
+Not findings. These are the cases the sweep attacked and the product refused correctly, listed so a case that PASSED can be told apart from one that never ran.
+
+- `/account` as customer with an expired session: an expired session was refused with 307, and a valid reproduction was accepted first, so the case was genuinely exercised
+- `/account` as customer with a tampered expiry: an expiry edited to a future value was refused with 307, so the signature covers it
+- `/api/account/session` as customer: an email uppercased signed in, so the address is normalised before it is compared
+- `/api/account/session` as customer: an email with a trailing space signed in, so the address is normalised before it is compared
+- `/api/account/session` as customer: an email with a leading space signed in, so the address is normalised before it is compared
+
 ## Could not tell
 
-Nothing. Every cell above was measured.
+- **the reused reset link case**: no reset token was present to reuse, and the sweep does not call the public reset route because that route queues mail
 
 ## The probes, and what was removed
 
