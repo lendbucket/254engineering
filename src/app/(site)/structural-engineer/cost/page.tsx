@@ -44,7 +44,20 @@ const crumbs = [
 const faqs = [
   {
     q: "How much does a structural engineer cost in Texas?",
-    a: "At this firm every service line has a published fixed price, listed on this page, and the price is agreed before any work starts. Across the market a residential structural inspection with a sealed letter typically runs from the high hundreds into the low thousands, and firms that will not quote before a visit are usually pricing the visit rather than the document.",
+    /*
+     * OPERATOR TEXT, 2026-10-01, CARRIED EXACTLY AS HE WROTE IT.
+     *
+     * What it replaces made two claims with nothing behind either. A market
+     * price range, "from the high hundreds into the low thousands", traceable to
+     * no primary source, which standing law treats as a figure to withdraw
+     * rather than repeat. And "firms that will not quote before a visit are
+     * usually pricing the visit rather than the document", which imputes a
+     * motive to a class of competitors and states it as usual practice.
+     *
+     * Found by the break it sweep's promise detector, which reported six
+     * sentences and was right about exactly this one.
+     */
+    a: "At this firm every service line has a published fixed price, listed on this page, and the price is agreed before any work starts. When you compare quotes from other firms, ask whether the price covers the sealed document or only the visit, and whether the quote is given before anyone comes to the property.",
   },
   {
     q: "Why do some firms refuse to give a price?",
