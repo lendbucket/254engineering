@@ -101,6 +101,72 @@ export function openByDesign(root = process.cwd()) {
   return { paths: new Set(paths), why: `${paths.length} path(s) declared open by design` };
 }
 
+/**
+ * THE PATHS THE PERIMETER LETS THROUGH WITH NO SESSION, read from the perimeter.
+ *
+ * `src/proxy.ts` is the one thing that decides this, and it decides it by
+ * membership of two sets. The sweep needs the answer for two different reasons
+ * and both of them were wrong without it.
+ *
+ * FIRST, TO KNOW WHOSE SCREEN A ROUTE IS. The sweep opens each route as the
+ * principal whose surface it is, and it worked out "whose" from the path prefix,
+ * so `/account/login` was opened as a signed in customer, redirected to
+ * `/account`, and never abused. A sign in page belongs to somebody with no
+ * session, and the only place that fact is written down is this set.
+ *
+ * SECOND, TO SEE A DOOR THAT IS NOT IN IT. A door for people who cannot sign in
+ * that sits behind a check for being signed in is unreachable, and the comment
+ * above `CUSTOMER_OPEN_PATHS` records that happening to sign up on 2026-09-13.
+ * Reading the set lets the sweep compare it against the doors the product
+ * claims to have, rather than a person noticing by hand.
+ *
+ * PARSED RATHER THAN RESTATED, for the reason this repository gives everywhere
+ * else: a second copy of the list is a second account that will disagree, and
+ * the copy in a script is always the one nobody updates.
+ */
+export function openPathsFromProxy(root = process.cwd()) {
+  const file = join(root, "src", "proxy.ts");
+  if (!existsSync(file)) {
+    return { customer: new Set(), partner: new Set(), why: "src/proxy.ts was not found" };
+  }
+  const src = readFileSync(file, "utf8");
+
+  const setNamed = (name) => {
+    const start = src.indexOf(`const ${name} = new Set([`);
+    if (start === -1) return null;
+    const end = src.indexOf("]);", start);
+    if (end === -1) return null;
+    const code = src
+      .slice(start, end)
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/[^\n]*/g, "");
+    return new Set([...code.matchAll(/"([^"]+)"/g)].map((m) => m[1]).filter((p) => p.startsWith("/")));
+  };
+
+  const customer = setNamed("CUSTOMER_OPEN_PATHS");
+  const partner = setNamed("PARTNER_OPEN_PATHS");
+
+  /*
+   * A SET THAT COULD NOT BE READ IS NOT AN EMPTY SET, and conflating the two is
+   * the vacuous green this repository keeps meeting. An empty result would make
+   * every sign in screen look like it belongs to a signed in principal and make
+   * the missing-door comparison pass over nothing, so the failure is named.
+   */
+  const faults = [];
+  if (customer === null) faults.push("CUSTOMER_OPEN_PATHS could not be read");
+  if (partner === null) faults.push("PARTNER_OPEN_PATHS could not be read");
+
+  return {
+    customer: customer ?? new Set(),
+    partner: partner ?? new Set(),
+    read: faults.length === 0,
+    why:
+      faults.length > 0
+        ? faults.join("; ")
+        : `${customer.size} customer and ${partner.size} partner path(s) are open with no session`,
+  };
+}
+
 /** Surfaces whose routes this file can enumerate without a running server. */
 export function walkableSurfaces() {
   return surfaces().filter((s) => s.routesFrom !== "sitemap");

@@ -28,6 +28,8 @@
 
 import {
   assertNothingSecret,
+  innocentCount,
+  innocentNames,
   refusalFor,
   registerEnvironment,
   treatAsSecret,
@@ -127,6 +129,63 @@ rec(
   "and it ignores a value too short to be a credential",
   refusalFor("the abc column was empty") === null,
   "a guard that cannot be satisfied is a guard somebody removes",
+);
+
+/* --------------------------- 2b. a long route slug is not a token */
+
+/*
+ * THE SECOND REGRESSION THE SWEEP FOUND IN ITS OWN GUARD.
+ *
+ * `a long opaque token` is forty or more characters of `[A-Za-z0-9_-]`, and a
+ * hyphen is in that class, so the two longest article slugs on this site are
+ * token shaped. Two rows of the first report were replaced by withheld notices,
+ * and both carried an ordinary page height finding.
+ *
+ * Both halves are asserted. The slugs must survive, and the exemption must not
+ * have opened a door: a hyphenated run with a long segment, one carrying
+ * uppercase, and one with no hyphens at all are all still refused. Without
+ * those three the fix could have closed the hole by closing the check, which is
+ * the failure this file exists to catch.
+ *
+ * TWO OF THE THREE SURVIVING CASES EXERCISE THE EXEMPTION, NOT THREE, and
+ * saying so is the point of the note. Disabling the exemption turns the first
+ * two red and leaves the third green, because thirty four characters never
+ * reached the forty character pattern in the first place. It is kept as a check
+ * that an ordinary route line is writable, and it is not evidence about the
+ * slug rule. Counting it as such would be a green over a case that never ran.
+ */
+const SLUGS_MUST_SURVIVE = [
+  "| 29 | `/insights/texas-professional-services-procurement-act` | signed out | 390 | 9000px tall |",
+  "| 37 | `/insights/engineer-letter-vs-windstorm-certificate` | signed out | 390 | 9000px tall |",
+  "/careers/field-inspection-technician answered 200",
+];
+for (const line of SLUGS_MUST_SURVIVE) {
+  const refusal = refusalFor(line);
+  rec(`a long route slug survives: ${line.slice(12, 56)}`, refusal === null, refusal ?? "");
+}
+
+const SLUG_SHAPED_BUT_SECRET = [
+  ["a hyphenated run with a long segment", join("the cookie was ", run("q", 20), "-", run("z", 20))],
+  ["a hyphenated run carrying uppercase", join("the cookie was ", "Ab", run("c", 18), "-", run("d", 20))],
+  ["a long run with no hyphens", join("the cookie was ", run("k", 44))],
+];
+for (const [what, line] of SLUG_SHAPED_BUT_SECRET) {
+  rec(
+    `and the slug exemption does not excuse ${what}`,
+    refusalFor(line) !== null,
+    refusalFor(line) ?? "ALLOWED, so the exemption closed the check",
+  );
+}
+
+/*
+ * THE EXEMPTIONS ARE COUNTED, because an exemption nobody counts becomes the
+ * rule. Four is the number this guard is allowed, and a fifth is a deliberate
+ * edit here as well as there.
+ */
+rec(
+  "exactly four shapes are excused, and they are named",
+  innocentCount() === 4,
+  innocentNames().join("; "),
 );
 
 /* -------------------- 3b. an environment MODE is not a credential */

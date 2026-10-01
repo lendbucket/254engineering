@@ -35,8 +35,17 @@ import { startNextServer } from "../lib/dev-server.mjs";
 import { takeLock } from "../lib/machine-lock.mjs";
 import { auditClient, describeTarget } from "../lib/db-target.mjs";
 import { assertNothingSecret, refusalFor, registerEnvironment, treatAsSecret } from "./lib/secrecy.mjs";
-import { inventoryGap, sitemapRoutes, routesUnder, apisOnDisk, openByDesign } from "./lib/routes.mjs";
+import {
+  inventoryGap,
+  sitemapRoutes,
+  routesUnder,
+  routesOnDisk,
+  apisOnDisk,
+  openByDesign,
+  openPathsFromProxy,
+} from "./lib/routes.mjs";
 import { makePrincipals, disposeOf, STAFF_ROLES } from "./lib/principals.mjs";
+import { PROBE_DOMAIN } from "../lib/portal-probe.mjs";
 import { surfaces, routesOf, apisOf } from "../lib/surfaces.mjs";
 
 const PORT = Number(process.env.SWEEP_PORT ?? 3240);
@@ -65,6 +74,20 @@ const couldNotTell = [];
  * collector in one place rather than next to whatever first needs it.
  */
 const staffColour = new Set();
+
+/*
+ * What the form abuse and control clicking areas actually reached.
+ *
+ * Declared up here with the other collectors for the reason the comment above
+ * gives: `const` in a temporal dead zone throws rather than reading undefined,
+ * and this one is written inside the try block and read inside `buildReport`,
+ * which is the exact span where that mistake costs a whole run and a report.
+ *
+ * It starts as a stated absence rather than as zeroes, because zero forms found
+ * and the area never running are different facts and a table of zeroes cannot
+ * tell them apart.
+ */
+const tally = { forms: null, controls: null };
 
 /**
  * One finding.
@@ -133,7 +156,74 @@ console.log(describeTarget(process.env.SUPABASE_URL));
 
 const gap = inventoryGap();
 const OPEN = openByDesign();
+const OPEN_PATHS = openPathsFromProxy();
 console.log(`  ${OPEN.why}`);
+console.log(`  ${OPEN_PATHS.why}`);
+if (!OPEN_PATHS.read) {
+  cnt(
+    "which account and partner paths the perimeter lets through",
+    `${OPEN_PATHS.why}, so every sign in screen was opened as a signed in principal and the missing-door comparison below ran over an empty set`,
+  );
+}
+
+/* --------------- 0b. a door for people with no session, behind the perimeter */
+
+/*
+ * A DOOR THAT CANNOT BE REACHED BY THE PEOPLE IT IS FOR.
+ *
+ * The comment above `CUSTOMER_OPEN_PATHS` in `src/proxy.ts` records this exact
+ * failure happening to sign up on 2026-09-13, in these words: "A door for people
+ * who do not have an account cannot sit behind a check for having one." Nothing
+ * was built to stop it recurring. `accounts-audit` asserts the list EXISTS,
+ * which is a check on shape rather than on content, and the first sweep then
+ * reported two findings against `/account/forgot-password` that were measured on
+ * `/account/login`, because the route 307s there.
+ *
+ * SO THE SUBJECT IS DERIVED FROM THE PURPOSE OF THE SCREEN RATHER THAN LISTED.
+ * A route whose own path says it is for somebody who cannot get in, sign in,
+ * sign up, recovering a password, or setting one from an emailed token, must be
+ * in the perimeter's open set. Every other account route must not be. Both
+ * directions are reported, because an account screen wrongly OPEN is a worse
+ * defect than a door wrongly shut.
+ */
+/*
+ * THE ENDPOINT IS A DOOR TOO, AND THE FIRST VERSION OF THIS COULD NOT SEE IT.
+ *
+ * The pattern matched page routes only, so it found the recovery SCREEN shut and
+ * said nothing about `/api/account/forgot-password`, which the form posts to and
+ * which the same perimeter answers with 401 "Not signed in." Fixing only the
+ * screen would have produced a page that renders perfectly and a form that
+ * cannot submit, which is a worse state than the one it replaced because the
+ * failure moves from the URL bar to after the button press.
+ *
+ * So the subject is both lists. Pages come from the directory walk and endpoints
+ * from the API walk, and each is compared against the same open set.
+ */
+const NEEDS_NO_SESSION =
+  /^\/(api\/)?(account|partner)\/(login|sign-up|forgot-password|set-password|reset-password)$/;
+const needsNoSession = [...routesOnDisk(), ...apisOnDisk()]
+  .filter((r) => !r.includes("["))
+  .filter((r) => NEEDS_NO_SESSION.test(r))
+  .sort();
+for (const route of needsNoSession) {
+  const open = OPEN_PATHS.customer.has(route) || OPEN_PATHS.partner.has(route);
+  find(
+    route,
+    "signed out",
+    "n/a",
+    open
+      ? "it is a door for somebody with no session and the perimeter lets it through"
+      : "it is a door for somebody with no session and the perimeter does NOT let it through, so the people it exists for are redirected to sign in",
+    open ? 0 : 1,
+    "behaviour",
+  );
+}
+if (needsNoSession.length === 0) {
+  cnt(
+    "whether every door for somebody with no session is open in the perimeter",
+    "no route on disk matched the shape of such a door, so the comparison had no subject and proves nothing",
+  );
+}
 if (OPEN.paths.size === 0) {
   /*
    * AN EMPTY DECLARATION WOULD MAKE EVERY FRONT DOOR A FINDING, which is the
@@ -260,6 +350,50 @@ try {
           find(route, p.role, width.name, `HTTP ${status}`, 1, "behaviour");
         } else if (status === 404) {
           find(route, p.role, width.name, "HTTP 404 on a route the inventory declares", 3, "behaviour");
+        }
+
+        /*
+         * WHICH PAGE DID WE ACTUALLY GET, and this sweep got it wrong once
+         * already before anybody noticed.
+         *
+         * `page.goto` follows redirects, so a route behind the perimeter answers
+         * 200 with somebody else's page. The first run reported two findings
+         * against `/account/forgot-password` and both were measured on
+         * `/account/login` and `/account/settings`, because that route 307s to
+         * sign in for a signed out visitor and to settings for a signed in one.
+         * Every row was honestly recorded and attributed to a page the browser
+         * never rendered.
+         *
+         * It is this repository's commonest defect in a new place: the right
+         * subject measured in the wrong span. A 200 is not evidence that the
+         * route answered; it is evidence that SOMETHING answered.
+         *
+         * SO THE LANDING IS COMPARED AND THE WALK STOPS HERE. Reporting the
+         * redirect is the finding, and measuring the page anyway would file the
+         * other page's dashes, promises and height under this route's name.
+         *
+         * AND IT IS NOT ALWAYS A DEFECT, which is why the note describes rather
+         * than accuses. A signed out visitor sent from an account screen to sign
+         * in is the perimeter working. The row says where it went and lets a
+         * person judge, and the one that mattered was obvious the moment it was
+         * written down: a password recovery screen sending somebody to sign in.
+         */
+        let landed = route;
+        try {
+          landed = new URL(page.url()).pathname;
+        } catch {
+          landed = route;
+        }
+        if (landed !== route) {
+          find(
+            route,
+            p.role,
+            width.name,
+            `it did not render: the browser was redirected to ${landed}, so nothing below was measured on this route`,
+            3,
+            "behaviour",
+          );
+          continue;
         }
 
         if (consoleErrors.length > 0) {
@@ -583,6 +717,192 @@ try {
 
   const { runAuthCases } = await import("./lib/auth-cases.mjs");
   await runAuthCases({ base: BASE, customer, db, find, cnt, treatAsSecret });
+
+  /* ------------------------- 5 and 6. form abuse, and every dead control */
+
+  /*
+   * ONE PRINCIPAL PER ROUTE, AND IT IS WRITTEN DOWN RATHER THAN ASSUMED.
+   *
+   * The route walk visits every route as six principals at two widths. Abusing
+   * four payloads into every form, and reloading before every single control
+   * click, cannot be multiplied by twelve and still finish in an evening. So
+   * each route gets the principal whose surface it is, and the report says so,
+   * because a reader who believes every role was clicked is wrong about what
+   * the green covers. CLAUDE.md: say what the green is over.
+   */
+  /*
+   * WHOSE SCREEN IS THIS, read from the perimeter rather than from the prefix.
+   *
+   * The first version worked it out from the path, so `/account/login` was
+   * opened as a signed in customer, redirected to `/account`, and its form was
+   * never abused. A sign in screen belongs to somebody with NO session, and the
+   * only place that is written down is `CUSTOMER_OPEN_PATHS` in the perimeter.
+   */
+  const ownerOf = (route) => {
+    const signedOut = principals.find((p) => p.role === "signed out");
+    if (OPEN_PATHS.customer.has(route) || OPEN_PATHS.partner.has(route)) return signedOut;
+    if (route.startsWith("/portal")) return principals.find((p) => p.role === "admin");
+    if (route.startsWith("/account")) return principals.find((p) => p.role === "customer");
+    return signedOut;
+  };
+
+  /*
+   * THE PARTNER SURFACE HAS NO PRINCIPAL HERE, AND SAYING SO IS THE POINT.
+   *
+   * `STAFF_ROLES` builds admin, csr, technician and engineer, and `makeCustomer`
+   * builds the customer. Nothing builds a partner, so a `/partner` screen is
+   * opened signed out, answers a redirect, and is skipped by the status check
+   * below. Left unsaid that reads in the report as a surface with no forms and
+   * no dead controls, which is the vacuous green: the screens were never opened,
+   * not found clean.
+   */
+  const partnerRoutes = routes.filter((r) => r.route.startsWith("/partner"));
+  if (partnerRoutes.length > 0) {
+    cnt(
+      `form abuse and control clicking on the partner surface, ${partnerRoutes.length} route(s)`,
+      "the sweep builds no partner principal, so these screens were reached signed out, redirected, and never opened. Their forms and controls are unmeasured rather than clean",
+    );
+  }
+
+  const { abuseFormsOn } = await import("./lib/form-abuse.mjs");
+  const { clickDeadControlsOn } = await import("./lib/dead-controls.mjs");
+
+  const browser2 = await chromium.launch();
+  const formTally = { routes: 0, forms: 0, abused: 0, skipped: [] };
+  const controlTally = { routes: 0, found: 0, clicked: 0, skipped: [], cappedRoutes: [], widths: [] };
+
+  /*
+   * CONTROLS ARE CLICKED AT BOTH WIDTHS, AND THE FIRST RUN IS WHY.
+   *
+   * It ran at 1280 only and pressed 65 controls across 64 routes, which is
+   * roughly one per page and reads like thorough coverage of a product with
+   * almost no buttons. The product has a mobile menu button on every single
+   * page, and at 1280 that button measures ZERO BY ZERO, so the size filter
+   * correctly excluded it and the most obviously pressable control in the whole
+   * site was never pressed anywhere.
+   *
+   * A sweep that cannot see the navigation is not a sweep of the navigation.
+   * Forms stay at 1280, because a form's fields do not appear and disappear with
+   * the viewport the way a menu does, and four payloads per form per width would
+   * double the only expensive part of this for no new subject.
+   */
+  const CONTROL_WIDTHS = [
+    { name: "1280", width: 1280, height: 900 },
+    { name: "390", width: 390, height: 844 },
+  ];
+
+  try {
+    for (const { route } of routes) {
+      const p = ownerOf(route);
+      if (!p || (p.role !== "signed out" && !p.cookie)) {
+        cnt(
+          `form abuse and control clicking on ${route}`,
+          `no session could be built for ${p?.role ?? "its owning role"}, so the screen was never opened as the principal that owns it`,
+        );
+        continue;
+      }
+
+      const context = await browser2.newContext({ viewport: { width: 1280, height: 900 } });
+      if (p.cookie) {
+        const [name, value] = p.cookie.split("=");
+        await context.addCookies([
+          { name: name.trim(), value: value ?? "", domain: "localhost", path: "/" },
+        ]);
+      }
+      const page = await context.newPage();
+
+      try {
+        const res = await page.goto(BASE + route, { waitUntil: "domcontentloaded", timeout: 30_000 });
+        if ((res?.status() ?? 0) !== 200) {
+          await context.close();
+          continue;
+        }
+        /*
+         * THE SAME LANDING CHECK AS THE WALK. Without it these two areas would
+         * abuse the sign in form four times and call it this route's form, which
+         * is how the first run came to report a submit button labelled "Sign in"
+         * on the password recovery screen.
+         */
+        if (new URL(page.url()).pathname !== route) {
+          cnt(
+            `form abuse and control clicking on ${route}`,
+            `it redirected to ${new URL(page.url()).pathname} as ${p.role}, so its own forms and controls were never reached`,
+          );
+          await context.close();
+          continue;
+        }
+      } catch {
+        await context.close();
+        continue;
+      }
+
+      try {
+        const forms = await abuseFormsOn({
+          page,
+          route,
+          role: p.role,
+          find,
+          neverPress: NEVER_PRESS,
+          probeAddress: customer?.email ?? `sweep@${PROBE_DOMAIN}`,
+        });
+        if (forms.forms > 0) formTally.routes += 1;
+        formTally.forms += forms.forms;
+        formTally.abused += forms.abused;
+        formTally.skipped.push(...forms.skipped);
+      } catch (e) {
+        cnt(`form abuse on ${route}`, `it stopped: ${String(e).slice(0, 140)}`);
+      }
+
+      let sawAControl = false;
+      for (const w of CONTROL_WIDTHS) {
+        try {
+          await page.setViewportSize({ width: w.width, height: w.height });
+          await page.goto(BASE + route, { waitUntil: "domcontentloaded", timeout: 30_000 });
+          const controls = await clickDeadControlsOn({
+            page,
+            route,
+            role: `${p.role} at ${w.name}`,
+            find,
+            neverPress: NEVER_PRESS,
+          });
+          if (controls.found > 0) sawAControl = true;
+          controlTally.found += controls.found;
+          controlTally.clicked += controls.clicked;
+          controlTally.skipped.push(...controls.skipped);
+          if (controls.capped) controlTally.cappedRoutes.push(`${route} at ${w.name} (${controls.found})`);
+        } catch (e) {
+          cnt(`control clicking on ${route} at ${w.name}`, `it stopped: ${String(e).slice(0, 140)}`);
+        }
+      }
+      if (sawAControl) controlTally.routes += 1;
+
+      await context.close();
+    }
+  } finally {
+    await browser2.close();
+  }
+
+  console.log(
+    `  forms: ${formTally.forms} found on ${formTally.routes} route(s), ${formTally.abused} submission(s), ${formTally.skipped.length} skipped`,
+  );
+  console.log(
+    `  controls: ${controlTally.found} found on ${controlTally.routes} route(s), ${controlTally.clicked} pressed, ${controlTally.skipped.length} skipped`,
+  );
+
+  /*
+   * A WALK THAT FOUND NO SUBJECT IS NOT A WALK THAT FOUND NO DEFECTS, and the
+   * two read identically in a findings table. CLAUDE.md records this as the
+   * vacuous green: ask what the count would be if the mechanism returned
+   * nothing, and whether the check could tell. These two say so out loud.
+   */
+  if (formTally.forms === 0) {
+    cnt("form abuse", "no form element was found on any route, so nothing was abused and the area measured nothing");
+  }
+  if (controlTally.found === 0) {
+    cnt("clicking every control", "no pressable control was found on any route, so the area measured nothing");
+  }
+  tally.forms = formTally;
+  tally.controls = controlTally;
 } catch (e) {
   cnt("the sweep as a whole", `it stopped early: ${String(e).slice(0, 220)}`);
   console.log("SWEEP STOPPED: " + String(e).slice(0, 220));
@@ -598,7 +918,7 @@ try {
   }
   release();
 
-  const lines = buildReport({ findings, couldNotTell, disposal, gap });
+  const lines = buildReport({ findings, couldNotTell, disposal, gap, tally });
   const text = lines.join("\n");
 
   /*
@@ -637,7 +957,7 @@ function safeLine(line, counter) {
   return `| withheld | | | | a line was withheld because ${refusal}. The finding it carried stands; its text cannot be shown. | | |`;
 }
 
-function buildReport({ findings, couldNotTell, disposal, gap }) {
+function buildReport({ findings, couldNotTell, disposal, gap, tally }) {
   const sevName = {
     0: "confirmed, not a finding",
     1: "1 money or a customer's order",
@@ -702,6 +1022,82 @@ function buildReport({ findings, couldNotTell, disposal, gap }) {
   l.push(`- Declared routes with no page: **${gap.declaredButMissing.length}**`);
   l.push(`- Dynamic routes, which need a parameter and were not visited: **${gap.dynamic.length}**`);
   l.push("");
+
+  /*
+   * THE BOUNDS OF THE LAST TWO AREAS, STATED BEFORE THE FINDINGS.
+   *
+   * Both were run as one principal per route at 1280 only, and both skip
+   * anything whose label says it takes money or sends something. A reader who
+   * assumes otherwise is wrong about what the absence of a finding means, and
+   * CLAUDE.md is explicit that where a check depends on a bound, the bound is
+   * reported: "a green that announces it compared seventeen thousand things one
+   * by one, having compared a thousand, reads as the strongest evidence in the
+   * file."
+   */
+  l.push("### Form abuse, and every control that does not submit");
+  l.push("");
+  if (!tally?.forms || !tally?.controls) {
+    l.push(
+      "**These two areas did not run.** The sweep stopped before them, so nothing below " +
+        "says anything about forms or controls. See Could not tell.",
+    );
+    l.push("");
+  } else {
+    const f = tally.forms;
+    const c = tally.controls;
+    l.push(
+      `Forms: **${f.forms}** found on **${f.routes}** route(s), **${f.abused}** submission(s) made. ` +
+        "Each form got four payloads: nothing at all, far too much text, markup, and the wrong " +
+        "type in every typed field.",
+    );
+    l.push("");
+    l.push(
+      `Controls: **${c.found}** pressable controls that do not submit, found on **${c.routes}** ` +
+        `route(s), **${c.clicked}** pressed. A control counts as dead only when pressing it moves ` +
+        "none of four things: a DOM mutation, its own aria state, the URL, or a request.",
+    );
+    l.push("");
+    l.push(
+      "**One principal per route.** A portal route was opened as admin, an account route as " +
+        "the customer, a sign in or recovery screen signed out because that is who it is for, " +
+        "and everything else signed out. The owning principal is read from the perimeter's own " +
+        "open path set rather than guessed from the prefix. No route was opened as all six " +
+        "roles, so a control visible only to one of the others was not pressed.",
+    );
+    l.push("");
+    l.push(
+      "**Controls were clicked at 1280 and at 390. Forms were abused at 1280 only.** The first " +
+        "run clicked at 1280 alone and pressed roughly one control per page, which reads like " +
+        "thorough coverage of a site with no buttons: the mobile menu button measures zero by " +
+        "zero at 1280, so the most pressable control in the product was never pressed anywhere. " +
+        "A form's fields do not appear and disappear with the viewport the way a menu does, so " +
+        "abusing each one twice would have doubled the expensive half for no new subject.",
+    );
+    l.push("");
+    l.push(
+      `**${f.skipped.length} form(s) and ${c.skipped.length} control(s) were deliberately not pressed**, ` +
+        "because their visible label says they take money or send something. Nothing matching " +
+        "pay, checkout, refund, send, email, SMS, notify, invite, resend or place the order was " +
+        "touched, which is why this sweep made no charge and sent nothing.",
+    );
+    l.push("");
+    for (const s of [...new Set([...f.skipped, ...c.skipped])].sort().slice(0, 60)) {
+      l.push(`- not pressed: ${s}`);
+    }
+    if (new Set([...f.skipped, ...c.skipped]).size > 60) {
+      l.push(`- and ${new Set([...f.skipped, ...c.skipped]).size - 60} more`);
+    }
+    l.push("");
+    if (c.cappedRoutes.length > 0) {
+      l.push(
+        `**${c.cappedRoutes.length} route(s) have more than forty pressable controls**, and only ` +
+          "the first forty were pressed on each. The number found is the true count; the number " +
+          "pressed is not. Stated rather than left as a figure that reads like a total: " +
+          c.cappedRoutes.join(", "),
+      );
+      l.push("");
+    }
+  }
   l.push("## Findings, ranked");
   l.push("");
   l.push(

@@ -143,16 +143,59 @@ const SHAPES = [
  *
  * COUNTED AND NAMED, NEVER AN OPEN LIST. CLAUDE.md records the operator
  * refusing an allowlist in exactly these words: "an allowlist of names is a
- * list somebody grows until the scan checks nothing." These four are shapes the
- * sweep itself produces, and each is derived rather than typed: a uuid has a
- * fixed shape, a probe address ends in the reserved domain, a git sha is a
- * known length, and a storage key is a path this run built.
+ * list somebody grows until the scan checks nothing." Each entry is derived
+ * from a property of the shape rather than naming an instance: a uuid has a
+ * fixed layout, a probe address ends in the reserved domain, a git object name
+ * is a known length, and a route slug is dictionary words joined by hyphens.
+ *
+ * The count is read off the array by `innocentCount()` rather than written into
+ * this sentence, because the sentence said "these four" over three entries for
+ * as long as the file existed. A prose count beside a list is one fact with two
+ * homes in its smallest form.
  */
 const INNOCENT = [
   { name: "a uuid", pattern: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i },
   { name: "a probe address on the reserved domain", pattern: /^[^@\s]+@[^@\s]*\.invalid$/i },
   { name: "a short git object name", pattern: /^[0-9a-f]{7,12}$/i },
+  /*
+   * A LONG ROUTE SLUG, AND IT WITHHELD TWO REAL FINDINGS BEFORE IT WAS FOUND.
+   *
+   * `a long opaque token` is `[A-Za-z0-9_-]{40,}`, and a hyphen is in that
+   * class, so `/insights/texas-professional-services-procurement-act` is forty
+   * three characters of token shape. Two rows of the first report were replaced
+   * by "a value was withheld" notices, and both were ordinary page height
+   * findings on the longest two article slugs this site has.
+   *
+   * It is the matcher-too-wide defect, which CLAUDE.md now records six times,
+   * and it failed in the quiet direction again: not an alarm anybody would
+   * chase, but real findings silently replaced by a notice.
+   *
+   * THE DISTINCTION IS DERIVED, NOT LISTED. A credential is one arbitrary run
+   * of characters. A slug is dictionary words joined by hyphens, so it is
+   * entirely lowercase with at least three hyphens and no segment longer than
+   * fourteen characters. A base64url token fails all three: it has no hyphens
+   * at all, or it carries uppercase, or one of its runs is long.
+   *
+   * WHAT THIS GIVES UP, said rather than hidden: a credential somebody set by
+   * hand to four or more short lowercase hyphenated words would be exempted
+   * here. That is the same narrow gap `plausiblyCredential` already states, and
+   * the proof asserts the exemption cannot swallow a real token.
+   */
+  {
+    name: "a long route slug",
+    pattern: /^[a-z0-9]{1,14}(-[a-z0-9]{1,14}){3,}$/,
+  },
 ];
+
+/** How many shapes are excused, for a caller that wants to report the number. */
+export function innocentCount() {
+  return INNOCENT.length;
+}
+
+/** The names of the excused shapes, so a report can print them rather than a count alone. */
+export function innocentNames() {
+  return INNOCENT.map((i) => i.name);
+}
 
 /**
  * Check one line. Returns null when it is safe to write, or a reason when not.
