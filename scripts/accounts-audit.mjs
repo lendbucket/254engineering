@@ -487,6 +487,67 @@ withEnv(
     );
 
     /*
+     * ===================================================================
+     * AND THE TWO DECLARATIONS OF "OPEN" MUST AGREE WITH EACH OTHER.
+     * ===================================================================
+     *
+     * THIS IS THE CHECK THAT WOULD HAVE CAUGHT IT ON THE DAY, WITH NO PATTERN
+     * AND NO HEURISTIC, and finding that out is the reason it is here.
+     *
+     * `security-audit`'s `OPEN_BY_DESIGN` already listed `/account/forgot-password`
+     * and `/api/account/forgot-password`, added 2026-09-29 by the session that
+     * built the feature, under twenty four lines of reasoning that state the case
+     * exactly: "A route for people who CANNOT SIGN IN cannot sit behind a check
+     * for being signed in. That is not a concession, it is the entire function."
+     *
+     * **It was right, and `src/proxy.ts` shut both paths anyway.** Nobody was
+     * wrong about the rule. One fact had two homes, the home that knew the answer
+     * had no power to enforce it, and nothing compared them for two days.
+     *
+     * So this compares them. `OPEN_BY_DESIGN` says what a signed out caller is
+     * MEANT to reach; the perimeter decides what one CAN reach. A path in the
+     * first and absent from the second is a declared front door that is bolted,
+     * which is the defect, and it is detectable with no regular expression about
+     * route names at all.
+     */
+    const byDesign = (() => {
+      const src = codeOnly("scripts/security-audit.mjs");
+      const at = src.indexOf("const OPEN_BY_DESIGN = new Set([");
+      if (at === -1) return null;
+      const end = src.indexOf("]);", at);
+      if (end === -1) return null;
+      return [...src.slice(at, end).matchAll(/"([^"]+)"/g)]
+        .map((m) => m[1])
+        .filter((p) => p.startsWith("/"));
+    })();
+
+    rec(
+      "security-audit's OPEN_BY_DESIGN could be read",
+      byDesign !== null && byDesign.length >= 10,
+      byDesign === null
+        ? "it could not be found, so the comparison below is vacuous"
+        : `${byDesign.length} path(s) declared open by design`,
+    );
+
+    if (byDesign && byDesign.length >= 10) {
+      /*
+       * The staff set is read the same way, because a portal path declared open
+       * by design belongs in OPEN_PATHS rather than in either set above.
+       */
+      const staffOpen = openSet("OPEN_PATHS") ?? new Set();
+      const everywhereOpen = new Set([...open, ...staffOpen]);
+
+      const bolted = byDesign.filter((p) => !everywhereOpen.has(p));
+      rec(
+        "every path security-audit declares open by design is open in the perimeter",
+        bolted.length === 0,
+        bolted.length === 0
+          ? `${byDesign.length} declared path(s), every one reachable`
+          : `${bolted.join(", ")} is declared a front door and the perimeter refuses it, so the feature is unreachable by the people it exists for`,
+      );
+    }
+
+    /*
      * AND THE REVERSE, which is the half that matters more. An entry in the open
      * set that is NOT a door is a screen somebody can read without signing in.
      */
