@@ -134,19 +134,42 @@ const PARTNER_OPEN_PATHS = new Set([
  * That is this repository's own rule about a green being a green of the thing
  * it read. The perimeter is a separate thing and it had not been asked.
  *
- * IT STAYS SHORT, which is the property that matters here. Four paths became
- * five, and the five are: sign in, sign up, set a password from an emailed
- * token, and the two endpoints those post to. An account screen behind an
- * accidentally open path would show one customer's orders to anybody who
- * guessed the URL.
+ * IT STAYS SHORT, which is the property that matters here. An account screen
+ * behind an accidentally open path would show one customer's orders to anybody
+ * who guessed the URL.
+ *
+ * AND IT HAPPENED AGAIN ON 2026-09-29, TO PASSWORD RECOVERY, WITH THE SENTENCE
+ * ABOVE ALREADY ON THE PAGE. Operator ruling, 2026-10-01.
+ *
+ * `/account/forgot-password` and its endpoint shipped and neither was added
+ * here, so the perimeter answered a signed out visitor with a 307 to
+ * `/account/login?next=/account/forgot-password` and the endpoint with a 401.
+ * **The recovery door was unreachable by every single person it exists for**,
+ * which is the same defect the sign up paragraph above describes, two weeks
+ * later, in the same file, to the feature whose entire purpose is to help
+ * somebody who cannot sign in.
+ *
+ * The page's own header said it was public by design. Nobody read that against
+ * this set, and nothing could: `accounts-audit` asserted this list EXISTS,
+ * which is a check on shape rather than on content, so it passed over any
+ * contents at all. It was found by the break it sweep comparing the DOORS the
+ * product has against the paths this set names.
+ *
+ * WHAT STOPS A THIRD INSTANCE is not a longer comment. `accounts-audit` now
+ * derives the doors from the routes on disk and fails when one of them is not
+ * in here, and `scripts/proofs/a-locked-out-customer-can-reach-recovery.mjs`
+ * calls this very function and asserts both paths pass. A fourth door added
+ * without a line here is a red board rather than a dead screen.
  */
 const CUSTOMER_OPEN_PATHS = new Set([
   "/account/login",
   "/account/sign-up",
   "/account/set-password",
+  "/account/forgot-password",
   "/api/account/session",
   "/api/account/set-password",
   "/api/account/sign-up",
+  "/api/account/forgot-password",
 ]);
 
 export function proxy(request: NextRequest) {

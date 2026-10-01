@@ -384,6 +384,123 @@ withEnv(
     /PARTNER_OPEN_PATHS/.test(proxy),
     "a partner dashboard behind an accidentally open path shows one partner's earnings to anybody",
   );
+
+  /*
+   * ===================================================================
+   * EVERY DOOR FOR SOMEBODY WITH NO SESSION IS OPEN IN THE PERIMETER.
+   * ===================================================================
+   *
+   * Operator ruling, 2026-10-01. Promoted here from the break it sweep, which is
+   * where it was first written and is the wrong home for it: the sweep is run by
+   * hand and this has to be on the board.
+   *
+   * THE CHECK ABOVE IS WHY THIS ONE EXISTS. `and its open path list is short`
+   * asserts that the identifier `PARTNER_OPEN_PATHS` appears in the proxy. That
+   * is a check on SHAPE, and it passed every run while
+   * `/account/forgot-password` and `/api/account/forgot-password` were absent
+   * from the customer set, so the perimeter answered a signed out visitor with a
+   * 307 to sign in and the endpoint with a 401. **The password recovery feature
+   * was unreachable by everybody it exists for, and the comment above the set
+   * records the identical thing happening to sign up on 2026-09-13.**
+   *
+   * CLAUDE.md names this class: a declaration verified for shape rather than
+   * content, where the content is what something later acts on. The shape check
+   * passes for ever and nothing ever compares the contents to anything.
+   *
+   * THE SUBJECT IS DERIVED FROM THE PURPOSE OF THE SCREEN, NEVER LISTED. A route
+   * whose own path says it is for somebody who cannot get in, signing in,
+   * signing up, recovering a password or setting one from an emailed token, must
+   * be in the perimeter's open set. A list typed here would be a second account
+   * of the same fact and would go stale the same way.
+   *
+   * BOTH DIRECTIONS, because a door wrongly shut is a dead feature and an
+   * account screen wrongly open shows one customer's orders to anybody.
+   */
+  const NEEDS_NO_SESSION =
+    /^\/(api\/)?(account|partner)\/(login|sign-up|forgot-password|set-password|reset-password)$/;
+
+  const openSet = (name) => {
+    const at = proxy.indexOf(`const ${name} = new Set([`);
+    if (at === -1) return null;
+    const end = proxy.indexOf("]);", at);
+    if (end === -1) return null;
+    /*
+     * `proxy` is already `codeOnly("src/proxy.ts")`, so comments are gone and a
+     * path quoted in prose cannot be read as a member. Calling `codeOnly` again
+     * here passed it a STRING where it wants a PATH, and it tried to open the
+     * source as a filename. Caught on the first run.
+     */
+    return new Set(
+      [...proxy.slice(at, end).matchAll(/"([^"]+)"/g)].map((m) => m[1]).filter((p) => p.startsWith("/")),
+    );
+  };
+
+  const customerOpen = openSet("CUSTOMER_OPEN_PATHS");
+  const partnerOpen = openSet("PARTNER_OPEN_PATHS");
+  rec(
+    "both customer and partner open path sets could be read from the proxy",
+    customerOpen !== null && partnerOpen !== null,
+    "a set that cannot be read makes every check below it vacuous, so this is asserted before they run",
+  );
+
+  if (customerOpen && partnerOpen) {
+    const open = new Set([...customerOpen, ...partnerOpen]);
+
+    /* Pages on disk, plus endpoints, both walked rather than listed. */
+    const walk = (dir, base, file, out = []) => {
+      if (!existsSync(dir)) return out;
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        if (!e.isDirectory()) continue;
+        const seg = e.name.startsWith("(") ? "" : `/${e.name}`;
+        const here = `${base}${seg}`;
+        if (existsSync(join(dir, e.name, file))) out.push(here || "/");
+        walk(join(dir, e.name), here, file, out);
+      }
+      return out;
+    };
+    const onDisk = [
+      ...walk("src/app", "", "page.tsx"),
+      ...walk("src/app", "", "route.ts"),
+    ];
+
+    const doors = [...new Set(onDisk.filter((r) => NEEDS_NO_SESSION.test(r)))].sort();
+
+    /*
+     * A VACUITY GUARD, because a regular expression that matched nothing would
+     * make the two checks below pass for ever over an empty list. The floor is
+     * four: sign in and set-password exist on both the customer and the partner
+     * surface and have since Phase 9.
+     */
+    rec(
+      "the doors for somebody with no session are found on disk",
+      doors.length >= 4,
+      `${doors.length} found: ${doors.join(", ")}. Under four means the walk or the pattern is broken, not that the product has no sign in`,
+    );
+
+    const shut = doors.filter((d) => !open.has(d));
+    rec(
+      "and every one of them is open in the perimeter",
+      shut.length === 0,
+      shut.length === 0
+        ? `${doors.length} door(s) checked, all open`
+        : `${shut.join(", ")} redirect a signed out visitor to sign in, so the people they exist for cannot reach them`,
+    );
+
+    /*
+     * AND THE REVERSE, which is the half that matters more. An entry in the open
+     * set that is NOT a door is a screen somebody can read without signing in.
+     */
+    const notADoor = [...open].filter((p) => !NEEDS_NO_SESSION.test(p));
+    const ALLOWED_EXTRAS = new Set(["/api/account/session", "/api/partner/session"]);
+    const unexplained = notADoor.filter((p) => !ALLOWED_EXTRAS.has(p));
+    rec(
+      "and nothing else is open on the customer or partner perimeter",
+      unexplained.length === 0,
+      unexplained.length === 0
+        ? `the only non-door entries are the two session endpoints the sign in forms post to`
+        : `${unexplained.join(", ")} is reachable with no session and is not a door for somebody without one`,
+    );
+  }
 }
 
 /*
