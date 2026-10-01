@@ -18,7 +18,7 @@
  * check on the inventory agreeing with itself.
  */
 
-import { readdirSync, statSync, existsSync } from "node:fs";
+import { readdirSync, statSync, existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { surfaces, routesOf, apisOf, sourceDirsOf } from "../../lib/surfaces.mjs";
@@ -65,6 +65,40 @@ export async function sitemapRoutes(base) {
   } catch (e) {
     return { routes: [], why: `the sitemap could not be fetched: ${String(e).slice(0, 80)}` };
   }
+}
+
+/**
+ * THE ROUTES THAT ARE UNAUTHENTICATED ON PURPOSE, READ FROM THE DECLARATION.
+ *
+ * `security-audit.mjs` carries `OPEN_BY_DESIGN`, the set of paths a signed out
+ * caller is MEANT to reach, each with the reasoning beside it: the sign in
+ * routes, the set password routes, sign up, password recovery, the health
+ * check. A sweep that did not consult it would report every one of them as a
+ * perimeter breach.
+ *
+ * It did, on the first run. `/api/portal/health` came back as a severity one
+ * finding, "answered 200 with a data body to a principal with no staff role",
+ * and that route is deliberately unauthenticated with twenty lines explaining
+ * why: a perimeter audit cannot tell a closed portal from a broken one, and
+ * this is the smallest way to give it that fact.
+ *
+ * READ RATHER THAN IMPORTED, because security-audit is a script with top level
+ * side effects and importing it would run an audit. The anchor is the
+ * declaration's own name followed by its opening bracket, not the nearest
+ * punctuation that resembles one, which is the matcher rule this repository has
+ * recorded six times.
+ */
+export function openByDesign(root = process.cwd()) {
+  const src = readFileSync(join(root, "scripts", "security-audit.mjs"), "utf8");
+  const start = src.indexOf("const OPEN_BY_DESIGN = new Set([");
+  if (start === -1) return { paths: new Set(), why: "OPEN_BY_DESIGN was not found in security-audit.mjs" };
+  const end = src.indexOf("]);", start);
+  if (end === -1) return { paths: new Set(), why: "OPEN_BY_DESIGN had no closing bracket" };
+  const block = src.slice(start, end);
+  /* Strip comments first, so a path quoted in prose is not taken as a member. */
+  const code = block.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+  const paths = [...code.matchAll(/"([^"]+)"/g)].map((m) => m[1]).filter((p) => p.startsWith("/"));
+  return { paths: new Set(paths), why: `${paths.length} path(s) declared open by design` };
 }
 
 /** Surfaces whose routes this file can enumerate without a running server. */
