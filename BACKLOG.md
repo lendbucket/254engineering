@@ -28,11 +28,29 @@ to the firm at all, so requiring a first person firm subject near the hedge, `we
 genuinely about what the firm does. That is the operator's standing ruling on a
 matcher that is earning its keep: sharpen the subject rather than grow a list.
 
-**Not changed on 2026-10-01, deliberately.** The report committed that day
-describes the run as it was actually made. Changing the matcher without re-running
-would leave the report and the code as two accounts of one sweep, which is this
-repository's commonest defect. It changes on the next sweep run, and the report
-from that run states the precision it was measured at.
+**DONE THE SAME DAY, AND IT WENT FROM SIX ROWS TO TWO.** The promisor requirement
+landed and the operator's own replacement text removed the one real finding. Four
+of the five false positives above are gone.
+
+**WHAT IS STILL OPEN IS NOT THE PROMISOR RULE. IT IS THE WINDOW.** The first and
+one new row still report: the form label on `/account/settings`, and a queue
+description on `/portal` that only became visible once the sweep could open a
+portal screen as staff at all. In each, the sentence window of 70 characters
+either side of the match spans two unrelated pieces of rendered text, so a
+promisor belonging to a NEIGHBOURING label satisfies the test. On the settings
+screen "As soon as the firm can" sits beside "Counties you usually work in", and
+the window takes the first as the promisor for the second.
+
+That is the matcher window reaching into its neighbour, which CLAUDE.md records
+six times, happening inside the fix written to sharpen a matcher. The promisor
+rule works. The span it is applied to is too wide, which is the same defect as the
+eight line window that reached into the next query block.
+
+**The fix is to bound the window at a sentence boundary** rather than at a
+character count, so a promisor has to be in the same sentence as the hedge. Not
+done on 2026-10-01 because it needs its own sweep run to verify and the run that
+measured these two is already committed, and a matcher changed without a run
+behind it is the thing this entry exists to avoid.
 
 ## NO BOARD BUILDS THE WAY A BUILDER DOES, AND THAT IS HOW A DEFECT REACHED THE DEPLOY
 
