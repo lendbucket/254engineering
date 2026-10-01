@@ -4,6 +4,36 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## THE SWEEP'S PROMISE DETECTOR FINDS ONE REAL SENTENCE IN SIX, AND THE FIX IS KNOWN
+
+Recorded 2026-10-01 from the break it sweep. The detector in
+`scripts/sweep/run.mjs` looks for hedging and warranting words and reports the
+sentence around each. It earns its keep: it found the one sentence on
+`/structural-engineer/cost` that states an unsourced market price range and
+imputes a motive to other firms. It also reported five sentences that are not
+promises at all.
+
+| Route | The matched word is about |
+| --- | --- |
+| `/account/settings` | a form label, "Counties you usually work in", the reader's own habit |
+| `/insights/post-construction-evaluation-report` | a misconception the paragraph is correcting, with the denial three sentences earlier and outside the negation window |
+| `/services/structural-letters` | engineering practice, "it is usually a mistake to try" |
+| `/structural-engineer/when-you-need-one` | a heading, "What is usually worth looking at", whose body says it is not a diagnostic list |
+| `/services/roof-inspections` | what a lender or carrier asks for, hedged honestly |
+
+**The fix is to require a promisor, not to exempt the instances.** A promise needs
+the firm as its subject and a future action. Four of the five contain no reference
+to the firm at all, so requiring a first person firm subject near the hedge, `we`,
+`our`, `this firm`, `the firm`, cuts them and keeps both sentences that are
+genuinely about what the firm does. That is the operator's standing ruling on a
+matcher that is earning its keep: sharpen the subject rather than grow a list.
+
+**Not changed on 2026-10-01, deliberately.** The report committed that day
+describes the run as it was actually made. Changing the matcher without re-running
+would leave the report and the code as two accounts of one sweep, which is this
+repository's commonest defect. It changes on the next sweep run, and the report
+from that run states the precision it was measured at.
+
 ## NO BOARD BUILDS THE WAY A BUILDER DOES, AND THAT IS HOW A DEFECT REACHED THE DEPLOY
 
 **Operator ruling, 2026-09-28. Recorded, not built.**
