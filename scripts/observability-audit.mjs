@@ -122,13 +122,28 @@ const rec = (name, ok, note = "") => out.push({ name, ok, note });
  */
 const join = (...parts) => parts.join("");
 
+/*
+ * The three characters that make a base64 run read as a JSON web token, kept
+ * out of every literal below so no line in this file is one.
+ */
+const JWT = ["ey", "J"].join("");
+
 const SECRETS = {
   // A JWT: header.payload.signature, base64url, which is what a Supabase
   // service role key is and why that pattern is not optional in the scrubber.
+  /*
+   * THE `eyJ` PREFIX IS ASSEMBLED TOO. Operator order, 2026-10-01.
+   *
+   * These parts were already joined, which keeps the whole token out of any one
+   * line, and `eyJ` at the head of a long base64 run is itself the marker a
+   * scanner reads as a JSON web token. Both of these are forged and say so in
+   * their own payloads; that is not the point. A repository that trips its own
+   * scanner teaches everybody to click through the warning.
+   */
   serviceRole: join(
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+    JWT, "hbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
     ".",
-    "eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UifQ",
+    JWT, "yb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UifQ",
     ".",
     "Zm9yZ2VkX3NpZ25hdHVyZV9ub3RfcmVhbA",
   ),
@@ -139,7 +154,7 @@ const SECRETS = {
   signedUrl: join(
     "https://ythzaiqeoijlrdibnieo.supabase.co/storage/v1/object/sign/evidence/2026/roof-north.jpg",
     "?token=",
-    "eyJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJldmlkZW5jZSJ9.c2lnbmF0dXJl",
+    join(JWT, "hbGciOiJIUzI1NiJ9", ".", JWT, "1cmwiOiJldmlkZW5jZSJ9", ".", "c2lnbmF0dXJl"),
   ),
   driverLicence: "38472910",
   email: "technician.person@example.com",
@@ -200,10 +215,12 @@ function leaks(text) {
 
   // A publishable key is public by design. Redacting it would suggest an
   // exposure that is not one.
-  const publishable = scrubString("pk_live_51QexampleNOTsecret000000");
+  /* Assembled, like every other key shape in this file. */
+  const PK_LIVE = join("pk", "_", "live", "_", "51QexampleNOTsecret000000");
+  const publishable = scrubString(PK_LIVE);
   rec(
     "a publishable key is left alone",
-    publishable.includes("pk_live_51QexampleNOTsecret000000"),
+    publishable.includes(PK_LIVE),
     "redacting it would claim an exposure that is not one",
   );
 }

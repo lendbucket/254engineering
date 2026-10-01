@@ -39,9 +39,25 @@ const { auditClient, refOf, DEVELOPMENT_REF } = await import("../lib/db-target.m
 
 const PORT = 3228;
 const BASE = `http://localhost:${PORT}`;
-const SECRET = `whsec_exercise_${randomUUID().replace(/-/g, "")}`;
-const WRONG_SECRET = `whsec_exercise_${randomUUID().replace(/-/g, "")}`;
-const FAKE_KEY = `sk_test_exercise_${randomUUID().replace(/-/g, "")}`;
+/*
+ * THE PREFIXES ARE ASSEMBLED SO NO SOURCE LINE READS AS A KEY.
+ *
+ * Operator order, 2026-10-01, after GitHub's push protection blocked a push
+ * over a key-shaped fixture in another file. These three were already on the
+ * remote, so they are rewritten in an ordinary commit rather than by touching
+ * pushed history.
+ *
+ * Every value here was already random and already fake. That is not the point:
+ * a scanner cannot tell an invented key from a real one, and neither can the
+ * next person to read the diff. A repository that trips its own scanner trains
+ * everybody to click through the warning, which is how a real key eventually
+ * goes out.
+ */
+const WHSEC = ["wh", "sec"].join("");
+const SK_TEST = ["sk", "test"].join("_");
+const SECRET = `${WHSEC}_exercise_${randomUUID().replace(/-/g, "")}`;
+const WRONG_SECRET = `${WHSEC}_exercise_${randomUUID().replace(/-/g, "")}`;
+const FAKE_KEY = `${SK_TEST}_exercise_${randomUUID().replace(/-/g, "")}`;
 const INTENT = `pi_exercise_${randomUUID().replace(/-/g, "").slice(0, 20)}`;
 
 let failures = 0;

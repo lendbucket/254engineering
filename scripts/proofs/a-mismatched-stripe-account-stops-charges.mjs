@@ -88,15 +88,31 @@ check(
 
 /* ------------------------------------------------- layer two, the mode check */
 
+/*
+ * THE TWO MODE PREFIXES ARE ASSEMBLED, so no line here reads as a key.
+ *
+ * Operator order, 2026-10-01. Both values were always obviously fake, which is
+ * exactly why they were written as literals and exactly why that is not good
+ * enough: a secret scanner cannot tell an invented key from a real one, and a
+ * repository that trips its own scanner teaches everybody to click through the
+ * warning.
+ *
+ * The mode is what this proof is about, so it stays legible: these read
+ * `<sk>_live_proofonly` and `<sk>_test_proofonly` at runtime.
+ */
+const SK = "sk";
+const LIVE_KEY = `${SK}_live_proofonly`;
+const TEST_KEY = `${SK}_test_proofonly`;
+
 const keyBefore = process.env.STRIPE_SECRET_KEY;
-process.env.STRIPE_SECRET_KEY = "sk_live_proofonly";
+process.env.STRIPE_SECRET_KEY = LIVE_KEY;
 check(
   "a live key reading a test event is named as a disagreement",
   (modeDisagreement(false) ?? "").includes("other mode"),
   modeDisagreement(false)?.slice(0, 60),
 );
 check("  and a live key reading a live event is not", modeDisagreement(true) === null, "silent");
-process.env.STRIPE_SECRET_KEY = "sk_test_proofonly";
+process.env.STRIPE_SECRET_KEY = TEST_KEY;
 check(
   "a test key reading a live event is named as a disagreement",
   (modeDisagreement(true) ?? "").includes("other mode"),
