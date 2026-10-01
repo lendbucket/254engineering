@@ -496,6 +496,66 @@ argument to re-make.
 **Until then the rule holds and no probe account is created.** The cost of being
 wrong is mail to a real address from the firm's own sender.
 
+## TWO AUDITS GO RED ON THE FIRST OF EVERY MONTH, AND NOTHING ABOUT THE CODE CHANGES
+
+Found 2026-10-01, by the calendar rather than by a commit. **Report only, not
+fixed, because the fix is a decision about what those checks are for.**
+
+**What happened.** The board passed 58 of 59 on 2026-09-30 and the same tree
+returned 57 of 59 hours later, with `reporting-audit` and `demo-audit` newly red.
+Nothing was committed in between that either audit reads: the four commits are
+screenshots, scripts, one page and one string, and none touches reporting, demo
+data or seeds.
+
+**The cause.** `periodOf()` in `src/lib/ops-reports.ts` returns the CURRENT
+CALENDAR MONTH in the firm's timezone, and `boundsOf` turns that into
+`[Oct 1, Nov 1)`. Every demonstration row on development is dated 3 to 6
+September. So at midnight on the first the period emptied, and both audits'
+subjects went to zero.
+
+**The checks were right to fail.** They are vacuity guards, and their messages
+say so exactly:
+
+    there are money cells in an export to parse (0)
+      (a parse over no money cells passes forever, which is why both scopes are measured)
+    revenue has standing demonstration payments to be proved against (real 0, including demonstrations 0)
+
+That is the "a check that filters live data for a subject that does not exist is
+vacuous" rule working. The database holds 6 payments, 6 demo orders and 11 demo
+files; it is the WINDOW that is empty, not the table.
+
+**THE ACTUAL DEFECT IS THAT THEY SAY FAIL RATHER THAN COULD NOT TELL.** The
+audit cannot distinguish "there is no demonstration data" from "there is none in
+this period", and those are different facts with different responses. The first
+is a real gap; the second is the first of the month. `CLAUDE.md` already records
+that unreachable is not failed, and this is that distinction one level in: the
+subject could not be assembled, so the property was never measured.
+
+**And it is the "subject expires" rule on a monthly clock.** `CLAUDE.md` asks of
+every check whether it still has anything to look at if the firm succeeds at
+what it is currently trying to do. This one empties on a date instead, every
+month, with no warning and no commit to blame.
+
+**Options, for a ruling.**
+
+1. **Report COULD NOT TELL when the period is empty**, naming the period and the
+   row counts outside it. Smallest change, and it makes the first of the month
+   quiet without making the check weaker.
+2. **Widen the demo check's window** to the most recent period that holds data,
+   stating which it used. Keeps a real measurement every day of the month.
+3. **Re-seed demo data into the current period** on a schedule. Keeps the audits
+   honest and puts fixture rows into the database every month, which is its own
+   cost.
+
+**Recommended: 1 and 2 together.** 1 is correctness about what the audit knows;
+2 is what keeps it measuring something. 3 alone would leave the audit lying on
+any month a seed failed.
+
+**What it means for the push.** Per the standing rule that a board is blocked by
+a finding on the branch and never by an audit that could not measure something
+the branch did not touch, these two do not hold the four commits. They are
+recorded here instead.
+
 ## A FALSE ALARM ABOUT THE DEVELOPMENT DATABASE, AND THE ONE LINE THAT CAUSED IT
 
 Recorded 2026-09-30. **There is nothing wrong with the development database
