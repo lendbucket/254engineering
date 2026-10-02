@@ -44,7 +44,7 @@ export function AccountLoginForm({ next }: { next: string }) {
 
   return (
     <form onSubmit={submit} noValidate>
-      <label htmlFor="email" className="block text-[13.5px] font-bold text-[var(--navy)]">
+      <label htmlFor="email" className="block text-[14px] font-bold text-[var(--navy)]">
         Email address
       </label>
       <input
@@ -63,13 +63,13 @@ export function AccountLoginForm({ next }: { next: string }) {
         correctly, rather than below the button they are about to press.
       */}
       <div className="mt-4 flex items-baseline justify-between gap-3">
-        <label htmlFor="password" className="block text-[13.5px] font-bold text-[var(--navy)]">
+        <label htmlFor="password" className="block text-[14px] font-bold text-[var(--navy)]">
           Password
         </label>
         <Link
           href="/account/forgot-password"
           prefetch={false}
-          className="text-[12.5px] text-[var(--navy)] underline underline-offset-2"
+          className="text-[13px] text-[var(--navy)] underline underline-offset-2"
         >
           Forgot password?
         </Link>
@@ -84,8 +84,13 @@ export function AccountLoginForm({ next }: { next: string }) {
         className="mt-1.5 w-full rounded-[3px] border border-[var(--border)] px-3 py-2.5 text-[15px] text-[var(--navy)]"
       />
 
+      {/* Ink, not red, and no tint. See the note on the sign up form for why. */}
       {error ? (
-        <p role="alert" className="mt-4 rounded-[3px] bg-[var(--warn-bg)] px-3 py-2 text-[13.5px] text-[var(--red)]">
+        <p
+          role="alert"
+          aria-live="assertive"
+          className="mt-4 border-l-2 border-[var(--color-ink)] pl-3 text-[14px] leading-[1.6] font-semibold text-[var(--color-ink)]"
+        >
           {error}
         </p>
       ) : null}
@@ -93,7 +98,7 @@ export function AccountLoginForm({ next }: { next: string }) {
       <button
         type="submit"
         disabled={busy}
-        className="mt-5 inline-flex min-h-[44px] w-full items-center justify-center rounded-[3px] bg-slate px-5 text-[13.5px] font-bold text-white disabled:opacity-50"
+        className="mt-5 inline-flex min-h-[44px] w-full items-center justify-center rounded-[3px] bg-slate px-5 text-[14px] font-bold text-white disabled:opacity-50"
       >
         {busy ? "Signing in" : "Sign in"}
       </button>

@@ -77,9 +77,35 @@ Inter, weights 400, 500, 600, 700. No monospace anywhere, including file numbers
 
 | Stage | Screens |
 |---|---|
-| 1 Customer | V10-login, V10-signup, V10-verify-phone, V10O-property, V10O-service, V10O-visit, V10O-pay, V10O-done, V10O-pay-phone, V10C-orders, V10C-tracker |
+| 1 Customer | V10-login, V10-signup, V10O-property, V10O-service, V10O-visit, V10O-pay, V10O-done, V10O-pay-phone, V10C-orders, V10C-tracker |
 | 2 Technician | V10T-today, V10T-checklist, V10T-capture, V10T-sentback |
 | 3 Engineer and admin | V10E-queue, V10E-review, V10E-log, V10E-queue-phone, V10A-dashboard, V10A-file, V10E-seal (last, after Aman uploads his own seal) |
 | 4 Customer service | V10S-inbox, V10S-customer (new role, refunds are requests only) |
 
 Sample names, addresses and numbers in the screens are illustrative. Real data comes from the platform.
+
+### V10-verify-phone was dropped, 2026-10-01
+
+**Operator ruling: do not build it.** It was in the stage 1 row above and has been
+removed from it, so the list and the work agree.
+
+**Why it is recorded rather than deleted.** A drawn screen that disappears from
+this document without a trace reads as a screen somebody forgot, and the next
+session to compare the design folder against the stage list would find an
+artifact with no entry and reasonably build it. The same reasoning keeps the
+Newsreader ruling and the keyword ownership model written down in CLAUDE.md.
+
+**What was actually there, established before the ruling rather than assumed.**
+Nothing. Searching `verify_phone`, `phone_verified`, `verifyPhone`, `otp` and
+`OTP` across `src`, `data` and every migration returned only the STAFF second
+factor: TOTP through an authenticator app on the portal surface, which is neither
+a telephone number nor a customer screen. A customer's phone has always been a
+plain field on sign up and at checkout, never verified. So this was a screen to
+build, not one to restyle, which is what brought it to a ruling.
+
+**And the ruling says where the confirmation goes instead.** If text reminders
+are added later, the number is confirmed by the customer replying YES to the
+first message, as part of that opt in. That is one step rather than two, it makes
+the consent and the confirmation the same act, and it means no separate screen is
+owed. The artifact in `design-reference` stays with this verdict beside it, so
+nobody rebuilds it by accident.

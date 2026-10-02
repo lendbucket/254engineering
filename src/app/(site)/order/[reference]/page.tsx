@@ -133,17 +133,28 @@ export default async function OrderStatusPage({
           are each a statement about somebody's card, and a sentence saying a
           payment landed, or that nothing was charged, or that money has been
           returned, is not something to style as body copy. They lose the tint
-          and the border box and keep a coloured left rule, which is the
-          design's own treatment for a line that must not be skimmed.
+          and the border box and keep a 2px left rule, which is the design's own
+          treatment for a line that must not be skimmed.
 
-          Green stays green and brass stays brass because the distinction is
-          the point: one says the money moved as expected and one says it did
-          not. Both are measured against white by contrast-audit rather than
-          assumed.
+          AND THE GREEN ONE WAS A VIOLATION, corrected 2026-10-02 on the
+          operator's ruling. The sentence that used to sit here read "Green stays
+          green and brass stays brass because the distinction is the point", and
+          argued it from contrast against white. DESIGN_V10.md line 29 allows no
+          red, green or amber anywhere in the UI, with brand navy and gold the
+          only colours, so brass and navy were always fine and green never was.
+          Contrast answers whether a colour is legible, not whether it is
+          permitted, and the note had quietly substituted the first question for
+          the second.
+
+          The distinction it was reaching for is real and is carried by the
+          WORDS. "Payment received", "Nothing was charged" and "has been
+          refunded" are three different sentences; none of them needed a colour
+          to say which it was, and a reader who cannot tell green from grey was
+          reading the words all along.
         */}
         {paid ? (
-          <div className="mt-7 border-l-2 border-[var(--green)] pl-4">
-            <p className="text-[15px] font-semibold text-[var(--green)]">Payment received</p>
+          <div className="mt-7 border-l-2 border-[var(--color-slate)] pl-4">
+            <p className="text-[15px] font-semibold text-[var(--color-ink)]">Payment received</p>
             <p className="mt-1 text-[15px] leading-[1.65] text-[var(--color-ink-quiet)]">
               Nothing else is needed from you right now. This page is where the order&rsquo;s
               progress appears.

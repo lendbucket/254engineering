@@ -94,16 +94,22 @@ export function SettingsClient({
   return (
     <div>
       {!isOwner ? (
-        <p className="mb-6 rounded-[3px] bg-[var(--canvas)] px-3 py-2.5 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+        {/*
+          V10 removes the tinted panel. This explains why the fields below are
+          read only, which is information rather than a status, so it carries
+          neither a tint nor a colour. The fields are visibly disabled already;
+          this says why.
+        */}
+        <p className="mb-6 border-l-2 border-[var(--color-limestone-edge)] pl-3 text-[14px] leading-[1.6] text-[var(--color-ink-quiet)]">
           You can see these because every order you place carries them. Only an account owner can
           change them.
         </p>
       ) : null}
 
       <section className="rounded-[4px] border border-[var(--border)] bg-white p-5">
-        <h2 className="font-display text-[1.15rem] font-semibold text-[var(--navy)]">Billing</h2>
+        <h2 className="border-b-2 border-[var(--color-ink)] pb-3 text-[17px] font-semibold text-[var(--color-ink)]">Billing</h2>
 
-        <label htmlFor="billingContact" className="mt-4 block text-[13.5px] font-bold text-[var(--navy)]">
+        <label htmlFor="billingContact" className="mt-4 block text-[14px] font-bold text-[var(--navy)]">
           Billing contact
         </label>
         <input
@@ -114,7 +120,7 @@ export function SettingsClient({
           className={field}
         />
 
-        <label htmlFor="billingEmail" className="mt-4 block text-[13.5px] font-bold text-[var(--navy)]">
+        <label htmlFor="billingEmail" className="mt-4 block text-[14px] font-bold text-[var(--navy)]">
           Where statements go
         </label>
         <input
@@ -128,12 +134,12 @@ export function SettingsClient({
       </section>
 
       <section className="mt-4 rounded-[4px] border border-[var(--border)] bg-white p-5">
-        <h2 className="font-display text-[1.15rem] font-semibold text-[var(--navy)]">On every order</h2>
+        <h2 className="border-b-2 border-[var(--color-ink)] pb-3 text-[17px] font-semibold text-[var(--color-ink)]">On every order</h2>
 
-        <label htmlFor="accessInstructions" className="mt-4 block text-[13.5px] font-bold text-[var(--navy)]">
+        <label htmlFor="accessInstructions" className="mt-4 block text-[14px] font-bold text-[var(--navy)]">
           Standing access instructions
         </label>
-        <p className="mt-1 text-[12.5px] leading-[1.55] text-[var(--secondary)]">
+        <p className="mt-1 text-[13px] leading-[1.55] text-[var(--secondary)]">
           Copied into the access notes on every order this account places, where you can still change
           it for one property.
         </p>
@@ -146,10 +152,10 @@ export function SettingsClient({
           className={field}
         />
 
-        <label htmlFor="preferredUrgency" className="mt-4 block text-[13.5px] font-bold text-[var(--navy)]">
+        <label htmlFor="preferredUrgency" className="mt-4 block text-[14px] font-bold text-[var(--navy)]">
           Preferred turnaround
         </label>
-        <p className="mt-1 text-[12.5px] leading-[1.55] text-[var(--secondary)]">
+        <p className="mt-1 text-[13px] leading-[1.55] text-[var(--secondary)]">
           Recorded on your orders so the firm sees it. It is not a commitment and it does not change
           the price, because the firm does not sell a priced expedited tier yet.
         </p>
@@ -166,10 +172,10 @@ export function SettingsClient({
           <option value="emergency">Urgent</option>
         </select>
 
-        <label htmlFor="defaultCounties" className="mt-4 block text-[13.5px] font-bold text-[var(--navy)]">
+        <label htmlFor="defaultCounties" className="mt-4 block text-[14px] font-bold text-[var(--navy)]">
           Counties you usually work in
         </label>
-        <p className="mt-1 text-[12.5px] leading-[1.55] text-[var(--secondary)]">
+        <p className="mt-1 text-[13px] leading-[1.55] text-[var(--secondary)]">
           Comma separated. Offered when you are filling in a bulk submission.
         </p>
         <input
@@ -197,7 +203,7 @@ export function SettingsClient({
                 "defaults",
               )
             }
-            className="mt-5 inline-flex min-h-[44px] items-center rounded-[3px] bg-slate px-5 text-[13.5px] font-bold text-white disabled:opacity-45"
+            className="mt-5 inline-flex min-h-[44px] items-center rounded-[3px] bg-slate px-5 text-[14px] font-bold text-white disabled:opacity-45"
           >
             {busy === "defaults" ? "Saving" : "Save"}
           </button>
@@ -205,8 +211,8 @@ export function SettingsClient({
       </section>
 
       <section className="mt-4 rounded-[4px] border border-[var(--border)] bg-white p-5">
-        <h2 className="font-display text-[1.15rem] font-semibold text-[var(--navy)]">Saved properties</h2>
-        <p className="mt-1 text-[12.5px] leading-[1.55] text-[var(--secondary)]">
+        <h2 className="border-b-2 border-[var(--color-ink)] pb-3 text-[17px] font-semibold text-[var(--color-ink)]">Saved properties</h2>
+        <p className="mt-1 text-[13px] leading-[1.55] text-[var(--secondary)]">
           Chosen when you order instead of being retyped. Removing one takes it out of the list and
           leaves every order already placed against it alone.
         </p>
@@ -215,10 +221,10 @@ export function SettingsClient({
           <ul className="mt-4 divide-y divide-limestone-line border-t border-[var(--border)]">
             {properties.map((p) => (
               <li key={p.id} className="flex flex-wrap items-baseline gap-x-3 py-2.5">
-                <span className="text-[13.5px] font-semibold text-[var(--navy)]">
+                <span className="text-[14px] font-semibold text-[var(--navy)]">
                   {p.label || p.propertyAddress}
                 </span>
-                <span className="text-[13.5px] text-[var(--secondary)]">
+                <span className="text-[14px] text-[var(--secondary)]">
                   {p.label ? `${p.propertyAddress}, ` : ""}
                   {p.county} County
                 </span>
@@ -227,7 +233,7 @@ export function SettingsClient({
                     type="button"
                     disabled={busy !== null}
                     onClick={() => post({ action: "archive-property", propertyId: p.id }, p.id)}
-                    className="ml-auto min-h-[44px] text-[13.5px] font-semibold text-[var(--navy)] underline underline-offset-2"
+                    className="ml-auto min-h-[44px] text-[14px] font-semibold text-[var(--navy)] underline underline-offset-2"
                   >
                     Remove
                   </button>
@@ -236,40 +242,40 @@ export function SettingsClient({
             ))}
           </ul>
         ) : (
-          <p className="mt-3 text-[13.5px] text-[var(--secondary)]">Nothing saved yet.</p>
+          <p className="mt-3 text-[14px] text-[var(--secondary)]">Nothing saved yet.</p>
         )}
 
         {isOwner ? (
           <div className="mt-5 border-t border-[var(--border)] pt-4">
-            <p className="text-[13.5px] font-bold text-[var(--navy)]">Add one</p>
+            <p className="text-[14px] font-bold text-[var(--navy)]">Add one</p>
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
               <input
                 aria-label="Label"
                 placeholder="Label, optional"
                 value={prop.label}
                 onChange={(e) => setProp({ ...prop, label: e.target.value })}
-                className="rounded-[3px] border border-[var(--border)] px-3 py-2.5 text-[13.5px] text-[var(--navy)]"
+                className="rounded-[3px] border border-[var(--border)] px-3 py-2.5 text-[14px] text-[var(--navy)]"
               />
               <input
                 aria-label="Address"
                 placeholder="Address"
                 value={prop.propertyAddress}
                 onChange={(e) => setProp({ ...prop, propertyAddress: e.target.value })}
-                className="rounded-[3px] border border-[var(--border)] px-3 py-2.5 text-[13.5px] text-[var(--navy)]"
+                className="rounded-[3px] border border-[var(--border)] px-3 py-2.5 text-[14px] text-[var(--navy)]"
               />
               <input
                 aria-label="City"
                 placeholder="City"
                 value={prop.city}
                 onChange={(e) => setProp({ ...prop, city: e.target.value })}
-                className="rounded-[3px] border border-[var(--border)] px-3 py-2.5 text-[13.5px] text-[var(--navy)]"
+                className="rounded-[3px] border border-[var(--border)] px-3 py-2.5 text-[14px] text-[var(--navy)]"
               />
               <input
                 aria-label="County"
                 placeholder="County"
                 value={prop.county}
                 onChange={(e) => setProp({ ...prop, county: e.target.value })}
-                className="rounded-[3px] border border-[var(--border)] px-3 py-2.5 text-[13.5px] text-[var(--navy)]"
+                className="rounded-[3px] border border-[var(--border)] px-3 py-2.5 text-[14px] text-[var(--navy)]"
               />
             </div>
             <button
@@ -279,7 +285,7 @@ export function SettingsClient({
                 const ok = await post({ action: "add-property", ...prop }, "add");
                 if (ok) setProp({ label: "", propertyAddress: "", city: "", county: "", postalCode: "" });
               }}
-              className="mt-3 inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] bg-white px-4 text-[13.5px] font-semibold text-[var(--navy)] disabled:opacity-45"
+              className="mt-3 inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] bg-white px-4 text-[14px] font-semibold text-[var(--navy)] disabled:opacity-45"
             >
               {busy === "add" ? "Adding" : "Add property"}
             </button>
@@ -288,8 +294,8 @@ export function SettingsClient({
       </section>
 
       <section className="mt-4 rounded-[4px] border border-[var(--border)] bg-white p-5">
-        <h2 className="font-display text-[1.15rem] font-semibold text-[var(--navy)]">API keys</h2>
-        <p className="mt-1 text-[12.5px] leading-[1.55] text-[var(--secondary)]">
+        <h2 className="border-b-2 border-[var(--color-ink)] pb-3 text-[17px] font-semibold text-[var(--color-ink)]">API keys</h2>
+        <p className="mt-1 text-[13px] leading-[1.55] text-[var(--secondary)]">
           For placing orders from your own systems. A key can order only for this organization,
           because the account is read from the key rather than from the request.
         </p>
@@ -298,9 +304,9 @@ export function SettingsClient({
           <ul className="mt-4 divide-y divide-limestone-line border-t border-[var(--border)]">
             {apiKeys.map((k) => (
               <li key={k.id} className="flex flex-wrap items-baseline gap-x-3 py-2.5">
-                <span className="font-mono text-[12.5px] text-[var(--navy)]">{k.prefix}…</span>
-                <span className="text-[13.5px] font-semibold text-[var(--navy)]">{k.label}</span>
-                <span className="text-[12.5px] text-[var(--secondary)]">
+                <span className="font-mono text-[13px] text-[var(--navy)]">{k.prefix}…</span>
+                <span className="text-[14px] font-semibold text-[var(--navy)]">{k.label}</span>
+                <span className="text-[13px] text-[var(--secondary)]">
                   {k.revokedAt
                     ? "revoked"
                     : k.lastUsedAt
@@ -312,7 +318,7 @@ export function SettingsClient({
                     type="button"
                     disabled={busy !== null}
                     onClick={() => post({ action: "revoke-key", keyId: k.id }, k.id)}
-                    className="ml-auto min-h-[44px] text-[13.5px] font-semibold text-[var(--navy)] underline underline-offset-2"
+                    className="ml-auto min-h-[44px] text-[14px] font-semibold text-[var(--navy)] underline underline-offset-2"
                   >
                     Revoke
                   </button>
@@ -321,25 +327,36 @@ export function SettingsClient({
             ))}
           </ul>
         ) : (
-          <p className="mt-3 text-[13.5px] text-[var(--secondary)]">No keys yet.</p>
+          <p className="mt-3 text-[14px] text-[var(--secondary)]">No keys yet.</p>
         )}
 
         {freshKey ? (
-          <div className="mt-4 rounded-[3px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-3 py-3">
-            <p className="portal-kicker text-[var(--warn-ink)]">
+          {/*
+            V10 REMOVES THE TINT AND KEEPS THE EMPHASIS, which is the judgement
+            OrderFlow already records about the sentence telling somebody their
+            card was not charged. This one says a value is being shown for the
+            only time it can ever be shown, so it may not look like the paragraph
+            above it. A 2px rule and weight rather than a panel.
+
+            Ink rather than a warning colour, because nothing has gone wrong.
+            An amber tint was the old way of saying "read this"; weight says it
+            without asking anybody to decode a colour.
+          */}
+          <div className="mt-4 border-l-2 border-[var(--color-ink)] pl-4">
+            <p className="text-[13px] font-semibold tracking-[0.06em] text-[var(--color-ink)] uppercase">
               Copy this now
             </p>
-            <p className="mt-1 text-[13.5px] leading-[1.55] text-[var(--warn-ink)]">
+            <p className="mt-1.5 text-[14px] leading-[1.55] font-semibold text-[var(--color-ink)]">
               This is the only time it can be shown. Only a hash of it is stored, so the firm cannot
               show it to you again and cannot recover it if you lose it.
             </p>
-            <code className="mt-2 block overflow-x-auto rounded-[3px] bg-white px-2.5 py-2 font-mono text-[12.5px] break-all text-[var(--navy)]">
+            <code className="mt-2.5 block overflow-x-auto border border-[var(--color-limestone-edge)] px-2.5 py-2 font-mono text-[13px] break-all text-[var(--color-ink)]">
               {freshKey}
             </code>
             <button
               type="button"
               onClick={() => setFreshKey(null)}
-              className="mt-2 min-h-[44px] text-[13.5px] font-semibold text-[var(--warn-ink)] underline underline-offset-2"
+              className="mt-2 min-h-[44px] text-[14px] font-semibold text-[var(--color-link)] underline underline-offset-2"
             >
               I have copied it
             </button>
@@ -348,7 +365,7 @@ export function SettingsClient({
 
         {isOwner ? (
           <div className="mt-5 border-t border-[var(--border)] pt-4">
-            <label htmlFor="keyLabel" className="block text-[13.5px] font-bold text-[var(--navy)]">
+            <label htmlFor="keyLabel" className="block text-[14px] font-bold text-[var(--navy)]">
               Create a key
             </label>
             <input
@@ -385,7 +402,7 @@ export function SettingsClient({
                   setBusy(null);
                 }
               }}
-              className="mt-3 inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] bg-white px-4 text-[13.5px] font-semibold text-[var(--navy)] disabled:opacity-45"
+              className="mt-3 inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] bg-white px-4 text-[14px] font-semibold text-[var(--navy)] disabled:opacity-45"
             >
               {busy === "key" ? "Creating" : "Create key"}
             </button>
@@ -393,13 +410,33 @@ export function SettingsClient({
         ) : null}
       </section>
 
+      {/*
+        TWO MESSAGES, TWO TREATMENTS, AND THE DIFFERENCE IS DELIBERATE.
+
+        Neither keeps a colour. DESIGN_V10.md line 29 allows no red, green or
+        amber anywhere in the UI, and I got this wrong on 2026-10-01 by citing a
+        code comment as the precedent instead of reading that line. The note on
+        the sign up form carries the full account.
+
+        Both are ink at weight 600 behind a 2px ink rule, which is structure
+        rather than colour. What distinguishes them is the words and the role: an
+        error says what is wrong and what to do, a status says what happened.
+      */}
       {error ? (
-        <p role="alert" className="mt-4 rounded-[3px] bg-[var(--warn-bg)] px-3 py-2.5 text-[13.5px] text-[var(--red)]">
+        <p
+          role="alert"
+          aria-live="assertive"
+          className="mt-4 border-l-2 border-[var(--color-ink)] pl-3 text-[14px] leading-[1.6] font-semibold text-[var(--color-ink)]"
+        >
           {error}
         </p>
       ) : null}
       {note ? (
-        <p role="status" className="mt-4 rounded-[3px] bg-[var(--green-bg)] px-3 py-2.5 text-[13.5px] text-[var(--green)]">
+        <p
+          role="status"
+          aria-live="polite"
+          className="mt-4 border-l-2 border-[var(--color-ink)] pl-3 text-[14px] leading-[1.6] font-semibold text-[var(--color-ink)]"
+        >
           {note}
         </p>
       ) : null}

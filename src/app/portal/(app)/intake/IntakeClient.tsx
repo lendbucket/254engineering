@@ -16,7 +16,13 @@ import {
   type PaymentIntent,
 } from "@/lib/job-intake-rules";
 import type { CatalogEntry } from "@data/catalog";
-import { fieldsFor, missingFor, type IntakeField } from "@data/intake-fields";
+import {
+  fieldsFor,
+  missingFor,
+  INTAKE_GROUPS,
+  INTAKE_GROUP_LABEL,
+  type IntakeField,
+} from "@data/intake-fields";
 import { DispatchPanel } from "../files/DispatchPanel";
 /*
  * A type only import, which is erased at compile time. ops-field carries
@@ -714,12 +720,17 @@ export function IntakeClient({
           note="From the catalog, so a job taken here carries what a job ordered on the site carries. Anything not needed to take the job is marked and can follow."
         >
           <div className="flex flex-col gap-5">
-            {(["document", "parties", "property", "access"] as const).map((group) => {
+            {/*
+              The order and the labels come from the shared definition, so an
+              operator and a customer are asked the same things in the same
+              sequence. They were typed here until 2026-10-01.
+            */}
+            {INTAKE_GROUPS.map((group) => {
               const inGroup = fields.filter((f) => f.group === group);
               if (inGroup.length === 0) return null;
               return (
                 <div key={group}>
-                  <p className="portal-kicker">{GROUP_LABEL[group]}</p>
+                  <p className="portal-kicker">{INTAKE_GROUP_LABEL[group]}</p>
                   <div className="mt-2.5 grid gap-4 sm:grid-cols-2">
                     {inGroup.map((f) => (
                       <FieldInput
@@ -927,12 +938,11 @@ export function IntakeClient({
   );
 }
 
-const GROUP_LABEL = {
-  document: "The document",
-  parties: "The people",
-  property: "The property",
-  access: "Getting in",
-} as const;
+/*
+ * GROUP_LABEL lived here and is now INTAKE_GROUP_LABEL in the shared
+ * definition, beside the order the groups are asked in. It moved rather than
+ * being copied when the customer order flow came to need the same two facts.
+ */
 
 /**
  * One field from the definition, rendered as its kind.

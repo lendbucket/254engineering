@@ -5,6 +5,7 @@ import { signOrderUpload } from "@/lib/order-uploads";
 import { SITE_KEY } from "@/lib/supabase";
 import { isOpen, notYetAcceptingEngagements } from "@/lib/launch";
 import { attributeOrder, VISITOR_COOKIE } from "@/lib/ops-partners";
+import { currentCustomer } from "@/lib/customer-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -134,8 +135,24 @@ export async function POST(request: NextRequest) {
       byteSize: typeof f.byteSize === "number" ? f.byteSize : null,
     }));
 
+  /*
+   * THE SESSION IS READ HERE, AND ITS ABSENCE IS THE ANONYMOUS PATH.
+   *
+   * Operator ruling, 2026-09-30: the order flow reads the session and stamps
+   * account_id at placement when a customer is signed in, and the anonymous
+   * path must behave exactly as it does today.
+   *
+   * `currentCustomer()` answers null for a visitor with no cookie, an expired
+   * one or a tampered one, so an anonymous placement passes null and stores the
+   * value this column already held. Nothing about this route refuses a visitor
+   * or asks them to sign in: buying without an account is the ordinary path and
+   * stays the ordinary path.
+   */
+  const signedIn = await currentCustomer();
+
   const result = await placeOrder({
     site: SITE_KEY,
+    accountId: signedIn?.accountId ?? null,
     clientRequestId: body.draftId,
     serviceSlug: body.serviceSlug ?? "",
     tier: body.tier,

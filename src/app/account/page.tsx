@@ -87,6 +87,34 @@ export default async function AccountHomePage() {
           </Link>
         </section>
 
+        {/*
+          THE LINK THAT WAS MISSING, 2026-10-01.
+
+          The operator opened this page and asked where the list of orders was.
+          There was none, and there was no link to one, while
+          /account/orders/[reference] had existed since the bulk work: a customer
+          could read ONE order if they already held its reference and had no way
+          to find the reference. The screen answering "what have I bought from
+          you" was the one screen missing, and the only way to notice was to look
+          at the page as a person rather than to check it.
+        */}
+        <section className="mt-11">
+          <h2 className="border-b-2 border-[var(--color-ink)] pb-3 text-[17px] font-semibold text-[var(--color-ink)]">
+            Your orders
+          </h2>
+          <p className="mt-2 text-[15px] leading-[1.65] text-[var(--color-ink-quiet)]">
+            Everything this account has ordered, newest first, with where each one
+            has got to. Orders you placed with this email address before the
+            account existed are here too.
+          </p>
+          <Link
+            href="/account/orders"
+            className="mt-4 inline-flex min-h-[var(--tap-target)] items-center text-[15px] font-semibold text-[var(--color-link)]"
+          >
+            See your orders
+          </Link>
+        </section>
+
         <section className="mt-11">
           <h2 className="border-b-2 border-[var(--color-ink)] pb-3 text-[17px] font-semibold text-[var(--color-ink)]">
             Settings
