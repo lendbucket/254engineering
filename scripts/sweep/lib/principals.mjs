@@ -28,7 +28,15 @@
 import { randomBytes, scryptSync } from "node:crypto";
 
 import { auditClient } from "../../lib/db-target.mjs";
-import { cookieFor, createProbe, destroyProbes, PROBE_DOMAIN } from "../../lib/portal-probe.mjs";
+import {
+  cookieFor,
+  createPartnerProbe,
+  createProbe,
+  destroyPartnerProbes,
+  destroyProbes,
+  partnerCookieFor,
+  PROBE_DOMAIN,
+} from "../../lib/portal-probe.mjs";
 
 /** Exactly customer-auth.ts's parameters. A mismatch fails the sign in. */
 const SCRYPT = { N: 16384, r: 8, p: 1, keylen: 64, maxmem: 64 * 1024 * 1024 };
@@ -147,6 +155,7 @@ export async function makeCustomer(base, db) {
  */
 const LANDS_ON = {
   customer: "/account",
+  partner: "/partner",
   admin: "/portal",
   csr: "/portal",
   technician: "/portal",
@@ -225,6 +234,30 @@ export async function makePrincipals(base) {
         : [],
   });
 
+  /*
+   * THE PARTNER, AND IT IS THE LAST PRINCIPAL THIS SWEEP WAS MISSING.
+   *
+   * Operator ruling, 2026-10-01: "Partners are outside users, so their boundary
+   * matters." Until now the five partner screens and their APIs were reached
+   * signed out, redirected, and reported as unmeasured, which the report said
+   * plainly and which meant the partner boundary had never been tested at all.
+   *
+   * It is a different cookie and a different reader, `eng_partner` and
+   * `readPartnerSession`, with its own branch in the perimeter that returns
+   * before the customer and staff branches. That is precisely why it needs its
+   * own principal rather than being approximated by a customer: the thing worth
+   * testing is whether one principal's cookie is ever a fallback for another's.
+   */
+  const partner = await createPartnerProbe(base, "sweep");
+  principals.push({
+    role: "partner",
+    email: partner.email ?? null,
+    cookies: partnerCookieFor(partner, base).map((c) => ({ name: c.name, value: c.value })),
+    partnerId: partner.partnerId ?? null,
+    userId: partner.userId ?? null,
+    fault: partner.fault ?? (partner.cookie ? null : "no partner session cookie came back"),
+  });
+
   for (const { key, label } of STAFF_ROLES) {
     const probe = await createProbe(base, key, "sweep");
     principals.push({
@@ -271,6 +304,22 @@ export async function disposeOf(customer, db) {
   const staff = await destroyProbes("sweep");
   removed.push(`staff probes: ${staff.ok ? "swept" : "sweep reported a problem"}, ${staff.left ?? "?"} left on ${PROBE_DOMAIN}`);
   if (!staff.ok) kept.push(`destroyProbes did not report ok: ${staff.note ?? "no note"}`);
+
+  /*
+   * THE PARTNER IS SWEPT BY ITS OWN FUNCTION, because it is its own domain.
+   *
+   * `destroyProbes` sweeps `eng_profiles` and the staff auth users; a partner is
+   * a row in `eng_partners` with its own user, and neither is reachable from
+   * that function. Added in the same commit as the partner principal rather
+   * than afterwards, because a probe partner left behind is a live account that
+   * can sign in, and CLAUDE.md records two of those outliving their runs by
+   * seventeen and eight days.
+   */
+  const partners = await destroyPartnerProbes("sweep");
+  removed.push(
+    `partner probes: ${partners.ok ? "swept" : "sweep reported a problem"}, ${partners.left ?? "?"} left on ${PROBE_DOMAIN}`,
+  );
+  if (!partners.ok) kept.push(`destroyPartnerProbes did not report ok: ${partners.note ?? "no note"}`);
 
   if (customer?.userId) {
     const { count: tokens } = await db
