@@ -7,6 +7,7 @@ import { deliverablesFor, orderBlockedReason } from "@data/catalog";
 import { serviceBySlug } from "@/content/services";
 import { launchMode, serviceLineIsOffered } from "@/lib/launch";
 import { orderHeading, serviceNameInSentence } from "@/lib/order-copy";
+import { currentCustomer } from "@/lib/customer-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -142,10 +143,20 @@ export default async function OrderStartPage({ params }: { params: Promise<{ slu
               before anything is charged.
             </p>
             <div className="mt-10">
+              {/*
+                WHETHER THEY ARE SIGNED IN, read here because the flow is a
+                client component and cannot read a cookie.
+
+                It decides one thing: whether the done screen offers a link to
+                /account/orders. An anonymous buyer must not be sent there,
+                because they would land on a sign in form seconds after paying
+                and reasonably think something had gone wrong.
+              */}
               <OrderFlow
                 serviceSlug={slug}
                 serviceName={service.name}
                 deliverables={available}
+                signedIn={Boolean(await currentCustomer())}
               />
             </div>
           </>

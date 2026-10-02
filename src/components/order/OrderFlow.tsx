@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import type { CatalogEntry } from "@data/catalog";
 import {
   blockersOn,
@@ -35,10 +36,19 @@ export function OrderFlow({
   serviceSlug,
   serviceName,
   deliverables,
+  signedIn = false,
 }: {
   serviceSlug: string;
   serviceName: string;
   deliverables: CatalogEntry[];
+  /**
+   * Whether a customer session is open, read by the server page.
+   *
+   * It decides one thing, on the done screen: whether to offer a link to the
+   * orders list. Defaulted to false so a caller that does not pass it offers
+   * nothing, which is the safe direction.
+   */
+  signedIn?: boolean;
 }) {
   const [draftId] = useState(
     () => `web-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`,
@@ -227,6 +237,33 @@ export function OrderFlow({
           <p className="mt-6 border-l-2 border-[var(--color-brass)] pl-4 text-[15px] leading-[1.7] text-[var(--color-ink)]">
             Nothing has been charged. The payment page could not be opened, so the firm will send
             you a payment link for this reference. {done.unpaid}
+          </p>
+        ) : null}
+        {/*
+          A SIGNED IN BUYER GETS A ROUTE TO THEIR OWN LIST, added 2026-10-01 with
+          the orders list itself, because without it that list had no entrance
+          from the moment a person most wants it.
+
+          IT CANNOT LINK TO THE TRACKER, and that is worth writing down so nobody
+          adds it later. The tracker at /order/[reference] opens on a signed
+          token in the query, and the page's own header records that a token
+          cannot exist yet: it is minted when the firm releases the file. A link
+          built from the reference alone would land on the sentence saying the
+          link does not open an order, seconds after somebody paid.
+
+          Nothing is offered to an anonymous buyer. They have no account, and
+          sending them to a sign in form seconds after paying would read as
+          something having gone wrong.
+        */}
+        {signedIn ? (
+          <p className="mt-6 text-[15px] leading-[1.7] text-[var(--color-ink-quiet)]">
+            <Link
+              href="/account/orders"
+              prefetch={false}
+              className="font-semibold text-[var(--color-link)]"
+            >
+              See this with your other orders
+            </Link>
           </p>
         ) : null}
       </div>
