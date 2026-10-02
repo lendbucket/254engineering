@@ -94,14 +94,20 @@ export function SettingsClient({
   return (
     <div>
       {!isOwner ? (
-        <p className="mb-6 rounded-[3px] bg-[var(--canvas)] px-3 py-2.5 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+        {/*
+          V10 removes the tinted panel. This explains why the fields below are
+          read only, which is information rather than a status, so it carries
+          neither a tint nor a colour. The fields are visibly disabled already;
+          this says why.
+        */}
+        <p className="mb-6 border-l-2 border-[var(--color-limestone-edge)] pl-3 text-[13.5px] leading-[1.6] text-[var(--color-ink-quiet)]">
           You can see these because every order you place carries them. Only an account owner can
           change them.
         </p>
       ) : null}
 
       <section className="rounded-[4px] border border-[var(--border)] bg-white p-5">
-        <h2 className="font-display text-[1.15rem] font-semibold text-[var(--navy)]">Billing</h2>
+        <h2 className="border-b-2 border-[var(--color-ink)] pb-3 text-[17px] font-semibold text-[var(--color-ink)]">Billing</h2>
 
         <label htmlFor="billingContact" className="mt-4 block text-[13.5px] font-bold text-[var(--navy)]">
           Billing contact
@@ -128,7 +134,7 @@ export function SettingsClient({
       </section>
 
       <section className="mt-4 rounded-[4px] border border-[var(--border)] bg-white p-5">
-        <h2 className="font-display text-[1.15rem] font-semibold text-[var(--navy)]">On every order</h2>
+        <h2 className="border-b-2 border-[var(--color-ink)] pb-3 text-[17px] font-semibold text-[var(--color-ink)]">On every order</h2>
 
         <label htmlFor="accessInstructions" className="mt-4 block text-[13.5px] font-bold text-[var(--navy)]">
           Standing access instructions
@@ -205,7 +211,7 @@ export function SettingsClient({
       </section>
 
       <section className="mt-4 rounded-[4px] border border-[var(--border)] bg-white p-5">
-        <h2 className="font-display text-[1.15rem] font-semibold text-[var(--navy)]">Saved properties</h2>
+        <h2 className="border-b-2 border-[var(--color-ink)] pb-3 text-[17px] font-semibold text-[var(--color-ink)]">Saved properties</h2>
         <p className="mt-1 text-[12.5px] leading-[1.55] text-[var(--secondary)]">
           Chosen when you order instead of being retyped. Removing one takes it out of the list and
           leaves every order already placed against it alone.
@@ -288,7 +294,7 @@ export function SettingsClient({
       </section>
 
       <section className="mt-4 rounded-[4px] border border-[var(--border)] bg-white p-5">
-        <h2 className="font-display text-[1.15rem] font-semibold text-[var(--navy)]">API keys</h2>
+        <h2 className="border-b-2 border-[var(--color-ink)] pb-3 text-[17px] font-semibold text-[var(--color-ink)]">API keys</h2>
         <p className="mt-1 text-[12.5px] leading-[1.55] text-[var(--secondary)]">
           For placing orders from your own systems. A key can order only for this organization,
           because the account is read from the key rather than from the request.
@@ -325,15 +331,26 @@ export function SettingsClient({
         )}
 
         {freshKey ? (
-          <div className="mt-4 rounded-[3px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-3 py-3">
-            <p className="portal-kicker text-[var(--warn-ink)]">
+          {/*
+            V10 REMOVES THE TINT AND KEEPS THE EMPHASIS, which is the judgement
+            OrderFlow already records about the sentence telling somebody their
+            card was not charged. This one says a value is being shown for the
+            only time it can ever be shown, so it may not look like the paragraph
+            above it. A 2px rule and weight rather than a panel.
+
+            Ink rather than a warning colour, because nothing has gone wrong.
+            An amber tint was the old way of saying "read this"; weight says it
+            without asking anybody to decode a colour.
+          */}
+          <div className="mt-4 border-l-2 border-[var(--color-ink)] pl-4">
+            <p className="text-[13px] font-semibold tracking-[0.06em] text-[var(--color-ink)] uppercase">
               Copy this now
             </p>
-            <p className="mt-1 text-[13.5px] leading-[1.55] text-[var(--warn-ink)]">
+            <p className="mt-1.5 text-[13.5px] leading-[1.55] font-semibold text-[var(--color-ink)]">
               This is the only time it can be shown. Only a hash of it is stored, so the firm cannot
               show it to you again and cannot recover it if you lose it.
             </p>
-            <code className="mt-2 block overflow-x-auto rounded-[3px] bg-white px-2.5 py-2 font-mono text-[12.5px] break-all text-[var(--navy)]">
+            <code className="mt-2.5 block overflow-x-auto border border-[var(--color-limestone-edge)] px-2.5 py-2 font-mono text-[12.5px] break-all text-[var(--color-ink)]">
               {freshKey}
             </code>
             <button
@@ -393,13 +410,33 @@ export function SettingsClient({
         ) : null}
       </section>
 
+      {/*
+        TWO MESSAGES, TWO TREATMENTS, AND THE DIFFERENCE IS DELIBERATE.
+
+        The error keeps its red and loses its tinted box, which is exactly what
+        OrderFlow and the sign up form already do: V10 carries status in weight,
+        and a failure that reads as body copy is one people scroll past, so it
+        gets a red left rule and red text.
+
+        The success message loses the colour as well as the tint. Green carrying
+        "this worked" is colour as status, which the operator ruled out firm wide
+        on 2026-09-30, and a sentence saying a thing was saved does not need to
+        shout. Weight and a rule are enough, and somebody who cannot distinguish
+        green from grey reads the same message everybody else does.
+      */}
       {error ? (
-        <p role="alert" className="mt-4 rounded-[3px] bg-[var(--warn-bg)] px-3 py-2.5 text-[13.5px] text-[var(--red)]">
+        <p
+          role="alert"
+          className="mt-4 border-l-2 border-[var(--red)] pl-3 text-[13.5px] leading-[1.6] font-semibold text-[var(--red)]"
+        >
           {error}
         </p>
       ) : null}
       {note ? (
-        <p role="status" className="mt-4 rounded-[3px] bg-[var(--green-bg)] px-3 py-2.5 text-[13.5px] text-[var(--green)]">
+        <p
+          role="status"
+          className="mt-4 border-l-2 border-[var(--color-ink)] pl-3 text-[13.5px] leading-[1.6] font-semibold text-[var(--color-ink)]"
+        >
           {note}
         </p>
       ) : null}

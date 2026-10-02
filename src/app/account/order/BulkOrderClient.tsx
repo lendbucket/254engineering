@@ -330,7 +330,7 @@ export function BulkOrderClient({
       {preview ? (
         <div className="mt-8">
           <div className="rounded-[4px] border border-[var(--border)] border-t-brass bg-white p-5">
-            <h2 className="font-display text-[1.15rem] font-semibold text-[var(--navy)]">
+            <h2 className="border-b-2 border-[var(--color-ink)] pb-3 text-[17px] font-semibold text-[var(--color-ink)]">
               {preview.accepted.length} of {preview.accepted.length + preview.rejected.length} can be
               taken
             </h2>
@@ -340,13 +340,23 @@ export function BulkOrderClient({
                 <p className="text-[13.5px] font-bold text-[var(--navy)]">
                   Not taken, and not charged for
                 </p>
-                <ul className="mt-2 space-y-2">
+                {/*
+                  RULED ROWS RATHER THAN TINTED CARDS, which is the V10 list
+                  treatment and matters more here than on most screens: every
+                  row is a property the firm will NOT do and will NOT charge for,
+                  with the reason beside it. A reader is comparing these against
+                  what they submitted, and a stack of amber boxes reads as one
+                  alarm rather than as a list of separate decisions.
+                */}
+                <ul className="mt-2 border-t border-[var(--color-limestone-line)]">
                   {preview.rejected.map((r) => (
-                    <li key={r.ref} className="rounded-[3px] bg-[var(--warn-bg)] px-3 py-2">
-                      <p className="font-mono text-[12.5px] font-semibold text-[var(--warn-ink)]">
+                    <li key={r.ref} className="border-b border-[var(--color-limestone-line)] py-2.5">
+                      <p className="font-mono text-[12.5px] font-semibold text-[var(--color-ink)]">
                         {r.ref} {r.address}
                       </p>
-                      <p className="mt-0.5 text-[13.5px] leading-[1.55] text-[var(--warn-ink)]">{r.reason}</p>
+                      <p className="mt-0.5 text-[13.5px] leading-[1.55] text-[var(--color-ink-quiet)]">
+                        {r.reason}
+                      </p>
                     </li>
                   ))}
                 </ul>
@@ -376,12 +386,19 @@ export function BulkOrderClient({
               </div>
             ) : null}
 
+            {/*
+              THE CREDIT MESSAGE KEEPS ITS RED AND LOSES ITS BOX. It is the
+              sentence saying this submission cannot be placed on account, which
+              is about money and about what somebody can do next, so it gets the
+              red left rule V10 uses for a failure rather than reading as body
+              copy. The invoice note beside it is informational and gets neither.
+            */}
             {creditBlocked ? (
-              <p className="mt-4 rounded-[3px] bg-[var(--warn-bg)] px-3 py-2.5 text-[13.5px] leading-[1.6] text-[var(--red)]">
+              <p className="mt-4 border-l-2 border-[var(--red)] pl-3 text-[13.5px] leading-[1.6] font-semibold text-[var(--red)]">
                 {preview.credit?.message}
               </p>
             ) : preview.billingMode === "invoice" ? (
-              <p className="mt-4 rounded-[3px] bg-[var(--canvas)] px-3 py-2.5 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+              <p className="mt-4 text-[13.5px] leading-[1.6] text-[var(--color-ink-quiet)]">
                 This account is invoiced. Nothing is charged now, and this appears on your next
                 statement.
               </p>
@@ -409,7 +426,10 @@ export function BulkOrderClient({
       ) : null}
 
       {error ? (
-        <p role="alert" className="mt-4 rounded-[3px] bg-[var(--warn-bg)] px-3 py-2.5 text-[13.5px] text-[var(--red)]">
+        <p
+          role="alert"
+          className="mt-4 border-l-2 border-[var(--red)] pl-3 text-[13.5px] leading-[1.6] font-semibold text-[var(--red)]"
+        >
           {error}
         </p>
       ) : null}
