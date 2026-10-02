@@ -4,9 +4,10 @@ import { useMemo, useState } from "react";
 import type { CatalogEntry } from "@data/catalog";
 import {
   blockersOn,
+  blockersOnPart,
   emptyState,
+  intakePartsFor,
   stepsFor,
-  customerFieldsFor,
   type FlowState,
   type StepId,
 } from "@/lib/order-flow";
@@ -57,7 +58,33 @@ export function OrderFlow({
   );
   const steps = useMemo(() => stepsFor(entry, deliverables.length), [entry, deliverables.length]);
   const step = steps[Math.min(index, steps.length - 1)];
-  const blockers = step ? blockersOn(step.id, entry, state) : [];
+
+  /*
+   * WHICH SUB PAGE OF STEP 3, and it is state rather than a derived value
+   * because moving between parts must not move the rail.
+   */
+  const [part, setPart] = useState(0);
+  const parts = useMemo(() => (entry ? intakePartsFor(entry) : []), [entry]);
+  const onRequirements = step?.id === "requirements" && parts.length > 0;
+  const lastPart = parts.length === 0 ? 0 : parts.length - 1;
+  const partIndex = Math.min(part, lastPart);
+
+  /*
+   * THE BLOCKERS SHOWN ARE THIS SUB PAGE'S, which is the operator's ruling that
+   * required fields are checked on their own sub page. The rule is identical,
+   * narrowed to the fields in front of the person, so "Still needed" never lists
+   * something they cannot see.
+   *
+   * The union of the parts is exactly the step, proved by
+   * scripts/proofs/step-three-parts-cover-the-step.mjs, so advancing through
+   * every part is the same test as passing the whole step and nothing can hide
+   * between two sub pages.
+   */
+  const blockers = onRequirements
+    ? blockersOnPart(entry, state, parts[partIndex] ?? null)
+    : step
+      ? blockersOn(step.id, entry, state)
+      : [];
 
   const set = (patch: Partial<FlowState>) => setState((s) => ({ ...s, ...patch }));
 
@@ -451,8 +478,23 @@ export function OrderFlow({
               stage is enforced by blockersOn. A customer who has their loan
               number now should be able to give it now; one who does not should
               still be able to buy.
+
+              AND IT IS ONE GROUP AT A TIME SINCE 2026-10-01. The sweep measured
+              this step at 10,748px at 390, roughly thirteen phone heights. The
+              fields, their wording and their validation are unchanged; what
+              changed is how many of them are on screen at once.
             */}
-            {customerFieldsFor(entry, "seal").map((input) => (
+            {parts.length > 1 ? (
+              <div>
+                <p className="text-[13px] font-semibold tracking-[0.08em] text-[var(--color-ink-quiet)] uppercase">
+                  Part {partIndex + 1} of {parts.length}
+                </p>
+                <h3 className="mt-1 text-[20px] leading-[1.25] font-semibold text-[var(--color-ink)]">
+                  {parts[partIndex]?.label}
+                </h3>
+              </div>
+            ) : null}
+            {(parts[partIndex]?.fields ?? []).map((input) => (
               <div key={input.id}>
                 <label
                   className="text-[13px] font-semibold text-[var(--color-ink)]"
@@ -552,10 +594,24 @@ export function OrderFlow({
       ) : null}
 
       <div className="mt-10 flex items-center justify-between gap-3 border-t border-[var(--color-limestone-line)] pt-6">
+        {/*
+          BACK WALKS THE SUB PAGES BEFORE IT LEAVES THE STEP, and forward does
+          the same, so a person moving through step 3 never loses the answers on
+          a part by stepping over it. Leaving the step forward resets to the
+          first part and leaving it backward lands on the last, which is what
+          "back" means to somebody who has just arrived from the review screen.
+        */}
         <button
           type="button"
-          disabled={index === 0}
-          onClick={() => setIndex((i) => Math.max(0, i - 1))}
+          disabled={index === 0 && (!onRequirements || partIndex === 0)}
+          onClick={() => {
+            if (onRequirements && partIndex > 0) {
+              setPart(partIndex - 1);
+              return;
+            }
+            setPart(0);
+            setIndex((i) => Math.max(0, i - 1));
+          }}
           className="min-h-[var(--tap-target)] rounded-[3px] border border-[var(--color-limestone-edge)] px-5 text-[15px] font-semibold text-[var(--color-ink)] disabled:opacity-40"
         >
           Back
@@ -577,7 +633,21 @@ export function OrderFlow({
           <button
             type="button"
             disabled={blockers.length > 0}
-            onClick={() => setIndex((i) => Math.min(steps.length - 1, i + 1))}
+            onClick={() => {
+              if (onRequirements && partIndex < lastPart) {
+                setPart(partIndex + 1);
+                /*
+                 * Back to the top, because a sub page that opens halfway down
+                 * is a sub page whose first question nobody sees. The split
+                 * exists to make the screen short; landing mid screen would
+                 * give that back.
+                 */
+                window.scrollTo({ top: 0, behavior: "auto" });
+                return;
+              }
+              setPart(0);
+              setIndex((i) => Math.min(steps.length - 1, i + 1));
+            }}
             className="min-h-[var(--tap-target)] rounded-[3px] bg-[var(--color-slate)] px-6 text-[15px] font-semibold text-white disabled:opacity-40"
           >
             Continue

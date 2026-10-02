@@ -1,4 +1,10 @@
-import { fieldsFor, type IntakeField, type FieldStage } from "@data/intake-fields";
+import {
+  fieldsFor,
+  INTAKE_GROUPS,
+  INTAKE_GROUP_LABEL,
+  type IntakeField,
+  type FieldStage,
+} from "@data/intake-fields";
 import type { CatalogEntry } from "@data/catalog";
 import type { QualifierAnswer } from "./ops-orders";
 
@@ -151,6 +157,89 @@ export function customerFieldsFor(entry: CatalogEntry, upTo: FieldStage): Intake
   return fieldsFor(entry.serviceSlug, entry.tier).filter(
     (f) => f.audience === "customer" && order.indexOf(f.stage) <= limit,
   );
+}
+
+// ------------------------------------------------- step 3, one group at a time
+
+/**
+ * STEP 3 IS SPLIT BY THE INTAKE DEFINITION'S OWN GROUPS.
+ *
+ * Operator ruling, 2026-09-30: split step 3 by the intake definition's own
+ * groups, the rail stays at five steps, each sub page says "Part 2 of 4",
+ * required fields are checked on their own sub page, and no screen is taller
+ * than about three phone heights at 390.
+ *
+ * WHY IT NEEDED SPLITTING. The break it sweep measured this step at 10,748px at
+ * 390, roughly thirteen phone heights. Sixteen questions on one screen is a form
+ * people abandon, and length on an app screen is not the same thing as length on
+ * a marketing page: one is reading, the other is work somebody has to finish.
+ *
+ * THE RAIL IS UNTOUCHED. `stepsFor` is not changed by any of this, so the five
+ * steps a customer sees across the top are the five they saw before. The parts
+ * are inside the third of them, which is what the ruling asks for: payment stays
+ * in the rail as the signpost and the rail does not grow to eight.
+ *
+ * THE COUNT IS DERIVED, NEVER FOUR. There are four groups, and the ruling's
+ * example says "Part 2 of 4", but a service with no access questions must not
+ * offer an empty fourth part. So empty groups are dropped and the denominator is
+ * what is left, which for most lines is fewer than four.
+ */
+export type IntakePart = {
+  group: IntakeField["group"];
+  label: string;
+  fields: IntakeField[];
+};
+
+export function intakePartsFor(entry: CatalogEntry): IntakePart[] {
+  /*
+   * The SHOWN set, up to seal, exactly as the step rendered before the split.
+   * Everything up to sealing is shown and only the order stage is enforced,
+   * which is a rule this file already carries and the split does not touch.
+   */
+  const shown = customerFieldsFor(entry, "seal");
+  return INTAKE_GROUPS.map((group) => ({
+    group,
+    label: INTAKE_GROUP_LABEL[group],
+    fields: shown.filter((f) => f.group === group),
+  })).filter((part) => part.fields.length > 0);
+}
+
+/**
+ * What is still missing on ONE part.
+ *
+ * THE RULE IS THE STEP'S RULE, NARROWED TO A PART, AND THAT IS THE WHOLE POINT.
+ * It applies the same test `blockersOn("requirements")` applies, over this
+ * part's fields instead of all of them, so nothing about what is required or
+ * what it is called changes. The operator's ruling was explicit that every
+ * field, its wording and its validation stay as they are; what moves is WHEN
+ * the check fires, which is now on the sub page carrying the field rather than
+ * at the end of a screen thirteen phone heights long.
+ *
+ * AND THE UNION OF THE PARTS IS EXACTLY THE STEP. Every order stage customer
+ * field is in the shown set, because order is a subset of seal, and every shown
+ * field belongs to exactly one group. So passing all parts is the same test as
+ * passing the step, and no field can hide between two sub pages. That property
+ * is asserted by a proof rather than left as a paragraph, because it is the one
+ * thing a split like this can silently get wrong.
+ */
+export function blockersOnPart(
+  entry: CatalogEntry | null,
+  state: FlowState,
+  part: IntakePart | null,
+): string[] {
+  if (!entry || !part) return [];
+  const enforced = new Set(customerFieldsFor(entry, "order").map((f) => f.id));
+  const missing: string[] = [];
+  for (const field of part.fields) {
+    if (!field.required) continue;
+    if (!enforced.has(field.id)) continue;
+    if (field.kind === "file") {
+      if (!(state.files[field.id]?.length > 0)) missing.push(field.label);
+    } else if (!state.inputs[field.id]?.trim()) {
+      missing.push(field.label);
+    }
+  }
+  return missing;
 }
 
 export function blockersOn(step: StepId, entry: CatalogEntry | null, state: FlowState): string[] {

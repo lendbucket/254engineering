@@ -84,6 +84,39 @@ export type IntakeField = {
 };
 
 /**
+ * THE GROUPS, IN THE ORDER EVERY SURFACE ASKS THEM, AND WHAT EACH IS CALLED.
+ *
+ * Moved here on 2026-10-01 from a local copy in the portal intake screen, in the
+ * commit that made the customer order flow need them too.
+ *
+ * WHY IT MOVED RATHER THAN BEING COPIED. The operator intake already iterated
+ * `["document", "parties", "property", "access"]` with its own `GROUP_LABEL`
+ * beside it. Splitting the customer's step 3 by group needed the same two facts,
+ * and typing them again would have made the sequence a customer is asked in and
+ * the sequence an operator is asked in two accounts of one decision, free to
+ * drift. This repository has ruled on that shape six times.
+ *
+ * It belongs in this file because this file is already the one definition of a
+ * complete job, which is the rule Phase 10 Section 1.5 established after the web
+ * and telephone paths asked overlapping but different sets. The ORDER is part of
+ * that definition: a customer and an operator taking the same job should be asked
+ * the same things in the same sequence, or the two transcripts read differently
+ * for no reason at all.
+ *
+ * An empty group is skipped by each caller rather than filtered here, because
+ * which groups are non empty depends on the service and this list is about all
+ * of them.
+ */
+export const INTAKE_GROUPS = ["document", "parties", "property", "access"] as const;
+
+export const INTAKE_GROUP_LABEL: Record<IntakeField["group"], string> = {
+  document: "The document",
+  parties: "The people",
+  property: "The property",
+  access: "Getting in",
+};
+
+/**
  * THE PARTIES, WHICH ARE USUALLY NOT ONE PERSON.
  *
  * The platform has always known who is paying. It has never known who owns the
