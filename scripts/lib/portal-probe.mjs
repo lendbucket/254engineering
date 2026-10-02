@@ -542,26 +542,113 @@ export async function destroyPartnerProbes(label = "audit") {
   const ids = new Set([...partnersMade.map((p) => p.partnerId), ...(strays ?? []).map((r) => r.id)]);
   const refused = [];
 
+  /*
+   * =========================================================================
+   * EVERY DELETE'S ERROR IS READ, AND WHAT CANNOT BE DELETED IS DISABLED.
+   * =========================================================================
+   *
+   * Operator ruling, 2026-10-02, after this function left a LIVE partner
+   * account on development and three board audits caught it.
+   *
+   * WHAT IT USED TO DO, and the three faults are one fault. It deleted tokens,
+   * then users, then the partner. The token delete and the USER delete had no
+   * error check at all. The partner delete's error was captured, and
+   * `eng_partner_acceptances` references the partner and is append only, so that
+   * delete fails by design. Then the verification counted `eng_partners`.
+   *
+   * So the user delete failed silently, the partner delete failed loudly, and
+   * the read back looked at the wrong table. It reported "1 probe partner left
+   * behind", which sounds like a stray row, and what was actually left was a
+   * partner user WITH A PASSWORD, able to sign in, on the database every audit
+   * points at.
+   *
+   * CLAUDE.md records both halves already. A delete whose error is discarded is
+   * how two customer probes outlived their runs by seventeen and eight days. And
+   * a sweep that derives, deletes and verifies against one table agrees with
+   * itself by construction; the fix there was to verify against something the
+   * delete did not read, and the same applies here.
+   *
+   * THE APPEND ONLY TABLE IS RIGHT AND IS NOT THE PROBLEM. An acceptance is the
+   * record that somebody agreed to the partner terms, and a test run must not be
+   * able to delete one. The customer path already settled this shape: an account
+   * is SUPERSEDED rather than removed, because the records attached to it are the
+   * record of what somebody was charged. So a partner that cannot be deleted is
+   * disabled instead, which is what actually matters: the thing that can sign in
+   * is the USER and its password, never the partner row.
+   */
+  const disabled = [];
+
   for (const id of ids) {
     const { data: users } = await d.from("eng_partner_users").select("id").eq("partner_id", id);
+
     for (const u of users ?? []) {
-      await d.from("eng_partner_tokens").delete().eq("user_id", u.id);
+      const { error: te } = await d.from("eng_partner_tokens").delete().eq("user_id", u.id);
+      if (te) refused.push(`${id}: tokens: ${te.message}`);
     }
-    await d.from("eng_partner_users").delete().eq("partner_id", id);
-    const { error } = await d.from("eng_partners").delete().eq("id", id);
-    if (error) refused.push(`${id}: ${error.message}`);
+
+    const { error: ue } = await d.from("eng_partner_users").delete().eq("partner_id", id);
+    if (ue) {
+      refused.push(`${id}: users: ${ue.message}`);
+      /*
+       * THE CREDENTIAL IS NEUTRALISED BEFORE ANYTHING ELSE IS TRIED. A user that
+       * cannot be removed must at least be unable to authenticate, and that is
+       * the password rather than the status alone: a status is checked by
+       * application code, and a null password cannot be verified against by any
+       * code at all.
+       */
+      const { error: de } = await d
+        .from("eng_partner_users")
+        .update({ password_hash: null, password_salt: null, status: "suspended" })
+        .eq("partner_id", id);
+      if (de) refused.push(`${id}: could not even disable its user(s): ${de.message}`);
+      else disabled.push(`${id}: user(s) suspended and password cleared`);
+    }
+
+    const { error: pe } = await d.from("eng_partners").delete().eq("id", id);
+    if (pe) {
+      refused.push(`${id}: ${pe.message}`);
+      const { error: spe } = await d.from("eng_partners").update({ status: "suspended" }).eq("id", id);
+      if (spe) refused.push(`${id}: could not even suspend it: ${spe.message}`);
+      else disabled.push(`${id}: partner suspended`);
+    }
   }
   partnersMade.length = 0;
 
-  const { data } = await d
+  /*
+   * THE VERIFICATION READS THE THING THAT CAN SIGN IN, which is the user, and
+   * reads the partner separately. Counting partners alone is what let a live
+   * credential be reported as a stray row.
+   *
+   * A suspended user with no password is not counted as left behind, because it
+   * cannot authenticate and its partner's acceptance may not be deleted. It is
+   * reported in `disabled` instead, so nothing about it is silent.
+   */
+  const { data: partnersLeft } = await d
     .from("eng_partners")
-    .select("id")
+    .select("id, status")
     .like("contact_email", `%@${PROBE_DOMAIN}`);
-  const left = (data ?? []).length;
+
+  const { data: usersLeft } = await d
+    .from("eng_partner_users")
+    .select("id, status, password_hash")
+    .like("email", `%@${PROBE_DOMAIN}`);
+
+  const liveUsers = (usersLeft ?? []).filter(
+    (u) => u.password_hash !== null || u.status !== "suspended",
+  );
+  const activePartners = (partnersLeft ?? []).filter((p) => p.status !== "suspended");
+
+  const left = liveUsers.length + activePartners.length;
+
   return {
     ok: left === 0,
     left,
-    note: left ? `${left} probe partner(s) left behind${refused.length ? `: ${refused.join(", ")}` : ""}` : "",
+    disabled,
+    note: left
+      ? `${liveUsers.length} probe partner user(s) can still sign in and ${activePartners.length} probe partner(s) are still active${refused.length ? `: ${refused.join(", ")}` : ""}`
+      : disabled.length
+        ? `nothing can sign in. ${(partnersLeft ?? []).length} probe partner row(s) could not be deleted and were disabled instead: ${disabled.join("; ")}`
+        : "",
   };
 }
 

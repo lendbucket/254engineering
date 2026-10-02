@@ -123,12 +123,17 @@ export function LookupForm({ reference, prefix }: { reference: string; prefix: s
         aria-live, so somebody using a screen reader is told rather than left
         pressing a button that appears to do nothing, which is the exact
         experience this whole change exists to remove.
+
+        AND 13.5px RATHER THAN 14. This is a STAFF screen, and 14 exists only on
+        the customer scale. It shipped as 14 and token-audit caught it on the
+        first board, by the check added hours earlier for exactly this: a staff
+        file using a step that only the customer scale has.
       */}
       {problem ? (
         <p
           id="reference-problem"
           aria-live="polite"
-          className="text-[14px] leading-[1.5] font-semibold text-[var(--ink)]"
+          className="text-[13.5px] leading-[1.5] font-semibold text-[var(--ink)]"
         >
           {problem}
         </p>
