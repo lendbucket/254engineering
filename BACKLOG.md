@@ -25,6 +25,27 @@ a commit is one the next session has to go looking for.
 the tracker and the done page, were already V10 and needed capturing rather than
 restyling.
 
+## THE HR LIFECYCLE IS INVENTORIED AND SIX THINGS ARE OWED
+
+Recorded 2026-10-02. The reasoning, the readings and every citation are in
+`docs/audits/hr-lifecycle-2026-10-02.md`, which is the Part A and Part B report
+the operator ordered. This entry is the pointer and not a second copy of it.
+
+**What it found, in the order it blocks things.** No classification on a person,
+so nothing downstream can branch on contractor against employee. **Seven
+onboarding checklist items collect documents the Gusto ruling says the platform
+must not hold**, which is the only finding that is live today rather than a gap.
+Checkr and the whole FCRA flow are absent. No retention rule covers applications
+or onboarding records. The rules file with citations that an audit can read does
+not exist, so none of the compliance rules is enforceable. Offer generation,
+interview scheduling, the Texas new hire report, equipment, emergency contact and
+per person reporting are missing and block nothing.
+
+**Why it is not built yet.** Operator ruling: write the migration after this
+report, apply it to development only, board it, and production waits for a
+sitting with him. The report also lists four open questions where I could not
+establish an answer and did not want to imply one.
+
 ## THE SWEEP'S PROMISE DETECTOR FINDS ONE REAL SENTENCE IN SIX, AND THE FIX IS KNOWN
 
 Recorded 2026-10-01 from the break it sweep. The detector in
