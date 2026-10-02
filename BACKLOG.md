@@ -19,11 +19,12 @@ a commit is one the next session has to go looking for.
 | 2026-10-01 | HR pay rates | **RULED.** No defaults anywhere. Rates are entered per person in admin by the owner, with effective dates. A person with no rate set cannot be assigned paid work or appear in a pay export, and the screen says why in plain words. |
 | 2026-10-01 | Contractor agreement and handbook text | **RULED.** Build the flow that carries an uploaded document, its version, and a dated acknowledgement per person. Placeholder text marked "Awaiting attorney review" until he uploads the real documents, and nothing goes out while the placeholder is there. |
 | 2026-10-01 | The HR migration | **RULED.** Write it after the Part A and Part B report, apply it to development only, board it. Production waits for a sitting with him. |
+| 2026-10-02 | **254 needs its own project: production is shared with another app's data** | **OPEN, PLAN ONLY, AND IT IS NOT A NEW IDEA.** Established by a read-only production count on 2026-10-02: that project holds an `applications` bucket with 31 objects and an empty `resumes` bucket, neither `eng_` prefixed. This firm's code writes to neither, and the twelve buckets this codebase names are all `eng-` prefixed, so those belong to another app. **Not opened and not to be opened.** The operator wants the cutover planned as a sitting with him, with a written plan first: what moves, in what order, downtime, rollback, and how secrets and webhooks switch over. Plan only, no changes. **A plan and a target project already exist and both are stale:** `docs/production-cutover-plan.md`, PARKED by his ruling of 2026-09-15 and dated 2026-09-22, against project `qmvcqvkywmkogxbyzsaz`, which was replayed at **migration 0023** while the chain is now at **0060**, so thirty seven migrations of drift sit between the plan and the world. The new plan supersedes or revises that document rather than starting beside it, because two accounts of one cutover is the defect this repository records most often. |
 | 2026-10-01 | Customer phone verification | **RULED: DO NOT BUILD IT.** There was no such screen to restyle; searching `verify_phone`, `phone_verified`, `verifyPhone`, `otp` and `OTP` across `src`, `data` and every migration returned only the staff TOTP second factor. `V10-verify-phone` is removed from the stage 1 row in `docs/design-v10/DESIGN_V10.md`, with the ruling recorded there rather than the row being silently shortened. If text reminders are added later, the number is confirmed by the customer replying YES to the first message, as part of that opt in, so no separate screen is owed. |
 
-**Nothing is open and nothing is blocked.** The other two screens in stage 1 item 3,
-the tracker and the done page, were already V10 and needed capturing rather than
-restyling.
+**One open, and it blocks nothing.** The cutover is plan only and waits on a
+sitting. The other two screens in stage 1 item 3, the tracker and the done page,
+were already V10 and needed capturing rather than restyling.
 
 ## THE HR LIFECYCLE IS INVENTORIED AND SIX THINGS ARE OWED
 
