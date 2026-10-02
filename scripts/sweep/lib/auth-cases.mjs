@@ -22,7 +22,7 @@
  * the reason, rather than a refusal that proves nothing.
  */
 
-import { createHmac } from "node:crypto";
+import { createHash, createHmac, randomUUID } from "node:crypto";
 
 /** Exactly customer-session.ts's construction. A mismatch fails the check below. */
 function customerSigningKey(secret) {
@@ -125,22 +125,140 @@ export async function runAuthCases({ base, customer, db, find, cnt, treatAsSecre
 
   /* ------------------------------------------- the reset link, issued and reused */
 
-  const { data: tokenRow } = await db
-    .from("eng_customer_auth_tokens")
-    .select("id")
-    .eq("customer_user_id", customer.userId)
-    .limit(1)
-    .maybeSingle();
-  if (!tokenRow) {
-    /*
-     * The sweep does not mint a reset through the public route, because that
-     * route queues an email. The token is minted directly below so nothing is
-     * sent, and the LINK is then exercised against the real screen.
-     */
+  /*
+   * ===========================================================================
+   * A RESET LINK IS SPENT ONCE, AND THE SECOND ATTEMPT MUST CHANGE NOTHING.
+   * ===========================================================================
+   *
+   * Operator ruling, 2026-10-01: "insert a reset token directly for a probe, the
+   * way the probes are made, so no mail queues. Then test reuse."
+   *
+   * WHY NOT THE PUBLIC ROUTE. `/api/account/forgot-password` queues an
+   * `email.send` job. The probe address is on the reserved `.invalid` domain and
+   * nothing deployed drains the development queue, so a queued job reaches
+   * nobody, but the sweep's standing limit is that it sends nothing, and the
+   * cheapest way to honour that is not to ask the route at all.
+   *
+   * THE TOKEN IS BUILT THE WAY THE PRODUCT BUILDS ONE, which is the half that
+   * makes the result mean anything. `customer-auth.ts` stores
+   * `sha256(token)` as hex in `token_hash` and nothing else, so a token this
+   * file mints and hashes identically IS a valid token as far as the product is
+   * concerned. If that reproduction were wrong, "the second attempt was refused"
+   * would prove nothing, because the FIRST would have been refused too.
+   *
+   * SO THE FIRST SPEND IS ASSERTED BEFORE THE SECOND IS EVIDENCE, exactly as the
+   * expired session case above does it. A reuse check whose first attempt
+   * silently failed is a green over a case that never ran.
+   */
+  const resetToken = `sweep-reset-${randomUUID()}`;
+  const resetHash = createHash("sha256").update(resetToken, "utf8").digest("hex");
+  treatAsSecret(resetToken);
+  treatAsSecret(resetHash);
+
+  const { error: insErr } = await db.from("eng_customer_auth_tokens").insert({
+    customer_user_id: customer.userId,
+    purpose: "reset_password",
+    token_hash: resetHash,
+    expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+  });
+
+  if (insErr) {
     cnt(
       "the reused reset link case",
-      "no reset token was present to reuse, and the sweep does not call the public reset route because that route queues mail",
+      `a reset token could not be inserted for the probe: ${insErr.message}. Nothing about reuse was measured`,
     );
+  } else {
+    const spend = async (password) =>
+      fetch(`${base}/api/account/set-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: resetToken, password }),
+      });
+
+    const firstPassword = `Sweep-first-${randomUUID().slice(0, 12)}`;
+    const secondPassword = `Sweep-second-${randomUUID().slice(0, 12)}`;
+    treatAsSecret(firstPassword);
+    treatAsSecret(secondPassword);
+
+    const first = await spend(firstPassword);
+
+    if (!first.ok) {
+      /*
+       * THE CASE IS ABANDONED RATHER THAN REPORTED. A refusal of the second
+       * attempt says nothing about reuse when the first was also refused.
+       */
+      cnt(
+        "the reused reset link case",
+        `the FIRST spend of a directly inserted reset token was refused (${first.status}), so the reproduction is wrong and a refused second attempt would prove nothing`,
+      );
+    } else {
+      /*
+       * THE STORED HASH IS COMPARED ACROSS THE SECOND ATTEMPT, and the status is
+       * not trusted on its own. A 400 with the password changed anyway is
+       * precisely the defect this case exists to find, and no status code can
+       * see it.
+       *
+       * IT IS A COMPARISON RATHER THAN A SIGN IN, deliberately. The obvious
+       * version signs in with the second password to see whether it took, and
+       * that adds a FAILED sign in to this address before the email
+       * normalisation cases below run, which could push them into the rate
+       * limiter and report three working behaviours as defects. A read of the
+       * row touches no limiter and answers the same question more directly.
+       * The hash is registered as secret and never printed; only whether it
+       * moved is reported.
+       */
+      const hashNow = async () => {
+        const { data } = await db
+          .from("eng_customer_users")
+          .select("password_hash")
+          .eq("id", customer.userId)
+          .maybeSingle();
+        return data?.password_hash ?? null;
+      };
+
+      const before = await hashNow();
+      if (before) treatAsSecret(before);
+
+      const second = await spend(secondPassword);
+      const refused = !second.ok;
+
+      const after = await hashNow();
+      if (after) treatAsSecret(after);
+      const unreadable = before === null || after === null;
+      const moved = !unreadable && before !== after;
+
+      find(
+        "/api/account/set-password",
+        "customer",
+        "n/a",
+        refused
+          ? `a reset link was spent once and the second attempt was refused with ${second.status}, with the first spend proven to have succeeded first`
+          : `a reset link was spent TWICE: the second attempt answered ${second.status}, so a link in an old email still changes a password`,
+        refused ? 0 : 1,
+        "behaviour",
+      );
+
+      if (unreadable) {
+        cnt(
+          "whether the stored password survived the reused reset link",
+          "the probe's row could not be read back, so the reuse was judged on its status alone and the password itself was never checked",
+        );
+      } else {
+        find(
+          "/api/account/set-password",
+          "customer",
+          "n/a",
+          moved
+            ? "the stored password CHANGED on the second spend of an already used reset link"
+            : "and the stored password did not change on the second spend, so the refusal actually prevented the change rather than only reporting one",
+          moved ? 1 : 0,
+          "behaviour",
+        );
+      }
+
+      /* The probe's password is now the first one, which disposal removes anyway. */
+      customer.password = firstPassword;
+    }
   }
 
   /* ---------------------------------- wrong case and trailing spaces in the email */
