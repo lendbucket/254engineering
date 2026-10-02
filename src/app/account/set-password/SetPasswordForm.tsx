@@ -53,11 +53,12 @@ export function AccountSetPasswordForm({ token, minLength }: { token: string; mi
         At least {minLength} characters.
       </p>
 
-      {/* Keeps its colour, loses its box. See the note on the sign up form. */}
+      {/* Ink, not red. See the note on the sign up form for why. */}
       {error ? (
         <p
           role="alert"
-          className="mt-5 border-l-2 border-[var(--red)] pl-3 text-[15px] leading-[1.55] font-semibold text-[var(--red)]"
+          aria-live="assertive"
+          className="mt-5 border-l-2 border-[var(--color-ink)] pl-3 text-[15px] leading-[1.55] font-semibold text-[var(--color-ink)]"
         >
           {error}
         </p>

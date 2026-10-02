@@ -188,7 +188,7 @@ export function BulkOrderClient({
     <div>
       {deliverables.length > 1 ? (
         <div className="mb-6">
-          <label htmlFor="tier" className="block text-[13.5px] font-bold text-[var(--navy)]">
+          <label htmlFor="tier" className="block text-[14px] font-bold text-[var(--navy)]">
             Which deliverable
           </label>
           <select
@@ -210,10 +210,10 @@ export function BulkOrderClient({
         </div>
       ) : null}
 
-      <label htmlFor="paste" className="block text-[13.5px] font-bold text-[var(--navy)]">
+      <label htmlFor="paste" className="block text-[14px] font-bold text-[var(--navy)]">
         The properties
       </label>
-      <p className="mt-1 text-[12.5px] leading-[1.55] text-[var(--secondary)]">
+      <p className="mt-1 text-[13px] leading-[1.55] text-[var(--secondary)]">
         One per line: address, city, county, postcode. The county decides both the protocol and the
         price, so it is the one field that cannot be left out.
       </p>
@@ -223,12 +223,12 @@ export function BulkOrderClient({
         value={paste}
         onChange={(e) => setPaste(e.target.value)}
         placeholder={"1200 Ocean Drive, Corpus Christi, Nueces, 78404\n88 Live Oak, San Antonio, Bexar, 78205"}
-        className="mt-2 w-full rounded-[3px] border border-[var(--border)] px-3 py-2.5 font-mono text-[13.5px] text-[var(--navy)]"
+        className="mt-2 w-full rounded-[3px] border border-[var(--border)] px-3 py-2.5 font-mono text-[14px] text-[var(--navy)]"
       />
       <button
         type="button"
         onClick={parse}
-        className="mt-2 inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] bg-white px-4 text-[13.5px] font-semibold text-[var(--navy)]"
+        className="mt-2 inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] bg-white px-4 text-[14px] font-semibold text-[var(--navy)]"
       >
         Read {paste.split("\n").filter((l) => l.trim()).length || 0} lines
       </button>
@@ -236,21 +236,21 @@ export function BulkOrderClient({
       {rows.length > 0 ? (
         <>
           <div className="mt-8 rounded-[4px] border border-[var(--border)] bg-white p-4">
-            <p className="text-[13.5px] font-bold text-[var(--navy)]">These answers apply to every property</p>
-            <p className="mt-1 text-[12.5px] leading-[1.55] text-[var(--secondary)]">
+            <p className="text-[14px] font-bold text-[var(--navy)]">These answers apply to every property</p>
+            <p className="mt-1 text-[13px] leading-[1.55] text-[var(--secondary)]">
               Change one below on any property where the answer is different. A wrong answer here is
               what gets a property rejected after you have paid for it.
             </p>
             {chosen.qualifiers.map((q) => (
               <div key={q.id} className="mt-3">
-                <label htmlFor={`shared-${q.id}`} className="block text-[12.5px] font-semibold text-[var(--navy)]">
+                <label htmlFor={`shared-${q.id}`} className="block text-[13px] font-semibold text-[var(--navy)]">
                   {q.prompt}
                 </label>
                 <select
                   id={`shared-${q.id}`}
                   value={shared[q.id] ?? ""}
                   onChange={(e) => setSharedAnswer(q.id, Number(e.target.value))}
-                  className="mt-1 min-h-[44px] w-full rounded-[3px] border border-[var(--border)] px-2.5 text-[13.5px] text-[var(--navy)]"
+                  className="mt-1 min-h-[44px] w-full rounded-[3px] border border-[var(--border)] px-2.5 text-[14px] text-[var(--navy)]"
                 >
                   <option value="" disabled>
                     Choose
@@ -283,16 +283,16 @@ export function BulkOrderClient({
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.ref} className="border-b border-[var(--border)] last:border-0">
-                    <td className="py-2 pr-3 font-mono text-[12.5px] text-[var(--secondary)]">{r.ref}</td>
-                    <td className="py-2 pr-3 text-[13.5px] text-[var(--navy)]">{r.propertyAddress || "(no address)"}</td>
-                    <td className="py-2 pr-3 text-[13.5px] text-[var(--navy)]">{r.county || "(none)"}</td>
+                    <td className="py-2 pr-3 font-mono text-[13px] text-[var(--secondary)]">{r.ref}</td>
+                    <td className="py-2 pr-3 text-[14px] text-[var(--navy)]">{r.propertyAddress || "(no address)"}</td>
+                    <td className="py-2 pr-3 text-[14px] text-[var(--navy)]">{r.county || "(none)"}</td>
                     {chosen.qualifiers.map((q) => (
                       <td key={q.id} className="py-2 pr-3">
                         <select
                           aria-label={`${q.prompt} for ${r.ref}`}
                           value={r.answers[q.id] ?? ""}
                           onChange={(e) => setRowAnswer(r.ref, q.id, Number(e.target.value))}
-                          className="min-h-[44px] rounded-[3px] border border-[var(--border)] px-2 text-[13.5px] text-[var(--navy)]"
+                          className="min-h-[44px] rounded-[3px] border border-[var(--border)] px-2 text-[14px] text-[var(--navy)]"
                         >
                           <option value="" disabled>
                             Choose
@@ -315,12 +315,12 @@ export function BulkOrderClient({
             type="button"
             disabled={busy !== null || !answeredAll}
             onClick={() => run("preview")}
-            className="mt-5 inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-5 text-[13.5px] font-bold text-white disabled:opacity-45"
+            className="mt-5 inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-5 text-[14px] font-bold text-white disabled:opacity-45"
           >
             {busy === "preview" ? "Checking" : "Check what the firm can take"}
           </button>
           {!answeredAll ? (
-            <p className="mt-2 text-[12.5px] text-[var(--secondary)]">
+            <p className="mt-2 text-[13px] text-[var(--secondary)]">
               Every property needs an answer to every question before this can be checked.
             </p>
           ) : null}
@@ -337,7 +337,7 @@ export function BulkOrderClient({
 
             {preview.rejected.length > 0 ? (
               <div className="mt-4">
-                <p className="text-[13.5px] font-bold text-[var(--navy)]">
+                <p className="text-[14px] font-bold text-[var(--navy)]">
                   Not taken, and not charged for
                 </p>
                 {/*
@@ -351,10 +351,10 @@ export function BulkOrderClient({
                 <ul className="mt-2 border-t border-[var(--color-limestone-line)]">
                   {preview.rejected.map((r) => (
                     <li key={r.ref} className="border-b border-[var(--color-limestone-line)] py-2.5">
-                      <p className="font-mono text-[12.5px] font-semibold text-[var(--color-ink)]">
+                      <p className="font-mono text-[13px] font-semibold text-[var(--color-ink)]">
                         {r.ref} {r.address}
                       </p>
-                      <p className="mt-0.5 text-[13.5px] leading-[1.55] text-[var(--color-ink-quiet)]">
+                      <p className="mt-0.5 text-[14px] leading-[1.55] text-[var(--color-ink-quiet)]">
                         {r.reason}
                       </p>
                     </li>
@@ -368,12 +368,12 @@ export function BulkOrderClient({
                 <ul className="divide-y divide-limestone-line">
                   {preview.accepted.map((a) => (
                     <li key={a.ref} className="flex flex-wrap items-baseline gap-x-3 py-2">
-                      <span className="font-mono text-[12.5px] text-[var(--secondary)]">{a.ref}</span>
-                      <span className="text-[13.5px] text-[var(--navy)]">{a.address}</span>
+                      <span className="font-mono text-[13px] text-[var(--secondary)]">{a.ref}</span>
+                      <span className="text-[14px] text-[var(--navy)]">{a.address}</span>
                       {a.twiaCounty ? (
                         <span className="text-[12px] text-[var(--gold-deep)]">coastal county</span>
                       ) : null}
-                      <span className="ml-auto text-[13.5px] font-semibold text-[var(--navy)]">
+                      <span className="ml-auto text-[14px] font-semibold text-[var(--navy)]">
                         {money(a.priceCents)}
                       </span>
                     </li>
@@ -387,18 +387,26 @@ export function BulkOrderClient({
             ) : null}
 
             {/*
-              THE CREDIT MESSAGE KEEPS ITS RED AND LOSES ITS BOX. It is the
-              sentence saying this submission cannot be placed on account, which
-              is about money and about what somebody can do next, so it gets the
-              red left rule V10 uses for a failure rather than reading as body
-              copy. The invoice note beside it is informational and gets neither.
+              THE CREDIT MESSAGE IS INK, NOT RED. It is the sentence saying this
+              submission cannot be placed on account, which is about money and
+              about what somebody can do next, so it gets the 2px ink rule and
+              weight 600 that V10 uses instead of a colour. The invoice note
+              beside it is informational and gets neither.
+
+              It was red for an hour on 2026-10-01 because I cited a code comment
+              as precedent rather than reading DESIGN_V10.md line 29. The note on
+              the sign up form carries that account.
             */}
             {creditBlocked ? (
-              <p className="mt-4 border-l-2 border-[var(--red)] pl-3 text-[13.5px] leading-[1.6] font-semibold text-[var(--red)]">
+              <p
+                role="alert"
+                aria-live="assertive"
+                className="mt-4 border-l-2 border-[var(--color-ink)] pl-3 text-[14px] leading-[1.6] font-semibold text-[var(--color-ink)]"
+              >
                 {preview.credit?.message}
               </p>
             ) : preview.billingMode === "invoice" ? (
-              <p className="mt-4 text-[13.5px] leading-[1.6] text-[var(--color-ink-quiet)]">
+              <p className="mt-4 text-[14px] leading-[1.6] text-[var(--color-ink-quiet)]">
                 This account is invoiced. Nothing is charged now, and this appears on your next
                 statement.
               </p>
@@ -408,7 +416,7 @@ export function BulkOrderClient({
               type="button"
               disabled={busy !== null || preview.accepted.length === 0 || Boolean(creditBlocked)}
               onClick={() => run("submit")}
-              className="mt-5 inline-flex min-h-[44px] w-full items-center justify-center rounded-[3px] bg-slate px-5 text-[13.5px] font-bold text-white disabled:opacity-45"
+              className="mt-5 inline-flex min-h-[44px] w-full items-center justify-center rounded-[3px] bg-slate px-5 text-[14px] font-bold text-white disabled:opacity-45"
             >
               {busy === "submit"
                 ? "Submitting"
@@ -428,7 +436,8 @@ export function BulkOrderClient({
       {error ? (
         <p
           role="alert"
-          className="mt-4 border-l-2 border-[var(--red)] pl-3 text-[13.5px] leading-[1.6] font-semibold text-[var(--red)]"
+          aria-live="assertive"
+          className="mt-4 border-l-2 border-[var(--color-ink)] pl-3 text-[14px] leading-[1.6] font-semibold text-[var(--color-ink)]"
         >
           {error}
         </p>

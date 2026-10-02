@@ -186,19 +186,47 @@ export function SignUpForm() {
       </div>
 
       {/*
-        THE ERROR KEEPS ITS COLOUR AND LOSES ITS BOX.
+        THE ERROR LOSES ITS COLOUR AS WELL AS ITS BOX. Operator ruling,
+        2026-10-02, and this note is the one the other forms point at.
 
-        V10 carries status in weight rather than in tint, and a tinted red panel
-        is the shape it removes. What it does not remove is the fact that this
-        is an error: red on white here is 5.9:1 and contrast-audit measures it,
-        and `role="alert"` is what a screen reader acts on either way. A failure
-        that looks exactly like body copy is a failure people scroll past.
+        THE SENTENCE THAT USED TO SIT HERE said the error "keeps its colour and
+        loses its box", and argued it from red on white measuring 5.9:1. That was
+        wrong, and how it was wrong is worth more than the fix.
+
+        DESIGN_V10.md line 29: "No status colors. No red, green or amber anywhere
+        in the UI. Urgency is shown with weight (bold) and words, never with
+        color, dots, badges or tinted boxes. Brand navy and gold are the only
+        colors."
+
+        The old note was never a reading of that line. It was an argument about
+        CONTRAST, which answers a different question: whether red is legible, not
+        whether red is permitted. Both can be true at once and the spec had
+        already decided the second. Worse, the note got quoted: three other forms
+        said "see the note on the sign up form" and inherited a conclusion nobody
+        had checked against the document.
+
+        That is this repository's commonest failure in a new costume. A claim
+        written to serve an argument is not an observation, and a session reading
+        this file took the code's own comment as the authority over the spec,
+        which is what happened on 2026-10-01.
+
+        WHAT CARRIES IT INSTEAD, and it is enough. Ink at #161B22, weight 600, a
+        2px ink left rule, and aria-live with role alert. A rule is structure
+        rather than colour, so it survives the ruling, and it is what stops a
+        failure reading as body copy. The words do the rest: an error says what is
+        wrong and what to do about it.
+
+        AND IT IS BETTER FOR SOMEBODY WHO CANNOT SEE THE DIFFERENCE. Red at
+        5.9:1 told a person with deuteranopia nothing the weight was not already
+        telling them. The colour was never carrying the meaning; it only looked
+        as though it was.
       */}
       {error ? (
         <p
           id="sign-up-error"
           role="alert"
-          className="border-l-2 border-[var(--red)] pl-3 text-[15px] leading-[1.55] font-semibold text-[var(--red)]"
+          aria-live="assertive"
+          className="border-l-2 border-[var(--color-ink)] pl-3 text-[15px] leading-[1.55] font-semibold text-[var(--color-ink)]"
         >
           {error}
         </p>

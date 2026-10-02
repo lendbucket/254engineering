@@ -478,19 +478,76 @@ const CUSTOMER_V10 = [
   /*
    * THE FOUR SIGNED IN SHELLS, 2026-09-29. Header, headings and footer on V10.
    *
-   * Their INTERIORS are not here and that is the honest part: SettingsClient,
-   * BulkOrderClient, the statement rows and the per property rows are still on
-   * the staff palette and the staff scale, so each of these screens currently
-   * reads as a V10 shell around an older middle. A token pass over forms that
-   * hold API keys, billing contacts and money is a rewrite of every control,
-   * not a restyle, and doing it at speed was the wrong trade. BACKLOG.md.
+   * The note that used to sit here said their INTERIORS were not on this list
+   * and that each screen read as a V10 shell around an older middle. That was
+   * true and is no longer: the interiors went on V10 on 2026-10-02 and are
+   * listed below.
    */
   "src/app/account/settings/page.tsx",
   "src/app/account/statements/page.tsx",
   "src/app/account/orders/[reference]/page.tsx",
   "src/app/account/order/page.tsx",
+  /*
+   * THE INTERIORS, 2026-10-02, stage 1 item 4.
+   *
+   * Tinted panels removed, section headings given the 2px ink rule, colour as
+   * status removed, and the type scale brought onto the customer steps: every
+   * 13.5px became 14 and every 12.5px became 13, rounded UP because that is the
+   * legible direction and both were off the scale the operator ruled.
+   *
+   * ADDING A FILE HERE IS WHAT SUBJECTS IT TO THE CUSTOMER SCALE AND THE COLOUR
+   * RULE BELOW, so this list is what makes a restyle enforced rather than merely
+   * done. A screen restyled and not listed can drift back on the next edit with
+   * nothing saying so.
+   */
+  "src/app/account/settings/SettingsClient.tsx",
+  "src/app/account/order/BulkOrderClient.tsx",
+  "src/app/account/login/AccountLoginForm.tsx",
+  "src/app/account/statements/PayStatementButton.tsx",
+  "src/app/account/orders/page.tsx",
 ];
 const ALLOWED_RADIUS_PX = new Set([2, 3, 4, 8, 12, 16, 18]);
+
+/*
+ * ===========================================================================
+ * NO RED, GREEN OR AMBER ON A CUSTOMER SURFACE, AND NOTHING CHECKED IT.
+ * ===========================================================================
+ *
+ * Operator ruling, 2026-10-02: "no red text anywhere, including errors.
+ * DESIGN_V10.md says no red, green or amber in the UI, and urgency is carried by
+ * weight and words."
+ *
+ * TWO DOCUMENTS ALREADY SAID SO AND FOURTEEN PLACES DISOBEYED THEM.
+ * DESIGN_V10.md line 29: "No status colors. No red, green or amber anywhere in
+ * the UI... Brand navy and gold are the only colors." PORTAL_DESIGN_STANDARDS.md
+ * line 61 says the same in its own words.
+ *
+ * The rule was written twice, in reviewed files, and had NO CHECK. So fourteen
+ * uses of `--red`, `--green` and the `--warn-*` family sat on customer screens
+ * through every board, and the code's own comments argued FOR them, citing
+ * contrast ratios. Contrast answers whether a colour is legible, not whether it
+ * is permitted, and a session reading those comments took them as the authority
+ * over both documents. This repository's lesson is usually that a declaration
+ * nothing reads stops being true; here the declaration was right and the code
+ * was wrong, and the missing piece was the same: nothing compared them.
+ *
+ * GOLD IS NOT IN THIS LIST, because gold is a brand colour the rule explicitly
+ * allows. `--gold-deep` is `#8d610f`, which DESIGN_SPEC.md added precisely as
+ * "gold as text on light" at 4.81:1, so it clears AA as well as the palette.
+ *
+ * NAMED TOKENS RATHER THAN A HEX SWEEP, because a screen writes `var(--red)` and
+ * a hex scan would not see it. The raw hex scan above still runs alongside.
+ */
+const FORBIDDEN_COLOUR = [
+  { token: "--red", why: "red is not a colour this design has, including for errors" },
+  { token: "--green", why: "green is not a colour this design has, including for success" },
+  { token: "--green-bg", why: "a green tint is a tinted box and a status colour at once" },
+  { token: "--warn-bg", why: "an amber tint is a tinted box and a status colour at once" },
+  { token: "--warn-ink", why: "amber text is a status colour" },
+  { token: "--warn-border", why: "an amber border is a status colour" },
+];
+
+const forbiddenColour = [];
 
 const rawColour = [];
 const rawFont = [];
@@ -507,6 +564,21 @@ for (const file of portalFiles) {
       rawColour.push(`${file}: ${m[0]}`);
     }
   }
+  /*
+   * The forbidden palette, on customer files only. The portal still carries
+   * status dots on the screens V10 has not reached yet, which the operator
+   * recorded on 2026-09-30 as work to come in stages 2 to 4 rather than as a
+   * defect per screen, so failing them here would be failing him for a decision
+   * he has already made.
+   */
+  if (CUSTOMER_V10.includes(file)) {
+    for (const { token, why } of FORBIDDEN_COLOUR) {
+      if (code.includes(`var(${token})`)) {
+        forbiddenColour.push(`${file}: ${token}, and ${why}`);
+      }
+    }
+  }
+
   /*
    * THE FILE DECIDES WHICH SCALE, and the scale it is judged against is named
    * in the finding. A red saying only "off the scale" leaves the reader asking
@@ -528,6 +600,26 @@ rec(
   "no portal component contains a raw colour",
   rawColour.length === 0,
   rawColour.slice(0, 6).join("  |  ") || "none",
+);
+
+rec(
+  "no customer screen uses red, green or amber",
+  forbiddenColour.length === 0,
+  forbiddenColour.length === 0
+    ? `${CUSTOMER_V10.length} customer file(s) checked against ${FORBIDDEN_COLOUR.length} forbidden token(s). Gold is permitted and excluded: it is brand, and --gold-deep is the spec's own gold-as-text-on-light at 4.81:1`
+    : forbiddenColour.slice(0, 6).join("  |  "),
+);
+
+/*
+ * AND THE CHECK ABOVE MUST BE LOOKING AT SOMETHING. A customer list that emptied,
+ * or a forbidden list that emptied, would make it pass for ever over nothing,
+ * which is the vacuous green this repository keeps meeting. Both floors are
+ * asserted rather than assumed.
+ */
+rec(
+  "and that check has a subject",
+  CUSTOMER_V10.length >= 10 && FORBIDDEN_COLOUR.length >= 6,
+  `${CUSTOMER_V10.length} customer file(s), ${FORBIDDEN_COLOUR.length} forbidden token(s). Below either floor the check passes over nothing`,
 );
 /*
  * ===========================================================================

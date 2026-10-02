@@ -617,14 +617,16 @@ export function OrderFlow({
       ) : null}
 
       {/*
-        The error keeps its colour and loses its tinted box, as on the sign up
-        form. V10 carries status in weight; a failure that reads as body copy is
-        one people scroll past, so this is a red left rule with red text.
+        Ink, not red, and no tint. DESIGN_V10.md line 29 allows no red, green or
+        amber anywhere in the UI; the 2px rule is structure and does the work the
+        colour was credited with. The note on the sign up form carries why this
+        sentence used to say the opposite.
       */}
       {error ? (
         <p
           role="alert"
-          className="mt-8 border-l-2 border-[var(--red)] pl-3 text-[15px] leading-[1.6] font-semibold text-[var(--red)]"
+          aria-live="assertive"
+          className="mt-8 border-l-2 border-[var(--color-ink)] pl-3 text-[15px] leading-[1.6] font-semibold text-[var(--color-ink)]"
         >
           {error}
         </p>

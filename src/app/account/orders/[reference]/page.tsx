@@ -93,10 +93,15 @@ export default async function BatchPage({
         </p>
       ) : null}
 
-      <h2 className="mt-8 portal-kicker text-[var(--gold-deep)]">
+      {/*
+        The V10 section heading, matching its sibling below and the account home.
+        A gold kicker was the pre V10 treatment; V10 replaces it with a quiet
+        heading over a 2px ink rule, which the top of this file already records.
+      */}
+      <h2 className="mt-8 border-b-2 border-[var(--color-ink)] pb-3 text-[17px] font-semibold text-[var(--color-ink)]">
         The properties
       </h2>
-      <ul className="mt-3 divide-y divide-limestone-line border-t border-[var(--border)]">
+      <ul className="mt-3 divide-y divide-limestone-line border-t border-[var(--color-limestone-line)]">
         {(orders ?? []).map((o) => (
           <li key={o.id as string} className="py-3">
             <div className="flex flex-wrap items-baseline gap-x-3">
@@ -117,16 +122,25 @@ export default async function BatchPage({
 
       {rejections.length > 0 ? (
         <>
-          <h2 className="mt-8 portal-kicker text-[var(--gold-deep)]">
+          {/*
+            RULED ROWS, INK, NO TINT, matching the same list on the bulk order
+            screen so the two places a person reads their rejections look alike.
+            Every row is a property the firm will not do and will not charge for;
+            a stack of amber boxes reads as one alarm rather than as a list of
+            separate decisions, and amber is not a colour this design has.
+          */}
+          <h2 className="mt-8 border-b-2 border-[var(--color-ink)] pb-3 text-[17px] font-semibold text-[var(--color-ink)]">
             Not taken, and not charged for
           </h2>
-          <ul className="mt-3 space-y-2">
+          <ul className="mt-3">
             {rejections.map((r) => (
-              <li key={r.ref} className="rounded-[3px] bg-[var(--warn-bg)] px-3 py-2.5">
-                <p className="font-mono text-[13px] font-semibold text-[var(--warn-ink)]">
+              <li key={r.ref} className="border-b border-[var(--color-limestone-line)] py-2.5">
+                <p className="font-mono text-[13px] font-semibold text-[var(--color-ink)]">
                   {r.ref} {r.address}
                 </p>
-                <p className="mt-0.5 text-[14px] leading-[1.55] text-[var(--warn-ink)]">{r.reason}</p>
+                <p className="mt-0.5 text-[14px] leading-[1.55] text-[var(--color-ink-quiet)]">
+                  {r.reason}
+                </p>
               </li>
             ))}
           </ul>

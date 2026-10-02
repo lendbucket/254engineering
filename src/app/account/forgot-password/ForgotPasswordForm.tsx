@@ -109,12 +109,16 @@ export function ForgotPasswordForm() {
         </label>
       </div>
 
-      {/* Keeps its colour, loses its box. See the note on the sign up form. */}
+      {/*
+        INK, NOT RED. See the note on the sign up form, which carries the
+        reasoning for all of them.
+      */}
       {error ? (
         <p
           id="forgot-error"
           role="alert"
-          className="border-l-2 border-[var(--red)] pl-3 text-[15px] leading-[1.55] font-semibold text-[var(--red)]"
+          aria-live="assertive"
+          className="border-l-2 border-[var(--color-ink)] pl-3 text-[15px] leading-[1.55] font-semibold text-[var(--color-ink)]"
         >
           {error}
         </p>

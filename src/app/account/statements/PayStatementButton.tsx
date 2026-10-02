@@ -32,12 +32,22 @@ export function PayStatementButton({ statementId }: { statementId: string }) {
             setBusy(false);
           }
         }}
-        className="inline-flex min-h-[44px] items-center rounded-[3px] bg-slate px-4 text-[13.5px] font-bold text-white disabled:opacity-45"
+        className="inline-flex min-h-[44px] items-center rounded-[3px] bg-slate px-4 text-[14px] font-bold text-white disabled:opacity-45"
       >
         {busy ? "Opening" : "Pay this statement"}
       </button>
+      {/*
+        Ink, not red, and this one is about money: it is the sentence somebody
+        sees when paying a statement failed. Weight 600 behind an ink rule, so it
+        does not read as body copy without using a colour the spec forbids. See
+        the note on the sign up form.
+      */}
       {error ? (
-        <p role="alert" className="mt-2 text-[13.5px] text-[var(--red)]">
+        <p
+          role="alert"
+          aria-live="assertive"
+          className="mt-2 border-l-2 border-[var(--color-ink)] pl-3 text-[14px] leading-[1.6] font-semibold text-[var(--color-ink)]"
+        >
           {error}
         </p>
       ) : null}
