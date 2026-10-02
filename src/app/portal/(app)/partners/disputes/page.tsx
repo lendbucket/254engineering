@@ -4,6 +4,7 @@ import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { disputeView } from "@/lib/ops-partners-admin";
 import { money } from "@/lib/ops-money";
+import { SITE_KEY } from "@/lib/supabase";
 import { EmptyState, Panel, RestrictedMode, StatusPill, SystemAlert } from "@/components/portal/design";
 import { PageHead } from "@/components/portal/surfaces";
 import { LookupForm } from "./LookupForm";
@@ -62,7 +63,12 @@ export default async function DisputesPage({
       />
 
       <Panel title="Look up an order">
-        <LookupForm reference={reference ?? ""} />
+        {/*
+          The prefix is read here and passed down, because SITE_KEY lives in a
+          server only module and importing it into the client component would
+          typecheck and fail the build. See the note at the top of LookupForm.
+        */}
+        <LookupForm reference={reference ?? ""} prefix={SITE_KEY} />
       </Panel>
 
       {reference && !view ? (
