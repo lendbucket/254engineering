@@ -193,7 +193,47 @@ export type PlaceOrderInput = {
   /** Files already uploaded to a private bucket by the calling site. */
   files?: { key: string; bucket: string; storageKey: string; contentType?: string | null; byteSize?: number | null }[];
   attribution?: IntakeAttribution;
+  /**
+   * The account placing this order, when a signed in customer is placing it.
+   *
+   * Operator ruling, 2026-09-30: the order flow reads the session and stamps
+   * `account_id` at placement when a customer is signed in, and the anonymous
+   * path must behave exactly as it does today.
+   *
+   * WHY IT ARRIVES AS AN INPUT RATHER THAN BEING READ HERE. This function is
+   * called by the web flow, the v1 API and the operator intake, and only one of
+   * those has a customer cookie to read. A `currentCustomer()` call inside here
+   * would be meaningless for the other two and would couple a shared placement
+   * path to one surface's session. The caller that HAS a session passes it.
+   */
+  accountId?: string | null;
 };
+
+/**
+ * WHOSE ACCOUNT OWNS THIS ORDER, as a function so that it can be proved.
+ *
+ * It is three lines and could have been written inline in the insert. It is here
+ * because the operator's ruling has a provable half: "the anonymous path must
+ * behave exactly as it does today". Inline, that is a claim about a database
+ * write nobody can check without making one. As a function it is a claim about a
+ * value, and a proof asserts it in both directions.
+ *
+ * ANONYMOUS IS null AND HAS ALWAYS BEEN null. The insert did not set this column
+ * at all before, so Postgres applied its default, which is null. Setting it
+ * explicitly to null stores the same value, which is what makes the anonymous
+ * path unchanged rather than merely similar.
+ *
+ * A SIGNED IN CUSTOMER STAMPS THEIR OWN ACCOUNT WHATEVER EMAIL THEY TYPE, and
+ * that is deliberate rather than an oversight. Somebody ordering for a tenant or
+ * a buyer puts that person's address in the contact field; the order is still
+ * theirs, they are paying for it, and it belongs in their list. The contact
+ * email and the owning account are two different facts, and this is the one that
+ * answers "who bought this".
+ */
+export function accountIdForPlacement(input: Pick<PlaceOrderInput, "accountId">): string | null {
+  const id = typeof input.accountId === "string" ? input.accountId.trim() : "";
+  return id.length > 0 ? id : null;
+}
 
 export type PlaceOrderResult =
   | {
@@ -312,6 +352,12 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
       customer_email: trimmed(input.customer.email).toLowerCase(),
       customer_phone: trimmed(input.customer.phone) || null,
       customer_company: trimmed(input.customer.company) || null,
+      /*
+       * Null for an anonymous order, which is the value this column already
+       * held because the insert did not set it at all. See
+       * accountIdForPlacement for why the decision is a function.
+       */
+      account_id: accountIdForPlacement(input),
       property_address: trimmed(input.property.propertyAddress),
       city: trimmed(input.property.city) || null,
       county,
