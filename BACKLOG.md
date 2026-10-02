@@ -4,6 +4,24 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## WAITING ON ROBERT
+
+Operator ruling, 2026-10-01: stop and ask only for behaviour, money, customer
+promises, roles and permissions, or database migrations. When one of those comes
+up it is written here and the next item that does not depend on it continues.
+
+**An item leaves this section only when he has ruled, and the ruling is recorded
+beside it rather than in a commit message**, because a ruling that lives only in
+a commit is one the next session has to go looking for.
+
+| Asked | Subject | State |
+| --- | --- | --- |
+| 2026-10-01 | HR pay rates | **RULED.** No defaults anywhere. Rates are entered per person in admin by the owner, with effective dates. A person with no rate set cannot be assigned paid work or appear in a pay export, and the screen says why in plain words. |
+| 2026-10-01 | Contractor agreement and handbook text | **RULED.** Build the flow that carries an uploaded document, its version, and a dated acknowledgement per person. Placeholder text marked "Awaiting attorney review" until he uploads the real documents, and nothing goes out while the placeholder is there. |
+| 2026-10-01 | The HR migration | **RULED.** Write it after the Part A and Part B report, apply it to development only, board it. Production waits for a sitting with him. |
+
+Nothing is currently blocked.
+
 ## THE SWEEP'S PROMISE DETECTOR FINDS ONE REAL SENTENCE IN SIX, AND THE FIX IS KNOWN
 
 Recorded 2026-10-01 from the break it sweep. The detector in
