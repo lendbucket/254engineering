@@ -153,17 +153,41 @@ export function openPathsFromProxy(root = process.cwd()) {
    * the missing-door comparison pass over nothing, so the failure is named.
    */
   const faults = [];
+  /*
+   * THE STAFF SET TOO, AND LEAVING IT OUT COST COVERAGE THE SAME DAY.
+   *
+   * The first version read the customer and partner sets only, on the reasoning
+   * that those were the two surfaces whose doors were in question. `ownerOf` in
+   * the sweep then routed `/portal/login` and `/portal/mfa` to the ADMIN
+   * principal, because they start with `/portal` and were in no set it knew
+   * about.
+   *
+   * That was harmless while the staff cookies were broken, since an admin with
+   * no session rendered the login screen like anybody else. The moment the
+   * sessions worked, those two screens began redirecting a signed in admin to
+   * `/portal`, correctly, and the form abuse area reported them as unreachable.
+   * **Making the principals real removed the portal sign in form from form
+   * abuse coverage**, which is a regression caused by a fix and is exactly what
+   * CLAUDE.md means by injection-verifying the fix rather than the defect.
+   *
+   * A sign in screen belongs to somebody with NO session on every surface, not
+   * on two of the three.
+   */
+  const staff = setNamed("OPEN_PATHS");
+
   if (customer === null) faults.push("CUSTOMER_OPEN_PATHS could not be read");
   if (partner === null) faults.push("PARTNER_OPEN_PATHS could not be read");
+  if (staff === null) faults.push("OPEN_PATHS could not be read");
 
   return {
     customer: customer ?? new Set(),
     partner: partner ?? new Set(),
+    staff: staff ?? new Set(),
     read: faults.length === 0,
     why:
       faults.length > 0
         ? faults.join("; ")
-        : `${customer.size} customer and ${partner.size} partner path(s) are open with no session`,
+        : `${customer.size} customer, ${partner.size} partner and ${staff.size} staff path(s) are open with no session`,
   };
 }
 

@@ -913,7 +913,27 @@ try {
    */
   const ownerOf = (route) => {
     const signedOut = principals.find((p) => p.role === "signed out");
-    if (OPEN_PATHS.customer.has(route) || OPEN_PATHS.partner.has(route)) return signedOut;
+    /*
+     * A DOOR ON ANY SURFACE BELONGS TO SOMEBODY WITH NO SESSION, staff included.
+     * Reading only the customer and partner sets routed /portal/login to the
+     * admin, who is signed in and is correctly redirected away from it, which
+     * took the portal sign in form out of form abuse the day the sessions
+     * started working.
+     */
+    if (
+      OPEN_PATHS.customer.has(route) ||
+      OPEN_PATHS.partner.has(route) ||
+      OPEN_PATHS.staff.has(route)
+    ) {
+      return signedOut;
+    }
+    /*
+     * The MFA screens are not in any open set, because they need a HALF
+     * authenticated session rather than none. They are still a door, and a
+     * signed in admin is redirected off them, so they are owned by nobody this
+     * sweep builds and the generic note says so rather than reporting a refusal.
+     */
+    if (/^\/portal\/mfa(\/|$)/.test(route)) return null;
     if (route.startsWith("/portal")) return principals.find((p) => p.role === "admin");
     if (route.startsWith("/account")) return principals.find((p) => p.role === "customer");
     if (route.startsWith("/partner")) return principals.find((p) => p.role === "partner");
