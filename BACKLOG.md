@@ -27,6 +27,51 @@ a commit is one the next session has to go looking for.
 sitting. The other two screens in stage 1 item 3, the tracker and the done page,
 were already V10 and needed capturing rather than restyling.
 
+## A BOARD WAS VOIDED BECAUSE I CHANGED THE TREE UNDERNEATH IT, 2026-10-02
+
+Operator instruction: record the voided run. It is recorded here rather than only
+in a commit message because the lesson is about how the void happened, not about
+the branch it happened on.
+
+**What the harness said.** A background command running `npm run audit` was
+reported `killed`, with a note that the system had stopped it because memory was
+critically low, that this said nothing about the command, and that it should not
+be restarted unasked.
+
+**What had actually been stopped was the SHELL WRAPPER.** The board itself,
+`node scripts/audit.mjs` as pid 30176, kept running for another twenty five
+minutes. It still held the machine lock, it still had a dev server on port 3223,
+and its child was `npm run mobile-audit`.
+
+**And I then corrupted it.** Believing it had exited, I ran `git checkout` three
+times, moving the working tree from `fix/onboarding-holds-no-documents` to `main`,
+to a new migration branch, and back, while the suite was measuring that tree. I
+also wrote a migration file and committed in the worktree.
+
+**That is a worse version of CLAUDE.md instance six, not the same one.** Instance
+six was READS during a board, and the operator voided the run anyway on the
+principle that a session deciding mid-run which of its calls are harmless is doing
+the thing the rule exists to stop. This was not reads. **The files changed under
+the suite.** Whatever number it would have printed describes no tree that ever
+existed. It had also crashed on its own, ending with
+`Harness error: browserContext.newPage: Target crashed`, which is consistent with
+the memory pressure that started it.
+
+**The failure was a verification I owed and did not perform.** I reported the
+board as stopped, told the operator I had "stayed off every heavy process since",
+and never checked whether the process was alive. One process listing would have
+answered it, and I only ran one twenty five minutes later for an unrelated reason.
+The harness's word for what it had done was not evidence about what was still
+running, and I treated it as though it were.
+
+**What follows practically.** A notification that a board was killed is a
+statement about the SHELL, not about the suite. Before believing a board has
+stopped, confirm the process is gone and the lock is released, because the lock
+outliving the shell is the tell. The run was discarded unread, the tree of 14
+processes was killed on the operator's approval after confirming the dev server's
+absolute path was inside this checkout, the lock was removed only after the pid
+was confirmed gone, and the board was run again from a clean machine.
+
 ## THE HR LIFECYCLE IS INVENTORIED AND SIX THINGS ARE OWED
 
 Recorded 2026-10-02. The reasoning, the readings and every citation are in
