@@ -93,13 +93,18 @@ export function SettingsClient({
 
   return (
     <div>
+      {/*
+        V10 removes the tinted panel. This explains why the fields below are
+        read only, which is information rather than a status, so it carries
+        neither a tint nor a colour. The fields are visibly disabled already;
+        this says why.
+
+        The comment sits OUTSIDE the ternary deliberately. Inside the
+        parenthesised branch it is a second expression where one is allowed,
+        which is the mistake CLAUDE.md already records once and which this file
+        carried until tsc refused it.
+      */}
       {!isOwner ? (
-        {/*
-          V10 removes the tinted panel. This explains why the fields below are
-          read only, which is information rather than a status, so it carries
-          neither a tint nor a colour. The fields are visibly disabled already;
-          this says why.
-        */}
         <p className="mb-6 border-l-2 border-[var(--color-limestone-edge)] pl-3 text-[14px] leading-[1.6] text-[var(--color-ink-quiet)]">
           You can see these because every order you place carries them. Only an account owner can
           change them.
@@ -330,18 +335,18 @@ export function SettingsClient({
           <p className="mt-3 text-[14px] text-[var(--secondary)]">No keys yet.</p>
         )}
 
-        {freshKey ? (
-          {/*
-            V10 REMOVES THE TINT AND KEEPS THE EMPHASIS, which is the judgement
-            OrderFlow already records about the sentence telling somebody their
-            card was not charged. This one says a value is being shown for the
-            only time it can ever be shown, so it may not look like the paragraph
-            above it. A 2px rule and weight rather than a panel.
+        {/*
+          V10 REMOVES THE TINT AND KEEPS THE EMPHASIS, which is the judgement
+          OrderFlow already records about the sentence telling somebody their
+          card was not charged. This one says a value is being shown for the
+          only time it can ever be shown, so it may not look like the paragraph
+          above it. A 2px rule and weight rather than a panel.
 
-            Ink rather than a warning colour, because nothing has gone wrong.
-            An amber tint was the old way of saying "read this"; weight says it
-            without asking anybody to decode a colour.
-          */}
+          Ink rather than a warning colour, because nothing has gone wrong. An
+          amber tint was the old way of saying "read this"; weight says it
+          without asking anybody to decode a colour.
+        */}
+        {freshKey ? (
           <div className="mt-4 border-l-2 border-[var(--color-ink)] pl-4">
             <p className="text-[13px] font-semibold tracking-[0.06em] text-[var(--color-ink)] uppercase">
               Copy this now
