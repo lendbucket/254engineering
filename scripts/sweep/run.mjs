@@ -46,7 +46,7 @@ import {
 } from "./lib/routes.mjs";
 import { makePrincipals, disposeOf, STAFF_ROLES } from "./lib/principals.mjs";
 import { PROBE_DOMAIN } from "../lib/portal-probe.mjs";
-import { surfaces, routesOf, apisOf } from "../lib/surfaces.mjs";
+import { surfaces, routesOf, apisOf, roleForRoute } from "../lib/surfaces.mjs";
 
 const PORT = Number(process.env.SWEEP_PORT ?? 3240);
 const OUT_DIR = "docs/audits";
@@ -104,6 +104,71 @@ const cookieHeader = (p) =>
   Array.isArray(p?.cookies) && p.cookies.length > 0
     ? { cookie: p.cookies.map((c) => `${c.name}=${c.value}`).join("; ") }
     : {};
+
+/*
+ * ===========================================================================
+ * A REFUSAL IS NOT A DEFECT, AND THE FIRST RUN THAT COULD SEE ONE CALLED IT ONE.
+ * ===========================================================================
+ *
+ * Operator ruling, 2026-10-01. The moment the staff cookies worked, this sweep
+ * reached the portal and produced 56 new rows that were the product refusing
+ * correctly: 28 screens answering 404 to a role without the permission, each
+ * with its paired console error, plus 12 redirects to a surface root or to a
+ * role's own landing screen. 68 of 73 new findings were correct behaviour
+ * reported as a dead path.
+ *
+ * CLAUDE.md records this exact class from 2026-09-19, when four audits reported
+ * `/portal/protocols/rc-001` as broken because the admin probe was refused by a
+ * licence check the page carries. It was reproduced here, and it was invisible
+ * until the sessions worked: the defect was latent behind the broken cookie.
+ *
+ * SO THE ANSWER COMES FROM THE DECLARATION THAT ALREADY DECIDES IT.
+ * `roleForRoute` in `scripts/lib/surfaces.mjs` says which principal opens a
+ * route, inheriting down the path. Nothing is guessed and no list is typed here.
+ *
+ * AND IT IS USED ONLY TO EXCUSE A REFUSAL OF A NON OWNER, WHICH IS THE WHOLE
+ * CARE IN IT. That declaration names the principal an audit should probe with,
+ * not an exhaustive permission list: admin and csr may both legitimately open a
+ * screen declared for one of them. Read as "may open" it would excuse too much.
+ * Read as "a refusal of somebody who is NOT the declared owner is expected" it
+ * is sound, because a refusal of the DECLARED OWNER stays a finding and that is
+ * the case that matters: the role a screen exists for being unable to open it.
+ */
+const ownerDeclaredFor = (route) => {
+  for (const s of surfaces()) {
+    if (!s.prefix || !route.startsWith(s.prefix)) continue;
+    try {
+      return roleForRoute(s, route);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+};
+
+/**
+ * Is this principal the role the route is declared for?
+ *
+ * The sweep labels staff roles `admin`, `csr`, `technician`, `engineer` while
+ * the declaration uses the role KEYS, so the comparison goes through the key the
+ * principal already carries rather than through its display label.
+ */
+const isDeclaredOwner = (p, route) => {
+  const owner = ownerDeclaredFor(route);
+  if (!owner) return false;
+  return owner === (p.roleKey ?? p.role);
+};
+
+/** Does this route belong to a surface this principal holds a session for? */
+const surfaceOf = (route) =>
+  route.startsWith("/portal") ? "portal" : route.startsWith("/partner") ? "partner" : route.startsWith("/account") ? "account" : "public";
+
+const principalSurface = (p) => {
+  if (p.role === "signed out") return "none";
+  if (p.role === "customer") return "account";
+  if (p.role === "partner") return "partner";
+  return "portal";
+};
 
 /**
  * One finding.
@@ -371,7 +436,29 @@ try {
         if (status >= 500) {
           find(route, p.role, width.name, `HTTP ${status}`, 1, "behaviour");
         } else if (status === 404) {
-          find(route, p.role, width.name, "HTTP 404 on a route the inventory declares", 3, "behaviour");
+          /*
+           * A 404 TO A ROLE THE SCREEN IS NOT FOR IS THE PERMISSION MODEL, not
+           * a dead route. This platform answers 404 rather than 403 so the
+           * existence of a screen is not disclosed to somebody who may not see
+           * it, which means "declared route, 404" is the EXPECTED answer for
+           * every non owner and was being reported as a defect 28 times.
+           *
+           * A 404 to the role the screen IS declared for is the opposite and
+           * stays a finding: the owner cannot open their own screen.
+           */
+          const owner = ownerDeclaredFor(route);
+          const mine = isDeclaredOwner(p, route);
+          find(
+            route,
+            p.role,
+            width.name,
+            mine
+              ? `HTTP 404 on a route declared for this very role, so the role it exists for cannot open it`
+              : `HTTP 404, which is how this platform refuses a role the screen is not for. It is declared for ${owner ?? "no role in particular"}`,
+            mine ? 2 : 0,
+            "behaviour",
+          );
+          continue;
         }
 
         /*
@@ -407,14 +494,43 @@ try {
           landed = route;
         }
         if (landed !== route) {
-          find(
-            route,
-            p.role,
-            width.name,
-            `it did not render: the browser was redirected to ${landed}, so nothing below was measured on this route`,
-            3,
-            "behaviour",
-          );
+          /*
+           * WHICH KIND OF REDIRECT, because three of the four are the product
+           * working and only one is a defect. Operator ruling, 2026-10-01: the
+           * two portal login redirects for a signed in admin are correct
+           * behaviour and are to be marked as such.
+           */
+          const here = surfaceOf(route);
+          const mySurface = principalSurface(p);
+          const toLogin = /\/(login)(\?|$)/.test(landed);
+          const fromDoor = /\/(login|mfa|mfa\/enrol|sign-up|set-password|forgot-password)$/.test(route);
+
+          let why = null;
+          let sev = 3;
+
+          if (toLogin && mySurface !== here) {
+            /* The perimeter refusing a principal of another surface. Correct. */
+            why = `redirected to ${landed}, which is the perimeter refusing a ${p.role} on a ${here} route`;
+            sev = 0;
+          } else if (fromDoor && mySurface === here) {
+            /*
+             * A LOGIN OR MFA SCREEN BOUNCING SOMEBODY WHO IS ALREADY SIGNED IN.
+             * This is the product working, and it is also the clearest proof in
+             * the report that the session is real, so it is recorded rather than
+             * dropped.
+             */
+            why = `redirected to ${landed} because this principal is already signed in, which is what a sign in screen should do`;
+            sev = 0;
+          } else if (!toLogin && !isDeclaredOwner(p, route)) {
+            /* Sent to a surface root or to this role's own landing screen. */
+            why = `redirected to ${landed}, which is how this platform sends a role elsewhere when a screen is not theirs. It is declared for ${ownerDeclaredFor(route) ?? "no role in particular"}`;
+            sev = 0;
+          } else {
+            why = `it did not render: the browser was redirected to ${landed}, so nothing below was measured on this route`;
+            sev = 3;
+          }
+
+          find(route, p.role, width.name, why, sev, "behaviour");
           continue;
         }
 
@@ -800,26 +916,20 @@ try {
     if (OPEN_PATHS.customer.has(route) || OPEN_PATHS.partner.has(route)) return signedOut;
     if (route.startsWith("/portal")) return principals.find((p) => p.role === "admin");
     if (route.startsWith("/account")) return principals.find((p) => p.role === "customer");
+    if (route.startsWith("/partner")) return principals.find((p) => p.role === "partner");
     return signedOut;
   };
 
   /*
-   * THE PARTNER SURFACE HAS NO PRINCIPAL HERE, AND SAYING SO IS THE POINT.
-   *
-   * `STAFF_ROLES` builds admin, csr, technician and engineer, and `makeCustomer`
-   * builds the customer. Nothing builds a partner, so a `/partner` screen is
-   * opened signed out, answers a redirect, and is skipped by the status check
-   * below. Left unsaid that reads in the report as a surface with no forms and
-   * no dead controls, which is the vacuous green: the screens were never opened,
-   * not found clean.
+   * THE PARTNER SURFACE NOW HAS A PRINCIPAL. The note that used to sit here
+   * said the sweep built none, so those five screens were reached signed out,
+   * redirected and reported as unmeasured rather than clean. `makePrincipals`
+   * builds one, `verify` proves it opens `/partner`, and `ownerOf` routes the
+   * surface to it, so the gap this paragraph declared is closed rather than
+   * described. If the partner session ever fails to build, the generic
+   * no-session note below names it, which is the shape every other principal
+   * already had.
    */
-  const partnerRoutes = routes.filter((r) => r.route.startsWith("/partner"));
-  if (partnerRoutes.length > 0) {
-    cnt(
-      `form abuse and control clicking on the partner surface, ${partnerRoutes.length} route(s)`,
-      "the sweep builds no partner principal, so these screens were reached signed out, redirected, and never opened. Their forms and controls are unmeasured rather than clean",
-    );
-  }
 
   const { abuseFormsOn } = await import("./lib/form-abuse.mjs");
   const { clickDeadControlsOn } = await import("./lib/dead-controls.mjs");
