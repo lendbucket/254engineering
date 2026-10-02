@@ -104,6 +104,49 @@ async function handleUpload(
     return NextResponse.json({ ok: false, error: "Unknown checklist item." }, { status: 400 });
   }
 
+  /*
+   * ==========================================================================
+   * NOTHING GUSTO HOLDS CAN BE UPLOADED HERE, AND THIS IS THE DOOR NOT THE
+   * BUTTON.
+   * ==========================================================================
+   *
+   * Operator ruling, 2026-10-02: remove the upload endpoints for those items,
+   * not only the buttons. Gusto holds SSN, EIN, bank details, W-9, W-4, I-9 and
+   * all tax filings; the platform holds none of them.
+   *
+   * There is no per item endpoint to delete. This is one generic upload action
+   * for any person item, so "removing the endpoint" means making it refuse on
+   * the property that defines the forbidden items rather than on their names.
+   *
+   * THE actor CHECK ABOVE ALREADY REFUSES THEM TODAY, because all seven became
+   * admin items in the same commit. That is exactly why this second check
+   * exists: the first one is true only while nobody edits the checklist. One
+   * person flipping a Gusto held item back to `actor: "person"`, for a reason
+   * that looked sensible at the time, would reopen a path for a W-4 with no
+   * error anywhere. A name list would have the same weakness one rename later.
+   *
+   * So the refusal reads the FLAG, which is the thing that means "Gusto holds
+   * this", and an acknowledgement is refused beside it because an item with
+   * nothing to upload has no business accepting a file either.
+   */
+  if (definition.gustoHeld) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          "This is completed in Gusto rather than here, and no file is accepted for it. " +
+          "Nothing has been uploaded.",
+      },
+      { status: 400 },
+    );
+  }
+  if (definition.acknowledgeOnly) {
+    return NextResponse.json(
+      { ok: false, error: "This item is an acknowledgement and accepts no file." },
+      { status: 400 },
+    );
+  }
+
   const result = await createOnboardingUpload({
     onboardingId,
     itemKey,

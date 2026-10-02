@@ -61,6 +61,22 @@ export type ChecklistItem = {
   /** No upload expected. The person reads something and acknowledges it. */
   acknowledgeOnly?: boolean;
   /**
+   * COMPLETED IN GUSTO, RECORDED HERE, NEVER UPLOADED.
+   *
+   * Operator ruling, 2026-10-02: Gusto holds SSN, EIN, bank details, W-9, W-4,
+   * I-9 and all tax filings, and the platform holds none of them.
+   *
+   * An item with this flag accepts NO FILE. The owner marks it once Gusto shows
+   * the work is done, and what this platform keeps is that it was marked and
+   * when. It is a separate flag from `acknowledgeOnly` because the two mean
+   * different things: an acknowledgement is the PERSON saying they read
+   * something, and this is the OWNER saying a thing exists somewhere else.
+   *
+   * It is a flag rather than a convention so that the upload path can refuse on
+   * it, which is what stops the capability coming back one careless edit later.
+   */
+  gustoHeld?: boolean;
+  /**
    * Which step of the flow this item appears in.
    *
    * Grouping lives here rather than in the component so that the stepper is
@@ -71,20 +87,29 @@ export type ChecklistItem = {
 };
 
 const ENGINEER: ChecklistItem[] = [
-  {
-    key: "photo_id_front",
-    step: "identity",
-    label: "Government issued photo ID, front",
-    help: "A driver license or passport. A clear photograph taken on a phone is fine as long as every corner is in frame and the text is readable.",
-    actor: "person",
-  },
-  {
-    key: "photo_id_back",
-    step: "identity",
-    label: "Government issued photo ID, back",
-    help: "The reverse of the same document. Passports have no reverse; upload the photo page again and note it in the message to the operator.",
-    actor: "person",
-  },
+  /*
+   * ======================================================================
+   * IDENTITY IS CONFIRMED AND RECORDED. NO DOCUMENT IS STORED.
+   * ======================================================================
+   *
+   * Operator ruling, 2026-10-02. `photo_id_front` and `photo_id_back` used to
+   * upload both sides of a government issued photo ID into the private
+   * eng-onboarding bucket. Gusto holds identity documents; this platform holds
+   * none of them.
+   *
+   * The confirmation itself was never the problem and is not removed. The
+   * operator still confirms the person on a video call, and
+   * `identity_verified_video` below records that, with `eng_onboardings`
+   * carrying `identity_verified_at` as a DATE and no file. That pairing already
+   * existed beside the uploads and is the shape the ruling asks for.
+   *
+   * SO THE TWO UPLOADS ARE GONE AND NOTHING REPLACES THEM AT THIS STEP. There
+   * is no owner marked Gusto record for photo ID, because identity is not
+   * something Gusto completes on a date: it is something the operator confirms,
+   * which the operator item already does. Adding a second record of the same act
+   * would be the "two acceptance steps for one document" this file already warns
+   * about.
+   */
   {
     key: "pe_license_card",
     step: "licensure",
@@ -92,38 +117,73 @@ const ENGINEER: ChecklistItem[] = [
     help: "A wallet card, a certificate, or a printout of the TBPELS roster entry. The license number is already on file and is shown below for you to check.",
     actor: "person",
   },
+  /*
+   * ======================================================================
+   * THE TAX AND PAY PAPERWORK IS COMPLETED IN GUSTO AND MARKED HERE.
+   * ======================================================================
+   *
+   * Operator ruling, 2026-10-02: Gusto holds SSN, EIN, bank details, W-9, W-4,
+   * I-9 and all tax filings. The platform holds none of them.
+   *
+   * WHAT THESE USED TO BE. `w4` uploaded a signed Form W-4, `i9_section1`
+   * uploaded Section 1 of a Form I-9, and `direct_deposit` uploaded a voided
+   * check or a bank letter and typed a bank name beside it. All three went into
+   * the private eng-onboarding bucket. A W-4 and an I-9 Section 1 each carry a
+   * social security number, an I-9 carries a date of birth, and the voided check
+   * carries the account and routing numbers.
+   *
+   * AND THE HELP TEXT ON EACH WAS TRUE, WHICH IS WHAT MADE THEM EASY TO KEEP.
+   * The W-4 said "nothing from this form is entered into this site as data", and
+   * the direct deposit said "the account and routing numbers stay inside the
+   * document. This site never asks you to type them." Both sentences were
+   * accurate about the FORM FIELDS and silent about the file, which is the shape
+   * of every false assurance this repository has recorded: a correct statement
+   * standing in for the one nobody made.
+   *
+   * WHAT THEY ARE NOW. One owner marked record each. The person does the work in
+   * Gusto, where it belongs, and the owner marks the item here with the date,
+   * which is `eng_onboarding_items.updated_at`. No upload field, no reference
+   * link to a federal form this platform should not be collecting, and no bank
+   * name.
+   *
+   * WHY ONE RECORD PER FORM RATHER THAN ONE "GUSTO DONE" ITEM. Because the three
+   * are completed at different times and by different people: a W-4 is the
+   * employee's, the I-9 needs the employer's examination too, and pay setup is
+   * the owner's. Collapsing them would lose which of the three is outstanding,
+   * which is the only question this checklist exists to answer.
+   *
+   * AND EVERY KEY IS UNCHANGED, WHICH IS NOT COSMETIC. `item_key` is written to
+   * `eng_onboarding_items` and the top of this file says it is never renamed.
+   * It is also the JOIN: `CREDENTIAL_OF_ITEM` maps `direct_deposit` to a
+   * credential kind, so renaming that key to something tidier would silently
+   * stop the credential being created. The first version of this change did
+   * rename all three, and `drivers_license` and `w9` are REQUIRED_FOR_DISPATCH,
+   * so the same instinct one item over would have broken dispatch for every
+   * technician. Only the behaviour moves: actor, help, no upload.
+   */
   {
     key: "w4",
     step: "paperwork",
-    label: "Form W-4, completed and signed",
-    help: "Download the current form from the IRS, complete it, and upload the signed copy. Nothing from this form is entered into this site as data.",
-    actor: "person",
-    reference: {
-      label: "IRS Form W-4",
-      url: "https://www.irs.gov/pub/irs-pdf/fw4.pdf",
-    },
+    label: "Form W-4 completed in Gusto",
+    help: "You complete this in Gusto, not here. Gusto holds the form and your social security number; this site records only that it is done and when. The owner marks it once Gusto shows it complete.",
+    actor: "admin",
+    gustoHeld: true,
   },
   {
     key: "i9_section1",
     step: "paperwork",
-    label: "Form I-9, Section 1",
-    help: "Complete Section 1 only and upload it. Section 2 requires the operator to examine your original documents in person or on a live video call, which is arranged separately.",
-    actor: "person",
-    reference: {
-      label: "USCIS Form I-9",
-      url: "https://www.uscis.gov/sites/default/files/document/forms/i-9.pdf",
-    },
+    label: "Form I-9 completed in Gusto",
+    help: "Section 1 is yours and Section 2 needs the owner to examine your original documents in person, which is tracked separately below. Gusto holds the form itself. This site records the dates and nothing else.",
+    actor: "admin",
+    gustoHeld: true,
   },
   {
     key: "direct_deposit",
     step: "pay",
-    label: "Direct deposit authorization",
-    help: "A voided check or a letter from the bank. The account and routing numbers stay inside the document. This site never asks you to type them.",
-    actor: "person",
-    fields: [
-      { name: "bank_name", label: "Bank name", placeholder: "First National" },
-      { name: "account_type", label: "Account type", placeholder: "Checking or savings" },
-    ],
+    label: "Pay details set up in Gusto",
+    help: "Bank details go to Gusto and never to this site. The owner marks this once Gusto shows you are set up to be paid.",
+    actor: "admin",
+    gustoHeld: true,
   },
   {
     key: "employment_agreement",
@@ -159,19 +219,35 @@ const ENGINEER: ChecklistItem[] = [
 ];
 
 const FIELD_TECH: ChecklistItem[] = [
+  /*
+   * `photo_id_front` is gone for the reason given on the engineer checklist:
+   * Gusto holds identity documents, and the operator's video confirmation below
+   * already records that identity was checked, as a date and no file.
+   */
   {
-    key: "photo_id_front",
-    step: "identity",
-    label: "Government issued photo ID, front",
-    help: "A driver license or passport, with every corner in frame and the text readable.",
-    actor: "person",
-  },
-  {
+    /*
+     * THE LICENCE IS STILL REQUIRED AND IS NO LONGER UPLOADED.
+     *
+     * This is the item the ruling is most easily got wrong on. A driver licence
+     * is an identity document, so the IMAGE must not be stored. But
+     * `drivers_license` is also a credential kind in REQUIRED_FOR_DISPATCH, and
+     * `CREDENTIAL_OF_ITEM` creates that credential FROM THIS ITEM KEY when it is
+     * accepted. Delete the item and no technician can ever be dispatched; rename
+     * the key and the same thing happens silently.
+     *
+     * So the item stays, with its key, and becomes an owner marked record that
+     * still carries an EXPIRY, because a lapsed licence is a real exposure and
+     * the expiry is the whole reason this credential blocks dispatch. What the
+     * owner confirms is that they have seen a current licence, which is the same
+     * act they already perform on the video call, and what the platform keeps is
+     * the date it expires rather than a photograph of it.
+     */
     key: "drivers_license",
     step: "identity",
-    label: "Driver license",
-    help: "Field work is dispatched by county and involves driving to the property. A current license is required.",
-    actor: "person",
+    label: "Driver license confirmed, with its expiry",
+    help: "Field work is dispatched by county and involves driving to the property, so a current license is required. The owner checks yours on the video call and records only the expiry date. No copy is kept.",
+    actor: "admin",
+    gustoHeld: false,
   },
   {
     key: "vehicle_insurance",
@@ -188,15 +264,23 @@ const FIELD_TECH: ChecklistItem[] = [
     actor: "person",
   },
   {
+    /*
+     * THE W-9 STAYS A DISPATCH BLOCKER AND BECOMES A RECORD THAT GUSTO HOLDS IT.
+     * Operator ruling, 2026-10-02, in those terms.
+     *
+     * The reasoning in ops-credentials.ts, "a contractor cannot be paid without
+     * one", is still exactly right. What changed is whose job the form is: Gusto
+     * holds the W-9 and the taxpayer identification number on it, and this
+     * platform records that Gusto has it, verified, by whom and when. The
+     * blocker is unaffected, because the blocker reads the credential and not
+     * the file.
+     */
     key: "w9",
     step: "paperwork",
-    label: "Form W-9",
-    help: "Field technicians are engaged as contractors, so this is a W-9 rather than a W-4. Nothing from it is entered into this site as data.",
-    actor: "person",
-    reference: {
-      label: "IRS Form W-9",
-      url: "https://www.irs.gov/pub/irs-pdf/fw9.pdf",
-    },
+    label: "Form W-9 completed in Gusto",
+    help: "Field technicians are engaged as contractors, so this is a W-9 rather than a W-4. You complete it in Gusto, which holds it along with your taxpayer identification number. The owner marks this once Gusto shows it is done.",
+    actor: "admin",
+    gustoHeld: true,
   },
   {
     key: "ica_signed",
