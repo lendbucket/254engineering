@@ -105,7 +105,7 @@ export default async function BatchPage({
         {(orders ?? []).map((o) => (
           <li key={o.id as string} className="py-3">
             <div className="flex flex-wrap items-baseline gap-x-3">
-              <span className="font-mono text-[13px] font-semibold text-[var(--navy)]">
+              <span className="text-[13px] font-semibold text-[var(--navy)]">
                 {o.reference as string}
               </span>
               <span className="text-[14px] text-[var(--navy)]">{o.property_address as string}</span>
@@ -135,7 +135,7 @@ export default async function BatchPage({
           <ul className="mt-3">
             {rejections.map((r) => (
               <li key={r.ref} className="border-b border-[var(--color-limestone-line)] py-2.5">
-                <p className="font-mono text-[13px] font-semibold text-[var(--color-ink)]">
+                <p className="text-[13px] font-semibold text-[var(--color-ink)]">
                   {r.ref} {r.address}
                 </p>
                 <p className="mt-0.5 text-[14px] leading-[1.55] text-[var(--color-ink-quiet)]">

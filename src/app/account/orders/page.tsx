@@ -178,16 +178,16 @@ export default async function OrdersPage() {
           <table className="w-full border-collapse text-left">
             <thead>
               <tr className="border-b-2 border-[var(--color-ink)]">
-                <th className="py-2.5 pr-4 text-[13px] font-semibold tracking-[0.06em] text-[var(--color-ink)] uppercase">
+                <th className="py-2.5 pr-4 text-[13px] font-semibold text-[var(--color-ink)]">
                   Reference
                 </th>
-                <th className="py-2.5 pr-4 text-[13px] font-semibold tracking-[0.06em] text-[var(--color-ink)] uppercase">
+                <th className="py-2.5 pr-4 text-[13px] font-semibold text-[var(--color-ink)]">
                   What
                 </th>
-                <th className="py-2.5 pr-4 text-[13px] font-semibold tracking-[0.06em] text-[var(--color-ink)] uppercase">
+                <th className="py-2.5 pr-4 text-[13px] font-semibold text-[var(--color-ink)]">
                   Where it has got to
                 </th>
-                <th className="py-2.5 text-right text-[13px] font-semibold tracking-[0.06em] text-[var(--color-ink)] uppercase">
+                <th className="py-2.5 text-right text-[13px] font-semibold text-[var(--color-ink)]">
                   Total
                 </th>
               </tr>
@@ -199,7 +199,7 @@ export default async function OrdersPage() {
                     <Link
                       href={row.href}
                       prefetch={false}
-                      className="font-mono text-[14px] font-semibold text-[var(--color-link)]"
+                      className="text-[14px] font-semibold text-[var(--color-link)]"
                     >
                       {row.reference}
                     </Link>
@@ -228,7 +228,7 @@ export default async function OrdersPage() {
                   <td className="py-3.5 pr-4 align-top text-[14px] leading-[1.5] text-[var(--color-ink)]">
                     {row.status}
                   </td>
-                  <td className="py-3.5 align-top text-right font-mono text-[14px] text-[var(--color-ink)]">
+                  <td className="py-3.5 align-top text-right text-[14px] tabular-nums text-[var(--color-ink)]">
                     {/*
                       ABSENT IS NOT ZERO. A quote has no price yet, and printing
                       $0.00 there would tell somebody their engineering work is

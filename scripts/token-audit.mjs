@@ -276,6 +276,15 @@ const PORTED = [
   "src/app/account/order/BulkOrderClient.tsx",
   "src/app/account/order/page.tsx",
   "src/app/account/orders/[reference]/page.tsx",
+  /*
+   * The orders list, built 2026-10-02. It was added to CUSTOMER_V10 and not to
+   * this list, so the audit DECLARED it a customer V10 screen and then never
+   * read it: neither the type scale nor the no-colour rule touched a file both
+   * were supposed to govern. "Every file declared as customer V10 is one this
+   * audit reads" is the check that caught it, which is the whole reason that
+   * check exists.
+   */
+  "src/app/account/orders/page.tsx",
   "src/app/account/page.tsx",
   /*
    * The sign up pair joined on 2026-09-29, when stage 1 restyled them. They had
@@ -548,6 +557,7 @@ const FORBIDDEN_COLOUR = [
 ];
 
 const forbiddenColour = [];
+const forbiddenFont = [];
 
 const rawColour = [];
 const rawFont = [];
@@ -576,6 +586,23 @@ for (const file of portalFiles) {
       if (code.includes(`var(${token})`)) {
         forbiddenColour.push(`${file}: ${token}, and ${why}`);
       }
+    }
+    /*
+     * NO MONOSPACE, and it is the colour rule's twin in every respect including
+     * how it was found. DESIGN_V10.md's type section reads "Inter, weights 400,
+     * 500, 600, 700. No monospace anywhere, including file numbers, times and
+     * money." Twelve uses survived on files already declared V10, on exactly the
+     * three things that sentence names, and nothing compared the document to the
+     * code. The rule was right, the code was wrong, and the missing piece was a
+     * check, which is the same account the colour note above gives.
+     *
+     * THE SCOPE IS THE DECLARED LIST, NOT THE SOURCE TREE. Fifty-four further
+     * uses sit on staff and partner screens V10 has not reached. Those are the
+     * old standard rather than violations of the new one, exactly as the colour
+     * rule above is scoped, and they come in with stages 2 to 4.
+     */
+    for (const m of code.matchAll(/\bfont-mono\b/g)) {
+      forbiddenFont.push(`${file}: ${m[0]}, and V10 names no monospace face`);
     }
   }
 
@@ -620,6 +647,14 @@ rec(
   "and that check has a subject",
   CUSTOMER_V10.length >= 10 && FORBIDDEN_COLOUR.length >= 6,
   `${CUSTOMER_V10.length} customer file(s), ${FORBIDDEN_COLOUR.length} forbidden token(s). Below either floor the check passes over nothing`,
+);
+
+rec(
+  "no customer screen sets a monospace face",
+  forbiddenFont.length === 0,
+  forbiddenFont.length === 0
+    ? `${CUSTOMER_V10.length} customer file(s). V10 names one family and no monospace, and a reference, a time and a total are the three things it names as still not earning one`
+    : forbiddenFont.slice(0, 6).join("  |  "),
 );
 /*
  * ===========================================================================

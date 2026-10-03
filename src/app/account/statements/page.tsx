@@ -90,7 +90,7 @@ export default async function StatementsPage() {
               {statements.map((s) => (
                 <li key={s.id as string} className="py-4">
                   <div className="flex flex-wrap items-baseline gap-x-3">
-                    <span className="font-mono text-[13px] font-semibold text-[var(--navy)]">
+                    <span className="tabular-nums text-[13px] font-semibold text-[var(--navy)]">
                       {s.reference as string}
                     </span>
                     <span className="text-[14px] text-[var(--navy)]">{s.period as string}</span>

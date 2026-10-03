@@ -85,7 +85,7 @@ export default async function OrderStatusPage({
           <p className="mt-4 text-[16px] leading-[1.7] text-[var(--color-ink-quiet)]">
             Thank you. The firm emails a link to this order once it is released for work, and that
             link is the one that opens it. If nothing arrives within the hour, reply to any email
-            from the firm quoting <span className="font-mono">{reference}</span>.
+            from the firm quoting <span className="font-semibold">{reference}</span>.
           </p>
         </div>
       </Container>
@@ -103,7 +103,7 @@ export default async function OrderStatusPage({
             The link may have been mistyped, or it may have been replaced by a newer one. The firm
             emails a link when an order is paid for, and the most recent email is always the one
             that works. If you cannot find it, reply to any email from the firm quoting{" "}
-            <span className="font-mono">{reference}</span> and a new one will be sent.
+            <span className="font-semibold">{reference}</span> and a new one will be sent.
           </p>
         </div>
       </Container>

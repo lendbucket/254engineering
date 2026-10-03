@@ -309,7 +309,7 @@ export function SettingsClient({
           <ul className="mt-4 divide-y divide-limestone-line border-t border-[var(--border)]">
             {apiKeys.map((k) => (
               <li key={k.id} className="flex flex-wrap items-baseline gap-x-3 py-2.5">
-                <span className="font-mono text-[13px] text-[var(--navy)]">{k.prefix}…</span>
+                <span className="text-[13px] text-[var(--navy)]">{k.prefix}…</span>
                 <span className="text-[14px] font-semibold text-[var(--navy)]">{k.label}</span>
                 <span className="text-[13px] text-[var(--secondary)]">
                   {k.revokedAt
@@ -348,14 +348,15 @@ export function SettingsClient({
         */}
         {freshKey ? (
           <div className="mt-4 border-l-2 border-[var(--color-ink)] pl-4">
-            <p className="text-[13px] font-semibold tracking-[0.06em] text-[var(--color-ink)] uppercase">
+            {/* Written, not transformed. See the note on the same change in OrderFlow. */}
+            <p className="text-[13px] font-semibold text-[var(--color-ink)]">
               Copy this now
             </p>
             <p className="mt-1.5 text-[14px] leading-[1.55] font-semibold text-[var(--color-ink)]">
               This is the only time it can be shown. Only a hash of it is stored, so the firm cannot
               show it to you again and cannot recover it if you lose it.
             </p>
-            <code className="mt-2.5 block overflow-x-auto border border-[var(--color-limestone-edge)] px-2.5 py-2 font-mono text-[13px] break-all text-[var(--color-ink)]">
+            <code className="mt-2.5 block overflow-x-auto border border-[var(--color-limestone-edge)] px-2.5 py-2 text-[13px] break-all text-[var(--color-ink)]">
               {freshKey}
             </code>
             <button

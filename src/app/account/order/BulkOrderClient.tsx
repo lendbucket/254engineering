@@ -223,7 +223,7 @@ export function BulkOrderClient({
         value={paste}
         onChange={(e) => setPaste(e.target.value)}
         placeholder={"1200 Ocean Drive, Corpus Christi, Nueces, 78404\n88 Live Oak, San Antonio, Bexar, 78205"}
-        className="mt-2 w-full rounded-[3px] border border-[var(--border)] px-3 py-2.5 font-mono text-[14px] text-[var(--navy)]"
+        className="mt-2 w-full rounded-[3px] border border-[var(--border)] px-3 py-2.5 text-[14px] text-[var(--navy)]"
       />
       <button
         type="button"
@@ -283,7 +283,7 @@ export function BulkOrderClient({
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.ref} className="border-b border-[var(--border)] last:border-0">
-                    <td className="py-2 pr-3 font-mono text-[13px] text-[var(--secondary)]">{r.ref}</td>
+                    <td className="py-2 pr-3 text-[13px] text-[var(--secondary)]">{r.ref}</td>
                     <td className="py-2 pr-3 text-[14px] text-[var(--navy)]">{r.propertyAddress || "(no address)"}</td>
                     <td className="py-2 pr-3 text-[14px] text-[var(--navy)]">{r.county || "(none)"}</td>
                     {chosen.qualifiers.map((q) => (
@@ -351,7 +351,7 @@ export function BulkOrderClient({
                 <ul className="mt-2 border-t border-[var(--color-limestone-line)]">
                   {preview.rejected.map((r) => (
                     <li key={r.ref} className="border-b border-[var(--color-limestone-line)] py-2.5">
-                      <p className="font-mono text-[13px] font-semibold text-[var(--color-ink)]">
+                      <p className="text-[13px] font-semibold text-[var(--color-ink)]">
                         {r.ref} {r.address}
                       </p>
                       <p className="mt-0.5 text-[14px] leading-[1.55] text-[var(--color-ink-quiet)]">
@@ -368,7 +368,7 @@ export function BulkOrderClient({
                 <ul className="divide-y divide-limestone-line">
                   {preview.accepted.map((a) => (
                     <li key={a.ref} className="flex flex-wrap items-baseline gap-x-3 py-2">
-                      <span className="font-mono text-[13px] text-[var(--secondary)]">{a.ref}</span>
+                      <span className="text-[13px] text-[var(--secondary)]">{a.ref}</span>
                       <span className="text-[14px] text-[var(--navy)]">{a.address}</span>
                       {a.twiaCounty ? (
                         <span className="text-[12px] text-[var(--gold-deep)]">coastal county</span>

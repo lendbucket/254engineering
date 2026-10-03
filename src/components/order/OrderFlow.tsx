@@ -220,7 +220,7 @@ export function OrderFlow({
         </h2>
         <p className="mt-3 text-[16px] leading-[1.7] text-[var(--color-ink-quiet)]">
           Reference{" "}
-          <span className="font-mono font-semibold text-[var(--color-ink)]">{done.reference}</span>.
+          <span className="font-semibold text-[var(--color-ink)]">{done.reference}</span>.
           {entry?.orderType === "quote"
             ? " Somebody will scope it and come back with a written quote. Nothing is charged until you accept one."
             : " A link to follow it has been recorded against your email."}
@@ -523,7 +523,15 @@ export function OrderFlow({
             */}
             {parts.length > 1 ? (
               <div>
-                <p className="text-[13px] font-semibold tracking-[0.08em] text-[var(--color-ink-quiet)] uppercase">
+                {/*
+                  Written in the case it is read in, rather than CSS
+                  transformed. A text-transform makes the DOM disagree with the
+                  screen, so a screen reader announces one thing, a copy and
+                  paste yields another, and voice-audit reads a sentence nobody
+                  sees. The letter spacing went with the capitals: it existed
+                  only to keep them legible.
+                */}
+                <p className="text-[13px] font-semibold text-[var(--color-ink-quiet)]">
                   Part {partIndex + 1} of {parts.length}
                 </p>
                 <h3 className="mt-1 text-[20px] leading-[1.25] font-semibold text-[var(--color-ink)]">
