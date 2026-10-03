@@ -47,6 +47,24 @@ import { withGateConditionsMet, FIXTURE_ENV } from "./lib/gate-fixture.mjs";
  */
 const GATE_OPEN = process.env.SHOTS_GATE === "open";
 
+/**
+ * SHOTS_ONLY and SHOTS_LABEL, added 2026-10-03 for the zero open capture.
+ *
+ * The gate state is a property of a whole RUN, not of one screen, so capturing
+ * the chooser both open and shut takes two runs. Without a label the second
+ * would overwrite the first, and the pair the operator asked to compare would be
+ * one image twice.
+ *
+ * SHOTS_ONLY narrows the run to named screens so the second pass does not
+ * re-shoot nine pages to get one. SHOTS_LABEL is appended to each filename.
+ * Both default to the behaviour this script already had.
+ */
+const ONLY = (process.env.SHOTS_ONLY ?? "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+const LABEL = process.env.SHOTS_LABEL ?? "";
+
 /*
  * BESIDE THE DESIGNS, because that is where they are compared.
  *
@@ -91,6 +109,14 @@ const SCREENS = [
   { route: "/", design: null, name: "home" },
   { route: "/services/roof-inspections", design: null, name: "service-roof" },
   { route: "/order", design: null, name: "order-chooser" },
+  /*
+   * A QUOTE ONLY LINE, asked for by the operator on 2026-10-03 so the pair can
+   * be compared. Foundation is one of the seven that is not open: its card, its
+   * chooser row and its service page must all say Request a quote and must not
+   * imply it can be ordered. Capturing only the orderable line would show the
+   * half of this work that is easy to get right.
+   */
+  { route: "/services/foundation-inspections", design: null, name: "service-quote-only" },
 ];
 
 const WIDTHS = [
@@ -152,6 +178,7 @@ async function capture() {
     const page = await context.newPage();
 
     for (const screen of SCREENS) {
+      if (ONLY.length > 0 && !ONLY.includes(screen.name)) continue;
       let status = 0;
       try {
         const res = await page.goto(server.base + screen.route, {
@@ -171,7 +198,7 @@ async function capture() {
        * status is on the line, and an earlier version of this list pointed at a
        * route that does not exist and would have done exactly that.
        */
-      const file = `${OUT}/${screen.name}-${width.name}.png`;
+      const file = `${OUT}/${screen.name}${LABEL}-${width.name}.png`;
       await page.screenshot({ path: file, fullPage: true });
       console.log(
         `  ${screen.name.padEnd(16)} ${width.name.padEnd(5)} HTTP ${status}${status === 200 ? "" : "  <-- NOT 200"}  ->  ${file}`,

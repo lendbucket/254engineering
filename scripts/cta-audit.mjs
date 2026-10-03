@@ -216,6 +216,72 @@ for (const route of allRoutes) {
   );
 
   /*
+   * =========================================================================
+   * THE HEADER BUTTON POINTS AT THE CHOOSER, AND THIS READS THE RAW PAGE.
+   * Operator ruling, 2026-10-03: "cta-audit must assert the header target is
+   * /order, not /contact."
+   * =========================================================================
+   *
+   * EVERY OTHER CHECK IN THIS FILE USES pageBody(), WHICH STRIPS THE HEADER AND
+   * THE FOOTER, and that is deliberate and still right: a footer link to
+   * /contact on every page would satisfy a conversion check forever while
+   * measuring nothing. This assertion is about the header itself, so it is the
+   * one place that must read the whole document, and saying so here stops
+   * somebody "fixing" it to match its neighbours.
+   *
+   * THE SUBJECT IS THE HEADER SLICE, not the whole page, or a /contact link
+   * anywhere in the body would fail it. The slice runs to the first <main.
+   *
+   * It is skipped under the gate, where the honest header destination is the
+   * waitlist rather than a chooser full of things nobody can buy yet. The skip
+   * is stated as its own passing assertion rather than silence, so a reader can
+   * see which of the two worlds the run was in.
+   */
+  const home = await get("/");
+  const mainAt = home.html.indexOf("<main");
+  const headerSlice = mainAt === -1 ? home.html : home.html.slice(0, mainAt);
+  const headerToOrder = /href="\/order"/i.test(headerSlice);
+  const headerToContact = /href="\/contact(?:\?[^"]*)?"/i.test(headerSlice);
+  const headerToWaitlist = /href="\/waitlist"/i.test(headerSlice);
+
+  if (GATE_ACTIVE) {
+    rec(
+      "the gate is shut, so the header offers the waitlist rather than the chooser",
+      headerToWaitlist && !headerToOrder,
+      headerToWaitlist
+        ? "nothing is orderable, and the waitlist is the honest destination"
+        : "the prelaunch header points at neither the waitlist nor anything else expected",
+    );
+  } else {
+    /*
+     * IT ASSERTS THE PRESENCE OF /order AND NOT THE ABSENCE OF /contact, and the
+     * first version got that wrong in a way worth keeping a note on.
+     *
+     * It read `headerToOrder && !headerToContact` and failed on a correct header,
+     * because the primary nav carries a "Contact" item pointing at /contact. That
+     * link is right and should stay: a reader who wants to write to the firm
+     * should find it in the navigation. What the operator's finding was about is
+     * the BUTTON, and the button is the only thing in the header that would ever
+     * point at /order.
+     *
+     * So the presence of /order is the precise assertion. If the button reverted
+     * to /contact, nothing in the header would link to /order and this goes red.
+     * The nav's Contact item cannot satisfy it and cannot break it.
+     *
+     * Third time today I matched a wider thing than I meant, after /order where I
+     * meant /order/start, and before that a font size scan that swept a file the
+     * audit never read. Match the thing you mean.
+     */
+    rec(
+      "the header button targets the chooser",
+      headerToOrder,
+      headerToOrder
+        ? `/order on every page, which is the bug the operator reported on 2026-10-03. The nav's own Contact item is untouched and still points at /contact (${headerToContact ? "present" : "absent"})`
+        : "the header does not link to /order at all, so the button is still pointing somewhere else",
+    );
+  }
+
+  /*
    * A FLOOR ON THE SUBJECT. If the sitemap or the chooser came back empty every
    * assertion below would pass over nothing, which is the vacuous green this
    * repository keeps meeting.

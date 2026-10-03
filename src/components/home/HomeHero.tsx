@@ -3,7 +3,7 @@ import { Container } from "@/components/ui/Container";
 import { TexasCountyMap } from "@/components/map/TexasCountyMap";
 import { modelSentence } from "@/content/model-copy";
 import { isPrelaunch } from "@/lib/launch";
-import { headlineOffer, orderableLineOffers } from "@/lib/ordering";
+import { headlineOffer } from "@/lib/ordering";
 import { displayPhone, telHref } from "@/config/contact";
 import { services } from "@/content/services";
 import { regions } from "@/content/regions";
@@ -41,7 +41,6 @@ export function HomeHero() {
   const prelaunch = isPrelaunch();
   const countyCount = regions.reduce((sum, r) => sum + r.counties.length, 0);
   const offer = headlineOffer();
-  const openCount = orderableLineOffers().length;
 
   return (
     <section id="top" className="overflow-hidden bg-gradient-to-b from-slate via-slate-deep to-slate-abyss text-slate-fg">
@@ -202,13 +201,22 @@ export function HomeHero() {
               "Sealed" is load bearing in Texas, and eight of them read as a claim
               that the firm is sealing eight lines when it is sealing one.
 
-              The figure is unchanged and still derived: the firm really is built
-              for eight lines and says so. What is added beside it is the fact
-              that answers the question the first stat now raises, and it is
-              derived too, from the same gate every button on this page reads.
+              AND A FOURTH STAT COUNTING THE OPEN LINES WAS BUILT AND THEN REMOVED
+              THE SAME DAY, on his ruling: "Advertising the count of orderable
+              lines tells visitors 7 of 8 are not."
+
+              He is right, and it is a good correction to record rather than
+              quietly obey. The figure was true and derived, which is what made it
+              feel safe to add. What it actually did was invite a subtraction: a
+              reader who sees 8 beside 1 has been handed the other 7 as a fact
+              about what this firm cannot do today, on the first screen.
+
+              The rail is three stats again. The alternative he allowed was a fact
+              already declared elsewhere in the codebase, and the only candidates
+              are about windstorm counties, which would be a number doing duty as
+              a filler in a row about scale. Nothing was invented to fill the gap.
             */}
             <Stat figure={services.length} label="Engineering service lines" />
-            {openCount > 0 ? <Stat figure={openCount} label="Open to order online" /> : null}
           </dl>
         </Container>
       </div>

@@ -144,6 +144,31 @@ export const NOT_CREDENTIALS = new Set([
    */
   "SHOTS_OUT",
   /*
+   * SHOTS_GATE, SHOTS_ONLY and SHOTS_LABEL, 2026-10-03, all three on
+   * scripts/design-shots.mjs and none of them a credential.
+   *
+   *   SHOTS_GATE=open   runs the capture with the launch gate's conditions
+   *                     stated true, so a public page is captured as a customer
+   *                     sees it in production rather than as .env.local renders
+   *                     it, which is prelaunch.
+   *   SHOTS_ONLY        a comma separated list of screen names to capture.
+   *   SHOTS_LABEL       appended to each filename, so a second run at a
+   *                     different gate state does not overwrite the first.
+   *
+   * A mode word, a list of screen names and a filename suffix. None holds
+   * anything and none opens anything.
+   *
+   * THIS IS THE FOURTH TIME, AND THE COUNT IS THE POINT. SHOTS_OUT above,
+   * SWEEP_PORT below, PORT_BASE on 2026-10-03, and now these. Every one was
+   * added the same way: a script learned a new knob and the declaration was not
+   * edited in the same commit, and every one was caught by this scan rather than
+   * by the person who added it. The board named SHOTS_GATE on the run before
+   * this commit; SHOTS_ONLY and SHOTS_LABEL are declared here BEFORE they exist
+   * in the script, which is the only version of this that is not a fifth
+   * instance.
+   */
+  "SHOTS_GATE", "SHOTS_ONLY", "SHOTS_LABEL",
+  /*
    * SWEEP_PORT, 2026-10-01. Which port scripts/sweep/run.mjs serves the break
    * it sweep on, defaulting to 3240. A port number, holding nothing and opening
    * nothing.

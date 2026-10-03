@@ -56,6 +56,14 @@ const TEST_FIRM_NUMBER = FIXTURE_FIRM_NUMBER;
 const ROUTES = [
   "/",
   "/about",
+  /*
+   * The chooser, added 2026-10-03 with the assertions about it below. Without
+   * this line `pre.get("/order")` is undefined and all three of those checks
+   * fail on a page that is working: a crawl cannot answer about a route it never
+   * fetched. Caught by reading the list before running rather than by the board,
+   * which is cheaper by about twenty minutes.
+   */
+  "/order",
   "/services",
   "/services/roof-inspections",
   "/services/windstorm-wpi-8",
@@ -248,18 +256,70 @@ async function run() {
     );
 
     /*
-     * AND THE PRELAUNCH SITE MUST NOT. The inverse matters more than it looks:
-     * an order button on a site whose gate is shut sends a reader to a checkout
-     * that refuses, which is the dead end OfferCta's own comment records being
-     * fixed once already.
+     * =====================================================================
+     * AND THE PRELAUNCH SITE OFFERS NO CHECKOUT. NOT "NO /order LINK".
+     * =====================================================================
+     *
+     * THIS CHECK WAS WRONG ON ITS FIRST BOARD AND THE BOARD CAUGHT IT. It read
+     * "the prelaunch home page offers no order link at all" and matched
+     * ORDER_LINK, which is /order OR /order/start/<slug>. It went red, and the
+     * code was right: the hero falls back to /order with the gate shut, and
+     * /order with the gate shut is a chooser offering a quote on every line.
+     *
+     * It is the matcher-window defect this repository records five times over. I
+     * matched /order when I meant /order/start/. The thing that must never
+     * appear on a shut gate is a CHECKOUT, because that is the page that
+     * refuses. A chooser full of quote buttons is the opposite of a dead end: it
+     * is the honest path, and the operator ruled on 2026-10-03 that it has to be
+     * exactly that.
      */
+    const CHECKOUT_LINK = /href="\/order\/start\/[a-z0-9-]+"/i;
     const preHome = pre.get("/");
     rec(
-      "and the prelaunch home page offers no order link at all",
-      Boolean(preHome && !ORDER_LINK.test(preHome.html)),
-      preHome && !ORDER_LINK.test(preHome.html)
-        ? "nothing to order while the gate is shut, so nothing is offered"
-        : "the prelaunch home page links to the order flow, which leads to a page that refuses",
+      "the prelaunch home page offers no checkout",
+      Boolean(preHome && !CHECKOUT_LINK.test(preHome.html)),
+      preHome && !CHECKOUT_LINK.test(preHome.html)
+        ? "it leads to the chooser, which offers a quote on every line while the gate is shut"
+        : "the prelaunch home page links to /order/start, which is a checkout that refuses",
+    );
+
+    /*
+     * =====================================================================
+     * THE CHOOSER IN THE ZERO OPEN STATE IS NOT A DEAD END.
+     * Operator ruling, 2026-10-03: "/order in the zero-open state must not be a
+     * dead end. It shows the quote/contact path plainly."
+     * =====================================================================
+     *
+     * THE SUBJECT EXISTS ON EVERY BOARD, which is why this is three assertions
+     * rather than a fixture somebody has to build. The prelaunch crawl above
+     * already runs under withTradingBlocked, and with the gate shut no line is
+     * orderable, so this IS the zero open state.
+     *
+     * Three clauses, because they fail for different reasons: the page is
+     * reachable at all, it offers the quote path, and it offers no checkout. The
+     * third is the one with teeth and it is the inverse of the second: a page
+     * that led to a checkout here would send every reader to a refusal.
+     */
+    const preOrder = pre.get("/order");
+    const QUOTE_LINK = /href="\/contact(?:\?[^"]*)?"/i;
+    rec(
+      "the chooser answers in the zero open state",
+      Boolean(preOrder && preOrder.status === 200),
+      preOrder ? `HTTP ${preOrder.status}` : "/order was not crawled",
+    );
+    rec(
+      "and with no line open it shows the quote path plainly",
+      Boolean(preOrder && QUOTE_LINK.test(preOrder.html)),
+      preOrder && QUOTE_LINK.test(preOrder.html)
+        ? "every row offers Request a quote, which goes to /contact with the line preselected"
+        : "the chooser offers no route to a quote, so a reader with nothing orderable has nowhere to go",
+    );
+    rec(
+      "and it offers no checkout in that state",
+      Boolean(preOrder && !CHECKOUT_LINK.test(preOrder.html)),
+      preOrder && !CHECKOUT_LINK.test(preOrder.html)
+        ? "nothing is orderable, so nothing is offered as orderable"
+        : "the chooser links to /order/start while no line is open, which is a page that refuses",
     );
 
     const unreachablePre = [...pre.entries()].filter(([, p]) => p.status !== 200).map(([r]) => r);

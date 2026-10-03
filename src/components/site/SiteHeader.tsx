@@ -5,6 +5,7 @@ import { MobileNav } from "./MobileNav";
 import { primaryNav } from "./nav";
 import { business } from "@/config/business";
 import { isPrelaunch } from "@/lib/launch";
+import { orderableLineOffers } from "@/lib/ordering";
 
 /**
  * The header and the nav bar, as the approved v5 design sets them.
@@ -38,6 +39,7 @@ import { isPrelaunch } from "@/lib/launch";
  */
 export function SiteHeader() {
   const prelaunch = isPrelaunch();
+  const anythingOrderable = orderableLineOffers().length > 0;
 
   return (
     <>
@@ -83,25 +85,37 @@ export function SiteHeader() {
               ))}
             </nav>
 
-            <MobileNav prelaunch={prelaunch} />
+            <MobileNav prelaunch={prelaunch} anythingOrderable={anythingOrderable} />
 
             {/*
               THE HEADER BUTTON LEADS TO THE CHOOSER, NOT TO A MESSAGE FORM.
-              Operator ruling, 2026-10-03, instruction 2.
+              Operator ruling, 2026-10-03, instruction 2, sharpened the same day:
+              "Change it to Order online linking to /order."
 
               It said "Contact the Firm" and went to /contact, so the most
               prominent control on every page of a firm that is OPEN FOR ORDERING
-              asked the reader to write a paragraph and wait. /order asks what
-              they need and gives the open lines a price and an Order button.
+              asked the reader to write a paragraph and wait.
 
-              The prelaunch branch is untouched: with the gate shut there is
-              nothing to order and the waitlist is the honest destination.
+              THE TARGET IS /order UNCONDITIONALLY AND THE LABEL IS DERIVED, which
+              the operator approved on 2026-10-03. The gate has a TRADING state
+              where the firm is registered, takes enquiries and quotes work, and
+              has no line open: a button reading "Order online" there would
+              promise a checkout that refuses, which is the dead end OfferCta's
+              own comment records being fixed once already. So the destination is
+              the chooser either way, and the word on the button is true either
+              way.
+
+              cta-audit asserts the target, and it reads the RAW page rather than
+              the body, because that audit strips the header and footer by design.
+
+              The prelaunch branch is untouched: with the gate shut and the firm
+              not yet taking work, the waitlist is the honest destination.
             */}
             <Link
               href={prelaunch ? "/waitlist" : "/order"}
               className="-mr-[clamp(1rem,4vw,1.75rem)] flex items-center bg-brass px-[18px] text-[14px] font-bold text-slate-ink transition-colors hover:bg-brass-light sm:px-[26px] sm:text-[15px]"
             >
-              {prelaunch ? "Join the Waitlist" : "Start a job"}
+              {prelaunch ? "Join the Waitlist" : anythingOrderable ? "Order online" : "Start a job"}
             </Link>
           </div>
         </Container>

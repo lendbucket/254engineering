@@ -35,7 +35,19 @@ import { Wordmark } from "@/components/brand/Wordmark";
  * above, which is the whole reason this is keyed on pathname rather than on a
  * click handler.
  */
-export function MobileNav({ prelaunch }: { prelaunch: boolean }) {
+export function MobileNav({
+  prelaunch,
+  anythingOrderable,
+}: {
+  prelaunch: boolean;
+  /**
+   * Whether any line can actually be ordered, decided on the server and passed
+   * in. It is a prop rather than a call here because this is a client component
+   * and the gate is read at module load on the server: asking it from the
+   * browser would answer from a module that was never given the register.
+   */
+  anythingOrderable: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
@@ -115,7 +127,7 @@ export function MobileNav({ prelaunch }: { prelaunch: boolean }) {
               href={prelaunch ? "/waitlist" : "/order"}
               className="block border-b border-white/10 py-4 text-[15.5px] font-bold text-brass-light"
             >
-              {prelaunch ? "Join the Waitlist" : "Start a job"}
+              {prelaunch ? "Join the Waitlist" : anythingOrderable ? "Order online" : "Start a job"}
             </Link>
           </nav>
         </div>

@@ -45,10 +45,20 @@ import { displayPhone, telHref } from "@/config/contact";
  * is a tinted box and no row says when anything will be ready.
  */
 
+/*
+ * MEASURED AGAINST seo-audit's OWN BOUNDS, NOT COUNTED BY EYE.
+ *
+ * The first version was 49 characters against a floor of 50, and its description
+ * was 138 against a floor of 140. Both would have failed, and the board passed
+ * seo-audit anyway because this route was missing from the sitemap, which is
+ * where that audit gets its subject. Two defects, each hiding the other.
+ *
+ * Title 56 of 50 to 60. Description 155 of 140 to 160.
+ */
 export const metadata: Metadata = buildMetadata({
-  title: "Order engineering work | 254 Engineering Services",
+  title: "Order engineering work online | 254 Engineering Services",
   description:
-    "Choose what you need. Lines open for online ordering show the price and take the order now. Everything else goes to a quote from the firm.",
+    "Choose what you need. Lines open for online ordering show the price and take the order now. Every other line is quoted by the firm, usually after one call.",
   path: "/order",
 });
 

@@ -58,6 +58,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
     entry("/", 1, "monthly"),
     entry("/about", 0.9, "monthly"),
     entry("/process", 0.9, "monthly"),
+    /*
+     * The chooser, 2026-10-03. It is the destination of the header button on
+     * every page and of "Start a job", so it is a top level entry point rather
+     * than a step inside a flow, and it belongs here beside /process.
+     *
+     * IT WAS BUILT WITHOUT THIS LINE AND THE OMISSION HID A DEFECT. seo-audit
+     * derives its subject from the sitemap, so a route absent from here has no
+     * title rule and no description rule applied to it at all. Its title was 49
+     * characters against a floor of 50 and its description 138 against a floor
+     * of 140, both measured, and the board passed seo-audit anyway because the
+     * page was invisible to it. A route nobody lists is a route nobody checks.
+     */
+    entry("/order", 0.9, "monthly"),
     entry("/services", 0.9, "monthly"),
     ...services.map((s) => entry(`/services/${s.slug}`, 0.8, "monthly")),
     entry("/coverage", 0.9, "monthly"),
