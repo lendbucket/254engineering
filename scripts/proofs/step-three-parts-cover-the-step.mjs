@@ -28,7 +28,7 @@
  * a count, because two sets of the same size can differ.
  */
 
-import { catalog } from "../../data/catalog.ts";
+import { CATALOG } from "../../data/catalog.ts";
 import { INTAKE_GROUPS } from "../../data/intake-fields.ts";
 import {
   customerFieldsFor,
@@ -45,9 +45,20 @@ const rec = (name, ok, note = "") => {
   console.log(`${ok ? "PASS" : "FAIL"}  ${name}${note ? ` (${note})` : ""}`);
 };
 
-const entries = catalog.flatMap((service) =>
-  (service.deliverables ?? []).map((d) => ({ ...d, serviceSlug: service.slug })),
-);
+/*
+ * CATALOG is already flat, and every entry carries its own serviceSlug and tier.
+ *
+ * The first version of this file mapped over services and flattened their
+ * deliverables, which is the shape `data/catalog.ts` has INTERNALLY as DECLARED
+ * and not the shape it exports. It was written in a worktree with no
+ * node_modules, so nothing could run it, and it failed on its very first
+ * execution with "does not provide an export named 'catalog'".
+ *
+ * Worth leaving a note on rather than quietly correcting: a proof that has never
+ * run is not a check, and this one proves it. It was committed, reported as
+ * written, and was wrong in its second line.
+ */
+const entries = CATALOG;
 
 /*
  * THE SUBJECT IS ASSERTED FIRST. A catalogue that failed to load would make
@@ -57,7 +68,7 @@ const entries = catalog.flatMap((service) =>
 rec(
   "the catalogue yields deliverables to test",
   entries.length >= 5,
-  `${entries.length} deliverable(s) across ${catalog.length} service line(s)`,
+  `${entries.length} deliverable(s) across ${new Set(entries.map((e) => e.serviceSlug)).size} service line(s)`,
 );
 
 let withParts = 0;
@@ -111,9 +122,32 @@ for (const entry of entries) {
     failures.push(`${name}: parts are ${order.join(", ")} where the definition declares ${expected.join(", ")}`);
   }
 
-  /* 5. the rail did not grow */
+  /*
+   * 5. THE PARTS ARE INVISIBLE TO THE RAIL.
+   *
+   * THE FIRST VERSION ASSERTED THE RAIL IS AT MOST FIVE STEPS, and that was
+   * wrong about the product rather than about the split. `stepsFor` adds a
+   * deliverable-choice step when a line sells more than one, so a multi
+   * deliverable line that also has qualifiers has SIX, and had six long before
+   * step 3 was split. This proof passed `deliverableCount: 2` to every entry and
+   * then failed six of them for a number the operator's ruling never meant.
+   *
+   * The ruling was "the rail stays at five steps", said about a split that could
+   * have turned four groups into four rail entries. The property that carries
+   * that is not a count: it is that `requirements` appears ONCE however many
+   * parts there are. A count would go on being wrong for every line the
+   * catalogue adds.
+   */
   const steps = stepsFor(entry, 2);
-  if (steps.length > 5) failures.push(`${name}: the rail is ${steps.length} steps, which is more than five`);
+  const requirementSteps = steps.filter((s) => s.id === "requirements").length;
+  if (parts.length > 0 && requirementSteps !== 1) {
+    failures.push(
+      `${name}: ${parts.length} part(s) produced ${requirementSteps} requirements step(s) in the rail, so the split leaked into it`,
+    );
+  }
+  if (steps.some((s) => String(s.id).startsWith("part"))) {
+    failures.push(`${name}: a part became a rail step`);
+  }
 }
 
 rec(
