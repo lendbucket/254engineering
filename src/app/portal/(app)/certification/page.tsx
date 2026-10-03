@@ -7,7 +7,7 @@ import { credentialsFor } from "@/lib/ops-onboarding";
 import { credentialBlockers, expiringSoon, CREDENTIAL_LABEL } from "@/lib/ops-credentials";
 import { services } from "@/content/services";
 import { supabaseAdmin } from "@/lib/supabase";
-import { Chip, EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
+import { EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
 import { CheckRunner } from "./CertificationClient";
 
 export const dynamic = "force-dynamic";
@@ -158,11 +158,7 @@ export default async function CertificationPage({
                       return (
                         <li
                           key={p.service_slug as string}
-                          className={`rounded-[2px] border bg-white p-4 ${
-                            certified
-                              ? "border-[var(--border)] border-l-[var(--green)]"
-                              : "border-[var(--border)]"
-                          }`}
+                          className="border-b border-[var(--row-rule)] py-4"
                         >
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div className="min-w-0">
@@ -173,10 +169,7 @@ export default async function CertificationPage({
                                 {p.name as string} v{p.version as number}
                               </p>
                             </div>
-                            <Chip
-                              label={certificationLabel(cert)}
-                              tone={certified ? "good" : cert?.status === "revoked" ? "bad" : "neutral"}
-                            />
+                            <p className="text-[14px] font-semibold text-[var(--ink)]">{certificationLabel(cert)}</p>
                           </div>
 
                           {certified ? (
@@ -215,7 +208,7 @@ export default async function CertificationPage({
               </p>
             ) : (
               <>
-                <p className="text-[14px] leading-[1.55] font-semibold text-[var(--red)]">
+                <p className="text-[14px] leading-[1.55] font-semibold text-[var(--ink)]">
                   This is stopping jobs reaching you.
                 </p>
                 <ul className="mt-2 flex flex-col gap-1.5">
@@ -234,16 +227,16 @@ export default async function CertificationPage({
             )}
 
             {expiring.length > 0 ? (
-              <div className="mt-4 rounded-[2px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-3 py-2.5">
-                <p className="text-[14px] font-semibold text-[var(--warn-ink)]">Expiring soon</p>
+              <div className="mt-5 border-t border-[var(--border)] pt-3">
+                <p className="text-[14px] font-semibold text-[var(--ink)]">Expiring soon</p>
                 <ul className="mt-1 flex flex-col gap-1">
                   {expiring.map((e) => (
-                    <li key={e.kind} className="text-[14px] leading-[1.5] text-[var(--warn-ink)]">
+                    <li key={e.kind} className="text-[14px] leading-[1.5] text-[var(--ink)]">
                       {CREDENTIAL_LABEL[e.kind]} in {e.days} day{e.days === 1 ? "" : "s"}, on {e.expiresOn}.
                     </li>
                   ))}
                 </ul>
-                <p className="mt-1.5 text-[13px] leading-[1.5] text-[var(--warn-ink)]">
+                <p className="mt-1.5 text-[13px] leading-[1.5] text-[var(--secondary)]">
                   This does not stop you working. It stops you the day it lapses.
                 </p>
               </div>

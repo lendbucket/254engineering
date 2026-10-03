@@ -100,7 +100,7 @@ export function DispatchPanel({
           .
         </p>
       ) : (
-        <p className="mt-1.5 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--red)]">
+        <p className="mt-1.5 max-w-[70ch] text-[14px] leading-[1.55] font-semibold text-[var(--ink)]">
           No published protocol exists for this service line, so this file cannot be dispatched. A
           technician accepting it would open an empty checklist. An engineer publishes one from the
           protocols screen.
@@ -199,7 +199,7 @@ export function DispatchPanel({
           </div>
 
           {error ? (
-            <p role="alert" className="mt-3 text-[14px] leading-[1.5] font-semibold text-[var(--red)]">
+            <p role="alert" className="mt-3 text-[14px] leading-[1.5] font-semibold text-[var(--ink)]">
               {error}
             </p>
           ) : null}

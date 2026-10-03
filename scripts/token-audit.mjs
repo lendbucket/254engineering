@@ -315,6 +315,15 @@ const PORTED = [
   "src/app/portal/(app)/documents/page.tsx",
   "src/app/portal/(app)/files/DispatchPanel.tsx",
   "src/app/portal/(app)/files/FileClient.tsx",
+  /*
+   * FileSelection, added 2026-10-03. Its three siblings were on this list and it
+   * was not, so the audit had never read it: the same omission as the customer
+   * orders list, found the same way, by a file being declared V10 and the
+   * "declared but not read" check naming it. Two instances in two days of a new
+   * component joining every list except the one that decides whether anything
+   * looks at it.
+   */
+  "src/app/portal/(app)/files/FileSelection.tsx",
   "src/app/portal/(app)/files/page.tsx",
   // Phase 10 Section 1, the telephone call path.
   "src/app/portal/(app)/roles/page.tsx",
@@ -454,7 +463,21 @@ const ALLOWED_FONT_PX = new Set([11, 12, 12.5, 13.5, 15, 16, 17, 24, 30]);
  * WHICH SCALE A FILE IS HELD TO IS DECLARED BELOW, and the declaration may only
  * grow, exactly as PORTED does and for the reason given there.
  */
-const CUSTOMER_FONT_PX = new Set([12, 13, 14, 15, 16, 17, 20, 26, 32]);
+/*
+ * 24 AND 28 JOINED ON 2026-10-03, FROM THE DOCUMENT RATHER THAN FROM A SCREEN
+ * THAT WANTED THEM.
+ *
+ * DESIGN_V10.md's type table reads "Page title | 24 to 28 / 600, letter spacing
+ * -0.4". The customer screens ported first happened to settle on 26, so the set
+ * carried 26 and neither end of the range the document actually states. Stage 2
+ * put a page title at 24 and this check went red on it.
+ *
+ * It is the document's own range, so adding them is reading the spec rather than
+ * widening the scale for a file. The distinction matters: every other step here
+ * was taken from that table too, and a step added because one screen asked for
+ * it is how a scale stops being one.
+ */
+const CUSTOMER_FONT_PX = new Set([12, 13, 14, 15, 16, 17, 20, 24, 26, 28, 32]);
 
 /**
  * The customer surface files restyled to V10 and therefore held to the customer
@@ -515,6 +538,41 @@ const CUSTOMER_V10 = [
   "src/app/account/statements/PayStatementButton.tsx",
   "src/app/account/orders/page.tsx",
 ];
+/**
+ * THE STAFF SCREENS PORTED TO V10, stage 2 onward.
+ *
+ * WHY A SECOND LIST RATHER THAN ADDING THEM TO CUSTOMER_V10. The two lists are
+ * asserted disjoint and that assertion is load bearing: CUSTOMER_V10 also
+ * selects the customer TYPE SCALE, and a staff screen joining it would widen
+ * that scale one file at a time, which is the exact thing the note above it
+ * warns against. These files stay on the staff type steps.
+ *
+ * WHAT THIS LIST DOES BIND IS THE TWO RULES V10 NEWLY IMPOSES ON EVERY SURFACE:
+ * no red, green or amber, and no monospace. DESIGN_V10.md states both as rules
+ * about the interface rather than about the customer, and a screen restyled and
+ * not listed can drift back on the next edit with nothing saying so. That is the
+ * sentence written above CUSTOMER_V10 and it is just as true here.
+ *
+ * STAGE 2, 2026-10-03: the engineer's review queue and evidence package, his
+ * decision panel, the responsible charge log and the certification check, and
+ * the operator's file screens. 35 uses of --red, --green, --warn and --danger
+ * were removed between them, and every one was a state whose sentence already
+ * said what the colour was saying a second time.
+ */
+const STAFF_V10 = [
+  "src/app/portal/(app)/review/page.tsx",
+  "src/app/portal/(app)/review/ReviewClient.tsx",
+  "src/app/portal/(app)/certification/page.tsx",
+  "src/app/portal/(app)/certification/CertificationClient.tsx",
+  "src/app/portal/(app)/files/page.tsx",
+  "src/app/portal/(app)/files/FileClient.tsx",
+  "src/app/portal/(app)/files/FileSelection.tsx",
+  "src/app/portal/(app)/files/DispatchPanel.tsx",
+];
+
+/** Every file held to V10's interface rules, whichever surface it serves. */
+const V10 = [...CUSTOMER_V10, ...STAFF_V10];
+
 const ALLOWED_RADIUS_PX = new Set([2, 3, 4, 8, 12, 16, 18]);
 
 /*
@@ -581,7 +639,7 @@ for (const file of portalFiles) {
    * defect per screen, so failing them here would be failing him for a decision
    * he has already made.
    */
-  if (CUSTOMER_V10.includes(file)) {
+  if (V10.includes(file)) {
     for (const { token, why } of FORBIDDEN_COLOUR) {
       if (code.includes(`var(${token})`)) {
         forbiddenColour.push(`${file}: ${token}, and ${why}`);
@@ -611,11 +669,17 @@ for (const file of portalFiles) {
    * in the finding. A red saying only "off the scale" leaves the reader asking
    * which of two, which is how a correct size gets "fixed" into a wrong one.
    */
-  const customer = CUSTOMER_V10.includes(file);
-  const scale = customer ? CUSTOMER_FONT_PX : ALLOWED_FONT_PX;
+  /*
+   * V10 rather than CUSTOMER_V10 since stage 2. The second set is the V10 SCALE
+   * rather than the customer one: the customer screens were simply the first
+   * ported to it. The finding still names which scale it judged against, because
+   * a red saying only "off the scale" leaves a reader asking which of two.
+   */
+  const onV10 = V10.includes(file);
+  const scale = onV10 ? CUSTOMER_FONT_PX : ALLOWED_FONT_PX;
   for (const m of code.matchAll(/text-\[([0-9.]+)px\]/g)) {
     if (!scale.has(Number(m[1]))) {
-      rawFont.push(`${file}: ${m[0]} (${customer ? "customer" : "staff"} scale)`);
+      rawFont.push(`${file}: ${m[0]} (${onV10 ? "V10" : "staff"} scale)`);
     }
   }
   for (const m of code.matchAll(/rounded-\[([0-9.]+)px\]/g)) {
@@ -630,10 +694,10 @@ rec(
 );
 
 rec(
-  "no customer screen uses red, green or amber",
+  "no V10 screen uses red, green or amber",
   forbiddenColour.length === 0,
   forbiddenColour.length === 0
-    ? `${CUSTOMER_V10.length} customer file(s) checked against ${FORBIDDEN_COLOUR.length} forbidden token(s). Gold is permitted and excluded: it is brand, and --gold-deep is the spec's own gold-as-text-on-light at 4.81:1`
+    ? `${V10.length} V10 file(s), ${CUSTOMER_V10.length} customer and ${STAFF_V10.length} staff, checked against ${FORBIDDEN_COLOUR.length} forbidden token(s). Gold is permitted and excluded: it is brand, and --gold-deep is the spec's own gold-as-text-on-light at 4.81:1`
     : forbiddenColour.slice(0, 6).join("  |  "),
 );
 
@@ -645,15 +709,15 @@ rec(
  */
 rec(
   "and that check has a subject",
-  CUSTOMER_V10.length >= 10 && FORBIDDEN_COLOUR.length >= 6,
-  `${CUSTOMER_V10.length} customer file(s), ${FORBIDDEN_COLOUR.length} forbidden token(s). Below either floor the check passes over nothing`,
+  CUSTOMER_V10.length >= 10 && STAFF_V10.length >= 5 && FORBIDDEN_COLOUR.length >= 6,
+  `${CUSTOMER_V10.length} customer file(s), ${STAFF_V10.length} staff file(s), ${FORBIDDEN_COLOUR.length} forbidden token(s). Below any floor the check passes over nothing, and the staff floor is here so a stage 2 that quietly emptied would not read as a stage 2 that passed`,
 );
 
 rec(
-  "no customer screen sets a monospace face",
+  "no V10 screen sets a monospace face",
   forbiddenFont.length === 0,
   forbiddenFont.length === 0
-    ? `${CUSTOMER_V10.length} customer file(s). V10 names one family and no monospace, and a reference, a time and a total are the three things it names as still not earning one`
+    ? `${V10.length} V10 file(s). V10 names one family and no monospace, and a reference, a time and a total are the three things it names as still not earning one`
     : forbiddenFont.slice(0, 6).join("  |  "),
 );
 /*
@@ -668,11 +732,11 @@ rec(
  * customer scale is never applied to it, and the list grows while the coverage
  * does not. Same shape as a probe that names a route which does not exist.
  */
-const customerNotPorted = CUSTOMER_V10.filter((f) => !PORTED.includes(f));
+const customerNotPorted = V10.filter((f) => !PORTED.includes(f));
 rec(
-  "every file declared as customer V10 is one this audit reads",
+  "every file declared as V10 is one this audit reads",
   customerNotPorted.length === 0,
-  customerNotPorted.join(", ") || `${CUSTOMER_V10.length} customer file(s), all on PORTED`,
+  customerNotPorted.join(", ") || `${V10.length} V10 file(s), all on PORTED`,
 );
 
 /*
@@ -718,7 +782,27 @@ rec(
 const customerOnly = [...CUSTOMER_FONT_PX].filter((n) => !ALLOWED_FONT_PX.has(n));
 const staffReachingOver = [];
 for (const file of portalFiles) {
-  if (CUSTOMER_V10.includes(file)) continue;
+  /*
+   * A FILE ON EITHER V10 LIST IS HELD TO THE V10 SCALE, and stage 2 is what
+   * forced that to be said out loud.
+   *
+   * The staff steps are 11, 12, 12.5, 13.5, 15, 16, 17, 24, 30. V10's body text
+   * is 14 to 15 and its label is 12 to 13, so 13 and 14 exist on the V10 scale
+   * and on no staff one. Porting the engineer's screens moved 108 steps from
+   * 13.5 to 14 and this check went red on every one of them, correctly: they
+   * were staff files reaching for a step that was not theirs.
+   *
+   * The answer is not to send them back to 13.5, which is off V10 entirely and
+   * is the thing the port exists to remove. It is that STAFF_V10 means "ported",
+   * and a ported screen is on the ported scale.
+   *
+   * WHAT STILL STOPS THIS BEING A WIDENING, which is what the note below is
+   * about. The move is no longer free: joining STAFF_V10 also subjects a file to
+   * the no colour and no monospace rules, which a screen that has not actually
+   * been ported will fail. A staff screen wanting 20px cannot buy it by adding a
+   * line to a list; it has to be restyled first.
+   */
+  if (V10.includes(file)) continue;
   const code = codeOnly(file);
   for (const m of code.matchAll(/text-\[([0-9.]+)px\]/g)) {
     if (customerOnly.includes(Number(m[1]))) staffReachingOver.push(`${file}: ${m[0]}`);

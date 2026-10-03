@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Chip } from "@/components/portal/surfaces";
 
 /**
  * Choosing many files, and doing one thing with them.
@@ -42,7 +41,12 @@ export type SelectableFile = {
   twia_county: boolean;
   status: string;
   statusLabel: string;
-  statusTone: "neutral" | "good" | "warn" | "bad";
+  /*
+   * statusTone is gone with the chip that read it. V10 has no good, bad or warn,
+   * so the tone had no renderer left, and a field computed by the page and read
+   * by nothing is the kind of thing that survives for years looking load
+   * bearing. The label is what a person was reading anyway.
+   */
 };
 
 export function FileSelection({
@@ -127,7 +131,7 @@ export function FileSelection({
     <>
       {ticked.size > 0 && (
         <div
-          className="mb-3 flex flex-wrap items-center gap-2 rounded-[2px] border border-[var(--border)] bg-[var(--surface-2,#F6F7F9)] p-3"
+          className="mb-3 flex flex-wrap items-center gap-2 rounded-[2px] border border-[var(--border)] bg-[var(--canvas)] p-3"
           role="group"
           aria-label="Actions for the selected files"
         >
@@ -167,12 +171,12 @@ export function FileSelection({
             </button>
           </div>
           {over && (
-            <p className="w-full text-[13px] text-[var(--bad,#B3261E)]">
+            <p className="w-full text-[13px] font-semibold text-[var(--ink)]">
               That is more than {limit}. Export at most {limit} at a time.
             </p>
           )}
           {problem && (
-            <p role="alert" className="w-full text-[13px] text-[var(--bad,#B3261E)]">
+            <p role="alert" className="w-full text-[13px] font-semibold text-[var(--ink)]">
               {problem}
             </p>
           )}
@@ -209,13 +213,13 @@ export function FileSelection({
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="font-mono text-[13px] text-[var(--gold-deep)]">{f.file_number}</p>
+                  <p className="text-[12px] text-[var(--secondary)]">{f.file_number}</p>
                   <p className="mt-1 text-[14px] font-semibold text-[var(--ink)]">{f.property_address}</p>
                   <p className="mt-0.5 text-[14px] text-[var(--secondary)]">
                     {f.county} County{f.twia_county ? ", windstorm" : ""}
                   </p>
                 </div>
-                <Chip label={f.statusLabel} tone={f.statusTone} />
+                <p className="text-[13px] font-semibold text-[var(--ink)]">{f.statusLabel}</p>
               </div>
             </Link>
           </li>

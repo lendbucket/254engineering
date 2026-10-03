@@ -156,7 +156,7 @@ export function TransitionControls({
                 }}
                 className={
                   destructive
-                    ? "inline-flex min-h-[44px] items-center rounded-[2px] border border-[var(--red)] px-4 text-[14px] font-bold text-[var(--red)] hover:bg-[var(--warn-bg)] disabled:opacity-60"
+                    ? "inline-flex min-h-[44px] items-center rounded-[2px] border-2 border-[var(--ink)] px-4 text-[14px] font-semibold text-[var(--ink)] hover:bg-[var(--canvas)] disabled:opacity-60"
                     : "inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[14px] font-bold text-white hover:bg-[var(--navy-hover)] disabled:opacity-60"
                 }
               >
@@ -171,19 +171,19 @@ export function TransitionControls({
           {blocked.map((o) => (
             <div
               key={o.to}
-              className="rounded-[2px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-3 py-2.5"
+              className="border-l-2 border-[var(--ink)] pl-3"
             >
-              <p className="text-[14px] font-semibold text-[var(--warn-ink)]">
+              <p className="text-[14px] font-semibold text-[var(--ink)]">
                 {STATUS_LABEL[o.to]} is not available
               </p>
-              <p className="mt-1 text-[13px] leading-[1.55] text-[var(--warn-ink)]">{o.reason}</p>
+              <p className="mt-1 text-[13px] leading-[1.55] text-[var(--secondary)]">{o.reason}</p>
             </div>
           ))}
         </div>
       ) : null}
 
       {error ? (
-        <p role="alert" className="mt-3 rounded-[2px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-3 py-2.5 text-[14px] text-[var(--red)]">
+        <p role="alert" className="mt-3 border-l-2 border-[var(--ink)] pl-3 text-[14px] font-semibold text-[var(--ink)]">
           {error}
         </p>
       ) : null}
@@ -331,7 +331,8 @@ export function NewFileForm({
       {open ? (
         <form
           onSubmit={onSubmit}
-          className="mt-4 rounded-[2px] border border-[var(--border)] bg-white p-4 sm:p-5"
+          /* V10: no card. A rule above it and whitespace do the separating. */
+          className="mt-5 border-t border-[var(--border)] pt-4"
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
@@ -386,7 +387,7 @@ export function NewFileForm({
           </div>
 
           {error ? (
-            <p role="alert" className="mt-4 rounded-[2px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-3 py-2.5 text-[14px] text-[var(--red)]">
+            <p role="alert" className="mt-4 border-l-2 border-[var(--ink)] pl-3 text-[14px] font-semibold text-[var(--ink)]">
               {error}
             </p>
           ) : null}

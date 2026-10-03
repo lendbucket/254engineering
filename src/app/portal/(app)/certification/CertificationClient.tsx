@@ -104,7 +104,7 @@ export function CheckRunner({
 
   if (result?.passed) {
     return (
-      <div className="rounded-[2px] border border-[var(--border)] border-t-[var(--green)] bg-white px-4 py-6 sm:px-6">
+      <div className="border-t-2 border-[var(--ink)] pt-6">
         <p className="portal-kicker text-[var(--gold-deep)]">Certified</p>
         <h2 className="mt-2 font-display text-[24px] leading-[1.2] font-bold text-[var(--navy)]">{serviceName}</h2>
         <p className="mt-2 max-w-[65ch] text-[14px] leading-[1.6] text-[var(--secondary)]">
@@ -177,17 +177,17 @@ export function CheckRunner({
       ) : (
         <div className="mt-6">
           {result && !result.passed ? (
-            <div className="mb-5 rounded-[2px] border border-[var(--warn-border)] border-l-[var(--red)] bg-[var(--warn-bg)] px-4 py-4">
-              <p className="text-[14px] font-bold text-[var(--red)]">
+            <div className="mb-6 border-b-2 border-[var(--ink)] pb-4">
+              <p className="text-[15px] font-semibold text-[var(--ink)]">
                 {result.correct} of {result.total}. Not passed.
               </p>
-              <p className="mt-1.5 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--red)]">
+              <p className="mt-1.5 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--ink)]">
                 Every question has to be right, because there is no such thing as most of an evidence
                 package. The reasoning for each one you missed is under the question. Change your
                 answers and submit again; it costs nothing.
               </p>
               {result.unanswered.length > 0 ? (
-                <p className="mt-1.5 text-[14px] font-semibold text-[var(--red)]">
+                <p className="mt-1.5 text-[14px] font-semibold text-[var(--ink)]">
                   {result.unanswered.length} question
                   {result.unanswered.length === 1 ? " was" : "s were"} left blank.
                 </p>
@@ -202,8 +202,14 @@ export function CheckRunner({
               return (
                 <li
                   key={q.id}
-                  className={`rounded-[2px] border bg-white p-4 ${
-                    missed ? "border-[var(--warn-border)] border-l-[var(--red)]" : "border-[var(--border)]"
+                  /*
+                    V10: no card. A ruled row, and a missed question is marked
+                    with a 2px ink edge rather than a red one. The rationale
+                    underneath already says what was wrong and why, so the edge
+                    only has to find the question on a long page.
+                  */
+                  className={`border-b border-[var(--row-rule)] py-4 ${
+                    missed ? "border-l-2 border-l-[var(--ink)] pl-3" : ""
                   }`}
                 >
                   <fieldset>
@@ -232,7 +238,7 @@ export function CheckRunner({
                   </fieldset>
 
                   {rationale ? (
-                    <p className="mt-3 rounded-[2px] bg-[var(--warn-bg)] px-3 py-2.5 text-[14px] leading-[1.55] text-[var(--red)]">
+                    <p className="mt-3 border-l-2 border-[var(--ink)] pl-3 text-[14px] leading-[1.55] font-semibold text-[var(--ink)]">
                       {rationale}
                     </p>
                   ) : null}
@@ -242,7 +248,7 @@ export function CheckRunner({
           </ol>
 
           {error ? (
-            <p role="alert" className="mt-4 text-[14px] leading-[1.5] font-semibold text-[var(--red)]">
+            <p role="alert" className="mt-4 text-[14px] leading-[1.5] font-semibold text-[var(--ink)]">
               {error}
             </p>
           ) : null}

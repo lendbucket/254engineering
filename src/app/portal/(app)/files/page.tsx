@@ -4,11 +4,11 @@ import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { listFiles, getFile, listClients, fileTimeline, fileRegion } from "@/lib/ops-crm";
-import { availableTransitions, STATUS_LABEL, STATUS_TONE, FILE_STATUSES } from "@/lib/ops-files";
+import { availableTransitions, STATUS_LABEL, FILE_STATUSES } from "@/lib/ops-files";
 import { TEXAS_COUNTIES, twiaStatus } from "@/lib/ops-counties";
 import { outstandingFor, answeredFor } from "@/lib/ops-file-inputs";
 import { services } from "@/content/services";
-import { Chip, EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
+import { EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
 import { FileSelection } from "./FileSelection";
 import { EXPORT_LIMIT } from "@/lib/ops-bulk-files";
 import { dispatchContext, jobView } from "@/lib/ops-field";
@@ -199,7 +199,6 @@ export default async function FilesPage({
             twia_county: f.twia_county,
             status: f.status,
             statusLabel: STATUS_LABEL[f.status],
-            statusTone: STATUS_TONE[f.status],
           }))}
         />
       )}
@@ -219,7 +218,7 @@ export default async function FilesPage({
         <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="font-mono text-[13px] text-[var(--gold-deep)]">{selected.file_number}</p>
+              <p className="text-[12px] text-[var(--secondary)]">{selected.file_number}</p>
               <h2 className="mt-1 font-display text-[17px] leading-[1.2] font-bold text-[var(--ink)]">
                 {selected.property_address}
               </h2>
@@ -230,8 +229,10 @@ export default async function FilesPage({
               </p>
             </div>
             <div className="flex flex-col items-end gap-2">
-              <Chip label={STATUS_LABEL[selected.status]} tone={STATUS_TONE[selected.status]} />
-              {selected.twia_county ? <Chip label="TWIA designated" tone="warn" /> : null}
+              <p className="text-[14px] font-semibold text-[var(--ink)]">{STATUS_LABEL[selected.status]}</p>
+              {selected.twia_county ? (
+                <p className="text-[14px] text-[var(--ink)]">TWIA designated</p>
+              ) : null}
             </div>
           </div>
         </div>
@@ -248,7 +249,7 @@ export default async function FilesPage({
                 </p>
                 <ul className="mt-2 flex flex-col gap-1">
                   {outstanding.now.map((f) => (
-                    <li key={f.id} className="text-[14px] leading-[1.5] text-[var(--danger)]">
+                    <li key={f.id} className="text-[14px] leading-[1.5] font-semibold text-[var(--ink)]">
                       {f.label}
                     </li>
                   ))}
