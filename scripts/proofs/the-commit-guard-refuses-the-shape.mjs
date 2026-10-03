@@ -137,6 +137,26 @@ const WRITE_CASES = [
   ["a redirect into a quoted source path",
     'echo hi > "src/lib/launch.ts"',
     true],
+
+  /*
+   * THE SECOND HOLE, FOUND HOURS AFTER THE FIRST AND THE SAME WAY. The flag
+   * cluster was terminated with `\b`, and `_` is a word character, so `-i_x`
+   * had no boundary after the `i` and the whole rule never engaged. The path
+   * here is UNQUOTED, so the morning's quoting fix was not what was missing.
+   *
+   * `-i.bak` passed only because `.` is not a word character. A word boundary
+   * is simply the wrong terminator for a shell flag cluster, and these three
+   * are the suffixes sed accepts that a `\b` version gets wrong.
+   */
+  ["an in place sed whose backup suffix starts with an underscore",
+    "sed -i_x " + "'s/a/b/' " + "BACKLOG.md",
+    true],
+  ["the same with a tilde suffix, which sed also accepts",
+    "sed -i~ " + "'s/a/b/' " + "src/lib/launch.ts",
+    true],
+  ["and a bare -i immediately before the script, which must still be caught",
+    "sed -i " + "'s/a/b/' " + "src/config/prices.ts",
+    true],
   ["an inline node script carrying an interpolation",
     'node -e ' + '"const s = `${CL}`; writeFileSync(p, s)"',
     true],

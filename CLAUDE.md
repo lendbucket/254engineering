@@ -948,7 +948,7 @@ arriving as a backspace both **parse perfectly and silently match nothing**. The
 worst version of this hazard produces valid code, so nothing downstream can see
 it. The guard has to refuse before the write.
 
-Proven by `scripts/proofs/the-commit-guard-refuses-the-shape.mjs`, now 37 cases.
+Proven by `scripts/proofs/the-commit-guard-refuses-the-shape.mjs`, now 40 cases.
 
 **AND RULE FOUR WAS BLIND TO A QUOTED PATH, SO IT HAD NEVER PROTECTED A PORTAL
 SCREEN.** Found 2026-10-03, by breaking the rule it enforces.
@@ -978,6 +978,27 @@ target rather than a sentence, so the filename is read from BOTH views.
 this morning does not protect you this afternoon; here a rule somebody wrote in
 September did not protect the session that was quoting it, because the mechanism
 had a hole the written form could not show.
+
+**AND THERE WAS A SECOND HOLE IN THE SAME RULE, FOUND HOURS LATER THE SAME WAY.**
+The command was `sed -i_x 's/.../.../' BACKLOG.md`, with the path **unquoted**,
+so the morning's fix was not what was missing. **The flag was.** The cluster
+pattern ended in `\b`, and `_` is a word character, so between the `i` and the
+`_` there is no boundary and the whole rule never engaged. `-i.bak` had worked
+only because `.` is not a word character.
+
+**A word boundary is the wrong terminator for a shell flag cluster.** What
+actually ends one is whitespace or the end of the command, which is what the
+pattern says now, and that covers `-i~`, `-i''` and every other suffix sed takes
+rather than being fixed once per punctuation mark.
+
+**The lesson is not "fix the regex".** Both holes were found by a session
+BREAKING the rule and noticing the silence, and neither was findable by reading
+the pattern, which looked correct both times. **So a guard is only known to work
+on the shapes somebody has actually fired at it**, and the fixtures that matter
+are the commands people really typed. Three more were added from this one, and
+two of the three were already caught: they are regression guards rather than
+holes, and saying which is which is the difference between a fixture set and a
+pile.
 Every refusal fixture is a REAL command from 2026-09-19 or 2026-09-20 rather
 than a shape invented to match the rule, and the allow fixtures are what must
 keep working: a board redirected to a log, a Windows path full of backslashes

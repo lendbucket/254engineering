@@ -309,7 +309,23 @@ export function sourceWriteVerdict(command) {
    * caught it on its first run. `-0777`, `-0pi` and `-pi` are all the same
    * rule, and a character class of letters only sees none of the first two.
    */
-  if (/\b(?:sed|perl|ruby)\b[^|;]*\s-[a-zA-Z0-9]*i[a-zA-Z0-9]*\b/.test(stripped)) {
+  /*
+   * THE FLAG CLUSTER ENDS AT WHITESPACE, NOT AT A WORD BOUNDARY. Second hole in
+   * this rule found on 2026-10-03, hours after the first, and found the same
+   * way: by breaking the rule and watching the guard stay silent.
+   *
+   * The command was `sed -i_x 's/.../.../' BACKLOG.md`, with the path UNQUOTED,
+   * so the quoting fix made that morning was not the issue. The FLAG was. The
+   * pattern ended in `\b` after the optional alphanumerics, and `_` is a word
+   * character, so between the `i` and the `_` there is no boundary and the match
+   * failed. `sed -i.bak` worked because `.` is not a word character.
+   *
+   * A word boundary is the wrong terminator for a shell flag cluster. The thing
+   * that actually ends one is whitespace or the end of the command, which is
+   * what this now says. That also covers `-i''`, `-i~` and every other suffix
+   * sed accepts, rather than this being fixed once per punctuation mark.
+   */
+  if (/\b(?:sed|perl|ruby)\b[^|;]*\s-[a-zA-Z0-9]*i[^\s|;]*(?=\s|$)/.test(stripped)) {
     for (const view of views) {
       for (const m of view.matchAll(/(?:^|\s)(['"]?)([^\s'"|&;<>]*\.[a-zA-Z]{1,5})\1(?=\s|$)/g)) {
         targets.push(m[2]);

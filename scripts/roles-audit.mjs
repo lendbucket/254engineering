@@ -390,6 +390,58 @@ rec(
           : null,
     },
     {
+      /*
+       * ===================================================================
+       * A CUSTOMER SERVICE REPRESENTATIVE TOUCHES NO MONEY.
+       * Operator ruling, 2026-10-03, as part of stage 4.
+       * ===================================================================
+       *
+       * His words: "Refunds are requests only and the owner approves them; a CSR
+       * never issues refunds, changes prices, or sees card data."
+       *
+       * ALL THREE ARE TRUE TODAY AND NOTHING SAID SO. `customer_service` was
+       * declared with seven grants, none of them money: no payments.refund, no
+       * payments.charge, no pricing.read, no billing.read, no ledger. The rule
+       * was satisfied by construction, which is the most fragile way for a rule
+       * to be satisfied, because the next person adding a grant to that role has
+       * nothing telling them which ones are forbidden.
+       *
+       * IT IS NOT IN `EXPECTED` ABOVE, and that is the reason this is a rule
+       * rather than seven table cells. That table states admin, engineer and
+       * field_tech for every action; customer_service is outside it entirely, so
+       * every money action it could gain would be gained silently. Extending the
+       * table to a fourth role is the better answer and is a hundred cells of
+       * judgement, which is in BACKLOG.md rather than typed at the end of a long
+       * run.
+       *
+       * CARD DATA NEEDS NO CLAUSE. This platform never holds a card number:
+       * Stripe does, and the customer facing copy says so in those words. There
+       * is no grant that could expose one, so there is nothing here to forbid.
+       *
+       * INJECTION-VERIFIED TWICE, AND THE TWO ANSWERS DIFFER, which is the only
+       * reason this rule is known to earn its keep rather than decorate.
+       *
+       *   payments.refund onto customer_service -> TWO rules fire, this one and
+       *   the existing "a role other than the administrator may charge, refund
+       *   or reconcile". So for the payments family this rule is redundant, and
+       *   that is said out loud rather than left for somebody to discover.
+       *
+       *   billing.read onto customer_service -> ONLY this rule fires. Nothing
+       *   else in the file forbids a CSR reading the money, and before today
+       *   nothing would have noticed it being granted.
+       *
+       * A rule whose every injection is caught by an older rule is a rule that
+       * can never be the one that catches something. This one is not that,
+       * because of the second half.
+       */
+      why: "a customer service representative touches no money: refunds are the owner's, and prices are nobody's but his",
+      check: (role, action) =>
+        role === "customer_service" &&
+        /^(payments\.|pricing\.|billing\.|ledger\.)/.test(action)
+          ? `customer_service holds ${action}, and the ruling of 2026-10-03 is that a CSR never issues refunds, changes prices, or sees card data`
+          : null,
+    },
+    {
       why: "a technician sees their own work and nothing about anybody else's",
       check: (role, action) =>
         role === "field_tech" &&
