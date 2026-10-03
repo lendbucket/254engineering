@@ -23,8 +23,31 @@ const crumbs = [
   { name: "Contact", path: "/contact" },
 ];
 
-export default function ContactPage() {
+export default async function ContactPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ service?: string }>;
+}) {
   const prelaunch = isPrelaunch();
+
+  /*
+   * THE LINE THE READER CAME TO ASK ABOUT, PRESELECTED. Operator ruling,
+   * 2026-10-03, instruction 2: a line that cannot be ordered online shows
+   * "Request a quote" and goes "to /contact with the service preselected".
+   *
+   * LeadForm has taken `defaultService` since it was written, with a comment
+   * saying it is "pre-selected when the visitor arrived from a specific service
+   * page". Nothing ever passed it from here, so every reader arriving from a
+   * service card landed on an unselected dropdown and had to find their own line
+   * again. The prop was built for this and had no caller.
+   *
+   * A SLUG ARRIVES AND A NAME IS SELECTED, because the form's options are names.
+   * An unknown slug selects nothing rather than inventing an option, which is
+   * the safe direction: a stranger passing ?service=anything cannot put a string
+   * of their choosing into a field this firm reads.
+   */
+  const params = await searchParams;
+  const defaultService = services.find((s) => s.slug === params.service)?.name;
 
   return (
     <>
@@ -121,7 +144,11 @@ export default function ContactPage() {
                   to be in hand, the more useful the reply will be.
                 </p>
                 <div className="mt-8">
-                  <LeadForm variant="contact" serviceOptions={services.map((s) => s.name)} />
+                  <LeadForm
+                    variant="contact"
+                    serviceOptions={services.map((s) => s.name)}
+                    defaultService={defaultService}
+                  />
                 </div>
               </div>
             </div>

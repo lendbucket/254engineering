@@ -3,6 +3,7 @@ import { Container } from "@/components/ui/Container";
 import { TexasCountyMap } from "@/components/map/TexasCountyMap";
 import { modelSentence } from "@/content/model-copy";
 import { isPrelaunch } from "@/lib/launch";
+import { headlineOffer } from "@/lib/ordering";
 import { displayPhone, telHref } from "@/config/contact";
 import { services } from "@/content/services";
 import { regions } from "@/content/regions";
@@ -39,6 +40,7 @@ import { regions } from "@/content/regions";
 export function HomeHero() {
   const prelaunch = isPrelaunch();
   const countyCount = regions.reduce((sum, r) => sum + r.counties.length, 0);
+  const offer = headlineOffer();
 
   return (
     <section id="top" className="overflow-hidden bg-gradient-to-b from-slate via-slate-deep to-slate-abyss text-slate-fg">
@@ -102,12 +104,34 @@ export function HomeHero() {
               padding rather than relying on a grid, so at 390 they stack as
               three full width targets instead of two and a half.
             */}
+            {/*
+              THE PRIMARY BUTTON IS THE ORDER, AND THE PRICE IS ON IT.
+              Operator ruling, 2026-10-03, instruction 1.
+
+              It was "Start a job" to /contact. The firm has been open for
+              ordering with one line and the most prominent control on the site
+              asked for a message instead, which is the finding that started this
+              whole piece of work.
+
+              NOTHING HERE NAMES THE ROOF, THE $549 OR THE $75. `headlineOffer()`
+              returns the cheapest line that is listed, protocol approved and
+              behind an open gate, and the button takes its name and its figures
+              from the catalogue entry. A hero is the single worst place in this
+              repository to type a price: CLAUDE.md records the site publishing
+              $549 while a card was charged $600, and that was in a FILE whose
+              header claimed the two could not drift. A button is read by more
+              people than that file ever was.
+
+              WITH THE GATE SHUT IT FALLS BACK rather than disappearing. There is
+              no order to offer, so the button offers the chooser and says so, and
+              the price line is simply absent because there is nothing to charge.
+            */}
             <div className="mt-[34px] flex flex-wrap gap-3">
               <Link
-                href="/contact"
+                href={offer ? offer.href : "/order"}
                 className="inline-block rounded-[3px] bg-brass px-8 py-4 text-[16px] font-bold text-slate-ink shadow-[0_6px_18px_rgba(217,160,50,0.3)] transition-colors hover:bg-brass-light"
               >
-                Start a job
+                {offer ? offer.orderLabel : "Start a job"}
               </Link>
               {telHref() && displayPhone() ? (
                 <a
@@ -124,6 +148,31 @@ export function HomeHero() {
                 See pricing
               </Link>
             </div>
+
+            {/*
+              THE PRICE, PLAINLY, UNDER THE BUTTON IT BELONGS TO. Operator
+              ruling, 2026-10-03, instruction 1: "with the price shown plainly".
+
+              Not on the button face. A figure inside a button competes with the
+              verb and wraps badly at 390, and this reader is often on a phone.
+              Under it, at body size, it reads as a fact about the thing above
+              rather than as decoration.
+
+              THE COASTAL LINE IS NAMED SEPARATELY, never folded into the first
+              figure. That is the operator's ruling of 2026-09-02 about this
+              surcharge, and it holds on every surface that shows it: a reader in
+              Nueces pays it and a reader in Houston does not, and one blended
+              number would be wrong for both of them.
+
+              Absent entirely when there is nothing orderable, because a price
+              with no purchase behind it is a claim about a thing you cannot buy.
+            */}
+            {offer?.price ? (
+              <p className="mt-4 text-[15px] leading-[1.7] text-slate-fg-muted">
+                <span className="font-semibold text-slate-fg">{offer.price}</span>
+                {offer.coastal ? `, ${offer.coastal}` : ""}.
+              </p>
+            ) : null}
           </div>
 
           <div className="mx-auto flex w-full max-w-[460px] flex-1 basis-[300px] flex-col items-center self-end">

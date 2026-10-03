@@ -10,6 +10,7 @@ import {
   WindIcon,
 } from "@/components/ui/icons";
 import { CARD_LINK, IconTile } from "@/components/ui/section";
+import { lineOffer } from "@/lib/ordering";
 
 /**
  * The service line card, as v5 draws it.
@@ -76,10 +77,37 @@ export function ServiceCard({
   const Icon = SERVICE_ICONS[slug] ?? SealedLetterIcon;
   const tag = SERVICE_TAGS[slug] ?? "Engineering";
   const Name = heading;
+  const offer = lineOffer(slug);
 
+  /*
+   * ==========================================================================
+   * TWO TARGETS IN ONE CARD, AND THE REASON IT IS NOT A LINK INSIDE A LINK.
+   * Operator ruling, 2026-10-03, instruction 3.
+   * ==========================================================================
+   *
+   * "Every service card on the homepage and /services: offered lines say Order
+   * online with the price; others say Request a quote. Never imply a line can be
+   * ordered when it cannot."
+   *
+   * The card was one <Link> wrapping everything, so the action could only have
+   * been an anchor nested inside an anchor. That is invalid markup and a real
+   * defect rather than a pedantic one: a browser may treat the inner click as
+   * the outer link's, and on a phone the two targets sit on top of each other.
+   * `FileSelection.tsx` already records that exact hazard in its own words.
+   *
+   * So the card is a container with a STRETCHED LINK: the service name is the
+   * link and an ::after pseudo element covers the card, which gives the whole
+   * surface the name's target without wrapping anything. The action sits above
+   * it on its own z layer, as a second, separate target with its own label.
+   *
+   * WHAT EACH ONE DOES. The card opens the service page, which is what a reader
+   * clicking a card about a service expects. The action goes straight to the
+   * order flow, or to the quote form with this line preselected, which is the
+   * step the operator found the site never offered at all.
+   */
   return (
     <li className="h-full">
-      <Link href={`/services/${slug}`} className={`${CARD_LINK} flex flex-col p-6`}>
+      <div className={`${CARD_LINK} relative flex flex-col p-6`}>
         <span className="flex items-center justify-between gap-3">
           <IconTile>
             <Icon size={24} />
@@ -89,7 +117,12 @@ export function ServiceCard({
           </span>
         </span>
         <Name className="mt-4 font-display text-[17px] leading-[1.35] font-semibold text-slate">
-          {name}
+          <Link
+            href={`/services/${slug}`}
+            className="after:absolute after:inset-0 after:content-['']"
+          >
+            {name}
+          </Link>
         </Name>
         <span className="mt-2 flex-1 text-[14px] leading-[1.65] text-slate-muted">{summary}</span>
         {cta ? (
@@ -97,7 +130,29 @@ export function ServiceCard({
             {cta}
           </span>
         ) : null}
-      </Link>
+
+        {/*
+          THE PRICE IS ON THE SAME LINE AS THE ACTION, DELIBERATELY. A figure
+          sitting on its own is a claim about cost; a figure on the button is
+          what you will be charged if you press it. The coastal line is named
+          separately rather than folded in, which is the operator's ruling of
+          2026-09-02 about that surcharge and holds wherever it is shown.
+        */}
+        <span className="relative z-10 mt-5 flex flex-wrap items-baseline gap-x-3 gap-y-1 border-t border-[var(--color-limestone-line)] pt-4">
+          <Link
+            href={offer.href}
+            className="text-[14px] font-semibold text-slate underline underline-offset-4 hover:text-brass-ink"
+          >
+            {offer.cta}
+          </Link>
+          {offer.price ? (
+            <span className="text-[14px] font-semibold text-slate">{offer.price}</span>
+          ) : null}
+          {offer.coastal ? (
+            <span className="text-[13px] text-slate-muted">{offer.coastal}</span>
+          ) : null}
+        </span>
+      </div>
     </li>
   );
 }

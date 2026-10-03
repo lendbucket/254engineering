@@ -176,6 +176,124 @@ for (const route of allRoutes) {
   );
 }
 
+/*
+ * ===========================================================================
+ * EVERY PUBLIC PAGE OFFERS AN ORDER OR A QUOTE, AND WHERE A LINE IS OPEN THE
+ * SITE ACTUALLY LEADS TO IT. Operator ruling, 2026-10-03.
+ * ===========================================================================
+ *
+ * His instruction: "Check with the sweep that every public page has a path to
+ * ordering or to a quote, and add that as a permanent check."
+ *
+ * THAT SENTENCE ALONE WOULD HAVE PASSED ON THE BROKEN SITE, and saying so is the
+ * point of this comment. Every page already carried a /contact link in the
+ * header, so "a path to ordering OR a quote" was satisfied everywhere on the day
+ * he found that nothing anywhere led to the order flow. A check that cannot fail
+ * on the state that prompted it is decoration.
+ *
+ * SO THIS IS HIS FLOOR AND THE GUARD WITH TEETH IS IN launch-audit. That check,
+ * "with the gate open, the home page leads to the order flow", had to go where
+ * the subject exists: this audit runs against the suite's server, which reads a
+ * .env.local with no live LAUNCH_MODE and no FIRM_PHONE and therefore renders
+ * PRELAUNCH, where nothing is orderable and nothing can be missing. launch-audit
+ * is the one place that already builds and crawls the site with the gate's
+ * conditions stated true.
+ *
+ * What stays here is the permanent floor, which is true in every mode: a reader
+ * on any public page can always reach either the order flow or a quote. It is
+ * the weaker of the two and it is the one that should never go red.
+ */
+{
+  const ORDER_OR_QUOTE = /href="(\/order(?:\/start\/[a-z0-9-]+)?|\/contact(?:\?[^"]*)?)"/gi;
+
+  const chooser = await get("/order");
+  rec(
+    "the chooser at /order is reachable",
+    chooser.status === 200,
+    chooser.status === 200
+      ? "it is the page both the header button and Start a job now lead to"
+      : `HTTP ${chooser.status}`,
+  );
+
+  /*
+   * A FLOOR ON THE SUBJECT. If the sitemap or the chooser came back empty every
+   * assertion below would pass over nothing, which is the vacuous green this
+   * repository keeps meeting.
+   */
+  const publicRoutes = allRoutes.filter(
+    (r) => !NO_CTA_EXPECTED.some((e) => e.path === r) && !r.endsWith(".txt"),
+  );
+  rec(
+    "there are public pages to check for an ordering path",
+    publicRoutes.length >= 10,
+    `${publicRoutes.length} public route(s). Below the floor this check passes over an empty list`,
+  );
+
+  /*
+   * TWO WAYS TO SATISFY IT, AND THE SECOND WAS FOUND BY RUNNING THE CHECK.
+   *
+   * The first version asked only for a LINK and went red on six pages: /contact,
+   * /design-inquiry, /waitlist, and the three careers pages. Reading them is what
+   * settled it, and the six split cleanly in two.
+   *
+   * /contact, /design-inquiry and /waitlist ARE the quote destination. Each
+   * carries the form the link on every other page points AT. Requiring them to
+   * link to themselves is requiring a signpost to the room you are standing in,
+   * so a page carrying a form satisfies the rule by being the thing. That is
+   * derived from the page rather than from a list of names.
+   *
+   * THE CAREERS PAGES ARE A REAL EXEMPTION AND ARE NAMED. A hiring page is not a
+   * service surface: its reader is applying for a job, its conversion path is an
+   * application, and an order button in the body of a job advertisement would be
+   * a conversion device in the wrong conversation. The header carries "Start a
+   * job" on every page of the site including these, which is what makes the body
+   * rule safe to relax here and nowhere else.
+   *
+   * THE EXEMPTION IS COUNTED AND ITS MEMBERS ARE PRINTED, because an exemption
+   * nobody counts becomes the rule. CLAUDE.md records that as the reason an
+   * allowlist of names is refused outright elsewhere: this one is a prefix with
+   * a stated subject rather than a growing list of individual pages.
+   */
+  const CAREERS_EXEMPT = /^\/careers(\/|$)/;
+  const withoutPath = [];
+  const exemptedCareers = [];
+  const satisfiedByOwnForm = [];
+  for (const route of publicRoutes) {
+    const { status, html } = await get(route);
+    if (status !== 200) continue;
+    const body = pageBody(html);
+    if ([...body.matchAll(ORDER_OR_QUOTE)].length) continue;
+    if (FORM.test(body)) {
+      satisfiedByOwnForm.push(route);
+      continue;
+    }
+    if (CAREERS_EXEMPT.test(route)) {
+      exemptedCareers.push(route);
+      continue;
+    }
+    withoutPath.push(route);
+  }
+  rec(
+    "every public page has a path to ordering or to a quote",
+    withoutPath.length === 0,
+    withoutPath.slice(0, 6).join(", ") ||
+      `${publicRoutes.length} route(s). ${satisfiedByOwnForm.length} carry the quote form themselves (${satisfiedByOwnForm.join(", ") || "none"}), and ${exemptedCareers.length} are hiring pages whose conversion path is an application (${exemptedCareers.join(", ") || "none"})`,
+  );
+
+  /*
+   * AND THE EXEMPTION HAS NOT GROWN. Pinned as a literal, the way section 6c
+   * pins a business ruling: three careers pages today, and a fourth is either a
+   * real new job advertisement or somebody putting a page out of reach of this
+   * check. Either way it should cost an edit here.
+   */
+  rec(
+    "the hiring exemption still covers only the careers pages",
+    exemptedCareers.length <= 3 && exemptedCareers.every((r) => CAREERS_EXEMPT.test(r)),
+    `${exemptedCareers.length} exempted, pinned at no more than 3. An exemption nobody counts becomes the rule`,
+  );
+
+}
+
 console.log("=== CTA AUDIT ===");
 console.log(`${allRoutes.length} routes against ${BASE}`);
 console.log(GATE_ACTIVE ? "prelaunch gate ACTIVE: the honest CTA is the waitlist" : "live mode");

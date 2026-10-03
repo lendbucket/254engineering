@@ -15,6 +15,7 @@ import { serviceBySlug, services } from "@/content/services";
 import { regions } from "@/content/regions";
 import { turnaroundCopy } from "@/content/model-copy";
 import { servicePhotos } from "@/content/photos";
+import { ServiceOrderAction } from "@/components/services/ServiceOrderAction";
 
 /**
  * Every service page is generated at build time and there is no dynamic
@@ -81,6 +82,23 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
         image={servicePhotos[service.slug]}
       >
         <PrelaunchNotice service={service.name} />
+        {/*
+          THE ORDER IS AT THE TOP OF THE PAGE, NOT ONLY AT THE BOTTOM.
+          Operator ruling, 2026-10-03, instruction 4.
+
+          His finding: "the only link to /order/start/roof-inspections is Order
+          this at the bottom of the roof service page". That link is OfferCta, it
+          is still there, and it is after every section of prose. A reader who
+          already knows they want the thing had to scroll past the whole page to
+          buy it.
+
+          IT IS THE SAME DERIVATION AS EVERY OTHER SURFACE, so this is one
+          component on every service page rather than a special case for the roof
+          line. A line that is not orderable shows the quote path here, with its
+          own service preselected, which is the same honest fallback the cards
+          use. Nothing names a slug.
+        */}
+        <ServiceOrderAction slug={service.slug} />
       </PageHeader>
 
       {/*

@@ -2,6 +2,19 @@ import { ButtonLink, Eyebrow } from "@/components/ui/primitives";
 import { Container } from "@/components/ui/Container";
 import { isOpen, isPrelaunch, notYetAcceptingEngagements, registrationStatement, serviceLineIsOffered } from "@/lib/launch";
 import { displayPhone, telHref } from "@/config/contact";
+import { lineOffer, orderableLineOffers } from "@/lib/ordering";
+
+/** The price line for a named, orderable service line. */
+function OfferPrice({ slug }: { slug: string }) {
+  const offer = lineOffer(slug);
+  if (!offer.price) return null;
+  return (
+    <p className="mt-4 text-[15px] leading-[1.7] text-slate-fg-muted">
+      <span className="font-semibold text-slate-fg">{offer.price}</span>
+      {offer.coastal ? `, ${offer.coastal}` : ""}.
+    </p>
+  );
+}
 
 /**
  * The call to action, in all three launch modes.
@@ -72,7 +85,38 @@ export function OfferCta({
   const phone = displayPhone();
   const tel = telHref();
   const lineIsOrderable = Boolean(serviceSlug && isOpen() && serviceLineIsOffered(serviceSlug));
-  const enquiryHref = "/contact";
+
+  /*
+   * ==========================================================================
+   * WITH NO SERVICE NAMED, THIS NOW LEADS TO THE CHOOSER RATHER THAN A FORM.
+   * Operator ruling, 2026-10-03, instructions 2 and 5.
+   * ==========================================================================
+   *
+   * This component closes /process, /about, the coverage pages and more, and on
+   * every one of them without a `serviceSlug` it said "Start a job" and went to
+   * /contact. So the firm's own "how it works" page walked a reader through five
+   * steps and then asked them to write a message.
+   *
+   * Instruction 5 is that /process ends in an Order button. Rather than special
+   * casing that one page, the generic branch now goes to /order, which asks what
+   * they need and gives every open line a price and an Order button. That is the
+   * same destination instruction 2 gives the header button, so the two most
+   * common ways into "I want to buy something" agree.
+   *
+   * AND WHERE A SINGLE LINE IS ORDERABLE IT SKIPS THE CHOOSER ENTIRELY. A
+   * chooser with one Order row and seven quote rows is a page between the reader
+   * and the thing they came for. `headlineOffer()` answers with that line when
+   * there is exactly one, so the button orders it by name.
+   *
+   * PRELAUNCH IS UNTOUCHED AND GOES ON USING /contact. With the gate shut there
+   * is nothing to choose between, and the chooser's own sentence about lines
+   * being open would be the wrong thing to show somebody the firm cannot serve
+   * yet.
+   */
+  const open = orderableLineOffers();
+  const soleOffer = open.length === 1 ? open[0] : null;
+  const enquiryHref = prelaunch ? "/contact" : "/order";
+  const genericOrder = !serviceSlug && !prelaunch && open.length > 0;
 
   /*
    * THE ARGUMENT THAT USED TO SIT HERE IS SUPERSEDED, AND IT IS WORTH SAYING
@@ -112,8 +156,21 @@ export function OfferCta({
               the same reason.
             */}
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <ButtonLink href={lineIsOrderable ? orderHref : enquiryHref} tone="onDark">
-                {lineIsOrderable ? "Order this" : "Start a job"}
+              <ButtonLink
+                href={
+                  lineIsOrderable
+                    ? orderHref
+                    : genericOrder && soleOffer
+                      ? soleOffer.href
+                      : enquiryHref
+                }
+                tone="onDark"
+              >
+                {lineIsOrderable
+                  ? "Order this"
+                  : genericOrder && soleOffer
+                    ? soleOffer.orderLabel
+                    : "Start a job"}
               </ButtonLink>
               {tel && phone ? (
                 <ButtonLink href={tel} tone="onDarkOutline">
@@ -121,6 +178,18 @@ export function OfferCta({
                 </ButtonLink>
               ) : null}
             </div>
+            {/*
+              The price under the button, the same treatment the hero and the
+              service pages use, so a reader meets the figure in one shape
+              wherever the firm offers them something.
+            */}
+            {lineIsOrderable && serviceSlug ? <OfferPrice slug={serviceSlug} /> : null}
+            {genericOrder && soleOffer?.price ? (
+              <p className="mt-4 text-[15px] leading-[1.7] text-slate-fg-muted">
+                <span className="font-semibold text-slate-fg">{soleOffer.price}</span>
+                {soleOffer.coastal ? `, ${soleOffer.coastal}` : ""}.
+              </p>
+            ) : null}
           </div>
         </div>
       </Container>

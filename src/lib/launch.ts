@@ -665,9 +665,41 @@ export function sealingIsAvailableFor(serviceSlug: string): boolean {
  *
  * One function, so the order flow, the service pages and the gate cannot answer
  * it three ways.
+ *
+ * ===========================================================================
+ * IT READ THE PROTOCOL AND NEVER THE LIST, WHICH IS THE ONE SHORTCUT
+ * `launch-conditions.ts` SAYS MUST NOT BE TAKEN. Corrected 2026-10-03.
+ * ===========================================================================
+ *
+ * This was `approvedProtocolFor(serviceSlug) !== null`, full stop. The file that
+ * declares `offeredServiceLines` warns about exactly that, in its own words:
+ *
+ *   "Deriving 'offered' from 'has an approved protocol' is the obvious shortcut
+ *    and it is the one thing this must not do."
+ *
+ * and states the rule this now implements:
+ *
+ *   "ADDING A LINE IS TWO ACTS, DELIBERATELY. One edit here, and Aman approving
+ *    the protocol for it in his own account... a protocol approved for a line
+ *    nobody listed changes nothing at all."
+ *
+ * It did not change nothing. It put that line on sale: this predicate decides
+ * which deliverables the order flow offers, what the bulk order screen accepts,
+ * and whether the call to action says "Order this".
+ *
+ * NOTHING WAS WRONG ON SCREEN AND THAT IS WHY IT SURVIVED. Both sets hold
+ * exactly `roof-inspections` today, so every caller got the right answer and no
+ * check could see a difference. The defect was reachable only in a state nobody
+ * had reached yet: the engineer approving a protocol before the operator listed
+ * the line, which is the ordinary order of those two acts.
+ *
+ * It is the empty-register hazard CLAUDE.md records twice, with the registers
+ * full and AGREEING instead of empty. A predicate that is one conjunct short
+ * does not fail; it answers a slightly different question, correctly, until the
+ * day the two facts diverge.
  */
 export function serviceLineIsOffered(serviceSlug: string): boolean {
-  return approvedProtocolFor(serviceSlug) !== null;
+  return offeredServiceLines.includes(serviceSlug) && approvedProtocolFor(serviceSlug) !== null;
 }
 
 /**

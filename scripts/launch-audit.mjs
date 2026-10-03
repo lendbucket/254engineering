@@ -194,6 +194,74 @@ async function run() {
       }),
     );
 
+    /*
+     * =====================================================================
+     * WITH THE GATE OPEN, THE SITE ACTUALLY LEADS TO THE ORDER FLOW.
+     * Operator ruling, 2026-10-03.
+     * =====================================================================
+     *
+     * His finding, and it is the reason this assertion exists at all: "The
+     * public site never leads anyone to the order flow. Start a job goes to
+     * /contact, and the only link to /order/start/roof-inspections is Order this
+     * at the bottom of the roof service page."
+     *
+     * IT LIVES HERE RATHER THAN IN cta-audit, AND THE REASON IS THE WHOLE POINT.
+     * cta-audit runs against the suite's server, which reads a .env.local with
+     * no live LAUNCH_MODE and no FIRM_PHONE, so it renders PRELAUNCH. A check
+     * about order buttons asked of a prelaunch site is a check over a subject
+     * that does not exist: nothing is orderable, so nothing is missing, and it
+     * would pass for ever while saying something reassuring.
+     *
+     * This is the one place in the suite that already builds and crawls the site
+     * with the gate's conditions stated true. The subject exists here on every
+     * board, which is CLAUDE.md's answer to a vacuous check: build the subject.
+     *
+     * TWO ASSERTIONS, because they fail for different reasons and a reader needs
+     * to know which. The home page is where the operator looked first. A service
+     * page for an offered line is where somebody who searched for the service
+     * lands, and it had the order only at the very bottom.
+     */
+    const ORDER_LINK = /href="\/order(?:\/start\/[a-z0-9-]+)?"/i;
+    const liveHome = live.get("/");
+    rec(
+      "with the gate open, the home page leads to the order flow",
+      Boolean(liveHome && ORDER_LINK.test(liveHome.html)),
+      liveHome && ORDER_LINK.test(liveHome.html)
+        ? "the hero's primary button, derived from the offered lines"
+        : "the home page carries no link to /order or /order/start, which is the state the operator found on 2026-10-03",
+    );
+
+    /*
+     * The offered line's own service page. roof-inspections is named here
+     * because this list of ROUTES names it, and the assertion is about THIS
+     * crawl rather than about the register: the fixture opens the gate, so a
+     * line listed and approved renders its order button, and if the derivation
+     * breaks this goes red naming the page.
+     */
+    const liveRoof = live.get("/services/roof-inspections");
+    rec(
+      "with the gate open, an offered line's service page leads to the order flow",
+      Boolean(liveRoof && ORDER_LINK.test(liveRoof.html)),
+      liveRoof && ORDER_LINK.test(liveRoof.html)
+        ? "the order action at the top of the page, beside the price"
+        : "no /order link on the service page for a line that is offered",
+    );
+
+    /*
+     * AND THE PRELAUNCH SITE MUST NOT. The inverse matters more than it looks:
+     * an order button on a site whose gate is shut sends a reader to a checkout
+     * that refuses, which is the dead end OfferCta's own comment records being
+     * fixed once already.
+     */
+    const preHome = pre.get("/");
+    rec(
+      "and the prelaunch home page offers no order link at all",
+      Boolean(preHome && !ORDER_LINK.test(preHome.html)),
+      preHome && !ORDER_LINK.test(preHome.html)
+        ? "nothing to order while the gate is shut, so nothing is offered"
+        : "the prelaunch home page links to the order flow, which leads to a page that refuses",
+    );
+
     const unreachablePre = [...pre.entries()].filter(([, p]) => p.status !== 200).map(([r]) => r);
     const unreachableLive = [...live.entries()].filter(([, p]) => p.status !== 200).map(([r]) => r);
     rec("every audited route answers 200 in prelaunch", unreachablePre.length === 0, unreachablePre.join(", "));

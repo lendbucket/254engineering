@@ -110,11 +110,12 @@ export function MobileNav({ prelaunch }: { prelaunch: boolean }) {
                 </li>
               ))}
             </ul>
+            {/* The same destination as the desktop header button. See SiteHeader. */}
             <Link
-              href={prelaunch ? "/waitlist" : "/contact"}
+              href={prelaunch ? "/waitlist" : "/order"}
               className="block border-b border-white/10 py-4 text-[15.5px] font-bold text-brass-light"
             >
-              {prelaunch ? "Join the Waitlist" : "Contact the Firm"}
+              {prelaunch ? "Join the Waitlist" : "Start a job"}
             </Link>
           </nav>
         </div>

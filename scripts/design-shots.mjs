@@ -23,6 +23,29 @@ import { chromium } from "playwright";
 import { startNextServer } from "./lib/dev-server.mjs";
 import { takeLock } from "./lib/machine-lock.mjs";
 import { PORTS } from "./lib/ports.mjs";
+import { withGateConditionsMet, FIXTURE_ENV } from "./lib/gate-fixture.mjs";
+
+/**
+ * SHOTS_GATE=open CAPTURES THE SITE AS A CUSTOMER SEES IT IN PRODUCTION.
+ * Added 2026-10-03 for the ordering work.
+ *
+ * WHY IT IS NEEDED AT ALL. `.env.local` carries no live LAUNCH_MODE and no
+ * FIRM_PHONE, so a server started here renders PRELAUNCH. Every capture of a
+ * public page taken that way shows a site with no order button and no price,
+ * which is not what production serves and is precisely the thing the operator
+ * asked to look at.
+ *
+ * WHY IT IS OPT IN RATHER THAN THE DEFAULT. The account screens in this list are
+ * gate independent and have been captured in the default mode for weeks. Making
+ * every future capture run open the gate would silently change what those images
+ * mean, and a screenshot whose conditions nobody stated is a screenshot nobody
+ * can compare against anything.
+ *
+ * It uses the same fixture launch-audit's live crawl uses: the register is
+ * written, the gate is ASKED in a child process whether it actually opened, and
+ * the files are put back afterwards.
+ */
+const GATE_OPEN = process.env.SHOTS_GATE === "open";
 
 /*
  * BESIDE THE DESIGNS, because that is where they are compared.
@@ -54,6 +77,20 @@ const SCREENS = [
   { route: "/account/sign-up", design: "V10-signup.png", name: "signup" },
   { route: "/account/forgot-password", design: null, name: "forgot-password" },
   { route: "/order/start/roof-inspections", design: "V10O-service.png", name: "order-service" },
+  /*
+   * THE TWO PUBLIC PAGES THE ORDERING WORK CHANGED, 2026-10-03. The operator
+   * asked for captures of the home page and the roof page at both widths, and
+   * they are added to this list rather than taken by hand so the next person to
+   * change either one captures them the same way.
+   *
+   * `design: null` on both, truthfully: V10 draws the portal and the customer
+   * account, and the public site is v5. Pairing these with a V10 artifact would
+   * invite somebody to restyle the public site to match a drawing that was never
+   * about it.
+   */
+  { route: "/", design: null, name: "home" },
+  { route: "/services/roof-inspections", design: null, name: "service-roof" },
+  { route: "/order", design: null, name: "order-chooser" },
 ];
 
 const WIDTHS = [
@@ -70,9 +107,42 @@ const release = await takeLock({
 });
 
 let server = null;
-try {
-  server = await startNextServer({ port: PORTS.designShots });
+
+/**
+ * The capture run, lifted into a function so the gate fixture can wrap it.
+ *
+ * The fixture writes the register, runs this, and puts the files back. Wrapping
+ * only the server start would not do: the pages are RENDERED during the walk, so
+ * the conditions have to still be true while the browser is driving.
+ */
+async function capture() {
+  server = await startNextServer({
+    port: PORTS.designShots,
+    /*
+     * LAUNCH_MODE and FIRM_PHONE are read by the spawned server from its own
+     * environment rather than from the patched files, which is the trap
+     * launch-audit records: without them the live crawl renders the PRELAUNCH
+     * site while asserting live things about it.
+     */
+    /*
+     * AND IT MUST BE `dev`, NOT `start`, WHEN THE GATE IS OPENED BY A FIXTURE.
+     * The public pages are statically prerendered, so the gate's answer is baked
+     * in AT BUILD TIME: a `next start` serving an artifact built before the
+     * register was patched renders the prelaunch site no matter what the files
+     * say while the browser is driving. CLAUDE.md states the same fact from the
+     * other side, that flipping the mode requires a rebuild, and launch-audit's
+     * live crawl uses dev for exactly this reason.
+     */
+    ...(GATE_OPEN
+      ? { command: "dev", timeoutMs: 180_000, env: { LAUNCH_MODE: "live", ...FIXTURE_ENV } }
+      : {}),
+  });
   console.log("server up at " + server.base);
+  console.log(
+    GATE_OPEN
+      ? "gate OPEN for this run: these are the pages a customer sees in production"
+      : "gate as .env.local leaves it, which is prelaunch. Pass SHOTS_GATE=open for the trading site",
+  );
   const browser = await chromium.launch();
 
   for (const width of WIDTHS) {
@@ -117,6 +187,11 @@ try {
   }
 
   await browser.close();
+}
+
+try {
+  if (GATE_OPEN) await withGateConditionsMet(capture);
+  else await capture();
 } finally {
   if (server) {
     await server.stop();

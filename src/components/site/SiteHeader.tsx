@@ -85,11 +85,23 @@ export function SiteHeader() {
 
             <MobileNav prelaunch={prelaunch} />
 
+            {/*
+              THE HEADER BUTTON LEADS TO THE CHOOSER, NOT TO A MESSAGE FORM.
+              Operator ruling, 2026-10-03, instruction 2.
+
+              It said "Contact the Firm" and went to /contact, so the most
+              prominent control on every page of a firm that is OPEN FOR ORDERING
+              asked the reader to write a paragraph and wait. /order asks what
+              they need and gives the open lines a price and an Order button.
+
+              The prelaunch branch is untouched: with the gate shut there is
+              nothing to order and the waitlist is the honest destination.
+            */}
             <Link
-              href={prelaunch ? "/waitlist" : "/contact"}
+              href={prelaunch ? "/waitlist" : "/order"}
               className="-mr-[clamp(1rem,4vw,1.75rem)] flex items-center bg-brass px-[18px] text-[14px] font-bold text-slate-ink transition-colors hover:bg-brass-light sm:px-[26px] sm:text-[15px]"
             >
-              {prelaunch ? "Join the Waitlist" : "Contact the Firm"}
+              {prelaunch ? "Join the Waitlist" : "Start a job"}
             </Link>
           </div>
         </Container>
