@@ -32,16 +32,49 @@ the probe domain are both zero. No figure is wrong: all 641 carry `is_demo`,
 which migration 0027 and a check constraint tie to the reference, so they are
 excluded by construction rather than by care.
 
-**Why it is not cleared.** The operator's post-condition was zero remaining, and
-zero is unreachable: 141 are held by `eng_statements` and
-`eng_account_trade_prices`, both `RESTRICT`, both financial records, and a trade
-price is superseded and never edited by 0045. Deleting a financial record to tidy
-a development database is the wrong trade at any size. **His ruling: hold the
-clearance, do not use the script channel for it.**
+**THE CLEARANCE IS DROPPED. Operator ruling, 2026-10-03. The silt stays,
+demo-marked.** Not deferred and not pending: there is nothing to come back to.
 
-**The MCP write path was cancelled twice**, and the state was verified unchanged
-after each. A cancelled write is now reported and stopped rather than retried,
-because a cancellation may be the operator declining the prompt.
+**Why, and it is 0048 rather than the 141.** The first reason was that zero was
+unreachable: 141 accounts are held by `eng_statements` and
+`eng_account_trade_prices`, both `RESTRICT`, both financial records. Then the
+real answer appeared. **Migration 0048 installs `eng_forbid_account_delete()`, a
+trigger that raises on EVERY delete against `eng_customer_accounts`**, with no
+exemption for development:
+
+> An account is superseded, never deleted. Set superseded_at with a reason and an
+> actor. The orders, statements and trade prices attached to it are the record of
+> what somebody was charged.
+
+0048's own notes say it refuses every delete rather than only priced accounts,
+because a guarantee holding "only for accounts that happen to have been priced"
+is one nobody can state. **So not one of the 641 accounts can go, and a client
+cannot go while its account holds it.** The operator ruled on 2026-10-03 that
+0048 stands as written, no exemption, no workaround. An earlier ruling permitting
+a hard delete on development was withdrawn the same day on learning this.
+
+**It grows by one per customer-probe run**, and not only billing ones: any audit
+creating a customer probe adds one permanent client and one superseded account.
+Phase 0 of the staff walk took it from 641 to 642.
+
+**THE MCP CANCELLATIONS HAVE A CAUSE, FOUND 2026-10-03 FROM THE TRANSCRIPT RATHER
+THAN BY RETRYING.** Of 45 supabase MCP calls this session, every cancelled one is
+DESTRUCTIVE and every write that succeeded is additive:
+
+| Shape | Outcome |
+| --- | --- |
+| `create or replace function`, two `insert into` | ok |
+| two `update` | ok |
+| `alter table ... drop column` | CANCELLED, twice |
+| `do $$ ... delete from` | CANCELLED, twice |
+
+The result is `{"status":"cancelled"}` with no error body, which is a call
+stopped before execution rather than one Postgres refused. **This also explains
+migration 0061**, cancelled twice and parked as unexplained: it is
+`drop column storage_key`, the same destructive shape. The hosted MCP at
+`mcp.supabase.com` carries no local flags, so any destructive-operation guard is
+configured on Supabase's side, which is a console this repository cannot read.
+**A cancelled write is reported and stopped, never retried.**
 
 ## A FIXED PROBE BILLING ACCOUNT, PROPOSED AND NOT BUILT
 

@@ -647,20 +647,53 @@ export async function destroyCustomerProbes(label = "audit", options = {}) {
     const { error: ue } = await d.from("eng_customer_users").delete().eq("account_id", id);
     if (ue) errors.push(`eng_customer_users for account ${id}: ${ue.message}`);
 
-    if (onDevelopment) {
-      const { error: ae } = await d.from("eng_customer_accounts").delete().eq("id", id);
-      if (ae) {
-        /* Refused: fall back to the standing rule and say so. */
-        const sup = await supersedeProbeAccount(d, id);
-        kept.push(`eng_customer_accounts ${id}: ${ae.message}${sup ? ", superseded instead" : ""}`);
-      }
-    } else {
-      await supersedeProbeAccount(d, id);
-      kept.push(`eng_customer_accounts ${id}: not development, so superseded rather than deleted`);
-    }
+    /*
+     * ====================================================================
+     * THE ACCOUNT IS SUPERSEDED. THERE IS NO DELETE PATH AND THERE WAS NEVER
+     * GOING TO BE ONE. Operator ruling withdrawn 2026-10-03.
+     * ====================================================================
+     *
+     * A hard delete on development was ruled and then withdrawn the same day,
+     * because the database refuses it everywhere. Migration 0048 installs
+     * `eng_forbid_account_delete()`, a trigger that raises on EVERY delete
+     * against this table:
+     *
+     *   "An account is superseded, never deleted. Set superseded_at with a
+     *    reason and an actor. The orders, statements and trade prices attached
+     *    to it are the record of what somebody was charged."
+     *
+     * 0048's own notes say it refuses every delete rather than only priced
+     * accounts, because a guarantee that holds "only for accounts that happen
+     * to have been priced" is one nobody can state.
+     *
+     * THE ATTEMPT IS REMOVED RATHER THAN LEFT TO FAIL, on his instruction. A
+     * call that is refused every time is a path somebody later reads as
+     * possible, and its error handling is dead code that looks live.
+     */
+    const sup = await supersedeProbeAccount(d, id);
+    kept.push(
+      `eng_customer_accounts ${id}: superseded, never deleted (migration 0048)${sup ? "" : ", and the supersede did not take"}`,
+    );
   }
 
+  /*
+   * A CLIENT IS ONLY DELETABLE WHEN NOTHING HOLDS IT, which after the above
+   * means when no account references it. Asked rather than attempted, for the
+   * same reason: `eng_customer_accounts_client_id_fkey` is `on delete restrict`,
+   * so a client whose account survives can never go, and firing a delete at it
+   * every run produced the error that masked the real state for nineteen days.
+   */
   for (const cid of clientIds) {
+    const { data: holders } = await d
+      .from("eng_customer_accounts")
+      .select("id")
+      .eq("client_id", cid);
+    if ((holders ?? []).length > 0) {
+      kept.push(
+        `eng_clients ${cid}: held by ${(holders ?? []).length} superseded account(s) through eng_customer_accounts_client_id_fkey, which is on delete restrict`,
+      );
+      continue;
+    }
     const { error: ce } = await d.from("eng_clients").delete().eq("id", cid);
     if (ce) errors.push(`eng_clients ${cid}: ${ce.message}`);
   }
@@ -722,7 +755,32 @@ export async function destroyCustomerProbes(label = "audit", options = {}) {
     }
   }
 
-  const left = counts.eng_customer_users + counts.eng_clients + counts.eng_customer_accounts;
+  /*
+   * ======================================================================
+   * KEPT IS NOT LEFT BEHIND. Operator ruling, 2026-10-03.
+   * ======================================================================
+   *
+   * "Teardown supersedes probe accounts and reports them as kept by design,
+   * with the 0048 reason, NOT as a failure."
+   *
+   * The first version counted the superseded account and the client it holds
+   * towards `left`, so an ordinary run returned ok false with left 2 every
+   * time. That is a permanent red about the schema working exactly as designed,
+   * and this file's neighbour already records what a red everybody expects does
+   * to the next real one.
+   *
+   * So `left` is what should NOT be there: anything that can still sign in, and
+   * any delete that failed for a reason nobody predicted. What the schema
+   * refuses by design is in `kept`, counted and named, and says why.
+   *
+   * It is the same three valued answer the board uses. A refusal that was
+   * designed is not a failure, and calling it one teaches people to skip the
+   * line.
+   */
+  const keptIds = new Set(
+    kept.map((k) => (k.match(/\b([0-9a-f-]{36})\b/) ?? [])[1]).filter(Boolean),
+  );
+  const left = counts.eng_customer_users;
 
   return {
     ok: left === 0 && errors.length === 0,
@@ -735,8 +793,8 @@ export async function destroyCustomerProbes(label = "audit", options = {}) {
     keptCount: kept.length,
     note:
       left === 0 && errors.length === 0
-        ? `nothing this run is accountable for remains (scope ${scope})${kept.length ? `; ${kept.length} kept by design` : ""}`
-        : `${counts.eng_customer_users} user(s), ${counts.eng_customer_accounts} account(s), ${counts.eng_clients} client(s) remain${errors.length ? `; ${errors.length} delete(s) refused: ${errors.slice(0, 3).join(" | ")}` : ""}`,
+        ? `nothing that can sign in remains (scope ${scope})${kept.length ? `; ${kept.length} row(s) kept by design: ${kept.join(" | ")}` : ""}`
+        : `${counts.eng_customer_users} customer user(s) can still sign in${errors.length ? `; ${errors.length} unexpected delete failure(s): ${errors.slice(0, 3).join(" | ")}` : ""}`,
   };
 }
 

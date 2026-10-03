@@ -90,6 +90,15 @@ function fakeClient({ refuseDeleteOn = [] } = {}) {
         return api;
       },
       /*
+       * `.is(column, null)` is used by supersedeProbeAccount, which is now on
+       * the only path: the hard delete was removed because 0048 refuses every
+       * account delete. Added when removing that path made this call reachable
+       * in the fake for the first time.
+       */
+      is() {
+        return api;
+      },
+      /*
        * `.in(column, ids)` was missing and the helper threw on it. Added rather
        * than routed around: the scoped count asks for rows BY ID, which is the
        * thing that makes `own` bounded, so a fake that cannot express it would
@@ -154,50 +163,79 @@ if (typeof probe.__setProbeClientForTests !== "function") {
   process.exit(1);
 }
 
-/* 1. The refusal: the client delete is refused and the function must say so. */
-const refusing = fakeClient({ refuseDeleteOn: ["eng_clients"] });
+/*
+ * 1. The refusal that must still turn a run red.
+ *
+ * THE FIXTURE CHANGED WITH THE DESIGN, and that is the point of re-reading a
+ * test when a ruling moves. It used to refuse the CLIENT delete, because that
+ * was the delete the old code fired and silently ignored. That delete is no
+ * longer attempted at all: a client held by a superseded account is kept by
+ * design. So refusing it exercised nothing, and the assertion passed for the
+ * wrong reason until it was pointed at the right subject.
+ *
+ * What must still make a run red is a customer USER that cannot be removed,
+ * because that is the row that can sign in. Everything else the schema keeps is
+ * kept, named, and not a failure.
+ */
+const refusing = fakeClient({ refuseDeleteOn: ["eng_customer_users"] });
 probe.__setProbeClientForTests(refusing);
 const refused = await probe.destroyCustomerProbes("proof");
 
+/*
+ * FOUR OF THESE ASSERTIONS TESTED A DESIGN THAT WAS WITHDRAWN, and they are
+ * rewritten rather than the code bent to satisfy them.
+ *
+ * The hard delete of a probe account was ruled and withdrawn the same day, once
+ * it turned out migration 0048 installs a trigger refusing EVERY account delete.
+ * The attempt is gone, so "the client delete was attempted" and "it hard deleted
+ * the account" now assert the opposite of the rule. A proof kept green by
+ * reverting a ruling is a proof about nothing.
+ */
 rec(
-  "a refused client delete returns ok false",
-  refused.ok === false,
+  "a customer user that cannot be removed returns ok false",
+  refused.ok === false && refused.left > 0,
   refused.ok === false
-    ? "the old version returned ok true here, on every run, for nineteen days"
-    : `returned ok ${refused.ok}`,
+    ? `left ${refused.left}: a row that can sign in is the one thing that must never be reported as clean`
+    : `returned ok ${refused.ok}, left ${refused.left}`,
 );
 rec(
   "and the refusal is reported rather than discarded",
-  (refused.errors ?? []).some((e) => /eng_clients/.test(e)),
+  (refused.errors ?? []).some((e) => /eng_customer_users/.test(e)),
   (refused.errors ?? []).join(" | ") || "errors was empty, so the delete's return value was not read",
 );
 rec(
-  "and the client delete was actually attempted",
-  refusing._calls.some((c) => c.table === "eng_clients" && c.op === "delete"),
-  "a teardown that never tried would also leave the row, and would look identical from the outside",
+  "the account is superseded and reported as kept, naming 0048",
+  (refused.kept ?? []).some((k) => /superseded, never deleted \(migration 0048\)/.test(k)),
+  (refused.kept ?? []).join(" | ") || "kept was empty",
 );
 rec(
-  "and the count that decides ok reads eng_clients, not only eng_customer_users",
-  (refused.counts?.eng_clients ?? 0) > 0,
-  `counts: ${JSON.stringify(refused.counts ?? {})}`,
+  "and no delete is fired at an account, because 0048 refuses every one",
+  !refusing._calls.some((c) => c.table === "eng_customer_accounts" && c.op === "delete"),
+  "a call refused every time is a path somebody later reads as possible, and its error handling is dead code that looks live",
+);
+rec(
+  "and a client held by a superseded account is kept rather than attempted",
+  (refused.kept ?? []).some((k) => /eng_clients .* held by .* on delete restrict/.test(k)) &&
+    !refusing._calls.some((c) => c.table === "eng_clients" && c.op === "delete"),
+  "firing that delete every run produced the error that masked the real state for nineteen days",
 );
 
-/* 2. The clean path: nothing refuses, so nothing is left and ok is true. */
+/* 2. The ordinary path: nothing can sign in, and what the schema keeps is named. */
 const clean = fakeClient();
 probe.__setProbeClientForTests(clean);
 const cleaned = await probe.destroyCustomerProbes("proof");
 
 rec(
-  "and a teardown that removes everything returns ok true",
-  cleaned.ok === true && cleaned.left === 0,
+  "an ordinary run returns ok true with the kept rows named",
+  cleaned.ok === true && cleaned.left === 0 && (cleaned.keptCount ?? 0) >= 2,
   cleaned.ok === true
-    ? "so the refusal branch is not simply a function that always fails"
+    ? `left ${cleaned.left}, kept ${cleaned.keptCount}. Kept is not failed: counting the schema working as designed would be a permanent red`
     : `ok ${cleaned.ok}, left ${cleaned.left}`,
 );
 rec(
-  "and it hard deleted the account rather than superseding it",
-  clean._calls.some((c) => c.table === "eng_customer_accounts" && c.op === "delete"),
-  "operator ruling 2026-10-03: probe accounts may be hard deleted on development only",
+  "and left counts only what can still sign in",
+  cleaned.counts?.eng_customer_users === 0 && cleaned.left === 0,
+  `counts ${JSON.stringify(cleaned.counts ?? {})}, left ${cleaned.left}. The account and its client survive by design and do not make the run red`,
 );
 
 /*
