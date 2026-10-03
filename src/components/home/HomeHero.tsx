@@ -3,7 +3,7 @@ import { Container } from "@/components/ui/Container";
 import { TexasCountyMap } from "@/components/map/TexasCountyMap";
 import { modelSentence } from "@/content/model-copy";
 import { isPrelaunch } from "@/lib/launch";
-import { headlineOffer } from "@/lib/ordering";
+import { headlineOffer, orderableLineOffers } from "@/lib/ordering";
 import { displayPhone, telHref } from "@/config/contact";
 import { services } from "@/content/services";
 import { regions } from "@/content/regions";
@@ -41,6 +41,7 @@ export function HomeHero() {
   const prelaunch = isPrelaunch();
   const countyCount = regions.reduce((sum, r) => sum + r.counties.length, 0);
   const offer = headlineOffer();
+  const openCount = orderableLineOffers().length;
 
   return (
     <section id="top" className="overflow-hidden bg-gradient-to-b from-slate via-slate-deep to-slate-abyss text-slate-fg">
@@ -90,8 +91,8 @@ export function HomeHero() {
                 a literal, because it is the one that has to change when a
                 protocol is approved and sealing begins.
               */}
-              You need a sealed letter from a licensed engineer, and most firms will tell you
-              three weeks and call you back when they feel like it. {modelSentence()}
+              You need a sealed letter from a licensed engineer, for a closing, a permit, or an
+              insurer. {modelSentence()}
             </p>
 
             {/*
@@ -193,7 +194,21 @@ export function HomeHero() {
             */}
             <Stat figure={countyCount} label="Texas counties served" />
             <Stat figure={regions.length} label="Service regions" />
-            <Stat figure={services.length} label="Sealed service lines" />
+            {/*
+              "8 Sealed service lines" came off on 2026-10-03. Operator ruling:
+              it suggests all eight can be ordered today, and one can.
+
+              It was also the regulated word doing the most work on the page.
+              "Sealed" is load bearing in Texas, and eight of them read as a claim
+              that the firm is sealing eight lines when it is sealing one.
+
+              The figure is unchanged and still derived: the firm really is built
+              for eight lines and says so. What is added beside it is the fact
+              that answers the question the first stat now raises, and it is
+              derived too, from the same gate every button on this page reads.
+            */}
+            <Stat figure={services.length} label="Engineering service lines" />
+            {openCount > 0 ? <Stat figure={openCount} label="Open to order online" /> : null}
           </dl>
         </Container>
       </div>
