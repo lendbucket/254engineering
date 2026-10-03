@@ -1,6 +1,6 @@
 // Internal link map. Counts contextual versus template inbound links per page.
 //
-//   BASE_URL=http://localhost:3225 node scripts/link-map.mjs
+//   BASE_URL=http://localhost:4300 node scripts/link-map.mjs
 //   node scripts/link-map.mjs --baseline      write the current state to a file
 //   node scripts/link-map.mjs --compare       diff against the recorded baseline
 //

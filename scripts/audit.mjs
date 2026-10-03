@@ -1,6 +1,6 @@
 // The whole suite, in one command.
 //
-//   npm run build && npx next start -p 3225      (in one terminal)
+//   npm run build && npx next start -p 4300      (in one terminal)
 //   AUDIT_KILL_STALE=1 npm run audit             (in another)
 //
 // WHY IT RUNS THROUGH npm RATHER THAN CALLING THE SCRIPTS DIRECTLY

@@ -1,6 +1,6 @@
 // CTA audit. Asserts a primary conversion path on every route.
 //
-//   BASE_URL=http://localhost:3225 node scripts/cta-audit.mjs
+//   BASE_URL=http://localhost:4300 node scripts/cta-audit.mjs
 //
 // WHAT COUNTS AS A CONVERSION PATH
 // --------------------------------

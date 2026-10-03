@@ -1,6 +1,6 @@
 // Coverage audit. Proves the central claim of this brand.
 //
-//   BASE_URL=http://localhost:3225 node scripts/coverage-audit.mjs
+//   BASE_URL=http://localhost:4300 node scripts/coverage-audit.mjs
 //
 // WHY A WHOLE AUDIT FOR ONE NUMBER
 // --------------------------------

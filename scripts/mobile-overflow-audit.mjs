@@ -1,7 +1,7 @@
 /**
  * Zero horizontal document scroll, on every route, at phone widths.
  *
- *   BASE_URL=http://localhost:3225 node scripts/mobile-overflow-audit.mjs
+ *   BASE_URL=http://localhost:4300 node scripts/mobile-overflow-audit.mjs
  *
  * WHY THIS IS SEPARATE FROM mobile-audit
  * --------------------------------------

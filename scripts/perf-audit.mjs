@@ -1,7 +1,7 @@
 /**
  * The performance gate.
  *
- *   BASE_URL=http://localhost:3225 node scripts/perf-audit.mjs
+ *   BASE_URL=http://localhost:4300 node scripts/perf-audit.mjs
  *
  * WHY THIS EXISTS
  * ---------------

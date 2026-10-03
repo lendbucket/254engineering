@@ -10,7 +10,7 @@
  * listed beneath it, which makes this a general accessibility gate as well.
  *
  *   npm run contrast-audit
- *   BASE_URL=http://localhost:3225 npm run contrast-audit   # use a running server
+ *   BASE_URL=http://localhost:4300 npm run contrast-audit   # use a running server
  *
  * THE FORM STATES ARE THE PART THAT NEEDS EXPLAINING
  * --------------------------------------------------

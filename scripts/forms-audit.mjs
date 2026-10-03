@@ -8,7 +8,7 @@
 // Forms end to end. Drives all four forms in a real browser at 390px and
 // asserts on what leaves the page, not on what the component looks like.
 //
-//   BASE_URL=http://localhost:3225 node scripts/forms-audit.mjs
+//   BASE_URL=http://localhost:4300 node scripts/forms-audit.mjs
 //
 // WHAT IT ASSERTS AND WHY IN THIS ORDER
 // -------------------------------------

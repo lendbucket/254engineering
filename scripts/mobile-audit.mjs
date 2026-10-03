@@ -10,7 +10,7 @@
  *      the lock released
  *
  *   npm run mobile-audit
- *   BASE_URL=http://localhost:3225 npm run mobile-audit
+ *   BASE_URL=http://localhost:4300 npm run mobile-audit
  *
  * 320 is in the list because it is where a long unbroken string, a wide table, or
  * a grid that forgot to collapse actually breaks. Testing at 390 alone finds the

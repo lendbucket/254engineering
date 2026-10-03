@@ -1,7 +1,7 @@
 /**
  * Contrast for text that sits on a photograph.
  *
- *   BASE_URL=http://localhost:3225 node scripts/image-contrast-audit.mjs
+ *   BASE_URL=http://localhost:4300 node scripts/image-contrast-audit.mjs
  *
  * WHY THIS EXISTS SEPARATELY FROM contrast-audit.mjs
  * --------------------------------------------------

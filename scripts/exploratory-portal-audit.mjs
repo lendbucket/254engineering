@@ -39,7 +39,7 @@
  * probes are created through the audit client, which refuses production by
  * construction.
  *
- *   BASE_URL=http://localhost:3227 npx tsx scripts/exploratory-portal-audit.mjs
+ *   BASE_URL=http://localhost:4318 npx tsx scripts/exploratory-portal-audit.mjs
  */
 
 process.loadEnvFile?.(".env.local");

@@ -49,7 +49,7 @@ import { base32Decode, codeForStep, stepAt } from "../../src/lib/totp.ts";
 /**
  * Enrol, and return a FULL session cookie.
  *
- * @param {string} base       The server, e.g. http://localhost:3225
+ * @param {string} base       The server, e.g. http://localhost:4300
  * @param {string} cookie     The pending cookie value, with no `eng_ops=` prefix
  * @returns {Promise<{ ok: true, cookie: string, recoveryCodes: string[] } | { ok: false, error: string }>}
  */

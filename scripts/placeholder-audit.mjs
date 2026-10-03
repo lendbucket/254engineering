@@ -2,7 +2,7 @@
 // sitemap route and fails loudly on anything that reads as unfinished
 // scaffolding or breaks an absolute content rule.
 //
-//   BASE_URL=http://localhost:3225 node scripts/placeholder-audit.mjs
+//   BASE_URL=http://localhost:4300 node scripts/placeholder-audit.mjs
 //
 // WHY THIS READS RENDERED OUTPUT RATHER THAN SOURCE
 // -------------------------------------------------
