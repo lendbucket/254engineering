@@ -151,17 +151,33 @@ async function capture() {
      * site while asserting live things about it.
      */
     /*
-     * AND IT MUST BE `dev`, NOT `start`, WHEN THE GATE IS OPENED BY A FIXTURE.
-     * The public pages are statically prerendered, so the gate's answer is baked
-     * in AT BUILD TIME: a `next start` serving an artifact built before the
-     * register was patched renders the prelaunch site no matter what the files
-     * say while the browser is driving. CLAUDE.md states the same fact from the
-     * other side, that flipping the mode requires a rebuild, and launch-audit's
-     * live crawl uses dev for exactly this reason.
+     * =====================================================================
+     * `dev` ALWAYS, AND THIS SCRIPT HAS BEEN ABLE TO LIE SINCE IT WAS WRITTEN.
+     * =====================================================================
+     *
+     * It defaulted to `next start`, which serves whatever is in .next. So every
+     * capture it has ever taken was of the last BUILD rather than of the working
+     * tree, and nothing on the output said which.
+     *
+     * Found 2026-10-03 the only way it can be found: by looking. Four fixes went
+     * in, the captures were re-run, and the gate-shut image came back byte for
+     * byte the page from before them, still showing the old intro sentence, the
+     * subtitles that had been removed and the phone number breaking in half. The
+     * gate-open run was correct because it already used dev for its own reasons,
+     * so the two halves of the same run disagreed about what the site says.
+     *
+     * CLAUDE.md RECORDS THIS EXACT FAILURE ALREADY, in wordmark-measure's header:
+     * "two captures on 2026-09-29 were taken of a stale artifact and nearly
+     * reported as verification of a fix". That script prints the BUILD_ID so a
+     * reader can tell. This one took the pictures and said nothing.
+     *
+     * Dev renders per request, so a capture is of the tree as it is. It is slower
+     * and it is unminified, neither of which changes what a page SAYS, which is
+     * the thing these images are read for.
      */
-    ...(GATE_OPEN
-      ? { command: "dev", timeoutMs: 180_000, env: { LAUNCH_MODE: "live", ...FIXTURE_ENV } }
-      : {}),
+    command: "dev",
+    timeoutMs: 180_000,
+    ...(GATE_OPEN ? { env: { LAUNCH_MODE: "live", ...FIXTURE_ENV } } : {}),
   });
   console.log("server up at " + server.base);
   console.log(
