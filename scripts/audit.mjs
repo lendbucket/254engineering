@@ -1,6 +1,6 @@
 // The whole suite, in one command.
 //
-//   npm run build && npx next start -p 3225      (in one terminal)
+//   npm run build && npx next start -p 4300      (in one terminal)
 //   AUDIT_KILL_STALE=1 npm run audit             (in another)
 //
 // WHY IT RUNS THROUGH npm RATHER THAN CALLING THE SCRIPTS DIRECTLY
@@ -41,6 +41,7 @@ import { takeLock } from "./lib/machine-lock.mjs";
 import { startNextServer } from "./lib/dev-server.mjs";
 import { COULD_NOT_TELL } from "./lib/reachable.mjs";
 import { queueSnapshot, queueGrowth, queueTeardown } from "./lib/queue-ledger.mjs";
+import { PORTS } from "./lib/ports.mjs";
 
 /*
  * =============================================================================
@@ -73,7 +74,7 @@ import { queueSnapshot, queueGrowth, queueTeardown } from "./lib/queue-ledger.mj
  */
 const AUDIT_ENV = { ...process.env };
 
-const PORT = Number(process.env.AUDIT_PORT || 3225);
+const PORT = Number(process.env.AUDIT_PORT ?? PORTS.audit);
 const BASE = process.env.BASE_URL || `http://localhost:${PORT}`;
 
 /**

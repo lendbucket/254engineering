@@ -10,7 +10,7 @@
  *      the lock released
  *
  *   npm run mobile-audit
- *   BASE_URL=http://localhost:3225 npm run mobile-audit
+ *   BASE_URL=http://localhost:4300 npm run mobile-audit
  *
  * 320 is in the list because it is where a long unbroken string, a wide table, or
  * a grid that forgot to collapse actually breaks. Testing at 390 alone finds the
@@ -32,10 +32,11 @@ import {
   destroyCustomerProbes,
 } from "./lib/portal-probe.mjs";
 import { allPages } from "./lib/surfaces.mjs";
+import { PORTS } from "./lib/ports.mjs";
 
 const WIDTHS = [320, 375, 390, 430];
 const HEIGHT = 844;
-const PORT = Number(process.env.MOBILE_PORT || 3223);
+const PORT = Number(process.env.MOBILE_PORT ?? PORTS.mobile);
 
 /**
  * The tap target minimum, in CSS pixels.

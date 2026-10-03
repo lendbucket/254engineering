@@ -25,6 +25,7 @@
  */
 import { auditClient, describeTarget } from "./lib/db-target.mjs";
 import { createHash, randomBytes } from "node:crypto";
+import { AUDIT_BASE_URL } from "./lib/ports.mjs";
 
 const [, , nameArg, emailArg] = process.argv;
 if (!nameArg || !emailArg) {
@@ -100,7 +101,7 @@ if (profileError) {
   process.exit(1);
 }
 
-const base = (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3225").replace(/\/$/, "");
+const base = (process.env.NEXT_PUBLIC_SITE_URL || AUDIT_BASE_URL).replace(/\/$/, "");
 
 let link = null;
 if (!linked) {

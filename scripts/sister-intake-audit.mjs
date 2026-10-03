@@ -26,6 +26,7 @@
 
 import { readSource } from "./lib/read-source.mjs";
 import { auditClient } from "./lib/db-target.mjs";
+import { AUDIT_BASE_URL } from "./lib/ports.mjs";
 import {
   SISTER_KEY_ENV,
   SISTER_KEY_HEADER,
@@ -36,7 +37,7 @@ import {
   siteForKey,
 } from "../src/lib/sister-intake.ts";
 
-const BASE = process.env.BASE_URL ?? "http://localhost:3225";
+const BASE = process.env.BASE_URL ?? AUDIT_BASE_URL;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });

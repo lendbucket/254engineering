@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { PORT_RANGE } from "./ports.mjs";
 
 /**
  * Refuse to build while a server is holding `.next`.
@@ -54,15 +55,27 @@ import { fileURLToPath } from "node:url";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 /**
- * The port map, gathered from the harnesses that claim them:
- *   3223  mobile-audit
- *   3224  contrast-audit
- *   3225  the main dev/prod server every audit points BASE_URL at
- *   3226  shots
- * The range is scanned whole rather than as a list, so a harness that claims a
- * new port inside it is covered before anyone remembers to update this comment.
+ * THE RANGE THIS PROJECT MAY BIND, DERIVED FROM THE ONE DECLARATION.
+ *
+ * The map that used to sit here listed four ports in a comment and a range of
+ * seven in the code, and the two had already drifted: the project bound thirteen
+ * ports, four of them outside this range and four of them colliding with each
+ * other. A comment listing ports is a second account of a fact, and this one was
+ * wrong in both directions at once.
+ *
+ * So the range comes from `ports.mjs`, which is where a port is now added. The
+ * range is still scanned WHOLE rather than as a list, for the reason the old
+ * comment gave and which was the only correct thing about it: a harness that
+ * claims a new port inside the block is covered before anybody remembers this
+ * file exists.
+ *
+ * AND MOVING THE BLOCK MOVES THE GUARD WITH IT. That is what made this worth
+ * deriving rather than editing. On 2026-10-02 the ports moved out of the 3200s
+ * because another project on this machine had spread across them; had this
+ * stayed a literal, the guard would have gone on watching an empty range and
+ * reported every genuinely stale server of ours as not ours.
  */
-export const AUDIT_PORT_RANGE = [3223, 3229];
+export const AUDIT_PORT_RANGE = [PORT_RANGE.from, PORT_RANGE.to];
 
 const isWindows = process.platform === "win32";
 
@@ -221,7 +234,8 @@ export function classifyOwnerCandidate(command, needle) {
 export function placeByOwner(ownerCommand, needle) {
   if (!ownerCommand || !String(ownerCommand).trim()) return "unknown";
 
-  const c = String(ownerCommand).toLowerCase().replace(/\\/g, "/");
+  /* Flattened for the same reason classifyNextProcess is. See flattenPaths. */
+  const c = flattenPaths(ownerCommand);
   if (c.includes(needle)) return "ours";
 
   /*
@@ -299,6 +313,52 @@ function commandLineOf(pid) {
  * table, and the fixtures below are REAL command lines copied from it rather
  * than shapes invented to match the rule.
  */
+/**
+ * A COMMAND LINE'S PATHS, FLATTENED SO A BINARY REACHED SIDEWAYS STILL PLACES.
+ *
+ * Operator ruling, 2026-10-02, after a build refused for two days against a
+ * server it could plainly see and could not place.
+ *
+ * THE SHAPE THAT DEFEATED IT. npm's shim invokes a package binary through the
+ * `.bin` directory and a parent hop:
+ *
+ *   "node" "C:\\Users\\salon\\projects\\wattsmith\\node_modules\\.bin\\\\..\\next\\dist\\bin\\next" start
+ *
+ * Lowercased with separators normalised, that is
+ * `.../node_modules/.bin//../next/dist/bin/next`. Every test below looked for
+ * the literal `/node_modules/next/`, which **never appears**: the path goes
+ * through `.bin`, back up with `..`, and only then into `next`. So a server
+ * whose command line names its checkout in full was classified `unknown`, the
+ * guard failed closed exactly as designed, and the only remedies it could offer
+ * were to stop another project's live server or to have the guard kill it.
+ *
+ * THE GUARD WAS NOT WRONG TO REFUSE. Failing closed on something it cannot
+ * place is the 2026-09-22 ruling and it is right. What was wrong is that it
+ * COULD place this one and the pattern could not see it, so a correct policy
+ * fired on a false premise. That is worse than a missing rule, because the
+ * output argues convincingly for the wrong action.
+ *
+ * SO THE PATH IS FLATTENED BEFORE ANY TEST, rather than every test learning a
+ * second shape. Doubled separators collapse and `segment/..` pairs resolve, so
+ * `.bin//../next` becomes `next` and the existing patterns match what they
+ * always meant. A new shim shape tomorrow is handled here once instead of in
+ * four regexes.
+ */
+export function flattenPaths(command) {
+  let c = String(command).toLowerCase().replace(/\\/g, "/").replace(/\/{2,}/g, "/");
+  /*
+   * Resolve `x/../` repeatedly, because `a/b/../../c` needs two passes. Bounded
+   * rather than while(true): a malformed path must not spin here, and the guard
+   * runs before every build.
+   */
+  for (let i = 0; i < 8; i += 1) {
+    const next = c.replace(/\/[^/"']+\/\.\.\//g, "/");
+    if (next === c) break;
+    c = next;
+  }
+  return c;
+}
+
 export function classifyNextProcess(command, needle) {
   /*
    * THE PROCESS HAS TO BE A NODE PROCESS, NOT SOMETHING THAT MENTIONS ONE.
@@ -323,8 +383,34 @@ export function classifyNextProcess(command, needle) {
   const exe = (first?.[1] ?? first?.[2] ?? "").toLowerCase().replace(/\\/g, "/");
   if (!/(^|\/)node(\.exe)?$/.test(exe)) return null;
 
-  const c = String(command).toLowerCase().replace(/\\/g, "/");
+  const c = flattenPaths(command);
   if (!(/\bnext\b/.test(c) && /\b(start|dev)\b/.test(c))) return null;
+
+  /*
+   * A LAUNCHER IS NOT A SERVER, AND THE EXECUTABLE TEST CANNOT SEE THAT.
+   *
+   * The check above separates a shell from a server by its executable: bash is
+   * not node. `npx` defeats that completely, because npx IS node running npm's
+   * own CLI:
+   *
+   *   "node.exe" "C:/Program Files/nodejs/node_modules/npm/bin/npx-cli.js" next start -p 3188
+   *
+   * It passes the node test, it contains `next` and `start`, and the only
+   * node_modules path in it belongs to npm's installation rather than to any
+   * checkout. So it classified as `unknown` and blocked every build, while the
+   * REAL server underneath it had just been correctly placed as foreign. The
+   * guard was refusing on a wrapper whose child it had already cleared.
+   *
+   * WHAT SEPARATES THEM IS THE SCRIPT NODE IS RUNNING, not the executable: npm's
+   * or npx's own CLI rather than next's binary. The server is always a separate
+   * process and gets classified on its own merits, which is the same reason
+   * `killTree` exists at all: the wrapper is not the thing holding the port.
+   *
+   * DROPPING IT LOSES NOTHING. If the wrapper were ours, the server beneath it
+   * is ours too and blocks on its own command line. Nothing is cleared by this
+   * except a process that was never the one writing .next.
+   */
+  if (/\/node_modules\/npm\/bin\/(npx|npm)-cli\.js/.test(c)) return null;
 
   if (needle && c.includes(needle)) return "ours";
 
@@ -433,11 +519,24 @@ function nextProcessesInThisRepo() {
    * that named three shells every time somebody ran anything would have been
    * disabled by the end of the day, taking the real detection with it.
    */
+  /*
+   * FOREIGN IS NOW RETURNED RATHER THAN DROPPED. Operator ruling, 2026-10-02:
+   * a server placed in another repository is reported and ignored, never killed.
+   *
+   * It used to be silently discarded here, which was the right BEHAVIOUR and
+   * left no trace. The cost showed up the first time a foreign server was the
+   * reason a build could not proceed: the guard's output named two processes it
+   * could not place and said nothing about the one it could, so a reader had no
+   * way to see that the guard had already understood most of what was running.
+   *
+   * Reported and ignored is strictly more useful than invisible, and it costs
+   * one line in a report that only prints when something is up anyway.
+   */
   const classified = [];
   for (const r of rows) {
     if (r.pid === process.pid) continue;
     const ownership = classifyNextProcess(r.command, needle);
-    if (ownership === null || ownership === "foreign") continue;
+    if (ownership === null) continue;
     classified.push({ ...r, ownership });
   }
 
@@ -461,7 +560,9 @@ export function findBlockers() {
       pid,
       ownership === "ours"
         ? "a next server running out of this repo"
-        : "a next server whose repository could not be established from its command line, so it is reported rather than assumed harmless",
+        : ownership === "foreign"
+          ? "a next server placed in ANOTHER repository, so it cannot touch this .next"
+          : "a next server whose repository could not be established from its command line, so it is reported rather than assumed harmless",
     );
   }
 
@@ -485,6 +586,33 @@ export function findBlockers() {
       e.ports.length === 0 &&
       e.reasons.length === 1 &&
       e.reasons[0].startsWith("a next server whose repository could not be established");
+
+    /*
+     * PLACED BY ITS OWN COMMAND LINE, which is the case that was missing.
+     *
+     * The branch below places a process by its OWNER, the parent, and that was
+     * the only route available. It cannot help a foreign server started by a
+     * shell: the parent is `cmd.exe /c npm run start`, which names no checkout,
+     * so the server stayed unplaceable however clearly its own command line
+     * named wattsmith.
+     *
+     * A server's own command line is better evidence about which repository it
+     * belongs to than its parent's, and it was being consulted for everything
+     * except this decision.
+     *
+     * STILL ONLY WHEN IT HOLDS NO PORT OF OURS. A foreign server on one of this
+     * project's ports is a conflict whoever owns it, because two servers cannot
+     * both have 4300. That reasoning is the existing comment's and is unchanged.
+     */
+    const placedItself =
+      e.ports.length === 0 &&
+      e.reasons.length === 1 &&
+      e.reasons[0].startsWith("a next server placed in ANOTHER repository");
+
+    if (placedItself) {
+      placed.push({ ...e, placedAs: "foreign", placedBy: e.pid });
+      continue;
+    }
 
     if (onlyUnplaceable && e.owner && placeByOwner(e.owner.command, repoRoot.toLowerCase().replace(/\\/g, "/")) === "foreign") {
       placed.push({ ...e, placedAs: "foreign", placedBy: e.owner.pid });

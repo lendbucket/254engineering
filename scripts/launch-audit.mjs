@@ -44,9 +44,10 @@ import {
   PRESENT_TENSE_SEALING,
 } from "./lib/regulatory.mjs";
 import { withGateConditionsMet, withTradingBlocked, FIXTURE_FIRM_NUMBER, FIXTURE_ENV } from "./lib/gate-fixture.mjs";
+import { PORTS } from "./lib/ports.mjs";
 
-const PRELAUNCH_PORT = Number(process.env.LAUNCH_AUDIT_PORT || 3227);
-const LIVE_PORT = Number(process.env.LAUNCH_AUDIT_LIVE_PORT || 3228);
+const PRELAUNCH_PORT = Number(process.env.LAUNCH_AUDIT_PORT ?? PORTS.launchPrelaunch);
+const LIVE_PORT = Number(process.env.LAUNCH_AUDIT_LIVE_PORT ?? PORTS.launchLive);
 
 /** A stand-in firm number for the live run. Never rendered anywhere else. */
 const TEST_FIRM_NUMBER = FIXTURE_FIRM_NUMBER;

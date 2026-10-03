@@ -11,8 +11,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { chromium } from "playwright";
 import { startNextServer } from "./lib/dev-server.mjs";
+import { PORTS } from "./lib/ports.mjs";
 
-const PORT = Number(process.env.SHOTS_PORT || 3226);
+const PORT = Number(process.env.SHOTS_PORT ?? PORTS.shots);
 const WIDTHS = [390, 1280];
 const OUT = path.join(process.cwd(), "screenshots");
 

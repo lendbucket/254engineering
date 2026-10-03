@@ -1,6 +1,6 @@
 // Internal link map. Counts contextual versus template inbound links per page.
 //
-//   BASE_URL=http://localhost:3225 node scripts/link-map.mjs
+//   BASE_URL=http://localhost:4300 node scripts/link-map.mjs
 //   node scripts/link-map.mjs --baseline      write the current state to a file
 //   node scripts/link-map.mjs --compare       diff against the recorded baseline
 //
@@ -29,8 +29,9 @@
 import fs from "node:fs";
 import { readSource } from "./lib/read-source.mjs";
 import path from "node:path";
+import { AUDIT_BASE_URL } from "./lib/ports.mjs";
 
-const BASE = process.env.BASE_URL || "http://localhost:3225";
+const BASE = process.env.BASE_URL || AUDIT_BASE_URL;
 const BASELINE = path.join(process.cwd(), "scripts", ".link-map-baseline.json");
 
 const mode = process.argv.includes("--baseline")

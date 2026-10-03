@@ -1,7 +1,7 @@
 /**
  * The performance gate.
  *
- *   BASE_URL=http://localhost:3225 node scripts/perf-audit.mjs
+ *   BASE_URL=http://localhost:4300 node scripts/perf-audit.mjs
  *
  * WHY THIS EXISTS
  * ---------------
@@ -121,8 +121,9 @@ import {
   destroyCustomerProbes,
 } from "./lib/portal-probe.mjs";
 import { checkVerdictLogic } from "./proofs/perf-verdict-fires-where-it-should.mjs";
+import { AUDIT_BASE_URL } from "./lib/ports.mjs";
 
-const BASE = process.env.BASE_URL || "http://localhost:3225";
+const BASE = process.env.BASE_URL || AUDIT_BASE_URL;
 const RUNS = Number(process.env.PERF_RUNS || 3);
 
 /*

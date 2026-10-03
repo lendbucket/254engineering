@@ -71,10 +71,11 @@ import { completeEnrolment, signInOnly } from "./lib/probe-mfa.mjs";
 import { destroyProbes, PROBE_DOMAIN } from "./lib/portal-probe.mjs";
 import { COULD_NOT_TELL } from "./lib/reachable.mjs";
 import { breakGlassConfigured, breakGlassMatches, breakGlassMalformed } from "../src/lib/ops-mfa-breakglass.ts";
+import { PORTS } from "./lib/ports.mjs";
 
-const PORT_UNSET = Number(process.env.BREAK_GLASS_PORT_UNSET || 3229);
-const PORT_MALFORMED = Number(process.env.BREAK_GLASS_PORT_MALFORMED || 3230);
-const PORT_SET = Number(process.env.BREAK_GLASS_PORT_SET || 3231);
+const PORT_UNSET = Number(process.env.BREAK_GLASS_PORT_UNSET ?? PORTS.breakGlassUnset);
+const PORT_MALFORMED = Number(process.env.BREAK_GLASS_PORT_MALFORMED ?? PORTS.breakGlassMalformed);
+const PORT_SET = Number(process.env.BREAK_GLASS_PORT_SET ?? PORTS.breakGlassSet);
 
 /* 43 characters of base64url. Well over the 24 the module insists on. */
 const TOKEN = "break-glass-audit-token-0123456789abcdefghij";

@@ -58,8 +58,9 @@ import { guardedSurfaces, routesOf } from "./lib/surfaces.mjs";
 import { PNG } from "pngjs";
 import { navigationVerdict, sayCouldNotTell, COULD_NOT_TELL } from "./lib/reachable.mjs";
 import { assertNavigationVerdictHolds } from "./proofs/unreachable-is-not-failed.mjs";
+import { AUDIT_BASE_URL } from "./lib/ports.mjs";
 
-const BASE = process.env.BASE_URL ?? "http://localhost:3225";
+const BASE = process.env.BASE_URL ?? AUDIT_BASE_URL;
 
 /**
  * Surfaces to look at. Public pages plus every screen a person meets before

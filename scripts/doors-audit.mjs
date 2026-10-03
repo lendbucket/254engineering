@@ -46,8 +46,9 @@ import { PROBE_DOMAIN, supersedeProbeAccount } from "./lib/portal-probe.mjs";
 import { COULD_NOT_TELL } from "./lib/reachable.mjs";
 import { withGateConditionsMet, FIXTURE_ENV } from "./lib/gate-fixture.mjs";
 import { VERIFICATION_TTL_HOURS } from "../src/lib/account-doors.ts";
+import { PORTS } from "./lib/ports.mjs";
 
-const PORT = Number(process.env.DOORS_PORT || 3232);
+const PORT = Number(process.env.DOORS_PORT ?? PORTS.doors);
 const CONDITIONS = "src/config/launch-conditions.ts";
 
 const results = [];

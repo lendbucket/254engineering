@@ -38,6 +38,7 @@ import { startNextServer } from "./lib/dev-server.mjs";
 import { takeLock } from "./lib/machine-lock.mjs";
 import { auditClient } from "./lib/db-target.mjs";
 import { syntheticPng } from "./lib/synthetic-png.mjs";
+import { PORTS } from "./lib/ports.mjs";
 
 /*
  * THE UPLOADS ARE REAL WRITES AND ARE TRACKED SO THEY CAN BE SWEPT.
@@ -208,7 +209,7 @@ try {
     console.log("built");
 
     const server = await startNextServer({
-      port: 3234,
+      port: PORTS.orderFlowWalkShots,
       env: { ...FIXTURE_ENV, LAUNCH_MODE: "live" },
     });
 

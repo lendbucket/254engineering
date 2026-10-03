@@ -33,11 +33,12 @@
 import { spawn, execSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import Stripe from "stripe";
+import { PORTS } from "../lib/ports.mjs";
 
 process.loadEnvFile?.(".env.local");
 const { auditClient, refOf, DEVELOPMENT_REF } = await import("../lib/db-target.mjs");
 
-const PORT = 3228;
+const PORT = PORTS.stripeRefundWebhook;
 const BASE = `http://localhost:${PORT}`;
 /*
  * THE PREFIXES ARE ASSEMBLED SO NO SOURCE LINE READS AS A KEY.

@@ -36,6 +36,7 @@ import { chromium } from "playwright";
 import { auditClient, describeTarget } from "./lib/db-target.mjs";
 import { startNextServer } from "./lib/dev-server.mjs";
 import { takeLock } from "./lib/machine-lock.mjs";
+import { PORTS } from "./lib/ports.mjs";
 
 const OUT = process.env.SHOTS_OUT ?? "docs/design-v10/screens/captured";
 
@@ -181,7 +182,7 @@ const release = await takeLock({
 let server = null;
 try {
   await build();
-  server = await startNextServer({ port: 3232 });
+  server = await startNextServer({ port: PORTS.probeCapture });
 
   /* Sign in through the product's own route, so the cookie is a real one. */
   const res = await fetch(server.base + "/api/account/session", {

@@ -22,6 +22,7 @@ import { chromium } from "playwright";
 
 import { startNextServer } from "./lib/dev-server.mjs";
 import { takeLock } from "./lib/machine-lock.mjs";
+import { PORTS } from "./lib/ports.mjs";
 
 /*
  * BESIDE THE DESIGNS, because that is where they are compared.
@@ -70,7 +71,7 @@ const release = await takeLock({
 
 let server = null;
 try {
-  server = await startNextServer({ port: 3230 });
+  server = await startNextServer({ port: PORTS.designShots });
   console.log("server up at " + server.base);
   const browser = await chromium.launch();
 

@@ -16,8 +16,9 @@ import { readSource } from "./lib/read-source.mjs";
 import { chromium } from "playwright";
 import * as chromeLauncher from "chrome-launcher";
 import lighthouse from "lighthouse";
+import { AUDIT_BASE_URL } from "./lib/ports.mjs";
 
-const BASE = process.env.BASE_URL || "http://localhost:3225";
+const BASE = process.env.BASE_URL || AUDIT_BASE_URL;
 
 /*
  * ==========================================================================

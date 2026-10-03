@@ -10,7 +10,7 @@
  * listed beneath it, which makes this a general accessibility gate as well.
  *
  *   npm run contrast-audit
- *   BASE_URL=http://localhost:3225 npm run contrast-audit   # use a running server
+ *   BASE_URL=http://localhost:4300 npm run contrast-audit   # use a running server
  *
  * THE FORM STATES ARE THE PART THAT NEEDS EXPLAINING
  * --------------------------------------------------
@@ -41,10 +41,11 @@ import {
   destroyCustomerProbes,
 } from "./lib/portal-probe.mjs";
 import { allPages } from "./lib/surfaces.mjs";
+import { PORTS } from "./lib/ports.mjs";
 
 const WIDTHS = [390, 1280];
 const HEIGHT = 900;
-const PORT = Number(process.env.CONTRAST_PORT || 3224);
+const PORT = Number(process.env.CONTRAST_PORT ?? PORTS.contrast);
 
 /*
  * THE PORTAL, WHICH THIS AUDIT HAD NEVER MEASURED.

@@ -2,7 +2,7 @@
 // sitemap route and fails loudly on anything that reads as unfinished
 // scaffolding or breaks an absolute content rule.
 //
-//   BASE_URL=http://localhost:3225 node scripts/placeholder-audit.mjs
+//   BASE_URL=http://localhost:4300 node scripts/placeholder-audit.mjs
 //
 // WHY THIS READS RENDERED OUTPUT RATHER THAN SOURCE
 // -------------------------------------------------
@@ -38,6 +38,7 @@
 import "./lib/load-env.mjs";
 import { credentialAllowlist, permittedCredentialStrings } from "../src/config/credentials.ts";
 import { contact } from "../src/config/contact.ts";
+import { AUDIT_BASE_URL } from "./lib/ports.mjs";
 
 /*
  * The one permitted phone number, as bare digits.
@@ -59,7 +60,7 @@ const PERMITTED_PHONE_DIGITS = new Set(
     .map((v) => String(v).replace(/\D/g, "").replace(/^1(?=\d{10}$)/, "")),
 );
 
-const BASE = process.env.BASE_URL || "http://localhost:3225";
+const BASE = process.env.BASE_URL || AUDIT_BASE_URL;
 
 /** The one domain company email may live on. */
 const REAL_EMAIL_DOMAIN = "254engineering.com";

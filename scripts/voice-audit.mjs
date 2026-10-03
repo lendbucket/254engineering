@@ -32,7 +32,7 @@ import {
 } from "./lib/voice-blocklist.mjs";
 import { OPEN_GATED, SEALING_GATED, TRADING_GATED, findClaims } from "./lib/regulatory.mjs";
 
-const BASE = process.env.BASE_URL || "http://localhost:3225";
+const BASE = process.env.BASE_URL || AUDIT_BASE_URL;
 /*
  * THE MODE COMES FROM THE GATE, NOT FROM AN ENVIRONMENT VARIABLE.
  * Operator ruling, 2026-09-17, found when this audit printed "prelaunch gate
@@ -55,6 +55,7 @@ const BASE = process.env.BASE_URL || "http://localhost:3225";
  */
 import "./lib/load-env.mjs";
 import { modeUnderTest, announceMode } from "./lib/rendered-mode.mjs";
+import { AUDIT_BASE_URL } from "./lib/ports.mjs";
 
 /*
  * =========================================================================

@@ -1,7 +1,7 @@
 /**
  * Zero horizontal document scroll, on every route, at phone widths.
  *
- *   BASE_URL=http://localhost:3225 node scripts/mobile-overflow-audit.mjs
+ *   BASE_URL=http://localhost:4300 node scripts/mobile-overflow-audit.mjs
  *
  * WHY THIS IS SEPARATE FROM mobile-audit
  * --------------------------------------
@@ -64,8 +64,9 @@ import {
 import { signInFully } from "./lib/probe-mfa.mjs";
 import { navigationVerdict, sayCouldNotTell, orCouldNotTell, COULD_NOT_TELL } from "./lib/reachable.mjs";
 import { assertNavigationVerdictHolds } from "./proofs/unreachable-is-not-failed.mjs";
+import { AUDIT_BASE_URL } from "./lib/ports.mjs";
 
-const BASE = process.env.BASE_URL || "http://localhost:3225";
+const BASE = process.env.BASE_URL || AUDIT_BASE_URL;
 const WIDTHS = [360, 390];
 const SLACK = 1;
 

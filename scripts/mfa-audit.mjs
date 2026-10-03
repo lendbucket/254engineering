@@ -41,8 +41,9 @@ import { auditClient } from "./lib/db-target.mjs";
  * vectors are what prove the module, and using it here tests the WIRING.
  */
 import { base32Decode, codeForStep, stepAt } from "../src/lib/totp.ts";
+import { AUDIT_BASE_URL } from "./lib/ports.mjs";
 
-const BASE = process.env.BASE_URL || "http://localhost:3225";
+const BASE = process.env.BASE_URL || AUDIT_BASE_URL;
 
 /** The only paths a pending session may reach. Mirrors src/proxy.ts. */
 const EXPECTED_MFA_PATHS = ["/portal/mfa", "/portal/mfa/enrol", "/api/portal/mfa"];

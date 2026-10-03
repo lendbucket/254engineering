@@ -6,8 +6,9 @@
 // precisely the check a crawl performs. So the audit passes, loudly, about an
 // artifact nobody built. See scripts/lib/stale-server.mjs.
 import { checkServingCurrentBuild } from "./lib/stale-server.mjs";
+import { AUDIT_BASE_URL } from "./lib/ports.mjs";
 
-const BASE = process.env.BASE_URL || "http://localhost:3225";
+const BASE = process.env.BASE_URL || AUDIT_BASE_URL;
 const label = (process.env.npm_lifecycle_event || "preaudit").replace(/^pre/, "");
 
 const result = await checkServingCurrentBuild(BASE);

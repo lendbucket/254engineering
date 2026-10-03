@@ -37,12 +37,13 @@
 
 import { spawn, execSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { PORTS } from "../lib/ports.mjs";
 
 const HEADLINE = "This preview is pointed at the production database";
 const PROD_URL = "https://fsaryeciduszuahgjbly.supabase.co";
 const DEV_URL = "https://ythzaiqeoijlrdibnieo.supabase.co";
 const NOT_A_KEY = "not-a-key-preview-mispointing-exercise";
-const PORT = 3227;
+const PORT = PORTS.previewMispointing;
 const BASE = `http://localhost:${PORT}`;
 const CRON_SECRET = `exercise-${randomUUID()}`;
 
