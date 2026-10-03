@@ -57,11 +57,11 @@ export function RequestInformation({ fileId }: { fileId: string }) {
         type="button"
         onClick={send}
         disabled={busy}
-        className="inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] border border-[var(--border)] bg-white px-4 text-[13.5px] font-bold text-[var(--navy)] hover:bg-[var(--canvas)] disabled:opacity-50"
+        className="inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] border border-[var(--border)] bg-white px-4 text-[14px] font-bold text-[var(--ink)] hover:bg-[var(--canvas)] disabled:opacity-50"
       >
         {busy ? "Sending" : "Ask the customer for these"}
       </button>
-      {said ? <p className="mt-2 text-[12.5px] leading-[1.5] text-[var(--secondary)]">{said}</p> : null}
+      {said ? <p className="mt-2 text-[13px] leading-[1.5] text-[var(--secondary)]">{said}</p> : null}
     </div>
   );
 }
@@ -111,11 +111,11 @@ export function TransitionControls({
       <p className="portal-kicker text-[var(--gold-deep)]">
         Move this file on
       </p>
-      <p className="mt-1 text-[13.5px] text-[var(--secondary)]">
+      <p className="mt-1 text-[14px] text-[var(--secondary)]">
         Currently {STATUS_LABEL[status].toLowerCase()}.
       </p>
 
-      <label htmlFor="note" className="mt-4 block text-[13.5px] font-semibold text-[var(--navy)]">
+      <label htmlFor="note" className="mt-4 block text-[14px] font-semibold text-[var(--ink)]">
         Note for the timeline (optional)
       </label>
       <input
@@ -123,7 +123,7 @@ export function TransitionControls({
         value={note}
         onChange={(e) => setNote(e.target.value)}
         placeholder="Why this is moving"
-        className="mt-1.5 min-h-[44px] w-full rounded-[3px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--navy)] outline-none focus:border-slate"
+        className="mt-1.5 min-h-[44px] w-full rounded-[2px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--ink)] outline-none focus:border-slate"
       />
 
       <div className="mt-4 flex flex-wrap gap-2">
@@ -156,8 +156,8 @@ export function TransitionControls({
                 }}
                 className={
                   destructive
-                    ? "inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--red)] px-4 text-[13.5px] font-bold text-[var(--red)] hover:bg-[var(--warn-bg)] disabled:opacity-60"
-                    : "inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white hover:bg-[var(--navy-hover)] disabled:opacity-60"
+                    ? "inline-flex min-h-[44px] items-center rounded-[2px] border border-[var(--red)] px-4 text-[14px] font-bold text-[var(--red)] hover:bg-[var(--warn-bg)] disabled:opacity-60"
+                    : "inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[14px] font-bold text-white hover:bg-[var(--navy-hover)] disabled:opacity-60"
                 }
               >
                 {busy === o.to ? "Moving..." : STATUS_LABEL[o.to]}
@@ -171,19 +171,19 @@ export function TransitionControls({
           {blocked.map((o) => (
             <div
               key={o.to}
-              className="rounded-[3px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-3 py-2.5"
+              className="rounded-[2px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-3 py-2.5"
             >
-              <p className="text-[13.5px] font-semibold text-[var(--warn-ink)]">
+              <p className="text-[14px] font-semibold text-[var(--warn-ink)]">
                 {STATUS_LABEL[o.to]} is not available
               </p>
-              <p className="mt-1 text-[12.5px] leading-[1.55] text-[var(--warn-ink)]">{o.reason}</p>
+              <p className="mt-1 text-[13px] leading-[1.55] text-[var(--warn-ink)]">{o.reason}</p>
             </div>
           ))}
         </div>
       ) : null}
 
       {error ? (
-        <p role="alert" className="mt-3 rounded-[3px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-3 py-2.5 text-[13.5px] text-[var(--red)]">
+        <p role="alert" className="mt-3 rounded-[2px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-3 py-2.5 text-[14px] text-[var(--red)]">
           {error}
         </p>
       ) : null}
@@ -222,7 +222,7 @@ export function FileTabs({
             type="button"
             onClick={() => onChange(key)}
             aria-current={active === key ? "page" : undefined}
-            className={`min-h-[44px] shrink-0 border-b-2 px-3 text-[13.5px] font-semibold whitespace-nowrap ${
+            className={`min-h-[44px] shrink-0 border-b-2 px-3 text-[14px] font-semibold whitespace-nowrap ${
               active === key
                 ? "border-[var(--gold)] text-[var(--navy)]"
                 : "border-transparent text-[var(--secondary)] hover:text-[var(--navy)]"
@@ -268,8 +268,8 @@ export function NewFileForm({
   const [error, setError] = useState<string | null>(null);
 
   const field =
-    "mt-1.5 min-h-[48px] w-full rounded-[3px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--navy)] outline-none focus:border-slate";
-  const label = "block text-[13.5px] font-semibold text-[var(--navy)]";
+    "mt-1.5 min-h-[48px] w-full rounded-[2px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--ink)] outline-none focus:border-slate";
+  const label = "block text-[14px] font-semibold text-[var(--ink)]";
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -312,7 +312,7 @@ export function NewFileForm({
 
   if (clients.length === 0) {
     return (
-      <p className="text-[13.5px] text-[var(--secondary)]">
+      <p className="text-[14px] text-[var(--secondary)]">
         Add a client first. A file belongs to somebody.
       </p>
     );
@@ -323,7 +323,7 @@ export function NewFileForm({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white hover:bg-[var(--navy-hover)]"
+        className="inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[14px] font-bold text-white hover:bg-[var(--navy-hover)]"
       >
         {open ? "Cancel" : "Open a file"}
       </button>
@@ -331,7 +331,7 @@ export function NewFileForm({
       {open ? (
         <form
           onSubmit={onSubmit}
-          className="mt-4 rounded-[4px] border border-[var(--border)] bg-white p-4 sm:p-5"
+          className="mt-4 rounded-[2px] border border-[var(--border)] bg-white p-4 sm:p-5"
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
@@ -366,7 +366,7 @@ export function NewFileForm({
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>
-              <p className="mt-1.5 text-[12.5px] leading-[1.5] text-[var(--secondary)]">
+              <p className="mt-1.5 text-[13px] leading-[1.5] text-[var(--secondary)]">
                 The county decides dispatch and whether a windstorm certificate applies. If the city
                 is not one the platform knows, choose the county here.
               </p>
@@ -386,7 +386,7 @@ export function NewFileForm({
           </div>
 
           {error ? (
-            <p role="alert" className="mt-4 rounded-[3px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-3 py-2.5 text-[13.5px] text-[var(--red)]">
+            <p role="alert" className="mt-4 rounded-[2px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-3 py-2.5 text-[14px] text-[var(--red)]">
               {error}
             </p>
           ) : null}

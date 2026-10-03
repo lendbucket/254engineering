@@ -104,10 +104,10 @@ export function CheckRunner({
 
   if (result?.passed) {
     return (
-      <div className="rounded-[4px] border border-[var(--border)] border-t-[var(--green)] bg-white px-4 py-6 sm:px-6">
+      <div className="rounded-[2px] border border-[var(--border)] border-t-[var(--green)] bg-white px-4 py-6 sm:px-6">
         <p className="portal-kicker text-[var(--gold-deep)]">Certified</p>
         <h2 className="mt-2 font-display text-[24px] leading-[1.2] font-bold text-[var(--navy)]">{serviceName}</h2>
-        <p className="mt-2 max-w-[65ch] text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+        <p className="mt-2 max-w-[65ch] text-[14px] leading-[1.6] text-[var(--secondary)]">
           {result.correct} of {result.total}. You can be offered work on this line as soon as your
           paperwork is current, which the panel beside this one tells you.
         </p>
@@ -125,15 +125,15 @@ export function CheckRunner({
     <div>
       <a
         href="/portal/certification"
-        className="mb-3 inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-[var(--secondary)]"
+        className="mb-3 inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--secondary)]"
       >
         Back to your certifications
       </a>
 
-      <div className="rounded-[4px] border border-[var(--border)] bg-white px-4 py-5 sm:px-5">
+      <div className="rounded-[2px] border border-[var(--border)] bg-white px-4 py-5 sm:px-5">
         <p className="portal-kicker text-[var(--gold-deep)]">{protocolName}</p>
-        <h2 className="mt-1 font-display text-[17px] leading-[1.2] font-bold text-[var(--navy)]">{serviceName}</h2>
-        <p className="mt-2 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+        <h2 className="mt-1 font-display text-[17px] leading-[1.2] font-bold text-[var(--ink)]">{serviceName}</h2>
+        <p className="mt-2 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--secondary)]">
           This is what you would capture on every job in this line. Read it, then answer the
           questions underneath. The protocol stays on the page while you answer, because the point is
           that you know where to look.
@@ -142,11 +142,11 @@ export function CheckRunner({
         <ol className="mt-4 divide-y divide-limestone-line">
           {items.map((item, i) => (
             <li key={item.id} className="py-3">
-              <p className="text-[13.5px] font-semibold text-[var(--navy)]">
+              <p className="text-[14px] font-semibold text-[var(--ink)]">
                 {i + 1}. {item.label}
                 {item.required ? "" : " (optional)"}
               </p>
-              <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">
+              <p className="mt-0.5 text-[14px] text-[var(--secondary)]">
                 {KIND_LABEL[item.kind] ?? item.kind}
                 {item.kind === "photo" && item.minCount && item.minCount > 1 ? `, ${item.minCount} frames` : ""}
                 {item.unit ? `, in ${item.unit}` : ""}
@@ -155,7 +155,7 @@ export function CheckRunner({
                   : ""}
               </p>
               {item.instructions ? (
-                <p className="mt-1 max-w-[70ch] text-[13.5px] leading-[1.5] text-[var(--secondary)]">{item.instructions}</p>
+                <p className="mt-1 max-w-[70ch] text-[14px] leading-[1.5] text-[var(--secondary)]">{item.instructions}</p>
               ) : null}
             </li>
           ))}
@@ -163,13 +163,13 @@ export function CheckRunner({
       </div>
 
       {blocked ? (
-        <div className="mt-6 rounded-[4px] border border-[var(--border)] bg-white px-4 py-4">
-          <p className="text-[13.5px] leading-[1.55] text-[var(--secondary)]">{blocked}</p>
+        <div className="mt-6 rounded-[2px] border border-[var(--border)] bg-white px-4 py-4">
+          <p className="text-[14px] leading-[1.55] text-[var(--secondary)]">{blocked}</p>
         </div>
       ) : questions.length === 0 ? (
-        <div className="mt-6 rounded-[4px] border border-[var(--border)] bg-white px-4 py-4">
-          <p className="text-[13.5px] font-semibold text-[var(--navy)]">No check questions on this protocol yet</p>
-          <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+        <div className="mt-6 rounded-[2px] border border-[var(--border)] bg-white px-4 py-4">
+          <p className="text-[14px] font-semibold text-[var(--ink)]">No check questions on this protocol yet</p>
+          <p className="mt-1.5 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--secondary)]">
             The engineer who wrote this protocol has not added the questions yet, so there is nothing
             to be certified against. Nothing is wrong on your side.
           </p>
@@ -177,17 +177,17 @@ export function CheckRunner({
       ) : (
         <div className="mt-6">
           {result && !result.passed ? (
-            <div className="mb-5 rounded-[4px] border border-[var(--warn-border)] border-l-[var(--red)] bg-[var(--warn-bg)] px-4 py-4">
-              <p className="text-[13.5px] font-bold text-[var(--red)]">
+            <div className="mb-5 rounded-[2px] border border-[var(--warn-border)] border-l-[var(--red)] bg-[var(--warn-bg)] px-4 py-4">
+              <p className="text-[14px] font-bold text-[var(--red)]">
                 {result.correct} of {result.total}. Not passed.
               </p>
-              <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--red)]">
+              <p className="mt-1.5 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--red)]">
                 Every question has to be right, because there is no such thing as most of an evidence
                 package. The reasoning for each one you missed is under the question. Change your
                 answers and submit again; it costs nothing.
               </p>
               {result.unanswered.length > 0 ? (
-                <p className="mt-1.5 text-[13.5px] font-semibold text-[var(--red)]">
+                <p className="mt-1.5 text-[14px] font-semibold text-[var(--red)]">
                   {result.unanswered.length} question
                   {result.unanswered.length === 1 ? " was" : "s were"} left blank.
                 </p>
@@ -202,19 +202,19 @@ export function CheckRunner({
               return (
                 <li
                   key={q.id}
-                  className={`rounded-[4px] border bg-white p-4 ${
+                  className={`rounded-[2px] border bg-white p-4 ${
                     missed ? "border-[var(--warn-border)] border-l-[var(--red)]" : "border-[var(--border)]"
                   }`}
                 >
                   <fieldset>
-                    <legend className="text-[15px] leading-[1.4] font-semibold text-[var(--navy)]">
+                    <legend className="text-[15px] leading-[1.4] font-semibold text-[var(--ink)]">
                       {i + 1}. {q.prompt}
                     </legend>
                     <div className="mt-3 flex flex-col gap-2">
                       {q.options.map((option, index) => (
                         <label
                           key={option}
-                          className={`flex min-h-[48px] cursor-pointer items-center gap-3 rounded-[3px] border px-3 py-2 ${
+                          className={`flex min-h-[48px] cursor-pointer items-center gap-3 rounded-[2px] border px-3 py-2 ${
                             answers[q.id] === index ? "border-slate bg-[var(--canvas)]" : "border-[var(--border)]"
                           }`}
                         >
@@ -225,14 +225,14 @@ export function CheckRunner({
                             onChange={() => setAnswers((prev) => ({ ...prev, [q.id]: index }))}
                             className="h-5 w-5 shrink-0 accent-[var(--navy)]"
                           />
-                          <span className="text-[13.5px] leading-[1.45] text-[var(--navy)]">{option}</span>
+                          <span className="text-[14px] leading-[1.45] text-[var(--ink)]">{option}</span>
                         </label>
                       ))}
                     </div>
                   </fieldset>
 
                   {rationale ? (
-                    <p className="mt-3 rounded-[3px] bg-[var(--warn-bg)] px-3 py-2.5 text-[13.5px] leading-[1.55] text-[var(--red)]">
+                    <p className="mt-3 rounded-[2px] bg-[var(--warn-bg)] px-3 py-2.5 text-[14px] leading-[1.55] text-[var(--red)]">
                       {rationale}
                     </p>
                   ) : null}
@@ -242,14 +242,14 @@ export function CheckRunner({
           </ol>
 
           {error ? (
-            <p role="alert" className="mt-4 text-[13.5px] leading-[1.5] font-semibold text-[var(--red)]">
+            <p role="alert" className="mt-4 text-[14px] leading-[1.5] font-semibold text-[var(--red)]">
               {error}
             </p>
           ) : null}
 
           <div className="mt-6">
             {!answeredAll ? (
-              <p className="mb-2 text-[13.5px] text-[var(--secondary)]">
+              <p className="mb-2 text-[14px] text-[var(--secondary)]">
                 {questions.length - Object.keys(answers).length} question
                 {questions.length - Object.keys(answers).length === 1 ? "" : "s"} left. A blank answer
                 counts as wrong.

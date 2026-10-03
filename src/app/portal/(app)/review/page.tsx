@@ -23,8 +23,13 @@ export const dynamic = "force-dynamic";
  * -----------------------
  * A licensed engineer deciding whether they will put their seal on a
  * conclusion. Everything on it serves that: the protocol beside the evidence,
- * every photograph at a size worth looking at, the shortfalls named, and the
- * four decisions with the same weight given to declining as to sealing.
+ * every photograph at a size worth looking at, the shortfalls named, and every
+ * decision given the same weight, declining included.
+ *
+ * NO COUNT IS WRITTEN DOWN ANYWHERE ON THIS SCREEN, deliberately. The prose here
+ * and the lede both said "four" while REVIEW_ACTIONS held five, because a fifth
+ * decision was added and the sentences counting them were not. The array is the
+ * only place the number lives now.
  *
  * OLDEST SUBMISSION FIRST
  * -----------------------
@@ -87,7 +92,21 @@ export default async function ReviewPage({
       <PageHead
         eyebrow="Engineering"
         title="Review queue"
-        lede="Evidence packages waiting on a decision, longest waiting first. Four decisions, and declining to seal carries the same weight as sealing."
+        /*
+          THE COUNT IS GONE FROM THE SENTENCE AND THAT IS THE FIX.
+          It read "Four decisions" and REVIEW_ACTIONS holds five: seal,
+          revisions, site_visit, repairs, refuse. A fifth was added and the
+          sentence counting them was not, so the engineer's own screen told him
+          there were four of the buttons in front of him.
+
+          One fact with two homes, in its cheapest form: a number in an array and
+          the same number spelled out in prose. The answer here is not to write
+          "five", which drifts again the next time, and not to derive a number
+          word for one sentence. It is that the count was never the point. What
+          the sentence is for is the parity, and the parity is true at any
+          length.
+        */
+        lede="Evidence packages waiting on a decision, longest waiting first. Declining to seal carries the same weight as sealing."
       />
 
       <RestrictedMode also="Packages can still be reviewed, sent back and declined. Declining stays available on purpose: a gate that stopped an engineer saying no, while leaving yes open, would be the wrong way round." />

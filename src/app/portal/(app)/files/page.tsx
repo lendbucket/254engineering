@@ -151,7 +151,7 @@ export default async function FilesPage({
       >
         <Link
           href={filterHref({ status: undefined })}
-          className={`inline-flex min-h-[40px] shrink-0 items-center whitespace-nowrap rounded-[3px] border px-3 text-[13.5px] font-semibold ${
+          className={`inline-flex min-h-[40px] shrink-0 items-center whitespace-nowrap rounded-[2px] border px-3 text-[14px] font-semibold ${
             !params.status ? "border-slate bg-slate text-[var(--on-navy)]" : "border-[var(--border)] text-[var(--secondary)]"
           }`}
         >
@@ -161,7 +161,7 @@ export default async function FilesPage({
           <Link
             key={s}
             href={filterHref({ status: s })}
-            className={`inline-flex min-h-[40px] shrink-0 items-center whitespace-nowrap rounded-[3px] border px-3 text-[13.5px] font-semibold ${
+            className={`inline-flex min-h-[40px] shrink-0 items-center whitespace-nowrap rounded-[2px] border px-3 text-[14px] font-semibold ${
               params.status === s ? "border-slate bg-slate text-[var(--on-navy)]" : "border-[var(--border)] text-[var(--secondary)]"
             }`}
           >
@@ -210,20 +210,20 @@ export default async function FilesPage({
     <div>
       <Link
         href={filterHref({})}
-        className="mb-4 inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-[var(--secondary)] lg:hidden"
+        className="mb-4 inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--secondary)] lg:hidden"
       >
         Back to the list
       </Link>
 
-      <div className="rounded-[4px] border border-[var(--border)] bg-white">
+      <div className="rounded-[2px] border border-[var(--border)] bg-white">
         <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="font-mono text-[12.5px] text-[var(--gold-deep)]">{selected.file_number}</p>
-              <h2 className="mt-1 font-display text-[17px] leading-[1.2] font-bold text-[var(--navy)]">
+              <p className="font-mono text-[13px] text-[var(--gold-deep)]">{selected.file_number}</p>
+              <h2 className="mt-1 font-display text-[17px] leading-[1.2] font-bold text-[var(--ink)]">
                 {selected.property_address}
               </h2>
-              <p className="mt-1 text-[13.5px] text-[var(--secondary)]">
+              <p className="mt-1 text-[14px] text-[var(--secondary)]">
                 {selected.city ? `${selected.city}, ` : ""}
                 {selected.county} County
                 {fileRegion(selected.county) ? ` (${fileRegion(selected.county)})` : ""}
@@ -241,21 +241,21 @@ export default async function FilesPage({
             <p className="portal-kicker">Outstanding information</p>
             {outstanding.now.length > 0 ? (
               <>
-                <p className="mt-1.5 text-[13.5px] leading-[1.55] text-[var(--ink)]">
+                <p className="mt-1.5 text-[14px] leading-[1.55] text-[var(--ink)]">
                   {selected.status === "needs_dispatch" || selected.status === "intake"
                     ? "Needed before a technician is sent."
                     : "Needed before this can be sealed."}
                 </p>
                 <ul className="mt-2 flex flex-col gap-1">
                   {outstanding.now.map((f) => (
-                    <li key={f.id} className="text-[13.5px] leading-[1.5] text-[var(--danger)]">
+                    <li key={f.id} className="text-[14px] leading-[1.5] text-[var(--danger)]">
                       {f.label}
                     </li>
                   ))}
                 </ul>
               </>
             ) : (
-              <p className="mt-1.5 text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+              <p className="mt-1.5 text-[14px] leading-[1.55] text-[var(--secondary)]">
                 Nothing is outstanding for this step.
               </p>
             )}
@@ -266,10 +266,10 @@ export default async function FilesPage({
 
             {outstanding.later.length > 0 ? (
               <>
-                <p className="mt-3 text-[12.5px] font-semibold text-[var(--navy)]">Needed later</p>
+                <p className="mt-3 text-[13px] font-semibold text-[var(--ink)]">Needed later</p>
                 <ul className="mt-1.5 flex flex-col gap-1">
                   {outstanding.later.map((f) => (
-                    <li key={f.id} className="text-[12.5px] leading-[1.5] text-[var(--secondary)]">
+                    <li key={f.id} className="text-[13px] leading-[1.5] text-[var(--secondary)]">
                       {f.label}
                     </li>
                   ))}
@@ -302,8 +302,8 @@ export default async function FilesPage({
             <dl className="mt-2 flex flex-col gap-2">
               {answered.map(({ field, value }) => (
                 <div key={field.id} className="flex flex-wrap items-baseline justify-between gap-3">
-                  <dt className="text-[12.5px] text-[var(--secondary)]">{field.label}</dt>
-                  <dd className="text-[13.5px] font-semibold text-[var(--navy)]">{value}</dd>
+                  <dt className="text-[13px] text-[var(--secondary)]">{field.label}</dt>
+                  <dd className="text-[14px] font-semibold text-[var(--ink)]">{value}</dd>
                 </div>
               ))}
             </dl>
@@ -322,8 +322,8 @@ export default async function FilesPage({
                 ["Windstorm", twiaStatus(selected.county) === "check" ? "Harris County: confirm whether the property is east of SH 146" : selected.twia_county ? "Inside the designated catastrophe area" : "Outside the designated area"],
               ].map(([k, v]) => (
                 <div key={k} className="grid gap-1 py-2.5 sm:grid-cols-[130px_1fr] sm:gap-3">
-                  <dt className="text-[13.5px] font-semibold text-[var(--navy)]">{k}</dt>
-                  <dd className="text-[13.5px] leading-[1.5] text-[var(--secondary)]">{v}</dd>
+                  <dt className="text-[14px] font-semibold text-[var(--ink)]">{k}</dt>
+                  <dd className="text-[14px] leading-[1.5] text-[var(--secondary)]">{v}</dd>
                 </div>
               ))}
             </dl>
@@ -358,12 +358,12 @@ export default async function FilesPage({
                     ["Margin", money(selectedMargin.margin)],
                   ].map(([k, v]) => (
                     <div key={k} className="grid gap-1 py-2.5 sm:grid-cols-[130px_1fr] sm:gap-3">
-                      <dt className="text-[13.5px] font-semibold text-[var(--navy)]">{k}</dt>
-                      <dd className="text-[13.5px] text-[var(--secondary)]">{v}</dd>
+                      <dt className="text-[14px] font-semibold text-[var(--ink)]">{k}</dt>
+                      <dd className="text-[14px] text-[var(--secondary)]">{v}</dd>
                     </div>
                   ))}
                 </dl>
-                <p className="mt-2 text-[12.5px] leading-[1.5] text-[var(--secondary)]">
+                <p className="mt-2 text-[13px] leading-[1.5] text-[var(--secondary)]">
                   Invoicing arrives with Stripe in a later phase. The figures are here so margin is
                   visible from the start rather than reconstructed later.
                 </p>
@@ -382,17 +382,17 @@ export default async function FilesPage({
 
             <p className="mt-7 portal-kicker text-[var(--gold-deep)]">Timeline</p>
             {timeline.length === 0 ? (
-              <p className="mt-2 text-[13.5px] text-[var(--secondary)]">Nothing recorded yet.</p>
+              <p className="mt-2 text-[14px] text-[var(--secondary)]">Nothing recorded yet.</p>
             ) : (
               <ol className="mt-3 space-y-3">
                 {timeline.map((e) => (
                   <li key={String(e.id)} className="border-l-2 border-[var(--border)] pl-3">
-                    <p className="text-[13.5px] font-semibold text-[var(--navy)]">
+                    <p className="text-[14px] font-semibold text-[var(--ink)]">
                       {e.kind === "status" && e.to_status
                         ? `${e.from_status ? STATUS_LABEL[e.from_status as keyof typeof STATUS_LABEL] + " to " : ""}${STATUS_LABEL[e.to_status as keyof typeof STATUS_LABEL]}`
                         : e.kind}
                     </p>
-                    {e.body ? <p className="mt-0.5 text-[13.5px] leading-[1.5] text-[var(--secondary)]">{e.body}</p> : null}
+                    {e.body ? <p className="mt-0.5 text-[14px] leading-[1.5] text-[var(--secondary)]">{e.body}</p> : null}
                     <p className="mt-0.5 text-[12px] text-[var(--secondary)]">
                       {new Date(e.created_at as string).toLocaleString("en-US", {
                         month: "short",
@@ -411,16 +411,16 @@ export default async function FilesPage({
                 <p className="mt-7 portal-kicker text-[var(--gold-deep)]">
                   Evidence
                 </p>
-                <p className="mt-2 text-[13.5px] font-semibold text-[var(--navy)]">
+                <p className="mt-2 text-[14px] font-semibold text-[var(--ink)]">
                   {progressLabel(job.state)}
                 </p>
-                <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">
+                <p className="mt-0.5 text-[14px] text-[var(--secondary)]">
                   Working to {job.protocol.name} v{job.protocol.version}.
                 </p>
                 {job.state.blockers.length > 0 ? (
                   <ul className="mt-2 flex flex-col gap-1">
                     {job.state.blockers.map((b) => (
-                      <li key={b} className="text-[13.5px] leading-[1.5] text-[var(--secondary)]">
+                      <li key={b} className="text-[14px] leading-[1.5] text-[var(--secondary)]">
                         {b}
                       </li>
                     ))}
@@ -428,16 +428,16 @@ export default async function FilesPage({
                 ) : null}
                 <Link
                   href={`/portal/jobs/${selected.id}`}
-                  className="mt-3 inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-[var(--navy)] underline underline-offset-4"
+                  className="mt-3 inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--ink)] underline underline-offset-4"
                 >
                   Open the checklist
                 </Link>
               </>
             ) : null}
 
-            <div className="mt-7 rounded-[4px] border border-dashed border-[var(--border)] px-4 py-4">
-              <p className="text-[13.5px] font-semibold text-[var(--navy)]">Documents, tasks, messages</p>
-              <p className="mt-1.5 text-[12.5px] leading-[1.55] text-[var(--secondary)]">
+            <div className="mt-7 rounded-[2px] border border-dashed border-[var(--border)] px-4 py-4">
+              <p className="text-[14px] font-semibold text-[var(--ink)]">Documents, tasks, messages</p>
+              <p className="mt-1.5 text-[13px] leading-[1.55] text-[var(--secondary)]">
                 Documents and sealing arrive with review, and tasks and messages after that. They are
                 empty because those phases have not shipped, not because this file is missing
                 anything.
@@ -468,7 +468,7 @@ export default async function FilesPage({
           can(actor, "files.create") ? (
             <Link
               href="/portal/intake"
-              className="inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white hover:bg-[var(--navy-hover)]"
+              className="inline-flex min-h-[var(--tap-target)] items-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[14px] font-bold text-white hover:bg-[var(--navy-hover)]"
             >
               New job
             </Link>

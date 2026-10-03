@@ -9,17 +9,29 @@ import type { Determination, DeterminationRule } from "@/content/protocols/rc-00
 /**
  * The decision controls.
  *
- * THE FOUR BUTTONS ARE GIVEN EQUAL WEIGHT ON PURPOSE
- * ---------------------------------------------------
- * Sealing is not the primary action with three escape hatches underneath it.
- * All four are decisions an engineer might correctly reach, and the layout says
+ * EVERY BUTTON IS GIVEN EQUAL WEIGHT ON PURPOSE
+ * ---------------------------------------------
+ * Sealing is not the primary action with escape hatches underneath it.
+ * All of them are decisions an engineer might correctly reach, and the layout says
  * so: same size, same prominence, one row. A screen where sealing is a large
  * gold button and declining is a small grey link is a screen applying pressure,
  * whatever the documentation claims.
  *
- * Declining carries a red border rather than a red fill, because it is a
- * serious action and not a dangerous one. Red fill is for destruction; this is
- * a professional judgment the platform exists to support.
+ * DECLINING USED TO CARRY A RED BORDER, and V10 removed it on 2026-10-03. The
+ * note that stood here argued the border was right because declining is "a
+ * serious action and not a dangerous one", red fill being for destruction.
+ *
+ * That argument was answering the wrong question. The paragraph above says every
+ * decision gets the same size and the same prominence because a screen that
+ * makes one of them look different is applying pressure whatever its
+ * documentation claims, and a red outline on exactly one of five buttons is that
+ * difference. An engineer declining to seal is doing his job, and this file says
+ * two lines further down that the refusals are the part showing judgment was
+ * exercised.
+ *
+ * So the colour went and the parity it was breaking came back. Recorded here
+ * rather than deleted, because a reversed argument that leaves no trace reads as
+ * an argument nobody made.
  */
 
 const CONFIRM: Record<ReviewAction, string> = {
@@ -46,17 +58,18 @@ export function OpenReviewButton({ fileId, status }: { fileId: string; status: s
   const [error, setError] = useState<string | null>(null);
 
   return (
-    <div className="mb-6 rounded-[4px] border border-[var(--border)] bg-[var(--canvas)] px-4 py-3">
-      <p className="text-[13.5px] font-semibold text-[var(--navy)]">
+    /* V10: no box, no tint. A heading with a 2px ink rule and the text below it. */
+    <div className="mb-6 border-b-2 border-[var(--ink)] pb-4">
+      <p className="text-[14px] font-semibold text-[var(--ink)]">
         {status === "under_review" ? "This file is in review" : "Not yet in review"}
       </p>
-      <p className="mt-1 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+      <p className="mt-1 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--secondary)]">
         Taking it into review starts the clock. The elapsed time until you decide goes on your
         responsible charge record, which is the record your license stands on, so it is measured
         rather than asked for afterwards.
       </p>
       {error ? (
-        <p role="alert" className="mt-2 text-[13.5px] font-semibold text-[var(--red)]">
+        <p role="alert" className="mt-2 text-[14px] font-semibold text-[var(--ink)]">
           {error}
         </p>
       ) : null}
@@ -84,7 +97,7 @@ export function OpenReviewButton({ fileId, status }: { fileId: string; status: s
             setBusy(false);
           }
         }}
-        className="mt-3 inline-flex min-h-[var(--tap-target)] items-center justify-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white disabled:opacity-50"
+        className="mt-3 inline-flex min-h-[var(--tap-target)] items-center justify-center rounded-[var(--radius-control)] bg-[var(--navy)] px-4 text-[14px] font-bold text-white disabled:opacity-50"
       >
         {busy ? "Opening" : "Take this into review"}
       </button>
@@ -114,7 +127,17 @@ function DeterminationStep({
   onChoose: (d: Determination) => void;
 }) {
   return (
-    <div className="mt-2 flex flex-col gap-2">
+    /*
+      V10 rule 4: "Choices are rows with a radio, separated by a 1px line-2
+      rule. Not bordered cards."
+
+      These were bordered cards whose only selected state was a navy border,
+      which is the hardest kind of selection to see: a one pixel colour change on
+      an outline. The row keeps its real radio, so the selected determination is
+      legible from across the room and from a screen reader, and the chosen row
+      also takes the flat fill V10 uses for a selected row.
+    */
+    <div className="mt-2 border-t border-[var(--row-rule)]">
       {rules.map((rule) => {
         const selected = chosen === rule.key;
         const follows = DETERMINATION_ACTION[rule.key];
@@ -124,38 +147,61 @@ function DeterminationStep({
             type="button"
             onClick={() => onChoose(rule.key)}
             aria-pressed={selected}
-            className={`rounded-[4px] border p-3.5 text-left ${
-              selected ? "border-[var(--navy)] bg-white" : "border-[var(--border)] bg-white"
+            className={`flex w-full gap-3 border-b border-[var(--row-rule)] py-3.5 pr-3 pl-3 text-left ${
+              selected ? "bg-[var(--canvas)]" : "bg-white"
             }`}
           >
-            <p className="text-[15px] leading-[1.35] font-bold text-[var(--navy)]">{rule.heading}</p>
-            {rule.effect ? (
-              <p className="mt-1 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
-                {rule.effect}
-              </p>
-            ) : null}
-            {selected ? (
-              <>
-                <ul className="mt-2 flex flex-col gap-1">
-                  {rule.criteria.map((c) => (
-                    <li key={c} className="max-w-[70ch] text-[13.5px] leading-[1.5] text-[var(--secondary)]">
-                      {c}
-                    </li>
-                  ))}
-                </ul>
-                {/*
-                  * The fallback sentence is unreachable today, because all five
-                  * determinations map since 0053. It is kept for a sixth added
-                  * to Appendix C, which would arrive here with no action and
-                  * should say so rather than showing a blank line.
+            <span
+              aria-hidden="true"
+              className={`mt-1 h-[14px] w-[14px] shrink-0 rounded-full border-2 ${
+                selected
+                  ? "border-[var(--navy)] bg-[var(--navy)]"
+                  : "border-[var(--border-strong)] bg-white"
+              }`}
+            />
+            {/*
+              EVERYTHING INSIDE THE BUTTON IS PHRASING CONTENT NOW, which it was
+              not before and should always have been. A <button> may contain
+              phrasing content only, and this held a <p>, a <ul> and six <li>.
+              It rendered, so nothing complained, and it was invalid HTML sitting
+              inside the control an engineer uses to record a determination. The
+              row rewrite was the moment to put it right rather than carry it.
+            */}
+            <span className="block min-w-0 flex-1">
+              <span className="block text-[15px] leading-[1.35] font-semibold text-[var(--ink)]">
+                {rule.heading}
+              </span>
+              {rule.effect ? (
+                <span className="mt-1 block max-w-[70ch] text-[14px] leading-[1.55] text-[var(--secondary)]">
+                  {rule.effect}
+                </span>
+              ) : null}
+              {selected ? (
+                <>
+                  <span className="mt-2 block">
+                    {rule.criteria.map((c) => (
+                      <span
+                        key={c}
+                        className="mt-1 block max-w-[70ch] text-[14px] leading-[1.5] text-[var(--secondary)]"
+                      >
+                        {c}
+                      </span>
+                    ))}
+                  </span>
+                  {/*
+                    The fallback sentence is unreachable today, because all five
+                    determinations map since 0053. It is kept for a sixth added
+                    to Appendix C, which would arrive here with no action and
+                    should say so rather than showing a blank line.
                   */}
-                <p className="mt-2 text-[13.5px] leading-[1.5] font-semibold text-[var(--navy)]">
-                  {follows
-                    ? `This records as ${ACTION_LABEL[follows].toLowerCase()}.`
-                    : "This platform has no action for this determination yet, so it would be recorded and the file would stay where it is. That is a ruling the firm owes rather than a decision to make here."}
-                </p>
-              </>
-            ) : null}
+                  <span className="mt-2 block text-[14px] leading-[1.5] font-semibold text-[var(--ink)]">
+                    {follows
+                      ? `This records as ${ACTION_LABEL[follows].toLowerCase()}.`
+                      : "This platform has no action for this determination yet, so it would be recorded and the file would stay where it is. That is a ruling the firm owes rather than a decision to make here."}
+                  </span>
+                </>
+              ) : null}
+            </span>
           </button>
         );
       })}
@@ -198,7 +244,7 @@ export function DecisionPanel({
     return (
       <div>
         <p className="portal-kicker text-[var(--gold-deep)]">Recorded</p>
-        <p className="mt-2 max-w-[70ch] text-[13.5px] leading-[1.6] text-[var(--navy)]">
+        <p className="mt-2 max-w-[70ch] text-[14px] leading-[1.6] text-[var(--ink)]">
           {done.action === "refuse"
             ? "You declined to seal this file."
             : `Decision recorded: ${ACTION_LABEL[done.action].toLowerCase()}.`}{" "}
@@ -210,7 +256,7 @@ export function DecisionPanel({
         </p>
         <a
           href="/portal/review"
-          className="mt-4 inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-[var(--navy)] underline underline-offset-4"
+          className="mt-4 inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--ink)] underline underline-offset-4"
         >
           Back to the queue
         </a>
@@ -258,7 +304,7 @@ export function DecisionPanel({
 
       {governed ? (
         <div className="mt-2">
-          <p className="max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+          <p className="max-w-[70ch] text-[14px] leading-[1.55] text-[var(--secondary)]">
             {protocolDocument} Appendix C. One determination is recorded per review, with the items
             it rests on.
           </p>
@@ -277,11 +323,12 @@ export function DecisionPanel({
           />
 
           {determination ? (
-            <div className="mt-4 rounded-[4px] border border-[var(--border)] bg-white p-4">
-              <p className="text-[13.5px] font-semibold text-[var(--navy)]">
+            /* V10: no box. A rule above and whitespace do the separating. */
+            <div className="mt-5 border-t border-[var(--border)] pt-4">
+              <p className="text-[14px] font-semibold text-[var(--ink)]">
                 What this determination rests on
               </p>
-              <p className="mt-1 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+              <p className="mt-1 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--secondary)]">
                 A determination naming nothing it relied on is an opinion with no record behind it.
                 Somebody may be asked years from now what you actually looked at.
               </p>
@@ -289,14 +336,14 @@ export function DecisionPanel({
                 <button
                   type="button"
                   onClick={() => setReliedOn(items.map((i) => i.itemKey))}
-                  className="inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] px-3 text-[13.5px] font-semibold text-[var(--navy)]"
+                  className="inline-flex min-h-[44px] items-center rounded-[2px] border border-[var(--border)] px-3 text-[14px] font-semibold text-[var(--ink)]"
                 >
                   The whole package
                 </button>
                 <button
                   type="button"
                   onClick={() => setReliedOn([])}
-                  className="inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] px-3 text-[13.5px] font-semibold text-[var(--navy)]"
+                  className="inline-flex min-h-[44px] items-center rounded-[2px] border border-[var(--border)] px-3 text-[14px] font-semibold text-[var(--ink)]"
                 >
                   Clear
                 </button>
@@ -304,7 +351,7 @@ export function DecisionPanel({
               <ul className="mt-3 flex flex-col gap-1.5">
                 {items.map((item) => (
                   <li key={item.itemKey}>
-                    <label className="flex min-h-[44px] items-center gap-2.5 text-[13.5px] leading-[1.45] text-[var(--navy)]">
+                    <label className="flex min-h-[44px] items-center gap-2.5 text-[14px] leading-[1.45] text-[var(--ink)]">
                       <input
                         type="checkbox"
                         checked={reliedOn.includes(item.itemKey)}
@@ -333,7 +380,7 @@ export function DecisionPanel({
                 ))}
               </ul>
               {reliedOn.length > 0 && reliedEvidenceIds.length === 0 ? (
-                <p className="mt-2 max-w-[70ch] text-[13.5px] leading-[1.5] font-semibold text-[var(--red)]">
+                <p className="mt-2 max-w-[70ch] text-[14px] leading-[1.5] font-semibold text-[var(--ink)]">
                   Nothing was captured against the items you have named, so this determination would
                   rest on no evidence at all. Name an item that carries a photograph or a reading.
                 </p>
@@ -341,7 +388,7 @@ export function DecisionPanel({
 
               <label
                 htmlFor="determination-note"
-                className="mt-4 block text-[13.5px] font-semibold text-[var(--navy)]"
+                className="mt-4 block text-[14px] font-semibold text-[var(--ink)]"
               >
                 Your note on this determination (optional)
               </label>
@@ -350,7 +397,7 @@ export function DecisionPanel({
                 value={determinationNote}
                 onChange={(e) => setDeterminationNote(e.target.value)}
                 rows={3}
-                className="mt-1.5 w-full rounded-[3px] border border-[var(--border)] bg-white px-3 py-2.5 text-[16px] leading-[1.5] text-[var(--navy)] outline-none focus:border-slate"
+                className="mt-1.5 w-full rounded-[2px] border border-[var(--border)] bg-white px-3 py-2.5 text-[16px] leading-[1.5] text-[var(--ink)] outline-none focus:border-slate"
               />
 
               {/*
@@ -367,11 +414,11 @@ export function DecisionPanel({
                 <div className="mt-4 border-t border-[var(--border)] pt-4">
                   <label
                     htmlFor="repair-list"
-                    className="block text-[13.5px] font-semibold text-[var(--navy)]"
+                    className="block text-[14px] font-semibold text-[var(--ink)]"
                   >
                     The repair list, one requirement per line
                   </label>
-                  <p className="mt-1 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+                  <p className="mt-1 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--secondary)]">
                     Each line becomes an item the technician verifies separately on the revisit. This
                     file cannot be sealed until every one of them is closed, so anything written here
                     is something you are requiring before you will certify.
@@ -381,9 +428,9 @@ export function DecisionPanel({
                     value={repairList}
                     onChange={(e) => setRepairList(e.target.value)}
                     rows={5}
-                    className="mt-1.5 w-full rounded-[3px] border border-[var(--border)] bg-white px-3 py-2.5 text-[16px] leading-[1.5] text-[var(--navy)] outline-none focus:border-slate"
+                    className="mt-1.5 w-full rounded-[2px] border border-[var(--border)] bg-white px-3 py-2.5 text-[16px] leading-[1.5] text-[var(--ink)] outline-none focus:border-slate"
                   />
-                  <p className="mt-1.5 text-[13.5px] leading-[1.5] text-[var(--secondary)]">
+                  <p className="mt-1.5 text-[14px] leading-[1.5] text-[var(--secondary)]">
                     {repairRequirements.length === 0
                       ? "Nothing yet. Repairs required issues a repair list, so this cannot be empty."
                       : `${repairRequirements.length} item${repairRequirements.length === 1 ? "" : "s"}, each closed on its own at the revisit.`}
@@ -397,14 +444,14 @@ export function DecisionPanel({
 
       {!complete ? (
         <div className="mt-2">
-          <p className="text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+          <p className="text-[14px] leading-[1.55] text-[var(--secondary)]">
             This package is missing required evidence. It cannot be sealed, because the seal states
             you reviewed the evidence the protocol required. Every other decision is available, and
             on a package that cannot be completed, declining is often the right one.
           </p>
           <ul className="mt-2 flex flex-col gap-1">
             {blockers.map((b) => (
-              <li key={b} className="text-[13.5px] leading-[1.5] text-[var(--red)]">
+              <li key={b} className="text-[14px] leading-[1.5] font-semibold text-[var(--ink)]">
                 {b}
               </li>
             ))}
@@ -413,13 +460,13 @@ export function DecisionPanel({
       ) : null}
 
       {!inReview ? (
-        <p className="mt-2 text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+        <p className="mt-2 text-[14px] leading-[1.55] text-[var(--secondary)]">
           Take the file into review first. Deciding without opening it would leave your responsible
           charge record saying a review took no time at all.
         </p>
       ) : null}
 
-      {/* Four buttons, one row, equal weight. */}
+      {/* One row, equal weight, however many REVIEW_ACTIONS holds. */}
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
         {actions.map(({ action, allowed, reason: blockedReason }) => {
           const isRefusal = action === "refuse";
@@ -433,20 +480,34 @@ export function DecisionPanel({
                   setChosen(action);
                   setError(null);
                 }}
-                className={`inline-flex min-h-[52px] w-full items-center justify-center rounded-[3px] border px-4 text-[15px] font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                /*
+                  THE FIVE DECISIONS NOW LOOK ALIKE, AND THAT IS THIS SCREEN'S
+                  OWN STATED INTENT RATHER THAN HOUSE STYLE ARRIVING TO OVERRULE
+                  IT.
+
+                  Declining was drawn in red on an amber tint while the other
+                  four were navy. The docstring at the top of review/page.tsx
+                  says the screen gives "the same weight given to declining as to
+                  sealing", and a red button is not the same weight: red is the
+                  colour a person reads as "this one is dangerous, are you sure".
+                  An engineer who declines to seal is doing his job correctly,
+                  and the record of refusals is the part that shows judgment was
+                  exercised, which this file says a few lines further down.
+
+                  So the colour goes and the parity it was breaking is restored.
+                  Selected is a navy fill, unselected is a bordered white, for
+                  all five.
+                */
+                className={`inline-flex min-h-[52px] w-full items-center justify-center rounded-[2px] border px-4 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                   selected
-                    ? isRefusal
-                      ? "border-[var(--red)] bg-[var(--warn-bg)] text-[var(--red)]"
-                      : "border-slate bg-slate text-[var(--on-navy)]"
-                    : isRefusal
-                      ? "border-[var(--red)] bg-white text-[var(--red)] hover:bg-[var(--warn-bg)]"
-                      : "border-[var(--border)] bg-white text-[var(--navy)] hover:border-slate"
+                    ? "border-slate bg-slate text-[var(--on-navy)]"
+                    : "border-[var(--border)] bg-white text-[var(--ink)] hover:border-slate"
                 }`}
               >
                 {ACTION_LABEL[action]}
               </button>
               {!allowed && blockedReason ? (
-                <p className="mt-1.5 text-[12.5px] leading-[1.5] text-[var(--secondary)]">{blockedReason}</p>
+                <p className="mt-1.5 text-[13px] leading-[1.5] text-[var(--secondary)]">{blockedReason}</p>
               ) : null}
             </div>
           );
@@ -454,13 +515,25 @@ export function DecisionPanel({
       </div>
 
       {chosen && active?.allowed ? (
-        <div className="mt-5 rounded-[4px] border border-[var(--border)] bg-[var(--canvas)] p-4">
-          <p className="text-[13.5px] font-semibold text-[var(--navy)]">{ACTION_LABEL[chosen]}</p>
-          <p className="mt-1 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">{HELP[chosen]}</p>
+        /*
+          The chosen decision and what it does. It was a tinted panel; V10 makes
+          it a section, which is the heading plus a 2px ink rule. This one is
+          worth getting right rather than merely converting: it is the last thing
+          an engineer reads before committing a decision that goes on his
+          licence, and a heading carries more than a grey box did.
+
+          AND IT IS A BARE BLOCK COMMENT RATHER THAN {SLASH STAR ... STAR SLASH}.
+          Inside a parenthesised ternary branch the braced form is a second
+          expression where one is allowed, which is the mistake CLAUDE.md records
+          and which this file carried twice in one edit until tsc refused it.
+        */
+        <div className="mt-6 border-t-2 border-[var(--ink)] pt-4">
+          <p className="text-[14px] font-semibold text-[var(--ink)]">{ACTION_LABEL[chosen]}</p>
+          <p className="mt-1 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--secondary)]">{HELP[chosen]}</p>
 
           {chosen !== "seal" ? (
             <div className="mt-3">
-              <label htmlFor="decision-reason" className="block text-[13.5px] font-semibold text-[var(--navy)]">
+              <label htmlFor="decision-reason" className="block text-[14px] font-semibold text-[var(--ink)]">
                 {chosen === "refuse" ? "Why you will not seal this" : "What is needed"}
               </label>
               <textarea
@@ -468,9 +541,9 @@ export function DecisionPanel({
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 rows={4}
-                className="mt-1.5 w-full rounded-[3px] border border-[var(--border)] bg-white px-3 py-2.5 text-[16px] leading-[1.5] text-[var(--navy)] outline-none focus:border-slate"
+                className="mt-1.5 w-full rounded-[2px] border border-[var(--border)] bg-white px-3 py-2.5 text-[16px] leading-[1.5] text-[var(--ink)] outline-none focus:border-slate"
               />
-              <p className="mt-1.5 text-[12.5px] text-[var(--secondary)]">
+              <p className="mt-1.5 text-[13px] text-[var(--secondary)]">
                 {reason.trim().length < MIN_REASON_LENGTH
                   ? `${MIN_REASON_LENGTH - reason.trim().length} more character${
                       MIN_REASON_LENGTH - reason.trim().length === 1 ? "" : "s"
@@ -481,7 +554,7 @@ export function DecisionPanel({
           ) : null}
 
           {error ? (
-            <p role="alert" className="mt-3 text-[13.5px] leading-[1.5] font-semibold text-[var(--red)]">
+            <p role="alert" className="mt-3 text-[14px] leading-[1.5] font-semibold text-[var(--ink)]">
               {error}
             </p>
           ) : null}
@@ -532,11 +605,7 @@ export function DecisionPanel({
                   setBusy(false);
                 }
               }}
-              className={`inline-flex min-h-[48px] items-center justify-center rounded-[3px] px-5 text-[15px] font-bold disabled:opacity-50 ${
-                chosen === "refuse"
-                  ? "border border-[var(--red)] bg-[var(--red)] text-white"
-                  : "bg-[var(--navy)] text-white"
-              }`}
+              className="inline-flex min-h-[48px] items-center justify-center rounded-[2px] bg-[var(--navy)] px-5 text-[15px] font-semibold text-white disabled:opacity-50"
             >
               {busy ? "Recording" : CONFIRM[chosen]}
             </button>
@@ -546,7 +615,7 @@ export function DecisionPanel({
                 setChosen(null);
                 setReason("");
               }}
-              className="inline-flex min-h-[48px] items-center rounded-[3px] px-4 text-[15px] font-semibold text-[var(--secondary)]"
+              className="inline-flex min-h-[48px] items-center rounded-[2px] px-4 text-[15px] font-semibold text-[var(--secondary)]"
             >
               Back
             </button>

@@ -68,7 +68,7 @@ import type { Determination } from "@/content/protocols/rc-001-decisions";
  * administrator can decline while nobody can seal. That is not what it says and
  * was never true after Phase 10 Section 2.
  *
- * All four decisions need a licence, because all four are professional
+ * Every decision needs a licence, because every one of them is a professional
  * judgments about a package. Declining is not the safe residue of sealing that
  * anybody may perform; refusing to certify is itself an engineering opinion,
  * and it is the one that ends up in front of a board. So the gate lets an
@@ -207,7 +207,7 @@ export function canReview(
   }
 
   /*
-   * NOT "YOUR ROLE CANNOT". All four decisions are professional judgments about
+   * NOT "YOUR ROLE CANNOT". Every decision is a professional judgment about
    * a package, so all four are licensed capabilities rather than permissions,
    * and there is no checkbox anywhere that would grant one. Telling the reader
    * their ROLE is the problem sends them to the roles screen to look for a

@@ -158,7 +158,7 @@ export default async function CertificationPage({
                       return (
                         <li
                           key={p.service_slug as string}
-                          className={`rounded-[4px] border bg-white p-4 ${
+                          className={`rounded-[2px] border bg-white p-4 ${
                             certified
                               ? "border-[var(--border)] border-l-[var(--green)]"
                               : "border-[var(--border)]"
@@ -166,10 +166,10 @@ export default async function CertificationPage({
                         >
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <p className="text-[15px] font-semibold text-[var(--navy)]">
+                              <p className="text-[15px] font-semibold text-[var(--ink)]">
                                 {serviceName(p.service_slug as string)}
                               </p>
-                              <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">
+                              <p className="mt-0.5 text-[14px] text-[var(--secondary)]">
                                 {p.name as string} v{p.version as number}
                               </p>
                             </div>
@@ -180,11 +180,11 @@ export default async function CertificationPage({
                           </div>
 
                           {certified ? (
-                            <p className="mt-3 text-[13.5px] leading-[1.5] text-[var(--secondary)]">
+                            <p className="mt-3 text-[14px] leading-[1.5] text-[var(--secondary)]">
                               You can be offered work on this line once your paperwork is current.
                             </p>
                           ) : cert?.status === "revoked" ? (
-                            <p className="mt-3 text-[13.5px] leading-[1.5] text-[var(--secondary)]">
+                            <p className="mt-3 text-[14px] leading-[1.5] text-[var(--secondary)]">
                               This certification was withdrawn by the engineer in responsible charge.
                               Retaking the check does not restore it; they do.
                             </p>
@@ -209,23 +209,23 @@ export default async function CertificationPage({
         <div className="flex flex-col gap-6">
           <Panel title="Your paperwork">
             {paperwork.length === 0 ? (
-              <p className="text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+              <p className="text-[14px] leading-[1.55] text-[var(--secondary)]">
                 Everything required is on file and current. Nothing in your documents is stopping a
                 job reaching you.
               </p>
             ) : (
               <>
-                <p className="text-[13.5px] leading-[1.55] font-semibold text-[var(--red)]">
+                <p className="text-[14px] leading-[1.55] font-semibold text-[var(--red)]">
                   This is stopping jobs reaching you.
                 </p>
                 <ul className="mt-2 flex flex-col gap-1.5">
                   {paperwork.map((b) => (
-                    <li key={b.kind + b.reason} className="text-[13.5px] leading-[1.5] text-[var(--secondary)]">
+                    <li key={b.kind + b.reason} className="text-[14px] leading-[1.5] text-[var(--secondary)]">
                       {b.reason}
                     </li>
                   ))}
                 </ul>
-                <p className="mt-3 text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+                <p className="mt-3 text-[14px] leading-[1.55] text-[var(--secondary)]">
                   Send the replacement document to the operator. Nothing on this site asks you to
                   type a policy number, an account number, or a social security number, and it never
                   will.
@@ -234,16 +234,16 @@ export default async function CertificationPage({
             )}
 
             {expiring.length > 0 ? (
-              <div className="mt-4 rounded-[3px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-3 py-2.5">
-                <p className="text-[13.5px] font-semibold text-[var(--warn-ink)]">Expiring soon</p>
+              <div className="mt-4 rounded-[2px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-3 py-2.5">
+                <p className="text-[14px] font-semibold text-[var(--warn-ink)]">Expiring soon</p>
                 <ul className="mt-1 flex flex-col gap-1">
                   {expiring.map((e) => (
-                    <li key={e.kind} className="text-[13.5px] leading-[1.5] text-[var(--warn-ink)]">
+                    <li key={e.kind} className="text-[14px] leading-[1.5] text-[var(--warn-ink)]">
                       {CREDENTIAL_LABEL[e.kind]} in {e.days} day{e.days === 1 ? "" : "s"}, on {e.expiresOn}.
                     </li>
                   ))}
                 </ul>
-                <p className="mt-1.5 text-[12.5px] leading-[1.5] text-[var(--warn-ink)]">
+                <p className="mt-1.5 text-[13px] leading-[1.5] text-[var(--warn-ink)]">
                   This does not stop you working. It stops you the day it lapses.
                 </p>
               </div>
@@ -251,7 +251,7 @@ export default async function CertificationPage({
           </Panel>
 
           <Panel title="How the check works">
-            <ul className="flex flex-col gap-2 text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+            <ul className="flex flex-col gap-2 text-[14px] leading-[1.55] text-[var(--secondary)]">
               <li>
                 The protocol is on the page while you answer. It is meant to be read, not memorised.
               </li>
@@ -288,13 +288,13 @@ export default async function CertificationPage({
           */}
           {templates.length > 0 && holdsLicence(actor, "protocols.author") ? (
             <Panel title="Authoring">
-              <p className="text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+              <p className="text-[14px] leading-[1.55] text-[var(--secondary)]">
                 Check questions are written on the protocol itself, by the engineer who will review
                 the work.
               </p>
               <a
                 href="/portal/protocols"
-                className="mt-3 inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-[var(--navy)] underline underline-offset-4"
+                className="mt-3 inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--ink)] underline underline-offset-4"
               >
                 Open protocols
               </a>

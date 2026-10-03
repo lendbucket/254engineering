@@ -127,11 +127,11 @@ export function FileSelection({
     <>
       {ticked.size > 0 && (
         <div
-          className="mb-3 flex flex-wrap items-center gap-2 rounded-[4px] border border-[var(--border)] bg-[var(--surface-2,#F6F7F9)] p-3"
+          className="mb-3 flex flex-wrap items-center gap-2 rounded-[2px] border border-[var(--border)] bg-[var(--surface-2,#F6F7F9)] p-3"
           role="group"
           aria-label="Actions for the selected files"
         >
-          <p className="text-[13.5px] font-semibold text-[var(--navy)]">
+          <p className="text-[14px] font-semibold text-[var(--ink)]">
             {ticked.size} selected
           </p>
           <div className="ml-auto flex flex-wrap gap-2">
@@ -139,7 +139,7 @@ export function FileSelection({
               type="button"
               onClick={exportSelected}
               disabled={busy || over}
-              className="inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] bg-white px-3 text-[13.5px] font-bold text-[var(--navy)] hover:border-slate disabled:opacity-50"
+              className="inline-flex min-h-[44px] items-center rounded-[2px] border border-[var(--border)] bg-white px-3 text-[14px] font-bold text-[var(--ink)] hover:border-slate disabled:opacity-50"
             >
               {busy ? "Exporting" : "Export"}
             </button>
@@ -153,7 +153,7 @@ export function FileSelection({
                */
               <Link
                 href={`/portal/files/dispatch?ids=${[...ticked].join(",")}`}
-                className="inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] bg-white px-3 text-[13.5px] font-bold text-[var(--navy)] hover:border-slate"
+                className="inline-flex min-h-[44px] items-center rounded-[2px] border border-[var(--border)] bg-white px-3 text-[14px] font-bold text-[var(--ink)] hover:border-slate"
               >
                 Dispatch
               </Link>
@@ -161,7 +161,7 @@ export function FileSelection({
             <button
               type="button"
               onClick={clear}
-              className="inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] bg-white px-3 text-[13.5px] font-bold text-[var(--secondary)] hover:border-slate"
+              className="inline-flex min-h-[44px] items-center rounded-[2px] border border-[var(--border)] bg-white px-3 text-[14px] font-bold text-[var(--secondary)] hover:border-slate"
             >
               Clear
             </button>
@@ -192,7 +192,7 @@ export function FileSelection({
               the screenshot at 1280, which is the only way that kind of
               thing is ever found.
             */}
-            <label className="flex h-[44px] min-w-[44px] cursor-pointer items-center justify-center rounded-[4px] border border-[var(--border)] bg-white">
+            <label className="flex h-[44px] min-w-[44px] cursor-pointer items-center justify-center rounded-[2px] border border-[var(--border)] bg-white">
               <input
                 type="checkbox"
                 checked={ticked.has(f.id)}
@@ -203,15 +203,15 @@ export function FileSelection({
             </label>
             <Link
               href={`/portal/files?id=${f.id}`}
-              className={`block flex-1 rounded-[4px] border bg-white p-4 transition-colors hover:border-slate ${
+              className={`block flex-1 rounded-[2px] border bg-white p-4 transition-colors hover:border-slate ${
                 selectedId === f.id ? "border-slate" : "border-[var(--border)]"
               }`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="font-mono text-[12.5px] text-[var(--gold-deep)]">{f.file_number}</p>
-                  <p className="mt-1 text-[13.5px] font-semibold text-[var(--navy)]">{f.property_address}</p>
-                  <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">
+                  <p className="font-mono text-[13px] text-[var(--gold-deep)]">{f.file_number}</p>
+                  <p className="mt-1 text-[14px] font-semibold text-[var(--ink)]">{f.property_address}</p>
+                  <p className="mt-0.5 text-[14px] text-[var(--secondary)]">
                     {f.county} County{f.twia_county ? ", windstorm" : ""}
                   </p>
                 </div>

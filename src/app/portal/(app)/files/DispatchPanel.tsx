@@ -88,11 +88,11 @@ export function DispatchPanel({
   }
 
   return (
-    <div className="rounded-[4px] border border-[var(--border)] bg-white px-4 py-4 sm:px-5">
+    <div className="rounded-[2px] border border-[var(--border)] bg-white px-4 py-4 sm:px-5">
       <p className="portal-kicker text-[var(--gold-deep)]">Dispatch</p>
 
       {protocolName ? (
-        <p className="mt-1.5 text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+        <p className="mt-1.5 text-[14px] leading-[1.55] text-[var(--secondary)]">
           Working to {protocolName}. Technician rate{" "}
           {feeCents === null
             ? "is not in the schedule for this service line, so the offer carries no figure"
@@ -100,7 +100,7 @@ export function DispatchPanel({
           .
         </p>
       ) : (
-        <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--red)]">
+        <p className="mt-1.5 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--red)]">
           No published protocol exists for this service line, so this file cannot be dispatched. A
           technician accepting it would open an empty checklist. An engineer publishes one from the
           protocols screen.
@@ -108,7 +108,7 @@ export function DispatchPanel({
       )}
 
       {proximityUnavailable ? (
-        <p className="mt-2 max-w-[70ch] text-[12.5px] leading-[1.5] text-[var(--secondary)]">
+        <p className="mt-2 max-w-[70ch] text-[13px] leading-[1.5] text-[var(--secondary)]">
           Ranked by open workload and then by name. No distance is shown because{" "}
           {propertyLocated
             ? "none of these technicians has a base coordinate on record"
@@ -118,7 +118,7 @@ export function DispatchPanel({
       ) : null}
 
       {offers.length === 0 ? (
-        <p className="mt-4 text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+        <p className="mt-4 text-[14px] leading-[1.55] text-[var(--secondary)]">
           Nobody is eligible for this job. The reasons are below, and each of them is something an
           administrator can act on.
         </p>
@@ -130,7 +130,7 @@ export function DispatchPanel({
             return (
               <li key={o.techId}>
                 <label
-                  className={`flex min-h-[52px] cursor-pointer items-center gap-3 rounded-[3px] border px-3 py-2.5 ${
+                  className={`flex min-h-[52px] cursor-pointer items-center gap-3 rounded-[2px] border px-3 py-2.5 ${
                     selected.includes(o.techId) ? "border-slate bg-[var(--canvas)]" : "border-[var(--border)]"
                   } ${disabled ? "cursor-default opacity-60" : ""}`}
                 >
@@ -146,10 +146,10 @@ export function DispatchPanel({
                     className="h-5 w-5 shrink-0 accent-[var(--navy)]"
                   />
                   <span className="min-w-0">
-                    <span className="block text-[13.5px] font-semibold text-[var(--navy)]">
+                    <span className="block text-[14px] font-semibold text-[var(--ink)]">
                       {o.displayName}
                     </span>
-                    <span className="mt-0.5 block text-[13.5px] text-[var(--secondary)]">
+                    <span className="mt-0.5 block text-[14px] text-[var(--secondary)]">
                       {o.openJobs === 0 ? "No open jobs" : `${o.openJobs} open`}
                       {o.distanceMiles !== null ? `, about ${o.distanceMiles} miles out` : ""}
                       {state ? `, already ${state}` : ""}
@@ -164,14 +164,14 @@ export function DispatchPanel({
 
       {ineligible.length > 0 ? (
         <details className="mt-4">
-          <summary className="min-h-[44px] cursor-pointer list-none py-2 text-[13.5px] font-semibold text-[var(--navy)]">
+          <summary className="min-h-[44px] cursor-pointer list-none py-2 text-[14px] font-semibold text-[var(--ink)]">
             {ineligible.length} technician{ineligible.length === 1 ? "" : "s"} not eligible, and why
           </summary>
           <ul className="mt-1 divide-y divide-limestone-line">
             {ineligible.map((i) => (
               <li key={i.id} className="py-2.5">
-                <p className="text-[13.5px] font-semibold text-[var(--navy)]">{i.displayName}</p>
-                <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">{i.reason}</p>
+                <p className="text-[14px] font-semibold text-[var(--ink)]">{i.displayName}</p>
+                <p className="mt-0.5 text-[14px] text-[var(--secondary)]">{i.reason}</p>
               </li>
             ))}
           </ul>
@@ -181,14 +181,14 @@ export function DispatchPanel({
       {offers.length > 0 && protocolName ? (
         <>
           <div className="mt-4">
-            <label htmlFor="expiry" className="block text-[13.5px] font-semibold text-[var(--navy)]">
+            <label htmlFor="expiry" className="block text-[14px] font-semibold text-[var(--ink)]">
               Offer expires after
             </label>
             <select
               id="expiry"
               value={expiry}
               onChange={(e) => setExpiry(e.target.value)}
-              className="mt-1.5 min-h-[44px] w-full rounded-[3px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--navy)] outline-none focus:border-slate sm:w-auto"
+              className="mt-1.5 min-h-[44px] w-full rounded-[2px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--ink)] outline-none focus:border-slate sm:w-auto"
             >
               <option value="2">2 hours</option>
               <option value="4">4 hours</option>
@@ -199,7 +199,7 @@ export function DispatchPanel({
           </div>
 
           {error ? (
-            <p role="alert" className="mt-3 text-[13.5px] leading-[1.5] font-semibold text-[var(--red)]">
+            <p role="alert" className="mt-3 text-[14px] leading-[1.5] font-semibold text-[var(--red)]">
               {error}
             </p>
           ) : null}
@@ -216,7 +216,7 @@ export function DispatchPanel({
                 ? "Choose who to offer this to"
                 : `Offer to ${selected.length} technician${selected.length === 1 ? "" : "s"}`}
           </button>
-          <p className="mt-2 max-w-[70ch] text-[12.5px] leading-[1.5] text-[var(--secondary)]">
+          <p className="mt-2 max-w-[70ch] text-[13px] leading-[1.5] text-[var(--secondary)]">
             Everybody chosen sees the job at the same time. The first to accept takes it and the rest
             are told somebody accepted first. The file moves to dispatched on acceptance, not now,
             because a file marked dispatched with nobody on it is the lie the status column exists to
