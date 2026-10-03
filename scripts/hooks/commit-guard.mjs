@@ -251,10 +251,55 @@ export function sourceWriteVerdict(command) {
    * the same command, which is why each takes its own.
    */
   const stripped = stripQuoted(command) ?? command;
+
+  /*
+   * ===========================================================================
+   * QUOTING THE PATH DEFEATED THIS RULE ENTIRELY, AND IT HAD NEVER PROTECTED A
+   * SINGLE PORTAL SCREEN. Found 2026-10-03, by breaking the rule it enforces.
+   * ===========================================================================
+   *
+   * The command that got through was
+   *
+   *     sed -i.bak 's|...|...|' "src/app/portal/(app)/review/page.tsx"
+   *
+   * and the flag matcher was never the problem: `-i.bak` matches. THE TARGET WAS
+   * GONE BEFORE ANYTHING LOOKED FOR IT, because `stripped` replaces every quoted
+   * string with a placeholder word, and the path is a quoted string.
+   *
+   * Probed rather than assumed, through this file's own entry point. Of six real
+   * shapes, three were allowed and all three were the quoted ones: an in place
+   * sed with a quoted path, and a bare `echo hi > "src/lib/launch.ts"`. So the
+   * hole was not peculiar to one flag; ANY shell write to source escaped this
+   * rule by putting quotes round the filename.
+   *
+   * AND THE PART THAT MAKES IT MORE THAN A CURIOSITY. Every portal screen in
+   * this repository lives under `src/app/portal/(app)/`. A path with parentheses
+   * in it is one a person quotes by reflex and a shell often requires quoted. So
+   * the rule was blind on exactly the directory most of this project's source
+   * edits land in, and had been since it was written.
+   *
+   * THE FIX SEPARATES TWO QUESTIONS THE ONE VIEW WAS ANSWERING AT ONCE.
+   *
+   *   Is this a command that writes a file?   Asked of `stripped`.
+   *   Which file does it write?               Asked of BOTH.
+   *
+   * The reason the original stripped at all is recorded above and still holds: a
+   * commit MESSAGE containing the words "sed/perl/ruby", a "-0pi" and the
+   * extension list was read as a command, and it refused the very commit that
+   * introduced the rule. That property is preserved exactly, because the gate is
+   * still asked of the stripped command: a message alone cannot produce a
+   * redirect token or a `-i` flag outside quotes, so it can never open the gate.
+   * Once the gate IS open the command really is writing a file, and at that
+   * point a quoted argument is a target rather than prose.
+   */
   const targets = [];
+  const views = [stripped, command];
+
   /* A redirect, with or without a file descriptor in front of it. */
-  for (const m of stripped.matchAll(/(?:^|\s)\d?>>?\s*(['"]?)([^\s'"|&;<>]+)\1/g)) {
-    targets.push(m[2]);
+  for (const view of views) {
+    for (const m of view.matchAll(/(?:^|\s)\d?>>?\s*(['"]?)([^\s'"|&;<>]+)\1/g)) {
+      targets.push(m[2]);
+    }
   }
   /*
    * In place editors name their target as an ordinary argument.
@@ -265,8 +310,10 @@ export function sourceWriteVerdict(command) {
    * rule, and a character class of letters only sees none of the first two.
    */
   if (/\b(?:sed|perl|ruby)\b[^|;]*\s-[a-zA-Z0-9]*i[a-zA-Z0-9]*\b/.test(stripped)) {
-    for (const m of stripped.matchAll(/(?:^|\s)(['"]?)([^\s'"|&;<>]*\.[a-zA-Z]{1,5})\1(?=\s|$)/g)) {
-      targets.push(m[2]);
+    for (const view of views) {
+      for (const m of view.matchAll(/(?:^|\s)(['"]?)([^\s'"|&;<>]*\.[a-zA-Z]{1,5})\1(?=\s|$)/g)) {
+        targets.push(m[2]);
+      }
     }
   }
 

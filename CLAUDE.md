@@ -945,7 +945,36 @@ arriving as a backspace both **parse perfectly and silently match nothing**. The
 worst version of this hazard produces valid code, so nothing downstream can see
 it. The guard has to refuse before the write.
 
-Proven by `scripts/proofs/the-commit-guard-refuses-the-shape.mjs`, now 33 cases.
+Proven by `scripts/proofs/the-commit-guard-refuses-the-shape.mjs`, now 37 cases.
+
+**AND RULE FOUR WAS BLIND TO A QUOTED PATH, SO IT HAD NEVER PROTECTED A PORTAL
+SCREEN.** Found 2026-10-03, by breaking the rule it enforces.
+
+The command that got through was an in place `sed` on
+`"src/app/portal/(app)/review/page.tsx"`. The flag was never the problem.
+**The target was gone before anything looked for it**, because rule four tests
+the command with quoted strings replaced by a placeholder word, and the path is
+a quoted string. Probed through the hook's own entry point rather than reasoned
+about: of six real shapes, three were allowed, and all three were the quoted
+ones, a bare `echo hi > "src/lib/launch.ts"` among them. **Any shell write to
+source escaped rule four by putting quotes round the filename.**
+
+**The part that makes it more than a curiosity.** Every portal screen lives
+under `src/app/portal/(app)/`, and a path with parentheses is one a person
+quotes by reflex. The rule was blind on exactly the directory most of this
+project's source edits land in, from the day it was written.
+
+**The fix separates two questions the one view was answering at once.** Whether
+this is a command that writes a file is asked of the STRIPPED command, which
+preserves the property the stripping exists for: a commit message cannot produce
+a redirect token or a `-i` outside quotes, so prose can never open the gate. Once
+it is open the command really is writing a file, and a quoted argument is then a
+target rather than a sentence, so the filename is read from BOTH views.
+
+**And it is the entry two sections above happening again.** A rule you wrote
+this morning does not protect you this afternoon; here a rule somebody wrote in
+September did not protect the session that was quoting it, because the mechanism
+had a hole the written form could not show.
 Every refusal fixture is a REAL command from 2026-09-19 or 2026-09-20 rather
 than a shape invented to match the rule, and the allow fixtures are what must
 keep working: a board redirected to a log, a Windows path full of backslashes

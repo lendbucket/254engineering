@@ -107,6 +107,36 @@ const WRITE_CASES = [
   ["a redirect straight into a source file",
     "echo 'x' > " + "src/config/turnaround.ts",
     true],
+
+  /*
+   * QUOTING THE PATH DEFEATED RULE FOUR ENTIRELY UNTIL 2026-10-03, and these
+   * three are the real commands that proved it, kept here so it cannot return.
+   *
+   * The first is the one that actually got through, typed while porting the
+   * review screen to V10. The flag was never the problem: `-i.bak` matches the
+   * cluster pattern. The TARGET was gone before anything looked for it, because
+   * the matcher ran against the command with quoted strings replaced by a
+   * placeholder, and the path is a quoted string.
+   *
+   * The second and third show it was not peculiar to one flag or one tool: a
+   * plain `sed -i` and a bare `echo >` escaped the same way the moment the path
+   * had quotes round it.
+   *
+   * WHY IT MATTERED MORE THAN A CURIOSITY, and it is the reason this is three
+   * fixtures rather than one. Every portal screen lives under
+   * `src/app/portal/(app)/`, and a path with parentheses is one a person quotes
+   * by reflex. The rule was blind on exactly the directory most of this
+   * project's source edits land in, for as long as it had existed.
+   */
+  ["the one that got through: an in place sed with a QUOTED path containing parentheses",
+    "sed -i.bak " + "'s|a|b|' " + '"src/app/portal/(app)/review/page.tsx"',
+    true],
+  ["a plain -i with a quoted path, which escaped the same way",
+    "sed -i " + "'s|a|b|' " + '"src/lib/launch.ts"',
+    true],
+  ["a redirect into a quoted source path",
+    'echo hi > "src/lib/launch.ts"',
+    true],
   ["an inline node script carrying an interpolation",
     'node -e ' + '"const s = `${CL}`; writeFileSync(p, s)"',
     true],
