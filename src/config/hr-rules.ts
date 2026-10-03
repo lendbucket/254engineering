@@ -81,7 +81,7 @@ export const HR_RULES: HrRule[] = [
   },
   {
     key: "criminal-history-after-offer",
-    rule: "Criminal history is asked only after a conditional offer, and a consumer report requires disclosure, authorisation, and a pre adverse action notice with a copy of the report.",
+    rule: "Criminal history is asked only after a conditional offer, and a consumer report requires disclosure, authorization, and a pre adverse action notice with a copy of the report.",
     source: "The FCRA at 15 U.S.C. 1681 and following, for the consumer report mechanics.",
     verified: false,
     uncertain:
@@ -126,7 +126,7 @@ export const HR_RULES: HrRule[] = [
   },
   {
     key: "new-hire-report",
-    rule: "A new hire is reported to the Texas Attorney General's new hire programme.",
+    rule: "A new hire is reported to the Texas Attorney General's new hire program.",
     source: "The Texas new hire reporting requirement.",
     verified: false,
     uncertain:
