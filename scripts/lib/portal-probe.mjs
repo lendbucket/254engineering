@@ -23,7 +23,7 @@
  */
 
 import { createHash, randomBytes } from "node:crypto";
-import { auditClient } from "./db-target.mjs";
+import { auditClient, refOf, DEVELOPMENT_REF } from "./db-target.mjs";
 import { signInFully } from "./probe-mfa.mjs";
 
 /** Obviously fake, and the domain is what teardown sweeps on. */
@@ -137,7 +137,31 @@ const made = [];
 const partnersMade = [];
 let db = null;
 
+/**
+ * A test seam, and a narrow one on purpose.
+ *
+ * The teardowns' interesting branch is a delete being REFUSED, and reproducing
+ * that against the real database means creating a row that cannot be removed,
+ * which is the silt the fix exists to prevent. So a proof injects a client whose
+ * deletes refuse on command.
+ *
+ * WHY A SEAM RATHER THAN PATCHING THE MODULE. A module level constant is read
+ * once and a fresh import is not fresh enough, which CLAUDE.md records costing
+ * three runs in one night. A function the proof calls is the only version that
+ * works in process.
+ *
+ * It is reset to null by the proof when it finishes. Nothing in the suite calls
+ * it, and a non-null value here outside a proof would mean a test client is
+ * serving a real run, which is why it is named the way it is.
+ */
+let injectedForTests = null;
+export function __setProbeClientForTests(fake) {
+  injectedForTests = fake;
+  db = null;
+}
+
 function client(label) {
+  if (injectedForTests) return injectedForTests;
   if (!db) db = auditClient(label, { neverProduction: true });
   return db;
 }
@@ -475,19 +499,142 @@ export function customerCookieFor(probe, base) {
  * delete is reported rather than swallowed, because an account left behind on
  * development is one the operator's own screens will show them.
  */
-export async function destroyCustomerProbes(label = "audit") {
+/**
+ * ===========================================================================
+ * THE CUSTOMER TEARDOWN. REWRITTEN 2026-10-03 AFTER IT LEFT 641 ROWS BEHIND.
+ * Operator ruling, the same day.
+ * ===========================================================================
+ *
+ * WHAT IT DID, AND WHY IT SAID ok. It deleted the customer user, SUPERSEDED the
+ * account, then attempted `delete from eng_clients`. That delete is refused
+ * every single time: `eng_customer_accounts.client_id` is `on delete restrict`
+ * and the account was superseded rather than removed, so it still references the
+ * client. THE DELETE'S RETURN VALUE WAS NEVER READ, so the refusal was silent.
+ * `left` was then computed by counting `eng_customer_users`, which really was
+ * zero, and it returned ok.
+ *
+ * On 2026-10-03 that had put 641 client rows and 641 accounts on development,
+ * the oldest from 2026-09-14. No credential among them, and all 641 correctly
+ * marked is_demo, so no figure was wrong. It was nineteen days of silt on the
+ * database every audit points at, behind a green line.
+ *
+ * IT IS THE 2026-09-22 RULING REPEATING IN A SECOND HELPER. That one says: ask
+ * what the verification reads, and whether it is the same thing the action read.
+ * Here the action was refused on eng_clients and the verification counted
+ * eng_customer_users, so the two could never disagree.
+ *
+ * THREE THINGS CHANGE.
+ *
+ *   1. EVERY DELETE'S ERROR IS READ AND REPORTED. No `.catch(() => {})`, no
+ *      ignored result. The ruling names that silence as how the earlier strays
+ *      got there.
+ *
+ *   2. `left` COUNTS ALL THREE TABLES: eng_customer_users, eng_customer_accounts
+ *      and eng_clients. A teardown that cannot remove a client now says so.
+ *
+ *   3. THE SUBJECT IS DERIVED FROM BOTH ENDS. It used to start from
+ *      eng_customer_users alone, so once a user row was gone its account and
+ *      client were unreachable for ever: the first successful run orphaned them
+ *      and no later run could see them. It now also sweeps eng_clients by
+ *      address, which is what makes the existing silt reachable at all.
+ *
+ * AND PROBE ACCOUNTS ARE HARD DELETED, ON DEVELOPMENT ONLY. Operator ruling,
+ * 2026-10-03: "Probe accounts may be hard-deleted on development only. The
+ * superseded-never-deleted rule stands for real accounts and for production
+ * without exception."
+ *
+ * The guard is an explicit ref comparison rather than a trust in the caller.
+ * `auditClient` already refuses production before a client exists, which makes
+ * this the second lock rather than the only one, and a second lock on a delete
+ * that bypasses a standing rule is cheap.
+ */
+export async function destroyCustomerProbes(label = "audit", options = {}) {
+  /*
+   * =======================================================================
+   * TWO SCOPES, AND THE DEFAULT CANNOT REACH A ROW THIS RUN DID NOT MAKE.
+   * Operator ruling, 2026-10-03.
+   * =======================================================================
+   *
+   * THE FIX THAT MADE THE SILT REACHABLE ALSO MADE EVERY AUDIT ABLE TO DELETE
+   * IT. Sweeping eng_clients by address is what finds a chain whose user row is
+   * already gone, which is the whole repair. It also means an ordinary audit
+   * calling this helper would mass delete 641 historical rows as a side effect,
+   * with no transaction, no count assertion and no dry run: the outcome the
+   * operator approved, by the route he explicitly guarded against.
+   *
+   * So the sweep is opt in.
+   *
+   *   own     the default. What THIS RUN created, plus accounts reachable from a
+   *           CURRENT probe user row. It cannot see an orphaned client, which is
+   *           the limitation that caused the silt, and that is now a deliberate
+   *           bound rather than an accident: an audit should not be able to
+   *           delete history it knows nothing about.
+   *
+   *   domain  the whole probe domain. Refused unless the caller ALSO passes the
+   *           development ref, so reaching it takes two deliberate acts and
+   *           neither is a default.
+   *
+   * THE REF IS PASSED IN RATHER THAN READ HERE, and that is the point of it. A
+   * helper that reads its own environment can be made to say yes by the
+   * environment; a caller that has to name the ref has stated an intention.
+   */
+  const { scope = "own", developmentRef = null } = options;
+
+  if (scope !== "own" && scope !== "domain") {
+    return { ok: false, left: 0, note: `unknown scope "${scope}"; it is "own" or "domain"` };
+  }
+  if (scope === "domain" && developmentRef !== DEVELOPMENT_REF) {
+    return {
+      ok: false,
+      left: 0,
+      refusedScope: true,
+      note:
+        'the "domain" scope sweeps every probe row on the database, including rows this run did not create. ' +
+        "It is refused unless the caller passes developmentRef explicitly.",
+    };
+  }
+
   const d = client(label);
   if (!d) return { ok: true, left: 0, note: "no database client, nothing was created" };
 
-  const { data: strays } = await d
+  const onDevelopment = refOf(process.env.SUPABASE_URL) === DEVELOPMENT_REF;
+  const errors = [];
+  const kept = [];
+
+  /*
+   * The subject. Under `own` the client end is NOT swept, so an orphan stays an
+   * orphan and this run touches only what it can account for.
+   */
+  const { data: strayUsers } = await d
     .from("eng_customer_users")
     .select("id, account_id")
     .like("email", `%@${PROBE_DOMAIN}`);
 
-  const accounts = new Set([
-    ...customersMade.map((c) => c.accountId),
-    ...(strays ?? []).map((r) => r.account_id),
-  ]);
+  let strayClients = [];
+  if (scope === "domain") {
+    const { data } = await d
+      .from("eng_clients")
+      .select("id")
+      .like("email", `%@${PROBE_DOMAIN}`)
+      .eq("is_demo", true);
+    strayClients = data ?? [];
+  }
+
+  const accounts = new Set(
+    [...customersMade.map((c) => c.accountId), ...(strayUsers ?? []).map((r) => r.account_id)].filter(
+      Boolean,
+    ),
+  );
+  /* Accounts reachable only from the client end, which is the silt. Domain only. */
+  for (const c of strayClients) {
+    const { data: viaClient } = await d
+      .from("eng_customer_accounts")
+      .select("id")
+      .eq("client_id", c.id);
+    for (const a of viaClient ?? []) accounts.add(a.id);
+  }
+
+  const clientIds = new Set(strayClients.map((c) => c.id));
 
   for (const id of accounts) {
     const { data: account } = await d
@@ -495,18 +642,102 @@ export async function destroyCustomerProbes(label = "audit") {
       .select("client_id")
       .eq("id", id)
       .maybeSingle();
-    await d.from("eng_customer_users").delete().eq("account_id", id);
-    await supersedeProbeAccount(d, id);
-    if (account?.client_id) await d.from("eng_clients").delete().eq("id", account.client_id);
+    if (account?.client_id) clientIds.add(account.client_id);
+
+    const { error: ue } = await d.from("eng_customer_users").delete().eq("account_id", id);
+    if (ue) errors.push(`eng_customer_users for account ${id}: ${ue.message}`);
+
+    if (onDevelopment) {
+      const { error: ae } = await d.from("eng_customer_accounts").delete().eq("id", id);
+      if (ae) {
+        /* Refused: fall back to the standing rule and say so. */
+        const sup = await supersedeProbeAccount(d, id);
+        kept.push(`eng_customer_accounts ${id}: ${ae.message}${sup ? ", superseded instead" : ""}`);
+      }
+    } else {
+      await supersedeProbeAccount(d, id);
+      kept.push(`eng_customer_accounts ${id}: not development, so superseded rather than deleted`);
+    }
+  }
+
+  for (const cid of clientIds) {
+    const { error: ce } = await d.from("eng_clients").delete().eq("id", cid);
+    if (ce) errors.push(`eng_clients ${cid}: ${ce.message}`);
   }
   customersMade.length = 0;
 
-  const { data } = await d
-    .from("eng_customer_users")
-    .select("email")
-    .like("email", `%@${PROBE_DOMAIN}`);
-  const left = (data ?? []).length;
-  return { ok: left === 0, left, note: left ? `${left} customer probe(s) left behind` : "" };
+  /*
+   * ALL THREE TABLES, which is the whole point. The old version read one.
+   */
+  /*
+   * ======================================================================
+   * THE COUNT IS SCOPED THE SAME WAY THE SWEEP IS.
+   * ======================================================================
+   *
+   * Counting the whole domain under `own` would report 641 left on every
+   * ordinary audit and return ok false for ever, which is a permanent red
+   * about rows the run was never responsible for. A red everybody learns to
+   * expect is where the next real one hides, and this file's neighbour records
+   * that in those words.
+   *
+   * So `own` asks about the rows it was accountable for: the ones it created,
+   * and anything still reachable from a probe USER row, which is the state it
+   * is responsible for leaving clean. `domain` asks about everything, because
+   * that is what it swept.
+   */
+  const counts = {};
+  if (scope === "domain") {
+    for (const [table, column] of [
+      ["eng_customer_users", "email"],
+      ["eng_clients", "email"],
+    ]) {
+      const { data } = await d.from(table).select("id").like(column, `%@${PROBE_DOMAIN}`);
+      counts[table] = (data ?? []).length;
+    }
+    const { data: acctLeft } = await d
+      .from("eng_customer_accounts")
+      .select("id, eng_clients!inner(email)")
+      .like("eng_clients.email", `%@${PROBE_DOMAIN}`);
+    counts.eng_customer_accounts = (acctLeft ?? []).length;
+  } else {
+    /* Anything that can still sign in, which is the half that matters most. */
+    const { data: usersLeft } = await d
+      .from("eng_customer_users")
+      .select("id")
+      .like("email", `%@${PROBE_DOMAIN}`);
+    counts.eng_customer_users = (usersLeft ?? []).length;
+
+    /* And the rows THIS RUN made, asked for by id rather than by address. */
+    const mineClients = [...clientIds];
+    const mineAccounts = [...accounts];
+    counts.eng_clients = 0;
+    counts.eng_customer_accounts = 0;
+    if (mineClients.length) {
+      const { data } = await d.from("eng_clients").select("id").in("id", mineClients);
+      counts.eng_clients = (data ?? []).length;
+    }
+    if (mineAccounts.length) {
+      const { data } = await d.from("eng_customer_accounts").select("id").in("id", mineAccounts);
+      counts.eng_customer_accounts = (data ?? []).length;
+    }
+  }
+
+  const left = counts.eng_customer_users + counts.eng_clients + counts.eng_customer_accounts;
+
+  return {
+    ok: left === 0 && errors.length === 0,
+    left,
+    scope,
+    counts,
+    errors,
+    /** Per run, as the operator asked: what could not be removed, and why. */
+    kept,
+    keptCount: kept.length,
+    note:
+      left === 0 && errors.length === 0
+        ? `nothing this run is accountable for remains (scope ${scope})${kept.length ? `; ${kept.length} kept by design` : ""}`
+        : `${counts.eng_customer_users} user(s), ${counts.eng_customer_accounts} account(s), ${counts.eng_clients} client(s) remain${errors.length ? `; ${errors.length} delete(s) refused: ${errors.slice(0, 3).join(" | ")}` : ""}`,
+  };
 }
 
 /** The partner cookie, shaped for a Playwright context. */

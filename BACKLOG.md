@@ -4,6 +4,64 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## 641 PROBE CLIENT ROWS ON DEVELOPMENT, DEFERRED BY RULING 2026-10-03
+
+**Deferred, not forgotten, and harmless where it sits.** `destroyCustomerProbes`
+attempted `delete from eng_clients` on every run and was refused every time:
+`eng_customer_accounts.client_id` is `on delete restrict` and the account had
+been superseded rather than removed. **The delete's return value was never
+read**, and `left` was computed by counting `eng_customer_users`, which really
+was zero, so it returned `ok` on every run for nineteen days.
+
+**The dry run, so the numbers are not re-derived later:**
+
+| | Count |
+| --- | --- |
+| probe clients (`audit-probe.invalid` **and** `is_demo`) | 641 |
+| probe accounts | 641 |
+| accounts blocked by a statement or a trade price | **141** |
+| accounts that would be deleted | **500** |
+| clients that would be deleted | **500** |
+| clients kept, held by a blocked account | **141** |
+| blocking rows: `eng_statements` | 21 |
+| blocking rows: `eng_account_trade_prices` | 277 |
+| oldest surviving probe client | 2026-09-14 |
+
+**Why it is harmless.** No credential: `eng_customer_users` and `auth.users` on
+the probe domain are both zero. No figure is wrong: all 641 carry `is_demo`,
+which migration 0027 and a check constraint tie to the reference, so they are
+excluded by construction rather than by care.
+
+**Why it is not cleared.** The operator's post-condition was zero remaining, and
+zero is unreachable: 141 are held by `eng_statements` and
+`eng_account_trade_prices`, both `RESTRICT`, both financial records, and a trade
+price is superseded and never edited by 0045. Deleting a financial record to tidy
+a development database is the wrong trade at any size. **His ruling: hold the
+clearance, do not use the script channel for it.**
+
+**The MCP write path was cancelled twice**, and the state was verified unchanged
+after each. A cancelled write is now reported and stopped rather than retried,
+because a cancellation may be the operator declining the prompt.
+
+## A FIXED PROBE BILLING ACCOUNT, PROPOSED AND NOT BUILT
+
+The 141 exist because tests exercising statements and trade prices mint a fresh
+account each run, and both tables are `RESTRICT`. The set grows by about one per
+billing run, for ever.
+
+**Proposed:** one long-lived probe billing account on development, a known uuid,
+`is_demo`, created once by `seed-field-demo` and never torn down. Billing tests
+attach to it instead of minting. The teardown skips it by id and reports it as
+kept by design.
+
+**The cost, which is why it is a proposal.** The fixture carries history between
+runs, so a test asserting "this account has one statement" becomes "has one more
+than before". Resetting it between runs would mean deleting from append-only
+tables, which is not a workaround worth having.
+
+**Teardown now reports a per-run kept count** (`keptCount` and `kept`), which is
+the half of this that did ship.
+
 ## WAITING ON ROBERT
 
 Operator ruling, 2026-10-01: stop and ask only for behaviour, money, customer
