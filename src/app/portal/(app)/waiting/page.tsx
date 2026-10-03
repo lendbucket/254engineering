@@ -60,18 +60,18 @@ export default async function WaitingPage() {
               <li key={f.id}>
                 <Link
                   href={`/portal/files/${f.id}`}
-                  className="block rounded-[4px] border border-[var(--border)] bg-white p-4 transition-colors hover:border-slate"
+                  className="block rounded-[2px] border border-[var(--border)] bg-white p-4 transition-colors hover:border-slate"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="font-mono text-[12.5px] text-[var(--gold-deep)]">{f.file_number}</p>
-                      <p className="mt-1 text-[13.5px] font-semibold text-[var(--navy)]">
+                      <p className="text-[12px] text-[var(--secondary)]">{f.file_number}</p>
+                      <p className="mt-1 text-[14px] font-semibold text-[var(--ink)]">
                         {f.property_address}
                       </p>
-                      <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">
+                      <p className="mt-0.5 text-[14px] text-[var(--secondary)]">
                         {f.county} County, {serviceName(f.service_slug)}
                       </p>
-                      <p className="mt-1.5 text-[13.5px] text-[var(--secondary)]">
+                      <p className="mt-1.5 text-[14px] text-[var(--secondary)]">
                         {f.openItems} of {f.totalItems} repair
                         {f.totalItems === 1 ? "" : "s"} still open
                       </p>
@@ -82,7 +82,7 @@ export default async function WaitingPage() {
                       * would put the oldest file at the top reading as the
                       * newest.
                       */}
-                    <p className="text-[13.5px] font-semibold text-[var(--navy)]">
+                    <p className="text-[14px] font-semibold text-[var(--ink)]">
                       {days === null
                         ? "Waiting, start date not recorded"
                         : days === 0
@@ -97,7 +97,7 @@ export default async function WaitingPage() {
         </ul>
       )}
 
-      <p className="mt-6 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+      <p className="mt-6 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--secondary)]">
         Nothing on this list expires. A file leaves it when the owner has had the work done and the
         revisit is dispatched, or when the job is called off deliberately. The protocol has no
         conditional certification, so none of these can be sealed until every item on its repair

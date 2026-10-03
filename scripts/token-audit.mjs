@@ -361,6 +361,24 @@ const PORTED = [
   "src/app/portal/(app)/tasks/page.tsx",
   "src/app/portal/(app)/techs/TechsClient.tsx",
   "src/app/portal/(app)/techs/page.tsx",
+  /*
+   * /portal/waiting, added 2026-10-03, and it is the FOURTH screen in three days
+   * found declared somewhere and absent from this list: the customer orders
+   * list, FileSelection, and now this.
+   *
+   * It has form. CLAUDE.md records this exact route shipping on 2026-09-19 and
+   * being reported as broken by four audits, because it is top level and
+   * inherited no roleFor entry from a parent. The fix that day closed the
+   * instance, and `surface-audit` gained a check that derives the answer from
+   * the guard in the page. This is the same screen missing a different
+   * declaration, which is the argument for asking what ELSE a new surface is
+   * absent from rather than only fixing the list that went red.
+   *
+   * docs/new-surface-checklist.md gained a row for this pair today, because
+   * PORTED and the V10 lists sound like one thing and are two: the first decides
+   * what the audit READS and the second what it is held to.
+   */
+  "src/app/portal/(app)/waiting/page.tsx",
   "src/app/portal/(public)/login/LoginForm.tsx",
   "src/app/portal/(public)/login/page.tsx",
   "src/app/portal/(public)/set-password/SetPasswordForm.tsx",
@@ -568,6 +586,26 @@ const STAFF_V10 = [
   "src/app/portal/(app)/files/FileClient.tsx",
   "src/app/portal/(app)/files/FileSelection.tsx",
   "src/app/portal/(app)/files/DispatchPanel.tsx",
+  /*
+   * STAGE 3, 2026-10-03: the technician's screens. His offers list, the job he
+   * is standing on, the capture screen itself, and the files waiting on an
+   * owner.
+   *
+   * THE CAPTURE SCREEN IS THE ONE SURFACE WHERE LOSING COLOUR IS A GAIN rather
+   * than a neutral trade, and it is worth saying why. It is read on a phone, on
+   * a roof, in direct sun. A tinted pill at 13px is the first thing to become
+   * unreadable there and a 14px bold line of text is the last.
+   *
+   * Every chip removed from these screens already carried its own words, and all
+   * but one was drawn tone="warn" whatever it said: a file's status, a county's
+   * windstorm designation and whether a package could be submitted were all
+   * amber. A tone applied to everything carries nothing.
+   */
+  "src/app/portal/(app)/jobs/page.tsx",
+  "src/app/portal/(app)/jobs/JobsClient.tsx",
+  "src/app/portal/(app)/jobs/[id]/page.tsx",
+  "src/app/portal/(app)/jobs/[id]/CaptureClient.tsx",
+  "src/app/portal/(app)/waiting/page.tsx",
 ];
 
 /** Every file held to V10's interface rules, whichever surface it serves. */

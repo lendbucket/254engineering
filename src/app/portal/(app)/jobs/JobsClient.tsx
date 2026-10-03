@@ -57,14 +57,14 @@ export function OfferControls({ offerId, fileId }: { offerId: string; fileId: st
   return (
     <div className="mt-4">
       {error ? (
-        <p role="alert" className="mb-3 text-[13.5px] leading-[1.5] font-semibold text-[var(--red)]">
+        <p role="alert" className="mb-3 text-[14px] leading-[1.5] font-semibold text-[var(--ink)]">
           {error}
         </p>
       ) : null}
 
       {declining ? (
         <div>
-          <label htmlFor={`why-${offerId}`} className="block text-[13.5px] font-semibold text-[var(--navy)]">
+          <label htmlFor={`why-${offerId}`} className="block text-[14px] font-semibold text-[var(--ink)]">
             Why, so dispatch knows who to call next (optional)
           </label>
           <input
@@ -72,21 +72,21 @@ export function OfferControls({ offerId, fileId }: { offerId: string; fileId: st
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="Too far, already booked that day"
-            className="mt-1.5 min-h-[44px] w-full rounded-[3px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--navy)] outline-none focus:border-slate"
+            className="mt-1.5 min-h-[44px] w-full rounded-[2px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--ink)] outline-none focus:border-slate"
           />
           <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
               disabled={busy !== null}
               onClick={() => respond("decline_offer")}
-              className="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-[3px] border border-[var(--border)] px-4 text-[15px] font-bold text-[var(--navy)] disabled:opacity-50"
+              className="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-[2px] border border-[var(--border)] px-4 text-[15px] font-bold text-[var(--ink)] disabled:opacity-50"
             >
               {busy === "decline" ? "Sending" : "Confirm decline"}
             </button>
             <button
               type="button"
               onClick={() => setDeclining(false)}
-              className="inline-flex min-h-[48px] items-center justify-center rounded-[3px] px-4 text-[15px] font-semibold text-[var(--secondary)]"
+              className="inline-flex min-h-[48px] items-center justify-center rounded-[2px] px-4 text-[15px] font-semibold text-[var(--secondary)]"
             >
               Back
             </button>
@@ -106,7 +106,7 @@ export function OfferControls({ offerId, fileId }: { offerId: string; fileId: st
             type="button"
             disabled={busy !== null}
             onClick={() => setDeclining(true)}
-            className="inline-flex min-h-[48px] items-center justify-center rounded-[3px] border border-[var(--border)] px-4 text-[15px] font-semibold text-[var(--navy)]"
+            className="inline-flex min-h-[48px] items-center justify-center rounded-[2px] border border-[var(--border)] px-4 text-[15px] font-semibold text-[var(--ink)]"
           >
             Decline
           </button>

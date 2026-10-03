@@ -361,15 +361,15 @@ export function Checklist({
         <p className="portal-kicker text-[var(--gold-deep)]">
           {protocolName}
         </p>
-        <p className="text-[13.5px] font-semibold text-[var(--navy)]">{progressLabel(state)}</p>
+        <p className="text-[14px] font-semibold text-[var(--ink)]">{progressLabel(state)}</p>
       </div>
 
       {!online ? (
-        <div className="mb-4 rounded-[4px] border border-[var(--warn-border)] bg-[var(--warn-bg)] px-4 py-3">
-          <p className="text-[13.5px] leading-[1.55] font-semibold text-[var(--warn-ink)]">
+        <div className="mb-5 border-b-2 border-[var(--ink)] pb-4">
+          <p className="text-[15px] leading-[1.55] font-semibold text-[var(--ink)]">
             No signal. Keep working.
           </p>
-          <p className="mt-1 text-[13.5px] leading-[1.55] text-[var(--warn-ink)]">
+          <p className="mt-1 text-[14px] leading-[1.55] text-[var(--ink)]">
             Everything you capture is held on this phone and uploads by itself when you are back in
             range. Do not close this tab until it has.
           </p>
@@ -377,22 +377,22 @@ export function Checklist({
       ) : null}
 
       {queued > 0 ? (
-        <div className="mb-4 rounded-[4px] border border-[var(--border)] bg-white px-4 py-3">
+        <div className="mb-4 rounded-[2px] border border-[var(--border)] bg-white px-4 py-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-[13.5px] font-semibold text-[var(--navy)]">
+            <p className="text-[14px] font-semibold text-[var(--ink)]">
               {queued} capture{queued === 1 ? "" : "s"} waiting to upload
             </p>
             <button
               type="button"
               onClick={() => void flush()}
               disabled={flushing || !online}
-              className="inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] px-3 text-[13.5px] font-semibold text-[var(--navy)] disabled:opacity-50"
+              className="inline-flex min-h-[44px] items-center rounded-[2px] border border-[var(--border)] px-3 text-[14px] font-semibold text-[var(--ink)] disabled:opacity-50"
             >
               {flushing ? "Uploading" : "Upload now"}
             </button>
           </div>
           {queue.find((q) => q.lastError) ? (
-            <p className="mt-1.5 text-[13.5px] leading-[1.5] text-[var(--secondary)]">
+            <p className="mt-1.5 text-[14px] leading-[1.5] text-[var(--secondary)]">
               Last attempt: {queue.find((q) => q.lastError)?.lastError}
             </p>
           ) : null}
@@ -419,22 +419,16 @@ export function Checklist({
           return (
             <li
               key={item.id}
-              className={`rounded-[4px] border bg-white p-4 ${
-                status.satisfied
-                  ? "border-[var(--border)] border-l-[var(--green)]"
-                  : item.required
-                    ? "border-[var(--border)]"
-                    : "border-[var(--border)]"
-              }`}
+              className="border-b border-[var(--row-rule)] py-4"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-[15px] leading-[1.35] font-semibold text-[var(--navy)]">
+                  <p className="text-[15px] leading-[1.35] font-semibold text-[var(--ink)]">
                     {index + 1}. {item.label}
                     {item.required ? "" : " (optional)"}
                   </p>
                   {item.instructions ? (
-                    <p className="mt-1 max-w-[65ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+                    <p className="mt-1 max-w-[65ch] text-[14px] leading-[1.55] text-[var(--secondary)]">
                       {item.instructions}
                     </p>
                   ) : null}
@@ -446,7 +440,7 @@ export function Checklist({
                     * photograph, and a technician who sees "Captured" beside an
                     * item they never saw will assume somebody else did it.
                     */}
-                  <p className="mt-1.5 text-[13.5px] font-semibold text-[var(--secondary)]">
+                  <p className="mt-1.5 text-[14px] font-semibold text-[var(--secondary)]">
                     {status.exception
                       ? status.exception.kind === "not_applicable"
                         ? "Marked as not applicable"
@@ -458,7 +452,7 @@ export function Checklist({
                         : status.problem}
                   </p>
                   {status.exception ? (
-                    <p className="mt-1 max-w-[65ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+                    <p className="mt-1 max-w-[65ch] text-[14px] leading-[1.55] text-[var(--secondary)]">
                       &ldquo;{status.exception.reason}&rdquo;
                     </p>
                   ) : null}
@@ -474,7 +468,7 @@ export function Checklist({
                         <img
                           src={previews.current.get(q.id)}
                           alt=""
-                          className="h-16 w-16 rounded-[3px] border border-[var(--border)] object-cover"
+                          className="h-16 w-16 rounded-[2px] border border-[var(--border)] object-cover"
                         />
                       </li>
                     ) : null,
@@ -486,7 +480,7 @@ export function Checklist({
                 <button
                   type="button"
                   onClick={() => void withdrawAbsence(item)}
-                  className="mt-3 inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] px-3 text-[13.5px] font-semibold text-[var(--navy)]"
+                  className="mt-3 inline-flex min-h-[44px] items-center rounded-[2px] border border-[var(--border)] px-3 text-[14px] font-semibold text-[var(--ink)]"
                 >
                   I can record this after all
                 </button>
@@ -508,7 +502,7 @@ export function Checklist({
 
       <div className="mt-7 border-t border-[var(--border)] pt-6">
         {error ? (
-          <p role="alert" className="mb-3 text-[13.5px] leading-[1.5] font-semibold text-[var(--red)]">
+          <p role="alert" className="mb-3 text-[14px] leading-[1.5] font-semibold text-[var(--ink)]">
             {error}
           </p>
         ) : null}
@@ -516,7 +510,7 @@ export function Checklist({
         {blockers.length > 0 ? (
           <ul className="mb-3 flex flex-col gap-1">
             {blockers.map((b) => (
-              <li key={b} className="text-[13.5px] leading-[1.5] text-[var(--red)]">
+              <li key={b} className="text-[14px] leading-[1.5] font-semibold text-[var(--ink)]">
                 {b}
               </li>
             ))}
@@ -524,7 +518,7 @@ export function Checklist({
         ) : null}
 
         {readOnly ? (
-          <p className="text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+          <p className="text-[14px] leading-[1.55] text-[var(--secondary)]">
             This package has been submitted. It is with the engineer now, and capture is closed on
             it. If something needs to change, they will send it back with a note saying what.
           </p>
@@ -537,7 +531,7 @@ export function Checklist({
                 </p>
                 <ul className="mt-2 flex flex-col gap-1">
                   {state.blockers.map((b) => (
-                    <li key={b} className="text-[13.5px] leading-[1.5] text-[var(--secondary)]">
+                    <li key={b} className="text-[14px] leading-[1.5] text-[var(--secondary)]">
                       {b}
                     </li>
                   ))}
@@ -546,7 +540,7 @@ export function Checklist({
             ) : null}
 
             {state.canSubmit && queued > 0 ? (
-              <p className="mb-3 text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+              <p className="mb-3 text-[14px] leading-[1.55] text-[var(--secondary)]">
                 Everything is captured. {queued} item{queued === 1 ? " is" : "s are"} still uploading,
                 and the package can be submitted once they land.
               </p>
@@ -611,7 +605,7 @@ function AbsenceControl({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mt-2 inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-[var(--secondary)] underline underline-offset-4"
+        className="mt-2 inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--secondary)] underline underline-offset-4"
       >
         I cannot record this one
       </button>
@@ -623,7 +617,7 @@ function AbsenceControl({
       type="button"
       onClick={() => setKind(value)}
       aria-pressed={kind === value}
-      className={`inline-flex min-h-[44px] flex-1 items-center justify-center rounded-[3px] border px-3 text-[13.5px] font-semibold ${
+      className={`inline-flex min-h-[44px] flex-1 items-center justify-center rounded-[2px] border px-3 text-[14px] font-semibold ${
         kind === value
           ? "border-[var(--navy)] bg-[var(--navy)] text-white"
           : "border-[var(--border)] bg-white text-[var(--navy)]"
@@ -634,8 +628,8 @@ function AbsenceControl({
   );
 
   return (
-    <div className="mt-3 rounded-[4px] border border-[var(--border)] bg-[var(--canvas)] p-3">
-      <p className="text-[13.5px] leading-[1.5] font-semibold text-[var(--navy)]">
+    <div className="mt-3 rounded-[2px] border border-[var(--border)] bg-[var(--canvas)] p-3">
+      <p className="text-[14px] leading-[1.5] font-semibold text-[var(--ink)]">
         Which is it?
       </p>
       <div className="mt-2 flex flex-wrap gap-2">
@@ -643,10 +637,10 @@ function AbsenceControl({
         {chip("not_applicable", "Does not apply here")}
       </div>
 
-      <label htmlFor={`why-${label}`} className="mt-3 block text-[13.5px] font-semibold text-[var(--navy)]">
+      <label htmlFor={`why-${label}`} className="mt-3 block text-[14px] font-semibold text-[var(--ink)]">
         Why
       </label>
-      <p className="mt-0.5 text-[13.5px] leading-[1.5] text-[var(--secondary)]">
+      <p className="mt-0.5 text-[14px] leading-[1.5] text-[var(--secondary)]">
         The engineer reads this before signing. Say what you saw and what stopped you.
       </p>
       <textarea
@@ -654,7 +648,7 @@ function AbsenceControl({
         value={reason}
         onChange={(e) => setReason(e.target.value)}
         rows={3}
-        className="mt-1.5 w-full rounded-[3px] border border-[var(--border)] bg-white p-2.5 text-[16px] leading-[1.5] text-[var(--navy)]"
+        className="mt-1.5 w-full rounded-[2px] border border-[var(--border)] bg-white p-2.5 text-[16px] leading-[1.5] text-[var(--ink)]"
       />
 
       <div className="mt-2.5 flex flex-wrap gap-2">
@@ -668,7 +662,7 @@ function AbsenceControl({
             setKind(null);
             setReason("");
           }}
-          className="inline-flex min-h-[44px] items-center rounded-[3px] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex min-h-[44px] items-center rounded-[2px] bg-[var(--navy)] px-4 text-[14px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
           Record this
         </button>
@@ -679,13 +673,13 @@ function AbsenceControl({
             setKind(null);
             setReason("");
           }}
-          className="inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] px-4 text-[13.5px] font-semibold text-[var(--navy)]"
+          className="inline-flex min-h-[44px] items-center rounded-[2px] border border-[var(--border)] px-4 text-[14px] font-semibold text-[var(--ink)]"
         >
           Cancel
         </button>
       </div>
       {kind !== null && reason.trim().length > 0 && reason.trim().length < 3 ? (
-        <p className="mt-2 text-[13.5px] leading-[1.5] text-[var(--secondary)]">
+        <p className="mt-2 text-[14px] leading-[1.5] text-[var(--secondary)]">
           A few words at least. This goes on the record beside the engineer&rsquo;s seal.
         </p>
       ) : null}
@@ -769,9 +763,9 @@ export function RepairList({
   }
 
   return (
-    <div className="mb-6 rounded-[4px] border border-[var(--gold)] bg-[var(--gold-wash)] p-4">
+    <div className="mb-6 rounded-[2px] border border-[var(--gold)] bg-[var(--gold-wash)] p-4">
       <p className="portal-kicker text-[var(--gold-deep)]">Repairs to verify</p>
-      <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--ink)]">
+      <p className="mt-1.5 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--ink)]">
         {open === 0
           ? "Every repair on this list has been verified. The engineer decides from here."
           : `The engineer withheld certification until these are done. ${open} still to verify, one at a time. This file cannot be sealed until every one of them is closed.`}
@@ -779,26 +773,26 @@ export function RepairList({
 
       <ol className="mt-3 flex flex-col gap-2">
         {repairs.map((r, i) => (
-          <li key={r.id} className="rounded-[3px] border border-[var(--border)] bg-white p-3">
-            <p className="text-[15px] leading-[1.35] font-semibold text-[var(--navy)]">
+          <li key={r.id} className="border-b border-[var(--row-rule)] py-3">
+            <p className="text-[15px] leading-[1.35] font-semibold text-[var(--ink)]">
               {i + 1}. {r.requirement}
             </p>
             {r.closedAt !== null ? (
               <>
-                <p className="mt-1 text-[13.5px] font-semibold text-[var(--green)]">Verified</p>
+                <p className="mt-1 text-[14px] font-semibold text-[var(--ink)]">Verified</p>
                 {r.closedNote ? (
-                  <p className="mt-0.5 max-w-[65ch] text-[13.5px] leading-[1.5] text-[var(--secondary)]">
+                  <p className="mt-0.5 max-w-[65ch] text-[14px] leading-[1.5] text-[var(--secondary)]">
                     &ldquo;{r.closedNote}&rdquo;
                   </p>
                 ) : null}
               </>
             ) : readOnly ? (
-              <p className="mt-1 text-[13.5px] text-[var(--secondary)]">Not yet verified.</p>
+              <p className="mt-1 text-[14px] text-[var(--secondary)]">Not yet verified.</p>
             ) : openId === r.id ? (
               <div className="mt-2.5">
                 <label
                   htmlFor={`repair-note-${r.id}`}
-                  className="block text-[13.5px] font-semibold text-[var(--navy)]"
+                  className="block text-[14px] font-semibold text-[var(--ink)]"
                 >
                   What you saw
                 </label>
@@ -807,14 +801,14 @@ export function RepairList({
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   rows={2}
-                  className="mt-1.5 w-full rounded-[3px] border border-[var(--border)] bg-white p-2.5 text-[16px] leading-[1.5] text-[var(--navy)]"
+                  className="mt-1.5 w-full rounded-[2px] border border-[var(--border)] bg-white p-2.5 text-[16px] leading-[1.5] text-[var(--ink)]"
                 />
 
                 {captures.length > 0 ? (
                   <>
                     <label
                       htmlFor={`repair-photo-${r.id}`}
-                      className="mt-2.5 block text-[13.5px] font-semibold text-[var(--navy)]"
+                      className="mt-2.5 block text-[14px] font-semibold text-[var(--ink)]"
                     >
                       The photograph that shows it (optional)
                     </label>
@@ -822,7 +816,7 @@ export function RepairList({
                       id={`repair-photo-${r.id}`}
                       value={evidenceId}
                       onChange={(e) => setEvidenceId(e.target.value)}
-                      className="mt-1.5 min-h-[44px] w-full rounded-[3px] border border-[var(--border)] bg-white px-2.5 text-[16px] text-[var(--navy)]"
+                      className="mt-1.5 min-h-[44px] w-full rounded-[2px] border border-[var(--border)] bg-white px-2.5 text-[16px] text-[var(--ink)]"
                     >
                       <option value="">None</option>
                       {captures.map((c) => (
@@ -839,7 +833,7 @@ export function RepairList({
                     type="button"
                     disabled={busy || (evidenceId === "" && note.trim().length < 3)}
                     onClick={() => void verify(r.id)}
-                    className="inline-flex min-h-[44px] items-center rounded-[3px] bg-[var(--navy)] px-4 text-[13.5px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex min-h-[44px] items-center rounded-[2px] bg-[var(--navy)] px-4 text-[14px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {busy ? "Recording" : "Record it verified"}
                   </button>
@@ -850,7 +844,7 @@ export function RepairList({
                       setNote("");
                       setEvidenceId("");
                     }}
-                    className="inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] px-4 text-[13.5px] font-semibold text-[var(--navy)]"
+                    className="inline-flex min-h-[44px] items-center rounded-[2px] border border-[var(--border)] px-4 text-[14px] font-semibold text-[var(--ink)]"
                   >
                     Cancel
                   </button>
@@ -864,7 +858,7 @@ export function RepairList({
                   setNote("");
                   setEvidenceId("");
                 }}
-                className="mt-2 inline-flex min-h-[44px] items-center rounded-[3px] border border-[var(--border)] px-3 text-[13.5px] font-semibold text-[var(--navy)]"
+                className="mt-2 inline-flex min-h-[44px] items-center rounded-[2px] border border-[var(--border)] px-3 text-[14px] font-semibold text-[var(--ink)]"
               >
                 Verify this one
               </button>
@@ -874,7 +868,7 @@ export function RepairList({
       </ol>
 
       {error ? (
-        <p role="alert" className="mt-3 text-[13.5px] leading-[1.5] font-semibold text-[var(--red)]">
+        <p role="alert" className="mt-3 text-[14px] leading-[1.5] font-semibold text-[var(--ink)]">
           {error}
         </p>
       ) : null}
@@ -898,7 +892,7 @@ function CaptureControl({
       <div className="mt-3">
         <label
           htmlFor={inputId}
-          className="inline-flex min-h-[48px] w-full cursor-pointer items-center justify-center rounded-[3px] border border-slate bg-slate px-4 text-[15px] font-bold text-[var(--on-navy)] sm:w-auto sm:px-6"
+          className="inline-flex min-h-[48px] w-full cursor-pointer items-center justify-center rounded-[2px] border border-slate bg-slate px-4 text-[15px] font-bold text-[var(--on-navy)] sm:w-auto sm:px-6"
         >
           {KIND_VERB[item.kind]}
         </label>
@@ -930,7 +924,7 @@ function CaptureControl({
           onChange={(e) => setText(e.target.value)}
           rows={3}
           placeholder="What you saw"
-          className="w-full rounded-[3px] border border-[var(--border)] bg-white px-3 py-2.5 text-[16px] leading-[1.5] text-[var(--navy)] outline-none focus:border-slate"
+          className="w-full rounded-[2px] border border-[var(--border)] bg-white px-3 py-2.5 text-[16px] leading-[1.5] text-[var(--ink)] outline-none focus:border-slate"
         />
         <button
           type="button"
@@ -939,7 +933,7 @@ function CaptureControl({
             onCapture({ text: text.trim() });
             setText("");
           }}
-          className="mt-2 inline-flex min-h-[48px] w-full items-center justify-center rounded-[3px] border border-slate bg-slate px-4 text-[15px] font-bold text-[var(--on-navy)] disabled:opacity-50 sm:w-auto sm:px-6"
+          className="mt-2 inline-flex min-h-[48px] w-full items-center justify-center rounded-[2px] border border-slate bg-slate px-4 text-[15px] font-bold text-[var(--on-navy)] disabled:opacity-50 sm:w-auto sm:px-6"
         >
           Save this note
         </button>
@@ -950,7 +944,7 @@ function CaptureControl({
   return (
     <div className="mt-3 flex flex-wrap items-end gap-2">
       <div className="min-w-[140px] flex-1">
-        <label htmlFor={inputId} className="block text-[13.5px] font-semibold text-[var(--navy)]">
+        <label htmlFor={inputId} className="block text-[14px] font-semibold text-[var(--ink)]">
           {item.unit ? `Value in ${item.unit}` : "Value"}
           {item.minValue != null || item.maxValue != null
             ? `, expected ${item.minValue ?? "any"} to ${item.maxValue ?? "any"}`
@@ -963,7 +957,7 @@ function CaptureControl({
           inputMode="decimal"
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          className="mt-1.5 min-h-[48px] w-full rounded-[3px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--navy)] outline-none focus:border-slate"
+          className="mt-1.5 min-h-[48px] w-full rounded-[2px] border border-[var(--border)] bg-white px-3 text-[16px] text-[var(--ink)] outline-none focus:border-slate"
         />
       </div>
       <button
@@ -973,7 +967,7 @@ function CaptureControl({
           onCapture({ value: Number(value) });
           setValue("");
         }}
-        className="inline-flex min-h-[48px] items-center justify-center rounded-[3px] border border-slate bg-slate px-5 text-[15px] font-bold text-[var(--on-navy)] disabled:opacity-50"
+        className="inline-flex min-h-[48px] items-center justify-center rounded-[2px] border border-slate bg-slate px-5 text-[15px] font-bold text-[var(--on-navy)] disabled:opacity-50"
       >
         Record
       </button>

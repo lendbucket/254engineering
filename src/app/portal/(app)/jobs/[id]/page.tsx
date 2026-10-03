@@ -6,7 +6,7 @@ import { jobView } from "@/lib/ops-field";
 import { progressLabel } from "@/lib/ops-evidence";
 import { services } from "@/content/services";
 import { STATUS_LABEL, type FileStatus } from "@/lib/ops-files";
-import { Chip, PageHead } from "@/components/portal/surfaces";
+import { PageHead } from "@/components/portal/surfaces";
 import { Checklist, RepairList } from "./CaptureClient";
 
 export const dynamic = "force-dynamic";
@@ -42,7 +42,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
     <>
       <Link
         href="/portal/jobs"
-        className="mb-3 inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-[var(--secondary)]"
+        className="mb-3 inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--secondary)]"
       >
         Back to my jobs
       </Link>
@@ -53,10 +53,16 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
         lede={`${view.file.city ? `${view.file.city}, ` : ""}${view.file.county} County. ${serviceName}.`}
       />
 
-      <div className="mb-6 flex flex-wrap items-center gap-2">
-        <Chip label={STATUS_LABEL[view.file.status as FileStatus] ?? view.file.status} tone="warn" />
-        {view.file.twia_county ? <Chip label="Windstorm county" tone="warn" /> : null}
-        <Chip label={progressLabel(view.state)} tone={view.state.canSubmit ? "good" : "neutral"} />
+      {/*
+        V10's meta line: plain items separated by space, under the title. Three
+        chips became three facts, in the order a technician asks them: where the
+        file is, whether it is a windstorm county, and how far through the
+        capture they are.
+      */}
+      <div className="mb-6 flex flex-wrap items-center gap-3 text-[14px] text-[var(--ink)]">
+        <span className="font-semibold">{STATUS_LABEL[view.file.status as FileStatus] ?? view.file.status}</span>
+        {view.file.twia_county ? <span>Windstorm county</span> : null}
+        <span className="font-semibold">{progressLabel(view.state)}</span>
       </div>
 
       <div className="mb-6 flex flex-wrap gap-2">
@@ -67,18 +73,18 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
           href={`https://maps.google.com/?q=${mapQuery}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex min-h-[48px] items-center justify-center rounded-[3px] border border-[var(--border)] bg-white px-4 text-[15px] font-semibold text-[var(--navy)]"
+          className="inline-flex min-h-[48px] items-center justify-center rounded-[2px] border border-[var(--border)] bg-white px-4 text-[15px] font-semibold text-[var(--ink)]"
         >
           Directions
         </a>
       </div>
 
       {view.file.notes ? (
-        <div className="mb-6 rounded-[4px] border border-[var(--border)] bg-white px-4 py-3">
+        <div className="mb-6 rounded-[2px] border border-[var(--border)] bg-white px-4 py-3">
           <p className="portal-kicker text-[var(--gold-deep)]">
             Notes on this file
           </p>
-          <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+          <p className="mt-1.5 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--secondary)]">
             {view.file.notes}
           </p>
         </div>
@@ -135,9 +141,9 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
           }))}
         />
       ) : (
-        <div className="rounded-[4px] border border-[var(--border)] bg-white px-4 py-4">
-          <p className="text-[13.5px] font-semibold text-[var(--navy)]">No protocol is attached to this file</p>
-          <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--secondary)]">
+        <div className="rounded-[2px] border border-[var(--border)] bg-white px-4 py-4">
+          <p className="text-[14px] font-semibold text-[var(--ink)]">No protocol is attached to this file</p>
+          <p className="mt-1.5 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--secondary)]">
             There is nothing to capture against yet, and nothing can be submitted. An engineer
             publishes the protocol for this service line, and it attaches itself here. Do not drive
             out until it does.

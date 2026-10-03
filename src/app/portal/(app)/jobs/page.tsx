@@ -6,7 +6,7 @@ import { can } from "@/lib/ops-authz";
 import { listOffers } from "@/lib/ops-field";
 import { services } from "@/content/services";
 import { STATUS_LABEL, type FileStatus } from "@/lib/ops-files";
-import { Chip, EmptyState, PageHead } from "@/components/portal/surfaces";
+import { EmptyState, PageHead } from "@/components/portal/surfaces";
 import { OfferControls } from "./JobsClient";
 
 export const dynamic = "force-dynamic";
@@ -85,29 +85,31 @@ export default async function JobsPage() {
               {live.map((o) => (
                 <li
                   key={o.id}
-                  className="rounded-[4px] border border-[var(--border)] bg-white p-4"
+                  className="rounded-[2px] border border-[var(--border)] bg-white p-4"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="font-display text-[17px] leading-[1.25] font-bold text-[var(--navy)]">
+                      <p className="font-display text-[17px] leading-[1.25] font-bold text-[var(--ink)]">
                         {money(o.offer_amount_cents)}
                       </p>
-                      <p className="mt-1 text-[13.5px] font-semibold text-[var(--navy)]">
+                      <p className="mt-1 text-[14px] font-semibold text-[var(--ink)]">
                         {o.file?.property_address}
                       </p>
-                      <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">
+                      <p className="mt-0.5 text-[14px] text-[var(--secondary)]">
                         {o.file?.city ? `${o.file.city}, ` : ""}
                         {o.file?.county} County
                         {o.distance_miles ? `, about ${Number(o.distance_miles)} miles out` : ""}
                       </p>
-                      <p className="mt-1.5 text-[13.5px] text-[var(--secondary)]">
+                      <p className="mt-1.5 text-[14px] text-[var(--secondary)]">
                         {serviceName(o.file?.service_slug ?? "")}
                         {when(o.file?.evidence_due_at ?? null)
                           ? `, evidence due ${when(o.file?.evidence_due_at ?? null)}`
                           : ""}
                       </p>
                     </div>
-                    {o.file?.twia_county ? <Chip label="Windstorm county" tone="warn" /> : null}
+                    {o.file?.twia_county ? (
+                      <span className="text-[13px] text-[var(--secondary)]">Windstorm county</span>
+                    ) : null}
                   </div>
 
                   <OfferControls offerId={o.id} fileId={o.file_id} />
@@ -134,22 +136,24 @@ export default async function JobsPage() {
                 <li key={o.id}>
                   <Link
                     href={`/portal/jobs/${o.file_id}`}
-                    className="block rounded-[4px] border border-[var(--border)] bg-white p-4 transition-colors hover:border-slate"
+                    className="block rounded-[2px] border border-[var(--border)] bg-white p-4 transition-colors hover:border-slate"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="font-mono text-[12.5px] text-[var(--gold-deep)]">{o.file?.file_number}</p>
-                        <p className="mt-1 text-[15px] font-semibold text-[var(--navy)]">
+                        <p className="text-[12px] text-[var(--secondary)]">{o.file?.file_number}</p>
+                        <p className="mt-1 text-[15px] font-semibold text-[var(--ink)]">
                           {o.file?.property_address}
                         </p>
-                        <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">
+                        <p className="mt-0.5 text-[14px] text-[var(--secondary)]">
                           {o.file?.city ? `${o.file.city}, ` : ""}
                           {o.file?.county} County, {money(o.offer_amount_cents)}
                         </p>
                       </div>
-                      <Chip label={STATUS_LABEL[o.file?.status as FileStatus] ?? o.file?.status ?? ""} tone="warn" />
+                      <p className="text-[13px] font-semibold text-[var(--ink)]">
+                        {STATUS_LABEL[o.file?.status as FileStatus] ?? o.file?.status ?? ""}
+                      </p>
                     </div>
-                    <p className="mt-3 text-[13.5px] font-semibold text-[var(--navy)]">Open the checklist</p>
+                    <p className="mt-3 text-[14px] font-semibold text-[var(--ink)]">Open the checklist</p>
                   </Link>
                 </li>
               ))}
@@ -163,25 +167,22 @@ export default async function JobsPage() {
           <h2 id="past" className="portal-kicker text-[var(--gold-deep)]">
             Earlier
           </h2>
-          <ul className="mt-3 divide-y divide-limestone-line rounded-[4px] border border-[var(--border)] bg-white px-4">
+          <ul className="mt-3 divide-y divide-limestone-line rounded-[2px] border border-[var(--border)] bg-white px-4">
             {past.map((o) => (
               <li key={o.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                 <div className="min-w-0">
-                  <p className="text-[13.5px] font-semibold text-[var(--navy)]">{o.file?.property_address}</p>
-                  <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">
+                  <p className="text-[14px] font-semibold text-[var(--ink)]">{o.file?.property_address}</p>
+                  <p className="mt-0.5 text-[14px] text-[var(--secondary)]">
                     {o.file?.county} County, {money(o.offer_amount_cents)}
                   </p>
                 </div>
-                <Chip
-                  label={
-                    o.state === "withdrawn"
-                      ? "Taken by someone else"
-                      : o.state === "accepted"
-                        ? "Completed"
-                        : o.state
-                  }
-                  tone={o.state === "accepted" ? "good" : "neutral"}
-                />
+                <p className="shrink-0 text-[13px] font-semibold text-[var(--ink)]">
+                  {o.state === "withdrawn"
+                    ? "Taken by someone else"
+                    : o.state === "accepted"
+                      ? "Completed"
+                      : o.state}
+                </p>
               </li>
             ))}
           </ul>
