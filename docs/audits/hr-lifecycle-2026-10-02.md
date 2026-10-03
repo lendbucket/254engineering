@@ -371,6 +371,21 @@ understood the rule; the uploads predate it.
 
 ## B7. Every rule cited to its source in a file the audit reads
 
+> **BUILT 2026-10-03, AS PART C ITEM 5.** `src/config/hr-rules.ts` is the
+> declaration and `scripts/proofs/every-hr-rule-cites-its-source.mjs` is the
+> check, which `proofs-audit` runs by enumerating its directory, so no audit
+> needed editing to reach it. 6 of 6, injection-verified twice: a step naming a
+> rule that does not exist turns one check red, and a citation quietly becoming
+> verified turns a different one red.
+>
+> **SEVEN OF SEVEN CITATIONS ARE STILL UNVERIFIED AND THE COUNT IS PINNED.** The
+> proof's loudest line says so. It proves the declaration is complete and honest
+> and it proves nothing whatever about whether the firm complies, which is stated
+> in the file, in the proof, and in its output, because a rule sitting in a file
+> an audit reads looks settled and these are not.
+>
+> The paragraphs below are the state before that and are kept for the reasoning.
+
 **Not satisfied, and it cannot be satisfied by this document.** The operator's
 requirement is that the rules live in a file an audit reads. This is a report; an
 audit cannot act on it.

@@ -104,8 +104,17 @@ so nothing downstream can branch on contractor against employee. **Seven
 onboarding checklist items collect documents the Gusto ruling says the platform
 must not hold**, which is the only finding that is live today rather than a gap.
 Checkr and the whole FCRA flow are absent. No retention rule covers applications
-or onboarding records. The rules file with citations that an audit can read does
-not exist, so none of the compliance rules is enforceable. Offer generation,
+or onboarding records. ~~The rules file with citations that an audit can read
+does not exist, so none of the compliance rules is enforceable.~~ **The rules
+file is BUILT, 2026-10-03, as Part C item 5: `src/config/hr-rules.ts` with
+`scripts/proofs/every-hr-rule-cites-its-source.mjs`, which `proofs-audit` reaches
+by enumerating its directory. Seven rules, seven lifecycle steps, twelve
+references resolving in both directions, injection-verified twice. SEVEN OF SEVEN
+CITATIONS REMAIN UNVERIFIED AND THE COUNT IS PINNED**, so one becoming settled
+costs a deliberate edit by somebody who read the statute. It makes the
+declaration enforceable and asserts nothing about whether the firm complies,
+which the file, the proof and the proof's output each say in their own words.
+Offer generation,
 interview scheduling, the Texas new hire report, equipment, emergency contact and
 per person reporting are missing and block nothing.
 
