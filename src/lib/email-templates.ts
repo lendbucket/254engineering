@@ -817,15 +817,42 @@ export function orderConfirmed(input: {
 /**
  * The engineer sealed it.
  *
- * THE BUTTON GOES TO THE STATUS PAGE AND THERE IS NO LETTER ROUTE.
+ * THERE IS NO LETTER ROUTE, AND AS OF 2026-10-03 NO DOWNLOAD EITHER.
  *
  * The approved design points this at /files/<ref>/letter. No such screen exists
  * and none will: a sealed document is uploaded, never generated, and a platform
  * that renders one is a platform where the seal has left the engineer's
  * control. Operator ruling, and it is standing law rather than a preference.
  *
- * So this says the document is ready and where to get it, and the status page
- * hands over the artefact the engineer actually uploaded.
+ * THE SENTENCE THAT USED TO END THIS HEADER WAS FALSE, AND IT IS QUOTED HERE
+ * RATHER THAN DELETED BECAUSE IT IS THE WHOLE REASON THIS HEADER IS LONG. It
+ * read:
+ *
+ *     "So this says the document is ready and where to get it, and the status
+ *      page hands over the artefact the engineer actually uploaded."
+ *
+ * The status page has never hung an artefact. There is no document section on
+ * it, nothing in this repository files a document row, nothing anywhere writes
+ * sealed_at, and no customer facing route can read one. So this email carried a
+ * button labelled "Download the document" pointing at a page with no document
+ * on it, and the comment explaining the button asserted a property of a screen
+ * nobody had read.
+ *
+ * Section 2c of CLAUDE.md is about a DESIGN being unverified until somebody
+ * reads it against the code. This was the code saying it about itself, in good
+ * faith, by a session that had just correctly refused to build a letter
+ * generator. A claim written to round off an argument is not an observation.
+ *
+ * SO UNTIL THE DELIVERY PATH EXISTS: the engineer has sealed it, and the firm
+ * emails it to the address on the order. No button, no link, and no timeframe,
+ * because the firm has not measured one and a sentence inventing it would be a
+ * promise about work nobody has watched happen. The download comes back when
+ * there is a link that answers.
+ *
+ * WHY IT ASKS FOR A REPLY. The reply-to is the firm's support mailbox, pinned
+ * in email-audit as an independent literal, so a customer whose document should
+ * go somewhere else has somewhere to say so. That is the whole of the
+ * correction path while delivery is by hand.
  */
 export function orderSealed(input: {
   customerName: string;
@@ -833,7 +860,6 @@ export function orderSealed(input: {
   reference: string;
   propertyAddress: string;
   sealedAt: string;
-  statusUrl: string;
 }): RenderedEmail {
   return compose(
     "order.sealed",
@@ -847,7 +873,7 @@ export function orderSealed(input: {
         { kind: "p", text: `${input.customerName},` },
         {
           kind: "p",
-          text: `The engineer has sealed the document for ${input.propertyAddress}. It is ready to download.`,
+          text: `The engineer has sealed the document for ${input.propertyAddress}. The firm will email it to you at ${input.customerEmail}.`,
         },
         {
           kind: "details",
@@ -858,10 +884,9 @@ export function orderSealed(input: {
         },
         {
           kind: "p",
-          text: "Keep your own copy. The link below stays open for a while but it is not an archive, and the document is yours rather than something held here on your behalf.",
+          text: "If it should go to a different address, reply to this message and say where.",
         },
       ],
-      button: { label: "Download the document", url: input.statusUrl },
     },
     { to: input.customerEmail },
   );
@@ -1786,7 +1811,6 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       reference: "254-O2026-ABCDEF",
       propertyAddress: "100 Sample Street, Corpus Christi",
       sealedAt: "5 September 2026 at 16:20",
-      statusUrl: "https://254engineering.com/order/254-O2026-ABCDEF?token=sample",
     }),
     refundFailed({
       reference: "254-O2026-ABCDEF",

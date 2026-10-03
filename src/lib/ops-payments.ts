@@ -1570,13 +1570,30 @@ async function alertRefundFailed(
 }
 
 /**
- * The document is sealed and ready.
+ * The document is sealed, and the firm emails it by hand.
  *
- * The one piece of good news this firm sends, and the only email in the set
- * whose button leads to something the customer collects rather than reads. It
- * goes to the order status page because that is where the uploaded artefact
- * hangs, and there is no letter route: a sealed document is uploaded, never
- * generated, so there is no screen that composes one and there will not be.
+ * The one piece of good news this firm sends. It used to carry a button reading
+ * "Download the document", and the sentence that stood here used to explain it
+ * by saying the order status page "is where the uploaded artefact hangs".
+ *
+ * IT IS NOT, AND IT NEVER WAS. Corrected 2026-10-03. The header on orderSealed
+ * in email-templates.ts carries the full account and the sentence it replaced,
+ * because the mistake is worth more than the fix: two comments in two files
+ * asserted a property of a screen neither session had read, and a paying
+ * customer would have been told to download something that does not exist.
+ *
+ * There is no letter route and there will not be, because a sealed document is
+ * uploaded rather than generated. What is MISSING is the upload and the
+ * customer's read of it, which is its own piece of work. Until that lands, this
+ * notice states the seal and says the document goes to the address on the
+ * order, with no link and no timeframe.
+ *
+ * AND IT NO LONGER NEEDS A STATUS LINK, WHICH REMOVED A BAIL-OUT WORTH NAMING.
+ * This function used to mint a status URL for the button and return early when
+ * it could not, writing email.not_sent. So a token failure suppressed the one
+ * message telling a customer their work was finished, for the sake of a link
+ * this email no longer carries. A dependency kept past the feature that needed
+ * it is a failure mode with nothing left to protect.
  */
 async function sendOrderSealed(orderId: string): Promise<void> {
   const db = supabaseAdmin();
@@ -1593,12 +1610,6 @@ async function sendOrderSealed(orderId: string): Promise<void> {
     return;
   }
 
-  const statusUrl = await statusUrlFor(orderId, order.reference as string);
-  if (!statusUrl) {
-    await event(orderId, "email.not_sent", false, "The seal notice could not be sent: a status link could not be issued.");
-    return;
-  }
-
   const queued = await queueEmail(
     orderSealed({
       customerName: order.customer_name as string,
@@ -1606,7 +1617,6 @@ async function sendOrderSealed(orderId: string): Promise<void> {
       reference: order.reference as string,
       propertyAddress: order.property_address as string,
       sealedAt: customerWhen(new Date().toISOString()) ?? "just now",
-      statusUrl,
     }),
     { orderId },
   );
