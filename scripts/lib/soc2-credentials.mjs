@@ -158,6 +158,30 @@ export const NOT_CREDENTIALS = new Set([
    */
   "SWEEP_PORT",
   /*
+   * PORT_BASE, 2026-10-02. The bottom of the port block in
+   * scripts/lib/ports.mjs, defaulting to 4300. One number from which every port
+   * this project binds is derived, holding nothing and opening nothing.
+   *
+   * THIRD TIME IN FOUR DAYS, after SHOTS_OUT and SWEEP_PORT, and the entry
+   * above had already written the pattern down: a new script reads a new
+   * environment value, the value is obviously not a secret, and BECAUSE it is
+   * obviously not a secret nobody thinks to declare it. I read that paragraph
+   * while adding SWEEP_PORT and made the same omission the next day.
+   *
+   * CLAUDE.md predicts this one exactly. Its four cross product questions for
+   * an integrated board open with "does this branch add a file that a
+   * repository-wide source rule sweeps", and the 2026-09-24 board failed twice
+   * on undeclared environment names. I stated a prediction of 59 of 59 for this
+   * board and named a different risk, having asked none of the four questions
+   * about the file I had just created.
+   *
+   * It is also the cleanest argument available for the reverse scan. A port
+   * number is harmless; what the scan protects is the RULE that every name set
+   * in an environment is accounted for, and a rule with three exceptions
+   * nobody noticed is not a rule.
+   */
+  "PORT_BASE",
+  /*
    * perf-audit's three, added 2026-09-14 when it learned to sign in.
    *
    * PERF_SCOPE chooses the cadence: the public templates on every board, the
