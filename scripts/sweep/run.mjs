@@ -47,8 +47,9 @@ import {
 import { makePrincipals, disposeOf, STAFF_ROLES } from "./lib/principals.mjs";
 import { PROBE_DOMAIN } from "../lib/portal-probe.mjs";
 import { surfaces, routesOf, apisOf, roleForRoute } from "../lib/surfaces.mjs";
+import { PORTS } from "../lib/ports.mjs";
 
-const PORT = Number(process.env.SWEEP_PORT ?? 3240);
+const PORT = Number(process.env.SWEEP_PORT ?? PORTS.sweep);
 const OUT_DIR = "docs/audits";
 const OUT = `${OUT_DIR}/break-it-sweep-${new Date().toISOString().slice(0, 10)}.md`;
 const PHONE_HEIGHT = 844;

@@ -31,6 +31,7 @@ import { chromium } from "playwright";
 import { readSource } from "./lib/read-source.mjs";
 
 import { apisOf, guardedSurfaces, routesOf } from "./lib/surfaces.mjs";
+import { AUDIT_BASE_URL } from "./lib/ports.mjs";
 import {
   HEALTH_PROBE_PATH,
   HEALTH_WATCH_CRON,
@@ -39,7 +40,7 @@ import {
   shouldAlert,
 } from "../src/lib/health-watch.ts";
 
-const BASE = process.env.BASE_URL || "http://localhost:3225";
+const BASE = process.env.BASE_URL || AUDIT_BASE_URL;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });

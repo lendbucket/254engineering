@@ -29,8 +29,9 @@
 import fs from "node:fs";
 import { readSource } from "./lib/read-source.mjs";
 import path from "node:path";
+import { AUDIT_BASE_URL } from "./lib/ports.mjs";
 
-const BASE = process.env.BASE_URL || "http://localhost:3225";
+const BASE = process.env.BASE_URL || AUDIT_BASE_URL;
 const BASELINE = path.join(process.cwd(), "scripts", ".link-map-baseline.json");
 
 const mode = process.argv.includes("--baseline")

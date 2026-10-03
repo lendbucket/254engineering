@@ -62,8 +62,9 @@ import os from "node:os";
 import path from "node:path";
 import { chromium } from "playwright";
 import sharp from "sharp";
+import { AUDIT_BASE_URL } from "./lib/ports.mjs";
 
-const BASE = process.env.BASE_URL || "http://localhost:3225";
+const BASE = process.env.BASE_URL || AUDIT_BASE_URL;
 const WIDTHS = [390, 1280];
 
 /**

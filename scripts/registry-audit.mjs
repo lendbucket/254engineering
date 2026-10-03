@@ -42,8 +42,9 @@
  * rather than tuned to hide anything.
  */
 import { BRANDS } from "../data/keyword-registry.ts";
+import { AUDIT_BASE_URL } from "./lib/ports.mjs";
 
-const LOCAL = process.env.BASE_URL || "http://localhost:3225";
+const LOCAL = process.env.BASE_URL || AUDIT_BASE_URL;
 const SELF = "254";
 const FAIL_AT = 0.75;
 

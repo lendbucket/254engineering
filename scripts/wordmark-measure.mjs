@@ -22,6 +22,7 @@ import { chromium } from "playwright";
 
 import { startNextServer } from "./lib/dev-server.mjs";
 import { takeLock } from "./lib/machine-lock.mjs";
+import { PORTS } from "./lib/ports.mjs";
 
 const WIDTHS = [
   { name: "1280", width: 1280, height: 900 },
@@ -47,7 +48,8 @@ const release = await takeLock({
 
 let server = null;
 try {
-  server = await startNextServer({ port: 3231 });
+  /* 3231 was break-glass-audit's token-set port. One of five self collisions. */
+  server = await startNextServer({ port: PORTS.wordmarkMeasure });
   console.log(`BUILD_ID ${buildId}`);
   console.log("");
 

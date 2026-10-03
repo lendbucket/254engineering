@@ -32,10 +32,11 @@ import {
   destroyCustomerProbes,
 } from "./lib/portal-probe.mjs";
 import { allPages } from "./lib/surfaces.mjs";
+import { PORTS } from "./lib/ports.mjs";
 
 const WIDTHS = [320, 375, 390, 430];
 const HEIGHT = 844;
-const PORT = Number(process.env.MOBILE_PORT || 3223);
+const PORT = Number(process.env.MOBILE_PORT ?? PORTS.mobile);
 
 /**
  * The tap target minimum, in CSS pixels.

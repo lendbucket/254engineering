@@ -21,7 +21,7 @@
 // not yet sell is a compliance failure as well as a conversion one, so under the
 // gate the CTA has to be waitlist or notify language, and order language on a
 // service surface is a finding.
-const BASE = process.env.BASE_URL || "http://localhost:3225";
+const BASE = process.env.BASE_URL || AUDIT_BASE_URL;
 /*
  * THE MODE COMES FROM THE GATE. Same defect as voice-audit and found the same
  * way: this audit carried its own copy of the compliance gate, derived from
@@ -30,6 +30,7 @@ const BASE = process.env.BASE_URL || "http://localhost:3225";
  * waitlist.
  */
 import "./lib/load-env.mjs";
+import { AUDIT_BASE_URL } from "./lib/ports.mjs";
 const { launchMode } = await import("../src/lib/launch.ts");
 const MODE = launchMode();
 /*

@@ -50,8 +50,9 @@ import { chromium } from "playwright";
 import { routesOf, surfaces } from "./lib/surfaces.mjs";
 import { createProbe, cookieFor, destroyProbes, probeFault } from "./lib/portal-probe.mjs";
 import { DEFAULT_ROLES } from "../src/lib/ops-authz.ts";
+import { PORTS } from "./lib/ports.mjs";
 
-const BASE = process.env.BASE_URL ?? "http://localhost:3227";
+const BASE = process.env.BASE_URL ?? `http://localhost:${PORTS.exploratory}`;
 const LABEL = "explore";
 const OUT = process.env.EXPLORE_OUT ?? join("C:/Users/salon/AppData/Local/Temp/claude", "explore");
 const WIDTHS = [

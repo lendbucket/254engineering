@@ -15,7 +15,9 @@
 // Texas held below, in both directions: nothing missing, nothing invented,
 // nothing duplicated. Then it checks the rendered pages, because data being
 // correct and the page displaying it correctly are two different facts.
-const BASE = process.env.BASE_URL || "http://localhost:3225";
+import { AUDIT_BASE_URL } from "./lib/ports.mjs";
+
+const BASE = process.env.BASE_URL || AUDIT_BASE_URL;
 
 /**
  * The 254 counties of Texas.

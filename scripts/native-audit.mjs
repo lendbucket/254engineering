@@ -32,6 +32,7 @@ import { chromium } from "playwright";
 import { navigationVerdict, sayCouldNotTell, orCouldNotTell, COULD_NOT_TELL } from "./lib/reachable.mjs";
 import { assertNavigationVerdictHolds } from "./proofs/unreachable-is-not-failed.mjs";
 import { allPages, sourceDirsOf } from "./lib/surfaces.mjs";
+import { AUDIT_BASE_URL } from "./lib/ports.mjs";
 import {
   createProbe,
   cookieFor,
@@ -41,7 +42,7 @@ import {
   destroyPartnerProbes,
 } from "./lib/portal-probe.mjs";
 
-const BASE = process.env.BASE_URL ?? "http://localhost:3225";
+const BASE = process.env.BASE_URL ?? AUDIT_BASE_URL;
 const WIDTH = 390;
 const HEIGHT = 844;
 

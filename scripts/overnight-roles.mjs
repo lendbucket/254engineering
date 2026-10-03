@@ -48,11 +48,12 @@ import path from "node:path";
 import { chromium } from "playwright";
 import { startNextServer } from "./lib/dev-server.mjs";
 import { createProbe, cookieFor, destroyProbes } from "./lib/portal-probe.mjs";
+import { PORTS } from "./lib/ports.mjs";
 
 const { NAV } = await import("../src/components/portal/nav.ts");
 const { DEFAULT_ROLES } = await import("../src/lib/ops-authz.ts");
 
-const PORT = Number(process.env.ROUND3_PORT || 3228);
+const PORT = Number(process.env.ROUND3_PORT ?? PORTS.overnightRoles);
 const WIDTHS = [390, 1280];
 const OUT = path.join(process.cwd(), "screenshots", "overnight");
 const LABEL = "overnight-round3";

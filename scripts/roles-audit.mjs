@@ -58,6 +58,7 @@ import { can, actionsFor, visibleFiles, canSeeFile, redactFile, ROLES, DEFAULT_R
 import { canReview } from "../src/lib/ops-review.ts";
 import { signInFully } from "./lib/probe-mfa.mjs";
 import { COULD_NOT_TELL, navigationVerdict } from "./lib/reachable.mjs";
+import { AUDIT_BASE_URL } from "./lib/ports.mjs";
 
 /*
  * A TRANSPORT FAULT IN A PROBE IS COULD NOT TELL, NOT FAIL. Operator ruling,
@@ -85,7 +86,7 @@ const recordFault = (what, err) => {
   return true;
 };
 
-const BASE = process.env.BASE_URL || "http://localhost:3225";
+const BASE = process.env.BASE_URL || AUDIT_BASE_URL;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });

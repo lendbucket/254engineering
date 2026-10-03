@@ -41,10 +41,11 @@ import {
   destroyCustomerProbes,
 } from "./lib/portal-probe.mjs";
 import { allPages } from "./lib/surfaces.mjs";
+import { PORTS } from "./lib/ports.mjs";
 
 const WIDTHS = [390, 1280];
 const HEIGHT = 900;
-const PORT = Number(process.env.CONTRAST_PORT || 3224);
+const PORT = Number(process.env.CONTRAST_PORT ?? PORTS.contrast);
 
 /*
  * THE PORTAL, WHICH THIS AUDIT HAD NEVER MEASURED.

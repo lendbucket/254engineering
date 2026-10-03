@@ -61,6 +61,60 @@ const CASES = [
     why: "THE SHAPE THAT GOT THROUGH on 2026-09-22 and cost a board 26 audits",
   },
   {
+    /*
+     * THE SHAPE THAT BLOCKED TWO DAYS OF BUILDS, 2026-10-02, and the operator
+     * asked for it as a fixture by name.
+     *
+     * npm's shim reaches a package binary through `.bin` and a parent hop, and
+     * the command line arrives with doubled backslashes:
+     *
+     *   node_modules\.bin\\..\next\dist\bin\next
+     *
+     * Flattened that is `node_modules/next/...`; unflattened it contains no
+     * `/node_modules/next/` anywhere, so every pattern here read it as
+     * `unknown` and the guard failed closed. The policy was right and the
+     * premise was false, which is the worst combination: the output argued
+     * convincingly for stopping another project's live server.
+     *
+     * ASSEMBLED AT RUNTIME, on the operator's instruction and for the reason
+     * the ports proof gives: a port literal in a source file is the thing that
+     * proof forbids, and `scripts/proofs/every-port-comes-from-one-declaration.mjs`
+     * sweeps this directory too. The path and the separators are the real ones;
+     * only the port digits are composed.
+     */
+    name: "a next server reached through node_modules/.bin/.. in ANOTHER checkout is foreign",
+    command:
+      '"node"   "C:\\Users\\salon\\projects\\wattsmith\\node_modules\\.bin\\\\..\\next\\dist\\bin\\next" start -p ' +
+      String(3000 + 188),
+    expect: "foreign",
+    why: "it names its checkout in full and the pattern could not see it, so a correct refusal fired on a false premise",
+  },
+  {
+    /*
+     * THE WRAPPER THAT BLOCKED EVERY BUILD AFTER ITS OWN CHILD WAS CLEARED.
+     *
+     * npx is node running npm's CLI, so the executable test that separates a
+     * bash wrapper from a server cannot see it: it IS node, it does contain
+     * `next start`, and the only node_modules in it is npm's own installation.
+     * It classified as unknown and failed closed while the real server beneath
+     * it had just been placed as foreign.
+     */
+    name: "an npx wrapper is a launcher, not a server",
+    command:
+      '"C:\\Program Files\\nodejs\\\\node.exe"  "C:\\Program Files\\nodejs\\\\node_modules\\npm\\bin\\npx-cli.js" next start -p ' +
+      String(3000 + 188),
+    expect: null,
+    why: "the server it launches is a separate process and is classified on its own command line, which is why killTree exists",
+  },
+  {
+    name: "and the same shim shape inside THIS checkout is still ours",
+    command:
+      '"node"   "C:\\Users\\salon\\projects\\254engineering\\node_modules\\.bin\\\\..\\next\\dist\\bin\\next" start -p ' +
+      String(4000 + 300),
+    expect: "ours",
+    why: "flattening must not make our own server unplaceable, which is the hole the fix could have opened",
+  },
+  {
     name: "a shell whose command line CONTAINS a next start is not a server",
     command:
       '"C:\\Program Files\\Git\\bin\\bash.exe" -c "cd /c/repo && node node_modules/next/dist/bin/next start -p 3141"',

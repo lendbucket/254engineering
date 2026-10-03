@@ -32,6 +32,7 @@ import { auditClient } from "./lib/db-target.mjs";
 import { careersChecks } from "./lib/careers-audit.mjs";
 import { guardedSurfaces } from "./lib/surfaces.mjs";
 import { intakeAnswer } from "../src/lib/intake.ts";
+import { AUDIT_BASE_URL } from "./lib/ports.mjs";
 
 /*
  * The audit reads the same env file the server does, and this is not a
@@ -57,7 +58,7 @@ try {
   // submission succeeded, and the round trip block below now refuses to.
 }
 
-const BASE = process.env.BASE_URL || "http://localhost:3225";
+const BASE = process.env.BASE_URL || AUDIT_BASE_URL;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });

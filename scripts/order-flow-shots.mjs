@@ -32,6 +32,7 @@ import { chromium } from "playwright";
 import { withGateConditionsMet, FIXTURE_ENV } from "./lib/gate-fixture.mjs";
 import { startNextServer } from "./lib/dev-server.mjs";
 import { takeLock } from "./lib/machine-lock.mjs";
+import { PORTS } from "./lib/ports.mjs";
 
 const OUT = process.env.SHOTS_OUT ?? "docs/design-v10/screens/captured";
 const GATE_FILES = [
@@ -107,7 +108,7 @@ try {
      * is set here, for this server only, and never written to any file.
      */
     const server = await startNextServer({
-      port: 3233,
+      port: PORTS.orderFlowShots,
       env: { ...FIXTURE_ENV, LAUNCH_MODE: "live" },
     });
     try {

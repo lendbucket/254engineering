@@ -27,8 +27,9 @@ import { createProbe, destroyProbes, probeFault } from "./lib/portal-probe.mjs";
 import { COULD_NOT_TELL } from "./lib/reachable.mjs";
 import { auditClient } from "./lib/db-target.mjs";
 import { ProbeLedger } from "./lib/probe-ledger.mjs";
+import { AUDIT_BASE_URL } from "./lib/ports.mjs";
 
-const BASE = process.env.BASE_URL ?? "http://localhost:3225";
+const BASE = process.env.BASE_URL ?? AUDIT_BASE_URL;
 
 /**
  * Source with comments stripped.

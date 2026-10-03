@@ -1,5 +1,6 @@
 
 import { readSource } from "./read-source.mjs";
+import { PORTS } from "./ports.mjs";
 
 /**
  * "Is the server at this URL serving the build currently on disk?"
@@ -48,7 +49,7 @@ export async function checkServingCurrentBuild(base) {
       message:
         `Nothing is answering at ${base}.\n${err.message}\n\n` +
         `Start the server against the current build first:\n` +
-        `  npm run build && npx next start -p 3225\n`,
+        `  npm run build && npx next start -p ${PORTS.audit}\n`,
     };
   }
 

@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3225",
+    "dev": "next dev -p 4300",
     "prebuild": "node scripts/preflight-build.mjs",
     "build": "next build",
     "build-guard": "node scripts/preflight-build.mjs",
-    "start": "next start -p 3225",
+    "start": "next start -p 4300",
     "lint": "eslint",
     "shots": "node scripts/shots.mjs",
     "brand-rasters": "node scripts/brand-rasters.mjs",
