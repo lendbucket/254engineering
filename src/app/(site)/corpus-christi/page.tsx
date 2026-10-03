@@ -10,6 +10,7 @@ import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { location } from "@/content/location";
 import { contact, displayPhone, hasPostalAddress, telHref } from "@/config/contact";
 import { business } from "@/config/business";
+import { PhoneNumber } from "@/components/ui/PhoneNumber";
 
 /**
  * The entity's location page. Reasoning for its existence, and for why it is not
@@ -203,7 +204,7 @@ export default function LocationPage() {
                 <dt className="mt-6 font-semibold text-slate">Telephone</dt>
                 <dd className="mt-1">
                   <a href={tel} className="underline underline-offset-4">
-                    {phone}
+                    <PhoneNumber />
                   </a>
                 </dd>
               </>

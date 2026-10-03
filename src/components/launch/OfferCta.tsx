@@ -3,6 +3,7 @@ import { Container } from "@/components/ui/Container";
 import { isOpen, isPrelaunch, notYetAcceptingEngagements, registrationStatement, serviceLineIsOffered } from "@/lib/launch";
 import { displayPhone, telHref } from "@/config/contact";
 import { lineOffer, orderableLineOffers } from "@/lib/ordering";
+import { PhoneNumber } from "@/components/ui/PhoneNumber";
 
 /** The price line for a named, orderable service line. */
 function OfferPrice({ slug }: { slug: string }) {
@@ -174,7 +175,7 @@ export function OfferCta({
               </ButtonLink>
               {tel && phone ? (
                 <ButtonLink href={tel} tone="onDarkOutline">
-                  Call {phone}
+                  Call <PhoneNumber />
                 </ButtonLink>
               ) : null}
             </div>

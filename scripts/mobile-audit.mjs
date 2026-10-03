@@ -181,10 +181,10 @@ async function measurePage(base, browser, path, width, probe = null, session = "
       /^\/(portal|partner|account)\/login$/.test(new URL(page.url()).pathname) &&
       !/\/login$/.test(path)
     ) {
-      return { hscroll: false, taps: false, clip: false, note: "bounced to sign in, not measured" };
+      return { hscroll: false, taps: false, clip: false, phone: false, note: "bounced to sign in, not measured" };
     }
     if (!res || res.status() >= 400) {
-      return { hscroll: false, taps: false, clip: false, note: `HTTP ${res ? res.status() : "no response"}` };
+      return { hscroll: false, taps: false, clip: false, phone: false, note: `HTTP ${res ? res.status() : "no response"}` };
     }
 
     // Scroll to the bottom before measuring. globals.css sets scroll-behavior
@@ -362,6 +362,49 @@ async function measurePage(base, browser, path, width, probe = null, session = "
           el.tagName.toLowerCase() + (el.id ? "#" + el.id : "") + " clips " + over + "px of " + JSON.stringify(what),
         );
       }
+      /*
+       * ===================================================================
+       * A TELEPHONE NUMBER NEVER BREAKS ACROSS TWO LINES.
+       * Operator ruling, 2026-10-03, from reading a capture at 390.
+       * ===================================================================
+       *
+       * The chooser rendered "call (281) 940-" and then "4490" on the next
+       * line, because the hyphen in a North American number is a break
+       * opportunity and 390 is narrow. A split number cannot be read aloud,
+       * cannot be copied, and is the one thing somebody on a roof came for.
+       *
+       * IT MEASURES LINE BOXES, NOT CLASS NAMES. A source check that the
+       * element carries whitespace-nowrap is a check on wording: it passes on
+       * a class that a later rule overrides, and fails on a fix that works by
+       * other means. A Range over the text node returns ONE RECT PER LINE, so
+       * two rects IS the defect, directly.
+       *
+       * THE SUBJECT IS FOUND BY SHAPE RATHER THAN BY CONFIG. Matching the
+       * rendered pattern rather than importing displayPhone() means this sees
+       * every number on the page, including one somebody hardcodes, which is
+       * the case a config-derived check would be blind to.
+       */
+      const PHONE_SHAPE = /\(\d{3}\)\s?\d{3}-\d{4}/;
+      const brokenPhones = [];
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+        const text = n.textContent || "";
+        const hit = text.match(PHONE_SHAPE);
+        if (!hit) continue;
+        const start = text.indexOf(hit[0]);
+        const range = document.createRange();
+        range.setStart(n, start);
+        range.setEnd(n, start + hit[0].length);
+        const rects = range.getClientRects();
+        if (rects.length > 1) {
+          const owner = n.parentElement;
+          brokenPhones.push(
+            `${hit[0]} breaks across ${rects.length} lines in <${owner ? owner.tagName.toLowerCase() : "?"}>`,
+          );
+        }
+        range.detach?.();
+      }
+
       return {
         scrollWidth: over ? over.scrollW : de.scrollWidth,
         clientWidth: over ? over.clientW : de.clientWidth,
@@ -370,18 +413,22 @@ async function measurePage(base, browser, path, width, probe = null, session = "
         smallCount: small.length,
         clipped: clipped.slice(0, 4),
         clippedCount: clipped.length,
+        brokenPhones: brokenPhones.slice(0, 4),
+        brokenPhoneCount: brokenPhones.length,
       };
     }, MIN_TAP);
 
     const hscroll = m.scrollWidth === m.clientWidth;
     const taps = m.smallCount === 0;
     const clip = m.clippedCount === 0;
+    const phone = m.brokenPhoneCount === 0;
     const notes = [];
     if (!hscroll) notes.push(`scrollW ${m.scrollWidth} != clientW ${m.clientWidth}${m.widest ? `; ${m.widest}` : ""}`);
     if (!taps) notes.push(`${m.smallCount} target(s) under ${MIN_TAP}px: ${m.small.join(", ")}`);
     if (!clip) notes.push(m.clippedCount + ` clipped box(es): ` + m.clipped.join(", "));
+    if (!phone) notes.push(m.brokenPhoneCount + ` wrapped phone number(s): ` + m.brokenPhones.join(", "));
 
-    return { hscroll, taps, clip, note: notes.join(" | ") };
+    return { hscroll, taps, clip, phone, note: notes.join(" | ") };
   } catch (err) {
     /*
      * =====================================================================
@@ -407,6 +454,7 @@ async function measurePage(base, browser, path, width, probe = null, session = "
       hscroll: null,
       taps: null,
       clip: null,
+      phone: null,
       note: `error: ${String(err.message).split("\n")[0]}`,
     };
   } finally {
@@ -514,7 +562,7 @@ async function main() {
          * failure rather than skipped.
          */
         if (t.portal && !sessions[t.portal]?.cookie) {
-          cells[w] = { hscroll: false, taps: false, clip: false, note: "no " + t.portal + " session" };
+          cells[w] = { hscroll: false, taps: false, clip: false, phone: false, note: "no " + t.portal + " session" };
           log("  " + pad(t.name, 18) + " @" + w + ": NOT MEASURED (no " + t.portal + " session)");
           continue;
         }
@@ -532,9 +580,9 @@ async function main() {
           unreachable.push(`${t.name} @${w}: ${cell.note}`);
         } else {
           log(
-            `  ${pad(t.name, 18)} @${w}: hscroll=${cell.hscroll ? "ok" : "FAIL"} taps=${cell.taps ? "ok" : "FAIL"} clip=${cell.clip ? "ok" : "FAIL"}${cell.note ? "  (" + cell.note + ")" : ""}`,
+            `  ${pad(t.name, 18)} @${w}: hscroll=${cell.hscroll ? "ok" : "FAIL"} taps=${cell.taps ? "ok" : "FAIL"} clip=${cell.clip ? "ok" : "FAIL"} phone=${cell.phone ? "ok" : "FAIL"}${cell.note ? "  (" + cell.note + ")" : ""}`,
           );
-          if (!cell.hscroll || !cell.taps || !cell.clip) failures.push(`${t.name} @${w}: ${cell.note || "fail"}`);
+          if (!cell.hscroll || !cell.taps || !cell.clip || !cell.phone) failures.push(`${t.name} @${w}: ${cell.note || "fail"}`);
         }
       }
       rows.push({ name: t.name, cells });
@@ -564,7 +612,7 @@ async function main() {
       let line = pad(row.name, 20);
       for (const w of WIDTHS) {
         const c = row.cells[w];
-        line += pad(c.unreachable ? "no load" : c.hscroll && c.taps && c.clip ? "pass" : "FAIL", 10);
+        line += pad(c.unreachable ? "no load" : c.hscroll && c.taps && c.clip && c.phone ? "pass" : "FAIL", 10);
       }
       log(line);
     }

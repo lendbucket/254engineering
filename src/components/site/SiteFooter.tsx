@@ -8,6 +8,7 @@ import { displayPhone, hasPostalAddress, postalAddressLine, telHref } from "@/co
 import { services } from "@/content/services";
 import { regions } from "@/content/regions";
 import type { ReactNode } from "react";
+import { PhoneNumber } from "@/components/ui/PhoneNumber";
 
 /**
  * The site footer, as the approved v5 design sets it.
@@ -89,7 +90,7 @@ export function SiteFooter() {
                 href={telHref() ?? undefined}
                 className="mt-3 flex min-h-[44px] items-center text-[15px] font-semibold text-brass transition-colors hover:text-brass-light"
               >
-                {displayPhone()}
+                <PhoneNumber />
               </a>
             ) : null}
             {/*

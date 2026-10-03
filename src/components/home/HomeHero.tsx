@@ -7,6 +7,7 @@ import { headlineOffer } from "@/lib/ordering";
 import { displayPhone, telHref } from "@/config/contact";
 import { services } from "@/content/services";
 import { regions } from "@/content/regions";
+import { PhoneNumber } from "@/components/ui/PhoneNumber";
 
 /**
  * The hero, as the approved v5 design sets it.
@@ -138,7 +139,7 @@ export function HomeHero() {
                   href={telHref() ?? undefined}
                   className="inline-block rounded-[3px] border-[1.5px] border-white/50 px-8 py-4 text-[16px] font-semibold text-slate-fg transition-colors hover:border-brass hover:text-brass-light"
                 >
-                  Call {displayPhone()}
+                  Call <PhoneNumber />
                 </a>
               ) : null}
               <Link

@@ -101,8 +101,20 @@ export type LineOffer = {
    * to the customer as its own named line, never folded into a larger total".
    */
   coastal: string | null;
-  /** The deliverable a buyer of this line actually receives, when there is one. */
-  deliverable: string | null;
+  /*
+   * `deliverable` is gone, 2026-10-03, with the chooser subtitle that was its
+   * only reader. It held the catalogue entry's name, "Roof certification letter",
+   * and the operator ruled the subtitles off for repeating their titles.
+   *
+   * Removed rather than left in place because a field computed on every call and
+   * read by nothing is the shape that survives for years looking load bearing.
+   * The same thing was true of `statusTone` on the file selection list earlier
+   * today, and it had outlived its chip by one commit rather than by one year
+   * only because somebody looked.
+   *
+   * The entry's name is still used, inside `orderLabel`, which is where a reader
+   * meets it now: "Order a roof certification letter".
+   */
 };
 
 /** The catalogue entry a price is quoted from: the cheapest orderable one. */
@@ -150,7 +162,6 @@ export function lineOffer(slug: string): LineOffer {
       orderable && entry && isKnown(entry.coastalSurchargeCents)
         ? `plus ${money(entry.coastalSurchargeCents)} in first tier coastal counties`
         : null,
-    deliverable: entry?.name ?? null,
   };
 }
 

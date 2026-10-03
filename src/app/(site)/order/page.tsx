@@ -5,6 +5,7 @@ import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { allLineOffers, orderableLineOffers } from "@/lib/ordering";
 import { displayPhone, telHref } from "@/config/contact";
+import { PhoneNumber } from "@/components/ui/PhoneNumber";
 
 /**
  * ===========================================================================
@@ -101,7 +102,7 @@ export default function OrderChooserPage() {
                 the day a second line opens.
               */}
               {open.length === 0
-                ? "Every line below is quoted by the firm. Tell us what the document is for and you will get a yes or no, and a price, from a person."
+                ? "Every line below is quoted by the firm. Tell us what you need and we will send you a price."
                 : open.length === 1
                   ? "One line is open for ordering online and takes the order now. Everything else is quoted by the firm, usually after one short conversation."
                   : `${open.length} lines are open for ordering online and take the order now. Everything else is quoted by the firm, usually after one short conversation.`}
@@ -125,17 +126,55 @@ export default function OrderChooserPage() {
                       try, which is the operator's third instruction: never imply
                       a line can be ordered when it cannot.
                     */}
+                    {/*
+                      THE PRICE AND ITS QUALIFIER TRAVEL TOGETHER. The coastal
+                      surcharge used to ride on the subtitle line, which is where
+                      a reader was least likely to connect it to the figure. It
+                      is a price fact, so it sits under the price.
+                    */}
                     {offer.price ? (
-                      <p className="text-[17px] font-semibold text-slate">{offer.price}</p>
+                      <div className="text-right">
+                        <p className="text-[17px] font-semibold text-slate">{offer.price}</p>
+                        {offer.coastal ? (
+                          <p className="mt-0.5 text-[13px] leading-[1.5] text-slate-muted">
+                            {offer.coastal}
+                          </p>
+                        ) : null}
+                      </div>
                     ) : null}
                   </div>
 
-                  {offer.deliverable ? (
-                    <p className="mt-1.5 text-[14px] leading-[1.6] text-slate-muted">
-                      {offer.deliverable}
-                      {offer.coastal ? `, ${offer.coastal}` : ""}
-                    </p>
-                  ) : null}
+                  {/*
+                    ===================================================
+                    THE SUBTITLES ARE GONE. Operator ruling, 2026-10-03.
+                    ===================================================
+
+                    "Each line's subtitle repeats its title." It did:
+                    "Foundation certification" sat under "Foundation Inspections
+                    and Certifications", and six of the eight were the same shape.
+                    It was the catalogue's deliverable name, which is the right
+                    string in a basket and the wrong one under a heading that
+                    already says it.
+
+                    HIS RULE WAS: REPLACE IT WITH AN EXISTING FIELD VERBATIM, OR
+                    REMOVE IT. `services.ts` does carry a who-it's-for field,
+                    `whoOrders`, and seven of the eight first entries would have
+                    read well here. The roof one is 215 characters across two
+                    sentences, ending in a clause about remaining life figures on
+                    lender checklists. Using it verbatim would put a paragraph in
+                    a chooser row; using part of it would not be verbatim.
+
+                    So the rule lands on remove, and removing it is what makes all
+                    eight consistent, which was his fourth point. Residential and
+                    Light Commercial Design had no subtitle at all because it is
+                    hourly and has no priced catalogue entry, and that asymmetry
+                    goes with the rest.
+
+                    The row still carries the service name, the price, the coastal
+                    qualifier and the action. Nothing a reader needs to choose
+                    with has been taken away, and no sentence was invented to fill
+                    the space.
+                  */}
 
                   <div className="mt-4">
                     <Link
@@ -162,7 +201,7 @@ export default function OrderChooserPage() {
               <p className="mt-10 text-[15px] leading-[1.7] text-slate-muted">
                 If you would rather talk it through, call{" "}
                 <a href={tel} className="font-semibold text-slate underline underline-offset-4">
-                  {phone}
+                  <PhoneNumber />
                 </a>
                 .
               </p>

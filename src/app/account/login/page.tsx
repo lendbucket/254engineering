@@ -9,6 +9,7 @@ import { money } from "@/lib/ops-money";
 import { displayPhone, telHref } from "@/config/contact";
 import { registrationLine, selfServiceSignUpOpen } from "@/lib/launch";
 import { AccountLoginForm } from "./AccountLoginForm";
+import { PhoneNumber } from "@/components/ui/PhoneNumber";
 
 export const dynamic = "force-dynamic";
 
@@ -112,7 +113,7 @@ export default async function AccountLoginPage({
             <p className="text-[14px] text-[var(--color-ink-quiet)]">
               Questions?{" "}
               <a href={telHref() ?? undefined} className="text-[var(--color-slate)]">
-                {phone}
+                <PhoneNumber />
               </a>
             </p>
           ) : null}
