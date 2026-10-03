@@ -5,10 +5,10 @@ import { currentActor } from "@/lib/ops-auth";
 import { can, holdsLicence } from "@/lib/ops-authz";
 import { packageFor, reviewQueue } from "@/lib/ops-engineer";
 import { availableReviewActions, isBriskReview } from "@/lib/ops-review";
-import { STATUS_LABEL, STATUS_TONE, type FileStatus } from "@/lib/ops-files";
+import { STATUS_LABEL, type FileStatus } from "@/lib/ops-files";
 import { isPrelaunch } from "@/lib/launch";
 import { services } from "@/content/services";
-import { Chip, EmptyState, PageHead } from "@/components/portal/surfaces";
+import { EmptyState, PageHead } from "@/components/portal/surfaces";
 import { outstandingFor } from "@/lib/ops-file-inputs";
 import { DecisionPanel, OpenReviewButton } from "./ReviewClient";
 import { RC001 } from "@/content/protocols/rc-001";
@@ -100,41 +100,54 @@ export default async function ReviewPage({
               body="A file arrives here when a technician submits a complete evidence package. It stays until an engineer decides it."
             />
           ) : (
-            <ul className="flex flex-col gap-2">
-              {queue.map((f) => (
-                <li key={f.id}>
-                  <Link
-                    href={`/portal/review?id=${f.id}`}
-                    className={`block rounded-[4px] border bg-white p-4 transition-colors hover:border-slate ${
-                      selected?.file.id === f.id
-                        ? "border-slate"
-                        : "border-[var(--border)]"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="font-mono text-[12.5px] text-[var(--gold-deep)]">{f.file_number}</p>
-                        <p className="mt-1 text-[13.5px] font-semibold text-[var(--navy)]">{f.property_address}</p>
-                        <p className="mt-0.5 text-[13.5px] text-[var(--secondary)]">
-                          {f.county} County, {serviceName(f.service_slug)}
+            /*
+              V10: ruled rows, not cards. No border, no radius, no shadow, and
+              the selected row is a navy left marker over a flat fill rather
+              than a highlighted box.
+
+              THE STATUS CHIP IS GONE AND THE STATUS IS NOT. STATUS_TONE maps a
+              file state onto good, bad and warn, which V10 removes from the
+              interface entirely: "urgency is shown with weight and words, never
+              with colour, dots, badges or tinted boxes". STATUS_LABEL is the
+              words, and it is what survives. Dropping the label with the chip
+              would have been the restyle quietly deleting information, which is
+              the one thing this port is forbidden to do.
+            */
+            <ul className="border-t border-[var(--row-rule)]">
+              {queue.map((f) => {
+                const open = selected?.file.id === f.id;
+                return (
+                  <li key={f.id} className="border-b border-[var(--row-rule)]">
+                    <Link
+                      href={`/portal/review?id=${f.id}`}
+                      className={`block border-l-2 py-3.5 pr-3 transition-colors ${
+                        open
+                          ? "border-[var(--navy)] bg-[var(--canvas)] pl-3"
+                          : "border-transparent pl-3 hover:bg-[var(--canvas)]"
+                      }`}
+                    >
+                      <p className="text-[12px] text-[var(--secondary)]">{f.file_number}</p>
+                      <p className="mt-0.5 text-[15px] leading-[1.3] font-semibold text-[var(--ink)]">
+                        {f.property_address}
+                      </p>
+                      <p className="mt-0.5 text-[13px] text-[var(--secondary)]">
+                        {f.county} County, {serviceName(f.service_slug)}
+                      </p>
+                      <p className="mt-1 text-[13px] font-semibold text-[var(--ink)]">
+                        {STATUS_LABEL[f.status as FileStatus] ?? f.status}
+                      </p>
+                      {when(f.evidence_submitted_at) ? (
+                        <p className="mt-0.5 text-[12px] text-[var(--secondary)]">
+                          Submitted {when(f.evidence_submitted_at)}
+                          {f.revision_count > 0
+                            ? `, ${f.revision_count} revision${f.revision_count === 1 ? "" : "s"} so far`
+                            : ""}
                         </p>
-                        {when(f.evidence_submitted_at) ? (
-                          <p className="mt-1 text-[12.5px] text-[var(--secondary)]">
-                            Submitted {when(f.evidence_submitted_at)}
-                            {f.revision_count > 0
-                              ? `, ${f.revision_count} revision${f.revision_count === 1 ? "" : "s"} so far`
-                              : ""}
-                          </p>
-                        ) : null}
-                      </div>
-                      <Chip
-                        label={STATUS_LABEL[f.status as FileStatus] ?? f.status}
-                        tone={STATUS_TONE[f.status as FileStatus] ?? "neutral"}
-                      />
-                    </div>
-                  </Link>
-                </li>
-              ))}
+                      ) : null}
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
@@ -143,60 +156,79 @@ export default async function ReviewPage({
           <div>
             <Link
               href="/portal/review"
-              className="mb-4 inline-flex min-h-[44px] items-center text-[13.5px] font-semibold text-[var(--secondary)] lg:hidden"
+              className="mb-4 inline-flex min-h-[44px] items-center text-[14px] font-semibold text-[var(--secondary)] lg:hidden"
             >
               Back to the queue
             </Link>
 
             {outstanding && outstanding.now.length > 0 ? (
-              <div className="mb-4 rounded-[4px] border border-[var(--gold)] bg-[var(--gold-wash)] px-4 py-3">
-                <p className="text-[13.5px] font-bold text-[var(--ink)]">
+              /*
+                V10 removes notices and banners: "status goes in a plain line of
+                text", and no tinted boxes. This was a gold washed panel and is
+                now a section, which is a heading with a 2px ink rule under it.
+
+                It loses nothing. The tint was never what made this urgent; the
+                sentence under it is, and it is still there in full.
+              */
+              <section className="mb-6">
+                <h2 className="border-b-2 border-[var(--ink)] pb-2 text-[15px] font-semibold text-[var(--ink)]">
                   This package is missing information the document needs
-                </p>
-                <ul className="mt-1.5 flex flex-col gap-1">
+                </h2>
+                <ul className="mt-3">
                   {outstanding.now.map((f) => (
-                    <li key={f.id} className="text-[13.5px] leading-[1.5] text-[var(--ink)]">
+                    <li
+                      key={f.id}
+                      className="border-b border-[var(--row-rule)] py-2 text-[14px] leading-[1.5] font-semibold text-[var(--ink)]"
+                    >
                       {f.label}
                     </li>
                   ))}
                 </ul>
-                <p className="mt-2 text-[12.5px] leading-[1.5] text-[var(--ink)]">
+                <p className="mt-3 max-w-[70ch] text-[13px] leading-[1.55] text-[var(--secondary)]">
                   A sealed document addressed to the wrong party has to be reissued. Ask for these
                   before deciding, not after.
                 </p>
-              </div>
+              </section>
             ) : null}
 
-            <div className="rounded-[4px] border border-[var(--border)] bg-white">
-              <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="font-mono text-[12.5px] text-[var(--gold-deep)]">{selected.file.file_number}</p>
-                    <h2 className="mt-1 font-display text-[17px] leading-[1.2] font-bold text-[var(--navy)]">
-                      {selected.file.property_address}
-                    </h2>
-                    <p className="mt-1 text-[13.5px] text-[var(--secondary)]">
-                      {selected.file.city ? `${selected.file.city}, ` : ""}
-                      {selected.file.county} County
-                      {selected.protocolName ? `, worked to ${selected.protocolName}` : ""}
-                      {selected.technician ? `, captured by ${selected.technician.name}` : ""}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <Chip
-                      label={STATUS_LABEL[selected.file.status as FileStatus] ?? selected.file.status}
-                      tone={STATUS_TONE[selected.file.status as FileStatus] ?? "neutral"}
-                    />
-                    {selected.file.twia_county ? <Chip label="Windstorm county" tone="warn" /> : null}
-                    <Chip
-                      label={selected.complete ? "Package complete" : `${selected.blockers.length} missing`}
-                      tone={selected.complete ? "good" : "bad"}
-                    />
-                  </div>
-                </div>
+            <div>
+              <div className="pb-5">
+                {/*
+                  V10 page head: title, then a META LINE of plain items separated
+                  by space. The three chips are gone and all three facts remain,
+                  as words, in the order an engineer would ask them: what state
+                  the file is in, whether the package is complete, and whether
+                  this is a windstorm county.
+
+                  "4 missing" WAS A RED CHIP AND IS NOW BOLD INK. That is the
+                  whole of V10's rule about urgency, and it is the right rule
+                  here for a reason beyond house style: a red chip reading
+                  "4 missing" sits beside a green one reading "Package complete"
+                  on a screen where the two can never both be true, so the colour
+                  was carrying no information the word did not.
+                */}
+                <p className="text-[12px] text-[var(--secondary)]">{selected.file.file_number}</p>
+                <h2 className="mt-1 text-[24px] leading-[1.2] font-semibold tracking-[-0.4px] text-[var(--ink)]">
+                  {selected.file.property_address}
+                </h2>
+                <p className="mt-2 text-[14px] leading-[1.6] text-[var(--secondary)]">
+                  {selected.file.city ? `${selected.file.city}, ` : ""}
+                  {selected.file.county} County
+                  {selected.protocolName ? `, worked to ${selected.protocolName}` : ""}
+                  {selected.technician ? `, captured by ${selected.technician.name}` : ""}
+                </p>
+                <p className="mt-1 text-[14px] leading-[1.6] text-[var(--ink)]">
+                  <span className="font-semibold">
+                    {STATUS_LABEL[selected.file.status as FileStatus] ?? selected.file.status}
+                  </span>
+                  <span className="pl-5 font-semibold">
+                    {selected.complete ? "Package complete" : `${selected.blockers.length} missing`}
+                  </span>
+                  {selected.file.twia_county ? <span className="pl-5">Windstorm county</span> : null}
+                </p>
 
                 {selected.session ? (
-                  <p className="mt-3 text-[13.5px] text-[var(--secondary)]">
+                  <p className="mt-2 max-w-[70ch] text-[13px] leading-[1.55] text-[var(--secondary)]">
                     In review for {selected.session.minutesSoFar} minute
                     {selected.session.minutesSoFar === 1 ? "" : "s"}. The elapsed time goes on your
                     responsible charge record.
@@ -208,31 +240,40 @@ export default async function ReviewPage({
               </div>
 
               {selected.file.status === "refused" && selected.file.refusal_reason ? (
-                <div className="border-b border-[var(--border)] bg-[var(--warn-bg)] px-4 py-4 sm:px-5">
-                  <p className="portal-kicker text-[var(--red)]">
+                /*
+                  A DECLINE IS THE MOST SERIOUS THING ON THIS SCREEN AND IT IS
+                  NOT RED. It was amber tinted with red text, which V10 removes
+                  outright. What carries it now is a section heading at the top
+                  of the file and the engineer's own words at full size, which is
+                  more prominent than the tint was, not less: the reason is the
+                  evidence of judgment and it reads as body copy rather than as a
+                  warning somebody skims.
+                */
+                <section className="mb-6">
+                  <h3 className="border-b-2 border-[var(--ink)] pb-2 text-[15px] font-semibold text-[var(--ink)]">
                     Declined to seal
-                  </p>
-                  <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--red)]">
+                  </h3>
+                  <p className="mt-3 max-w-[70ch] text-[15px] leading-[1.6] text-[var(--ink)]">
                     {selected.file.refusal_reason}
                   </p>
-                </div>
+                </section>
               ) : null}
 
-              <div className="px-4 py-5 sm:px-5">
+              <div>
                 {!selected.session && selected.file.status !== "refused" ? (
                   <OpenReviewButton fileId={selected.file.id} status={selected.file.status} />
                 ) : null}
 
-                <p className="mt-2 portal-kicker text-[var(--gold-deep)]">
+                <h3 className="mt-5 border-b-2 border-[var(--ink)] pb-2 text-[15px] font-semibold text-[var(--ink)]">
                   Evidence
-                </p>
+                </h3>
 
                 {selected.items.length === 0 ? (
-                  <p className="mt-3 text-[13.5px] text-[var(--secondary)]">
+                  <p className="mt-3 text-[14px] text-[var(--secondary)]">
                     No protocol is attached to this file, so there is nothing to review against.
                   </p>
                 ) : (
-                  <ol className="mt-3 flex flex-col gap-4">
+                  <ol className="mt-1 border-t border-[var(--row-rule)]">
                     {selected.items.map((item, i) => (
                       <li
                         key={item.id}
@@ -244,38 +285,56 @@ export default async function ReviewPage({
                          * applied", which he cannot apply to an item the screen
                          * has painted the same colour as a captured one.
                          */
-                        className={`rounded-[4px] border p-4 ${
-                          item.exception
-                            ? "border-[var(--warn-border)] border-l-[var(--gold-deep)]"
-                            : item.satisfied
-                              ? "border-[var(--border)] border-l-[var(--green)]"
-                              : item.required
-                                ? "border-[var(--warn-border)] border-l-[var(--red)]"
-                                : "border-[var(--border)]"
-                        }`}
+                        className="border-b border-[var(--row-rule)] py-4"
                       >
                         <div className="flex flex-wrap items-start justify-between gap-2">
-                          <p className="text-[13.5px] leading-[1.35] font-semibold text-[var(--navy)]">
+                          <p className="text-[14px] leading-[1.4] font-semibold text-[var(--ink)]">
                             {i + 1}. {item.label}
                             {item.required ? "" : " (optional)"}
                           </p>
+                          {/*
+                            THE FOUR STATES WERE THREE COLOURS AND A DEFAULT, AND
+                            THEY ARE NOW FOUR SENTENCES. V10 removes colour as
+                            meaning, and on this screen that is not a style
+                            question: the comment above records that an excepted
+                            item must not read as a captured one, because
+                            Appendix C asks the engineer to notice "exception
+                            used where the condition plainly applied". A tint he
+                            has to decode is a poor way to carry that and a word
+                            is a good one.
+
+                            SATISFIED GAINED A WORD IT DID NOT HAVE. Under the
+                            old styling a captured item said nothing at all and
+                            was identified by a green edge, so taking the colour
+                            away without adding "Captured" would have left the
+                            commonest state on the screen with no signal
+                            whatsoever. That is the restyle deleting information,
+                            which this port is forbidden to do, and it is the
+                            trap in every one of these conversions.
+                          */}
                           {item.exception ? (
-                            <p className="text-[13.5px] font-semibold text-[var(--gold-deep)]">
+                            <p className="text-[14px] font-semibold text-[var(--ink)]">
                               {item.exception.kind === "not_applicable"
                                 ? "Not applicable"
                                 : "Could not be observed"}
                             </p>
-                          ) : !item.satisfied && item.problem ? (
-                            <p className="text-[13.5px] font-semibold text-[var(--red)]">{item.problem}</p>
-                          ) : null}
+                          ) : item.satisfied ? (
+                            <p className="text-[14px] text-[var(--secondary)]">Captured</p>
+                          ) : item.problem ? (
+                            <p className="text-[14px] font-semibold text-[var(--ink)]">{item.problem}</p>
+                          ) : item.required ? (
+                            <p className="text-[14px] font-semibold text-[var(--ink)]">Not captured</p>
+                          ) : (
+                            <p className="text-[14px] text-[var(--secondary)]">Not captured</p>
+                          )}
                         </div>
                         {item.exception ? (
-                          <p className="mt-1.5 max-w-[70ch] text-[13.5px] leading-[1.55] text-[var(--ink)]">
+                          <p className="mt-1.5 max-w-[70ch] text-[14px] leading-[1.55] text-[var(--ink)]">
                             The technician recorded: &ldquo;{item.exception.reason}&rdquo;
                           </p>
                         ) : null}
                         {item.instructions ? (
-                          <p className="mt-1 max-w-[70ch] text-[13.5px] leading-[1.5] text-[var(--secondary)]">
+                          <p className="mt-1 max-w-[70ch] text-[14px] leading-[1.5] text-[var(--secondary)]">
                             {item.instructions}
                           </p>
                         ) : null}
@@ -295,7 +354,20 @@ export default async function ReviewPage({
                                    * failure this whole screen exists to
                                    * prevent.
                                    */
-                                  <p className="flex h-40 w-40 items-center justify-center rounded-[3px] border border-[var(--red)] bg-[var(--warn-bg)] px-3 text-center text-[12.5px] leading-[1.4] font-semibold text-[var(--red)]">
+                                  /*
+                                    THE ONE PLACE ON THIS SCREEN WHERE LOSING RED
+                                    HAD TO BE THOUGHT ABOUT, because this is the
+                                    sentence that stops an engineer sealing on a
+                                    photograph he never saw.
+
+                                    It keeps every bit of its prominence and gets
+                                    it from weight and a 2px ink border instead of
+                                    a red one on an amber tint. The words were
+                                    always what did the work: "Do not seal on it"
+                                    is not a sentence anybody reads past because
+                                    of its colour.
+                                  */
+                                  <p className="flex h-40 w-40 items-center justify-center border-2 border-[var(--ink)] px-3 text-center text-[13px] leading-[1.4] font-semibold text-[var(--ink)]">
                                     This file could not be loaded. Do not seal on it.
                                   </p>
                                 ) : c.url ? (
@@ -324,26 +396,26 @@ export default async function ReviewPage({
                                       not a row that agreed.
                                     */}
                                     {c.clockDisagrees === true ? (
-                                      <span className="mt-1 block text-[11px] font-medium text-[var(--danger)]">
+                                      <span className="mt-1 block text-[12px] font-semibold text-[var(--ink)]">
                                         {c.clockSentence}
                                       </span>
                                     ) : c.clockDisagrees === null ? (
-                                      <span className="mt-1 block text-[11px] text-[var(--secondary)]">
+                                      <span className="mt-1 block text-[12px] text-[var(--secondary)]">
                                         {c.clockSentence}
                                       </span>
                                     ) : null}
                                     {c.lat !== null && c.lng !== null ? (
-                                      <span className="mt-1 block text-[11px] text-[var(--secondary)]">
+                                      <span className="mt-1 block text-[12px] text-[var(--secondary)]">
                                         {c.lat.toFixed(4)}, {c.lng.toFixed(4)}
                                       </span>
                                     ) : (
-                                      <span className="mt-1 block text-[11px] text-[var(--secondary)]">
+                                      <span className="mt-1 block text-[12px] text-[var(--secondary)]">
                                         No location recorded
                                       </span>
                                     )}
                                   </a>
                                 ) : (
-                                  <p className="rounded-[3px] border border-[var(--border)] px-3 py-2 text-[13.5px] text-[var(--navy)]">
+                                  <p className="border border-[var(--border)] px-3 py-2 text-[14px] text-[var(--ink)]">
                                     {c.valueNumber !== null
                                       ? `${c.valueNumber}${c.unit ? ` ${c.unit}` : ""}`
                                       : (c.valueText ?? "Captured")}
