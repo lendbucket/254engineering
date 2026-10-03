@@ -71,6 +71,21 @@ const ADMIN_PAGES = [
   "/partner/statements",
   "/account",
   "/account/order",
+  /*
+   * The orders list, 2026-10-01. It is a page that renders somebody's purchase
+   * history, and it reached this list last of the four it belongs to: the design
+   * declaration, token-audit's customer V10 list, the capture script, and this
+   * one. The first three were done when it was built and this was not, so the
+   * board caught it on the branch's first clean run with
+   *
+   *     FAIL: every portal page on disk is in the perimeter list (not covered: /account/orders)
+   *
+   * THE PAGE WAS NEVER OPEN. It calls currentCustomer() and redirects to the
+   * login when there is no session, which is why nothing else noticed. What was
+   * missing is the OUTER guard being asked about it at all, and this check exists
+   * precisely because a page defending itself is one edit away from not.
+   */
+  "/account/orders",
   "/account/settings",
   "/account/statements",
 

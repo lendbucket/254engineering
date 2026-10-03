@@ -1,7 +1,33 @@
 # The new surface checklist
 
-**Every declared inventory a new portal screen, a new portal API route, or a new
+**Every declared inventory a new SIGNED IN screen, a new API route, or a new
 table must appear in.** Read it before building one, and again before the board.
+
+> ### IT SAID "PORTAL" UNTIL 2026-10-03, AND THAT WORD COST A ROW.
+>
+> `/account/orders` is a CUSTOMER screen. It was built, declared in the design
+> document, added to `token-audit`'s customer V10 list, and added to the capture
+> script, and it reached row 1 of this table, the page perimeter list, only when
+> a board named it:
+>
+>     FAIL: every portal page on disk is in the perimeter list (not covered: /account/orders)
+>
+> **The page was never open.** It calls `currentCustomer()` and redirects to the
+> login, and `/account/orders` is not in `CUSTOMER_OPEN_PATHS`, so both layers
+> held. What was missing is the outer guard being ASKED about it, which is what
+> row 1 is for and which this document told nobody to do, because the screen was
+> not a portal screen.
+>
+> **Row 1 never cared.** `security-audit`'s page list covers `/account`,
+> `/partner` and `/portal` alike and always has: `/account/settings` and
+> `/account/statements` are sitting in it four lines above where the new entry
+> went. The word "portal" in this document was narrower than the inventory it
+> was describing.
+>
+> **So the scope is every signed in surface**, and rows 8 and 9 below are the
+> two a customer screen needs that a portal screen does not. That is a CLASS
+> fix rather than an instance one: adding `/account/orders` to row 1 and moving
+> on would have left the next customer screen to be caught by a board again.
 
 This exists because a screen shipped on 2026-09-21 that was built, secured,
 declared in the surface inventory and audited, and **no operator could reach
@@ -14,19 +40,46 @@ and its table, all shipped correctly. Nothing here is from memory.
 
 ---
 
-## The seven rows
+## The nine rows
 
 | # | Inventory | Applies to | Verified against |
 | --- | --- | --- | --- |
-| 1 | `scripts/security-audit.mjs`, page perimeter list | a portal screen | `/portal/inquiries`, line 97 |
+| 1 | `scripts/security-audit.mjs`, page perimeter list | **any signed in screen**, portal, partner or account | `/portal/inquiries` line 97, `/account/orders` 2026-10-03 |
 | 2 | `scripts/security-audit.mjs`, API perimeter list | a portal API route | `/api/portal/inquiries`, line 209 |
 | 3 | `scripts/roles-audit.mjs`, the engineer ruling | a portal screen | `/portal/inquiries`, line 1541 |
 | 4 | `src/components/portal/nav.ts` | a portal screen | `/portal/inquiries`, line 95 |
 | 5 | `src/lib/retention-policy.ts` | a table | `eng_design_inquiries`, line 318 |
 | 6 | `supabase/applied.mjs`, and the pins in `scripts/migration-audit.mjs` | a table | every migration entry |
 | 7 | `scripts/lib/surfaces.mjs`, `roleFor` | a portal screen, **only** if the default probe role cannot open it | `/portal/waiting`, `/portal/review` |
+| 8 | `scripts/token-audit.mjs`, **both** `PORTED` and one of `CUSTOMER_V10` / `STAFF_V10` | any screen held to the design system | `/account/orders`, missed BOTH on 2026-10-01 |
+| 9 | `scripts/probe-capture.mjs`, `SCREENS` | a signed in CUSTOMER screen | `/account/orders`, added 2026-10-03 |
 
 ---
+
+## What rows 8 and 9 cost, and why 8 is two lists rather than one
+
+**Row 8 is the one with the trap in it, and `/account/orders` fell into it.**
+`token-audit` holds two lists that sound like one thing. `PORTED` decides which
+files the audit READS. `CUSTOMER_V10` and `STAFF_V10` decide which RULES a file
+it reads is held to. A screen on the second and not the first is **declared and
+never looked at**: neither the type scale nor the colour rule touches it, and
+every check about it passes over nothing.
+
+That is what happened. The orders list sat on `CUSTOMER_V10` and off `PORTED`
+from 2026-10-01 to 2026-10-02, and the day it was added to `PORTED` the audit
+immediately found four capital-transformed table headers and two monospace
+columns that had been invisible. `FileSelection.tsx` was the same shape and
+hiding three raw hexes including a red.
+
+`token-audit` carries its own check for this, "every file declared as V10 is one
+this audit reads", so the board does name it. The cost of missing it is that
+nothing names it until somebody adds the second line.
+
+**Row 9 costs a screen nobody has looked at.** Captures are how a person reads a
+surface, and this repository's rule is that a report naming no artefact is a
+report written from the board. A customer screen absent from `SCREENS` is one
+no capture exists of, so the one check that finds what the harness cannot was
+never run on it.
 
 ## What each row costs if you miss it
 
