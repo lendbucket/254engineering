@@ -53,6 +53,20 @@ const SCREENS = [
   { route: "/account/settings", design: null, name: "account-settings" },
   { route: "/account/statements", design: null, name: "account-statements" },
   { route: "/account/order", design: null, name: "account-bulk-order" },
+  /*
+   * The orders list, built 2026-10-01 and not captured until now, which is the
+   * same omission in a second place: a screen was added to the design
+   * declaration and to the token audit's customer list, and the thing that
+   * actually LOOKS at it was left alone.
+   *
+   * A FRESH PROBE HAS NO ORDERS, so this captures the empty state and says so.
+   * Showing a populated list would mean writing a service order on development,
+   * and eng_service_orders is append only, so the row could never be swept and
+   * a probe's purchase would sit in the firm's records for ever. The empty state
+   * is a real state a real customer meets on their first visit, and it is the
+   * one this screen most needs to get right.
+   */
+  { route: "/account/orders", design: null, name: "account-orders" },
 ];
 const WIDTHS = [
   { name: "1280", width: 1280, height: 900 },
