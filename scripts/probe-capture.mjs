@@ -34,6 +34,7 @@ import { randomBytes, scryptSync } from "node:crypto";
 import { chromium } from "playwright";
 
 import { auditClient, describeTarget } from "./lib/db-target.mjs";
+import { readEveryRow } from "./lib/read-every-row.mjs";
 import { startNextServer } from "./lib/dev-server.mjs";
 import { takeLock } from "./lib/machine-lock.mjs";
 import { PORTS } from "./lib/ports.mjs";
@@ -136,12 +137,63 @@ async function build() {
 async function sweep() {
   const removed = [];
   const failed = [];
+  /*
+   * A THIRD OUTCOME, AND IT IS "unreachable is not failed" APPLIED TO TEARDOWN.
+   *
+   * Two of the four rows here CANNOT be deleted, by deliberate design.
+   * eng_customer_accounts refuses it outright with its own sentence, "an account
+   * is superseded, never deleted", and eng_clients then refuses because that
+   * account still references it. Reporting those as FAILED said the sweep tried
+   * and something went wrong, when the truth is the schema answered exactly as
+   * it was built to.
+   *
+   * It matters because of what it buried. The run of 2026-10-03 printed three
+   * FAILED lines, two of them designed-in refusals, and the third was a real
+   * defect that had been there since the file was written. A verdict everybody
+   * learns to skim is where the next real one hides, which is the same argument
+   * COULD NOT TELL exists for at the level of a whole audit.
+   */
+  const byDesign = [];
 
-  /* Jobs first, so a job naming this probe cannot outlive the rows it names. */
-  const { data: jobs, error: je } = await db
-    .from("eng_jobs")
-    .select("id, kind, status")
-    .ilike("payload", `%${EMAIL}%`);
+  /*
+   * Jobs first, so a job naming this probe cannot outlive the rows it names.
+   *
+   * THE MATCH IS DONE HERE RATHER THAN IN THE DATABASE, and the two attempts
+   * before it are why.
+   *
+   * It read `.ilike("payload", ...)` against a JSONB column. Postgres has no
+   * ILIKE for jsonb, so every run since this file was written answered
+   *
+   *     operator does not exist: jsonb ~~* unknown
+   *
+   * and the check never once executed. The obvious repair, casting with
+   * `.filter("payload::text", "ilike", ...)`, was tried against development and
+   * answers with the SAME ERROR: PostgREST does not honour the cast there. That
+   * was established by running it, not by reasoning about it, which is the only
+   * reason this file does not now carry a second query that never runs.
+   *
+   * So the queue is read whole and matched in JS. `readEveryRow` refuses to
+   * return unless what it assembled equals an exact count taken first, so a
+   * silent 1000 row ceiling cannot make this pass over a short list. 784 rows on
+   * development today, and the payload shape differs per job kind, which is the
+   * other reason a field-path filter was the wrong answer.
+   *
+   * WHICH CHECK THIS IS, AND IT IS THE PART THAT MATTERS. The header of this
+   * file gives three independent reasons nothing can be delivered to the probe,
+   * and says of the third, "nothing is queued", that it "is the one that makes
+   * this safe rather than merely unlikely". This is the read that confirms it.
+   * The load bearing half of the safety argument was asserted by a query that
+   * errored every time, printed beside two refusals that are supposed to happen.
+   */
+  let jobs = null;
+  let je = null;
+  try {
+    const all = await readEveryRow(db, "eng_jobs", "id, kind, status, payload");
+    const needle = EMAIL.toLowerCase();
+    jobs = all.filter((j) => JSON.stringify(j.payload ?? "").toLowerCase().includes(needle));
+  } catch (e) {
+    je = { message: e instanceof Error ? e.message : String(e) };
+  }
   if (je) {
     failed.push(`could not read the job queue: ${je.message}`);
   } else if ((jobs ?? []).length === 0) {
@@ -165,8 +217,30 @@ async function sweep() {
       .from(table)
       .delete({ count: "exact" })
       .eq(column, id);
-    if (error) failed.push(`${label}: ${error.message}`);
-    else removed.push(`${count ?? "?"} ${label}`);
+    if (!error) {
+      removed.push(`${count ?? "?"} ${label}`);
+      continue;
+    }
+    /*
+     * The two designed-in refusals, matched on what the database actually said
+     * rather than on the table name. A rule keyed on the table would go on
+     * excusing it after somebody made the row deletable, which is the quiet
+     * version of this going wrong.
+     */
+    const supersededNotDeleted = /superseded, never deleted/i.test(error.message);
+    const heldByTheAccount =
+      table === "eng_clients" && /eng_customer_accounts_client_id_fkey/.test(error.message);
+    if (supersededNotDeleted || heldByTheAccount) {
+      byDesign.push(
+        `${label}: ${
+          supersededNotDeleted
+            ? "the schema refuses it, because an account is the record of what somebody was charged"
+            : "its account still references it, which follows from the line above"
+        }`,
+      );
+    } else {
+      failed.push(`${label}: ${error.message}`);
+    }
   }
 
   /* VERIFIED BY READING BACK, against the table the delete did not read. */
@@ -178,13 +252,26 @@ async function sweep() {
   console.log("");
   console.log("=== SWEEP ===");
   for (const r of removed) console.log(`  removed  ${r}`);
+  for (const b of byDesign) console.log(`  KEPT     ${b}`);
   for (const f of failed) console.log(`  FAILED   ${f}`);
   console.log(`  read back: ${left ?? "?"} customer user(s) remain for that address`);
+  /*
+   * AND THE READ BACK IS THE ONE THAT MATTERS, said out loud rather than left to
+   * be inferred from a zero. What is kept is a client and a superseded account,
+   * neither of which can sign in to anything. What had to go is the credential,
+   * and this is the line that proves it did.
+   */
+  console.log(
+    "  The kept rows hold no credential. A client and a superseded account cannot",
+  );
+  console.log(
+    "  sign in; the customer user is the thing that can, and the count above is it.",
+  );
   console.log(
     "  NOT removable: any eng_audit_events row about this probe. That table refuses",
   );
   console.log("  deletes by design, which is why this made as few of them as possible.");
-  return { removed, failed, left };
+  return { removed, byDesign, failed, left };
 }
 
 const release = await takeLock({
