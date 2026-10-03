@@ -54,12 +54,18 @@ import { PhoneNumber } from "@/components/ui/PhoneNumber";
  * seo-audit anyway because this route was missing from the sitemap, which is
  * where that audit gets its subject. Two defects, each hiding the other.
  *
- * Title 56 of 50 to 60. Description 155 of 140 to 160.
+ * Title 56 of 50 to 60. Description 143 of 140 to 160.
+ *
+ * "usually after one call" came out on his ruling of 2026-10-03, with the same
+ * reasoning as the intro sentence below: it is a soft promise about how fast the
+ * firm answers. Removing it left 131, nine under the floor, so the replacement
+ * was measured rather than guessed and "Start here." is a call to action rather
+ * than padding.
  */
 export const metadata: Metadata = buildMetadata({
   title: "Order engineering work online | 254 Engineering Services",
   description:
-    "Choose what you need. Lines open for online ordering show the price and take the order now. Every other line is quoted by the firm, usually after one call.",
+    "Choose what you need. Lines open for online ordering show the price and take the order now. Every other line is quoted by the firm. Start here.",
   path: "/order",
 });
 
@@ -101,11 +107,35 @@ export default function OrderChooserPage() {
                 agreement between a verb and a count that only becomes plural on
                 the day a second line opens.
               */}
+              {/*
+                NO TIMEFRAME, NO COUNT OF CALLS, NO PROMISED DATE. Operator
+                ruling, 2026-10-03: "usually after one short conversation" and
+                "usually after one call" both came out. Each was a soft promise
+                about how fast the firm answers, which is a claim about an
+                engineer's capacity, and the standing rule is that turnaround
+                statements stay qualitative while the gate governs what this firm
+                may say about sealed work. "Quoted by the firm" is the honest
+                shape: it says who does it and not when.
+
+                THE OPEN LINE IS NAMED AND THE NAME IS DERIVED, which was his
+                second instruction. It comes off the catalogue entry through
+                `deliverable`, so the day a second line opens this sentence
+                changes by itself.
+
+                AND IT USES AN ARTICLE RATHER THAN A PLURAL, deliberately.
+                Pluralising by adding "s" was tested against all eleven catalogue
+                names and is wrong on three: "WPI-8E windstorm evaluation,
+                completed constructions", "Structural letter for permits", and
+                "Beam and header sizings". A pluralisation rule good enough for
+                every name a future line might carry is a small piece of English
+                grammar nobody should be writing into a marketing page, and
+                getting it wrong is visible to every reader.
+              */}
               {open.length === 0
                 ? "Every line below is quoted by the firm. Tell us what you need and we will send you a price."
-                : open.length === 1
-                  ? "One line is open for ordering online and takes the order now. Everything else is quoted by the firm, usually after one short conversation."
-                  : `${open.length} lines are open for ordering online and take the order now. Everything else is quoted by the firm, usually after one short conversation.`}
+                : open.length === 1 && open[0].deliverable
+                  ? `A ${open[0].deliverable.toLowerCase()} can be ordered online now. Everything else is quoted by the firm. Tell us what you need and we will send you a price.`
+                  : `${open.length} lines can be ordered online now. Everything else is quoted by the firm. Tell us what you need and we will send you a price.`}
             </p>
 
             <ul className="mt-10 border-t border-[var(--color-limestone-line)]">

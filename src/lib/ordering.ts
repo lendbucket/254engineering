@@ -101,20 +101,24 @@ export type LineOffer = {
    * to the customer as its own named line, never folded into a larger total".
    */
   coastal: string | null;
-  /*
-   * `deliverable` is gone, 2026-10-03, with the chooser subtitle that was its
-   * only reader. It held the catalogue entry's name, "Roof certification letter",
-   * and the operator ruled the subtitles off for repeating their titles.
+  /**
+   * The deliverable a buyer of this line receives: "Roof certification letter".
    *
-   * Removed rather than left in place because a field computed on every call and
-   * read by nothing is the shape that survives for years looking load bearing.
-   * The same thing was true of `statusTone` on the file selection list earlier
-   * today, and it had outlived its chip by one commit rather than by one year
-   * only because somebody looked.
+   * REMOVED AND THEN PUT BACK WITHIN THE HOUR, 2026-10-03, and both halves were
+   * right. It was deleted when the chooser subtitles came off, because it then
+   * had no reader and a value computed on every call and read by nothing is the
+   * shape that survives for years looking load bearing.
    *
-   * The entry's name is still used, inside `orderLabel`, which is where a reader
-   * meets it now: "Order a roof certification letter".
+   * It is back because the operator ruled that the chooser's intro must NAME the
+   * open line and derive that name from the gate rather than hardcode it. That
+   * is a real reader, so the field earns its place again.
+   *
+   * The lesson is not "do not delete". It is that a declaration is kept by a
+   * caller and nothing else, and when the caller goes the field should go with
+   * it, even if something wants it back a commit later. The alternative is a
+   * type where nobody can tell which fields are live.
    */
+  deliverable: string | null;
 };
 
 /** The catalogue entry a price is quoted from: the cheapest orderable one. */
@@ -162,6 +166,14 @@ export function lineOffer(slug: string): LineOffer {
       orderable && entry && isKnown(entry.coastalSurchargeCents)
         ? `plus ${money(entry.coastalSurchargeCents)} in first tier coastal counties`
         : null,
+    /*
+     * Not gated on `orderable`, unlike the price and the coastal line. Those two
+     * are things a reader can act on and must not appear beside a line nobody can
+     * buy. This is simply what the deliverable is called, which is true whether
+     * the line is open or shut, and the chooser's intro needs it for the line
+     * that IS open.
+     */
+    deliverable: entry?.name ?? null,
   };
 }
 
