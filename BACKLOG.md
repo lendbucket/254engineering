@@ -4,6 +4,64 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## MAY THE FIRM SEAL SOMETHING THAT IS NOT ONE JOB'S DELIVERABLE? NOBODY HAS RULED
+
+Raised 2026-10-03 by a constraint that was written, refused and withdrawn
+before it was applied anywhere. **It needs the operator and the engineer of
+record, not a session.**
+
+`0061_a_sealed_deliverable_says_who_and_when.sql` was drafted with two check
+constraints. The second read
+
+    check (sealed_at is null or kind = 'deliverable')
+
+on the argument that `eng_documents.kind` permits six values and five of them
+are the firm's own paperwork, so a seal on one of those would be a sealed
+engineering document the engineer never issued.
+
+**`migration-audit` refused it, and what it named settles that the question is
+real rather than pedantic.** A fixture in that audit inserts a sealed
+`firm_document` **with no file at all**, deliberately, to prove 0032's delete
+trigger reads `sealed_at` through `to_jsonb(old)` so a seal defends itself
+whatever it hangs off. Somebody had already decided a sealed document need not
+be a per-file deliverable, and wrote a check that depends on it.
+
+**So the clause was not a schema tightening, it was a ruling about what the firm
+may put a seal on, invented by a session in a migration comment.** An engineer
+may well seal a document that is not one job's letter: a sealed opinion on a
+standard detail, or a sealed statement about the firm itself. The constraint
+that survived, `(sealed_at is null) = (sealed_by is null)`, needs nobody's
+ruling, because neither half of a seal has a legitimate reading alone.
+
+**What a ruling has to decide:** which of the six `kind` values may ever carry a
+seal. If the answer is only `deliverable`, the clause goes back in and the
+fixture's `kind` changes to match. If it is more than one, nothing changes and
+this entry records why.
+
+## THE PARKED 0061 MUST RENUMBER TO 0062 BEFORE IT MERGES
+
+Recorded 2026-10-03. `0061_credentials_hold_no_documents.sql` on
+`migration/credentials-hold-no-documents` is the `drop column` parked because
+the Supabase MCP cancels a destructive statement before it runs. Its sitting
+procedure and worked example are in `docs/production-sitting-destructive.md`.
+
+**That number is now taken.** The sealed delivery migration was written as 0062
+precisely to avoid the collision, and `migration-audit` refused the gap:
+
+    FAIL: they are numbered contiguously from 0000 (got 0 ... 60, 62)
+
+**The check is right and the collision-avoidance was wrong**, because the two
+problems are not the same size. A duplicate number is found by `git` the moment
+two branches meet, loudly, with both files in front of somebody. A gap is a
+chain that cannot be replayed into an empty database and reads exactly like a
+migration that was lost, which is the recovery case that audit exists for.
+
+**So the renumber is two edits on that branch**, not done here because the
+branch is the operator's and its sitting script names the file: rename
+`0061_credentials_hold_no_documents.sql` to `0062_...`, and update the two
+places `docs/production-sitting-destructive.md` names it. Its ledger entry is
+written at the sitting either way.
+
 ## TWO DEFECTS THE STAFF WALK FOUND, 2026-10-03, AND NEITHER IS FIXED
 
 Operator ruling, 2026-10-03: added to the fix list, not fixed now. Both were

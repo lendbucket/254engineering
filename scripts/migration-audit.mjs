@@ -781,14 +781,41 @@ if (failedAt === null) {
    */
   const SEALED_FILE = "'00000000-0000-4000-8000-0000000000ab'";
   const OPEN_FILE = "'00000000-0000-4000-8000-0000000000ac'";
+  /*
+   * THE SEALER, ADDED 2026-10-03 BECAUSE 0062 MADE THE OLD FIXTURE
+   * UNREPRESENTABLE, AND THAT IS THE CONSTRAINT WORKING.
+   *
+   * This fixture used to insert `sealed_at` with no `sealed_by`, because
+   * nothing required one. 0062 adds
+   * `check ((sealed_at is null) = (sealed_by is null))`, so the row the
+   * fixture wanted is now a row the database refuses, and the replay failed
+   * naming the constraint.
+   *
+   * THE FIXTURE WAS WRONG AND THE CONSTRAINT IS RIGHT, so the fixture gains
+   * the column rather than the constraint losing the clause. Loosening it so
+   * both shapes pass is how a check becomes a check on nothing, which this
+   * repository has recorded twice; and a half sealed row is exactly what 0062
+   * exists to make impossible, so a fixture that depends on one is a fixture
+   * asserting a state the firm has ruled out.
+   *
+   * It is also the integration lesson arriving on a single branch: a change
+   * that RECORDS something a fixture assumed absent breaks that fixture, and
+   * the fixture usually lives in a file the change has no reason to open.
+   */
+  const SEALER = "'00000000-0000-4000-8000-0000000000bf'";
 
   await db.exec(`
+    insert into auth.users (id) values (${SEALER});
+
+    insert into eng_profiles (id, email, display_name, role)
+    values (${SEALER}, 'probe-sealer@example.com', 'Probe Sealer, not a real person', 'engineer');
+
     insert into eng_files (id, client_id, file_number, property_address, county, service_slug)
     values (${SEALED_FILE}, '00000000-0000-4000-8000-0000000000dd', '254-PROBE-SEAL', '2 Probe Street', 'Nueces', 'windstorm'),
            (${OPEN_FILE}, '00000000-0000-4000-8000-0000000000dd', '254-PROBE-OPEN', '3 Probe Street', 'Nueces', 'windstorm');
 
-    insert into eng_documents (id, file_id, kind, title, bucket, storage_key, sealed_at)
-    values ('00000000-0000-4000-8000-0000000000b1', ${SEALED_FILE}, 'deliverable', 'Probe sealed letter', 'docs', 'probe/sealed', now());
+    insert into eng_documents (id, file_id, kind, title, bucket, storage_key, sealed_at, sealed_by)
+    values ('00000000-0000-4000-8000-0000000000b1', ${SEALED_FILE}, 'deliverable', 'Probe sealed letter', 'docs', 'probe/sealed', now(), ${SEALER});
 
     insert into eng_documents (id, file_id, kind, title, bucket, storage_key)
     values ('00000000-0000-4000-8000-0000000000b2', ${OPEN_FILE}, 'deliverable', 'Probe draft', 'docs', 'probe/draft');
@@ -827,9 +854,20 @@ if (failedAt === null) {
    * eng_documents.file_id is NULLABLE. A sealed firm document with no file
    * is protected by the first branch alone, and by nothing else.
    */
+  /*
+   * `sealed_by` added 2026-10-03, for the same reason the sealed-work fixture
+   * above gained it: 0062 makes a seal with no sealer unrepresentable, and this
+   * row had one date and nobody's name. The `kind` is UNTOUCHED on purpose.
+   * 0062 also carried a clause forbidding a seal on anything but a
+   * 'deliverable', this fixture is what refused it, and the clause was
+   * withdrawn rather than the fixture bent: whether the firm may seal a
+   * document that is not one job's letter is a ruling nobody has made, and it
+   * is in BACKLOG.md. What this fixture is FOR is file independence, and that
+   * is unchanged.
+   */
   await db.exec(`
-    insert into eng_documents (id, kind, title, bucket, storage_key, sealed_at)
-    values ('00000000-0000-4000-8000-0000000000b3', 'firm_document', 'Probe sealed, no file', 'docs', 'probe/loose', now());
+    insert into eng_documents (id, kind, title, bucket, storage_key, sealed_at, sealed_by)
+    values ('00000000-0000-4000-8000-0000000000b3', 'firm_document', 'Probe sealed, no file', 'docs', 'probe/loose', now(), ${SEALER});
   `);
   rec(
     "a sealed document with no file is refused by the branch that is only about sealing",

@@ -1800,6 +1800,52 @@ export const APPLIED = [
       "migration CHANGES it, and the do-update clause is deliberate: it re-asserts private, the " +
       "limit and the list rather than leaving a bucket somebody widened in the dashboard.",
   },
+
+  {
+    file: "0061_a_sealed_deliverable_says_who_and_when.sql", appliedBy: null,
+    fingerprint: "e2bc81c9096a0eb4d8b8366ce3aea881",
+    behaviour: "50c1fa67080ae10a68b9f2aaf0d6037e",
+    production: null,
+    note:
+      "THE SHAPE FINGERPRINT REPEATS 0060's AND THAT IS NOT A COPIED LINE. It reads " +
+      "information_schema.columns for eng_ tables; this migration adds no column, and the replay " +
+      "confirms it unmoved at 1143 columns and 81 tables. What DOES move is the behaviour digest, " +
+      "6f2ad57d4793229e8db629936f0cbb74 to 50c1fa67080ae10a68b9f2aaf0d6037e, and it moves by " +
+      "EXACTLY ONE FACT, 920 to 921, which is the one check constraint. That figure was derived from " +
+      "scripts/fingerprint-at.mjs at 0060 and at 0061 rather than predicted. " +
+      "The bucket is invisible to both digests, for the reason 0060 states at length, so the bucket " +
+      "is read back AS A BUCKET and never as a digest.",
+    because:
+      "WRITTEN 2026-10-03 AND APPLIED NOWHERE, INCLUDING DEVELOPMENT. The operator approved the " +
+      "constraint in principle and ruled it goes to production in a sitting rather than through a " +
+      "session. Its branch, feat/sealed-delivery, does not merge until this entry is not pending, " +
+      "because a migration on main is never pending. " +
+      "WHAT IT DOES. One bucket, eng-documents, private, 25MB, application/pdf only; and one check " +
+      "constraint on eng_documents, ((sealed_at is null) = (sealed_by is null)). " +
+      "THE SHAPE FINGERPRINT IS UNCHANGED AND THAT IS NOT A COPIED LINE. It reads " +
+      "information_schema.columns for eng_ tables, this migration adds no column, and the replay " +
+      "confirmed it at 1143 columns and 81 tables. The BEHAVIOUR digest DOES move, by one check " +
+      "constraint, and it is recorded as null rather than guessed because no replay-against-replay " +
+      "has been run since the file was written; it is read back at the sitting. The bucket is " +
+      "invisible to both digests for the reason 0060 states, so the bucket is READ BACK as a bucket. " +
+      "WHY THE BUCKET IS HERE AT ALL. 0060 made it a rule that every bucket the code names is " +
+      "created by this chain, and added the check that compares the two. eng-documents is named by " +
+      "the upload path being built on this branch, so without this file migration-audit goes red " +
+      "naming it, which is the bucket half of this migration's injection test and costs nothing to " +
+      "run because the check already exists. " +
+      "WHAT WAS WITHDRAWN BEFORE IT WAS APPLIED. A second constraint forbidding a seal on any kind " +
+      "but 'deliverable'. migration-audit refused it, naming a 0032 fixture that seals a " +
+      "firm_document with no file on purpose, to prove the delete trigger defends a seal whatever it " +
+      "hangs off. That fixture is evidence somebody already decided a sealed document need not be " +
+      "one job's letter, so the clause was a RULING about what the firm may seal, invented in a " +
+      "migration comment. It is in BACKLOG.md for the operator and the engineer of record. " +
+      "AND THE NUMBER MOVED. Written as 0062 to avoid colliding with the parked 0061 on " +
+      "migration/credentials-hold-no-documents, and the contiguity check refused the gap: a " +
+      "duplicate number is found by git when two branches meet, a gap is a chain that cannot be " +
+      "replayed and reads like a lost migration. The parked branch renumbers to 0062 before it " +
+      "merges, which also renames the worked example in docs/production-sitting-destructive.md.",
+    proves: { bucket: "eng-documents", constraint: "eng_documents_seal_is_whole_ck" },
+  },
 ];
 
 /**
