@@ -4,6 +4,83 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## TWO DEFECTS THE STAFF WALK FOUND, 2026-10-03, AND NEITHER IS FIXED
+
+Operator ruling, 2026-10-03: added to the fix list, not fixed now. Both were
+found by driving the product's own routes rather than by reading them, which is
+the argument for the walk.
+
+### 1. `create_client` has no double-submit protection
+
+`POST /api/portal/files` with `action: "create_client"`, fired twice with the
+same name and email, produced **two client rows 0.6 seconds apart**, both
+answering HTTP 200. There is no idempotency key, no unique index on the
+address, and no read-before-insert.
+
+**Why it is not merely untidy.** A coordinator who double-clicks, or whose
+connection retries, splits one customer into two clients. Everything that hangs
+off a client then splits with it: files, orders, the account a checkout opens,
+and every figure that counts clients. Nothing downstream can tell the two rows
+apart, because they are identical apart from the id.
+
+**The two rows it produced on development are the reason `demo-audit` went red
+on the board of 2026-10-03**, and they were marked `is_demo` by hand on the
+operator's ruling the same day, by UPDATE and never DELETE, ids recorded in
+that session. Marking them removed the symptom and not the defect.
+
+**What a fix has to decide**, and it is a behaviour question rather than a
+mechanical one: whether a second create with the same address is an error, a
+no-op returning the first row, or a legitimate second client at the same
+address. A household and a landlord are both real, so a unique index on the
+email would be the wrong answer on its own.
+
+### 2. `/portal/clients` has no bound, so its list grows with the table
+
+`native-audit` failed on the board of 2026-10-03 with
+
+    FAIL: /portal/clients: the list is bounded (253 row(s))
+
+and it was right. The screen renders every client it reads, so its height is a
+function of the table. Development holds 913 clients, 653 of them probes, and
+the screen rendered 253 rows in one page.
+
+**This is the `/portal/queue` lesson with a different table.** That screen was
+38,744 pixels tall at 1280 and every check looking at it was green, because
+nothing on the board measured how tall a portal screen is. `native-audit` now
+does, which is why this one was caught rather than discovered by opening it.
+
+**It is the second half of the probe silt problem rather than a separate
+item.** The 641 stranded clients already recorded below are what pushed this
+screen over its bound, so the two interact: clearing the silt would hide this
+defect again without fixing it, and a bound on the list fixes it whatever the
+table holds. The bound is the real fix and the silt is the reason it was
+visible.
+
+## AND THE NINE ROW CHECKLIST HAS NO ROW FOR A PUBLIC TOKEN-GATED API ROUTE
+
+Found 2026-10-03 while reading `docs/new-surface-checklist.md` before building
+the sealed delivery path, which is what that document is for.
+
+Row 2 covers a PORTAL API route and row 1 covers any signed in SCREEN. A public
+API route whose only authorization is a signed token in the query string
+belongs to neither, and the customer's read of a sealed document is the first
+one this platform will have.
+
+**The precedent is a page rather than a route.** `/order/[reference]` is public
+and token-gated, and `security-audit.mjs:1351` asserts both halves of it: no
+token and a bad token must not open an order, read by looking for the failure
+SENTENCE rather than for a status code, because that page answers 200 while
+refusing. An API route of the same class needs the same pair and has no row
+telling anybody to write it.
+
+**Not closed as part of the delivery branch, deliberately.** The route being
+built there carries its own two assertions, so the instance is covered. Whether
+the checklist gains a tenth row, or row 2 widens from "a portal API route" to
+"any API route, with the public ones owing a token pair", is a decision about
+that document rather than about this feature, and the same reasoning that made
+row 1 say "any signed in screen" on 2026-10-03 applies: widening the scope is
+the class fix, adding one path is the instance.
+
 ## WAITING ON ROBERT
 
 Operator ruling, 2026-10-01: stop and ask only for behaviour, money, customer
