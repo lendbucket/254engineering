@@ -117,6 +117,22 @@ const BASE = process.env.BASE_URL || AUDIT_BASE_URL;
  */
 const PUBLIC_EMAIL = "support@254engineering.com";
 
+/*
+ * HOW MANY RENDERED PAGES ACTUALLY CARRIED AN email PROPERTY TO CHECK.
+ *
+ * The rendered assertion further down loops over each page's JSON-LD and
+ * compares `node.email` when it is present. A loop that finds the property on
+ * NO page passes exactly as cleanly as one that finds it correct everywhere,
+ * and the first board that ran it could not tell me which had happened.
+ *
+ * That is the vacuous green this repository keeps meeting: a check on an empty
+ * set, announcing nothing. So the count is carried out and asserted below, the
+ * way surface-audit carries its own vacuity check for the same reason. If
+ * schema.tsx stops emitting the property, or this audit stops reaching the page
+ * that has it, the board says so instead of going quietly green.
+ */
+let schemaEmailsSeen = 0;
+
 {
   const businessSource = readSource("src/config/business.ts");
   const identitySource = readSource("src/config/email-identity.ts");
@@ -360,6 +376,7 @@ for (const route of routes) {
   for (const node of meta.jsonLd.filter(Boolean)) {
     const mail = node.email;
     if (mail === undefined || mail === null) continue;
+    schemaEmailsSeen += 1;
     if (String(mail) !== PUBLIC_EMAIL) {
       problems.push(
         `${route}: schema email is "${mail}" and the firm's one public address is ${PUBLIC_EMAIL}. ` +
@@ -490,6 +507,27 @@ for (const route of routes) {
     console.log(`${route}: valid through ${node.validThrough} (posted ${node.datePosted})`);
   }
   console.log(`warning window: ${windowDays} days, so anything on or before ${warnFrom} fails`);
+}
+
+/*
+ * THE VACUITY GUARD ON THE RENDERED ADDRESS CHECK.
+ *
+ * Asserted after the routes have been walked, because only then is the count
+ * real. A zero here means the loop above inspected nothing: either schema.tsx
+ * stopped emitting the email property, or this audit stopped reaching any page
+ * that carries it. Both of those are a check that has silently become a green
+ * line about an empty set, which is worse than no check, because the line
+ * scrolls past in a green run and everybody trusts the green.
+ */
+if (schemaEmailsSeen === 0) {
+  problems.push(
+    "the rendered schema email check inspected nothing: no page's JSON-LD carried an email " +
+      "property, so that check would pass whatever address the firm published. schema.tsx emits " +
+      `business.email as the Organization email, and ${PUBLIC_EMAIL} is the pinned value it has ` +
+      "to equal.",
+  );
+} else {
+  console.log(`PASS: the rendered schema email was checked on ${schemaEmailsSeen} JSON-LD node(s).`);
 }
 
 for (const [title, where] of titles) {
