@@ -86,6 +86,74 @@ const BASE = process.env.BASE_URL || AUDIT_BASE_URL;
 }
 
 /*
+ * ==========================================================================
+ * THE PUBLIC ADDRESS AND THE MAILBOX A REPLY REACHES ARE ONE ADDRESS.
+ * ==========================================================================
+ *
+ * Operator ruling, 2026-10-04. He reads support@254engineering.com, and
+ * info@254engineering.com does not exist as a mailbox at all.
+ *
+ * WHAT HAPPENED, AND IT IS THE DEFECT THIS REPOSITORY MEETS MOST OFTEN. Every
+ * email's Reply-To collapsed to support@ on 2026-09-08 and the reasoning was
+ * written down in email-identity.ts in plain words. `business.email` stayed at
+ * info@, so for twenty-six days thirty public surfaces and the FOOTER of every
+ * outbound message printed an address that reached nobody, while every reply
+ * went somewhere else. Two homes for one fact, and the drift landed in the one
+ * nothing checked.
+ *
+ * THE LITERAL IS WRITTEN HERE AND NOT IMPORTED, which is the section 6c
+ * mechanism rather than duplication for its own sake. This audit imports
+ * neither config: an audit that reads its expectation from the module under
+ * test compares a value to itself and cannot disagree with anything, which this
+ * file already records about email-audit's From header. So the address is
+ * stated, and both configs are read as TEXT and asserted to agree with it.
+ * Changing the firm's address costs three deliberate edits.
+ *
+ * TWO CHECKS, BECAUSE THEY FAIL IN DIFFERENT WORLDS. The first asserts the two
+ * configs agree with the ruling and with each other, which is the drift this
+ * exists to prevent. The second asserts the RENDERED JSON-LD, further down,
+ * because the source can be right while the render is not, and nobody reads
+ * JSON-LD by eye.
+ */
+const PUBLIC_EMAIL = "support@254engineering.com";
+
+{
+  const businessSource = readSource("src/config/business.ts");
+  const identitySource = readSource("src/config/email-identity.ts");
+
+  /*
+   * Matched on the FIELD and the CONSTANT, not on a bare mention, because both
+   * files now discuss the old address in prose and a substring search would
+   * find it there. CLAUDE.md records five instances of a matcher attaching to
+   * its neighbour, and four of them were a pattern looking for a call that
+   * matched a name.
+   */
+  const declared = businessSource.match(/email:\s*"([^"]+)"/);
+  const replyTo = identitySource.match(/REPLY_TO\s*=\s*`([^`]+)`/);
+
+  const publicAddress = declared ? declared[1] : null;
+  /* `support@${business.domain}`, resolved against the domain this audit pins. */
+  const replyAddress = replyTo ? replyTo[1].replace("${business.domain}", "254engineering.com") : null;
+
+  const agree = publicAddress === PUBLIC_EMAIL && replyAddress === PUBLIC_EMAIL;
+
+  if (!agree) {
+    console.log("");
+    console.log(`FAIL: the public address and the email reply-to must both be ${PUBLIC_EMAIL}.`);
+    console.log(`  src/config/business.ts         email: ${publicAddress ?? "(could not read it)"}`);
+    console.log(`  src/config/email-identity.ts   REPLY_TO: ${replyAddress ?? "(could not read it)"}`);
+    console.log("");
+    console.log("  These were two different addresses for twenty-six days: every reply reached");
+    console.log("  support@ while thirty public surfaces and every email footer printed info@,");
+    console.log("  a mailbox that does not exist. If the firm's address is genuinely changing,");
+    console.log("  this literal moves too, and that third edit is the point of it.");
+    process.exitCode = 1;
+  } else {
+    console.log(`PASS: the public address and the email reply-to are both ${PUBLIC_EMAIL}.`);
+  }
+}
+
+/*
  * The playbook 3.4 bands, both ends enforced.
  *
  * The floor is the half this audit was missing. It checked a ceiling only, on
@@ -275,6 +343,28 @@ for (const route of routes) {
         `${route}: schema telephone is "${tel}", which is not E.164. ` +
           "src/config/contact.ts stores E.164 and derives every display form from it; " +
           "a display string here is published to every machine that reads this page.",
+      );
+    }
+  }
+
+  /*
+   * AND THE EMAIL PROPERTY, FOR THE SAME REASON AND AGAINST A PINNED LITERAL.
+   *
+   * schema.tsx emits business.email as the JSON-LD `email` on every page, so
+   * this is the machine-readable half of the address: a crawler, a knowledge
+   * panel, and anything reading structured data take it from here. It is
+   * asserted against the literal rather than against the config, because the
+   * config being self-consistent is the thing that was already true while the
+   * address was wrong.
+   */
+  for (const node of meta.jsonLd.filter(Boolean)) {
+    const mail = node.email;
+    if (mail === undefined || mail === null) continue;
+    if (String(mail) !== PUBLIC_EMAIL) {
+      problems.push(
+        `${route}: schema email is "${mail}" and the firm's one public address is ${PUBLIC_EMAIL}. ` +
+          "Every machine that reads this page takes the address from here, and info@254engineering.com " +
+          "is not a mailbox that exists.",
       );
     }
   }

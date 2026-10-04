@@ -67,11 +67,38 @@ export const business = {
   /**
    * The one public address. Every other address in rendered output is a finding.
    *
-   * OWNER VERIFICATION: this mailbox has to exist before launch. It is the point
-   * of contact printed on the government capability statement, so a bounce there
-   * is a lost solicitation rather than a lost enquiry.
+   * IT WAS info@254engineering.com UNTIL 2026-10-04, AND THAT MAILBOX DOES NOT
+   * EXIST. Operator ruling: he reads support@254engineering.com, and that is the
+   * one firm address a customer sees.
+   *
+   * THE SENTENCE THAT USED TO SIT HERE IS WHY THIS ENTRY IS LONG. It read:
+   *
+   *     "OWNER VERIFICATION: this mailbox has to exist before launch. It is the
+   *      point of contact printed on the government capability statement, so a
+   *      bounce there is a lost solicitation rather than a lost enquiry."
+   *
+   * That was right about the stakes and it was a reminder addressed to whoever
+   * happened to open the file, which is the same shape as the JobPosting date
+   * seo-audit now watches. Nobody opened it. Meanwhile every email this firm
+   * sends had collapsed its Reply-To to support@ on 2026-09-08, so for
+   * twenty-six days the FOOTER of every message and thirty public surfaces
+   * printed one address while every reply reached another.
+   *
+   * WHAT THIS VALUE REACHES, read rather than remembered: the sitewide footer
+   * and header, contact, corpus-christi, government, privacy twice, terms, the
+   * onboarding screens, three careers failure messages, the two lead intake
+   * answers, llms.txt, llms-full.txt, and `schema.tsx`, which emits it as the
+   * JSON-LD `email` property on every page. That last one is the surface that
+   * could have been wrong without looking wrong, exactly as the telephone was
+   * in 2026-09-14: nobody reads JSON-LD by eye.
+   *
+   * AND IT IS PINNED NOW, IN TWO PLACES THAT ARE NOT THIS FILE. `seo-audit`
+   * asserts the RENDERED JSON-LD email against a literal, and asserts this value
+   * equals the email reply-to, so the public address and the mailbox a reply
+   * reaches cannot drift apart again. A reminder in a comment is not a check,
+   * which is what the paragraph above proves.
    */
-  email: "info@254engineering.com",
+  email: "support@254engineering.com",
 
   /**
    * Where form notifications go. Server side only, never rendered.
