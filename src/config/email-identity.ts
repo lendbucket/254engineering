@@ -54,6 +54,44 @@ export const FROM_DISPLAY_NAME = "254 Engineering";
 export const REPLY_TO = `support@${business.domain}`;
 
 /**
+ * THE ADDRESS AN EMAIL'S FOOTER PRINTS, AND IT IS THE ONE A REPLY REACHES.
+ *
+ * Operator ruling, 2026-10-04: he reads `support@`, and that is the one firm
+ * address a customer sees.
+ *
+ * WHAT WAS WRONG, AND IT IS THIS REPOSITORY'S MOST FREQUENT DEFECT WEARING A
+ * FOOTER. `email-layout.ts` printed `business.email`, which is `info@`, while
+ * every message's Reply-To header was `support@`. So an email said "reply to
+ * this message and say where" above a footer offering a different address, and
+ * a reader who copied the footer wrote to a mailbox nobody reads.
+ *
+ * THE REASONING FOR THE FIX WAS ALREADY IN THIS FILE, TWENTY-SIX DAYS BEFORE
+ * ANYBODY APPLIED IT TO THE FOOTER. The note on `REPLY_TO_EXCEPTIONS` below has
+ * said since 2026-09-08 that the machine alerts stopped replying to `info@`
+ * because "one firm address for anything a human might reply to, and info@ is
+ * not a confirmed mailbox, so an alert inviting a reply to it invites one
+ * nobody reads". Exactly the argument. The headers collapsed to one address and
+ * the footer did not follow, because nothing compared them.
+ *
+ * SO THIS IS A READER, NOT A SECOND HOME. It returns `REPLY_TO` and nothing
+ * else. The alternative on the table was a separate footer address, which would
+ * have made "the address a customer reaches" a fact with two accounts for the
+ * seventh time in this repository. The first six are tabulated in CLAUDE.md and
+ * the answer was identical every time: one home, a deriver that reads it, and a
+ * check that refuses the second home coming back.
+ *
+ * `business.email` IS DELIBERATELY NOT TOUCHED BY THIS. It is still `info@` and
+ * it is still what thirty public surfaces render, from the site footer to the
+ * JSON-LD. Moving it is a change to public pages and the operator has not
+ * approved that yet, so it is listed for him rather than done. When he does,
+ * this function keeps working and the question of whether it should still exist
+ * becomes a real one.
+ */
+export function footerEmail(): string {
+  return REPLY_TO;
+}
+
+/**
  * THE TEMPLATES THAT REPLY SOMEWHERE ELSE, AND WHY EACH ONE DOES.
  *
  * The From name has no exceptions and takes none. Reply-To has six, and they

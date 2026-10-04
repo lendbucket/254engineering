@@ -38,6 +38,26 @@ const EMOJI =
   /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{1F1E6}-\u{1F1FF}\u{2B00}-\u{2BFF}]/u;
 const PRODUCTION_ORIGIN = "https://254engineering.com";
 
+/*
+ * THE ONE FIRM ADDRESS A CUSTOMER SEES, PINNED AS A LITERAL. Operator ruling,
+ * 2026-10-04: he reads support@, and that is the address.
+ *
+ * AT MODULE SCOPE BECAUSE TWO CHECKS IN TWO FUNCTIONS NEED IT, and because the
+ * per-template footer check below USED TO READ `business.email` and compare the
+ * rendered footer to it. That is the defect this file opens by warning about:
+ * an audit importing its expectation from the thing it audits compares a value
+ * to itself and cannot disagree with anything. Its own comment claimed "the
+ * address is separately pinned to a literal", and until today no such pin
+ * existed, so the claim was as false as the two comments in the sealed email.
+ *
+ * REFUSED is named as well as EXPECTED, and that is the half that would have
+ * caught the original defect: a check looking only for support@ passes the
+ * moment a footer prints both addresses, which is exactly what a half-finished
+ * fix produces.
+ */
+const EXPECTED_FOOTER_EMAIL = "support@254engineering.com";
+const REFUSED_FOOTER_EMAIL = "info@254engineering.com";
+
 /** Subject lines get truncated in a phone notification well before this. */
 const MAX_SUBJECT = 78;
 
@@ -171,6 +191,22 @@ if (templates.length === 0) {
    */
   const EXPECTED_FROM = "254 Engineering <notifications@254engineering.com>";
   const EXPECTED_REPLY_TO = "support@254engineering.com";
+  /*
+   * THE FOOTER ADDRESS, PINNED 2026-10-04, AND IT HAD NEVER BEEN PINNED AT ALL.
+   *
+   * This file has pinned the From header and the Reply-To since 2026-09-08,
+   * each as a literal so the config cannot be the only account of itself. The
+   * address the footer PRINTS was pinned by nothing, so it could move without
+   * anything disagreeing, and it had: every message replied to support@ while
+   * its own footer offered info@, for twenty-six days.
+   *
+   * It is the same literal as EXPECTED_REPLY_TO rather than a second value,
+   * because the ruling of 2026-10-04 is that there is ONE firm address a
+   * customer sees. Written out separately anyway: these are two assertions
+   * about two surfaces, the header and the body, and folding them into one
+   * constant would mean a future ruling that separates them could not be
+   * expressed without rewriting the check.
+   */
 
   /* And the config still has to agree with the ruling, said separately so a
    * drifted constant is named as a drifted constant. */
@@ -189,6 +225,36 @@ if (templates.length === 0) {
     `every template is FROM ${EXPECTED_FROM} (${templates.length} checked)`,
     wrongFrom.length === 0,
     wrongFrom.length ? wrongFrom.join(", ") : "",
+  );
+
+  /*
+   * EVERY FOOTER PRINTS THE ONE ADDRESS, ASSERTED IN BOTH DIRECTIONS.
+   *
+   * Both halves are load bearing and the second is the one that would have
+   * caught the original defect. A check that only looked for support@ passes
+   * the moment a footer prints BOTH addresses, which is exactly the shape a
+   * half-finished fix produces. So the refused address is named too.
+   *
+   * Read over the HTML and the plaintext part together, because they are built
+   * by two different functions in email-layout.ts and the first version of this
+   * fix changed one of them.
+   */
+  const footerMissing = templates
+    .filter((t) => !`${t.text}\n${t.html ?? ""}`.includes(EXPECTED_FOOTER_EMAIL))
+    .map((t) => t.id);
+  rec(
+    `every footer prints ${EXPECTED_FOOTER_EMAIL} (${templates.length} checked, html and text)`,
+    footerMissing.length === 0,
+    footerMissing.length ? footerMissing.join(", ") : "",
+  );
+
+  const footerRefused = templates
+    .filter((t) => `${t.text}\n${t.html ?? ""}`.includes(REFUSED_FOOTER_EMAIL))
+    .map((t) => t.id);
+  rec(
+    `and no template anywhere prints ${REFUSED_FOOTER_EMAIL}`,
+    footerRefused.length === 0,
+    footerRefused.length ? footerRefused.join(", ") : "no template offers an address a reply does not reach",
   );
 
   const wrongReplyTo = templates
@@ -592,16 +658,24 @@ for (const t of templates) {
    * and the address is separately pinned to a literal, because which mailbox
    * appears in the footer of every email this firm sends is a decision rather
    * than a detail.
+   *
+   * THAT LAST CLAUSE WAS FALSE WHEN IT WAS WRITTEN AND IS TRUE NOW, 2026-10-04.
+   * No literal existed. The check below read `business.email` and compared the
+   * rendered footer to it, which is the shape this file's own header warns
+   * about at length: the config was the only account of itself, so the footer
+   * could print any address the config held and this check would agree. It held
+   * info@ while every Reply-To header was support@, and nothing could see it.
+   * The pin is at module scope now and the comment has stopped lying.
    */
   rec(
-    `${label}: the contact address is a real value before it is searched for`,
-    typeof business.email === "string" && business.email.trim().length > 0,
-    business.email,
+    `${label}: the footer address is a real value before it is searched for`,
+    EXPECTED_FOOTER_EMAIL.trim().length > 0,
+    EXPECTED_FOOTER_EMAIL,
   );
   rec(
-    `${label}: footer carries the contact address and the site`,
-    business.email.trim().length > 0 &&
-      t.html.includes(business.email) &&
+    `${label}: footer carries the one firm address and the site`,
+    t.html.includes(EXPECTED_FOOTER_EMAIL) &&
+      !t.html.includes(REFUSED_FOOTER_EMAIL) &&
       t.html.includes(PRODUCTION_ORIGIN),
   );
 }

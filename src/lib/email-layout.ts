@@ -1,5 +1,5 @@
 import { business } from "@/config/business";
-import { mailingAddressLine, signatureLines } from "@/config/email-identity";
+import { footerEmail, mailingAddressLine, signatureLines } from "@/config/email-identity";
 import { registrationLine } from "./launch";
 
 /**
@@ -513,10 +513,16 @@ function footer(unsubscribeUrl?: string): string {
     '<p style="margin:0 0 6px;font-family:' +
       SANS +
       ';font-size:13px;line-height:1.6;color:#c3ccda;">' +
+      /*
+       * footerEmail() rather than business.email: the address printed here is
+       * the one a reply reaches, which is support@, and business.email is info@.
+       * The two disagreed until 2026-10-04 and the reasoning is in
+       * email-identity.ts above the function.
+       */
       '<a href="mailto:' +
-      esc(business.email) +
+      esc(footerEmail()) +
       '" style="color:#e8b04a;text-decoration:underline;">' +
-      esc(business.email) +
+      esc(footerEmail()) +
       "</a>" +
       " &nbsp;|&nbsp; " +
       '<a href="' +
@@ -679,7 +685,8 @@ export function renderEmailText(input: LayoutInput): string {
   }
   if (input.button) out.push(input.button.label + ": " + input.button.url, "");
   if (input.signed) out.push(...signatureLines(), "");
-  out.push(business.legalName, business.email, business.url, registrationLine());
+  /* The plaintext footer, and it prints the same address the HTML one does. */
+  out.push(business.legalName, footerEmail(), business.url, registrationLine());
   if (input.unsubscribeUrl) out.push("Unsubscribe from announcements: " + input.unsubscribeUrl);
   const address = mailingAddressLine();
   if (address) out.push(address);

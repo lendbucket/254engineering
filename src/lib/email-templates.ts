@@ -1,7 +1,7 @@
 import { business } from "@/config/business";
 import { roleLabel as roleLabelFor, type RoleKey } from "./ops-authz";
 import { firmName } from "./launch";
-import { emailIdentity, fromHeader, type SenderPurpose } from "@/config/email-identity";
+import { emailIdentity, footerEmail, fromHeader, type SenderPurpose } from "@/config/email-identity";
 import {
   OUTCOME_HEADLINE,
   OUTCOME_MEANING,
@@ -506,7 +506,7 @@ export function onboardingInvite(input: {
         },
         {
           kind: "p",
-          text: `If something is wrong, reply to this message or write to ${business.email} and a new link will be issued.`,
+          text: `If something is wrong, reply to this message or write to ${footerEmail()} and a new link will be issued.`,
         },
       ],
       button: { label: "Open your onboarding", url: input.inviteUrl },
@@ -590,7 +590,7 @@ export function portalInvite(input: {
         },
         {
           kind: "p",
-          text: `If you were not expecting this, write to ${business.email} and it will be canceled.`,
+          text: `If you were not expecting this, write to ${footerEmail()} and it will be canceled.`,
         },
       ],
       button: input.setPasswordUrl
@@ -1398,7 +1398,7 @@ export function portalPasswordReset(input: {
         },
         {
           kind: "p",
-          text: `If you did not expect this, write to ${business.email} straight away.`,
+          text: `If you did not expect this, write to ${footerEmail()} straight away.`,
         },
       ],
       button: { label: "Choose a new password", url: input.setPasswordUrl },
