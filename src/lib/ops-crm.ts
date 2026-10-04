@@ -146,7 +146,35 @@ const FILE_COLUMNS =
  * rows predate it, so `eq(false)` would hide every real client written before
  * it existed, which is the opposite failure and a worse one.
  */
-export async function listClients(actor: Actor | null): Promise<ClientRow[]> {
+/**
+ * ONE PAGE OF CLIENTS, AND THE NUMBER IS DECLARED RATHER THAN TUNED.
+ *
+ * 100 because the screen is read on a phone first. `native-audit` refuses a
+ * portal list over 250 rows, and a list that sits just under a ceiling is a
+ * list that crosses it the week the firm signs its 251st client. This leaves
+ * room rather than meeting the limit.
+ *
+ * Changing it is one edit here, and the disclosure on the screen moves with it
+ * because the screen states the figure rather than repeating the number.
+ */
+export const CLIENT_PAGE_SIZE = 100;
+
+/**
+ * The client list, bounded.
+ *
+ * THE LIMIT IS A PARAMETER AND ITS DEFAULT IS THE OLD VALUE, which is
+ * deliberate and is the opposite of tidy. The file creation screen uses this to
+ * populate a client picker, and a picker that silently drops the client
+ * somebody is looking for is worse than a long picker: the first produces a
+ * coordinator who cannot open a file and does not know why, the second produces
+ * a long scroll. So the LIST screen passes CLIENT_PAGE_SIZE and the picker is
+ * left as it was, and the picker's own problem is recorded in BACKLOG.md rather
+ * than fixed by a change that could lose a client.
+ */
+export async function listClients(
+  actor: Actor | null,
+  options: { limit?: number } = {},
+): Promise<ClientRow[]> {
   const db = supabaseAdmin();
   if (!db || !actor) return [];
   const { data } = await db
@@ -156,8 +184,41 @@ export async function listClients(actor: Actor | null): Promise<ClientRow[]> {
     )
     .or("is_demo.is.null,is_demo.eq.false")
     .order("created_at", { ascending: false })
-    .limit(500);
+    .limit(options.limit ?? 500);
   return (data ?? []) as ClientRow[];
+}
+
+/**
+ * How many clients there are, exactly, so a bounded list can say what it is a
+ * part of.
+ *
+ * A SEPARATE EXACT COUNT RATHER THAN THE LENGTH OF THE READ, and that is the
+ * whole reason this function exists. CLAUDE.md records the same defect twice:
+ * PostgREST's silent 1000 row ceiling reported as a total, and a hand written
+ * `.limit(20)` whose length was printed as the depth of a queue holding 668.
+ * Both read as measurements. "Showing 100 of 100" over a table of 260 is that
+ * failure with a customer's client base in it.
+ *
+ * THE FILTER IS THE SAME ONE THE LIST USES, and it has to be: a count that
+ * includes demonstration rows while the list excludes them produces a screen
+ * saying "showing 100 of 260" that can never reach 260, and the reader
+ * concludes the screen is broken.
+ */
+export async function countClients(actor: Actor | null): Promise<number | null> {
+  const db = supabaseAdmin();
+  if (!db || !actor) return null;
+  const { count, error } = await db
+    .from("eng_clients")
+    .select("id", { count: "exact", head: true })
+    .or("is_demo.is.null,is_demo.eq.false");
+  /*
+   * NULL ON ERROR, NEVER ZERO. Absent and none are different facts, and the
+   * screen renders them differently: a count it could not read says so, and a
+   * count of zero is an empty client list. Folding them together is how a
+   * failed read becomes a confident statement that the firm has no clients.
+   */
+  if (error) return null;
+  return count ?? null;
 }
 
 export async function getClient(actor: Actor | null, id: string): Promise<ClientRow | null> {

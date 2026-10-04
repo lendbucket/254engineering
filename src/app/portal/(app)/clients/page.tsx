@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
-import { listClients } from "@/lib/ops-crm";
+import { CLIENT_PAGE_SIZE, countClients, listClients } from "@/lib/ops-crm";
 import { supabaseAdmin } from "@/lib/supabase";
 import { TEXAS_COUNTIES } from "@/lib/ops-counties";
 import { services } from "@/content/services";
@@ -42,7 +42,17 @@ export default async function ClientsPage() {
   const actor = await currentActor();
   if (!can(actor, "clients.list")) notFound();
 
-  const clients = await listClients(actor);
+  /*
+   * ONE BOUNDED PAGE, AND AN EXACT COUNT BESIDE IT.
+   *
+   * The count is a separate read rather than the length of this one, because
+   * the length of a bounded read is the bound and reporting it as the total is
+   * the defect CLAUDE.md records at PostgREST's 1000 row ceiling and at a
+   * queue of 668 reported as 20.
+   */
+  const clients = await listClients(actor, { limit: CLIENT_PAGE_SIZE });
+  const total = await countClients(actor);
+  const truncated = total !== null && total > clients.length;
 
   /*
    * Unconverted leads, from the table the three public sites already write to.
@@ -164,7 +174,38 @@ export default async function ClientsPage() {
         </Panel>
       ) : null}
 
-      <Panel title={`${clients.length} client${clients.length === 1 ? "" : "s"}`}>
+      {/*
+        THE PANEL TITLE STATES WHAT IS ON SCREEN AND WHAT IT IS PART OF.
+
+        It used to read "255 clients", which was the length of the read rather
+        than the size of the client base, and the two were the same number only
+        because nothing had a bound. `native-audit` refuses a portal list over
+        250 rows and named this screen on three boards.
+
+        A BOUND WITHOUT A DISCLOSURE WOULD HAVE BEEN THE WORSE FIX. "100
+        clients" on a firm with 260 is a false statement about the business, and
+        a coordinator who scrolls to the bottom and does not find somebody
+        concludes the client is not there. So the screen says both figures, and
+        says plainly that the rest are not shown yet.
+
+        `total` is null when the count could not be read, which is a different
+        thing from zero, so the title falls back to what it can honestly say.
+      */}
+      <Panel
+        title={
+          total === null
+            ? `${clients.length} client${clients.length === 1 ? "" : "s"} shown`
+            : truncated
+              ? `${clients.length} of ${total} clients`
+              : `${total} client${total === 1 ? "" : "s"}`
+        }
+      >
+        {truncated ? (
+          <p className="mb-4 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+            The {clients.length} most recently added are shown. Search and paging for the rest are
+            not built yet, so an older client is reached through the file it belongs to.
+          </p>
+        ) : null}
         <RecordTable
           rows={clients}
           columns={columns}
