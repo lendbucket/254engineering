@@ -4375,10 +4375,20 @@ silent in exactly one direction. Nothing bounces to the firm, nothing appears in
 any log here, and the only symptom is a customer who says they replied and heard
 nothing back. It is not a thing an audit can check from this side.
 
-Related and still open: **info@254engineering.com is not a confirmed mailbox**
-and it is the mailto in the footer of every email this firm sends, as
+**CLOSED 2026-10-04, AND IT HAD BEEN RIGHT AND IGNORED FOR TWENTY-SIX DAYS.**
+This read: "Related and still open: info@254engineering.com is not a confirmed
+mailbox and it is the mailto in the footer of every email this firm sends, as
 `business.email`. That address is used across the website too, so changing it is
-wider than the email port and is not done here.
+wider than the email port and is not done here."
+
+Every clause was true. The operator ruled on 2026-10-04 that the mailbox does
+not exist at all and that he reads `support@254engineering.com`, so
+`business.email` moved and the footer now derives from the reply-to through
+`footerEmail()`. The reasoning for the fix had been sitting in
+`email-identity.ts` since 2026-09-08, this entry named the consequence, and
+nothing compared the two values until a customer-facing email was read line by
+line. **An entry that correctly describes a defect is not a check either**, and
+the mechanism that closes it is the pinned literal in `seo-audit`.
 
 ## Where a customer email links, and the ruling that was revised
 
@@ -5950,10 +5960,24 @@ one number rather than forbidding all of them, and add `telephone` to the
 Organization schema in `src/lib/schema.tsx`. `/contact` already carries a sentence
 saying a number will appear sitewide when there is one.
 
-### info@254engineering.com has to exist before launch
+### CLOSED 2026-10-04: info@254engineering.com no longer appears anywhere
 
-It is the only public address on the site and it is the point of contact printed
-on the capability statement. A bounce there is a lost solicitation.
+This read: "info@254engineering.com has to exist before launch. It is the only
+public address on the site and it is the point of contact printed on the
+capability statement. A bounce there is a lost solicitation."
+
+**The resolution is not that the mailbox was created.** The operator ruled the
+address does not exist and will not, and that `support@254engineering.com`, which
+he reads, is the one firm address a customer sees. `business.email` moved, so
+every public surface followed: the footer, the header, contact, corpus-christi,
+government, privacy, terms, onboarding, the careers failure messages, both lead
+intake answers, `llms.txt`, `llms-full.txt`, and the JSON-LD `email` property.
+
+**So the capability statement concern is answered rather than dropped**, which
+is the half worth keeping: the address a contracting officer reads is now a
+mailbox somebody opens. `seo-audit` pins it as an independent literal and
+asserts the public value and the email reply-to agree, injection-verified, so
+the two cannot drift apart again.
 
 ### The capability statement PDF is not written
 
