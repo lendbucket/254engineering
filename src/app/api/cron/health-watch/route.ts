@@ -6,6 +6,7 @@ import { notify } from "@/lib/notify";
 import { enqueue } from "@/lib/ops-jobs";
 import { cronStarted, cronFinished } from "@/lib/ops-observability";
 import { watchQueue } from "@/lib/queue-watch";
+import { watchRetention } from "@/lib/retention-watch";
 import {
   HEALTH_PROBE_PATH,
   HEALTH_WATCH_EVERY_MINUTES,
@@ -180,14 +181,45 @@ export async function GET(request: NextRequest) {
    */
   if (!queue.looked) console.error(`[queue-watch] DID NOT LOOK: ${queue.note}`);
 
+  /*
+   * AND WHETHER RETENTION CAN STILL RUN AT ALL. Added 2026-10-05.
+   *
+   * Beside the queue watcher rather than in its own cron, for the reason the
+   * paragraph above gives about placement: both are "is the work still
+   * happening", both are cheap reads, and a second schedule is a second thing
+   * that can be missing from Vercel without anybody noticing.
+   *
+   * IT IS BEFORE THE EARLY RETURN, which is the mistake the queue watcher made
+   * first: put after it, this would run on exactly the runs that found nothing
+   * else wrong, which is every run where it matters.
+   *
+   * The reasoning for the alert is at the top of retention-stall.ts. In short:
+   * the planner fails CLOSED when a rollup is missing, which is correct and is
+   * silent, so a missed rollup day stops retention for ever and nothing says
+   * so.
+   */
+  const retention = await watchRetention();
+  if (retention.sent) console.warn(`[retention-watch] alerted: ${retention.note}`);
+  if (!retention.looked) console.error(`[retention-watch] DID NOT LOOK: ${retention.note}`);
+
   if (!shouldAlert(outcome)) {
     /*
      * Deliberately silent. A watcher that emails on success trains the operator
      * to ignore its emails, and the one that matters then looks like the rest.
      */
     console.log(`[health-watch] ok ${host}${HEALTH_PROBE_PATH} ${status}`);
-    await cronFinished(runId, true, `healthy, ${status}; queue: ${queue.note}`);
-    return NextResponse.json({ ok: true, outcome, host, status, checkedAt, queue });
+    /*
+     * Both watchers' notes go on the cron run, not just the queue's. A run that
+     * records only one of two watchers is a run a reader will take as the whole
+     * answer, which is how the queue watcher's own "did not look" state went
+     * unreported until 2026-09-07.
+     */
+    await cronFinished(
+      runId,
+      true,
+      `healthy, ${status}; queue: ${queue.note}; retention: ${retention.note}`,
+    );
+    return NextResponse.json({ ok: true, outcome, host, status, checkedAt, queue, retention });
   }
 
   console.error(

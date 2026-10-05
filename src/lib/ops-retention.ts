@@ -137,6 +137,124 @@ export type RetentionMode =
 
 export type RollupDay = { day: string; planned: number; rollup: number | null };
 
+/**
+ * WHETHER RETENTION COULD PROCEED ON THIS TABLE, AND IF NOT WHY. READ ONLY.
+ *
+ * EXTRACTED 2026-10-05, AND THE REASON IS THE WHOLE POINT. This was the first
+ * half of `planRetention`, inline. The operator approved an alert for the case
+ * where retention cannot plan because a rollup is missing, and the obvious way
+ * to detect that is to call `planRetention` and read its refusal.
+ *
+ * THAT WOULD HAVE BEEN A SERIOUS DEFECT. A successful plan WRITES A MANIFEST
+ * ROW, and `eng_retention_runs` refuses DELETE by design, so a watcher calling
+ * it on a cron would accumulate undeletable rows for ever, every five minutes.
+ * That is not hypothetical: `retention-audit` records development already
+ * holding 128 of them from eight plans a board.
+ *
+ * The alternative was for the watcher to re-ask the question with its own
+ * query, which is one fact with two homes, the most frequently recurring defect
+ * in this repository. So the question has one home and two callers: the planner
+ * continues when it is clean, and the watcher only reports.
+ *
+ * NOTHING ABOUT THE RULE CHANGED IN THE MOVE. Same reads, same order, same
+ * sentences, same refusals, including the per-day refusal that names the day
+ * rather than the month and the refusal for rows with no age at all. The
+ * operator's instruction on this audit was that nothing is loosened, and a
+ * refactor is exactly where a loosening hides, so `migration-audit` and
+ * `retention-audit` staying green is what proves the move was behaviour
+ * preserving.
+ */
+export type RetentionReadiness =
+  | {
+      ok: true;
+      cutoff: string;
+      ids: string[];
+      days: Map<string, number>;
+      rollupDays: RollupDay[];
+    }
+  | { ok: false; because: string };
+
+export async function retentionReadiness(
+  client: NonNullable<ReturnType<typeof supabaseAdmin>>,
+  table: string,
+): Promise<RetentionReadiness> {
+  const rule = ruleFor(table);
+  if (!rule || rule.kind !== "delete_after") {
+    return {
+      ok: false,
+      because: `${table} is not a table retention deletes from, so there is nothing to reconcile.`,
+    };
+  }
+
+  const cutoff = cutoffFor(rule.floorDays);
+  const read = await planned(client, table, rule, cutoff);
+  if (!read.ok) return { ok: false, because: `Could not read what ${table} holds: ${read.error}` };
+
+  const ids = read.rows.map((r) => String(r[ID_COLUMN]));
+  const days = new Map<string, number>();
+  for (const r of read.rows) days.set(dayOf(r[rule.ageColumn]), (days.get(dayOf(r[rule.ageColumn])) ?? 0) + 1);
+
+  /*
+   * THE ROLLUP GUARD. A SOURCE IS NEVER DELETED BEFORE THE THING THAT REPLACES
+   * IT EXISTS AND AGREES WITH IT.
+   *
+   * Operator ruling. Per day, not per run: a run covering thirty days where
+   * twenty nine rolled up and one did not must not take the twenty nine and
+   * quietly lose the one. It refuses the whole plan and NAMES THE DAY, because
+   * "the rollup did not reconcile" sends somebody looking through a month.
+   */
+  const rollupDays: RollupDay[] = [];
+  if (rule.rollupRequired) {
+    const wanted = [...days.keys()].filter((d) => d !== "no date recorded").sort();
+    const held = new Map<string, number>();
+    if (wanted.length > 0) {
+      const { data, error } = await client
+        .from("eng_metrics_daily")
+        .select("day, value")
+        .eq("metric", rule.rollupRequired)
+        .in("day", wanted);
+      if (error) return { ok: false, because: `Could not read the ${rule.rollupRequired} rollup: ${error.message}` };
+      for (const r of data ?? []) held.set(r.day as string, Number(r.value));
+    }
+
+    for (const day of wanted) {
+      const plannedCount = days.get(day) ?? 0;
+      const rollup = held.has(day) ? (held.get(day) as number) : null;
+      rollupDays.push({ day, planned: plannedCount, rollup });
+
+      if (rollup === null) {
+        return {
+          ok: false,
+          because:
+            `${day} has ${plannedCount} row(s) in ${table} and no ${rule.rollupRequired} figure in ` +
+            "eng_metrics_daily. The rollup that replaces this day does not exist yet, so the day is " +
+            "not deleted. Run the metrics rollup for that day first.",
+        };
+      }
+      if (rollup !== plannedCount) {
+        return {
+          ok: false,
+          because:
+            `${day} does not reconcile: ${table} holds ${plannedCount} row(s) for it and ` +
+            `${rule.rollupRequired} says ${rollup}. The rollup and its source disagree, so nothing is ` +
+            "deleted. Whichever is wrong, deleting the source would make the disagreement permanent.",
+        };
+      }
+    }
+
+    if (days.has("no date recorded")) {
+      return {
+        ok: false,
+        because:
+          `${days.get("no date recorded")} row(s) in ${table} matched the cutoff with no ` +
+          `${rule.ageColumn}, so no day can be reconciled for them. A row with no age is not an old row.`,
+      };
+    }
+  }
+
+  return { ok: true, cutoff, ids, days, rollupDays };
+}
+
 export type Manifest = {
   id: string;
   table: string;
@@ -282,71 +400,9 @@ export async function planRetention(table: string, mode: RetentionMode): Promise
     };
   }
 
-  const cutoff = cutoffFor(rule.floorDays);
-  const read = await planned(client, table, rule, cutoff);
-  if (!read.ok) return { ok: false, because: `Could not read what ${table} holds: ${read.error}` };
-
-  const ids = read.rows.map((r) => String(r[ID_COLUMN]));
-  const days = new Map<string, number>();
-  for (const r of read.rows) days.set(dayOf(r[rule.ageColumn]), (days.get(dayOf(r[rule.ageColumn])) ?? 0) + 1);
-
-  /*
-   * THE ROLLUP GUARD. A SOURCE IS NEVER DELETED BEFORE THE THING THAT REPLACES
-   * IT EXISTS AND AGREES WITH IT.
-   *
-   * Operator ruling. Per day, not per run: a run covering thirty days where
-   * twenty nine rolled up and one did not must not take the twenty nine and
-   * quietly lose the one. It refuses the whole plan and NAMES THE DAY, because
-   * "the rollup did not reconcile" sends somebody looking through a month.
-   */
-  const rollupDays: RollupDay[] = [];
-  if (rule.rollupRequired) {
-    const wanted = [...days.keys()].filter((d) => d !== "no date recorded").sort();
-    const held = new Map<string, number>();
-    if (wanted.length > 0) {
-      const { data, error } = await client
-        .from("eng_metrics_daily")
-        .select("day, value")
-        .eq("metric", rule.rollupRequired)
-        .in("day", wanted);
-      if (error) return { ok: false, because: `Could not read the ${rule.rollupRequired} rollup: ${error.message}` };
-      for (const r of data ?? []) held.set(r.day as string, Number(r.value));
-    }
-
-    for (const day of wanted) {
-      const planned = days.get(day) ?? 0;
-      const rollup = held.has(day) ? (held.get(day) as number) : null;
-      rollupDays.push({ day, planned, rollup });
-
-      if (rollup === null) {
-        return {
-          ok: false,
-          because:
-            `${day} has ${planned} row(s) in ${table} and no ${rule.rollupRequired} figure in ` +
-            "eng_metrics_daily. The rollup that replaces this day does not exist yet, so the day is " +
-            "not deleted. Run the metrics rollup for that day first.",
-        };
-      }
-      if (rollup !== planned) {
-        return {
-          ok: false,
-          because:
-            `${day} does not reconcile: ${table} holds ${planned} row(s) for it and ` +
-            `${rule.rollupRequired} says ${rollup}. The rollup and its source disagree, so nothing is ` +
-            "deleted. Whichever is wrong, deleting the source would make the disagreement permanent.",
-        };
-      }
-    }
-
-    if (days.has("no date recorded")) {
-      return {
-        ok: false,
-        because:
-          `${days.get("no date recorded")} row(s) in ${table} matched the cutoff with no ` +
-          `${rule.ageColumn}, so no day can be reconciled for them. A row with no age is not an old row.`,
-      };
-    }
-  }
+  const ready = await retentionReadiness(client, table);
+  if (!ready.ok) return { ok: false, because: ready.because };
+  const { cutoff, ids, days, rollupDays } = ready;
 
   /*
    * THE SENTENCES A READER NEEDS, DECIDED FROM THE PLAN ITSELF.
