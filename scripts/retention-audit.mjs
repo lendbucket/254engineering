@@ -109,8 +109,46 @@ const planAndTrack = async (table, mode) => {
   return result;
 };
 
+/*
+ * ==========================================================================
+ * THREE VERDICTS, AND ON THIS AUDIT THE THIRD ONE NEEDS A GUARD.
+ * ==========================================================================
+ *
+ * `ok === null` is COULD NOT TELL: the check's SUBJECT could not be built, so
+ * the property was never measured. Operator ruling of 2026-09-22 extended
+ * "unreachable is not failed" to exactly this case, and said why it matters
+ * most here: a red on a negative assertion reads as "the protection failed",
+ * which is the opposite of what happened, and it is the sentence somebody
+ * quotes in an incident review.
+ *
+ * WHAT IT COST ON THIS AUDIT. Five checks reported FAIL on the boards of
+ * 2026-10-04. Every one of the five is gated on an `ok` that was false, so not
+ * one of them ran its assertion. Three sat inside `if (!spare.ok)` under a
+ * comment reading "A fixture that cannot be built is a check that proves
+ * nothing", and reported FAIL anyway.
+ *
+ * AND WHY A GUARD RATHER THAN JUST A THIRD WORD. Retention deletes records with
+ * legal weight, and a verdict that is neither pass nor fail is a verdict that
+ * can swallow a real defect. Two things stop that:
+ *
+ *   1. A FAIL anywhere still fails the board. Nothing about this widens what
+ *      passes; it narrows what is CALLED a failure to things that actually
+ *      failed.
+ *   2. An untold check must NAME the fault it hit, asserted below rather than
+ *      hoped for. "no probe" covering four different causes is the
+ *      status-function defect this repository records at the MFA lockout: a
+ *      note can only name the faults its author enumerated, and that one
+ *      enumerated none.
+ *
+ * Nothing here loosens a threshold, moves a table into or out of the deletable
+ * set, or touches the kept-forever list. The reconciliation gate that refused
+ * to plan is CORRECT and is left exactly as it is.
+ */
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
+
+/** The subject could not be built, so the property was not measured. */
+const untold = (name, why) => out.push({ name, ok: null, note: why });
 
 console.log("");
 console.log("========= NOTHING GOES THAT THE DECLARATION DID NOT ALLOW =========");
@@ -802,9 +840,22 @@ try {
     const spare = await planAndTrack("eng_jobs", { kind: "dry_run", askedBy: AUDIT_ASKED });
 
     if (!spare.ok) {
-      rec("a plan nobody ran can be abandoned", false, "could not plan the fixture for it");
-      rec("an abandoned plan cannot be run", false, "no fixture");
-      rec("abandoning a run that happened is refused", false, "no fixture");
+      /*
+       * THE SUBJECT COULD NOT BE BUILT, SO THESE THREE WERE NEVER MEASURED.
+       *
+       * The comment above this block has always said a fixture that cannot be
+       * built is a check that proves nothing, and the code then said FAIL three
+       * times. Abandoning might be perfectly sound or completely broken; these
+       * lines cannot tell you, and saying FAIL claims they can.
+       *
+       * The planner's own sentence is carried through rather than a house
+       * phrase, because "no fixture" covered every possible cause and named
+       * none of them.
+       */
+      const why = `the eng_jobs fixture could not be planned: ${spare.because}`;
+      untold("a plan nobody ran can be abandoned", why);
+      untold("an abandoned plan cannot be run", why);
+      untold("abandoning a run that happened is refused", why);
     } else {
       const done = await abandonRun(spare.manifest.id, "planned by retention-audit to exercise abandoning");
       const after = await manifestById(spare.manifest.id);
@@ -852,22 +903,33 @@ try {
    */
   {
     const empty = await planAndTrack("eng_jobs", { kind: "dry_run", askedBy: AUDIT_ASKED });
-    rec(
-      "an empty plan says so on the manifest",
-      empty.ok === true &&
-        empty.manifest.intendedCount === 0 &&
-        empty.manifest.planReading.some((line) => /EMPTY SET/.test(line)) &&
-        empty.manifest.planReading.some((line) => /sha256 of the empty string/.test(line)),
-      empty.ok
-        ? `${empty.manifest.planReading.length} sentence(s) on a plan of ${empty.manifest.intendedCount}`
-        : empty.because.slice(0, 90),
-    );
 
-    rec(
-      "and every manifest says its cutoff came from its own clock",
-      empty.ok === true && empty.manifest.planReading.some((line) => /CUTOFF IS THIS PLAN/.test(line)),
-      "two plans made in one pass carry cutoffs seconds apart, which read as an inconsistency at gate 2",
-    );
+    /*
+     * BOTH OF THESE READ THE SAME PLAN, so when it cannot be made they are one
+     * fixture fault reported twice rather than two findings. The second one's
+     * note used to be a HARDCODED sentence about cutoffs seconds apart, which
+     * printed whether the check had run or not: a note that cannot distinguish
+     * a measured failure from an unmeasured one.
+     */
+    if (!empty.ok) {
+      const why = `an empty eng_jobs plan could not be made: ${empty.because}`;
+      untold("an empty plan says so on the manifest", why);
+      untold("and every manifest says its cutoff came from its own clock", why);
+    } else {
+      rec(
+        "an empty plan says so on the manifest",
+        empty.manifest.intendedCount === 0 &&
+          empty.manifest.planReading.some((line) => /EMPTY SET/.test(line)) &&
+          empty.manifest.planReading.some((line) => /sha256 of the empty string/.test(line)),
+        `${empty.manifest.planReading.length} sentence(s) on a plan of ${empty.manifest.intendedCount}`,
+      );
+
+      rec(
+        "and every manifest says its cutoff came from its own clock",
+        empty.manifest.planReading.some((line) => /CUTOFF IS THIS PLAN/.test(line)),
+        "two plans made in one pass carry cutoffs seconds apart, which read as an inconsistency at gate 2",
+      );
+    }
   }
 
   // ---------------------------------------- what a run refuses to be handed
@@ -973,17 +1035,55 @@ try {
 
 // ------------------------------------------------------------------ verdict
 
-for (const r of out) console.log(`  ${r.ok ? "PASS" : "FAIL"}: ${r.name}${r.note ? ` (${r.note})` : ""}`);
+const verdictOf = (r) => (r.ok === null ? "COULD NOT TELL" : r.ok ? "PASS" : "FAIL");
+for (const r of out) console.log(`  ${verdictOf(r)}: ${r.name}${r.note ? ` (${r.note})` : ""}`);
 
-const failed = out.filter((r) => !r.ok);
+const failed = out.filter((r) => r.ok === false);
+const unmeasured = out.filter((r) => r.ok === null);
+
+/*
+ * AN UNTOLD CHECK THAT DOES NOT NAME ITS FAULT IS AN EXEMPTION, NOT A VERDICT.
+ *
+ * This is the clause that keeps the third verdict honest, and it can fail.
+ * "no probe" once covered four unrelated causes on another audit and named
+ * none of them, so a reader could not tell a missing database client from a
+ * refused insert. A reason is required, and the generic phrases that hid the
+ * cause here are refused by name so they cannot come back.
+ */
+const vague = unmeasured.filter(
+  (r) => !r.note || r.note.trim().length < 25 || /^(no fixture|no probe)$/i.test(r.note.trim()),
+);
+if (vague.length) {
+  failed.push(
+    ...vague.map((r) => ({
+      name: `${r.name}: could not tell, and did not say why`,
+      ok: false,
+      note: r.note ?? "(no reason given)",
+    })),
+  );
+}
+
 console.log("");
+if (unmeasured.length) {
+  console.log(`COULD NOT TELL: ${unmeasured.length} of ${out.length} checks, each naming its fault:`);
+  for (const r of unmeasured) console.log(`  ${r.name}`);
+  console.log("");
+  console.log("These measured nothing, so they assert nothing. A fixture that cannot be");
+  console.log("built is a check that proves nothing, which is different from a protection");
+  console.log("that failed, and only the second is a finding.");
+  console.log("");
+}
+
 if (failed.length) {
   console.log(`FAIL: ${failed.length} of ${out.length} checks.`);
+  for (const r of failed) console.log(`  ${r.name}${r.note ? ` (${r.note})` : ""}`);
   console.log("");
   console.log("A deletion leaves the absence of evidence, which reads exactly like");
   console.log("the thing never having happened. No later audit can tell them apart.");
   process.exit(1);
 }
-console.log(`PASS: ${out.length} checks. Nothing goes that the declaration did not allow.`);
+console.log(
+  `PASS: ${out.length - unmeasured.length} of ${out.length} checks. Nothing goes that the declaration did not allow.`,
+);
 console.log("");
 console.log(`Declared: ${DECLARED_TABLES.length} tables. Deletable: ${sweepable().join(", ")}.`);
