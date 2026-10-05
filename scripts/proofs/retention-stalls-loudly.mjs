@@ -125,6 +125,101 @@ const REAL_REFUSAL =
   );
 }
 
+/* ============================================================================
+ * AND INSIDE THE COOLDOWN, NOTHING ELSE IS READ AT ALL.
+ * ============================================================================
+ *
+ * This is the half the pure function cannot prove, so it is proved as
+ * BEHAVIOUR with a fake client that records every table it is asked for.
+ *
+ * WHY IT IS WORTH A FIXTURE RATHER THAN A SOURCE-TEXT CHECK. The property is an
+ * ORDER of two awaits. A check that asserted the alert-state read appears
+ * before the readiness call in the file would be satisfied by text that no
+ * longer matches what runs, and moving one await past another is precisely the
+ * edit that keeps the text plausible. So the fake watches what actually
+ * happens.
+ *
+ * WHAT IT IS FOR. The first version of the watcher read every candidate row in
+ * both tables BEFORE checking the cooldown: about 1,846 rows on production,
+ * every five minutes, roughly 531,000 row reads a day, then discarded the
+ * answer 287 times out of 288. Nothing about the result was wrong, which is
+ * what made it invisible.
+ */
+{
+  const { watchRetention } = await import("../../src/lib/retention-watch.ts");
+
+  /** Records every table asked for, and answers only the one it should need. */
+  const makeFake = (lastAlertedAt) => {
+    const touched = [];
+    const fake = {
+      from(table) {
+        touched.push(table);
+        const chain = {
+          select: () => chain,
+          eq: () => chain,
+          in: () => chain,
+          lt: () => chain,
+          not: () => chain,
+          order: () => chain,
+          range: () => chain,
+          maybeSingle: async () => ({ data: { last_alerted_at: lastAlertedAt }, error: null }),
+          then: (resolve) => resolve({ data: [], error: null, count: 0 }),
+        };
+        return chain;
+      },
+    };
+    return { fake, touched };
+  };
+
+  /* Told one minute ago, so deep inside a one day cooldown. */
+  const recent = new Date(NOW - 60_000).toISOString();
+  const { fake, touched } = makeFake(recent);
+  const result = await watchRetention(NOW, fake);
+
+  rec(
+    "inside the cooldown the alert state is read",
+    touched.includes("eng_alert_state"),
+    `tables touched: ${touched.join(", ") || "none"}`,
+  );
+
+  /*
+   * THE ASSERTION THAT MATTERS. Derived from the declaration rather than
+   * naming the two tables, so a third deletable table is covered the day it is
+   * declared rather than the day somebody remembers to add it here.
+   */
+  const { sweepable } = await import("../../src/lib/ops-retention.ts");
+  const sourceTables = sweepable();
+  const readAnyway = sourceTables.filter((t) => touched.includes(t));
+
+  rec(
+    `and no source table is read at all (${sourceTables.length} declared deletable)`,
+    readAnyway.length === 0,
+    readAnyway.length
+      ? `IT PAGED ${readAnyway.join(", ")} AND THEN THREW THE ANSWER AWAY`
+      : `touched only ${[...new Set(touched)].join(", ")}`,
+  );
+
+  rec(
+    "and a suppressed run does not claim to have looked",
+    result.looked === false && /cooldown/.test(result.note) && result.sent === false,
+    `looked=${result.looked} sent=${result.sent} note=${result.note}`,
+  );
+
+  /*
+   * THE OTHER DIRECTION, so this is not a check that passes by the watcher
+   * never reading anything. With no previous alert the cooldown cannot
+   * suppress, and the source tables MUST be read.
+   */
+  const { fake: fresh, touched: touchedFresh } = makeFake(null);
+  await watchRetention(NOW, fresh);
+  const readWhenAllowed = sourceTables.filter((t) => touchedFresh.includes(t));
+  rec(
+    "and with no cooldown it does read every declared table",
+    readWhenAllowed.length === sourceTables.length,
+    `read ${readWhenAllowed.join(", ") || "nothing"} of ${sourceTables.join(", ")}`,
+  );
+}
+
 /* --------------------------------------------------------------- the verdict */
 
 for (const r of out) console.log(`  ${r.ok ? "PASS" : "FAIL"}: ${r.name}${r.note ? ` (${r.note})` : ""}`);

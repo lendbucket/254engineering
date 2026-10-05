@@ -53,13 +53,37 @@
  */
 
 /**
- * How long the firm goes without being told twice.
+ * How long the firm goes without being told twice. ONE DAY.
  *
- * Sixty minutes, matching the queue watcher rather than being chosen
- * independently, because they are the same kind of fact: a condition that
- * persists until somebody acts, on a cron that runs far more often than
- * anybody can act. A stalled retention is not more urgent minute to minute
- * than a stalled queue.
+ * ==========================================================================
+ * IT WAS SIXTY MINUTES AND THAT WAS WRONG IN PRACTICE, NOT IN PRINCIPLE.
+ * Operator ruling, 2026-10-05, before a single alert had been read.
+ * ==========================================================================
+ *
+ * Sixty was chosen to match the queue watcher, on the reasoning that both are
+ * conditions persisting until somebody acts. The reasoning was sound and the
+ * consequence was not, and the difference only became visible once the alert
+ * was live against a real stall:
+ *
+ *   - `/api/cron/health-watch` runs every five minutes, 288 times a day.
+ *   - Production retention IS stalled, on `eng_cron_runs`, because
+ *     `cron.runs` as a metric began on 2026-09-09 and that table holds rows
+ *     from 2026-09-04 and 2026-09-05. Those two days can never acquire a
+ *     rollup on their own.
+ *   - So the condition does not clear by itself, and sixty minutes meant
+ *     TWENTY-FOUR identical emails a day, indefinitely.
+ *
+ * A QUEUE STALL AND A RETENTION STALL ARE NOT THE SAME KIND OF URGENT, which
+ * is the thing the original choice got wrong by matching them. A stuck queue
+ * means receipts, invites and dispatch offers are not going out, and an hour is
+ * a long time. A stalled retention means nothing is being PRUNED, which costs
+ * storage and no customer anything, and it will wait for a sitting.
+ *
+ * AND AN ALERT THAT ARRIVES HOURLY STOPS BEING AN ALERT. The queue watcher's
+ * own file records the principle: a watcher that emails on success trains the
+ * operator to ignore its emails, and the one that matters then looks like the
+ * rest. Twenty-four a day for a condition nobody can fix before a sitting is
+ * the same failure by a different route.
  *
  * It is NOT a business ruling in the section 6c sense. It changes how often an
  * operator is emailed, and nothing about what may be deleted, so it is not
@@ -67,7 +91,7 @@
  * floor and the two deletable tables, are pinned in `retention-audit` already
  * and are untouched by any of this.
  */
-export const RETENTION_STALL_COOLDOWN_MINUTES = 60;
+export const RETENTION_STALL_COOLDOWN_MINUTES = 60 * 24;
 
 /** One table's answer to "could retention proceed". */
 export type TableReadiness = { table: string; ok: boolean; because: string | null };

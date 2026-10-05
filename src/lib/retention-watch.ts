@@ -26,6 +26,24 @@ import {
 
 const KEY = "retention.stalled";
 
+/** The cooldown as a sentence, derived so it cannot disagree with the constant. */
+function cooldownInWords(): string {
+  const minutes = RETENTION_STALL_COOLDOWN_MINUTES;
+  if (minutes % (60 * 24) === 0) {
+    const days = minutes / (60 * 24);
+    return days === 1
+      ? "This will not repeat for a day."
+      : `This will not repeat for ${days} days.`;
+  }
+  if (minutes % 60 === 0) {
+    const hours = minutes / 60;
+    return hours === 1
+      ? "This will not repeat for an hour."
+      : `This will not repeat for ${hours} hours.`;
+  }
+  return `This will not repeat for ${minutes} minutes.`;
+}
+
 export type RetentionWatchResult = {
   /** False when it could not establish the state, which is not the same as healthy. */
   looked: boolean;
@@ -34,10 +52,99 @@ export type RetentionWatchResult = {
   note: string;
 };
 
-export async function watchRetention(now = Date.now()): Promise<RetentionWatchResult> {
-  const db = supabaseAdmin();
+/**
+ * THE CLIENT IS A PARAMETER SO THE READ ORDER CAN BE PROVED.
+ *
+ * `supabaseAdmin()` by default, so every caller is unchanged. The proof passes
+ * a fake that records which tables were touched, which is the only way to
+ * assert the property below as BEHAVIOUR rather than as the order two lines
+ * happen to appear in a file. A source-text check would have been a proxy, and
+ * a proxy for an ordering is worth very little: moving one `await` past another
+ * is exactly the edit that keeps the text plausible and changes what runs.
+ */
+export async function watchRetention(
+  now = Date.now(),
+  db = supabaseAdmin(),
+): Promise<RetentionWatchResult> {
   if (!db) {
     return { looked: false, decision: null, sent: false, note: "the database is not configured" };
+  }
+
+  /*
+   * ======================================================================
+   * THE COOLDOWN IS READ FIRST, AND IT RETURNS BEFORE TOUCHING A SOURCE
+   * TABLE. Operator ruling, 2026-10-05.
+   * ======================================================================
+   *
+   * THE FIRST VERSION HAD THIS THE OTHER WAY ROUND and it was pure waste that
+   * would never have announced itself. `retentionReadiness` calls `planned()`,
+   * which uses `readEvery` and therefore pages EVERY candidate row rather than
+   * sampling. On production that is about 1,846 rows across the two tables,
+   * every five minutes, roughly 531,000 row reads a day, to answer a question
+   * whose answer is then discarded 287 times out of 288 by the cooldown.
+   *
+   * Nothing about the result was wrong, which is what made it invisible: the
+   * alert worked, the figures were right, and the cost sat in a cron nobody
+   * reads. It was found by working out what the thing would actually do in
+   * production once it was live, not by any check.
+   *
+   * SO THE ORDER IS THE WHOLE FIX and the proof asserts it with a fake client
+   * that records every table it is asked for. Inside the cooldown, the only
+   * table touched is `eng_alert_state`.
+   *
+   * AND THE CHECKED READ IS UNCHANGED, including the reason, because the reason
+   * is what makes it right. Treating a failed read as "never alerted" emails
+   * the operator every five minutes; treating it as "recently alerted" silences
+   * a real stall. So it reports that it could not look, which is a state
+   * somebody can find, rather than an answer it has no basis for. Not
+   * hypothetical for this table: migration 0023 created `eng_alert_state` and
+   * was not applied to production for a day after its branch merged, so a
+   * select against it failed silently every five minutes.
+   */
+  const { data: state, error: stateError } = await db
+    .from("eng_alert_state")
+    .select("last_alerted_at")
+    .eq("key", KEY)
+    .maybeSingle();
+
+  if (stateError) {
+    console.error(
+      `[retention-watch] the alert cooldown could not be read, so no decision was made: ${stateError.message}`,
+    );
+    return {
+      looked: false,
+      decision: null,
+      sent: false,
+      note: `the alert cooldown could not be read: ${stateError.message}`,
+    };
+  }
+
+  const lastAlertedAtMs = state?.last_alerted_at
+    ? Date.parse(state.last_alerted_at as string)
+    : null;
+
+  /*
+   * INSIDE THE COOLDOWN, NOTHING ELSE IS READ AT ALL.
+   *
+   * `looked` is FALSE here, and that is deliberate rather than sloppy. The
+   * field means "this run established the state of retention", and this run did
+   * not: it established that the firm was told recently. Reporting `looked:
+   * true` would make a suppressed run indistinguishable from one that checked
+   * both tables and found them healthy, which is the absent-versus-zero
+   * failure in a telemetry field.
+   */
+  if (lastAlertedAtMs !== null) {
+    const sinceMinutes = Math.floor((now - lastAlertedAtMs) / 60_000);
+    if (sinceMinutes < RETENTION_STALL_COOLDOWN_MINUTES) {
+      return {
+        looked: false,
+        decision: null,
+        sent: false,
+        note:
+          `the firm was told ${sinceMinutes} minute(s) ago, inside the ` +
+          `${RETENTION_STALL_COOLDOWN_MINUTES} minute cooldown, so no table was read`,
+      };
+    }
   }
 
   /*
@@ -61,44 +168,13 @@ export async function watchRetention(now = Date.now()): Promise<RetentionWatchRe
   }
 
   /*
-   * THE COOLDOWN READ IS CHECKED, AND NEITHER DIRECTION IS A SAFE DEFAULT.
-   *
-   * Copied from queue-watch, including the reason, because the reason is what
-   * makes it right. Treating a failed read as "never alerted" emails the
-   * operator every five minutes; treating it as "recently alerted" silences a
-   * real stall. So it reports that it could not look, which is a state somebody
-   * can find, rather than an answer it has no basis for.
-   *
-   * This is not hypothetical for `eng_alert_state` specifically: migration 0023
-   * created that table and was not applied to production for a day after its
-   * branch merged, so a select against it failed silently on production every
-   * five minutes.
+   * The pure rule still receives the cooldown, even though the early return
+   * above has already handled it. That is not redundant: the rule is the one
+   * place that decides, this function is the one place that avoids work, and
+   * removing the parameter would move a decision out of the tested function and
+   * into an untested branch.
    */
-  const { data: state, error: stateError } = await db
-    .from("eng_alert_state")
-    .select("last_alerted_at")
-    .eq("key", KEY)
-    .maybeSingle();
-
-  if (stateError) {
-    console.error(
-      `[retention-watch] the alert cooldown could not be read, so no decision was made: ${stateError.message}`,
-    );
-    return {
-      looked: false,
-      decision: null,
-      sent: false,
-      note: `the alert cooldown could not be read: ${stateError.message}`,
-    };
-  }
-
-  const decision = decideRetentionStall(
-    {
-      tables: readiness,
-      lastAlertedAtMs: state?.last_alerted_at ? Date.parse(state.last_alerted_at as string) : null,
-    },
-    now,
-  );
+  const decision = decideRetentionStall({ tables: readiness, lastAlertedAtMs }, now);
 
   if (!decision.send) {
     return { looked: true, decision, sent: false, note: decision.because };
@@ -118,7 +194,15 @@ export async function watchRetention(now = Date.now()): Promise<RetentionWatchRe
     "",
     ...decision.stalled.map((t) => `${t.table}: ${t.because ?? "no reason was given"}`),
     "",
-    `Nothing has been deleted and nothing is at risk. The next check is in ${RETENTION_STALL_COOLDOWN_MINUTES} minutes at the earliest.`,
+    /*
+     * SAID THE WAY A PERSON SAYS IT. The cooldown moved to 1440 minutes and
+     * this sentence read "the next check is in 1440 minutes at the earliest",
+     * which nobody says and which reads as a machine quoting its own constant.
+     * It is derived from the constant rather than typed, so the two cannot
+     * disagree, and the plural is handled because "in 1 days" is the other way
+     * a generated sentence announces itself.
+     */
+    `Nothing has been deleted and nothing is at risk. ${cooldownInWords()}`,
   ].join("\n");
 
   const result = await notify(
