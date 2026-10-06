@@ -995,11 +995,21 @@ try {
    * instants, read by the operator's chat counterpart, and the expected lines
    * are written out rather than computed.
    */
+  /*
+   * TWO CHECKS, NOT ONE JOINED BY &&. Joined, the second case only ran when the
+   * first passed, so removing the floor failed the first and never evaluated
+   * the second: a case that had never been seen to go red. Separate, each one
+   * is exercised on every run, red or green.
+   */
   rec(
-    "the cutoff is floored to 00:00 UTC, so only whole days are planned",
-    cutoffFor(30, new Date("2026-10-06T17:15:24.000Z")) === "2026-09-06T00:00:00.000Z" &&
-      cutoffFor(30, new Date("2026-10-05T17:15:00.000Z")) === "2026-09-05T00:00:00.000Z",
-    `the 2026-10-06 17:15:24 UTC run plans through 2026-09-05 and none of 2026-09-06; got ${cutoffFor(30, new Date("2026-10-06T17:15:24.000Z"))}`,
+    "the cutoff is floored to 00:00 UTC: the 2026-10-06 17:15:24 run draws 2026-09-06 00:00",
+    cutoffFor(30, new Date("2026-10-06T17:15:24.000Z")) === "2026-09-06T00:00:00.000Z",
+    `so it plans through 2026-09-05 and none of 2026-09-06; got ${cutoffFor(30, new Date("2026-10-06T17:15:24.000Z"))}`,
+  );
+  rec(
+    "and the 2026-10-05 17:15 run draws 2026-09-05 00:00",
+    cutoffFor(30, new Date("2026-10-05T17:15:00.000Z")) === "2026-09-05T00:00:00.000Z",
+    `so it plans through 2026-09-04 and none of 2026-09-05; got ${cutoffFor(30, new Date("2026-10-05T17:15:00.000Z"))}`,
   );
 
   rec(
