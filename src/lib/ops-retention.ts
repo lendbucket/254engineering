@@ -340,9 +340,29 @@ export function hashIds(ids: string[]): string {
   return createHash("sha256").update([...ids].sort().join("\n")).digest("hex");
 }
 
-/** The instant a floor of `days` puts the line at, as an ISO string. */
+/**
+ * WHERE A FLOOR OF `days` PUTS THE LINE: 00:00 UTC OF THE DAY THE EXACT
+ * INSTANT FALLS IN, AS AN ISO STRING.
+ *
+ * Operator ruling, 2026-10-06. Retention plans WHOLE DAYS ONLY, and a day is
+ * eligible only when all of it is older than the floor.
+ *
+ * IT USED TO BE THE EXACT INSTANT, AND THAT WAS A DEFECT THE ROLLUP GUARD
+ * TURNED INTO A PERMANENT STALL. The guard compares each planned day against
+ * that day's rollup, and the rollup counts the whole UTC day. With an exact
+ * cutoff the newest planned day was only partly planned, so it could never
+ * reconcile. Production showed it: at 2026-10-06 17:15:24 UTC the planner held
+ * 208 eng_jobs rows for 2026-09-06 and jobs.completed said 289, read on
+ * production by the operator's chat counterpart. No rows had left the table;
+ * the planner was counting part of a day.
+ *
+ * Every row older than the line sits in a day that ended at or before the
+ * exact instant, so a row is now kept for between `days` and `days + 1` days,
+ * never fewer than the ruled floor.
+ */
 export function cutoffFor(days: number, now: Date = new Date()): string {
-  return new Date(now.getTime() - days * 86_400_000).toISOString();
+  const exact = now.getTime() - days * 86_400_000;
+  return new Date(Math.floor(exact / 86_400_000) * 86_400_000).toISOString();
 }
 
 type Row = Record<string, unknown>;
@@ -495,8 +515,10 @@ export async function planRetention(table: string, mode: RetentionMode): Promise
   }
 
   reading.push(
-    `CUTOFF IS THIS PLAN'S OWN CLOCK less ${rule.floorDays} days. Two plans made in one pass carry ` +
-      "cutoffs seconds apart, which is not an inconsistency between them.",
+    `CUTOFF IS THIS PLAN'S OWN CLOCK less ${rule.floorDays} days, floored to 00:00 UTC, so only days ` +
+      "wholly older than the floor are planned. Two plans made in one pass carry the same cutoff unless " +
+      "the pass crosses midnight UTC, and then they differ by exactly one day, which is not an " +
+      "inconsistency between them.",
   );
 
   const actor =
