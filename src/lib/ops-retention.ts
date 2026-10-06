@@ -205,7 +205,7 @@ export async function retentionReadiness(
    */
   const rollupDays: RollupDay[] = [];
   if (rule.rollupRequired) {
-    const wanted = [...days.keys()].filter((d) => d !== "no date recorded").sort();
+    const wanted = datedDays(days);
     const held = new Map<string, number>();
     if (wanted.length > 0) {
       const { data, error } = await client
@@ -217,42 +217,77 @@ export async function retentionReadiness(
       for (const r of data ?? []) held.set(r.day as string, Number(r.value));
     }
 
-    for (const day of wanted) {
-      const plannedCount = days.get(day) ?? 0;
-      const rollup = held.has(day) ? (held.get(day) as number) : null;
-      rollupDays.push({ day, planned: plannedCount, rollup });
+    const verdict = reconcileDays(table, { rollupRequired: rule.rollupRequired, ageColumn: rule.ageColumn }, days, held);
+    if (!verdict.ok) return verdict;
+    rollupDays.push(...verdict.rollupDays);
+  }
 
-      if (rollup === null) {
-        return {
-          ok: false,
-          because:
-            `${day} has ${plannedCount} row(s) in ${table} and no ${rule.rollupRequired} figure in ` +
-            "eng_metrics_daily. The rollup that replaces this day does not exist yet, so the day is " +
-            "not deleted. Run the metrics rollup for that day first.",
-        };
-      }
-      if (rollup !== plannedCount) {
-        return {
-          ok: false,
-          because:
-            `${day} does not reconcile: ${table} holds ${plannedCount} row(s) for it and ` +
-            `${rule.rollupRequired} says ${rollup}. The rollup and its source disagree, so nothing is ` +
-            "deleted. Whichever is wrong, deleting the source would make the disagreement permanent.",
-        };
-      }
-    }
+  return { ok: true, cutoff, ids, days, rollupDays };
+}
 
-    if (days.has("no date recorded")) {
+/**
+ * THE PER-DAY COMPARISON, WITH NOTHING TO READ.
+ *
+ * Moved out of `retentionReadiness` on 2026-10-06, on the operator's ruling,
+ * so a proof can run the product's own refusal logic against production's real
+ * figures without a database. The reads stay where they were; this is only the
+ * part that decides. Same order, same sentences, same refusals: the sentence
+ * source was compared literal by literal before and after the move.
+ *
+ * `days` is the planned set grouped by `dayOf`, and `held` is the rollup as
+ * `eng_metrics_daily` holds it for those days. A day with no figure refuses, a
+ * day whose figure disagrees refuses, and rows with no age refuse, in that
+ * order, and the first refusal wins.
+ */
+export function reconcileDays(
+  table: string,
+  rule: { rollupRequired: string; ageColumn: string },
+  days: Map<string, number>,
+  held: Map<string, number>,
+): { ok: true; rollupDays: RollupDay[] } | { ok: false; because: string } {
+  const rollupDays: RollupDay[] = [];
+  const wanted = datedDays(days);
+
+  for (const day of wanted) {
+    const plannedCount = days.get(day) ?? 0;
+    const rollup = held.has(day) ? (held.get(day) as number) : null;
+    rollupDays.push({ day, planned: plannedCount, rollup });
+
+    if (rollup === null) {
       return {
         ok: false,
         because:
-          `${days.get("no date recorded")} row(s) in ${table} matched the cutoff with no ` +
-          `${rule.ageColumn}, so no day can be reconciled for them. A row with no age is not an old row.`,
+          `${day} has ${plannedCount} row(s) in ${table} and no ${rule.rollupRequired} figure in ` +
+          "eng_metrics_daily. The rollup that replaces this day does not exist yet, so the day is " +
+          "not deleted. Run the metrics rollup for that day first.",
+      };
+    }
+    if (rollup !== plannedCount) {
+      return {
+        ok: false,
+        because:
+          `${day} does not reconcile: ${table} holds ${plannedCount} row(s) for it and ` +
+          `${rule.rollupRequired} says ${rollup}. The rollup and its source disagree, so nothing is ` +
+          "deleted. Whichever is wrong, deleting the source would make the disagreement permanent.",
       };
     }
   }
 
-  return { ok: true, cutoff, ids, days, rollupDays };
+  if (days.has("no date recorded")) {
+    return {
+      ok: false,
+      because:
+        `${days.get("no date recorded")} row(s) in ${table} matched the cutoff with no ` +
+        `${rule.ageColumn}, so no day can be reconciled for them. A row with no age is not an old row.`,
+    };
+  }
+
+  return { ok: true, rollupDays };
+}
+
+/** The days a rollup is read and compared for, oldest first. One home for the filter. */
+function datedDays(days: Map<string, number>): string[] {
+  return [...days.keys()].filter((d) => d !== "no date recorded").sort();
 }
 
 export type Manifest = {
@@ -363,7 +398,7 @@ async function planned(
   });
 }
 
-const dayOf = (value: unknown): string =>
+export const dayOf = (value: unknown): string =>
   typeof value === "string" ? value.slice(0, 10) : "no date recorded";
 
 /**
