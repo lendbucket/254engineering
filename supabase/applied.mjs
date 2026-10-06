@@ -1589,7 +1589,10 @@ export const APPLIED = [
       "Behaviour moves from 88129f2c277c601ea05cff9ccd15d77d to 2f4bbea41782d98686abfd5c61301493 " +
       "across the same 920 facts, one function body different.",
     because:
-      "PENDING, DELIBERATELY, AND IT HOLDS THE MERGE. Drafted 2026-09-23 during an overnight run " +
+      "APPLIED TO PRODUCTION 2026-09-23, provider version 20260924004442 (00:44:42 UTC on " +
+      "2026-09-24, the evening of 2026-09-23 in Central time), both as this entry already records " +
+      "them; this sentence replaced 'PENDING, DELIBERATELY, AND IT HOLDS THE MERGE.', which was " +
+      "true when it was drafted. Drafted 2026-09-23 during an overnight run " +
       "that is forbidden to touch production. A migration on a feature branch may be pending; a " +
       "migration on main may not, because merging is the moment the decision stops being " +
       "deferrable. So this branch does not merge until the operator applies it at a keyboard, " +
