@@ -3103,8 +3103,37 @@ night, if the lock is free and work is waiting, board it.
 ## 7. Session mechanics
 
 - Feature branches. No force pushes to main. Merges only on the operator's word.
-- **THE SESSION NEVER PUSHES. The operator types every push himself.** Operator
-  ruling, restated 2026-09-23 after the session broke it twice in one afternoon.
+- **WHAT THE SESSION MAY PUSH, AND WHAT IT MAY NEVER PUSH.** Operator ruling,
+  given 2026-10-06. It replaces the rule that the session never pushes, and it
+  replaces the unrecorded grant of 2026-10-05, under which three pushes were
+  made while this file still said the session never pushes. A grant that lives
+  only in a conversation is a grant the next session cannot read, so this one is
+  written here.
+
+  **Feature branches.** The session may push its own feature branches at any
+  time so Vercel builds a preview. It never pushes a branch another session
+  owns.
+
+  **Main.** The session pushes to main only on Robert's merge word, given in
+  chat, naming the branch and the commit. The board must have passed alone with
+  its stated prediction met.
+
+  **Never, under any word:** a force push, deleting or rewriting a remote branch,
+  pushing a tag, or pushing main with a migration that is not applied to
+  production. A migration branch merges only inside a sitting, after the apply
+  is read back from production.
+
+  **After every push** the session confirms with `git ls-remote` that the remote
+  head is the commit it meant to push, and reports both hashes.
+
+  **Nothing is called live on the session's word.** Production is verified on
+  Vercel by Robert's counterpart in chat.
+
+  **THE RULE THIS REPLACES, KEPT FOR ITS REASONING.** It read: "THE SESSION
+  NEVER PUSHES. The operator types every push himself." Operator ruling,
+  restated 2026-09-23 after the session broke it twice in one afternoon. The
+  account below is why a push is the operator's word and never the session's
+  inference, and that part of it still holds under the grant above.
 
   **The first time**, a push command was pasted into the session with no
   accompanying words. The session asked whether to run it, the operator answered
