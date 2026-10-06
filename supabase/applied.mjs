@@ -1672,7 +1672,9 @@ export const APPLIED = [
      * themselves, never the fingerprint.
      */
     because:
-      "PENDING, DELIBERATELY, AND IT HOLDS THE MERGE. Drafted 2026-09-24 during an overnight run " +
+      "APPLIED TO PRODUCTION 2026-09-24, provider version 20260924191852, read by the operator's " +
+      "chat counterpart on 2026-10-06; this sentence replaced 'PENDING, DELIBERATELY, AND IT HOLDS " +
+      "THE MERGE.', which was true when it was drafted. Drafted 2026-09-24 during an overnight run " +
       "that is forbidden to touch production. A migration on a feature branch may be pending; a " +
       "migration on main may not, because merging is the moment the decision stops being " +
       "deferrable. " +
