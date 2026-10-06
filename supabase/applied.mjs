@@ -1687,7 +1687,16 @@ export const APPLIED = [
       "every role; written that way this migration would have taken pricing.read from admin and " +
       "read_only as well, which is a different and much worse migration. " +
       "WHAT TO READ BACK WHEN IT IS APPLIED: the total grant count, and the two rows by name. Not " +
-      "the fingerprint, which cannot see a row, and 0018 is the precedent for why that matters.",
+      "the fingerprint, which cannot see a row, and 0018 is the precedent for why that matters. " +
+      "A NAMING SLIP, THE SAME ONE 0055 RECORDS, AND IT WAS NOT RECORDED HERE UNTIL 2026-10-06. " +
+      "Production's list_migrations shows provider version 20260924191852 named " +
+      "'the_engineer_sees_no_money', without its number, where 0056 to 0058 carry their full file " +
+      "stem. Read from the Supabase console on 2026-10-06 by the operator's chat counterpart, not by " +
+      "a session, and matched to this entry by name and by date: it is the only migration the ledger " +
+      "records as applied to production on 2026-09-24 apart from 0060, which follows it 58 seconds " +
+      "later. Somebody grepping that list for 0059 will not find it and may conclude production " +
+      "lacks it. It is not renamed, for the reason 0055 gives: a provider history that changes after " +
+      "the fact is a history nobody can reason about.",
   },
 
   {
@@ -1798,7 +1807,14 @@ export const APPLIED = [
       "BEFORE IT IS APPLIED somebody must read the live buckets on fsaryeciduszuahgjbly and on " +
       "development. If eng-uploads exists there with a different size limit or mime list, this " +
       "migration CHANGES it, and the do-update clause is deliberate: it re-asserts private, the " +
-      "limit and the list rather than leaving a bucket somebody widened in the dashboard.",
+      "limit and the list rather than leaving a bucket somebody widened in the dashboard. " +
+      "A NAMING SLIP, THE SAME ONE 0055 AND 0059 RECORD, AND IT WAS NOT RECORDED HERE UNTIL " +
+      "2026-10-06. Production's list_migrations shows provider version 20260924191950 named " +
+      "'every_bucket_is_in_the_chain', without its number. Read from the Supabase console on " +
+      "2026-10-06 by the operator's chat counterpart, not by a session. It agrees with the bucket " +
+      "read-back above: eng-partner-assets carries created_at 2026-09-24 19:19:50.987029+00, inside " +
+      "the same second as the version. Somebody grepping that list for 0060 will not find it. It is " +
+      "not renamed, for the reason 0055 gives.",
   },
 ];
 
