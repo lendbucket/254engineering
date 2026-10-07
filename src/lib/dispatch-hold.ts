@@ -147,13 +147,11 @@ export async function recordPrereview(
   /*
    * A DECLINE CLOSES THE FILE FIRST, AND ONLY THEN IS IT RECORDED. Found by the
    * order path walk: the decision was written before the file moved, the move
-   * was refused, and a recorded decline sat on an open file. The engineer
-   * takes the file the way openReview does (assigned_engineer_id), because a
-   * file in dispatch is nobody's and transitionFile only moves one of his.
+   * was refused, and a recorded decline sat on an open file. No assignment is
+   * written: bulk-audit holds that only accepting work writes one, and the
+   * platform moves the file, so the engineer need not hold it.
    */
   if (decision === "decline") {
-    const { error: takeError } = await db.from("eng_files").update({ assigned_engineer_id: actor.id }).eq("id", fileId);
-    if (takeError) return { ok: false, error: `The file could not be taken for the decline: ${takeError.message}` };
     /*
      * Moved by the platform, recording him: the engineer role holds no grant to
      * cancel a file, and widening it would let him cancel any file. The
