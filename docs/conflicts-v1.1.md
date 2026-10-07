@@ -347,6 +347,17 @@ exists, and only he can revise his document.
 `services.ts:146`: "Field inspections at the stages the code requires". Both can
 be true; whether the copy should say the engineer selects them is his call.
 
+**3. Template 1's recipient and Re: lines.** Added by operator ruling,
+2026-10-07. His template 1 has the recipient's name and address in one
+paragraph, `{{recipient_name}} {{recipient_address}}`, and the file number on
+the Re: line, `... County, Texas File {{file_number}}`, so a sealed letter
+prints them run together ("Audit Walk Insurer, not a real company Audit Walk
+Insurer, 1 Not A Real Road ..." in the development walk's letter). Should the
+name and the address be separate lines, and the file number its own line or
+set off? **His text stays exactly as he wrote it until he answers**; the
+transcription in `src/content/letters/roof-certification.ts` is proved against
+his document word for word.
+
 ## Compared, no conflict found
 
 The engineer's answers of 2026-10-06 against each protocol's own text, all

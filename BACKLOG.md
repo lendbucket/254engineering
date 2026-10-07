@@ -34,10 +34,13 @@ Three things it found are not the session's to decide:
    name and address in one paragraph, and "Texas File {{file_number}}" on the Re
    line, so the sealed letter prints them run on. The transcription is his text
    exactly and is not changed; whether those are separate lines is his to say.
+   **Ruled 2026-10-07: on Aman's list as question 3** in `docs/conflicts-v1.1.md`;
+   his text stays as it is.
 3. **Three walk files on development carry real sequence numbers.**
    `254-2026-0001` to `0003`, opened before the demo-file fix, with is_demo false;
    the database refuses the flag without the DEMO number, and `0002`'s number is
-   printed in a sealed, locked letter. Renumber, or leave them recorded here.
+   printed in a sealed, locked letter. **Ruled 2026-10-07: they stay, as
+   recorded here.**
 
 ## SEVENTEEN PORTAL FILES TOKEN-AUDIT HAS NEVER READ
 
