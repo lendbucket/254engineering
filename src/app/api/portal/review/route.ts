@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { currentActor, requestContext } from "@/lib/ops-auth";
 import { decideReview, monthlyExport, openReview, recordTime, type DeterminationInput } from "@/lib/ops-engineer";
-import { RC001_DETERMINATIONS, type Determination } from "@/content/protocols/rc-001-decisions";
+import { PROTOCOL_ENTRIES, type Determination } from "@/content/protocols";
 import { REVIEW_ACTIONS, type ReviewAction } from "@/lib/ops-review";
 
 /**
@@ -35,9 +35,11 @@ export async function POST(request: NextRequest) {
     if (!REVIEW_ACTIONS.includes(decision as ReviewAction)) return bad("Unknown review decision.");
     /*
      * THE DETERMINATION IS VALIDATED AGAINST THE REGISTRY HERE, not cast and
-     * hoped for. RC001_DETERMINATIONS is the verbatim transcription of Appendix
-     * C, so a body carrying a sixth word is refused by the document's own list
-     * rather than reaching a check constraint.
+     * hoped for. Each registered protocol's determinations are the verbatim
+     * transcription of its Appendix C, so a body carrying a sixth word is
+     * refused by the documents' own lists rather than reaching a check
+     * constraint. Until 2026-10-06 this read RC-001's list by name; with one
+     * protocol registered the list is the same.
      *
      * Absent is not the same as invalid: a file with no signed protocol needs
      * no determination, and decideReview decides which is which. So a missing
@@ -46,7 +48,7 @@ export async function POST(request: NextRequest) {
     let determination: DeterminationInput | null = null;
     if (body?.determination) {
       const value = String(body.determination);
-      if (!RC001_DETERMINATIONS.some((d) => d.key === value)) {
+      if (!PROTOCOL_ENTRIES.some((p) => p.declaration.determinations.some((d) => d.key === value))) {
         return bad("That is not one of the five determinations in Appendix C.");
       }
       determination = {

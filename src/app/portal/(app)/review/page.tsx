@@ -11,8 +11,7 @@ import { services } from "@/content/services";
 import { EmptyState, PageHead } from "@/components/portal/surfaces";
 import { outstandingFor } from "@/lib/ops-file-inputs";
 import { DecisionPanel, OpenReviewButton } from "./ReviewClient";
-import { RC001 } from "@/content/protocols/rc-001";
-import { RC001_DETERMINATIONS } from "@/content/protocols/rc-001-decisions";
+import { protocolByDocument } from "@/content/protocols";
 
 export const dynamic = "force-dynamic";
 
@@ -467,9 +466,9 @@ export default async function ReviewPage({
                      * Empty when no signed protocol governs the file, and then
                      * the panel does not ask for a determination at all.
                      */
-                    determinationRules={
-                      selected.protocolDocument === RC001.documentNumber ? RC001_DETERMINATIONS : []
-                    }
+                    determinationRules={[
+                      ...(protocolByDocument(selected.protocolDocument)?.declaration.determinations ?? []),
+                    ]}
                     items={selected.items.map((i) => ({
                       itemKey: i.itemKey,
                       label: i.label,

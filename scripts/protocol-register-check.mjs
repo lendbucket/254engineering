@@ -51,7 +51,13 @@ console.log(`database: ${describeTarget(process.env.SUPABASE_URL)}`);
 console.log("");
 
 const { approvedProtocols } = await import("../src/config/launch-readiness.ts");
-const { RC001 } = await import("../src/content/protocols/rc-001.ts");
+/*
+ * ONE PROTOCOL TO MANY, 2026-10-06. Each approved protocol is compared against
+ * ITS OWN transcription, looked up in the registry by service line, rather than
+ * every one against 254-RC-001's. With RC-001 the only approved protocol, every
+ * comparison below is the one that ran before.
+ */
+const { protocolForLine } = await import("../src/content/protocols/index.ts");
 
 /*
  * UNREACHABLE IS NOT FAILED. No client means this could not measure, which is a
@@ -83,6 +89,13 @@ if (registerIsEmpty) {
 for (const p of approvedProtocols) {
   const where = `${p.protocolName} v${p.versionLabel}`;
   console.log(`  ${where}`);
+
+  const transcribed = protocolForLine(p.serviceSlug);
+  if (!transcribed) {
+    rec(`${where}: a transcribed protocol is registered for this service line`, false, `none for ${p.serviceSlug}`);
+    continue;
+  }
+  const RC001 = transcribed.declaration;
 
   const { data: rows, error } = await db
     .from("eng_protocol_templates")
