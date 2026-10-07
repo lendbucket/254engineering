@@ -182,9 +182,9 @@ export default async function PriceBookPage() {
       >
         <p className="text-[13.5px] leading-[1.7] text-[var(--secondary)]">
           Margin is computed from what a job actually cost: the technician calls that actually
-          happened and the tier the engineer&apos;s determination actually attracted. No service line
-          is open, because no protocol has been approved, so there are no jobs and there is nothing
-          to compute. An empty margin table would look exactly like a full one from a distance,
+          happened and the tier the engineer&apos;s determination actually attracted. That needs
+          completed jobs, and this table is built against them when they exist rather than against
+          an empty set. An empty margin table would look exactly like a full one from a distance,
           which is why there is not one here.
         </p>
         <p className="mt-3 text-[13.5px] leading-[1.7] text-[var(--secondary)]">
