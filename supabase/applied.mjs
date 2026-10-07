@@ -1868,6 +1868,83 @@ export const APPLIED = [
       "the same second as the version. Somebody grepping that list for 0060 will not find it. It is " +
       "not renamed, for the reason 0055 gives.",
   },
+
+  {
+    file: "0061_a_sealed_deliverable_says_who_and_when.sql", appliedBy: null,
+    fingerprint: "a4af1b6c8fc4cd070e15e9d5346f9004",
+    behaviour: "70395f83044f0ac82bb7f26142fa2422",
+    production: null,
+    development: {
+      at: "0061",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-07",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-07 by the operator's chat counterpart through the Supabase " +
+        "connector's apply_migration, named 0061_a_sealed_deliverable_says_who_and_when, so it is in " +
+        "development's provider history. The connector refuses any statement containing drop, so the " +
+        "two drop trigger if exists lines (286 and 326, eng_seal_images_guard and " +
+        "eng_seal_images_audit on eng_seal_images) were left out; the file was not edited. Equivalent " +
+        "because the same file creates eng_seal_images at line 219, so on a database without that " +
+        "table neither trigger can exist and both drops are no-ops. Read back with both statements of " +
+        "the session's prediction, every line matching: buckets eng-documents (private, 26214400, " +
+        "application/pdf) and eng-seals (private, 2097152, image/png); constraints " +
+        "eng_documents_seal_is_whole_ck and eng_seal_images_superseded_whole_ck; eng_seal_images with " +
+        "12 columns and row level security on, zero policies; index eng_seal_images_one_current; " +
+        "triggers eng_seal_images_guard and eng_seal_images_audit; functions eng_seal_image_guard, " +
+        "eng_seal_image_audit and eng_record_seal_image; shape a4af1b6c8fc4cd070e15e9d5346f9004 across " +
+        "1155 columns. No fact count was read.",
+    },
+    note:
+      "AMENDED 2026-10-07 BY RULINGS 2 AND 5 OF 2026-10-06, while still applied nowhere: the sealing " +
+      "schema goes into this migration. Part three adds eng_seal_images, the record of each seal and " +
+      "signature image the engineer uploads, with its guard and audit triggers, the function " +
+      "eng_record_seal_image that supersedes and inserts in one act, and the private eng-seals " +
+      "bucket. Both figures were re-derived from scripts/fingerprint-at.mjs at 0061 after the " +
+      "amendment: shape a4af1b6c8fc4cd070e15e9d5346f9004 across 1155 columns, up from 1143 by the " +
+      "twelve columns of eng_seal_images; behaviour 70395f83044f0ac82bb7f26142fa2422 across 939 " +
+      "facts, up from 921. Making the supersession reference DEFERRABLE did not move the behaviour " +
+      "digest, so the digest cannot see deferrability; migration-audit proves the deferred reference " +
+      "by replacing a seal inside one transaction instead. " +
+      "BEFORE THE AMENDMENT the shape repeated 0060's, because parts one and two add no column, and " +
+      "behaviour moved by exactly one fact, 920 to 921, the one check constraint. " +
+      "Neither bucket is visible to either digest, for the reason 0060 states at length, so both " +
+      "buckets are read back AS BUCKETS and never as a digest.",
+    because:
+      "WRITTEN 2026-10-03 AND APPLIED NOWHERE, INCLUDING DEVELOPMENT. The operator approved the " +
+      "constraint in principle and ruled it goes to production in a sitting rather than through a " +
+      "session. Its branch, feat/sealed-delivery, does not merge until this entry is not pending, " +
+      "because a migration on main is never pending. " +
+      "WHAT IT DOES. One bucket, eng-documents, private, 25MB, application/pdf only; one check " +
+      "constraint on eng_documents, ((sealed_at is null) = (sealed_by is null)); and, from " +
+      "2026-10-07, the eng-seals bucket, private, 2MB, image/png only, with eng_seal_images and its " +
+      "two triggers: a guard that refuses deletion and any change but a single supersession, and an " +
+      "audit trigger that writes every upload and supersession to eng_audit_events in the same " +
+      "transaction. " +
+      "A CORRECTION TO THIS ENTRY, MADE 2026-10-07. It used to say the behaviour digest was " +
+      "'recorded as null rather than guessed' while the field above carried a digest. The field was " +
+      "right: it was derived from a replay at 0061. The sentence was the stale half. " +
+      "The live read-back at the sitting is judged on counts, never on the digest, under the " +
+      "2026-09-12 ruling. " +
+      "WHY THE BUCKET IS HERE AT ALL. 0060 made it a rule that every bucket the code names is " +
+      "created by this chain, and added the check that compares the two. eng-documents is named by " +
+      "the upload path being built on this branch, so without this file migration-audit goes red " +
+      "naming it, which is the bucket half of this migration's injection test and costs nothing to " +
+      "run because the check already exists. " +
+      "WHAT WAS WITHDRAWN BEFORE IT WAS APPLIED. A second constraint forbidding a seal on any kind " +
+      "but 'deliverable'. migration-audit refused it, naming a 0032 fixture that seals a " +
+      "firm_document with no file on purpose, to prove the delete trigger defends a seal whatever it " +
+      "hangs off. That fixture is evidence somebody already decided a sealed document need not be " +
+      "one job's letter, so the clause was a RULING about what the firm may seal, invented in a " +
+      "migration comment. It is in BACKLOG.md for the operator and the engineer of record. " +
+      "AND THE NUMBER MOVED. Written as 0062 to avoid colliding with the parked 0061 on " +
+      "migration/credentials-hold-no-documents, and the contiguity check refused the gap: a " +
+      "duplicate number is found by git when two branches meet, a gap is a chain that cannot be " +
+      "replayed and reads like a lost migration. The parked branch renumbers to 0062 before it " +
+      "merges, which also renames the worked example in docs/production-sitting-destructive.md.",
+    proves: { table: "eng_seal_images", bucket: "eng-documents", constraint: "eng_documents_seal_is_whole_ck" },
+  },
 ];
 
 /**

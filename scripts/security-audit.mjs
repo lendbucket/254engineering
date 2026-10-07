@@ -103,6 +103,9 @@ const ADMIN_PAGES = [
   "/portal/people",
   "/portal/audit",
   "/portal/profile",
+  /* The engineer's own seal and signature, 2026-10-07. Gated on the licence;
+   * closed to a signed out caller like every other portal page. */
+  "/portal/profile/seal",
   "/portal/review",
   /* Files waiting on an owner to have repairs done. Behind the same licensed
    * capability as the review queue, and closed to a signed out caller like
@@ -240,6 +243,9 @@ const ADMIN_APIS = [
 
   "/api/portal/people",
   "/api/portal/password",
+  /* Where the engineer stores his seal and signature, 2026-10-07. POST only,
+   * licence and a fresh second factor behind the perimeter. */
+  "/api/portal/seal",
   // Never listed since Phase 1 shipped it. Found by the coverage check below on
   // its first run, which is the argument for the coverage check.
   "/api/portal/files",
