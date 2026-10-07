@@ -13,13 +13,21 @@ is never pending.
 
 Operator note of 2026-10-07: the Supabase connector refuses any statement
 containing `drop` or `delete`, under any permission setting. Each production step
-below reaches its migration file's end state without one where that is truly
-equivalent, says why, and **flags the one step where it is not** (0062).
+below reaches its migration file's end state without one, and says why.
 
-The word itself appears in comments and in `on delete restrict` in 0061 and
-0063. 0061 went to development through the connector with those words in it, so
-the refusal is read as being about statements, and that reading is flagged here
-rather than assumed for production.
+**The credentials column drop is NOT in this sitting.** Operator ruling,
+2026-10-07: the connector refuses it, the column is empty on both databases and
+no code writes it, so it is deferred out of the release. It waits on
+`migration/credentials-0062` for a later number, and the seal act and the
+suspension trigger took 0062 and 0063 so the chain stays contiguous.
+
+**The word itself also stops a statement in a comment.** On development the
+counterpart applied 0062 and 0063 with their comment blocks left out because the
+comments contain the word drop, and every statement went as written. Do the
+same here. `on delete restrict` and the trigger that refuses deletes went
+through on development, so the refusal is about the word appearing in a
+statement or comment the connector scans, and the sitting does as development
+did rather than assuming more.
 
 ## The read-backs used throughout
 
@@ -57,42 +65,29 @@ once before step 1 and confirm that figure first.**
 ### A1. 0061, a sealed deliverable says who and when
 
 Through the connector's `apply_migration`, **with lines 286 and 326 left out**:
-`drop trigger if exists eng_seal_images_guard on eng_seal_images;` and
-`drop trigger if exists eng_seal_images_audit on eng_seal_images;`. The file is
-not edited.
+the two `drop trigger if exists` lines on `eng_seal_images`. The file is not
+edited.
 
 **Why that is equivalent:** the same file creates `eng_seal_images` at line 219,
 so on a database that does not have it there is no trigger for either line to
-drop, and each is a no-op. Development took it exactly this way on 2026-10-07
+act on, and each is a no-op. Development took it exactly this way on 2026-10-07
 and every object matched.
 
 **Predict:** shape `a4af1b6c8fc4cd070e15e9d5346f9004`, **1155** columns.
 
-### A2. 0062, credentials hold no documents. FLAGGED: NOT THROUGH THE CONNECTOR
+### A2. 0062, a seal is applied once and locked
 
-The statement is `alter table eng_credentials drop column if exists storage_key`.
-**There is no drop-free equivalent**: removing the column is the whole purpose,
-and leaving it is not the same end state. Follow
-`docs/production-sitting-destructive.md`, section "0062": the read-only dry run
-first (**rows where storage_key is not null must be 0, or STOP**), then the
-statement in the SQL editor or by whatever path Robert rules, then the
-verification.
+`apply_migration`, comment blocks left out, every statement as written.
+Development took it this way on 2026-10-07, under its earlier number 0063.
 
-**Predict:** shape `8296e260aa51a41e47a3f829f6ec42db`, **1154** columns, and the
-credential row count unchanged from the dry run.
+**Predict:** shape `aff578e18d558ee5af26fb2cb8c9eb88`, **1170** columns.
 
-### A3. 0063, a seal is applied once and locked
+### A3. 0063, a suspension spends every live link
 
-`apply_migration`, as written. It carries no `drop` statement by design.
+`apply_migration`, the same way. Development took it as 0064.
 
-**Predict:** shape `3532eaf90c5b2342d48d8a5996a71ac2`, **1169** columns.
-
-### A4. 0064, a suspension spends every live link
-
-`apply_migration`, as written. No `drop` and no `delete` statement.
-
-**Predict:** shape unchanged at `3532eaf90c5b2342d48d8a5996a71ac2`, **1169**
-columns (it adds no column), and then:
+**Predict:** shape unchanged at `aff578e18d558ee5af26fb2cb8c9eb88`, **1170**
+columns, and then:
 
 ```sql
 select tgname from pg_trigger
@@ -103,12 +98,27 @@ order by tgname;
 
 **Predict:** exactly those two names.
 
+### A4. 0064, closing an account spends its links too
+
+`apply_migration`, the same way. It replaces the body of the function A3
+created and adds nothing, so neither the shape nor any count moves. Its
+read-back is the body:
+
+```sql
+select position('closed' in prosrc) > 0 as covers_closing
+from pg_proc where proname = 'eng_spend_links_on_suspension';
+```
+
+**Predict:** one row, `true`. **Development does not have 0064 yet**; see the
+last section.
+
 **After Part A**, run the counts read-back once. **Predict** the table count
 **two higher** than before A1 (`eng_seal_images` in 0061, `eng_seal_acts` in
-0063) and the function count **eleven higher** (three in 0061, seven in 0063,
-one in 0064, from migration-audit's pins: 25 to 28 to 35 to 36). The trigger count is compared against the figure read
-before A1 rather than predicted absolutely, because production's own trigger
-count has never been read against the replay's.
+0062) and the function count **eleven higher** (three in 0061, seven in 0062,
+one in 0063, none in 0064; migration-audit's pins go 25 to 28 to 35 to 36). The
+trigger count is compared against the figure read before A1 rather than
+predicted absolutely, because production's own trigger count has never been read
+against the replay's.
 
 **Then the ledger**: each of 0061 to 0064 gets its `production` record in
 `supabase/applied.mjs` from the pasted output, written by the session afterwards.
@@ -117,20 +127,15 @@ count has never been read against the replay's.
 
 ## Part B. The `eng_cron_runs` rollup backfill, six rows
 
-**READ THIS BEFORE SCHEDULING THE SITTING.** The retention floor on
-`eng_cron_runs` is **30 days** (CLAUDE.md section 6c). 2026-09-04 was 30 days
-old on 2026-10-04. If retention has run on production since then, the rows this
-backfill computes from are already gone, B2 will show `cron.runs` of 0, and the
-step stops by design: the figures can never be recomputed, and a hand count is
-not an acceptable substitute. **Whether production's retention has pruned those
-days is one read-only query today**, and it decides whether Part B exists:
-
-```sql
-select (started_at at time zone 'UTC')::date as day, count(*)
-from eng_cron_runs
-where started_at >= '2026-09-04T00:00:00Z' and started_at < '2026-09-06T00:00:00Z'
-group by 1 order by 1;
-```
+**READ BY THE COUNTERPART ON 2026-10-07: THE ROWS ARE THERE.** Production
+held **503** `eng_cron_runs` rows for 2026-09-04 and **1729** for 2026-09-05
+(UTC), so the backfill stays in the sitting. They are past the 30-day
+retention floor (CLAUDE.md section 6c) and were still there 3 days after it,
+so retention is not pruning them today, but nothing here says it will not
+before 2026-10-20. **B2's stop condition stands**: if `cron.runs` reads 0 on
+either day at the sitting, the rows went in the meantime, and a hand count is
+not a substitute. Running Part B before the sitting, on its own, is a
+question for the operator rather than something this script assumes.
 
 Two days, 2026-09-04 and 2026-09-05, three metrics each: `cron.runs`,
 `cron.failures` and `cron.seconds`. **The figures come from the rollup's own
@@ -381,16 +386,20 @@ not the contractor agreement, not the licence, not the insurance.
 
 ---
 
-## Development, needed by the integration audit today
+## Development
 
-The integration walk runs the order path on development, from order to sealed
-letter to refund, and the sealed letter needs 0063. Development is at 0061.
-**For the counterpart, now, not at the sitting:**
+**Applied by the counterpart on 2026-10-07 and read back:** 0062 (as 0063 that
+afternoon) and 0063 (as 0064), comment blocks left out, every statement as
+written, every object present. Development's provider history therefore names
+them by their earlier numbers; the ledger records that against each entry.
 
-1. 0062, the `drop column`, in the SQL editor as for production (A2), with the
-   same dry run first.
-2. 0063 through `apply_migration`, as written.
-3. 0064 through `apply_migration`, as written.
+**Still owed on development:** 0064, closing an account, through
+`apply_migration` the same way, with A4's read-back. Nothing in the integration
+audit needs it: migration-audit proves it in its own replay, and no live audit
+closes an account.
 
-Predictions are A2, A3 and A4's. The session writes each `development` record
-in the ledger from the pasted output.
+**The credentials column drop is not applied anywhere and is not in this
+release.** Development still has `eng_credentials.storage_key`, 0 rows
+populated. Nothing on the release branch writes or reads it: the product
+stopped writing it in the onboarding hotfix of 2026-10-02, and migration-audit's
+pins now expect the column to be present (1170 columns).

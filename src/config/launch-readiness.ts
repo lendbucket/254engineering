@@ -234,7 +234,7 @@ export const stripeAccount: {
  * approved has one home, the signed record." That record is the database:
  * the published eng_protocol_templates row for 254-RC-001, signed on paper and
  * approved in the platform, and eng_seal_acts for every protocol signed in the
- * portal (0063). Every door that takes money reads it through lineIsSellable()
+ * portal (0062). Every door that takes money reads it through lineIsSellable()
  * in src/lib/line-gate.ts, and a voided or unreadable signature closes the line
  * there at once.
  *

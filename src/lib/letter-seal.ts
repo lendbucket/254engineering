@@ -27,7 +27,7 @@ import { renderLetterPdf } from "./letter-pdf";
  *
  *   1. the gate is open (a file reaches sealed only when the firm is trading);
  *   2. the actor holds the licence AND is the engineer who recorded this
- *      determination (control 3; 0063 checks the same at the database);
+ *      determination (control 3; 0062 checks the same at the database);
  *   3. the determination is one that produces a letter, and has no live seal;
  *   4. the draft fills every slot from the file (the recipient's address and
  *      salutation are the two the file does not hold, entered by the engineer

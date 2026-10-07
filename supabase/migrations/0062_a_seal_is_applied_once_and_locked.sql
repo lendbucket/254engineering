@@ -1,6 +1,12 @@
 /*
  * ===========================================================================
- * 0063: A SEAL IS APPLIED ONCE, BY ONE PERSON, AND THEN NOTHING CHANGES IT.
+ * 0062: A SEAL IS APPLIED ONCE, BY ONE PERSON, AND THEN NOTHING CHANGES IT.
+ *
+ * RENUMBERED FROM 0063 ON 2026-10-07, COMMENTS ONLY. The operator deferred the
+ * credentials column drop out of this release, so its number went with it and
+ * this file took 0062 to keep the chain contiguous. Development applied it as
+ * 0063 that day, with these comment blocks left out because they contain the
+ * word drop; every statement is unchanged.
  * ===========================================================================
  *
  * Sealing piece two, on release/2026-10-20. CLAUDE.md section 1, operator

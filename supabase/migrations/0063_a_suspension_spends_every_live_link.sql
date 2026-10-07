@@ -1,6 +1,11 @@
 /*
  * ===========================================================================
- * 0064: A SUSPENSION SPENDS EVERY LIVE LINK, AT THE DATABASE.
+ * 0063: A SUSPENSION SPENDS EVERY LIVE LINK, AT THE DATABASE.
+ *
+ * RENUMBERED FROM 0064 ON 2026-10-07, COMMENTS ONLY, for the same reason as
+ * 0062. Development applied it as 0064 that day; every statement is unchanged.
+ * Closing an account was added by the operator's ruling the same day, in 0064,
+ * rather than by editing this file after development had run it.
  * ===========================================================================
  *
  * Operator ruling, 2026-09-29: "A password reset changes the password only,

@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
  *
  * Ruling 2a of 2026-10-06, src/lib/protocol-sign.ts. The licence is checked
  * here so a refusal costs nothing, again in the library against the register,
- * and again by 0063 at the database.
+ * and again by 0062 at the database.
  */
 
 const bad = (error: string, status = 400) => NextResponse.json({ ok: false, error }, { status });

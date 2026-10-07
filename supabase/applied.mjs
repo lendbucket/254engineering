@@ -1942,86 +1942,107 @@ export const APPLIED = [
       "migration/credentials-hold-no-documents, and the contiguity check refused the gap: a " +
       "duplicate number is found by git when two branches meet, a gap is a chain that cannot be " +
       "replayed and reads like a lost migration. The parked branch renumbers to 0062 before it " +
-      "merges, which also renames the worked example in docs/production-sitting-destructive.md.",
+      "merges, which also renames the worked example in docs/production-sitting-destructive.md. " +
+      "SUPERSEDED THE SAME DAY: the operator deferred the column drop out of this release, so it " +
+      "holds no number in this chain, 0062 is the seal act, and the drop waits on " +
+      "migration/credentials-0062 for a later number.",
     proves: { table: "eng_seal_images", bucket: "eng-documents", constraint: "eng_documents_seal_is_whole_ck" },
   },
 
   {
-    file: "0062_credentials_hold_no_documents.sql", appliedBy: null,
-    fingerprint: "8296e260aa51a41e47a3f829f6ec42db",
-    behaviour: "70395f83044f0ac82bb7f26142fa2422",
-    production: null,
-    proves: null,
-    provesNote:
-      "It REMOVES a column, eng_credentials.storage_key, and the production check asks only whether " +
-      "something a migration adds is present. Its read-back is a by hand query at the sitting: " +
-      "information_schema.columns holds no row for eng_credentials.storage_key.",
-    note:
-      "Both figures read off scripts/fingerprint-at.mjs at 0062 on 2026-10-07: shape " +
-      "8296e260aa51a41e47a3f829f6ec42db across 1154 columns, one fewer than 0061's 1155, which is " +
-      "exactly the dropped column; behaviour 70395f83044f0ac82bb7f26142fa2422 across 939 facts, " +
-      "unchanged, because a column with no constraint, index or trigger is no fact the behaviour " +
-      "digest counts, and two table comments are not facts either.",
-    because:
-      "WRITTEN 2026-10-02 AS 0061 IN e415ffc ON migration/credentials-hold-no-documents, AND " +
-      "RENUMBERED TO 0062 ON 2026-10-07 under ruling 4 of 2026-10-06, because 0061 holds the " +
-      "sealing schema. Applied nowhere under either number, including development: the session has " +
-      "no path to run DDL against development (the only database credential in .env.local is the " +
-      "service role key, which PostgREST will not run DDL with, and the Supabase connector is the " +
-      "operator's), so development and production both take it at the sitting. Its branch, " +
-      "migration/credentials-0062, stacks on feat/sealed-delivery for contiguity and does not merge " +
-      "until this entry is not pending. Bundled with the suspension trigger migration by the " +
-      "operator's ruling of 2026-10-02.",
-  },
-
-  {
-    file: "0063_a_seal_is_applied_once_and_locked.sql", appliedBy: null,
-    fingerprint: "3532eaf90c5b2342d48d8a5996a71ac2",
+    file: "0062_a_seal_is_applied_once_and_locked.sql", appliedBy: null,
+    fingerprint: "aff578e18d558ee5af26fb2cb8c9eb88",
     behaviour: "fc232b43290f9f4469aaa485aee07c12",
     production: null,
-    development: { at: null, behaviour: null, facts: null },
+    development: {
+      at: "0062",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-07",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-07 by the operator's chat counterpart through the connector's " +
+        "apply_migration, AS 0063, the number this file carried that afternoon. The comment blocks " +
+        "were left out because they contain the word drop; every statement went as written. Read " +
+        "back: eng_seal_acts with row level security on; triggers eng_seal_acts_check, " +
+        "eng_seal_acts_guard, eng_seal_acts_audit and eng_documents_sealed_lock; indexes " +
+        "eng_seal_acts_one_live_letter and eng_seal_acts_one_live_protocol; all seven functions. No " +
+        "shape fingerprint or fact count was read. DEVELOPMENT'S PROVIDER HISTORY NAMES IT 0063, " +
+        "which is the earlier number of this same file and not a different migration.",
+    },
     proves: { table: "eng_seal_acts" },
     note:
-      "Both figures read off scripts/fingerprint-at.mjs at 0063 on 2026-10-07: shape " +
-      "3532eaf90c5b2342d48d8a5996a71ac2 across 1169 columns, the fifteen of eng_seal_acts on " +
-      "0062's 1154; behaviour fc232b43290f9f4469aaa485aee07c12 across 967 facts. 83 tables, 75 " +
-      "triggers, 35 eng_ functions. THERE IS NO drop STATEMENT IN THE FILE, written so after the " +
-      "operator's note of 2026-10-07 that the connector refuses any statement containing drop or " +
-      "delete: every object is new, so the if-exists drops earlier migrations carried would be " +
-      "no-ops, and the file applies as written. The word delete does appear, in on delete " +
-      "restrict, in the trigger that refuses deletes, and in comments; 0061 carried the same and " +
-      "the connector applied it, so the refusal is read as being about statements, not the word, " +
-      "and that reading is flagged for whoever applies it rather than assumed.",
+      "RENUMBERED FROM 0063 ON 2026-10-07, comments only, when the operator deferred the credentials " +
+      "column drop out of this release and its number left the chain with it. Both figures read off " +
+      "scripts/fingerprint-at.mjs at 0062 after the renumbering: shape " +
+      "aff578e18d558ee5af26fb2cb8c9eb88 across 1170 columns, the fifteen of eng_seal_acts on " +
+      "0061's 1155, because eng_credentials.storage_key stays; behaviour " +
+      "fc232b43290f9f4469aaa485aee07c12 across 967 facts, the same as under the old number, because " +
+      "the deferred column carried no fact the behaviour digest counts. 83 tables, 75 triggers, 35 " +
+      "eng_ functions. No drop statement in the file. The word delete appears in on delete restrict, " +
+      "in the trigger that refuses deletes and in comments, and the connector applied it on " +
+      "development.",
     because:
-      "WRITTEN 2026-10-07 ON release/2026-10-20 AND APPLIED NOWHERE. Sealing piece two: one row " +
-      "per act of sealing a letter or signing a protocol, its identity checks at the database " +
-      "(the sealer's own current images; the licensed role; for a letter, the engineer who " +
-      "recorded the determination), refusal of delete and of any change but a voiding with a " +
-      "reason, an audit row for every act and voiding, and a lock on a sealed document's content. " +
-      "The controls are mapped to 22 TAC 137.33 and 137.35 in docs/sealing-controls.md. Every " +
-      "guard is fired in migration-audit's replay, 17 checks. The release branch merges only after " +
-      "the integration audit and a sitting at which production and development take it.",
+      "WRITTEN 2026-10-07 ON release/2026-10-20. Sealing piece two: one row per act of sealing a " +
+      "letter or signing a protocol, its identity checks at the database, refusal of delete and of " +
+      "any change but a voiding with a reason, an audit row for every act and voiding, and a lock " +
+      "on a sealed document's content. The controls are mapped to 22 TAC 137.33 and 137.35 in " +
+      "docs/sealing-controls.md. Every guard is fired in migration-audit's replay. Production takes " +
+      "it at the 2026-10-20 sitting, before the release merges.",
   },
   {
-    file: "0064_a_suspension_spends_every_live_link.sql", appliedBy: null,
-    fingerprint: "3532eaf90c5b2342d48d8a5996a71ac2",
+    file: "0063_a_suspension_spends_every_live_link.sql", appliedBy: null,
+    fingerprint: "aff578e18d558ee5af26fb2cb8c9eb88",
     behaviour: "0faddc9ffa103fae0ec8cea6d8fd627f",
+    production: null,
+    development: {
+      at: "0063",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-07",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-07 by the operator's chat counterpart through apply_migration, " +
+        "AS 0064, the number this file carried that afternoon, comment blocks left out as for the " +
+        "seal act. Read back: triggers eng_customer_users_suspension_spends_links and " +
+        "eng_customer_accounts_suspension_spends_links, and the function eng_spend_links_on_suspension. " +
+        "DEVELOPMENT'S PROVIDER HISTORY NAMES IT 0064, the earlier number of this same file. 0064 in " +
+        "this chain is a different migration, the closing ruling, which development does not have yet.",
+    },
+    proves: { function: "eng_spend_links_on_suspension" },
+    note:
+      "RENUMBERED FROM 0064 ON 2026-10-07, comments only, for the same reason as 0062. Both figures " +
+      "read off scripts/fingerprint-at.mjs at 0063: shape aff578e18d558ee5af26fb2cb8c9eb88 across " +
+      "1170 columns, unchanged, because it adds no column; behaviour " +
+      "0faddc9ffa103fae0ec8cea6d8fd627f across 970 facts, 967 plus one function and two triggers. " +
+      "83 tables, 77 triggers, 36 eng_ functions. No drop and no delete statement.",
+    because:
+      "WRITTEN 2026-10-07 ON release/2026-10-20. The guarantee half of the operator's ruling of " +
+      "2026-09-29: suspending a customer user, or the account they belong to, marks every " +
+      "outstanding set_password and reset_password token spent (never deleted), and writes one " +
+      "audit event naming the tokens it spent. Production takes it at the 2026-10-20 sitting.",
+  },
+  {
+    file: "0064_closing_an_account_spends_its_links_too.sql", appliedBy: null,
+    fingerprint: "aff578e18d558ee5af26fb2cb8c9eb88",
+    behaviour: "ab7050e125459faf67d7aad862902aae",
     production: null,
     development: { at: null, behaviour: null, facts: null },
     proves: { function: "eng_spend_links_on_suspension" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs at 0064 on 2026-10-07: shape unchanged at " +
-      "3532eaf90c5b2342d48d8a5996a71ac2 across 1169 columns, because it adds no column; behaviour " +
-      "0faddc9ffa103fae0ec8cea6d8fd627f across 970 facts, 0063's 967 plus one function and two " +
-      "triggers. 83 tables, 77 triggers, 36 eng_ functions. No drop statement and no delete " +
-      "statement: the trigger names are new and the file applies as written.",
+      "aff578e18d558ee5af26fb2cb8c9eb88 across 1170 columns; behaviour " +
+      "ab7050e125459faf67d7aad862902aae across 970 facts, the same COUNT as 0063, because it replaces " +
+      "a function body and adds no object, and a different digest, because the body changed. Its " +
+      "read-back is therefore the function's definition, not a count: prosrc contains 'closed'. " +
+      "proves names the function 0063 created, which this one redefines, so the production check " +
+      "cannot tell the two apart and says so here rather than implying otherwise.",
     because:
-      "WRITTEN 2026-10-07 ON release/2026-10-20 AND APPLIED NOWHERE. The guarantee half of the " +
-      "operator's ruling of 2026-09-29: suspending a customer user, or the account they belong " +
-      "to, marks every outstanding set_password and reset_password token spent (never deleted), " +
-      "and writes one audit event naming the tokens it spent. Eight checks in migration-audit's " +
-      "replay, including the rows that must not move. Bundled with 0062 for the sitting by the " +
-      "operator's ruling recorded in BACKLOG.md.",
+      "WRITTEN 2026-10-07 ON release/2026-10-20 AND APPLIED NOWHERE. The operator's ruling of " +
+      "2026-10-07: closing an account spends its users' links too, recorded as " +
+      "customer_links.spent_at_closing. A new migration rather than an edit to 0063, because " +
+      "development had already run 0063. Two checks in migration-audit's replay. Development and " +
+      "production both take it before the release merges.",
   },
 ];
 

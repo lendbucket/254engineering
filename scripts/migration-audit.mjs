@@ -170,11 +170,18 @@ const DIR = join(process.cwd(), "supabase", "migrations");
  * eng_seal_acts; 82 tables to 83 is that table, with row level security on;
  * 71 triggers to 75 is its check, guard and audit triggers and the sealed
  * document lock on eng_documents.
+ *
+ * AND THE SAME DAY THE OPERATOR DEFERRED THE COLUMN DROP OUT OF THE RELEASE.
+ * The credentials migration left the chain, the seal act became 0062 and the
+ * suspension trigger 0063, and storage_key stays: 1,155 plus fifteen is 1,170,
+ * shape aff578e18d558ee5af26fb2cb8c9eb88. Tables and functions are unchanged
+ * by the deferral. 0064, closing an account, replaces a function and adds no
+ * object.
  */
-const EXPECTED_FINGERPRINT = "3532eaf90c5b2342d48d8a5996a71ac2";
-const EXPECTED_COLUMNS = 1169;
+const EXPECTED_FINGERPRINT = "aff578e18d558ee5af26fb2cb8c9eb88";
+const EXPECTED_COLUMNS = 1170;
 const EXPECTED_TABLES = 83;
-/* 0064 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts. */
+/* 0063 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts. */
 const EXPECTED_TRIGGERS = 77;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
@@ -190,13 +197,14 @@ const EXPECTED_TRIGGERS = 77;
  * last is the second function called directly, the one door a replacement
  * seal image comes in through.
  *
- * 0063 adds seven, bringing it to 35: the three trigger functions behind the
+ * 0062 (the seal act, numbered 0063 until the deferral) adds seven, bringing it to 35: the three trigger functions behind the
  * seal act (eng_seal_act_check, eng_seal_act_guard, eng_seal_act_audit), the
  * sealed document lock, and the three doors a seal comes in and goes out
  * through, eng_record_letter_seal, eng_record_protocol_signature and
  * eng_void_seal_act.
  *
- * 0064 adds one, eng_spend_links_on_suspension, bringing it to 36.
+ * 0063 adds one, eng_spend_links_on_suspension, bringing it to 36; 0064
+ * replaces that function's body and adds none.
  */
 const EXPECTED_FUNCTIONS = 36;
 
@@ -234,7 +242,7 @@ for (const f of files) {
   const body = readSource(join(DIR, f));
   /*
    * EVERY TAG, NOT ONLY $$. Found 2026-10-07: this counted `$$` alone, so
-   * 0061, 0063 and 0064, whose functions use `$fn$`, printed "0 pair(s) for
+   * 0061 and the seal act and suspension files, whose functions use `$fn$`, printed "0 pair(s) for
    * N function(s)" and passed over nothing. Each tag must pair on its own.
    */
   const tags = body.match(/\$[A-Za-z_]*\$/g) ?? [];
@@ -1091,7 +1099,7 @@ if (failedAt === null) {
 
   /*
    * ===================================================================
-   * 0063: A SEAL IS APPLIED ONCE, BY ONE PERSON, AND THEN NOTHING CHANGES IT.
+   * 0062: A SEAL IS APPLIED ONCE, BY ONE PERSON, AND THEN NOTHING CHANGES IT.
    * ===================================================================
    *
    * Sealing piece two, 2026-10-07. Each check fires a guard rather than trusting
@@ -1261,7 +1269,7 @@ if (failedAt === null) {
 
   /*
    * ===================================================================
-   * 0064: A SUSPENSION SPENDS EVERY LIVE LINK, AT THE DATABASE.
+   * 0063: A SUSPENSION SPENDS EVERY LIVE LINK, AT THE DATABASE, AND 0064: SO DOES CLOSING.
    * ===================================================================
    *
    * Operator ruling of 2026-09-29. Each check suspends and reads the token rows
@@ -1351,6 +1359,27 @@ if (failedAt === null) {
       "the tokens are still there afterwards, because evidence of a link is the point",
       Number((await db.query(`select count(*)::int as n from eng_customer_auth_tokens where id in (${[1, 2, 3, 4].map(tok).join(", ")})`)).rows[0].n) === 4,
       "four rows in, four rows out",
+    );
+
+    /*
+     * 0064, the operator's ruling of 2026-10-07: closing an account spends its
+     * users' links too, under its own audit action. The second account has
+     * been untouched until now, so its one live token is the subject.
+     */
+    const closingBefore = Number(
+      (await db.query(`select count(*)::int as n from eng_audit_events where action = 'customer_links.spent_at_closing'`)).rows[0].n,
+    );
+    await db.exec(`update eng_customer_accounts set status = 'closed' where id = ${ACC2};`);
+    rec(
+      "closing an account spends its users' outstanding links (0064)",
+      (await usedAt(4)) !== null,
+      "the operator's ruling of 2026-10-07",
+    );
+    rec(
+      "and records it as a closing, not a suspension",
+      Number((await db.query(`select count(*)::int as n from eng_audit_events where action = 'customer_links.spent_at_closing' and entity_id = ${ACC2}`)).rows[0].n) ===
+        closingBefore + 1,
+      "customer_links.spent_at_closing",
     );
   }
 

@@ -677,7 +677,7 @@ export const RETENTION_POLICY: RetentionEntry[] = [
         "a sealed deliverable is checked against for as long as anybody relies on it. A seal that no " +
         "longer stands is voided with a reason and stays. The database refuses DELETE and any change " +
         "but a voiding through eng_seal_act_guard, and migration-audit proves it by firing it.",
-      ruledBy: "operator rulings 2 and 2a of 2026-10-06, and the trigger in 0063",
+      ruledBy: "operator rulings 2 and 2a of 2026-10-06, and the trigger in 0062",
     },
   },
   {

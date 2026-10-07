@@ -39,6 +39,13 @@ the second block if the world is not the one the script was written against.
 
 ## 0062, prepared and not run
 
+**DEFERRED OUT OF `release/2026-10-20`, operator ruling of 2026-10-07.** The
+connector refuses the drop, the column is empty on both databases, and no code
+writes it. The file is on `migration/credentials-0062` only; on the release
+branch, 0062 is now the seal act. When this goes ahead it takes the next free
+number at that time, and this section is renamed with it. The procedure below
+is unchanged.
+
 **RENUMBERED FROM 0061 ON 2026-10-07.** The sealed deliverable migration took
 0061 in the chain, so this file is now
 `supabase/migrations/0062_credentials_hold_no_documents.sql`, on

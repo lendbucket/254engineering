@@ -148,20 +148,28 @@ export async function POST(request: NextRequest) {
 
     /*
      * A SUSPENSION IS ITS OWN EVENT, NAMING WHO DID IT. Operator ruling of
-     * 2026-09-29: the trigger in 0064 is the guarantee that every live link
+     * 2026-09-29, and closing too since 2026-10-07: the triggers in 0063,
+     * with 0064's function, are the guarantee that every live link
      * for the account's users is spent, and it cannot know who suspended; this
      * row is the record with the actor. Read beside the trigger's own
      * customer_links.spent_at_suspension event for the same account.
      */
     await writeAudit({
       actor: { id: g.actor.id, role: g.actor.role, email: g.actor.email },
-      action: patch.status === "suspended" ? "account.suspended" : "account.terms_changed",
+      action:
+        patch.status === "suspended"
+          ? "account.suspended"
+          : patch.status === "closed"
+            ? "account.closed"
+            : "account.terms_changed",
       entityType: "customer_account",
       entityId: accountId,
       summary:
         patch.status === "suspended"
           ? `${g.actor.email} suspended the account${patch.suspended_reason ? `: ${String(patch.suspended_reason)}` : ""}`
-          : `${g.actor.email} changed ${Object.keys(patch).join(", ")}`,
+          : patch.status === "closed"
+            ? `${g.actor.email} closed the account`
+            : `${g.actor.email} changed ${Object.keys(patch).join(", ")}`,
     });
 
     return NextResponse.json({ ok: true });

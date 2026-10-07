@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
  *
  * The licence is checked here so a refusal is a status code before any work,
  * and checked again in src/lib/letter-seal.ts against the determination's own
- * engineer, and again by the database in 0063. There is no GET: nothing here
+ * engineer, and again by the database in 0062. There is no GET: nothing here
  * serves a document, and the customer's copy is served by its own route, which
  * re-hashes it on every read.
  */
