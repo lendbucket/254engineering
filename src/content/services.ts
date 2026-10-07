@@ -290,7 +290,7 @@ export const services: Service[] = [
       "The engineer's foundation certification required before an FHA, VA, or USDA loan will close on a manufactured home, measured against the HUD permanent foundations guide.",
     what: [
       "Federally backed lending on a manufactured home turns on one document that a general home inspection cannot supply: a certification, signed and sealed by a licensed Professional Engineer, that the foundation system meets the standard in the HUD Permanent Foundations Guide for Manufactured Housing. FHA, VA, and USDA programs all require it, and a file will sit unclosed without it.",
-      "The inspection looks at the whole support system rather than at the home. Pier type, spacing, and bearing, footing size and depth below grade, anchoring and tie down where the design relies on it, perimeter enclosure, crawl space ventilation and vapor retarder, and site drainage away from the structure are all recorded and compared against the guide.",
+      "The inspection looks at the whole support system rather than at the home. Pier type, spacing, and bearing, footing size and depth where it can be seen, anchoring and tie down where the design relies on it, perimeter enclosure, crawl space ventilation and vapor retarder, and site drainage away from the structure are all recorded and compared against the guide.",
       "Texas adds a second layer worth knowing about before an inspection is ordered. The Texas Department of Housing and Community Affairs administers manufactured housing statements of ownership and installation records separately from any lender requirement, and a home that was installed correctly may still have a record problem that the engineer's certification neither creates nor cures.",
     ],
     whoOrders: [
@@ -303,10 +303,10 @@ export const services: Service[] = [
     deliverable: [
       "A signed and sealed certification addressed to the lender, stating the standard applied, what was observed, and whether the foundation system complies with it.",
       "A photographic record of the piers, footings, anchorage, enclosure, and drainage, which is what an underwriter reviews when a file is questioned.",
-      "Where the system does not comply, a plain statement of what would bring it into compliance, so the deficiency can be corrected and reinspected rather than simply reported.",
+      "Where the system does not comply, a sealed letter with a repair list stating what each item needs, so the deficiency can be corrected and reinspected rather than simply reported. Where an item needs an engineered retrofit, the list says so and the retrofit design is a separate engagement.",
     ],
     turnaround:
-      "These are usually scheduled against a closing date, so the certification is ordinarily reviewed and sealed within a few business days of the site visit. Where a reinspection is needed after corrective work, it is scheduled as its own visit.",
+      "These are usually scheduled against a closing date, so say if the lender has set one. Review begins when the record is complete, and no issue date is estimated before the engineer has made a determination. Where a reinspection is needed after corrective work, it is scheduled as its own visit.",
     faqs: [
       {
         q: "Why does a manufactured home need an engineer when a site built home does not?",
@@ -318,7 +318,7 @@ export const services: Service[] = [
       },
       {
         q: "What is the most common reason a certification cannot be issued?",
-        a: "Missing or inadequate anchorage, piers that were never founded below the frost or active zone depth, and an incomplete perimeter enclosure are the recurring three. All of them are correctable, and all of them are cheaper to correct before a buyer is under contract.",
+        a: "Missing or inadequate anchorage, piers that are leaning, cracked, loose, or not in contact with the beam, and an incomplete perimeter enclosure are the recurring three. All of them are correctable, and all of them are cheaper to correct before a buyer is under contract.",
       },
       {
         q: "Does the certification cover the condition of the home itself?",

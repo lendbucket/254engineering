@@ -519,6 +519,19 @@ const DECLARED: CatalogDeclaration[] = [
         kind: "text",
         required: true,
       },
+      /*
+       * MH-001 v1.1 Appendix A Part 2, required: "The lender's written request
+       * for the certification". Ruling 6 of 2026-10-07; the catalogue never
+       * asked for it.
+       */
+      {
+        id: "lender_request",
+        label: "The lender's written request for the certification",
+        help: "The lender's letter, email or condition naming the certification. The certification follows HUD-7584 unless the lender names another requirement in writing and the engineer approves it before the visit.",
+        kind: "file",
+        required: true,
+        accepts: "PDF or a photograph",
+      },
       {
         id: "hud_label",
         label: "The HUD label or data plate, if you have it",
