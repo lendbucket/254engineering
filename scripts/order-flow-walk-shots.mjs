@@ -145,17 +145,44 @@ async function fillStep(page) {
     const id = await file.getAttribute("id");
     const label = id ? await page.locator(`label[for="${id}"]`).innerText().catch(() => "") : "";
     if (label.includes("(optional)")) continue;
-    const signed = page
-      .waitForResponse((r) => r.url().includes("/api/order-flow") && r.request().method() === "POST", {
-        timeout: 15_000,
-      })
+    /*
+     * WAIT FOR THE FILE TO BE STORED, NOT FOR THE PAGE TO GO QUIET. Until
+     * 2026-10-07 this waited for the signing POST and then for "networkidle",
+     * which Playwright resolves at once on a page that has already been idle,
+     * so the walk pressed Continue 800ms after signing. A run's first upload
+     * opens a cold connection to storage and sometimes took longer, so two of
+     * six runs refused the front photo with it signed and never stored. Proved
+     * by holding every PUT for four seconds, which failed both widths every
+     * time. The PUT's own response is the event that means stored.
+     */
+    const stored = page
+      .waitForResponse((r) => r.request().method() === "PUT", { timeout: 60_000 })
       .catch(() => null);
     await file
       .setInputFiles({ name: "fixture.png", mimeType: "image/png", buffer: PNG })
       .catch((e) => console.log(`    setInputFiles failed: ${String(e).slice(0, 120)}`));
-    await signed;
-    await page.waitForLoadState("networkidle").catch(() => {});
-    await page.waitForTimeout(800);
+    /*
+     * WALK_PRESS_DURING_UPLOAD presses Continue while the PUT is still in
+     * flight (pair it with WALK_DELAY_PUT_MS) and prints what the form says, so
+     * the product's half of the 2026-10-07 finding can be read: a photo still
+     * uploading must be named as uploading, never reported missing.
+     */
+    if (process.env.WALK_PRESS_DURING_UPLOAD === "1") {
+      await page.waitForTimeout(500);
+      const uploadingShown = await page.getByText("Uploading", { exact: true }).count();
+      await page.getByRole("button", { name: "Continue" }).click().catch(() => {});
+      await page.waitForTimeout(300);
+      const said = await page.locator("text=Before you continue").locator("xpath=following-sibling::ul[1]/li").allInnerTexts().catch(() => []);
+      console.log(`    DURING UPLOAD: "Uploading" shown ${uploadingShown} time(s); Continue said: ${said.join(" | ") || "nothing"}`);
+    }
+    const put = await (process.env.WALK_ABORT_PUT === "1" ? Promise.resolve(null) : stored);
+    if (process.env.WALK_ABORT_PUT === "1") {
+      await page.waitForTimeout(1500);
+      const errors = (await page.locator("p[role=alert]").allInnerTexts().catch(() => [])).filter(Boolean);
+      const stillUploading = await page.getByText("Uploading", { exact: true }).count();
+      console.log(`    ABORTED PUT: the form said: ${errors.join(" | ") || "NOTHING"}; "Uploading" still shown ${stillUploading} time(s)`);
+    } else if (!put) console.log("    the upload's PUT did not answer within 60 seconds");
+    await page.waitForTimeout(300);
   }
   /* The review step's terms checkbox. Ticking it enables the submit button,
    * which this walk never presses. */
@@ -240,6 +267,46 @@ try {
             /* not JSON, not an upload */
           }
         });
+        /*
+         * THE STORAGE LEG, WATCHED. Added 2026-10-07 after a 1280 run had its
+         * front photo signed and never stored, with no error recorded. Every
+         * PUT to storage, every request that failed outright, and every
+         * uncaught page error is printed, so a run that loses an upload says
+         * which leg lost it.
+         */
+        const t0 = Date.now();
+        page.on("request", (req) => {
+          if (req.method() === "PUT") console.log(`    [${w.name}] +${Date.now() - t0}ms PUT sent`);
+        });
+        page.on("response", (res) => {
+          if (res.request().method() === "PUT") console.log(`    [${w.name}] +${Date.now() - t0}ms PUT ${res.status()} ${res.url().split("?")[0].slice(-70)}`);
+        });
+        /*
+         * WALK_DELAY_PUT_MS holds every storage PUT for that long, so a slow
+         * upload can be made to happen on purpose rather than waited for.
+         */
+        const delayPut = Number(process.env.WALK_DELAY_PUT_MS ?? 0);
+        const abortPut = process.env.WALK_ABORT_PUT === "1";
+        if (delayPut > 0 || abortPut) {
+          await page.route("**/*", async (route) => {
+            if (route.request().method() === "PUT") {
+              /* WALK_ABORT_PUT drops the connection, so the form's thrown-upload path can be read. */
+              if (abortPut) {
+                await route.abort("connectionfailed");
+                return;
+              }
+              await new Promise((r) => setTimeout(r, delayPut));
+            }
+            await route.continue();
+          });
+        }
+        page.on("requestfailed", (req) =>
+          console.log(`    [${w.name}] REQUEST FAILED ${req.method()} ${req.url().split("?")[0].slice(-70)}: ${req.failure()?.errorText}`),
+        );
+        page.on("pageerror", (err) => console.log(`    [${w.name}] PAGE ERROR ${String(err).slice(0, 200)}`));
+        page.on("console", (msg) => {
+          if (msg.type() === "error") console.log(`    [${w.name}] CONSOLE ERROR ${msg.text().slice(0, 200)}`);
+        });
 
         await page.goto(server.base + "/order/start/roof-inspections", {
           waitUntil: "networkidle",
@@ -281,6 +348,7 @@ try {
           await fillStep(page);
           const next = page.getByRole("button", { name: "Continue" });
           if ((await next.count()) === 0) break;
+          if (process.env.WALK_DELAY_PUT_MS) console.log(`    [${w.name}] Continue clicked on step ${i + 1}`);
           await next.click();
           await page.waitForTimeout(400);
           /*

@@ -127,8 +127,20 @@ export function OrderFlow({
    */
   const [attempted, setAttempted] = useState(false);
   const stillNeeded = useRef<HTMLDivElement>(null);
+  /*
+   * UPLOADS IN FLIGHT, BY INPUT, WITH THE LABEL A PERSON READS. Found
+   * 2026-10-07 and reproduced by holding the storage PUT: a Continue pressed
+   * while a photo was still uploading said the photo was MISSING, which was
+   * false, and nothing on the screen said an upload was under way. Now the
+   * field says "Uploading", and Continue names the file it is waiting for.
+   */
+  const [uploading, setUploading] = useState<Record<string, string>>({});
+  const inFlight = Object.values(uploading);
+  const waitingOn = inFlight.map((label) => `Still uploading: ${label}. Wait for it to finish.`);
+  /* A file still uploading is not also missing: its own entry gives way to the upload's. */
+  const shownBlockers = [...waitingOn, ...blockers.filter((b) => !inFlight.includes(b))];
   const blockedOrGo = (go: () => void) => {
-    if (blockers.length > 0) {
+    if (shownBlockers.length > 0) {
       setAttempted(true);
       requestAnimationFrame(() => stillNeeded.current?.focus());
       return;
@@ -152,32 +164,53 @@ export function OrderFlow({
     else setDisqualified(null);
   }
 
-  async function upload(inputKey: string, file: File) {
-    const res = await fetch("/api/order-flow", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "sign-upload",
-        draftId,
-        inputKey,
-        filename: file.name,
-        contentType: file.type,
-        size: file.size,
-      }),
-    });
-    const signed = await res.json();
-    if (!signed.ok) {
-      setError(signed.error);
+  async function upload(inputKey: string, label: string, file: File) {
+    /*
+     * IN FLIGHT FROM THE FIRST REQUEST TO THE LAST, AND NEVER SILENT. Both
+     * fetches can throw (a dropped connection, a storage host that will not
+     * answer), and before 2026-10-07 a throw here went nowhere: the call site
+     * is `void upload(...)`, so no message appeared and the photo was later
+     * reported missing. Now a throw says the upload failed, and the in flight
+     * mark is cleared whatever happens.
+     */
+    setUploading((u) => ({ ...u, [inputKey]: label }));
+    let signed: { ok: boolean; error?: string; uploadUrl?: string; storageKey?: string; bucket?: string };
+    try {
+      const res = await fetch("/api/order-flow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "sign-upload",
+          draftId,
+          inputKey,
+          filename: file.name,
+          contentType: file.type,
+          size: file.size,
+        }),
+      });
+      signed = await res.json();
+      if (!signed.ok || !signed.uploadUrl || !signed.storageKey || !signed.bucket) {
+        setError(signed.error ?? "That file could not be prepared for upload. Try again.");
+        return;
+      }
+      const put = await fetch(signed.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      if (!put.ok) {
+        setError("That file did not upload. Try again, or a smaller one.");
+        return;
+      }
+    } catch {
+      setError("That file did not upload, because the connection failed. Try again.");
       return;
-    }
-    const put = await fetch(signed.uploadUrl, {
-      method: "PUT",
-      headers: { "Content-Type": file.type },
-      body: file,
-    });
-    if (!put.ok) {
-      setError("That file did not upload. Try again, or a smaller one.");
-      return;
+    } finally {
+      setUploading((u) => {
+        const rest = { ...u };
+        delete rest[inputKey];
+        return rest;
+      });
     }
     setError(null);
     setState((s) => ({
@@ -186,7 +219,7 @@ export function OrderFlow({
         ...s.files,
         [inputKey]: [
           ...(s.files[inputKey] ?? []),
-          { name: file.name, storageKey: signed.storageKey, bucket: signed.bucket },
+          { name: file.name, storageKey: signed.storageKey as string, bucket: signed.bucket as string },
         ],
       },
     }));
@@ -631,9 +664,14 @@ export function OrderFlow({
                       className="block w-full text-[14px] text-[var(--color-ink-quiet)] file:mr-3 file:min-h-[var(--tap-target)] file:cursor-pointer file:rounded-[3px] file:border file:border-[var(--color-limestone-edge)] file:bg-white file:px-4 file:text-[15px] file:font-semibold file:text-[var(--color-ink)]"
                       onChange={(e) => {
                         const f = e.target.files?.[0];
-                        if (f) void upload(input.id, f);
+                        if (f) void upload(input.id, input.label, f);
                       }}
                     />
+                    {uploading[input.id] ? (
+                      <p aria-live="polite" className="mt-2 text-[14px] text-[var(--color-ink)]">
+                        Uploading
+                      </p>
+                    ) : null}
                     <ul className="mt-2 flex flex-col gap-1">
                       {(state.files[input.id] ?? []).map((f) => (
                         <li key={f.storageKey} className="text-[14px] text-[var(--color-ink-quiet)]">
@@ -668,7 +706,7 @@ export function OrderFlow({
         ) : null}
       </div>
 
-      {attempted && blockers.length > 0 ? (
+      {attempted && shownBlockers.length > 0 ? (
         <div
           ref={stillNeeded}
           tabIndex={-1}
@@ -677,7 +715,7 @@ export function OrderFlow({
         >
           <p className="text-[14px] font-semibold text-[var(--color-ink)]">Before you continue</p>
           <ul className="mt-1.5 flex flex-col gap-1">
-            {blockers.map((b) => (
+            {shownBlockers.map((b) => (
               <li key={b} className="text-[14px] leading-[1.55] text-[var(--color-ink-quiet)]">
                 {b}
               </li>
