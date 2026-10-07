@@ -4,6 +4,18 @@ Work that has been identified and deliberately not built yet. Nothing here is a
 commitment to a date. An item earns a place on this list by having a stated
 reason and, where one exists, the concrete incident that produced it.
 
+## THE SITTING FOR `release/2026-10-20`, WRITTEN AND NOT RUN
+
+`docs/production-sitting-2026-10-20.md`, written 2026-10-07: 0061 to 0064 in
+order (0062 flagged as the one step the connector cannot run), the six
+`eng_cron_runs` rollup rows, and Robert as a field technician (profile, 254
+counties, the roof certification of 2026-09-23, two credentials, the W-9 and
+contractor agreement covered by the owner exemption in code). **Open, and
+urgent in one part:** the rollup rows compute from `eng_cron_runs`, whose
+retention floor is 30 days, and 2026-09-04 passed it on 2026-10-04; the doc
+gives the one read-only query that says whether Part B still exists. It also
+carries the development steps (0062 to 0064) the integration audit needs today.
+
 ## MAY THE FIRM SEAL SOMETHING THAT IS NOT ONE JOB'S DELIVERABLE? NOBODY HAS RULED
 
 Raised 2026-10-03 by a constraint that was written, refused and withdrawn
