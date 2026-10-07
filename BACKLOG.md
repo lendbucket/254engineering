@@ -62,9 +62,13 @@ branch is the operator's and its sitting script names the file: rename
 places `docs/production-sitting-destructive.md` names it. **RENUMBERED 2026-10-07
 on `migration/credentials-0062`**, stacked on `feat/sealed-delivery`, with its
 ledger entry and migration-audit's pins at 1,154 columns; the original branch
-is untouched. **Still open:** the sitting doc lives on
-`fix/customer-teardown-scope` and is renamed when that branch is split. Its ledger entry is
-written at the sitting either way.
+is untouched. **The sitting doc is renamed too, 2026-10-07:** the teardown
+branch was split, its three teardown commits merged into `release/2026-10-20`
+with the doc now naming 0062, and the unfinished staff walk harness
+(`scripts/walk/`, its captures, and `setup.mjs`, which had ridden in the first
+teardown commit) kept whole on `wip/staff-walk-harness` at `4607a2b` and
+removed from the release branch. Its ledger entry is written at the sitting
+either way.
 
 ## TWO DEFECTS THE STAFF WALK FOUND, 2026-10-03, AND NEITHER IS FIXED
 
@@ -155,6 +159,97 @@ that document rather than about this feature, and the same reasoning that made
 row 1 say "any signed in screen" on 2026-10-03 applies: widening the scope is
 the class fix, adding one path is the instance.
 
+## 641 PROBE CLIENT ROWS ON DEVELOPMENT, DEFERRED BY RULING 2026-10-03
+
+**Deferred, not forgotten, and harmless where it sits.** `destroyCustomerProbes`
+attempted `delete from eng_clients` on every run and was refused every time:
+`eng_customer_accounts.client_id` is `on delete restrict` and the account had
+been superseded rather than removed. **The delete's return value was never
+read**, and `left` was computed by counting `eng_customer_users`, which really
+was zero, so it returned `ok` on every run for nineteen days.
+
+**The dry run, so the numbers are not re-derived later:**
+
+| | Count |
+| --- | --- |
+| probe clients (`audit-probe.invalid` **and** `is_demo`) | 641 |
+| probe accounts | 641 |
+| accounts blocked by a statement or a trade price | **141** |
+| accounts that would be deleted | **500** |
+| clients that would be deleted | **500** |
+| clients kept, held by a blocked account | **141** |
+| blocking rows: `eng_statements` | 21 |
+| blocking rows: `eng_account_trade_prices` | 277 |
+| oldest surviving probe client | 2026-09-14 |
+
+**Why it is harmless.** No credential: `eng_customer_users` and `auth.users` on
+the probe domain are both zero. No figure is wrong: all 641 carry `is_demo`,
+which migration 0027 and a check constraint tie to the reference, so they are
+excluded by construction rather than by care.
+
+**THE CLEARANCE IS DROPPED. Operator ruling, 2026-10-03. The silt stays,
+demo-marked.** Not deferred and not pending: there is nothing to come back to.
+
+**Why, and it is 0048 rather than the 141.** The first reason was that zero was
+unreachable: 141 accounts are held by `eng_statements` and
+`eng_account_trade_prices`, both `RESTRICT`, both financial records. Then the
+real answer appeared. **Migration 0048 installs `eng_forbid_account_delete()`, a
+trigger that raises on EVERY delete against `eng_customer_accounts`**, with no
+exemption for development:
+
+> An account is superseded, never deleted. Set superseded_at with a reason and an
+> actor. The orders, statements and trade prices attached to it are the record of
+> what somebody was charged.
+
+0048's own notes say it refuses every delete rather than only priced accounts,
+because a guarantee holding "only for accounts that happen to have been priced"
+is one nobody can state. **So not one of the 641 accounts can go, and a client
+cannot go while its account holds it.** The operator ruled on 2026-10-03 that
+0048 stands as written, no exemption, no workaround. An earlier ruling permitting
+a hard delete on development was withdrawn the same day on learning this.
+
+**It grows by one per customer-probe run**, and not only billing ones: any audit
+creating a customer probe adds one permanent client and one superseded account.
+Phase 0 of the staff walk took it from 641 to 642.
+
+**THE MCP CANCELLATIONS HAVE A CAUSE, FOUND 2026-10-03 FROM THE TRANSCRIPT RATHER
+THAN BY RETRYING.** Of 45 supabase MCP calls this session, every cancelled one is
+DESTRUCTIVE and every write that succeeded is additive:
+
+| Shape | Outcome |
+| --- | --- |
+| `create or replace function`, two `insert into` | ok |
+| two `update` | ok |
+| `alter table ... drop column` | CANCELLED, twice |
+| `do $$ ... delete from` | CANCELLED, twice |
+
+The result is `{"status":"cancelled"}` with no error body, which is a call
+stopped before execution rather than one Postgres refused. **This also explains
+migration 0061**, cancelled twice and parked as unexplained: it is
+`drop column storage_key`, the same destructive shape. The hosted MCP at
+`mcp.supabase.com` carries no local flags, so any destructive-operation guard is
+configured on Supabase's side, which is a console this repository cannot read.
+**A cancelled write is reported and stopped, never retried.**
+
+## A FIXED PROBE BILLING ACCOUNT, PROPOSED AND NOT BUILT
+
+The 141 exist because tests exercising statements and trade prices mint a fresh
+account each run, and both tables are `RESTRICT`. The set grows by about one per
+billing run, for ever.
+
+**Proposed:** one long-lived probe billing account on development, a known uuid,
+`is_demo`, created once by `seed-field-demo` and never torn down. Billing tests
+attach to it instead of minting. The teardown skips it by id and reports it as
+kept by design.
+
+**The cost, which is why it is a proposal.** The fixture carries history between
+runs, so a test asserting "this account has one statement" becomes "has one more
+than before". Resetting it between runs would mean deleting from append-only
+tables, which is not a workaround worth having.
+
+**Teardown now reports a per-run kept count** (`keptCount` and `kept`), which is
+the half of this that did ship.
+
 ## WAITING ON ROBERT
 
 Operator ruling, 2026-10-01: stop and ask only for behaviour, money, customer
@@ -177,7 +272,7 @@ a commit is one the next session has to go looking for.
 | 2026-10-01 | Contractor agreement and handbook text | **RULED.** Build the flow that carries an uploaded document, its version, and a dated acknowledgement per person. Placeholder text marked "Awaiting attorney review" until he uploads the real documents, and nothing goes out while the placeholder is there. |
 | 2026-10-01 | The HR migration | **RULED.** Write it after the Part A and Part B report, apply it to development only, board it. Production waits for a sitting with him. |
 | 2026-10-02 | **254 needs its own project: production is shared with another app's data** | **OPEN, PLAN ONLY, AND IT IS NOT A NEW IDEA.** Established by a read-only production count on 2026-10-02: that project holds an `applications` bucket with 31 objects and an empty `resumes` bucket, neither `eng_` prefixed. This firm's code writes to neither, and the twelve buckets this codebase names are all `eng-` prefixed, so those belong to another app. **Not opened and not to be opened.** The operator wants the cutover planned as a sitting with him, with a written plan first: what moves, in what order, downtime, rollback, and how secrets and webhooks switch over. Plan only, no changes. **A plan and a target project already exist and both are stale:** `docs/production-cutover-plan.md`, PARKED by his ruling of 2026-09-15 and dated 2026-09-22, against project `qmvcqvkywmkogxbyzsaz`, which was replayed at **migration 0023** while the chain is now at **0060**, so thirty seven migrations of drift sit between the plan and the world. The new plan supersedes or revises that document rather than starting beside it, because two accounts of one cutover is the defect this repository records most often. |
-| 2026-10-02 | **Migration 0061, written and not applied** | **RULED and in flight.** Drops `eng_credentials.storage_key` and sharpens the comments on `eng_onboardings` and `eng_credentials`. Operator ruling: apply to development, board it, production in one sitting with him bundled with the suspension trigger migration. **Written on branch `migration/credentials-hold-no-documents`, which is held off `main` deliberately**, because standing law says a migration reachable from `main` is never pending and merging it would have blocked the onboarding hotfix from pushing. Not yet applied, not yet fingerprinted, not yet boarded: all three need processes that were not safe to start while the machine was short of memory. **Why the column goes rather than being guarded:** nothing writes it, development holds 17 credential rows with 0 documents and production holds 0 rows at all, and an empty register is a guard nobody has exercised. The credential KINDS stay, including `drivers_license` and `w9`, because two of them are `REQUIRED_FOR_DISPATCH` and a credential is the fact that something exists and when it lapses, never a copy of it. |
+| 2026-10-02 | **Migration 0061, written and not applied** | **RULED and in flight.** Drops `eng_credentials.storage_key` and sharpens the comments on `eng_onboardings` and `eng_credentials`. Operator ruling: apply to development, board it, production in one sitting with him bundled with the suspension trigger migration. **Written on branch `migration/credentials-hold-no-documents`, which is held off `main` deliberately**, because standing law says a migration reachable from `main` is never pending and merging it would have blocked the onboarding hotfix from pushing. Not yet applied, not yet fingerprinted, not yet boarded. **AND THE REASON IT COULD NOT BE APPLIED IS NOW KNOWN, 2026-10-03: the Supabase MCP CANCELS a destructive statement before it runs**, which is why `apply_migration` was cancelled twice on it and the cause was filed as a mystery for a day. It is `drop column`, and every `DROP` and `DELETE` in that session was cancelled while every additive write succeeded. **It is prepared for the sitting in `docs/production-sitting-destructive.md`**, as three blocks the operator runs in the Supabase SQL editor: a dry run read, the statement, and a verification read. The session wrote all three and runs none of them. **Why the column goes rather than being guarded:** nothing writes it, development holds 17 credential rows with 0 documents and production holds 0 rows at all, and an empty register is a guard nobody has exercised. The credential KINDS stay, including `drivers_license` and `w9`, because two of them are `REQUIRED_FOR_DISPATCH` and a credential is the fact that something exists and when it lapses, never a copy of it. |
 | 2026-10-03 | **`EXPECTED` in `roles-audit` states three roles and the platform ships seven** | **OPEN, AND IT IS THE REAL ANSWER TO THE CSR RULING RATHER THAN THE ONE I BUILT.** `EXPECTED` is the independent second statement of who may do what, and it carries `admin`, `engineer` and `field_tech` only. `customer_service`, `dispatcher`, `sales` and `read_only` are outside it entirely, so every action any of those four could gain would be gained silently: the table cannot disagree about a role it does not mention. **Tonight's CSR money ruling is enforced by a named rule instead**, which is injection-verified and catches `billing.read` where nothing else does, and that is a patch over the hole rather than the hole closed. **Recommendation: extend `EXPECTED` to all seven roles, which is roughly 350 cells and every one a judgment about who may do what.** That is a sitting with him, not a thing to type at the end of a long run, and it is the kind of work that is worth a morning because the output is the firm's own statement of its permissions. |
 | 2026-10-03 | **"Next payout run" is drawn on the owner dashboard and no payout run exists** | **OPEN, AND IT IS A MONEY QUESTION, SO NOTHING WAS BUILT.** `V10A-dashboard` draws "Next payout run, Fri Oct 2" in the Money panel. There is no payout run in the schema or in any code path: `payout_run`, `next_payout` and `payoutRun` return nothing across `src`. More to the point, his ruling of 2026-10-01 puts **all payroll and contractor payments in Gusto**, so a date drawn here would be this platform asserting a schedule another system owns, which is the same shape as the onboarding hotfix that was shipped on 2026-10-02. **Recommendation: do not build it. Replace the line with "Owed to technicians" and "Owed to engineers", which this platform does know, and let Gusto answer when they are paid.** Stage 2 ships the Money panel without the line. |
 | 2026-10-03 | **Two automatic checks drawn on the engineer's queue cannot be computed, and I left them off the screen** | **DECIDED AND BUILT THAT WAY, RECORDED BECAUSE IT IS WHAT THE ENGINEER SEES.** `V10E-queue` draws five "Automatic checks". Three are real: items captured, phone clock within 60 seconds (migration 0057 and the ruled tolerance), technician trained on the approved protocol version. **Two cannot be computed by anything.** "Location within 50 m of the property" has no property point to measure from: photographs carry `captured_lat`/`captured_lng` since 0001, but `eng_files.latitude` is never geocoded and three separate files in `src` say so outright. "No duplicate photos found" has no content hash on `eng_evidence_items` at all. Drawing either as a tick is the fabricated assurance this repository already ruled on when the evidence hash column was dropped from the responsible charge log. **They are off the screen entirely rather than greyed or marked unavailable**, because a row saying "unavailable" still teaches an engineer the check exists, and a busy reader takes an absence for a pass. The counter reads 3 of 3. **If he wants either check for real, each is a build: a geocoder this stack does not have, or a content hash on every evidence item.** Full reasoning in `docs/design-v10/stage-2-reconciliation.md`. |

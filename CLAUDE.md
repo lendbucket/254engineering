@@ -2460,6 +2460,47 @@ actually applied the last migration before declaring anything unreachable, and
 never let "I could not measure it" stand in a ledger when it means "I did not
 try the other tool".**
 
+**AND THE ONE REFUSAL THAT IS NOT A REFUSAL OF ONE CALL: THE SUPABASE MCP
+CANCELS A DESTRUCTIVE STATEMENT BEFORE IT RUNS.** Operator ruling, 2026-10-03,
+and it is the exception to the paragraph directly above, which is why it sits
+here rather than anywhere else.
+
+**The evidence, from 45 MCP calls in one session.** Every cancelled call was
+DESTRUCTIVE and every write that succeeded was ADDITIVE:
+
+| Shape | Outcome |
+| --- | --- |
+| `create or replace function`, two `insert into` | ok |
+| two `update` | ok |
+| `alter table ... drop column` | **cancelled, twice** |
+| `do $$ ... delete from` | **cancelled, twice** |
+
+**The tell is the shape of the answer.** `{"status":"cancelled"}` with no error
+body is a call stopped BEFORE execution. A statement Postgres refuses comes back
+with a message, which is how the foreign key violations in the same session read.
+So a cancellation is not the database declining, and it is not the operator
+declining either: it was established on 2026-10-03 that he had declined no
+prompt.
+
+**NEVER RETRY A CANCELLED DESTRUCTIVE CALL.** The session that found this retried
+once before asking, which was wrong on its own terms: a cancellation whose cause
+is unknown may be a person saying no, and repeating the call overrides them.
+Report it and stop. The cause is found from the transcript, not from another
+attempt.
+
+**IT ALSO EXPLAINS 0061, WHICH HAD BEEN PARKED AS A MYSTERY.** That migration is
+`alter table eng_credentials drop column if exists storage_key`, it was cancelled
+twice on 2026-10-02, and nobody connected the two facts until the pattern above
+was counted. A thing filed as unexplained for a day was one `grep` of the
+transcript away.
+
+**THE CONSEQUENCE, AND IT IS A CHANGE TO HOW A SITTING RUNS.** A destructive
+migration cannot reach production through this tooling at all. So 0061 and every
+other destructive migration is run BY THE OPERATOR, in the Supabase SQL editor,
+from a script a session prepares: a dry run READ before, the statement itself,
+and a verification READ after. The session writes all three and runs neither.
+`docs/production-sitting-destructive.md` is the standing procedure.
+
 **EVERY PRODUCTION MIGRATION GOES THROUGH `apply_migration`, NEVER
 `execute_sql`.** Operator ruling, 2026-09-09. The two tools differ in a way that
 matters months later: `apply_migration` writes a row into
