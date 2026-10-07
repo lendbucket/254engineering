@@ -17,6 +17,23 @@ production on 2026-10-07 (503 and 1729) though past the 30-day floor, so
 whether Part B runs before the sitting is a question for the operator.
 Development still owes 0064.
 
+## SEVENTEEN PORTAL FILES TOKEN-AUDIT HAS NEVER READ
+
+Found 2026-10-07 by the integration board, which caught `text-[14px]` in two
+panels built that day and in no list: `docs/new-surface-checklist.md` row 8,
+the trap it already describes. A sweep then found **21 of 90** `.tsx` files
+under `src/app/portal` named nowhere in `scripts/token-audit.mjs`. The four that
+day's work touched were added (the two panels, `/portal/pricebook`,
+`/portal/launch`) and their off-scale sizes moved to the staff scale. **The
+other seventeen are not added yet**, because each may carry findings older than
+the release and the integration loop is not the place to open them: the trade
+pricing screen and its client, deletion requests, bulk dispatch, design and
+windstorm inquiries, the RC-001 protocol page and `protocol-document.tsx`, the
+open account client, and the four MFA enrol and challenge files. **The class
+fix** is a check in token-audit that every `.tsx` under `src/app/portal` is on
+`PORTED` or in a counted exemption, which is the shape of surface-audit's check
+for routes. Not built; it needs the seventeen read first.
+
 ## MAY THE FIRM SEAL SOMETHING THAT IS NOT ONE JOB'S DELIVERABLE? NOBODY HAS RULED
 
 Raised 2026-10-03 by a constraint that was written, refused and withdrawn

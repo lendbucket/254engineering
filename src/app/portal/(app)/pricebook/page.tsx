@@ -105,7 +105,7 @@ export default async function PriceBookPage() {
                 </p>
               )}
 
-              <p className="mt-1.5 text-[13px] leading-[1.6] text-[var(--secondary)]">
+              <p className="mt-1.5 text-[12.5px] leading-[1.6] text-[var(--secondary)]">
                 {/*
                   THE FLOOR IS READ FROM trade-floors AND IS PENDING ON EVERY
                   LINE. That is not a gap in this screen. The operator ruled that
@@ -150,11 +150,11 @@ export default async function PriceBookPage() {
                   Net {r.netCents === null ? "not stated" : money(r.netCents)}.
                 </strong>
               </p>
-              <p className="mt-1.5 text-[13px] leading-[1.6] text-[var(--secondary)]">
+              <p className="mt-1.5 text-[12.5px] leading-[1.6] text-[var(--secondary)]">
                 {r.missing ?? `Engineer's fee: ${r.engineerCitation}.`}
               </p>
               {r.caveat ? (
-                <p className="mt-1.5 text-[13px] leading-[1.6] text-[var(--ink)]">{r.caveat}</p>
+                <p className="mt-1.5 text-[12.5px] leading-[1.6] text-[var(--ink)]">{r.caveat}</p>
               ) : null}
             </li>
           ))}
@@ -164,12 +164,12 @@ export default async function PriceBookPage() {
             Quoted per job, so not in this table: {costs.notPriced.map((n) => n.label).join("; ")}.
           </p>
         ) : null}
-        <p className="mt-4 text-[14px] leading-[1.7] text-[var(--ink)]">
+        <p className="mt-4 text-[13.5px] leading-[1.7] text-[var(--ink)]">
           The engineer&apos;s retainer, {money(costs.retainerCents)} a month, is a cost of having an
           engineer of record rather than of any one job, so it is on its own line and not divided
           into the rows above.
         </p>
-        <ul className="mt-3 flex flex-col gap-1 text-[13px] leading-[1.6] text-[var(--secondary)]">
+        <ul className="mt-3 flex flex-col gap-1 text-[12.5px] leading-[1.6] text-[var(--secondary)]">
           {costs.sources.map((s) => (
             <li key={s}>{s}</li>
           ))}
@@ -180,14 +180,14 @@ export default async function PriceBookPage() {
         title="Margin per job"
         description="Nothing to report, and the reason is the correct one rather than a defect."
       >
-        <p className="text-[14px] leading-[1.7] text-[var(--secondary)]">
+        <p className="text-[13.5px] leading-[1.7] text-[var(--secondary)]">
           Margin is computed from what a job actually cost: the technician calls that actually
           happened and the tier the engineer&apos;s determination actually attracted. No service line
           is open, because no protocol has been approved, so there are no jobs and there is nothing
           to compute. An empty margin table would look exactly like a full one from a distance,
           which is why there is not one here.
         </p>
-        <p className="mt-3 text-[14px] leading-[1.7] text-[var(--secondary)]">
+        <p className="mt-3 text-[13.5px] leading-[1.7] text-[var(--secondary)]">
           Where any input is missing on a real job, the book refuses to state a margin and names the
           input rather than substituting a zero or the line&apos;s estimating tier. A margin that
           quietly omits the engineer&apos;s pay is not a smaller margin, it is a wrong one, in the
@@ -199,7 +199,7 @@ export default async function PriceBookPage() {
         title="The cost inputs"
         description="Where each number comes from, and which of them are still owed."
       >
-        <dl className="flex flex-col gap-3 text-[14px] leading-[1.7]">
+        <dl className="flex flex-col gap-3 text-[13.5px] leading-[1.7]">
           <div>
             <dt className="font-semibold text-[var(--ink)]">Field technician</dt>
             <dd className="text-[var(--secondary)]">

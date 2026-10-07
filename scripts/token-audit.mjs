@@ -357,6 +357,11 @@ const PORTED = [
   "src/app/portal/(app)/profile/seal/page.tsx",
   "src/app/portal/(app)/protocols/ProtocolsClient.tsx",
   "src/app/portal/(app)/protocols/page.tsx",
+  /* Added 2026-10-07 by the integration board: built that day and never read. Row 8. */
+  "src/app/portal/(app)/protocols/SignProtocolPanel.tsx",
+  "src/app/portal/(app)/review/LetterSealPanel.tsx",
+  "src/app/portal/(app)/pricebook/page.tsx",
+  "src/app/portal/(app)/launch/page.tsx",
   "src/app/portal/(app)/queue/QueueClient.tsx",
   "src/app/portal/(app)/queue/page.tsx",
   "src/app/portal/(app)/review/ReviewClient.tsx",
@@ -586,6 +591,7 @@ const CUSTOMER_V10 = [
 const STAFF_V10 = [
   "src/app/portal/(app)/review/page.tsx",
   "src/app/portal/(app)/review/ReviewClient.tsx",
+  "src/app/portal/(app)/review/LetterSealPanel.tsx",
   "src/app/portal/(app)/certification/page.tsx",
   "src/app/portal/(app)/certification/CertificationClient.tsx",
   "src/app/portal/(app)/files/page.tsx",

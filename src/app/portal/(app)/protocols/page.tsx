@@ -85,7 +85,7 @@ export default async function ProtocolsPage({
       */}
       <section className="mb-8 border-t-2 border-[var(--ink)] pt-4">
         <h2 className="text-[16px] font-semibold text-[var(--ink)]">Protocols for your signature</h2>
-        <p className="mt-1.5 max-w-[75ch] text-[14px] leading-[1.6] text-[var(--secondary)]">
+        <p className="mt-1.5 max-w-[75ch] text-[13.5px] leading-[1.6] text-[var(--secondary)]">
           Each is the text you sent, transcribed word for word. Read it in full, then sign it with a fresh code. Your
           signature attaches to this exact text: if the text ever changes, the signature no longer covers it and the
           service line closes until you sign again.
@@ -93,10 +93,10 @@ export default async function ProtocolsPage({
         <ul className="mt-3">
           {signatures.map(({ protocol, status }) => (
             <li key={protocol.declaration.documentNumber} className="border-b border-[var(--row-rule)] py-3">
-              <p className="text-[14px] font-semibold text-[var(--ink)]">
+              <p className="text-[13.5px] font-semibold text-[var(--ink)]">
                 {protocol.declaration.documentNumber} v{protocol.declaration.version}, {protocol.declaration.title}
               </p>
-              <p className="mt-1 text-[14px] leading-[1.6] text-[var(--secondary)]">
+              <p className="mt-1 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
                 {status.state === "signed"
                   ? `Signed ${status.signedAt.slice(0, 10)}, fingerprint ${status.sha256.slice(0, 12)}.`
                   : status.state === "void"
@@ -106,12 +106,24 @@ export default async function ProtocolsPage({
                       : "Not signed."}
               </p>
               <details className="mt-2">
-                <summary className="min-h-[44px] cursor-pointer text-[14px] font-semibold text-[var(--ink)] underline underline-offset-4">
+                <summary className="min-h-[44px] cursor-pointer text-[13.5px] font-semibold text-[var(--ink)] underline underline-offset-4">
                   Read the full text
                 </summary>
-                <div className="mt-2 max-h-[480px] overflow-y-auto border border-[var(--border)] bg-white px-4 py-3">
+                {/*
+                  FOCUSABLE AND WRAPPING, from the integration board of
+                  2026-10-07: native-audit found this box scrolling with nothing
+                  a keyboard could reach, and three lines of the engineer's text
+                  (long unbroken strings) clipping sideways. The text is carried
+                  verbatim; only where a line may break changes.
+                */}
+                <div
+                  tabIndex={0}
+                  role="region"
+                  aria-label={`The full text of ${protocol.declaration.documentNumber}`}
+                  className="mt-2 max-h-[480px] overflow-y-auto border border-[var(--border)] bg-white px-4 py-3"
+                >
                   {(protocol.declaration.text as readonly string[]).map((line, i) => (
-                    <p key={i} className="text-[13.5px] leading-[1.55] text-[var(--ink)]">
+                    <p key={i} className="text-[13.5px] leading-[1.55] text-[var(--ink)] [overflow-wrap:anywhere]">
                       {line}
                     </p>
                   ))}

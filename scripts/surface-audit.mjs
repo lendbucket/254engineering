@@ -126,6 +126,12 @@ const APIS_MEASURED_ELSEWHERE = {
   lead: ["scripts/forms-audit.mjs", "the marketing intake"],
   onboarding: ["scripts/jobs-audit.mjs", "the invite and reminder mail the flow queues"],
   "order-flow": ["scripts/security-audit.mjs", "the one write path a visitor can reach, checked for what it refuses"],
+  /*
+   * The sealed letter download, added 2026-10-07 and named by the integration
+   * board that day as unclaimed. Token gated, no session; security-audit
+   * asserts the uniform 404 with no token and with a bad one.
+   */
+  "order-document": ["scripts/security-audit.mjs", "the sealed letter download, refused without a valid order token"],
   orders: ["scripts/security-audit.mjs", "the customer facing order lookup"],
   referral: ["scripts/partner-audit.mjs", "partner attribution"],
   stripe: ["scripts/order-audit.mjs", "the payment webhook"],

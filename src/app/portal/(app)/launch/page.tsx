@@ -102,7 +102,7 @@ export default async function LaunchReadinessPage() {
                 * not open is the reason, and a list of falses is a puzzle.
                 */}
               {blocker !== null && (
-                <p className="mt-2 text-[14px] leading-[1.65] text-[var(--secondary)]">{blocker}</p>
+                <p className="mt-2 text-[13.5px] leading-[1.65] text-[var(--secondary)]">{blocker}</p>
               )}
 
               <dl className="mt-2 flex flex-col gap-1 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
@@ -139,7 +139,7 @@ export default async function LaunchReadinessPage() {
                 <p className="text-[15px] font-semibold text-[var(--navy)]">{slug}</p>
               </div>
               {!sellable.ok ? (
-                <p className="mt-2 text-[14px] leading-[1.65] text-[var(--secondary)]">{sellable.why}</p>
+                <p className="mt-2 text-[13.5px] leading-[1.65] text-[var(--secondary)]">{sellable.why}</p>
               ) : null}
             </li>
           ))}
@@ -150,7 +150,7 @@ export default async function LaunchReadinessPage() {
         title="What this screen cannot tell you"
         description="A condition here is an assertion somebody wrote down. Nothing in this platform can see a filing cabinet, a Stripe dashboard or a provider setting, and a screen that implied otherwise would be worse than one that says so."
       >
-        <p className="text-[14px] leading-[1.7] text-[var(--secondary)]">
+        <p className="text-[13.5px] leading-[1.7] text-[var(--secondary)]">
           Each condition is true here when a person stated it true in the file named beside it.
           The compliance audit asserts that the gate reads every one of them and that none
           has been quietly dropped. It deliberately does not verify the outside world, because a

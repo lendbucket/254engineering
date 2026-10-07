@@ -9,6 +9,7 @@ import { answersFor } from "./ops-file-inputs";
 import { transitionFile } from "./ops-crm";
 import { orderForFile, settleDecision } from "./ops-payments";
 import { writeAudit } from "./ops-audit";
+import { DB_NOW } from "./db-now";
 import { raise } from "./ops-notify";
 import { isPrelaunch, registrationLine, firmName, activeFirmRegistration } from "./launch";
 import { verifiedEngineers } from "@/config/credentials";
@@ -198,7 +199,7 @@ export async function sealLetter(actor: SignedIn | null, input: SealInput): Prom
   if (!engineer) {
     return {
       ok: false,
-      error: "Your licence number on this account does not match the engineer on the firm's register, so nothing is sealed under it.",
+      error: "Your license number on this account does not match the engineer on the firm's register, so nothing is sealed under it.",
     };
   }
   const registration = activeFirmRegistration();
@@ -237,7 +238,14 @@ export async function sealLetter(actor: SignedIn | null, input: SealInput): Prom
   if (!signature.ok) return { ok: false, error: signature.error };
 
   // 7. Rendered once, hashed, stored.
-  const sealedOn = letterDate(new Date().toISOString());
+  /*
+   * The letter is dated by the DATABASE's moment of sealing, the instant the
+   * fresh code was spent, which is also the mfa_verified_at the seal act
+   * records. Found by db-guard-audit on the integration board of 2026-10-07:
+   * this read the process clock, so the date printed on a sealed letter came
+   * from whichever machine served the request.
+   */
+  const sealedOn = letterDate(fresh.verifiedAt);
   const rendered = await renderLetterPdf({
     brand: business.name,
     registrationLine: registrationLine(),
@@ -315,7 +323,8 @@ export async function sealLetter(actor: SignedIn | null, input: SealInput): Prom
     if (!settled.ok) problems.push(`the order did not settle: ${settled.error}`);
     const completed = await db
       .from("eng_service_orders")
-      .update({ status: "complete", completed_at: new Date().toISOString() })
+      /* DB_NOW: when an order completed is the database's fact, not this machine's. */
+      .update({ status: "complete", completed_at: DB_NOW })
       .eq("id", order.id as string)
       .eq("status", "in_fulfilment")
       .select("id");

@@ -85,7 +85,7 @@ export async function signProtocol(
   }
   const engineer = verifiedEngineers.find((e) => e.licenseNumber === actor!.license_number);
   if (!engineer) {
-    return { ok: false, error: "Your licence number on this account does not match the engineer on the firm's register." };
+    return { ok: false, error: "Your license number on this account does not match the engineer on the firm's register." };
   }
 
   const protocol = RECEIVED_PROTOCOLS.find((r) => r.declaration.documentNumber === input.documentNumber);
