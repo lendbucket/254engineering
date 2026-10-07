@@ -3185,6 +3185,22 @@ night, if the lock is free and work is waiting, board it.
   refspec onto main and a delete all stay denied. The first merge under this
   rule was `fix/retention-whole-days` at `bd9fbff`, merged as `7ff2ec2` with
   parents `4a7d883` and `bd9fbff`, its tree identical to the boarded commit.
+  The second was `feat/protocol-registry` at `7991895`, merged as `f1beeab`.
+
+  **A branch merges only after a board has passed on a tree that includes
+  main.** Operator ruling, 2026-10-06. Bringing a branch up to main does not
+  need its own board when the next piece of work on that branch will be
+  boarded anyway, because that board measures the combination. What may never
+  happen is a merge into main from a tree no board has measured together with
+  the main it lands on.
+
+  **The standing merge word for an unattended run**, 2026-10-06 into
+  2026-10-07: a branch carrying no migration may merge when it has been brought
+  up to the current main, its board on that exact tree passes alone with every
+  line of its stated prediction met, and `origin/main` is confirmed unmoved. A
+  branch carrying a migration does not merge in an unattended run: it is
+  brought up to main, its migration applied to development, boarded, pushed,
+  and staged for the morning sitting.
 
   **Never, under any word:** a force push, deleting or rewriting a remote branch,
   pushing a tag, or pushing main with a migration that is not applied to
