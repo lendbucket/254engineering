@@ -180,6 +180,16 @@ the engineer and the owner see: nothing was fabricated and nothing waits. The
 other two screens in stage 1 item 3, the tracker and the done page, were already
 V10 and needed capturing rather than restyling.
 
+## DEVELOPMENT RAN THREE MIGRATIONS BEHIND MAIN, IN `docs/development-drift-2026-10-07.md`
+
+Recorded 2026-10-07. 0058, 0059 and 0060 were on production from 2026-09-24 and
+on development only from 2026-10-07; the engineer held `pricing.read` on
+development throughout. No check caught it because every check of the rule
+builds the engineer from `DEFAULT_ROLES`, and nothing reads the ledger's
+development record for whether development has caught up. A three-layer check
+is proposed there and is NOT BUILT, by the operator's order: report only until
+his word.
+
 ## THE v1.1 PROTOCOLS DISAGREE WITH THE PLATFORM IN 27 PLACES, IN `docs/conflicts-v1.1.md`
 
 Recorded 2026-10-07 under operator ruling 6: the protocol wins every conflict,
