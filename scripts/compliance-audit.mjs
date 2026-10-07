@@ -252,6 +252,34 @@ const {
   );
 
   /*
+   * NO TEST ENGINEER IN THE SHIPPED REGISTER. Operator ruling 1 of
+   * 2026-10-07: the development walk to a sealed letter seals as a fake test
+   * engineer that exists ONLY inside the walk's own process, appended to the
+   * register in memory; it is never written to the register file or to any
+   * code that ships. This fails the board if it ever is. Two independent
+   * questions, because a renamed fixture would pass one of them:
+   *   1. every entry the shipped register holds is shaped like a TBPELS
+   *      licence (digits only) and named like a person, not a fixture;
+   *   2. the walk's own identity strings, pinned here as literals rather than
+   *      imported from the walk, appear nowhere under src/config.
+   */
+  const FIXTURE_NAME = /not a real person|audit|probe|fixture|\btest\b/i;
+  const notReal = verifiedEngineers.filter((e) => !/^\d+$/.test(e.licenseNumber) || FIXTURE_NAME.test(e.name));
+  rec(
+    "no test engineer is in the shipped register (every licence is digits only, every name a person's)",
+    notReal.length === 0,
+    notReal.map((e) => `${e.name} ${e.licenseNumber}`).join("; ") || `${verifiedEngineers.length} engineer(s) checked`,
+  );
+  {
+    const { readdirSync, readFileSync: readCfg } = await import("node:fs");
+    const WALK_IDENTITY = ["AUDIT-WALK-PE", "Audit Walk Engineer"];
+    const leaks = readdirSync("src/config")
+      .filter((f) => f.endsWith(".ts"))
+      .flatMap((f) => WALK_IDENTITY.filter((s) => readCfg(`src/config/${f}`, "utf8").includes(s)).map((s) => `${f}: ${s}`));
+    rec("and the walk's test engineer appears nowhere in shipped configuration", leaks.length === 0, leaks.join("; ") || "src/config read, none found");
+  }
+
+  /*
    * AN UNRECORDED EXPIRY IS NAMED, NOT ABSORBED. null means nobody has written
    * the date down, which is a different state from current. This check does not
    * fail on it: recording the number before the date is a legitimate state the
