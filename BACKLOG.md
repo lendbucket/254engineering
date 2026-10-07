@@ -17,6 +17,28 @@ production on 2026-10-07 (503 and 1729) though past the 30-day floor, so
 whether Part B runs before the sitting is a question for the operator.
 Development holds 0061 to 0064.
 
+## WHAT THE ORDER PATH WALK OF 2026-10-07 LEFT FOR A RULING
+
+`scripts/exercises/order-path-walk.mjs` drove an order to a sealed letter and a
+refund on development, and fixed four defects on the way (commit `8e31266`).
+Three things it found are not the session's to decide:
+
+1. **RC-001's routing questions route nothing.** Questions 8 to 12 (open claim,
+   litigation, active leak, adverse report, recent storm damage) are documented
+   as "a yes routes this job to the engineer before anybody is dispatched".
+   `protocolRoutesToEngineer` in `data/protocol-fields.ts` implements the rule,
+   and `protocol-registry-audit` tests it with answers handed to it, and **no
+   product code calls it**: a yes is dispatched like a no. Building it means a
+   dispatch hold until the engineer pre-reviews, which is a behaviour ruling.
+2. **Template 1 runs two lines together.** Aman's document has the recipient's
+   name and address in one paragraph, and "Texas File {{file_number}}" on the Re
+   line, so the sealed letter prints them run on. The transcription is his text
+   exactly and is not changed; whether those are separate lines is his to say.
+3. **Three walk files on development carry real sequence numbers.**
+   `254-2026-0001` to `0003`, opened before the demo-file fix, with is_demo false;
+   the database refuses the flag without the DEMO number, and `0002`'s number is
+   printed in a sealed, locked letter. Renumber, or leave them recorded here.
+
 ## SEVENTEEN PORTAL FILES TOKEN-AUDIT HAS NEVER READ
 
 Found 2026-10-07 by the integration board, which caught `text-[14px]` in two
