@@ -16,6 +16,7 @@ a commit is one the next session has to go looking for.
 
 | Asked | Subject | State |
 | --- | --- | --- |
+| 2026-10-06 | **Four rulings, and two facts with two homes that disagree** | **RULED, recorded in `docs/rulings-2026-10-06.md`.** Ordering stays live; the platform drafts the letter and the engineer seals it in the portal (the law is in `CLAUDE.md` section 1); Robert's RC-001 v1.1 training is accepted on his statement; his coverage is all 254 counties. **OPEN:** the training register says trained while `eng_certifications` on production holds no row, and the TDI appointment register says not held while `eng_profiles` says appointed. Neither is fixed; the appointment waits on Aman's number and date. |
 | 2026-10-01 | HR pay rates | **RULED.** No defaults anywhere. Rates are entered per person in admin by the owner, with effective dates. A person with no rate set cannot be assigned paid work or appear in a pay export, and the screen says why in plain words. |
 | 2026-10-01 | Contractor agreement and handbook text | **RULED.** Build the flow that carries an uploaded document, its version, and a dated acknowledgement per person. Placeholder text marked "Awaiting attorney review" until he uploads the real documents, and nothing goes out while the placeholder is there. |
 | 2026-10-01 | The HR migration | **RULED.** Write it after the Part A and Part B report, apply it to development only, board it. Production waits for a sitting with him. |

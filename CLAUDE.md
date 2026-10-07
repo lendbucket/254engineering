@@ -307,8 +307,35 @@ would have put F-29811 next to "254 Engineering Services LLC".
 launch-audit asks whether the copy is right for a given mode. compliance-audit
 asks whether the mode may change at all.
 
-**A SEALED DOCUMENT IS UPLOADED, NEVER GENERATED. Operator ruling, 2026-09-06,
-and it is standing law rather than a phase decision.**
+**THE PLATFORM DRAFTS THE LETTER AND THE ENGINEER SEALS IT IN THE PORTAL.
+Operator ruling, 2026-10-06. It replaces the 2026-09-06 rule quoted below.**
+
+The platform drafts each letter from the fixed sentence for the determination
+the engineer records. The engineer reviews the draft in the portal and applies
+his seal and signature, stored on his profile, and that act makes it the sealed
+document. The requirements, each a condition of building it:
+
+- Only the engineer's own authenticated session, with MFA, can apply his seal.
+  No administrator path exists, including the operator's.
+- The seal and signature images are readable only by the sealing step, and are
+  never displayed or downloadable anywhere else.
+- At sealing the document is rendered, hashed and locked. Any change after that
+  voids the seal.
+- Every sealing writes to the immutable audit log.
+
+Each control is mapped to 22 TAC 137.33 and 137.35 before code is written. Letter
+drafting and sealing are built on `feat/sealed-delivery` with delivery, roof
+certification first, from the engineer's template 1 answers of 2026-10-05.
+
+**The argument of the rule below was that a permission model cannot keep a
+rendered seal under the engineer's control.** The new rule answers it with
+identity rather than permission: the seal is applied by one person's own
+session with a fresh second factor, and no role, grant or administrator can
+stand in for him. The reasoning is kept because it names the exact hazard the
+four requirements above exist to close.
+
+**THE RULE IT REPLACES: A SEALED DOCUMENT IS UPLOADED, NEVER GENERATED.
+Operator ruling, 2026-09-06.**
 
 A seal carries a named Professional Engineer's own seal and signature. A platform
 that RENDERS one is a platform where any account holding the right permission can
