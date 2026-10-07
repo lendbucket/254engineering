@@ -691,11 +691,23 @@ export async function decideReview(
   const session = pkg.session;
   const minutes = session ? minutesBetween(new Date(session.startedAt), now) : 0;
 
-  // 1. The file moves.
+  // 1. The file moves, except on a passing decision.
+  /*
+   * A PASSING DECISION IS NOT A SEAL. Operator ruling of 2026-10-06, CLAUDE.md
+   * section 1: the platform drafts the letter from the determination, and the
+   * engineer seals it in the portal from his own session with a fresh second
+   * factor. Until that act the file is under review in fact, with his
+   * determination recorded and his seal not yet applied, so it stays there.
+   * Moving it to sealed here, which is what this did until 2026-10-07, called a
+   * file sealed with no seal on anything. src/lib/letter-seal.ts moves it, at
+   * the moment the seal act is recorded.
+   */
   const target = ACTION_TARGET[action];
   const note = reason?.trim() || null;
-  const moved = await transitionFile(actor, fileId, target, note, context);
-  if (!moved.ok) return { ok: false, error: moved.error };
+  if (action !== "seal") {
+    const moved = await transitionFile(actor, fileId, target, note, context);
+    if (!moved.ok) return { ok: false, error: moved.error };
+  }
 
   if (action === "refuse") {
     await db
@@ -852,18 +864,13 @@ export async function decideReview(
         entityType: "file",
         entityId: fileId,
       });
-    } else if (action === "seal") {
-      await raise({
-        profileId: admin.id as string,
-        role: "admin",
-        kind: "review.sealed",
-        title: `${pkg.file.file_number} was sealed`,
-        body: `${pkg.file.property_address}, ${pkg.file.county} County.`,
-        href: `/portal/files?id=${fileId}`,
-        entityType: "file",
-        entityId: fileId,
-      });
     }
+    /*
+     * review.sealed is raised by the seal act now, not by the decision, for the
+     * reason at step 1: until the engineer seals, nothing has been sealed, and
+     * telling the administrator otherwise is the claim the 2026-10-06 ruling
+     * exists to stop.
+     */
   }
 
   await writeAudit({
@@ -893,11 +900,16 @@ export async function decideReview(
    * A file with no order behind it, which is every file staff opened by hand,
    * settles to nothing and says so.
    */
+  /*
+   * A passing decision settles nothing yet: the order settles when the letter
+   * is sealed (src/lib/letter-seal.ts), because that is when the customer has
+   * been given what they paid for. A refusal settles here, as it always has.
+   */
   const order = await orderForFile(fileId);
-  if (order && (action === "seal" || action === "refuse")) {
+  if (order && action === "refuse") {
     const settled = await settleDecision({
       orderId: order.id as string,
-      outcome: action === "seal" ? "seal" : "refuse",
+      outcome: "refuse",
       actorId: actor.id,
     });
     if (!settled.ok) {

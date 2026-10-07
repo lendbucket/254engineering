@@ -53,25 +53,52 @@ rec(
   naming.join(", ") || "NO MODULE NAMES IT, so the check below would pass over nothing",
 );
 
-/* ---- 2. that module reads nothing out of the bucket yet */
+/*
+ * ---- 2. the module reads ONE thing out of the bucket, for sealing
+ *
+ * CHANGED 2026-10-07, ON PURPOSE, WITH SEALING PIECE TWO. This asserted "the
+ * seal store holds no download, signed link or public link call", because in
+ * piece one nothing read an image yet. The sealing step must read them, once,
+ * server side, and control 2 of docs/sealing-controls.md says that read lives
+ * in one function. So the assertion is now that exact shape: one download, in
+ * readImageForSealing, and never a signed or public link, which would let an
+ * image leave the server.
+ */
 const store = readFileSync(STORE, "utf8");
-const reads = [".download(", "createSignedUrl", "getPublicUrl"].filter((call) => store.includes(call));
+const links = ["createSignedUrl", "getPublicUrl"].filter((call) => store.includes(call));
+const downloads = store.split(".download(").length - 1;
+const readerAt = store.indexOf("export async function readImageForSealing(");
+const downloadAt = store.indexOf(".download(");
 rec(
-  "the seal store holds no download, signed link or public link call",
-  reads.length === 0,
-  reads.length ? `FOUND: ${reads.join(", ")}` : "the only bucket call is the upload",
+  "the seal store holds no signed or public link, and exactly one download, inside readImageForSealing",
+  links.length === 0 && downloads === 1 && readerAt > 0 && downloadAt > readerAt,
+  links.length ? `FOUND: ${links.join(", ")}` : `${downloads} download(s)`,
 );
 
-/* ---- 3. who imports it, and the route has no GET */
-const importers = sources.filter((f) => f !== STORE && /from "@\/lib\/seal-store"/.test(readFileSync(f, "utf8")));
+/*
+ * ---- 3. who imports it, and the route has no GET
+ *
+ * The importer scan matched only `from "@/lib/seal-store"` until 2026-10-07, so
+ * a relative import (`from "./seal-store"`) would have been invisible to it,
+ * which is exactly how the sealing step first imported it. It now matches both.
+ */
+const importsStore = (f) => /from "(@\/lib|\.)\/seal-store"/.test(readFileSync(f, "utf8"));
+const importers = sources.filter((f) => f !== STORE && importsStore(f));
 const allowed = [
   "src/app/api/portal/seal/route.ts",
   "src/app/portal/(app)/profile/seal/page.tsx",
+  "src/lib/letter-seal.ts",
 ];
 rec(
-  "only the upload route and the engineer's own seal page import the seal store",
+  "only the upload route, the engineer's own seal page and the sealing step import the seal store",
   importers.length === allowed.length && importers.every((f) => allowed.includes(f)),
   importers.join(", ") || "NOTHING IMPORTS IT",
+);
+const callers = sources.filter((f) => f !== STORE && readFileSync(f, "utf8").includes("readImageForSealing("));
+rec(
+  "and the sealing step is the only caller of the image read (control 2)",
+  callers.length === 1 && callers[0] === "src/lib/letter-seal.ts",
+  callers.join(", ") || "NOTHING CALLS IT",
 );
 const route = readFileSync("src/app/api/portal/seal/route.ts", "utf8");
 rec(

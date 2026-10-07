@@ -181,3 +181,44 @@ export async function uploadSealImage(input: {
 
   return { ok: true, kind, fingerprint: sha256.slice(0, 12) };
 }
+
+/**
+ * THE ONE READ OUT OF THE SEAL BUCKET, FOR THE SEALING STEP AND NOTHING ELSE.
+ *
+ * Control 2 in docs/sealing-controls.md: the images are read by one function
+ * only, server side, and are never served, shown or exported. This is that
+ * function, kept in this module so the bucket's name still has one home, and
+ * scripts/proofs/a-seal-image-is-read-only-by-sealing.mjs asserts it is the
+ * only download here and that src/lib/letter-seal.ts is its only caller.
+ *
+ * It returns his CURRENT image of one kind, and only if the bytes in storage
+ * still hash to what was recorded when he uploaded them: an image somebody
+ * replaced in the bucket underneath the record is not used to seal anything.
+ */
+export async function readImageForSealing(
+  profileId: string,
+  kind: SealImageKind,
+): Promise<{ ok: true; id: string; bytes: Uint8Array } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  const { data, error } = await db
+    .from("eng_seal_images")
+    .select("id, storage_key, sha256")
+    .eq("profile_id", profileId)
+    .eq("kind", kind)
+    .is("superseded_at", null)
+    .maybeSingle();
+  if (error) return { ok: false, error: `Your ${kind} image record could not be read: ${error.message}` };
+  if (!data) return { ok: false, error: `No ${kind} image is on file. Upload one on your profile first.` };
+
+  const download = await db.storage.from(SEAL_BUCKET).download(data.storage_key as string);
+  if (download.error || !download.data) return { ok: false, error: `Your ${kind} image could not be read from storage.` };
+  const bytes = new Uint8Array(await download.data.arrayBuffer());
+  if (createHash("sha256").update(bytes).digest("hex") !== data.sha256) {
+    return {
+      ok: false,
+      error: `Your stored ${kind} image does not match the one recorded when you uploaded it, so it will not be used. Upload it again.`,
+    };
+  }
+  return { ok: true, id: data.id as string, bytes };
+}
