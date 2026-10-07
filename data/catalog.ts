@@ -614,10 +614,16 @@ const DECLARED: CatalogDeclaration[] = [
     serviceSlug: "solar-structural-letters",
     tier: "standard",
     name: "Solar structural letter",
-    orderType: "desk",
+    /*
+     * FIELD SINCE 2026-10-07, operator ruling 7 that day: SL-001 sends a
+     * technician, so the line carries the visit, per the protocol-wins rule
+     * (docs/conflicts-v1.1.md items 16 and 17). The inspection fee is not
+     * ruled, so orderBlockedReason keeps the line off the site until it is.
+     */
+    orderType: "field",
     coastalSurchargeCents: 7500,
     inspectionFeeCents: null,
-    protocolServiceSlug: null,
+    protocolServiceSlug: "solar-structural-letters",
     qualifiers: [
       ADDRESS_QUALIFIER,
       /*
@@ -676,10 +682,11 @@ const DECLARED: CatalogDeclaration[] = [
     serviceSlug: "structural-letters",
     tier: "standard",
     name: "Structural letter for permit",
-    orderType: "desk",
+    /* FIELD SINCE 2026-10-07, ruling 7: PL-001 sends a technician (conflicts item 20). Fee not ruled. */
+    orderType: "field",
     coastalSurchargeCents: 7500,
     inspectionFeeCents: null,
-    protocolServiceSlug: null,
+    protocolServiceSlug: "structural-letters",
     qualifiers: [
       ADDRESS_QUALIFIER,
       /*
@@ -751,10 +758,11 @@ const DECLARED: CatalogDeclaration[] = [
     serviceSlug: "repair-specifications",
     tier: "standard",
     name: "Repair specification",
-    orderType: "desk",
+    /* FIELD SINCE 2026-10-07, ruling 7: RS-001 sends a technician (conflicts item 23). Fee not ruled. */
+    orderType: "field",
     coastalSurchargeCents: 7500,
     inspectionFeeCents: null,
-    protocolServiceSlug: null,
+    protocolServiceSlug: "repair-specifications",
     qualifiers: [
       ADDRESS_QUALIFIER,
       /*

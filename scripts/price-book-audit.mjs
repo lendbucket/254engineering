@@ -564,15 +564,17 @@ const BASE = {
   rec("no row states a net while a fee is missing", guessed.length === 0, guessed.map((r) => r.label).join("; ") || `${report.rows.length} rows`);
 
   /*
-   * The three lines whose protocol sends a technician while the catalogue says
-   * desk (conflicts items 16 and 17, 20, 23, referred) must SAY their net is
-   * high. Found by reading the report: they showed $0 technician cost and the
-   * best margins in the book.
+   * The three lines whose protocol sends a technician (conflicts items 16 and
+   * 17, 20, 23) showed $0 technician cost and the best margins in the book,
+   * found by reading the report. Operator ruling 7 of 2026-10-07 made them
+   * field work, so each must now carry exactly one $85 visit.
    */
-  const silent = report.rows.filter(
-    (r) => ["solar-structural-letters", "structural-letters", "repair-specifications"].includes(r.serviceSlug) && r.visits === 0 && !r.caveat,
-  );
-  rec("a line costed at no visit while its protocol requires one says its net is high", silent.length === 0, silent.map((r) => r.label).join("; ") || "all three say so");
+  const VISIT_LINES = ["solar-structural-letters", "structural-letters", "repair-specifications"];
+  const unvisited = VISIT_LINES.filter((slug) => {
+    const r = report.rows.find((x) => x.serviceSlug === slug);
+    return !r || r.visits !== 1 || r.technicianCents !== 8_500;
+  });
+  rec("solar, the structural letter and the repair specification each carry one $85 visit", unvisited.length === 0, unvisited.join(", ") || "all three, per ruling 7");
 
   const deskWithVisit = report.rows.filter((r) => CATALOG.find((e) => e.serviceSlug === r.serviceSlug && e.tier === r.tier)?.orderType === "desk" && r.visits !== 0);
   rec("a desk deliverable carries no technician visit", deskWithVisit.length === 0, deskWithVisit.map((r) => r.label).join("; ") || "none does");

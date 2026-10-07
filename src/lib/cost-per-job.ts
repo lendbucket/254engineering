@@ -44,19 +44,12 @@ const ENGINEER_SOURCE =
 const PROCESSING_SOURCE = `Stripe card rate, src/config/cost-inputs.ts, read ${PROCESSING_READ_ON} from ${PROCESSING_READ_FROM}`;
 
 /*
- * LINES WHOSE SIGNED PROTOCOL SENDS A TECHNICIAN WHILE THE CATALOGUE STILL
- * SELLS THEM AS DESK WORK. docs/conflicts-v1.1.md items 16 and 17 (SL-001),
- * 20 (PL-001) and 23 (RS-001): the copy was corrected and the order type was
- * REFERRED to the operator as a money ruling. Until it is ruled, these rows
- * carry no technician cost because the catalogue says desk, and the net is
- * therefore flattering; each row says so rather than hiding it. Delete an entry
- * the day its ruling lands.
+ * Solar, the structural letter and the repair specification carried a caveat
+ * here until 2026-10-07, because their protocols send a technician while the
+ * catalogue sold them as desk work. Operator ruling 7 that day made them field
+ * work, so they carry the visit like every other field line and the caveat is
+ * gone; price-book-audit asserts they now count one visit.
  */
-const VISIT_PENDING_RULING: Record<string, string> = {
-  "solar-structural-letters": "items 16 and 17",
-  "structural-letters": "item 20",
-  "repair-specifications": "item 23",
-};
 
 function visitsFor(serviceSlug: string, tier: string, orderType: string): number {
   if (serviceSlug === "windstorm-wpi-8" && tier === "ongoing") return WPI8_ONGOING_INCLUDED_VISITS;
@@ -77,11 +70,7 @@ function row(input: {
   const processingCents = processingCentsFor("card", input.revenueCents);
   const netCents =
     input.engineerCents === null ? null : input.revenueCents - technicianCents - input.engineerCents - processingCents;
-  const pending = input.visits === 0 ? VISIT_PENDING_RULING[input.serviceSlug] : undefined;
-  const caveat = pending
-    ? `The signed protocol sends a technician, and the catalogue still sells this as desk work pending the operator's money ruling (docs/conflicts-v1.1.md ${pending}). No technician cost is counted, so this net is high by at least ${TECHNICIAN_CALL_CENTS / 100} dollars a job.`
-    : null;
-  return { ...input, technicianCents, processingCents, netCents, caveat };
+  return { ...input, technicianCents, processingCents, netCents, caveat: null };
 }
 
 /** One row per deliverable with a fixed price, then WP-001's extra visit. Quoted and hourly lines are listed as such. */

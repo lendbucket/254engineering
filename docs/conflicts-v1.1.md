@@ -41,13 +41,13 @@ with that branch.
 | MH | Retrofit promised | BUILT, `e885631` |
 | 14 | Solar wind loading | BUILT, `d328df8`, ruling 4 |
 | 15 | Solar reinforcement detail | BUILT, `da80fca` |
-| 16, 17 | Solar "No site visit." and drawings alone | BUILT, copy `da80fca`; orderType REFERRED, money ruling |
+| 16, 17 | Solar "No site visit." and drawings alone | BUILT, copy `da80fca`; orderType field by ruling 7 of 2026-10-07; inspection fee not ruled, so not orderable online until it is |
 | 18 | Solar turned away without the array design | BUILT, `da80fca` |
 | 19 | Installer photographs | BUILT, `da80fca` |
-| 20 | Letter sold as desk review | BUILT, copy `d97e656`; orderType and site job price REFERRED |
+| 20 | Letter sold as desk review | BUILT, copy `d97e656`; orderType field by ruling 7 of 2026-10-07; site job price and inspection fee still REFERRED |
 | 21 | Letter for any reader | BUILT, `d97e656` |
 | 22 | Beam sizing and remediation in the letter | BUILT, `d97e656` |
-| 23 | Specification without a visit | BUILT, copy `673894f`; orderType REFERRED |
+| 23 | Specification without a visit | BUILT, copy `673894f`; orderType field by ruling 7 of 2026-10-07; inspection fee not ruled |
 | 24 | Damage report required | BUILT, `673894f` |
 | 25 | Verification and stages | BUILT, `673894f`; a verification order REFERRED, needs a price |
 | RS | Adjusters on an open claim | BUILT, `673894f` |
