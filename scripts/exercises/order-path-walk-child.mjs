@@ -165,7 +165,7 @@ for (const [kind, w, h] of [["seal", 600, 600], ["signature", 800, 300]]) {
 // ---------------------------------------------------------------- 3. an order, as the site places it
 const provider = fakeProvider();
 pay.setPaymentProvider(provider);
-async function order(n) {
+async function order(n, overrides = {}) {
   const entry = catalogFor("roof-inspections", "standard");
   const answers = entry.qualifiers.map((q) => ({ qualifierId: q.id, optionIndex: q.options.findIndex((_, i) => !q.disqualifyOn.includes(i)) }));
   const inputs = {};
@@ -188,6 +188,7 @@ async function order(n) {
   inputs.rc001_q1 = "Insurance renewal. Audit walk, not a real request.";
   inputs.rc001_q2 = "Audit Walk Insurer, not a real company";
   inputs.rc001_q13 = "Yes";
+  Object.assign(inputs, overrides);
   const placed = await placeOrder({
     site: "254",
     clientRequestId: `walk-${STAMP}-${n}`,
@@ -311,9 +312,36 @@ const second = await order(2);
 const settled = await pay.settleDecision({ orderId: second.orderId, outcome: "refuse", actorId: engineer.id });
 log(`order 2 declined before attendance: ${JSON.stringify(settled).slice(0, 300)}`);
 const { data: pays } = await db.from("eng_order_payments").select("kind, amount_cents, provider").eq("order_id", second.orderId).order("created_at");
-const { data: o2 } = await db.from("eng_service_orders").select("status, refund_case").eq("id", second.orderId).single();
-log(`order 2 money: ${(pays ?? []).map((p) => `${p.kind} $${(p.amount_cents / 100).toFixed(2)}`).join(", ")}; status ${o2?.status}, case ${o2?.refund_case}`);
+const { data: o2 } = await db.from("eng_service_orders").select("status, refunded_at").eq("id", second.orderId).single();
+log(`order 2 money: ${(pays ?? []).map((p) => `${p.kind} $${(p.amount_cents / 100).toFixed(2)}`).join(", ")}; status ${o2?.status}, refunded ${o2?.refunded_at ? "yes" : "no"}`);
 log(`fake till asked to refund: ${JSON.stringify(provider.ledger.filter((l) => l.kind === "refund" || l.type === "refund")).slice(0, 300)}`);
+
+// ---------------------------------------------------------------- 7b. a yes holds the job for the engineer (ruling 1 of 2026-10-07)
+const hold = await import(ROOT + "src/lib/dispatch-hold.ts");
+const claimOrder = await order(3, { rc001_q8: "Yes", rc001_q8_detail: `${LABEL}: an open claim on a roof that does not exist` });
+const claimSend = await field.sendOffers(admin, claimOrder.fileId, [tech.id]);
+log(`order 3, an open insurance claim: dispatch ${claimSend.ok ? "WENT THROUGH, WHICH IS WRONG" : `refused: ${claimSend.error}`}`);
+const listed = await hold.heldFiles();
+const heldEntry = listed.ok ? listed.files.find((f) => f.id === claimOrder.fileId) : null;
+log(`the engineer's held list: ${heldEntry ? `${heldEntry.fileNumber}, ${heldEntry.questions.map((q) => `question ${q.number}${q.standingRuling ? ` [${q.standingRuling}]` : ""}`).join("; ")}` : "NOT LISTED"}`);
+const { data: claimFile0 } = await db.from("eng_files").select("status").eq("id", claimOrder.fileId).single();
+log(`and it is held, not declined: the file is ${claimFile0?.status}`);
+const bare = await hold.recordPrereview(engineer, claimOrder.fileId, "decline", "no");
+log(`a decline with no referral: ${bare.ok ? "ACCEPTED, WHICH IS WRONG" : `refused: ${bare.error}`}`);
+const declined = await hold.recordPrereview(engineer, claimOrder.fileId, "decline", `${LABEL} referral: the customer's own insurer's adjuster handles an open claim; not a real referral`);
+if (!declined.ok) await stop(`decline: ${declined.error}`);
+const { data: claimFile } = await db.from("eng_files").select("status").eq("id", claimOrder.fileId).single();
+const { data: claimPays } = await db.from("eng_order_payments").select("kind, amount_cents").eq("order_id", claimOrder.orderId);
+const { data: claimOrderRow } = await db.from("eng_service_orders").select("status").eq("id", claimOrder.orderId).single();
+log(`the engineer declined with his referral: file ${claimFile?.status}, order ${claimOrderRow?.status}, money ${(claimPays ?? []).map((p) => `${p.kind} $${(p.amount_cents / 100).toFixed(2)}`).join(", ")}`);
+
+const leakOrder = await order(4, { rc001_q10: "Yes", rc001_q10_detail: `${LABEL}: a leak in a house that does not exist` });
+const leakSend = await field.sendOffers(admin, leakOrder.fileId, [tech.id]);
+log(`order 4, an active leak: dispatch ${leakSend.ok ? "WENT THROUGH, WHICH IS WRONG" : "refused, held"}`);
+const accepted4 = await hold.recordPrereview(engineer, leakOrder.fileId, "accept", `${LABEL}: accepted, the technician notes the leak`);
+if (!accepted4.ok) await stop(`accept: ${accepted4.error}`);
+const leakSend2 = await field.sendOffers(admin, leakOrder.fileId, [tech.id]);
+log(`after the engineer accepted: dispatch ${leakSend2.ok ? `sent (${leakSend2.sent} offer)` : `STILL REFUSED: ${leakSend2.error}`}`);
 
 // ---------------------------------------------------------------- 8. the test accounts are closed
 for (const p of made.profiles) await db.from("eng_profiles").update({ status: "suspended" }).eq("id", p.id);
