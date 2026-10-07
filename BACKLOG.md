@@ -36,6 +36,16 @@ the engineer and the owner see: nothing was fabricated and nothing waits. The
 other two screens in stage 1 item 3, the tracker and the done page, were already
 V10 and needed capturing rather than restyling.
 
+## THE v1.1 PROTOCOLS DISAGREE WITH THE PLATFORM IN 27 PLACES, IN `docs/conflicts-v1.1.md`
+
+Recorded 2026-10-07 under operator ruling 6: the protocol wins every conflict,
+and each catalogue or copy change is built before its line opens. Three are
+built; the rest are TO BUILD or REFERRED, the referred ones because each needs a
+money ruling (moving solar, structural letters and repair specifications from
+desk to field orders, a price for the manufactured home return visit, a
+verification order for repair specifications) or the engineer's answer (whether
+TWIA's WPI-8-C route is still current). The file is the list; this is the pointer.
+
 ## STAGE 2 WAS READ AGAINST THE CODE BEFORE IT WAS STYLED
 
 `docs/design-v10/stage-2-reconciliation.md` gives every claim on the six stage 2
