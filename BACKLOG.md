@@ -96,6 +96,18 @@ no-op returning the first row, or a legitimate second client at the same
 address. A household and a landlord are both real, so a unique index on the
 email would be the wrong answer on its own.
 
+**THE DOUBLE CLICK IS FIXED, 2026-10-07, ON `release/2026-10-20`, AND THE
+QUESTION ABOVE IS STILL OPEN.** `createClient` now returns the first row when
+the SAME PERSON creates a client with the same name and the same address (or
+both with none) within two minutes, which is a double click or a retry and
+nothing a person means as a second client. A different address, or a different
+person, is still a second client, and the order engine's own creates are
+outside the guard because they carry no author id. Proved on development by
+`scripts/proofs/a-client-created-twice-is-one-client.mjs`, both directions;
+a zero window turns exactly the three repeat checks red. **Not closed:** it is a
+read before the insert, so two requests in the same instant can still both
+insert, and closing that needs a constraint, which needs the ruling above.
+
 ### 2. `/portal/clients` has no bound, so its list grows with the table
 
 `native-audit` failed on the board of 2026-10-03 with
