@@ -3,8 +3,9 @@ import { DB_NOW } from "./db-now";
 import { readEvery, readEveryIn } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import { tradePriceInForce } from "./trade-pricing";
-import { catalogFor, orderBlockedReason, type CatalogEntry } from "@data/catalog";
-import { launchMode, serviceLineIsOffered } from "./launch";
+import { catalogFor, type CatalogEntry } from "@data/catalog";
+import { launchMode } from "./launch";
+import { orderBlockedNow } from "./line-gate";
 import { placeOrder, event } from "./ops-intake";
 import { acceptOnInvoice } from "./ops-payments";
 import { creditDecision } from "./account-credit";
@@ -73,18 +74,19 @@ function twiaSet(): Set<string> {
  * happens to be in their favour here, which makes it harder to notice rather
  * than less wrong.
  */
-export function previewBatch(
+export async function previewBatch(
   serviceSlug: string,
   tier: string | undefined,
   properties: BulkProperty[],
   agreedPriceCents?: number | null,
-): { ok: true; entry: CatalogEntry; split: BatchSplit } | { ok: false; error: string } {
+): Promise<{ ok: true; entry: CatalogEntry; split: BatchSplit } | { ok: false; error: string }> {
   const entry = catalogFor(serviceSlug, tier);
   if (!entry) {
     return { ok: false, error: "That service does not sell a single deliverable. Choose which one." };
   }
 
-  const blocked = orderBlockedReason(entry, launchMode(), serviceLineIsOffered(entry.serviceSlug));
+  /* A MONEY DOOR, ruling 11: the engineer's signed record is read before a batch is priced. */
+  const blocked = await orderBlockedNow(entry, launchMode());
   if (blocked) return { ok: false, error: blocked };
 
   return { ok: true, entry, split: splitBatch(entry, properties, twiaSet(), agreedPriceCents ?? null) };
@@ -157,7 +159,7 @@ export async function placeBatch(input: {
    */
   const agreed = await tradePriceInForce(input.accountId, input.serviceSlug, input.tier ?? "standard");
 
-  const preview = previewBatch(input.serviceSlug, input.tier, input.properties, agreed);
+  const preview = await previewBatch(input.serviceSlug, input.tier, input.properties, agreed);
   if (!preview.ok) return { ok: false, error: preview.error };
 
   const { entry, split } = preview;

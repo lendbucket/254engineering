@@ -5,7 +5,8 @@ import { Container } from "@/components/ui/Container";
 import { OrderFlow } from "@/components/order/OrderFlow";
 import { deliverablesFor, orderBlockedReason } from "@data/catalog";
 import { serviceBySlug } from "@/content/services";
-import { launchMode, serviceLineIsOffered } from "@/lib/launch";
+import { launchMode } from "@/lib/launch";
+import { orderBlockedNow } from "@/lib/line-gate";
 import { orderHeading, serviceNameInSentence } from "@/lib/order-copy";
 import { currentCustomer } from "@/lib/customer-auth";
 
@@ -76,12 +77,14 @@ export default async function OrderStartPage({ params }: { params: Promise<{ slu
    * can sell a priced thing and a quoted thing, and a quote request stays
    * available when a price has not been published. So the page asks about each.
    */
-  const available = deliverables.filter((d) => orderBlockedReason(d, mode, serviceLineIsOffered(d.serviceSlug)) === null);
-  const blockedReason = orderBlockedReason(
-    deliverables[0],
-    mode,
-    deliverables[0] ? serviceLineIsOffered(deliverables[0].serviceSlug) : false,
-  );
+  /*
+   * A MONEY DOOR, ruling 11 of 2026-10-06. Each deliverable is asked through
+   * orderBlockedNow, which reads the engineer's signed record when the gate is
+   * open, so a voided or unreadable signature closes the line here at once.
+   */
+  const blockedEach = await Promise.all(deliverables.map((d) => orderBlockedNow(d, mode)));
+  const available = deliverables.filter((_, i) => blockedEach[i] === null);
+  const blockedReason = deliverables[0] ? blockedEach[0] : orderBlockedReason(undefined, mode, false);
 
   return (
     /*

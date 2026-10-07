@@ -6,8 +6,9 @@ import { referenceForCustomer } from "./ops-files";
 import { writeAudit } from "./ops-audit";
 import { createClient, createFile, SYSTEM_AUTHOR } from "./ops-crm";
 import { resolveCounty, twiaStatus } from "./ops-counties";
-import { launchMode, serviceLineIsOffered } from "./launch";
-import { catalogFor, deliverablesFor, orderBlockedReason, type CatalogEntry } from "@data/catalog";
+import { launchMode } from "./launch";
+import { catalogFor, deliverablesFor, type CatalogEntry } from "@data/catalog";
+import { orderBlockedNow } from "./line-gate";
 import {
   landingStatusFor,
   qualify,
@@ -289,7 +290,8 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
       field: "tier",
     };
   }
-  const blocked = orderBlockedReason(entry, launchMode(), entry ? serviceLineIsOffered(entry.serviceSlug) : false);
+  /* A MONEY DOOR, ruling 11: placeOrder reads the engineer's signed record before taking money. */
+  const blocked = await orderBlockedNow(entry, launchMode());
   if (!entry || blocked) {
     return { ok: false, error: blocked ?? "That service cannot be ordered.", field: "serviceSlug" };
   }
@@ -626,7 +628,8 @@ export async function requestQuote(input: RequestQuoteInput): Promise<RequestQuo
   const quotable = deliverablesFor(input.serviceSlug).filter((d) => d.orderType === "quote");
   const entry =
     catalogFor(input.serviceSlug, input.tier) ?? (quotable.length === 1 ? quotable[0] : undefined);
-  const blocked = orderBlockedReason(entry, launchMode(), entry ? serviceLineIsOffered(entry.serviceSlug) : false);
+  /* The quote path asks the same question through the same door helper, ruling 11. */
+  const blocked = await orderBlockedNow(entry, launchMode());
   if (!entry || blocked) {
     return { ok: false, error: blocked ?? "That service is not in the catalog.", field: "serviceSlug" };
   }
