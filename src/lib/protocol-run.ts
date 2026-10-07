@@ -1,6 +1,12 @@
-import { RC001 } from "@/content/protocols/rc-001";
-import { RC001_CHECKLIST, RC001_SECTIONS } from "@/content/protocols/rc-001-checklist";
-import type { ChecklistItem } from "@/content/protocols/rc-001-checklist";
+import { protocolByDocument, type ProtocolEntry, type ProtocolChecklistItem } from "@/content/protocols";
+
+/*
+ * ONE PROTOCOL TO MANY, 2026-10-06. Every function here takes the protocol it
+ * is about, as an entry from src/content/protocols/index.ts, rather than
+ * importing 254-RC-001 by name. Nothing about what the functions compute
+ * changed: they read the same fields of whichever protocol they are handed.
+ */
+type ChecklistItem = ProtocolChecklistItem;
 
 /**
  * ===========================================================================
@@ -66,8 +72,8 @@ export type RunView = {
  * known, every conditional item applies, because the conservative direction on
  * an evidence package is to ask for more rather than less.
  */
-export function itemsFor(covering: string | null): ChecklistItem[] {
-  return RC001_CHECKLIST.filter(
+export function itemsFor(protocol: ProtocolEntry, covering: string | null): ChecklistItem[] {
+  return protocol.declaration.checklist.filter(
     (i) => i.coveringOnly === null || covering === null || i.coveringOnly === covering,
   );
 }
@@ -81,12 +87,15 @@ export function itemsFor(covering: string | null): ChecklistItem[] {
  * extra argument: a rule proven with hand built inputs says nothing about
  * whether production can construct them.
  */
-export function runView(input: {
-  covering: string | null;
-  evidenceByItem: Record<string, string[]>;
-  exceptionsByItem: Record<string, { reason: string; kind: "not_observed" | "not_applicable" }>;
-}): RunView {
-  const items = itemsFor(input.covering).map((item): RunItem => {
+export function runView(
+  protocol: ProtocolEntry,
+  input: {
+    covering: string | null;
+    evidenceByItem: Record<string, string[]>;
+    exceptionsByItem: Record<string, { reason: string; kind: "not_observed" | "not_applicable" }>;
+  },
+): RunView {
+  const items = itemsFor(protocol, input.covering).map((item): RunItem => {
     const evidence = input.evidenceByItem[item.key] ?? [];
     if (evidence.length > 0) return { item, status: { state: "captured", evidenceIds: evidence } };
     const exception = input.exceptionsByItem[item.key];
@@ -96,14 +105,14 @@ export function runView(input: {
     return { item, status: { state: "outstanding" } };
   });
 
-  const sections = RC001_SECTIONS.map((s) => ({
+  const sections = protocol.declaration.sections.map((s) => ({
     key: s.key,
     heading: s.heading,
     items: items.filter((r) => r.item.section === s.key),
   })).filter((s) => s.items.length > 0);
 
   return {
-    protocolDocument: RC001.documentNumber,
+    protocolDocument: protocol.declaration.documentNumber,
     items,
     sections,
     applicable: items.length,
@@ -171,8 +180,8 @@ function kindFor(item: ChecklistItem): ProtocolItemRow["kind"] {
  * which `ops-evidence` treats as satisfying the item, so nothing here needs an
  * optional tier to let a job finish honestly.
  */
-export function protocolItemRows(): ProtocolItemRow[] {
-  return RC001_CHECKLIST.map((item, index) => ({
+export function protocolItemRows(protocol: ProtocolEntry): ProtocolItemRow[] {
+  return protocol.declaration.checklist.map((item, index) => ({
     sort_order: index,
     item_key: item.key,
     kind: kindFor(item),
@@ -210,14 +219,14 @@ export function protocolItemRows(): ProtocolItemRow[] {
  * condition read strictly: the rows derive from the registry, so a protocol
  * outside the registry has no rows to derive.
  *
- * It is a lookup rather than a map because there is one entry today, and a map
- * keyed on a string that only ever holds one key reads as more generality than
- * exists. `PROTOCOLS` in src/content/protocols/index.ts is the declared
- * inventory; this asks it rather than carrying a second list.
+ * It asks the declared inventory in src/content/protocols/index.ts rather than
+ * carrying a second list. Until 2026-10-06 it compared against 254-RC-001's
+ * number directly, because that was the only entry; the answer for RC-001 is
+ * the same rows either way.
  */
 export function protocolItemRowsFor(documentNumber: string | null): ProtocolItemRow[] | null {
-  if (documentNumber === null) return null;
-  return documentNumber === RC001.documentNumber ? protocolItemRows() : null;
+  const protocol = protocolByDocument(documentNumber);
+  return protocol ? protocolItemRows(protocol) : null;
 }
 
 /*

@@ -4,7 +4,7 @@ import { money } from "@/lib/ops-money";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ACTION_LABEL, DETERMINATION_ACTION, MIN_REASON_LENGTH, type ReviewAction } from "@/lib/ops-review";
-import type { Determination, DeterminationRule } from "@/content/protocols/rc-001-decisions";
+import type { Determination, DeterminationRule } from "@/content/protocols";
 
 /**
  * The decision controls.

@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { readSource } from "./read-source.mjs";
 import { dirname, resolve } from "node:path";
 
@@ -49,7 +49,15 @@ const SEEN = new Map();
 function serverOnly(file, depth = 0) {
   if (depth > 3) return false;
   if (SEEN.has(file)) return SEEN.get(file);
-  if (!existsSync(file)) return false;
+  /*
+   * A DIRECTORY IS NOT A MODULE TO READ, and the caller tries the bare path
+   * before `/index.ts`. `@/content/protocols` names a directory, which is a
+   * valid import, so the bare candidate exists and was read as a file: the
+   * board stopped in setup with EISDIR on 2026-10-07 before building anything.
+   * Returning false here lets the loop reach the directory's index.ts, which is
+   * the module the import actually resolves to.
+   */
+  if (!existsSync(file) || !statSync(file).isFile()) return false;
 
   SEEN.set(file, false);
   const src = readSource(file);
