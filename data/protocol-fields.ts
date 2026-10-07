@@ -1,5 +1,5 @@
 import type { IntakeField } from "./intake-fields";
-import { RC001 } from "@/content/protocols/rc-001";
+import { PROTOCOL_ENTRIES, type ProtocolEntry } from "@/content/protocols";
 
 /**
  * A PROTOCOL'S INTAKE QUESTIONS, AS INTAKE FIELDS. DERIVED, NEVER TYPED TWICE.
@@ -73,22 +73,24 @@ function groupFor(group: string): IntakeField["group"] {
  * upload required by Appendix A has been received." There is no tier of these
  * that may be answered later.
  */
-export function rc001IntakeFields(): IntakeField[] {
+export function protocolIntakeFields(protocol: ProtocolEntry): IntakeField[] {
   const fields: IntakeField[] = [];
+  const prefix = protocol.fieldPrefix;
+  const serviceSlug = protocol.declaration.serviceSlug;
 
-  for (const q of RC001.intakeQuestions) {
+  for (const q of protocol.declaration.intakeQuestions) {
     const base = {
       required: true,
       stage: "order" as const,
       audience: "customer" as const,
-      applies: [RC001.serviceSlug],
+      applies: [serviceSlug],
       group: groupFor(q.group),
     };
 
     if (q.flag) {
       fields.push({
         ...base,
-        id: `rc001_q${q.number}`,
+        id: `${prefix}_q${q.number}`,
         label: q.ask,
         help: "A yes routes this job to the engineer before anybody is dispatched.",
         kind: "select",
@@ -96,7 +98,7 @@ export function rc001IntakeFields(): IntakeField[] {
       });
       fields.push({
         ...base,
-        id: `rc001_q${q.number}${FLAG_DETAIL_SUFFIX}`,
+        id: `${prefix}_q${q.number}${FLAG_DETAIL_SUFFIX}`,
         label: `${q.ask} Details.`,
         /*
          * Not required: the document asks for detail where there is detail to
@@ -110,7 +112,7 @@ export function rc001IntakeFields(): IntakeField[] {
 
     fields.push({
       ...base,
-      id: `rc001_q${q.number}`,
+      id: `${prefix}_q${q.number}`,
       label: q.ask,
       /*
        * VERBATIM QUESTIONS GET A FREE FIELD AND NEVER A SELECT. Section 6: the
@@ -123,9 +125,9 @@ export function rc001IntakeFields(): IntakeField[] {
     });
   }
 
-  for (const u of RC001.intakeUploads) {
+  for (const u of protocol.declaration.intakeUploads) {
     fields.push({
-      id: `rc001_upload_${u.key}`,
+      id: `${prefix}_upload_${u.key}`,
       label: u.what,
       help: u.when ?? undefined,
       kind: "file",
@@ -137,7 +139,7 @@ export function rc001IntakeFields(): IntakeField[] {
       required: u.tier === "required",
       stage: "order",
       audience: "customer",
-      applies: [RC001.serviceSlug],
+      applies: [serviceSlug],
       group: "document",
     });
   }
@@ -145,9 +147,19 @@ export function rc001IntakeFields(): IntakeField[] {
   return fields;
 }
 
+/**
+ * Every registered protocol's intake fields, in registry order. With one entry
+ * this is exactly what `rc001IntakeFields()` returned before 2026-10-06.
+ */
+export function allProtocolIntakeFields(): IntakeField[] {
+  return PROTOCOL_ENTRIES.flatMap((p) => protocolIntakeFields(p));
+}
+
 /** The ids of the flag questions, for the routing rule. Derived, never listed. */
-export function rc001FlagFieldIds(): string[] {
-  return RC001.intakeQuestions.filter((q) => q.flag).map((q) => `rc001_q${q.number}`);
+export function protocolFlagFieldIds(protocol: ProtocolEntry): string[] {
+  return protocol.declaration.intakeQuestions
+    .filter((q) => q.flag)
+    .map((q) => `${protocol.fieldPrefix}_q${q.number}`);
 }
 
 /**
@@ -156,10 +168,13 @@ export function rc001FlagFieldIds(): string[] {
  * Section 6 and the Appendix A heading over questions 8 to 12. Pure, so the
  * audit exercises the RULE rather than a screen.
  */
-export function rc001RoutesToEngineer(answers: Record<string, string>): { routes: boolean; because: string[] } {
+export function protocolRoutesToEngineer(
+  protocol: ProtocolEntry,
+  answers: Record<string, string>,
+): { routes: boolean; because: string[] } {
   const because: string[] = [];
-  for (const q of RC001.intakeQuestions.filter((f) => f.flag)) {
-    if ((answers[`rc001_q${q.number}`] ?? "").trim().toLowerCase() === "yes") {
+  for (const q of protocol.declaration.intakeQuestions.filter((f) => f.flag)) {
+    if ((answers[`${protocol.fieldPrefix}_q${q.number}`] ?? "").trim().toLowerCase() === "yes") {
       because.push(`Question ${q.number}: ${q.ask}`);
     }
   }
@@ -173,17 +188,27 @@ export function rc001RoutesToEngineer(answers: Record<string, string>): { routes
  * condition the document states mechanically is question 11: an adverse report
  * "must be disclosed and uploaded".
  */
-export function rc001MissingUploads(answers: Record<string, string>): string[] {
+export function protocolMissingUploads(protocol: ProtocolEntry, answers: Record<string, string>): string[] {
   const missing: string[] = [];
-  for (const u of RC001.intakeUploads) {
-    const id = `rc001_upload_${u.key}`;
+  for (const u of protocol.declaration.intakeUploads) {
+    const id = `${protocol.fieldPrefix}_upload_${u.key}`;
     const present = (answers[id] ?? "").trim().length > 0;
     if (present) continue;
     if (u.tier === "required") {
       missing.push(u.what);
       continue;
     }
-    if (u.key === "adverse-report" && (answers.rc001_q11 ?? "").trim().toLowerCase() === "yes") {
+    /*
+     * An upload the document requires only when a flag question is answered
+     * yes. For 254-RC-001 that is the adverse report and question 11, which was
+     * written here as a literal until 2026-10-06 and is now the entry's own
+     * declaration, so another protocol's conditional uploads need no code.
+     */
+    const whenYesTo = protocol.uploadRequiredWhenYes[u.key];
+    if (
+      whenYesTo !== undefined &&
+      (answers[`${protocol.fieldPrefix}_q${whenYesTo}`] ?? "").trim().toLowerCase() === "yes"
+    ) {
       missing.push(u.what);
     }
   }

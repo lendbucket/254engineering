@@ -8,7 +8,7 @@ import { can, type Actor, holdsLicence, licenceRefusal } from "./ops-authz";
 import { transitionFile } from "./ops-crm";
 import { jobView } from "./ops-field";
 import { protocolItemRowsFor } from "./protocol-run";
-import type { Determination } from "@/content/protocols/rc-001-decisions";
+import type { Determination } from "@/content/protocols";
 import { raise } from "./ops-notify";
 import { isOpen } from "./launch";
 import {

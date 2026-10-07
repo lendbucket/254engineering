@@ -2,7 +2,7 @@ import { cell } from "./csv";
 import { can, type Actor, type Action, type LicensedAction, may } from "./ops-authz";
 import { isOpen } from "./launch";
 import type { FileStatus } from "./ops-files";
-import type { Determination } from "@/content/protocols/rc-001-decisions";
+import type { Determination } from "@/content/protocols";
 
 /**
  * Engineer review: the four things a licensed engineer may do with a package,

@@ -24,8 +24,24 @@ console.log("");
 console.log("============ WORKING A PROTOCOL ON A JOB ============");
 console.log("");
 
-const { itemsFor, protocolItemRows, protocolItemRowsFor } = await import("../src/lib/protocol-run.ts");
+const protocolRun = await import("../src/lib/protocol-run.ts");
+const { protocolItemRowsFor } = protocolRun;
 const { RC001 } = await import("../src/content/protocols/rc-001.ts");
+const { protocolByDocument } = await import("../src/content/protocols/index.ts");
+
+/*
+ * ONE PROTOCOL TO MANY, 2026-10-06. The run functions now take the protocol
+ * they are about. These two are bound to RC-001's registry entry under the
+ * names they had, so every check below is the one that ran before the change.
+ */
+const RC001_ENTRY = protocolByDocument(RC001.documentNumber);
+rec(
+  "RC-001 is reached through the protocol registry, by its document number",
+  RC001_ENTRY !== null && RC001_ENTRY.declaration === RC001,
+  RC001_ENTRY ? RC001_ENTRY.declaration.documentNumber : "NO ENTRY",
+);
+const itemsFor = (covering) => protocolRun.itemsFor(RC001_ENTRY, covering);
+const protocolItemRows = () => protocolRun.protocolItemRows(RC001_ENTRY);
 const { RC001_CHECKLIST } = await import("../src/content/protocols/rc-001-checklist.ts");
 const { RC001_DETERMINATIONS } = await import("../src/content/protocols/rc-001-decisions.ts");
 const { checklistState } = await import("../src/lib/ops-evidence.ts");

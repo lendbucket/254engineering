@@ -310,9 +310,26 @@ rec(
  */
 {
   const { fieldsFor } = await import("../data/intake-fields.ts");
-  const { rc001RoutesToEngineer, rc001MissingUploads, rc001FlagFieldIds } = await import(
+  /*
+   * ONE PROTOCOL TO MANY, 2026-10-06. The bridge's functions now take the
+   * protocol they are about. These three are bound to RC-001's registry entry
+   * under the names they had, so every assertion below is the one that ran
+   * before the change, byte for byte, and passing unchanged is the proof the
+   * operator asked for.
+   */
+  const { protocolRoutesToEngineer, protocolMissingUploads, protocolFlagFieldIds } = await import(
     "../data/protocol-fields.ts"
   );
+  const { protocolByDocument } = await import("../src/content/protocols/index.ts");
+  const RC001_ENTRY = protocolByDocument(RC001.documentNumber);
+  rec(
+    "RC-001 is reached through the protocol registry, by its document number",
+    RC001_ENTRY !== null && RC001_ENTRY.declaration === RC001,
+    RC001_ENTRY ? `${RC001_ENTRY.declaration.documentNumber}, prefix ${RC001_ENTRY.fieldPrefix}` : "NO ENTRY",
+  );
+  const rc001RoutesToEngineer = (answers) => protocolRoutesToEngineer(RC001_ENTRY, answers);
+  const rc001MissingUploads = (answers) => protocolMissingUploads(RC001_ENTRY, answers);
+  const rc001FlagFieldIds = () => protocolFlagFieldIds(RC001_ENTRY);
 
   const fields = fieldsFor(RC001.serviceSlug, "standard");
   const ids = new Set(fields.map((f) => f.id));
@@ -1147,6 +1164,185 @@ if (carriers.length === 1) {
       p.approvedOn >= RC001.issueDate,
       `approved ${p.approvedOn}, issued ${RC001.issueDate}. An approval predating the document would be an approval of something else.`,
     );
+  }
+}
+
+/* ------------------- 7. every registered protocol, against its own source */
+
+/*
+ * =========================================================================
+ * ONE PROTOCOL TO MANY. Operator ruling, 2026-10-06.
+ * =========================================================================
+ *
+ * Everything above is 254-RC-001's own proof: it pins facts only that document
+ * states, sixteen questions and flags at 8 to 12, and it stays exactly as it
+ * was so its passing unchanged is the evidence that RC-001 still behaves as it
+ * did. This section is the part that generalises. It runs over EVERY entry in
+ * the registry, so a protocol loaded tomorrow is compared against its own
+ * source document the moment it is registered, with nobody having to remember
+ * to add a check.
+ *
+ * For RC-001 it repeats comparisons section 3 already makes. That is the point
+ * rather than waste: it proves the shared engine on the one real document this
+ * branch holds, before it meets the first one nobody has proven.
+ */
+{
+  const { PROTOCOL_ENTRIES } = await import("../src/content/protocols/index.ts");
+  const { documentText, transcriptionMisses, docxXmlToText, squash: sq } = await import("./lib/protocol-source.mjs");
+
+  rec(
+    "the registry holds at least one protocol, so the checks below read something",
+    PROTOCOL_ENTRIES.length > 0,
+    `${PROTOCOL_ENTRIES.length} registered: ${PROTOCOL_ENTRIES.map((p) => p.declaration.documentNumber).join(", ")}`,
+  );
+
+  /* ---- the registry is coherent with itself */
+  const unique = (values) => new Set(values).size === values.length;
+  rec(
+    "every registered protocol has its own document number, service line and field prefix",
+    unique(PROTOCOL_ENTRIES.map((p) => p.declaration.documentNumber)) &&
+      unique(PROTOCOL_ENTRIES.map((p) => p.declaration.serviceSlug)) &&
+      unique(PROTOCOL_ENTRIES.map((p) => p.fieldPrefix)),
+    "a shared prefix would let one protocol's intake answers be read as another's",
+  );
+
+  for (const entry of PROTOCOL_ENTRIES) {
+    const d = entry.declaration;
+    const where = d.documentNumber;
+
+    /*
+     * A conditional upload that names an upload the document does not have, or
+     * a question that is not a flag, is a rule that can never fire.
+     */
+    const flagNumbers = new Set(d.intakeQuestions.filter((q) => q.flag).map((q) => q.number));
+    const uploadKeys = new Set(d.intakeUploads.map((u) => u.key));
+    const badConditional = Object.entries(entry.uploadRequiredWhenYes).filter(
+      ([key, n]) => !uploadKeys.has(key) || !flagNumbers.has(n),
+    );
+    rec(
+      `${where}: every conditional upload names a real upload and a flag question`,
+      badConditional.length === 0,
+      badConditional.map(([k, n]) => `${k} on Q${n}`).join(", ") ||
+        `${Object.keys(entry.uploadRequiredWhenYes).length} conditional upload(s)`,
+    );
+
+    /*
+     * The portal page is one shared page, and each protocol reaches it through a
+     * short static route so every route sweep still covers it. Asserted from the
+     * route's own source: it must exist, render the shared page for THIS
+     * document, and carry the licence guard the perimeter reads.
+     */
+    const routeFile = `src/app/portal/(app)${entry.portalPath.replace(/^\/portal/, "")}/page.tsx`;
+    const route = existsSync(routeFile) ? readFileSync(routeFile, "utf8") : "";
+    rec(
+      `${where}: its portal route renders the shared protocol page for this document, behind the licence`,
+      route.includes("ProtocolDocumentPage") &&
+        route.includes(`documentNumber="${d.documentNumber}"`) &&
+        /holdsLicence\(actor, "protocols\.author"\)/.test(route),
+      route ? routeFile : `${routeFile} is not on disk`,
+    );
+
+    /* ---- the transcription, word for word against its own source */
+    const source = documentText(d.sourceFile);
+    if (!source.ok) {
+      tell.push(`${where}: the transcription was not compared with its source, because ${source.why}.`);
+      continue;
+    }
+    rec(
+      `${where}: its source document was read, so the comparison reads something`,
+      sq(source.text).length > 2000,
+      `${sq(source.text).length} characters by ${source.how} from ${d.sourceFile}`,
+    );
+    const { groups, compared, documentNumberPresent } = transcriptionMisses(entry, source.text);
+    const missed = Object.entries(groups).filter(([, list]) => list.length > 0);
+    rec(
+      `${where}: every transcribed string appears in its source, word for word`,
+      compared > 0 && missed.length === 0 && documentNumberPresent,
+      missed.length === 0
+        ? `${compared} strings compared, document number present`
+        : `NOT IN THE SOURCE: ${missed.map(([g, list]) => `${g}: ${list.slice(0, 3).join(", ")}`).join(" | ")}`,
+    );
+  }
+
+  /*
+   * ---- the Word reader, proven against a document whose answer is known.
+   *
+   * No .docx source is registered yet, so without this the Word path would meet
+   * its first real document unproven, on the day the engineer's seven arrive.
+   * The audit builds a minimal Word file itself: a sentence split across three
+   * runs, an escaped ampersand, a tab, and a second paragraph. Stored, not
+   * compressed, which unzip reads like any other.
+   */
+  {
+    const xml =
+      '<?xml version="1.0" encoding="UTF-8"?>' +
+      '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>' +
+      '<w:p><w:r><w:t>Gentle tab lift at </w:t></w:r><w:r><w:rPr><w:b/></w:rPr><w:t>4 locations</w:t></w:r>' +
+      '<w:r><w:t xml:space="preserve"> &amp; plane</w:t></w:r><w:r><w:tab/><w:t>(B)</w:t></w:r></w:p>' +
+      "<w:p><w:r><w:t>Second paragraph.</w:t></w:r></w:p>" +
+      "</w:body></w:document>";
+    const expected = "Gentle tab lift at 4 locations & plane\t(B)\nSecond paragraph.";
+
+    rec(
+      "the Word reader turns runs, escapes and tabs into the document's own text",
+      docxXmlToText(xml) === expected,
+      JSON.stringify(docxXmlToText(xml)),
+    );
+
+    const crcTable = Array.from({ length: 256 }, (_, n) => {
+      let c = n;
+      for (let k = 0; k < 8; k += 1) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+      return c >>> 0;
+    });
+    const crc32 = (buf) => {
+      let c = 0xffffffff;
+      for (const b of buf) c = crcTable[(c ^ b) & 0xff] ^ (c >>> 8);
+      return (c ^ 0xffffffff) >>> 0;
+    };
+    const name = Buffer.from("word/document.xml");
+    const data = Buffer.from(xml, "utf8");
+    const crc = crc32(data);
+    const local = Buffer.alloc(30);
+    local.writeUInt32LE(0x04034b50, 0);
+    local.writeUInt16LE(20, 4);
+    local.writeUInt32LE(crc, 14);
+    local.writeUInt32LE(data.length, 18);
+    local.writeUInt32LE(data.length, 22);
+    local.writeUInt16LE(name.length, 26);
+    const central = Buffer.alloc(46);
+    central.writeUInt32LE(0x02014b50, 0);
+    central.writeUInt16LE(20, 4);
+    central.writeUInt16LE(20, 6);
+    central.writeUInt32LE(crc, 16);
+    central.writeUInt32LE(data.length, 20);
+    central.writeUInt32LE(data.length, 24);
+    central.writeUInt16LE(name.length, 28);
+    const centralOffset = local.length + name.length + data.length;
+    const end = Buffer.alloc(22);
+    end.writeUInt32LE(0x06054b50, 0);
+    end.writeUInt16LE(1, 8);
+    end.writeUInt16LE(1, 10);
+    end.writeUInt32LE(central.length + name.length, 12);
+    end.writeUInt32LE(centralOffset, 16);
+    const docx = Buffer.concat([local, name, data, central, name, end]);
+
+    const { mkdtempSync, writeFileSync: write, rmSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const dir = mkdtempSync(join(tmpdir(), "protocol-source-"));
+    const file = join(dir, "known.docx");
+    write(file, docx);
+    const read = documentText(file);
+    rmSync(dir, { recursive: true, force: true });
+    if (!read.ok) {
+      tell.push(`The Word path was not proven end to end, because ${read.why}.`);
+    } else {
+      rec(
+        "and a Word file built with a known answer reads back as that answer, through the same path a real one takes",
+        read.text === expected,
+        JSON.stringify(read.text),
+      );
+    }
   }
 }
 

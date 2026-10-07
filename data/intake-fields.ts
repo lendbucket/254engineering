@@ -1,5 +1,5 @@
 import { catalogFor, type CatalogEntry, type RequiredInput } from "./catalog";
-import { rc001IntakeFields } from "./protocol-fields";
+import { allProtocolIntakeFields } from "./protocol-fields";
 
 /**
  * WHAT A JOB NEEDS, DEFINED ONCE.
@@ -364,7 +364,7 @@ const ACCESS: IntakeField[] = [
 export const INTAKE_FIELDS: IntakeField[] = [...PARTIES, ...DOCUMENT, ...PROPERTY, ...ACCESS];
 
 /** Every field an approved protocol requires, derived from its signed document. */
-export const PROTOCOL_FIELDS: IntakeField[] = [...rc001IntakeFields()];
+export const PROTOCOL_FIELDS: IntakeField[] = [...allProtocolIntakeFields()];
 
 function appliesTo(field: IntakeField, entry: CatalogEntry): boolean {
   if (field.applies === "all") return true;
