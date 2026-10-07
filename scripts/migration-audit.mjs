@@ -174,7 +174,8 @@ const DIR = join(process.cwd(), "supabase", "migrations");
 const EXPECTED_FINGERPRINT = "3532eaf90c5b2342d48d8a5996a71ac2";
 const EXPECTED_COLUMNS = 1169;
 const EXPECTED_TABLES = 83;
-const EXPECTED_TRIGGERS = 75;
+/* 0064 adds two, the suspension triggers on eng_customer_users and eng_customer_accounts. */
+const EXPECTED_TRIGGERS = 77;
 /**
  * 0014 added eng_freeze_attribution and 0019 added two more, the partner
  * entry freeze and its delete refusal, which are trigger functions like the
@@ -194,8 +195,10 @@ const EXPECTED_TRIGGERS = 75;
  * sealed document lock, and the three doors a seal comes in and goes out
  * through, eng_record_letter_seal, eng_record_protocol_signature and
  * eng_void_seal_act.
+ *
+ * 0064 adds one, eng_spend_links_on_suspension, bringing it to 36.
  */
-const EXPECTED_FUNCTIONS = 35;
+const EXPECTED_FUNCTIONS = 36;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
@@ -229,7 +232,14 @@ rec(
  */
 for (const f of files) {
   const body = readSource(join(DIR, f));
-  const dollars = (body.match(/\$\$/g) ?? []).length;
+  /*
+   * EVERY TAG, NOT ONLY $$. Found 2026-10-07: this counted `$$` alone, so
+   * 0061, 0063 and 0064, whose functions use `$fn$`, printed "0 pair(s) for
+   * N function(s)" and passed over nothing. Each tag must pair on its own.
+   */
+  const tags = body.match(/\$[A-Za-z_]*\$/g) ?? [];
+  const byTag = tags.reduce((m, t) => m.set(t, (m.get(t) ?? 0) + 1), new Map());
+  const dollars = [...byTag.values()].every((n) => n % 2 === 0) ? tags.length : tags.length + 1;
   const lone = (body.match(/^[ \t]*as \$[ \t]*$|^\$;[ \t]*$/gm) ?? []).length;
   const fns = (body.match(/^create or replace function/gm) ?? []).length;
 
@@ -239,7 +249,9 @@ for (const f of files) {
       lone === 0 && dollars % 2 === 0,
       lone > 0
         ? `${lone} lone dollar delimiter(s): this file cannot be replayed`
-        : `${dollars / 2} pair(s) for ${fns} function(s)`,
+        : dollars % 2 !== 0
+          ? `unpaired: ${[...byTag].filter(([, n]) => n % 2 !== 0).map(([t, n]) => `${t} x${n}`).join(", ")}`
+          : `${dollars / 2} pair(s) for ${fns} function(s)`,
     );
   }
 }
@@ -1244,6 +1256,101 @@ if (failedAt === null) {
           '00000000-0000-4000-8000-0000000006a6', '254-MH-001', '1.1', ${HASH}, ${OTHER}, ${OTHER_SEAL}, ${OTHER_SIG}, now()
         );`),
       "an administrator's own images seal nothing",
+    );
+  }
+
+  /*
+   * ===================================================================
+   * 0064: A SUSPENSION SPENDS EVERY LIVE LINK, AT THE DATABASE.
+   * ===================================================================
+   *
+   * Operator ruling of 2026-09-29. Each check suspends and reads the token rows
+   * back, including the ones that must NOT move: an already used token keeps
+   * its original used_at, a token belonging to somebody else stays live, and a
+   * suspension that is not a change of status spends nothing. A check that only
+   * looked for "used_at is not null" would pass on a trigger that spent every
+   * token in the table.
+   */
+  {
+    const CL = "'00000000-0000-4000-8000-0000000007c1'";
+    /* One account per site and client, so the second account needs its own client. */
+    const CL2 = "'00000000-0000-4000-8000-0000000007c2'";
+    const ACC ="'00000000-0000-4000-8000-0000000007a1'";
+    const ACC2 = "'00000000-0000-4000-8000-0000000007a2'";
+    const U1 = "'00000000-0000-4000-8000-0000000007b1'";
+    const U2 = "'00000000-0000-4000-8000-0000000007b2'";
+    const U3 = "'00000000-0000-4000-8000-0000000007b3'";
+    const tok = (n) => `'00000000-0000-4000-8000-0000000007f${n}'`;
+    const usedAt = async (n) =>
+      /* As epoch seconds, so the replay's session time zone cannot make one instant read as two. */
+      (await db.query(`select extract(epoch from used_at)::bigint::text as u from eng_customer_auth_tokens where id = ${tok(n)}`)).rows[0]?.u ?? null;
+    const spentEvents = async () =>
+      Number((await db.query(`select count(*)::int as n from eng_audit_events where action = 'customer_links.spent_at_suspension'`)).rows[0].n);
+
+    await db.exec(`
+      insert into eng_clients (id, kind, name) values
+        (${CL}, 'organization', 'Probe Organisation, not a real one'),
+        (${CL2}, 'organization', 'Probe Organisation Two, not a real one');
+      insert into eng_customer_accounts (id, site, client_id) values (${ACC}, '254', ${CL}), (${ACC2}, '254', ${CL2});
+      insert into eng_customer_users (id, account_id, email, display_name, status) values
+        (${U1}, ${ACC}, 'probe-u1@example.com', 'Probe One', 'active'),
+        (${U2}, ${ACC}, 'probe-u2@example.com', 'Probe Two', 'invited'),
+        (${U3}, ${ACC2}, 'probe-u3@example.com', 'Probe Three', 'active');
+      insert into eng_customer_auth_tokens (id, customer_user_id, purpose, token_hash, expires_at, used_at) values
+        (${tok(1)}, ${U1}, 'reset_password', 'probe-hash-1', now() + interval '1 day', null),
+        (${tok(2)}, ${U1}, 'set_password',   'probe-hash-2', now() + interval '1 day', '2026-01-01 00:00:00+00'),
+        (${tok(3)}, ${U2}, 'set_password',   'probe-hash-3', now() + interval '1 day', null),
+        (${tok(4)}, ${U3}, 'reset_password', 'probe-hash-4', now() + interval '1 day', null);
+    `);
+    const eventsBefore = await spentEvents();
+
+    await db.exec(`update eng_customer_users set status = 'suspended' where id = ${U1};`);
+    rec(
+      "suspending a person spends their outstanding link",
+      (await usedAt(1)) !== null,
+      "marked spent, not deleted",
+    );
+    rec(
+      "and leaves an already used link's time as it was",
+      (await usedAt(2)) === String(Date.UTC(2026, 0, 1) / 1000),
+      (await usedAt(2)) ?? "null",
+    );
+    rec(
+      "and leaves a colleague's link live",
+      (await usedAt(3)) === null && (await usedAt(4)) === null,
+      "only the suspended person's links move",
+    );
+    rec(
+      "and writes one audit event naming the token it spent",
+      (await spentEvents()) === eventsBefore + 1 &&
+        JSON.stringify(
+          (await db.query(`select diff->'token_ids' as t from eng_audit_events where action = 'customer_links.spent_at_suspension' and entity_id = ${U1}`)).rows[0]?.t,
+        ) === JSON.stringify([tok(1).slice(1, -1)]),
+      "so a spent row says why it was spent",
+    );
+
+    await db.exec(`update eng_customer_users set status = 'suspended', display_name = 'Probe One again' where id = ${U1};`);
+    rec(
+      "a second write to an already suspended person spends nothing and writes nothing",
+      (await spentEvents()) === eventsBefore + 1,
+      "only a change into suspension counts",
+    );
+
+    await db.exec(`update eng_customer_accounts set status = 'suspended' where id = ${ACC};`);
+    rec(
+      "suspending an account spends every outstanding link for its users",
+      (await usedAt(3)) !== null,
+      "the ruling: every outstanding token for its users",
+    );
+    rec(
+      "and not a link belonging to a different account",
+      (await usedAt(4)) === null,
+      "the other account's user is untouched",
+    );
+    rec(
+      "the tokens are still there afterwards, because evidence of a link is the point",
+      Number((await db.query(`select count(*)::int as n from eng_customer_auth_tokens where id in (${[1, 2, 3, 4].map(tok).join(", ")})`)).rows[0].n) === 4,
+      "four rows in, four rows out",
     );
   }
 

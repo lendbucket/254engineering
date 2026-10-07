@@ -1123,6 +1123,22 @@ question afterwards is "was there a live link when we suspended them", which
 only a spent row can answer. Plus the application audit row naming the operator
 who suspended.
 
+**WRITTEN 2026-10-07 AS 0064, ON `release/2026-10-20`, APPLIED NOWHERE.**
+`0064_a_suspension_spends_every_live_link.sql` fires on a change INTO
+`suspended` on `eng_customer_users` and on `eng_customer_accounts`, marks every
+outstanding token for that person or that account's users spent, and writes one
+`customer_links.spent_at_suspension` event naming the token ids, because a spent
+row alone cannot say whether it was used or spent by a suspension. The portal's
+account route now writes `account.suspended` naming the operator, beside it.
+Eight replay checks in `migration-audit`, including the rows that must NOT move;
+removing the `used_at is null` guard turned exactly two of them red. It goes to
+production in the sitting with 0062, as ruled.
+
+**ONE QUESTION FOR THE OPERATOR, NOT DECIDED HERE.** An account can also be
+`closed`. The ruling names suspension, so the trigger does not fire on closing,
+and a closed account's users keep any live link. Whether closing should spend
+them too is a ruling.
+
 **Why it waits.** It is a production migration, and standing law says a
 migration on main is never pending, so the branch holding it does not merge
 until the operator is at a keyboard to run the production half.

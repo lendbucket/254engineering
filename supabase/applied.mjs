@@ -2002,6 +2002,27 @@ export const APPLIED = [
       "guard is fired in migration-audit's replay, 17 checks. The release branch merges only after " +
       "the integration audit and a sitting at which production and development take it.",
   },
+  {
+    file: "0064_a_suspension_spends_every_live_link.sql", appliedBy: null,
+    fingerprint: "3532eaf90c5b2342d48d8a5996a71ac2",
+    behaviour: "0faddc9ffa103fae0ec8cea6d8fd627f",
+    production: null,
+    development: { at: null, behaviour: null, facts: null },
+    proves: { function: "eng_spend_links_on_suspension" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs at 0064 on 2026-10-07: shape unchanged at " +
+      "3532eaf90c5b2342d48d8a5996a71ac2 across 1169 columns, because it adds no column; behaviour " +
+      "0faddc9ffa103fae0ec8cea6d8fd627f across 970 facts, 0063's 967 plus one function and two " +
+      "triggers. 83 tables, 77 triggers, 36 eng_ functions. No drop statement and no delete " +
+      "statement: the trigger names are new and the file applies as written.",
+    because:
+      "WRITTEN 2026-10-07 ON release/2026-10-20 AND APPLIED NOWHERE. The guarantee half of the " +
+      "operator's ruling of 2026-09-29: suspending a customer user, or the account they belong " +
+      "to, marks every outstanding set_password and reset_password token spent (never deleted), " +
+      "and writes one audit event naming the tokens it spent. Eight checks in migration-audit's " +
+      "replay, including the rows that must not move. Bundled with 0062 for the sitting by the " +
+      "operator's ruling recorded in BACKLOG.md.",
+  },
 ];
 
 /**
