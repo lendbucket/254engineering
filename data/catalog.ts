@@ -59,7 +59,6 @@
 
 import type { Cents } from "@/lib/ops-money";
 import { deliverablePriceCents } from "@/config/prices";
-import { FIRST_TIER_COASTAL } from "@/content/windstorm-counties";
 
 /**
  * The three shapes an order can take.
@@ -218,34 +217,6 @@ const OWNER_QUALIFIER: Qualifier = {
   disqualifyOn: [2],
   disqualifiedMessage:
     "The firm needs the owner's authority before anyone attends a property or issues a document about it. Ask the owner to place the order, or to send written authority naming you.",
-};
-
-/*
- * THE DESIGNATED CATASTROPHE AREA, ASKED RATHER THAN ASSUMED. Ruling 6 of
- * 2026-10-07, docs/conflicts-v1.1.md item 6. WS-001 v1.1 section 12: "A property
- * outside the designated catastrophe area. Declined. No TDI certificate
- * applies." WP-001 applies only in the Designated Catastrophe Areas. Before
- * this, the only location question either windstorm deliverable asked was
- * whether the property is in Texas.
- *
- * The fourteen names are read from `windstorm-counties.ts`, the one list, and
- * never typed here. Harris County is designated only east of State Highway 146,
- * so it is two answers rather than one.
- */
-const WINDSTORM_COUNTY_OPTIONS = [
-  ...FIRST_TIER_COASTAL.map((c) => `${c} County`),
-  "Harris County, east of State Highway 146",
-  "Harris County, west of State Highway 146",
-  "Another Texas county",
-];
-const WINDSTORM_COUNTY_QUALIFIER: Qualifier = {
-  id: "catastrophe_area",
-  prompt: "Which county is the property in?",
-  help: "The windstorm certificate applies only inside the Texas Department of Insurance's designated catastrophe area.",
-  options: WINDSTORM_COUNTY_OPTIONS,
-  disqualifyOn: [WINDSTORM_COUNTY_OPTIONS.length - 2, WINDSTORM_COUNTY_OPTIONS.length - 1],
-  disqualifiedMessage:
-    "This property is outside the designated catastrophe area, so no Texas Department of Insurance windstorm certificate applies to it and there is nothing for this order to certify.",
 };
 
 /*
@@ -413,7 +384,6 @@ const DECLARED: CatalogDeclaration[] = [
     protocolServiceSlug: "windstorm-wpi-8",
     qualifiers: [
       ADDRESS_QUALIFIER,
-      WINDSTORM_COUNTY_QUALIFIER,
       OWNER_QUALIFIER,
       {
         id: "stage",
@@ -492,7 +462,6 @@ const DECLARED: CatalogDeclaration[] = [
     protocolServiceSlug: "windstorm-wpi-8",
     qualifiers: [
       ADDRESS_QUALIFIER,
-      WINDSTORM_COUNTY_QUALIFIER,
       OWNER_QUALIFIER,
       {
         id: "stage",

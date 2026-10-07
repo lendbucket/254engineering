@@ -30,7 +30,7 @@ with that branch.
 | 3 | Ongoing accepts passed stages | BUILT, `6c0efce` |
 | 4 | Completed construction quoted | BUILT, `7607b11`, ruling 5 |
 | 5 | Completed accepts work in progress; existing building priced | BUILT, `6c0efce` |
-| 6 | No catastrophe area check | BUILT, `6c0efce` |
+| 6 | No catastrophe area check | TO BUILD. A county qualifier was built in `6c0efce` and withdrawn before merge as a second home for the county; see the item |
 | 7 | Pre-1988: page copy, form verdict, no date asked | BUILT, copy `7607b11`, verdict and date `6c0efce` |
 | 8 | Firm promised the certificate | BUILT, `6c0efce` |
 | 9 | WS-001 required uploads | BUILT, `6c0efce` |
@@ -54,8 +54,8 @@ with that branch.
 | 26 | DS "No site visit." | BUILT, `6c0efce` |
 | 27 | Front photo | BUILT, `6c0efce`, on six lines: WP-001 does not require it, so "all seven" below was one too many |
 | Turnaround | Solar, manufactured home, structural letter | BUILT, `da80fca`, `e885631`, `d97e656` |
-| WPI-8-C | Is TWIA's route current | REFERRED to the engineer |
-| Stages | Engineer selects stages | REFERRED to the engineer |
+| WPI-8-C | Is TWIA's route current | Question 1 for Aman; the site's article stays as sourced, operator ruling 2026-10-07 |
+| Stages | Engineer selects stages | Question 2 for Aman |
 
 **One correction to item 16 and 17 below.** It said the solar framing input
 "becomes required". It did not, on reading the protocol again: the framing is
@@ -114,11 +114,20 @@ message routing to the inquiry page.
 **6. Nothing checks the catastrophe area.** Section 12: "A property outside the
 designated catastrophe area. Declined." The only location check on either
 windstorm deliverable is "Is the property in Texas?"
-**Change:** a county qualifier on both windstorm deliverables, disqualifying any
-county outside the fourteen seacoast counties and the part of Harris County east
-of State Highway 146. Harris needs a yes or no follow-up rather than a county
-answer. with the county list derived from the existing coastal county
-declaration rather than typed again.
+**Change, as first built and then withdrawn:** a county qualifier on both
+windstorm deliverables. It was committed in `6c0efce` and taken out before the
+branch merged, because it asked for the county a second time: every order
+already carries the property's county, the bulk flow carries it as a column,
+and a buyer could have answered one county in the qualifier and another in the
+order. One fact with two homes. The board did not catch that; reading the
+bulk-audit failure did.
+
+**Change, to build:** the order refuses a windstorm deliverable when
+`twiaStatus(county)` in `src/lib/ops-counties.ts`, which the intake screen and
+the CRM already use, answers `not_designated` for the order's own county, and
+asks the State Highway 146 question only when it answers `check`, which is
+Harris. That is a change to the single property flow and to bulk ordering
+rather than a qualifier, and it is its own commit and board.
 
 **7. The inquiry form's pre-1988 verdict.** `src/lib/windstorm-inquiry.ts`, the
 `all_pre_1988` reason: "Work before that line is treated differently and may be
@@ -303,18 +312,24 @@ record is complete and that no issue date is estimated. The same phrase on the
 roof, foundation and windstorm lines is not governed by these three protocols and
 is left.
 
-## Referred to the engineer, and not changed
+## Questions for Aman
 
-**WPI-8-C.** WP-001 section 12 says completed improvements obtain certification
-"through TWIA (Form WPI-3 and Certificate WPI-8-C) or through TDI's
-post-construction process". `src/content/windstorm-program.ts` says the WPI-8-C
-belongs to the TWIA process that "changed on June 1, 2020". The reconciliation
-rule in CLAUDE.md section 2c runs in both directions, and here the site's
-statement rests on a primary source while the protocol's may be the older one.
-The session did not overwrite a sourced article with it, and this is the
-question for the engineer: is the TWIA route current?
+The list of items for the engineer of record that come out of the v1.1
+protocols. Each is a question; nothing here is changed until he answers. The
+retention questions are deliberately NOT here: by the ruling of 2026-09-22 they
+stay in `docs/retention-questions-for-the-engineer.md` and are never put in
+front of him beside a protocol.
 
-**Stages.** WP-001 section 8: "The engineer selects the stages for each job".
+**1. WPI-8-C: is TWIA's route current?** Added by operator ruling, 2026-10-07.
+WP-001 section 12 says completed improvements obtain certification "through TWIA
+(Form WPI-3 and Certificate WPI-8-C) or through TDI's post-construction
+process". `src/content/windstorm-program.ts` says the WPI-8-C belongs to the TWIA
+process that "changed on June 1, 2020". **The site's article stays as sourced**,
+by the operator's ruling of the same day; the question goes to the engineer
+because, if the article is right, the protocol names a route that no longer
+exists, and only he can revise his document.
+
+**2. Stages.** WP-001 section 8: "The engineer selects the stages for each job".
 `services.ts:146`: "Field inspections at the stages the code requires". Both can
 be true; whether the copy should say the engineer selects them is his call.
 

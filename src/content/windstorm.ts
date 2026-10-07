@@ -1,7 +1,4 @@
 import { regions } from "./regions";
-import { FIRST_TIER_COASTAL } from "./windstorm-counties";
-
-export { FIRST_TIER_COASTAL };
 
 /**
  * The first tier coastal counties, where a WPI-8 is required.
@@ -20,10 +17,23 @@ export { FIRST_TIER_COASTAL };
  *
  * The approved v5 design names the same fourteen independently, which is a
  * useful cross check rather than a source: the design and the content data agree.
- *
- * The list itself lives in `./windstorm-counties`, which has no imports, so the
- * order catalogue can read it without the region content. Moved 2026-10-07.
  */
+export const FIRST_TIER_COASTAL = [
+  "Aransas",
+  "Brazoria",
+  "Calhoun",
+  "Cameron",
+  "Chambers",
+  "Galveston",
+  "Jefferson",
+  "Kenedy",
+  "Kleberg",
+  "Matagorda",
+  "Nueces",
+  "Refugio",
+  "San Patricio",
+  "Willacy",
+] as const;
 
 /**
  * Each of the fourteen has to be a real Texas county in the coverage data, and
