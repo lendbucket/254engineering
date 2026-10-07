@@ -122,7 +122,14 @@ export function windstormScopeVerdict(work: WindstormWork[]): WindstormScopeVerd
   return {
     state: "all_pre_1988",
     because:
-      `Every piece of work described here predates January 1, ${WINDSTORM_WORK_IN_SCOPE_YEAR}. Work before that line is treated differently and may be eligible without inspection at all, which is a better answer than a certification and is still a conversation rather than a form's verdict.`,
+      /*
+       * WS-001 v1.1 section 12, ruling 6 of 2026-10-07 (docs/conflicts-v1.1.md
+       * item 7): "Work to be certified that began before January 1, 1988 ...
+       * Declined, with a referral to TWIA." This said such work "may be
+       * eligible without inspection at all", which may be true of TWIA's own
+       * rules and is not what the firm's protocol does with it.
+       */
+      `Every piece of work described here predates January 1, ${WINDSTORM_WORK_IN_SCOPE_YEAR}. The firm declines to certify work that began before that line, and the place to ask about it is the Texas Windstorm Insurance Association.`,
   };
 }
 

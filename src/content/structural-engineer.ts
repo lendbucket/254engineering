@@ -241,7 +241,7 @@ export const proximityPages: ProximityPage[] = [
       },
       {
         q: "Can you inspect from photographs I already have?",
-        a: "No. The engineer's protocol requires evidence collected by the firm's own technician, timestamped and located by the firm's app. Photographs from other devices are not accepted, and that is what makes the letter defensible when somebody challenges it.",
+        a: "No. The engineer's protocol requires evidence collected by the firm's own technician, timestamped and located by the firm's app. Photographs from other devices are not accepted, and that is what makes the letter defensible when somebody challenges it. The one exception is a solar letter, where the engineer may decide at intake to rely on the installer's site survey photographs, and only where they cover every item the protocol requires.",
       },
       {
         q: "My home inspector said to get a structural engineer. What do I tell you?",
@@ -286,7 +286,7 @@ export const proximityPages: ProximityPage[] = [
         lede: "The cheapest structural engineering happens before the work, not after it.",
         body: [
           "Removing or opening a wall, cutting a new opening, adding a storey, [converting an attic or a garage to habitable space](/services/residential-light-commercial-design), or hanging significant new load such as heavy equipment all change the load path. Whether a wall is load bearing is frequently not obvious from inside the room, and the confident answer from somebody who has not looked at the framing is worth nothing.",
-          "Adding rooftop equipment or [a solar array](/services/solar-structural-letters) is the same question in a form people rarely recognize as structural, because the array is light and the wind uplift on it is not.",
+          "Adding rooftop equipment or [a solar array](/services/solar-structural-letters) is the same question in a form people rarely recognize as structural, because the array is light and the load it puts on each attachment point is not.",
           "In each of these the analysis is cheap relative to the work, and it is very cheap relative to discovering the answer afterwards.",
         ],
       },

@@ -123,9 +123,17 @@ export const services: Service[] = [
        * of record's reasons are stated rather than summarised, because each one
        * is a thing that can make a certification impossible and a buyer is
        * better served knowing that in a paragraph than in a refund.
+       *
+       * AMENDED BY OPERATOR RULING 5 OF 2026-10-07: three situations, not two.
+       * Ongoing and completed construction are both fixed prices, the two
+       * deliverables in data/catalog.ts; only an existing building with NO
+       * RECENT WORK is quoted per job. The copy had folded completed
+       * construction into the quoted case. The 1988 sentence follows WS-001
+       * v1.1 section 12 (declined, with a referral to TWIA) under ruling 6 of
+       * the same day: the protocol wins every conflict.
        */
-      "Two situations reach this page and they are not priced the same way. Work that has not started, or that is under way and still open to view, is inspected in sequence and carries a published price. An existing building where the work is already finished and covered is quoted after a conversation, because whether it can be certified at all is not knowable from a form.",
-      "Three things decide that case. The first is when the work was done rather than when the house went up: under Texas Insurance Code section 2210.251 the date that matters is the date of the work, and a structure can have more than one, so a roof replaced last year on a house built in 1975 is reached by it. The second is that the construction which would be inspected is already covered, so parts of it have to be opened up before anything can be verified. The third is that where opening protection does not meet the standard, doors and windows may need replacing before a certification is possible at all. Any of the three can change what the work is, which is why it is scoped one property at a time rather than sold at a price.",
+      "Three situations reach this page, and two of them carry a published price. Construction that has not started, or that is under way and still open to view, is inspected in stages as it goes. Construction that is already complete is evaluated after the fact, at its own price. Only an existing building with no recent work is quoted per job, because whether it can be certified at all is not knowable from a form.",
+      "What separates the second case from the third is when the work was done rather than when the house went up: under Texas Insurance Code section 2210.251 the date that matters is the date of the work, and a structure can have more than one, so a roof replaced last year on a house built in 1975 is completed construction at the published price. Where there is no recent work to certify, two more things decide the case. The construction that would be inspected is already covered, so parts of it have to be opened up before anything can be verified. And where opening protection does not meet the standard, doors and windows may need replacing before a certification is possible at all. Either can change what the work is, which is why that case is scoped one property at a time rather than sold at a price.",
     ],
     whoOrders: [
       "Builders and general contractors working inside the catastrophe area",
@@ -135,9 +143,9 @@ export const services: Service[] = [
       "Insurance agents assembling what a carrier needs before binding coverage",
     ],
     deliverable: [
-      "Field inspections at the stages the code requires, documented with photographs and measurements taken while the work is open to view.",
-      "Form WPI-2 prepared and submitted to the Texas Department of Insurance by the appointed engineer, with the supporting record attached.",
-      "The WPI-8 certificate of compliance, which is issued by the Department itself on the strength of that submission.",
+      "For ongoing construction: field inspections at the stages the code requires, documented with photographs and measurements taken while the work is open to view, and Form WPI-2 prepared and submitted to the Texas Department of Insurance by the appointed engineer.",
+      "For completed construction: a sealed post-construction inspection report supporting a Form WPI-2E application to the Department.",
+      "The certificate itself, the WPI-8 or the WPI-8E, which is issued by the Department on the strength of that submission and never by the firm.",
     ],
     turnaround:
       "Field inspections are scheduled around the construction sequence rather than around a queue, and the WPI-2 is ordinarily submitted within a few business days of the final inspection. The WPI-8 itself is issued by the Texas Department of Insurance on the Department's own timeline.",
@@ -148,7 +156,7 @@ export const services: Service[] = [
       },
       {
         q: "The building is already finished and was never certified. What happens?",
-        a: "It is looked at one property at a time rather than quoted from a price list, and three things decide it. The age of the house is not the question: Texas Insurance Code section 2210.251 turns on the date of the work, so a reroof done last year on a house built in 1975 is reached by it, and work done before January 1, 1988 is treated differently and may be eligible without inspection at all. The construction that needs inspecting is already covered, so parts of it have to be opened up before it can be verified. And if the doors and windows do not meet the opening protection standard, they may need replacing before a certification is possible. That is why this case is quoted after a conversation about the property rather than carrying a published price, and why the answer is sometimes that it cannot be certified.",
+        a: "It depends on when the work was done, not on when the house went up. Texas Insurance Code section 2210.251 turns on the date of the work, so a reroof finished last year on a house built in 1975 is completed construction, evaluated after the fact at a published price. Work that began before January 1, 1988 is declined, with a referral to the Texas Windstorm Insurance Association. An existing building with no recent work is quoted per job rather than priced from a list, because the construction that needs inspecting is already covered and parts of it have to be opened up before it can be verified, and because doors and windows that do not meet the opening protection standard may need replacing before a certification is possible. That is also why the answer for that case is sometimes that it cannot be certified.",
       },
       {
         q: "Is the WPI-8 the same thing as the engineer's letter?",
@@ -229,13 +237,13 @@ export const services: Service[] = [
     h1: "Solar Structural Letters for Texas Installations",
     title: "Solar Structural Engineering in Texas | 254 Engineering",
     description:
-      "The sealed structural review a Texas jurisdiction requires before a rooftop solar permit, covering framing capacity and wind loading. See the price.",
+      "The sealed structural review a Texas jurisdiction requires before a rooftop solar permit: gravity load on existing framing and each attachment. See the price.",
     summary:
-      "The sealed structural review most Texas jurisdictions require before a rooftop solar permit is issued: framing capacity, attachment detail, and wind loading for the site.",
+      "The sealed structural review most Texas jurisdictions require before a rooftop solar permit is issued: the existing framing and each attachment under the gravity load of the array.",
     what: [
       "A solar structural letter is the sealed engineering review a building official asks for before permitting a rooftop photovoltaic array. It answers one question in writing: can this roof structure carry this array, attached this way, under the loads that apply at this address.",
-      "The review takes the existing framing as it is. Rafter or truss size, spacing, span, and species, along with the condition of the members, are recorded from the field, together with the array layout, the racking system, the attachment type, and the spacing of the standoffs. Dead load from the array is combined with the wind loading derived for the site under ASCE 7 and the applicable edition of the International Residential Code or International Building Code.",
-      "Texas wind speeds are not uniform, and neither are the exposure categories. A design wind speed near the coast, on the Panhandle plains, and in a sheltered suburban infill lot inside Loop 410 produce three different answers for the same array, which is why the letter is written for an address rather than for a product.",
+      "The review takes the existing framing as it is. Rafter or truss size, spacing, span, and species, along with the condition of the members, are recorded from the field, together with the array layout, the racking system, the attachment type, and the spacing of the standoffs. The weight of the array is applied to that framing as gravity load, including the load at each attachment, under the applicable edition of the International Residential Code or International Building Code. Wind uplift is not calculated, and the letter says so.",
+      "The answer belongs to the roof rather than to the product. The same array on two houses with different rafters, spans, or member condition gives two different answers, which is why the letter is written for an address and a measured roof rather than for a racking system.",
     ],
     whoOrders: [
       "Solar installers and EPCs assembling a permit package",
@@ -245,11 +253,11 @@ export const services: Service[] = [
     ],
     deliverable: [
       "A signed and sealed letter stating the framing as found, the array and attachment reviewed, the loads applied, the code edition used, and the structural conclusion.",
-      "Where reinforcement is required, the detail that makes the installation work, rather than a refusal with no path forward.",
+      "Where the roof will not carry the array as designed, a sealed letter saying so with a written list of what has to change. A revised array is recalculated without another visit; strengthening the structure is designed as a separate engagement.",
       "A PDF formatted for submission to the authority having jurisdiction, with the address, the scope, and the seal where a plans examiner expects to find them.",
     ],
     turnaround:
-      "Solar letters are ordinarily the fastest deliverable on this list, because the field data is compact and the calculation is well defined. Review and sealing typically follow within a few business days of receiving a complete site package.",
+      "Review begins when the record is complete: the array design and either the technician's field record or installer site survey photographs the engineer has accepted. No issue date is estimated before the engineer has made a determination.",
     faqs: [
       {
         q: "Does every Texas jurisdiction require a structural letter for solar?",
@@ -261,7 +269,7 @@ export const services: Service[] = [
       },
       {
         q: "What happens if the existing framing will not carry the array?",
-        a: "The letter says so, and where it can be solved it states what would solve it. Sistered members, blocking, or a revised standoff layout resolve most residential cases. A letter that simply declines and stops is a letter the installer cannot use.",
+        a: "The letter says so, with a written list of what has to change. Where the array itself can change, a revised design from the installer is recalculated without another visit. Where the structure has to be strengthened, that design is a separate engagement, and the finished work is verified on a return visit before any letter of adequacy is issued.",
       },
       {
         q: "Is a ground mount treated the same way?",
@@ -282,7 +290,7 @@ export const services: Service[] = [
       "The engineer's foundation certification required before an FHA, VA, or USDA loan will close on a manufactured home, measured against the HUD permanent foundations guide.",
     what: [
       "Federally backed lending on a manufactured home turns on one document that a general home inspection cannot supply: a certification, signed and sealed by a licensed Professional Engineer, that the foundation system meets the standard in the HUD Permanent Foundations Guide for Manufactured Housing. FHA, VA, and USDA programs all require it, and a file will sit unclosed without it.",
-      "The inspection looks at the whole support system rather than at the home. Pier type, spacing, and bearing, footing size and depth below grade, anchoring and tie down where the design relies on it, perimeter enclosure, crawl space ventilation and vapor retarder, and site drainage away from the structure are all recorded and compared against the guide.",
+      "The inspection looks at the whole support system rather than at the home. Pier type, spacing, and bearing, footing size and depth where it can be seen, anchoring and tie down where the design relies on it, perimeter enclosure, crawl space ventilation and vapor retarder, and site drainage away from the structure are all recorded and compared against the guide.",
       "Texas adds a second layer worth knowing about before an inspection is ordered. The Texas Department of Housing and Community Affairs administers manufactured housing statements of ownership and installation records separately from any lender requirement, and a home that was installed correctly may still have a record problem that the engineer's certification neither creates nor cures.",
     ],
     whoOrders: [
@@ -295,10 +303,10 @@ export const services: Service[] = [
     deliverable: [
       "A signed and sealed certification addressed to the lender, stating the standard applied, what was observed, and whether the foundation system complies with it.",
       "A photographic record of the piers, footings, anchorage, enclosure, and drainage, which is what an underwriter reviews when a file is questioned.",
-      "Where the system does not comply, a plain statement of what would bring it into compliance, so the deficiency can be corrected and reinspected rather than simply reported.",
+      "Where the system does not comply, a sealed letter with a repair list stating what each item needs, so the deficiency can be corrected and reinspected rather than simply reported. Where an item needs an engineered retrofit, the list says so and the retrofit design is a separate engagement.",
     ],
     turnaround:
-      "These are usually scheduled against a closing date, so the certification is ordinarily reviewed and sealed within a few business days of the site visit. Where a reinspection is needed after corrective work, it is scheduled as its own visit.",
+      "These are usually scheduled against a closing date, so say if the lender has set one. Review begins when the record is complete, and no issue date is estimated before the engineer has made a determination. Where a reinspection is needed after corrective work, it is scheduled as its own visit.",
     faqs: [
       {
         q: "Why does a manufactured home need an engineer when a site built home does not?",
@@ -310,7 +318,7 @@ export const services: Service[] = [
       },
       {
         q: "What is the most common reason a certification cannot be issued?",
-        a: "Missing or inadequate anchorage, piers that were never founded below the frost or active zone depth, and an incomplete perimeter enclosure are the recurring three. All of them are correctable, and all of them are cheaper to correct before a buyer is under contract.",
+        a: "Missing or inadequate anchorage, piers that are leaning, cracked, loose, or not in contact with the beam, and an incomplete perimeter enclosure are the recurring three. All of them are correctable, and all of them are cheaper to correct before a buyer is under contract.",
       },
       {
         q: "Does the certification cover the condition of the home itself?",
@@ -329,41 +337,49 @@ export const services: Service[] = [
     shortName: "Structural Letters",
     h1: "Structural Letters for Permits in Texas",
     title: "Structural Letters for Texas Permits | 254 Engineering",
+    /*
+     * REWRITTEN TO PL-001 v1.1 BY RULING 6 OF 2026-10-07 (docs/conflicts-v1.1.md
+     * items 20 to 22). The page described a letter that sizes a beam, draws a
+     * detail and specifies a remediation. PL-001 section 12 routes every one
+     * of those to the design or repair specification line, and section 2
+     * limits the letter to a permitting authority's written request about a
+     * described structure or element.
+     */
     description:
-      "The sealed structural letter a Texas building department requires for wall removal, beam sizing, and small structural alterations. See the price.",
+      "The sealed letter a Texas building department asks for in writing about an existing element: its request, what was inspected, the opinion. See the price.",
     summary:
-      "The sealed letter a building department asks for when an alteration affects structure: wall removal, a new opening, a header or beam, or a change a plans examiner has questioned.",
+      "The sealed letter a building department asks for, in writing, when it needs an engineer's opinion on a described structure or element before it issues or closes a permit.",
     what: [
-      "A structural letter is the short form of a sealed engineering deliverable. It exists because a great many projects change something structural without justifying a full set of drawings: a load bearing wall comes out, an opening is widened, a beam has to be sized, a plans examiner has asked a single question and will not issue the permit until an engineer answers it.",
-      "What makes it a letter rather than a plan set is scope, not rigor. The loads are still traced, the member is still sized, the bearing and the load path down to the foundation are still checked, and the engineer still seals the result. What is omitted is everything the permit does not turn on.",
-      "The most common version in Texas residential work is wall removal. A wall carries a roof or a floor above it, or it does not, and the difference is settled in the attic rather than by looking at the wall. Once the load path is established the letter states the beam, the bearing at each end, and what has to happen at the posts below.",
+      "A structural letter for permit answers one written request from a permitting authority: an engineer's opinion that a described structure or element satisfies the requirement the authority named. The request is recorded as written and attached to the file, and the letter answers that request and nothing else. A request the owner can only describe is not enough to start from.",
+      "Where the letter concerns existing construction, which is most of them, it rests on a technician's visit: the element is measured and photographed in place against a job list the engineer writes, and photographs a customer supplies do not stand in for that. Only a letter that can be answered from drawings and documents alone is written without a visit, and the engineer decides which at acceptance.",
+      "What a letter does not do is design. Sizing a new beam for a wall that is coming out, drawing a detail, or setting out a repair method is design or a repair specification, each its own engagement, and a request that needs one is routed there. The letter states its opinion on the element named, with the date of inspection, and says plainly that it does not cover the rest of the structure or anything concealed.",
     ],
     whoOrders: [
-      "Homeowners and remodelers who have been told the permit needs an engineer's letter",
-      "General contractors opening up a plan in an existing house",
-      "Architects and designers who need one member or one condition sealed",
-      "Property owners answering a plan review comment from a building department",
+      "Homeowners and remodelers whose building department has asked in writing for an engineer's letter",
+      "Contractors answering a failed inspection or a plan review comment about an existing element",
+      "Owners closing a permit on work the authority wants an engineer to confirm",
+      "Architects and designers who need one existing condition confirmed for a permit file",
       "Contractors correcting work that was done without a permit and is now being inspected",
     ],
     deliverable: [
-      "A signed and sealed letter stating the condition reviewed, the loads applied, the member or detail specified, and the code edition it was checked against.",
-      "A sketch or detail where the words alone would leave a framer guessing, drawn to be built from rather than to be admired.",
+      "A signed and sealed letter addressed to the permitting authority, giving the property, the permit number, the authority's request as written, the element described, the adopted code, and the evidence and documents the opinion rests on.",
+      "Where the element satisfies the requirement subject to conditions, a schedule stating each one. Where it does not, a sealed letter saying so, with a list of what has to change.",
       "A PDF formatted for the permit file, addressed to the authority having jurisdiction where that is what the reviewer expects.",
     ],
     turnaround:
-      "Structural letters are ordinarily reviewed and sealed within a few business days once the field measurements are in hand. The field visit is usually the schedule, not the engineering.",
+      "The engineer triages each order within one business day and records whether it is a site job or a desk job. Review begins when the record is complete, and no issue date is estimated before the engineer has made a determination.",
     faqs: [
       {
         q: "When does a Texas building department require a sealed letter?",
-        a: "It varies by jurisdiction and by scope. Removing or altering a load bearing element, adding an opening in a shear wall or a masonry wall, and changing the load path in any way are the usual triggers. Many departments will tell you plainly at plan review, and it is worth asking before the wall comes out.",
+        a: "It varies by jurisdiction and by scope. Removing or altering a load bearing element, adding an opening in a shear wall or a masonry wall, and changing the load path in any way are the usual triggers. Many departments will tell you plainly at plan review, and it is worth asking for the request in writing, because the letter answers it as it was written.",
       },
       {
         q: "Can a letter be issued without anyone visiting the site?",
-        a: "Rarely, and it is usually a mistake to try. The letter turns on what is actually there: span, member size, bearing, what is above. An engineer who seals a member based on a homeowner's description of the attic is sealing a description, not a structure.",
+        a: "Only where the letter can be answered from drawings and documents alone, and the engineer decides that at acceptance. A letter about existing construction rests on a technician's visit, and photographs a customer takes do not replace it. An engineer who seals a member based on a homeowner's description of the attic is sealing a description, not a structure.",
       },
       {
         q: "What if the wall is already out?",
-        a: "It is still solvable, and it is a common enough situation. The engineer evaluates what is in place now, states what is required, and specifies the remediation. Work performed before review is more expensive to resolve, not impossible to resolve.",
+        a: "The engineer can give an opinion on what is in place now against what the authority asked. If something has to change, the letter says so with a list of what. Designing the fix is a separate engagement, on the design or the repair specification line.",
       },
       {
         q: "Is a letter cheaper than a full plan set?",
@@ -390,14 +406,14 @@ export const services: Service[] = [
     whoOrders: [
       "Owners and property managers repairing storm, water, fire, or impact damage",
       "General contractors who need a defined scope before they will price the work",
-      "Adjusters and carriers who need the scope of repair established by an engineer",
+      "Adjusters and carriers who need the scope of repair established by an engineer on a claim that is not in dispute",
       "Condominium and homeowner associations putting repair work out to bid",
       "Owners correcting distress identified in a prior engineering report",
     ],
     deliverable: [
       "A signed and sealed specification stating the scope, the sequence, the materials and connections, and the standard the repair is measured against.",
       "Details and sketches where a written description alone would leave the connection to the builder's judgment.",
-      "Where inspection during construction is required by the specification, a plain statement of which stages have to be observed before they are covered.",
+      "Where an item will be covered by later work, the instruction that the contractor photographs it first, and any hold point the engineer sets on a single item where a photograph is not enough.",
     ],
     turnaround:
       "Repair specifications follow the assessment they rest on, and the schedule depends on the size of the damage rather than on a queue. A scope is agreed before work begins so that the document arrives when the bidding does.",
@@ -412,11 +428,11 @@ export const services: Service[] = [
       },
       {
         q: "Can a specification be written from photographs?",
-        a: "Sometimes, for narrow and clearly documented damage. More often it needs a site visit, because the repair depends on what the damaged element connects to and photographs rarely show that. Where a specification is written from photographs alone, it says so.",
+        a: "No. A technician visits first, because the repair depends on what the damaged element connects to and photographs rarely show that. The one exception is damage this firm has already documented on an earlier job, where the engineer finds that record still current.",
       },
       {
         q: "Who inspects the repair once it is built?",
-        a: "Where the specification calls for observation at particular stages, an engineer or a technician working to the same protocol carries it out and the record goes back to the engineer of record. Repairs closed up before a required observation usually have to be opened again.",
+        a: "Verification is not part of the specification; it is ordered separately once the work is done. A technician then captures each item to the same evidence standard, with the contractor's photographs of anything covered, and the engineer closes each item individually. A completion letter is issued only when every item is closed. Where the engineer has set a hold point, work stops at that item until a verification visit releases it.",
       },
     ],
   },
