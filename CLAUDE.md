@@ -327,6 +327,19 @@ Each control is mapped to 22 TAC 137.33 and 137.35 before code is written. Lette
 drafting and sealing are built on `feat/sealed-delivery` with delivery, roof
 certification first, from the engineer's template 1 answers of 2026-10-05.
 
+**PROTOCOLS ARE SIGNED THE SAME WAY. Operator ruling, 2026-10-06.** The engineer
+opens the verbatim transcription in the portal, the text is hashed, he applies
+his stored seal and signature from his own MFA session, and the signed version is
+locked and becomes the registered protocol. A protocol signed this way needs no
+scan. Any change to the text after signing voids it. One mechanism serves letters
+and protocols, built once.
+
+This changes what a transcription is checked against. The source the engineer
+sends is an unsigned Word file, so the verbatim check compares the transcription
+against that file, and the signature attaches to the hash of the transcription
+he read and signed. The rule in section 3 stands: his text is carried exactly,
+punctuation included.
+
 **The argument of the rule below was that a permission model cannot keep a
 rendered seal under the engineer's control.** The new rule answers it with
 identity rather than permission: the seal is applied by one person's own
