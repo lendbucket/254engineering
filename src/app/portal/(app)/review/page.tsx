@@ -11,6 +11,8 @@ import { services } from "@/content/services";
 import { EmptyState, PageHead } from "@/components/portal/surfaces";
 import { outstandingFor } from "@/lib/ops-file-inputs";
 import { DecisionPanel, OpenReviewButton } from "./ReviewClient";
+import { LetterSealPanel } from "./LetterSealPanel";
+import { lettersAwaitingSeal } from "@/lib/letter-seal";
 import { protocolByDocument } from "@/content/protocols";
 
 export const dynamic = "force-dynamic";
@@ -51,6 +53,13 @@ export default async function ReviewPage({
 
   const queue = await reviewQueue(actor);
   const selected = params.id ? await packageFor(actor, params.id) : null;
+  /*
+   * THE LETTERS HE HAS DECIDED AND NOT YET SEALED, sealing piece two. Every
+   * one of his, for the list at the top, and the selected file's, which takes
+   * the place of the decision buttons.
+   */
+  const awaiting = await lettersAwaitingSeal(actor);
+  const selectedAwaiting = selected ? awaiting.filter((l) => l.fileId === selected.file.id) : [];
 
   /*
    * WHAT THE ENGINEER IS STILL MISSING, asked at the sealing stage.
@@ -109,6 +118,27 @@ export default async function ReviewPage({
       />
 
       <RestrictedMode also="Packages can still be reviewed, sent back and declined. Declining stays available on purpose: a gate that stopped an engineer saying no, while leaving yes open, would be the wrong way round." />
+
+      {awaiting.length > 0 ? (
+        <section className="mb-6 border-t-2 border-[var(--ink)] pt-4">
+          <h2 className="text-[16px] font-semibold text-[var(--ink)]">Letters waiting for your seal</h2>
+          <ul className="mt-2 border-t border-[var(--row-rule)]">
+            {awaiting.map((l) => (
+              <li key={l.determinationId} className="border-b border-[var(--row-rule)]">
+                <Link
+                  href={`/portal/review?id=${l.fileId}`}
+                  className="flex min-h-[48px] items-center justify-between gap-3 py-2 text-[14px] text-[var(--ink)] hover:underline"
+                >
+                  <span className="font-semibold">{l.fileNumber}</span>
+                  <span className="text-[var(--secondary)]">
+                    {l.propertyAddress}, {l.determination.replace("-", " ")}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(280px,360px)_1fr]">
         <div className={selected ? "hidden lg:block" : "block"}>
@@ -449,6 +479,21 @@ export default async function ReviewPage({
                 )}
 
                 <div className="mt-7 border-t border-[var(--border)] pt-6">
+                  {/*
+                    A RECORDED PASS WAITS FOR HIS SEAL, AND THE DECISION
+                    BUTTONS DO NOT COME BACK. Since 2026-10-07 a passing
+                    decision leaves the file under review until the letter is
+                    sealed; showing the five decisions again would invite a
+                    second determination on a file that already has one, and
+                    decideReview refuses that anyway.
+                  */}
+                  {selectedAwaiting.find((l) => l.determination === "pass") ? (
+                    <LetterSealPanel
+                      determinationId={selectedAwaiting.find((l) => l.determination === "pass")!.determinationId}
+                      determination="pass"
+                      fileNumber={selected.file.file_number}
+                    />
+                  ) : (
                   <DecisionPanel
                     fileId={selected.file.id}
                     actions={actions}
@@ -475,6 +520,7 @@ export default async function ReviewPage({
                       captures: i.captures.map((c) => ({ id: c.id })),
                     }))}
                   />
+                  )}
                 </div>
               </div>
             </div>

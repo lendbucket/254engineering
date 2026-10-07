@@ -246,6 +246,8 @@ const ADMIN_APIS = [
   /* Where the engineer stores his seal and signature, 2026-10-07. POST only,
    * licence and a fresh second factor behind the perimeter. */
   "/api/portal/seal",
+  // Sealing piece two, 2026-10-07: drafting and sealing the engineer's letter.
+  "/api/portal/letters",
   // Never listed since Phase 1 shipped it. Found by the coverage check below on
   // its first run, which is the argument for the coverage check.
   "/api/portal/files",

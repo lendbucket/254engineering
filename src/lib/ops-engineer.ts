@@ -533,6 +533,41 @@ export async function decideReview(
   if (!pkg) return { ok: false, error: "That file does not exist, or is not yours to review." };
 
   /*
+   * ONE DECISION AT A TIME. Since 2026-10-07 a passing decision leaves the file
+   * under review until the engineer seals its letter. A second decision on top
+   * of an unsealed pass would leave two determinations on one file with only
+   * one able to become a letter, so it is refused, naming what is waiting.
+   */
+  {
+    const { data: passes } = await db
+      .from("eng_determinations")
+      .select("id")
+      .eq("file_id", fileId)
+      .eq("determination", "pass");
+    const passIds = (passes ?? []).map((p) => p.id as string);
+    if (passIds.length > 0) {
+      const { data: acts, error: actsError } = await db
+        .from("eng_seal_acts")
+        .select("determination_id")
+        .in("determination_id", passIds)
+        .is("voided_at", null);
+      if (actsError) {
+        return {
+          ok: false,
+          error: `Whether this file's passing determination is already sealed could not be read (${actsError.message}), so no second decision is recorded.`,
+        };
+      }
+      const sealedIds = new Set((acts ?? []).map((a) => a.determination_id as string));
+      if (passIds.some((id) => !sealedIds.has(id))) {
+        return {
+          ok: false,
+          error: "This file already has a passing determination waiting for your seal. Seal its letter from the panel on this screen.",
+        };
+      }
+    }
+  }
+
+  /*
    * =====================================================================
    * THE DETERMINATION, WHICH IS REQUIRED WHEN A SIGNED PROTOCOL GOVERNS.
    * =====================================================================

@@ -208,12 +208,13 @@ export async function sealLetter(actor: SignedIn | null, input: SealInput): Prom
   if (!producesLetter(det.determination)) {
     return { ok: false, error: `A ${det.determination} determination produces no letter.` };
   }
-  const { data: live } = await db
+  const { data: live, error: liveError } = await db
     .from("eng_seal_acts")
     .select("id")
     .eq("determination_id", det.id)
     .is("voided_at", null)
     .maybeSingle();
+  if (liveError) return { ok: false, error: `Whether this letter is already sealed could not be read: ${liveError.message}` };
   if (live) return { ok: false, error: "This determination's letter is already sealed." };
 
   // 4. The draft.
@@ -331,6 +332,69 @@ export async function sealLetter(actor: SignedIn | null, input: SealInput): Prom
     delivered: problems.length === 0,
     warning: problems.length ? `The letter is sealed. Then ${problems.join("; ")}.` : null,
   };
+}
+
+export type AwaitingLetter = {
+  determinationId: string;
+  fileId: string;
+  fileNumber: string;
+  propertyAddress: string;
+  determination: string;
+  decidedAt: string;
+};
+
+/**
+ * The letters this engineer has decided and not yet sealed: his determinations
+ * that produce a letter and carry no live seal act. Only his own, because only
+ * he can seal them (control 3).
+ */
+export async function lettersAwaitingSeal(actor: SignedIn | null, fileId?: string): Promise<AwaitingLetter[]> {
+  const db = supabaseAdmin();
+  if (!db || !holdsLicence(actor, "documents.seal")) return [];
+  let query = db
+    .from("eng_determinations")
+    .select("id, file_id, determination, decided_at, protocol_document")
+    .eq("engineer_id", actor!.id)
+    .eq("protocol_document", "254-RC-001")
+    .in("determination", ["pass", "repairs-required", "decline"])
+    .order("decided_at", { ascending: true })
+    .limit(200);
+  if (fileId) query = query.eq("file_id", fileId);
+  const { data: dets, error } = await query;
+  if (error || !dets?.length) return [];
+
+  const ids = dets.map((d) => d.id as string);
+  const { data: acts, error: actsError } = await db
+    .from("eng_seal_acts")
+    .select("determination_id")
+    .in("determination_id", ids)
+    .is("voided_at", null);
+  /*
+   * A read that failed is not "nothing sealed". Read as an empty set it would
+   * list every letter he ever sealed as waiting for his seal again, so it is
+   * logged and the list is empty instead.
+   */
+  if (actsError) {
+    console.error(`[letters] the seal acts could not be read: ${actsError.message}`);
+    return [];
+  }
+  const sealed = new Set((acts ?? []).map((a) => a.determination_id as string));
+  const open = dets.filter((d) => !sealed.has(d.id as string));
+  if (!open.length) return [];
+
+  const { data: files } = await db
+    .from("eng_files")
+    .select("id, file_number, property_address")
+    .in("id", [...new Set(open.map((d) => d.file_id as string))]);
+  const fileOf = new Map((files ?? []).map((f) => [f.id as string, f]));
+  return open.map((d) => ({
+    determinationId: d.id as string,
+    fileId: d.file_id as string,
+    fileNumber: (fileOf.get(d.file_id as string)?.file_number as string) ?? "",
+    propertyAddress: (fileOf.get(d.file_id as string)?.property_address as string) ?? "",
+    determination: d.determination as string,
+    decidedAt: d.decided_at as string,
+  }));
 }
 
 /** review.sealed, now raised when something has in fact been sealed. */
