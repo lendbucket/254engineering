@@ -109,8 +109,8 @@ select position('closed' in prosrc) > 0 as covers_closing
 from pg_proc where proname = 'eng_spend_links_on_suspension';
 ```
 
-**Predict:** one row, `true`. **Development does not have 0064 yet**; see the
-last section.
+**Predict:** one row, `true`. Development took 0064 this way on 2026-10-07 and
+read back the same.
 
 **After Part A**, run the counts read-back once. **Predict** the table count
 **two higher** than before A1 (`eng_seal_images` in 0061, `eng_seal_acts` in
@@ -393,10 +393,9 @@ afternoon) and 0063 (as 0064), comment blocks left out, every statement as
 written, every object present. Development's provider history therefore names
 them by their earlier numbers; the ledger records that against each entry.
 
-**Still owed on development:** 0064, closing an account, through
-`apply_migration` the same way, with A4's read-back. Nothing in the integration
-audit needs it: migration-audit proves it in its own replay, and no live audit
-closes an account.
+**And 0064**, closing an account, applied the same way later on 2026-10-07 and
+read back: the function covers closed accounts. Development holds the whole
+release chain.
 
 **The credentials column drop is not applied anywhere and is not in this
 release.** Development still has `eng_credentials.storage_key`, 0 rows

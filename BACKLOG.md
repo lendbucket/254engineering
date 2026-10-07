@@ -15,7 +15,7 @@ Robert as a field technician (profile, 254 counties, the roof certification of
 owner exemption in code). **Open:** the rollup's source rows were still on
 production on 2026-10-07 (503 and 1729) though past the 30-day floor, so
 whether Part B runs before the sitting is a question for the operator.
-Development still owes 0064.
+Development holds 0061 to 0064.
 
 ## SEVENTEEN PORTAL FILES TOKEN-AUDIT HAS NEVER READ
 

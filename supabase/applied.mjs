@@ -2007,7 +2007,7 @@ export const APPLIED = [
         "seal act. Read back: triggers eng_customer_users_suspension_spends_links and " +
         "eng_customer_accounts_suspension_spends_links, and the function eng_spend_links_on_suspension. " +
         "DEVELOPMENT'S PROVIDER HISTORY NAMES IT 0064, the earlier number of this same file. 0064 in " +
-        "this chain is a different migration, the closing ruling, which development does not have yet.",
+        "this chain is a different migration, the closing ruling, which development took later the same day.",
     },
     proves: { function: "eng_spend_links_on_suspension" },
     note:
@@ -2027,7 +2027,17 @@ export const APPLIED = [
     fingerprint: "aff578e18d558ee5af26fb2cb8c9eb88",
     behaviour: "ab7050e125459faf67d7aad862902aae",
     production: null,
-    development: { at: null, behaviour: null, facts: null },
+    development: {
+      at: "0064",
+      behaviour: null,
+      facts: null,
+      applied: "2026-10-07",
+      appliedBy: "apply_migration",
+      readBack:
+        "APPLIED TO DEVELOPMENT 2026-10-07 by the operator's chat counterpart through the connector's " +
+        "apply_migration, under this number, and read back: eng_spend_links_on_suspension now covers " +
+        "closed accounts. No shape fingerprint or fact count was read; the migration moves neither.",
+    },
     proves: { function: "eng_spend_links_on_suspension" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs at 0064 on 2026-10-07: shape unchanged at " +
