@@ -44,7 +44,7 @@ with that branch.
 | 16, 17 | Solar "No site visit." and drawings alone | BUILT, copy `da80fca`; orderType field by ruling 7 of 2026-10-07; inspection fee $175, ruled the same day |
 | 18 | Solar turned away without the array design | BUILT, `da80fca` |
 | 19 | Installer photographs | BUILT, `da80fca` |
-| 20 | Letter sold as desk review | BUILT, copy `d97e656`; orderType field by ruling 7 of 2026-10-07; inspection fee $175, ruled the same day; whether the published price changes now it is a site job is still REFERRED |
+| 20 | Letter sold as desk review | BUILT, copy `d97e656`; orderType field by ruling 7 of 2026-10-07; inspection fee $175, ruled the same day; price $549, raised from $395 by operator ruling the same day because PL-001 requires a technician visit |
 | 21 | Letter for any reader | BUILT, `d97e656` |
 | 22 | Beam sizing and remediation in the letter | BUILT, `d97e656` |
 | 23 | Specification without a visit | BUILT, copy `673894f`; orderType field by ruling 7 of 2026-10-07; inspection fee $175, ruled the same day |

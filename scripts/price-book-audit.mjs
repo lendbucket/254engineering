@@ -42,7 +42,8 @@ const { services } = await import("../src/content/services.ts");
 const RULED_PRICES = {
   "roof-inspections": 54_900,
   "foundation-inspections": 49_500,
-  "structural-letters": 39_500,
+  /* $549 from 2026-10-07, operator ruling: PL-001 requires a technician visit. Was $395. */
+  "structural-letters": 54_900,
   "solar-structural-letters": 44_500,
   "manufactured-home-foundation-certifications": 64_500,
   "windstorm-wpi-8": 79_500,

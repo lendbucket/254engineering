@@ -140,12 +140,18 @@ export const servicePrices: Record<string, ServicePrice> = {
     whatChangesIt:
       "A structure over a certain size, a property outside the standard service area, or a second visit after remediation.",
   },
+  /*
+   * $549 FROM 2026-10-07, operator ruling: raised from $395 because PL-001
+   * requires a technician visit (ruling 7 made the line field work the same
+   * day). The old sentence described a desktop review with any visit quoted
+   * separately, which is no longer how the line is performed.
+   */
   "structural-letters": {
     kind: "fixed",
-    byTier: { standard: 39_500 },
+    byTier: { standard: 54_900 },
     headlineTier: "standard",
     whatChangesIt:
-      "A desktop review assumes usable drawings or photographs exist. A site visit, where one is needed to answer the question honestly, is quoted before it is scheduled.",
+      "The price includes a technician's visit to the property, which most letters about existing construction rest on. A question that needs design or a repair method rather than a letter is its own engagement.",
   },
   "solar-structural-letters": {
     kind: "fixed",
