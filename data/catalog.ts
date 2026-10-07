@@ -682,23 +682,29 @@ const DECLARED: CatalogDeclaration[] = [
     protocolServiceSlug: null,
     qualifiers: [
       ADDRESS_QUALIFIER,
+      /*
+       * RS-001 v1.1, ruling 6 of 2026-10-07. Appendix A Part 2 makes a report
+       * on the damage "Required if it exists", and section 7 has the
+       * technician capture the damage on site. This qualifier used to turn
+       * away "No, nobody has looked at it yet" and the report was required.
+       * Both now follow the protocol.
+       */
       {
         id: "assessment",
         prompt: "Has the damage already been documented by an inspection or a report?",
-        help: "A specification describes the repair for damage somebody has established. It does not establish it.",
+        help: "If there is a report, it helps. If there is not, the technician's visit documents the damage the specification is written for.",
         options: ["Yes, I have a report", "No, nobody has looked at it yet"],
-        disqualifyOn: [1],
-        disqualifiedMessage:
-          "A repair specification is written from an assessment of the damage. Order the inspection for this structure first; its findings are what the specification is then written from.",
+        disqualifyOn: [],
+        disqualifiedMessage: "",
       },
     ],
     requiredInputs: [
       {
         id: "assessment_report",
-        label: "The report or assessment of the damage",
-        help: "Whatever established what is wrong. An engineer's report, an inspection, an adjuster's scope.",
+        label: "Any report on the damage, if there is one",
+        help: "An engineer's report, an inspection, or an insurer's report.",
         kind: "file",
-        required: true,
+        required: false,
         accepts: "PDF",
       },
       {
@@ -710,7 +716,15 @@ const DECLARED: CatalogDeclaration[] = [
         accepts: "Photographs",
       },
     ],
-    turnaround: "No site visit. The engineer's review begins when the documents are complete.",
+    /*
+     * RS-001 section 7: "A specification is not written without a technician
+     * visit, except where an earlier job file of this firm already holds the
+     * evidence and the engineer finds it is still current." This said "No site
+     * visit." orderType stays desk until the operator rules it (conflicts
+     * item 23).
+     */
+    turnaround:
+      "A technician visits before the specification is written, unless an earlier job file of this firm already holds the evidence and the engineer finds it still current. Review begins when the record is complete.",
     receives: [
       "A sealed repair specification defining the scope of work",
       "A document three contractors can price against identically",

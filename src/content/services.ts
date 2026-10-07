@@ -406,14 +406,14 @@ export const services: Service[] = [
     whoOrders: [
       "Owners and property managers repairing storm, water, fire, or impact damage",
       "General contractors who need a defined scope before they will price the work",
-      "Adjusters and carriers who need the scope of repair established by an engineer",
+      "Adjusters and carriers who need the scope of repair established by an engineer on a claim that is not in dispute",
       "Condominium and homeowner associations putting repair work out to bid",
       "Owners correcting distress identified in a prior engineering report",
     ],
     deliverable: [
       "A signed and sealed specification stating the scope, the sequence, the materials and connections, and the standard the repair is measured against.",
       "Details and sketches where a written description alone would leave the connection to the builder's judgment.",
-      "Where inspection during construction is required by the specification, a plain statement of which stages have to be observed before they are covered.",
+      "Where an item will be covered by later work, the instruction that the contractor photographs it first, and any hold point the engineer sets on a single item where a photograph is not enough.",
     ],
     turnaround:
       "Repair specifications follow the assessment they rest on, and the schedule depends on the size of the damage rather than on a queue. A scope is agreed before work begins so that the document arrives when the bidding does.",
@@ -428,11 +428,11 @@ export const services: Service[] = [
       },
       {
         q: "Can a specification be written from photographs?",
-        a: "Sometimes, for narrow and clearly documented damage. More often it needs a site visit, because the repair depends on what the damaged element connects to and photographs rarely show that. Where a specification is written from photographs alone, it says so.",
+        a: "No. A technician visits first, because the repair depends on what the damaged element connects to and photographs rarely show that. The one exception is damage this firm has already documented on an earlier job, where the engineer finds that record still current.",
       },
       {
         q: "Who inspects the repair once it is built?",
-        a: "Where the specification calls for observation at particular stages, an engineer or a technician working to the same protocol carries it out and the record goes back to the engineer of record. Repairs closed up before a required observation usually have to be opened again.",
+        a: "Verification is not part of the specification; it is ordered separately once the work is done. A technician then captures each item to the same evidence standard, with the contractor's photographs of anything covered, and the engineer closes each item individually. A completion letter is issued only when every item is closed. Where the engineer has set a hold point, work stops at that item until a verification visit releases it.",
       },
     ],
   },
