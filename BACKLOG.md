@@ -30,6 +30,11 @@ Three things it found are not the session's to decide:
    and `protocol-registry-audit` tests it with answers handed to it, and **no
    product code calls it**: a yes is dispatched like a no. Building it means a
    dispatch hold until the engineer pre-reviews, which is a behaviour ruling.
+   **BUILT 2026-10-07 by operator ruling 1** in `8608b7f`: any yes holds the job
+   before dispatch until the engineer records accept or decline; an open claim
+   is held like any other yes, with Aman's standing ruling shown as the reason,
+   and declined only by him, with his referral. `src/lib/dispatch-hold.ts`,
+   proved both ways.
 2. **Template 1 runs two lines together.** Aman's document has the recipient's
    name and address in one paragraph, and "Texas File {{file_number}}" on the Re
    line, so the sealed letter prints them run on. The transcription is his text
