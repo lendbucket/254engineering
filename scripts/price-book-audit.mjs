@@ -52,6 +52,30 @@ const RULED_DESIGN_HOURLY = 22_500;
 const RULED_DESIGN_MINIMUM = 200_000;
 const RULED_WPI8_ONGOING = 99_500;
 
+/*
+ * WPI-8 ONGOING: FOUR STAGE VISITS INCLUDED, $150 FOR EACH FURTHER VISIT.
+ * Operator ruling of 2026-10-06 on WP-001 v1.1 section 8, built 2026-10-07.
+ * Literals, never read back from prices.ts: a constant compared with itself
+ * cannot disagree. And the line's own sentence has to state both, so a buyer
+ * reading the price learns what it includes.
+ */
+const RULED_WPI8_INCLUDED_VISITS = 4;
+const RULED_WPI8_EXTRA_VISIT_CENTS = 15_000;
+{
+  const { WPI8_ONGOING_INCLUDED_VISITS, WPI8_EXTRA_VISIT_CENTS } = await import("../src/config/prices.ts");
+  rec(
+    "WPI-8 ongoing includes four stage visits and each further visit is $150, as ruled",
+    WPI8_ONGOING_INCLUDED_VISITS === RULED_WPI8_INCLUDED_VISITS && WPI8_EXTRA_VISIT_CENTS === RULED_WPI8_EXTRA_VISIT_CENTS,
+    `${WPI8_ONGOING_INCLUDED_VISITS} visits, ${money(WPI8_EXTRA_VISIT_CENTS)} each beyond`,
+  );
+  const sentence = servicePrices["windstorm-wpi-8"]?.whatChangesIt ?? "";
+  rec(
+    "and the windstorm line's own price sentence states both",
+    sentence.includes(`includes ${RULED_WPI8_INCLUDED_VISITS} stage visits`) && sentence.includes("calls for is $150."),
+    sentence.slice(sentence.indexOf("That price"), sentence.indexOf("That price") + 110),
+  );
+}
+
 for (const [slug, cents] of Object.entries(RULED_PRICES)) {
   const price = servicePrices[slug];
   rec(

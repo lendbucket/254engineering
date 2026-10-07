@@ -59,6 +59,7 @@
 
 import type { Cents } from "@/lib/ops-money";
 import { deliverablePriceCents } from "@/config/prices";
+import { FIRST_TIER_COASTAL } from "@/content/windstorm-counties";
 
 /**
  * The three shapes an order can take.
@@ -220,6 +221,48 @@ const OWNER_QUALIFIER: Qualifier = {
 };
 
 /*
+ * THE DESIGNATED CATASTROPHE AREA, ASKED RATHER THAN ASSUMED. Ruling 6 of
+ * 2026-10-07, docs/conflicts-v1.1.md item 6. WS-001 v1.1 section 12: "A property
+ * outside the designated catastrophe area. Declined. No TDI certificate
+ * applies." WP-001 applies only in the Designated Catastrophe Areas. Before
+ * this, the only location question either windstorm deliverable asked was
+ * whether the property is in Texas.
+ *
+ * The fourteen names are read from `windstorm-counties.ts`, the one list, and
+ * never typed here. Harris County is designated only east of State Highway 146,
+ * so it is two answers rather than one.
+ */
+const WINDSTORM_COUNTY_OPTIONS = [
+  ...FIRST_TIER_COASTAL.map((c) => `${c} County`),
+  "Harris County, east of State Highway 146",
+  "Harris County, west of State Highway 146",
+  "Another Texas county",
+];
+const WINDSTORM_COUNTY_QUALIFIER: Qualifier = {
+  id: "catastrophe_area",
+  prompt: "Which county is the property in?",
+  help: "The windstorm certificate applies only inside the Texas Department of Insurance's designated catastrophe area.",
+  options: WINDSTORM_COUNTY_OPTIONS,
+  disqualifyOn: [WINDSTORM_COUNTY_OPTIONS.length - 2, WINDSTORM_COUNTY_OPTIONS.length - 1],
+  disqualifiedMessage:
+    "This property is outside the designated catastrophe area, so no Texas Department of Insurance windstorm certificate applies to it and there is nothing for this order to certify.",
+};
+
+/*
+ * Required by Appendix A Part 2 of six of the seven v1.1 protocols: WS-001,
+ * MH-001, SL-001, PL-001, RS-001 and DS-001. WP-001 does not ask for it. Ruling
+ * 6 of 2026-10-07, docs/conflicts-v1.1.md item 27.
+ */
+const FRONT_PHOTO_INPUT: RequiredInput = {
+  id: "front_photo",
+  label: "A photograph of the front of the property",
+  help: "It confirms the address and the structure before anybody travels or starts a review.",
+  kind: "file",
+  required: true,
+  accepts: "A photograph",
+};
+
+/*
  * =========================================================================
  * `prices.ts` IS THE PRICE. THIS FILE IS BEING CORRECTED TO MATCH IT, AND
  * THEN IT WILL STOP HOLDING PRICES AT ALL. Operator ruling, 2026-09-20.
@@ -350,6 +393,16 @@ const DECLARED: CatalogDeclaration[] = [
    * changed is only that the qualifier no longer silently decides the price: the
    * deliverable does, and the buyer chooses it before they see a number.
    */
+  /*
+   * THE STAGE QUALIFIER IS RULED, 2026-10-07. Ruling 5: completed and ongoing
+   * construction are the two fixed prices and only an existing building with
+   * no recent work is quoted per job. Ruling 6 with WS-001 and WP-001 v1.1:
+   * construction still in progress is routed to the ongoing line (WS-001
+   * section 12), and a structure that has already passed a stage that must be
+   * inspected is declined for the ongoing path (WP-001 section 6.2). So each
+   * deliverable now turns away the two stages it does not serve, and says
+   * where to go instead. docs/conflicts-v1.1.md items 3 and 5.
+   */
   {
     serviceSlug: "windstorm-wpi-8",
     tier: "completed",
@@ -360,6 +413,7 @@ const DECLARED: CatalogDeclaration[] = [
     protocolServiceSlug: "windstorm-wpi-8",
     qualifiers: [
       ADDRESS_QUALIFIER,
+      WINDSTORM_COUNTY_QUALIFIER,
       OWNER_QUALIFIER,
       {
         id: "stage",
@@ -370,17 +424,40 @@ const DECLARED: CatalogDeclaration[] = [
           "Complete and covered up",
           "Existing building, no recent work",
         ],
-        disqualifyOn: [],
-        disqualifiedMessage: "",
+        disqualifyOn: [0, 2],
+        disqualifiedMessage:
+          "This deliverable is for construction that is already complete. Work that has not started or is still open is inspected in stages under ongoing construction. An existing building with no recent work is quoted per job through the windstorm inquiry instead.",
       },
     ],
     requiredInputs: [
+      FRONT_PHOTO_INPUT,
       {
         id: "access_notes",
         label: "How does the technician get in",
         help: "Gate codes, dogs, who will be there, and anything about the property that would waste a trip.",
         kind: "text",
         required: true,
+      },
+      /*
+       * WS-001 v1.1 section 6 records "the dates construction began and was
+       * completed", and section 12 declines work that began before
+       * January 1, 1988. The catalogue asked for no date. Item 7.
+       */
+      {
+        id: "work_began",
+        label: "When the work being certified began",
+        help: "The date the work began, not the year the house was built. The permit or the contract usually shows it.",
+        kind: "date",
+        required: true,
+      },
+      /* WS-001 Appendix A Part 2, required. Item 9. */
+      {
+        id: "contract_invoice",
+        label: "The contract or invoice for the work",
+        help: "Showing the products installed. It is what tells the engineer what the construction was meant to be.",
+        kind: "file",
+        required: true,
+        accepts: "PDF or a photograph",
       },
       {
         id: "permit",
@@ -393,21 +470,29 @@ const DECLARED: CatalogDeclaration[] = [
     ],
     turnaround:
       "The visit is scheduled once a technician accepts. Construction that has been covered up takes longer, because what can still be evidenced has to be established first.",
+    /*
+     * WS-001 section 3: "TDI issues the certificate. The firm does not issue it
+     * and does not promise that TDI will." This read "The windstorm
+     * certification the engineer's review supports, sealed". Item 8.
+     */
     receives: [
-      "The windstorm certification the engineer's review supports, sealed",
+      "A sealed post-construction inspection report, supporting a Form WPI-2E application to the Texas Department of Insurance",
       "The photographic and measurement record it rests on",
+      "The certificate itself, Form WPI-8E, is issued by the Department rather than by the firm",
     ],
   },
   {
     serviceSlug: "windstorm-wpi-8",
     tier: "ongoing",
-    name: "WPI-8E windstorm evaluation, ongoing construction",
+    /* WP-001 section 1: Form WPI-2, then the WPI-8. WPI-8E is the completed route. Item 2. */
+    name: "WPI-8 windstorm inspection, ongoing construction",
     orderType: "field",
     coastalSurchargeCents: 7500,
     inspectionFeeCents: 17500,
     protocolServiceSlug: "windstorm-wpi-8",
     qualifiers: [
       ADDRESS_QUALIFIER,
+      WINDSTORM_COUNTY_QUALIFIER,
       OWNER_QUALIFIER,
       {
         id: "stage",
@@ -418,8 +503,9 @@ const DECLARED: CatalogDeclaration[] = [
           "Complete and covered up",
           "Existing building, no recent work",
         ],
-        disqualifyOn: [],
-        disqualifiedMessage: "",
+        disqualifyOn: [1, 2],
+        disqualifiedMessage:
+          "This deliverable is for construction that has not started or is still open to view, inspected in stages. Construction that is already complete is evaluated under completed construction. An existing building with no recent work is quoted per job through the windstorm inquiry instead.",
       },
     ],
     requiredInputs: [
@@ -441,9 +527,11 @@ const DECLARED: CatalogDeclaration[] = [
     ],
     turnaround:
       "Attendance is staged against the construction programme rather than booked as a single visit, because the evidence has to be gathered while each stage is still open.",
+    /* WP-001 section 1, and the firm does not issue the certificate. Item 8. */
     receives: [
-      "The windstorm certification the engineer's review supports, sealed",
+      "Form WPI-2, prepared and submitted to the Texas Department of Insurance by the appointed engineer",
       "The photographic and measurement record it rests on, stage by stage",
+      "The certificate itself, Form WPI-8, is issued by the Department rather than by the firm",
     ],
   },
   {
@@ -512,6 +600,7 @@ const DECLARED: CatalogDeclaration[] = [
       },
     ],
     requiredInputs: [
+      FRONT_PHOTO_INPUT,
       {
         id: "access_notes",
         label: "How does the technician get in",
@@ -577,6 +666,7 @@ const DECLARED: CatalogDeclaration[] = [
       },
     ],
     requiredInputs: [
+      FRONT_PHOTO_INPUT,
       {
         id: "layout",
         label: "The array layout, if you have it",
@@ -639,6 +729,7 @@ const DECLARED: CatalogDeclaration[] = [
       },
     ],
     requiredInputs: [
+      FRONT_PHOTO_INPUT,
       {
         id: "question_text",
         label: "What the permitting authority asked for",
@@ -712,6 +803,7 @@ const DECLARED: CatalogDeclaration[] = [
       },
     ],
     requiredInputs: [
+      FRONT_PHOTO_INPUT,
       {
         id: "assessment_report",
         label: "Any report on the damage, if there is one",
@@ -791,6 +883,7 @@ const DECLARED: CatalogDeclaration[] = [
       },
     ],
     requiredInputs: [
+      FRONT_PHOTO_INPUT,
       {
         id: "spans",
         label: "The span, and what the beam or header carries",
@@ -814,7 +907,8 @@ const DECLARED: CatalogDeclaration[] = [
         required: false,
       },
     ],
-    turnaround: "No site visit. The engineer's review begins when the span and the loads are complete.",
+    turnaround:
+      "The engineer decides at acceptance whether a technician visits; the engineer does not attend. Review begins when the span and the loads are complete.",
     receives: [
       "A sealed sizing for the beam or header, with the span and loads it was calculated for stated on it",
       "A written quote from the engineer's estimate of the hours, and no charge until you accept it",
@@ -840,6 +934,7 @@ const DECLARED: CatalogDeclaration[] = [
       },
     ],
     requiredInputs: [
+      FRONT_PHOTO_INPUT,
       {
         id: "dimensions",
         label: "The dimensions you want",
@@ -863,7 +958,8 @@ const DECLARED: CatalogDeclaration[] = [
         required: false,
       },
     ],
-    turnaround: "No site visit. The engineer's review begins when the dimensions and photographs are complete.",
+    turnaround:
+      "The engineer decides at acceptance whether a technician visits; the engineer does not attend. Review begins when the dimensions and photographs are complete.",
     receives: [
       "A sealed plan set for the cover, to the wind loads for the property's county",
       "A document a permit office can review without asking for more",
@@ -880,6 +976,7 @@ const DECLARED: CatalogDeclaration[] = [
     protocolServiceSlug: null,
     qualifiers: [ADDRESS_QUALIFIER],
     requiredInputs: [
+      FRONT_PHOTO_INPUT,
       {
         id: "project",
         label: "What are you building",

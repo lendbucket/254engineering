@@ -143,9 +143,9 @@ export const services: Service[] = [
       "Insurance agents assembling what a carrier needs before binding coverage",
     ],
     deliverable: [
-      "Field inspections at the stages the code requires, documented with photographs and measurements taken while the work is open to view.",
-      "Form WPI-2 prepared and submitted to the Texas Department of Insurance by the appointed engineer, with the supporting record attached.",
-      "The WPI-8 certificate of compliance, which is issued by the Department itself on the strength of that submission.",
+      "For ongoing construction: field inspections at the stages the code requires, documented with photographs and measurements taken while the work is open to view, and Form WPI-2 prepared and submitted to the Texas Department of Insurance by the appointed engineer.",
+      "For completed construction: a sealed post-construction inspection report supporting a Form WPI-2E application to the Department.",
+      "The certificate itself, the WPI-8 or the WPI-8E, which is issued by the Department on the strength of that submission and never by the firm.",
     ],
     turnaround:
       "Field inspections are scheduled around the construction sequence rather than around a queue, and the WPI-2 is ordinarily submitted within a few business days of the final inspection. The WPI-8 itself is issued by the Texas Department of Insurance on the Department's own timeline.",
