@@ -3176,6 +3176,16 @@ night, if the lock is free and work is waiting, board it.
   chat, naming the branch and the commit. The board must have passed alone with
   its stated prediction met.
 
+  **Merging is the session's, from Claude Code, only on that word.** Operator
+  ruling, 2026-10-06. The merge word names the branch and the commit. Before
+  pushing, the session fetches, confirms `origin/main` is the commit it expects
+  and that the named commit descends from it, merges with a merge commit and
+  never a squash, and only then pushes main. The operator's permission rule
+  allows `git push origin main` and nothing else onto main: a force push, a
+  refspec onto main and a delete all stay denied. The first merge under this
+  rule was `fix/retention-whole-days` at `bd9fbff`, merged as `7ff2ec2` with
+  parents `4a7d883` and `bd9fbff`, its tree identical to the boarded commit.
+
   **Never, under any word:** a force push, deleting or rewriting a remote branch,
   pushing a tag, or pushing main with a migration that is not applied to
   production. A migration branch merges only inside a sitting, after the apply
