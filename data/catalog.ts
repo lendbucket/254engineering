@@ -547,31 +547,37 @@ const DECLARED: CatalogDeclaration[] = [
     protocolServiceSlug: null,
     qualifiers: [
       ADDRESS_QUALIFIER,
+      /*
+       * SL-001 v1.1 SECTION 6, ruling 6 of 2026-10-07: "An order is accepted
+       * without the array design. No calculation is started and no letter is
+       * issued until it is received." This qualifier used to turn the buyer
+       * away without it. It now gathers the fact and turns nobody away, and
+       * the layout input below is optional for the same reason.
+       */
       {
         id: "documents",
-        prompt: "Do you have the array layout and the mounting details?",
-        help: "A desk review is a review of documents. Without them there is nothing to review.",
-        options: ["Yes", "No"],
-        disqualifyOn: [1],
-        disqualifiedMessage:
-          "A structural letter is written from the layout and the attachment details. Your installer or the racking manufacturer will have them. Come back when you do.",
+        prompt: "Do you have the array layout and the mounting details yet?",
+        help: "The order can be placed without them. No calculation starts and no letter issues until they arrive.",
+        options: ["Yes", "Not yet"],
+        disqualifyOn: [],
+        disqualifiedMessage: "",
       },
     ],
     requiredInputs: [
       {
         id: "layout",
-        label: "The array layout",
-        help: "Panel positions on the roof, with the module make and model.",
+        label: "The array layout, if you have it",
+        help: "Panel positions on the roof, with the module make and model. If your installer has not produced it yet, it can follow.",
         kind: "file",
-        required: true,
+        required: false,
         accepts: "PDF or a drawing",
       },
       {
         id: "mounting",
-        label: "The mounting and attachment details",
-        help: "The racking system, the attachment type, and the spacing.",
+        label: "The mounting and attachment details, if you have them",
+        help: "The racking system, the attachment type, and the spacing. They are part of the array design and can follow with it.",
         kind: "file",
-        required: true,
+        required: false,
         accepts: "PDF or manufacturer literature",
       },
       {
@@ -582,7 +588,14 @@ const DECLARED: CatalogDeclaration[] = [
         required: false,
       },
     ],
-    turnaround: "No site visit. The engineer's review begins when the documents are complete.",
+    /*
+     * SL-001 v1.1 section 6: "There is no default. On every job the engineer
+     * decides at intake whether a technician visits or the job rests on the
+     * installer's site survey photographs." Section 12: "The firm does not
+     * issue a solar letter from drawings alone." This said "No site visit."
+     */
+    turnaround:
+      "The engineer decides at intake whether a technician visits or the installer's site survey photographs are enough. No letter is issued from drawings alone, and no calculation starts until the array design arrives.",
     receives: ["The structural letter the engineer's review supports, sealed"],
   },
   {

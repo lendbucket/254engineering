@@ -241,7 +241,7 @@ export const proximityPages: ProximityPage[] = [
       },
       {
         q: "Can you inspect from photographs I already have?",
-        a: "No. The engineer's protocol requires evidence collected by the firm's own technician, timestamped and located by the firm's app. Photographs from other devices are not accepted, and that is what makes the letter defensible when somebody challenges it.",
+        a: "No. The engineer's protocol requires evidence collected by the firm's own technician, timestamped and located by the firm's app. Photographs from other devices are not accepted, and that is what makes the letter defensible when somebody challenges it. The one exception is a solar letter, where the engineer may decide at intake to rely on the installer's site survey photographs, and only where they cover every item the protocol requires.",
       },
       {
         q: "My home inspector said to get a structural engineer. What do I tell you?",

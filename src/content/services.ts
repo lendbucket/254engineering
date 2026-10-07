@@ -253,11 +253,11 @@ export const services: Service[] = [
     ],
     deliverable: [
       "A signed and sealed letter stating the framing as found, the array and attachment reviewed, the loads applied, the code edition used, and the structural conclusion.",
-      "Where reinforcement is required, the detail that makes the installation work, rather than a refusal with no path forward.",
+      "Where the roof will not carry the array as designed, a sealed letter saying so with a written list of what has to change. A revised array is recalculated without another visit; strengthening the structure is designed as a separate engagement.",
       "A PDF formatted for submission to the authority having jurisdiction, with the address, the scope, and the seal where a plans examiner expects to find them.",
     ],
     turnaround:
-      "Solar letters are ordinarily the fastest deliverable on this list, because the field data is compact and the calculation is well defined. Review and sealing typically follow within a few business days of receiving a complete site package.",
+      "Review begins when the record is complete: the array design and either the technician's field record or installer site survey photographs the engineer has accepted. No issue date is estimated before the engineer has made a determination.",
     faqs: [
       {
         q: "Does every Texas jurisdiction require a structural letter for solar?",
@@ -269,7 +269,7 @@ export const services: Service[] = [
       },
       {
         q: "What happens if the existing framing will not carry the array?",
-        a: "The letter says so, and where it can be solved it states what would solve it. Sistered members, blocking, or a revised standoff layout resolve most residential cases. A letter that simply declines and stops is a letter the installer cannot use.",
+        a: "The letter says so, with a written list of what has to change. Where the array itself can change, a revised design from the installer is recalculated without another visit. Where the structure has to be strengthened, that design is a separate engagement, and the finished work is verified on a return visit before any letter of adequacy is issued.",
       },
       {
         q: "Is a ground mount treated the same way?",
