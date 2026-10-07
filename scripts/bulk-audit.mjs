@@ -538,7 +538,26 @@ if (ids.length > 0) {
    */
   const entry = catalogFor("windstorm-wpi-8", "completed");
   const twia = new Set(["Nueces", "Aransas"]);
-  const answers = (entry?.qualifiers ?? []).map((q) => ({ qualifierId: q.id, optionIndex: 0 }));
+  /*
+   * EACH QUALIFIER IS ANSWERED WITH AN OPTION IT ACCEPTS, DERIVED RATHER THAN
+   * ASSUMED. This answered option 0 everywhere, which stated a condition, "the
+   * first option always passes", instead of reading it. On 2026-10-07 the
+   * completed construction stage qualifier began refusing its option 0 ("Not
+   * started, or in progress"), as WS-001 v1.1 section 12 requires, and the four
+   * county checks below went red refusing every property for the stage rather
+   * than testing the county at all. The subject here is the county, so every
+   * other answer is the first one the catalogue accepts, and the fixture says
+   * so out loud if a qualifier ever accepts nothing.
+   */
+  const answers = (entry?.qualifiers ?? []).map((q) => ({
+    qualifierId: q.id,
+    optionIndex: q.options.findIndex((_, i) => !q.disqualifyOn.includes(i)),
+  }));
+  rec(
+    "the fixture found an accepted answer for every qualifier, so the county checks test the county",
+    entry !== undefined && answers.every((a) => a.optionIndex >= 0),
+    answers.map((a) => `${a.qualifierId}=${a.optionIndex}`).join(", "),
+  );
 
   if (entry) {
     const split = splitBatch(
