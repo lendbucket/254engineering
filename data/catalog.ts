@@ -617,12 +617,13 @@ const DECLARED: CatalogDeclaration[] = [
     /*
      * FIELD SINCE 2026-10-07, operator ruling 7 that day: SL-001 sends a
      * technician, so the line carries the visit, per the protocol-wins rule
-     * (docs/conflicts-v1.1.md items 16 and 17). The inspection fee is not
-     * ruled, so orderBlockedReason keeps the line off the site until it is.
+     * (docs/conflicts-v1.1.md items 16 and 17). Its inspection fee is $175,
+     * ruled the same day, like every other field line.
      */
     orderType: "field",
     coastalSurchargeCents: 7500,
-    inspectionFeeCents: null,
+    /* $175, operator ruling of 2026-10-07: the same as every other field line. */
+    inspectionFeeCents: 17500,
     protocolServiceSlug: "solar-structural-letters",
     qualifiers: [
       ADDRESS_QUALIFIER,
@@ -682,10 +683,11 @@ const DECLARED: CatalogDeclaration[] = [
     serviceSlug: "structural-letters",
     tier: "standard",
     name: "Structural letter for permit",
-    /* FIELD SINCE 2026-10-07, ruling 7: PL-001 sends a technician (conflicts item 20). Fee not ruled. */
+    /* FIELD SINCE 2026-10-07, ruling 7: PL-001 sends a technician (conflicts item 20). Fee $175, ruled the same day. */
     orderType: "field",
     coastalSurchargeCents: 7500,
-    inspectionFeeCents: null,
+    /* $175, operator ruling of 2026-10-07: the same as every other field line. */
+    inspectionFeeCents: 17500,
     protocolServiceSlug: "structural-letters",
     qualifiers: [
       ADDRESS_QUALIFIER,
@@ -758,10 +760,11 @@ const DECLARED: CatalogDeclaration[] = [
     serviceSlug: "repair-specifications",
     tier: "standard",
     name: "Repair specification",
-    /* FIELD SINCE 2026-10-07, ruling 7: RS-001 sends a technician (conflicts item 23). Fee not ruled. */
+    /* FIELD SINCE 2026-10-07, ruling 7: RS-001 sends a technician (conflicts item 23). Fee $175, ruled the same day. */
     orderType: "field",
     coastalSurchargeCents: 7500,
-    inspectionFeeCents: null,
+    /* $175, operator ruling of 2026-10-07: the same as every other field line. */
+    inspectionFeeCents: 17500,
     protocolServiceSlug: "repair-specifications",
     qualifiers: [
       ADDRESS_QUALIFIER,
