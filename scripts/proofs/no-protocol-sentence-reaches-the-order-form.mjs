@@ -85,10 +85,14 @@ for (const entry of PROTOCOL_ENTRIES) {
    * phrase it refuses, in a comment, because it searched for it on one line.
    */
   const flow = readFileSync("src/components/order/OrderFlow.tsx", "utf8").replace(/\s+/g, " ");
-  check(
-    "the order form renders the server's refund disclosure, by call",
-    flow.includes("refundDisclosure(entry)") && flow.includes("refundIfDeclinedEarly(entry)"),
-  );
+  check("the order form renders the server's refund disclosure, by call", flow.includes("refundDisclosure(entry)"));
+  /*
+   * ONCE, operator ruling of 2026-10-07: the refund reassurance appears in the
+   * refund terms only. The disclosure already contains refundIfDeclinedEarly's
+   * sentence, so the form calling it too is the same sentence twice on one
+   * screen, which is what the capture showed and the ruling removed.
+   */
+  check("and does not repeat the early refund sentence outside the terms", !flow.includes("refundIfDeclinedEarly("));
   const typed = ["you are refunded in full", "an inspection fee is retained", "Paying does not buy a seal"].filter((s) =>
     flow.includes(s),
   );

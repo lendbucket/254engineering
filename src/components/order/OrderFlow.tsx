@@ -12,7 +12,7 @@ import {
   type FlowState,
   type StepId,
 } from "@/lib/order-flow";
-import { refundDisclosure, refundIfDeclinedEarly } from "@/lib/ops-orders";
+import { refundDisclosure } from "@/lib/ops-orders";
 
 /**
  * WHO THE CUSTOMER IS PAYING, read by the server page from the derivers and
@@ -916,9 +916,10 @@ function ReviewStep({
         2026-10-05, each from its one home (see TrustFacts). The card sentence
         lives under the buttons, and is true because checkout is Stripe's hosted
         page (payments-stripe.ts, checkout.sessions.create with no embedded
-        mode). The reassurance is
-        refundIfDeclinedEarly, by name, never the sentence the operator
-        rejected as false on 2026-10-05, because the customer pays at checkout.
+        mode). The refund reassurance appears ONCE, in the refund terms above,
+        by the operator's ruling of 2026-10-07; it was briefly repeated here.
+        Never the sentence rejected as false on 2026-10-05, because the
+        customer pays at checkout.
         The "Powered by Stripe" mark, approved 2026-10-07, is Stripe's own
         asset, downloaded unmodified from Stripe's brand page (the black badge
         in Powered_by_Stripe-badge.zip) to public/brand, and linked to
@@ -939,7 +940,6 @@ function ReviewStep({
           details are entered on Stripe's page and never reach this site."), so
           it was the same fact twice on one screen. That one stays.
         */}
-        <li>{refundIfDeclinedEarly(entry)}</li>
       </ul>
       <a
         href="https://stripe.com"
