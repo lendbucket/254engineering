@@ -7,6 +7,9 @@ import { services } from "@/content/services";
 import { Chip, EmptyState, PageHead } from "@/components/portal/surfaces";
 import { ApproveButton, ItemEditor, NewProtocolForm, QuestionEditor } from "./ProtocolsClient";
 import { protocolItemRowsFor } from "@/lib/protocol-run";
+import { RECEIVED_PROTOCOLS } from "@/content/protocols/received";
+import { signatureStatus } from "@/lib/protocol-sign";
+import { SignProtocolPanel } from "./SignProtocolPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +59,12 @@ export default async function ProtocolsPage({
   const questions = selected ? await protocolQuestions(actor, selected.id) : [];
 
   const serviceName = (slug: string) => services.find((s) => s.slug === slug)?.name ?? slug;
+  const signatures = await Promise.all(
+    RECEIVED_PROTOCOLS.map(async (protocol) => ({
+      protocol,
+      status: await signatureStatus(protocol.declaration.documentNumber, protocol.declaration.version as string),
+    })),
+  );
 
   const published = new Set(templates.filter((t) => t.status === "published").map((t) => t.service_slug));
   const uncovered = services.filter((s) => !published.has(s.slug));
@@ -67,6 +76,57 @@ export default async function ProtocolsPage({
         title="Protocols"
         lede="What a technician must capture on each service line, written by the engineer who will review it. A job cannot be dispatched in a service line with no published protocol."
       />
+
+      {/*
+        THE PROTOCOLS WAITING FOR HIS SIGNATURE. Ruling 2a of 2026-10-06: he
+        reads the verbatim transcription here, and signs the hash of exactly
+        that text from his own session. The text is the transcription's own,
+        proved against his PDF by protocol-registry-audit section 8.
+      */}
+      <section className="mb-8 border-t-2 border-[var(--ink)] pt-4">
+        <h2 className="text-[16px] font-semibold text-[var(--ink)]">Protocols for your signature</h2>
+        <p className="mt-1.5 max-w-[75ch] text-[14px] leading-[1.6] text-[var(--secondary)]">
+          Each is the text you sent, transcribed word for word. Read it in full, then sign it with a fresh code. Your
+          signature attaches to this exact text: if the text ever changes, the signature no longer covers it and the
+          service line closes until you sign again.
+        </p>
+        <ul className="mt-3">
+          {signatures.map(({ protocol, status }) => (
+            <li key={protocol.declaration.documentNumber} className="border-b border-[var(--row-rule)] py-3">
+              <p className="text-[14px] font-semibold text-[var(--ink)]">
+                {protocol.declaration.documentNumber} v{protocol.declaration.version}, {protocol.declaration.title}
+              </p>
+              <p className="mt-1 text-[14px] leading-[1.6] text-[var(--secondary)]">
+                {status.state === "signed"
+                  ? `Signed ${status.signedAt.slice(0, 10)}, fingerprint ${status.sha256.slice(0, 12)}.`
+                  : status.state === "void"
+                    ? `Signature void: ${status.why}`
+                    : status.state === "unknown"
+                      ? `Could not tell whether it is signed: ${status.why}`
+                      : "Not signed."}
+              </p>
+              <details className="mt-2">
+                <summary className="min-h-[44px] cursor-pointer text-[14px] font-semibold text-[var(--ink)] underline underline-offset-4">
+                  Read the full text
+                </summary>
+                <div className="mt-2 max-h-[480px] overflow-y-auto border border-[var(--border)] bg-white px-4 py-3">
+                  {(protocol.declaration.text as readonly string[]).map((line, i) => (
+                    <p key={i} className="text-[13.5px] leading-[1.55] text-[var(--ink)]">
+                      {line}
+                    </p>
+                  ))}
+                </div>
+              </details>
+              {status.state === "unsigned" ? (
+                <SignProtocolPanel
+                  documentNumber={protocol.declaration.documentNumber}
+                  version={protocol.declaration.version as string}
+                />
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      </section>
 
       {uncovered.length > 0 ? (
         <div className="mb-6 rounded-[4px] border border-[var(--border)] bg-white px-4 py-3">

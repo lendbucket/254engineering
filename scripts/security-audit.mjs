@@ -248,6 +248,8 @@ const ADMIN_APIS = [
   "/api/portal/seal",
   // Sealing piece two, 2026-10-07: drafting and sealing the engineer's letter.
   "/api/portal/letters",
+  // And signing a protocol in the portal, ruling 2a of 2026-10-06.
+  "/api/portal/protocols/sign",
   // Never listed since Phase 1 shipped it. Found by the coverage check below on
   // its first run, which is the argument for the coverage check.
   "/api/portal/files",
