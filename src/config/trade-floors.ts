@@ -274,27 +274,33 @@ export const TRADE_FLOORS: Record<string, TradeFloor> = {
   },
 
   /* ----------------------------------------------------------- desk orders */
+  /*
+   * RAISED BY $85 ON 2026-10-07, operator ruling: ruling 7 that day made these
+   * three lines field work, so each now carries a technician's visit, and each
+   * floor rises by exactly that visit. The heading above still says desk
+   * orders because that is where they were ruled.
+   */
   "solar-structural-letters/standard": {
     state: "set",
-    floorCents: 32_500,
-    because: "Solar structural letter, desktop. Ruled with the trade floors of 2026-09-20.",
+    floorCents: 41_000,
+    because: "Solar structural letter. Ruled at $325 with the trade floors of 2026-09-20 as desk work; raised by $85 to $410 on 2026-10-07 when the line became field work with a technician visit.",
     by: BY,
-    on: ON,
+    on: "2026-10-07",
   },
   "structural-letters/standard": {
     state: "set",
-    floorCents: 29_500,
-    because: "Structural letter, desktop. Ruled with the trade floors of 2026-09-20.",
+    floorCents: 38_000,
+    because: "Structural letter for permit. Ruled at $295 with the trade floors of 2026-09-20 as desk work; raised by $85 to $380 on 2026-10-07 when the line became field work with a technician visit.",
     by: BY,
-    on: ON,
+    on: "2026-10-07",
   },
   "repair-specifications/standard": {
     state: "set",
-    floorCents: 32_500,
+    floorCents: 41_000,
     because:
-      "Repair specification. Held briefly on 2026-09-20 while its tier mapping read tier 2, at which its cost exceeded its list price and it lost money before any discount, and ruled the same day when the mapping was corrected to tier 1. That mapping is provisional: no job has run, so it is revisited after ten real ones against recorded time, and this floor is revisited with it.",
+      "Repair specification. Held briefly on 2026-09-20 while its tier mapping read tier 2, at which its cost exceeded its list price and it lost money before any discount, and ruled at $325 the same day when the mapping was corrected to tier 1. That mapping is provisional: no job has run, so it is revisited after ten real ones against recorded time, and this floor is revisited with it. Raised by $85 to $410 on 2026-10-07 when the line became field work with a technician visit.",
     by: BY,
-    on: ON,
+    on: "2026-10-07",
   },
 
   /* ------------------------------------ hourly with a minimum, so no floor */
